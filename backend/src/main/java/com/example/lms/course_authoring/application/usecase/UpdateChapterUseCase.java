@@ -1,8 +1,8 @@
 package com.example.lms.course_authoring.application.usecase;
 
-import com.example.lms.course_authoring.application.dto.UpdateChapterCommand;
 import com.example.lms.course_authoring.application.dto.ChapterResponse;
-import com.example.lms.course_authoring.domain.model.Chapter;
+import com.example.lms.course_authoring.application.dto.UpdateChapterCommand;
+import com.example.lms.course_authoring.application.port.CourseStructureCommandPort;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
 import com.example.lms.shared.exception.EntityNotFoundException;
@@ -19,31 +19,32 @@ import org.springframework.transaction.annotation.Transactional;
 public class UpdateChapterUseCase {
 
     private final CourseRepository courseRepository;
+    private final CourseStructureCommandPort courseStructureCommandPort;
 
     @Transactional
     public ChapterResponse execute(UpdateChapterCommand command) {
-        // Find course with content
-        Course course = courseRepository.findByIdWithContent(command.courseId())
-                .orElseThrow(() -> new EntityNotFoundException("Khóa học", command.courseId()));
+        Course course = courseRepository.findById(command.courseId())
+                .orElseThrow(() -> new EntityNotFoundException("KhÃ³a há»c", command.courseId()));
 
-        // Check ownership
-        // Check ownership
         if (!course.isOwnedBy(command.userId()) && !command.isAdmin()) {
-            throw new UnauthorizedException("chỉnh sửa chương trong", "khóa học này");
+            throw new UnauthorizedException("chá»‰nh sá»­a chÆ°Æ¡ng trong", "khÃ³a há»c nÃ y");
         }
 
-        // Find chapter
-        Chapter chapter = course.getChapters().stream()
-                .filter(c -> c.getId().equals(command.chapterId()))
-                .findFirst()
-                .orElseThrow(() -> new EntityNotFoundException("Chương", command.chapterId()));
-
-        // Update chapter
-        chapter.updateInfo(command.title(), command.description());
-
-        // Save course
-        courseRepository.save(course);
-
-        return ChapterResponse.from(chapter);
+        var savedChapter = courseStructureCommandPort.updateChapter(
+                command.courseId(),
+                command.chapterId(),
+                command.title(),
+                command.description()
+        );
+        return new ChapterResponse(
+                savedChapter.id(),
+                savedChapter.title(),
+                savedChapter.description(),
+                savedChapter.orderIndex(),
+                0,
+                null,
+                savedChapter.createdAt(),
+                savedChapter.updatedAt()
+        );
     }
 }

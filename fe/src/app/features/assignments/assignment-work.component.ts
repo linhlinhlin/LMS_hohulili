@@ -3,7 +3,7 @@ import { Component, signal, inject, OnInit, ChangeDetectionStrategy } from '@ang
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
-import { AssignmentApi, AssignmentDetail, SubmissionDetail, CreateSubmissionRequest } from '../../api/client/assignment.api';
+import { AssignmentApi, AssignmentDetail, SubmissionDetail } from '../../api/client/assignment.api';
 import { ApiClient } from '../../api/client/api-client';
 import { STUDENT_ENDPOINTS } from '../../api/endpoints/student.endpoints';
 import { FileApi } from '../../api/client/file.api';
@@ -68,7 +68,7 @@ export class AssignmentWorkComponent implements OnInit {
   }
 
   private loadMySubmission(assignmentId: string): void {
-    this.assignmentApi.getMySubmission(assignmentId).subscribe({
+    this.assignmentApi.getStudentSubmission(assignmentId).subscribe({
       next: (response) => {
         if (response.data) {
           this.mySubmission.set(response.data);
@@ -214,11 +214,6 @@ export class AssignmentWorkComponent implements OnInit {
         }
       }
 
-      const request: CreateSubmissionRequest = {
-        content: this.submissionContent(),
-        attachments: fileUrls
-      };
-
       // BE expects { content, fileUrl, fileName } - include file info
       const payload: any = {
         content: this.submissionContent(),
@@ -227,10 +222,13 @@ export class AssignmentWorkComponent implements OnInit {
       };
 
       const response = await firstValueFrom(
-        this.assignmentApi.submitAssignment(assignmentId.toString(), payload)
+        this.assignmentApi.submitStudentAssignment(assignmentId.toString(), payload)
       );
       if (response.data) {
-        this.mySubmission.set(response.data);
+        const submissionResponse = await firstValueFrom(
+          this.assignmentApi.getStudentSubmission(assignmentId.toString())
+        );
+        this.mySubmission.set(submissionResponse.data ?? null);
         this.submissionContent.set('');
         this.uploadedFiles.set([]);
         this.toast.success('Nộp bài thành công!');
@@ -242,4 +240,3 @@ export class AssignmentWorkComponent implements OnInit {
     }
   }
 }
-

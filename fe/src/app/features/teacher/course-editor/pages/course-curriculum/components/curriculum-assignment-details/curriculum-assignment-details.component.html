@@ -1,0 +1,39 @@
+<div class="rounded-lg border border-green-200 bg-green-50 p-4">
+  <h4 class="mb-3 font-medium text-green-900">Thông tin bài tập</h4>
+  <div class="space-y-4">
+    <div>
+      <label class="mb-1 block text-sm font-medium text-green-700">Mô tả</label>
+      <textarea
+        [ngModel]="description()"
+        (ngModelChange)="onDescriptionChange($event)"
+        rows="3"
+        class="w-full resize-none rounded-lg border border-green-200 bg-white px-3 py-2"></textarea>
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-green-700">Hướng dẫn nộp bài</label>
+      <textarea
+        [ngModel]="instructions()"
+        (ngModelChange)="onInstructionsChange($event)"
+        rows="4"
+        class="w-full resize-y rounded-lg border border-green-200 bg-white px-3 py-2"></textarea>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="mb-1 block text-sm font-medium text-green-700">Hạn nộp</label>
+        <input
+          type="datetime-local"
+          [ngModel]="dueDate()"
+          (ngModelChange)="onDueDateChange($event)"
+          class="w-full rounded-lg border border-green-200 bg-white px-3 py-2">
+      </div>
+      <div>
+        <label class="mb-1 block text-sm font-medium text-green-700">Điểm tối đa</label>
+        <input
+          type="number"
+          [ngModel]="maxScore()"
+          (ngModelChange)="onMaxScoreChange($event)"
+          class="w-full rounded-lg border border-green-200 bg-white px-3 py-2">
+      </div>
+    </div>
+  </div>
+</div>

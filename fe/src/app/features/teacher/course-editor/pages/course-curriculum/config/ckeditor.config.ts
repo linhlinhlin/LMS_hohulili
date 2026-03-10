@@ -9,6 +9,7 @@ import {
   Table, TableToolbar, MediaEmbed,
   SourceEditing, Autoformat
 } from 'ckeditor5';
+import viTranslations from 'ckeditor5/translations/vi.js';
 import { createServerUploadPlugin } from '../../../../../../core/utils/server-upload-adapter';
 
 export const CKEDITOR_CLASS = ClassicEditor;
@@ -16,6 +17,8 @@ export const CKEDITOR_CLASS = ClassicEditor;
 export function createCKEditorConfig(http: HttpClient, apiUrl: string) {
   return {
     licenseKey: 'GPL',
+    language: 'vi',
+    translations: [viTranslations],
     plugins: [
       Essentials, Paragraph, Heading,
       Bold, Italic, Underline, Strikethrough, Subscript, Superscript, RemoveFormat,

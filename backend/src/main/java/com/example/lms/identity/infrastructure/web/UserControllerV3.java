@@ -11,6 +11,12 @@ import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmen
 import com.example.lms.learning_delivery.infrastructure.persistence.entity.EnrollmentJpaEntity;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import org.apache.poi.EncryptedDocumentException;
+import org.apache.poi.ooxml.POIXMLException;
+import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -24,8 +30,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.Normalizer;
+import java.time.Instant;
 import java.util.*;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 /**
@@ -38,6 +50,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Tag(name = "Admin - Users", description = "Admin user management endpoints")
 public class UserControllerV3 {
+
+    private static final String DEFAULT_IMPORT_PASSWORD = "Password123!";
 
     private final UserJpaRepository userRepository;
     private final UpdateUserUseCaseV3 updateUserUseCaseV3;
@@ -60,17 +74,27 @@ public class UserControllerV3 {
 
         boolean hasRole = role != null && !role.isBlank();
         boolean hasSearch = search != null && !search.isBlank();
+        UserJpaEntity.UserRole roleEnum = null;
+
+        if (hasRole) {
+            roleEnum = parseRole(role);
+            if (roleEnum == null) {
+                return badRequest("Vai trò không hợp lệ");
+            }
+        }
+
+        if (isOrgAdminWithoutOrganization(currentUser)) {
+            return forbidden("Chuyên viên quản lý phải thuộc một tổ chức để xem danh sách người dùng");
+        }
 
         Page<UserJpaEntity> users;
 
         // ORG_ADMIN: filter to users within their organization
-        if (isOrgAdmin(currentUser) && currentUser.getOrganizationId() != null) {
+        if (isOrgAdmin(currentUser)) {
             UUID orgId = currentUser.getOrganizationId();
             if (hasRole && hasSearch) {
-                UserJpaEntity.UserRole roleEnum = UserJpaEntity.UserRole.valueOf(role.toUpperCase());
                 users = userRepository.searchByOrganizationIdAndRoleAndKeyword(orgId, roleEnum, search, pageable);
             } else if (hasRole) {
-                UserJpaEntity.UserRole roleEnum = UserJpaEntity.UserRole.valueOf(role.toUpperCase());
                 users = userRepository.findByOrganizationIdAndRole(orgId, roleEnum, pageable);
             } else if (hasSearch) {
                 users = userRepository.searchByOrganizationIdAndKeyword(orgId, search, pageable);
@@ -80,10 +104,8 @@ public class UserControllerV3 {
         } else {
             // ADMIN: sees all users (unchanged)
             if (hasRole && hasSearch) {
-                UserJpaEntity.UserRole roleEnum = UserJpaEntity.UserRole.valueOf(role.toUpperCase());
                 users = userRepository.searchUsersByRole(roleEnum, search, pageable);
             } else if (hasRole) {
-                UserJpaEntity.UserRole roleEnum = UserJpaEntity.UserRole.valueOf(role.toUpperCase());
                 users = userRepository.findByRole(roleEnum, pageable);
             } else if (hasSearch) {
                 users = userRepository.searchUsersByKeyword(search, pageable);
@@ -102,8 +124,12 @@ public class UserControllerV3 {
     public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsersNoPagination(
             @org.springframework.security.core.annotation.AuthenticationPrincipal UserJpaEntity currentUser
     ) {
+        if (isOrgAdminWithoutOrganization(currentUser)) {
+            return forbidden("Chuyên viên quản lý phải thuộc một tổ chức để xem danh sách người dùng");
+        }
+
         Page<UserJpaEntity> page;
-        if (isOrgAdmin(currentUser) && currentUser.getOrganizationId() != null) {
+        if (isOrgAdmin(currentUser)) {
             page = userRepository.findByOrganizationId(currentUser.getOrganizationId(), PageRequest.of(0, 1000));
         } else {
             page = userRepository.findAll(PageRequest.of(0, 1000));
@@ -126,17 +152,34 @@ public class UserControllerV3 {
 
         boolean hasRole = role != null && !role.isBlank();
         boolean hasSearch = q != null && !q.isBlank();
+        UserJpaEntity.UserRole roleEnum = null;
+
+        if (hasRole) {
+            roleEnum = parseRole(role);
+            if (roleEnum == null) {
+                return badRequest("Vai trò không hợp lệ");
+            }
+        }
+
+        if (isOrgAdminWithoutOrganization(currentUser)) {
+            return forbidden("Chuyên viên quản lý phải thuộc một tổ chức để tìm kiếm người dùng");
+        }
+        if (currentUser != null && currentUser.getRole() == UserJpaEntity.UserRole.TEACHER) {
+            if (hasRole && roleEnum != UserJpaEntity.UserRole.TEACHER) {
+                return forbidden("Giảng viên chỉ có thể tìm kiếm giảng viên");
+            }
+            hasRole = true;
+            roleEnum = UserJpaEntity.UserRole.TEACHER;
+        }
 
         Page<UserJpaEntity> users;
 
         // ORG_ADMIN: filter to users within their organization
-        if (isOrgAdmin(currentUser) && currentUser.getOrganizationId() != null) {
+        if (isOrgAdmin(currentUser)) {
             UUID orgId = currentUser.getOrganizationId();
             if (hasRole && hasSearch) {
-                UserJpaEntity.UserRole roleEnum = UserJpaEntity.UserRole.valueOf(role.toUpperCase());
                 users = userRepository.searchByOrganizationIdAndRoleAndKeyword(orgId, roleEnum, q, pageable);
             } else if (hasRole) {
-                UserJpaEntity.UserRole roleEnum = UserJpaEntity.UserRole.valueOf(role.toUpperCase());
                 users = userRepository.findByOrganizationIdAndRole(orgId, roleEnum, pageable);
             } else if (hasSearch) {
                 users = userRepository.searchByOrganizationIdAndKeyword(orgId, q, pageable);
@@ -146,10 +189,8 @@ public class UserControllerV3 {
         } else {
             // ADMIN/TEACHER: unchanged
             if (hasRole && hasSearch) {
-                UserJpaEntity.UserRole roleEnum = UserJpaEntity.UserRole.valueOf(role.toUpperCase());
                 users = userRepository.searchUsersByRole(roleEnum, q, pageable);
             } else if (hasRole) {
-                UserJpaEntity.UserRole roleEnum = UserJpaEntity.UserRole.valueOf(role.toUpperCase());
                 users = userRepository.findByRole(roleEnum, pageable);
             } else if (hasSearch) {
                 users = userRepository.searchUsersByKeyword(q, pageable);
@@ -165,8 +206,18 @@ public class UserControllerV3 {
     @Operation(summary = "Get all instructors")
     @GetMapping("/instructors")
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
-    public ResponseEntity<ApiResponse<List<UserResponse>>> getInstructors() {
-        List<UserJpaEntity> instructors = userRepository.findByRole(UserJpaEntity.UserRole.TEACHER);
+    public ResponseEntity<ApiResponse<List<UserResponse>>> getInstructors(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal UserJpaEntity currentUser
+    ) {
+        if (isOrgAdminWithoutOrganization(currentUser)) {
+            return forbidden("Chuyên viên quản lý phải thuộc một tổ chức để xem danh sách giảng viên");
+        }
+
+        List<UserJpaEntity> instructors = isOrgAdmin(currentUser)
+                ? userRepository.findByOrganizationId(currentUser.getOrganizationId()).stream()
+                        .filter(user -> user.getRole() == UserJpaEntity.UserRole.TEACHER)
+                        .toList()
+                : userRepository.findByRole(UserJpaEntity.UserRole.TEACHER);
         List<UserResponse> response = instructors.stream().map(this::toResponse).toList();
         return ResponseEntity.ok(ApiResponse.success(response, "Danh sách giảng viên"));
     }
@@ -174,11 +225,24 @@ public class UserControllerV3 {
     @Operation(summary = "Get user by ID")
     @GetMapping("/{userId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
-    public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable UUID userId) {
-        return userRepository.findById(userId)
-                .map(user -> ResponseEntity.ok(ApiResponse.success(toResponse(user), "Thông tin người dùng")))
-                .orElseGet(() -> ResponseEntity.status(404)
-                        .body(ApiResponse.error("ENTITY_NOT_FOUND", "Không tìm thấy người dùng")));
+    public ResponseEntity<ApiResponse<UserResponse>> getUserById(
+            @PathVariable UUID userId,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal UserJpaEntity currentUser
+    ) {
+        if (isOrgAdminWithoutOrganization(currentUser)) {
+            return forbidden("Chuyên viên quản lý phải thuộc một tổ chức để xem người dùng");
+        }
+
+        Optional<UserJpaEntity> target = userRepository.findById(userId);
+        if (target.isEmpty()) {
+            return ResponseEntity.status(404)
+                    .body(ApiResponse.error("ENTITY_NOT_FOUND", "Không tìm thấy người dùng"));
+        }
+        if (!canAccessUser(currentUser, target.get())) {
+            return forbidden("Bạn không có quyền xem người dùng này");
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(toResponse(target.get()), "Thông tin người dùng"));
     }
 
     @Operation(summary = "Create a new user (admin)")
@@ -188,41 +252,135 @@ public class UserControllerV3 {
             @Valid @RequestBody CreateUserRequest request,
             @org.springframework.security.core.annotation.AuthenticationPrincipal UserJpaEntity currentUser
     ) {
-        // Business guard: ORG_ADMIN can only create TEACHER/STUDENT
-        UserJpaEntity.UserRole targetRole = UserJpaEntity.UserRole.valueOf(request.getRole().toUpperCase());
-        if (isOrgAdmin(currentUser) && isAdminRole(targetRole)) {
-            return ResponseEntity.status(403)
-                    .body(ApiResponse.error("Chuyên viên quản lý không thể tạo tài khoản quản trị"));
+        UserJpaEntity.UserRole targetRole = parseRole(request.getRole());
+        if (targetRole == null) {
+            return badRequest("Vai trò không hợp lệ");
         }
 
-        if (userRepository.existsByEmail(request.getEmail())) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Email đã tồn tại"));
-        }
-
-        // Validate password against NIST policy
-        String passwordError = PasswordPolicy.validate(request.getPassword());
-        if (passwordError != null) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error(passwordError));
-        }
-
-        String username = (request.getUsername() != null && !request.getUsername().isBlank())
-                ? request.getUsername() : request.getEmail();
-        UserJpaEntity user = new UserJpaEntity(
-                UUID.randomUUID(),
-                username,
+        String username = resolveUsername(request.getUsername(), request.getEmail());
+        String validationError = validateUserProvisioningRequest(
                 request.getEmail(),
-                passwordEncoder.encode(request.getPassword()),
                 request.getFullName(),
+                request.getPassword(),
+                username,
                 targetRole,
-                true,
-                java.time.Instant.now(),
-                null
+                currentUser
         );
+        if (validationError != null) {
+            return isForbiddenProvisioningError(validationError) ? forbidden(validationError) : badRequest(validationError);
+        }
 
-        UserJpaEntity saved = userRepository.save(user);
+        UserJpaEntity saved = userRepository.save(buildUserEntity(
+                username,
+                request.getEmail().trim(),
+                request.getPassword(),
+                request.getFullName().trim(),
+                targetRole,
+                currentUser
+        ));
         return ResponseEntity.ok(ApiResponse.success(toResponse(saved), "Tạo tài khoản thành công"));
+    }
+
+    @Operation(summary = "Bulk import users from Excel")
+    @PostMapping("/bulk-import")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
+    public ResponseEntity<ApiResponse<BulkImportResult>> bulkImportUsers(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(defaultValue = "STUDENT") String defaultRole,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal UserJpaEntity currentUser
+    ) {
+        if (isOrgAdminWithoutOrganization(currentUser)) {
+            return forbidden("Chuyên viên quản lý phải thuộc một tổ chức để import người dùng");
+        }
+
+        UserJpaEntity.UserRole targetRole = parseRole(defaultRole);
+        if (targetRole == null) {
+            return badRequest("Vai trò mặc định không hợp lệ");
+        }
+        if (isOrgAdmin(currentUser) && isAdminRole(targetRole)) {
+            return forbidden("Chuyên viên quản lý không thể import tài khoản quản trị");
+        }
+        if (file == null || file.isEmpty()) {
+            return badRequest("Vui lòng chọn file Excel để import");
+        }
+        if (!isExcelFile(file)) {
+            return badRequest("Chỉ hỗ trợ file Excel .xlsx hoặc .xls");
+        }
+
+        int totalRows = 0;
+        int successfulImports = 0;
+        int failedImports = 0;
+        List<String> errors = new ArrayList<>();
+
+        try (InputStream inputStream = file.getInputStream();
+             Workbook workbook = WorkbookFactory.create(inputStream)) {
+            if (workbook.getNumberOfSheets() == 0) {
+                return badRequest("File Excel không chứa sheet dữ liệu");
+            }
+
+            var sheet = workbook.getSheetAt(0);
+            BulkImportColumnMapping columns = resolveBulkImportColumns(sheet.getRow(sheet.getFirstRowNum()));
+            if (columns == null) {
+                return badRequest("Template không hợp lệ. Cần tối thiểu cột Email và Full Name");
+            }
+
+            for (int rowNum = sheet.getFirstRowNum() + 1; rowNum <= sheet.getLastRowNum(); rowNum++) {
+                Row row = sheet.getRow(rowNum);
+                if (row == null || isBlankRow(row)) {
+                    continue;
+                }
+
+                totalRows++;
+                String email = readCell(row, columns.emailColumn());
+                String fullName = readCell(row, columns.fullNameColumn());
+                String password = Optional.ofNullable(readCell(row, columns.passwordColumn()))
+                        .filter(value -> !value.isBlank())
+                        .orElse(DEFAULT_IMPORT_PASSWORD);
+                String username = resolveUsername(readCell(row, columns.usernameColumn()), email);
+
+                String validationError = validateUserProvisioningRequest(
+                        email,
+                        fullName,
+                        password,
+                        username,
+                        targetRole,
+                        currentUser
+                );
+                if (validationError != null) {
+                    failedImports++;
+                    errors.add("Dòng " + (rowNum + 1) + ": " + validationError);
+                    continue;
+                }
+
+                try {
+                    userRepository.save(buildUserEntity(
+                            username,
+                            email.trim(),
+                            password,
+                            fullName.trim(),
+                            targetRole,
+                            currentUser
+                    ));
+                    successfulImports++;
+                } catch (RuntimeException ex) {
+                    failedImports++;
+                    errors.add("Dòng " + (rowNum + 1) + ": " + firstMeaningfulMessage(ex, "Không thể tạo người dùng"));
+                }
+            }
+        } catch (IOException | POIXMLException | EncryptedDocumentException ex) {
+            return badRequest("Không thể đọc file Excel. Vui lòng kiểm tra định dạng và nội dung file");
+        }
+
+        BulkImportResult result = new BulkImportResult(
+                totalRows,
+                successfulImports,
+                failedImports,
+                summarizeErrors(errors)
+        );
+        String message = failedImports == 0
+                ? "Đã import " + successfulImports + " người dùng"
+                : "Đã import thành công " + successfulImports + "/" + totalRows + " người dùng";
+        return ResponseEntity.ok(ApiResponse.success(result, message));
     }
 
     @Operation(summary = "Update user")
@@ -233,22 +391,26 @@ public class UserControllerV3 {
             @Valid @RequestBody UpdateUserRequest request,
             @org.springframework.security.core.annotation.AuthenticationPrincipal UserJpaEntity currentUser
     ) {
-        // Business guard: ORG_ADMIN cannot modify ADMIN/ORG_ADMIN users
+        if (isOrgAdminWithoutOrganization(currentUser)) {
+            return forbidden("Chuyên viên quản lý phải thuộc một tổ chức để chỉnh sửa người dùng");
+        }
+
         if (isOrgAdmin(currentUser)) {
             Optional<UserJpaEntity> target = userRepository.findById(userId);
-            if (target.isPresent() && isAdminRole(target.get().getRole())) {
-                return ResponseEntity.status(403)
-                        .body(ApiResponse.error("Chuyên viên quản lý không thể chỉnh sửa tài khoản quản trị"));
+            if (target.isEmpty()) {
+                return ResponseEntity.notFound().build();
             }
-            // Escalation prevention: ORG_ADMIN cannot SET role to ADMIN/ORG_ADMIN
+            if (!canManageUser(currentUser, target.get())) {
+                return forbidden("Bạn không có quyền chỉnh sửa người dùng này");
+            }
             if (request.getRole() != null) {
-                try {
-                    UserJpaEntity.UserRole requestedRole = UserJpaEntity.UserRole.valueOf(request.getRole().toUpperCase());
-                    if (isAdminRole(requestedRole)) {
-                        return ResponseEntity.status(403)
-                                .body(ApiResponse.error("Chuyên viên quản lý không thể nâng cấp vai trò lên quản trị"));
-                    }
-                } catch (IllegalArgumentException ignored) { }
+                UserJpaEntity.UserRole requestedRole = parseRole(request.getRole());
+                if (requestedRole == null) {
+                    return badRequest("Vai trò không hợp lệ");
+                }
+                if (isAdminRole(requestedRole)) {
+                    return forbidden("Chuyên viên quản lý không thể nâng cấp vai trò lên quản trị");
+                }
             }
         }
 
@@ -259,7 +421,7 @@ public class UserControllerV3 {
         );
         return updateUserUseCaseV3.execute(userId, command)
                 .map(user -> ResponseEntity.ok(ApiResponse.success(toResponse(user), "Cập nhật tài khoản thành công")))
-                .orElse(ResponseEntity.notFound().build());
+                .orElse(ResponseEntity.<ApiResponse<UserResponse>>notFound().build());
     }
 
     @Operation(summary = "Toggle user enabled/disabled status")
@@ -269,18 +431,21 @@ public class UserControllerV3 {
             @PathVariable UUID userId,
             @org.springframework.security.core.annotation.AuthenticationPrincipal UserJpaEntity currentUser
     ) {
-        return userRepository.findById(userId)
-                .map(user -> {
-                    // Business guard: ORG_ADMIN cannot toggle ADMIN/ORG_ADMIN
-                    if (isOrgAdmin(currentUser) && isAdminRole(user.getRole())) {
-                        return ResponseEntity.status(403)
-                                .body(ApiResponse.<UserResponse>error("Chuyên viên quản lý không thể thay đổi trạng thái tài khoản quản trị"));
-                    }
-                    user.setEnabled(!user.isEnabled());
-                    UserJpaEntity saved = userRepository.save(user);
-                    return ResponseEntity.ok(ApiResponse.success(toResponse(saved), "Đã thay đổi trạng thái tài khoản"));
-                })
-                .orElse(ResponseEntity.notFound().build());
+        if (isOrgAdminWithoutOrganization(currentUser)) {
+            return forbidden("Chuyên viên quản lý phải thuộc một tổ chức để cập nhật trạng thái người dùng");
+        }
+
+        Optional<UserJpaEntity> target = userRepository.findById(userId);
+        if (target.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        if (!canManageUser(currentUser, target.get())) {
+            return forbidden("Bạn không có quyền thay đổi trạng thái người dùng này");
+        }
+
+        target.get().setEnabled(!target.get().isEnabled());
+        UserJpaEntity saved = userRepository.save(target.get());
+        return ResponseEntity.ok(ApiResponse.success(toResponse(saved), "Đã thay đổi trạng thái tài khoản"));
     }
 
     @Operation(summary = "Delete user")
@@ -302,28 +467,42 @@ public class UserControllerV3 {
             @Valid @RequestBody UpdateStatusRequest request,
             @org.springframework.security.core.annotation.AuthenticationPrincipal UserJpaEntity currentUser
     ) {
-        return userRepository.findById(userId)
-                .map(user -> {
-                    // Business guard: ORG_ADMIN cannot change status of ADMIN/ORG_ADMIN
-                    if (isOrgAdmin(currentUser) && isAdminRole(user.getRole())) {
-                        return ResponseEntity.status(403)
-                                .body(ApiResponse.<UserResponse>error("Chuyên viên quản lý không thể thay đổi trạng thái tài khoản quản trị"));
-                    }
-                    boolean enabled = "ACTIVE".equalsIgnoreCase(request.getStatus());
-                    user.setEnabled(enabled);
-                    UserJpaEntity saved = userRepository.save(user);
-                    return ResponseEntity.ok(ApiResponse.success(toResponse(saved),
-                            "Trạng thái tài khoản đã cập nhật thành " + request.getStatus()));
-                })
-                .orElse(ResponseEntity.notFound().build());
+        if (isOrgAdminWithoutOrganization(currentUser)) {
+            return forbidden("Chuyên viên quản lý phải thuộc một tổ chức để cập nhật trạng thái người dùng");
+        }
+
+        Optional<UserJpaEntity> target = userRepository.findById(userId);
+        if (target.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        if (!canManageUser(currentUser, target.get())) {
+            return forbidden("Bạn không có quyền thay đổi trạng thái người dùng này");
+        }
+
+        boolean enabled = "ACTIVE".equalsIgnoreCase(request.getStatus());
+        target.get().setEnabled(enabled);
+        UserJpaEntity saved = userRepository.save(target.get());
+        return ResponseEntity.ok(ApiResponse.success(
+                toResponse(saved),
+                "Trạng thái tài khoản đã cập nhật thành " + request.getStatus()
+        ));
     }
 
     @Operation(summary = "Get enrolled courses for a user (admin view)")
     @GetMapping("/{userId}/enrolled-courses")
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getUserEnrolledCourses(
-            @PathVariable UUID userId
+            @PathVariable UUID userId,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal UserJpaEntity currentUser
     ) {
+        Optional<UserJpaEntity> target = getAccessibleTargetUser(userId, currentUser);
+        if (target.isEmpty()) {
+            return userRepository.existsById(userId)
+                    ? forbidden("Bạn không có quyền xem khóa học của người dùng này")
+                    : ResponseEntity.status(404)
+                            .body(ApiResponse.error("ENTITY_NOT_FOUND", "Không tìm thấy người dùng"));
+        }
+
         List<EnrollmentJpaEntity> enrollments = enrollmentRepository.findActiveWithClass(userId);
 
         // Group enrollments by courseId, keep the one with highest progress
@@ -373,14 +552,22 @@ public class UserControllerV3 {
     @GetMapping("/{userId}/managed-courses")
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getUserManagedCourses(
-            @PathVariable UUID userId
+            @PathVariable UUID userId,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal UserJpaEntity currentUser
     ) {
+        Optional<UserJpaEntity> target = getAccessibleTargetUser(userId, currentUser);
+        if (target.isEmpty()) {
+            return userRepository.existsById(userId)
+                    ? forbidden("Bạn không có quyền xem khóa học của người dùng này")
+                    : ResponseEntity.status(404)
+                            .body(ApiResponse.error("ENTITY_NOT_FOUND", "Không tìm thấy người dùng"));
+        }
+
         Page<CourseJpaEntity> page = courseRepository.findByTeacherId(userId, Pageable.unpaged());
         List<CourseJpaEntity> courseList = page.getContent();
 
-        // Batch load teacher name + enrollment counts (2 queries instead of 2N)
         Map<UUID, String> teacherNameMap = new HashMap<>();
-        userRepository.findById(userId).ifPresent(t -> teacherNameMap.put(userId, t.getFullName()));
+        teacherNameMap.put(userId, target.get().getFullName());
         List<UUID> courseIds = courseList.stream().map(CourseJpaEntity::getId).toList();
         Map<UUID, Long> enrollCountMap = new HashMap<>();
         if (!courseIds.isEmpty()) {
@@ -399,9 +586,17 @@ public class UserControllerV3 {
     @GetMapping("/{userId}/coop-courses")
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getUserCoopCourses(
-            @PathVariable UUID userId
+            @PathVariable UUID userId,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal UserJpaEntity currentUser
     ) {
-        // Co-op course feature is basic - return empty list for now
+        Optional<UserJpaEntity> target = getAccessibleTargetUser(userId, currentUser);
+        if (target.isEmpty()) {
+            return userRepository.existsById(userId)
+                    ? forbidden("Bạn không có quyền xem khóa học của người dùng này")
+                    : ResponseEntity.status(404)
+                            .body(ApiResponse.error("ENTITY_NOT_FOUND", "Không tìm thấy người dùng"));
+        }
+
         return ResponseEntity.ok(ApiResponse.success(List.of(), "Danh sách khóa học hợp tác"));
     }
 
@@ -412,7 +607,7 @@ public class UserControllerV3 {
         map.put("id", course.getId().toString());
         map.put("code", course.getCode());
         map.put("title", course.getTitle());
-        map.put("status", course.getStatus() != null ? course.getStatus().name().toLowerCase() : "draft");
+        map.put("status", course.getStatus() != null ? course.getStatus().name().toLowerCase(Locale.ROOT) : "draft");
         map.put("createdAt", course.getCreatedAt() != null ? course.getCreatedAt().toString() : null);
 
         if (course.getTeacherId() != null) {
@@ -429,11 +624,11 @@ public class UserControllerV3 {
     private UserResponse toResponse(UserJpaEntity user) {
         return UserResponse.builder()
                 .id(user.getId().toString())
-                .username(user.getUsername())
+                .username(user.getDisplayName())
                 .email(user.getEmail())
                 .name(user.getFullName())
                 .fullName(user.getFullName())
-                .role(user.getRole() != null ? user.getRole().name().toLowerCase() : "student")
+                .role(user.getRole() != null ? user.getRole().name().toLowerCase(Locale.ROOT) : "student")
                 .isActive(user.isEnabled())
                 .enabled(user.isEnabled())
                 .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
@@ -448,7 +643,7 @@ public class UserControllerV3 {
                 .email(user.getEmail().getValue())
                 .name(user.getFullName())
                 .fullName(user.getFullName())
-                .role(user.getRole() != null ? user.getRole().name().toLowerCase() : "student")
+                .role(user.getRole() != null ? user.getRole().name().toLowerCase(Locale.ROOT) : "student")
                 .isActive(user.isEnabled())
                 .enabled(user.isEnabled())
                 .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
@@ -462,8 +657,255 @@ public class UserControllerV3 {
         return user != null && user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
     }
 
+    private boolean isOrgAdminWithoutOrganization(UserJpaEntity user) {
+        return isOrgAdmin(user) && user.getOrganizationId() == null;
+    }
+
     private boolean isAdminRole(UserJpaEntity.UserRole role) {
         return role == UserJpaEntity.UserRole.ADMIN || role == UserJpaEntity.UserRole.ORG_ADMIN;
+    }
+
+    private boolean canAccessUser(UserJpaEntity currentUser, UserJpaEntity targetUser) {
+        if (!isOrgAdmin(currentUser)) {
+            return true;
+        }
+        UUID currentOrganizationId = currentUser.getOrganizationId();
+        return currentOrganizationId != null && currentOrganizationId.equals(targetUser.getOrganizationId());
+    }
+
+    private boolean canManageUser(UserJpaEntity currentUser, UserJpaEntity targetUser) {
+        return canAccessUser(currentUser, targetUser)
+                && (!isOrgAdmin(currentUser) || !isAdminRole(targetUser.getRole()));
+    }
+
+    private Optional<UserJpaEntity> getAccessibleTargetUser(UUID userId, UserJpaEntity currentUser) {
+        if (isOrgAdminWithoutOrganization(currentUser)) {
+            return Optional.empty();
+        }
+        return userRepository.findById(userId)
+                .filter(target -> canAccessUser(currentUser, target));
+    }
+
+    private UserJpaEntity.UserRole parseRole(String rawRole) {
+        if (rawRole == null || rawRole.isBlank()) {
+            return null;
+        }
+        try {
+            return UserJpaEntity.UserRole.valueOf(rawRole.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private String validateUserProvisioningRequest(String email,
+                                                   String fullName,
+                                                   String password,
+                                                   String username,
+                                                   UserJpaEntity.UserRole targetRole,
+                                                   UserJpaEntity currentUser) {
+        if (isOrgAdminWithoutOrganization(currentUser)) {
+            return "Chuyên viên quản lý phải thuộc một tổ chức để tạo người dùng";
+        }
+        if (targetRole == null) {
+            return "Vai trò không hợp lệ";
+        }
+        if (isOrgAdmin(currentUser) && isAdminRole(targetRole)) {
+            return "Chuyên viên quản lý không thể tạo tài khoản quản trị";
+        }
+
+        String normalizedEmail = email == null ? "" : email.trim();
+        String normalizedFullName = fullName == null ? "" : fullName.trim();
+        String normalizedUsername = username == null ? "" : username.trim();
+
+        if (normalizedEmail.isBlank()) {
+            return "Email không được để trống";
+        }
+        if (!isValidEmail(normalizedEmail)) {
+            return "Email không hợp lệ";
+        }
+        if (normalizedEmail.length() > 100) {
+            return "Email không được quá 100 ký tự";
+        }
+        if (normalizedFullName.isBlank()) {
+            return "Họ tên không được để trống";
+        }
+        if (normalizedFullName.length() > 255) {
+            return "Họ tên không được quá 255 ký tự";
+        }
+        if (normalizedUsername.isBlank()) {
+            return "Tên đăng nhập không được để trống";
+        }
+        if (normalizedUsername.length() > 50) {
+            return "Tên đăng nhập không được quá 50 ký tự";
+        }
+        if (userRepository.existsByEmail(normalizedEmail)) {
+            return "Email đã tồn tại";
+        }
+        if (userRepository.existsByUsername(normalizedUsername)) {
+            return "Tên đăng nhập đã tồn tại";
+        }
+
+        String passwordError = PasswordPolicy.validate(password);
+        if (passwordError != null) {
+            return passwordError;
+        }
+        return null;
+    }
+
+    private UserJpaEntity buildUserEntity(String username,
+                                          String email,
+                                          String password,
+                                          String fullName,
+                                          UserJpaEntity.UserRole targetRole,
+                                          UserJpaEntity currentUser) {
+        UserJpaEntity user = new UserJpaEntity(
+                UUID.randomUUID(),
+                username,
+                email,
+                passwordEncoder.encode(password),
+                fullName,
+                targetRole,
+                true,
+                Instant.now(),
+                null
+        );
+        if (isOrgAdmin(currentUser)) {
+            user.setOrganizationId(currentUser.getOrganizationId());
+        }
+        return user;
+    }
+
+    private String resolveUsername(String username, String email) {
+        if (username != null && !username.isBlank()) {
+            return username.trim();
+        }
+        if (email == null || email.isBlank()) {
+            return "";
+        }
+        int atIndex = email.indexOf('@');
+        return (atIndex > 0 ? email.substring(0, atIndex) : email).trim();
+    }
+
+    private boolean isValidEmail(String email) {
+        return email.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+    }
+
+    private boolean isExcelFile(MultipartFile file) {
+        String filename = file.getOriginalFilename();
+        if (filename == null) {
+            return false;
+        }
+        String lowerName = filename.toLowerCase(Locale.ROOT);
+        return lowerName.endsWith(".xlsx") || lowerName.endsWith(".xls");
+    }
+
+    private BulkImportColumnMapping resolveBulkImportColumns(Row headerRow) {
+        if (headerRow == null) {
+            return null;
+        }
+
+        DataFormatter formatter = new DataFormatter();
+        Map<String, Integer> headers = new HashMap<>();
+        int firstCell = headerRow.getFirstCellNum();
+        if (firstCell < 0) {
+            return null;
+        }
+        for (int columnIndex = firstCell; columnIndex < headerRow.getLastCellNum(); columnIndex++) {
+            String header = normalizeHeader(formatter.formatCellValue(
+                    headerRow.getCell(columnIndex, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL)
+            ));
+            if (!header.isBlank()) {
+                headers.putIfAbsent(header, columnIndex);
+            }
+        }
+
+        Integer emailColumn = findFirstHeader(headers, "email");
+        Integer fullNameColumn = findFirstHeader(headers, "full name", "fullname", "name", "ho ten", "ten day du");
+        if (emailColumn == null || fullNameColumn == null) {
+            return null;
+        }
+
+        Integer usernameColumn = findFirstHeader(headers, "username", "ten dang nhap", "tai khoan");
+        Integer passwordColumn = findFirstHeader(headers, "password", "mat khau");
+        return new BulkImportColumnMapping(usernameColumn, emailColumn, fullNameColumn, passwordColumn);
+    }
+
+    private Integer findFirstHeader(Map<String, Integer> headers, String... aliases) {
+        for (String alias : aliases) {
+            Integer column = headers.get(normalizeHeader(alias));
+            if (column != null) {
+                return column;
+            }
+        }
+        return null;
+    }
+
+    private String normalizeHeader(String rawValue) {
+        if (rawValue == null) {
+            return "";
+        }
+        String noAccent = Normalizer.normalize(rawValue, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "");
+        return noAccent.toLowerCase(Locale.ROOT).replaceAll("\\s+", " ").trim();
+    }
+
+    private String readCell(Row row, Integer columnIndex) {
+        if (row == null || columnIndex == null) {
+            return null;
+        }
+        DataFormatter formatter = new DataFormatter();
+        return formatter.formatCellValue(
+                row.getCell(columnIndex, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL)
+        ).trim();
+    }
+
+    private boolean isBlankRow(Row row) {
+        int firstCell = row.getFirstCellNum();
+        if (firstCell < 0) {
+            return true;
+        }
+        DataFormatter formatter = new DataFormatter();
+        for (int columnIndex = firstCell; columnIndex < row.getLastCellNum(); columnIndex++) {
+            String value = formatter.formatCellValue(
+                    row.getCell(columnIndex, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL)
+            );
+            if (value != null && !value.isBlank()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private List<String> summarizeErrors(List<String> errors) {
+        if (errors.size() <= 20) {
+            return errors;
+        }
+        List<String> summarized = new ArrayList<>(errors.subList(0, 20));
+        summarized.add("... và " + (errors.size() - 20) + " lỗi khác");
+        return summarized;
+    }
+
+    private String firstMeaningfulMessage(Throwable throwable, String fallback) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current.getMessage() != null && !current.getMessage().isBlank()) {
+                return current.getMessage();
+            }
+            current = current.getCause();
+        }
+        return fallback;
+    }
+
+    private boolean isForbiddenProvisioningError(String message) {
+        return message != null && message.startsWith("Chuyên viên quản lý");
+    }
+
+    private <T> ResponseEntity<ApiResponse<T>> badRequest(String message) {
+        return ResponseEntity.badRequest().body(ApiResponse.error(message));
+    }
+
+    private <T> ResponseEntity<ApiResponse<T>> forbidden(String message) {
+        return ResponseEntity.status(403).body(ApiResponse.error(message));
     }
 
     // === DTOs ===
@@ -522,4 +964,18 @@ public class UserControllerV3 {
         private String status; // ACTIVE, BLOCKED, RESTRICTED
         private String reason;
     }
+
+    public record BulkImportResult(
+            int totalRows,
+            int successfulImports,
+            int failedImports,
+            List<String> errors
+    ) {}
+
+    private record BulkImportColumnMapping(
+            Integer usernameColumn,
+            Integer emailColumn,
+            Integer fullNameColumn,
+            Integer passwordColumn
+    ) {}
 }

@@ -1,10 +1,24 @@
 package com.example.lms.assessment.application.usecase;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+
 import com.example.lms.assessment.application.dto.CreateAssignmentCommand;
 import com.example.lms.assessment.domain.model.Assignment;
 import com.example.lms.assessment.domain.repository.AssignmentRepository;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -13,16 +27,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CreateAssignmentUseCaseV3 Tests")
@@ -50,11 +54,11 @@ class CreateAssignmentUseCaseV3Test {
             doReturn(Optional.of(course)).when(courseRepository).findById(courseId);
 
             ArgumentCaptor<Assignment> captor = ArgumentCaptor.forClass(Assignment.class);
-            doAnswer(inv -> inv.getArgument(0)).when(assignmentRepository).save(captor.capture());
+            doAnswer(invocation -> invocation.getArgument(0)).when(assignmentRepository).save(captor.capture());
 
             CreateAssignmentCommand command = new CreateAssignmentCommand(
-                UUID.randomUUID(), courseId, "Essay Assignment", "Write about navigation",
-                "Follow the rubric", "ESSAY", 100, null, null, null, null
+                    UUID.randomUUID(), courseId, "Essay Assignment", "Write about navigation",
+                    "Follow the rubric", "ESSAY", 100, null, null, null, null, null, null
             );
 
             UUID result = useCase.execute(command);
@@ -74,18 +78,18 @@ class CreateAssignmentUseCaseV3Test {
             Course course = mock(Course.class);
             doReturn(Course.DeliveryMode.INSTRUCTOR_LED).when(course).getDeliveryMode();
             doReturn(Optional.of(course)).when(courseRepository).findById(courseId);
-            doAnswer(inv -> inv.getArgument(0)).when(assignmentRepository).save(any(Assignment.class));
+            doAnswer(invocation -> invocation.getArgument(0)).when(assignmentRepository).save(any(Assignment.class));
 
             List<UUID> studentIds = List.of(UUID.randomUUID(), UUID.randomUUID());
             CreateAssignmentCommand command = new CreateAssignmentCommand(
-                UUID.randomUUID(), courseId, "Task", "desc", "instr",
-                "FILE_UPLOAD", 50, null, null, "SPECIFIC_STUDENTS", studentIds
+                    UUID.randomUUID(), courseId, "Task", "desc", "instr",
+                    "FILE_UPLOAD", 50, null, null, null, "SPECIFIC_STUDENTS", null, studentIds
             );
 
             UUID result = useCase.execute(command);
 
             assertThat(result).isNotNull();
-            verify(assignmentRepository).allocate(any(UUID.class), eq("SPECIFIC_STUDENTS"), eq(studentIds));
+            verify(assignmentRepository).allocate(any(UUID.class), eq("SPECIFIC_STUDENTS"), eq(null), eq(studentIds));
         }
 
         @Test
@@ -95,12 +99,12 @@ class CreateAssignmentUseCaseV3Test {
             Course course = mock(Course.class);
             doReturn(Course.DeliveryMode.INSTRUCTOR_LED).when(course).getDeliveryMode();
             doReturn(Optional.of(course)).when(courseRepository).findById(courseId);
-            doAnswer(inv -> inv.getArgument(0)).when(assignmentRepository).save(any(Assignment.class));
+            doAnswer(invocation -> invocation.getArgument(0)).when(assignmentRepository).save(any(Assignment.class));
 
             Instant futureDate = Instant.now().plusSeconds(86400 * 14);
             CreateAssignmentCommand command = new CreateAssignmentCommand(
-                UUID.randomUUID(), courseId, "Task", "desc", "instr",
-                "FILE_UPLOAD", 50, futureDate, null, null, null
+                    UUID.randomUUID(), courseId, "Task", "desc", "instr",
+                    "FILE_UPLOAD", 50, futureDate, null, null, null, null, null
             );
 
             UUID result = useCase.execute(command);
@@ -111,27 +115,46 @@ class CreateAssignmentUseCaseV3Test {
     }
 
     @Nested
-    @DisplayName("INSTRUCTOR_LED Enforcement Tests")
-    class InstructorLedEnforcementTests {
+    @DisplayName("Delivery Mode Tests")
+    class DeliveryModeTests {
 
         @Test
-        @DisplayName("Should reject SELF_PACED course with IllegalStateException")
-        void shouldRejectSelfPacedCourse() {
+        @DisplayName("Should create course-wide assignment for SELF_PACED course")
+        void shouldCreateSelfPacedAssignment() {
             UUID courseId = UUID.randomUUID();
-            Course selfPacedCourse = mock(Course.class);
-            doReturn(Course.DeliveryMode.SELF_PACED).when(selfPacedCourse).getDeliveryMode();
-            doReturn("Khóa tự học").when(selfPacedCourse).getTitle();
-            doReturn(Optional.of(selfPacedCourse)).when(courseRepository).findById(courseId);
+            Course course = mock(Course.class);
+            doReturn(Course.DeliveryMode.SELF_PACED).when(course).getDeliveryMode();
+            doReturn(Optional.of(course)).when(courseRepository).findById(courseId);
+            doAnswer(invocation -> invocation.getArgument(0)).when(assignmentRepository).save(any(Assignment.class));
 
             CreateAssignmentCommand command = new CreateAssignmentCommand(
-                UUID.randomUUID(), courseId, "Bài tập", "desc", "instr",
-                "ESSAY", 100, null, null, null, null
+                    UUID.randomUUID(), courseId, "Course Task", "desc", "instr",
+                    "ESSAY", 100, null, null, null, null, null, null
+            );
+
+            UUID result = useCase.execute(command);
+
+            assertThat(result).isNotNull();
+            verify(assignmentRepository).save(any(Assignment.class));
+        }
+
+        @Test
+        @DisplayName("Should reject SELF_PACED assignment with CLASS distribution")
+        void shouldRejectSelfPacedClassDistribution() {
+            UUID courseId = UUID.randomUUID();
+            Course course = mock(Course.class);
+            doReturn(Course.DeliveryMode.SELF_PACED).when(course).getDeliveryMode();
+            doReturn(Optional.of(course)).when(courseRepository).findById(courseId);
+
+            CreateAssignmentCommand command = new CreateAssignmentCommand(
+                    UUID.randomUUID(), courseId, "Course Task", "desc", "instr",
+                    "ESSAY", 100, null, null, null, "CLASS", UUID.randomUUID(), null
             );
 
             assertThatThrownBy(() -> useCase.execute(command))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("INSTRUCTOR_LED")
-                .hasMessageContaining("Khóa tự học");
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("SELF_PACED")
+                    .hasMessageContaining("ALL_STUDENTS");
 
             verifyNoInteractions(assignmentRepository);
         }
@@ -143,13 +166,13 @@ class CreateAssignmentUseCaseV3Test {
             doReturn(Optional.empty()).when(courseRepository).findById(courseId);
 
             CreateAssignmentCommand command = new CreateAssignmentCommand(
-                UUID.randomUUID(), courseId, "Bài tập", "desc", "instr",
-                "ESSAY", 100, null, null, null, null
+                    UUID.randomUUID(), courseId, "Task", "desc", "instr",
+                    "ESSAY", 100, null, null, null, null, null, null
             );
 
             assertThatThrownBy(() -> useCase.execute(command))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Không tìm thấy khóa học");
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Khong tim thay khoa hoc");
 
             verifyNoInteractions(assignmentRepository);
         }
@@ -168,12 +191,12 @@ class CreateAssignmentUseCaseV3Test {
             doReturn(Optional.of(course)).when(courseRepository).findById(courseId);
 
             CreateAssignmentCommand command = new CreateAssignmentCommand(
-                UUID.randomUUID(), courseId, "  ", "desc", "instr",
-                "ESSAY", 100, null, null, null, null
+                    UUID.randomUUID(), courseId, "  ", "desc", "instr",
+                    "ESSAY", 100, null, null, null, null, null, null
             );
 
             assertThatThrownBy(() -> useCase.execute(command))
-                .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOf(IllegalArgumentException.class);
         }
     }
 }

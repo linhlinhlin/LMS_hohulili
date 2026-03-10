@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject, signal, OnInit, computed } from '@angular/core';
+﻿import { Component, ChangeDetectionStrategy, inject, signal, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -7,7 +7,9 @@ import { AssignmentStateService } from './services/assignment-state.service';
 import { validateMaxScore } from './utils/assignment-validators';
 import { DistributionSelectorComponent, DistributionSettings } from '../assignment-hub/components/distribution-selector.component';
 import { CourseApi } from '../../../api/client/course.api';
-import { LucideAngularModule } from 'lucide-angular';
+import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
+import { DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 type AssignmentStatus = 'pending' | 'published' | 'closed' | 'DRAFT' | 'PUBLISHED' | 'CLOSED';
 
@@ -28,7 +30,7 @@ interface EnrolledStudentData {
  */
 @Component({
   selector: 'app-assignment-editor',
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule, DistributionSelectorComponent, LucideAngularModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule, DistributionSelectorComponent],
   templateUrl: './assignment-editor.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -38,6 +40,8 @@ export class AssignmentEditorComponent implements OnInit {
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private confirmDialog = inject(ConfirmDialogService);
+  private destroyRef = inject(DestroyRef);
 
   // Route param
   assignmentId = '';
@@ -52,6 +56,81 @@ export class AssignmentEditorComponent implements OnInit {
   success = signal('');
   showDeleteConfirm = signal(false);
 
+  supportsClassDistribution = computed(
+    () => this.assignment()?.deliveryMode === 'INSTRUCTOR_LED'
+  );
+
+  readonly deliveryModeLabel = computed(() => {
+    switch (this.assignment()?.deliveryMode) {
+      case 'INSTRUCTOR_LED':
+        return 'Lớp học';
+      case 'SELF_PACED':
+        return 'Khóa học';
+      default:
+        return 'Chưa xác định';
+    }
+  });
+
+  readonly canonicalContentHint = computed(() => {
+    if (this.supportsClassDistribution()) {
+      return 'Nội dung ở đây là phần mặc định của bài học trong khóa học. Việc giao cho lớp hoặc học viên cụ thể được cấu hình riêng ở phần phân phối bên dưới.';
+    }
+
+    return 'Phần này áp dụng trực tiếp cho toàn bộ học viên của khóa học tự học.';
+  });
+
+  readonly distributionSectionTitle = computed(() =>
+    this.supportsClassDistribution()
+      ? 'Phân phối theo lớp hoặc học viên'
+      : 'Phân phối áp dụng cho toàn khóa học'
+  );
+
+  readonly distributionSectionHint = computed(() => {
+    if (this.supportsClassDistribution()) {
+      return 'Chọn lớp học hoặc nhóm học viên sẽ nhận cùng một bài tập mặc định này.';
+    }
+
+    return 'Khóa học tự học chỉ có một phạm vi duy nhất: toàn bộ học viên đã ghi danh trong khóa học.';
+  });
+
+  readonly distributionScopeLabel = computed(() => {
+    switch (this.assignment()?.distributionType) {
+      case 'CLASS':
+        return 'Theo lớp';
+      case 'SPECIFIC_STUDENTS':
+        return 'Theo học viên';
+      case 'ALL_STUDENTS':
+        return 'Toàn khóa học';
+      default:
+        return this.supportsClassDistribution() ? 'Chưa cấu hình' : 'Toàn khóa học';
+    }
+  });
+
+  readonly distributionTargetLabel = computed(() => {
+    const assignment = this.assignment();
+    if (!assignment) {
+      return 'Chưa xác định';
+    }
+
+    if (assignment.distributionType === 'CLASS') {
+      return assignment.className || 'Lớp học chưa được đặt tên';
+    }
+
+    if (assignment.distributionType === 'SPECIFIC_STUDENTS') {
+      return `${assignment.allocatedStudentIds?.length ?? 0} học viên`;
+    }
+
+    if (assignment.deliveryMode === 'SELF_PACED') {
+      return 'Toàn bộ học viên đã ghi danh';
+    }
+
+    if (assignment.distributionType === 'ALL_STUDENTS') {
+      return 'Toàn bộ học viên trong khóa học';
+    }
+
+    return assignment.courseTitle || 'Chưa xác định';
+  });
+
   // Distribution state
   enrolledStudents = signal<EnrolledStudentData[]>([]);
   loadingStudents = signal(false);
@@ -60,6 +139,7 @@ export class AssignmentEditorComponent implements OnInit {
   // Original values for change detection
   private originalValues = signal<Record<string, unknown>>({});
   private originalDistributionSettings = signal<DistributionSettings | null>(null);
+  private formRevision = signal(0);
 
   // Reactive form
   form = this.fb.group({
@@ -73,6 +153,7 @@ export class AssignmentEditorComponent implements OnInit {
 
   // Computed: Check if form has changes
   hasChanges = computed(() => {
+    this.formRevision();
     const currentForm = this.form.getRawValue();
     const originalForm = this.originalValues();
     const formChanged = JSON.stringify(currentForm) !== JSON.stringify(originalForm);
@@ -86,6 +167,14 @@ export class AssignmentEditorComponent implements OnInit {
     return result;
   });
 
+  constructor() {
+    this.form.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.formRevision.update(value => value + 1);
+      });
+  }
+
   ngOnInit(): void {
     // Check current route params first, then parent route params (since this is a child route)
     this.assignmentId = this.route.snapshot.paramMap.get('id') ||
@@ -96,6 +185,20 @@ export class AssignmentEditorComponent implements OnInit {
     } else {
       this.error.set('ID bài tập không hợp lệ');
     }
+  }
+
+  async canDeactivate(): Promise<boolean> {
+    if (!this.hasChanges() && !this.saving()) {
+      return true;
+    }
+
+    return this.confirmDialog.confirm({
+      title: 'Rời màn chỉnh sửa bài tập',
+      message: 'Bạn có thay đổi chưa lưu trong bài tập này. Nếu rời màn này, các chỉnh sửa hiện tại sẽ bị mất.',
+      variant: 'warning',
+      confirmText: 'Rời màn này',
+      cancelText: 'Ở lại'
+    });
   }
 
   /**
@@ -154,11 +257,15 @@ export class AssignmentEditorComponent implements OnInit {
     // Set distribution settings
     const distSettings: DistributionSettings = {
       distributionType: (assignment.distributionType as 'CLASS' | 'SPECIFIC_STUDENTS' | 'ALL_STUDENTS') || 'ALL_STUDENTS',
-      studentIds: assignment.allocatedStudentIds || [],
+      studentIds: assignment.allocatedStudentIds ? [...assignment.allocatedStudentIds] : [],
       classId: assignment.classId || null
     };
     this.distributionSettings.set(distSettings);
-    this.originalDistributionSettings.set(distSettings);
+    this.originalDistributionSettings.set({
+      distributionType: distSettings.distributionType,
+      studentIds: distSettings.studentIds ? [...distSettings.studentIds] : null,
+      classId: distSettings.classId ?? null
+    });
   }
 
   /**
@@ -212,7 +319,28 @@ export class AssignmentEditorComponent implements OnInit {
 
     this.saving.set(true);
 
-    const distSettings = this.distributionSettings();
+    const distSettings = this.supportsClassDistribution()
+      ? this.distributionSettings()
+      : {
+          distributionType: 'ALL_STUDENTS' as const,
+          studentIds: null,
+          classId: null,
+        };
+
+    if (distSettings?.distributionType === 'CLASS' && !distSettings.classId) {
+      this.formError.set('Vui lòng chọn lớp học trước khi lưu bài tập');
+      this.saving.set(false);
+      return;
+    }
+
+    if (
+      distSettings?.distributionType === 'SPECIFIC_STUDENTS' &&
+      (!distSettings.studentIds || distSettings.studentIds.length === 0)
+    ) {
+      this.formError.set('Vui lòng chọn ít nhất một học viên');
+      this.saving.set(false);
+      return;
+    }
 
     const request: UpdateAssignmentRequest = {
       title: formValue.title || undefined,
@@ -221,6 +349,7 @@ export class AssignmentEditorComponent implements OnInit {
       dueDate: dueDateInstant,
       maxScore: formValue.maxScore || undefined,
       status: formValue.status || undefined,
+      classId: distSettings?.distributionType === 'CLASS' ? distSettings.classId || undefined : undefined,
       studentIds: distSettings?.distributionType === 'SPECIFIC_STUDENTS' ? distSettings.studentIds || [] : undefined,
       distributionType: distSettings?.distributionType
     };
@@ -231,7 +360,16 @@ export class AssignmentEditorComponent implements OnInit {
           this.success.set('Đã lưu thay đổi!');
           // Update original values
           this.originalValues.set(this.form.getRawValue());
-          this.originalDistributionSettings.set(this.distributionSettings());
+          const currentDistribution = this.distributionSettings();
+          this.originalDistributionSettings.set(
+            currentDistribution
+              ? {
+                  distributionType: currentDistribution.distributionType,
+                  studentIds: currentDistribution.studentIds ? [...currentDistribution.studentIds] : null,
+                  classId: currentDistribution.classId ?? null,
+                }
+              : null
+          );
           // Clear success after 3 seconds
           setTimeout(() => this.success.set(''), 3000);
         } else {
@@ -253,6 +391,16 @@ export class AssignmentEditorComponent implements OnInit {
   resetForm(): void {
     const original = this.originalValues();
     this.form.patchValue(original);
+    const originalDistribution = this.originalDistributionSettings();
+    this.distributionSettings.set(
+      originalDistribution
+        ? {
+            distributionType: originalDistribution.distributionType,
+            studentIds: originalDistribution.studentIds ? [...originalDistribution.studentIds] : null,
+            classId: originalDistribution.classId ?? null,
+          }
+        : null
+    );
     this.formError.set('');
     this.success.set('');
   }
@@ -354,4 +502,3 @@ export class AssignmentEditorComponent implements OnInit {
     // You might want to update form validity or touched state here if needed
   }
 }
-

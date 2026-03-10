@@ -6,7 +6,7 @@ import { Injectable, signal, computed, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { Course, CourseCategory, CourseLevel, Lesson, CourseProgress, FilterOptions, ExtendedCourse } from '../shared/types/course.types';
 import { PaginatedResponse } from '../shared/types/common.types';
-import { CourseApi, ClassSummary } from '../api/client/course.api';
+import { CourseApi } from '../api/client/course.api';
 import { CourseSummary, CourseDetail } from '../api/types/course.types';
 
 @Injectable({
@@ -58,7 +58,7 @@ export class CourseService {
       // Build API params
       const params: Record<string, any> = {
         page: page - 1, // Backend uses 0-based pagination
-        limit
+        size: limit
       };
 
       if (filters?.search) {
@@ -197,15 +197,6 @@ export class CourseService {
     }
   }
 
-  async getAvailableClasses(courseId: string): Promise<ClassSummary[]> {
-    try {
-      const res = await firstValueFrom(this.courseApi.getAvailableClasses(courseId));
-      return res.data || [];
-    } catch (e) {
-      return [];
-    }
-  }
-
   /**
    * Get course progress
    */
@@ -220,6 +211,7 @@ export class CourseService {
   private mapCourseSummaryToExtended(courses: CourseSummary[]): ExtendedCourse[] {
     return courses.map(course => {
       const isFree = course.priceType === 'FREE' || !course.price || course.price === 0;
+      const isPublished = this.isPubliclyVisibleStatus(course.status);
 
       return {
         id: course.id,
@@ -227,7 +219,7 @@ export class CourseService {
         title: course.title,
         description: course.description || '',
         shortDescription: course.description?.substring(0, 100) || '',
-        thumbnail: null as any,
+        thumbnail: course.thumbnailUrl || null as any,
         instructor: {
           id: '',
           name: course.teacherName || 'Giảng viên',
@@ -239,6 +231,7 @@ export class CourseService {
           studentsCount: course.enrolledCount || 0
         },
         category: CourseCategory.MARINE_ENGINEERING,
+        categoryName: course.categoryName,
         level: 'beginner' as CourseLevel,
         duration: '30h',
         students: course.enrolledCount || 0,
@@ -263,8 +256,9 @@ export class CourseService {
         },
         studentsCount: course.enrolledCount || 0,
         lessonsCount: 0,
-        isPublished: course.status === 'PUBLISHED',
-        isFree
+        isPublished,
+        isFree,
+        deliveryMode: course.deliveryMode
       };
     });
   }
@@ -276,6 +270,7 @@ export class CourseService {
   private mapCourseDetailToExtended(course: CourseDetail): ExtendedCourse {
     // Determine if course is free
     const isFree = course.priceType === 'FREE' || !course.price || course.price === 0;
+    const isPublished = this.isPubliclyVisibleStatus(course.status);
 
     return {
       id: course.id,
@@ -283,7 +278,7 @@ export class CourseService {
       title: course.title,
       description: course.description || '',
       shortDescription: course.description?.substring(0, 100) || '',
-      thumbnail: course.introVideoUrl || null as any,
+      thumbnail: (course as CourseDetail & { thumbnailUrl?: string }).thumbnailUrl || null as any,
       instructor: {
         id: course.teacherId || '',
         name: course.teacherName || 'Giảng viên',
@@ -320,10 +315,15 @@ export class CourseService {
       },
       studentsCount: course.enrolledCount || 0,
       lessonsCount: 0,
-      isPublished: course.status === 'PUBLISHED',
+      isPublished,
       isFree,
       deliveryMode: course.deliveryMode
     };
+  }
+
+  private isPubliclyVisibleStatus(status?: string): boolean {
+    const normalized = (status || '').toUpperCase();
+    return normalized === 'PUBLISHED' || normalized === 'APPROVED';
   }
 
   /**

@@ -243,6 +243,7 @@ export interface CreateLessonRequest {
   videoUrl?: string;
   durationMinutes?: number;
   orderIndex?: number;
+  type?: 'LECTURE' | 'ASSIGNMENT' | 'QUIZ';
   lessonType?: 'LECTURE' | 'ASSIGNMENT' | 'QUIZ';
   quizTimeLimit?: number;
   quizMaxScore?: number;

@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ClassSummary, CreateClassRequest, UpdateClassRequest } from '../shared/types/course.types';
-import { ApiResponse } from '../api/types/common.types';
+import { ApiResponse, Page } from '../api/types/common.types';
 import { map } from 'rxjs/operators';
 
 import { environment } from '../../environments/environment';
@@ -16,18 +16,34 @@ export class ClassService {
 
     getClassesByCourse(courseId: string): Observable<ClassSummary[]> {
         return this.http.get<ApiResponse<ClassSummary[]>>(`${this.API_URL}/classes/by-course/${courseId}`)
-            .pipe(map(response => response.data));
+            .pipe(map(response => (response.data || []).map(item => this.mapClassSummary(item))));
     }
 
-    searchClasses(courseId: string, search: string = '', status: string = '', semester: string = '', page: number = 0, limit: number = 10): Observable<import('../api/types/common.types').Page<ClassSummary>> {
+    searchClasses(courseId: string, search: string = '', status: string = '', semester: string = '', page: number = 0, limit: number = 10): Observable<Page<ClassSummary>> {
         let params = `?page=${page}&size=${limit}`;
         if (search) params += `&search=${encodeURIComponent(search)}`;
         if (status) params += `&status=${status}`;
         if (semester) params += `&semester=${encodeURIComponent(semester)}`;
 
-        return this.http.get<ApiResponse<import('../api/types/common.types').Page<ClassSummary>>>(
+        return this.http.get<ApiResponse<any>>(
             `${this.API_URL}/classes/by-course/${courseId}/search${params}`
-        ).pipe(map(response => response.data));
+        ).pipe(map(response => {
+            const pageData = response.data || {};
+            const number = pageData.pageNumber ?? page;
+            const totalPages = pageData.totalPages ?? 0;
+            const content = (pageData.content || []).map((item: unknown) => this.mapClassSummary(item));
+
+            return {
+                content,
+                totalElements: pageData.totalElements ?? content.length,
+                totalPages,
+                size: pageData.pageSize ?? limit,
+                number,
+                first: number === 0,
+                last: totalPages === 0 || number >= totalPages - 1,
+                empty: content.length === 0
+            } as Page<ClassSummary>;
+        }));
     }
 
     createClass(request: CreateClassRequest): Observable<ClassSummary> {
@@ -64,5 +80,21 @@ export class ClassService {
         const formData = new FormData();
         formData.append('file', file);
         return this.http.post<any>(`${this.API_URL}/classes/${classId}/enrollments/import?preview=${preview}`, formData);
+    }
+
+    private mapClassSummary(item: any): ClassSummary {
+        return {
+            id: item?.id ?? '',
+            name: item?.name ?? '',
+            code: item?.code ?? '',
+            teacherId: item?.teacherId ?? undefined,
+            teacherName: item?.teacherName ?? '',
+            startDate: item?.startDate ?? '',
+            endDate: item?.endDate ?? '',
+            maxStudents: item?.maxStudents ?? 0,
+            studentCount: item?.studentCount ?? 0,
+            scheduleType: item?.scheduleType ?? (item?.semester ? 'SEMESTER' : 'CUSTOM'),
+            semester: item?.semester ?? ''
+        };
     }
 }

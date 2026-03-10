@@ -38,6 +38,10 @@ public class CreateQuizUseCaseV3 {
     public UUID execute(CreateQuizCommand command) {
         log.info("Creating quiz {} for lesson {} (V3)", command.title(), command.lessonId());
 
+        if (!quizRepository.findByLessonId(command.lessonId()).isEmpty()) {
+            throw new IllegalArgumentException("Bai hoc nay da co bai kiem tra");
+        }
+
         // Build quiz settings from command
         Quiz.QuizSettings settings = Quiz.QuizSettings.builder()
             .timeLimitMinutes(command.timeLimitMinutes())

@@ -1,0 +1,99 @@
+<div class="container mx-auto px-4 py-8">
+  <div class="mb-6">
+    <h2 class="text-2xl font-bold text-gray-800">Tạo bài kiểm tra</h2>
+    @if (courseTitle()) {
+      <p class="text-gray-600">Khóa học: {{ courseTitle() }}</p>
+    }
+  </div>
+
+  @if (isLoading()) {
+    <div class="flex justify-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0056D2]"></div>
+    </div>
+  }
+
+  @if (!isLoading()) {
+    <div class="bg-white p-6 rounded-lg shadow-sm mb-6 border border-gray-100">
+      <h3 class="text-lg font-semibold text-gray-800 mb-4">Vị trí của bài kiểm tra trong khóa học</h3>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Chọn chương <span class="text-red-500">*</span></label>
+      <select
+        [value]="selectedChapterId()"
+        (change)="selectedChapterId.set($any($event.target).value)"
+        class="w-full md:w-1/2 px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-[#0056D2] focus:ring-[#0056D2] bg-white">
+        <option value="" disabled>-- Chọn chương --</option>
+        @for (chapter of chapters(); track chapter.id) {
+          <option [value]="chapter.id">{{ chapter.title }}</option>
+        }
+      </select>
+      @if (chapters().length === 0) {
+        <p class="text-orange-500 text-sm mt-2">
+          <app-icon name="alert" size="sm" class="text-yellow-500"></app-icon>
+          Khóa học này chưa có chương nào để đặt quiz.
+        </p>
+      }
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow-sm mb-6 border border-gray-100">
+      <h3 class="text-lg font-semibold text-gray-800 mb-4">Phạm vi áp dụng</h3>
+
+      @if (!supportsClassScope()) {
+        <div class="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+          Khóa học tự học dùng một quiz chung cho toàn bộ khóa học. Tùy chọn chia theo lớp chỉ khả dụng với loại <strong>Lớp học</strong>.
+        </div>
+      } @else {
+        <div class="flex gap-6 mb-4">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="scope"
+              [value]="'COURSE'"
+              [checked]="scope() === 'COURSE'"
+              (change)="setScope('COURSE')"
+              class="w-4 h-4 text-[#0056D2]">
+            <span>Toàn bộ khóa học</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="scope"
+              [value]="'CLASS'"
+              [checked]="scope() === 'CLASS'"
+              (change)="setScope('CLASS')"
+              class="w-4 h-4 text-[#0056D2]">
+            <span>Lớp học cụ thể</span>
+          </label>
+        </div>
+
+        @if (scope() === 'CLASS') {
+          <div class="animate-fade-in">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Chọn lớp học</label>
+            <select
+              [value]="selectedClassId()"
+              (change)="selectedClassId.set($any($event.target).value)"
+              class="w-full md:w-1/2 px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-[#0056D2] focus:ring-[#0056D2] bg-white">
+              <option value="" disabled>-- Chọn lớp --</option>
+              @for (cls of classes(); track cls.id) {
+                <option [value]="cls.id">
+                  {{ cls.name }} (Code: {{ cls.code }})
+                </option>
+              }
+            </select>
+            @if (classes().length === 0) {
+              <p class="text-orange-500 text-sm mt-2">
+                <app-icon name="alert" size="sm" class="text-yellow-500"></app-icon>
+                Khóa học này chưa có lớp nào đang hoạt động.
+              </p>
+            }
+          </div>
+        }
+      }
+    </div>
+
+    <app-quiz-form
+      [config]="formConfig"
+      [questions]="questions()"
+      (onSubmit)="handleSubmit($event)"
+      (onCancel)="handleCancel()">
+    </app-quiz-form>
+  }
+</div>

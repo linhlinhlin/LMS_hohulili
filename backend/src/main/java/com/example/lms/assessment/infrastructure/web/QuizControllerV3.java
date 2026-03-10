@@ -1,5 +1,8 @@
 package com.example.lms.assessment.infrastructure.web;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.example.lms.assessment.application.port.StudentAssessmentAccessPort;
 import com.example.lms.assessment.application.usecase.CreateQuizUseCaseV3;
 import com.example.lms.assessment.application.usecase.GetQuizStatisticsUseCase;
 import com.example.lms.assessment.application.usecase.QuizAttemptUseCase;
@@ -7,13 +10,21 @@ import com.example.lms.assessment.application.usecase.QuizManagementUseCase;
 import com.example.lms.assessment.domain.model.Quiz;
 import com.example.lms.assessment.domain.model.QuizAttempt;
 import com.example.lms.assessment.infrastructure.persistence.entity.QuestionJpaEntity;
+import com.example.lms.assessment.infrastructure.persistence.entity.QuizAssignmentJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.entity.QuizAttemptJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.entity.QuizJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.repository.QuestionJpaRepository;
+import com.example.lms.assessment.infrastructure.persistence.repository.QuizAssignmentJpaRepository;
 import com.example.lms.assessment.infrastructure.persistence.repository.QuizAttemptJpaRepository;
 import com.example.lms.assessment.infrastructure.persistence.repository.QuizJpaRepositoryV3;
+import com.example.lms.course_authoring.application.usecase.CreateLessonUseCaseV3;
 import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
+import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity;
+import com.example.lms.course_authoring.infrastructure.persistence.entity.LessonJpaEntity;
+import com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository;
+import com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
+import com.example.lms.learning_delivery.infrastructure.persistence.JpaLearningClassRepository;
 import com.example.lms.shared.domain.model.ContentBlock;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,6 +33,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +47,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,15 +68,119 @@ public class QuizControllerV3 {
     private final QuizJpaRepositoryV3 quizJpaRepository;
     private final QuizAttemptJpaRepository attemptJpaRepository;
     private final JpaCourseRepository courseJpaRepository;
+    private final CreateLessonUseCaseV3 createLessonUseCase;
+    private final ChapterJpaRepository chapterJpaRepository;
+    private final LessonJpaRepository lessonJpaRepository;
+    private final QuizAssignmentJpaRepository quizAssignmentJpaRepository;
+    private final JpaLearningClassRepository classJpaRepository;
+    private final StudentAssessmentAccessPort studentAssessmentAccessPort;
 
     // ============ Teacher CRUD Operations ============
 
     @PostMapping
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Create a new quiz")
-    public ResponseEntity<ApiResponse<UUID>> createQuiz(@RequestBody @Valid CreateQuizUseCaseV3.CreateQuizCommand command) {
-        UUID quizId = createQuizUseCase.execute(command);
-        return ResponseEntity.ok(ApiResponse.success(quizId));
+    public ResponseEntity<ApiResponse<UUID>> createQuiz(
+            @RequestBody @Valid CreateQuizUseCaseV3.CreateQuizCommand command,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        verifyLessonOwnership(command.lessonId(), user);
+        try {
+            ensureLessonSupportsQuizCreation(command.lessonId());
+            UUID quizId = createQuizUseCase.execute(command);
+            return ResponseEntity.ok(ApiResponse.success(quizId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/lessons/{lessonId}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @Operation(summary = "Create a fully configured quiz for an existing lesson")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> createLessonQuiz(
+            @PathVariable UUID lessonId,
+            @Valid @RequestBody StructuredQuizRequest request,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        verifyLessonOwnership(lessonId, user);
+        try {
+            ensureLessonSupportsQuizCreation(lessonId);
+            QuizSchedule schedule = parseQuizSchedule(request);
+            UUID quizId = createStructuredQuiz(lessonId, request, schedule, user);
+            return ResponseEntity.ok(ApiResponse.success(buildCreatedQuizResponse(quizId, lessonId, null, null)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/chapters/{chapterId}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @Operation(summary = "Create a quiz lesson and quiz inside a chapter")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> createChapterQuiz(
+            @PathVariable UUID chapterId,
+            @Valid @RequestBody StructuredQuizRequest request,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        verifyChapterOwnership(chapterId, user);
+        try {
+            QuizSchedule schedule = parseQuizSchedule(request);
+            UUID lessonId = createQuizLesson(chapterId, request);
+            UUID quizId = createStructuredQuiz(lessonId, request, schedule, user);
+            return ResponseEntity.ok(ApiResponse.success(buildCreatedQuizResponse(quizId, lessonId, null, null)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/sections/{sectionId}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @Operation(summary = "Legacy alias for chapter-anchored quiz creation")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> createSectionQuiz(
+            @PathVariable UUID sectionId,
+            @Valid @RequestBody StructuredQuizRequest request,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        return createChapterQuiz(sectionId, request, user);
+    }
+
+    @PostMapping("/courses/{courseId}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @Operation(summary = "Create a course-scoped quiz with optional class distribution")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> createCourseQuiz(
+            @PathVariable UUID courseId,
+            @Valid @RequestBody StructuredQuizRequest request,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        verifyCourseOwnership(courseId, user);
+        try {
+            UUID chapterId = request.chapterId();
+            if (chapterId == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("Vui lòng chọn chương để neo quiz vào cấu trúc khóa học"));
+            }
+
+            CourseJpaEntity course = loadCourse(courseId);
+            ensureChapterBelongsToCourse(chapterId, courseId);
+            if (request.classId() != null) {
+                if (course.getDeliveryMode() != CourseJpaEntity.DeliveryMode.INSTRUCTOR_LED) {
+                    return ResponseEntity.badRequest()
+                            .body(ApiResponse.error("Chỉ khóa học dạng lớp học mới hỗ trợ giao quiz theo lớp"));
+                }
+                ensureClassBelongsToCourse(request.classId(), courseId);
+            }
+
+            QuizSchedule schedule = parseQuizSchedule(request);
+            UUID lessonId = createQuizLesson(chapterId, request);
+            UUID quizId = createStructuredQuiz(lessonId, request, schedule, user);
+
+            quizAssignmentJpaRepository.save(QuizAssignmentJpaEntity.builder()
+                    .quizId(quizId)
+                    .courseId(courseId)
+                    .classId(request.classId())
+                    .dueDate(schedule.dueAt())
+                    .isActive(true)
+                    .build());
+
+            return ResponseEntity.ok(ApiResponse.success(
+                    buildCreatedQuizResponse(quizId, lessonId, courseId, request.classId())));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
     }
 
     @GetMapping("/{quizId}")
@@ -73,8 +190,11 @@ public class QuizControllerV3 {
             @PathVariable UUID quizId,
             @AuthenticationPrincipal UserJpaEntity user) {
         Quiz quiz = quizManagementUseCase.getQuizById(quizId);
-        // P0: Teachers can only see their own quizzes
-        if (user.getRole() != UserJpaEntity.UserRole.STUDENT) {
+        if (user.getRole() == UserJpaEntity.UserRole.STUDENT) {
+            if (!quiz.isPublished() || !studentAssessmentAccessPort.canAccessQuiz(quizId, user.getId())) {
+                return ResponseEntity.status(403).body(ApiResponse.error("Ban khong co quyen truy cap bai kiem tra nay"));
+            }
+        } else {
             verifyLessonOwnership(quiz.getLessonId(), user);
         }
         return ResponseEntity.ok(ApiResponse.success(toQuizMap(quiz)));
@@ -86,11 +206,17 @@ public class QuizControllerV3 {
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQuizzesByLesson(
             @PathVariable UUID lessonId,
             @AuthenticationPrincipal UserJpaEntity user) {
-        // Verify ownership: teachers can only see quizzes for their own lessons
         if (user.getRole() != UserJpaEntity.UserRole.STUDENT) {
             verifyLessonOwnership(lessonId, user);
         }
         List<Quiz> quizzes = quizManagementUseCase.getQuizzesByLesson(lessonId);
+        if (user.getRole() == UserJpaEntity.UserRole.STUDENT) {
+            UUID studentId = user.getId();
+            quizzes = quizzes.stream()
+                    .filter(Quiz::isPublished)
+                    .filter(quiz -> studentAssessmentAccessPort.canAccessQuiz(quiz.getId().value(), studentId))
+                    .toList();
+        }
         return ResponseEntity.ok(ApiResponse.success(quizzes.stream().map(this::toQuizMap).toList()));
     }
 
@@ -102,8 +228,11 @@ public class QuizControllerV3 {
             @PathVariable UUID quizId,
             @AuthenticationPrincipal UserJpaEntity user) {
         Quiz quiz = quizManagementUseCase.getQuizById(quizId);
-        // P0: Teachers can only see questions for their own quizzes
-        if (user.getRole() != UserJpaEntity.UserRole.STUDENT) {
+        if (user.getRole() == UserJpaEntity.UserRole.STUDENT) {
+            if (!quiz.isPublished() || !studentAssessmentAccessPort.canAccessQuiz(quizId, user.getId())) {
+                return ResponseEntity.status(403).body(ApiResponse.error("Ban khong co quyen truy cap bai kiem tra nay"));
+            }
+        } else {
             verifyLessonOwnership(quiz.getLessonId(), user);
         }
         List<UUID> questionIds = quiz.getQuestions() != null
@@ -120,6 +249,17 @@ public class QuizControllerV3 {
                 .map(q -> isStudent ? toStudentQuestionMap(q) : toQuestionMap(q))
                 .toList();
         return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    @GetMapping("/lessons/{lessonId}/questions")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN', 'STUDENT')")
+    @Transactional(readOnly = true)
+    @Operation(summary = "Get quiz questions by lesson ID")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQuizQuestionsByLesson(
+            @PathVariable UUID lessonId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        QuizJpaEntity quizEntity = resolveQuizEntityByLessonId(lessonId);
+        return getQuizQuestions(quizEntity.getId(), user);
     }
 
     @PostMapping("/{quizId}/questions")
@@ -438,6 +578,7 @@ public class QuizControllerV3 {
         map.put("questionCount", quiz.getQuestions() != null ? quiz.getQuestions().size() : 0);
         map.put("createdAt", quiz.getCreatedAt() != null ? quiz.getCreatedAt().toString() : null);
         map.put("updatedAt", quiz.getUpdatedAt() != null ? quiz.getUpdatedAt().toString() : null);
+        appendAssignmentContext(map, quiz.getId().value(), quiz.getLessonId());
         return map;
     }
 
@@ -468,7 +609,39 @@ public class QuizControllerV3 {
         map.put("questionCount", questionCount);
         map.put("createdAt", entity.getCreatedAt() != null ? entity.getCreatedAt().toString() : null);
         map.put("updatedAt", entity.getUpdatedAt() != null ? entity.getUpdatedAt().toString() : null);
+        appendAssignmentContext(map, entity.getId(), entity.getLessonId());
         return map;
+    }
+
+    private void appendAssignmentContext(Map<String, Object> map, UUID quizId, UUID lessonId) {
+        var assignment = quizAssignmentJpaRepository.findFirstByQuizIdOrderByAssignedAtDesc(quizId).orElse(null);
+        if (assignment == null) {
+            map.put("assignmentScope", "LESSON");
+            courseJpaRepository.findByLessonId(lessonId).ifPresent(course -> {
+                map.put("courseId", course.getId().toString());
+                map.put("courseTitle", course.getTitle());
+                map.put("deliveryMode", course.getDeliveryMode() != null ? course.getDeliveryMode().name() : null);
+            });
+            return;
+        }
+
+        map.put("assignmentScope", assignment.getClassId() != null ? "CLASS" : "COURSE");
+        map.put("assignedAt", assignment.getAssignedAt() != null ? assignment.getAssignedAt().toString() : null);
+
+        if (assignment.getCourseId() != null) {
+            map.put("courseId", assignment.getCourseId().toString());
+            courseJpaRepository.findById(assignment.getCourseId()).ifPresent(course -> {
+                map.put("courseTitle", course.getTitle());
+                map.put("deliveryMode", course.getDeliveryMode() != null ? course.getDeliveryMode().name() : null);
+            });
+        }
+
+        if (assignment.getClassId() != null) {
+            map.put("classId", assignment.getClassId().toString());
+            classJpaRepository.findById(assignment.getClassId()).ifPresent(learningClass ->
+                map.put("className", learningClass.getName())
+            );
+        }
     }
 
     private Map<String, Object> toQuestionMap(QuestionJpaEntity q) {
@@ -682,6 +855,32 @@ public class QuizControllerV3 {
             List<UUID> questionIds
     ) {}
 
+    public record StructuredQuizRequest(
+            @NotBlank(message = "Quiz title is required")
+            String title,
+            String description,
+            @Min(value = 1, message = "Time limit must be greater than 0")
+            Integer timeLimitMinutes,
+            @Min(value = 1, message = "Max attempts must be greater than 0")
+            Integer maxAttempts,
+            @Min(value = 0, message = "Passing score cannot be negative")
+            @Max(value = 100, message = "Passing score cannot exceed 100")
+            Integer passingScore,
+            Boolean shuffleQuestions,
+            Boolean shuffleOptions,
+            Boolean showResultsImmediately,
+            Boolean showCorrectAnswers,
+            String startDate,
+            String endDate,
+            @JsonProperty("chapterId")
+            @JsonAlias("sectionId")
+            UUID chapterId,
+            UUID classId,
+            @NotNull(message = "Question list is required")
+            List<UUID> questionIds,
+            Boolean publishImmediately
+    ) {}
+
     public record ManualGradeRequest(
             @NotNull(message = "Mã câu hỏi không được để trống")
             UUID questionId,
@@ -722,4 +921,166 @@ public class QuizControllerV3 {
             () -> { throw new com.example.lms.shared.exception.EntityNotFoundException("Course for quiz", quiz.getId()); }
         );
     }
+
+    private void verifyCourseOwnership(UUID courseId, UserJpaEntity user) {
+        if (isAdminRole(user)) return;
+        CourseJpaEntity course = loadCourse(courseId);
+        if (course.getTeacherId() == null || !course.getTeacherId().equals(user.getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu khóa học này");
+        }
+    }
+
+    private void verifyChapterOwnership(UUID chapterId, UserJpaEntity user) {
+        if (isAdminRole(user)) return;
+        courseJpaRepository.findByChapterId(chapterId).ifPresentOrElse(
+            course -> {
+                if (course.getTeacherId() == null || !course.getTeacherId().equals(user.getId())) {
+                    throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu tài nguyên này");
+                }
+            },
+            () -> { throw new com.example.lms.shared.exception.EntityNotFoundException("Course for chapter", chapterId); }
+        );
+    }
+
+    private CourseJpaEntity loadCourse(UUID courseId) {
+        return courseJpaRepository.findById(courseId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Course", courseId));
+    }
+
+    private void ensureLessonSupportsQuizCreation(UUID lessonId) {
+        LessonJpaEntity lesson = lessonJpaRepository.findById(lessonId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Lesson", lessonId));
+        if (lesson.getType() != LessonJpaEntity.LessonType.QUIZ) {
+            throw new IllegalArgumentException("Chi co the khoi tao quiz cho lesson loai QUIZ");
+        }
+    }
+
+    private void ensureChapterBelongsToCourse(UUID chapterId, UUID courseId) {
+        UUID actualCourseId = chapterJpaRepository.findById(chapterId)
+                .map(chapter -> chapter.getCourseId())
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Chapter", chapterId));
+        if (!actualCourseId.equals(courseId)) {
+            throw new IllegalArgumentException("Chương không thuộc khóa học đã chọn");
+        }
+    }
+
+    private void ensureClassBelongsToCourse(UUID classId, UUID courseId) {
+        var learningClass = classJpaRepository.findById(classId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Class", classId));
+        if (!courseId.equals(learningClass.getCourseId())) {
+            throw new IllegalArgumentException("Lớp học không thuộc khóa học đã chọn");
+        }
+    }
+
+    private QuizJpaEntity resolveQuizEntityByLessonId(UUID lessonId) {
+        List<QuizJpaEntity> quizzes = quizJpaRepository.findByLessonId(lessonId);
+        if (quizzes.isEmpty()) {
+            throw new com.example.lms.shared.exception.EntityNotFoundException("Quiz for lesson", lessonId);
+        }
+        if (quizzes.size() > 1) {
+            log.warn("Multiple quizzes found for lesson {}. Falling back to the most recently created quiz.", lessonId);
+        }
+        return quizzes.stream()
+                .max(Comparator.comparing(QuizJpaEntity::getCreatedAt,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .orElse(quizzes.get(0));
+    }
+
+    private UUID createQuizLesson(UUID chapterId, StructuredQuizRequest request) {
+        return createLessonUseCase.execute(new CreateLessonUseCaseV3.CreateLessonCommand(
+                chapterId,
+                request.title(),
+                request.description(),
+                "QUIZ",
+                null,
+                0,
+                null,
+                Boolean.FALSE
+        ));
+    }
+
+    private UUID createStructuredQuiz(
+            UUID lessonId,
+            StructuredQuizRequest request,
+            QuizSchedule schedule,
+            UserJpaEntity user) {
+        List<UUID> questionIds = request.questionIds() != null ? request.questionIds() : List.of();
+        if (questionIds.isEmpty() && Boolean.TRUE.equals(request.publishImmediately())) {
+            throw new IllegalArgumentException("Vui lòng chọn ít nhất một câu hỏi");
+        }
+
+        UUID quizId = createQuizUseCase.execute(new CreateQuizUseCaseV3.CreateQuizCommand(
+                lessonId,
+                request.title(),
+                request.description(),
+                request.timeLimitMinutes(),
+                request.passingScore(),
+                request.shuffleQuestions(),
+                request.showResultsImmediately()
+        ));
+
+        for (int i = 0; i < questionIds.size(); i++) {
+            quizManagementUseCase.addQuestionToQuiz(
+                    quizId,
+                    questionIds.get(i),
+                    i,
+                    user.getId(),
+                    user.getRole().name()
+            );
+        }
+
+        Quiz.QuizSettings newSettings = Quiz.QuizSettings.builder()
+                .timeLimitMinutes(request.timeLimitMinutes())
+                .maxAttempts(request.maxAttempts())
+                .passingScore(request.passingScore())
+                .shuffleQuestions(request.shuffleQuestions())
+                .shuffleOptions(request.shuffleOptions())
+                .showResultsImmediately(request.showResultsImmediately())
+                .showCorrectAnswers(request.showCorrectAnswers())
+                .availableFrom(schedule.availableFrom())
+                .dueAt(schedule.dueAt())
+                .lockAt(schedule.dueAt())
+                .build();
+
+        quizManagementUseCase.updateQuizSettings(quizId, newSettings, request.title(),
+                user.getId(), user.getRole().name());
+
+        if (Boolean.TRUE.equals(request.publishImmediately())) {
+            quizManagementUseCase.publishQuiz(quizId, user.getId(), user.getRole().name());
+        }
+
+        return quizId;
+    }
+
+    private QuizSchedule parseQuizSchedule(StructuredQuizRequest request) {
+        try {
+            Instant availableFrom = request.startDate() != null && !request.startDate().isBlank()
+                    ? Instant.parse(request.startDate())
+                    : null;
+            Instant dueAt = request.endDate() != null && !request.endDate().isBlank()
+                    ? Instant.parse(request.endDate())
+                    : null;
+            return new QuizSchedule(availableFrom, dueAt);
+        } catch (java.time.format.DateTimeParseException e) {
+            throw new IllegalArgumentException("Định dạng thời gian không hợp lệ", e);
+        }
+    }
+
+    private Map<String, Object> buildCreatedQuizResponse(
+            UUID quizId,
+            UUID lessonId,
+            UUID courseId,
+            UUID classId) {
+        Map<String, Object> response = new HashMap<>(toQuizMap(quizManagementUseCase.getQuizById(quizId)));
+        response.put("lessonId", lessonId.toString());
+        if (courseId != null) {
+            response.put("courseId", courseId.toString());
+        }
+        if (classId != null) {
+            response.put("classId", classId.toString());
+        }
+        return response;
+    }
+
+    private record QuizSchedule(Instant availableFrom, Instant dueAt) {}
 }

@@ -124,16 +124,27 @@ public class AssignmentRepositoryAdapter implements AssignmentRepository {
     }
 
     @Override
-    public void allocate(UUID assignmentId, String distributionType, List<UUID> studentIds) {
+    public void allocate(UUID assignmentId, String distributionType, UUID classId, List<UUID> studentIds) {
+        var existingAllocations = allocationRepository.findByAssignmentId(assignmentId);
+        for (var allocation : existingAllocations) {
+            allocationStudentRepository.deleteByAllocationId(allocation.getId());
+        }
+        allocationRepository.deleteAll(existingAllocations);
+
+        var normalizedDistributionType = (distributionType == null || distributionType.isBlank())
+            ? "ALL_STUDENTS"
+            : distributionType;
+
         var allocation = AssignmentAllocationJpaEntity.builder()
             .assignmentId(assignmentId)
-            .distributionType(distributionType)
+            .distributionType(normalizedDistributionType)
+            .classId("CLASS".equals(normalizedDistributionType) ? classId : null)
             .isActive(true)
             .build();
 
         var savedAllocation = allocationRepository.save(allocation);
 
-        if ("SPECIFIC_STUDENTS".equals(distributionType) && studentIds != null && !studentIds.isEmpty()) {
+        if ("SPECIFIC_STUDENTS".equals(normalizedDistributionType) && studentIds != null && !studentIds.isEmpty()) {
             studentIds.forEach(studentId -> {
                 var entity = AssignmentAllocationStudentJpaEntity.builder()
                     .allocationId(savedAllocation.getId())

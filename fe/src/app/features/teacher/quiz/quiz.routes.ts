@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 import { teacherGuard } from '../../../core/guards/role.guard';
 
-// Routes nằm trong layout (có sidebar)
+// Routes inside the teacher layout (with sidebar)
 export const quizRoutes: Routes = [
   {
     path: 'quiz',
@@ -15,45 +15,42 @@ export const quizRoutes: Routes = [
         path: 'quiz-bank',
         loadComponent: () => import('./quiz-bank.component').then(m => m.QuizBankComponent),
         canActivate: [teacherGuard],
-        title: 'Ngân hàng câu hỏi - Quản lý ngân hàng câu hỏi'
+        title: 'Ngân hàng câu hỏi'
       },
-      // Legacy Create Route (can be deprecated or redirected)
       {
         path: 'create',
         loadComponent: () => import('./quiz-create.component').then(m => m.QuizCreateComponent),
         canActivate: [teacherGuard],
-        title: 'Tạo Quiz Mới'
+        title: 'Tạo quiz mới'
       },
-      // NEW: Lesson Quiz Create (Smart Component)
       {
         path: 'create/lesson/:lessonId',
         loadComponent: () => import('./containers/lesson-quiz-create/lesson-quiz-create.component')
           .then(m => m.LessonQuizCreateComponent),
         canActivate: [teacherGuard],
-        title: 'Tạo Quiz cho Lesson'
+        title: 'Tạo quiz cho bài học'
+      },
+      {
+        path: 'create/chapter/:chapterId',
+        loadComponent: () => import('./containers/lesson-quiz-create/lesson-quiz-create.component')
+          .then(m => m.LessonQuizCreateComponent),
+        canActivate: [teacherGuard],
+        title: 'Tạo quiz cho chương'
       },
       {
         path: 'create/section/:sectionId',
         loadComponent: () => import('./containers/lesson-quiz-create/lesson-quiz-create.component')
           .then(m => m.LessonQuizCreateComponent),
         canActivate: [teacherGuard],
-        title: 'Tạo Quiz cho Section'
+        title: 'Tạo quiz cho chương (legacy)'
       },
-      // NEW: Assignment Quiz Create (Smart Component)
       {
         path: 'create/assignment/:courseId',
         loadComponent: () => import('./containers/assignment-quiz-create/assignment-quiz-create.component')
           .then(m => m.AssignmentQuizCreateComponent),
         canActivate: [teacherGuard],
-        title: 'Tạo Bài Tập về Nhà'
+        title: 'Tạo bài tập'
       },
-      // Assignment Management Routes (Placeholder for future implementation)
-      // {
-      //   path: 'assignments/:quizId/assign',
-      //   loadComponent: () => import('./quiz-assign-students.component').then(m => m.QuizAssignStudentsComponent), // To be created
-      //   canActivate: [teacherGuard],
-      //   title: 'Giao Bài cho Học Viên'
-      // },
       {
         path: ':quizId/essay-grading',
         loadComponent: () => import('./quiz-essay-grading.component').then(m => m.QuizEssayGradingComponent),
@@ -64,29 +61,29 @@ export const quizRoutes: Routes = [
         path: ':quizId/edit',
         loadComponent: () => import('./quiz-edit.component').then(m => m.QuizEditComponent),
         canActivate: [teacherGuard],
-        title: 'Chỉnh sửa Quiz'
+        canDeactivate: [(component: any) => component.canDeactivate?.() ?? true],
+        title: 'Chỉnh sửa quiz'
       },
       {
         path: 'question/create',
         loadComponent: () => import('./question-create.component').then(m => m.QuestionCreateComponent),
         canActivate: [teacherGuard],
-        title: 'Tạo Câu Hỏi Mới'
+        title: 'Tạo câu hỏi mới'
       },
       {
         path: 'question/:questionId/edit',
         loadComponent: () => import('./question-edit.component').then(m => m.QuestionEditComponent),
         canActivate: [teacherGuard],
-        title: 'Chỉnh sửa Câu Hỏi'
+        title: 'Chỉnh sửa câu hỏi'
       }
-      // Note: preview route moved to standalone routes (no sidebar)
     ]
   }
 ];
 
-// Routes độc lập (không có sidebar) - dùng cho quiz taking experience
+// Standalone routes without the teacher sidebar
 export const quizStandaloneRoutes: Routes = [
   {
-    path: 'quiz/preview/:lessonId',
+    path: 'quiz/preview/:quizId',
     loadComponent: () => import('./quiz-preview.component').then(m => m.QuizPreviewComponent),
     canActivate: [teacherGuard],
     title: 'Xem trước bài kiểm tra'

@@ -8,6 +8,7 @@ Use this guide to get a working local environment quickly without guessing which
 - Backend dev URL on host: `http://localhost:8088`
 - Spring Boot internal/container port: `8080`
 - Production API: same-origin `/api/*` behind `https://holilihu.online`
+- Root `docker-compose*.yml` files are the only supported Docker runtime topology
 
 Use `8088` from the host machine. Use `8080` only for container and reverse-proxy wiring.
 
@@ -27,7 +28,7 @@ Use `8088` from the host machine. Use `8080` only for container and reverse-prox
 
 ```bash
 cp .env.dev.example .env
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db backend
 ```
 
 Verify:
@@ -48,6 +49,19 @@ npm start
 Open `http://localhost:4200`.
 
 The frontend should use `fe/proxy.conf.json` for `/api/*` in development. Do not hardcode the backend host into frontend code for local development.
+
+## Alternative: Run the Full Stack in Docker
+
+```bash
+cp .env.dev.example .env
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build --wait
+```
+
+Optional pgAdmin:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile devtools up -d pgadmin
+```
 
 ## Alternative: Run Backend on the Host
 
@@ -84,7 +98,8 @@ For broader seeded data and manual verification flows, use [docs/testing/TEST_CH
 ```bash
 cd backend
 mvn test -B
-docker compose logs api --tail=100
+cd ..
+docker compose -f docker-compose.yml -f docker-compose.dev.yml logs backend --tail=100
 ```
 
 ### Frontend
@@ -100,9 +115,8 @@ npm test
 ### Backend does not start
 
 ```bash
-cd backend
-docker compose ps
-docker compose logs api --tail=100
+docker compose -f docker-compose.yml -f docker-compose.dev.yml ps
+docker compose -f docker-compose.yml -f docker-compose.dev.yml logs backend --tail=100
 ```
 
 Typical causes:

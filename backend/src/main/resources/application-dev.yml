@@ -89,6 +89,8 @@ app:
   email:
     from: "${MAIL_FROM:LMS Maritime <noreply@maritime.edu>}"
     base-url: "http://localhost:4200"
+  cors:
+    allowed-origins: "http://localhost:4200,http://127.0.0.1:4200,http://localhost:61361,http://127.0.0.1:61361"
   vnpay:
     tmn-code: "${VNPAY_TMN_CODE:DEMOV210}"
     hash-secret: "${VNPAY_HASH_SECRET:DEMOSECRET}"

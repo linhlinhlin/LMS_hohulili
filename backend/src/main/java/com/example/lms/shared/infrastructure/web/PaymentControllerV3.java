@@ -101,6 +101,10 @@ public class PaymentControllerV3 {
             return ResponseEntity.badRequest().body(ApiResponse.error("Mã khóa học không hợp lệ"));
         }
         BigDecimal serverPrice = getServerPrice(courseId);
+        if (serverPrice == null || serverPrice.compareTo(BigDecimal.ZERO) <= 0) {
+            return ResponseEntity.badRequest().body(
+                    ApiResponse.error("KhÃ³a há»c nÃ y miá»…n phÃ­. Vui lÃ²ng Ä‘Äƒng kÃ½ trá»±c tiáº¿p thay vÃ¬ thanh toÃ¡n."));
+        }
 
         var payment = checkoutUseCase.execute(currentUser.getId(), courseId, serverPrice, request.paymentMethod);
 

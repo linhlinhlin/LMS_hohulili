@@ -1,0 +1,320 @@
+<div class="min-h-screen bg-gray-50 p-6">
+  <div class="mx-auto max-w-5xl space-y-6">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <p class="text-sm font-medium text-[#0056D2]">Bài kiểm tra</p>
+        <h1 class="mt-1 text-3xl font-bold text-gray-900">Chỉnh sửa bài kiểm tra</h1>
+        <p class="mt-2 max-w-2xl text-sm text-gray-600">
+          Cập nhật thiết lập, kiểm tra phạm vi áp dụng và quản lý danh sách câu hỏi của bài kiểm tra.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button
+          type="button"
+          (click)="onCancel()"
+          class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+        >
+          Quay lại chương trình học
+        </button>
+      </div>
+    </div>
+
+    @if (error()) {
+      <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        {{ error() }}
+      </div>
+    }
+
+    @if (questionBankWarning()) {
+      <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        {{ questionBankWarning() }}
+      </div>
+    }
+
+    @if (loading()) {
+      <div class="rounded-2xl border border-gray-200 bg-white p-10 shadow-sm">
+        <div class="flex items-center justify-center gap-3 text-gray-600">
+          <div class="h-6 w-6 animate-spin rounded-full border-2 border-[#0056D2] border-t-transparent"></div>
+          <span>Đang tải bài kiểm tra...</span>
+        </div>
+      </div>
+    } @else if (quiz()) {
+      <form [formGroup]="quizForm" (ngSubmit)="onSubmit()" class="space-y-6">
+        <div class="grid gap-6 lg:grid-cols-[1.2fr_1.8fr]">
+          <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <h2 class="text-lg font-semibold text-gray-900">{{ quiz()?.title || 'Bài kiểm tra chưa có tiêu đề' }}</h2>
+                <p class="mt-1 text-sm text-gray-500">{{ quiz()?.description || 'Chưa có mô tả.' }}</p>
+              </div>
+              <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-600">
+                {{ quizStatusLabel() }}
+              </span>
+            </div>
+
+            <dl class="mt-6 space-y-4 text-sm">
+              <div class="flex items-start justify-between gap-4 border-b border-gray-100 pb-3">
+                <dt class="text-gray-500">Mã bài kiểm tra</dt>
+                <dd class="max-w-[16rem] break-all text-right font-medium text-gray-900">{{ quiz()?.id }}</dd>
+              </div>
+              <div class="flex items-start justify-between gap-4 border-b border-gray-100 pb-3">
+                <dt class="text-gray-500">Thuộc khóa học</dt>
+                <dd class="text-right font-medium text-gray-900">{{ quiz()?.courseTitle || 'Chưa xác định' }}</dd>
+              </div>
+              <div class="flex items-start justify-between gap-4 border-b border-gray-100 pb-3">
+                <dt class="text-gray-500">Chế độ triển khai</dt>
+                <dd class="text-right font-medium text-gray-900">{{ deliveryModeLabel() }}</dd>
+              </div>
+              <div class="flex items-start justify-between gap-4 border-b border-gray-100 pb-3">
+                <dt class="text-gray-500">Vị trí trong nội dung</dt>
+                <dd class="text-right font-medium text-gray-900">{{ contentPlacementLabel() }}</dd>
+              </div>
+              <div class="flex items-start justify-between gap-4 border-b border-gray-100 pb-3">
+                <dt class="text-gray-500">{{ distributionScopeTitle() }}</dt>
+                <dd class="text-right font-medium text-gray-900">{{ assignmentScopeLabel() }}</dd>
+              </div>
+              <div class="flex items-start justify-between gap-4 border-b border-gray-100 pb-3">
+                <dt class="text-gray-500">Đối tượng đang nhận</dt>
+                <dd class="text-right font-medium text-gray-900">{{ assignmentTargetLabel() }}</dd>
+              </div>
+              <div class="flex items-start justify-between gap-4">
+                <dt class="text-gray-500">Số câu hỏi đã chọn</dt>
+                <dd class="text-right font-semibold text-[#0056D2]">{{ questionCount() }}</dd>
+              </div>
+            </dl>
+
+            <div class="mt-6 rounded-xl border px-4 py-3 text-sm"
+              [class.border-blue-100]="quiz()?.deliveryMode === 'INSTRUCTOR_LED'"
+              [class.bg-blue-50]="quiz()?.deliveryMode === 'INSTRUCTOR_LED'"
+              [class.text-blue-900]="quiz()?.deliveryMode === 'INSTRUCTOR_LED'"
+              [class.border-slate-200]="quiz()?.deliveryMode !== 'INSTRUCTOR_LED'"
+              [class.bg-slate-50]="quiz()?.deliveryMode !== 'INSTRUCTOR_LED'"
+              [class.text-slate-700]="quiz()?.deliveryMode !== 'INSTRUCTOR_LED'">
+              {{ distributionHint() }}
+            </div>
+          </section>
+
+          <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div class="mb-5">
+              <h2 class="text-lg font-semibold text-gray-900">{{ defaultSettingsTitle() }}</h2>
+              <p class="mt-1 text-sm text-gray-500">
+                {{ defaultSettingsHint() }}
+              </p>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-3">
+              <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <label for="timeLimitMinutes" class="block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Thời gian làm bài
+                </label>
+                <div class="mt-2 flex items-end gap-2">
+                  <input
+                    id="timeLimitMinutes"
+                    type="number"
+                    min="5"
+                    max="120"
+                    formControlName="timeLimitMinutes"
+                    class="w-full border-0 bg-transparent p-0 text-2xl font-bold text-gray-900 focus:outline-none focus:ring-0"
+                  />
+                  <span class="pb-1 text-sm font-medium text-gray-500">phút</span>
+                </div>
+              </div>
+
+              <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <label for="passingScore" class="block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Điểm đạt
+                </label>
+                <div class="mt-2 flex items-end gap-2">
+                  <input
+                    id="passingScore"
+                    type="number"
+                    min="0"
+                    max="100"
+                    formControlName="passingScore"
+                    class="w-full border-0 bg-transparent p-0 text-2xl font-bold text-gray-900 focus:outline-none focus:ring-0"
+                  />
+                  <span class="pb-1 text-sm font-medium text-gray-500">%</span>
+                </div>
+              </div>
+
+              <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <label for="maxAttempts" class="block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Số lần làm
+                </label>
+                <div class="mt-2 flex items-end gap-2">
+                  <input
+                    id="maxAttempts"
+                    type="number"
+                    min="1"
+                    max="10"
+                    formControlName="maxAttempts"
+                    class="w-full border-0 bg-transparent p-0 text-2xl font-bold text-gray-900 focus:outline-none focus:ring-0"
+                  />
+                  <span class="pb-1 text-sm font-medium text-gray-500">lần</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-5 grid gap-3 md:grid-cols-2">
+              <label class="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700">
+                <input type="checkbox" formControlName="shuffleQuestions" class="h-4 w-4 rounded border-gray-300 text-[#0056D2] focus:ring-[#0056D2]" />
+                Xáo trộn thứ tự câu hỏi
+              </label>
+              <label class="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700">
+                <input type="checkbox" formControlName="shuffleOptions" class="h-4 w-4 rounded border-gray-300 text-[#0056D2] focus:ring-[#0056D2]" />
+                Xáo trộn thứ tự đáp án
+              </label>
+              <label class="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700">
+                <input type="checkbox" formControlName="showCorrectAnswers" class="h-4 w-4 rounded border-gray-300 text-[#0056D2] focus:ring-[#0056D2]" />
+                Hiển thị đáp án đúng sau khi nộp
+              </label>
+              <label class="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700">
+                <input type="checkbox" formControlName="showResultsImmediately" class="h-4 w-4 rounded border-gray-300 text-[#0056D2] focus:ring-[#0056D2]" />
+                Hiển thị kết quả ngay lập tức
+              </label>
+            </div>
+          </section>
+        </div>
+
+        <section class="rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div class="border-b border-gray-100 px-6 py-5">
+            <h2 class="text-lg font-semibold text-gray-900">Câu hỏi hiện tại</h2>
+            <p class="mt-1 text-sm text-gray-500">
+              Đây là danh sách câu hỏi đang thuộc về bài kiểm tra này.
+            </p>
+          </div>
+
+          <div class="space-y-3 p-6">
+            @if (quizQuestions().length === 0) {
+              <div class="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">
+                Bài kiểm tra này chưa có câu hỏi nào.
+              </div>
+            } @else {
+              @for (question of quizQuestions(); track question.id; let index = $index) {
+                <div class="flex items-start gap-4 rounded-xl border border-gray-200 px-4 py-4">
+                  <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0056D2]/10 text-sm font-semibold text-[#0056D2]">
+                    {{ index + 1 }}
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="rounded-full bg-gray-100 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-600">
+                        {{ getDifficultyText(question.difficulty) }}
+                      </span>
+                      @if (question.tags) {
+                        <span class="rounded-full bg-purple-50 px-2 py-1 text-[11px] font-medium text-purple-700">
+                          {{ question.tags }}
+                        </span>
+                      }
+                    </div>
+                    <p class="mt-2 text-sm font-medium leading-6 text-gray-900">{{ question.content }}</p>
+                    <p class="mt-1 text-xs text-gray-500">Đã dùng {{ getQuestionUsageCount(question) }} lần</p>
+                  </div>
+                </div>
+              }
+            }
+          </div>
+        </section>
+
+        <section class="rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div class="border-b border-gray-100 px-6 py-5">
+            <h2 class="text-lg font-semibold text-gray-900">Ngân hàng câu hỏi</h2>
+            <p class="mt-1 text-sm text-gray-500">
+              Chọn thêm hoặc bỏ bớt câu hỏi trước khi lưu lại bài kiểm tra.
+            </p>
+          </div>
+
+          <div class="space-y-5 p-6">
+            <div class="max-w-lg">
+              <label for="questionSearch" class="mb-2 block text-sm font-medium text-gray-700">Tìm câu hỏi</label>
+              <input
+                id="questionSearch"
+                type="text"
+                [ngModel]="questionSearchTerm()"
+                (ngModelChange)="setQuestionSearchTerm($event)"
+                [ngModelOptions]="{ standalone: true }"
+                placeholder="Tìm theo nội dung hoặc thẻ..."
+                class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm shadow-sm outline-none transition-colors focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20"
+              />
+            </div>
+
+            <div class="space-y-3">
+              @if (filteredQuestions().length === 0) {
+                <div class="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">
+                  Không tìm thấy câu hỏi phù hợp.
+                </div>
+              } @else {
+                @for (question of filteredQuestions(); track question.id) {
+                  <label
+                    class="flex cursor-pointer items-start gap-4 rounded-xl border px-4 py-4 transition-colors"
+                    [class.border-[#0056D2]]="isQuestionSelected(question.id)"
+                    [class.bg-[#0056D2]/5]="isQuestionSelected(question.id)"
+                    [class.border-gray-200]="!isQuestionSelected(question.id)"
+                  >
+                    <input
+                      type="checkbox"
+                      class="mt-1 h-4 w-4 rounded border-gray-300 text-[#0056D2] focus:ring-[#0056D2]"
+                      [checked]="isQuestionSelected(question.id)"
+                      (change)="toggleQuestion(question.id, $any($event.target).checked)"
+                    />
+                    <div class="min-w-0 flex-1">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <span class="rounded-full bg-gray-100 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-600">
+                          {{ getDifficultyText(question.difficulty) }}
+                        </span>
+                        @if (question.tags) {
+                          <span class="rounded-full bg-purple-50 px-2 py-1 text-[11px] font-medium text-purple-700">
+                            {{ question.tags }}
+                          </span>
+                        }
+                        @if (isQuestionSelected(question.id)) {
+                          <span class="rounded-full bg-green-50 px-2 py-1 text-[11px] font-semibold text-green-700">
+                            Đã chọn
+                          </span>
+                        }
+                      </div>
+                      <p class="mt-2 text-sm font-medium leading-6 text-gray-900">{{ question.content }}</p>
+                    </div>
+                    <div class="shrink-0 text-xs text-gray-500">
+                      {{ getQuestionUsageCount(question) }} lần
+                    </div>
+                  </label>
+                }
+              }
+            </div>
+          </div>
+        </section>
+
+        <div class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white px-6 py-4 shadow-sm">
+          <div class="text-sm text-gray-600">
+            Đã chọn <span class="font-semibold text-gray-900">{{ questionCount() }}</span> câu hỏi cho bài kiểm tra này.
+          </div>
+
+          <div class="flex items-center gap-3">
+            <button
+              type="button"
+              (click)="onCancel()"
+              class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              [disabled]="quizForm.invalid || questionCount() === 0 || saving()"
+              class="rounded-lg bg-[#0056D2] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#004BB5] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              @if (saving()) {
+                <span class="inline-flex items-center gap-2">
+                  <span class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                  Đang lưu...
+                </span>
+              } @else {
+                Lưu thay đổi
+              }
+            </button>
+          </div>
+        </div>
+      </form>
+    }
+  </div>
+</div>

@@ -7,9 +7,7 @@ on:
         description: GitHub Environment to deploy to
         required: true
         default: production
-        type: choice
-        options:
-          - production
+        type: environment
       ref:
         description: Branch, tag, or commit SHA to deploy
         required: true
@@ -34,9 +32,10 @@ jobs:
 
     steps:
       - name: Checkout target ref
-        uses: actions/checkout@v4
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           ref: ${{ github.event.inputs.ref }}
+          persist-credentials: false
 
       - name: Resolve deploy revision
         id: revision
@@ -108,3 +107,8 @@ jobs:
             echo "- Revision: \`${{ steps.revision.outputs.sha }}\`"
             echo "- URL: $DEPLOY_URL"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove SSH material
+        if: always()
+        shell: bash
+        run: rm -f ~/.ssh/id_ed25519 ~/.ssh/known_hosts

@@ -14,7 +14,6 @@ export const COURSE_ENDPOINTS = {
     SUBMIT_APPROVAL: (id: string) => `/api/v3/teacher/courses/${id}/submit-for-approval`,
     CANCEL_APPROVAL: (id: string) => `/api/v3/teacher/courses/${id}/cancel-approval`,
     REVIEW_STATUS: (id: string) => `/api/v3/teacher/courses/${id}/review-status`,
-    AVAILABLE_CLASSES: (id: string) => `/api/v3/teacher/courses/${id}/classes/available`,
     AVAILABLE_STUDENTS: (id: string) => `/api/v3/teacher/courses/${id}/available-students`,
     ENROLLED_STUDENTS: (id: string) => `/api/v3/teacher/courses/${id}/students`
   },

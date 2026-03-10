@@ -15,6 +15,8 @@ public interface AssignmentJpaRepository extends JpaRepository<AssignmentJpaEnti
 
     List<AssignmentJpaEntity> findByLessonId(UUID lessonId);
 
+    List<AssignmentJpaEntity> findByLessonIdIn(List<UUID> lessonIds);
+
     List<AssignmentJpaEntity> findByCourseId(UUID courseId);
 
     List<AssignmentJpaEntity> findByStatus(AssignmentJpaEntity.AssignmentStatus status);

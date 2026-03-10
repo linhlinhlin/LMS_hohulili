@@ -57,10 +57,9 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private quizApi = inject(QuizApi);
 
-  // Expose Math for template
   Math = Math;
 
-  lessonId = '';
+  quizReferenceId = '';
   quizId = '';
   attemptId = '';
   quizTitle = signal('Bài kiểm tra');
@@ -69,7 +68,6 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   loading = signal(true);
   error = signal<string | null>(null);
   questions = signal<QuizQuestion[]>([]);
-  // Supports: string (single choice / text), string[] (multiple choice)
   answers = signal<Record<string, string | string[]>>({});
   showResults = signal(false);
   showResultsModal = signal(true);
@@ -77,7 +75,6 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   serverCorrectCount = signal<number | null>(null);
   submitting = signal(false);
 
-  // Quiz settings from backend
   quizSettings = signal<QuizSettings>({
     timeLimitMinutes: null,
     maxAttempts: 1,
@@ -88,25 +85,20 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     showCorrectAnswers: true,
   });
 
-  // Sidebar visibility
   sidebarVisible = signal(true);
 
-  // Pagination - 10 questions per page
   readonly QUESTIONS_PER_PAGE = 10;
   currentPage = signal(0);
 
-  // Timer
-  timeRemaining = signal(30 * 60); // 30 minutes default
+  timeRemaining = signal(30 * 60);
   timeSpent = signal(0);
   private timerInterval: ReturnType<typeof setInterval> | null = null;
   private startTime = 0;
 
-  // Auto-save (Moodle SOTA: saves every 60s)
   private autoSaveInterval: ReturnType<typeof setInterval> | null = null;
   autoSaveStatus = signal<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  private readonly AUTO_SAVE_INTERVAL_MS = 60_000; // 60 seconds
+  private readonly AUTO_SAVE_INTERVAL_MS = 60_000;
 
-  // Computed for pagination
   totalPages = computed(() => Math.ceil(this.questions().length / this.QUESTIONS_PER_PAGE));
 
   currentPageQuestions = computed(() => {
@@ -115,7 +107,6 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     return this.questions().slice(start, end);
   });
 
-  // Get question index in full list
   getQuestionIndex(pageIndex: number): number {
     return this.currentPage() * this.QUESTIONS_PER_PAGE + pageIndex;
   }
@@ -130,15 +121,14 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   });
 
   correctCount = computed(() => {
-    // Use server score if available
     if (this.serverCorrectCount() !== null) return this.serverCorrectCount()!;
-    // Client-side fallback (only works for SINGLE_CHOICE and TRUE_FALSE)
+
     const ans = this.answers();
     return this.questions().filter(q => {
       if (q.questionType === 'SINGLE_CHOICE' || q.questionType === 'TRUE_FALSE') {
         return typeof ans[q.id] === 'string' && ans[q.id] === q.correctOption;
       }
-      return false; // Can't grade other types client-side
+      return false;
     }).length;
   });
 
@@ -152,19 +142,17 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   });
 
   scorePercent = computed(() => {
-    // Prefer server score
     if (this.serverScore() !== null) return Math.round(this.serverScore()!);
-    // Client-side fallback
     if (this.questions().length === 0) return 0;
     return Math.round((this.correctCount() / this.questions().length) * 100);
   });
 
   ngOnInit() {
-    this.lessonId = this.route.snapshot.paramMap.get('id') || '';
+    this.quizReferenceId = this.route.snapshot.paramMap.get('id') || '';
     this.quizTitle.set(this.route.snapshot.queryParamMap.get('title') || 'Bài kiểm tra');
     this.returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/student/learn/course';
 
-    if (this.lessonId) {
+    if (this.quizReferenceId) {
       this.loadQuiz();
     }
   }
@@ -179,35 +167,23 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     this.error.set(null);
 
     try {
-      // Step 1: Get quiz for this lesson to find quizId
-      const quizResponse = await firstValueFrom(this.quizApi.getQuizByLessonId(this.lessonId));
-      const quizzes = Array.isArray(quizResponse) ? quizResponse : (quizResponse as any)?.data || [];
-      if (!quizzes || quizzes.length === 0) {
-        this.error.set('Bài học này chưa có bài kiểm tra.');
-        return;
-      }
-      if (quizzes.length > 0) {
-        const quiz = quizzes[0];
-        this.quizId = quiz.id;
-        if (quiz.title) this.quizTitle.set(quiz.title);
-        if (quiz.timeLimitMinutes) this.timeRemaining.set(quiz.timeLimitMinutes * 60);
+      const quiz = await firstValueFrom(this.quizApi.getQuizByReference(this.quizReferenceId));
+      this.quizId = quiz.id;
 
-        // Store quiz settings
-        this.quizSettings.set({
-          timeLimitMinutes: quiz.timeLimitMinutes || null,
-          maxAttempts: quiz.maxAttempts || 1,
-          passingScore: quiz.passingScore || 60,
-          shuffleQuestions: quiz.shuffleQuestions || false,
-          shuffleOptions: quiz.shuffleOptions || false,
-          showResultsImmediately: quiz.showResultsImmediately !== false,
-          showCorrectAnswers: quiz.showCorrectAnswers !== false,
-        });
-      }
+      if (quiz.title) this.quizTitle.set(quiz.title);
+      if (quiz.timeLimitMinutes) this.timeRemaining.set(quiz.timeLimitMinutes * 60);
 
-      // Step 2: Get quiz questions
-      const questionSource = this.quizId || this.lessonId;
-      const response = await firstValueFrom(this.quizApi.getQuizQuestions(questionSource));
-      let questions = Array.isArray(response) ? response : (response as any).data || [];
+      this.quizSettings.set({
+        timeLimitMinutes: quiz.timeLimitMinutes || null,
+        maxAttempts: quiz.maxAttempts || 1,
+        passingScore: quiz.passingScore || 60,
+        shuffleQuestions: quiz.shuffleQuestions || false,
+        shuffleOptions: quiz.shuffleOptions || false,
+        showResultsImmediately: quiz.showResultsImmediately !== false,
+        showCorrectAnswers: quiz.showCorrectAnswers !== false,
+      });
+
+      const questions = await firstValueFrom(this.quizApi.getQuizQuestions(this.quizId));
 
       if (questions.length === 0) {
         this.error.set('Bài kiểm tra này chưa có câu hỏi nào.');
@@ -215,42 +191,41 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
       }
 
       let mappedQuestions: QuizQuestion[] = questions.map((q: any) => {
-        // Ensure question has contentBlocks — fallback from content string
         let qBlocks = q.contentBlocks || q.structuredContent || [];
         if (!qBlocks.length && q.content) {
           qBlocks = [{ type: 'text', data: { text: q.content } }];
         }
-        return {
-        id: q.id,
-        content: q.content,
-        contentBlocks: qBlocks,
-        difficulty: q.difficulty,
-        questionType: q.questionType || 'SINGLE_CHOICE',
-        correctOption: q.correctOption,
-        answerKey: q.answerKey || null,
-        options: (q.options || []).map((opt: any) => {
-          let blocks = opt.contentBlocks || [];
 
-          if (!blocks.length && typeof opt.content === 'string' && opt.content.trim().startsWith('[')) {
-            try {
-              blocks = JSON.parse(opt.content);
-            } catch {
+        return {
+          id: q.id,
+          content: q.content,
+          contentBlocks: qBlocks,
+          difficulty: q.difficulty,
+          questionType: q.questionType || 'SINGLE_CHOICE',
+          correctOption: q.correctOption,
+          answerKey: q.answerKey || null,
+          options: (q.options || []).map((opt: any) => {
+            let blocks = opt.contentBlocks || [];
+
+            if (!blocks.length && typeof opt.content === 'string' && opt.content.trim().startsWith('[')) {
+              try {
+                blocks = JSON.parse(opt.content);
+              } catch {
+                blocks = [{ type: 'text', data: { text: opt.content } }];
+              }
+            } else if (!blocks.length && opt.content) {
               blocks = [{ type: 'text', data: { text: opt.content } }];
             }
-          } else if (!blocks.length && opt.content) {
-            blocks = [{ type: 'text', data: { text: opt.content } }];
-          }
 
-          return {
-            key: opt.optionKey || opt.key,
-            content: opt.content,
-            contentBlocks: blocks
-          };
-        }).sort((a: any, b: any) => a.key.localeCompare(b.key))
-      };
+            return {
+              key: opt.optionKey || opt.key,
+              content: opt.content,
+              contentBlocks: blocks
+            };
+          }).sort((a: any, b: any) => a.key.localeCompare(b.key))
+        };
       });
 
-      // Apply shuffle settings
       const settings = this.quizSettings();
       if (settings.shuffleQuestions) {
         mappedQuestions = this.shuffleArray(mappedQuestions);
@@ -258,33 +233,28 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
       if (settings.shuffleOptions) {
         mappedQuestions = mappedQuestions.map(q => ({
           ...q,
-          options: (q.questionType !== 'TRUE_FALSE') ? this.shuffleArray([...q.options]) : q.options
+          options: q.questionType !== 'TRUE_FALSE' ? this.shuffleArray([...q.options]) : q.options
         }));
       }
 
       this.questions.set(mappedQuestions);
 
-      // Step 4: Start quiz attempt (persists to backend)
-      if (this.quizId) {
-        try {
-          const attemptResponse: any = await firstValueFrom(this.quizApi.startAttempt(this.quizId));
-          const attempt = attemptResponse?.data || attemptResponse;
-          if (attempt?.id) {
-            this.attemptId = attempt.id;
-          }
-        } catch (attemptErr: any) {
-          const msg = attemptErr?.error?.message || attemptErr?.message || '';
-          if (msg.includes('tối đa') || msg.includes('max') || attemptErr?.status === 400) {
-            this.error.set('Bạn đã sử dụng hết số lần làm bài cho phép.');
-            return;
-          }
-          // Non-blocking for other errors: quiz works locally
+      try {
+        const attemptResponse: any = await firstValueFrom(this.quizApi.startAttempt(this.quizId));
+        const attempt = attemptResponse?.data || attemptResponse;
+        if (attempt?.id) {
+          this.attemptId = attempt.id;
+        }
+      } catch (attemptErr: any) {
+        const msg = attemptErr?.error?.message || attemptErr?.message || '';
+        if (msg.includes('tối đa') || msg.includes('max') || attemptErr?.status === 400) {
+          this.error.set('Bạn đã sử dụng hết số lần làm bài cho phép.');
+          return;
         }
       }
 
       this.startTimer();
       this.startAutoSave();
-
     } catch (err: any) {
       this.error.set(err?.message || 'Không thể tải bài kiểm tra');
     } finally {
@@ -317,15 +287,11 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
 
-  // --- Answer handling per question type ---
-
-  /** SINGLE_CHOICE and TRUE_FALSE: select one option */
   selectAnswer(questionId: string, optionKey: string) {
     if (this.showResults()) return;
     this.answers.update(ans => ({ ...ans, [questionId]: optionKey }));
   }
 
-  /** MULTIPLE_CHOICE: toggle checkbox option */
   toggleMultipleChoice(questionId: string, optionKey: string) {
     if (this.showResults()) return;
     this.answers.update(ans => {
@@ -341,25 +307,21 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** Check if option is selected in MULTIPLE_CHOICE */
   isMultipleChoiceSelected(questionId: string, optionKey: string): boolean {
     const val = this.answers()[questionId];
     return Array.isArray(val) && val.includes(optionKey);
   }
 
-  /** FILL_IN_BLANK, SHORT_ANSWER, ESSAY: update text answer */
   updateTextAnswer(questionId: string, text: string) {
     if (this.showResults()) return;
     this.answers.update(ans => ({ ...ans, [questionId]: text }));
   }
 
-  /** Get text answer for display */
   getTextAnswer(questionId: string): string {
     const val = this.answers()[questionId];
     return typeof val === 'string' ? val : '';
   }
 
-  /** Check if a question has been answered */
   isAnswered(questionId: string): boolean {
     const val = this.answers()[questionId];
     if (val === undefined) return false;
@@ -367,7 +329,6 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     return val !== '';
   }
 
-  /** Get question type label in Vietnamese */
   getQuestionTypeLabel(type: string): string {
     switch (type) {
       case 'SINGLE_CHOICE': return 'Một đáp án';
@@ -380,10 +341,9 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Check if correct for results display (client-side for option-based types) */
   isQuestionCorrect(question: QuizQuestion): boolean | null {
     const ans = this.answers()[question.id];
-    if (!ans || (Array.isArray(ans) && ans.length === 0)) return null; // unanswered
+    if (!ans || (Array.isArray(ans) && ans.length === 0)) return null;
 
     switch (question.questionType) {
       case 'SINGLE_CHOICE':
@@ -397,11 +357,9 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
           correct.every((c: string) => selected.includes(c.toUpperCase()));
       }
       default:
-        return null; // Can't check text-based client-side
+        return null;
     }
   }
-
-  // --- Pagination ---
 
   prevPage() {
     if (this.currentPage() > 0) {
@@ -430,15 +388,12 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // --- Submit ---
-
   async submitQuiz() {
     if (this.submitting()) return;
     this.submitting.set(true);
     this.stopTimer();
     this.stopAutoSave();
 
-    // Persist quiz attempt to backend
     if (this.attemptId && this.quizId) {
       try {
         const answersArray = this.buildAnswersForSubmission();
@@ -462,7 +417,6 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     this.submitting.set(false);
   }
 
-  /** Build the answers array matching backend AttemptAnswer format per question type */
   private buildAnswersForSubmission(): any[] {
     const ans = this.answers();
     const questions = this.questions();
@@ -521,8 +475,6 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     this.sidebarVisible.update(v => !v);
   }
 
-  // ============ Auto-Save (Moodle SOTA: 60s interval) ============
-
   startAutoSave() {
     if (!this.attemptId) return;
     this.autoSaveInterval = setInterval(() => this.doAutoSave(), this.AUTO_SAVE_INTERVAL_MS);
@@ -544,7 +496,6 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     try {
       await firstValueFrom(this.quizApi.saveAttemptProgress(this.attemptId, answersArray));
       this.autoSaveStatus.set('saved');
-      // Reset indicator after 3 seconds
       setTimeout(() => {
         if (this.autoSaveStatus() === 'saved') this.autoSaveStatus.set('idle');
       }, 3000);
@@ -556,7 +507,6 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   goBack() {
     this.stopTimer();
     if (this.returnUrl && this.returnUrl !== '/student/learn/course') {
-      // If quiz was submitted, add quizCompleted + attemptId so learning page can validate server-side
       const separator = this.returnUrl.includes('?') ? '&' : '?';
       const url = this.showResults() && this.attemptId
         ? `${this.returnUrl}${separator}quizCompleted=true&attemptId=${this.attemptId}`
@@ -567,7 +517,6 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Fisher-Yates shuffle */
   private shuffleArray<T>(arr: T[]): T[] {
     const shuffled = [...arr];
     for (let i = shuffled.length - 1; i > 0; i--) {

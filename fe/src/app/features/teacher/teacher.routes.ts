@@ -31,7 +31,7 @@ export const teacherRoutes: Routes = [
   // Section Editor - Standalone (quản lý bài học trong chương)
   {
     path: 'courses/:courseId/sections/:sectionId',
-    loadComponent: () => import('./courses/section-editor/section-editor-refactored.component').then(m => m.SectionEditorRefactoredComponent),
+    loadComponent: () => import('./courses/section-editor/legacy-section-editor-redirect.component').then(m => m.LegacySectionEditorRedirectComponent),
     canActivate: [teacherGuard],
     title: 'Quản lý bài học'
   },

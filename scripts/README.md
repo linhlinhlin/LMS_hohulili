@@ -13,3 +13,4 @@ This folder contains operational helpers that are useful locally but are not par
 - Treat scripts here as operator utilities, not production entrypoints.
 - If you add manual verification helpers again, keep them current with the live API version and place them under a dedicated subfolder.
 - Generated artifacts from these scripts should stay out of the repository root.
+- `dev/coord-watch.ps1` is a local coordination utility for watcher-style mailbox workflows under `coord/`.

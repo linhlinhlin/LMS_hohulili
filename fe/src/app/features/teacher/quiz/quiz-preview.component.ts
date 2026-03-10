@@ -35,7 +35,8 @@ export class QuizPreviewComponent implements OnInit, OnDestroy {
   
   Math = Math;
 
-  lessonId = '';
+  quizReferenceId = '';
+  quizId = '';
   quizTitle = signal('Bài kiểm tra');
   returnUrl = '';
 
@@ -88,7 +89,10 @@ export class QuizPreviewComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit() {
-    this.lessonId = this.route.snapshot.paramMap.get('lessonId') || '';
+    this.quizReferenceId =
+      this.route.snapshot.paramMap.get('quizId')
+      || this.route.snapshot.paramMap.get('lessonId')
+      || '';
     this.quizTitle.set(this.route.snapshot.queryParamMap.get('title') || 'Bài kiểm tra');
     this.returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/teacher/courses';
     this.loadQuiz();
@@ -102,8 +106,16 @@ export class QuizPreviewComponent implements OnInit, OnDestroy {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const response = await firstValueFrom(this.quizApi.getQuizQuestions(this.lessonId));
-      const questions = Array.isArray(response) ? response : (response as any).data || [];
+      const quiz = await firstValueFrom(this.quizApi.getQuizByReference(this.quizReferenceId));
+      this.quizId = quiz.id;
+      if (quiz.title) {
+        this.quizTitle.set(quiz.title);
+      }
+      if (quiz.timeLimitMinutes) {
+        this.timeRemaining.set(quiz.timeLimitMinutes * 60);
+      }
+
+      const questions = await firstValueFrom(this.quizApi.getQuizQuestions(this.quizId));
       if (questions.length === 0) {
         this.error.set('Bài kiểm tra này chưa có câu hỏi nào.');
         return;
@@ -211,4 +223,3 @@ export class QuizPreviewComponent implements OnInit, OnDestroy {
     }
   }
 }
-

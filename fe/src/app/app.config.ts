@@ -98,6 +98,23 @@ import {
   Type
 } from 'lucide-angular';
 
+function isLocalBrowserRuntime(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  const hostname = window.location.hostname;
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+}
+
+function shouldEnableServiceWorker(): boolean {
+  return !isDevMode() && !isLocalBrowserRuntime();
+}
+
+function shouldEnableViewTransitions(): boolean {
+  return !isLocalBrowserRuntime();
+}
+
 // ✅ FIXED: Factory function to setup global state when app initializes
 function initializeApp(authService: AuthService): () => Promise<void> {
   return () => {
@@ -119,7 +136,10 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
-    provideRouter(routes, withViewTransitions()),
+    provideRouter(
+      routes,
+      ...(shouldEnableViewTransitions() ? [withViewTransitions()] : [])
+    ),
     provideClientHydration(withEventReplay()),
     provideAnimationsAsync(),
     provideHttpClient(
@@ -130,12 +150,12 @@ export const appConfig: ApplicationConfig = {
     { provide: LOCALE_ID, useValue: 'vi' },
     // Service Worker — register immediately so cache is populated ASAP
     // (was registerWhenStable:30000 — too late; users closing tab within 30s got zero cache)
-    ...(isDevMode() ? [] : [
+    ...(shouldEnableServiceWorker() ? [
       provideServiceWorker('ngsw-worker.js', {
         enabled: true,
         registrationStrategy: 'registerImmediately'
       })
-    ]),
+    ] : []),
     // ✅ FIXED: Add APP_INITIALIZER to setup global state before app renders
     {
       provide: APP_INITIALIZER,

@@ -100,23 +100,33 @@ export class LessonQuizCreateComponent implements OnInit {
         }
     };
 
-    sectionId = signal<string | null>(null);
+    chapterId = signal<string | null>(null);
 
     ngOnInit() {
         this.route.params.pipe(take(1)).subscribe(params => {
-            const sectionIdParam = params['sectionId'];
+            const chapterIdParam = params['chapterId'] ?? params['sectionId'];
             const lessonIdParam = params['lessonId'];
 
-            if (sectionIdParam) {
-                this.sectionId.set(sectionIdParam);
+            if (chapterIdParam) {
+                this.chapterId.set(chapterIdParam);
                 this.isLoading.set(false);
                 this.loadQuestionsInBackground();
             }
 
             if (lessonIdParam) {
                 this.lessonId.set(lessonIdParam);
-                this.loadData(lessonIdParam);
+                this.redirectToExistingQuizIfPresent(lessonIdParam);
             }
+        });
+    }
+
+    private redirectToExistingQuizIfPresent(lessonId: string) {
+        this.quizApi.getQuizByLessonId(lessonId).subscribe({
+            next: (quiz) => {
+                this.toast.info('Bài học này đã có bài kiểm tra. Đang mở màn hình chỉnh sửa.');
+                void this.router.navigate(['/teacher/quiz', quiz.id, 'edit']);
+            },
+            error: () => this.loadData(lessonId)
         });
     }
 
@@ -149,6 +159,11 @@ export class LessonQuizCreateComponent implements OnInit {
             next: (results: any) => {
                 if (results.lesson && results.lesson.data) {
                     this.lessonTitle.set(results.lesson.data.title);
+                    if (results.lesson.data.lessonType && results.lesson.data.lessonType !== 'QUIZ') {
+                        this.toast.warning('Chỉ có thể tạo quiz cho lesson loại bài kiểm tra.');
+                        this.handleCancel();
+                        return;
+                    }
                 }
                 this.loadQuestionsInBackground();
             },
@@ -210,8 +225,8 @@ export class LessonQuizCreateComponent implements OnInit {
         };
 
         // Check if we are creating for a Section or a Lesson
-        if (this.sectionId()) {
-            this.quizApi.createSectionQuiz(this.sectionId()!, request)
+        if (this.chapterId()) {
+            this.quizApi.createChapterQuiz(this.chapterId()!, request)
                 .subscribe({
                     next: () => {
                         this.handleCancel();

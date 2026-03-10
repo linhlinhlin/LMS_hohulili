@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { CourseAuthoringService, CourseDraftDTO, ChapterDraftDTO, LessonDraftDTO } from '../services/course-authoring.service';
 import { finalize } from 'rxjs/operators';
 import { ToastService } from '../../../../core/services/toast.service';
+import { lessonHasCanonicalContent } from '../utils/lesson-readiness';
 
 export type SaveStatus = 'saved' | 'saving' | 'unsaved' | 'error';
 
@@ -34,7 +35,7 @@ export class CourseEditorStore {
         if (!tree) return { score: 0, total: 6, items: [] as { label: string; done: boolean; critical: boolean }[], canPublish: false };
 
         const hasLessonWithContent = tree.chapters?.some(ch =>
-            ch.lessons?.some(l => (l.sections?.length || 0) > 0)
+            ch.lessons?.some(lesson => lessonHasCanonicalContent(lesson))
         ) ?? false;
 
         const items: { label: string; done: boolean; critical: boolean }[] = [
@@ -72,6 +73,13 @@ export class CourseEditorStore {
     private courseCache = new Map<string, { data: CourseDraftDTO, timestamp: number }>();
     private CACHE_DURATION = 60000; // 1 minute
 
+    private setCourseTreeState(tree: CourseDraftDTO) {
+        this.courseTree.set(tree);
+        if (tree.id) {
+            this.courseCache.set(tree.id, { data: tree, timestamp: Date.now() });
+        }
+    }
+
     loadCourse(courseId: string, forceRefresh = false) {
         // Check cache first - return immediately if valid AND not forced
         if (!forceRefresh) {
@@ -89,8 +97,7 @@ export class CourseEditorStore {
             .pipe(finalize(() => this.isLoading.set(false)))
             .subscribe({
                 next: (data) => {
-                    this.courseTree.set(data);
-                    this.courseCache.set(courseId, { data, timestamp: Date.now() });
+                    this.setCourseTreeState(data);
                 },
                 error: (err: any) => {
                     const message = err?.error?.message || err?.message || 'Không thể tải khóa học';
@@ -111,12 +118,12 @@ export class CourseEditorStore {
             .map(id => oldChapters.find(ch => ch.id === id))
             .filter((ch): ch is ChapterDraftDTO => !!ch);
 
-        this.courseTree.set({ ...currentTree, chapters: newChapters });
+        this.setCourseTreeState({ ...currentTree, chapters: newChapters });
 
         // 2. Call API
         this.service.reorderChapters(courseId, newOrderedIds).subscribe({
             error: (err: any) => {
-                this.courseTree.set({ ...currentTree, chapters: oldChapters });
+                this.setCourseTreeState({ ...currentTree, chapters: oldChapters });
                 this.toast.error('Sắp xếp chương thất bại' + (err?.error?.message ? ': ' + err.error.message : ''));
             }
         });
@@ -137,7 +144,7 @@ export class CourseEditorStore {
             return { ...ch, lessons: newLessons };
         });
 
-        this.courseTree.set({ ...currentTree, chapters: newChapters });
+        this.setCourseTreeState({ ...currentTree, chapters: newChapters });
 
         const courseId = currentTree.id;
         if (!courseId) {
@@ -146,7 +153,7 @@ export class CourseEditorStore {
         }
         this.service.reorderLessons(chapterId, newOrderedIds, courseId).subscribe({
             error: (err: any) => {
-                this.courseTree.set({ ...currentTree, chapters: oldChapters });
+                this.setCourseTreeState({ ...currentTree, chapters: oldChapters });
                 this.toast.error('Sắp xếp bài học thất bại' + (err?.error?.message ? ': ' + err.error.message : ''));
             }
         });
@@ -170,11 +177,11 @@ export class CourseEditorStore {
             })
         }));
 
-        this.courseTree.set({ ...currentTree, chapters: newChapters });
+        this.setCourseTreeState({ ...currentTree, chapters: newChapters });
 
         this.service.reorderSections(lessonId, newOrderedIds).subscribe({
             error: (err: any) => {
-                this.courseTree.set({ ...currentTree, chapters: oldChapters });
+                this.setCourseTreeState({ ...currentTree, chapters: oldChapters });
                 this.toast.error('Sắp xếp nội dung thất bại' + (err?.error?.message ? ': ' + err.error.message : ''));
             }
         });
@@ -192,7 +199,7 @@ export class CourseEditorStore {
             };
         });
 
-        this.courseTree.set({ ...currentTree, chapters: newChapters });
+        this.setCourseTreeState({ ...currentTree, chapters: newChapters });
     }
 
     // Auto-save calling this
@@ -233,6 +240,18 @@ export class CourseEditorStore {
     // Mark content as changed (triggers auto-save countdown)
     markUnsaved() {
         this.saveStatus.set('unsaved');
+    }
+
+    markSaving() {
+        this.saveStatus.set('saving');
+    }
+
+    markSaved() {
+        this.saveStatus.set('saved');
+    }
+
+    markError() {
+        this.saveStatus.set('error');
     }
 
     // Auto-save with debounce (2s)

@@ -163,9 +163,7 @@ teacher/
 ├── courses/
 │   ├── course-management.component
 │   ├── course-creation.component
-│   ├── section-editor/ (Refactored: 8 files, max 386 LOC)
-│   │   ├── section-smart-editor.component.ts (303 LOC)
-│   │   ├── state/section-editor.state.ts (386 LOC)
+│   ├── section-editor/legacy-section-editor-redirect.component.ts
 │   │   └── 6 child components
 │   └── components/ (quiz-creation-modal, course-students-list, etc.)
 ├── assignment-hub/         # Unified assignment + grading
@@ -300,7 +298,7 @@ student/
   /courses                    → Course list
   /course-creation            → New course
   /courses/:id/editor/*       → Course editor (standalone layout)
-  /courses/:cid/sections/:sid → Section editor (standalone)
+  /courses/:cid/sections/:sid → Legacy redirect to curriculum editor
   /assessments/*              → Assignment Hub (list, create, detail, grade)
   /students, /students/:id    → Student management
   /quiz/*                     → Quiz management
@@ -366,7 +364,6 @@ class MyComponent {
 | SubmissionsStore | teacher/assignment-hub | Signals + filters |
 | AssignmentListState | assignments/presentation/state | Signals + computed |
 | QuizStateService | learning/state | Signals |
-| SectionEditorState | teacher/courses/section-editor/state | Signals (extracted) |
 
 ---
 

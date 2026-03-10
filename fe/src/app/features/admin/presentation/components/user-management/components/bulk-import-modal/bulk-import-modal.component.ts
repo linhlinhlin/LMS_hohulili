@@ -31,7 +31,7 @@ import { UserManagementState } from '../../state/user-management.state';
                       <div class="text-sm text-[#004BB5]">
                         <p class="font-medium mb-2">Định dạng file Excel yêu cầu:</p>
                         <ul class="list-disc list-inside space-y-1 text-xs mb-3">
-                          <li>Cột A: Username (bắt buộc) - Tên đăng nhập</li>
+                          <li>Cột A: Username (tùy chọn) - Nếu để trống sẽ tự sinh từ email</li>
                           <li>Cột B: Email (bắt buộc) - Địa chỉ email</li>
                           <li>Cột C: Full Name (bắt buộc) - Họ tên đầy đủ</li>
                           <li>Cột D: Password (tùy chọn) - Mật khẩu</li>
@@ -41,6 +41,7 @@ import { UserManagementState } from '../../state/user-management.state';
                           <p class="text-xs font-medium">Mật khẩu mặc định: <span class="font-bold">Password123!</span></p>
                           <p class="text-xs mt-1">Nếu file Excel không có cột Password, tất cả tài khoản sẽ dùng mật khẩu này.</p>
                         </div>
+                        <p class="text-xs text-[#004BB5] mb-2">File sẽ được xử lý trên máy chủ và trả về lỗi chi tiết theo từng dòng.</p>
                         <button (click)="downloadTemplate.emit()"
                                 class="text-[#0056D2] hover:text-[#004BB5] underline text-xs font-medium">
                           Tải template mẫu
@@ -52,7 +53,7 @@ import { UserManagementState } from '../../state/user-management.state';
                   <!-- Role Selection -->
                   <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">
-                      Chọn vai trò cho tất cả người dùng được import
+                      Vai trò mặc định cho đợt import
                     </label>
                     <select [ngModel]="state.defaultImportRole()"
                             (ngModelChange)="state.defaultImportRole.set($event)"
@@ -62,7 +63,7 @@ import { UserManagementState } from '../../state/user-management.state';
                         <option [value]="roleOpt.value">{{ roleOpt.label }}</option>
                       }
                     </select>
-                    <p class="text-xs text-gray-500 mt-1">Tất cả người dùng trong file Excel sẽ được gán vai trò này</p>
+                    <p class="text-xs text-gray-500 mt-1">Tất cả người dùng hợp lệ trong file sẽ được gán vai trò này</p>
                   </div>
 
                   <!-- File Upload -->
@@ -104,10 +105,7 @@ import { UserManagementState } from '../../state/user-management.state';
                     <!-- Progress Bar -->
                     @if (state.bulkImportProgress().isImporting) {
                       <div class="space-y-2">
-                        <div class="flex justify-between text-sm">
-                          <span class="text-gray-600">{{ state.bulkImportProgress().currentStep }}</span>
-                          <span class="text-gray-600">{{ state.bulkImportProgress().progress }}%</span>
-                        </div>
+                        <div class="text-sm text-gray-600">{{ state.bulkImportProgress().currentStep }}</div>
                         <div class="w-full bg-gray-200 rounded-full h-2">
                           <div class="bg-[#0056D2] h-2 rounded-full transition-all duration-300"
                                [style.width.%]="state.bulkImportProgress().progress"></div>

@@ -1,5 +1,6 @@
 package com.example.lms.assessment.infrastructure.web;
 
+import com.example.lms.assessment.application.port.StudentAssessmentAccessPort;
 import com.example.lms.assessment.infrastructure.persistence.entity.AssignmentJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.entity.AssignmentSubmissionJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentJpaRepository;
@@ -7,7 +8,6 @@ import com.example.lms.assessment.infrastructure.persistence.repository.Assignme
 import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
-import com.example.lms.shared.infrastructure.web.ApiResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -22,14 +22,19 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
- * Security tests for AssignmentSubmissionControllerV3 IDOR fixes (P0-6, P0-7, P0-9).
+ * Security tests for assignment submission endpoints.
  */
 @ExtendWith(MockitoExtension.class)
 class AssignmentSecurityTest {
 
+    @Mock private StudentAssessmentAccessPort studentAssessmentAccessPort;
     @Mock private AssignmentSubmissionJpaRepository submissionRepository;
     @Mock private AssignmentJpaRepository assignmentRepository;
     @Mock private JpaCourseRepository courseJpaRepository;
@@ -53,11 +58,11 @@ class AssignmentSecurityTest {
     }
 
     @Nested
-    @DisplayName("P0-6: getSubmissionById IDOR")
+    @DisplayName("getSubmissionById")
     class GetSubmissionById {
 
         @Test
-        @DisplayName("Student chỉ xem được bài nộp của mình")
+        @DisplayName("student can only see own submission")
         void studentCanOnlySeeOwn() {
             UUID submissionId = UUID.randomUUID();
             var submission = mock(AssignmentSubmissionJpaEntity.class);
@@ -69,14 +74,32 @@ class AssignmentSecurityTest {
             assertThatThrownBy(() -> controller.getSubmissionById(submissionId, studentB))
                     .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
         }
+
+        @Test
+        @DisplayName("student cannot see submission if assignment boundary denies access")
+        void studentCannotSeeSubmissionOutsideAssignmentBoundary() {
+            UUID submissionId = UUID.randomUUID();
+            UUID assignmentId = UUID.randomUUID();
+
+            var submission = mock(AssignmentSubmissionJpaEntity.class);
+            when(submission.getStudentId()).thenReturn(studentAId);
+            when(submission.getAssignmentId()).thenReturn(assignmentId);
+            when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
+            when(studentAssessmentAccessPort.canAccessAssignment(assignmentId, studentAId)).thenReturn(false);
+
+            var studentA = mockUser(studentAId, UserJpaEntity.UserRole.STUDENT);
+
+            assertThatThrownBy(() -> controller.getSubmissionById(submissionId, studentA))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        }
     }
 
     @Nested
-    @DisplayName("P0-7: gradeSubmission IDOR")
+    @DisplayName("gradeSubmission")
     class GradeSubmission {
 
         @Test
-        @DisplayName("Teacher phải sở hữu khóa học để chấm điểm")
+        @DisplayName("teacher must own course to grade")
         void teacherMustOwnCourse() {
             UUID submissionId = UUID.randomUUID();
             UUID assignmentId = UUID.randomUUID();
@@ -95,18 +118,17 @@ class AssignmentSecurityTest {
             when(courseJpaRepository.findById(courseId)).thenReturn(Optional.of(course));
 
             var otherTeacher = mockUser(otherTeacherId, UserJpaEntity.UserRole.TEACHER);
+            var request = new AssignmentSubmissionControllerV3.GradeRequest(85.0, null, "Tot");
 
-            var request = new AssignmentSubmissionControllerV3.GradeRequest(85.0, null, "Tốt");
             assertThatThrownBy(() -> controller.gradeSubmission(submissionId, request, otherTeacher))
-                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
         }
 
         @Test
-        @DisplayName("Admin có thể chấm điểm bài nộp bất kỳ")
+        @DisplayName("admin can grade any submission")
         void adminCanGradeAnySubmission() {
             UUID submissionId = UUID.randomUUID();
             var submission = mock(AssignmentSubmissionJpaEntity.class);
-            // Stub getters needed by toSubmissionMap/toSubmissionDetailMap
             when(submission.getId()).thenReturn(submissionId);
             when(submission.getAssignmentId()).thenReturn(UUID.randomUUID());
             when(submission.getStudentId()).thenReturn(studentAId);
@@ -114,19 +136,19 @@ class AssignmentSecurityTest {
             when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
 
             var admin = mockUser(adminId, UserJpaEntity.UserRole.ADMIN);
+            var request = new AssignmentSubmissionControllerV3.GradeRequest(90.0, null, "Xuat sac");
 
-            var request = new AssignmentSubmissionControllerV3.GradeRequest(90.0, null, "Xuất sắc");
             var response = controller.gradeSubmission(submissionId, request, admin);
             assertThat(response.getStatusCode().value()).isEqualTo(200);
         }
     }
 
     @Nested
-    @DisplayName("P0-9: publishAssignment IDOR")
+    @DisplayName("publishAssignment")
     class PublishAssignment {
 
         @Test
-        @DisplayName("Teacher phải sở hữu khóa học để phát hành bài tập")
+        @DisplayName("teacher must own course to publish")
         void teacherMustOwnCourse() {
             UUID assignmentId = UUID.randomUUID();
             UUID courseId = UUID.randomUUID();
@@ -142,15 +164,54 @@ class AssignmentSecurityTest {
             var otherTeacher = mockUser(otherTeacherId, UserJpaEntity.UserRole.TEACHER);
 
             assertThatThrownBy(() -> controller.publishAssignment(assignmentId, otherTeacher))
-                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
         }
     }
 
-    // Helper
+    @Nested
+    @DisplayName("student compatibility routes")
+    class StudentSubmissionBoundary {
+
+        @Test
+        @DisplayName("student cannot submit inaccessible assignment through legacy endpoint")
+        void studentCannotSubmitInaccessibleAssignment() {
+            UUID assignmentId = UUID.randomUUID();
+
+            var assignment = mock(AssignmentJpaEntity.class);
+            when(assignment.getStatus()).thenReturn(AssignmentJpaEntity.AssignmentStatus.PUBLISHED);
+            when(assignmentRepository.findById(assignmentId)).thenReturn(Optional.of(assignment));
+            when(studentAssessmentAccessPort.canAccessAssignment(assignmentId, studentAId)).thenReturn(false);
+
+            var student = mockUser(studentAId, UserJpaEntity.UserRole.STUDENT);
+            var request = new AssignmentSubmissionControllerV3.SubmitRequest("content", null, null);
+
+            var response = controller.submitAssignment(assignmentId, request, student);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(403);
+            assertThat(response.getBody()).isNotNull();
+            assertThat(response.getBody().isSuccess()).isFalse();
+        }
+
+        @Test
+        @DisplayName("student cannot read inaccessible submission through legacy endpoint")
+        void studentCannotReadMySubmissionForInaccessibleAssignment() {
+            UUID assignmentId = UUID.randomUUID();
+            when(studentAssessmentAccessPort.canAccessAssignment(assignmentId, studentAId)).thenReturn(false);
+
+            var student = mockUser(studentAId, UserJpaEntity.UserRole.STUDENT);
+            var response = controller.getMySubmission(assignmentId, student);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(403);
+            assertThat(response.getBody()).isNotNull();
+            assertThat(response.getBody().isSuccess()).isFalse();
+            verify(submissionRepository, never()).findByAssignmentIdAndStudentId(any(), any());
+        }
+    }
+
     private UserJpaEntity mockUser(UUID userId, UserJpaEntity.UserRole role) {
         var user = mock(UserJpaEntity.class);
         when(user.getId()).thenReturn(userId);
-        when(user.getRole()).thenReturn(role);
+        org.mockito.Mockito.lenient().when(user.getRole()).thenReturn(role);
         return user;
     }
 }

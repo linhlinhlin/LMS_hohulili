@@ -1,5 +1,6 @@
 package com.example.lms.assessment.application.usecase;
 
+import com.example.lms.assessment.application.port.StudentAssessmentAccessPort;
 import com.example.lms.assessment.domain.model.Question;
 import com.example.lms.assessment.domain.event.QuizSubmittedEvent;
 import com.example.lms.assessment.domain.model.Quiz;
@@ -37,6 +38,7 @@ public class QuizAttemptUseCase {
     private final QuizAttemptRepository attemptRepository;
     private final QuestionRepository questionRepository;
     private final DomainEventPublisher eventPublisher;
+    private final StudentAssessmentAccessPort studentAssessmentAccessPort;
     private final GradingService gradingService = new GradingService();
 
     @Transactional
@@ -57,6 +59,10 @@ public class QuizAttemptUseCase {
         }
         if (quiz.getSettings().lockAt() != null && now.isAfter(quiz.getSettings().lockAt())) {
             throw new BusinessRuleException("QUIZ_LOCKED", "Bài kiểm tra đã đóng");
+        }
+
+        if (!studentAssessmentAccessPort.canAccessQuiz(quizId, studentId)) {
+            throw new BusinessRuleException("QUIZ_ACCESS_DENIED", "Ban khong co quyen truy cap bai kiem tra nay");
         }
 
         // Check max attempts

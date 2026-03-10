@@ -196,6 +196,7 @@ export class CourseEditorHeaderComponent {
 
     readinessChecklist = this.store.readinessChecklist;
     readinessPercent = this.store.readinessPercent;
+    hasUnsavedChanges = computed(() => this.store.saveStatus() === 'unsaved');
 
     readinessTooltip = computed(() => {
         const cl = this.readinessChecklist();
@@ -208,7 +209,21 @@ export class CourseEditorHeaderComponent {
     /**
      * Role-based navigation: Admin -> /admin/courses, Teacher -> /teacher/courses
      */
-    goBack() {
+    async goBack() {
+        if (this.hasUnsavedChanges()) {
+            const shouldLeave = await this.confirmDialog.confirm({
+                title: 'Rời màn chỉnh sửa',
+                message: 'Bạn có thay đổi chưa lưu trong trình biên tập. Nếu quay lại bây giờ, các chỉnh sửa sẽ bị mất.',
+                variant: 'warning',
+                confirmText: 'Quay lại',
+                cancelText: 'Ở lại'
+            });
+            if (!shouldLeave) {
+                return;
+            }
+            this.store.markSaved();
+        }
+
         if (this.isAdminViewMode()) {
             this.router.navigate(['/admin/courses']);
         } else {
@@ -217,6 +232,11 @@ export class CourseEditorHeaderComponent {
     }
 
     preview() {
+        if (this.hasUnsavedChanges()) {
+            this.toast.warning('Hãy lưu thay đổi trước khi xem trước.');
+            return;
+        }
+
         const courseId = this.store.courseTree()?.id;
         if (courseId) {
             const win = window.open('/student/courses/' + courseId, '_blank');
@@ -229,6 +249,11 @@ export class CourseEditorHeaderComponent {
     async publish() {
         const id = this.store.courseTree()?.id;
         if (!id) return;
+
+        if (this.hasUnsavedChanges()) {
+            this.toast.warning('Hãy lưu thay đổi trước khi xuất bản.');
+            return;
+        }
 
         // Readiness gate: block publish if critical items missing
         const checklist = this.readinessChecklist();
@@ -256,4 +281,3 @@ export class CourseEditorHeaderComponent {
         });
     }
 }
-

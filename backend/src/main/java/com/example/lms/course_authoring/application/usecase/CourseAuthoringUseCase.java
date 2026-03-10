@@ -72,6 +72,8 @@ public class CourseAuthoringUseCase {
                 }
             }
 
+            applyInitialPricing(course, request);
+
             try {
                 Course saved = courseRepository.save(course);
                 return getCourseDraftUseCase.execute(saved.getId());
@@ -85,6 +87,49 @@ public class CourseAuthoringUseCase {
 
         throw new BusinessRuleException("COURSE_CODE_GENERATION_FAILED",
                 "Không thể tạo mã khóa học");
+    }
+
+    private void applyInitialPricing(Course course, CourseDTOs.CreateCourseRequest request) {
+        Course.PriceType requestedPriceType = parsePriceType(request.getPriceType());
+        boolean hasPricingInput = requestedPriceType != null
+                || request.getPrice() != null
+                || request.getSalePrice() != null;
+
+        if (!hasPricingInput) {
+            return;
+        }
+
+        Course.PriceType effectivePriceType = requestedPriceType != null
+                ? requestedPriceType
+                : Course.PriceType.PAID;
+
+        if (effectivePriceType == Course.PriceType.PAID) {
+            java.math.BigDecimal price = request.getPrice();
+            java.math.BigDecimal salePrice = request.getSalePrice();
+
+            if (price == null || price.compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                throw new BusinessRuleException("INVALID_PRICE", "KhÃ³a há»c tráº£ phÃ­ pháº£i cÃ³ giÃ¡ lá»›n hÆ¡n 0.");
+            }
+
+            if (salePrice != null
+                    && salePrice.compareTo(java.math.BigDecimal.ZERO) > 0
+                    && salePrice.compareTo(price) >= 0) {
+                throw new BusinessRuleException("INVALID_SALE_PRICE", "GiÃ¡ khuyáº¿n mÃ£i pháº£i nhá» hÆ¡n giÃ¡ gá»‘c.");
+            }
+        }
+
+        course.updatePricing(effectivePriceType, request.getPrice(), request.getSalePrice());
+    }
+
+    private Course.PriceType parsePriceType(String priceType) {
+        if (priceType == null || priceType.isBlank()) {
+            return null;
+        }
+        try {
+            return Course.PriceType.valueOf(priceType.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     @Transactional

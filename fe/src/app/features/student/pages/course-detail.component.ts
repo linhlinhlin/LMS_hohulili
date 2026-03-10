@@ -8,9 +8,7 @@ import { PaymentService } from '../../payment/payment.service';
 import { CourseReviewApi, ReviewDTO, ReviewSummary, SubmitReviewRequest } from '../../../api/endpoints/course-review.api';
 import { firstValueFrom } from 'rxjs';
 import { ToastService } from '../../../core/services/toast.service';
-import { StudentEnrollmentService } from '../services/enrollment.service';
-import { AuthService } from '../../../core/services/auth.service';
-import { CourseService } from '../../../state/course.service';
+import { QuizApi } from '../../../api/endpoints/quiz.api';
 
 interface CourseDetail {
   id: string;
@@ -70,9 +68,7 @@ export class CourseDetailComponent implements OnInit {
   private paymentService = inject(PaymentService);
   private reviewApi = inject(CourseReviewApi);
   private toast = inject(ToastService);
-  private enrollmentService = inject(StudentEnrollmentService);
-  private authService = inject(AuthService);
-  private courseService = inject(CourseService);
+  private quizApi = inject(QuizApi);
 
   readonly FREE_LESSONS_COUNT = 2;
 
@@ -84,10 +80,6 @@ export class CourseDetailComponent implements OnInit {
   expandedSections = signal<Set<string>>(new Set());
   isDescriptionExpanded = signal(false);
   allExpanded = signal(false);
-
-  // Enrollment state
-  isEnrolled = signal(false);
-  isEnrolling = signal(false);
 
   // Payment state
   hasPaid = signal(false);
@@ -162,76 +154,10 @@ export class CourseDetailComponent implements OnInit {
     if (courseId) {
       this.loadCourse(courseId);
       this.checkPaymentStatus(courseId);
-      // Check enrollment status - this is async but we don't await because we want to show loading state
-      this.checkEnrollmentStatus(courseId).then(() => {
-        // Enrollment status loaded, trigger change detection
-      });
       this.loadReviews(courseId);
       this.loadMyReview(courseId);
       this.loadProgress(courseId);
       this.loadCompletedLessonIds(courseId);
-    }
-  }
-
-  /** Check enrollment status for the course using progress API */
-  private async checkEnrollmentStatus(courseId: string): Promise<void> {
-    if (!this.authService.isAuthenticated()) {
-      this.isEnrolled.set(false);
-      return;
-    }
-    
-    // Use a direct approach: try to get course progress
-    // Backend returns status: "not_enrolled" when user is not enrolled (HTTP 200)
-    try {
-      const res = await firstValueFrom(this.courseApi.getCourseProgress(courseId));
-      const data = res?.data;
-      
-      // Check if response indicates NOT enrolled
-      // Backend returns status: "not_enrolled" or "not_authenticated" in the data
-      const status = data?.status || '';
-      const isNotEnrolled = status === 'not_enrolled' || status === 'not_authenticated';
-      
-      if (isNotEnrolled) {
-        this.isEnrolled.set(false);
-        console.log('[CourseDetail] User not enrolled in course', courseId, '- status:', status);
-      } else {
-        // User is enrolled (status is 'active', 'completed', etc.)
-        this.isEnrolled.set(true);
-        console.log('[CourseDetail] User enrolled in course', courseId, '- status:', status);
-      }
-    } catch (e: any) {
-      // API error - treat as not enrolled
-      this.isEnrolled.set(false);
-      console.error('[CourseDetail] Error checking enrollment:', e?.message);
-    }
-  }
-
-  /** Handle enrollment for SELF_PACED free courses */
-  async handleEnroll(): Promise<void> {
-    const courseId = this.course()?.id;
-    if (!courseId) return;
-
-    if (!this.authService.isAuthenticated()) {
-      this.router.navigate(['/auth/login'], { queryParams: { returnUrl: this.router.url } });
-      return;
-    }
-
-    this.isEnrolling.set(true);
-    try {
-      // For SELF_PACED courses, enroll directly
-      await this.courseService.enrollInCourse(courseId, this.authService.currentUser()!.id);
-      this.toast.success('Đăng ký khóa học thành công!');
-      this.isEnrolled.set(true);
-      
-      // Refresh enrollment data
-      await this.enrollmentService.loadEnrolledCourses(0, 100);
-      
-      // Start learning
-      this.startLearning();
-    } catch (e: any) {
-      this.toast.error('Đăng ký thất bại: ' + (e.error?.message || e.message || 'Có lỗi xảy ra'));
-    } finally {
-      this.isEnrolling.set(false);
     }
   }
 
@@ -388,34 +314,12 @@ export class CourseDetailComponent implements OnInit {
   startLearning(): void {
     const courseId = this.course()?.id;
     if (!courseId) return;
-    
-    // Verify enrollment before navigating
-    this.verifyEnrollmentAndNavigate(courseId);
-  }
-
-  /** Verify enrollment and navigate to learning page */
-  private async verifyEnrollmentAndNavigate(courseId: string): Promise<void> {
-    try {
-      // Try to get course progress - if user is enrolled, this will succeed
-      await firstValueFrom(this.courseApi.getCourseProgress(courseId));
-      
-      // User is enrolled, navigate to learning
-      const firstSection = this.sections()[0];
-      if (firstSection && firstSection.lessons.length > 0) {
-        const firstLesson = firstSection.lessons[0];
-        this.router.navigate(['/student/learn/course', courseId, 'lesson', firstLesson.id]);
-      } else {
-        this.router.navigate(['/student/learn/course', courseId]);
-      }
-    } catch (error: any) {
-      // User is NOT enrolled - show error and display enrollment CTA
-      const errorMsg = error?.error?.message || error?.message || '';
-      if (errorMsg.includes('not enrolled') || errorMsg.includes('chưa đăng ký') || error?.status === 403 || error?.status === 404) {
-        this.toast.warning('Bạn chưa đăng ký khóa học này. Vui lòng đăng ký để học.');
-        this.isEnrolled.set(false);
-      } else {
-        this.toast.error('Không thể truy cập khóa học. Vui lòng thử lại.');
-      }
+    const firstSection = this.sections()[0];
+    if (firstSection && firstSection.lessons.length > 0) {
+      const firstLesson = firstSection.lessons[0];
+      this.router.navigate(['/student/learn/course', courseId, 'lesson', firstLesson.id]);
+    } else {
+      this.router.navigate(['/student/learn/course', courseId]);
     }
   }
 
@@ -423,8 +327,32 @@ export class CourseDetailComponent implements OnInit {
     const courseId = this.course()?.id;
     if (!courseId) return;
 
-    // Verify enrollment before navigating
-    this.verifyEnrollmentAndNavigate(courseId);
+    const storageKey = `learning_progress_${courseId}`;
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        const data = JSON.parse(stored);
+        if (data.lastAccessedLessonId) {
+          this.router.navigate(['/student/learn/course', courseId, 'lesson', data.lastAccessedLessonId]);
+          return;
+        }
+      }
+    } catch {
+      // silent fallback
+    }
+
+    // Find first incomplete lesson
+    const completedIds = this._completedLessonIds();
+    for (const section of this.sections()) {
+      for (const lesson of section.lessons) {
+        if (!completedIds.has(lesson.id)) {
+          this.router.navigate(['/student/learn/course', courseId, 'lesson', lesson.id]);
+          return;
+        }
+      }
+    }
+
+    this.startLearning();
   }
 
   goToLesson(lessonId: string): void {
@@ -448,8 +376,18 @@ export class CourseDetailComponent implements OnInit {
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   }
 
-  goToQuiz(lessonId: string): void {
-    this.router.navigate(['/student/quiz/take', lessonId]);
+  async goToQuiz(lessonId: string): Promise<void> {
+    try {
+      const quizId = await firstValueFrom(this.quizApi.resolveQuizIdByLessonId(lessonId));
+      await this.router.navigate(['/student/quiz/take', quizId], {
+        queryParams: {
+          lessonId,
+          returnUrl: this.router.url
+        }
+      });
+    } catch {
+      this.toast.error('Không thể mở bài kiểm tra của bài học này');
+    }
   }
 
   // ============ Payment Methods ============
@@ -584,16 +522,4 @@ export class CourseDetailComponent implements OnInit {
   }
 
   starArray = [1, 2, 3, 4, 5];
-
-  // Helper to strip lesson prefix if already present in title
-  getLessonDisplayTitle(title: string): string {
-    // If title already starts with "Bài X:", strip it to avoid duplication
-    if (title.toLowerCase().startsWith('bài') && title.includes(':')) {
-      const parts = title.split(':');
-      if (parts.length > 1) {
-        return parts.slice(1).join(':').trim();
-      }
-    }
-    return title;
-  }
 }

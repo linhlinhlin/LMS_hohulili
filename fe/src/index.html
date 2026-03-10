@@ -30,9 +30,8 @@
   <!-- Manifest -->
   <link rel="manifest" href="/manifest.webmanifest">
 
-  <!-- Preload critical resources -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Self-hosted fonts (Google Fonts CDN returns 503 in some regions) -->
+  <link rel="stylesheet" href="/assets/fonts/fonts.css">
   
   <!-- Prevent FOUC with inline critical CSS -->
   <style>
@@ -79,9 +78,7 @@
   <meta name="twitter:title" content="LMS Maritime - Hệ thống quản lý học tập">
   <meta name="twitter:description" content="Hệ thống quản lý học tập chuyên về ngành hàng hải">
   <meta name="twitter:image" content="icons/icon-512x512.png">
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <!-- Google Fonts removed: self-hosted via /assets/fonts/fonts.css -->
 </head>
 <body>
   <script>
@@ -90,6 +87,23 @@
     // Also auto-recovers: if SW exists but fails to serve the page, clears on next load
     (function() {
       if (!('serviceWorker' in navigator)) return;
+
+      var isLocalRuntime = location.hostname === 'localhost' ||
+        location.hostname === '127.0.0.1' ||
+        location.hostname === '[::1]';
+
+      if (isLocalRuntime) {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+          regs.forEach(function(r) { r.unregister(); });
+        });
+        caches.keys().then(function(names) {
+          names
+            .filter(function(name) { return name.indexOf('ngsw:') === 0; })
+            .forEach(function(name) { caches.delete(name); });
+        });
+        try { sessionStorage.removeItem('sw-health'); } catch(e) {}
+        return;
+      }
 
       // Manual reset: ?reset-sw in URL
       if (location.search.includes('reset-sw')) {

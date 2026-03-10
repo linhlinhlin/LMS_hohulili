@@ -1,4 +1,4 @@
-# Maritime LMS Backend
+﻿# Maritime LMS Backend
 
 > Spring Boot 3.2.6 + Java 21 + PostgreSQL 16 with a modular Clean Architecture / DDD layout.
 
@@ -9,6 +9,7 @@
 - Public dev API URL: `http://localhost:8088`
 - Spring Boot process/container port: `8080`
 - Production API URL: same-origin `/api/*` behind Caddy
+- Root `docker-compose*.yml` files are the only supported Docker runtime topology
 
 Use `8088` when calling the backend from the host machine. Use `8080` only for in-container and reverse-proxy wiring.
 
@@ -16,8 +17,8 @@ Use `8088` when calling the backend from the host machine. Use `8080` only for i
 # Prepare local env once
 cp ../.env.dev.example ../.env
 
-# Start everything (DB + API)
-cd ../ && docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+# Start everything needed for backend-local work (DB + API)
+cd ../ && docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db backend
 
 # Return to backend folder for backend-local commands
 cd backend
@@ -40,7 +41,7 @@ SERVER_PORT=8088 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 | API | http://localhost:8088/api/v3 | JWT Bearer |
 | **Swagger UI** | **http://localhost:8088/swagger-ui** | Interactive API docs |
 | OpenAPI Spec | http://localhost:8088/v3/api-docs | - |
-| pgAdmin | http://localhost:8081 | `admin@devmail.net` / `devonly123` (env: PGADMIN_PASSWORD) |
+| pgAdmin (optional `devtools` profile) | http://localhost:8081 | `admin@lms.vn` / `admin123` (env: PGADMIN_PASSWORD) |
 | PostgreSQL | localhost:5432/lms | `lms` / `lms` |
 
 **Test Accounts** (auto-created on first startup):
@@ -52,7 +53,7 @@ SERVER_PORT=8088 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 | TEACHER | `teacher@maritime.edu` | `teacher123` | Teacher User |
 | STUDENT | `student@maritime.edu` | `student123` | Student User |
 
-**Seed Accounts** (V54/V55 migration — 10 STCW courses with full content):
+**Seed Accounts** (V54/V55 migration â€” 10 STCW courses with full content):
 - 10 Teachers: `tranngocdai@maritime.edu`, `levanhung@maritime.edu`, etc. / `Maritime@2026`
 - 25 Students: `nguyenvanan@sv.maritime.edu`, `tranthibinh@sv.maritime.edu`, etc. / `Student@2026`
 - See `docs/testing/TEST_CHECKLIST.md` for the full list.
@@ -65,42 +66,42 @@ SERVER_PORT=8088 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 
 ```
 com.example.lms/
-├── identity/              # Users, Authentication, Roles (JWT), Multi-tier Admin
-├── course_authoring/      # Course, Chapter, Lesson, ContentBlock, Package, CourseCategory (2-level hierarchy), CourseTag, Review, Admin ops
-├── learning_delivery/     # LearningClass, Enrollment, Progress, Gamification, Analytics, Video, Certificate
-├── assessment/            # Assignment, Quiz, Question, Submission, Rubric, QuestionBank
-├── communication/         # Messages, Conversations
-├── ai_assistant/          # AI Chat integration (streaming SSE)
-├── shared/                # Value objects, domain events, exceptions, file service, payment, email, VNPay, admin settings
-└── config/                # Security, CORS, JWT filter, rate limiting, R2 storage
+â”œâ”€â”€ identity/              # Users, Authentication, Roles (JWT), Multi-tier Admin
+â”œâ”€â”€ course_authoring/      # Course, Chapter, Lesson, ContentBlock, Package, CourseCategory (2-level hierarchy), CourseTag, Review, Admin ops
+â”œâ”€â”€ learning_delivery/     # LearningClass, Enrollment, Progress, Gamification, Analytics, Video, Certificate
+â”œâ”€â”€ assessment/            # Assignment, Quiz, Question, Submission, Rubric, QuestionBank
+â”œâ”€â”€ communication/         # Messages, Conversations
+â”œâ”€â”€ ai_assistant/          # AI Chat integration (streaming SSE)
+â”œâ”€â”€ shared/                # Value objects, domain events, exceptions, file service, payment, email, VNPay, admin settings
+â””â”€â”€ config/                # Security, CORS, JWT filter, rate limiting, R2 storage
 ```
 
 ### Layer Structure (Per Module)
 
 ```
 {module}/
-├── domain/
-│   ├── model/            # Pure domain entities (NO framework annotations)
-│   ├── repository/       # Repository INTERFACES (ports)
-│   ├── valueobject/      # Value objects (CourseCode, Email, UserId)
-│   └── event/            # Domain events
-├── application/
-│   ├── usecase/          # Single-responsibility use cases
-│   ├── dto/              # Commands, responses
-│   └── port/             # Application-level port interfaces (TokenService)
-└── infrastructure/
-    ├── persistence/
-    │   ├── entity/       # JPA entities (*JpaEntity) - annotated with @Entity
-    │   ├── repository/   # Spring Data JPA repositories (use JpaEntity!)
-    │   ├── mapper/       # Entity <-> Domain mappers
-    │   └── *Adapter.java # Repository port implementations
-    └── web/              # REST controllers (@RestController)
+â”œâ”€â”€ domain/
+â”‚   â”œâ”€â”€ model/            # Pure domain entities (NO framework annotations)
+â”‚   â”œâ”€â”€ repository/       # Repository INTERFACES (ports)
+â”‚   â”œâ”€â”€ valueobject/      # Value objects (CourseCode, Email, UserId)
+â”‚   â””â”€â”€ event/            # Domain events
+â”œâ”€â”€ application/
+â”‚   â”œâ”€â”€ usecase/          # Single-responsibility use cases
+â”‚   â”œâ”€â”€ dto/              # Commands, responses
+â”‚   â””â”€â”€ port/             # Application-level port interfaces (TokenService)
+â””â”€â”€ infrastructure/
+    â”œâ”€â”€ persistence/
+    â”‚   â”œâ”€â”€ entity/       # JPA entities (*JpaEntity) - annotated with @Entity
+    â”‚   â”œâ”€â”€ repository/   # Spring Data JPA repositories (use JpaEntity!)
+    â”‚   â”œâ”€â”€ mapper/       # Entity <-> Domain mappers
+    â”‚   â””â”€â”€ *Adapter.java # Repository port implementations
+    â””â”€â”€ web/              # REST controllers (@RestController)
 ```
 
 ### Dependency Rule
 
 ```
-Domain ← Application ← Infrastructure
+Domain â† Application â† Infrastructure
 (inner)   (middle)      (outer)
 ```
 
@@ -116,15 +117,15 @@ Domain ← Application ← Infrastructure
 
 | File | Purpose | Tables | Status |
 |------|---------|--------|--------|
-| **V1__lms_complete_schema.sql** | **Comprehensive reference schema** | 34 | ✅ Production-ready |
-| V26__normalize_enums.sql | Normalize enums to UPPERCASE | - | ✅ Applied |
-| V27__add_performance_indexes.sql | 26 performance indexes | - | ✅ Applied |
-| V28__add_foreign_key_constraints.sql | 13 FK constraints | - | ✅ Applied |
-| V29__complete_assignment_entities.sql | Assignment entity columns | - | ✅ Applied |
-| V30__add_missing_indexes.sql | 11 additional indexes | - | ✅ Applied |
+| **V1__lms_complete_schema.sql** | **Comprehensive reference schema** | 34 | âœ… Production-ready |
+| V26__normalize_enums.sql | Normalize enums to UPPERCASE | - | âœ… Applied |
+| V27__add_performance_indexes.sql | 26 performance indexes | - | âœ… Applied |
+| V28__add_foreign_key_constraints.sql | 13 FK constraints | - | âœ… Applied |
+| V29__complete_assignment_entities.sql | Assignment entity columns | - | âœ… Applied |
+| V30__add_missing_indexes.sql | 11 additional indexes | - | âœ… Applied |
 
 **V1__lms_complete_schema.sql** (New - 1,241 lines):
-- 🎯 **Single source of truth** for database architecture
+- ðŸŽ¯ **Single source of truth** for database architecture
 - 34 tables (31 entities + 1 collection + 2 security tables)
 - 94 indexes (B-tree, BRIN, GIN, partial)
 - 24 triggers (auto `updated_at` + audit logging)
@@ -165,9 +166,9 @@ docker compose ps
 
 | Container | Status | Port | Health Check |
 |-----------|--------|------|--------------|
-| lms-backend | ✅ Healthy | 8088 | `/actuator/health` → `{"status":"UP"}` |
-| lms-postgres | ✅ Healthy | 5432 | `pg_isready` |
-| backend-pgadmin-1 | ✅ Up | 8081 | - |
+| Compose service `backend` | Healthy | 8088 | `/actuator/health` returns `{"status":"UP"}` |
+| Compose service `db` | Healthy | 5432 | `pg_isready` |
+| Compose service `pgadmin` | Optional | 8081 | Start with `--profile devtools` |
 
 ### Health Endpoints
 
@@ -247,7 +248,7 @@ Use the command above as the current source of truth instead of relying on hardc
 {
   "title": "LMS Backend API",
   "version": "v1.0.0",
-  "description": "Learning Management System Backend REST API với Spring Boot, PostgreSQL và JWT Authentication",
+  "description": "Learning Management System Backend REST API vá»›i Spring Boot, PostgreSQL vÃ  JWT Authentication",
   "servers": [
     {"url": "http://localhost:8088", "description": "Development"},
     {"url": "https://api.lms.com", "description": "Production"}
@@ -355,7 +356,7 @@ curl -X POST http://localhost:8088/api/v3/teacher/courses \
 #### AuthControllerV3 (`/api/v3/auth`)
 ```
 POST   /api/v3/auth/register           # User registration (+ welcome email)
-POST   /api/v3/auth/login              # Login → JWT tokens
+POST   /api/v3/auth/login              # Login â†’ JWT tokens
 POST   /api/v3/auth/logout             # Logout
 POST   /api/v3/auth/refresh            # Refresh JWT token
 GET    /api/v3/auth/me                 # Get current user
@@ -438,7 +439,7 @@ PUT    /api/v3/packages/{id}                                       # Update pack
 DELETE /api/v3/packages/{id}                                       # Delete package
 ```
 
-#### AdminCoursesControllerV3 (`/api/v3/admin/courses`) — merged from course_management in S50
+#### AdminCoursesControllerV3 (`/api/v3/admin/courses`) â€” merged from course_management in S50
 ```
 GET    /api/v3/admin/courses                                       # All courses (ADMIN/ORG_ADMIN)
 GET    /api/v3/admin/courses/pending                                # Pending approval
@@ -449,7 +450,7 @@ GET    /api/v3/admin/stats                                         # Dashboard s
 GET    /api/v3/admin/courses/{id}                                  # Course detail (admin view)
 ```
 
-#### TeacherCoursesControllerV3 (`/api/v3/teacher/courses`) — merged from course_management in S50
+#### TeacherCoursesControllerV3 (`/api/v3/teacher/courses`) â€” merged from course_management in S50
 ```
 GET    /api/v3/teacher/courses                                     # My courses (TEACHER)
 GET    /api/v3/teacher/courses/{id}                                 # Course detail
@@ -690,7 +691,7 @@ GET    /api/v3/files/{filename}                                     # Download f
 POST   /api/v3/files/upload-multiple                                 # Upload multiple files
 ```
 
-#### PaymentControllerV3 (`/api/v3/payments`) — Clean Architecture / DDD
+#### PaymentControllerV3 (`/api/v3/payments`) â€” Clean Architecture / DDD
 ```
 POST   /api/v3/payments/checkout                                     # Checkout (simulated, dev-only)
 GET    /api/v3/payments/status/{courseId}                             # Payment status for course
@@ -707,31 +708,31 @@ POST   /api/v3/payments/admin/{paymentId}/refund                     # Admin: pr
 **Payment DDD Architecture** (refactored S100):
 ```
 shared/
-├── domain/
-│   ├── model/PaymentTransaction.java        # Pure domain model, state machine
-│   └── repository/PaymentRepository.java    # Domain port (no Spring imports)
-├── application/
-│   ├── usecase/
-│   │   ├── CheckoutUseCase.java             # Simulated payment (dev-only)
-│   │   ├── CreateVnPayUrlUseCase.java       # VNPay URL generation
-│   │   ├── ProcessVnPayIpnUseCase.java      # IPN verification + state transition
-│   │   └── RefundPaymentUseCase.java        # Admin refund processing
-│   └── dto/
-│       ├── PaymentCommands.java             # Command records
-│       └── PaymentResponse.java             # Response DTO
-└── infrastructure/
-    ├── persistence/
-    │   ├── entity/PaymentTransactionJpaEntity.java
-    │   ├── mapper/PaymentEntityMapper.java
-    │   ├── repository/PaymentTransactionJpaRepository.java
-    │   └── PaymentRepositoryAdapter.java
-    ├── service/PaymentExpiryScheduler.java  # @Scheduled PENDING cleanup
-    └── web/PaymentControllerV3.java         # Thin controller → use cases
+â”œâ”€â”€ domain/
+â”‚   â”œâ”€â”€ model/PaymentTransaction.java        # Pure domain model, state machine
+â”‚   â””â”€â”€ repository/PaymentRepository.java    # Domain port (no Spring imports)
+â”œâ”€â”€ application/
+â”‚   â”œâ”€â”€ usecase/
+â”‚   â”‚   â”œâ”€â”€ CheckoutUseCase.java             # Simulated payment (dev-only)
+â”‚   â”‚   â”œâ”€â”€ CreateVnPayUrlUseCase.java       # VNPay URL generation
+â”‚   â”‚   â”œâ”€â”€ ProcessVnPayIpnUseCase.java      # IPN verification + state transition
+â”‚   â”‚   â””â”€â”€ RefundPaymentUseCase.java        # Admin refund processing
+â”‚   â””â”€â”€ dto/
+â”‚       â”œâ”€â”€ PaymentCommands.java             # Command records
+â”‚       â””â”€â”€ PaymentResponse.java             # Response DTO
+â””â”€â”€ infrastructure/
+    â”œâ”€â”€ persistence/
+    â”‚   â”œâ”€â”€ entity/PaymentTransactionJpaEntity.java
+    â”‚   â”œâ”€â”€ mapper/PaymentEntityMapper.java
+    â”‚   â”œâ”€â”€ repository/PaymentTransactionJpaRepository.java
+    â”‚   â””â”€â”€ PaymentRepositoryAdapter.java
+    â”œâ”€â”€ service/PaymentExpiryScheduler.java  # @Scheduled PENDING cleanup
+    â””â”€â”€ web/PaymentControllerV3.java         # Thin controller â†’ use cases
 ```
 
-**Payment State Machine**: `PENDING → COMPLETED | FAILED | EXPIRED`, `COMPLETED → REFUNDED`
+**Payment State Machine**: `PENDING â†’ COMPLETED | FAILED | EXPIRED`, `COMPLETED â†’ REFUNDED`
 
-#### AdminSettingsControllerV3 (`/api/v3/admin/settings`) — ADMIN-only
+#### AdminSettingsControllerV3 (`/api/v3/admin/settings`) â€” ADMIN-only
 ```
 GET    /api/v3/admin/settings                                       # Get system settings
 PUT    /api/v3/admin/settings                                       # Update system settings
@@ -745,46 +746,46 @@ PUT    /api/v3/admin/settings                                       # Update sys
 
 #### Course (course_authoring)
 ```
-Course ──┬── chapters: List<Chapter>
-         │       └── lessons: List<Lesson>
-         │               └── contentBlocks: List<ContentBlock>
-         ├── code: CourseCode (value object)
-         ├── status: DRAFT → PENDING → APPROVED/REJECTED
-         ├── pricing: FREE/PAID + price/salePrice
-         └── visibility: PUBLIC/PRIVATE/UNLISTED
+Course â”€â”€â”¬â”€â”€ chapters: List<Chapter>
+         â”‚       â””â”€â”€ lessons: List<Lesson>
+         â”‚               â””â”€â”€ contentBlocks: List<ContentBlock>
+         â”œâ”€â”€ code: CourseCode (value object)
+         â”œâ”€â”€ status: DRAFT â†’ PENDING â†’ APPROVED/REJECTED
+         â”œâ”€â”€ pricing: FREE/PAID + price/salePrice
+         â””â”€â”€ visibility: PUBLIC/PRIVATE/UNLISTED
 ```
 
 **Status Lifecycle**:
 ```
-DRAFT ──submit()──> PENDING ──approve()──> APPROVED
-                        │
-                        └──reject(reason)──> REJECTED ──resubmit()──> PENDING
+DRAFT â”€â”€submit()â”€â”€> PENDING â”€â”€approve()â”€â”€> APPROVED
+                        â”‚
+                        â””â”€â”€reject(reason)â”€â”€> REJECTED â”€â”€resubmit()â”€â”€> PENDING
 ```
 
 **Note**: APPROVED courses are immediately visible. No separate PUBLISHED/ARCHIVED states.
 
 #### Assignment (assessment)
 ```
-Assignment ──┬── rubrics: List<Rubric>
-             ├── attachments: List<Attachment>
-             ├── submissions: List<Submission>
-             ├── type: ESSAY/QUIZ/PROJECT/LAB
-             └── status: DRAFT → PUBLISHED → CLOSED
+Assignment â”€â”€â”¬â”€â”€ rubrics: List<Rubric>
+             â”œâ”€â”€ attachments: List<Attachment>
+             â”œâ”€â”€ submissions: List<Submission>
+             â”œâ”€â”€ type: ESSAY/QUIZ/PROJECT/LAB
+             â””â”€â”€ status: DRAFT â†’ PUBLISHED â†’ CLOSED
 ```
 
 #### LearningClass (learning_delivery)
 ```
-LearningClass ──┬── enrollments: List<Enrollment>
-                ├── courseId: UUID
-                ├── teacherId: UUID
-                └── status: OPEN → CLOSED → ARCHIVED → CANCELLED
+LearningClass â”€â”€â”¬â”€â”€ enrollments: List<Enrollment>
+                â”œâ”€â”€ courseId: UUID
+                â”œâ”€â”€ teacherId: UUID
+                â””â”€â”€ status: OPEN â†’ CLOSED â†’ ARCHIVED â†’ CANCELLED
 ```
 
 #### Enrollment (learning_delivery)
 ```
-Enrollment ──┬── status: ACTIVE → COMPLETED/DROPPED/SUSPENDED
-             ├── completionPercent: 0-100 (auto-completes at 100%)
-             └── lessonProgress: Map<lessonId, Boolean>
+Enrollment â”€â”€â”¬â”€â”€ status: ACTIVE â†’ COMPLETED/DROPPED/SUSPENDED
+             â”œâ”€â”€ completionPercent: 0-100 (auto-completes at 100%)
+             â””â”€â”€ lessonProgress: Map<lessonId, Boolean>
 ```
 
 ### Value Objects (shared/domain/valueobject)
@@ -820,10 +821,10 @@ Enrollment ──┬── status: ACTIVE → COMPLETED/DROPPED/SUSPENDED
 - **JWT Bearer tokens** (JJWT 0.12.3)
 - Access token + Refresh token pattern
 - Token generation via `TokenService` port (application layer)
-  - `generateRefreshToken(UUID, String, String, long)` — dynamic expiry for per-user/per-org token config
-  - `generateAccessToken(UUID, String, String, UUID)` — includes `organizationId` claim in JWT
+  - `generateRefreshToken(UUID, String, String, long)` â€” dynamic expiry for per-user/per-org token config
+  - `generateAccessToken(UUID, String, String, UUID)` â€” includes `organizationId` claim in JWT
 
-### Authorization (Multi-Tier Admin — S43)
+### Authorization (Multi-Tier Admin â€” S43)
 - **163 @PreAuthorize annotations** across controllers
 - Roles: `ADMIN` (system), `ORG_ADMIN` (operations), `TEACHER`, `STUDENT`
 - **Escalation prevention**: ORG_ADMIN cannot create/modify ADMIN/ORG_ADMIN users
@@ -854,9 +855,9 @@ Enrollment ──┬── status: ACTIVE → COMPLETED/DROPPED/SUSPENDED
 /api/v3/auth/profile, /api/v3/auth/logout
 
 // Role-specific
-/api/v3/admin/**        → ADMIN, ORG_ADMIN (except settings: ADMIN only)
-/api/v3/teacher/**      → TEACHER, ADMIN, ORG_ADMIN
-/api/v3/assignments/**  → TEACHER, STUDENT (varies by endpoint)
+/api/v3/admin/**        â†’ ADMIN, ORG_ADMIN (except settings: ADMIN only)
+/api/v3/teacher/**      â†’ TEACHER, ADMIN, ORG_ADMIN
+/api/v3/assignments/**  â†’ TEACHER, STUDENT (varies by endpoint)
 ```
 
 ---
@@ -899,7 +900,7 @@ Port: 5432 (Docker) / 5432 (local)
 | V61 | Payment indexes (status, course_id, paid_at) |
 | V62 | @Version optimistic locking on enrollments + assignment submissions |
 | V64 | Organizations + organization_invites tables (CODE/EMAIL types, constraints, indexes) |
-| V65 | users.token_expiry_days column — per-user refresh token expiry override |
+| V65 | users.token_expiry_days column â€” per-user refresh token expiry override |
 | V70 | course_categories (2-level hierarchy) + course_tags + course_tag_assignments. Migrates old flat categories, seeds 14 subcategories + 10 tags |
 
 **Note**: Migrations V1-V25 exist in production database history but SQL files are managed externally. V26+ are in `src/main/resources/db/migration/`.
@@ -965,9 +966,9 @@ Port: 5432 (Docker) / 5432 (local)
 ### docker-compose.yml Services
 
 ```
-db (postgres:16-alpine)     → Port 5432
-pgadmin (dpage/pgadmin4)    → Port 8081
-api (custom Dockerfile)     → Port 8088 → 8080 internal
+db (postgres:16-alpine)     â†’ Port 5432
+pgadmin (dpage/pgadmin4)    â†’ Port 8081
+api (custom Dockerfile)     â†’ Port 8088 â†’ 8080 internal
 ```
 
 ### Resource Limits
@@ -983,10 +984,10 @@ api:
 docker compose up -d
 
 # Rebuild after code changes
-docker compose build api --no-cache && docker compose up -d api
+docker compose -f docker-compose.yml -f docker-compose.dev.yml build backend --no-cache && docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d backend
 
 # View logs
-docker compose logs api --tail=100 -f
+docker compose -f docker-compose.yml -f docker-compose.dev.yml logs backend --tail=100 -f
 
 # Stop
 docker compose down
@@ -1042,53 +1043,53 @@ mvn test -B
 ### Test Structure
 ```
 src/test/java/com/example/lms/
-├── course_authoring/
-│   ├── domain/model/CourseTest.java                    # 18 tests - lifecycle, pricing, chapters
-│   └── application/usecase/
-│       ├── CreateCourseUseCaseTest.java                 # 6 tests
-│       ├── ApproveCourseUseCaseTest.java                # 5 tests
-│       ├── CreateChapterUseCaseV3Test.java              # 3 tests (incl. ownership)
-│       ├── CreateLessonUseCaseV3Test.java               # 2 tests
-│       └── ManageContentBlockUseCaseV3Test.java         # 7 tests
-├── assessment/
-│   ├── domain/model/
-│   │   ├── AssignmentTest.java                         # 12 tests
-│   │   ├── QuizTest.java                               # 10 tests
-│   │   ├── QuestionTest.java                            # 3 tests
-│   │   ├── QuestionBankTest.java                        # tests
-│   │   └── QuestionBankCategoryTest.java                # tests
-│   └── application/usecase/
-│       ├── CreateAssignmentUseCaseV3Test.java           # 3 tests
-│       ├── UpdateAssignmentUseCaseV3Test.java           # 5 tests
-│       ├── UpdateQuestionUseCaseV3Test.java             # 4 tests
-│       ├── CreateQuestionUseCaseV3Test.java              # tests
-│       ├── QuestionBankManagementUseCaseTest.java        # tests
-│       ├── QuestionImportExportUseCaseTest.java          # tests
-│       ├── QuizAttemptUseCaseTest.java                   # tests (incl. timeout)
-│       └── RubricCrudUseCaseTest.java                    # 8 tests
-├── identity/
-│   ├── domain/model/UserTest.java                       # 5 tests (incl. ORG_ADMIN)
-│   └── application/usecase/
-│       ├── AuthenticateUserUseCaseV2Test.java           # 7 tests
-│       ├── RegisterUserUseCaseV2Test.java               # 10 tests
-│       └── UpdateUserUseCaseV3Test.java                  # 4 tests
-├── learning_delivery/
-│   ├── domain/model/
-│   │   ├── EnrollmentTest.java                          # 10 tests
-│   │   ├── LearningClassTest.java                       # 10 tests
-│   │   ├── VideoProgressTest.java                        # tests (90% threshold)
-│   │   └── CertificateTest.java                          # tests
-│   └── application/usecase/
-│       ├── CreateLearningClassUseCaseV3Test.java         # 6 tests
-│       ├── EnrollStudentUseCaseV3Test.java               # 6 tests
-│       ├── TrackVideoProgressUseCaseTest.java            # tests
-│       ├── CertificateUseCaseTest.java                   # 3 tests
-│       ├── GamificationUseCaseTest.java                  # tests
-│       ├── LearningActivityUseCaseTest.java              # tests
-│       └── StudentAnalyticsUseCaseTest.java              # tests
-├── shared/domain/valueobject/
-│   └── EmailTest.java                                    # 7 tests
-└── ArchitectureTest.java                                 # Architecture rules
+â”œâ”€â”€ course_authoring/
+â”‚   â”œâ”€â”€ domain/model/CourseTest.java                    # 18 tests - lifecycle, pricing, chapters
+â”‚   â””â”€â”€ application/usecase/
+â”‚       â”œâ”€â”€ CreateCourseUseCaseTest.java                 # 6 tests
+â”‚       â”œâ”€â”€ ApproveCourseUseCaseTest.java                # 5 tests
+â”‚       â”œâ”€â”€ CreateChapterUseCaseV3Test.java              # 3 tests (incl. ownership)
+â”‚       â”œâ”€â”€ CreateLessonUseCaseV3Test.java               # 2 tests
+â”‚       â””â”€â”€ ManageContentBlockUseCaseV3Test.java         # 7 tests
+â”œâ”€â”€ assessment/
+â”‚   â”œâ”€â”€ domain/model/
+â”‚   â”‚   â”œâ”€â”€ AssignmentTest.java                         # 12 tests
+â”‚   â”‚   â”œâ”€â”€ QuizTest.java                               # 10 tests
+â”‚   â”‚   â”œâ”€â”€ QuestionTest.java                            # 3 tests
+â”‚   â”‚   â”œâ”€â”€ QuestionBankTest.java                        # tests
+â”‚   â”‚   â””â”€â”€ QuestionBankCategoryTest.java                # tests
+â”‚   â””â”€â”€ application/usecase/
+â”‚       â”œâ”€â”€ CreateAssignmentUseCaseV3Test.java           # 3 tests
+â”‚       â”œâ”€â”€ UpdateAssignmentUseCaseV3Test.java           # 5 tests
+â”‚       â”œâ”€â”€ UpdateQuestionUseCaseV3Test.java             # 4 tests
+â”‚       â”œâ”€â”€ CreateQuestionUseCaseV3Test.java              # tests
+â”‚       â”œâ”€â”€ QuestionBankManagementUseCaseTest.java        # tests
+â”‚       â”œâ”€â”€ QuestionImportExportUseCaseTest.java          # tests
+â”‚       â”œâ”€â”€ QuizAttemptUseCaseTest.java                   # tests (incl. timeout)
+â”‚       â””â”€â”€ RubricCrudUseCaseTest.java                    # 8 tests
+â”œâ”€â”€ identity/
+â”‚   â”œâ”€â”€ domain/model/UserTest.java                       # 5 tests (incl. ORG_ADMIN)
+â”‚   â””â”€â”€ application/usecase/
+â”‚       â”œâ”€â”€ AuthenticateUserUseCaseV2Test.java           # 7 tests
+â”‚       â”œâ”€â”€ RegisterUserUseCaseV2Test.java               # 10 tests
+â”‚       â””â”€â”€ UpdateUserUseCaseV3Test.java                  # 4 tests
+â”œâ”€â”€ learning_delivery/
+â”‚   â”œâ”€â”€ domain/model/
+â”‚   â”‚   â”œâ”€â”€ EnrollmentTest.java                          # 10 tests
+â”‚   â”‚   â”œâ”€â”€ LearningClassTest.java                       # 10 tests
+â”‚   â”‚   â”œâ”€â”€ VideoProgressTest.java                        # tests (90% threshold)
+â”‚   â”‚   â””â”€â”€ CertificateTest.java                          # tests
+â”‚   â””â”€â”€ application/usecase/
+â”‚       â”œâ”€â”€ CreateLearningClassUseCaseV3Test.java         # 6 tests
+â”‚       â”œâ”€â”€ EnrollStudentUseCaseV3Test.java               # 6 tests
+â”‚       â”œâ”€â”€ TrackVideoProgressUseCaseTest.java            # tests
+â”‚       â”œâ”€â”€ CertificateUseCaseTest.java                   # 3 tests
+â”‚       â”œâ”€â”€ GamificationUseCaseTest.java                  # tests
+â”‚       â”œâ”€â”€ LearningActivityUseCaseTest.java              # tests
+â”‚       â””â”€â”€ StudentAnalyticsUseCaseTest.java              # tests
+â”œâ”€â”€ shared/domain/valueobject/
+â”‚   â””â”€â”€ EmailTest.java                                    # 7 tests
+â””â”€â”€ ArchitectureTest.java                                 # Architecture rules
 ```
 
 ### Test Patterns
@@ -1114,7 +1115,7 @@ class CreateCourseUseCaseTest {
 ### Running Tests
 ```bash
 # Inside Docker
-docker compose exec api mvn test -B
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec backend mvn test -B
 
 # Local (requires Java 21 + Maven)
 cd backend && mvn test -B
@@ -1254,7 +1255,7 @@ public record CreateCourseCommand(
 // Controllers use @Valid
 @PostMapping("/courses")
 public ResponseEntity<?> create(@Valid @RequestBody CreateCourseCommand cmd) {
-    // Validation errors → 400 automatically
+    // Validation errors â†’ 400 automatically
 }
 ```
 
@@ -1314,7 +1315,7 @@ Two `@Component` classes with same bean name across modules. Add explicit `@Comp
 ### Port 8088 not accessible
 ```bash
 docker compose ps          # Check container status
-docker compose logs api    # Check for startup errors
+docker compose -f docker-compose.yml -f docker-compose.dev.yml logs backend    # Check for startup errors
 ```
 
 ### Database connection refused
@@ -1332,7 +1333,7 @@ curl http://localhost:8088/actuator/health
 # Fix: Add "/actuator/health" to permitAll() list (already fixed in current version)
 
 # Check Docker health check logs
-docker inspect lms-backend --format='{{.State.Health.Status}}'
+docker inspect "$(docker compose -f docker-compose.yml -f docker-compose.dev.yml ps -q backend)" --format='{{.State.Health.Status}}'
 ```
 
 ---

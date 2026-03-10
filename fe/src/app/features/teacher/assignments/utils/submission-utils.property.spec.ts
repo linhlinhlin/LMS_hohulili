@@ -34,7 +34,7 @@ function randomDateString(start?: Date, end?: Date): string {
 function generateLateSubmission() {
   const dueDate = new Date(2024, 5, 15, 12, 0, 0); // June 15, 2024 noon
   const submittedAt = new Date(dueDate.getTime() + Math.random() * 7 * 24 * 60 * 60 * 1000); // 0-7 days late
-  
+
   return {
     dueDate: dueDate.toISOString(),
     submittedAt: submittedAt.toISOString()
@@ -45,7 +45,7 @@ function generateLateSubmission() {
 function generateOnTimeSubmission() {
   const dueDate = new Date(2024, 5, 15, 12, 0, 0);
   const submittedAt = new Date(dueDate.getTime() - Math.random() * 7 * 24 * 60 * 60 * 1000); // 0-7 days early
-  
+
   return {
     dueDate: dueDate.toISOString(),
     submittedAt: submittedAt.toISOString()
@@ -84,7 +84,7 @@ describe('Submission Utilities - Property Tests', () => {
       for (let i = 0; i < ITERATIONS; i++) {
         const { dueDate, submittedAt } = generateLateSubmission();
         const result = isLateSubmission(submittedAt, dueDate);
-        
+
         expect(result.isLate).toBe(true);
         expect(new Date(submittedAt).getTime()).toBeGreaterThan(new Date(dueDate).getTime());
       }
@@ -94,7 +94,7 @@ describe('Submission Utilities - Property Tests', () => {
       for (let i = 0; i < ITERATIONS; i++) {
         const { dueDate, submittedAt } = generateOnTimeSubmission();
         const result = isLateSubmission(submittedAt, dueDate);
-        
+
         expect(result.isLate).toBe(false);
         expect(new Date(submittedAt).getTime()).toBeLessThanOrEqual(new Date(dueDate).getTime());
       }
@@ -104,7 +104,7 @@ describe('Submission Utilities - Property Tests', () => {
       for (let i = 0; i < ITERATIONS; i++) {
         const dueDate = randomDateString();
         const result = isLateSubmission(dueDate, dueDate);
-        
+
         expect(result.isLate).toBe(false);
       }
     });
@@ -113,7 +113,7 @@ describe('Submission Utilities - Property Tests', () => {
       for (let i = 0; i < ITERATIONS; i++) {
         const submittedAt = randomDateString();
         const result = isLateSubmission(submittedAt, undefined);
-        
+
         expect(result.isLate).toBe(false);
       }
     });
@@ -121,8 +121,8 @@ describe('Submission Utilities - Property Tests', () => {
     it('should handle missing submittedAt gracefully', () => {
       for (let i = 0; i < ITERATIONS; i++) {
         const dueDate = randomDateString();
-        const result = isLateSubmission(undefined, dueDate);
-        
+        const result = isLateSubmission(undefined as any, dueDate);
+
         expect(result.isLate).toBe(false);
       }
     });
@@ -142,11 +142,11 @@ describe('Submission Utilities - Property Tests', () => {
         const count = Math.floor(Math.random() * 20) + 2;
         const submissions = generateSubmissionsWithDueDates(count);
         const sorted = sortSubmissionsByDueDate(submissions as any);
-        
+
         for (let j = 1; j < sorted.length; j++) {
           const prevDate = sorted[j - 1].dueDate ? new Date(sorted[j - 1].dueDate!).getTime() : Infinity;
           const currDate = sorted[j].dueDate ? new Date(sorted[j].dueDate!).getTime() : Infinity;
-          
+
           expect(prevDate).toBeLessThanOrEqual(currDate);
         }
       }
@@ -157,11 +157,11 @@ describe('Submission Utilities - Property Tests', () => {
         const count = Math.floor(Math.random() * 20) + 1;
         const submissions = generateSubmissionsWithDueDates(count);
         const sorted = sortSubmissionsByDueDate(submissions as any);
-        
+
         expect(sorted.length).toBe(submissions.length);
-        
+
         const originalIds = submissions.map(s => s.id).sort();
-        const sortedIds = sorted.map(s => s.id).sort();
+        const sortedIds = (sorted as any[]).map(s => s.id).sort();
         expect(sortedIds).toEqual(originalIds);
       }
     });
@@ -175,9 +175,9 @@ describe('Submission Utilities - Property Tests', () => {
       for (let i = 0; i < ITERATIONS; i++) {
         const submissions = generateSubmissionsWithDueDates(1);
         const sorted = sortSubmissionsByDueDate(submissions as any);
-        
+
         expect(sorted.length).toBe(1);
-        expect(sorted[0].id).toBe(submissions[0].id);
+        expect((sorted as any[])[0].id).toBe(submissions[0].id);
       }
     });
 
@@ -185,10 +185,10 @@ describe('Submission Utilities - Property Tests', () => {
       for (let i = 0; i < ITERATIONS; i++) {
         const submissions = generateSubmissionsWithDueDates(5);
         submissions[2].dueDate = undefined as any;
-        
+
         const sorted = sortSubmissionsByDueDate(submissions as any);
         const lastItem = sorted[sorted.length - 1];
-        
+
         expect(lastItem.dueDate).toBeUndefined();
       }
     });

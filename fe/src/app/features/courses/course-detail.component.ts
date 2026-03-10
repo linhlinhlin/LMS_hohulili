@@ -1,39 +1,34 @@
 import { Component, signal, inject, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CommonModule, isPlatformBrowser, DOCUMENT } from '@angular/common';
+import { CommonModule, DOCUMENT } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { Title, Meta } from '@angular/platform-browser';
-import { PLATFORM_ID } from '@angular/core';
 import { CourseService } from '../../state/course.service';
 import { ExtendedCourse } from '../../shared/types/course.types';
 import { AuthService } from '../../core/services/auth.service';
-import { ClassSummary, CourseApi } from '../../api/client/course.api';
-import { firstValueFrom } from 'rxjs';
+import { CourseApi } from '../../api/client/course.api';
 import { StudentEnrollmentService } from '../student/services/enrollment.service';
 import { PaymentModalComponent, CoursePaymentInfo } from '../payment/payment-modal.component';
 import { PaymentService } from '../payment/payment.service';
 import { ToastService } from '../../core/services/toast.service';
-import { CourseDownloadButtonComponent } from '../../shared/components/course-download-button/course-download-button.component';
 
 /**
  * CourseDetailComponent - Coursera/Udemy-inspired Design (Dec 2025 SOTA)
- * 
+ *
  * Features:
  * - Dark gradient hero section
  * - Sticky sidebar with price card
  * - Curriculum accordion with lesson previews
- * - Class picker modal for enrollment
  * - Payment simulation flow
  */
 @Component({
   selector: 'app-course-detail',
-  imports: [CommonModule, RouterModule, PaymentModalComponent, CourseDownloadButtonComponent],
+  imports: [CommonModule, RouterModule, PaymentModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './course-detail.component.html'
 })
 export class CourseDetailComponent implements OnInit {
   private document = inject<Document>(DOCUMENT);
-  private platformId = inject<Object>(PLATFORM_ID);
 
   protected courseService = inject(CourseService);
   protected authService = inject(AuthService);
@@ -43,19 +38,14 @@ export class CourseDetailComponent implements OnInit {
   private meta = inject(Meta);
   private courseApi = inject(CourseApi);
 
-  // State
   course = signal<ExtendedCourse | null>(null);
-  availableClasses = signal<ClassSummary[]>([]);
-  showClassModal = signal(false);
-  selectedClass = signal<string | null>(null);
   isEnrolling = signal(false);
-  expandedChapters = signal<Set<string>>(new Set()); // Track by chapter ID
-  isEnrolled = signal(false); // Student enrollment status
-  isPaid = signal(false); // Payment status
-  showPaymentModal = signal(false); // Payment modal visibility
-  courseContent = signal<any[]>([]); // Real curriculum from API
+  expandedChapters = signal<Set<string>>(new Set());
+  isEnrolled = signal(false);
+  isPaid = signal(false);
+  showPaymentModal = signal(false);
+  courseContent = signal<any[]>([]);
 
-  // Inject services
   private enrollmentService = inject(StudentEnrollmentService);
   private paymentService = inject(PaymentService);
   private toast = inject(ToastService);
@@ -66,7 +56,6 @@ export class CourseDetailComponent implements OnInit {
       if (params['id']) {
         this.loadCourse(params['id']);
 
-        // Preload enrollment status for logged-in students
         if (this.authService.isAuthenticated() && this.authService.userRole() === 'student') {
           this.enrollmentService.loadEnrolledCourses(0, 100).then(() => {
             this.isEnrolled.set(this.enrollmentService.isEnrolledInCourse(params['id']));
@@ -83,11 +72,8 @@ export class CourseDetailComponent implements OnInit {
     }
   }
 
-  // === PAYMENT METHODS ===
-
   getPaymentInfo(): CoursePaymentInfo {
     const c = this.course();
-    // Handle instructor which could be string or object
     let instructorName = 'Giảng viên';
     if (c?.instructor) {
       if (typeof c.instructor === 'string') {
@@ -96,6 +82,7 @@ export class CourseDetailComponent implements OnInit {
         instructorName = c.instructor.name;
       }
     }
+
     return {
       courseId: c?.id || '',
       title: c?.title || '',
@@ -113,117 +100,68 @@ export class CourseDetailComponent implements OnInit {
   onPaymentModalClose(startLearning?: boolean | void) {
     this.showPaymentModal.set(false);
     if (startLearning === true) {
-      // Payment successful, start learning
       this.isPaid.set(true);
+      this.isEnrolled.set(true);
       this.continueLearning();
     }
   }
 
   onPaymentComplete() {
-    // Payment was successful, update state
     this.isPaid.set(true);
+    this.isEnrolled.set(true);
   }
 
-  async handleFreeTrial() {
-    if (!this.authService.currentUser()) {
-      this.router.navigate(['/auth/login'], { queryParams: { returnUrl: this.router.url } });
-      return;
-    }
-    const courseId = this.course()?.id;
-    if (!courseId) return;
-
-    this.isEnrolling.set(true);
-    try {
-      const classes = await this.courseService.getAvailableClasses(courseId);
-      if (classes.length === 0) {
-        this.toast.warning('Hiện tại chưa có lớp nào mở cho khóa học này.');
-      } else {
-        await this.enroll(classes[0].id);
-      }
-    } catch (e) {
-      this.toast.error('Có lỗi xảy ra khi đăng ký dùng thử.');
-    } finally {
-      this.isEnrolling.set(false);
-    }
+  handleFreeTrial(): void {
+    this.scrollToCurriculumPreview();
   }
 
   async handleEnrollClick() {
-    if (!this.authService.currentUser()) {
-      this.router.navigate(['/auth/login'], { queryParams: { returnUrl: this.router.url } });
+    if (!this.ensureStudentReadyForEnrollment()) {
       return;
     }
 
     const courseId = this.course()?.id;
     if (!courseId) return;
 
-    // SELF_PACED course type (khóa học) - enroll directly without class selection
-    if (this.course()?.deliveryMode === 'SELF_PACED') {
-      // Free course - enroll directly
-      if (!this.course()?.price || this.course()!.price === 0) {
-        this.isEnrolling.set(true);
-        try {
-          await this.courseService.enrollInCourse(courseId, this.authService.currentUser()!.id);
-          this.toast.success('Đăng ký thành công! Chuyển đến trang học.');
-          this.isEnrolled.set(true);
-          this.isPaid.set(true);
-          this.router.navigate(['/student/learn/course', courseId]);
-        } catch (e: any) {
-          this.toast.error('Đăng ký thất bại: ' + (e.error?.message || e.message));
-        } finally {
-          this.isEnrolling.set(false);
-        }
-        return;
-      }
-
-      // Paid course - open payment
-      this.openPaymentModal();
-      return;
-    }
-
-    // INSTRUCTOR_LED course type (lớp học) - need to select class
-    // Paid course → open payment modal (VNPay) instead of direct enrollment
-    if (this.course()?.price && this.course()!.price > 0) {
+    if (this.getEffectivePrice() > 0) {
       this.openPaymentModal();
       return;
     }
 
     this.isEnrolling.set(true);
     try {
-      const classes = await this.courseService.getAvailableClasses(courseId);
-      if (classes.length === 0) {
-        this.toast.warning('Hiện tại chưa có lớp nào mở cho khóa học này.');
-      } else if (classes.length === 1) {
-        await this.enroll(classes[0].id);
-      } else {
-        this.availableClasses.set(classes);
-        this.selectedClass.set(null);
-        this.showClassModal.set(true);
-      }
-    } catch (e) {
-      this.toast.error('Có lỗi xảy ra khi kiểm tra lớp học.');
+      await this.enroll();
     } finally {
       this.isEnrolling.set(false);
     }
   }
 
-  async confirmEnrollment() {
-    const clsId = this.selectedClass();
-    if (clsId) {
-      this.isEnrolling.set(true);
-      await this.enroll(clsId);
-      this.showClassModal.set(false);
-      this.isEnrolling.set(false);
+  private ensureStudentReadyForEnrollment(): boolean {
+    const currentUser = this.authService.currentUser();
+    if (!currentUser) {
+      this.router.navigate(['/auth/login'], { queryParams: { returnUrl: this.router.url } });
+      return false;
     }
+
+    if (this.authService.userRole() !== 'student') {
+      this.toast.warning('Chỉ tài khoản học viên mới có thể đăng ký khóa học từ trang này.');
+      return false;
+    }
+
+    return true;
   }
 
-  private async enroll(_classId?: string) {
+  private async enroll() {
     const user = this.authService.currentUser();
-    if (!user || !this.course()) return;
+    const course = this.course();
+    if (!user || !course) return;
 
     try {
-      await this.courseService.enrollInCourse(this.course()!.id, user.id);
-      this.toast.success('Đăng ký thành công! Chuyển đến trang học.');
-      this.router.navigate(['/student/learn/course', this.course()!.id]);
+      await this.courseService.enrollInCourse(course.id, user.id);
+      this.isEnrolled.set(true);
+      this.isPaid.set(true);
+      this.toast.success('Đăng ký thành công. Đang chuyển đến trang học.');
+      this.router.navigate(['/student/learn/course', course.id]);
     } catch (e: any) {
       this.toast.error('Đăng ký thất bại: ' + (e.error?.message || e.message));
     }
@@ -237,21 +175,22 @@ export class CourseDetailComponent implements OnInit {
         this.updateSeo(course);
       }
 
-      // Load real curriculum
       this.loadCurriculum(id);
 
-      // Load payment status for logged-in students
-      if (this.authService.isAuthenticated() && course?.price && course.price > 0) {
+      if (this.authService.isAuthenticated() && this.getEffectivePrice(course) > 0) {
         try {
           const state = await this.paymentService.loadPaymentStatus(id);
           this.isPaid.set(state.hasPaid);
+          if (state.hasPaid) {
+            this.isEnrolled.set(true);
+          }
         } catch {
           // Default unpaid
         }
-      } else if (!course?.price || course.price === 0) {
-        this.isPaid.set(true); // Free course = always accessible
+      } else if (this.getEffectivePrice(course) === 0) {
+        this.isPaid.set(true);
       }
-    } catch (error) {
+    } catch {
       this.toast.error('Không thể tải thông tin khóa học');
     }
   }
@@ -261,14 +200,13 @@ export class CourseDetailComponent implements OnInit {
       next: (response: any) => {
         if (response?.data) {
           this.courseContent.set(response.data);
-          // Auto-expand first chapter
           if (response.data.length > 0) {
             this.expandedChapters.set(new Set([response.data[0].id]));
           }
         }
       },
       error: () => {
-        // Silently fail — course detail still shows
+        // Silently fail - course detail still shows
       }
     });
   }
@@ -287,19 +225,19 @@ export class CourseDetailComponent implements OnInit {
 
   getCategoryName(category: string): string {
     const names: Record<string, string> = {
-      'safety': 'An toàn Hàng hải',
-      'navigation': 'Điều khiển Tàu',
-      'engineering': 'Kỹ thuật Máy tàu',
-      'logistics': 'Logistics Hàng hải',
-      'law': 'Luật Hàng hải',
-      'certificates': 'Chứng chỉ Chuyên môn'
+      safety: 'An toàn Hàng hải',
+      navigation: 'Điều khiển tàu',
+      engineering: 'Kỹ thuật máy tàu',
+      logistics: 'Logistics hàng hải',
+      law: 'Luật hàng hải',
+      certificates: 'Chứng chỉ chuyên môn'
     };
     return names[category] || category || 'Khóa học';
   }
 
   getDurationInHours(duration: string): number {
     const match = duration?.match(/(\d+)/);
-    return match ? parseInt(match[1]) : 40;
+    return match ? parseInt(match[1], 10) : 40;
   }
 
   getPriceDisplay(price: number): string {
@@ -311,7 +249,32 @@ export class CourseDetailComponent implements OnInit {
     const c = this.course();
     if (!c?.price || !c?.salePrice || c.price <= 0) return 0;
     const discount = Math.round(((c.price - c.salePrice) / c.price) * 100);
-    return Math.max(0, Math.min(99, discount)); // Clamp 0-99
+    return Math.max(0, Math.min(99, discount));
+  }
+
+  isCoursePaid(): boolean {
+    return this.getEffectivePrice() > 0;
+  }
+
+  private scrollToCurriculumPreview(): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const curriculum = this.document.getElementById('course-curriculum');
+    curriculum?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  private getEffectivePrice(course: ExtendedCourse | null = this.course()): number {
+    if (!course) {
+      return 0;
+    }
+
+    if (course.salePrice !== undefined && course.salePrice !== null) {
+      return course.salePrice;
+    }
+
+    return course.price ?? 0;
   }
 
   private updateSeo(course: ExtendedCourse): void {
@@ -323,17 +286,5 @@ export class CourseDetailComponent implements OnInit {
     this.meta.updateTag({ property: 'og:title', content: pageTitle });
     this.meta.updateTag({ property: 'og:description', content: description });
     this.meta.updateTag({ property: 'og:type', content: 'website' });
-  }
-
-  // Helper to strip lesson prefix if already present in title
-  getLessonDisplayTitle(title: string, index: number): string {
-    // If title already starts with "Bài X:", strip it to avoid duplication
-    if (title.toLowerCase().startsWith('bài') && title.includes(':')) {
-      const parts = title.split(':');
-      if (parts.length > 1) {
-        return parts.slice(1).join(':').trim();
-      }
-    }
-    return title;
   }
 }

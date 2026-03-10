@@ -1,6 +1,7 @@
 package com.example.lms.assessment.application.usecase;
 
 import com.example.lms.assessment.application.dto.StudentAssignmentResponse;
+import com.example.lms.assessment.application.port.StudentAssessmentAccessPort;
 import com.example.lms.assessment.application.port.StudentAssignmentQueryPort;
 import com.example.lms.assessment.application.port.StudentAssignmentQueryPort.*;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 public class GetStudentAssignmentsUseCase {
 
     private final StudentAssignmentQueryPort queryPort;
+    private final StudentAssessmentAccessPort accessPort;
 
     @Transactional(readOnly = true)
     public List<StudentAssignmentResponse> execute(UUID studentId) {
@@ -45,6 +47,18 @@ public class GetStudentAssignmentsUseCase {
         if (assignments.isEmpty()) {
             return List.of();
         }
+
+        List<UUID> visibleAssignmentIds = accessPort.filterAccessibleAssignmentIds(
+                assignments.stream().map(AssignmentSummary::id).toList(),
+                studentId
+        );
+        if (visibleAssignmentIds.isEmpty()) {
+            return List.of();
+        }
+        Set<UUID> visibleAssignmentIdSet = new HashSet<>(visibleAssignmentIds);
+        assignments = assignments.stream()
+                .filter(assignment -> visibleAssignmentIdSet.contains(assignment.id()))
+                .toList();
 
         // 4. Get student's submissions (batch query)
         Map<UUID, SubmissionInfo> submissionByAssignment = queryPort.findLatestSubmissionsByStudent(studentId);
@@ -68,6 +82,10 @@ public class GetStudentAssignmentsUseCase {
      */
     @Transactional(readOnly = true)
     public Optional<StudentAssignmentResponse> getById(UUID assignmentId, UUID studentId) {
+        if (!accessPort.canAccessAssignment(assignmentId, studentId)) {
+            return Optional.empty();
+        }
+
         return queryPort.findAssignmentById(assignmentId)
                 .map(assignment -> {
                     SubmissionInfo submission = queryPort.findSubmission(assignmentId, studentId).orElse(null);

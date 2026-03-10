@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { ApiClient } from '../client/api-client';
 import { Question } from './question.api';
-import { Observable } from 'rxjs';
+import { Observable, catchError, map } from 'rxjs';
 import { QUIZ_ENDPOINTS } from './quiz.endpoints';
 
 // ============================================
@@ -64,6 +64,7 @@ export interface CreateAssignmentQuizRequest {
   showCorrectAnswers: boolean;
   startDate?: string;
   endDate?: string;
+  chapterId?: string;
   classId?: string;
   questionIds: string[];
   publishImmediately: boolean;
@@ -77,7 +78,15 @@ export interface QuizResponse {
   id: string;
   lessonId: string;
   title?: string;
-  questionIds: string;
+  description?: string;
+  assignmentScope?: 'LESSON' | 'COURSE' | 'CLASS';
+  courseId?: string;
+  courseTitle?: string;
+  deliveryMode?: 'SELF_PACED' | 'INSTRUCTOR_LED' | string;
+  classId?: string;
+  className?: string;
+  assignedAt?: string | null;
+  questionIds?: string;
   timeLimitMinutes: number;
   maxAttempts: number;
   passingScore: number;
@@ -85,6 +94,13 @@ export interface QuizResponse {
   shuffleOptions: boolean;
   showResultsImmediately: boolean;
   showCorrectAnswers: boolean;
+  availableFrom?: string | null;
+  dueAt?: string | null;
+  lockAt?: string | null;
+  status?: string;
+  questionCount?: number;
+  createdAt?: string | null;
+  updatedAt?: string | null;
   startDate?: string;
   endDate?: string;
 }
@@ -161,6 +177,10 @@ interface BaseQuizResponse {
   title: string;
   description?: string;
   type: 'LESSON_QUIZ' | 'ASSIGNMENT';
+  assignmentScope?: 'LESSON' | 'COURSE' | 'CLASS';
+  classId?: string;
+  className?: string;
+  deliveryMode?: 'SELF_PACED' | 'INSTRUCTOR_LED' | string;
   timeLimitMinutes?: number;
   maxAttempts: number;
   passingScore: number;
@@ -188,6 +208,8 @@ export interface AssignmentQuizResponse extends BaseQuizResponse {
   type: 'ASSIGNMENT';
   courseId: string;
   courseTitle: string;
+  classId?: string;
+  className?: string;
   startDate?: string;
   endDate?: string;
 }
@@ -202,6 +224,30 @@ export type QuizResponseV3 = LessonQuizResponse | AssignmentQuizResponse;
 export class QuizApi {
   private readonly apiClient = inject(ApiClient);
 
+  private unwrapApiData<T>(response: T | { data?: T }): T {
+    return ((response as any)?.data ?? response) as T;
+  }
+
+  private pickPrimaryQuiz(response: QuizResponse | QuizResponse[] | { data?: QuizResponse | QuizResponse[] }): QuizResponse {
+    const payload = this.unwrapApiData(response as any);
+    const quizzes = Array.isArray(payload) ? [...payload] : payload ? [payload] : [];
+
+    if (quizzes.length === 0) {
+      throw new Error('Quiz không tồn tại hoặc chưa được tạo cho bài học này');
+    }
+
+    return quizzes.sort((left, right) => {
+      const leftTime = Date.parse(left.createdAt ?? '') || 0;
+      const rightTime = Date.parse(right.createdAt ?? '') || 0;
+      return rightTime - leftTime;
+    })[0];
+  }
+
+  private normalizeQuestionList(response: Question[] | { data?: Question[] }): Question[] {
+    const payload = this.unwrapApiData(response as any);
+    return Array.isArray(payload) ? payload : [];
+  }
+
   // ============================================
   // Quiz CRUD Operations
   // ============================================
@@ -210,8 +256,10 @@ export class QuizApi {
    * Get quiz by ID
    */
   getQuizById(quizId: string) {
-    return this.apiClient.get<QuizResponse>(
+    return this.apiClient.get<QuizResponse | { data?: QuizResponse }>(
       QUIZ_ENDPOINTS.QUIZ_BY_ID(quizId)
+    ).pipe(
+      map(response => this.pickPrimaryQuiz(response as any))
     );
   }
 
@@ -229,8 +277,28 @@ export class QuizApi {
    * Get quiz by lesson ID
    */
   getQuizByLessonId(lessonId: string) {
-    return this.apiClient.get<QuizResponse>(
+    return this.apiClient.get<QuizResponse[] | { data?: QuizResponse[] }>(
       QUIZ_ENDPOINTS.QUIZZES_BY_LESSON(lessonId)
+    ).pipe(
+      map(response => this.pickPrimaryQuiz(response as any))
+    );
+  }
+
+  getQuizByReference(referenceId: string) {
+    return this.getQuizById(referenceId).pipe(
+      catchError(() => this.getQuizByLessonId(referenceId))
+    );
+  }
+
+  resolveQuizIdByLessonId(lessonId: string) {
+    return this.getQuizByLessonId(lessonId).pipe(
+      map(quiz => quiz.id)
+    );
+  }
+
+  resolveQuizId(referenceId: string) {
+    return this.getQuizByReference(referenceId).pipe(
+      map(quiz => quiz.id)
     );
   }
 
@@ -248,8 +316,10 @@ export class QuizApi {
    * Get quiz questions (by quizId)
    */
   getQuizQuestions(quizId: string) {
-    return this.apiClient.get<Question[]>(
+    return this.apiClient.get<Question[] | { data?: Question[] }>(
       QUIZ_ENDPOINTS.QUIZ_QUESTIONS(quizId)
+    ).pipe(
+      map(response => this.normalizeQuestionList(response as any))
     );
   }
 
@@ -428,11 +498,11 @@ export class QuizApi {
   }
 
   /**
-   * Create section-bound quiz (V3 DDD API)
+   * Create chapter-anchored quiz lesson (V3 DDD API)
    */
-  createSectionQuiz(sectionId: string, request: CreateLessonQuizRequest): Observable<LessonQuizResponse> {
+  createChapterQuiz(chapterId: string, request: CreateLessonQuizRequest): Observable<LessonQuizResponse> {
     return this.apiClient.post<LessonQuizResponse>(
-      `/api/v3/quizzes/sections/${sectionId}`,
+      `/api/v3/quizzes/chapters/${chapterId}`,
       request
     );
   }
@@ -440,10 +510,14 @@ export class QuizApi {
   /**
    * Create assignment quiz (V3 DDD API)
    */
-  createAssignmentQuizV3(courseId: string, request: CreateAssignmentQuizRequest): Observable<AssignmentQuizResponse> {
+  createCourseQuizV3(courseId: string, request: CreateAssignmentQuizRequest): Observable<AssignmentQuizResponse> {
     return this.apiClient.post<AssignmentQuizResponse>(
       `/api/v3/quizzes/courses/${courseId}`,
       request
     );
+  }
+
+  createAssignmentQuizV3(courseId: string, request: CreateAssignmentQuizRequest): Observable<AssignmentQuizResponse> {
+    return this.createCourseQuizV3(courseId, request);
   }
 }

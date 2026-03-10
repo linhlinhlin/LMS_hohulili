@@ -1,5 +1,8 @@
 package com.example.lms.assessment.domain.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -157,7 +160,15 @@ public class QuizAttempt {
         private Double pointsEarned;
         private String feedback; // Teacher feedback for manual grading (essays)
 
-        private AttemptItem(UUID questionId, String selectedOption, Map<String, Object> studentAnswer, Boolean isCorrect, Double pointsEarned, String feedback) {
+        @JsonCreator
+        public AttemptItem(
+                @JsonProperty("questionId") UUID questionId,
+                @JsonProperty("selectedOption") String selectedOption,
+                @JsonProperty("studentAnswer") Map<String, Object> studentAnswer,
+                @JsonProperty("isCorrect") Boolean isCorrect,
+                @JsonProperty("pointsEarned") Double pointsEarned,
+                @JsonProperty("feedback") String feedback
+        ) {
             this.questionId = questionId;
             this.selectedOption = selectedOption;
             this.studentAnswer = studentAnswer;
@@ -208,7 +219,12 @@ public class QuizAttempt {
         private String selectedOption; // Legacy: single choice backward compat
         private Map<String, Object> studentAnswer; // New: flexible answer format
 
-        private AttemptAnswer(UUID questionId, String selectedOption, Map<String, Object> studentAnswer) {
+        @JsonCreator
+        public AttemptAnswer(
+                @JsonProperty("questionId") UUID questionId,
+                @JsonProperty("selectedOption") String selectedOption,
+                @JsonProperty("studentAnswer") Map<String, Object> studentAnswer
+        ) {
             this.questionId = questionId;
             this.selectedOption = selectedOption;
             this.studentAnswer = studentAnswer;

@@ -104,31 +104,12 @@ export class ClassDialogComponent implements OnInit {
                 startDate: cls.startDate ? cls.startDate.split('T')[0] : '',
                 endDate: cls.endDate ? cls.endDate.split('T')[0] : '',
                 maxStudents: cls.maxStudents,
-                // teacherId: cls.teacherId // Backend summary might not have teacherId yet, only teacherName?
-                // ClassSummary has teacherName, but maybe not ID. 
-                // Creating a class sets teacher. Updating might not allow changing teacher easily if ID is missing.
-                // Assuming we don't change teacher effectively in edit mode unless we have ID.
-                // Let's assume ClassSummary DOES NOT have teacherId in current interface.
-                // If user wants to change teacher, they search. 
-                // But display current teacher name?
+                teacherId: cls.teacherId ?? null
             });
 
             // Set initial display for teacher
             if (cls.teacherName) {
-                this.teacherSearchControl.setValue({ fullName: cls.teacherName } as any); // Hack to display name
-                // If we had teacherId in ClassSummary, we would set it in form.
-                // Since we don't, checking... Repository `searchClasses` returns `LearningClass`.
-                // MapToSummary implementation in Controller:
-                // dto.setTeacherName(entity.getTeacher().getFullName());
-                // It does NOT set teacherId.
-                // So in Edit Mode, we cannot easily preset the correct teacher ID to keep it if unchanged.
-                // However, the UpdateClassRequest doesn't support changing teacherId currently? 
-                // My `updateClass` method in `ClassService` calls `classRepository.save`.
-                // `UpdateClassRequest` DTO does NOT have teacherId.
-                // So currently Feature Request only asked for "Modify the class creation form". 
-                // "Modify the class creation form to include...". 
-                // It didn't explicitly say "Edit form". 
-                // I will add it for creation. For Edit, maybe just separate or ignored for now as API doesn't support update teacher.
+                this.teacherSearchControl.setValue({ fullName: cls.teacherName } as any);
             }
         }
 

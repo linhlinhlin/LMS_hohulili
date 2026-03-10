@@ -532,12 +532,13 @@ export class QuizBankComponent implements OnInit {
     this.addingToQuiz.set(true);
 
     try {
+      const quizId = await firstValueFrom(this.quizApi.resolveQuizIdByLessonId(this.addToQuizLessonId!));
       let addedCount = 0;
       let skippedCount = 0;
 
       for (const questionId of selectedIds) {
         try {
-          await firstValueFrom(this.quizApi.addQuestionToQuiz(this.addToQuizLessonId!, questionId));
+          await firstValueFrom(this.quizApi.addQuestionToQuiz(quizId, questionId));
           addedCount++;
         } catch (error: any) {
           if (error?.error?.message?.includes('đã tồn tại')) {

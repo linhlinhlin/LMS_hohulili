@@ -83,25 +83,9 @@ export class QuizInfrastructureService {
       },
 
       create(quizData: Omit<Quiz, 'id' | 'createdAt' | 'updatedAt'>): Observable<Quiz> {
-        return quizApi.createLessonQuizV3(quizData.courseId, {
-          title: quizData.title,
-          description: quizData.description,
-          timeLimitMinutes: quizData.timeLimit,
-          maxAttempts: quizData.maxAttempts,
-          passingScore: quizData.passingScore,
-          shuffleQuestions: false,
-          shuffleOptions: false,
-          showResultsImmediately: true,
-          showCorrectAnswers: false,
-          questionIds: quizData.questions?.map(q => q.id) || [],
-          publishImmediately: false
-        }).pipe(
-          map((response: any) => {
-            const data = response?.data || response;
-            return mapApiToQuiz(data, []);
-          }),
-          catchError(err => throwError(() => err))
-        );
+        return throwError(() => new Error(
+          'Quiz creation requires section or lesson context. Use the teacher quiz creation flow instead of the generic quiz repository.'
+        ));
       },
 
       update(id: string, updates: Partial<Quiz>): Observable<Quiz> {

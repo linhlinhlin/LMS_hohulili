@@ -51,6 +51,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     private static final int LIMIT_PAYMENTS = 30;         // Moderate: payment flow has multiple calls
     private static final int LIMIT_INVITE_VALIDATE = 20;   // Invite validate: brute-force prevention
     private static final int LIMIT_PUBLIC = 120;           // Public endpoints: generous but bounded
+    private static final int LIMIT_PUBLIC_AUTHENTICATED = 600; // Authenticated reads share public routes in authoring/learning flows
 
     private static final long WINDOW_MS = 60_000L; // 1 minute
 
@@ -71,13 +72,13 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         // Rate limit auth, AI, payment, invite, and public endpoints
         if (!path.startsWith("/api/v3/auth") && !path.startsWith("/api/v3/ai")
                 && !path.startsWith("/api/v3/payments") && !path.startsWith("/api/v3/invites")
-                && !isPublicEndpoint(path)) {
+                && !isPublicEndpoint(path, method)) {
             filterChain.doFilter(request, response);
             return;
         }
 
         String clientIp = getClientIp(request);
-        EndpointTier tier = classifyEndpoint(path, method);
+        EndpointTier tier = classifyEndpoint(request, path, method);
         String key = clientIp + ":" + tier.bucketKey;
 
         long now = System.currentTimeMillis();
@@ -126,7 +127,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
      * Classify the endpoint into a rate limit tier.
      * Each tier has its own bucket key and limit.
      */
-    private EndpointTier classifyEndpoint(String path, String method) {
+    private EndpointTier classifyEndpoint(HttpServletRequest request, String path, String method) {
         if (path.startsWith("/api/v3/auth")) {
             // POST /auth/login — brute-force protection
             if ("POST".equals(method) && path.endsWith("/login")) {
@@ -149,8 +150,10 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         if (path.startsWith("/api/v3/payments")) {
             return new EndpointTier("payments", LIMIT_PAYMENTS);
         }
-        if (isPublicEndpoint(path)) {
-            return new EndpointTier("public", LIMIT_PUBLIC);
+        if (isPublicEndpoint(path, method)) {
+            return hasBearerToken(request)
+                    ? new EndpointTier("public:authenticated", LIMIT_PUBLIC_AUTHENTICATED)
+                    : new EndpointTier("public", LIMIT_PUBLIC);
         }
         // AI endpoints
         return new EndpointTier("ai", LIMIT_AI);
@@ -233,11 +236,34 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     /**
      * Check if path is a public (unauthenticated) endpoint that should be rate-limited.
      */
-    private boolean isPublicEndpoint(String path) {
-        return path.equals("/api/v3/courses") ||
-               path.startsWith("/api/v3/courses/") ||
-               path.equals("/api/v3/categories") ||
-               path.startsWith("/api/v3/certificates/verify/");
+    private boolean isPublicEndpoint(String path, String method) {
+        if (!"GET".equalsIgnoreCase(method)) {
+            return false;
+        }
+
+        if (path.equals("/api/v3/courses") ||
+                path.equals("/api/v3/categories") ||
+                path.startsWith("/api/v3/certificates/verify/")) {
+            return true;
+        }
+
+        if (!path.startsWith("/api/v3/courses/")) {
+            return false;
+        }
+
+        String[] segments = path.substring("/api/v3/courses/".length()).split("/");
+        if (segments.length == 1) {
+            return !segments[0].isBlank();
+        }
+
+        return segments.length == 2 &&
+                !segments[0].isBlank() &&
+                "content".equals(segments[1]);
+    }
+
+    private boolean hasBearerToken(HttpServletRequest request) {
+        String authorization = request.getHeader("Authorization");
+        return authorization != null && authorization.startsWith("Bearer ") && authorization.length() > 7;
     }
 
     private record EndpointTier(String bucketKey, int limit) {}

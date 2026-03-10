@@ -4,6 +4,12 @@ This repository includes a manual deployment workflow at `.github/workflows/depl
 
 It is intentionally `workflow_dispatch` only. Production deploys should be explicit, reviewable, and tied to a specific revision.
 
+The deployment source of truth is the root Compose topology:
+
+- `docker-compose.yml`
+- `docker-compose.prod.yml`
+- `deploy.sh`
+
 ## Deployment Model
 
 - GitHub Actions resolves the requested `ref` to an exact commit SHA.

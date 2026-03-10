@@ -55,11 +55,12 @@ public interface AssignmentRepository {
     List<Assignment> findByCourseIdIn(List<java.util.UUID> courseIds);
 
     /**
-     * Allocate an assignment with a distribution strategy and optional student list.
+     * Replace the active allocation for an assignment.
      *
      * @param assignmentId     the assignment to allocate
-     * @param distributionType e.g. "ALL_STUDENTS", "SPECIFIC_STUDENTS"
-     * @param studentIds       list of student IDs (used when distributionType is "SPECIFIC_STUDENTS")
+     * @param distributionType e.g. "ALL_STUDENTS", "SPECIFIC_STUDENTS", "CLASS"
+     * @param classId          target class when distributionType is CLASS
+     * @param studentIds       list of student IDs when distributionType is SPECIFIC_STUDENTS
      */
-    void allocate(UUID assignmentId, String distributionType, List<UUID> studentIds);
+    void allocate(UUID assignmentId, String distributionType, UUID classId, List<UUID> studentIds);
 }

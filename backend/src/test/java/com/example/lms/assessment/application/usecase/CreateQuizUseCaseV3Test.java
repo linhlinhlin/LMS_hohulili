@@ -71,6 +71,7 @@ class CreateQuizUseCaseV3Test {
                 "Test your knowledge",
                 Quiz.QuizSettings.defaults()
             );
+            when(quizRepository.findByLessonId(lessonId)).thenReturn(java.util.List.of());
             when(quizRepository.save(any(Quiz.class))).thenReturn(savedQuiz);
 
             // When
@@ -91,6 +92,7 @@ class CreateQuizUseCaseV3Test {
                 "Test",
                 Quiz.QuizSettings.defaults()
             );
+            when(quizRepository.findByLessonId(lessonId)).thenReturn(java.util.List.of());
             when(quizRepository.save(quizCaptor.capture())).thenReturn(savedQuiz);
 
             // When
@@ -112,6 +114,7 @@ class CreateQuizUseCaseV3Test {
         void shouldReturnSavedQuizId() {
             // Given
             Quiz savedQuiz = Quiz.create(lessonId, "Quiz", null, null);
+            when(quizRepository.findByLessonId(lessonId)).thenReturn(java.util.List.of());
             when(quizRepository.save(any(Quiz.class))).thenReturn(savedQuiz);
 
             // When
@@ -128,6 +131,19 @@ class CreateQuizUseCaseV3Test {
     class EdgeCaseTests {
 
         @Test
+        @DisplayName("Should reject duplicate quiz for the same lesson")
+        void shouldRejectDuplicateQuizForSameLesson() {
+            Quiz existingQuiz = Quiz.create(lessonId, "Existing Quiz", null, null);
+            when(quizRepository.findByLessonId(lessonId)).thenReturn(java.util.List.of(existingQuiz));
+
+            assertThatThrownBy(() -> useCase.execute(validCommand))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Bai hoc nay da co bai kiem tra");
+
+            verify(quizRepository, never()).save(any(Quiz.class));
+        }
+
+        @Test
         @DisplayName("Should handle null optional fields with defaults")
         void shouldHandleNullOptionalFields() {
             // Given
@@ -136,6 +152,7 @@ class CreateQuizUseCaseV3Test {
                     lessonId, "Basic Quiz", null, null, null, null, null
                 );
             Quiz savedQuiz = Quiz.create(lessonId, "Basic Quiz", null, null);
+            when(quizRepository.findByLessonId(lessonId)).thenReturn(java.util.List.of());
             when(quizRepository.save(any(Quiz.class))).thenReturn(savedQuiz);
 
             // When

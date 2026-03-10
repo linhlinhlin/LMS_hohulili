@@ -1,392 +1,375 @@
-
-import { Component, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  OnInit,
+  signal,
+} from '@angular/core';
+import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QuizApi, QuizResponse } from '../../../api/endpoints/quiz.api';
 import { QuestionApi, Question } from '../../../api/endpoints/question.api';
+import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
 
 @Component({
-  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-quiz-edit',
-  imports: [ReactiveFormsModule, FormsModule],
-  template: `
-    <div class="min-h-screen bg-gray-50 p-6">
-      <div class="max-w-6xl mx-auto">
-        <!-- Header -->
-        <div class="mb-8">
-          <h1 class="text-3xl font-bold text-gray-900 mb-2">Chỉnh sửa Quiz</h1>
-          <p class="text-gray-600">Cập nhật thông tin và câu hỏi của quiz</p>
-        </div>
-    
-        <!-- Loading State -->
-        @if (isLoading) {
-          <div class="flex justify-center items-center py-12">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0056D2]"></div>
-            <span class="ml-2 text-gray-600">Đang tải...</span>
-          </div>
-        }
-    
-        <!-- Quiz Edit Form -->
-        @if (!isLoading) {
-          <form [formGroup]="quizForm" (ngSubmit)="onSubmit()" class="space-y-6">
-            <!-- Current Quiz Information -->
-            <div class="bg-white rounded-lg shadow p-6">
-              <h2 class="text-xl font-semibold mb-4 text-gray-800">Thông tin quiz hiện tại</h2>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700">ID Quiz</label>
-                  <p class="text-sm text-gray-900 bg-gray-50 p-2 rounded">{{ quiz?.id }}</p>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700">Tổng số câu hỏi</label>
-                  <p class="text-sm text-gray-900 bg-gray-50 p-2 rounded">{{ selectedQuestionIds.size }} câu hỏi</p>
-                </div>
-              </div>
-            </div>
-            <!-- Update Quiz Settings -->
-            <div class="bg-white rounded-lg shadow p-6">
-              <h2 class="text-xl font-semibold mb-4 text-gray-800">Cài đặt quiz</h2>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Time Limit -->
-                <div>
-                  <label for="timeLimitMinutes" class="block text-sm font-medium text-gray-700 mb-2">
-                    Thời gian làm bài (phút)
-                  </label>
-                  <input
-                    id="timeLimitMinutes"
-                    type="number"
-                    formControlName="timeLimitMinutes"
-                    min="5"
-                    max="120"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]"
-                    >
-                  </div>
-                  <!-- Max Attempts -->
-                  <div>
-                    <label for="maxAttempts" class="block text-sm font-medium text-gray-700 mb-2">
-                      Số lần làm tối đa
-                    </label>
-                    <input
-                      id="maxAttempts"
-                      type="number"
-                      formControlName="maxAttempts"
-                      min="1"
-                      max="10"
-                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]"
-                      >
-                    </div>
-                    <!-- Passing Score -->
-                    <div>
-                      <label for="passingScore" class="block text-sm font-medium text-gray-700 mb-2">
-                        Điểm đỗ (%)
-                      </label>
-                      <input
-                        id="passingScore"
-                        type="number"
-                        formControlName="passingScore"
-                        min="0"
-                        max="100"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]"
-                        >
-                      </div>
-                    </div>
-                    <!-- Quiz Settings -->
-                    <div class="space-y-4 mt-4">
-                      <div class="flex items-center">
-                        <input
-                          id="showCorrectAnswers"
-                          type="checkbox"
-                          formControlName="showCorrectAnswers"
-                          class="h-4 w-4 text-[#0056D2] focus:ring-[#0056D2] border-gray-300 rounded"
-                          >
-                          <label for="showCorrectAnswers" class="ml-2 block text-sm text-gray-700">
-                            Hiển thị đáp án đúng sau khi làm xong
-                          </label>
-                        </div>
-                        <div class="flex items-center">
-                          <input
-                            id="shuffleQuestions"
-                            type="checkbox"
-                            formControlName="shuffleQuestions"
-                            class="h-4 w-4 text-[#0056D2] focus:ring-[#0056D2] border-gray-300 rounded"
-                            >
-                            <label for="shuffleQuestions" class="ml-2 block text-sm text-gray-700">
-                              Xáo trộn thứ tự câu hỏi
-                            </label>
-                          </div>
-                          <div class="flex items-center">
-                            <input
-                              id="shuffleOptions"
-                              type="checkbox"
-                              formControlName="shuffleOptions"
-                              class="h-4 w-4 text-[#0056D2] focus:ring-[#0056D2] border-gray-300 rounded"
-                              >
-                              <label for="shuffleOptions" class="ml-2 block text-sm text-gray-700">
-                                Xáo trộn thứ tự đáp án
-                              </label>
-                            </div>
-                            <div class="flex items-center">
-                              <input
-                                id="showResultsImmediately"
-                                type="checkbox"
-                                formControlName="showResultsImmediately"
-                                class="h-4 w-4 text-[#0056D2] focus:ring-[#0056D2] border-gray-300 rounded"
-                                >
-                                <label for="showResultsImmediately" class="ml-2 block text-sm text-gray-700">
-                                  Hiển thị kết quả ngay lập tức
-                                </label>
-                              </div>
-                            </div>
-                          </div>
-                          <!-- Current Questions -->
-                          <div class="bg-white rounded-lg shadow p-6">
-                            <h2 class="text-xl font-semibold mb-4 text-gray-800">Câu hỏi hiện tại</h2>
-                            <div class="space-y-2 max-h-64 overflow-y-auto">
-                              @for (question of quizQuestions; track question) {
-                                <div
-                                  class="flex items-center p-3 border rounded-lg bg-[#0056D2]/5"
-                                  [class.border-[#0056D2]]="selectedQuestionIds.has(question.id)">
-                                  <input
-                                    type="checkbox"
-                                    [checked]="selectedQuestionIds.has(question.id)"
-                                    (change)="onQuestionToggle(question.id, $event)"
-                                    class="h-4 w-4 text-[#0056D2] focus:ring-[#0056D2] border-gray-300 rounded mr-3"
-                                    >
-                                    <div class="flex-1">
-                                      <div class="font-medium text-gray-800">{{ question.content }}</div>
-                                      <div class="text-sm text-gray-500">
-                                        {{ question.tags }} - {{ getDifficultyText(question.difficulty) }}
-                                      </div>
-                                    </div>
-                                    <div class="text-xs text-gray-400">
-                                      {{ question.usageCount }} lần sử dụng
-                                    </div>
-                                  </div>
-                                }
-                              </div>
-                            </div>
-                            <!-- Available Questions -->
-                            <div class="bg-white rounded-lg shadow p-6">
-                              <h2 class="text-xl font-semibold mb-4 text-gray-800">Thêm câu hỏi</h2>
-                              <!-- Search Questions -->
-                              <div class="mb-4">
-                                <input
-                                  type="text"
-                                  [(ngModel)]="questionSearchTerm"
-                                  (ngModelChange)="onQuestionSearch()"
-                                  placeholder="Tìm kiếm câu hỏi..."
-                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]"
-                                  >
-                                </div>
-                                <!-- Questions List -->
-                                <div class="space-y-2 max-h-96 overflow-y-auto">
-                                  @for (question of filteredQuestions; track question) {
-                                    <div
-                                      class="flex items-center p-3 border rounded-lg hover:bg-gray-50"
-                                      [class.border-[#0056D2]]="selectedQuestionIds.has(question.id)">
-                                      <input
-                                        type="checkbox"
-                                        [checked]="selectedQuestionIds.has(question.id)"
-                                        (change)="onQuestionToggle(question.id, $event)"
-                                        class="h-4 w-4 text-[#0056D2] focus:ring-[#0056D2] border-gray-300 rounded mr-3"
-                                        >
-                                        <div class="flex-1">
-                                          <div class="font-medium text-gray-800">{{ question.content }}</div>
-                                          <div class="text-sm text-gray-500">
-                                            {{ question.tags }} - {{ getDifficultyText(question.difficulty) }}
-                                          </div>
-                                        </div>
-                                        <div class="text-xs text-gray-400">
-                                          {{ question.usageCount }} lần sử dụng
-                                        </div>
-                                      </div>
-                                    }
-                                  </div>
-                                </div>
-                                <!-- Selected Questions Summary -->
-                                <div class="bg-[#0056D2]/5 rounded-lg p-4">
-                                  <div class="text-sm text-[#004BB5]">
-                                    Đã chọn <span class="font-semibold">{{ selectedQuestionIds.size }}</span> câu hỏi
-                                  </div>
-                                </div>
-                                <!-- Actions -->
-                                <div class="flex justify-end space-x-4">
-                                  <button
-                                    type="button"
-                                    (click)="onCancel()"
-                                    class="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                                    >
-                                    Hủy
-                                  </button>
-                                  <button
-                                    type="submit"
-                                    [disabled]="quizForm.invalid || selectedQuestionIds.size === 0"
-                                    class="px-6 py-2 bg-[#0056D2] text-white rounded-md hover:bg-[#004BB5] focus:outline-none focus:ring-2 focus:ring-[#0056D2] disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                    Cập nhật Quiz
-                                  </button>
-                                </div>
-                              </form>
-                            }
-                          </div>
-                        </div>
-    `
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule],
+  templateUrl: './quiz-edit.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QuizEditComponent implements OnInit {
-  private fb = inject(FormBuilder);
-  private router = inject(Router);
-  private route = inject(ActivatedRoute);
-  private quizApi = inject(QuizApi);
-  private questionApi = inject(QuestionApi);
+  private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly quizApi = inject(QuizApi);
+  private readonly questionApi = inject(QuestionApi);
+  private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly destroyRef = inject(DestroyRef);
 
-  quizForm: FormGroup;
-  isLoading = false;
-  quiz: QuizResponse | null = null;
-  quizQuestions: Question[] = [];
-  allQuestions: Question[] = [];
-  filteredQuestions: Question[] = [];
-  selectedQuestionIds: Set<string> = new Set();
-  questionSearchTerm = '';
-  quizId: string | null = null;
-  lessonId: string | null = null;
+  readonly loading = signal(true);
+  readonly saving = signal(false);
+  readonly error = signal('');
+  readonly questionBankWarning = signal('');
+  readonly quiz = signal<QuizResponse | null>(null);
+  readonly quizQuestions = signal<Question[]>([]);
+  readonly availableQuestions = signal<Question[]>([]);
+  readonly selectedQuestionIds = signal<string[]>([]);
+  readonly questionSearchTerm = signal('');
+  readonly quizId = signal<string | null>(null);
+  readonly lessonId = signal<string | null>(null);
+  private readonly originalFormSnapshot = signal('');
+  private readonly originalQuestionSnapshot = signal('');
+  private readonly formRevision = signal(0);
+
+  readonly questionCount = computed(() => this.selectedQuestionIds().length);
+  readonly hasChanges = computed(() => {
+    this.formRevision();
+    const currentFormSnapshot = JSON.stringify(this.quizForm.getRawValue());
+    const currentQuestionSnapshot = JSON.stringify([...this.selectedQuestionIds()].sort());
+
+    return currentFormSnapshot !== this.originalFormSnapshot()
+      || currentQuestionSnapshot !== this.originalQuestionSnapshot();
+  });
+  readonly selectedQuestionIdSet = computed(() => new Set(this.selectedQuestionIds()));
+  readonly allSelectableQuestions = computed(() => {
+    const deduped = new Map<string, Question>();
+
+    for (const question of this.quizQuestions()) {
+      deduped.set(question.id, question);
+    }
+
+    for (const question of this.availableQuestions()) {
+      if (!deduped.has(question.id)) {
+        deduped.set(question.id, question);
+      }
+    }
+
+    return Array.from(deduped.values());
+  });
+  readonly filteredQuestions = computed(() => {
+    const term = this.questionSearchTerm().trim().toLowerCase();
+    const selectedIds = this.selectedQuestionIdSet();
+    const questions = [...this.allSelectableQuestions()];
+
+    const filtered = term
+      ? questions.filter((question) => {
+          const content = question.content?.toLowerCase() ?? '';
+          const tags = question.tags?.toLowerCase() ?? '';
+          return content.includes(term) || tags.includes(term);
+        })
+      : questions;
+
+    return filtered.sort((left, right) => {
+      const leftSelected = selectedIds.has(left.id) ? 1 : 0;
+      const rightSelected = selectedIds.has(right.id) ? 1 : 0;
+      return rightSelected - leftSelected;
+    });
+  });
+  readonly deliveryModeLabel = computed(() => {
+    switch (this.quiz()?.deliveryMode) {
+      case 'INSTRUCTOR_LED':
+        return 'Lớp học';
+      case 'SELF_PACED':
+        return 'Khóa học';
+      default:
+        return 'Chưa xác định';
+    }
+  });
+  readonly quizStatusLabel = computed(() => {
+    switch ((this.quiz()?.status || '').toUpperCase()) {
+      case 'PUBLISHED':
+        return 'Xuất bản';
+      case 'ARCHIVED':
+        return 'Lưu trữ';
+      case 'DRAFT':
+        return 'Nháp';
+      default:
+        return this.quiz()?.status || 'Nháp';
+    }
+  });
+  readonly assignmentScopeLabel = computed(() => {
+    if (this.quiz()?.deliveryMode === 'SELF_PACED') {
+      return 'Toàn khóa học';
+    }
+
+    switch (this.quiz()?.assignmentScope) {
+      case 'CLASS':
+        return 'Theo lớp';
+      case 'COURSE':
+        return 'Toàn bộ khóa học';
+      case 'LESSON':
+        return 'Theo bài học';
+      default:
+        return 'Chưa xác định';
+    }
+  });
+  readonly contentPlacementLabel = computed(() => {
+    if (!this.quiz()) {
+      return 'Chưa xác định';
+    }
+
+    return 'Bài học trong chương trình';
+  });
+  readonly assignmentTargetLabel = computed(() => {
+    const quiz = this.quiz();
+
+    if (!quiz) {
+      return 'Chưa xác định';
+    }
+
+    if (quiz.assignmentScope === 'CLASS') {
+      return quiz.className || 'Lớp học chưa được đặt tên';
+    }
+
+    if (quiz.deliveryMode === 'SELF_PACED') {
+      return 'Toàn bộ học viên đã ghi danh';
+    }
+
+    if (quiz.assignmentScope === 'COURSE') {
+      return 'Toàn bộ học viên trong khóa học';
+    }
+
+    return quiz.courseTitle || 'Chưa xác định';
+  });
+  readonly defaultSettingsTitle = computed(() =>
+    this.quiz()?.deliveryMode === 'INSTRUCTOR_LED'
+      ? 'Mặc định toàn khóa học'
+      : 'Thiết lập áp dụng cho toàn khóa học'
+  );
+  readonly defaultSettingsHint = computed(() => {
+    if (this.quiz()?.deliveryMode === 'INSTRUCTOR_LED') {
+      return 'Thiết lập ở đây thuộc về bài kiểm tra chuẩn của bài học trong khóa học. Nếu cần giao theo lớp, hệ thống chỉ thay đổi phạm vi áp dụng thay vì nhân bản bài học.';
+    }
+
+    return 'Thiết lập ở đây áp dụng trực tiếp cho toàn bộ học viên đã ghi danh trong khóa học tự học.';
+  });
+  readonly distributionScopeTitle = computed(() =>
+    this.quiz()?.deliveryMode === 'INSTRUCTOR_LED'
+      ? 'Phạm vi phân phối'
+      : 'Phạm vi áp dụng'
+  );
+  readonly distributionHint = computed(() => {
+    if (this.quiz()?.assignmentScope === 'CLASS') {
+      return 'Bài kiểm tra này dùng cùng một nội dung chuẩn của khóa học, nhưng hiện đang được giao cho một lớp cụ thể.';
+    }
+
+    if (this.quiz()?.deliveryMode === 'INSTRUCTOR_LED') {
+      return 'Nếu giáo viên giao theo lớp hoặc nhóm học viên, hệ thống chỉ đổi đối tượng nhận bài thay vì tạo một bài học mới.';
+    }
+
+    return 'Khóa học tự học chỉ có một phạm vi duy nhất: toàn bộ học viên đã ghi danh trong khóa học.';
+  });
+
+  readonly quizForm = this.fb.group({
+    timeLimitMinutes: [30, [Validators.min(5), Validators.max(120)]],
+    maxAttempts: [1, [Validators.min(1), Validators.max(10)]],
+    passingScore: [70, [Validators.min(0), Validators.max(100)]],
+    shuffleQuestions: [false],
+    shuffleOptions: [false],
+    showCorrectAnswers: [true],
+    showResultsImmediately: [true],
+  });
 
   constructor() {
-    this.quizForm = this.fb.group({
-      timeLimitMinutes: [30, [Validators.min(5), Validators.max(120)]],
-      maxAttempts: [1, [Validators.min(1), Validators.max(10)]],
-      passingScore: [70, [Validators.min(0), Validators.max(100)]],
-      shuffleQuestions: [false],
-      shuffleOptions: [false],
-      showCorrectAnswers: [true],
-      showResultsImmediately: [true]
-    });
+    this.quizForm.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.formRevision.update(value => value + 1);
+      });
   }
 
   ngOnInit(): void {
-    this.quizId = this.route.snapshot.paramMap.get('quizId');
-    this.lessonId = this.route.snapshot.paramMap.get('lessonId');
-    
-    if (this.lessonId) {
-      this.loadQuizData();
-      this.loadAllQuestions();
+    this.quizId.set(this.route.snapshot.paramMap.get('quizId'));
+    this.lessonId.set(this.route.snapshot.paramMap.get('lessonId'));
+    void this.initialize();
+  }
+
+  async canDeactivate(): Promise<boolean> {
+    if (!this.hasChanges() && !this.saving()) {
+      return true;
+    }
+
+    return this.confirmDialog.confirm({
+      title: 'Rời màn chỉnh sửa bài kiểm tra',
+      message: 'Bạn có thay đổi chưa lưu trong bài kiểm tra này. Nếu rời màn này, các chỉnh sửa hiện tại sẽ bị mất.',
+      variant: 'warning',
+      confirmText: 'Rời màn này',
+      cancelText: 'Ở lại'
+    });
+  }
+
+  async onSubmit(): Promise<void> {
+    const quizId = this.quizId();
+
+    if (this.quizForm.invalid || this.questionCount() === 0 || !quizId) {
+      this.quizForm.markAllAsTouched();
+      return;
+    }
+
+    this.saving.set(true);
+    this.error.set('');
+
+    const formValue = this.quizForm.getRawValue();
+    try {
+      await firstValueFrom(
+        this.quizApi.updateQuizSettings(quizId, {
+          timeLimitMinutes: formValue.timeLimitMinutes ?? 30,
+          maxAttempts: formValue.maxAttempts ?? 1,
+          passingScore: formValue.passingScore ?? 70,
+          shuffleQuestions: formValue.shuffleQuestions ?? false,
+          shuffleOptions: formValue.shuffleOptions ?? false,
+          showCorrectAnswers: formValue.showCorrectAnswers ?? true,
+          showResultsImmediately: formValue.showResultsImmediately ?? true,
+        })
+      );
+
+      await firstValueFrom(
+        this.quizApi.updateQuizQuestions(quizId, {
+          questionIds: [...this.selectedQuestionIds()],
+        })
+      );
+
+      await this.loadQuizData();
+    } catch {
+      this.error.set('Không thể lưu thay đổi bài kiểm tra');
+    } finally {
+      this.saving.set(false);
     }
   }
 
-  loadQuizData(): void {
-    if (!this.lessonId) return;
+  onCancel(): void {
+    const quiz = this.quiz();
 
-    this.isLoading = true;
-    this.quizApi.getQuizByLessonId(this.lessonId).subscribe({
-      next: (quiz) => {
-        this.quiz = quiz;
-        this.selectedQuestionIds = new Set(quiz.questionIds.split(','));
-        this.updateFormWithQuiz();
-        this.loadCurrentQuestions();
-      },
-      error: () => {
-      },
-      complete: () => {
-        this.isLoading = false;
-      }
-    });
-  }
-
-  loadAllQuestions(): void {
-    this.questionApi.getQuestions().subscribe({
-      next: (questions) => {
-        this.allQuestions = questions;
-        this.filteredQuestions = [...questions];
-      },
-      error: () => {
-      }
-    });
-  }
-
-  loadCurrentQuestions(): void {
-    if (!this.lessonId) return;
-
-    this.quizApi.getQuizQuestions(this.lessonId).subscribe({
-      next: (questions) => {
-        this.quizQuestions = questions;
-      },
-      error: () => {
-      }
-    });
-  }
-
-  updateFormWithQuiz(): void {
-    if (this.quiz) {
-      this.quizForm.patchValue({
-        timeLimitMinutes: this.quiz.timeLimitMinutes,
-        maxAttempts: this.quiz.maxAttempts,
-        passingScore: this.quiz.passingScore,
-        shuffleQuestions: this.quiz.shuffleQuestions,
-        shuffleOptions: this.quiz.shuffleOptions,
-        showCorrectAnswers: this.quiz.showCorrectAnswers,
-        showResultsImmediately: this.quiz.showResultsImmediately
-      });
+    if (quiz?.courseId) {
+      void this.router.navigate(['/teacher/courses', quiz.courseId, 'editor', 'curriculum']);
+      return;
     }
+
+    void this.router.navigate(['/teacher/assessments', 'quizzes']);
   }
 
-  onQuestionSearch(): void {
-    if (!this.questionSearchTerm.trim()) {
-      this.filteredQuestions = [...this.allQuestions];
+  toggleQuestion(questionId: string, checked: boolean): void {
+    const current = new Set(this.selectedQuestionIds());
+
+    if (checked) {
+      current.add(questionId);
     } else {
-      const term = this.questionSearchTerm.toLowerCase();
-      this.filteredQuestions = this.allQuestions.filter(q => 
-        q.content.toLowerCase().includes(term) ||
-        q.tags.toLowerCase().includes(term)
+      current.delete(questionId);
+    }
+
+    this.selectedQuestionIds.set(Array.from(current));
+  }
+
+  setQuestionSearchTerm(term: string): void {
+    this.questionSearchTerm.set(term);
+  }
+
+  isQuestionSelected(questionId: string): boolean {
+    return this.selectedQuestionIdSet().has(questionId);
+  }
+
+  getDifficultyText(difficulty: string): string {
+    const difficultyMap: Record<string, string> = {
+      EASY: 'Dễ',
+      MEDIUM: 'Trung bình',
+      HARD: 'Khó',
+    };
+
+    return difficultyMap[difficulty] || difficulty;
+  }
+
+  getQuestionUsageCount(question: Question): number {
+    return question.usageCount ?? 0;
+  }
+
+  private async initialize(): Promise<void> {
+    if (!this.quizId() && !this.lessonId()) {
+      this.error.set('Không tìm thấy bài kiểm tra để chỉnh sửa');
+      this.loading.set(false);
+      return;
+    }
+
+    this.loading.set(true);
+    this.error.set('');
+    this.questionBankWarning.set('');
+
+    await Promise.allSettled([this.loadQuizData(), this.loadAvailableQuestions()]);
+    this.loading.set(false);
+  }
+
+  private async loadQuizData(): Promise<void> {
+    try {
+      const referenceId = this.quizId() || this.lessonId();
+      if (!referenceId) {
+        throw new Error('Khong tim thay quiz de chinh sua');
+      }
+
+      const quiz = await firstValueFrom(this.quizApi.getQuizByReference(referenceId));
+      this.quiz.set(quiz);
+      this.quizId.set(quiz.id);
+      this.lessonId.set(quiz.lessonId || this.lessonId());
+      this.updateFormWithQuiz(quiz);
+
+      const questions = await firstValueFrom(this.quizApi.getQuizQuestions(quiz.id));
+      this.quizQuestions.set(questions);
+      this.selectedQuestionIds.set(questions.map((question) => question.id));
+      this.captureOriginalState();
+    } catch {
+      this.error.set('Không thể tải thông tin bài kiểm tra');
+    }
+  }
+
+  private async loadAvailableQuestions(): Promise<void> {
+    try {
+      const questions = await firstValueFrom(this.questionApi.getMyQuestions());
+      this.availableQuestions.set(questions ?? []);
+    } catch {
+      this.availableQuestions.set([]);
+      this.questionBankWarning.set(
+        'Không thể tải ngân hàng câu hỏi của bạn. Bạn vẫn có thể chỉnh sửa thiết lập và danh sách câu hỏi hiện tại.'
       );
     }
   }
 
-  isQuestionSelected(questionId: string): boolean {
-    return this.selectedQuestionIds.has(questionId);
-  }
-
-  onQuestionToggle(questionId: string, event: Event): void {
-    const checked = (event.target as HTMLInputElement).checked;
-    if (checked) {
-      this.selectedQuestionIds.add(questionId);
-    } else {
-      this.selectedQuestionIds.delete(questionId);
-    }
-  }
-
-  getDifficultyText(difficulty: string): string {
-    const map: { [key: string]: string } = {
-      'EASY': 'Dễ',
-      'MEDIUM': 'Trung bình', 
-      'HARD': 'Khó'
-    };
-    return map[difficulty] || difficulty;
-  }
-
-  onSubmit(): void {
-    if (this.quizForm.invalid || this.selectedQuestionIds.size === 0 || !this.lessonId) {
-      return;
-    }
-
-    this.isLoading = true;
-    const formValue = this.quizForm.value;
-
-    // Update quiz settings
-    // Note: This would require additional API endpoints to update quiz settings
-    // For now, we'll focus on updating questions
-    
-    this.quizApi.updateQuizQuestions(this.lessonId, {
-      questionIds: Array.from(this.selectedQuestionIds)
-    }).subscribe({
-      next: () => {},
-      error: () => {
-        this.isLoading = false;
-      },
-      complete: () => {
-        this.isLoading = false;
-      }
+  private updateFormWithQuiz(quiz: QuizResponse): void {
+    this.quizForm.patchValue({
+      timeLimitMinutes: quiz.timeLimitMinutes,
+      maxAttempts: quiz.maxAttempts,
+      passingScore: quiz.passingScore,
+      shuffleQuestions: quiz.shuffleQuestions,
+      shuffleOptions: quiz.shuffleOptions,
+      showCorrectAnswers: quiz.showCorrectAnswers,
+      showResultsImmediately: quiz.showResultsImmediately,
     });
   }
 
-  onCancel(): void {
+  private captureOriginalState(): void {
+    this.originalFormSnapshot.set(JSON.stringify(this.quizForm.getRawValue()));
+    this.originalQuestionSnapshot.set(JSON.stringify([...this.selectedQuestionIds()].sort()));
   }
 }

@@ -60,7 +60,7 @@
                   "inlineCritical": true
                 },
                 "fonts": {
-                  "inline": true
+                  "inline": false
                 }
               },
               "sourceMap": false,
@@ -84,7 +84,8 @@
             "development": {
               "optimization": false,
               "extractLicenses": false,
-              "sourceMap": true
+              "sourceMap": true,
+              "ssr": false
             }
           },
           "defaultConfiguration": "production"
@@ -121,6 +122,10 @@
             "styles": [
               "src/styles.scss",
               "node_modules/katex/dist/katex.min.css"
+            ],
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
             ]
           }
         }

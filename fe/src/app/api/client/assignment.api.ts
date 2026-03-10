@@ -13,6 +13,7 @@ export interface CreateAssignmentRequest {
   instructions?: string;
   dueDate?: string; // ISO string
   maxScore?: number;
+  lessonId?: string;
   attachments?: {
     fileId: string;
     fileName: string;
@@ -20,6 +21,7 @@ export interface CreateAssignmentRequest {
   }[];
   classId?: string;
   status?: AssignmentStatus;
+  distributionType?: 'CLASS' | 'SPECIFIC_STUDENTS' | 'ALL_STUDENTS';
   studentIds?: string[]; // IDs of specific students if creating for specific students
   assignmentConfig?: Record<string, any>;
 }
@@ -57,12 +59,14 @@ export interface AssignmentSummary {
 
 export interface AssignmentDetail {
   id: string;
+  lessonId?: string;
   title: string;
   description?: string;
   instructions?: string;
   dueDate?: string;
   courseId: string;
   courseTitle: string;
+  deliveryMode?: 'SELF_PACED' | 'INSTRUCTOR_LED';
   status: AssignmentStatus;
   submissionsCount: number;
   totalStudents: number;
@@ -174,6 +178,10 @@ export class AssignmentApi {
   // Get assignment detail
   getAssignmentById(assignmentId: string) {
     return this.api.getWithResponse<AssignmentDetail>(`/api/v3/teacher/assignments/${assignmentId}`);
+  }
+
+  getAssignmentByLessonId(lessonId: string) {
+    return this.api.getWithResponse<AssignmentDetail>(`/api/v3/teacher/assignments/lessons/${lessonId}`);
   }
 
   // Update assignment

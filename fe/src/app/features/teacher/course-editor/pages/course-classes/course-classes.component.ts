@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject, ChangeDetectionStrategy, DestroyRef } from '@angular/core';
+import { Component, OnInit, signal, inject, ChangeDetectionStrategy, DestroyRef, effect } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -13,6 +13,7 @@ import { Page } from '../../../../../api/types/common.types';
 import { AddStudentDrawerComponent } from './class-students/add-student-drawer/add-student-drawer.component';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 import { ToastService } from '../../../../../core/services/toast.service';
+import { CourseEditorStore } from '../../store/course-editor.store';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -25,13 +26,16 @@ export class CourseClassesComponent implements OnInit {
     private route = inject(ActivatedRoute);
     private dialog = inject(MatDialog);
     private router = inject(Router);
+    private store = inject(CourseEditorStore);
     private confirmDialog = inject(ConfirmDialogService);
     private toast = inject(ToastService);
     private destroyRef = inject(DestroyRef);
 
-    courseId = '';
+    courseId = signal('');
     classes = signal<ClassSummary[]>([]);
     isLoading = signal(true);
+    private lastLoadedCourseId = '';
+    private lastBlockedCourseId = '';
 
     // Drawer State
     isDrawerOpen = signal(false);
@@ -63,14 +67,45 @@ export class CourseClassesComponent implements OnInit {
         return this.currentPage >= this.totalPages - 1;
     }
 
+    constructor() {
+        effect(() => {
+            const courseId = this.courseId();
+            const tree = this.store.courseTree();
+
+            if (!courseId || !tree || tree.id !== courseId) {
+                return;
+            }
+
+            if (tree.deliveryMode !== 'INSTRUCTOR_LED') {
+                this.isLoading.set(false);
+                if (this.lastBlockedCourseId === courseId) {
+                    return;
+                }
+                this.lastBlockedCourseId = courseId;
+                queueMicrotask(() => {
+                    this.toast.warning('Quản lý lớp chỉ áp dụng cho khóa học dạng "Lớp học".');
+                    void this.router.navigate(['/teacher/courses', courseId, 'editor', 'info']);
+                });
+                return;
+            }
+
+            this.lastBlockedCourseId = '';
+            if (this.lastLoadedCourseId !== courseId) {
+                this.lastLoadedCourseId = courseId;
+                this.loadClasses();
+            }
+        });
+    }
+
     ngOnInit() {
         this.generateYears();
         this.route.parent?.params.pipe(
             takeUntilDestroyed(this.destroyRef)
         ).subscribe(params => {
-            this.courseId = params['id'];
-            if (this.courseId) {
-                this.loadClasses();
+            const nextCourseId = params['id'] ?? '';
+            if (nextCourseId !== this.courseId()) {
+                this.lastLoadedCourseId = '';
+                this.courseId.set(nextCourseId);
             }
         });
 
@@ -116,6 +151,13 @@ export class CourseClassesComponent implements OnInit {
     }
 
     loadClasses() {
+        const courseId = this.courseId();
+        const tree = this.store.courseTree();
+        if (!courseId || !tree || tree.id !== courseId || tree.deliveryMode !== 'INSTRUCTOR_LED') {
+            this.isLoading.set(false);
+            return;
+        }
+
         this.isLoading.set(true);
         const search = this.searchControl.value || '';
 
@@ -126,7 +168,7 @@ export class CourseClassesComponent implements OnInit {
         }
 
         this.classService.searchClasses(
-            this.courseId,
+            courseId,
             search,
             this.statusFilter,
             semesterFilter,
@@ -149,7 +191,7 @@ export class CourseClassesComponent implements OnInit {
     openCreateDialog() {
         const dialogRef = this.dialog.open(ClassDialogComponent, {
             width: '600px',
-            data: { mode: 'create', courseId: this.courseId }
+            data: { mode: 'create', courseId: this.courseId() }
         });
 
         dialogRef.afterClosed().subscribe(result => {
@@ -160,7 +202,7 @@ export class CourseClassesComponent implements OnInit {
     editClass(cls: ClassSummary) {
         const dialogRef = this.dialog.open(ClassDialogComponent, {
             width: '600px',
-            data: { mode: 'edit', classData: cls, courseId: this.courseId }
+            data: { mode: 'edit', classData: cls, courseId: this.courseId() }
         });
 
         dialogRef.afterClosed().subscribe(result => {

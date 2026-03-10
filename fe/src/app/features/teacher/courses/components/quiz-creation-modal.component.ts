@@ -5,7 +5,6 @@ import { firstValueFrom } from 'rxjs';
 import { PackageApi, PackageDTO } from '../../../../api/endpoints/package.api';
 import { Question } from '../../../../api/endpoints/question.api';
 import { QuizApi } from '../../../../api/endpoints/quiz.api';
-import { LessonApi } from '../../../../api/client/lesson.api';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 
 interface QuizMetadata {
@@ -289,7 +288,6 @@ export class QuizCreationModalComponent {
 
   private readonly packageApi = inject(PackageApi);
   private readonly quizApi = inject(QuizApi);
-  private readonly lessonApi = inject(LessonApi);
 
   // Modal state
   isOpen = signal<boolean>(false);
@@ -420,57 +418,30 @@ export class QuizCreationModalComponent {
     this.isCreating.set(true);
 
     try {
-      // Step 1: Create lesson with type QUIZ
-      const lessonPayload = {
-        title: this.quizTitle(),
-        description: this.quizDescription(),
-        lessonType: 'QUIZ' as const,
-        content: '',
-        videoUrl: ''
-      };
+      const sectionId = this.sectionId().trim();
+      if (!sectionId) {
+        throw new Error('Thiếu thông tin chương để tạo quiz.');
+      }
 
-      const lessonResponse = await firstValueFrom(
-        this.lessonApi.createLesson(this.sectionId(), lessonPayload)
+      const quizResponse = await firstValueFrom(
+        this.quizApi.createChapterQuiz(sectionId, {
+          title: this.quizTitle().trim(),
+          description: this.quizDescription().trim() || undefined,
+          timeLimitMinutes: this.quizTimeLimit(),
+          maxAttempts: 1,
+          passingScore: this.quizPassingScore(),
+          shuffleQuestions: false,
+          shuffleOptions: false,
+          showResultsImmediately: true,
+          showCorrectAnswers: true,
+          questionIds: Array.from(this.selectedQuestionIds()),
+          publishImmediately: false
+        })
       );
 
-      const lessonId = lessonResponse.data.id;
-
-      // Step 2: Check if quiz already exists, then create or update
-      try {
-        // Try to get existing quiz first
-        const existingQuizResponse = await firstValueFrom(
-          this.quizApi.getQuizByLessonId(lessonId)
-        );
-
-        // Quiz exists, update questions
-        await firstValueFrom(
-          this.quizApi.updateQuizQuestions(lessonId, {
-            questionIds: Array.from(this.selectedQuestionIds())
-          })
-        );
-
-      } catch (getQuizError: any) {
-        // Quiz doesn't exist (404), create new one
-        if (getQuizError?.status === 404 || getQuizError?.error?.message?.includes('not found')) {
-          const quizPayload = {
-            title: this.quizTitle(), // Add title for database constraint
-            questionIds: Array.from(this.selectedQuestionIds()),
-            timeLimitMinutes: this.quizTimeLimit(),
-            passingScore: this.quizPassingScore(),
-            maxAttempts: 1,
-            shuffleQuestions: false,
-            shuffleOptions: false,
-            showResultsImmediately: true,
-            showCorrectAnswers: true
-          };
-
-          await firstValueFrom(
-            this.quizApi.createQuiz(lessonId, quizPayload)
-          );
-        } else {
-          // Other error, rethrow
-          throw getQuizError;
-        }
+      const lessonId = quizResponse?.lessonId;
+      if (!lessonId) {
+        throw new Error('Backend không trả về lessonId cho quiz vừa tạo.');
       }
 
       this.quizCreated.emit(lessonId);

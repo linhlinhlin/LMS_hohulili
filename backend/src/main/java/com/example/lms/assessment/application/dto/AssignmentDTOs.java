@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public class AssignmentDTOs {
@@ -38,17 +39,21 @@ public class AssignmentDTOs {
     @AllArgsConstructor
     public static class AssignmentDetail {
         private String id;
+        private String lessonId;
         private String title;
         private String description;
         private String instructions;
         private String dueDate;
         private String courseId;
         private String courseTitle;
+        private String deliveryMode;
         private String status;
         private int submissionsCount;
         private int totalStudents;
         private String classId;
         private String className;
+        private String distributionType;
+        private List<String> allocatedStudentIds;
         private String createdAt;
         private String updatedAt;
         private Double maxScore;

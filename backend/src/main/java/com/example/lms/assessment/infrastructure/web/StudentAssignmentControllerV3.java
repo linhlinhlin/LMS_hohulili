@@ -1,13 +1,13 @@
 package com.example.lms.assessment.infrastructure.web;
 
 import com.example.lms.assessment.application.dto.StudentAssignmentResponse;
+import com.example.lms.assessment.application.port.StudentAssessmentAccessPort;
 import com.example.lms.assessment.application.usecase.GetStudentAssignmentsUseCase;
 import com.example.lms.assessment.infrastructure.persistence.entity.AssignmentJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.entity.AssignmentSubmissionJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentJpaRepository;
 import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentSubmissionJpaRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
-import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,39 +17,31 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * V3 Controller for Student Assignment endpoints (Canvas-style).
- * Provides student-facing views of assignments with submission status.
- *
- * Endpoints:
- * - GET  /api/v3/student/assignments          - List all assignments for enrolled courses
- * - GET  /api/v3/student/assignments/{id}     - Get assignment detail with submission status
- * - POST /api/v3/student/assignments/{id}/submit - Submit assignment (text or file URL)
- * - GET  /api/v3/student/assignments/{id}/submission - Get my submission for an assignment
- */
 @Tag(name = "Student - Assignments", description = "Student assignment view and submission endpoints")
 @RestController
 @RequestMapping("/api/v3/student/assignments")
 @RequiredArgsConstructor
 public class StudentAssignmentControllerV3 {
 
+    private final StudentAssessmentAccessPort studentAssessmentAccessPort;
     private final GetStudentAssignmentsUseCase getStudentAssignmentsUseCase;
     private final AssignmentSubmissionJpaRepository submissionRepository;
     private final AssignmentJpaRepository assignmentRepository;
-    private final JpaEnrollmentRepository enrollmentRepository;
 
-    // =============================================
-    // GET /api/v3/student/assignments
-    // =============================================
-
-    @Operation(summary = "Danh sách bài tập của học viên", description = "Trả về tất cả bài tập từ các khóa học đã đăng ký")
+    @Operation(summary = "Danh sach bai tap cua hoc vien", description = "Tra ve tat ca bai tap ma hoc vien co the truy cap")
     @GetMapping
     @PreAuthorize("hasRole('STUDENT')")
     @Transactional(readOnly = true)
@@ -57,14 +49,10 @@ public class StudentAssignmentControllerV3 {
             @AuthenticationPrincipal UserJpaEntity user) {
 
         List<StudentAssignmentResponse> assignments = getStudentAssignmentsUseCase.execute(user.getId());
-        return ResponseEntity.ok(ApiResponse.success(assignments, "Danh sách bài tập"));
+        return ResponseEntity.ok(ApiResponse.success(assignments, "Danh sach bai tap"));
     }
 
-    // =============================================
-    // GET /api/v3/student/assignments/{id}
-    // =============================================
-
-    @Operation(summary = "Chi tiết bài tập", description = "Xem chi tiết bài tập và trạng thái bài nộp")
+    @Operation(summary = "Chi tiet bai tap", description = "Xem chi tiet bai tap va trang thai bai nop")
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('STUDENT')")
     @Transactional(readOnly = true)
@@ -73,15 +61,11 @@ public class StudentAssignmentControllerV3 {
             @AuthenticationPrincipal UserJpaEntity user) {
 
         return getStudentAssignmentsUseCase.getById(id, user.getId())
-                .map(response -> ResponseEntity.ok(ApiResponse.success(response, "Chi tiết bài tập")))
-                .orElse(ResponseEntity.status(404).body(ApiResponse.error("Không tìm thấy bài tập")));
+                .map(response -> ResponseEntity.ok(ApiResponse.success(response, "Chi tiet bai tap")))
+                .orElse(ResponseEntity.status(404).body(ApiResponse.error("Khong tim thay bai tap")));
     }
 
-    // =============================================
-    // POST /api/v3/student/assignments/{id}/submit
-    // =============================================
-
-    @Operation(summary = "Nộp bài tập", description = "Nộp bài tập bằng văn bản hoặc URL tệp đính kèm")
+    @Operation(summary = "Nop bai tap", description = "Nop bai tap bang van ban hoac URL tep dinh kem")
     @PostMapping("/{id}/submit")
     @PreAuthorize("hasRole('STUDENT')")
     @Transactional
@@ -90,49 +74,33 @@ public class StudentAssignmentControllerV3 {
             @Valid @RequestBody SubmitAssignmentRequest request,
             @AuthenticationPrincipal UserJpaEntity user) {
 
-        // 1. Validate assignment exists and is PUBLISHED
-        var assignmentOpt = assignmentRepository.findById(id);
-        if (assignmentOpt.isEmpty()) {
-            return ResponseEntity.status(404).body(ApiResponse.error("Không tìm thấy bài tập"));
+        AssignmentJpaEntity assignment = assignmentRepository.findById(id)
+                .orElse(null);
+        if (assignment == null) {
+            return ResponseEntity.status(404).body(ApiResponse.error("Khong tim thay bai tap"));
         }
-        var assignment = assignmentOpt.get();
-
         if (assignment.getStatus() != AssignmentJpaEntity.AssignmentStatus.PUBLISHED) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("Bài tập chưa được phát hành"));
+            return ResponseEntity.badRequest().body(ApiResponse.error("Bai tap chua duoc phat hanh"));
+        }
+        if (!studentAssessmentAccessPort.canAccessAssignment(id, user.getId())) {
+            return ResponseEntity.status(403).body(ApiResponse.error("Ban khong co quyen truy cap bai tap nay"));
         }
 
-        // 2. Verify student is enrolled in the assignment's course
-        //    Use existsBy (boolean) instead of findBy to avoid loading EnrollmentJpaEntity
-        //    into the persistence context (prevents @UpdateTimestamp dirty-check flush issues)
-        if (assignment.getCourseId() != null) {
-            boolean enrolled = enrollmentRepository.existsByStudentIdAndCourseId(user.getId(), assignment.getCourseId());
-            if (!enrolled) {
-                return ResponseEntity.status(403).body(ApiResponse.error("Bạn chưa đăng ký khóa học này"));
-            }
-        }
-
-        // 3. Determine if this is late
         boolean isLate = assignment.getDueDate() != null && Instant.now().isAfter(assignment.getDueDate());
         if (isLate && !Boolean.TRUE.equals(assignment.getAllowLateSubmission())) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("Đã quá hạn nộp bài và bài tập không cho phép nộp muộn"));
+            return ResponseEntity.badRequest().body(ApiResponse.error("Da qua han nop bai va bai tap khong cho phep nop muon"));
         }
 
-        // 4. Check for existing submission (resubmission)
         var existingOpt = submissionRepository.findByAssignmentIdAndStudentId(id, user.getId());
-
         if (existingOpt.isPresent()) {
-            var existing = existingOpt.get();
-
-            // Check max attempts
-            if (assignment.getMaxAttempts() != null && assignment.getMaxAttempts() > 0) {
-                // If already graded and max attempts is 1, no resubmit
-                if (existing.getStatus() == AssignmentSubmissionJpaEntity.SubmissionStatus.GRADED
-                        && assignment.getMaxAttempts() <= 1) {
-                    return ResponseEntity.badRequest().body(ApiResponse.error("Bài tập đã được chấm điểm, không thể nộp lại"));
-                }
+            AssignmentSubmissionJpaEntity existing = existingOpt.get();
+            if (assignment.getMaxAttempts() != null
+                    && assignment.getMaxAttempts() > 0
+                    && existing.getStatus() == AssignmentSubmissionJpaEntity.SubmissionStatus.GRADED
+                    && assignment.getMaxAttempts() <= 1) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Bai tap da duoc cham diem, khong the nop lai"));
             }
 
-            // Update existing submission
             existing.setContent(request.content());
             existing.setFileUrl(request.fileUrl());
             existing.setFileName(request.fileName());
@@ -144,11 +112,10 @@ public class StudentAssignmentControllerV3 {
 
             return ResponseEntity.ok(ApiResponse.success(
                     Map.of("submissionId", existing.getId().toString(), "status", existing.getStatus().name()),
-                    "Đã nộp lại bài tập"));
+                    "Da nop lai bai tap"));
         }
 
-        // 5. Create new submission
-        var submission = AssignmentSubmissionJpaEntity.builder()
+        AssignmentSubmissionJpaEntity submission = AssignmentSubmissionJpaEntity.builder()
                 .assignmentId(id)
                 .studentId(user.getId())
                 .courseId(assignment.getCourseId())
@@ -166,46 +133,41 @@ public class StudentAssignmentControllerV3 {
 
         return ResponseEntity.ok(ApiResponse.success(
                 Map.of("submissionId", submission.getId().toString(), "status", submission.getStatus().name()),
-                "Đã nộp bài tập thành công"));
+                "Da nop bai tap thanh cong"));
     }
 
-    // =============================================
-    // GET /api/v3/student/assignments/{id}/submission
-    // =============================================
-
-    @Operation(summary = "Xem bài nộp của tôi", description = "Xem bài nộp hiện tại cho bài tập cụ thể")
+    @Operation(summary = "Xem bai nop cua toi", description = "Xem bai nop hien tai cho bai tap cu the")
     @GetMapping("/{id}/submission")
     @PreAuthorize("hasRole('STUDENT')")
     @Transactional(readOnly = true)
     public ResponseEntity<ApiResponse<Map<String, Object>>> getMySubmission(
             @PathVariable UUID id,
             @AuthenticationPrincipal UserJpaEntity user) {
+        if (!studentAssessmentAccessPort.canAccessAssignment(id, user.getId())) {
+            return ResponseEntity.status(403).body(ApiResponse.error("Ban khong co quyen truy cap bai tap nay"));
+        }
 
         return submissionRepository.findByAssignmentIdAndStudentId(id, user.getId())
-                .map(s -> {
-                    Map<String, Object> result = new java.util.LinkedHashMap<>();
-                    result.put("id", s.getId().toString());
-                    result.put("assignmentId", s.getAssignmentId().toString());
-                    result.put("studentId", s.getStudentId().toString());
-                    result.put("status", s.getStatus().name());
-                    result.put("content", s.getContent());
-                    result.put("fileUrl", s.getFileUrl());
-                    result.put("fileName", s.getFileName());
-                    result.put("grade", s.getGrade());
-                    result.put("maxGrade", s.getMaxGrade());
-                    result.put("feedback", s.getFeedback());
-                    result.put("gradedAt", s.getGradedAt() != null ? s.getGradedAt().toString() : null);
-                    result.put("submittedAt", s.getSubmittedAt() != null ? s.getSubmittedAt().toString() : null);
-                    result.put("createdAt", s.getCreatedAt() != null ? s.getCreatedAt().toString() : null);
-                    result.put("updatedAt", s.getUpdatedAt() != null ? s.getUpdatedAt().toString() : null);
-                    return ResponseEntity.ok(ApiResponse.success(result, "Bài nộp của bạn"));
+                .map(submission -> {
+                    Map<String, Object> result = new LinkedHashMap<>();
+                    result.put("id", submission.getId().toString());
+                    result.put("assignmentId", submission.getAssignmentId().toString());
+                    result.put("studentId", submission.getStudentId().toString());
+                    result.put("status", submission.getStatus().name());
+                    result.put("content", submission.getContent());
+                    result.put("fileUrl", submission.getFileUrl());
+                    result.put("fileName", submission.getFileName());
+                    result.put("grade", submission.getGrade());
+                    result.put("maxGrade", submission.getMaxGrade());
+                    result.put("feedback", submission.getFeedback());
+                    result.put("gradedAt", submission.getGradedAt() != null ? submission.getGradedAt().toString() : null);
+                    result.put("submittedAt", submission.getSubmittedAt() != null ? submission.getSubmittedAt().toString() : null);
+                    result.put("createdAt", submission.getCreatedAt() != null ? submission.getCreatedAt().toString() : null);
+                    result.put("updatedAt", submission.getUpdatedAt() != null ? submission.getUpdatedAt().toString() : null);
+                    return ResponseEntity.ok(ApiResponse.success(result, "Bai nop cua ban"));
                 })
-                .orElse(ResponseEntity.ok(ApiResponse.success(null, "Chưa có bài nộp")));
+                .orElse(ResponseEntity.ok(ApiResponse.success(null, "Chua co bai nop")));
     }
-
-    // =============================================
-    // Request DTOs
-    // =============================================
 
     public record SubmitAssignmentRequest(
             String content,

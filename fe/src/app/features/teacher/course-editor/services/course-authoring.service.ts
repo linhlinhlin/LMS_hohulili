@@ -48,6 +48,8 @@ export interface LessonDraftDTO {
     quizPassingScore?: number;
     quizMaxAttempts?: number;
     // Assignment fields
+    assignmentId?: string;
+    assignmentStatus?: string;
     assignmentDescription?: string;
     assignmentInstructions?: string;
     assignmentDueDate?: string;
@@ -108,6 +110,7 @@ export interface CourseDraftDTO {
     price?: number;
     salePrice?: number;
     deliveryMode?: DeliveryMode;
+    allowOfflineDownload?: boolean;
 
     unlockMode?: string;
     settings?: CourseSettings;
@@ -144,6 +147,7 @@ interface CourseDetailResponse {
     price?: number;
     salePrice?: number;
     deliveryMode?: string;
+    allowOfflineDownload?: boolean;
     hasEnrollments?: boolean;
     settings?: CourseSettings;
 }
@@ -160,17 +164,22 @@ interface ChapterResponse { // Was SectionWithLessons
         content?: string;
         videoUrl?: string;
         orderIndex: number;
+        type?: string;
         lessonType?: string;
         // Quiz fields
         quizTimeLimit?: number;
+        quizPassingScore?: number;
         quizMaxScore?: number;
         quizMaxAttempts?: number;
         // Assignment fields
         assignment?: {
+            id?: string;
+            title?: string;
             description?: string;
             instructions?: string;
             dueDate?: string;
             maxScore?: number;
+            status?: string;
         };
         // Sections (Level 3) - renamed from topics
         sections?: {
@@ -241,77 +250,57 @@ export class CourseAuthoringService {
                 courseData.hasEnrollments = teacherDraft.data?.hasEnrollments ?? false;
                 const backendChapters = content.data || [];
 
-                // Deduplicate chapters by ID to prevent duplicates from backend
-                const seenChapterIds = new Set<string>();
-                const uniqueChapters = backendChapters.filter(ch => {
-                    if (seenChapterIds.has(ch.id)) {
-                        return false;
-                    }
-                    seenChapterIds.add(ch.id);
-                    return true;
-                });
-
                 // Map chapters
-                const chapters: ChapterDraftDTO[] = uniqueChapters.map(ch => {
-                    // Deduplicate lessons within each chapter
-                    const seenLessonIds = new Set<string>();
-                    const uniqueLessons = (ch.lessons || []).filter(lesson => {
-                        if (seenLessonIds.has(lesson.id)) {
-                            return false;
-                        }
-                        seenLessonIds.add(lesson.id);
-                        return true;
-                    });
+                const chapters: ChapterDraftDTO[] = backendChapters.map(ch => ({
+                    id: ch.id,
+                    title: ch.title,
+                    description: ch.description,
+                    orderIndex: ch.orderIndex,
+                    lessons: (ch.lessons || []).map(lesson => ({
+                        id: lesson.id,
+                        title: lesson.title,
+                        type: (lesson.lessonType || lesson.type || 'LECTURE'),
+                        orderIndex: lesson.orderIndex,
+                        isRequired: true,
+                        content: lesson.content || '',
+                        videoUrl: lesson.videoUrl || '',
+                        // Quiz fields
+                        quizTimeLimit: lesson.quizTimeLimit,
+                        quizPassingScore: lesson.quizPassingScore ?? lesson.quizMaxScore,
+                        quizMaxAttempts: lesson.quizMaxAttempts,
+                        // Assignment fields
+                        assignmentId: lesson.assignment?.id,
+                        assignmentStatus: lesson.assignment?.status,
+                        assignmentDescription: lesson.assignment?.description,
+                        assignmentInstructions: lesson.assignment?.instructions,
+                        assignmentDueDate: lesson.assignment?.dueDate,
+                        assignmentMaxScore: lesson.assignment?.maxScore,
 
-                    return {
-                        id: ch.id,
-                        title: ch.title,
-                        description: ch.description,
-                        orderIndex: ch.orderIndex,
-                        lessons: uniqueLessons.map(lesson => ({
-                            id: lesson.id,
-                            title: lesson.title,
-                            type: lesson.lessonType || 'LECTURE',
-                            orderIndex: lesson.orderIndex,
-                            isRequired: true,
-                            content: lesson.content || '',
-                            videoUrl: lesson.videoUrl || '',
-                            // Quiz fields
-                            quizTimeLimit: lesson.quizTimeLimit,
-                            quizPassingScore: lesson.quizMaxScore, // API maps quizMaxScore -> quizPassingScore usually or vice versa. Check backend. Backend mapped quizMaxScore to DTO quizMaxScore. Frontend LessonDraft uses quizPassingScore. Adjusted.
-                            quizMaxAttempts: lesson.quizMaxAttempts,
-                            // Assignment fields
-                            assignmentDescription: lesson.assignment?.description,
-                            assignmentInstructions: lesson.assignment?.instructions,
-                            assignmentDueDate: lesson.assignment?.dueDate,
-                            assignmentMaxScore: lesson.assignment?.maxScore,
-
-                            // Map Sections (Level 3)
-                            sections: (lesson.sections || lesson.topics || []).map((t: any) => ({
-                                id: t.id,
-                                title: t.title,
-                                type: t.type,
-                                content: t.content,
-                                videoUrl: t.videoUrl,
-                                fileUrl: t.fileUrl,
-                                duration: t.duration,
-                                orderIndex: t.orderIndex,
-                                isRequired: t.isRequired,
-                                // [NEW] Quiz Data hydration - SOTA 2025
-                                quizData: t.quizData ? {
-                                    quizId: t.quizData.quizId,
-                                    timeLimitMinutes: t.quizData.timeLimitMinutes,
-                                    passingScore: t.quizData.passingScore,
-                                    maxAttempts: t.quizData.maxAttempts,
-                                    shuffleQuestions: t.quizData.shuffleQuestions,
-                                    shuffleOptions: t.quizData.shuffleOptions,
-                                    showResultsImmediately: t.quizData.showResultsImmediately,
-                                    questions: t.quizData.questions || []
-                                } : undefined
-                            }))
+                        // Map Sections (Level 3)
+                        sections: (lesson.sections || lesson.topics || []).map((t: any) => ({
+                            id: t.id,
+                            title: t.title,
+                            type: (t.type || 'TEXT').toUpperCase(),
+                            content: t.content,
+                            videoUrl: t.videoUrl,
+                            fileUrl: t.fileUrl,
+                            duration: t.duration,
+                            orderIndex: t.orderIndex,
+                            isRequired: t.isRequired,
+                            // [NEW] Quiz Data hydration - SOTA 2025
+                            quizData: t.quizData ? {
+                                quizId: t.quizData.quizId,
+                                timeLimitMinutes: t.quizData.timeLimitMinutes,
+                                passingScore: t.quizData.passingScore,
+                                maxAttempts: t.quizData.maxAttempts,
+                                shuffleQuestions: t.quizData.shuffleQuestions,
+                                shuffleOptions: t.quizData.shuffleOptions,
+                                showResultsImmediately: t.quizData.showResultsImmediately,
+                                questions: t.quizData.questions || []
+                            } : undefined
                         }))
-                    };
-                });
+                    }))
+                }));
 
                 return {
                     id: courseData.id,
@@ -333,6 +322,7 @@ export class CourseAuthoringService {
                     price: courseData.price,
                     salePrice: courseData.salePrice,
                     deliveryMode: (courseData.deliveryMode as DeliveryMode) || 'SELF_PACED',
+                    allowOfflineDownload: courseData.allowOfflineDownload,
                     hasEnrollments: courseData.hasEnrollments,
                     settings: courseData.settings,
                     chapters
@@ -379,15 +369,15 @@ export class CourseAuthoringService {
         thumbnailUrl: string | null;
         categoryId: string | null;
         tags: string[];
-        welcomeMessage: string;
-        courseInformation: string;
-        benefits: string;
-        introVideoUrl: string;
-        credits: number;
+        welcomeMessage: string | null;
+        courseInformation: string | null;
+        benefits: string | null;
+        introVideoUrl: string | null;
+        credits: number | null;
         visibility: string;
         priceType: string;
-        price: number;
-        salePrice: number;
+        price: number | null;
+        salePrice: number | null;
         deliveryMode: string;
     }>): Observable<void> {
         return this.http.put<void>(`${this.baseUrl}/courses/${courseId}`, data);

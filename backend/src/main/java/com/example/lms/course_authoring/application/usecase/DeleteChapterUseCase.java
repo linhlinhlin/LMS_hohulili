@@ -1,5 +1,7 @@
 package com.example.lms.course_authoring.application.usecase;
 
+import com.example.lms.course_authoring.application.port.CourseStructureCommandPort;
+import com.example.lms.course_authoring.application.service.LessonCleanupService;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
 import com.example.lms.shared.exception.EntityNotFoundException;
@@ -18,29 +20,21 @@ import java.util.UUID;
 public class DeleteChapterUseCase {
 
     private final CourseRepository courseRepository;
+    private final CourseStructureCommandPort courseStructureCommandPort;
+    private final LessonCleanupService lessonCleanupService;
 
     @Transactional
     public void execute(UUID courseId, UUID chapterId, UUID userId, boolean isAdmin) {
-        // Find course
-        Course course = courseRepository.findByIdWithContent(courseId)
-                .orElseThrow(() -> new EntityNotFoundException("Khóa học", courseId));
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new EntityNotFoundException("KhÃ³a há»c", courseId));
 
-        // Check ownership
         if (!course.isOwnedBy(userId) && !isAdmin) {
-            throw new UnauthorizedException("xóa chương trong", "khóa học này");
+            throw new UnauthorizedException("xÃ³a chÆ°Æ¡ng trong", "khÃ³a há»c nÃ y");
         }
 
-        // Verify chapter exists
-        boolean chapterExists = course.getChapters().stream()
-                .anyMatch(c -> c.getId().equals(chapterId));
-        if (!chapterExists) {
-            throw new EntityNotFoundException("Chương", chapterId);
+        for (UUID lessonId : courseStructureCommandPort.listLessonIds(courseId, chapterId)) {
+            lessonCleanupService.cleanupBeforeDelete(lessonId);
         }
-
-        // Remove chapter (domain logic handles reordering)
-        course.removeChapter(chapterId);
-
-        // Save course
-        courseRepository.save(course);
+        courseStructureCommandPort.deleteChapter(courseId, chapterId);
     }
 }

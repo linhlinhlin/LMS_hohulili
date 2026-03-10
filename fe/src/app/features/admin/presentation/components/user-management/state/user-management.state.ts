@@ -442,6 +442,12 @@ export class UserManagementState {
   onFileSelected(event: any): void {
     const file = event.target.files[0];
     if (file) {
+      const lowerName = file.name.toLowerCase();
+      if (!lowerName.endsWith('.xlsx') && !lowerName.endsWith('.xls')) {
+        this.toastService.error('Chỉ hỗ trợ file Excel .xlsx hoặc .xls');
+        event.target.value = '';
+        return;
+      }
       this.selectedFile.set(file);
     }
   }

@@ -54,6 +54,10 @@ public class SelfEnrollUseCase {
             throw new BusinessRuleException("Khóa học chưa được duyệt, không thể đăng ký");
         }
 
+        if (course.getDeliveryMode() != Course.DeliveryMode.SELF_PACED) {
+            throw new BusinessRuleException("KhÃ³a há»c dáº¡ng lá»›p há»c khÃ´ng há»— trá»£ tá»± Ä‘Äƒng kÃ½");
+        }
+
         // 2. Check if student already enrolled (idempotent)
         var existingEnrollment = enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId);
         if (existingEnrollment.isPresent()) {

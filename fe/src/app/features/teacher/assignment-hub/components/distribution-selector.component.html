@@ -148,6 +148,7 @@
         <div class="p-6 space-y-4">
           <!-- Distribution Type Selection -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            @if (availableDistributionTypes().includes('ALL_STUDENTS')) {
             <label
               class="flex flex-col group p-4 border rounded-xl cursor-pointer transition-all hover:border-[#0056D2] relative overflow-hidden"
               [class]="distributionType() === 'ALL_STUDENTS' ? 'border-[#0056D2] bg-[#0056D2]/5 ring-1 ring-[#0056D2]' : 'border-gray-200 bg-white'"
@@ -173,7 +174,9 @@
                 Giao bài cho toàn bộ học viên.
               </p>
             </label>
+            }
 
+            @if (availableDistributionTypes().includes('CLASS')) {
             <label
               class="flex flex-col group p-4 border rounded-xl cursor-pointer transition-all hover:border-[#0056D2] relative overflow-hidden"
               [class]="distributionType() === 'CLASS' ? 'border-[#0056D2] bg-[#0056D2]/5 ring-1 ring-[#0056D2]' : 'border-gray-200 bg-white'"
@@ -199,7 +202,9 @@
                 Giao cho một lớp học cụ thể.
               </p>
             </label>
+            }
 
+            @if (availableDistributionTypes().includes('SPECIFIC_STUDENTS')) {
             <label
               class="flex flex-col group p-4 border rounded-xl cursor-pointer transition-all hover:border-[#0056D2] relative overflow-hidden"
               [class]="distributionType() === 'SPECIFIC_STUDENTS' ? 'border-[#0056D2] bg-[#0056D2]/5 ring-1 ring-[#0056D2]' : 'border-gray-200 bg-white'"
@@ -225,6 +230,7 @@
                 Chọn danh sách thủ công.
               </p>
             </label>
+            }
           </div>
 
           <!-- Class Selection (only shown when CLASS) -->
@@ -243,7 +249,7 @@
               </div>
               
               <select
-                [(ngModel)]="selectedClassId"
+                [ngModel]="selectedClassId()"
                 (ngModelChange)="onClassChange($event)"
                 class="w-full h-11 px-4 text-sm font-medium border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2] bg-white shadow-sm appearance-none cursor-pointer"
               >
@@ -252,6 +258,11 @@
                   <option [value]="cls.id">{{ cls.name }} ({{ cls.semester }})</option>
                 }
               </select>
+              @if (loadingClassStudents()) {
+                <p class="mt-2 text-[11px] font-medium text-gray-500">
+                  Đang tải danh sách học viên của lớp...
+                </p>
+              }
             </div>
           }
 

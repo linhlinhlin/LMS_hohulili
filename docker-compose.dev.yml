@@ -6,27 +6,29 @@
 services:
   db:
     ports:
-      - "5432:5432"  # Expose for local tools (DBeaver, pgAdmin desktop)
+      - "127.0.0.1:5432:5432"  # Bind to loopback only for local tools
 
   backend:
     ports:
-      - "8088:8080"  # Host-facing dev API port; container still listens on 8080
+      - "127.0.0.1:8088:8080"  # Host-facing dev API port; container still listens on 8080
     volumes:
       - ./backend/uploads:/app/uploads  # Persist uploads locally
     environment:
       SPRING_PROFILES_ACTIVE: dev
+      APP_STORAGE_LOCAL_BASE_URL: http://localhost:8088/uploads
       LOGGING_LEVEL_COM_EXAMPLE_LMS: DEBUG
       LOGGING_LEVEL_ORG_HIBERNATE_SQL: DEBUG
     # Development: No resource limits for debugging flexibility
 
   frontend:
     ports:
-      - "4200:80"
+      - "127.0.0.1:4200:80"
 
   # ===== pgAdmin (Dev Only) =====
   pgadmin:
+    profiles:
+      - devtools
     image: dpage/pgadmin4:latest
-    container_name: lms-pgadmin
     ports:
       - "8081:80"
     environment:
@@ -36,10 +38,18 @@ services:
     volumes:
       - lms-pgadmin:/var/lib/pgadmin
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - lms-backend
+      - lms-frontend
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/misc/ping || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
 volumes:
   lms-pgadmin:

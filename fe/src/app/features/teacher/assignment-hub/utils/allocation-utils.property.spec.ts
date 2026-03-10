@@ -27,7 +27,7 @@ const enrolledStudentArb: fc.Arbitrary<EnrolledStudent> = fc.record({
   id: studentIdArb,
   name: fc.string({ minLength: 1, maxLength: 50 }),
   email: fc.emailAddress(),
-  enrolledAt: fc.date().map((d: Date) => d.toISOString())
+  enrolledAt: fc.integer({ min: 1500000000000, max: 2000000000000 }).map(v => new Date(v).toISOString())
 });
 
 const enrolledStudentsArb = fc.array(enrolledStudentArb, { minLength: 0, maxLength: 100 });
@@ -39,12 +39,12 @@ const allocationArb: fc.Arbitrary<AssignmentAllocation> = fc.record({
   distributionType: fc.constantFrom('ALL_STUDENTS', 'SPECIFIC_STUDENTS') as fc.Arbitrary<DistributionType>,
   studentIds: fc.oneof(fc.constant(null), fc.array(studentIdArb, { minLength: 1, maxLength: 50 })),
   isIndividual: fc.boolean(),
-  createdAt: fc.date().map((d: Date) => d.toISOString()),
+  createdAt: fc.integer({ min: 1500000000000, max: 2000000000000 }).map(v => new Date(v).toISOString()),
   createdBy: teacherIdArb
 });
 
 describe('Allocation Utilities - Property Tests', () => {
-  
+
   /**
    * Feature: assignment-distribution, Property 1: All Students Distribution Completeness
    * For any assignment with distributionType='ALL_STUDENTS', all currently enrolled 
@@ -70,9 +70,9 @@ describe('Allocation Utilities - Property Tests', () => {
               createdAt: new Date().toISOString(),
               createdBy: teacherId
             };
-            
+
             const allocatedStudents = getAllocatedStudents(allocation, enrolledStudents);
-            
+
             // All enrolled students should be in the allocated list
             const enrolledIds = enrolledStudents.map((s: EnrolledStudent) => s.id);
             expect(allocatedStudents.length).toBe(enrolledStudents.length);
@@ -100,13 +100,13 @@ describe('Allocation Utilities - Property Tests', () => {
               createdAt: new Date().toISOString(),
               createdBy: 'teacher-1'
             };
-            
+
             // Before new student enrolls
             const beforeEnroll = getAllocatedStudents(allocation, existingStudents);
-            
+
             // After new student enrolls
             const afterEnroll = getAllocatedStudents(allocation, [...existingStudents, newStudent]);
-            
+
             // New student should be included
             expect(afterEnroll.length).toBe(beforeEnroll.length + 1);
             expect(afterEnroll).toContain(newStudent.id);
@@ -141,9 +141,9 @@ describe('Allocation Utilities - Property Tests', () => {
               createdAt: new Date().toISOString(),
               createdBy: 'teacher-1'
             };
-            
+
             const allocatedStudents = getAllocatedStudents(allocation, enrolledStudents);
-            
+
             // Should return exactly the specified IDs
             expect(allocatedStudents.sort()).toEqual(specificIds.sort());
           }
@@ -163,7 +163,7 @@ describe('Allocation Utilities - Property Tests', () => {
             // Ensure new student is not in specific list
             const filteredIds = specificIds.filter((id: string) => id !== newStudent.id);
             if (filteredIds.length === 0) return true; // Skip if all filtered out
-            
+
             const allocation: AssignmentAllocation = {
               id: 'test-id',
               assignmentId,
@@ -173,10 +173,10 @@ describe('Allocation Utilities - Property Tests', () => {
               createdAt: new Date().toISOString(),
               createdBy: 'teacher-1'
             };
-            
+
             const enrolledStudents: EnrolledStudent[] = [newStudent];
             const allocatedStudents = getAllocatedStudents(allocation, enrolledStudents);
-            
+
             // New student should NOT be included (not in specific list)
             expect(allocatedStudents).not.toContain(newStudent.id);
             return true;
@@ -199,10 +199,10 @@ describe('Allocation Utilities - Property Tests', () => {
           assignmentIdArb,
           courseIdArb,
           (enrolledStudents: EnrolledStudent[], distributionType: DistributionType, assignmentId: string, courseId: string) => {
-            const studentIds = distributionType === 'SPECIFIC_STUDENTS' 
+            const studentIds = distributionType === 'SPECIFIC_STUDENTS'
               ? enrolledStudents.slice(0, Math.ceil(enrolledStudents.length / 2)).map((s: EnrolledStudent) => s.id)
               : null;
-            
+
             const allocation: AssignmentAllocation = {
               id: 'test-id',
               assignmentId,
@@ -212,14 +212,14 @@ describe('Allocation Utilities - Property Tests', () => {
               createdAt: new Date().toISOString(),
               createdBy: 'teacher-1'
             };
-            
+
             const allocatedList = getAllocatedStudents(allocation, enrolledStudents);
-            
+
             // Check each enrolled student
             for (const student of enrolledStudents) {
               const result = isStudentAllocated(student.id, allocation, enrolledStudents);
               const isInList = allocatedList.includes(student.id);
-              
+
               expect(result.isAllocated).toBe(isInList);
             }
           }

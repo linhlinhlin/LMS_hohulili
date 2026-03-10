@@ -82,11 +82,23 @@ public class LearningClass {
     /**
      * Update class details. Used by UpdateLearningClassUseCase.
      */
-    public void update(String name, String code, ClassStatus status,
-                       Integer maxStudents, Instant startDate, Instant endDate) {
+    public void update(
+            String name,
+            String code,
+            UUID teacherId,
+            ClassStatus status,
+            ScheduleType scheduleType,
+            String semester,
+            Integer maxStudents,
+            Instant startDate,
+            Instant endDate
+    ) {
         if (name != null && !name.isBlank()) this.name = name;
         if (code != null && !code.isBlank()) this.code = code;
+        if (teacherId != null) this.teacherId = teacherId;
         if (status != null) this.status = status;
+        if (scheduleType != null) this.scheduleType = scheduleType;
+        if (semester != null) this.semester = semester.isBlank() ? null : semester;
         if (maxStudents != null && maxStudents > 0) this.maxStudents = maxStudents;
         if (startDate != null) this.startDate = startDate;
         if (endDate != null) this.endDate = endDate;

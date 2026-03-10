@@ -194,6 +194,14 @@ public class Assignment {
         this.updatedAt = Instant.now();
     }
 
+    public void changeStatus(AssignmentStatus status) {
+        if (status == null || this.status == status) {
+            return;
+        }
+        this.status = status;
+        this.updatedAt = Instant.now();
+    }
+
     public void setDueDate(Instant dueDate) {
         if (dueDate != null && dueDate.isBefore(Instant.now())) {
             throw new IllegalArgumentException("Hạn nộp phải ở tương lai");

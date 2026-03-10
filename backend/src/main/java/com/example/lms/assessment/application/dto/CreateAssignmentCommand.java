@@ -19,6 +19,8 @@ public record CreateAssignmentCommand(
     Integer maxScore,
     Instant dueDate,
     Boolean allowLateSubmission,
+    String status,
     String distributionType,
+    UUID classId,
     List<UUID> studentIds
 ) {}

@@ -54,7 +54,7 @@ class UpdateAssignmentUseCaseV3Test {
             when(assignmentRepository.findById(any(AssignmentId.class))).thenReturn(Optional.of(existingAssignment));
 
             UpdateAssignmentUseCaseV3.Command command = new UpdateAssignmentUseCaseV3.Command(
-                "New Title", "New Desc", "New Instr", null, null
+                "New Title", "New Desc", "New Instr", null, null, null
             );
 
             // When
@@ -73,7 +73,7 @@ class UpdateAssignmentUseCaseV3Test {
 
             Instant futureDate = Instant.now().plusSeconds(86400 * 7);
             UpdateAssignmentUseCaseV3.Command command = new UpdateAssignmentUseCaseV3.Command(
-                null, null, null, futureDate.toString(), null
+                null, null, null, futureDate.toString(), null, null
             );
 
             // When
@@ -91,7 +91,7 @@ class UpdateAssignmentUseCaseV3Test {
             when(assignmentRepository.findById(any(AssignmentId.class))).thenReturn(Optional.of(existingAssignment));
 
             UpdateAssignmentUseCaseV3.Command command = new UpdateAssignmentUseCaseV3.Command(
-                "Title", null, null, null, null
+                "Title", null, null, null, null, null
             );
 
             // When
@@ -113,7 +113,7 @@ class UpdateAssignmentUseCaseV3Test {
             when(assignmentRepository.findById(any(AssignmentId.class))).thenReturn(Optional.empty());
 
             UpdateAssignmentUseCaseV3.Command command = new UpdateAssignmentUseCaseV3.Command(
-                "Title", null, null, null, null
+                "Title", null, null, null, null, null
             );
 
             // When/Then
@@ -128,7 +128,7 @@ class UpdateAssignmentUseCaseV3Test {
             when(assignmentRepository.findById(any(AssignmentId.class))).thenReturn(Optional.of(existingAssignment));
 
             UpdateAssignmentUseCaseV3.Command command = new UpdateAssignmentUseCaseV3.Command(
-                null, null, null, "not-a-date", null
+                null, null, null, "not-a-date", null, null
             );
 
             // When/Then

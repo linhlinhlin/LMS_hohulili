@@ -1,10 +1,12 @@
 package com.example.lms.assessment.domain.model;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -12,6 +14,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("QuizAttempt Domain Model Tests")
 class QuizAttemptTest {
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Nested
     @DisplayName("markTimeout()")
@@ -188,6 +192,35 @@ class QuizAttemptTest {
                     .build();
 
             assertThat(attempt.getMaxScore()).isEqualTo(50.0);
+        }
+    }
+
+    @Nested
+    @DisplayName("Jackson compatibility")
+    class JacksonCompatibilityTests {
+
+        @Test
+        @DisplayName("Should deserialize AttemptItem from JSON")
+        void shouldDeserializeAttemptItemFromJson() throws Exception {
+            String json = """
+                {
+                  "questionId": "11111111-1111-1111-1111-111111111111",
+                  "selectedOption": "A",
+                  "studentAnswer": { "selectedOption": "A" },
+                  "isCorrect": true,
+                  "pointsEarned": 1.0,
+                  "feedback": "ok"
+                }
+                """;
+
+            QuizAttempt.AttemptItem item = objectMapper.readValue(json, QuizAttempt.AttemptItem.class);
+
+            assertThat(item.getQuestionId()).isEqualTo(UUID.fromString("11111111-1111-1111-1111-111111111111"));
+            assertThat(item.getSelectedOption()).isEqualTo("A");
+            assertThat(item.getStudentAnswer()).isEqualTo(Map.of("selectedOption", "A"));
+            assertThat(item.getIsCorrect()).isTrue();
+            assertThat(item.getPointsEarned()).isEqualTo(1.0);
+            assertThat(item.getFeedback()).isEqualTo("ok");
         }
     }
 }

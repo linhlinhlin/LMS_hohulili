@@ -1,0 +1,47 @@
+<div class="rounded-xl border bg-white px-4 py-4 shadow-sm"
+  [class.border-purple-100]="accent() === 'purple'"
+  [class.border-green-100]="accent() === 'green'">
+  <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div class="min-w-0 space-y-3">
+      <div>
+        <p class="text-[11px] font-semibold uppercase tracking-[0.18em]"
+          [class.text-purple-700]="accent() === 'purple'"
+          [class.text-green-700]="accent() === 'green'">
+          {{ eyebrow() }}
+        </p>
+        <h4 class="mt-1 text-sm font-semibold text-slate-900">{{ title() }}</h4>
+        <p class="mt-1 text-sm text-slate-600">
+          {{ description() }}
+        </p>
+      </div>
+      <div class="grid gap-2 sm:grid-cols-3">
+        <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Vị trí trong nội dung</p>
+          <p class="mt-1 text-sm font-medium text-slate-900">{{ placementLabel() }}</p>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Phạm vi áp dụng</p>
+          <p class="mt-1 text-sm font-medium text-slate-900">{{ audienceLabel() }}</p>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Phân phối hiện hành</p>
+          <p class="mt-1 text-sm font-medium text-slate-900">{{ distributionLabel() }}</p>
+        </div>
+      </div>
+    </div>
+    <button
+      type="button"
+      (click)="onActionClick()"
+      class="inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold shadow-sm ring-1 transition-colors lg:self-start"
+      [class.bg-purple-50]="accent() === 'purple'"
+      [class.text-purple-700]="accent() === 'purple'"
+      [class.ring-purple-200]="accent() === 'purple'"
+      [class.hover:bg-purple-100]="accent() === 'purple'"
+      [class.bg-green-50]="accent() === 'green'"
+      [class.text-green-700]="accent() === 'green'"
+      [class.ring-green-200]="accent() === 'green'"
+      [class.hover:bg-green-100]="accent() === 'green'">
+      {{ actionLabel() }}
+    </button>
+  </div>
+</div>

@@ -52,19 +52,19 @@ function generateValidAssignment() {
 function generateInvalidAssignment(missingField: 'title' | 'courseId' | 'dueDate') {
   const valid = generateValidAssignment();
   const invalid: Record<string, unknown> = { ...valid };
-  
+
   switch (missingField) {
     case 'title':
-      delete invalid.title;
+      delete invalid['title'];
       break;
     case 'courseId':
-      delete invalid.courseId;
+      delete invalid['courseId'];
       break;
     case 'dueDate':
-      delete invalid.dueDate;
+      delete invalid['dueDate'];
       break;
   }
-  
+
   return invalid;
 }
 
@@ -89,7 +89,7 @@ describe('Assignment Validators - Property Tests', () => {
       for (let i = 0; i < ITERATIONS; i++) {
         const validAssignment = generateValidAssignment();
         const result = validateAssignmentCreation(validAssignment);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.errors.length).toBe(0);
       }
@@ -99,7 +99,7 @@ describe('Assignment Validators - Property Tests', () => {
       for (let i = 0; i < ITERATIONS; i++) {
         const invalid = generateInvalidAssignment('title');
         const result = validateAssignmentCreation(invalid as any);
-        
+
         expect(result.isValid).toBe(false);
         expect(result.errors.some(e => e.field === 'title')).toBe(true);
       }
@@ -109,7 +109,7 @@ describe('Assignment Validators - Property Tests', () => {
       for (let i = 0; i < ITERATIONS; i++) {
         const invalid = generateInvalidAssignment('courseId');
         const result = validateAssignmentCreation(invalid as any);
-        
+
         expect(result.isValid).toBe(false);
         expect(result.errors.some(e => e.field === 'courseId')).toBe(true);
       }
@@ -119,7 +119,7 @@ describe('Assignment Validators - Property Tests', () => {
       for (let i = 0; i < ITERATIONS; i++) {
         const invalid = generateInvalidAssignment('dueDate');
         const result = validateAssignmentCreation(invalid as any);
-        
+
         expect(result.isValid).toBe(false);
         expect(result.errors.some(e => e.field === 'dueDate')).toBe(true);
       }
@@ -130,7 +130,7 @@ describe('Assignment Validators - Property Tests', () => {
         const assignment = generateValidAssignment();
         assignment.title = '   '; // whitespace only
         const result = validateAssignmentCreation(assignment);
-        
+
         expect(result.isValid).toBe(false);
         expect(result.errors.some(e => e.field === 'title')).toBe(true);
       }
@@ -150,7 +150,7 @@ describe('Assignment Validators - Property Tests', () => {
       for (let i = 0; i < ITERATIONS; i++) {
         const validScore = randomInt(1, 1000);
         const result = validateMaxScore(validScore);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.errors.length).toBe(0);
       }
@@ -160,7 +160,7 @@ describe('Assignment Validators - Property Tests', () => {
       for (let i = 0; i < ITERATIONS; i++) {
         const invalidScore = randomInt(-1000, 0);
         const result = validateMaxScore(invalidScore);
-        
+
         expect(result.isValid).toBe(false);
         expect(result.errors.some(e => e.code === 'MAX_SCORE_TOO_LOW' || e.code === 'MAX_SCORE_OUT_OF_RANGE')).toBe(true);
       }
@@ -170,7 +170,7 @@ describe('Assignment Validators - Property Tests', () => {
       for (let i = 0; i < ITERATIONS; i++) {
         const invalidScore = randomInt(1001, 10000);
         const result = validateMaxScore(invalidScore);
-        
+
         expect(result.isValid).toBe(false);
         expect(result.errors.some(e => e.code === 'MAX_SCORE_TOO_HIGH' || e.code === 'MAX_SCORE_OUT_OF_RANGE')).toBe(true);
       }
@@ -179,7 +179,7 @@ describe('Assignment Validators - Property Tests', () => {
     it('should accept boundary values 1 and 1000', () => {
       const result1 = validateMaxScore(1);
       const result1000 = validateMaxScore(1000);
-      
+
       expect(result1.isValid).toBe(true);
       expect(result1000.isValid).toBe(true);
     });
@@ -200,7 +200,7 @@ describe('Assignment Validators - Property Tests', () => {
         const maxScore = randomInt(1, 1000);
         const validGrade = randomInt(0, maxScore);
         const result = validateGrade(validGrade, maxScore);
-        
+
         expect(result.isValid).toBe(true);
         expect(result.errors.length).toBe(0);
       }
@@ -211,9 +211,9 @@ describe('Assignment Validators - Property Tests', () => {
         const maxScore = randomInt(1, 1000);
         const invalidGrade = randomInt(-1000, -1);
         const result = validateGrade(invalidGrade, maxScore);
-        
+
         expect(result.isValid).toBe(false);
-        expect(result.errors.some(e => e.code === 'GRADE_NEGATIVE' || e.code === 'GRADE_OUT_OF_RANGE')).toBe(true);
+        expect(result.errors.some(e => e.code === 'GRADE_TOO_LOW' || e.code === 'GRADE_NEGATIVE' || e.code === 'GRADE_OUT_OF_RANGE')).toBe(true);
       }
     });
 
@@ -222,19 +222,19 @@ describe('Assignment Validators - Property Tests', () => {
         const maxScore = randomInt(1, 500);
         const invalidGrade = maxScore + randomInt(1, 500);
         const result = validateGrade(invalidGrade, maxScore);
-        
+
         expect(result.isValid).toBe(false);
-        expect(result.errors.some(e => e.code === 'GRADE_EXCEEDS_MAX' || e.code === 'GRADE_OUT_OF_RANGE')).toBe(true);
+        expect(result.errors.some(e => e.code === 'GRADE_TOO_HIGH' || e.code === 'GRADE_EXCEEDS_MAX' || e.code === 'GRADE_OUT_OF_RANGE')).toBe(true);
       }
     });
 
     it('should accept boundary values 0 and maxScore', () => {
       for (let i = 0; i < ITERATIONS; i++) {
         const maxScore = randomInt(1, 1000);
-        
+
         const result0 = validateGrade(0, maxScore);
         const resultMax = validateGrade(maxScore, maxScore);
-        
+
         expect(result0.isValid).toBe(true);
         expect(resultMax.isValid).toBe(true);
       }
@@ -245,7 +245,7 @@ describe('Assignment Validators - Property Tests', () => {
         const maxScore = randomInt(10, 100);
         const validDecimalGrade = Math.random() * maxScore;
         const result = validateGrade(validDecimalGrade, maxScore);
-        
+
         expect(result.isValid).toBe(true);
       }
     });

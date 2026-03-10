@@ -1,0 +1,498 @@
+<div class="course-info-page">
+  <div class="course-info-shell">
+    <form [formGroup]="form" novalidate (submit)="$event.preventDefault(); save()">
+      <div class="course-info-grid">
+        <div class="course-info-main">
+          <section class="editor-context-strip" aria-label="Tóm tắt thông tin khóa học">
+            <div class="editor-context-strip__copy">
+              <p class="editor-context-strip__eyebrow">Thông tin công khai</p>
+              <p class="editor-context-strip__text">
+                Chỉnh sửa metadata xuất hiện trên trang giới thiệu khóa học. Các thay đổi ở đây ảnh hưởng trực tiếp đến
+                cách khóa học được mô tả, phân loại và bán.
+              </p>
+            </div>
+
+            <dl class="editor-context-strip__facts">
+              <div class="editor-context-pill">
+                <dt>Loại hình</dt>
+                <dd>{{ deliveryModeLabel() }}</dd>
+              </div>
+              <div class="editor-context-pill">
+                <dt>Hiển thị</dt>
+                <dd>{{ visibilityLabel() }}</dd>
+              </div>
+              <div class="editor-context-pill">
+                <dt>Giá bán</dt>
+                <dd>{{ pricePreviewText() }}</dd>
+              </div>
+            </dl>
+          </section>
+
+          @if (shouldShowErrorSummary()) {
+            <section class="editor-error-summary" aria-labelledby="course-info-error-summary-title" role="alert">
+              <div class="editor-error-summary__header">
+                <svg class="editor-error-summary__icon" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                  <path
+                    fill-rule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                    clip-rule="evenodd" />
+                </svg>
+                <div>
+                  <h2 id="course-info-error-summary-title" class="editor-error-summary__title">Cần hoàn thiện một số mục trước khi lưu</h2>
+                  <p class="editor-error-summary__text">Chuyển tới từng trường bên dưới để chỉnh sửa nhanh.</p>
+                </div>
+              </div>
+              <ul class="editor-error-summary__list">
+                @for (item of validationSummary(); track item.fieldId) {
+                  <li>
+                    <button type="button" class="editor-error-summary__link" (click)="focusField(item.fieldId)">
+                      <span class="font-medium">{{ item.label }}:</span> {{ item.message }}
+                    </button>
+                  </li>
+                }
+              </ul>
+            </section>
+          }
+
+          <section class="editor-card">
+            <div class="editor-card__header">
+              <div>
+                <h2 class="editor-card__title">Thông tin cơ bản</h2>
+                <p class="editor-card__subtitle">Những thông tin đầu tiên học viên nhìn thấy trên trang khóa học.</p>
+              </div>
+            </div>
+
+            <div class="editor-card__body editor-stack">
+              <div class="editor-field">
+                <label class="editor-label" for="course-title">Tên khóa học <span class="text-red-500">*</span></label>
+                <input
+                  id="course-title"
+                  formControlName="title"
+                  class="editor-input"
+                  [class.editor-input--error]="controlInvalid('title')"
+                  [attr.aria-invalid]="controlInvalid('title')"
+                  [attr.aria-describedby]="controlInvalid('title') ? 'course-title-error' : null"
+                  placeholder="Nhập tên khóa học" />
+                @if (controlInvalid('title')) {
+                  <p id="course-title-error" class="editor-field-error">{{ controlErrorMessage('title') }}</p>
+                }
+              </div>
+
+              <div class="editor-field">
+                <label class="editor-label" for="course-description">Mô tả ngắn</label>
+                <textarea
+                  id="course-description"
+                  formControlName="description"
+                  class="editor-textarea"
+                  placeholder="Mô tả ngắn hiển thị trên card, danh sách và trang giới thiệu khóa học..."></textarea>
+                <p class="editor-hint">Ưu tiên 1 đến 3 câu ngắn, tập trung vào giá trị học viên nhận được.</p>
+              </div>
+
+              <div class="editor-field">
+                <div class="editor-field__heading">
+                  <label class="editor-label" for="course-root-category">Danh mục <span class="text-red-500">*</span></label>
+                  <span class="editor-meta">Phục vụ catalog và readiness</span>
+                </div>
+
+                <div class="editor-field-grid editor-field-grid--two">
+                  <div class="editor-field">
+                    <label class="editor-label editor-label--subtle" for="course-root-category">Lĩnh vực</label>
+                    <select
+                      id="course-root-category"
+                      class="editor-select"
+                      [class.editor-input--error]="controlInvalid('categoryId') && !selectedRootId()"
+                      [attr.aria-invalid]="controlInvalid('categoryId') && !selectedRootId()"
+                      [attr.aria-describedby]="controlInvalid('categoryId') ? 'course-category-error' : null"
+                      (change)="onRootCategoryChange($any($event.target).value)">
+                      <option value="" [selected]="!selectedRootId()">-- Chọn lĩnh vực --</option>
+                      @for (root of categoryTree(); track root.id) {
+                        <option [value]="root.id" [selected]="selectedRootId() === root.id">{{ root.name }}</option>
+                      }
+                    </select>
+                  </div>
+
+                  <div class="editor-field">
+                    <label class="editor-label editor-label--subtle" for="course-category">Chuyên ngành</label>
+                    <select
+                      id="course-category"
+                      formControlName="categoryId"
+                      class="editor-select"
+                      [class.editor-input--error]="controlInvalid('categoryId') && !!selectedRootId()"
+                      [attr.aria-invalid]="controlInvalid('categoryId')"
+                      [attr.aria-describedby]="controlInvalid('categoryId') ? 'course-category-error' : null">
+                      <option value="">{{ subcategories().length ? '-- Chọn chuyên ngành --' : '-- Chọn lĩnh vực trước --' }}</option>
+                      @for (subcategory of subcategories(); track subcategory.id) {
+                        <option [value]="subcategory.id">{{ subcategory.name }}</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+
+                @if (controlInvalid('categoryId')) {
+                  <p id="course-category-error" class="editor-field-error">{{ controlErrorMessage('categoryId') }}</p>
+                } @else if (!selectedRootId()) {
+                  <p class="editor-hint">Chọn lĩnh vực trước để thu hẹp danh mục và giúp khóa học hiển thị đúng trong catalog.</p>
+                }
+              </div>
+
+              <fieldset class="editor-fieldset" [attr.aria-describedby]="isModeLocked() ? 'delivery-mode-lock-hint' : 'delivery-mode-hint'">
+                <legend class="editor-legend">Hình thức giảng dạy</legend>
+                <p id="delivery-mode-hint" class="editor-hint">
+                  Đây là ranh giới sản phẩm giữa <strong>Khóa học</strong> và <strong>Lớp học</strong>.
+                </p>
+
+                <div class="choice-grid">
+                  <label
+                    class="choice-card"
+                    [class.choice-card--selected]="currentDeliveryMode() === 'SELF_PACED'"
+                    [class.choice-card--disabled]="isModeLocked()">
+                    <input
+                      class="sr-only"
+                      type="radio"
+                      id="delivery-mode-self-paced"
+                      name="delivery-mode"
+                      [checked]="currentDeliveryMode() === 'SELF_PACED'"
+                      [disabled]="isModeLocked()"
+                      (change)="setDeliveryMode('SELF_PACED')" />
+                    <div class="choice-card__icon choice-card__icon--primary" aria-hidden="true">
+                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div class="choice-card__content">
+                      <div class="choice-card__title">Khóa học online</div>
+                      <p class="choice-card__text">Tự học, nội dung chung toàn khóa học, phù hợp với lộ trình kiểu Coursera.</p>
+                    </div>
+                  </label>
+
+                  <label
+                    class="choice-card"
+                    [class.choice-card--selected]="currentDeliveryMode() === 'INSTRUCTOR_LED'"
+                    [class.choice-card--disabled]="isModeLocked()">
+                    <input
+                      class="sr-only"
+                      type="radio"
+                      id="delivery-mode-instructor-led"
+                      name="delivery-mode"
+                      [checked]="currentDeliveryMode() === 'INSTRUCTOR_LED'"
+                      [disabled]="isModeLocked()"
+                      (change)="setDeliveryMode('INSTRUCTOR_LED')" />
+                    <div class="choice-card__icon choice-card__icon--success" aria-hidden="true">
+                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                    </div>
+                    <div class="choice-card__content">
+                      <div class="choice-card__title">Lớp học</div>
+                      <p class="choice-card__text">Có lớp, giảng viên, phân phối bài tập/quiz theo lớp và quản lý bảng điểm.</p>
+                    </div>
+                  </label>
+                </div>
+
+                @if (isModeLocked()) {
+                  <p id="delivery-mode-lock-hint" class="editor-callout editor-callout--warning">
+                    Không thể thay đổi hình thức giảng dạy khi khóa học đã có học viên đăng ký.
+                  </p>
+                } @else {
+                  <p class="editor-callout editor-callout--info">{{ deliveryModeDescription() }}</p>
+                }
+              </fieldset>
+            </div>
+          </section>
+
+          <section class="editor-card">
+            <div class="editor-card__header">
+              <div>
+                <h2 class="editor-card__title">Nội dung chi tiết</h2>
+                <p class="editor-card__subtitle">Mô tả đầy đủ mục tiêu, cấu trúc và kỳ vọng của khóa học.</p>
+              </div>
+            </div>
+            <div class="editor-card__body">
+              <app-rich-text-editor
+                formControlName="courseInformation"
+                placeholder="Nhập thông tin chi tiết..."
+                [height]="360">
+              </app-rich-text-editor>
+            </div>
+          </section>
+
+          <section class="editor-card">
+            <div class="editor-card__header">
+              <div>
+                <h2 class="editor-card__title">Trải nghiệm học viên</h2>
+                <p class="editor-card__subtitle">Thông điệp định vị khóa học trước và ngay sau khi người học tham gia.</p>
+              </div>
+            </div>
+
+            <div class="editor-card__body editor-stack">
+              <div class="editor-field">
+                <label class="editor-label" for="course-benefits">Bạn sẽ học được gì</label>
+                <textarea
+                  id="course-benefits"
+                  formControlName="benefits"
+                  class="editor-textarea editor-textarea--large"
+                  placeholder="Liệt kê kiến thức, kỹ năng hoặc kết quả học tập chính..."></textarea>
+                <p class="editor-hint">Có thể dùng gạch đầu dòng ngắn để học viên quét nhanh.</p>
+              </div>
+
+              <div class="editor-field">
+                <label class="editor-label" for="course-welcome-message">Lời chào mừng</label>
+                <textarea
+                  id="course-welcome-message"
+                  formControlName="welcomeMessage"
+                  class="editor-textarea"
+                  placeholder="Thông điệp ngắn hiển thị cho học viên sau khi ghi danh..."></textarea>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="course-info-aside">
+          <section class="editor-card">
+            <div class="editor-card__header">
+              <div>
+                <h2 class="editor-card__title">Hiển thị & thẻ chủ đề</h2>
+                <p class="editor-card__subtitle">Giữ các tín hiệu public-facing nhất quán mà không làm loãng vùng metadata chính.</p>
+              </div>
+            </div>
+
+            <div class="editor-card__body editor-stack">
+              <fieldset class="editor-fieldset">
+                <legend class="editor-legend">Trạng thái hiển thị</legend>
+                <div class="choice-grid choice-grid--compact">
+                  <label class="choice-card choice-card--compact" [class.choice-card--selected]="form.controls.visibility.value === 'PUBLIC'">
+                    <input class="sr-only" type="radio" formControlName="visibility" value="PUBLIC" />
+                    <div class="choice-card__content">
+                      <div class="choice-card__title">Công khai</div>
+                      <p class="choice-card__text">Xuất hiện với người dùng được phép xem.</p>
+                    </div>
+                  </label>
+
+                  <label class="choice-card choice-card--compact" [class.choice-card--selected]="form.controls.visibility.value === 'PRIVATE'">
+                    <input class="sr-only" type="radio" formControlName="visibility" value="PRIVATE" />
+                    <div class="choice-card__content">
+                      <div class="choice-card__title">Riêng tư</div>
+                      <p class="choice-card__text">Chỉ dùng cho phân phối nội bộ hoặc thử nghiệm.</p>
+                    </div>
+                  </label>
+                </div>
+              </fieldset>
+
+              <div class="editor-field">
+                <div class="editor-field__heading">
+                  <label class="editor-label">Thẻ chủ đề</label>
+                  <span class="editor-meta">{{ selectedTags().length }}/5</span>
+                </div>
+                <div class="editor-tag-list">
+                  @for (tag of selectedTags(); track tag.id) {
+                    <button type="button" class="editor-tag editor-tag--selected" (click)="removeTagById(tag.id)">
+                      {{ tag.name }}
+                      <span aria-hidden="true">×</span>
+                    </button>
+                  }
+                  @if (!selectedTags().length) {
+                    <span class="editor-empty-state">Chưa có thẻ nào được chọn.</span>
+                  }
+                </div>
+
+                @if (availableTags().length && selectedTags().length < 5) {
+                  <div class="editor-tag-list editor-tag-list--available">
+                    @for (tag of availableTags(); track tag.id) {
+                      @if (!isTagSelected(tag.id)) {
+                        <button type="button" class="editor-tag" (click)="addTagById(tag.id)">+ {{ tag.name }}</button>
+                      }
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          </section>
+
+          <section class="editor-card">
+            <div class="editor-card__header">
+              <div>
+                <h2 class="editor-card__title">Trình bày công khai</h2>
+                <p class="editor-card__subtitle">Ảnh bìa và video giúp tăng mức tin cậy trên trang giới thiệu khóa học.</p>
+              </div>
+            </div>
+
+            <div class="editor-card__body editor-stack">
+              <div class="editor-field">
+                <label class="editor-label">Ảnh bìa</label>
+                @if (isUploading()) {
+                  <div class="upload-card upload-card--loading">
+                    <svg class="h-6 w-6 animate-spin text-[#0056D2]" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    <div class="upload-progress">
+                      <div class="upload-progress__bar" [style.width.%]="uploadProgress()"></div>
+                    </div>
+                    <p class="editor-hint">{{ uploadProgress() }}%</p>
+                    <button type="button" class="editor-link-button" (click)="cancelUpload()">Hủy tải lên</button>
+                  </div>
+                } @else {
+                  <div
+                    class="upload-card"
+                    [class.upload-card--dragover]="isDragOver()"
+                    (dragover)="onDragOver($event)"
+                    (dragleave)="onDragLeave($event)"
+                    (drop)="onDrop($event)">
+                    @if (thumbnailPreview() || thumbnailUrl()) {
+                      <img
+                        [src]="thumbnailPreview() || thumbnailUrl()"
+                        class="upload-card__preview"
+                        alt="Ảnh bìa khóa học" />
+                      <div class="upload-card__overlay">Thay đổi ảnh bìa</div>
+                    } @else {
+                      <div class="upload-card__placeholder">
+                        <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span>Kéo thả hoặc click để tải ảnh</span>
+                      </div>
+                    }
+                    <input type="file" accept="image/*" class="upload-card__input" (change)="onFileSelected($event)" />
+                  </div>
+                }
+                <p class="editor-hint">JPG, PNG, WebP. Tối đa 5MB. Nên dùng ảnh ngang tỉ lệ 16:9.</p>
+              </div>
+
+              <div class="editor-field">
+                <label class="editor-label" for="course-intro-video">Video giới thiệu</label>
+                <input
+                  id="course-intro-video"
+                  formControlName="introVideoUrl"
+                  class="editor-input"
+                  [class.editor-input--error]="!!introVideoError()"
+                  [attr.aria-invalid]="!!introVideoError()"
+                  [attr.aria-describedby]="introVideoError() ? 'course-intro-video-error' : 'course-intro-video-hint'"
+                  placeholder="https://youtube.com/..." />
+                @if (introVideoError()) {
+                  <p id="course-intro-video-error" class="editor-field-error">{{ introVideoError() }}</p>
+                } @else {
+                  <p id="course-intro-video-hint" class="editor-hint">Dùng liên kết YouTube hoặc URL video công khai.</p>
+                }
+
+                @if (introVideoPreviewUrl()) {
+                  <div class="editor-link-preview">
+                    <div>
+                      <p class="editor-link-preview__label">Đã nhận diện liên kết video</p>
+                      <p class="editor-link-preview__value">{{ introVideoHost() }}</p>
+                    </div>
+                    <a class="editor-link-button" [href]="introVideoPreviewUrl()" rel="noopener noreferrer" target="_blank">Mở liên kết</a>
+                  </div>
+                }
+              </div>
+            </div>
+          </section>
+
+          <section class="editor-card">
+            <div class="editor-card__header">
+              <div>
+                <h2 class="editor-card__title">Giá bán & tín chỉ</h2>
+                <p class="editor-card__subtitle">Thiết lập thuộc tính thương mại của khóa học ngay trên metadata chính.</p>
+              </div>
+            </div>
+
+            <div class="editor-card__body editor-stack">
+              <div class="editor-field">
+                <label class="editor-label" for="course-price-type">Loại giá</label>
+                <select id="course-price-type" formControlName="priceType" class="editor-select">
+                  <option value="FREE">Miễn phí</option>
+                  <option value="PAID">Trả phí</option>
+                </select>
+              </div>
+
+              <div class="editor-callout editor-callout--neutral">
+                {{ pricePreviewText() }}
+              </div>
+
+              @if (isPaid()) {
+                <div class="editor-field">
+                  <label class="editor-label" for="course-price">Giá gốc <span class="text-red-500">*</span></label>
+                  <div class="editor-input-group">
+                    <span class="editor-input-prefix">₫</span>
+                    <input
+                      id="course-price"
+                      type="number"
+                      formControlName="price"
+                      min="1000"
+                      class="editor-input editor-input--prefixed"
+                      [class.editor-input--error]="!!priceError()"
+                      [attr.aria-invalid]="!!priceError()"
+                      [attr.aria-describedby]="priceError() ? 'course-price-error' : 'course-price-hint'"
+                      placeholder="500000" />
+                  </div>
+                  @if (priceError()) {
+                    <p id="course-price-error" class="editor-field-error">{{ priceError() }}</p>
+                  } @else {
+                    <p id="course-price-hint" class="editor-hint">Nhập giá niêm yết trước khi áp dụng khuyến mãi.</p>
+                  }
+                </div>
+
+                <div class="editor-field">
+                  <label class="editor-label" for="course-sale-price">Giá khuyến mãi</label>
+                  <div class="editor-input-group">
+                    <span class="editor-input-prefix">₫</span>
+                    <input
+                      id="course-sale-price"
+                      type="number"
+                      formControlName="salePrice"
+                      min="0"
+                      class="editor-input editor-input--prefixed"
+                      [class.editor-input--error]="!!salePriceError()"
+                      [attr.aria-invalid]="!!salePriceError()"
+                      [attr.aria-describedby]="salePriceError() ? 'course-sale-price-error' : null"
+                      placeholder="400000" />
+                  </div>
+                  @if (salePriceError()) {
+                    <p id="course-sale-price-error" class="editor-field-error">{{ salePriceError() }}</p>
+                  }
+                </div>
+              }
+
+              <div class="editor-field">
+                <label class="editor-label" for="course-credits">Số tín chỉ</label>
+                <input
+                  id="course-credits"
+                  type="number"
+                  formControlName="credits"
+                  min="0"
+                  class="editor-input"
+                  placeholder="Ví dụ: 3" />
+                <p class="editor-hint">Để trống nếu khóa học không dùng tín chỉ.</p>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </form>
+  </div>
+
+  @if (form.dirty || isUploading()) {
+    <div class="editor-savebar">
+      <div class="editor-savebar__content">
+        <div class="editor-savebar__status">
+          <div class="editor-savebar__pulse"></div>
+          <span>{{ isUploading() ? 'Đang tải ảnh lên, thay đổi chưa thể rời trang.' : 'Bạn có thay đổi chưa lưu.' }}</span>
+        </div>
+
+        <div class="editor-savebar__actions">
+          <button type="button" class="editor-secondary-button" (click)="discardChanges()">
+            Hủy thay đổi
+          </button>
+          <button type="button" class="editor-primary-button" [disabled]="isSaving() || isUploading()" (click)="save()">
+            @if (isSaving()) {
+              <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            }
+            <span>{{ isSaving() ? 'Đang lưu...' : 'Lưu thay đổi' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

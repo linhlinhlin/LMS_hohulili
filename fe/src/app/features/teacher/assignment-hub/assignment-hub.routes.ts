@@ -108,6 +108,7 @@ export const assignmentHubRoutes: Routes = [
       {
         path: 'settings',
         loadComponent: () => import('../assignments/assignment-editor.component').then(m => m.AssignmentEditorComponent),
+        canDeactivate: [(component: any) => component.canDeactivate?.() ?? true],
         title: 'Cài đặt bài tập'
       },
       {
@@ -137,4 +138,3 @@ export const assignmentHubRoutes: Routes = [
     pathMatch: 'full'
   }
 ];
-

@@ -90,6 +90,15 @@ class SelfEnrollUseCaseTest {
         return course;
     }
 
+    private Course createApprovedInstructorLedCourse() {
+        Course course = Course.create(CourseCode.of("COURSE-003"), "Lop hoc co giang vien", "Mo ta", teacherId);
+        course.updateDeliveryMode(Course.DeliveryMode.INSTRUCTOR_LED);
+        course.addChapter("Chuong 1", "Noi dung");
+        course.submitForApproval();
+        course.approve(reviewerId, "Da duyet");
+        return course;
+    }
+
     @Test
     @DisplayName("Should create default class and enrollment for FREE SELF_PACED course")
     void selfEnroll_freeCourse_createsDefaultClassAndEnrollment() {
@@ -164,6 +173,21 @@ class SelfEnrollUseCaseTest {
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("thanh toán");
 
+        verify(enrollmentRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should reject self-enroll for INSTRUCTOR_LED course")
+    void selfEnroll_rejectsInstructorLedCourse() {
+        Course course = createApprovedInstructorLedCourse();
+        courseId = course.getId();
+
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(course));
+
+        assertThatThrownBy(() -> useCase.execute(new SelfEnrollCommand(courseId, studentId)))
+                .isInstanceOf(BusinessRuleException.class);
+
+        verify(learningClassRepository, never()).save(any());
         verify(enrollmentRepository, never()).save(any());
     }
 

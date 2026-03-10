@@ -249,7 +249,7 @@ export class QuizEditModalComponent implements OnInit {
 
     // Load current quiz settings
     try {
-      const quiz = await firstValueFrom(this.quizApi.getQuizByLessonId(currentLessonId));
+      const quiz = await firstValueFrom(this.quizApi.getQuizByReference(currentLessonId));
 
       this.quizSettings = {
         id: quiz.id,
@@ -312,4 +312,3 @@ export class QuizEditModalComponent implements OnInit {
     }
   }
 }
-

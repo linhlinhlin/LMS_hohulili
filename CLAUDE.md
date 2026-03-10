@@ -10,7 +10,7 @@ This file provides guidance to Claude Code for working with this repository. **R
 
 ```bash
 # Backend (Docker - Recommended)
-cd backend && docker compose up -d
+cp .env.dev.example .env && docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db backend
 # API: http://localhost:8088/api/v3
 # Swagger: http://localhost:8088/swagger-ui
 
@@ -176,12 +176,12 @@ public interface BadRepository extends JpaRepository<Course, UUID> {}
 ### 2. API Connection Failed (Frontend)
 ```bash
 curl http://localhost:8088/api/v3/courses
-docker compose -f backend/docker-compose.yml logs api --tail=50
+docker compose -f docker-compose.yml -f docker-compose.dev.yml logs backend --tail=50
 ```
 
 ### 3. Backend Won't Start
 ```bash
-cd backend && docker compose logs api --tail=100
+docker compose -f docker-compose.yml -f docker-compose.dev.yml logs backend --tail=100
 # "Not a managed type" → See fix #1
 # "Access key cannot be blank" → Disable R2 in application-dev.yml
 # Database connection → Check postgres container
@@ -193,7 +193,7 @@ cd backend && docker compose logs api --tail=100
 
 ### 5. Build Errors
 ```bash
-cd backend && docker compose build api 2>&1 | tail -50
+docker compose -f docker-compose.yml -f docker-compose.dev.yml build backend 2>&1 | tail -50
 cd fe && npm run build 2>&1 | head -50
 ```
 
@@ -205,7 +205,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.
 ```
 If postgres password is out of sync:
 ```bash
-docker exec lms-postgres psql -U lms -d lms -c "ALTER USER lms WITH PASSWORD '<password-from-env-prod>';"
+docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod exec db psql -U lms -d lms -c "ALTER USER lms WITH PASSWORD '<password-from-env-prod>';"
 docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod restart backend
 ```
 
@@ -270,7 +270,7 @@ export class ExampleComponent {
 | **Backend SKILL** | **`.agent/skills/01-backend-ddd-development/SKILL.md`** |
 | Dev Config | `backend/src/main/resources/application-dev.yml` |
 | Prod Config | `backend/src/main/resources/application-prod.yml` |
-| Docker Compose | `backend/docker-compose.yml` |
+| Docker Compose | `docker-compose.yml` + `docker-compose.dev.yml` |
 | Security Config | `config/SecurityConfig.java` |
 | JWT Filter | `config/JwtAuthenticationFilter.java` |
 | **Schema Reference** | **`src/main/resources/db/migration/V1__lms_complete_schema.sql`** (1,249 lines) |

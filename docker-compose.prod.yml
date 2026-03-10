@@ -47,7 +47,6 @@ services:
   # ===== Caddy Reverse Proxy (Auto-HTTPS) =====
   caddy:
     image: caddy:2-alpine
-    container_name: lms-caddy
     restart: always
     ports:
       - "80:80"
@@ -69,6 +68,19 @@ services:
           memory: 128M
     networks:
       - lms-frontend
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
 volumes:
   caddy_data:

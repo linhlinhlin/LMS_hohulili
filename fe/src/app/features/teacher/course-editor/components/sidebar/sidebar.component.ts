@@ -17,6 +17,10 @@ import { animate, state, style, transition, trigger } from '@angular/animations'
 import { LucideAngularModule } from 'lucide-angular';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
+import { firstValueFrom } from 'rxjs';
+import { AssignmentApi } from '../../../../../api/client/assignment.api';
+import { QuizApi } from '../../../../../api/endpoints/quiz.api';
+import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/lesson-readiness';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -709,6 +713,8 @@ export class CourseEditorSidebarComponent implements OnDestroy {
   private chapterApi = inject(ChapterApi);
   private lessonApi = inject(LessonApi);
   private sectionApi = inject(SectionApi);
+  private assignmentApi = inject(AssignmentApi);
+  private quizApi = inject(QuizApi);
   private authoringService = inject(CourseAuthoringService);
   private toast = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
@@ -734,7 +740,7 @@ export class CourseEditorSidebarComponent implements OnDestroy {
   );
   publishedCount = computed(() =>
     this.store.chapters().reduce((acc, ch) =>
-      acc + ch.lessons.filter(l => l.sections && l.sections.length > 0).length, 0)
+      acc + ch.lessons.filter(lesson => lessonHasCanonicalContent(lesson)).length, 0)
   );
 
   isAllExpanded = computed(() => {
@@ -854,9 +860,14 @@ export class CourseEditorSidebarComponent implements OnDestroy {
     }
   }
 
-  toggleChapterSelection(chapter: ChapterDraftDTO) {
+  async toggleChapterSelection(chapter: ChapterDraftDTO) {
+    if (!(await this.canChangeSelection())) {
+      return;
+    }
+
     this.toggleChapter(chapter.id);
-    this.selectChapter(chapter);
+    this.selectionService.selectChapter(chapter);
+    this.navigateToCurriculum();
   }
 
   // --- Lesson expand/collapse (3-level tree) ---
@@ -876,9 +887,19 @@ export class CourseEditorSidebarComponent implements OnDestroy {
     });
   }
 
-  toggleLessonSelection(chapter: ChapterDraftDTO, lesson: LessonDraftDTO) {
+  async toggleLessonSelection(chapter: ChapterDraftDTO, lesson: LessonDraftDTO) {
+    if (!(await this.canChangeSelection())) {
+      return;
+    }
+
     this.toggleLesson(lesson.id);
-    this.selectLesson(chapter, lesson);
+    this.selectionService.selectLesson(chapter, lesson);
+    this.expandedLessons.update(set => {
+      const next = new Set(set);
+      next.add(lesson.id);
+      return next;
+    });
+    this.navigateToCurriculum();
   }
 
   // --- Kebab Menu ---
@@ -892,12 +913,20 @@ export class CourseEditorSidebarComponent implements OnDestroy {
   }
 
   // --- Selection ---
-  selectChapter(chapter: ChapterDraftDTO) {
+  async selectChapter(chapter: ChapterDraftDTO) {
+    if (!(await this.canChangeSelection())) {
+      return;
+    }
+
     this.selectionService.selectChapter(chapter);
     this.navigateToCurriculum();
   }
 
-  selectLesson(chapter: ChapterDraftDTO, lesson: LessonDraftDTO) {
+  async selectLesson(chapter: ChapterDraftDTO, lesson: LessonDraftDTO) {
+    if (!(await this.canChangeSelection())) {
+      return;
+    }
+
     this.selectionService.selectLesson(chapter, lesson);
     // Auto-expand lesson to show sections
     this.expandedLessons.update(set => {
@@ -908,13 +937,17 @@ export class CourseEditorSidebarComponent implements OnDestroy {
     this.navigateToCurriculum();
   }
 
-  selectSection(chapter: ChapterDraftDTO, lesson: LessonDraftDTO, section: SectionDraftDTO) {
+  async selectSection(chapter: ChapterDraftDTO, lesson: LessonDraftDTO, section: SectionDraftDTO) {
+    if (!(await this.canChangeSelection())) {
+      return;
+    }
+
     this.selectionService.selectSection(chapter, lesson, section);
     this.navigateToCurriculum();
   }
 
-  editSection(chapter: ChapterDraftDTO, lesson: LessonDraftDTO, section: SectionDraftDTO) {
-    this.selectSection(chapter, lesson, section);
+  async editSection(chapter: ChapterDraftDTO, lesson: LessonDraftDTO, section: SectionDraftDTO) {
+    await this.selectSection(chapter, lesson, section);
   }
 
   private navigateToCurriculum() {
@@ -983,6 +1016,7 @@ export class CourseEditorSidebarComponent implements OnDestroy {
     const nextLessonIndex = chapter.lessons.length + 1;
     this.currentChapterForLesson.set(chapter);
     this.newLessonTitle = `Bài ${nextLessonIndex}: `;
+    this.newLessonType = 'LECTURE';
     this.showLessonModal.set(true);
   }
 
@@ -1024,37 +1058,101 @@ export class CourseEditorSidebarComponent implements OnDestroy {
     });
   }
 
-  createLesson() {
+  async createLesson() {
     const chapter = this.currentChapterForLesson();
-    if (!chapter || !this.newLessonTitle.trim()) return;
+    const courseId = this.store.courseTree()?.id;
+    const title = this.newLessonTitle.trim();
+    if (!chapter || !courseId || !title) return;
     this.isCreating.set(true);
 
-    this.lessonApi.createLesson(chapter.id, {
-      title: this.newLessonTitle.trim(),
-      lessonType: this.newLessonType,
-      content: undefined
-    }).subscribe({
-      next: () => {
-        this.closeModals();
-        this.toast.success('Đã tạo bài học mới');
-        const courseId = this.store.courseTree()?.id;
-        if (courseId) {
-          // Ensure chapter is expanded so new lesson is visible
-          this.expandedChapters.update(set => {
-            const next = new Set(set);
-            next.add(chapter.id);
-            return next;
-          });
-          this.pendingNewLessonChapterId.set(chapter.id);
-          this.store.loadCourse(courseId, true);
+    try {
+      if (this.newLessonType === 'LECTURE') {
+        await firstValueFrom(this.lessonApi.createLesson(chapter.id, {
+          title,
+          type: 'LECTURE',
+          content: undefined
+        }));
+      } else if (this.newLessonType === 'QUIZ') {
+        await firstValueFrom(this.quizApi.createChapterQuiz(chapter.id, {
+          title,
+          description: '',
+          timeLimitMinutes: 30,
+          maxAttempts: 1,
+          passingScore: 60,
+          shuffleQuestions: true,
+          shuffleOptions: true,
+          showResultsImmediately: true,
+          showCorrectAnswers: true,
+          questionIds: [],
+          publishImmediately: false
+        }));
+      } else {
+        const lessonResponse: any = await firstValueFrom(this.lessonApi.createLesson(chapter.id, {
+          title,
+          type: 'ASSIGNMENT',
+          content: undefined
+        }));
+        const lessonId = lessonResponse?.data?.id ?? lessonResponse?.data;
+        if (!lessonId) {
+          throw new Error('Khong the khoi tao lesson assignment');
         }
-        this.isCreating.set(false);
-      },
-      error: (err: any) => {
-        this.toast.error('Tạo bài học thất bại: ' + (err?.error?.message || ''));
-        this.isCreating.set(false);
+
+        try {
+          await firstValueFrom(this.assignmentApi.createAssignment(courseId, {
+            lessonId,
+            title,
+            description: '',
+            instructions: '',
+            maxScore: 100,
+            distributionType: 'ALL_STUDENTS'
+          }));
+        } catch (assignmentError) {
+          await this.rollbackLessonCreation(lessonId, courseId);
+          throw assignmentError;
+        }
       }
+
+      this.closeModals();
+      this.toast.success('Đã tạo bài học mới');
+      this.expandedChapters.update(set => {
+        const next = new Set(set);
+        next.add(chapter.id);
+        return next;
+      });
+      this.pendingNewLessonChapterId.set(chapter.id);
+      await this.store.loadCourse(courseId, true);
+    } catch (err: any) {
+      this.toast.error('Tạo bài học thất bại: ' + (err?.error?.message || err?.message || ''));
+    } finally {
+      this.isCreating.set(false);
+    }
+  }
+
+  private async canChangeSelection(): Promise<boolean> {
+    if (this.store.saveStatus() !== 'unsaved') {
+      return true;
+    }
+
+    const shouldDiscard = await this.confirmDialog.confirm({
+      title: 'Rời nội dung đang chỉnh sửa',
+      message: 'Bạn có thay đổi chưa lưu trong chương trình học. Nếu chuyển sang mục khác, các chỉnh sửa sẽ bị mất.',
+      variant: 'warning',
+      confirmText: 'Chuyển mục',
+      cancelText: 'Ở lại'
     });
+    if (shouldDiscard) {
+      this.store.markSaved();
+    }
+
+    return shouldDiscard;
+  }
+
+  private async rollbackLessonCreation(lessonId: string, courseId: string): Promise<void> {
+    try {
+      await firstValueFrom(this.lessonApi.deleteLesson(lessonId, courseId));
+    } catch {
+      this.toast.error('Không thể hoàn tác lesson trung gian sau khi tạo assignment thất bại');
+    }
   }
 
   createSection() {
@@ -1433,25 +1531,24 @@ export class CourseEditorSidebarComponent implements OnDestroy {
     if (!courseId) return;
 
     this.closeMoveToChapter();
+    if (toChapterId === fromChapterId) {
+      return;
+    }
 
-    // 1. Delete from source chapter
-    this.lessonApi.deleteLesson(lesson.id, courseId).subscribe({
+    this.lessonApi.updateLesson(lesson.id, {
+      courseId,
+      chapterId: toChapterId
+    }).subscribe({
       next: () => {
-        // 2. Create in target chapter
-        this.lessonApi.createLesson(toChapterId, {
-          title: lesson.title,
-          lessonType: 'LECTURE',
-          content: lesson.content
-        }).subscribe({
-          next: () => {
-            this.toast.success('Đã chuyển bài học sang chương khác');
-            this.store.loadCourse(courseId, true);
-          },
-          error: (err: any) => {
-            this.toast.error('Tạo bài học ở chương đích thất bại: ' + (err?.error?.message || ''));
-            this.store.loadCourse(courseId, true);
-          }
-        });
+        this.expandedChapters.update(set => new Set([...set, toChapterId]));
+        this.toast.success('Đã chuyển bài học sang chương khác');
+        this.store.loadCourse(courseId, true);
+        if (this.selectedLessonId() === lesson.id) {
+          void this.router.navigate(
+            ['/teacher/courses', courseId, 'editor', 'curriculum'],
+            { queryParams: { chapterId: toChapterId, lessonId: lesson.id } }
+          );
+        }
       },
       error: (err: any) => this.toast.error('Không thể di chuyển bài học: ' + (err?.error?.message || ''))
     });
@@ -1465,9 +1562,7 @@ export class CourseEditorSidebarComponent implements OnDestroy {
 
   // --- Status Badges ---
   getLessonStatus(lesson: LessonDraftDTO): 'ready' | 'draft' | 'empty' {
-    if (lesson.sections && lesson.sections.length > 0) return 'ready';
-    if (lesson.content?.trim()) return 'draft';
-    return 'empty';
+    return getLessonReadinessState(lesson);
   }
 
   getLessonStatusColor(lesson: LessonDraftDTO): string {

@@ -172,7 +172,7 @@ class LearningClassTest {
         @DisplayName("Should update class details selectively")
         void shouldUpdateClassDetailsSelectively() {
             // When
-            openClass.update("New Name", null, null, 50, null, null);
+            openClass.update("New Name", null, null, null, null, null, 50, null, null);
 
             // Then
             assertThat(openClass.getName()).isEqualTo("New Name");
@@ -184,10 +184,32 @@ class LearningClassTest {
         @DisplayName("Should ignore blank name")
         void shouldIgnoreBlankName() {
             // When
-            openClass.update("  ", null, null, null, null, null);
+            openClass.update("  ", null, null, null, null, null, null, null, null);
 
             // Then
             assertThat(openClass.getName()).isEqualTo("Maritime Safety 2025");
+        }
+
+        @Test
+        @DisplayName("Should update teacher and scheduling metadata when provided")
+        void shouldUpdateTeacherAndScheduleMetadata() {
+            UUID newTeacherId = UUID.randomUUID();
+
+            openClass.update(
+                    null,
+                    null,
+                    newTeacherId,
+                    null,
+                    LearningClass.ScheduleType.SEMESTER,
+                    "HK2-2026",
+                    null,
+                    null,
+                    null
+            );
+
+            assertThat(openClass.getTeacherId()).isEqualTo(newTeacherId);
+            assertThat(openClass.getScheduleType()).isEqualTo(LearningClass.ScheduleType.SEMESTER);
+            assertThat(openClass.getSemester()).isEqualTo("HK2-2026");
         }
     }
 }

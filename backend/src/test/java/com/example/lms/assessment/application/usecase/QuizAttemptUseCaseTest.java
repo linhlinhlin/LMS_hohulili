@@ -1,5 +1,6 @@
 package com.example.lms.assessment.application.usecase;
 
+import com.example.lms.assessment.application.port.StudentAssessmentAccessPort;
 import com.example.lms.assessment.domain.event.QuizSubmittedEvent;
 import com.example.lms.assessment.domain.model.*;
 import com.example.lms.assessment.domain.repository.QuestionRepository;
@@ -44,6 +45,9 @@ class QuizAttemptUseCaseTest {
     @Mock
     private DomainEventPublisher eventPublisher;
 
+    @Mock
+    private StudentAssessmentAccessPort studentAssessmentAccessPort;
+
     @InjectMocks
     private QuizAttemptUseCase useCase;
 
@@ -60,6 +64,7 @@ class QuizAttemptUseCaseTest {
         q1Id = UUID.randomUUID();
         q2Id = UUID.randomUUID();
         q3Id = UUID.randomUUID();
+        lenient().when(studentAssessmentAccessPort.canAccessQuiz(quizId, studentId)).thenReturn(true);
     }
 
     // ============================================================
@@ -232,6 +237,18 @@ class QuizAttemptUseCaseTest {
 
             assertThatThrownBy(() -> useCase.startAttempt(quizId, studentId))
                     .isInstanceOf(BusinessRuleException.class);
+        }
+
+        @Test
+        @DisplayName("Should throw when student cannot access quiz distribution")
+        void shouldThrowWhenStudentCannotAccessQuizDistribution() {
+            Quiz quiz = buildPublishedQuiz(List.of(QuizQuestion.create(quizId, q1Id, 0)), 70);
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+            when(studentAssessmentAccessPort.canAccessQuiz(quizId, studentId)).thenReturn(false);
+
+            assertThatThrownBy(() -> useCase.startAttempt(quizId, studentId))
+                    .isInstanceOf(BusinessRuleException.class)
+                    .hasMessageContaining("truy cap");
         }
 
         @Test

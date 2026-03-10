@@ -53,6 +53,7 @@ The system is designed around three practical requirements:
 - Backend dev URL on host: `http://localhost:8088`
 - Spring Boot internal container/app port: `8080`
 - Production API: same-origin `/api/*` behind `https://holilihu.online`
+- Root `docker-compose*.yml` files are the only supported Docker runtime topology
 
 ### Prerequisites
 
@@ -63,22 +64,39 @@ The system is designed around three practical requirements:
 | Java | 21+ |
 | Maven | 3.9+ (host-native backend only) |
 
-### Recommended: Docker Backend + Local Frontend
+### Option A: Full Stack in Docker
 
 ```bash
-# 1. Prepare local env for Docker Compose
+# 1. Prepare local env
 cp .env.dev.example .env
 
-# 2. Start backend services
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+# 2. Build and boot the full dev stack
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build --wait
 
-# 3. Verify backend
+# 3. Verify backend + frontend
 curl -s http://localhost:8088/actuator/health
+curl -I http://localhost:4200/
+```
 
-# 4. Start frontend
+### Option B: Docker Backend + Local Frontend
+
+```bash
+# 1. Prepare local env
+cp .env.dev.example .env
+
+# 2. Start only the backend services needed for local FE work
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db backend
+
+# 3. Start frontend locally
 cd fe
 npm install
 npm start
+```
+
+Optional local pgAdmin:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile devtools up -d pgadmin
 ```
 
 ### Host-Native Backend
@@ -95,7 +113,7 @@ SERVER_PORT=8088 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 | Frontend | http://localhost:4200 |
 | Backend API | http://localhost:8088/api/v3 |
 | Swagger UI | http://localhost:8088/swagger-ui |
-| pgAdmin | http://localhost:8081 |
+| pgAdmin (optional `devtools` profile) | http://localhost:8081 |
 
 ### Default Accounts
 
@@ -122,7 +140,7 @@ Start here depending on what you need:
 | [docs/architecture/LESSON_VIEW_ARCHITECTURE.md](docs/architecture/LESSON_VIEW_ARCHITECTURE.md) | Lesson learning experience reference |
 | [docs/testing/TEST_CHECKLIST.md](docs/testing/TEST_CHECKLIST.md) | Manual QA checklist |
 | [CLAUDE.md](CLAUDE.md) | Internal agent/developer context file |
-| [.github/workflows/ci.yml](.github/workflows/ci.yml) | Baseline CI for backend, frontend, and compose validation |
+| [.github/workflows/ci.yml](.github/workflows/ci.yml) | Backend tests, frontend build, compose validation, and Docker smoke test |
 
 ## Architecture
 

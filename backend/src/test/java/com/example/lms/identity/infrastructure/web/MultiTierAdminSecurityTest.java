@@ -48,6 +48,7 @@ class MultiTierAdminSecurityTest {
 
     @InjectMocks private UserControllerV3 controller;
 
+    private UUID organizationId;
     private UserJpaEntity systemAdmin;
     private UserJpaEntity orgAdmin;
     private UserJpaEntity teacher;
@@ -55,6 +56,7 @@ class MultiTierAdminSecurityTest {
 
     @BeforeEach
     void setUp() {
+        organizationId = UUID.randomUUID();
         systemAdmin = new UserJpaEntity(
                 UUID.randomUUID(), "admin", "admin@maritime.edu", "pass",
                 "System Admin", UserJpaEntity.UserRole.ADMIN, true, Instant.now(), null
@@ -63,14 +65,17 @@ class MultiTierAdminSecurityTest {
                 UUID.randomUUID(), "orgadmin", "orgadmin@maritime.edu", "pass",
                 "Org Admin", UserJpaEntity.UserRole.ORG_ADMIN, true, Instant.now(), null
         );
+        orgAdmin.setOrganizationId(organizationId);
         teacher = new UserJpaEntity(
                 UUID.randomUUID(), "teacher", "teacher@maritime.edu", "pass",
                 "Teacher", UserJpaEntity.UserRole.TEACHER, true, Instant.now(), null
         );
+        teacher.setOrganizationId(organizationId);
         student = new UserJpaEntity(
                 UUID.randomUUID(), "student", "student@maritime.edu", "pass",
                 "Student", UserJpaEntity.UserRole.STUDENT, true, Instant.now(), null
         );
+        student.setOrganizationId(organizationId);
     }
 
     // =============================================
@@ -97,7 +102,10 @@ class MultiTierAdminSecurityTest {
 
             // Then
             assertThat(response.getStatusCode().value()).isEqualTo(200);
-            verify(userRepository).save(any(UserJpaEntity.class));
+            verify(userRepository).save(argThat(user ->
+                    organizationId.equals(user.getOrganizationId())
+                            && user.getRole() == UserJpaEntity.UserRole.TEACHER
+            ));
         }
 
         @Test
@@ -116,7 +124,10 @@ class MultiTierAdminSecurityTest {
 
             // Then
             assertThat(response.getStatusCode().value()).isEqualTo(200);
-            verify(userRepository).save(any(UserJpaEntity.class));
+            verify(userRepository).save(argThat(user ->
+                    organizationId.equals(user.getOrganizationId())
+                            && user.getRole() == UserJpaEntity.UserRole.STUDENT
+            ));
         }
 
         @Test
@@ -167,7 +178,10 @@ class MultiTierAdminSecurityTest {
 
             // Then
             assertThat(response.getStatusCode().value()).isEqualTo(200);
-            verify(userRepository).save(any(UserJpaEntity.class));
+            verify(userRepository).save(argThat(user ->
+                    user.getOrganizationId() == null
+                            && user.getRole() == UserJpaEntity.UserRole.ADMIN
+            ));
         }
 
         @Test
@@ -264,6 +278,23 @@ class MultiTierAdminSecurityTest {
             // Then
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             verify(updateUserUseCaseV3).execute(eq(student.getId()), any());
+        }
+
+        @Test
+        @DisplayName("ORG_ADMIN should NOT be able to update user outside organization")
+        void orgAdminShouldNotUpdateUserOutsideOrganization() {
+            UserJpaEntity externalStudent = new UserJpaEntity(
+                    UUID.randomUUID(), "external", "external@test.com", "pass",
+                    "External Student", UserJpaEntity.UserRole.STUDENT, true, Instant.now(), null
+            );
+            externalStudent.setOrganizationId(UUID.randomUUID());
+            when(userRepository.findById(externalStudent.getId())).thenReturn(Optional.of(externalStudent));
+            var request = new UserControllerV3.UpdateUserRequest("Updated Student", null, null);
+
+            ResponseEntity<?> response = controller.updateUser(externalStudent.getId(), request, orgAdmin);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(403);
+            verify(updateUserUseCaseV3, never()).execute(any(), any());
         }
 
         @Test
@@ -474,6 +505,22 @@ class MultiTierAdminSecurityTest {
         }
 
         @Test
+        @DisplayName("ORG_ADMIN should NOT toggle status for user outside organization")
+        void orgAdminShouldNotToggleStatusOutsideOrganization() {
+            UserJpaEntity externalTeacher = new UserJpaEntity(
+                    UUID.randomUUID(), "external-teacher", "external-teacher@test.com", "pass",
+                    "External Teacher", UserJpaEntity.UserRole.TEACHER, true, Instant.now(), null
+            );
+            externalTeacher.setOrganizationId(UUID.randomUUID());
+            when(userRepository.findById(externalTeacher.getId())).thenReturn(Optional.of(externalTeacher));
+
+            ResponseEntity<?> response = controller.toggleUserStatus(externalTeacher.getId(), orgAdmin);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(403);
+            verify(userRepository, never()).save(any());
+        }
+
+        @Test
         @DisplayName("ADMIN SHOULD toggle any user status")
         void adminShouldToggleAnyUserStatus() {
             // Given
@@ -526,6 +573,56 @@ class MultiTierAdminSecurityTest {
             // Then
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             verify(userRepository).save(any(UserJpaEntity.class));
+        }
+
+        @Test
+        @DisplayName("ORG_ADMIN should NOT change account status outside organization")
+        void orgAdminShouldNotChangeStatusOutsideOrganization() {
+            UserJpaEntity externalStudent = new UserJpaEntity(
+                    UUID.randomUUID(), "external-student", "external-student@test.com", "pass",
+                    "External Student", UserJpaEntity.UserRole.STUDENT, true, Instant.now(), null
+            );
+            externalStudent.setOrganizationId(UUID.randomUUID());
+            when(userRepository.findById(externalStudent.getId())).thenReturn(Optional.of(externalStudent));
+            var request = new UserControllerV3.UpdateStatusRequest("BLOCKED", "Violation");
+
+            ResponseEntity<?> response = controller.updateUserStatus(externalStudent.getId(), request, orgAdmin);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(403);
+            verify(userRepository, never()).save(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("Read User - ORG_ADMIN Scope Guards")
+    class ReadUserScopeTests {
+
+        @Test
+        @DisplayName("ORG_ADMIN should NOT view user outside organization")
+        void orgAdminShouldNotViewUserOutsideOrganization() {
+            UserJpaEntity externalStudent = new UserJpaEntity(
+                    UUID.randomUUID(), "external-view", "external-view@test.com", "pass",
+                    "External View", UserJpaEntity.UserRole.STUDENT, true, Instant.now(), null
+            );
+            externalStudent.setOrganizationId(UUID.randomUUID());
+            when(userRepository.findById(externalStudent.getId())).thenReturn(Optional.of(externalStudent));
+
+            ResponseEntity<?> response = controller.getUserById(externalStudent.getId(), orgAdmin);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(403);
+        }
+    }
+
+    @Nested
+    @DisplayName("Search Users - Teacher Scope Guards")
+    class SearchUsersScopeTests {
+
+        @Test
+        @DisplayName("TEACHER should NOT search student accounts through admin user search")
+        void teacherShouldNotSearchStudentAccounts() {
+            ResponseEntity<?> response = controller.searchUsers("STUDENT", "student", 1, 10, teacher);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(403);
         }
     }
 

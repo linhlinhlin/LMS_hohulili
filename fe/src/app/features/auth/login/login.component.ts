@@ -1,6 +1,6 @@
 import { Component, signal, inject, ChangeDetectionStrategy, computed } from '@angular/core';
 
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 import { NetworkStatusService } from '../../../core/services/network-status.service';
@@ -25,6 +25,7 @@ export class LoginComponent {
   protected network = inject(NetworkStatusService);
   protected UserRole = UserRole;
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private fb = inject(FormBuilder);
 
   loginForm: FormGroup<LoginForm>;
@@ -83,27 +84,9 @@ export class LoginComponent {
     this.authService.login(credentials).subscribe({
       next: (response: any) => {
         this.isLoading.set(false);
-
-        // Redirect based on user role
         const userRole = response.user.role.toLowerCase();
-
-        let redirectUrl = '/';
-        switch (userRole) {
-          case 'admin':
-          case 'org_admin':
-            redirectUrl = '/admin';
-            break;
-          case 'teacher':
-            redirectUrl = '/teacher';
-            break;
-          case 'student':
-            redirectUrl = '/student';
-            break;
-          default:
-            redirectUrl = '/';
-        }
-
-        this.router.navigate([redirectUrl]);
+        const redirectUrl = this.resolvePostLoginRedirect(userRole);
+        this.router.navigateByUrl(redirectUrl);
       },
       error: (error: any) => {
         this.isLoading.set(false);
@@ -119,6 +102,32 @@ export class LoginComponent {
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
     const isUsername = /^[a-zA-Z0-9._-]{3,}$/.test(value);
     return isEmail || isUsername ? null : { emailOrUsername: true };
+  }
+
+  private resolvePostLoginRedirect(userRole: string): string {
+    const requestedUrl = this.route.snapshot.queryParamMap.get('returnUrl')
+      || this.route.snapshot.queryParamMap.get('redirect')
+      || '';
+
+    if (this.isSafeInternalUrl(requestedUrl)) {
+      return requestedUrl;
+    }
+
+    switch (userRole) {
+      case 'admin':
+      case 'org_admin':
+        return '/admin';
+      case 'teacher':
+        return '/teacher';
+      case 'student':
+        return '/student';
+      default:
+        return '/';
+    }
+  }
+
+  private isSafeInternalUrl(url: string): boolean {
+    return !!url && url.startsWith('/') && !url.startsWith('//');
   }
 
   getErrorMessage(error: string): string {

@@ -830,8 +830,8 @@ export class CourseLearningComponent implements OnInit {
       .pipe(
         catchError(() => of(null))
       )
-      .subscribe(response => {
-        if (response && response.id) {
+      .subscribe(quiz => {
+        if (quiz?.id) {
           this.lessonsWithQuiz.update(lessons => {
             const newSet = new Set(lessons);
             newSet.add(lessonId);
@@ -845,9 +845,19 @@ export class CourseLearningComponent implements OnInit {
     return this.lessonsWithQuiz().has(lessonId);
   }
 
-  goToQuiz(lessonId: string, event: Event): void {
+  async goToQuiz(lessonId: string, event: Event): Promise<void> {
     event.stopPropagation(); // Prevent lesson selection
-    this.router.navigate(['/student/quiz/take', lessonId]);
+    try {
+      const quizId = await firstValueFrom(this.quizApi.resolveQuizIdByLessonId(lessonId));
+      await this.router.navigate(['/student/quiz/take', quizId], {
+        queryParams: {
+          lessonId,
+          returnUrl: this.router.url
+        }
+      });
+    } catch {
+      this.toast.error('Không thể mở bài kiểm tra của bài học này');
+    }
   }
 
   // Helper to strip chapter prefix if already present in title

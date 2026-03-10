@@ -130,10 +130,6 @@ export class CourseApi {
     return this.api.getWithResponse<any>(COURSE_ENDPOINTS.STUDENT.NEXT_LESSON(courseId));
   }
 
-  getAvailableClasses(courseId: string) {
-    return this.api.getWithResponse<ClassSummary[]>(COURSE_ENDPOINTS.TEACHER.AVAILABLE_CLASSES(courseId));
-  }
-
   // Get available students for enrollment (not yet enrolled in this course)
   getAvailableStudents(courseId: string, params?: { page?: number; size?: number; search?: string }): Observable<ApiResponse<AvailableStudent[]>> {
     return this.api.getWithResponse<any>(COURSE_ENDPOINTS.TEACHER.AVAILABLE_STUDENTS(courseId), { params }).pipe(
@@ -195,14 +191,4 @@ export interface CourseReviewStatus {
   reviewComment?: string;
   reviewedAt?: string;
   reviewedByName?: string;
-}
-
-export interface ClassSummary {
-  id: string;
-  name: string;
-  code: string;
-  teacherName: string;
-  startDate?: string;
-  endDate?: string;
-  maxStudents: number;
 }

@@ -27,6 +27,9 @@ public class CourseDTOs {
         private String description;
 
         private String deliveryMode; // SELF_PACED (default) or INSTRUCTOR_LED
+        private String priceType;
+        private BigDecimal price;
+        private BigDecimal salePrice;
     }
 
     @Data

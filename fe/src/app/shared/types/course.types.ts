@@ -325,6 +325,7 @@ export interface ClassSummary {
   id: string;
   name: string;
   code: string;
+  teacherId?: string;
   teacherName: string;
   startDate: string;
   endDate: string;
@@ -352,4 +353,5 @@ export interface UpdateClassRequest {
   endDate: string;
   scheduleType: ScheduleType;
   semester?: string;
+  teacherId?: string;
 }

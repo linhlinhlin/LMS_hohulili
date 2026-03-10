@@ -1,5 +1,9 @@
 # Delivery Mode Enforcement — Implementation Plan
 
+> Status update (2026-03-07): this plan is now a historical working document. The current implementation snapshot lives in `../reports/2026-03-07-authoring-and-runtime-status.md`.
+>
+> Most important delta from the original plan: `SELF_PACED` now supports lesson-scoped quiz and assignment shells as course-wide activities. Class management and class-scoped distribution remain exclusive to `INSTRUCTOR_LED`.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Enforce correct feature separation between SELF_PACED (Khóa học) and INSTRUCTOR_LED (Lớp học) across the full stack — the most critical business logic in the LMS.
@@ -12,7 +16,19 @@
 
 ---
 
-## Feature Matrix (Source of Truth)
+## 2026-03-07 Current Runtime Snapshot
+
+| Feature | `SELF_PACED` | `INSTRUCTOR_LED` |
+|---------|--------------|------------------|
+| Chapters + lessons + sections | YES | YES |
+| Lesson-scoped quiz shell | YES, course-wide context | YES, class-aware context |
+| Lesson-scoped assignment shell | YES, course-wide context | YES, class-aware context |
+| Assignment distribution | `ALL_STUDENTS` only | Class-aware distribution supported |
+| Class management | Hidden and blocked | YES |
+| Deep-link into curriculum editor | Stable | Stable |
+| Legacy chapter route | Redirects to `chapterId` in curriculum | Redirects to `chapterId` in curriculum |
+
+## Original Feature Matrix (Historical Snapshot)
 
 | Feature | SELF_PACED (Khóa học) | INSTRUCTOR_LED (Lớp học) |
 |---------|----------------------|--------------------------|

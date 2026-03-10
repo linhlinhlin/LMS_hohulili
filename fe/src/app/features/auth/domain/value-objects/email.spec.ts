@@ -18,23 +18,23 @@ describe('Email Value Object', () => {
     });
 
     it('should throw error for invalid email format', () => {
-      expect(() => new Email('invalid-email')).toThrow('Error: Invalid email format');
-      expect(() => new Email('test@')).toThrow('Error: Invalid email format');
-      expect(() => new Email('@example.com')).toThrow('Error: Invalid email format');
+      expect(() => new Email('invalid-email')).toThrowError('Invalid email format');
+      expect(() => new Email('test@')).toThrowError('Invalid email format');
+      expect(() => new Email('@example.com')).toThrowError('Invalid email format');
     });
 
     it('should throw error for empty email', () => {
-      expect(() => new Email('')).toThrow('Error: Email cannot be empty');
-      expect(() => new Email('   ')).toThrow('Error: Email cannot be empty');
+      expect(() => new Email('')).toThrowError('Email cannot be empty');
+      expect(() => new Email('   ')).toThrowError('Email cannot be empty');
     });
 
     it('should throw error for email too long', () => {
       const longEmail = 'a'.repeat(250) + '@example.com';
-      expect(() => new Email(longEmail)).toThrow('Error: Email is too long');
+      expect(() => new Email(longEmail)).toThrowError('Email is too long');
     });
 
     it('should throw error for disposable email', () => {
-      expect(() => new Email('test@10minutemail.com')).toThrow('Error: Disposable email addresses are not allowed');
+      expect(() => new Email('test@10minutemail.com')).toThrowError('Disposable email addresses are not allowed');
     });
   });
 

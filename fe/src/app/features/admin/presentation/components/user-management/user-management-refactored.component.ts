@@ -10,7 +10,7 @@ import { UsersTableComponent } from './components/users-table/users-table.compon
 import { CreateUserModalComponent } from './components/create-user-modal/create-user-modal.component';
 import { EditUserModalComponent } from './components/edit-user-modal/edit-user-modal.component';
 import { BulkImportModalComponent } from './components/bulk-import-modal/bulk-import-modal.component';
-import { AdminService, AdminUser, CreateUserRequest } from '../../../infrastructure/services/admin.service';
+import { AdminService, AdminUser } from '../../../infrastructure/services/admin.service';
 import { ToastService } from '../../../../../core/services/toast.service';
 
 /**
@@ -117,115 +117,50 @@ export class UserManagementRefactoredComponent implements OnInit {
 
     this.state.bulkImportProgress.set({
       isImporting: true,
-      progress: 10,
-      currentStep: 'Đang đọc file Excel...',
+      progress: 40,
+      currentStep: 'Đang tải file và xử lý trên máy chủ...',
       result: undefined
     });
 
-    const reader = new FileReader();
-    reader.onload = (e: any) => {
-      try {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData: any[] = XLSX.utils.sheet_to_json(firstSheet);
+    this.adminService.bulkImportUsers(
+      file,
+      this.state.defaultImportRole() as 'ADMIN' | 'ORG_ADMIN' | 'TEACHER' | 'STUDENT'
+    )
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: ({ data, message }) => {
+          this.state.bulkImportProgress.set({
+            isImporting: false,
+            progress: 100,
+            currentStep: 'Hoàn thành',
+            result: data
+          });
 
-        if (jsonData.length === 0) {
+          this.state.loadUsers(this.state.currentPage());
+
+          if (data.failedImports === 0) {
+            this.toastService.success(message);
+            setTimeout(() => this.state.closeBulkImportModal(), 2000);
+            return;
+          }
+
+          this.toastService.warning(`Đã import ${data.successfulImports}/${data.totalRows} người dùng. Kiểm tra lỗi chi tiết trong hộp thoại.`);
+        },
+        error: (error: Error) => {
           this.state.bulkImportProgress.set({
             isImporting: false,
             progress: 0,
-            currentStep: 'Lỗi',
-            result: { totalRows: 0, successfulImports: 0, failedImports: 0, errors: ['File Excel không có dữ liệu'] }
+            currentStep: 'Import thất bại',
+            result: {
+              totalRows: 0,
+              successfulImports: 0,
+              failedImports: 0,
+              errors: [error.message || 'Không thể import người dùng. Vui lòng thử lại.']
+            }
           });
-          return;
+          this.toastService.error(error.message || 'Không thể import người dùng. Vui lòng thử lại.');
         }
-
-        this.processUsersSequentially(jsonData);
-      } catch {
-        this.state.bulkImportProgress.set({
-          isImporting: false,
-          progress: 0,
-          currentStep: 'Lỗi đọc file',
-          result: { totalRows: 0, successfulImports: 0, failedImports: 0, errors: ['Không thể đọc file Excel. Vui lòng kiểm tra định dạng file.'] }
-        });
-      }
-    };
-
-    reader.onerror = () => {
-      this.state.bulkImportProgress.set({
-        isImporting: false,
-        progress: 0,
-        currentStep: 'Lỗi đọc file',
-        result: { totalRows: 0, successfulImports: 0, failedImports: 0, errors: ['Không thể đọc file'] }
       });
-    };
-
-    reader.readAsArrayBuffer(file);
-  }
-
-  private async processUsersSequentially(users: any[]): Promise<void> {
-    const totalUsers = users.length;
-    let successCount = 0;
-    let failCount = 0;
-    const errors: string[] = [];
-
-    for (let i = 0; i < users.length; i++) {
-      const userData = users[i];
-      const progress = Math.round(((i + 1) / totalUsers) * 100);
-
-      this.state.bulkImportProgress.update(state => ({
-        ...state,
-        progress,
-        currentStep: `Đang tạo người dùng ${i + 1}/${totalUsers}...`
-      }));
-
-      try {
-        const createRequest: CreateUserRequest = {
-          username: userData['Username'] || userData['Tên đăng nhập'] || userData['Email']?.split('@')[0] || `user${Date.now()}`,
-          email: userData['Email'] || userData['email'] || '',
-          password: userData['Password'] || userData['Mật khẩu'] || 'Password123!',
-          fullName: userData['Full Name'] || userData['Họ tên'] || userData['Name'] || '',
-          role: (userData['Role'] || userData['Vai trò'] || this.state.defaultImportRole()).toUpperCase() as 'ADMIN' | 'TEACHER' | 'STUDENT'
-        };
-
-        if (!createRequest.email || !createRequest.fullName) {
-          failCount++;
-          errors.push(`Dòng ${i + 1}: Thiếu email hoặc họ tên`);
-          continue;
-        }
-
-        await new Promise<void>((resolve) => {
-          this.adminService.createUser(createRequest)
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe({
-              next: () => { successCount++; resolve(); },
-              error: (error) => {
-                failCount++;
-                errors.push(`Dòng ${i + 1}: ${error.error?.message || 'Lỗi tạo người dùng'}`);
-                resolve();
-              }
-            });
-        });
-
-        await new Promise(resolve => setTimeout(resolve, 100));
-      } catch {
-        failCount++;
-        errors.push(`Dòng ${i + 1}: Lỗi không xác định`);
-      }
-    }
-
-    this.state.bulkImportProgress.set({
-      isImporting: false,
-      progress: 100,
-      currentStep: 'Hoàn thành',
-      result: { totalRows: totalUsers, successfulImports: successCount, failedImports: failCount, errors: errors.slice(0, 10) }
-    });
-
-    this.state.loadUsers(this.state.currentPage());
-
-    if (failCount === 0) {
-      setTimeout(() => this.state.closeBulkImportModal(), 3000);
-    }
   }
 
   downloadTemplate(): void {

@@ -17,6 +17,11 @@ export class SwUpdateService {
     this.setupChunkErrorHandler();
     this.setupVisibilityHandler();
 
+    if (this.shouldDisableServiceWorkerRuntime()) {
+      void this.disableServiceWorkerForLocalRuntime();
+      return;
+    }
+
     if (!this.swUpdate?.isEnabled) return;
     const sw = this.swUpdate;
 
@@ -74,6 +79,30 @@ export class SwUpdateService {
 
     // One-time "offline ready" toast — shows only on first SW install per device
     this.showOfflineReadyToast();
+  }
+
+  private shouldDisableServiceWorkerRuntime(): boolean {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    const hostname = window.location.hostname;
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+  }
+
+  private async disableServiceWorkerForLocalRuntime(): Promise<void> {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+      return;
+    }
+
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+      await this.clearNgswCaches();
+      console.info('[SW] Disabled and cleared for local runtime');
+    } catch (error) {
+      console.warn('[SW] Failed to clear local service worker state', error);
+    }
   }
 
   /**

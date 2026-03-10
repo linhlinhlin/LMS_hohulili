@@ -106,3 +106,17 @@ sidebar_screenshot.png
 /*.txt
 !fe/src/**/*.png
 !backend/src/**/*.png
+
+# === Local agent coordination runtime ===
+coord/PLAN.md
+coord/STATUS.md
+coord/events.jsonl
+coord/TASKS/WAVE-*.md
+coord/REPORTS/WAVE-*.md
+coord/REVIEW/WAVE-*.md
+!coord/README.md
+!coord/events.schema.md
+!coord/TASKS/TEMPLATE.md
+!coord/REPORTS/TEMPLATE.md
+!coord/REVIEW/TEMPLATE.md
+.tmp-cdp-profile/

@@ -46,9 +46,11 @@ export interface StudentAssignment {
 /**
  * Service để lấy bài tập được giao cho học viên.
  *
- * Flow đơn giản:
- * 1. Gọi GET /api/v3/student/assignments → BE trả về tất cả assignments từ enrolled courses
- * 2. Transform và trả về StudentAssignment[]
+ * Flow hiện tại:
+ * 1. Gọi GET /api/v3/student/assignments
+ * 2. Backend chỉ trả về các assignment student thực sự được phép truy cập
+ *    theo enrollment + allocation/distribution hiện hành
+ * 3. Transform và trả về StudentAssignment[]
  */
 @Injectable({ providedIn: 'root' })
 export class StudentAssignmentService {
@@ -82,7 +84,7 @@ export class StudentAssignmentService {
    * Lấy submission của học viên cho một bài tập
    */
   getMySubmission(assignmentId: string): Observable<SubmissionDetail | null> {
-    return this.assignmentApi.getMySubmission(assignmentId).pipe(
+    return this.assignmentApi.getStudentSubmission(assignmentId).pipe(
       map(res => res.data || null),
       catchError(() => of(null))
     );

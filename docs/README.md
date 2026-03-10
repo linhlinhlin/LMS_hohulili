@@ -13,17 +13,22 @@ Use them differently.
 - `../ONBOARDING.md`: setup flow for new contributors.
 - `../backend/README.md`: backend-focused runbook and API notes.
 - `deployment/GITHUB_ACTIONS_DEPLOY.md`: GitHub Actions deployment runbook.
+- `architecture/COURSE_VS_CLASS_LESSON_BOUNDARY.md`: recommended boundary between course-owned lessons and class-owned delivery overlays.
+- `reports/2026-03-07-authoring-and-runtime-status.md`: current implementation snapshot for runtime hardening and teacher authoring.
+- `research/2026-03-09-authoring-frontend-design-audit.md`: current frontend design direction for teacher authoring routes.
 - `PWA_OFFLINE_RESEARCH.md`: deep offline architecture context.
 
 ## Current Runtime Conventions
 
-These conventions are the baseline for this repository as of 2026-03-06.
+These conventions are the baseline for this repository as of 2026-03-07.
 
 - Frontend dev app: `http://localhost:4200`
 - Backend dev API on host: `http://localhost:8088`
 - Backend service port inside containers: `8080`
 - Production API origin: same-origin under `https://holilihu.online/api/*`
 - Wiii production origin: `https://wiii.holilihu.online`
+- Root `docker-compose.yml` plus `docker-compose.dev.yml` / `docker-compose.prod.yml` are the only supported runtime topology
+- pgAdmin is opt-in via the Compose `devtools` profile
 
 Why both `8088` and `8080` exist:
 

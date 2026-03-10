@@ -1,10 +1,14 @@
 package com.example.lms.learning_delivery.infrastructure.web;
 
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
+import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.learning_delivery.application.dto.DropStudentCommand;
 import com.example.lms.learning_delivery.application.dto.EnrollmentResponse;
 import com.example.lms.learning_delivery.application.dto.LearningClassResponse;
 import com.example.lms.learning_delivery.application.usecase.*;
+import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
+import com.example.lms.learning_delivery.infrastructure.persistence.entity.LearningClassJpaEntity;
+import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.domain.PageResponse;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,7 +24,12 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.AccessDeniedException;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * V3 Controller for Learning Classes (DDD - Learning Delivery Bounded Context).
@@ -43,6 +52,8 @@ public class ClassControllerV3 {
     private final DropStudentUseCase dropStudentUseCase;
     private final com.example.lms.learning_delivery.infrastructure.persistence.JpaLearningClassRepository classJpaRepository;
     private final com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository courseJpaRepository;
+    private final UserJpaRepository userJpaRepository;
+    private final JpaEnrollmentRepository enrollmentJpaRepository;
 
     // ================================================================================================
     // Course-scoped Class Listing (FE: ClassService)
@@ -54,9 +65,10 @@ public class ClassControllerV3 {
     public ResponseEntity<ApiResponse<java.util.List<java.util.Map<String, Object>>>> getClassesByCourse(
             @PathVariable UUID courseId,
             @AuthenticationPrincipal UserJpaEntity user) {
-        verifyCourseOwnership(courseId, user);
+        var course = resolveOwnedCourse(courseId, user);
+        ensureInstructorLedCourse(course);
         var entities = classJpaRepository.findByCourseId(courseId);
-        var result = entities.stream().map(this::toClassMap).toList();
+        var result = mapClassSummaries(entities);
         return ResponseEntity.ok(ApiResponse.success(result, "Danh sách lớp học"));
     }
 
@@ -72,7 +84,8 @@ public class ClassControllerV3 {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
-        verifyCourseOwnership(courseId, user);
+        var course = resolveOwnedCourse(courseId, user);
+        ensureInstructorLedCourse(course);
 
         // Use simple findByCourseId when no filters, to avoid JPQL null parameter issues
         String searchParam = (search != null && !search.isBlank()) ? search : null;
@@ -97,7 +110,7 @@ public class ClassControllerV3 {
             pageResult = classJpaRepository.searchByCourseId(courseId, searchParam, statusEnum, PageRequest.of(page, size));
         }
 
-        var content = pageResult.getContent().stream().map(this::toClassMap).toList();
+        var content = mapClassSummaries(pageResult.getContent());
         java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
         result.put("content", content);
         result.put("totalElements", pageResult.getTotalElements());
@@ -108,16 +121,40 @@ public class ClassControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(result, "Danh sách lớp học"));
     }
 
+    private List<Map<String, Object>> mapClassSummaries(List<LearningClassJpaEntity> entities) {
+        Map<UUID, String> teacherNames = resolveTeacherNames(entities);
+        return entities.stream()
+                .map(entity -> toClassMap(entity, teacherNames))
+                .toList();
+    }
+
+    private Map<UUID, String> resolveTeacherNames(List<LearningClassJpaEntity> entities) {
+        Set<UUID> teacherIds = entities.stream()
+                .map(LearningClassJpaEntity::getTeacherId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (teacherIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return userJpaRepository.findAllById(teacherIds).stream()
+                .collect(Collectors.toMap(UserJpaEntity::getId, UserJpaEntity::getFullName));
+    }
+
     private java.util.Map<String, Object> toClassMap(
-            com.example.lms.learning_delivery.infrastructure.persistence.entity.LearningClassJpaEntity e) {
+            LearningClassJpaEntity e,
+            Map<UUID, String> teacherNames) {
         java.util.Map<String, Object> map = new java.util.LinkedHashMap<>();
         map.put("id", e.getId().toString());
         map.put("name", e.getName());
         map.put("code", e.getCode());
         map.put("courseId", e.getCourseId().toString());
         map.put("teacherId", e.getTeacherId() != null ? e.getTeacherId().toString() : null);
+        map.put("teacherName", e.getTeacherId() != null ? teacherNames.get(e.getTeacherId()) : null);
         map.put("status", e.getStatus().name());
+        map.put("scheduleType", e.getScheduleType() != null ? e.getScheduleType().name() : LearningClassJpaEntity.ScheduleType.CUSTOM.name());
         map.put("maxStudents", e.getMaxStudents());
+        map.put("studentCount", enrollmentJpaRepository.countByClassId(e.getId()));
         map.put("semester", e.getSemester());
         map.put("startDate", e.getStartDate() != null ? e.getStartDate().toString() : null);
         map.put("endDate", e.getEndDate() != null ? e.getEndDate().toString() : null);
@@ -137,7 +174,9 @@ public class ClassControllerV3 {
             @AuthenticationPrincipal UserJpaEntity user
     ) {
         // P0-13: Verify teacher owns the course
-        verifyCourseOwnership(UUID.fromString(request.getCourseId()), user);
+        UUID courseId = UUID.fromString(request.getCourseId());
+        var course = resolveOwnedCourse(courseId, user);
+        ensureInstructorLedCourse(course);
 
         // Auto-generate code if missing
         String classCode = request.getCode();
@@ -147,20 +186,20 @@ public class ClassControllerV3 {
 
         // Determine teacher (defaults to creator if not specified)
         UUID teacherId = user.getId();
-        if (request.getTeacherId() != null && !request.getTeacherId().isBlank()) {
-            teacherId = UUID.fromString(request.getTeacherId());
-        }
 
         Instant startDate = null;
         Instant endDate = null;
         try {
+            if (request.getTeacherId() != null && !request.getTeacherId().isBlank()) teacherId = UUID.fromString(request.getTeacherId());
             if (request.getStartDate() != null) startDate = Instant.parse(request.getStartDate());
             if (request.getEndDate() != null) endDate = Instant.parse(request.getEndDate());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("INVALID_TEACHER_ID", "Teacher ID không hợp lệ"));
         } catch (java.time.format.DateTimeParseException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("INVALID_DATE", "Định dạng ngày không hợp lệ: " + e.getMessage()));
         }
         var command = new CreateLearningClassUseCaseV3.CreateClassCommand(
-                UUID.fromString(request.getCourseId()),
+                courseId,
                 teacherId,
                 classCode,
                 request.getName(),
@@ -185,14 +224,17 @@ public class ClassControllerV3 {
             @AuthenticationPrincipal UserJpaEntity user
     ) {
         // P0-13: Verify teacher owns the course via class
-        var cls = classJpaRepository.findById(UUID.fromString(classId))
-                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("LearningClass", classId));
-        verifyCourseOwnership(cls.getCourseId(), user);
+        var context = resolveOwnedClassContext(UUID.fromString(classId), user);
+        ensureInstructorLedCourse(context.course());
         Instant startDate = null;
         Instant endDate = null;
+        UUID teacherId = null;
         try {
             if (request.getStartDate() != null) startDate = Instant.parse(request.getStartDate());
             if (request.getEndDate() != null) endDate = Instant.parse(request.getEndDate());
+            if (request.getTeacherId() != null && !request.getTeacherId().isBlank()) teacherId = UUID.fromString(request.getTeacherId());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("INVALID_TEACHER_ID", "Teacher ID không hợp lệ"));
         } catch (java.time.format.DateTimeParseException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("INVALID_DATE", "Định dạng ngày không hợp lệ: " + e.getMessage()));
         }
@@ -200,7 +242,10 @@ public class ClassControllerV3 {
                 UUID.fromString(classId),
                 request.getName(),
                 request.getCode(),
+                teacherId,
                 request.getStatus(),
+                request.getScheduleType(),
+                request.getSemester(),
                 request.getMaxStudents(),
                 startDate,
                 endDate
@@ -219,9 +264,8 @@ public class ClassControllerV3 {
             @AuthenticationPrincipal UserJpaEntity user
     ) {
         // P0-13: Verify teacher owns the course via class
-        var clsToDelete = classJpaRepository.findById(UUID.fromString(classId))
-                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("LearningClass", classId));
-        verifyCourseOwnership(clsToDelete.getCourseId(), user);
+        var context = resolveOwnedClassContext(UUID.fromString(classId), user);
+        ensureInstructorLedCourse(context.course());
         deleteLearningClassUseCase.execute(UUID.fromString(classId));
         return ResponseEntity.ok(ApiResponse.success(null, "Xóa lớp học thành công"));
     }
@@ -233,7 +277,8 @@ public class ClassControllerV3 {
             @PathVariable String classId,
             @AuthenticationPrincipal UserJpaEntity user
     ) {
-        verifyClassOwnership(UUID.fromString(classId), user);
+        var context = resolveOwnedClassContext(UUID.fromString(classId), user);
+        ensureInstructorLedCourse(context.course());
         LearningClassResponse response = getLearningClassByIdUseCase.execute(UUID.fromString(classId));
         return ResponseEntity.ok(ApiResponse.success(response, "Thông tin lớp học"));
     }
@@ -251,7 +296,8 @@ public class ClassControllerV3 {
             @AuthenticationPrincipal UserJpaEntity user
     ) {
         // S78: IDOR fix — verify teacher owns the class's course
-        verifyClassOwnership(UUID.fromString(classId), user);
+        var context = resolveOwnedClassContext(UUID.fromString(classId), user);
+        ensureInstructorLedCourse(context.course());
 
         if (request.getEmail() == null || request.getEmail().isBlank()) {
             throw new IllegalArgumentException("Email không được để trống");
@@ -274,7 +320,8 @@ public class ClassControllerV3 {
             @RequestParam(defaultValue = "1000") int size,
             @AuthenticationPrincipal UserJpaEntity user
     ) {
-        verifyClassOwnership(UUID.fromString(classId), user);
+        var context = resolveOwnedClassContext(UUID.fromString(classId), user);
+        ensureInstructorLedCourse(context.course());
         PageResponse<EnrollmentResponse> students = getClassStudentsUseCase.execute(
                 UUID.fromString(classId),
                 PageRequest.of(page, size)
@@ -292,7 +339,8 @@ public class ClassControllerV3 {
             @AuthenticationPrincipal UserJpaEntity user
     ) {
         // S78: IDOR fix — verify teacher owns the class's course
-        verifyClassOwnership(UUID.fromString(classId), user);
+        var context = resolveOwnedClassContext(UUID.fromString(classId), user);
+        ensureInstructorLedCourse(context.course());
 
         var command = new DropStudentCommand(
                 UUID.fromString(studentId),
@@ -337,10 +385,13 @@ public class ClassControllerV3 {
         private String name;
         private String code;
         private String courseId;
+        private String teacherId;
         private String status;
         private String startDate;
         private String endDate;
         private Integer maxStudents;
+        private String scheduleType;
+        private String semester;
     }
 
     @Data
@@ -359,6 +410,17 @@ public class ClassControllerV3 {
             || user.getRole() == com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity.UserRole.ORG_ADMIN;
     }
 
+    private com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity getOwnedCourse(
+            UUID courseId,
+            com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
+        var course = courseJpaRepository.findById(courseId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("KhÃ³a há»c", courseId));
+        if (!isAdminRole(user) && (course.getTeacherId() == null || !course.getTeacherId().equals(user.getId()))) {
+            throw new AccessDeniedException("Báº¡n khÃ´ng sá»Ÿ há»¯u khÃ³a há»c nÃ y");
+        }
+        return course;
+    }
+
     private void verifyCourseOwnership(UUID courseId, com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
         if (isAdminRole(user)) return;
         var course = courseJpaRepository.findById(courseId)
@@ -373,5 +435,57 @@ public class ClassControllerV3 {
         var cls = classJpaRepository.findById(classId)
                 .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Lớp học", classId));
         verifyCourseOwnership(cls.getCourseId(), user);
+    }
+    private OwnedClassContext getOwnedClassContext(
+            UUID classId,
+            com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
+        var cls = classJpaRepository.findById(classId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Lá»›p há»c", classId));
+        var course = getOwnedCourse(cls.getCourseId(), user);
+        return new OwnedClassContext(cls, course);
+    }
+
+    private void verifyInstructorLedCourse(
+            com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity course) {
+        if (course.getDeliveryMode() != com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity.DeliveryMode.INSTRUCTOR_LED) {
+            throw new BusinessRuleException(
+                    "CLASS_MANAGEMENT_NOT_ALLOWED",
+                    "Quản lý lớp chỉ áp dụng cho khóa học dạng \"Lớp học\"."
+            );
+        }
+    }
+
+    private record OwnedClassContext(
+            LearningClassJpaEntity learningClass,
+            com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity course) {}
+
+    private com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity resolveOwnedCourse(
+            UUID courseId,
+            com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
+        var course = courseJpaRepository.findById(courseId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Course", courseId));
+        if (!isAdminRole(user) && (course.getTeacherId() == null || !course.getTeacherId().equals(user.getId()))) {
+            throw new AccessDeniedException("Ban khong so huu khoa hoc nay");
+        }
+        return course;
+    }
+
+    private OwnedClassContext resolveOwnedClassContext(
+            UUID classId,
+            com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
+        var learningClass = classJpaRepository.findById(classId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("LearningClass", classId));
+        var course = resolveOwnedCourse(learningClass.getCourseId(), user);
+        return new OwnedClassContext(learningClass, course);
+    }
+
+    private void ensureInstructorLedCourse(
+            com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity course) {
+        if (course.getDeliveryMode() != com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity.DeliveryMode.INSTRUCTOR_LED) {
+            throw new BusinessRuleException(
+                    "CLASS_MANAGEMENT_NOT_ALLOWED",
+                    "Quan ly lop chi ap dung cho khoa hoc dang \"Lop hoc\"."
+            );
+        }
     }
 }

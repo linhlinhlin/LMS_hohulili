@@ -1,17 +1,16 @@
 import {
+  ChangeDetectionStrategy,
   Component,
+  computed,
+  effect,
+  inject,
   input,
   output,
   signal,
-  computed,
-  ChangeDetectionStrategy,
-  OnInit,
 } from '@angular/core';
-
 import { FormsModule } from '@angular/forms';
-import { inject } from '@angular/core';
-import { ClassService } from '../../../../state/class.service';
 import { firstValueFrom } from 'rxjs';
+import { ClassService } from '../../../../state/class.service';
 import { ClassSummary } from '../../../../shared/types/course.types';
 import {
   DistributionType,
@@ -26,126 +25,179 @@ export interface DistributionSettings {
 
 export type ViewMode = 'assigned' | 'manage';
 
-/**
- * Distribution Selector Component
- *
- * Professional LMS-style assignment distribution management.
- * Features:
- * - View assigned students list with status
- * - Add/remove students from assignment
- * - Bulk assignment operations
- * - Switch between "All Students" and "Specific Students" modes
- *
- * @requirements 1.1, 1.2, 1.3
- */
 @Component({
   selector: 'app-distribution-selector',
   imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './distribution-selector.component.html',
 })
-
-export class DistributionSelectorComponent implements OnInit {
-  // Signal inputs
+export class DistributionSelectorComponent {
   enrolledStudents = input<EnrolledStudent[]>([]);
   initialDistributionType = input<DistributionType>('ALL_STUDENTS');
   initialStudentIds = input<string[]>([]);
-  individualStudentIds = input<string[]>([]); // Students with individual assignments
+  individualStudentIds = input<string[]>([]);
   courseId = input<string | null>(null);
   initialClassId = input<string | null>(null);
+  supportsClassDistribution = input<boolean>(true);
 
-  // Signal output
   distributionChange = output<DistributionSettings>();
 
   private classService = inject(ClassService);
 
-  // State
   viewMode = signal<ViewMode>('assigned');
   distributionType = signal<DistributionType>('ALL_STUDENTS');
   selectedStudentIds = signal<string[]>([]);
   availableClasses = signal<ClassSummary[]>([]);
   selectedClassId = signal<string | null>(null);
+  classStudents = signal<EnrolledStudent[]>([]);
+  loadingClassStudents = signal(false);
   searchQuery = '';
   searchSignal = signal('');
   showError = signal(false);
   errorMessage = signal('');
 
-  // Computed
   filteredStudents = computed(() => {
     const query = this.searchSignal().toLowerCase();
     const students = this.enrolledStudents();
 
-    if (!query) return students;
+    if (!query) {
+      return students;
+    }
 
     return students.filter(
-      (s: EnrolledStudent) =>
-        s.name.toLowerCase().includes(query) ||
-        s.email.toLowerCase().includes(query)
+      (student) =>
+        student.name.toLowerCase().includes(query) ||
+        student.email.toLowerCase().includes(query)
     );
   });
 
   assignedStudents = computed(() => {
     const students = this.enrolledStudents();
+
     if (this.distributionType() === 'ALL_STUDENTS') {
       return students;
     }
+
     if (this.distributionType() === 'CLASS') {
-      // In a real app, we might want to filter enrolled students by the selected class
-      // However, for just viewing, we might need to fetch students of that class specifically
-      // or just show "All students in local class"
-      // For now, let's just return empty or a placeholder if we don't have the enrollment info here
-      return [];
+      return this.classStudents();
     }
+
     const selectedIds = this.selectedStudentIds();
-    return students.filter((s: EnrolledStudent) => selectedIds.includes(s.id));
+    return students.filter((student) => selectedIds.includes(student.id));
   });
 
   selectedClassName = computed(() => {
     const classId = this.selectedClassId();
-    const cls = this.availableClasses().find((c: ClassSummary) => c.id === classId);
-    return cls ? cls.name : 'Chưa chọn lớp';
+    const learningClass = this.availableClasses().find((item) => item.id === classId);
+    return learningClass ? learningClass.name : 'Chua chon lop';
   });
 
   unassignedStudents = computed(() => {
     const students = this.enrolledStudents();
+
     if (this.distributionType() === 'ALL_STUDENTS') {
       return [];
     }
+
+    if (this.distributionType() === 'CLASS') {
+      const classStudentIds = new Set(this.classStudents().map((student) => student.id));
+      return students.filter((student) => !classStudentIds.has(student.id));
+    }
+
     const selectedIds = this.selectedStudentIds();
-    return students.filter((s: EnrolledStudent) => !selectedIds.includes(s.id));
+    return students.filter((student) => !selectedIds.includes(student.id));
   });
 
   selectedCount = computed(() => {
     if (this.distributionType() === 'ALL_STUDENTS') {
       return this.enrolledStudents().length;
     }
+
+    if (this.distributionType() === 'CLASS') {
+      return this.classStudents().length;
+    }
+
     return this.selectedStudentIds().length;
   });
 
-  ngOnInit(): void {
-    this.distributionType.set(this.initialDistributionType());
-    this.selectedStudentIds.set(this.initialStudentIds());
-    this.selectedClassId.set(this.initialClassId());
+  availableDistributionTypes = computed<DistributionType[]>(() => (
+    this.supportsClassDistribution()
+      ? ['ALL_STUDENTS', 'CLASS', 'SPECIFIC_STUDENTS']
+      : ['ALL_STUDENTS']
+  ));
 
-    const courseId = this.courseId();
-    if (courseId) {
-      this.loadClasses(courseId);
-    }
+  constructor() {
+    effect(
+      () => {
+        const courseId = this.courseId();
 
-    // Start in assigned view if there are already assigned students
-    if (this.initialStudentIds().length > 0 || this.initialClassId() || this.initialDistributionType() === 'ALL_STUDENTS') {
-      this.viewMode.set('assigned');
-    } else {
-      this.viewMode.set('manage');
-    }
-  }
+        if (!courseId) {
+          this.availableClasses.set([]);
+          return;
+        }
 
-  private async loadClasses(courseId: string) {
-    try {
-      const classes = await firstValueFrom(this.classService.getClassesByCourse(courseId));
-      this.availableClasses.set(classes);
-    } catch {
-    }
+        void this.loadClasses(courseId);
+      },
+      { allowSignalWrites: true }
+    );
+
+    effect(
+      () => {
+        const distributionType = this.initialDistributionType();
+        const studentIds = [...this.initialStudentIds()];
+        const classId = this.initialClassId();
+        const supportsClassDistribution = this.supportsClassDistribution();
+
+        const normalizedDistributionType = supportsClassDistribution
+          ? distributionType
+          : 'ALL_STUDENTS';
+        const normalizedStudentIds = supportsClassDistribution ? studentIds : [];
+        const normalizedClassId = supportsClassDistribution ? classId : null;
+
+        this.distributionType.set(normalizedDistributionType);
+        this.selectedStudentIds.set(normalizedStudentIds);
+        this.selectedClassId.set(normalizedClassId);
+        this.showError.set(false);
+
+        this.viewMode.set(
+          normalizedDistributionType === 'ALL_STUDENTS' || normalizedStudentIds.length > 0 || !!normalizedClassId
+            ? 'assigned'
+            : 'manage'
+        );
+
+        if (normalizedDistributionType === 'CLASS' && normalizedClassId) {
+          void this.loadClassStudents(normalizedClassId);
+        } else {
+          this.classStudents.set([]);
+        }
+      },
+      { allowSignalWrites: true }
+    );
+
+    effect(
+      () => {
+        if (this.supportsClassDistribution()) {
+          return;
+        }
+
+        if (this.distributionType() !== 'ALL_STUDENTS') {
+          this.distributionType.set('ALL_STUDENTS');
+        }
+
+        if (this.selectedStudentIds().length > 0) {
+          this.selectedStudentIds.set([]);
+        }
+
+        if (this.selectedClassId() !== null) {
+          this.selectedClassId.set(null);
+        }
+
+        if (this.classStudents().length > 0) {
+          this.classStudents.set([]);
+        }
+      },
+      { allowSignalWrites: true }
+    );
   }
 
   toggleViewMode(): void {
@@ -155,15 +207,16 @@ export class DistributionSelectorComponent implements OnInit {
   getInitials(name: string): string {
     return name
       .split(' ')
-      .map((n) => n[0])
+      .map((part) => part[0])
       .join('')
       .toUpperCase()
       .slice(0, 2);
   }
 
   removeStudent(studentId: string): void {
-    const current = this.selectedStudentIds();
-    this.selectedStudentIds.set(current.filter((id: string) => id !== studentId));
+    this.selectedStudentIds.set(
+      this.selectedStudentIds().filter((id) => id !== studentId)
+    );
     this.emitChange();
   }
 
@@ -174,8 +227,11 @@ export class DistributionSelectorComponent implements OnInit {
     }
   }
 
-
   onDistributionTypeChange(type: DistributionType): void {
+    if (!this.availableDistributionTypes().includes(type)) {
+      return;
+    }
+
     this.distributionType.set(type);
     this.showError.set(false);
 
@@ -185,13 +241,22 @@ export class DistributionSelectorComponent implements OnInit {
 
     if (type !== 'CLASS') {
       this.selectedClassId.set(null);
+      this.classStudents.set([]);
     }
 
     this.emitChange();
   }
 
-  onClassChange(classId: string): void {
-    this.selectedClassId.set(classId);
+  onClassChange(classId: string | null): void {
+    const normalizedClassId = classId || null;
+    this.selectedClassId.set(normalizedClassId);
+
+    if (normalizedClassId) {
+      void this.loadClassStudents(normalizedClassId);
+    } else {
+      this.classStudents.set([]);
+    }
+
     this.validateAndEmit();
   }
 
@@ -206,7 +271,7 @@ export class DistributionSelectorComponent implements OnInit {
     if (index === -1) {
       this.selectedStudentIds.set([...current, studentId]);
     } else {
-      this.selectedStudentIds.set(current.filter((id: string) => id !== studentId));
+      this.selectedStudentIds.set(current.filter((id) => id !== studentId));
     }
 
     this.validateAndEmit();
@@ -221,9 +286,9 @@ export class DistributionSelectorComponent implements OnInit {
   }
 
   selectAll(): void {
-    const allIds = this.filteredStudents().map((s: EnrolledStudent) => s.id);
+    const allIds = this.filteredStudents().map((student) => student.id);
     const current = new Set(this.selectedStudentIds());
-    allIds.forEach((id: string) => current.add(id));
+    allIds.forEach((id) => current.add(id));
     this.selectedStudentIds.set(Array.from(current));
     this.validateAndEmit();
   }
@@ -233,23 +298,102 @@ export class DistributionSelectorComponent implements OnInit {
     this.validateAndEmit();
   }
 
-  private validateAndEmit(): void {
+  validate(): boolean {
     if (
       this.distributionType() === 'SPECIFIC_STUDENTS' &&
       this.selectedStudentIds().length === 0
     ) {
       this.showError.set(true);
-      this.errorMessage.set('Vui lòng chọn ít nhất một học viên');
-    } else if (
-      this.distributionType() === 'CLASS' &&
-      !this.selectedClassId()
-    ) {
-      this.showError.set(true);
-      this.errorMessage.set('Vui lòng chọn một lớp học');
-    } else {
-      this.showError.set(false);
+      this.errorMessage.set('Vui long chon it nhat mot hoc vien');
+      return false;
     }
 
+    if (this.distributionType() === 'CLASS' && !this.selectedClassId()) {
+      this.showError.set(true);
+      this.errorMessage.set('Vui long chon mot lop hoc');
+      return false;
+    }
+
+    this.showError.set(false);
+    return true;
+  }
+
+  getSettings(): DistributionSettings {
+    return {
+      distributionType: this.distributionType(),
+      studentIds:
+        this.distributionType() === 'SPECIFIC_STUDENTS'
+          ? this.selectedStudentIds()
+          : null,
+      classId: this.selectedClassId(),
+    };
+  }
+
+  private async loadClasses(courseId: string): Promise<void> {
+    try {
+      const classes = await firstValueFrom(this.classService.getClassesByCourse(courseId));
+      this.availableClasses.set(classes ?? []);
+    } catch {
+      this.availableClasses.set([]);
+    }
+  }
+
+  private async loadClassStudents(classId: string): Promise<void> {
+    this.loadingClassStudents.set(true);
+
+    try {
+      const response = await firstValueFrom(this.classService.getClassStudents(classId));
+      const students = this.mapClassStudents(response);
+      this.classStudents.set(students);
+    } catch {
+      this.classStudents.set([]);
+    } finally {
+      this.loadingClassStudents.set(false);
+    }
+  }
+
+  private mapClassStudents(response: unknown): EnrolledStudent[] {
+    const items = Array.isArray(response)
+      ? response
+      : Array.isArray((response as { content?: unknown[] } | null)?.content)
+        ? ((response as { content: unknown[] }).content)
+        : [];
+
+    const enrolledById = new Map(
+      this.enrolledStudents().map((student) => [student.id, student])
+    );
+
+    return items.map((item) => {
+      const source = item as Record<string, unknown>;
+      const studentId = String(source['studentId'] ?? source['id'] ?? '');
+      const fallbackStudent = enrolledById.get(studentId);
+      return {
+        id: studentId,
+        name: String(
+          source['studentName'] ??
+            source['fullName'] ??
+            source['name'] ??
+            fallbackStudent?.name ??
+            'Unknown'
+        ),
+        email: String(
+          source['studentEmail'] ??
+            source['email'] ??
+            fallbackStudent?.email ??
+            ''
+        ),
+        enrolledAt: String(
+          source['enrolledAt'] ??
+            source['createdAt'] ??
+            fallbackStudent?.enrolledAt ??
+            ''
+        ),
+      };
+    });
+  }
+
+  private validateAndEmit(): void {
+    this.validate();
     this.emitChange();
   }
 
@@ -263,38 +407,4 @@ export class DistributionSelectorComponent implements OnInit {
       classId: this.selectedClassId(),
     });
   }
-
-  // Public method for parent to validate
-  validate(): boolean {
-    if (
-      this.distributionType() === 'SPECIFIC_STUDENTS' &&
-      this.selectedStudentIds().length === 0
-    ) {
-      this.showError.set(true);
-      this.errorMessage.set('Vui lòng chọn ít nhất một học viên');
-      return false;
-    }
-    if (
-      this.distributionType() === 'CLASS' &&
-      !this.selectedClassId()
-    ) {
-      this.showError.set(true);
-      this.errorMessage.set('Vui lòng chọn một lớp học');
-      return false;
-    }
-    return true;
-  }
-
-  // Get current settings
-  getSettings(): DistributionSettings {
-    return {
-      distributionType: this.distributionType(),
-      studentIds:
-        this.distributionType() === 'SPECIFIC_STUDENTS'
-          ? this.selectedStudentIds()
-          : null,
-      classId: this.selectedClassId(),
-    };
-  }
 }
-

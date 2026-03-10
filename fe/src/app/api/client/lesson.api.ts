@@ -37,7 +37,11 @@ export class LessonApi {
   // ========================================
 
   createLesson(sectionId: string, payload: CreateLessonRequest) {
-    return this.api.postWithResponse<LessonDetail>(LESSON_ENDPOINTS.CREATE(sectionId), payload);
+    const requestPayload = {
+      ...payload,
+      type: payload.type ?? payload.lessonType
+    };
+    return this.api.postWithResponse<LessonDetail>(LESSON_ENDPOINTS.CREATE(sectionId), requestPayload);
   }
 
   updateLesson(lessonId: string, payload: UpdateLessonRequest) {

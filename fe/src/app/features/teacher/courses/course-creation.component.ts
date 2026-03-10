@@ -260,7 +260,7 @@ import { ToastService } from '../../../core/services/toast.service';
                         <div>
                           <label class="block text-xs text-slate-600 mb-1">Giá gốc (VND)</label>
                           <input [formControl]="priceControl" type="number" min="0" step="10000"
-                                 class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/40 focus:border-[#0056D2] text-sm bg-white"
+                                 class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/40 focus:border-[#0056D2] text-sm bg-white placeholder:text-slate-400"
                                  placeholder="VD: 500000" />
                           @if (priceControl.touched && (!priceControl.value || priceControl.value <= 0)) {
                             <p class="text-xs text-red-500 mt-0.5">Vui lòng nhập giá gốc</p>
@@ -269,7 +269,7 @@ import { ToastService } from '../../../core/services/toast.service';
                         <div>
                           <label class="block text-xs text-slate-600 mb-1">Giá khuyến mãi (VND)</label>
                           <input [formControl]="salePriceControl" type="number" min="0" step="10000"
-                                 class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/40 focus:border-[#0056D2] text-sm bg-white"
+                                 class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/40 focus:border-[#0056D2] text-sm bg-white placeholder:text-slate-400"
                                  placeholder="VD: 400000" />
                           @if (salePriceControl.value && salePriceControl.value > 0 && priceControl.value && priceControl.value > 0 && salePriceControl.value >= priceControl.value) {
                             <p class="text-xs text-red-500 mt-0.5">Phải nhỏ hơn giá gốc</p>

@@ -26,7 +26,10 @@ public class UpdateLearningClassUseCase {
         UUID classId,
         String name,
         String code,
+        UUID teacherId,
         String status,
+        String scheduleType,
+        String semester,
         Integer maxStudents,
         Instant startDate,
         Instant endDate
@@ -42,9 +45,18 @@ public class UpdateLearningClassUseCase {
         // Update via domain behavior method
         LearningClass.ClassStatus newStatus = command.status() != null
                 ? LearningClass.ClassStatus.valueOf(command.status()) : null;
+        LearningClass.ScheduleType newScheduleType = command.scheduleType() != null
+                ? LearningClass.ScheduleType.valueOf(command.scheduleType()) : null;
         learningClass.update(
-                command.name(), command.code(), newStatus,
-                command.maxStudents(), command.startDate(), command.endDate()
+                command.name(),
+                command.code(),
+                command.teacherId(),
+                newStatus,
+                newScheduleType,
+                command.semester(),
+                command.maxStudents(),
+                command.startDate(),
+                command.endDate()
         );
 
         LearningClass updated = classRepository.save(learningClass);

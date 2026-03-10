@@ -5,7 +5,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { QuestionApi, Question } from '../../../api/endpoints/question.api';
 import { QuizApi, CreateAssignmentQuizRequest } from '../../../api/endpoints/quiz.api';
 import { CourseApi } from '../../../api/client/course.api';
-import { CourseSummary } from '../../../api/types/course.types';
+import { CourseContentChapter, CourseSummary } from '../../../api/types/course.types';
 import { firstValueFrom } from 'rxjs';
 import { ToastService } from '../../../core/services/toast.service';
 
@@ -48,7 +48,7 @@ import { ToastService } from '../../../core/services/toast.service';
                     <!-- Course Selection -->
                     <div class="p-4 bg-[#0056D2]/5 rounded-lg border border-[#0056D2]/10 mb-4">
                       <label class="block text-sm font-bold text-[#004BB5] mb-2">Chọn khóa học <span class="text-red-500">*</span></label>
-                      <select [(ngModel)]="quizForm.courseId"
+                      <select [(ngModel)]="quizForm.courseId" (ngModelChange)="onCourseChange($event)"
                         class="w-full h-11 px-4 rounded-lg border border-[#0056D2]/20 bg-white text-gray-900 focus:ring-2 focus:ring-[#0056D2]">
                         <option value="" disabled selected>-- Chọn khóa học --</option>
                         @for (course of courses(); track course) {
@@ -59,6 +59,22 @@ import { ToastService } from '../../../core/services/toast.service';
                       </select>
                       @if (showErrors && !quizForm.courseId) {
                         <p class="text-red-500 text-sm mt-1">Vui lòng chọn khóa học.</p>
+                      }
+                    </div>
+                    <div class="p-4 bg-white rounded-lg border border-gray-200 mb-4">
+                      <label class="block text-sm font-bold text-gray-800 mb-2">Chọn chương neo quiz <span class="text-red-500">*</span></label>
+                      <select [(ngModel)]="quizForm.sectionId"
+                        class="w-full h-11 px-4 rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-[#0056D2]">
+                        <option value="" disabled selected>-- Chọn chương --</option>
+                        @for (section of sections(); track section.id) {
+                          <option [value]="section.id">{{ section.title }}</option>
+                        }
+                      </select>
+                      @if (showErrors && !quizForm.sectionId) {
+                        <p class="text-red-500 text-sm mt-1">Vui lòng chọn chương để gắn quiz vào khóa học.</p>
+                      }
+                      @if (quizForm.courseId && sections().length === 0) {
+                        <p class="text-orange-500 text-sm mt-1">Khóa học này chưa có chương nào để tạo quiz.</p>
                       }
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -184,6 +200,10 @@ import { ToastService } from '../../../core/services/toast.service';
                                       <p class="text-sm text-gray-600">Khóa học</p>
                                       <p class="font-bold text-lg text-[#004BB5]">{{ getSelectedCourseTitle() }}</p>
                                     </div>
+                                    <div class="col-span-2">
+                                      <p class="text-sm text-gray-600">Chương</p>
+                                      <p class="font-medium text-gray-900">{{ getSelectedSectionTitle() }}</p>
+                                    </div>
                                     <div>
                                       <p class="text-sm text-gray-600">Tên bài kiểm tra</p>
                                       <p class="font-medium text-gray-900">{{ quizForm.title || 'Chưa nhập' }}</p>
@@ -250,6 +270,7 @@ export class QuizCreateComponent implements OnInit {
 
   currentStep = signal<number>(1);
   courses = signal<CourseSummary[]>([]); // Updated type
+  sections = signal<Array<{ id: string; title: string }>>([]);
   questions = signal<Question[]>([]);
   filteredQuestions = signal<Question[]>([]);
   searchTerm = '';
@@ -258,6 +279,7 @@ export class QuizCreateComponent implements OnInit {
 
   quizForm = {
     courseId: '',
+    sectionId: '',
     title: '',
     description: '',
     timeLimit: 60,
@@ -287,6 +309,27 @@ export class QuizCreateComponent implements OnInit {
       });
     } catch {
     }
+  }
+
+  onCourseChange(courseId: string) {
+    this.quizForm.sectionId = '';
+    this.sections.set([]);
+    if (!courseId) {
+      return;
+    }
+    this.courseApi.getCourseContent(courseId).subscribe({
+      next: (response: any) => {
+        const chapters: CourseContentChapter[] = response?.data ?? response ?? [];
+        this.sections.set(chapters.map(chapter => ({
+          id: chapter.id,
+          title: chapter.title
+        })));
+      },
+      error: () => {
+        this.sections.set([]);
+        this.toast.error('Không thể tải danh sách chương của khóa học.');
+      }
+    });
   }
 
   async loadQuestions() {
@@ -350,11 +393,16 @@ export class QuizCreateComponent implements OnInit {
     return c ? c.title : 'Chưa chọn';
   }
 
+  getSelectedSectionTitle(): string {
+    const section = this.sections().find(item => item.id === this.quizForm.sectionId);
+    return section ? section.title : 'Chưa chọn';
+  }
+
   handleNext() {
     // Validate Step 1
     if (this.currentStep() === 1) {
       this.showErrors = true;
-      if (!this.quizForm.courseId || !this.quizForm.title) {
+      if (!this.quizForm.courseId || !this.quizForm.sectionId || !this.quizForm.title) {
         return;
       }
     }
@@ -399,11 +447,12 @@ export class QuizCreateComponent implements OnInit {
         shuffleOptions: this.quizForm.shuffleOptions,
         showResultsImmediately: this.quizForm.showResultsImmediately,
         showCorrectAnswers: this.quizForm.showCorrectAnswers,
+        chapterId: this.quizForm.sectionId,
         questionIds: this.quizForm.selectedQuestions,
         publishImmediately: true
       };
 
-      await firstValueFrom(this.quizApi.createAssignmentQuizV3(this.quizForm.courseId, request));
+      await firstValueFrom(this.quizApi.createCourseQuizV3(this.quizForm.courseId, request));
 
       this.toast.success('Tạo bài kiểm tra thành công!');
       // Navigate to assessment list

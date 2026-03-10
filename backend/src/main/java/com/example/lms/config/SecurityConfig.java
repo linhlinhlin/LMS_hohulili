@@ -36,7 +36,7 @@ public class SecurityConfig {
     private final UserDetailsServiceImpl userDetailsService;
     private final PasswordEncoder passwordEncoder;
 
-    @Value("${app.cors.allowed-origins:http://localhost:4200,http://localhost:61361}")
+    @Value("${app.cors.allowed-origins:http://localhost:4200,http://127.0.0.1:4200,http://localhost:61361,http://127.0.0.1:61361}")
     private String allowedOrigins;
 
     @Bean

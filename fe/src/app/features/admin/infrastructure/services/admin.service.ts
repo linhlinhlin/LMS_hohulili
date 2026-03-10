@@ -83,6 +83,13 @@ export interface UpdateUserStatusRequest {
   reason: string;
 }
 
+export interface BulkImportUsersResult {
+  totalRows: number;
+  successfulImports: number;
+  failedImports: number;
+  errors: string[];
+}
+
 export interface AdminUser {
   id: string;
   email: string;
@@ -640,18 +647,18 @@ export class AdminService {
     );
   }
 
-  bulkImportUsers(file: File, defaultRole: 'ADMIN' | 'TEACHER' | 'STUDENT' = 'STUDENT'): Observable<any> {
+  bulkImportUsers(file: File, defaultRole: 'ADMIN' | 'ORG_ADMIN' | 'TEACHER' | 'STUDENT' = 'STUDENT'):
+    Observable<{ message: string; data: BulkImportUsersResult }> {
 
     const formData = new FormData();
     formData.append('file', file);
     formData.append('defaultRole', defaultRole);
 
-    return this.apiClient.postWithResponse(ADMIN_ENDPOINTS.BULK_IMPORT_USERS, formData).pipe(
-      map(response => {
-
-        // ✅ No auto-refresh - let component handle it with correct params
-        return response;
-      }),
+    return this.apiClient.postWithResponse<BulkImportUsersResult>(ADMIN_ENDPOINTS.BULK_IMPORT_USERS, formData).pipe(
+      map(response => ({
+        message: response.message || 'Import người dùng thành công',
+        data: response.data
+      })),
       catchError(error => {
 
         return throwError(() => error);

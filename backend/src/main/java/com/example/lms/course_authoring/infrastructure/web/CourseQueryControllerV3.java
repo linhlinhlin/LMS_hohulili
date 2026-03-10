@@ -1,10 +1,15 @@
 package com.example.lms.course_authoring.infrastructure.web;
 
+import com.example.lms.assessment.infrastructure.persistence.entity.AssignmentJpaEntity;
+import com.example.lms.assessment.infrastructure.persistence.entity.QuizJpaEntity;
+import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentJpaRepository;
+import com.example.lms.assessment.infrastructure.persistence.repository.QuizJpaRepositoryV3;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.entity.LessonJpaEntity;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.EnrollmentRepositoryImpl;
+import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
 import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
@@ -44,10 +49,13 @@ public class CourseQueryControllerV3 {
     private final LessonJpaRepository lessonRepository;
     private final LearningClassRepository learningClassRepository;
     private final EnrollmentRepositoryImpl enrollmentRepository;
+    private final JpaEnrollmentRepository enrollmentJpaRepository;
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository chapterRepository;
     private final UserJpaRepository userJpaRepository;
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.CourseCategoryJpaRepository courseCategoryJpaRepository;
     private final PaymentTransactionJpaRepository paymentRepository;
+    private final QuizJpaRepositoryV3 quizJpaRepository;
+    private final AssignmentJpaRepository assignmentJpaRepository;
 
     @Operation(summary = "Get all published courses")
     @GetMapping
@@ -78,7 +86,19 @@ public class CourseQueryControllerV3 {
                 courseCategoryJpaRepository.findAllById(categoryIds).stream()
                         .collect(Collectors.toMap(c -> c.getId(), c -> c.getName()));
 
-        Page<CourseSummaryResponse> response = courses.map(course -> toSummaryBatch(course, teacherNameMap, categoryNameMap));
+        Set<UUID> courseIds = courses.getContent().stream()
+                .map(Course::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<UUID, Long> enrollmentCountMap = courseIds.isEmpty() ? Map.of() :
+                enrollmentJpaRepository.countEnrollmentsByCourseIds(new ArrayList<>(courseIds)).stream()
+                        .collect(Collectors.toMap(
+                                row -> (UUID) row[0],
+                                row -> (Long) row[1]
+                        ));
+
+        Page<CourseSummaryResponse> response = courses.map(course ->
+                toSummaryBatch(course, teacherNameMap, categoryNameMap, enrollmentCountMap));
         return ResponseEntity.ok(ApiResponse.success(response, "Danh sách khóa học"));
     }
 
@@ -116,41 +136,23 @@ public class CourseQueryControllerV3 {
         List<ChapterResponse> chapters = new ArrayList<>();
         for (var ch : chapterEntities) {
             var lessonEntities = lessonRepository.findByChapterIdOrderByOrderIndex(ch.getId());
+            Map<UUID, QuizJpaEntity> quizMap = loadQuizMap(lessonEntities.stream()
+                    .map(LessonJpaEntity::getId)
+                    .toList());
+            Map<UUID, AssignmentJpaEntity> assignmentMap = loadAssignmentMap(lessonEntities.stream()
+                    .map(LessonJpaEntity::getId)
+                    .toList());
 
             List<LessonResponse> lessonResponses = new ArrayList<>();
             for (var l : lessonEntities) {
                 boolean lessonFree = l.getIsFree() != null && l.getIsFree();
                 boolean showContent = contentUnlocked || lessonFree;
-
-                List<SectionResponse> sectionResponses = new ArrayList<>();
-                if (l.getContentBlocks() != null) {
-                    for (var block : l.getContentBlocks()) {
-                        java.util.Map<String, Object> data = block.getData() != null ? block.getData() : new java.util.HashMap<>();
-                        sectionResponses.add(SectionResponse.builder()
-                            .id(block.getId())
-                            .title(java.util.Optional.ofNullable(data.get("title")).map(Object::toString).orElse("Untitled"))
-                            .type(block.getType())
-                            .content(showContent ? java.util.Optional.ofNullable(data.get("content")).map(Object::toString).orElse(null) : null)
-                            .videoUrl(showContent ? java.util.Optional.ofNullable(data.get("videoUrl")).map(Object::toString).orElse(null) : null)
-                            .fileUrl(showContent ? java.util.Optional.ofNullable(data.get("fileUrl")).map(Object::toString).orElse(null) : null)
-                            .duration(asInt(data.get("duration"), 0))
-                            .orderIndex(asInt(data.get("orderIndex"), 0))
-                            .isRequired(asBoolean(data.get("isRequired"), false))
-                            .build());
-                    }
-                }
-
-                lessonResponses.add(LessonResponse.builder()
-                        .id(l.getId().toString())
-                        .title(l.getTitle())
-                        .description(l.getDescription())
-                        .type(l.getType() != null ? l.getType().name() : "LECTURE")
-                        .durationMinutes(l.getDurationMinutes())
-                        .orderIndex(l.getOrderIndex())
-                        .isFree(lessonFree)
-                        .locked(!showContent)
-                        .sections(sectionResponses)
-                        .build());
+                lessonResponses.add(toLessonResponse(
+                        l,
+                        showContent,
+                        lessonFree,
+                        quizMap.get(l.getId()),
+                        assignmentMap.get(l.getId())));
             }
 
             chapters.add(ChapterResponse.builder()
@@ -326,41 +328,47 @@ public class CourseQueryControllerV3 {
                                     boolean showContent = isContentUnlocked(course, currentUser) || lessonFree;
 
                                     // Build sections from contentBlocks
-                                    List<SectionResponse> sectionResponses = new ArrayList<>();
+                                    List<SectionResponse> sectionResponses = buildSectionResponses(lesson, showContent);
                                     String contentText = null;
                                     if (lesson.getContentBlocks() != null) {
-                                        for (var block : lesson.getContentBlocks()) {
-                                            Map<String, Object> data = block.getData() != null ? block.getData() : new HashMap<>();
-                                            sectionResponses.add(SectionResponse.builder()
-                                                .id(block.getId())
-                                                .title(java.util.Optional.ofNullable(data.get("title")).map(Object::toString).orElse("Untitled"))
-                                                .type(block.getType())
-                                                .content(showContent ? java.util.Optional.ofNullable(data.get("content")).map(Object::toString).orElse(null) : null)
-                                                .videoUrl(showContent ? java.util.Optional.ofNullable(data.get("videoUrl")).map(Object::toString).orElse(null) : null)
-                                                .fileUrl(showContent ? java.util.Optional.ofNullable(data.get("fileUrl")).map(Object::toString).orElse(null) : null)
-                                                .duration(asInt(data.get("duration"), 0))
-                                                .orderIndex(asInt(data.get("orderIndex"), 0))
-                                                .isRequired(asBoolean(data.get("isRequired"), false))
-                                                .build());
-                                        }
                                         if (showContent) {
                                             // Populate content from first TEXT block as fallback
                                             contentText = lesson.getContentBlocks().stream()
-                                                .filter(b -> "TEXT".equals(b.getType()) && b.getData() != null)
-                                                .map(b -> java.util.Optional.ofNullable(b.getData().get("content")).map(Object::toString).orElse(null))
+                                                .filter(b -> "TEXT".equalsIgnoreCase(b.getType()) && b.getData() != null)
+                                                .map(b -> (String) b.getData().get("content"))
                                                 .findFirst().orElse(null);
                                         }
                                     }
+                                    QuizJpaEntity quiz = quizJpaRepository.findByLessonId(lessonId).stream()
+                                            .sorted(Comparator.comparing(
+                                                    QuizJpaEntity::getCreatedAt,
+                                                    Comparator.nullsLast(Comparator.naturalOrder()))
+                                                    .reversed())
+                                            .findFirst()
+                                            .orElse(null);
+                                    AssignmentJpaEntity assignment = assignmentJpaRepository.findByLessonId(lessonId).stream()
+                                            .sorted(Comparator.comparing(
+                                                    AssignmentJpaEntity::getUpdatedAt,
+                                                    Comparator.nullsLast(Comparator.naturalOrder()))
+                                                    .reversed())
+                                            .findFirst()
+                                            .orElse(null);
 
                                     LessonDetailResponse response = LessonDetailResponse.builder()
                                             .id(lesson.getId().toString())
                                             .title(lesson.getTitle())
                                             .description(lesson.getDescription())
+                                            .type(lesson.getType() != null ? lesson.getType().name() : "LECTURE")
                                             .lessonType(lesson.getType() != null ? lesson.getType().name() : "LECTURE")
                                             .durationMinutes(lesson.getDurationMinutes())
                                             .orderIndex(lesson.getOrderIndex())
                                             .content(showContent ? contentText : null)
                                             .videoUrl(showContent ? lesson.getVideoUrl() : null)
+                                            .quizTimeLimit(quiz != null ? quiz.getTimeLimitMinutes() : null)
+                                            .quizPassingScore(quiz != null ? quiz.getPassingScore() : null)
+                                            .quizMaxScore(quiz != null ? quiz.getPassingScore() : null)
+                                            .quizMaxAttempts(quiz != null ? quiz.getMaxAttempts() : null)
+                                            .assignment(toAssignmentInfo(assignment))
                                             .sectionId(chapter.getId().toString())
                                             .sectionTitle(chapter.getTitle())
                                             .courseId(course.getId().toString())
@@ -388,37 +396,16 @@ public class CourseQueryControllerV3 {
                 .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Chương", chapterId));
         verifyCourseOwnership(chapter.getCourseId(), user);
         List<LessonJpaEntity> lessons = lessonRepository.findByChapterIdOrderByOrderIndex(chapterId);
+        Map<UUID, QuizJpaEntity> quizMap = loadQuizMap(lessons.stream().map(LessonJpaEntity::getId).toList());
+        Map<UUID, AssignmentJpaEntity> assignmentMap = loadAssignmentMap(lessons.stream().map(LessonJpaEntity::getId).toList());
 
         List<LessonResponse> response = lessons.stream()
-                .map(l -> {
-                    List<SectionResponse> sectionResponses = new ArrayList<>();
-                    if (l.getContentBlocks() != null) {
-                        for (var block : l.getContentBlocks()) {
-                            Map<String, Object> data = block.getData() != null ? block.getData() : new HashMap<>();
-                            sectionResponses.add(SectionResponse.builder()
-                                .id(block.getId())
-                                .title(java.util.Optional.ofNullable(data.get("title")).map(Object::toString).orElse("Untitled"))
-                                .type(block.getType())
-                                .content(java.util.Optional.ofNullable(data.get("content")).map(Object::toString).orElse(null))
-                                .videoUrl(java.util.Optional.ofNullable(data.get("videoUrl")).map(Object::toString).orElse(null))
-                                .fileUrl(java.util.Optional.ofNullable(data.get("fileUrl")).map(Object::toString).orElse(null))
-                                .duration(asInt(data.get("duration"), 0))
-                                .orderIndex(asInt(data.get("orderIndex"), 0))
-                                .isRequired(asBoolean(data.get("isRequired"), false))
-                                .build());
-                        }
-                    }
-                    return LessonResponse.builder()
-                        .id(l.getId().toString())
-                        .title(l.getTitle())
-                        .description(l.getDescription())
-                        .type(l.getType() != null ? l.getType().name() : "LECTURE")
-                        .durationMinutes(l.getDurationMinutes())
-                        .orderIndex(l.getOrderIndex())
-                        .isFree(l.getIsFree() != null && l.getIsFree())
-                        .sections(sectionResponses)
-                        .build();
-                })
+                .map(l -> toLessonResponse(
+                        l,
+                        true,
+                        l.getIsFree() != null && l.getIsFree(),
+                        quizMap.get(l.getId()),
+                        assignmentMap.get(l.getId())))
                 .toList();
 
         return ResponseEntity.ok(ApiResponse.success(response, "Danh sách bài học"));
@@ -461,11 +448,17 @@ public class CourseQueryControllerV3 {
                 .build();
     }
 
-    private CourseSummaryResponse toSummaryBatch(Course course, Map<UUID, String> teacherNameMap, Map<UUID, String> categoryNameMap) {
+    private CourseSummaryResponse toSummaryBatch(
+            Course course,
+            Map<UUID, String> teacherNameMap,
+            Map<UUID, String> categoryNameMap,
+            Map<UUID, Long> enrollmentCountMap
+    ) {
         String teacherName = course.getTeacherId() != null ? teacherNameMap.getOrDefault(course.getTeacherId(), "") : "";
         String categoryName = course.getCategoryId() != null ? categoryNameMap.get(course.getCategoryId()) : null;
         return CourseSummaryResponse.builder()
                 .id(course.getId().toString())
+                .code(course.getCode() != null ? course.getCode().getValue() : null)
                 .title(course.getTitle())
                 .description(course.getDescription())
                 .thumbnailUrl(course.getThumbnailUrl())
@@ -473,12 +466,18 @@ public class CourseQueryControllerV3 {
                 .teacherName(teacherName)
                 .createdAt(course.getCreatedAt() != null ? course.getCreatedAt().toString() : null)
                 .categoryName(categoryName)
+                .deliveryMode(course.getDeliveryMode() != null ? course.getDeliveryMode().name() : "SELF_PACED")
+                .priceType(course.getPriceType() != null ? course.getPriceType().name() : "FREE")
+                .price(course.getPrice())
+                .salePrice(course.getSalePrice())
+                .enrolledCount(enrollmentCountMap.getOrDefault(course.getId(), 0L).intValue())
                 .build();
     }
 
     private CourseDetailResponse toDetail(Course course) {
         String teacherName = resolveTeacherName(course.getTeacherId());
         String categoryName = resolveCategoryName(course.getCategoryId());
+        int enrolledCount = (int) enrollmentJpaRepository.countTotalByCourseIds(List.of(course.getId()));
 
         return CourseDetailResponse.builder()
                 .id(course.getId().toString())
@@ -505,6 +504,7 @@ public class CourseQueryControllerV3 {
                 .priceType(course.getPriceType() != null ? course.getPriceType().name() : "FREE")
                 .price(course.getPrice())
                 .salePrice(course.getSalePrice())
+                .enrolledCount(enrolledCount)
                 // Counts & timestamps
                 .chapterCount(course.getChapters() != null ? course.getChapters().size() : 0)
                 .createdAt(course.getCreatedAt() != null ? course.getCreatedAt().toString() : null)
@@ -558,6 +558,107 @@ public class CourseQueryControllerV3 {
             || user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
     }
 
+    private Map<UUID, QuizJpaEntity> loadQuizMap(List<UUID> lessonIds) {
+        if (lessonIds == null || lessonIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<QuizJpaEntity> quizzes = new ArrayList<>(quizJpaRepository.findByLessonIdIn(lessonIds));
+        quizzes.sort(Comparator.comparing(
+                QuizJpaEntity::getCreatedAt,
+                Comparator.nullsLast(Comparator.naturalOrder())).reversed());
+
+        Map<UUID, QuizJpaEntity> quizMap = new LinkedHashMap<>();
+        for (QuizJpaEntity quiz : quizzes) {
+            quizMap.putIfAbsent(quiz.getLessonId(), quiz);
+        }
+        return quizMap;
+    }
+
+    private Map<UUID, AssignmentJpaEntity> loadAssignmentMap(List<UUID> lessonIds) {
+        if (lessonIds == null || lessonIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<AssignmentJpaEntity> assignments = new ArrayList<>(assignmentJpaRepository.findByLessonIdIn(lessonIds));
+        assignments.sort(Comparator.comparing(
+                AssignmentJpaEntity::getUpdatedAt,
+                Comparator.nullsLast(Comparator.naturalOrder())).reversed());
+
+        Map<UUID, AssignmentJpaEntity> assignmentMap = new LinkedHashMap<>();
+        for (AssignmentJpaEntity assignment : assignments) {
+            if (assignment.getLessonId() != null) {
+                assignmentMap.putIfAbsent(assignment.getLessonId(), assignment);
+            }
+        }
+        return assignmentMap;
+    }
+
+    private LessonResponse toLessonResponse(
+            LessonJpaEntity lesson,
+            boolean showContent,
+            boolean lessonFree,
+            QuizJpaEntity quiz,
+            AssignmentJpaEntity assignment
+    ) {
+        return LessonResponse.builder()
+                .id(lesson.getId().toString())
+                .title(lesson.getTitle())
+                .description(lesson.getDescription())
+                .type(lesson.getType() != null ? lesson.getType().name() : "LECTURE")
+                .lessonType(lesson.getType() != null ? lesson.getType().name() : "LECTURE")
+                .durationMinutes(lesson.getDurationMinutes())
+                .orderIndex(lesson.getOrderIndex())
+                .isFree(lessonFree)
+                .locked(!showContent)
+                .quizTimeLimit(quiz != null ? quiz.getTimeLimitMinutes() : null)
+                .quizPassingScore(quiz != null ? quiz.getPassingScore() : null)
+                .quizMaxScore(quiz != null ? quiz.getPassingScore() : null)
+                .quizMaxAttempts(quiz != null ? quiz.getMaxAttempts() : null)
+                .assignment(toAssignmentInfo(assignment))
+                .sections(buildSectionResponses(lesson, showContent))
+                .build();
+    }
+
+    private List<SectionResponse> buildSectionResponses(LessonJpaEntity lesson, boolean showContent) {
+        List<SectionResponse> sectionResponses = new ArrayList<>();
+        if (lesson.getContentBlocks() == null) {
+            return sectionResponses;
+        }
+
+        for (var block : lesson.getContentBlocks()) {
+            Map<String, Object> data = block.getData() != null ? block.getData() : new HashMap<>();
+            sectionResponses.add(SectionResponse.builder()
+                    .id(block.getId())
+                    .title((String) data.getOrDefault("title", "Untitled"))
+                    .type(block.getType() != null ? block.getType().toUpperCase(Locale.ROOT) : "TEXT")
+                    .content(showContent ? (String) data.get("content") : null)
+                    .videoUrl(showContent ? (String) data.get("videoUrl") : null)
+                    .fileUrl(showContent ? (String) data.get("fileUrl") : null)
+                    .duration(data.get("duration") != null ? ((Number) data.get("duration")).intValue() : 0)
+                    .orderIndex(data.get("orderIndex") != null ? ((Number) data.get("orderIndex")).intValue() : 0)
+                    .isRequired(data.get("isRequired") != null ? (Boolean) data.get("isRequired") : false)
+                    .build());
+        }
+        return sectionResponses;
+    }
+
+    private AssignmentInfoResponse toAssignmentInfo(AssignmentJpaEntity assignment) {
+        if (assignment == null) {
+            return null;
+        }
+
+        return AssignmentInfoResponse.builder()
+                .id(assignment.getId().toString())
+                .title(assignment.getTitle())
+                .description(assignment.getDescription())
+                .instructions(assignment.getInstructions())
+                .dueDate(assignment.getDueDate() != null ? assignment.getDueDate().toString() : null)
+                .maxScore(assignment.getMaxScore())
+                .status(assignment.getStatus() != null ? assignment.getStatus().name() : null)
+                .build();
+    }
+
     private void verifyCourseOwnership(UUID courseId, UserJpaEntity user) {
         if (isAdminRole(user)) return;
         var course = courseRepository.findById(courseId)
@@ -567,26 +668,13 @@ public class CourseQueryControllerV3 {
         }
     }
 
-    private int asInt(Object value, int defaultValue) {
-        if (value instanceof Number n) return n.intValue();
-        if (value instanceof String s) {
-            try { return Integer.parseInt(s); } catch (NumberFormatException e) { return defaultValue; }
-        }
-        return defaultValue;
-    }
-
-    private boolean asBoolean(Object value, boolean defaultValue) {
-        if (value instanceof Boolean b) return b;
-        if (value instanceof String s) return Boolean.parseBoolean(s);
-        return defaultValue;
-    }
-
     // === Response DTOs ===
 
     @lombok.Builder
     @lombok.Data
     public static class CourseSummaryResponse {
         private String id;
+        private String code;
         private String title;
         private String description;
         private String thumbnailUrl;
@@ -594,6 +682,11 @@ public class CourseQueryControllerV3 {
         private String teacherName;
         private String createdAt;
         private String categoryName;
+        private String deliveryMode;
+        private String priceType;
+        private java.math.BigDecimal price;
+        private java.math.BigDecimal salePrice;
+        private Integer enrolledCount;
     }
 
     @lombok.Builder
@@ -607,6 +700,7 @@ public class CourseQueryControllerV3 {
         private String code;
         private String teacherId;
         private String teacherName;
+        private Integer enrolledCount;
         private String deliveryMode;
         // Category
         private String categoryId;
@@ -646,10 +740,16 @@ public class CourseQueryControllerV3 {
         private String title;
         private String description;
         private String type;
+        private String lessonType;
         private Integer durationMinutes;
         private Integer orderIndex;
         private Boolean isFree;
         private Boolean locked;
+        private Integer quizTimeLimit;
+        private Integer quizPassingScore;
+        private Integer quizMaxScore;
+        private Integer quizMaxAttempts;
+        private AssignmentInfoResponse assignment;
         private List<SectionResponse> sections;
     }
 
@@ -673,11 +773,17 @@ public class CourseQueryControllerV3 {
         private String id;
         private String title;
         private String description;
+        private String type;
         private String lessonType;
         private Integer durationMinutes;
         private Integer orderIndex;
         private String content;
         private String videoUrl;
+        private Integer quizTimeLimit;
+        private Integer quizPassingScore;
+        private Integer quizMaxScore;
+        private Integer quizMaxAttempts;
+        private AssignmentInfoResponse assignment;
         private String sectionId;
         private String sectionTitle;
         private String courseId;
@@ -685,5 +791,17 @@ public class CourseQueryControllerV3 {
         private Boolean isPreview;
         private Boolean locked;
         private List<SectionResponse> sections;
+    }
+
+    @lombok.Builder
+    @lombok.Data
+    public static class AssignmentInfoResponse {
+        private String id;
+        private String title;
+        private String description;
+        private String instructions;
+        private String dueDate;
+        private java.math.BigDecimal maxScore;
+        private String status;
     }
 }
