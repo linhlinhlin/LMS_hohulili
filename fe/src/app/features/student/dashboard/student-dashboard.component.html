@@ -18,6 +18,20 @@
       </div>
     </div>
 
+    <!-- Quick Actions -->
+    <div class="quick-actions" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <a routerLink="/student/storage"
+         class="quick-action-link"
+         style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#0056D2;background:#0056D2/5;padding:6px 12px;border-radius:8px;text-decoration:none;border:1px solid #e5e7eb;transition:background 0.15s"
+         onmouseover="this.style.background='rgba(0,86,210,0.08)'"
+         onmouseout="this.style.background='transparent'">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+        Quản lý bộ nhớ ngoại tuyến
+      </a>
+    </div>
+
     <!-- Hero Card -->
     @if (continueCardData(); as card) {
     <div class="hero-card" (click)="continueLastActivity()">

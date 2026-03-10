@@ -9,6 +9,10 @@ import { environment } from '../../../environments/environment';
 
 export type { OfflineCourse, OfflineChapter, OfflineLesson };
 
+export interface DownloadOptions {
+  videoQuality: 'none' | '360p' | '720p' | '1080p';
+}
+
 export interface DownloadableCourse {
   id: string;
   title: string;
@@ -49,12 +53,16 @@ export class CourseDownloadService {
     }
   }
 
+  private readonly videoService = inject(OfflineVideoService);
+
   /**
    * Download entire course for offline access.
    * Supports resume: skips chapters already saved from a previous attempt.
    * Uses atomic Dexie transactions for data consistency.
+   *
+   * @param options - Video quality selection from download dialog (Phase 1)
    */
-  async downloadCourse(courseId: string): Promise<void> {
+  async downloadCourse(courseId: string, options?: DownloadOptions): Promise<void> {
     if (this.isDownloading()) return;
     this.isDownloading.set(true);
     this.currentDownloadId.set(courseId);
@@ -160,14 +168,36 @@ export class CourseDownloadService {
         }
       }
 
-      // 5. Count total lessons + size from DB (not memory — crash-safe)
+      // 5. Download videos if quality selected (Phase 1 — single quality from R2)
+      const videoQuality = options?.videoQuality || 'none';
+      if (videoQuality !== 'none' && !this.downloadCancelled) {
+        const dbLessonsForVideo = await offlineDb.lessons
+          .where('[userId+courseId]').equals([userId, courseId]).toArray();
+        const videoLessons = dbLessonsForVideo.filter(l => !!l.videoManifestUrl);
+
+        for (let vi = 0; vi < videoLessons.length; vi++) {
+          if (this.downloadCancelled) break;
+
+          const vl = videoLessons[vi];
+          // Phase 1: Download original quality (R2 single URL). Phase 2 will use quality-specific URLs.
+          try {
+            await this.videoService.downloadVideo(vl.videoManifestUrl!, vl.id, vl.title);
+          } catch {
+            // Video download failure is non-fatal — skip and continue
+          }
+
+          this.downloadProgress.set(80 + Math.round(((vi + 1) / videoLessons.length) * 15));
+        }
+      }
+
+      // 6. Count total lessons + size from DB (not memory — crash-safe)
       const dbLessons = await offlineDb.lessons.where('[userId+courseId]').equals([userId, courseId]).toArray();
       let totalSize = 0;
       for (const l of dbLessons) {
         totalSize += new Blob([l.contentHtml || '']).size;
       }
 
-      // 6. Write course metadata with DB-counted values
+      // 7. Write course metadata with DB-counted values
       const course: OfflineCourse = {
         id: courseId,
         title: courseData.title || courseData.name,
@@ -181,7 +211,7 @@ export class CourseDownloadService {
       };
       await offlineDb.courses.put(course);
 
-      // 7. Clean up checkpoint on successful completion
+      // 8. Clean up checkpoint on successful completion
       await offlineDb.downloadCheckpoints.delete([userId, courseId]);
 
       this.downloadProgress.set(100);

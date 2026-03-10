@@ -3,13 +3,14 @@ import {
   ChangeDetectionStrategy, OnInit
 } from '@angular/core';
 import { CourseDownloadService } from '../../../core/services/course-download.service';
-import { StorageManagerService } from '../../../core/services/storage-manager.service';
 import { NetworkStatusService } from '../../../core/services/network-status.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { DownloadDialogComponent, DownloadOptions } from '../download-dialog/download-dialog.component';
 
 @Component({
   selector: 'app-course-download-button',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [DownloadDialogComponent],
   template: `
     @if (allowOfflineDownload()) {
     @if (isDownloaded()) {
@@ -37,10 +38,17 @@ import { ToastService } from '../../../core/services/toast.service';
                [style.width.%]="downloadProgress()"></div>
         </div>
         <span class="text-xs text-gray-500 min-w-[2.5rem] text-right">{{ downloadProgress() }}%</span>
+        <button (click)="cancelDownload()"
+                class="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                title="Hủy tải xuống">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
     } @else {
-      <!-- Download button -->
-      <button (click)="startDownload()"
+      <!-- Download button (opens dialog) -->
+      <button (click)="openDialog()"
               [disabled]="!isOnline()"
               class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors"
               [class]="isOnline()
@@ -54,6 +62,15 @@ import { ToastService } from '../../../core/services/toast.service';
       </button>
     }
     }
+
+    <!-- Download dialog -->
+    @if (showDialog()) {
+      <app-download-dialog
+        [courseId]="courseId()"
+        [courseTitle]="courseTitle()"
+        (close)="showDialog.set(false)"
+        (confirm)="onDialogConfirm($event)" />
+    }
   `,
 })
 export class CourseDownloadButtonComponent implements OnInit {
@@ -66,6 +83,7 @@ export class CourseDownloadButtonComponent implements OnInit {
   allowOfflineDownload = input<boolean>(true);
 
   protected isDownloaded = signal(false);
+  protected showDialog = signal(false);
   protected isDownloading = computed(() =>
     this.downloadService.isDownloading() &&
     this.downloadService.currentDownloadId() === this.courseId()
@@ -77,14 +95,22 @@ export class CourseDownloadButtonComponent implements OnInit {
     this.isDownloaded.set(await this.downloadService.isDownloaded(this.courseId()));
   }
 
-  protected async startDownload(): Promise<void> {
+  protected openDialog(): void {
     if (!this.network.online()) {
       this.toast.warning('Cần kết nối mạng để tải khóa học');
       return;
     }
+    this.showDialog.set(true);
+  }
 
-    await this.downloadService.downloadCourse(this.courseId());
+  protected async onDialogConfirm(options: DownloadOptions): Promise<void> {
+    this.showDialog.set(false);
+    await this.downloadService.downloadCourse(this.courseId(), options);
     this.isDownloaded.set(await this.downloadService.isDownloaded(this.courseId()));
+  }
+
+  protected cancelDownload(): void {
+    this.downloadService.cancelDownload();
   }
 
   protected async removeCourse(): Promise<void> {

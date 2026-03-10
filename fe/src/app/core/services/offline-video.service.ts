@@ -14,16 +14,13 @@ export class OfflineVideoService {
   readonly downloadProgress = signal<Map<string, number>>(new Map());
   readonly isDownloading = signal(false);
 
-  /** Track blob URLs to revoke them and prevent memory leaks */
-  private readonly blobUrls = new Map<string, string>();
-
   constructor() {
     this.refreshList();
   }
 
   /**
    * Download video and stream directly to Cache API (zero RAM accumulation).
-   * Google Kino PWA pattern: ReadableStream → Cache API pipe.
+   * Google Kino PWA pattern: ReadableStream -> Cache API pipe.
    */
   async downloadVideo(videoUrl: string, lessonId: string, title: string): Promise<void> {
     if (this.isDownloading()) return;
@@ -99,8 +96,15 @@ export class OfflineVideoService {
   }
 
   /**
-   * Get video URL from Cache API.
-   * Revokes previous blob URL for same lesson to prevent memory leaks.
+   * Get video URL for offline playback.
+   *
+   * Returns a virtual path `/offline-video/{lessonId}` that the SW wrapper
+   * intercepts and serves directly from Cache API. The browser streams
+   * chunk-by-chunk from disk — zero RAM usage. Supports Range requests
+   * for seeking.
+   *
+   * OOM FIX: Previously this loaded the entire video blob into RAM via
+   * response.blob() + URL.createObjectURL(). A 500MB video = 500MB RAM = crash.
    */
   async getVideoUrl(lessonId: string): Promise<string | null> {
     // Verify lesson belongs to current user before serving video
@@ -108,32 +112,18 @@ export class OfflineVideoService {
     const lesson = await offlineDb.lessons.get([userId, lessonId]);
     if (!lesson) return null;
 
+    // Verify video actually exists in cache
     const cache = await caches.open('offline-videos');
     const response = await cache.match(`/offline-video/${lessonId}`);
     if (!response) return null;
 
-    // Defer revoke of previous blob URL to allow video player to finish streaming
-    const previousUrl = this.blobUrls.get(lessonId);
-    if (previousUrl) {
-      setTimeout(() => URL.revokeObjectURL(previousUrl), 500);
-    }
-
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    this.blobUrls.set(lessonId, url);
-    return url;
+    // Return virtual path — SW wrapper serves from Cache API (zero RAM)
+    return `/offline-video/${lessonId}`;
   }
 
   async deleteVideo(lessonId: string): Promise<void> {
     const cache = await caches.open('offline-videos');
     await cache.delete(`/offline-video/${lessonId}`);
-
-    // Revoke blob URL if exists
-    const blobUrl = this.blobUrls.get(lessonId);
-    if (blobUrl) {
-      URL.revokeObjectURL(blobUrl);
-      this.blobUrls.delete(lessonId);
-    }
 
     const userId = getCurrentUserId();
     const lesson = await offlineDb.lessons.get([userId, lessonId]);
@@ -146,14 +136,6 @@ export class OfflineVideoService {
 
   isAvailableOffline(lessonId: string): boolean {
     return this.downloads().some(d => d.lessonId === lessonId);
-  }
-
-  /** Revoke all blob URLs (cleanup on service destroy) */
-  revokeAllUrls(): void {
-    for (const url of this.blobUrls.values()) {
-      URL.revokeObjectURL(url);
-    }
-    this.blobUrls.clear();
   }
 
   async refreshList(): Promise<void> {

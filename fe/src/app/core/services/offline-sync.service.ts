@@ -31,9 +31,9 @@ export class OfflineSyncService {
   constructor() {
     if (typeof window === 'undefined') return;
 
-    // Auto-sync when coming back online
+    // Auto-sync with priority when coming back online
     window.addEventListener('online', () => {
-      setTimeout(() => this.syncAll(), 2000);
+      setTimeout(() => this.syncWithPriority(), 2000);
     });
 
     // Listen for SW background sync trigger (sw.js sends SYNC_OFFLINE_QUEUE)
@@ -164,6 +164,71 @@ export class OfflineSyncService {
       this.syncInProgress = false;
       this.isSyncing.set(false);
       await this.refreshCounts();
+    }
+  }
+
+  /**
+   * Priority-based sync on reconnect (maritime pattern).
+   *
+   * Step 1: Sync progress + quiz attempts + submissions (small, critical)
+   * Step 2: Check content freshness (compare server updatedAt with local downloadedAt)
+   * Step 3: Notify user of stale courses (non-blocking toast)
+   *
+   * Never auto-downloads content updates — user decides.
+   */
+  async syncWithPriority(): Promise<void> {
+    if (this.syncInProgress || !this.network.online()) return;
+
+    // Step 1: Sync all queued operations (progress, submissions, quiz attempts)
+    const result = await this.syncAll();
+
+    // Step 2: Check content freshness for all downloaded courses
+    if (result.synced > 0 || result.failed === 0) {
+      await this.checkContentFreshness();
+    }
+  }
+
+  /**
+   * Check if any downloaded courses have been updated on the server.
+   * Compares server `updatedAt` with local `downloadedAt`.
+   * Shows non-blocking toast if stale courses found — user navigates to storage.
+   */
+  async checkContentFreshness(): Promise<void> {
+    try {
+      const userId = getCurrentUserId();
+      const offlineCourses = await offlineDb.courses.where('userId').equals(userId).toArray();
+      if (offlineCourses.length === 0) return;
+
+      const staleCourseNames: string[] = [];
+
+      for (const course of offlineCourses) {
+        try {
+          const res: any = await firstValueFrom(
+            this.http.get(`${environment.apiUrl}/api/v3/courses/${course.id}`)
+          );
+          const serverCourse = res?.data || res;
+          const serverUpdatedAt = serverCourse?.updatedAt ? new Date(serverCourse.updatedAt) : null;
+          const localDownloadedAt = course.downloadedAt ? new Date(course.downloadedAt) : null;
+
+          if (serverUpdatedAt && localDownloadedAt && serverUpdatedAt > localDownloadedAt) {
+            staleCourseNames.push(course.title);
+            // Mark as stale in local DB
+            await offlineDb.courses.update([userId, course.id], {
+              isStale: true,
+            } as any);
+          }
+        } catch {
+          // Skip individual course check failures
+        }
+      }
+
+      if (staleCourseNames.length > 0) {
+        this.toast.info(
+          `${staleCourseNames.length} khóa học có cập nhật mới. Vào Quản lý bộ nhớ để tải lại.`
+        );
+      }
+    } catch {
+      // Freshness check is best-effort, don't block
     }
   }
 

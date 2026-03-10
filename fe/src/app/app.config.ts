@@ -151,7 +151,7 @@ export const appConfig: ApplicationConfig = {
     // Service Worker — register immediately so cache is populated ASAP
     // (was registerWhenStable:30000 — too late; users closing tab within 30s got zero cache)
     ...(shouldEnableServiceWorker() ? [
-      provideServiceWorker('ngsw-worker.js', {
+      provideServiceWorker('sw-wrapper.js', {
         enabled: true,
         registrationStrategy: 'registerImmediately'
       })

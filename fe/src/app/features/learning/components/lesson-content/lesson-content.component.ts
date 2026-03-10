@@ -335,7 +335,7 @@ export class LessonContentComponent implements AfterViewInit {
     });
   }
 
-  /** Resolved video URL — uses offline blob URL if available */
+  /** Resolved video URL — uses offline path if available (zero RAM via SW) */
   readonly resolvedVideoUrl = signal<string | null>(null);
 
   private resolveVideoEffect = effect(() => {
@@ -347,9 +347,9 @@ export class LessonContentComponent implements AfterViewInit {
 
   private async resolveOfflineVideoUrl(lessonId: string): Promise<void> {
     if (this.offlineVideo.isAvailableOffline(lessonId)) {
-      const blobUrl = await this.offlineVideo.getVideoUrl(lessonId);
-      if (blobUrl) {
-        this.resolvedVideoUrl.set(blobUrl);
+      const offlineUrl = await this.offlineVideo.getVideoUrl(lessonId);
+      if (offlineUrl) {
+        this.resolvedVideoUrl.set(offlineUrl);
         return;
       }
     }
@@ -357,7 +357,7 @@ export class LessonContentComponent implements AfterViewInit {
   }
 
   /**
-   * Get the best video URL — offline blob URL or original URL
+   * Get the best video URL — offline path (served by SW from cache) or original URL
    */
   getVideoSrc(originalUrl: string | undefined): string | undefined {
     return this.resolvedVideoUrl() || originalUrl;
