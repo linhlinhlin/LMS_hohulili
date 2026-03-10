@@ -2,14 +2,27 @@
 # LMS Maritime - Docker Compose Base Configuration
 # Dev:  cp .env.dev.example .env && docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 # Prod: docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Source of truth: this root compose topology is the only supported runtime model.
 # =============================================================================
+
+name: lms
+
+x-service-defaults: &service-defaults
+  init: true
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+  security_opt:
+    - no-new-privileges:true
 
 services:
   # ===== PostgreSQL Database =====
   db:
+    <<: *service-defaults
     image: postgres:16-alpine
-    container_name: lms-postgres
-    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-lms}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lms}
@@ -27,10 +40,10 @@ services:
 
   # ===== Spring Boot Backend =====
   backend:
+    <<: *service-defaults
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: lms-backend
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
       # Database
@@ -52,7 +65,7 @@ services:
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:4200}
       APP_CORS_ORIGINS: ${APP_CORS_ORIGINS:-http://localhost:4200}
       # AI Service (Wiii)
-      AI_SERVICE_URL: ${AI_SERVICE_URL:-https://maritime-ai-chatbot.onrender.com}
+      AI_SERVICE_URL: ${AI_SERVICE_URL:-https://wiii.holilihu.online}
       AI_SERVICE_API_KEY: ${AI_SERVICE_API_KEY:-}
       # Wiii Integration (Sprint 220)
       WIII_WEBHOOK_URL: ${WIII_WEBHOOK_URL:-}
@@ -77,16 +90,17 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    stop_grace_period: 45s
     networks:
       - lms-backend
       - lms-frontend
 
   # ===== Angular Frontend (nginx) =====
   frontend:
+    <<: *service-defaults
     build:
       context: ./fe
       dockerfile: Dockerfile
-    container_name: lms-frontend
     depends_on:
       backend:
         condition: service_healthy
