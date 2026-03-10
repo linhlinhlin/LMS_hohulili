@@ -81,9 +81,11 @@ export class CourseDetailComponent implements OnInit {
   isDescriptionExpanded = signal(false);
   allExpanded = signal(false);
 
-  // Payment state
+  // Payment & enrollment state
   hasPaid = signal(false);
   paymentLoading = signal(false);
+  isEnrolled = signal(false);
+  isEnrolling = signal(false);
 
   // Real progress from enrollment API
   private _realProgress = signal<{ percentage: number; completed: number; total: number } | null>(null);
@@ -449,6 +451,23 @@ export class CourseDetailComponent implements OnInit {
     this.router.navigate(['/courses', courseId]);
   }
 
+  async handleEnroll(): Promise<void> {
+    const courseId = this.course()?.id;
+    if (!courseId) return;
+
+    this.isEnrolling.set(true);
+    try {
+      await firstValueFrom(this.courseApi.enrollCourse(courseId));
+      this.isEnrolled.set(true);
+      this.toast.success('Đăng ký thành công!');
+      this.startLearning();
+    } catch (e: any) {
+      this.toast.error('Đăng ký thất bại: ' + (e?.error?.message || e?.message || 'Lỗi không xác định'));
+    } finally {
+      this.isEnrolling.set(false);
+    }
+  }
+
   formatPrice(price: number): string {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
@@ -522,4 +541,14 @@ export class CourseDetailComponent implements OnInit {
   }
 
   starArray = [1, 2, 3, 4, 5];
+
+  getLessonDisplayTitle(title: string): string {
+    if (title?.toLowerCase().startsWith('bài') && title.includes(':')) {
+      const parts = title.split(':');
+      if (parts.length > 1) {
+        return parts.slice(1).join(':').trim();
+      }
+    }
+    return title;
+  }
 }

@@ -190,6 +190,34 @@ export class LessonContentComponent implements AfterViewInit {
     return !this.hasSections() && !!this.lesson()?.videoUrl;
   });
 
+  /** Safe PDF URL for iframe embedding */
+  readonly safePdfUrl = computed(() => {
+    const section = this.currentSection();
+    if (section?.type === 'FILE' && section.fileUrl) {
+      return this.sanitizer.bypassSecurityTrustResourceUrl(section.fileUrl);
+    }
+    return null;
+  });
+
+  private pdfContainer = viewChild<ElementRef>('pdfContainer');
+
+  togglePdfFullscreen(): void {
+    const el = this.pdfContainer()?.nativeElement;
+    if (!el) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      el.requestFullscreen?.();
+    }
+  }
+
+  openPdfInNewTab(): void {
+    const section = this.currentSection();
+    if (section?.fileUrl) {
+      window.open(section.fileUrl, '_blank');
+    }
+  }
+
   readonly canGoPreviousSection = computed(() => this.sectionIndex() > 0);
 
   readonly canGoNextSection = computed(() => {
