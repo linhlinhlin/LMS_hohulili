@@ -1,6 +1,7 @@
 package com.example.lms.learning_delivery.application.usecase;
 
 import com.example.lms.learning_delivery.application.dto.EnrollmentResponse;
+import com.example.lms.learning_delivery.application.port.CourseLessonCountPort;
 import com.example.lms.learning_delivery.application.dto.UpdateLessonProgressCommand;
 import com.example.lms.learning_delivery.domain.model.Enrollment;
 import com.example.lms.learning_delivery.domain.model.LearningClass;
@@ -38,6 +39,9 @@ class UpdateLessonProgressUseCaseTest {
 
     @Mock
     private CertificateUseCase certificateUseCase;
+
+    @Mock
+    private CourseLessonCountPort lessonCountPort;
 
     @InjectMocks
     private UpdateLessonProgressUseCase useCase;
@@ -126,6 +130,9 @@ class UpdateLessonProgressUseCaseTest {
                 enrollmentId, newLessonId, "COMPLETED", 600, 90.0
             );
 
+            // Mock: course has 3 total lessons
+            when(lessonCountPort.countLessonsInCourse(courseId)).thenReturn(3);
+
             when(enrollmentRepository.findById(enrollmentId)).thenReturn(Optional.of(enrollment));
             when(enrollmentRepository.save(any(Enrollment.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -189,6 +196,9 @@ class UpdateLessonProgressUseCaseTest {
             UpdateLessonProgressCommand command = new UpdateLessonProgressCommand(
                 enrollmentId, lessonId, "COMPLETED", 600, 95.0
             );
+
+            // Mock: course has 1 total lesson → 1 COMPLETED = 100%
+            when(lessonCountPort.countLessonsInCourse(courseId)).thenReturn(1);
 
             when(enrollmentRepository.findById(enrollmentId)).thenReturn(Optional.of(enrollment));
             when(enrollmentRepository.save(any(Enrollment.class))).thenAnswer(inv -> inv.getArgument(0));

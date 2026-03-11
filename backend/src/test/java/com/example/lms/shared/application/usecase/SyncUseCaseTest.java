@@ -290,49 +290,69 @@ class SyncUseCaseTest {
     @DisplayName("pushChanges - quizAttempt")
     class PushQuizAttemptTests {
 
+        /** Build a minimal QuizAttempt domain object for stubbing startAttempt(). */
+        private QuizAttempt buildAttempt(UUID id, UUID quizId) {
+            return QuizAttempt.builder()
+                    .id(id)
+                    .quizId(quizId)
+                    .studentId(STUDENT_ID)
+                    .status(QuizAttempt.AttemptStatus.IN_PROGRESS)
+                    .build();
+        }
+
         @Test
-        @DisplayName("Should route quiz attempt to QuizAttemptUseCase")
+        @DisplayName("Should route offline quiz attempt to QuizAttemptUseCase (start + submit)")
         void shouldRouteToQuizAttemptUseCase() {
-            UUID attemptId = UUID.randomUUID();
+            UUID quizId = UUID.randomUUID();
+            UUID serverAttemptId = UUID.randomUUID();
             UUID questionId = UUID.randomUUID();
+            // Offline payload: Map answers (no pre-existing server attemptId)
             Map<String, Object> payload = Map.of(
-                    "attemptId", attemptId.toString(),
-                    "answers", List.of(
-                            Map.of("questionId", questionId.toString(), "answer", "A")
-                    )
+                    "quizId", quizId.toString(),
+                    "answers", Map.of(questionId.toString(), "A")
             );
-            SyncOperation op = new SyncOperation("quizAttempt", "UPDATE", "/api/quiz", payload);
+            when(quizAttemptUseCase.startAttempt(eq(quizId), eq(STUDENT_ID)))
+                    .thenReturn(buildAttempt(serverAttemptId, quizId));
+
+            SyncOperation op = new SyncOperation("quizAttempt", "CREATE", "/api/quiz", payload);
             SyncPushRequest request = new SyncPushRequest(List.of(op));
 
             SyncResponse.PushResult result = useCase.pushChanges(USER_ID, request);
 
             assertThat(result.accepted()).isEqualTo(1);
-            verify(quizAttemptUseCase).submitAttempt(eq(attemptId), anyList());
+            verify(quizAttemptUseCase).startAttempt(eq(quizId), eq(STUDENT_ID));
+            verify(quizAttemptUseCase).submitAttempt(eq(serverAttemptId), anyList());
         }
 
         @Test
-        @DisplayName("Should reject quiz attempt with missing attemptId")
-        void shouldRejectMissingAttemptId() {
+        @DisplayName("Should reject quiz attempt with missing quizId")
+        void shouldRejectMissingQuizId() {
+            // No quizId in payload — cannot start attempt
             Map<String, Object> payload = Map.of(
-                    "answers", List.of(Map.of("questionId", UUID.randomUUID().toString(), "answer", "A"))
+                    "answers", Map.of(UUID.randomUUID().toString(), "A")
             );
-            SyncOperation op = new SyncOperation("quizAttempt", "UPDATE", "/api/quiz", payload);
+            SyncOperation op = new SyncOperation("quizAttempt", "CREATE", "/api/quiz", payload);
             SyncPushRequest request = new SyncPushRequest(List.of(op));
 
             SyncResponse.PushResult result = useCase.pushChanges(USER_ID, request);
 
             assertThat(result.rejected()).isEqualTo(1);
-            assertThat(result.conflicts().get(0).message()).contains("Thiếu attemptId");
+            assertThat(result.conflicts().get(0).message()).contains("Thiếu quizId");
         }
 
         @Test
-        @DisplayName("Should reject quiz attempt with empty answers")
+        @DisplayName("Should reject quiz attempt with empty answers map")
         void shouldRejectEmptyAnswers() {
+            UUID quizId = UUID.randomUUID();
+            UUID serverAttemptId = UUID.randomUUID();
             Map<String, Object> payload = Map.of(
-                    "attemptId", UUID.randomUUID().toString(),
-                    "answers", List.of()
+                    "quizId", quizId.toString(),
+                    "answers", Map.of()          // empty map → no AttemptAnswers built
             );
-            SyncOperation op = new SyncOperation("quizAttempt", "UPDATE", "/api/quiz", payload);
+            when(quizAttemptUseCase.startAttempt(eq(quizId), eq(STUDENT_ID)))
+                    .thenReturn(buildAttempt(serverAttemptId, quizId));
+
+            SyncOperation op = new SyncOperation("quizAttempt", "CREATE", "/api/quiz", payload);
             SyncPushRequest request = new SyncPushRequest(List.of(op));
 
             SyncResponse.PushResult result = useCase.pushChanges(USER_ID, request);
@@ -342,19 +362,20 @@ class SyncUseCaseTest {
         }
 
         @Test
-        @DisplayName("Should handle quiz attempt use case exception gracefully")
+        @DisplayName("Should handle submitAttempt exception gracefully")
         void shouldHandleException() {
-            UUID attemptId = UUID.randomUUID();
+            UUID quizId = UUID.randomUUID();
+            UUID serverAttemptId = UUID.randomUUID();
             Map<String, Object> payload = Map.of(
-                    "attemptId", attemptId.toString(),
-                    "answers", List.of(
-                            Map.of("questionId", UUID.randomUUID().toString(), "answer", "B")
-                    )
+                    "quizId", quizId.toString(),
+                    "answers", Map.of(UUID.randomUUID().toString(), "B")
             );
-            doThrow(new IllegalStateException("Attempt already submitted"))
-                    .when(quizAttemptUseCase).submitAttempt(eq(attemptId), anyList());
+            when(quizAttemptUseCase.startAttempt(eq(quizId), eq(STUDENT_ID)))
+                    .thenReturn(buildAttempt(serverAttemptId, quizId));
+            doThrow(new IllegalStateException("Grading failed"))
+                    .when(quizAttemptUseCase).submitAttempt(eq(serverAttemptId), anyList());
 
-            SyncOperation op = new SyncOperation("quizAttempt", "UPDATE", "/api/quiz", payload);
+            SyncOperation op = new SyncOperation("quizAttempt", "CREATE", "/api/quiz", payload);
             SyncPushRequest request = new SyncPushRequest(List.of(op));
 
             SyncResponse.PushResult result = useCase.pushChanges(USER_ID, request);

@@ -1,9 +1,8 @@
 package com.example.lms.learning_delivery.application.usecase;
 
-import com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository;
-import com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository;
 import com.example.lms.learning_delivery.application.dto.EnrollmentResponse;
 import com.example.lms.learning_delivery.application.dto.UpdateLessonProgressCommand;
+import com.example.lms.learning_delivery.application.port.CourseLessonCountPort;
 import com.example.lms.learning_delivery.domain.model.Enrollment;
 import com.example.lms.learning_delivery.domain.repository.CertificateRepository;
 import com.example.lms.learning_delivery.domain.repository.EnrollmentRepository;
@@ -14,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -27,8 +25,7 @@ public class UpdateLessonProgressUseCase {
 
     private final EnrollmentRepository enrollmentRepository;
     private final CertificateUseCase certificateUseCase;
-    private final ChapterJpaRepository chapterJpaRepository;
-    private final LessonJpaRepository lessonJpaRepository;
+    private final CourseLessonCountPort lessonCountPort;
 
     @Transactional
     public EnrollmentResponse execute(UpdateLessonProgressCommand command) {
@@ -84,37 +81,25 @@ public class UpdateLessonProgressUseCase {
             return;
         }
 
-        // FIX: Get total lessons from actual course, not from progress map
         int totalLessons = 0;
         if (enrollment.getLearningClass() != null) {
             UUID courseId = enrollment.getLearningClass().getCourseId();
             if (courseId != null) {
-                // Count lessons from course chapters
-                List<com.example.lms.course_authoring.infrastructure.persistence.entity.ChapterJpaEntity> chapters = 
-                    chapterJpaRepository.findByCourseIdOrderByOrderIndex(courseId);
-                if (!chapters.isEmpty()) {
-                    List<UUID> chapterIds = chapters.stream()
-                        .map(com.example.lms.course_authoring.infrastructure.persistence.entity.ChapterJpaEntity::getId)
-                        .toList();
-                    totalLessons = lessonJpaRepository.findByChapterIdIn(chapterIds).size();
-                }
+                totalLessons = lessonCountPort.countLessonsInCourse(courseId);
             }
         }
-        
-        // Count completed lessons (status = COMPLETED)
-        long completedCount = enrollment.getProgress().values().stream()
-            .filter(p -> "COMPLETED".equals(p.getStatus()))
-            .count();
 
-        // If no lessons found in course, fallback to 0
         if (totalLessons == 0) {
             log.warn("Could not find total lessons for enrollment {}, setting progress to 0", enrollment.getId());
             enrollment.updateCompletionPercent(0);
             return;
         }
-        
-        int percent = totalLessons > 0 ? (int) ((completedCount * 100) / totalLessons) : 0;
-        
+
+        long completedCount = enrollment.getProgress().values().stream()
+            .filter(p -> "COMPLETED".equals(p.getStatus()))
+            .count();
+
+        int percent = (int) ((completedCount * 100) / totalLessons);
         enrollment.updateCompletionPercent(percent);
     }
 }

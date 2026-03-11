@@ -5,6 +5,7 @@ import com.example.lms.course_authoring.infrastructure.persistence.entity.Chapte
 import com.example.lms.course_authoring.infrastructure.persistence.entity.LessonJpaEntity;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository;
+import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,6 +31,9 @@ class CourseStructureCommandAdapterTest {
 
     @Mock
     private LessonJpaRepository lessonJpaRepository;
+
+    @Mock
+    private JpaCourseRepository jpaCourseRepository;
 
     @InjectMocks
     private CourseStructureCommandAdapter adapter;
