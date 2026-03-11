@@ -82,6 +82,8 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   showResultsModal = signal(true);
   serverScore = signal<number | null>(null);
   serverCorrectCount = signal<number | null>(null);
+  /** Map of questionId → isCorrect from server grading (for review highlighting) */
+  serverIsCorrectMap = signal<Record<string, boolean>>({});
   submitting = signal(false);
 
   quizSettings = signal<QuizSettings>({
@@ -416,9 +418,36 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** In review mode: is this option the one student selected AND it was correct? */
+  isOptCorrectInReview(question: QuizQuestion, optKey: string): boolean {
+    if (!this.showResults() || !this.quizSettings().showCorrectAnswers) return false;
+    const selected = this.answers()[question.id];
+    const serverMap = this.serverIsCorrectMap();
+    // Option is green if: it's the known correct answer, OR the student selected it and server says correct
+    if (question.correctOption != null) return optKey === question.correctOption;
+    if (typeof selected === 'string' && selected === optKey && question.id in serverMap) {
+      return serverMap[question.id] === true;
+    }
+    return false;
+  }
+
+  /** In review mode: is this option the one student selected AND it was wrong? */
+  isOptWrongInReview(question: QuizQuestion, optKey: string): boolean {
+    if (!this.showResults() || !this.quizSettings().showCorrectAnswers) return false;
+    const selected = this.answers()[question.id];
+    if (typeof selected !== 'string' || selected !== optKey) return false;
+    const serverMap = this.serverIsCorrectMap();
+    if (question.id in serverMap) return serverMap[question.id] === false;
+    return question.correctOption != null && optKey !== question.correctOption;
+  }
+
   isQuestionCorrect(question: QuizQuestion): boolean | null {
     const ans = this.answers()[question.id];
     if (!ans || (Array.isArray(ans) && ans.length === 0)) return null;
+
+    // Prefer server-graded result (student API strips correctOption)
+    const serverMap = this.serverIsCorrectMap();
+    if (question.id in serverMap) return serverMap[question.id];
 
     switch (question.questionType) {
       case 'SINGLE_CHOICE':
@@ -495,6 +524,18 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
         }
         if (data?.correctAnswers != null) {
           this.serverCorrectCount.set(data.correctAnswers);
+        } else if (Array.isArray(data?.items) && data.items.length > 0) {
+          const correct = (data.items as any[]).filter(i => i.isCorrect === true).length;
+          this.serverCorrectCount.set(correct);
+        }
+        if (Array.isArray(data?.items)) {
+          const map: Record<string, boolean> = {};
+          for (const item of data.items as any[]) {
+            if (item.questionId != null && item.isCorrect != null) {
+              map[item.questionId] = item.isCorrect;
+            }
+          }
+          this.serverIsCorrectMap.set(map);
         }
       } catch {
         // Non-blocking: show local results if server fails
@@ -557,6 +598,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     this.showResultsModal.set(false);
     this.serverScore.set(null);
     this.serverCorrectCount.set(null);
+    this.serverIsCorrectMap.set({});
     this.timeRemaining.set((this.quizSettings().timeLimitMinutes || 30) * 60);
     this.timeSpent.set(0);
     this.startTimer();

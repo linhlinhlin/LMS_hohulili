@@ -280,23 +280,23 @@
                       [class.border-gray-200]="answers()[question.id] !== opt.key && !showResults()"
                       [class.hover:border-[#0056D2]/30]="!showResults() && answers()[question.id] !== opt.key"
                       [class.hover:bg-gray-50]="!showResults() && answers()[question.id] !== opt.key"
-                      [class.border-green-500]="showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption"
-                      [class.bg-green-50]="showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption"
-                      [class.border-red-400]="showResults() && quizSettings().showCorrectAnswers && answers()[question.id] === opt.key && opt.key !== question.correctOption"
-                      [class.bg-red-50]="showResults() && quizSettings().showCorrectAnswers && answers()[question.id] === opt.key && opt.key !== question.correctOption">
+                      [class.border-green-500]="isOptCorrectInReview(question, opt.key)"
+                      [class.bg-green-50]="isOptCorrectInReview(question, opt.key)"
+                      [class.border-red-400]="isOptWrongInReview(question, opt.key)"
+                      [class.bg-red-50]="isOptWrongInReview(question, opt.key)">
                       <div class="flex items-center gap-4">
                         <!-- Radio circle indicator -->
                         <span class="w-10 h-10 rounded-full border-2 flex items-center justify-center font-semibold text-sm transition-colors"
                           [class.border-[#0056D2]]="answers()[question.id] === opt.key && !showResults()"
                           [class.bg-[#0056D2]]="answers()[question.id] === opt.key && !showResults()"
-                          [class.text-white]="(answers()[question.id] === opt.key && !showResults()) || (showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption)"
+                          [class.text-white]="(answers()[question.id] === opt.key && !showResults()) || isOptCorrectInReview(question, opt.key)"
                           [class.border-gray-300]="answers()[question.id] !== opt.key && !showResults()"
                           [class.text-gray-600]="answers()[question.id] !== opt.key && !showResults()"
                           [class.group-hover:border-[#0056D2]]="!showResults() && answers()[question.id] !== opt.key"
-                          [class.bg-green-600]="showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption"
-                          [class.border-green-600]="showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption"
-                          [class.bg-red-500]="showResults() && quizSettings().showCorrectAnswers && answers()[question.id] === opt.key && opt.key !== question.correctOption"
-                          [class.border-red-500]="showResults() && quizSettings().showCorrectAnswers && answers()[question.id] === opt.key && opt.key !== question.correctOption">
+                          [class.bg-green-600]="isOptCorrectInReview(question, opt.key)"
+                          [class.border-green-600]="isOptCorrectInReview(question, opt.key)"
+                          [class.bg-red-500]="isOptWrongInReview(question, opt.key)"
+                          [class.border-red-500]="isOptWrongInReview(question, opt.key)">
                           {{ opt.key }}
                         </span>
                         @if (opt.contentBlocks?.length || opt.content) {
@@ -304,14 +304,14 @@
                           <app-block-renderer [blocks]="opt.contentBlocks || []"></app-block-renderer>
                         </div>
                         }
-                        @if (showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption) {
+                        @if (isOptCorrectInReview(question, opt.key)) {
                         <svg class="w-6 h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd"
                             d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                             clip-rule="evenodd"></path>
                         </svg>
                         }
-                        @if (showResults() && quizSettings().showCorrectAnswers && answers()[question.id] === opt.key && opt.key !== question.correctOption) {
+                        @if (isOptWrongInReview(question, opt.key)) {
                         <svg class="w-6 h-6 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd"
                             d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -375,21 +375,21 @@
                       [class.border-gray-200]="answers()[question.id] !== opt.key && !showResults()"
                       [class.hover:border-[#0056D2]/30]="!showResults() && answers()[question.id] !== opt.key"
                       [class.hover:bg-gray-50]="!showResults() && answers()[question.id] !== opt.key"
-                      [class.border-green-500]="showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption"
-                      [class.bg-green-50]="showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption"
-                      [class.border-red-400]="showResults() && quizSettings().showCorrectAnswers && answers()[question.id] === opt.key && opt.key !== question.correctOption"
-                      [class.bg-red-50]="showResults() && quizSettings().showCorrectAnswers && answers()[question.id] === opt.key && opt.key !== question.correctOption">
+                      [class.border-green-500]="isOptCorrectInReview(question, opt.key)"
+                      [class.bg-green-50]="isOptCorrectInReview(question, opt.key)"
+                      [class.border-red-400]="isOptWrongInReview(question, opt.key)"
+                      [class.bg-red-50]="isOptWrongInReview(question, opt.key)">
                       <div class="flex items-center gap-4">
                         <span class="w-10 h-10 rounded-full border-2 flex items-center justify-center font-semibold text-sm transition-colors"
                           [class.border-[#0056D2]]="answers()[question.id] === opt.key && !showResults()"
                           [class.bg-[#0056D2]]="answers()[question.id] === opt.key && !showResults()"
-                          [class.text-white]="(answers()[question.id] === opt.key && !showResults()) || (showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption)"
+                          [class.text-white]="(answers()[question.id] === opt.key && !showResults()) || isOptCorrectInReview(question, opt.key)"
                           [class.border-gray-300]="answers()[question.id] !== opt.key && !showResults()"
                           [class.text-gray-600]="answers()[question.id] !== opt.key && !showResults()"
-                          [class.bg-green-600]="showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption"
-                          [class.border-green-600]="showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption"
-                          [class.bg-red-500]="showResults() && quizSettings().showCorrectAnswers && answers()[question.id] === opt.key && opt.key !== question.correctOption"
-                          [class.border-red-500]="showResults() && quizSettings().showCorrectAnswers && answers()[question.id] === opt.key && opt.key !== question.correctOption">
+                          [class.bg-green-600]="isOptCorrectInReview(question, opt.key)"
+                          [class.border-green-600]="isOptCorrectInReview(question, opt.key)"
+                          [class.bg-red-500]="isOptWrongInReview(question, opt.key)"
+                          [class.border-red-500]="isOptWrongInReview(question, opt.key)">
                           {{ opt.key }}
                         </span>
                         @if (opt.contentBlocks?.length || opt.content) {
@@ -397,14 +397,14 @@
                           <app-block-renderer [blocks]="opt.contentBlocks || []"></app-block-renderer>
                         </div>
                         }
-                        @if (showResults() && quizSettings().showCorrectAnswers && opt.key === question.correctOption) {
+                        @if (isOptCorrectInReview(question, opt.key)) {
                         <svg class="w-6 h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd"
                             d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                             clip-rule="evenodd"></path>
                         </svg>
                         }
-                        @if (showResults() && quizSettings().showCorrectAnswers && answers()[question.id] === opt.key && opt.key !== question.correctOption) {
+                        @if (isOptWrongInReview(question, opt.key)) {
                         <svg class="w-6 h-6 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd"
                             d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
