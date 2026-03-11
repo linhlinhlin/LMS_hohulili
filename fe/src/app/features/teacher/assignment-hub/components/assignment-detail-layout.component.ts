@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 
 import { RouterModule, RouterOutlet, ActivatedRoute, Router } from '@angular/router';
 import { AssignmentDetailStore } from '../stores/assignment-detail.store';
@@ -39,7 +39,7 @@ import { LucideAngularModule } from 'lucide-angular';
                     Quay lại
                   </span>
                   <span class="w-1 h-1 rounded-full bg-slate-300"></span>
-                  <span class="text-slate-900">Chi tiết bài tập</span>
+                  <span class="text-slate-900">{{ operationalContextLabel() }}</span>
                 </div>
                 
                 @if (assignmentStore.loading()) {
@@ -105,6 +105,28 @@ export class AssignmentDetailLayoutComponent implements OnInit, OnDestroy {
   submissionsStore = inject(SubmissionsStore);
   private toast = inject(ToastService);
 
+  readonly operationalContextLabel = computed(() => {
+    const assignment = this.assignmentStore.assignment();
+
+    if (!assignment) {
+      return 'Chi tiết bài tập';
+    }
+
+    if (assignment.deliveryMode === 'SELF_PACED') {
+      return 'Toàn khóa học';
+    }
+
+    if (assignment.distributionType === 'CLASS' && assignment.className) {
+      return `Theo lớp • ${assignment.className}`;
+    }
+
+    if (assignment.distributionType === 'SPECIFIC_STUDENTS') {
+      return 'Theo nhóm học viên';
+    }
+
+    return 'Toàn khóa học';
+  });
+
   ngOnInit(): void {
     const assignmentId = this.route.snapshot.paramMap.get('id');
     if (assignmentId) {
@@ -122,6 +144,6 @@ export class AssignmentDetailLayoutComponent implements OnInit, OnDestroy {
   }
 
   goBack(): void {
-    this.router.navigate(['/teacher/assignments']);
+    this.router.navigate(['/teacher/assessments/classes/assignments']);
   }
 }

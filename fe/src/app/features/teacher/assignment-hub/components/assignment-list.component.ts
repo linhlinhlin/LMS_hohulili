@@ -29,14 +29,15 @@ type FilterType = 'ALL' | 'NEEDS_GRADING' | 'GRADED' | 'DRAFT';
         <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 py-6">
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 class="text-2xl font-black text-slate-900 tracking-tight">Quản lý Bài tập</h1>
-              <p class="text-sm text-slate-500 font-medium">Tạo, quản lý và chấm điểm bài tập cho học viên</p>
+              <p class="text-[10px] font-black uppercase tracking-[0.18em] text-[#0056D2]">Vận hành</p>
+              <h1 class="text-2xl font-black text-slate-900 tracking-tight">Bài tập đang vận hành</h1>
+              <p class="text-sm text-slate-500 font-medium">Theo dõi bài tập theo lớp, theo nhóm học viên hoặc áp dụng cho toàn bộ học viên đã ghi danh.</p>
             </div>
             <div class="flex items-center gap-3">
-              <a routerLink="rubrics" 
+              <a routerLink="/teacher/assessments/shared/rubrics" 
                  class="h-10 px-4 border border-slate-200 rounded-xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2 shadow-sm">
                 <lucide-icon name="clipboard-check" [size]="16"></lucide-icon>
-                Thư viện Rubric
+                Rubric dùng chung
               </a>
               <a routerLink="create" 
                  class="h-10 px-4 bg-[#0056D2] text-white rounded-xl font-bold text-sm hover:bg-[#004BB5] transition-all flex items-center gap-2 shadow-md shadow-blue-100">
@@ -109,75 +110,28 @@ type FilterType = 'ALL' | 'NEEDS_GRADING' | 'GRADED' | 'DRAFT';
             }
           </div>
         } @else {
-          <!-- Assignment Cards -->
-          <div class="grid grid-cols-1 gap-4">
-            @for (assignment of filteredAssignments(); track assignment.id) {
-              <div class="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all group overflow-hidden flex flex-col sm:flex-row cursor-pointer"
-                   (click)="navigateToAssignment(assignment.id)">
-                
-                <!-- Main Info -->
-                <div class="p-6 flex-grow min-w-0">
-                  <div class="flex flex-col h-full justify-center gap-3">
-                    <!-- Row 1: Title + Due Date -->
-                    <div class="flex items-center justify-between gap-4">
-                      <div class="flex items-center gap-3 min-w-0">
-                        <h3 class="text-lg font-black text-slate-900 tracking-tight truncate group-hover:text-[#0056D2] transition-colors">{{ assignment.title }}</h3>
-                        <span class="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border shadow-sm flex-shrink-0"
-                              [class]="getStatusClass(assignment.status)">
-                          {{ getStatusText(assignment.status) }}
-                        </span>
-                        <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-100 text-[11px] font-black text-slate-600 uppercase tracking-wider">
-                        <lucide-icon name="users" [size]="12"></lucide-icon>
-                        {{ assignment.submissionsCount }}/{{ assignment.totalStudents }} Nộp bài
-                      </div>
-                      @if (assignment.pendingCount && assignment.pendingCount > 0) {
-                        <div class="flex items-center gap-2 px-3 py-1.5 bg-orange-50 rounded-lg border border-orange-100 text-[11px] font-black text-orange-600 uppercase tracking-wider animate-pulse">
-                          <span class="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
-                          {{ assignment.pendingCount }} Cần chấm
-                        </div>
-                      }
-                      @if (assignment.averageScore !== undefined) {
-                        <div class="flex items-center gap-2 px-3 py-1.5 bg-purple-50 rounded-lg border border-purple-100 text-[11px] font-black text-purple-600 uppercase tracking-wider">
-                          <lucide-icon name="award" [size]="12"></lucide-icon>
-                          {{ assignment.averageScore | number:'1.0-0' }}% Điểm TB
-                        </div>
-                      }
-                      </div>
-                      <div class="text-right flex-shrink-0">
-                        <span class="text-[12px] uppercase tracking-widest text-slate-400 font-bold block">Hạn chót</span>
-                        <p class="text-sm font-semibold leading-tight" 
-                          [class]="isOverdue(assignment.dueDate) ? 'text-rose-500' : 'text-slate-600'">
-                          {{ formatDate(assignment.dueDate) }}
-                        </p>
-                      </div>
-                    </div>
-
-                    <!-- Row 3: Course Title -->
-                    <div class="mt-1">
-                      <p class="text-xs text-slate-500 font-bold flex items-center gap-2">
-                        <lucide-icon name="book-open" [size]="14" class="text-[#0056D2]/60"></lucide-icon>
-                        {{ assignment.courseTitle }}
-                      </p>
-                    </div>
-                  </div>
+          <div class="space-y-5">
+            <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p class="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Ngữ cảnh vận hành</p>
+                  <p class="mt-1 text-sm text-slate-600 font-medium">Danh sách được chia theo cách bài tập đang áp dụng: theo lớp hoặc nhóm học viên, toàn khóa học, hoặc chưa chốt đối tượng nhận.</p>
                 </div>
-
-                <!-- Right Side Actions & Due Date -->
-                <div class="p-6 sm:w-72 flex-shrink-0 flex flex-col justify-between sm:border-l border-slate-100 bg-slate-50/20 group-hover:bg-[#0056D2]/[0.02] transition-all">
-                  <div class="flex items-center justify-end gap-2">
-                    <button (click)="deleteAssignment(assignment.id, $event)" 
-                            class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition-all shadow-sm hover:shadow-md">
-                      <lucide-icon name="trash-2" [size]="18"></lucide-icon>
-                    </button>
-                    <a [routerLink]="[assignment.id, 'settings']"
-                       (click)="$event.stopPropagation()"
-                       class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-[#0056D2] hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm hover:shadow-md">
-                      <lucide-icon name="edit-3" [size]="18"></lucide-icon>
-                    </a>
-                  </div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="px-3 py-1.5 rounded-xl border border-emerald-100 bg-emerald-50 text-[11px] font-black uppercase tracking-[0.14em] text-emerald-700">
+                    Theo lớp {{ classroomAssignments().length }}
+                  </span>
+                  <span class="px-3 py-1.5 rounded-xl border border-blue-100 bg-blue-50 text-[11px] font-black uppercase tracking-[0.14em] text-[#0056D2]">
+                    Toàn khóa học {{ courseAssignments().length }}
+                  </span>
+                  @if (unassignedAssignments().length > 0) {
+                    <span class="px-3 py-1.5 rounded-xl border border-amber-100 bg-amber-50 text-[11px] font-black uppercase tracking-[0.14em] text-amber-700">
+                      Chưa phân phối {{ unassignedAssignments().length }}
+                    </span>
+                  }
                 </div>
               </div>
-            }
+            </div>
 
             @if (filteredAssignments().length === 0) {
               <div class="bg-white rounded-2xl border border-slate-200 border-dashed p-16 text-center shadow-inner">
@@ -185,16 +139,138 @@ type FilterType = 'ALL' | 'NEEDS_GRADING' | 'GRADED' | 'DRAFT';
                   <lucide-icon name="clipboard-list" [size]="40"></lucide-icon>
                 </div>
                 <h3 class="text-xl font-black text-slate-900 mb-2">Chưa có bài tập nào</h3>
-                <p class="text-sm text-slate-500 mb-8 max-w-xs mx-auto">Bắt đầu tạo bài tập đầu tiên cho khóa học của bạn để bắt đầu đánh giá học viên.</p>
+                <p class="text-sm text-slate-500 mb-8 max-w-xs mx-auto">Tạo bài tập để giao cho lớp học hoặc cho toàn bộ học viên trong khóa học tự học.</p>
                 <a routerLink="create" class="inline-flex items-center gap-2 px-6 py-3 bg-[#0056D2] text-white rounded-xl font-bold hover:bg-[#004BB5] transition-all shadow-lg shadow-blue-100">
                   <lucide-icon name="plus" [size]="18"></lucide-icon>
                   Tạo bài tập mới
                 </a>
               </div>
+            } @else {
+              @if (classroomAssignments().length > 0) {
+                <section class="space-y-3">
+                  <div class="flex items-center justify-between gap-3">
+                    <div>
+                      <h2 class="text-sm font-black uppercase tracking-[0.18em] text-emerald-700">Theo lớp và nhóm học viên</h2>
+                      <p class="text-sm text-slate-500 font-medium">Những bài tập đang giao cho một lớp cụ thể hoặc cho nhóm học viên được chỉ định.</p>
+                    </div>
+                    <span class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">{{ classroomAssignments().length }} mục</span>
+                  </div>
+                  <div class="grid grid-cols-1 gap-4">
+                    @for (assignment of classroomAssignments(); track assignment.id) {
+                      <ng-container *ngTemplateOutlet="assignmentCard; context: { assignment: assignment }"></ng-container>
+                    }
+                  </div>
+                </section>
+              }
+
+              @if (courseAssignments().length > 0) {
+                <section class="space-y-3">
+                  <div class="flex items-center justify-between gap-3">
+                    <div>
+                      <h2 class="text-sm font-black uppercase tracking-[0.18em] text-[#0056D2]">Toàn khóa học</h2>
+                      <p class="text-sm text-slate-500 font-medium">Những bài tập đang áp dụng cho toàn bộ học viên trong khóa học hoặc toàn bộ người đã ghi danh.</p>
+                    </div>
+                    <span class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">{{ courseAssignments().length }} mục</span>
+                  </div>
+                  <div class="grid grid-cols-1 gap-4">
+                    @for (assignment of courseAssignments(); track assignment.id) {
+                      <ng-container *ngTemplateOutlet="assignmentCard; context: { assignment: assignment }"></ng-container>
+                    }
+                  </div>
+                </section>
+              }
+
+              @if (unassignedAssignments().length > 0) {
+                <section class="space-y-3">
+                  <div class="flex items-center justify-between gap-3">
+                    <div>
+                      <h2 class="text-sm font-black uppercase tracking-[0.18em] text-amber-700">Chưa phân phối</h2>
+                      <p class="text-sm text-slate-500 font-medium">Nội dung đã tạo nhưng chưa chốt đối tượng nhận trong ngữ cảnh instructor-led.</p>
+                    </div>
+                    <span class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">{{ unassignedAssignments().length }} mục</span>
+                  </div>
+                  <div class="grid grid-cols-1 gap-4">
+                    @for (assignment of unassignedAssignments(); track assignment.id) {
+                      <ng-container *ngTemplateOutlet="assignmentCard; context: { assignment: assignment }"></ng-container>
+                    }
+                  </div>
+                </section>
+              }
             }
           </div>
         }
       </div>
+
+      <ng-template #assignmentCard let-assignment="assignment">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all group overflow-hidden flex flex-col sm:flex-row cursor-pointer"
+             (click)="navigateToAssignment(assignment.id)">
+          <div class="p-6 flex-grow min-w-0">
+            <div class="flex flex-col h-full justify-center gap-3">
+              <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3 min-w-0">
+                  <h3 class="text-lg font-black text-slate-900 tracking-tight truncate group-hover:text-[#0056D2] transition-colors">{{ assignment.title }}</h3>
+                  <span class="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border shadow-sm flex-shrink-0"
+                        [class]="getStatusClass(assignment.status)">
+                    {{ getStatusText(assignment.status) }}
+                  </span>
+                  <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-100 text-[11px] font-black text-slate-600 uppercase tracking-wider">
+                    <lucide-icon name="users" [size]="12"></lucide-icon>
+                    {{ assignment.submissionsCount }}/{{ assignment.totalStudents }} Nộp bài
+                  </div>
+                  @if (assignment.pendingCount && assignment.pendingCount > 0) {
+                    <div class="flex items-center gap-2 px-3 py-1.5 bg-orange-50 rounded-lg border border-orange-100 text-[11px] font-black text-orange-600 uppercase tracking-wider animate-pulse">
+                      <span class="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+                      {{ assignment.pendingCount }} Cần chấm
+                    </div>
+                  }
+                  @if (hasAverageScore(assignment)) {
+                    <div class="flex items-center gap-2 px-3 py-1.5 bg-purple-50 rounded-lg border border-purple-100 text-[11px] font-black text-purple-600 uppercase tracking-wider">
+                      <lucide-icon name="award" [size]="12"></lucide-icon>
+                      {{ assignment.averageScore | number:'1.0-0' }}% Điểm TB
+                    </div>
+                  }
+                </div>
+                <div class="text-right flex-shrink-0">
+                  <span class="text-[12px] uppercase tracking-widest text-slate-400 font-bold block">Hạn chót</span>
+                  <p class="text-sm font-semibold leading-tight"
+                     [class]="isOverdue(assignment.dueDate) ? 'text-rose-500' : 'text-slate-600'">
+                    {{ formatDate(assignment.dueDate) }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="mt-1 flex flex-wrap items-center gap-2">
+                <p class="text-xs text-slate-500 font-bold flex items-center gap-2">
+                  <lucide-icon name="book-open" [size]="14" class="text-[#0056D2]/60"></lucide-icon>
+                  {{ assignment.courseTitle }}
+                </p>
+                <span class="px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] rounded-lg border"
+                      [class]="getDeliveryBadgeClass(assignment.deliveryMode)">
+                  {{ getDeliveryLabel(assignment.deliveryMode) }}
+                </span>
+                <span class="px-2 py-0.5 text-[9px] font-black tracking-[0.08em] rounded-lg border"
+                      [class]="getAudienceBadgeClass(assignment)">
+                  {{ getAudienceLabel(assignment) }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-6 sm:w-72 flex-shrink-0 flex flex-col justify-between sm:border-l border-slate-100 bg-slate-50/20 group-hover:bg-[#0056D2]/[0.02] transition-all">
+            <div class="flex items-center justify-end gap-2">
+              <button (click)="deleteAssignment(assignment.id, $event)"
+                      class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition-all shadow-sm hover:shadow-md">
+                <lucide-icon name="trash-2" [size]="18"></lucide-icon>
+              </button>
+              <a [routerLink]="[assignment.id, 'settings']"
+                 (click)="$event.stopPropagation()"
+                 class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-[#0056D2] hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm hover:shadow-md">
+                <lucide-icon name="edit-3" [size]="18"></lucide-icon>
+              </a>
+            </div>
+          </div>
+        </div>
+      </ng-template>
     </div>
   `
 })
@@ -243,6 +319,18 @@ export class AssignmentListComponent implements OnInit {
     return result;
   });
 
+  classroomAssignments = computed(() =>
+    this.filteredAssignments().filter(assignment => this.getOperationalBucket(assignment) === 'CLASSROOM')
+  );
+
+  courseAssignments = computed(() =>
+    this.filteredAssignments().filter(assignment => this.getOperationalBucket(assignment) === 'COURSE')
+  );
+
+  unassignedAssignments = computed(() =>
+    this.filteredAssignments().filter(assignment => this.getOperationalBucket(assignment) === 'UNASSIGNED')
+  );
+
   allCount = computed(() => this.assignments().length);
 
   needsGradingCount = computed(() =>
@@ -276,7 +364,7 @@ export class AssignmentListComponent implements OnInit {
   }
 
   navigateToAssignment(id: string): void {
-    this.router.navigate(['/teacher/assessments/assignments', id, 'overview']);
+    this.router.navigate(['/teacher/assessments/classes/assignments', id, 'overview']);
   }
 
   async deleteAssignment(id: string, event: Event): Promise<void> {
@@ -365,6 +453,59 @@ export class AssignmentListComponent implements OnInit {
       'closed': 'Đã đóng'
     };
     return texts[s] || status;
+  }
+
+  getDeliveryLabel(deliveryMode?: string): string {
+    return deliveryMode === 'INSTRUCTOR_LED' ? 'Theo lớp' : 'Toàn khóa học';
+  }
+
+  getDeliveryBadgeClass(deliveryMode?: string): string {
+    return deliveryMode === 'INSTRUCTOR_LED'
+      ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+      : 'bg-blue-50 text-[#0056D2] border-blue-100';
+  }
+
+  getAudienceLabel(assignment: AssignmentSummary): string {
+    if (assignment.distributionType === 'CLASS' && assignment.className) {
+      return assignment.className;
+    }
+
+    if (assignment.distributionType === 'SPECIFIC_STUDENTS') {
+      return `${assignment.totalStudents || 0} học viên chỉ định`;
+    }
+
+    return assignment.deliveryMode === 'INSTRUCTOR_LED'
+      ? 'Toàn bộ học viên trong khóa học'
+      : 'Toàn bộ học viên đã ghi danh';
+  }
+
+  getAudienceBadgeClass(assignment: AssignmentSummary): string {
+    switch (assignment.distributionType) {
+      case 'CLASS':
+        return 'bg-purple-50 text-purple-700 border-purple-100';
+      case 'SPECIFIC_STUDENTS':
+        return 'bg-amber-50 text-amber-700 border-amber-100';
+      default:
+        return assignment.deliveryMode === 'INSTRUCTOR_LED'
+          ? 'bg-slate-50 text-slate-700 border-slate-200'
+          : 'bg-blue-50 text-[#0056D2] border-blue-100';
+    }
+  }
+
+  hasAverageScore(assignment: AssignmentSummary): boolean {
+    return typeof assignment.averageScore === 'number' && Number.isFinite(assignment.averageScore);
+  }
+
+  private getOperationalBucket(assignment: AssignmentSummary): 'CLASSROOM' | 'COURSE' | 'UNASSIGNED' {
+    if (assignment.deliveryMode === 'SELF_PACED' || assignment.distributionType === 'ALL_STUDENTS') {
+      return 'COURSE';
+    }
+
+    if (assignment.distributionType === 'CLASS' || assignment.distributionType === 'SPECIFIC_STUDENTS') {
+      return 'CLASSROOM';
+    }
+
+    return 'UNASSIGNED';
   }
 
 }

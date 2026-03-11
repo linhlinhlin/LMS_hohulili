@@ -47,6 +47,8 @@ export class AssignmentQuizCreateComponent implements OnInit {
   private prefilledChapterId: string | null = null;
   private prefilledClassId: string | null = null;
 
+  readonly inOperationalWorkspace = computed(() => this.router.url.includes('/teacher/assessments/'));
+
   formConfig: QuizFormConfig = {
     showDates: true,
     defaults: {
@@ -102,6 +104,9 @@ export class AssignmentQuizCreateComponent implements OnInit {
         if (mode !== 'INSTRUCTOR_LED') {
           this.scope.set('COURSE');
           this.selectedClassId.set('');
+          this.classes.set([]);
+        } else {
+          this.loadClasses(courseId);
         }
 
         this.restoreClassSelection();
@@ -125,6 +130,18 @@ export class AssignmentQuizCreateComponent implements OnInit {
       }
     });
 
+    this.questionApi.getMyQuestions().subscribe({
+      next: (questions: Question[]) => {
+        this.questions.set(questions);
+        this.isLoading.set(false);
+      },
+      error: () => {
+        this.isLoading.set(false);
+      }
+    });
+  }
+
+  private loadClasses(courseId: string): void {
     this.classService.getClassesByCourse(courseId).subscribe({
       next: (classes) => {
         this.classes.set(classes);
@@ -133,16 +150,6 @@ export class AssignmentQuizCreateComponent implements OnInit {
       error: () => {
         this.classes.set([]);
         this.selectedClassId.set('');
-      }
-    });
-
-    this.questionApi.getMyQuestions().subscribe({
-      next: (questions: Question[]) => {
-        this.questions.set(questions);
-        this.isLoading.set(false);
-      },
-      error: () => {
-        this.isLoading.set(false);
       }
     });
   }
@@ -226,7 +233,7 @@ export class AssignmentQuizCreateComponent implements OnInit {
           ? 'Đã tạo quiz cho lớp học thành công.'
           : 'Đã tạo quiz cho toàn bộ khóa học thành công.';
         this.toast.success(message);
-        this.router.navigate(['/teacher/assessments/quizzes']);
+        this.router.navigate(['/teacher/assessments/classes/quizzes']);
       },
       error: () => {
         this.toast.error('Có lỗi xảy ra khi tạo quiz. Vui lòng thử lại.');
@@ -235,6 +242,11 @@ export class AssignmentQuizCreateComponent implements OnInit {
   }
 
   handleCancel() {
+    if (this.inOperationalWorkspace()) {
+      this.router.navigate(['/teacher/assessments/classes/quizzes']);
+      return;
+    }
+
     this.router.navigate(['/teacher/courses', this.courseId()]);
   }
 }

@@ -184,6 +184,12 @@ export class QuizEditComponent implements OnInit {
 
     return 'Khóa học tự học chỉ có một phạm vi duy nhất: toàn bộ học viên đã ghi danh trong khóa học.';
   });
+  readonly openedFromAssessmentsHub = computed(() => this.router.url.includes('/teacher/assessments/'));
+  readonly backButtonLabel = computed(() =>
+    this.openedFromAssessmentsHub()
+      ? 'Quay lại vận hành bài kiểm tra'
+      : 'Quay lại chương trình học'
+  );
 
   readonly quizForm = this.fb.group({
     timeLimitMinutes: [30, [Validators.min(5), Validators.max(120)]],
@@ -204,8 +210,8 @@ export class QuizEditComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.quizId.set(this.route.snapshot.paramMap.get('quizId'));
-    this.lessonId.set(this.route.snapshot.paramMap.get('lessonId'));
+    this.quizId.set(this.resolveRouteParam('quizId'));
+    this.lessonId.set(this.resolveRouteParam('lessonId'));
     void this.initialize();
   }
 
@@ -263,6 +269,11 @@ export class QuizEditComponent implements OnInit {
   }
 
   onCancel(): void {
+    if (this.openedFromAssessmentsHub()) {
+      void this.router.navigate(['/teacher/assessments', 'classes', 'quizzes']);
+      return;
+    }
+
     const quiz = this.quiz();
 
     if (quiz?.courseId) {
@@ -270,7 +281,7 @@ export class QuizEditComponent implements OnInit {
       return;
     }
 
-    void this.router.navigate(['/teacher/assessments', 'quizzes']);
+    void this.router.navigate(['/teacher/assessments', 'classes', 'quizzes']);
   }
 
   toggleQuestion(questionId: string, checked: boolean): void {
@@ -371,5 +382,32 @@ export class QuizEditComponent implements OnInit {
   private captureOriginalState(): void {
     this.originalFormSnapshot.set(JSON.stringify(this.quizForm.getRawValue()));
     this.originalQuestionSnapshot.set(JSON.stringify([...this.selectedQuestionIds()].sort()));
+  }
+
+  private resolveRouteParam(paramName: 'quizId' | 'lessonId'): string | null {
+    const currentValue = this.route.snapshot.paramMap.get(paramName);
+    if (currentValue) {
+      return currentValue;
+    }
+
+    for (const route of [...this.route.pathFromRoot].reverse()) {
+      const value = route.snapshot.paramMap.get(paramName);
+      if (value) {
+        return value;
+      }
+    }
+
+    const url = this.router.url;
+    if (paramName === 'quizId') {
+      const match = url.match(/\/quizzes\/([^/?#]+)/i);
+      return match?.[1] ?? null;
+    }
+
+    if (paramName === 'lessonId') {
+      const match = url.match(/\/lessons\/([^/?#]+)/i);
+      return match?.[1] ?? null;
+    }
+
+    return null;
   }
 }

@@ -90,29 +90,24 @@ export const teacherSidebarConfig: SidebarConfig = {
       group: 'Giảng dạy'
     },
     {
-      label: 'Bài tập & Chấm điểm',
+      label: 'Đánh giá',
       route: '/teacher/assessments',
       icon: 'blog',
       group: 'Giảng dạy',
       children: [
         {
-          label: 'Bài tập tự luận',
-          route: '/teacher/assessments/assignments',
-          icon: 'file-text'
+          label: 'Khóa học',
+          route: '/teacher/assessments/courses/overview',
+          icon: 'courses'
         },
         {
-          label: 'Thư viện Rubric',
-          route: '/teacher/assessments/rubrics',
-          icon: 'blog'
+          label: 'Lớp học',
+          route: '/teacher/assessments/classes/assignments',
+          icon: 'users'
         },
         {
-          label: 'Bài tập trắc nghiệm',
-          route: '/teacher/assessments/quizzes',
-          icon: 'check'
-        },
-        {
-          label: 'Ngân hàng câu hỏi',
-          route: '/teacher/assessments/question-bank',
+          label: 'Dùng chung',
+          route: '/teacher/assessments/shared/question-bank',
           icon: 'info'
         }
       ]

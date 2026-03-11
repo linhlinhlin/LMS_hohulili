@@ -191,7 +191,7 @@ import { LucideAngularModule } from 'lucide-angular';
           @if (store.filteredSubmissions().length === 0 && !store.loading()) {
             <div class="py-20 text-center border-t border-slate-100">
               <div class="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-300">
-                <lucide-icon name="clipboard-x" [size]="32"></lucide-icon>
+                <lucide-icon name="clipboard-list" [size]="32"></lucide-icon>
               </div>
               <h4 class="text-sm font-black text-slate-900">Không có bài nộp nào</h4>
               <p class="text-xs text-slate-400 mt-1 max-w-xs mx-auto font-medium">Thay đổi bộ lọc hoặc tìm kiếm để xem kết quả khác.</p>

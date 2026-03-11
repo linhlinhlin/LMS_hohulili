@@ -14,6 +14,7 @@ Use them differently.
 - `../backend/README.md`: backend-focused runbook and API notes.
 - `deployment/GITHUB_ACTIONS_DEPLOY.md`: GitHub Actions deployment runbook.
 - `architecture/COURSE_VS_CLASS_LESSON_BOUNDARY.md`: recommended boundary between course-owned lessons and class-owned delivery overlays.
+- `architecture/TEACHER_ASSESSMENTS_CONTEXT_SPLIT.md`: teacher assessment workspace split between course authoring, class delivery, and shared assets.
 - `reports/2026-03-07-authoring-and-runtime-status.md`: current implementation snapshot for runtime hardening and teacher authoring.
 - `research/2026-03-09-authoring-frontend-design-audit.md`: current frontend design direction for teacher authoring routes.
 - `PWA_OFFLINE_RESEARCH.md`: deep offline architecture context.

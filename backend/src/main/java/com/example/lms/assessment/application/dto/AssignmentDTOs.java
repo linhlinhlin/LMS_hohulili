@@ -26,6 +26,9 @@ public class AssignmentDTOs {
         private String status;
         private int submissionsCount;
         private int totalStudents;
+        private String classId;
+        private String className;
+        private String distributionType;
         private int gradedCount;
         private int pendingCount;
         private Double averageScore;

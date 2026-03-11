@@ -23,8 +23,9 @@ import { RubricApi } from '../../../api/endpoints/rubric.api';
         <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 py-6">
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 class="text-2xl font-black text-slate-900 tracking-tight">Quản lý Rubric</h1>
-              <p class="text-sm text-slate-500 font-medium">Thiết kế và chuẩn hóa các tiêu chí đánh giá năng lực học viên</p>
+              <p class="text-[10px] font-black uppercase tracking-[0.18em] text-[#0056D2]">Dùng chung</p>
+              <h1 class="text-2xl font-black text-slate-900 tracking-tight">Thư viện Rubric dùng chung</h1>
+              <p class="text-sm text-slate-500 font-medium">Thiết kế rubric tái sử dụng cho cả khóa học tự học và lớp học có giảng viên.</p>
             </div>
             <div class="flex items-center gap-3">
               <a routerLink="create" 

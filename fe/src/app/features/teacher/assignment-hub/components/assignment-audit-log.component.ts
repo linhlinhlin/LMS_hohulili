@@ -128,7 +128,7 @@ export class AssignmentAuditLogComponent {
       'GRADE_UPDATED': 'edit-3',
       'FEEDBACK_ADDED': 'message-square',
       'RUBRIC_CHANGED': 'layout',
-      'DEADLINE_EXTENDED': 'calendar-clock',
+      'DEADLINE_EXTENDED': 'calendar',
       'ASSIGNMENT_DISTRIBUTED': 'users'
     };
     return icons[action] || 'check-circle';

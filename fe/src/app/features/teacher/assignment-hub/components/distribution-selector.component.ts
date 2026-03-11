@@ -86,10 +86,28 @@ export class DistributionSelectorComponent {
     return students.filter((student) => selectedIds.includes(student.id));
   });
 
+  headerTitle = computed(() => (
+    this.viewMode() === 'assigned' ? 'Đối tượng đang nhận bài' : 'Cấu hình phân phối'
+  ));
+
+  headerDescription = computed(() => {
+    if (this.distributionType() === 'CLASS') {
+      return 'Bài tập đang được giao cho một lớp học cụ thể trong không gian vận hành hiện tại.';
+    }
+
+    if (this.distributionType() === 'SPECIFIC_STUDENTS') {
+      return 'Bài tập đang được giao cho một nhóm học viên được chọn thủ công.';
+    }
+
+    return this.supportsClassDistribution()
+      ? 'Bài tập đang được giao cho toàn bộ học viên trong khóa học, không giới hạn theo lớp.'
+      : 'Bài tập đang áp dụng cho toàn bộ học viên đã ghi danh trong khóa học.';
+  });
+
   selectedClassName = computed(() => {
     const classId = this.selectedClassId();
     const learningClass = this.availableClasses().find((item) => item.id === classId);
-    return learningClass ? learningClass.name : 'Chua chon lop';
+    return learningClass ? learningClass.name : 'Chưa chọn lớp';
   });
 
   unassignedStudents = computed(() => {
@@ -126,12 +144,23 @@ export class DistributionSelectorComponent {
       : ['ALL_STUDENTS']
   ));
 
+  allStudentsLabel = computed(() => (
+    this.supportsClassDistribution() ? 'Toàn khóa học' : 'Toàn bộ học viên'
+  ));
+
+  allStudentsDescription = computed(() => (
+    this.supportsClassDistribution()
+      ? 'Giao cho toàn bộ học viên trong khóa học.'
+      : 'Áp dụng cho toàn bộ học viên đã ghi danh.'
+  ));
+
   constructor() {
     effect(
       () => {
         const courseId = this.courseId();
+        const supportsClassDistribution = this.supportsClassDistribution();
 
-        if (!courseId) {
+        if (!courseId || !supportsClassDistribution) {
           this.availableClasses.set([]);
           return;
         }

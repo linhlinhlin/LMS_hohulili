@@ -30,7 +30,7 @@ import { RubricApi } from '../../../api/endpoints/rubric.api';
         <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 py-5 font-sans">
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div class="flex items-center gap-4">
-              <a routerLink="/teacher/assessments/rubrics" class="p-2 bg-slate-50 border border-slate-100 text-slate-400 hover:text-[#0056D2] hover:bg-white hover:border-[#0056D2]/20 hover:shadow-sm rounded-xl transition-all">
+              <a routerLink="/teacher/assessments/shared/rubrics" class="p-2 bg-slate-50 border border-slate-100 text-slate-400 hover:text-[#0056D2] hover:bg-white hover:border-[#0056D2]/20 hover:shadow-sm rounded-xl transition-all">
                 <lucide-icon name="arrow-left" [size]="18"></lucide-icon>
               </a>
               <div>
@@ -105,7 +105,7 @@ import { RubricApi } from '../../../api/endpoints/rubric.api';
             @if (criteriaArray.length === 0) {
               <div class="py-20 text-center bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-200">
                 <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-slate-200 mx-auto mb-4 border border-slate-100 shadow-sm">
-                  <lucide-icon name="list-plus" [size]="32" strokeWidth="1"></lucide-icon>
+                  <lucide-icon name="plus" [size]="32" strokeWidth="1"></lucide-icon>
                 </div>
                 <p class="text-slate-400 font-black uppercase tracking-widest text-[10px]">Danh sách tiêu chí đang trống</p>
                 <button type="button" (click)="addCriterion()" class="mt-4 text-[10px] font-black text-[#0056D2] uppercase tracking-[0.2em] hover:underline">Bắt đầu thêm ngay</button>
@@ -118,7 +118,7 @@ import { RubricApi } from '../../../api/endpoints/rubric.api';
                     <div class="absolute -top-3 right-4 flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-all duration-300 z-20">
                       <button type="button" (click)="duplicateCriterion(i)" 
                               class="w-8 h-8 bg-white border border-slate-200 text-slate-400 hover:text-emerald-500 hover:border-emerald-100 hover:shadow-sm rounded-lg flex items-center justify-center transition-all bg-white" title="Nhân bản">
-                        <lucide-icon name="copy" [size]="14"></lucide-icon>
+                        <lucide-icon name="plus" [size]="14"></lucide-icon>
                       </button>
                       <button type="button" (click)="removeCriterion(i)" 
                               class="w-8 h-8 bg-white border border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-100 hover:shadow-sm rounded-lg flex items-center justify-center transition-all bg-white" title="Xóa">
@@ -156,13 +156,13 @@ import { RubricApi } from '../../../api/endpoints/rubric.api';
                       <div class="bg-slate-50/50 rounded-xl p-4 border border-slate-100 border-dashed">
                         <div class="flex items-center justify-between mb-4">
                           <h4 class="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                            <lucide-icon name="bar-chart-2" [size]="12"></lucide-icon>
+                            <lucide-icon name="layout" [size]="12"></lucide-icon>
                             Thang điểm chi tiết
                           </h4>
                           <div class="flex items-center gap-2">
                              <button type="button" (click)="autoPopulateScores(i)" 
                                     class="text-[9px] font-black text-slate-400 hover:text-emerald-600 uppercase tracking-widest flex items-center gap-1 transition-colors px-2">
-                              <lucide-icon name="zap" [size]="12"></lucide-icon>
+                              <lucide-icon name="target" [size]="12"></lucide-icon>
                               Tự động tính
                             </button>
                             <button type="button" (click)="addLevel(i)" 
@@ -286,7 +286,7 @@ import { RubricApi } from '../../../api/endpoints/rubric.api';
             </div>
             
             <!-- Contextual Actions -->
-            <button type="button" routerLink="/teacher/assessments/rubrics" 
+            <button type="button" routerLink="/teacher/assessments/shared/rubrics" 
                     class="h-12 w-full rounded-2xl bg-white border border-slate-200 text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center">
               Hủy bỏ & Quay lại
             </button>
@@ -540,7 +540,7 @@ export class RubricCreatorComponent implements OnInit {
     this.rubricApi.create(request).subscribe({
       next: () => {
         this.saving.set(false);
-        this.router.navigate(['/teacher/grading/rubrics']);
+        this.router.navigate(['/teacher/assessments/shared/rubrics']);
       },
       error: (err: any) => {
         this.saving.set(false);

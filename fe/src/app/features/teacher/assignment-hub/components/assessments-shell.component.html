@@ -1,0 +1,55 @@
+<section class="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur-md">
+  <div class="mx-auto max-w-screen-2xl px-4 py-4 sm:px-6">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div class="min-w-0">
+        <p class="text-[10px] font-black uppercase tracking-[0.18em] text-[#0056D2]">
+          {{ contextHeadline().eyebrow }}
+        </p>
+        <h1 class="mt-1 text-2xl font-black tracking-tight text-slate-900">
+          {{ contextHeadline().title }}
+        </h1>
+        <p class="mt-2 max-w-4xl text-sm font-medium leading-6 text-slate-500">
+          {{ contextHeadline().description }}
+        </p>
+      </div>
+
+      <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 shadow-sm">
+        <p class="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+          Điều hướng đánh giá
+        </p>
+        <p class="mt-1 font-semibold">
+          Tách rõ thiết kế ở cấp khóa học, vận hành theo lớp học, và tài sản dùng chung để giáo viên không bị lẫn ngữ cảnh.
+        </p>
+      </div>
+    </div>
+
+    <nav class="mt-4 flex flex-wrap gap-2">
+      @for (tab of contextTabs; track tab.id) {
+        <a
+          [routerLink]="tab.href"
+          routerLinkActive="border-[#0056D2] bg-[#0056D2]/5 text-[#0056D2]"
+          class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm transition-all hover:border-slate-300 hover:bg-slate-50"
+        >
+          <span class="block text-xs font-black uppercase tracking-[0.16em]">{{ tab.label }}</span>
+          <span class="mt-1 block max-w-xs text-xs font-medium leading-5 text-slate-500">
+            {{ tab.description }}
+          </span>
+        </a>
+      }
+    </nav>
+
+    <div class="mt-4 flex flex-wrap gap-2">
+      @for (item of subnavItems(); track item.href) {
+        <a
+          [routerLink]="item.href"
+          routerLinkActive="bg-slate-900 text-white border-slate-900"
+          class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-slate-500 transition-all hover:border-slate-300 hover:text-slate-800"
+        >
+          {{ item.label }}
+        </a>
+      }
+    </div>
+  </div>
+</section>
+
+<router-outlet></router-outlet>

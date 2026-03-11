@@ -1,5 +1,5 @@
 import { Component, OnInit, signal, inject, computed, ChangeDetectionStrategy, DestroyRef } from '@angular/core';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { QuizApi } from '../../../api/endpoints/quiz.api';
 import { firstValueFrom } from 'rxjs';
@@ -31,6 +31,15 @@ interface AttemptSummary {
   }[];
 }
 
+interface QuizGradingContext {
+  id: string;
+  title: string;
+  deliveryMode?: 'SELF_PACED' | 'INSTRUCTOR_LED' | string;
+  assignmentScope?: 'CLASS' | 'COURSE' | 'LESSON' | string;
+  className?: string | null;
+  courseTitle?: string | null;
+}
+
 @Component({
   selector: 'app-quiz-essay-grading',
   imports: [RouterModule, FormsModule],
@@ -40,9 +49,30 @@ interface AttemptSummary {
       <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Header -->
         <div class="mb-8">
-          <a routerLink=".." class="text-[#0056D2] hover:text-[#004BB5] text-sm mb-2 inline-block">&larr; Quay lại</a>
+          <button
+            type="button"
+            (click)="goBack()"
+            class="text-[#0056D2] hover:text-[#004BB5] text-sm mb-2 inline-block"
+          >&larr; {{ backButtonLabel() }}</button>
           <h1 class="text-2xl font-bold text-gray-900">Chấm điểm tự luận</h1>
           <p class="text-gray-600 mt-1">{{ quizTitle() }}</p>
+          @if (quizContext()) {
+            <div class="mt-4 grid gap-3 sm:grid-cols-3">
+              <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                <p class="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Chế độ triển khai</p>
+                <p class="mt-1 text-sm font-semibold text-slate-900">{{ deliveryModeLabel() }}</p>
+              </div>
+              <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                <p class="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">{{ scopeTitle() }}</p>
+                <p class="mt-1 text-sm font-semibold text-slate-900">{{ scopeLabel() }}</p>
+              </div>
+              <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                <p class="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Đối tượng đang nhận</p>
+                <p class="mt-1 text-sm font-semibold text-slate-900">{{ targetLabel() }}</p>
+              </div>
+            </div>
+            <p class="mt-3 text-sm font-medium leading-6 text-slate-600">{{ gradingContextHint() }}</p>
+          }
         </div>
 
         @if (loading()) {
@@ -56,7 +86,7 @@ interface AttemptSummary {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
             <h3 class="text-lg font-medium text-gray-900 mb-2">Không có bài tự luận cần chấm</h3>
-            <p class="text-gray-600">Tất cả bài tự luận đã được chấm điểm.</p>
+            <p class="text-gray-600">{{ emptyStateMessage() }}</p>
           </div>
         } @else {
           <!-- Stats -->
@@ -141,23 +171,140 @@ interface AttemptSummary {
 })
 export class QuizEssayGradingComponent implements OnInit {
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private quizApi = inject(QuizApi);
   private destroyRef = inject(DestroyRef);
 
   quizId = '';
   quizTitle = signal('');
+  quizContext = signal<QuizGradingContext | null>(null);
   loading = signal(true);
   grading = signal(false);
   essayItems = signal<EssayItem[]>([]);
 
   pendingCount = computed(() => this.essayItems().filter(i => !i.graded).length);
   gradedCount = computed(() => this.essayItems().filter(i => i.graded).length);
+  readonly deliveryModeLabel = computed(() => {
+    switch (this.quizContext()?.deliveryMode) {
+      case 'INSTRUCTOR_LED':
+        return 'Lớp học';
+      case 'SELF_PACED':
+        return 'Khóa học';
+      default:
+        return 'Chưa xác định';
+    }
+  });
+  readonly scopeTitle = computed(() =>
+    this.quizContext()?.deliveryMode === 'INSTRUCTOR_LED'
+      ? 'Phạm vi phân phối'
+      : 'Phạm vi áp dụng'
+  );
+  readonly scopeLabel = computed(() => {
+    const quiz = this.quizContext();
+
+    if (!quiz) {
+      return 'Chưa xác định';
+    }
+
+    if (quiz.deliveryMode === 'SELF_PACED') {
+      return 'Toàn khóa học';
+    }
+
+    switch (quiz.assignmentScope) {
+      case 'CLASS':
+        return 'Theo lớp';
+      case 'COURSE':
+        return 'Toàn khóa học';
+      default:
+        return 'Chưa xác định';
+    }
+  });
+  readonly targetLabel = computed(() => {
+    const quiz = this.quizContext();
+
+    if (!quiz) {
+      return 'Chưa xác định';
+    }
+
+    if (quiz.deliveryMode === 'SELF_PACED') {
+      return 'Toàn bộ học viên đã ghi danh';
+    }
+
+    if (quiz.assignmentScope === 'CLASS') {
+      return quiz.className || 'Lớp học chưa được đặt tên';
+    }
+
+    return 'Toàn bộ học viên trong khóa học';
+  });
+  readonly gradingContextHint = computed(() => {
+    const quiz = this.quizContext();
+
+    if (!quiz) {
+      return 'Đây là nơi chấm các câu tự luận của bài kiểm tra đang vận hành.';
+    }
+
+    if (quiz.deliveryMode === 'SELF_PACED') {
+      return 'Các bài tự luận trên màn này thuộc về bài kiểm tra đang áp dụng cho toàn bộ học viên đã ghi danh trong khóa học.';
+    }
+
+    if (quiz.assignmentScope === 'CLASS') {
+      return 'Các bài tự luận trên màn này thuộc về một bài kiểm tra đang được giao cho lớp học cụ thể trong không gian vận hành.';
+    }
+
+    return 'Các bài tự luận trên màn này thuộc về một bài kiểm tra đang áp dụng cho toàn bộ học viên trong khóa học.';
+  });
+  readonly emptyStateMessage = computed(() => {
+    const quiz = this.quizContext();
+
+    if (!quiz) {
+      return 'Tất cả bài tự luận đã được chấm điểm.';
+    }
+
+    if (quiz.deliveryMode === 'SELF_PACED') {
+      return 'Tất cả bài tự luận trong toàn khóa học đã được chấm điểm.';
+    }
+
+    if (quiz.assignmentScope === 'CLASS') {
+      return `Tất cả bài tự luận trong ${quiz.className || 'lớp học này'} đã được chấm điểm.`;
+    }
+
+    return 'Tất cả bài tự luận trong khóa học đã được chấm điểm.';
+  });
+  readonly openedFromAssessmentsHub = computed(() => this.router.url.includes('/teacher/assessments/'));
+  readonly backButtonLabel = computed(() =>
+    this.openedFromAssessmentsHub() ? 'Quay lại vận hành bài kiểm tra' : 'Quay lại'
+  );
 
   ngOnInit(): void {
-    this.quizId = this.route.snapshot.paramMap.get('quizId') || '';
+    this.quizId = this.resolveQuizId();
     if (this.quizId) {
       this.loadAttempts();
     }
+  }
+
+  goBack(): void {
+    if (this.openedFromAssessmentsHub()) {
+      void this.router.navigate(['/teacher/assessments', 'classes', 'quizzes']);
+      return;
+    }
+
+    void this.router.navigate(['..'], { relativeTo: this.route });
+  }
+
+  private resolveQuizId(): string {
+    const currentValue = this.route.snapshot.paramMap.get('quizId');
+    if (currentValue) {
+      return currentValue;
+    }
+
+    for (const route of [...this.route.pathFromRoot].reverse()) {
+      const value = route.snapshot.paramMap.get('quizId');
+      if (value) {
+        return value;
+      }
+    }
+
+    return this.router.url.match(/\/quizzes\/([^/?#]+)/i)?.[1] || '';
   }
 
   private async loadAttempts(): Promise<void> {
@@ -167,6 +314,14 @@ export class QuizEssayGradingComponent implements OnInit {
       const quizRes = await firstValueFrom(this.quizApi.getQuizById(this.quizId));
       const quiz = (quizRes as any)?.data || quizRes;
       this.quizTitle.set(quiz?.title || 'Quiz');
+      this.quizContext.set({
+        id: quiz?.id || this.quizId,
+        title: quiz?.title || 'Quiz',
+        deliveryMode: quiz?.deliveryMode,
+        assignmentScope: quiz?.assignmentScope,
+        className: quiz?.className ?? null,
+        courseTitle: quiz?.courseTitle ?? null,
+      });
 
       // Get quiz questions to identify essay types
       const questionsRes = await firstValueFrom(this.quizApi.getQuizQuestions(this.quizId));
@@ -220,6 +375,7 @@ export class QuizEssayGradingComponent implements OnInit {
 
       this.essayItems.set(items);
     } catch {
+      this.quizContext.set(null);
       this.essayItems.set([]);
     } finally {
       this.loading.set(false);

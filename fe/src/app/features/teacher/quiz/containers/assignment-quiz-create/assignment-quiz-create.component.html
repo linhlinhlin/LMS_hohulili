@@ -1,5 +1,15 @@
 <div class="container mx-auto px-4 py-8">
   <div class="mb-6">
+    @if (inOperationalWorkspace()) {
+      <div class="mb-4 rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3">
+        <p class="text-[10px] font-black uppercase tracking-[0.16em] text-[#0056D2]">Ngữ cảnh vận hành</p>
+        <p class="mt-1 text-sm font-medium leading-6 text-slate-700">
+          Quiz vẫn được neo vào khóa học và curriculum. Ở màn này bạn đang chốt
+          <span class="font-semibold text-slate-900">vị trí trong khóa học</span> và
+          <span class="font-semibold text-slate-900">phạm vi áp dụng</span> cho không gian vận hành assessment.
+        </p>
+      </div>
+    }
     <h2 class="text-2xl font-bold text-gray-800">Tạo bài kiểm tra</h2>
     @if (courseTitle()) {
       <p class="text-gray-600">Khóa học: {{ courseTitle() }}</p>

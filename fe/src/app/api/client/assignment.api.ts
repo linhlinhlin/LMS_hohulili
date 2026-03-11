@@ -50,6 +50,9 @@ export interface AssignmentSummary {
   status: AssignmentStatus;
   submissionsCount: number;
   totalStudents: number;
+  classId?: string;
+  className?: string;
+  distributionType?: 'CLASS' | 'SPECIFIC_STUDENTS' | 'ALL_STUDENTS';
   gradedCount: number;
   pendingCount: number;
   averageScore?: number;

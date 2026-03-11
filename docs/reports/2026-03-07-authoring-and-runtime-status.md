@@ -119,6 +119,76 @@ Implemented separation:
 
 ### 4.1 Quiz creation audit
 
+### 4.2 Teacher assessments workspace split
+
+- The teacher assessments hub now uses a context-first route structure instead of grouping screens only by assessment type.
+- Canonical routes are now:
+  - `/teacher/assessments/courses/overview`
+  - `/teacher/assessments/classes/assignments`
+  - `/teacher/assessments/classes/quizzes`
+  - `/teacher/assessments/classes/quizzes/create`
+  - `/teacher/assessments/classes/quizzes/create/:courseId`
+  - `/teacher/assessments/classes/quizzes/:quizId/editor`
+  - `/teacher/assessments/classes/quizzes/:quizId/essay-grading`
+  - `/teacher/assessments/shared/question-bank`
+  - `/teacher/assessments/shared/rubrics`
+- Product boundary in the hub is now explicit:
+  - `Khóa học`: canonical assessment authoring and jump-back into curriculum
+  - `Lớp học`: runtime delivery, submissions, grading, and audit for class-scoped and self-paced operational items
+  - `Dùng chung`: question bank and rubric library
+- The class-runtime assignment and quiz lists no longer flatten every item into one surface.
+  - assignment cards are now grouped into `Theo lớp và nhóm học viên`, `Toàn khóa học`, and `Chưa phân phối` when needed
+  - quiz cards are now grouped into `Theo lớp`, `Toàn khóa học`, and `Chưa phân phối`
+  - route titles were updated to `Vận hành bài tập` and `Vận hành bài kiểm tra` so browser metadata no longer implies that every item is class-only
+- Teacher sidebar navigation was updated to match the same mental model:
+  - root item label is now `Đánh giá`
+  - nested entries are now `Khóa học`, `Lớp học`, and `Dùng chung`
+- Mobile teacher navigation now also uses `Đánh giá` instead of the narrower `Bài tập`.
+- Assignment and quiz creation screens under the `Lớp học` context now explicitly explain the ownership model:
+  - canonical content is still anchored to the course/curriculum
+  - delivery, submissions, deadlines, and grading belong to the operational class workspace
+- Operational quiz cards now use more honest actions:
+  - `Mở editor` explicitly opens the canonical quiz editor
+  - `Chấm tự luận` goes straight to essay-grading for runtime review
+  - the old generic `Chi tiết` wording was removed because it implied a dedicated runtime detail page that does not yet exist
+- Quiz runtime inside the assessments workspace now stays on the honest, stable path:
+  - there is no separate quiz runtime detail shell yet
+  - `/teacher/assessments/classes/quizzes/:quizId/editor` opens the canonical quiz editor directly
+  - `/teacher/assessments/classes/quizzes/:quizId/essay-grading` opens runtime grading directly
+  - nested assessments routes now resolve `quizId` correctly inside `QuizEditComponent` and `QuizEssayGradingComponent`
+  - when opened from the assessments workspace, the back action on both screens now returns to `/teacher/assessments/classes/quizzes` instead of jumping back into curriculum
+- Legacy teacher routes and bookmarks still redirect correctly:
+  - `/teacher/assignments`
+  - `/teacher/rubrics`
+  - `/teacher/assessments/assignments`
+  - `/teacher/assessments/quizzes`
+  - `/teacher/assessments/rubrics`
+  - `/teacher/assessments/question-bank`
+- Runtime smoke on Docker confirmed:
+  - `/teacher/assessments` redirects to `/teacher/assessments/classes/assignments`
+  - old paths redirect into the new structure
+  - assignment, quiz, question-bank, and rubric screens render under the correct context shell
+  - assignment runtime now separates instructor-led classroom items from self-paced course-wide items in the list itself
+  - quiz runtime now surfaces class-scoped items separately from course-wide items, instead of relying only on per-card badges
+- Assignment detail/runtime screens were then hardened so they no longer fall back to class-centric language by default:
+  - the class-runtime shell now uses neutral `Vận hành` framing instead of labeling every runtime screen as `Lớp học`
+  - assignment detail pages surface an explicit runtime scope label such as `Theo lớp • <className>` or `Toàn khóa học`
+  - assignment overview now hydrates `distributionType`, `classId`, and `allocatedStudentIds` reactively from assignment detail, so instructor-led classroom items no longer fall back to `ALL_STUDENTS`
+  - distribution selector copy now distinguishes `Toàn khóa học`, `Theo lớp`, and selected-student runtime more clearly
+  - speed grader empty-state copy is now context-aware for self-paced, class-scoped, and targeted assignments
+- Quiz operations under the new assessments shell were then stabilized:
+  - the invalid `square-pen` icon usage was removed, leaving clean browser logs on the quizzes list route
+  - quiz list still separates `Theo lớp` and `Toàn khóa học` items, but now the list routes open stable screens instead of a half-built runtime detail shell
+  - quiz creation under `Lớp học / Vận hành` no longer jumps straight into the old generic course-shell wizard
+  - `/teacher/assessments/classes/quizzes/create` now acts as a launcher that selects the course first
+  - `/teacher/assessments/classes/quizzes/create/:courseId` then opens the scoped creation flow that can honestly express:
+    - self-paced -> `Toàn khóa học`
+    - instructor-led -> `Toàn khóa học` or `Lớp học cụ thể`
+  - class-scoped quiz editor now shows `Theo lớp` and the concrete class target correctly under `/teacher/assessments/classes/quizzes/:quizId/editor`
+  - self-paced quiz editor now shows `Toàn khóa học` and `Toàn bộ học viên đã ghi danh` correctly under the same route family
+  - essay grading now opens correctly for both class-scoped and self-paced quizzes inside the assessments workspace and uses the same context-aware back action
+  - self-paced quiz creation no longer triggers a failing class-load request, so browser logs remain clean on the new scoped create route
+
 There are currently three valid quiz authoring patterns in the product:
 
 - section-level quiz content inside a lecture lesson
@@ -256,6 +326,12 @@ Latest verified results:
 - browser verification passed for the `editor/info` semantics/layout refactor:
   - the hidden curriculum sidebar no longer appears in the info-screen reading order
   - the compact context strip renders ahead of the form sections without pushing the first editable fields too far down
+- browser verification passed for the new assessments quiz creation flow:
+  - `/teacher/assessments/classes/quizzes/create` renders the launcher with course selection and operational guidance
+  - choosing a course opens `/teacher/assessments/classes/quizzes/create/:courseId`
+  - self-paced scoped create shows course-wide-only guidance and no class-fetch console errors
+  - instructor-led scoped create exposes both `Toàn bộ khóa học` and `Lớp học cụ thể`
+  - canceling from the scoped create screen returns to `/teacher/assessments/classes/quizzes`
   - category selection appears before delivery-mode selection in the main metadata flow
   - invalid save on empty title shows both an error summary and an inline title error
   - invalid save on missing category focuses the correct category control

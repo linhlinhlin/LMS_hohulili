@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, ChangeDetectionStrategy, signal } from '@angular/core';
+import { Component, effect, inject, OnInit, ChangeDetectionStrategy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AssignmentDetailStore } from '../stores/assignment-detail.store';
@@ -106,8 +106,7 @@ import { ClassService } from '../../../../state/class.service';
             </div>
             <div class="flex flex-col items-center justify-center p-4 bg-slate-900 text-white rounded-xl shadow-lg">
               <p class="text-sm font-black uppercase">
-                {{ allocationStats()!.distributionType === 'ALL_STUDENTS' ? 'Toàn bộ' : 
-                   (allocationStats()!.distributionType === 'CLASS' ? 'Lớp học' : 'Cá nhân') }}
+                {{ getDistributionModeLabel() }}
               </p>
               <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-1">Chế độ phân phối</p>
             </div>
@@ -185,7 +184,7 @@ import { ClassService } from '../../../../state/class.service';
           <div class="relative flex flex-col md:flex-row items-center justify-between gap-6">
             <div class="text-center md:text-left">
               <h3 class="text-xl font-black text-white tracking-tight">{{ stats().pendingCount }} bài đang chờ đánh giá!</h3>
-              <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2">Bắt đầu chấm điểm ngay để hoàn tất tiến độ khóa học</p>
+              <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2">{{ getPendingReviewPrompt() }}</p>
             </div>
             <a routerLink="../submissions" [queryParams]="{filter: 'PENDING'}"
                class="px-8 py-4 bg-white text-slate-900 text-xs font-black rounded-xl hover:bg-slate-100 transition-all shadow-xl active:scale-95 uppercase tracking-widest">
@@ -219,44 +218,61 @@ export class AssignmentOverviewComponent implements OnInit {
   classStudentCount = signal(0);
   distributionSettings = signal<DistributionSettings | null>(null);
   allocationStats = signal<{ totalAllocated: number; distributionType: string; isIndividual: boolean } | null>(null);
+  private loadedSubmissionsFor = signal<string | null>(null);
+  private loadedStudentsFor = signal<string | null>(null);
 
-  ngOnInit(): void {
-    // Load submissions to get accurate stats
-    const assignmentId = this.assignment()?.id;
-    const courseId = this.assignment()?.courseId;
-    if (assignmentId) {
-      this.submissionsStore.loadSubmissions(assignmentId).subscribe({
-        next: () => {
-          // Update stats from loaded submissions
-          const submissions = this.submissionsStore.submissions();
-          this.assignmentStore.updateStatsFromSubmissions(submissions);
-        },
-        error: () => this.toast.error('Không thể tải danh sách bài nộp')
-      });
+  constructor() {
+    effect(
+      () => {
+        const assignment = this.assignment();
+        if (!assignment) {
+          return;
+        }
 
-    }
+        this.hydrateDistributionFromAssignment(assignment);
 
-    this.hydrateDistributionFromAssignment();
+        if (this.loadedSubmissionsFor() !== assignment.id) {
+          this.loadedSubmissionsFor.set(assignment.id);
+          this.submissionsStore.loadSubmissions(assignment.id).subscribe({
+            next: () => {
+              const submissions = this.submissionsStore.submissions();
+              this.assignmentStore.updateStatsFromSubmissions(submissions);
+            },
+            error: () => this.toast.error('Không thể tải danh sách bài nộp')
+          });
+        }
 
-    if (courseId) {
-      this.loadEnrolledStudents(courseId);
-    }
+        if (assignment.courseId && this.loadedStudentsFor() !== assignment.courseId) {
+          this.loadedStudentsFor.set(assignment.courseId);
+          this.loadEnrolledStudents(assignment.courseId);
+        }
+      },
+      { allowSignalWrites: true }
+    );
   }
 
-  private hydrateDistributionFromAssignment(): void {
-    const assignment = this.assignment();
-    if (!assignment) {
-      return;
-    }
+  ngOnInit(): void {
+    // Assignment hydration is driven by the reactive effect above.
+  }
+
+  private hydrateDistributionFromAssignment(assignment: {
+    distributionType?: DistributionType;
+    allocatedStudentIds?: string[];
+    classId?: string | null;
+  }): void {
+    const previousDistributionType = this.currentDistributionType();
+    const previousClassId = this.currentClassId();
 
     this.currentDistributionType.set(assignment.distributionType || 'ALL_STUDENTS');
     this.currentStudentIds.set(assignment.allocatedStudentIds || []);
     this.currentClassId.set(assignment.classId || null);
 
-    if (assignment.classId) {
+    if (assignment.classId && (assignment.classId !== previousClassId || previousDistributionType !== 'CLASS')) {
       this.loadClassStudentCount(assignment.classId);
     } else {
-      this.classStudentCount.set(0);
+      if (previousClassId !== null || previousDistributionType === 'CLASS') {
+        this.classStudentCount.set(0);
+      }
       this.updateAllocationStats();
     }
   }
@@ -340,6 +356,13 @@ export class AssignmentOverviewComponent implements OnInit {
         classId: settings.distributionType === 'CLASS' ? settings.classId || undefined : undefined,
         studentIds: settings.distributionType === 'SPECIFIC_STUDENTS' ? settings.studentIds || [] : undefined
       }).subscribe({
+        next: () => {
+          this.assignmentStore.updateAssignment({
+            distributionType: settings.distributionType,
+            classId: settings.distributionType === 'CLASS' ? settings.classId || undefined : undefined,
+            allocatedStudentIds: settings.distributionType === 'SPECIFIC_STUDENTS' ? settings.studentIds || [] : []
+          });
+        },
         error: () => this.toast.error('Không thể lưu cài đặt phân phối')
       });
     }
@@ -368,5 +391,37 @@ export class AssignmentOverviewComponent implements OnInit {
     }
     // Fallback to total students from assignment stats
     return this.stats().totalStudents || this.enrolledStudents().length;
+  }
+
+  getDistributionModeLabel(): string {
+    const distributionType = this.allocationStats()?.distributionType ?? this.currentDistributionType();
+
+    if (distributionType === 'CLASS') {
+      return 'Theo lớp';
+    }
+
+    if (distributionType === 'SPECIFIC_STUDENTS') {
+      return 'Cá nhân';
+    }
+
+    return 'Toàn khóa học';
+  }
+
+  getPendingReviewPrompt(): string {
+    const assignment = this.assignment();
+
+    if (assignment?.deliveryMode === 'SELF_PACED') {
+      return 'Bắt đầu chấm điểm để cập nhật tiến độ cho toàn bộ học viên đã ghi danh';
+    }
+
+    if (assignment?.distributionType === 'CLASS' && assignment.className) {
+      return `Bắt đầu chấm điểm để hoàn tất vòng đánh giá của ${assignment.className}`;
+    }
+
+    if (assignment?.distributionType === 'SPECIFIC_STUDENTS') {
+      return 'Bắt đầu chấm điểm để hoàn tất vòng đánh giá cho nhóm học viên đã chọn';
+    }
+
+    return 'Bắt đầu chấm điểm để hoàn tất vòng đánh giá của toàn khóa học';
   }
 }

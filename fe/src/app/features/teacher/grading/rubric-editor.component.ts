@@ -29,7 +29,7 @@ import { RubricApi } from '../../../api/endpoints/rubric.api';
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <div class="flex items-center gap-2 mb-1">
-                <a routerLink="/teacher/assessments/rubrics" class="p-1 -ml-1 text-slate-400 hover:text-[#0056D2] transition-colors">
+                <a routerLink="/teacher/assessments/shared/rubrics" class="p-1 -ml-1 text-slate-400 hover:text-[#0056D2] transition-colors">
                   <lucide-icon name="arrow-left" [size]="18"></lucide-icon>
                 </a>
               </div>
@@ -226,7 +226,7 @@ import { RubricApi } from '../../../api/endpoints/rubric.api';
 
               <!-- Contextual Actions -->
               <div class="space-y-3">
-                <button type="button" routerLink="/teacher/assessments/rubrics" 
+                <button type="button" routerLink="/teacher/assessments/shared/rubrics" 
                         class="h-12 w-full rounded-2xl bg-white border border-slate-200 text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center">
                   HỦY BỎ & QUAY LẠI
                 </button>
@@ -506,7 +506,7 @@ export class RubricEditorComponent implements OnInit {
     this.rubricApi.update(this.rubricId()!, request).subscribe({
       next: () => {
         this.saving.set(false);
-        this.router.navigate(['/teacher/grading/rubrics']);
+        this.router.navigate(['/teacher/assessments/shared/rubrics']);
       },
       error: (err: any) => {
         this.saving.set(false);

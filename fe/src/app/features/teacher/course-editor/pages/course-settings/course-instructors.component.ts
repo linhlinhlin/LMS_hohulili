@@ -171,7 +171,7 @@ import { LucideAngularModule } from 'lucide-angular';
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200" (click)="$event.stopPropagation()">
           <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
             <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-              <lucide-icon name="shield-check" [size]="16" class="text-[#0056D2]"></lucide-icon>
+              <lucide-icon name="settings" [size]="16" class="text-[#0056D2]"></lucide-icon>
               Chỉnh sửa quyền
             </h3>
             <button (click)="closePermissionsModal()" class="text-slate-400 hover:text-slate-600 transition-colors">

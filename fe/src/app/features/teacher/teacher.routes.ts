@@ -76,14 +76,14 @@ export const teacherRoutes: Routes = [
       },
       {
         path: 'assignments',
-        redirectTo: 'assessments',
+        redirectTo: 'assessments/classes/assignments',
         pathMatch: 'full'
       },
 
       // Legacy routes (backward compatibility)
       {
         path: 'assignment-creation',
-        redirectTo: 'assignments/create',
+        redirectTo: 'assessments/classes/assignments/create',
         pathMatch: 'full'
       },
       {
@@ -142,7 +142,7 @@ export const teacherRoutes: Routes = [
       // Grading Routes (redirect to unified Assignment Hub)
       {
         path: 'grading',
-        redirectTo: 'assessments',
+        redirectTo: 'assessments/classes/assignments',
         pathMatch: 'full'
       },
       {
@@ -157,12 +157,12 @@ export const teacherRoutes: Routes = [
       },
       {
         path: 'grading/rubrics',
-        redirectTo: 'assignments/rubrics',
+        redirectTo: 'assessments/shared/rubrics',
         pathMatch: 'full'
       },
       {
         path: 'rubrics',
-        redirectTo: 'assignments/rubrics',
+        redirectTo: 'assessments/shared/rubrics',
         pathMatch: 'full'
       },
 

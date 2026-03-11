@@ -26,6 +26,15 @@ import { ToastService } from '../../../core/services/toast.service';
                 <p class="text-gray-600 text-base font-normal leading-normal">Tạo bài kiểm tra mới theo từng bước.</p>
               </div>
             </div>
+
+            <div class="mb-6 rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3">
+              <p class="text-[10px] font-black uppercase tracking-[0.16em] text-[#0056D2]">Ngữ cảnh vận hành</p>
+              <p class="mt-1 text-sm font-medium leading-6 text-slate-700">
+                Bạn đang tạo bài kiểm tra để vận hành cho lớp học, nhóm học viên, hoặc toàn bộ học viên đã ghi danh. Quiz vẫn
+                được neo vào <span class="font-semibold text-slate-900">khóa học</span> và curriculum; phần phân phối, lượt làm
+                bài và theo dõi kết quả thuộc về không gian <span class="font-semibold text-slate-900">vận hành assessment</span>.
+              </p>
+            </div>
     
             <!-- Tabs removed as per requirement -->
     
@@ -426,7 +435,7 @@ export class QuizCreateComponent implements OnInit {
 
   handleCancel() {
     if (this.currentStep() === 1) {
-      this.router.navigate(['/teacher/assessments/quizzes']);
+      this.router.navigate(['/teacher/assessments/classes/quizzes']);
     } else {
       this.currentStep.set(this.currentStep() - 1);
     }
@@ -456,7 +465,7 @@ export class QuizCreateComponent implements OnInit {
 
       this.toast.success('Tạo bài kiểm tra thành công!');
       // Navigate to assessment list
-      this.router.navigate(['/teacher/assessments/quizzes']);
+      this.router.navigate(['/teacher/assessments/classes/quizzes']);
     } catch (error: any) {
       this.toast.error('Lỗi khi tạo bài kiểm tra: ' + (error?.message || 'Không xác định'));
     } finally {

@@ -37,16 +37,24 @@ interface EnrolledStudentData {
       <div class="flex items-center justify-between mb-8">
         <div>
           <nav class="flex items-center gap-2 text-xs text-gray-500 mb-2">
-            <a routerLink="/teacher/assignments" class="hover:text-[#0056D2] transition-colors">Bài tập</a>
+            <a routerLink="/teacher/assessments/classes/assignments" class="hover:text-[#0056D2] transition-colors">Bài tập</a>
             <span>/</span>
             <span class="text-gray-900 font-medium">Tạo mới</span>
           </nav>
           <h1 class="text-2xl font-bold text-gray-900">Thiết lập bài tập mới</h1>
         </div>
-        <a routerLink="/teacher/assignments" 
+        <a routerLink="/teacher/assessments/classes/assignments" 
            class="px-5 py-2.5 rounded-lg border border-gray-300 font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm">
           Hủy bỏ
         </a>
+      </div>
+
+      <div class="mb-6 rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3">
+        <p class="text-[10px] font-black uppercase tracking-[0.16em] text-[#0056D2]">Ngữ cảnh vận hành</p>
+        <p class="mt-1 text-sm font-medium leading-6 text-slate-700">
+          {{ operationalContextLabel() }} Nội dung gốc vẫn gắn với <span class="font-semibold text-slate-900">khóa học</span>; phần phân phối,
+          hạn nộp, bài nộp và chấm điểm thuộc về không gian <span class="font-semibold text-slate-900">vận hành assessment</span>.
+        </p>
       </div>
 
       <form [formGroup]="form" (ngSubmit)="onSubmit()" class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
@@ -182,7 +190,7 @@ interface EnrolledStudentData {
                       </svg>
                     </div>
                     <p class="text-sm font-medium text-gray-500 max-w-xs">
-                      Chọn khóa học để thiết lập danh sách học viên
+                      Chọn khóa học để tải danh sách lớp học và học viên
                     </p>
                  </div>
               }
@@ -286,11 +294,25 @@ export class AssignmentCreationComponent implements OnInit {
   courses = signal<CourseSummary[]>([]);
   loadingCourses = signal(false);
   attachedFiles = signal<UploadedFile[]>([]);
+  selectedCourseId = signal('');
   selectedCourse = computed(() => {
-    const courseId = this.form.controls.courseId.value;
+    const courseId = this.selectedCourseId();
     return this.courses().find((course) => course.id === courseId) ?? null;
   });
   supportsClassDistribution = computed(() => this.selectedCourse()?.deliveryMode === 'INSTRUCTOR_LED');
+  operationalContextLabel = computed(() => {
+    const course = this.selectedCourse();
+
+    if (!course) {
+      return 'Chọn khóa học để xác định bài tập này sẽ được vận hành theo lớp hay trên toàn khóa học.';
+    }
+
+    if (course.deliveryMode === 'INSTRUCTOR_LED') {
+      return 'Bài tập này sẽ được vận hành theo lớp học, nhóm học viên, hoặc toàn bộ học viên trong khóa học.';
+    }
+
+    return 'Bài tập này sẽ áp dụng cho toàn bộ học viên đã ghi danh trong khóa học, không chia theo lớp.';
+  });
 
   // Distribution state
   enrolledStudents = signal<EnrolledStudentData[]>([]);
@@ -336,6 +358,8 @@ export class AssignmentCreationComponent implements OnInit {
 
     // Watch for course selection changes
     this.form.controls.courseId.valueChanges.subscribe((courseId: string | null) => {
+      this.selectedCourseId.set(courseId ?? '');
+
       if (courseId) {
         this.loadEnrolledStudents(courseId);
       } else {
@@ -348,6 +372,8 @@ export class AssignmentCreationComponent implements OnInit {
         classId: null
       });
     });
+
+    this.selectedCourseId.set(this.form.controls.courseId.value ?? '');
   }
 
   /**
@@ -489,7 +515,7 @@ export class AssignmentCreationComponent implements OnInit {
           this.success.set('Tạo bài tập thành công!');
           // Navigate after short delay to show success message
           setTimeout(() => {
-            this.router.navigate(['/teacher/assignments']);
+            this.router.navigate(['/teacher/assessments/classes/assignments']);
           }, 1000);
         } else {
           this.error.set(this.assignmentState.error() || 'Tạo bài tập thất bại');

@@ -33,7 +33,7 @@ import { RubricApi, RubricDTO, RubricCriterionDTO } from '../../../../api/endpoi
         
         <div class="flex items-center gap-3">
           @if (!rubric()) {
-            <a routerLink="/teacher/assignments/rubrics" 
+            <a routerLink="/teacher/assessments/shared/rubrics" 
                class="h-10 px-5 flex items-center justify-center rounded-xl bg-[#0056D2] text-white font-black text-[10px] uppercase tracking-widest hover:bg-[#004BB5] transition-all shadow-lg shadow-blue-100">
               <lucide-icon name="plus" [size]="14" class="mr-2"></lucide-icon>
               Chọn từ thư viện
@@ -126,7 +126,7 @@ import { RubricApi, RubricDTO, RubricCriterionDTO } from '../../../../api/endpoi
             <p class="text-sm text-slate-500 font-medium max-w-xs mb-8">
               Gắn Rubric vào bài tập để chuẩn hóa quy trình chấm điểm và cung cấp phản hồi minh bạch cho học viên.
             </p>
-            <a routerLink="/teacher/assignments/rubrics" 
+            <a routerLink="/teacher/assessments/shared/rubrics" 
                class="h-11 px-8 rounded-xl bg-white border border-slate-200 text-slate-600 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm flex items-center gap-2">
               <lucide-icon name="search" [size]="14" class="text-blue-500"></lucide-icon>
               Duyệt thư viện Rubric

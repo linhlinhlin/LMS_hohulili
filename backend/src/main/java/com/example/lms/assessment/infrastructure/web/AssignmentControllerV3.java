@@ -27,7 +27,11 @@ import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -68,7 +72,7 @@ public class AssignmentControllerV3 {
     public ResponseEntity<ApiResponse<Object>> getTeacherAssignmentsSummary(
             @AuthenticationPrincipal UserJpaEntity user) {
         var summary = getTeacherAssignmentsSummaryUseCase.execute(user.getId());
-        return ResponseEntity.ok(ApiResponse.success(summary));
+        return ResponseEntity.ok(ApiResponse.success(enrichAssignmentSummaries(summary)));
     }
 
     @GetMapping("/courses/{courseId}")
@@ -296,6 +300,106 @@ public class AssignmentControllerV3 {
                 .createdAt(assignment.getCreatedAt() != null ? assignment.getCreatedAt().toString() : null)
                 .updatedAt(assignment.getUpdatedAt() != null ? assignment.getUpdatedAt().toString() : null)
                 .maxScore(assignment.getMaxScore() != null ? assignment.getMaxScore().doubleValue() : 100.0)
+                .build();
+    }
+
+    private List<com.example.lms.assessment.application.dto.AssignmentDTOs.AssignmentSummary> enrichAssignmentSummaries(
+            List<com.example.lms.assessment.application.dto.AssignmentDTOs.AssignmentSummary> summaries) {
+        if (summaries == null || summaries.isEmpty()) {
+            return List.of();
+        }
+
+        List<UUID> assignmentIds = summaries.stream()
+                .map(summary -> UUID.fromString(summary.getId()))
+                .toList();
+
+        Map<UUID, com.example.lms.assessment.infrastructure.persistence.entity.AssignmentAllocationJpaEntity> activeAllocations =
+                allocationRepository.findByAssignmentIdIn(assignmentIds).stream()
+                        .filter(candidate -> Boolean.TRUE.equals(candidate.getIsActive()))
+                        .collect(Collectors.toMap(
+                                com.example.lms.assessment.infrastructure.persistence.entity.AssignmentAllocationJpaEntity::getAssignmentId,
+                                Function.identity(),
+                                (left, right) -> {
+                                    var leftAllocatedAt = left.getAllocatedAt();
+                                    var rightAllocatedAt = right.getAllocatedAt();
+                                    if (leftAllocatedAt == null) {
+                                        return right;
+                                    }
+                                    if (rightAllocatedAt == null) {
+                                        return left;
+                                    }
+                                    return rightAllocatedAt.isAfter(leftAllocatedAt) ? right : left;
+                                }
+                        ));
+
+        Map<UUID, List<String>> allocatedStudentsByAllocationId = allocationStudentRepository.findByAllocationIdIn(
+                        activeAllocations.values().stream()
+                                .map(com.example.lms.assessment.infrastructure.persistence.entity.AssignmentAllocationJpaEntity::getId)
+                                .toList()
+                ).stream()
+                .collect(Collectors.groupingBy(
+                        student -> student.getAllocationId(),
+                        Collectors.mapping(student -> student.getStudentId().toString(), Collectors.toList())
+                ));
+
+        Set<UUID> classIds = activeAllocations.values().stream()
+                .map(com.example.lms.assessment.infrastructure.persistence.entity.AssignmentAllocationJpaEntity::getClassId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<UUID, String> classNamesById = classRepository.findAllById(classIds).stream()
+                .collect(Collectors.toMap(
+                        learningClass -> learningClass.getId(),
+                        learningClass -> learningClass.getName()
+                ));
+
+        return summaries.stream()
+                .map(summary -> enrichAssignmentSummary(summary, activeAllocations, allocatedStudentsByAllocationId, classNamesById))
+                .toList();
+    }
+
+    private com.example.lms.assessment.application.dto.AssignmentDTOs.AssignmentSummary enrichAssignmentSummary(
+            com.example.lms.assessment.application.dto.AssignmentDTOs.AssignmentSummary summary,
+            Map<UUID, com.example.lms.assessment.infrastructure.persistence.entity.AssignmentAllocationJpaEntity> activeAllocations,
+            Map<UUID, List<String>> allocatedStudentsByAllocationId,
+            Map<UUID, String> classNamesById) {
+        UUID assignmentId = UUID.fromString(summary.getId());
+        var allocation = activeAllocations.get(assignmentId);
+
+        String distributionType = allocation != null && allocation.getDistributionType() != null && !allocation.getDistributionType().isBlank()
+                ? allocation.getDistributionType()
+                : "ALL_STUDENTS";
+
+        List<String> allocatedStudentIds = allocation != null
+                ? allocatedStudentsByAllocationId.getOrDefault(allocation.getId(), List.of())
+                : List.of();
+
+        UUID classId = allocation != null ? allocation.getClassId() : null;
+        int totalStudents = switch (distributionType) {
+            case "CLASS" -> classId != null ? (int) enrollmentRepository.countByClassId(classId) : 0;
+            case "SPECIFIC_STUDENTS" -> allocatedStudentIds.size();
+            default -> summary.getTotalStudents();
+        };
+
+        return com.example.lms.assessment.application.dto.AssignmentDTOs.AssignmentSummary.builder()
+                .id(summary.getId())
+                .title(summary.getTitle())
+                .description(summary.getDescription())
+                .dueDate(summary.getDueDate())
+                .courseId(summary.getCourseId())
+                .courseTitle(summary.getCourseTitle())
+                .deliveryMode(summary.getDeliveryMode())
+                .status(summary.getStatus())
+                .submissionsCount(summary.getSubmissionsCount())
+                .totalStudents(totalStudents)
+                .classId(classId != null ? classId.toString() : null)
+                .className(classId != null ? classNamesById.get(classId) : null)
+                .distributionType(distributionType)
+                .gradedCount(summary.getGradedCount())
+                .pendingCount(summary.getPendingCount())
+                .averageScore(summary.getAverageScore())
+                .createdAt(summary.getCreatedAt())
+                .updatedAt(summary.getUpdatedAt())
                 .build();
     }
 

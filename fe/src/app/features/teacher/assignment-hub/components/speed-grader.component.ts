@@ -272,12 +272,26 @@ import { ToastService } from '../../../../core/services/toast.service';
             </div>
           </div>
         </div>
+      } @else if (noSubmissionAvailable()) {
+        <div class="flex-1 flex flex-col items-center justify-center bg-white px-8 text-center">
+          <div class="w-20 h-20 rounded-[2rem] bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300 shadow-sm">
+            <lucide-icon name="file-question" [size]="32" class="text-[#0056D2]/30"></lucide-icon>
+          </div>
+          <h3 class="mt-6 text-sm font-black text-slate-800 uppercase tracking-[0.28em]">Chưa có bài nộp để chấm</h3>
+          <p class="mt-3 max-w-sm text-sm font-medium leading-6 text-slate-500">
+            {{ getNoSubmissionMessage() }}
+          </p>
+          <button (click)="goBack()"
+                  class="mt-6 h-11 px-6 rounded-2xl bg-[#0056D2] text-white text-xs font-black uppercase tracking-[0.14em] shadow-md shadow-blue-100 transition-all hover:bg-[#004BB5]">
+            Quay lại bài nộp
+          </button>
+        </div>
       } @else {
         <div class="flex-1 flex flex-col items-center justify-center bg-white">
           <div class="relative">
             <div class="w-24 h-24 border-8 border-slate-50 border-t-[#0056D2] rounded-full animate-spin"></div>
             <div class="absolute inset-0 flex items-center justify-center">
-              <lucide-icon name="shield-check" [size]="32" class="text-[#0056D2]/20"></lucide-icon>
+              <lucide-icon name="file-edit" [size]="32" class="text-[#0056D2]/20"></lucide-icon>
             </div>
           </div>
           <h3 class="text-sm font-black text-slate-800 uppercase tracking-[0.34em] mt-8">Đang tải SpeedGrader™</h3>
@@ -298,6 +312,7 @@ export class SpeedGraderComponent implements OnInit {
 
   saving = signal(false);
   currentIndex = signal(0);
+  noSubmissionAvailable = signal(false);
 
   gradingForm = this.fb.group({
     score: [0, [Validators.required, Validators.min(0)]],
@@ -327,12 +342,17 @@ export class SpeedGraderComponent implements OnInit {
         error: () => this.toast.error('Không thể tải bài tập')
       });
       this.submissionsStore.loadSubmissions(assignmentId).subscribe({ next: () => {
+        if (this.submissionsStore.submissions().length === 0) {
+          this.noSubmissionAvailable.set(true);
+          return;
+        }
         if (submissionId) {
           const idx = this.submissionsStore.submissions().findIndex(s => s.id === submissionId);
           if (idx >= 0) this.currentIndex.set(idx);
           // Load full detail for current submission
           this.loadCurrentSubmissionDetail();
         }
+        this.noSubmissionAvailable.set(false);
         this.loadCurrentGrade();
       }, error: () => this.toast.error('Không thể tải danh sách bài nộp') });
     }
@@ -373,6 +393,24 @@ export class SpeedGraderComponent implements OnInit {
       this.loadCurrentGrade();
       this.loadCurrentSubmissionDetail();
     }
+  }
+
+  getNoSubmissionMessage(): string {
+    const assignment = this.assignmentStore.assignment();
+
+    if (assignment?.deliveryMode === 'SELF_PACED') {
+      return 'Bài tập này hiện chưa có bài nộp trong toàn khóa học. Hãy quay lại danh sách bài nộp để kiểm tra trạng thái phân phối hoặc chờ học viên nộp bài.';
+    }
+
+    if (assignment?.distributionType === 'CLASS' && assignment.className) {
+      return `Bài tập này hiện chưa có bài nộp trong lớp ${assignment.className}. Hãy quay lại danh sách bài nộp để kiểm tra trạng thái phân phối hoặc chờ học viên nộp bài.`;
+    }
+
+    if (assignment?.distributionType === 'SPECIFIC_STUDENTS') {
+      return 'Bài tập này hiện chưa có bài nộp từ nhóm học viên đã được giao. Hãy quay lại danh sách bài nộp để kiểm tra trạng thái phân phối hoặc chờ học viên nộp bài.';
+    }
+
+    return 'Bài tập này hiện chưa có bài nộp trong không gian vận hành hiện tại. Hãy quay lại danh sách bài nộp để kiểm tra trạng thái phân phối hoặc chờ học viên nộp bài.';
   }
 
   setScore(score: number): void {
@@ -426,6 +464,6 @@ export class SpeedGraderComponent implements OnInit {
 
   goBack(): void {
     const assignmentId = this.assignmentStore.assignmentId();
-    this.router.navigate(['/teacher/assignments', assignmentId, 'submissions']);
+    this.router.navigate(['/teacher/assessments/classes/assignments', assignmentId, 'submissions']);
   }
 }

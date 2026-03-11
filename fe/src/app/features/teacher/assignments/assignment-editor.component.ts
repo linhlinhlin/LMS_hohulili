@@ -421,7 +421,7 @@ export class AssignmentEditorComponent implements OnInit {
     this.assignmentState.deleteAssignment(this.assignmentId).subscribe({
       next: (success: unknown) => {
         if (success) {
-          this.router.navigate(['/teacher/assignments']);
+          this.router.navigate(['/teacher/assessments/classes/assignments']);
         } else {
           this.formError.set(this.assignmentState.error() || 'Xóa bài tập thất bại');
           this.showDeleteConfirm.set(false);
