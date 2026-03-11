@@ -98,6 +98,15 @@ cloudflare:
     secret-key: ${CLOUDFLARE_R2_SECRET_KEY:}
     bucket: ${CLOUDFLARE_R2_BUCKET:lms-files}
     public-url: ${CLOUDFLARE_R2_PUBLIC_URL:}
+  # Cloudflare Stream (video hosting + multi-quality transcoding)
+  # Set CLOUDFLARE_STREAM_ENABLED=true and fill remaining vars to enable
+  stream:
+    enabled: ${CLOUDFLARE_STREAM_ENABLED:false}
+    account-id: ${CLOUDFLARE_ACCOUNT_ID:}
+    api-token: ${CLOUDFLARE_STREAM_API_TOKEN:}
+    key-id: ${CLOUDFLARE_STREAM_KEY_ID:}
+    private-key: ${CLOUDFLARE_STREAM_PRIVATE_KEY:}
+    token-expiry-seconds: ${CLOUDFLARE_STREAM_TOKEN_EXPIRY:14400}
 
 # Actuator - Production endpoints
 management:

@@ -310,6 +310,14 @@ export class CourseDownloadService {
       // Progress will be synced next time user goes online
     }
 
+    // Delete offline videos from Cache API before removing lesson records
+    const lessonsToRemove = await offlineDb.lessons.where('[userId+courseId]').equals([userId, courseId]).toArray();
+    for (const l of lessonsToRemove) {
+      if (this.videoService.isAvailableOffline(l.id)) {
+        await this.videoService.deleteVideo(l.id);
+      }
+    }
+
     await offlineDb.lessons.where('[userId+courseId]').equals([userId, courseId]).delete();
     await offlineDb.chapters.where('[userId+courseId]').equals([userId, courseId]).delete();
     await offlineDb.quizData.where('[userId+courseId]').equals([userId, courseId]).delete();

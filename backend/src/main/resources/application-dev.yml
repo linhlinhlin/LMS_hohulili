@@ -103,6 +103,8 @@ app:
 cloudflare:
   r2:
     enabled: false
+  stream:
+    enabled: false  # Set true + fill env vars to test CF Stream locally
 
 # Wiii AI Integration (Sprint 175: "Cắm Phích Cắm")
 # Secrets loaded from environment variables — NEVER hardcode in git
