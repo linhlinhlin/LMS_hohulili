@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Use case for offline sync operations.
@@ -298,7 +299,14 @@ public class SyncUseCase {
 
     /**
      * Quiz attempt: Server-wins (quiz grading is authoritative).
-     * Submits offline answers for grading if attempt is still in progress.
+     *
+     * <p>Offline quiz flow:
+     * <ol>
+     *   <li>Client queues {quizId, answers: Map&lt;questionId, optionKey&gt;} (no server attemptId yet)</li>
+     *   <li>Server calls startAttempt(quizId, studentId) to create a real attempt</li>
+     *   <li>Server transforms map answers → List&lt;AttemptAnswer&gt;</li>
+     *   <li>Server grades via submitAttempt(attemptId, answers)</li>
+     * </ol>
      */
     @SuppressWarnings("unchecked")
     private boolean processQuizAttempt(UUID studentId, SyncOperation op,
@@ -307,59 +315,73 @@ public class SyncUseCase {
         if (payload == null) return false;
 
         try {
-            UUID attemptId = parseUUID(payload, "attemptId");
-            if (attemptId == null) {
+            // Offline payload sends quizId (not a pre-existing server attemptId)
+            UUID quizId = parseUUID(payload, "quizId");
+            if (quizId == null) {
                 conflicts.add(new SyncResponse.Conflict("quizAttempt",
-                        extractEntityId(op), "Thiếu attemptId"));
+                        extractEntityId(op), "Thiếu quizId"));
                 return false;
             }
 
-            // Extract answers from payload
+            // Step 1: Start a server-side attempt for grading
+            QuizAttempt attempt = quizAttemptUseCase.startAttempt(quizId, studentId);
+
+            // Step 2: Convert answers from Map<questionId, optionKey> to List<AttemptAnswer>
             Object answersObj = payload.get("answers");
             if (answersObj == null) {
                 conflicts.add(new SyncResponse.Conflict("quizAttempt",
-                        attemptId.toString(), "Thiếu danh sách câu trả lời"));
+                        quizId.toString(), "Thiếu danh sách câu trả lời"));
                 return false;
             }
 
             List<QuizAttempt.AttemptAnswer> answers = new ArrayList<>();
-            if (answersObj instanceof List<?> answersList) {
-                for (Object item : answersList) {
-                    if (item instanceof Map<?, ?> answerMap) {
-                        Map<String, Object> m = (Map<String, Object>) answerMap;
-                        UUID questionId = parseUUID(m, "questionId");
-                        String selectedOption = getString(m, "answer");
-                        if (questionId != null) {
-                            answers.add(QuizAttempt.AttemptAnswer.builder()
-                                    .questionId(questionId)
-                                    .selectedOption(selectedOption)
-                                    .build());
-                        }
+            if (answersObj instanceof Map<?, ?> answersMap) {
+                // Client stores: { "questionUUID": "optionKey" } or { "questionUUID": ["A","B"] }
+                for (Map.Entry<?, ?> entry : answersMap.entrySet()) {
+                    String qIdStr = entry.getKey().toString();
+                    Object val = entry.getValue();
+                    String selectedOption = null;
+                    if (val instanceof String s) {
+                        selectedOption = s;
+                    } else if (val instanceof List<?> list && !list.isEmpty()) {
+                        selectedOption = list.stream().map(Object::toString).collect(Collectors.joining(","));
+                    } else if (val != null) {
+                        selectedOption = val.toString();
+                    }
+                    try {
+                        answers.add(QuizAttempt.AttemptAnswer.builder()
+                                .questionId(UUID.fromString(qIdStr))
+                                .selectedOption(selectedOption)
+                                .build());
+                    } catch (IllegalArgumentException e) {
+                        log.warn("Invalid questionId in offline quiz sync: {}", qIdStr);
                     }
                 }
             }
 
             if (answers.isEmpty()) {
                 conflicts.add(new SyncResponse.Conflict("quizAttempt",
-                        attemptId.toString(), "Danh sách câu trả lời trống"));
+                        quizId.toString(), "Danh sách câu trả lời trống"));
                 return false;
             }
 
-            quizAttemptUseCase.submitAttempt(attemptId, answers);
-            log.debug("Quiz attempt synced: student={}, attempt={}", studentId, attemptId);
+            // Step 3: Submit for server-side grading
+            quizAttemptUseCase.submitAttempt(attempt.getId(), answers);
+            log.debug("Offline quiz attempt synced: student={}, quiz={}, attempt={}",
+                    studentId, quizId, attempt.getId());
             return true;
         } catch (IllegalArgumentException | NoSuchElementException e) {
             log.warn("Quiz attempt sync validation failed: {}", e.getMessage());
-            String attemptIdStr = getString(payload, "attemptId");
+            String quizIdStr = getString(payload, "quizId");
             conflicts.add(new SyncResponse.Conflict("quizAttempt",
-                    attemptIdStr != null ? attemptIdStr : extractEntityId(op),
+                    quizIdStr != null ? quizIdStr : extractEntityId(op),
                     "Lỗi đồng bộ bài kiểm tra: " + e.getMessage()));
             return false;
         } catch (RuntimeException e) {
             log.error("Quiz attempt sync unexpected error: {}", e.getMessage(), e);
-            String attemptIdStr = getString(payload, "attemptId");
+            String quizIdStr = getString(payload, "quizId");
             conflicts.add(new SyncResponse.Conflict("quizAttempt",
-                    attemptIdStr != null ? attemptIdStr : extractEntityId(op),
+                    quizIdStr != null ? quizIdStr : extractEntityId(op),
                     "Lỗi đồng bộ bài kiểm tra: " + e.getMessage()));
             return false;
         }

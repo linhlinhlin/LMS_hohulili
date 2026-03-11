@@ -139,6 +139,9 @@ export class OfflineSyncService {
           try {
             await this.syncItem(item);
             await offlineDb.syncQueue.update(item.id!, { syncStatus: 'synced' });
+            if (item.entityType === 'quizAttempt') {
+              await this.markQuizAttemptSynced(item);
+            }
             result.synced++;
           } catch (error: any) {
             await this.handleSyncFailure(item, error);
@@ -338,7 +341,8 @@ export class OfflineSyncService {
         await offlineDb.syncQueue.update(item.id!, { syncStatus: 'synced' });
       }
 
-      // Handle conflicts returned by server
+      // Handle conflicts returned by server (overrides synced → failed for conflicted items)
+      const conflictedItemIds = new Set<number>();
       if (pushResult.conflicts?.length > 0) {
         for (const conflict of pushResult.conflicts) {
           // Find the matching item by entityType + entityId from payload
@@ -347,12 +351,20 @@ export class OfflineSyncService {
             this.extractEntityIdFromItem(i) === conflict.entityId
           ) || items.find(i => i.entityType === conflict.entityType);
 
-          if (matchingItem) {
-            await offlineDb.syncQueue.update(matchingItem.id!, {
+          if (matchingItem?.id != null) {
+            await offlineDb.syncQueue.update(matchingItem.id, {
               syncStatus: 'failed',
               lastError: `Xung đột: ${conflict.message}`,
             });
+            conflictedItemIds.add(matchingItem.id);
           }
+        }
+      }
+
+      // Mark quizAttempts records as synced (only for non-conflicted items)
+      for (const item of items) {
+        if (item.entityType === 'quizAttempt' && item.id != null && !conflictedItemIds.has(item.id)) {
+          await this.markQuizAttemptSynced(item);
         }
       }
 
@@ -373,12 +385,55 @@ export class OfflineSyncService {
   private extractEntityIdFromItem(item: SyncQueueItem): string | undefined {
     const payload = item.payload as Record<string, unknown> | null;
     if (!payload) return undefined;
-    const id = payload['id'] ?? payload['lessonId'] ?? payload['attemptId'] ?? payload['sectionId'];
+    const id = payload['id'] ?? payload['quizId'] ?? payload['lessonId'] ?? payload['localAttemptId'] ?? payload['sectionId'];
     return id != null ? String(id) : undefined;
+  }
+
+  /**
+   * After a quizAttempt sync item succeeds, mark the corresponding quizAttempts record as synced.
+   * Keeps the offline pending badge accurate.
+   */
+  private async markQuizAttemptSynced(item: SyncQueueItem): Promise<void> {
+    const payload = item.payload as Record<string, unknown> | null;
+    const quizId = payload?.['quizId'] as string | undefined;
+    if (!quizId) return;
+    await offlineDb.quizAttempts
+      .where('userId').equals(item.userId)
+      .filter((a: any) => a.quizId === quizId && a.syncStatus === 'pending')
+      .modify({ syncStatus: 'synced' });
   }
 
   private async syncItem(item: SyncQueueItem): Promise<void> {
     const url = `${environment.apiUrl}${item.endpoint}`;
+
+    // Quiz attempt: two-step flow (start attempt → submit answers)
+    if (item.entityType === 'quizAttempt') {
+      const payload = item.payload as Record<string, unknown>;
+      const quizId = payload['quizId'] as string;
+      if (!quizId) throw new Error('Missing quizId in quizAttempt sync item');
+
+      // Step 1: start a server-side attempt
+      const startRes: any = await firstValueFrom(
+        this.http.post(`${environment.apiUrl}/api/v3/quizzes/${quizId}/attempts/start`, {})
+      );
+      const attemptId = (startRes?.data || startRes)?.id as string | undefined;
+      if (!attemptId) throw new Error('Failed to start quiz attempt: no attemptId returned');
+
+      // Step 2: convert Map answers to array and submit
+      const answersMap = payload['answers'] as Record<string, unknown> | null;
+      const answersArray = answersMap
+        ? Object.entries(answersMap).map(([qId, val]) => ({
+            questionId: qId,
+            selectedOption: Array.isArray(val) ? (val as string[]).join(',') : (val != null ? String(val) : null),
+            studentAnswer: Array.isArray(val) ? { selectedOptions: val } : { selectedOption: val },
+          }))
+        : [];
+
+      await firstValueFrom(
+        this.http.post(`${environment.apiUrl}/api/v3/quizzes/attempts/${attemptId}/submit`, answersArray)
+      );
+      return;
+    }
 
     switch (item.operationType) {
       case 'CREATE':
