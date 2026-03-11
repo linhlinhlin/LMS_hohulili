@@ -439,6 +439,16 @@ export class QuizBankComponent implements OnInit {
     }
   }
 
+  getQuestionCheckboxLabel(question: Question | BankQuestionDTO): string {
+    const content = String((question as any).content || '').replace(/\s+/g, ' ').trim();
+    if (!content) {
+      return 'Chọn câu hỏi không có tiêu đề';
+    }
+
+    const preview = content.length > 80 ? `${content.slice(0, 77)}...` : content;
+    return `Chọn câu hỏi: ${preview}`;
+  }
+
   // ==================== Question actions ====================
 
   createNewQuestion() {

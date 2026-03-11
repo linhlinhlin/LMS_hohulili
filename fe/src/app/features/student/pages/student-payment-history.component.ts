@@ -33,7 +33,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
           </div>
           <h3 class="text-lg font-semibold text-gray-900 mb-2">Chưa có giao dịch nào</h3>
           <p class="text-gray-500 mb-6">Bạn chưa thực hiện thanh toán khóa học nào.</p>
-          <a routerLink="/courses" class="inline-flex items-center px-4 py-2 bg-[#0056D2] text-white rounded-lg font-medium hover:bg-[#004BB5] transition-colors">
+          <a routerLink="/student/browse" class="inline-flex items-center px-4 py-2 bg-[#0056D2] text-white rounded-lg font-medium hover:bg-[#004BB5] transition-colors">
             <app-icon name="search" size="sm" class="mr-2"/> Khám phá khóa học
           </a>
         </div>
@@ -76,7 +76,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
                   <tr class="hover:bg-gray-50 transition-colors">
                     <td class="px-6 py-4">
                       @if (payment.courseTitle) {
-                        <a [routerLink]="['/courses', payment.courseId]" class="text-sm font-medium text-[#0056D2] hover:underline">
+                        <a [routerLink]="['/student/courses', payment.courseId]" class="text-sm font-medium text-[#0056D2] hover:underline">
                           {{ payment.courseTitle }}
                         </a>
                       } @else {

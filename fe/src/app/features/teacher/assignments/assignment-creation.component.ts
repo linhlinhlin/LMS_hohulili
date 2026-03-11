@@ -176,6 +176,7 @@ interface EnrolledStudentData {
                       [courseId]="form.controls.courseId.value"
                       [enrolledStudents]="enrolledStudents()"
                       [supportsClassDistribution]="supportsClassDistribution()"
+                      [initialViewMode]="'manage'"
                       [initialDistributionType]="'ALL_STUDENTS'"
                       [initialStudentIds]="[]"
                       (distributionChange)="onDistributionChange($event)"

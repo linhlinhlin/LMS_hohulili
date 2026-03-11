@@ -98,7 +98,7 @@ import {
               </span>
             </div>
             <a
-              [routerLink]="['/student/assignments', message().assignmentReference?.assignmentId]"
+              [routerLink]="['/student/tasks', message().assignmentReference?.assignmentId, 'work']"
               class="block font-medium text-sm hover:underline"
               [class.text-white]="isOwnMessage"
               [class.text-[#0056D2]]="!isOwnMessage"

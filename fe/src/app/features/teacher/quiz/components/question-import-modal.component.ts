@@ -11,7 +11,7 @@ import { IconComponent } from '../../../../shared/components/icon/icon.component
   imports: [FormsModule, IconComponent],
   template: `
     @if (isOpen()) {
-      <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+      <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="question-import-title">
         <!-- Backdrop -->
         <div class="fixed inset-0 bg-black/10 backdrop-blur-sm transition-opacity" (click)="close()"></div>
         <!-- Modal Container -->
@@ -21,7 +21,7 @@ import { IconComponent } from '../../../../shared/components/icon/icon.component
             <!-- Header -->
             <div class="bg-[#0056D2] px-6 py-4">
               <div class="flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                <h3 id="question-import-title" class="text-lg font-semibold text-white flex items-center gap-2">
                   <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
                   </svg>

@@ -4,12 +4,12 @@ import { enrollmentGuard } from '../../core/guards/enrollment.guard';
 export const learningRoutes: Routes = [
   {
     path: '',
-    redirectTo: '/student/dashboard',
+    redirectTo: '/student/courses',
     pathMatch: 'full'
   },
   {
     path: 'select',
-    redirectTo: '/student/my-courses',
+    redirectTo: '/student/courses/library',
     pathMatch: 'full'
   },
   // New Learning Interface - Enrollment required (Coursera/edX pattern)

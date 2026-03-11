@@ -39,6 +39,19 @@ interface CourseGrade {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="grades-container">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Kết quả học tập</h1>
+          <p class="page-subtitle">
+            Xem tiến độ toàn khóa học, kết quả bài tập và chứng chỉ của bạn.
+          </p>
+        </div>
+        <div class="page-actions">
+          <a routerLink="/student/courses/library" class="header-link header-link-primary">Khóa học của tôi</a>
+          <a routerLink="/student/tasks" class="header-link">Bài cần làm</a>
+        </div>
+      </div>
+
       <!-- Tab Navigation -->
       <div class="tab-nav">
         <button class="tab-btn" [class.active]="activeTab() === 'grades'" (click)="activeTab.set('grades')">
@@ -73,7 +86,7 @@ interface CourseGrade {
           <div class="empty-state">
             <p class="empty-title">Chưa có dữ liệu điểm</p>
             <p class="empty-text">Hãy đăng ký và hoàn thành các khóa học để xem điểm</p>
-            <a routerLink="/student/my-courses" class="empty-cta">Xem khóa học</a>
+            <a routerLink="/student/courses/library" class="empty-cta">Xem khóa học</a>
           </div>
         } @else {
           <!-- Summary -->
@@ -109,7 +122,7 @@ interface CourseGrade {
                   <tr>
                     <td class="td-code">{{ grade.courseCode || '-' }}</td>
                     <td>
-                      <a [routerLink]="['/student/learn/course', grade.courseId]" class="course-link">
+                      <a [routerLink]="['/student/courses', grade.courseId]" class="course-link">
                         {{ grade.courseTitle }}
                       </a>
                       @if (grade.quizScores.length > 0 || grade.assignmentScores.length > 0) {
@@ -195,6 +208,60 @@ interface CourseGrade {
       max-width: 900px;
       margin: 0 auto;
       padding: 24px;
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .page-title {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .page-subtitle {
+      margin: 8px 0 0;
+      color: #6b7280;
+      font-size: 14px;
+      line-height: 1.5;
+      max-width: 560px;
+    }
+
+    .page-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .header-link {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 14px;
+      border: 1px solid #e5e7eb;
+      border-radius: 999px;
+      color: #374151;
+      background: #fff;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+
+    .header-link:hover {
+      background: #f9fafb;
+    }
+
+    .header-link-primary {
+      border-color: #bfdbfe;
+      background: #eff6ff;
+      color: #1d4ed8;
     }
 
     /* Tab Navigation */
@@ -581,6 +648,14 @@ interface CourseGrade {
     /* Responsive table */
     @media (max-width: 640px) {
       .grades-container { padding: 16px; }
+
+      .page-header {
+        flex-direction: column;
+      }
+
+      .page-actions {
+        justify-content: flex-start;
+      }
 
       .table-wrapper { overflow-x: auto; }
 

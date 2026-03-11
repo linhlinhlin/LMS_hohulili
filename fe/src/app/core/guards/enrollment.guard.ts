@@ -16,7 +16,7 @@ export const enrollmentGuard: CanActivateFn = async (route) => {
 
   const courseId = route.paramMap.get('courseId') || route.paramMap.get('id');
   if (!courseId) {
-    return router.createUrlTree(['/student/my-courses']);
+    return router.createUrlTree(['/student/courses']);
   }
 
   try {
@@ -24,12 +24,12 @@ export const enrollmentGuard: CanActivateFn = async (route) => {
     const status = response?.data?.status;
 
     if (status === 'not_enrolled' || status === 'not_authenticated') {
-      return router.createUrlTree(['/student/course', courseId]);
+      return router.createUrlTree(['/student/courses', courseId]);
     }
 
     return true;
   } catch {
     // On API error, redirect to course detail (fail-closed: don't expose paid content)
-    return router.createUrlTree(['/student/course', courseId]);
+    return router.createUrlTree(['/student/courses', courseId]);
   }
 };

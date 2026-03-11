@@ -300,6 +300,6 @@ export class QuizResultComponent implements OnInit {
   }
 
   goToDashboard(): void {
-    this.router.navigate(['/student/dashboard']);
+    this.router.navigate(['/student/courses']);
   }
 }

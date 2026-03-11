@@ -111,9 +111,13 @@ sidebar_screenshot.png
 coord/PLAN.md
 coord/STATUS.md
 coord/events.jsonl
+coord/TASKS/*.md
 coord/TASKS/WAVE-*.md
 coord/REPORTS/WAVE-*.md
 coord/REVIEW/WAVE-*.md
+coord/tmp_*.txt
+coord/visuals/**
+coord/visuals/runtime/
 !coord/README.md
 !coord/events.schema.md
 !coord/TASKS/TEMPLATE.md

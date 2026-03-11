@@ -23,255 +23,200 @@ type FilterType = 'ALL' | 'NEEDS_GRADING' | 'GRADED' | 'DRAFT';
   imports: [CommonModule, RouterLink, LucideAngularModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-slate-50/50">
-      <!-- Header Section -->
-      <div class="bg-white border-b border-slate-200">
-        <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 py-6">
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <p class="text-[10px] font-black uppercase tracking-[0.18em] text-[#0056D2]">Vận hành</p>
-              <h1 class="text-2xl font-black text-slate-900 tracking-tight">Bài tập đang vận hành</h1>
-              <p class="text-sm text-slate-500 font-medium">Theo dõi bài tập theo lớp, theo nhóm học viên hoặc áp dụng cho toàn bộ học viên đã ghi danh.</p>
-            </div>
-            <div class="flex items-center gap-3">
-              <a routerLink="/teacher/assessments/shared/rubrics" 
-                 class="h-10 px-4 border border-slate-200 rounded-xl bg-white text-slate-600 font-bold text-sm hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2 shadow-sm">
-                <lucide-icon name="clipboard-check" [size]="16"></lucide-icon>
-                Rubric dùng chung
-              </a>
-              <a routerLink="create" 
-                 class="h-10 px-4 bg-[#0056D2] text-white rounded-xl font-bold text-sm hover:bg-[#004BB5] transition-all flex items-center gap-2 shadow-md shadow-blue-100">
-                <lucide-icon name="plus" [size]="18"></lucide-icon>
-                Tạo bài tập mới
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Main Content -->
-      <div class="max-w-screen-2xl mx-auto p-3 sm:px-4">
-        
-        <!-- Filters & Search Toolbar -->
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
-          <!-- Filter Tabs -->
-          <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl w-fit">
-            <button (click)="setFilter('ALL')" 
-                    [class]="filter() === 'ALL' ? 'bg-white text-[#0056D2] shadow-sm' : 'text-slate-500 hover:text-slate-700'"
-                    class="h-9 px-5 rounded-xl text-xs font-black uppercase tracking-widest transition-all">
-              Tất cả ({{ allCount() }})
+    <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 py-3">
+      <!-- Toolbar -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+        <div class="flex items-center gap-3 flex-wrap">
+          <div class="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded-lg">
+            <button (click)="setFilter('ALL')"
+                    class="h-7 px-3 rounded-md text-xs font-medium transition-colors"
+                    [ngClass]="filter() === 'ALL' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'">
+              Tất cả {{ allCount() }}
             </button>
             <button (click)="setFilter('NEEDS_GRADING')"
-                    [class]="filter() === 'NEEDS_GRADING' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
-                    class="h-9 px-5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2">
-              Cần chấm ({{ needsGradingCount() }})
+                    class="h-7 px-3 rounded-md text-xs font-medium transition-colors"
+                    [ngClass]="filter() === 'NEEDS_GRADING' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'">
+              Cần chấm {{ needsGradingCount() }}
             </button>
             <button (click)="setFilter('GRADED')"
-                    [class]="filter() === 'GRADED' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
-                    class="h-9 px-5 rounded-xl text-xs font-black uppercase tracking-widest transition-all">
-              Đã chấm ({{ gradedCount() }})
+                    class="h-7 px-3 rounded-md text-xs font-medium transition-colors"
+                    [ngClass]="filter() === 'GRADED' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'">
+              Đã chấm {{ gradedCount() }}
             </button>
             <button (click)="setFilter('DRAFT')"
-                    [class]="filter() === 'DRAFT' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
-                    class="h-9 px-5 rounded-xl text-xs font-black uppercase tracking-widest transition-all">
-              Bản nháp ({{ draftCount() }})
+                    class="h-7 px-3 rounded-md text-xs font-medium transition-colors"
+                    [ngClass]="filter() === 'DRAFT' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'">
+              Nháp {{ draftCount() }}
             </button>
           </div>
 
-          <!-- Search Input -->
-          <div class="relative group max-w-sm w-full">
-            <div class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#0056D2] transition-colors">
-              <lucide-icon name="search" [size]="16"></lucide-icon>
-            </div>
-            <input type="text" [value]="searchQuery()" (input)="searchQuery.set($any($event.target).value)" 
-                   placeholder="Tìm kiếm bài tập..."
-                   class="w-full h-10 pl-10 pr-10 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-sm focus:bg-white focus:ring-4 focus:ring-[#0056D2]/5 focus:border-[#0056D2] outline-none transition-all placeholder:text-slate-400 font-bold shadow-inner"/>
-            @if (searchQuery()) {
-              <button (click)="searchQuery.set('')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500 transition-colors">
-                <lucide-icon name="x" [size]="14"></lucide-icon>
-              </button>
+          <div class="flex items-center gap-1.5">
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-50 text-emerald-700">Theo lớp {{ classroomAssignments().length }}</span>
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-50 text-[#0056D2]">Toàn khóa học {{ courseAssignments().length }}</span>
+            @if (unassignedAssignments().length > 0) {
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-50 text-amber-700">Chưa phân phối {{ unassignedAssignments().length }}</span>
             }
           </div>
         </div>
 
-        <!-- Content Area -->
-        @if (loading()) {
-          <div class="grid grid-cols-1 gap-4">
-            @for (i of [1,2,3,4]; track i) {
-              <div class="bg-white rounded-xl border border-slate-100 p-5 animate-pulse">
-                <div class="flex gap-4">
-                  <div class="w-12 h-12 bg-slate-100 rounded-xl"></div>
-                  <div class="flex-grow space-y-3">
-                    <div class="h-5 bg-slate-100 rounded-md w-1/3"></div>
-                    <div class="h-3 bg-slate-50 rounded-md w-1/2"></div>
-                  </div>
-                </div>
-              </div>
+        <div class="flex items-center gap-2">
+          <div class="relative">
+            <lucide-icon name="search" [size]="14" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"></lucide-icon>
+            <input type="text" [value]="searchQuery()" (input)="searchQuery.set($any($event.target).value)"
+                   aria-label="Tìm bài tập"
+                   placeholder="Tìm bài tập..."
+                   class="h-8 w-52 pl-8 pr-3 rounded-lg border border-slate-200 bg-white text-sm focus:ring-2 focus:ring-[#0056D2]/10 focus:border-[#0056D2] outline-none"/>
+            @if (searchQuery()) {
+              <button (click)="searchQuery.set('')" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500">
+                <lucide-icon name="x" [size]="12"></lucide-icon>
+              </button>
             }
           </div>
-        } @else {
-          <div class="space-y-5">
-            <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <p class="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Ngữ cảnh vận hành</p>
-                  <p class="mt-1 text-sm text-slate-600 font-medium">Danh sách được chia theo cách bài tập đang áp dụng: theo lớp hoặc nhóm học viên, toàn khóa học, hoặc chưa chốt đối tượng nhận.</p>
-                </div>
-                <div class="flex flex-wrap items-center gap-2">
-                  <span class="px-3 py-1.5 rounded-xl border border-emerald-100 bg-emerald-50 text-[11px] font-black uppercase tracking-[0.14em] text-emerald-700">
-                    Theo lớp {{ classroomAssignments().length }}
-                  </span>
-                  <span class="px-3 py-1.5 rounded-xl border border-blue-100 bg-blue-50 text-[11px] font-black uppercase tracking-[0.14em] text-[#0056D2]">
-                    Toàn khóa học {{ courseAssignments().length }}
-                  </span>
-                  @if (unassignedAssignments().length > 0) {
-                    <span class="px-3 py-1.5 rounded-xl border border-amber-100 bg-amber-50 text-[11px] font-black uppercase tracking-[0.14em] text-amber-700">
-                      Chưa phân phối {{ unassignedAssignments().length }}
-                    </span>
-                  }
-                </div>
-              </div>
-            </div>
-
-            @if (filteredAssignments().length === 0) {
-              <div class="bg-white rounded-2xl border border-slate-200 border-dashed p-16 text-center shadow-inner">
-                <div class="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-6 text-slate-300">
-                  <lucide-icon name="clipboard-list" [size]="40"></lucide-icon>
-                </div>
-                <h3 class="text-xl font-black text-slate-900 mb-2">Chưa có bài tập nào</h3>
-                <p class="text-sm text-slate-500 mb-8 max-w-xs mx-auto">Tạo bài tập để giao cho lớp học hoặc cho toàn bộ học viên trong khóa học tự học.</p>
-                <a routerLink="create" class="inline-flex items-center gap-2 px-6 py-3 bg-[#0056D2] text-white rounded-xl font-bold hover:bg-[#004BB5] transition-all shadow-lg shadow-blue-100">
-                  <lucide-icon name="plus" [size]="18"></lucide-icon>
-                  Tạo bài tập mới
-                </a>
-              </div>
-            } @else {
-              @if (classroomAssignments().length > 0) {
-                <section class="space-y-3">
-                  <div class="flex items-center justify-between gap-3">
-                    <div>
-                      <h2 class="text-sm font-black uppercase tracking-[0.18em] text-emerald-700">Theo lớp và nhóm học viên</h2>
-                      <p class="text-sm text-slate-500 font-medium">Những bài tập đang giao cho một lớp cụ thể hoặc cho nhóm học viên được chỉ định.</p>
-                    </div>
-                    <span class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">{{ classroomAssignments().length }} mục</span>
-                  </div>
-                  <div class="grid grid-cols-1 gap-4">
-                    @for (assignment of classroomAssignments(); track assignment.id) {
-                      <ng-container *ngTemplateOutlet="assignmentCard; context: { assignment: assignment }"></ng-container>
-                    }
-                  </div>
-                </section>
-              }
-
-              @if (courseAssignments().length > 0) {
-                <section class="space-y-3">
-                  <div class="flex items-center justify-between gap-3">
-                    <div>
-                      <h2 class="text-sm font-black uppercase tracking-[0.18em] text-[#0056D2]">Toàn khóa học</h2>
-                      <p class="text-sm text-slate-500 font-medium">Những bài tập đang áp dụng cho toàn bộ học viên trong khóa học hoặc toàn bộ người đã ghi danh.</p>
-                    </div>
-                    <span class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">{{ courseAssignments().length }} mục</span>
-                  </div>
-                  <div class="grid grid-cols-1 gap-4">
-                    @for (assignment of courseAssignments(); track assignment.id) {
-                      <ng-container *ngTemplateOutlet="assignmentCard; context: { assignment: assignment }"></ng-container>
-                    }
-                  </div>
-                </section>
-              }
-
-              @if (unassignedAssignments().length > 0) {
-                <section class="space-y-3">
-                  <div class="flex items-center justify-between gap-3">
-                    <div>
-                      <h2 class="text-sm font-black uppercase tracking-[0.18em] text-amber-700">Chưa phân phối</h2>
-                      <p class="text-sm text-slate-500 font-medium">Nội dung đã tạo nhưng chưa chốt đối tượng nhận trong ngữ cảnh instructor-led.</p>
-                    </div>
-                    <span class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">{{ unassignedAssignments().length }} mục</span>
-                  </div>
-                  <div class="grid grid-cols-1 gap-4">
-                    @for (assignment of unassignedAssignments(); track assignment.id) {
-                      <ng-container *ngTemplateOutlet="assignmentCard; context: { assignment: assignment }"></ng-container>
-                    }
-                  </div>
-                </section>
-              }
-            }
-          </div>
-        }
+          <a routerLink="create"
+             class="h-8 px-3.5 bg-[#0056D2] text-white rounded-lg text-xs font-semibold hover:bg-[#004BB5] transition-colors flex items-center gap-1.5">
+            <lucide-icon name="plus" [size]="14"></lucide-icon>
+            Tạo bài tập
+          </a>
+        </div>
       </div>
 
-      <ng-template #assignmentCard let-assignment="assignment">
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all group overflow-hidden flex flex-col sm:flex-row cursor-pointer"
-             (click)="navigateToAssignment(assignment.id)">
-          <div class="p-6 flex-grow min-w-0">
-            <div class="flex flex-col h-full justify-center gap-3">
-              <div class="flex items-center justify-between gap-4">
-                <div class="flex items-center gap-3 min-w-0">
-                  <h3 class="text-lg font-black text-slate-900 tracking-tight truncate group-hover:text-[#0056D2] transition-colors">{{ assignment.title }}</h3>
-                  <span class="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border shadow-sm flex-shrink-0"
-                        [class]="getStatusClass(assignment.status)">
-                    {{ getStatusText(assignment.status) }}
-                  </span>
-                  <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-100 text-[11px] font-black text-slate-600 uppercase tracking-wider">
-                    <lucide-icon name="users" [size]="12"></lucide-icon>
-                    {{ assignment.submissionsCount }}/{{ assignment.totalStudents }} Nộp bài
-                  </div>
-                  @if (assignment.pendingCount && assignment.pendingCount > 0) {
-                    <div class="flex items-center gap-2 px-3 py-1.5 bg-orange-50 rounded-lg border border-orange-100 text-[11px] font-black text-orange-600 uppercase tracking-wider animate-pulse">
-                      <span class="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
-                      {{ assignment.pendingCount }} Cần chấm
-                    </div>
-                  }
-                  @if (hasAverageScore(assignment)) {
-                    <div class="flex items-center gap-2 px-3 py-1.5 bg-purple-50 rounded-lg border border-purple-100 text-[11px] font-black text-purple-600 uppercase tracking-wider">
-                      <lucide-icon name="award" [size]="12"></lucide-icon>
-                      {{ assignment.averageScore | number:'1.0-0' }}% Điểm TB
-                    </div>
-                  }
-                </div>
-                <div class="text-right flex-shrink-0">
-                  <span class="text-[12px] uppercase tracking-widest text-slate-400 font-bold block">Hạn chót</span>
-                  <p class="text-sm font-semibold leading-tight"
-                     [class]="isOverdue(assignment.dueDate) ? 'text-rose-500' : 'text-slate-600'">
-                    {{ formatDate(assignment.dueDate) }}
-                  </p>
-                </div>
+      <!-- Content -->
+      @if (loading()) {
+        <div class="space-y-2">
+          @for (i of [1,2,3,4]; track i) {
+            <div class="bg-white rounded-lg border border-slate-200 px-4 py-3 animate-pulse">
+              <div class="flex items-center gap-4">
+                <div class="h-4 bg-slate-100 rounded w-1/4"></div>
+                <div class="h-4 bg-slate-50 rounded w-1/6"></div>
               </div>
+            </div>
+          }
+        </div>
+      } @else if (filteredAssignments().length === 0) {
+        <div class="bg-white rounded-lg border border-dashed border-slate-200 py-12 text-center">
+          <lucide-icon name="clipboard-list" [size]="32" class="mx-auto mb-3 text-slate-300"></lucide-icon>
+          <p class="text-sm font-medium text-slate-500 mb-4">Chưa có bài tập nào</p>
+          <a routerLink="create" class="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0056D2] text-white rounded-lg text-xs font-semibold hover:bg-[#004BB5] transition-colors">
+            <lucide-icon name="plus" [size]="14"></lucide-icon>
+            Tạo bài tập
+          </a>
+        </div>
+      } @else {
+        <div class="space-y-4">
+          @if (classroomAssignments().length > 0) {
+            <section>
+              <div class="flex items-center gap-2 py-1.5">
+                <h3 class="text-xs font-semibold uppercase tracking-wide text-emerald-600">Theo lớp</h3>
+                <span class="text-xs text-slate-500">{{ classroomAssignments().length }}</span>
+              </div>
+              <div class="space-y-1">
+                @for (assignment of classroomAssignments(); track assignment.id) {
+                  <ng-container *ngTemplateOutlet="assignmentRow; context: { assignment: assignment }"></ng-container>
+                }
+              </div>
+            </section>
+          }
 
-              <div class="mt-1 flex flex-wrap items-center gap-2">
-                <p class="text-xs text-slate-500 font-bold flex items-center gap-2">
-                  <lucide-icon name="book-open" [size]="14" class="text-[#0056D2]/60"></lucide-icon>
-                  {{ assignment.courseTitle }}
-                </p>
-                <span class="px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] rounded-lg border"
-                      [class]="getDeliveryBadgeClass(assignment.deliveryMode)">
-                  {{ getDeliveryLabel(assignment.deliveryMode) }}
-                </span>
-                <span class="px-2 py-0.5 text-[9px] font-black tracking-[0.08em] rounded-lg border"
-                      [class]="getAudienceBadgeClass(assignment)">
-                  {{ getAudienceLabel(assignment) }}
-                </span>
+          @if (courseAssignments().length > 0) {
+            <section>
+              <div class="flex items-center gap-2 py-1.5">
+                <h3 class="text-xs font-semibold uppercase tracking-wide text-[#0056D2]">Toàn khóa học</h3>
+                <span class="text-xs text-slate-500">{{ courseAssignments().length }}</span>
               </div>
+              <div class="space-y-1">
+                @for (assignment of courseAssignments(); track assignment.id) {
+                  <ng-container *ngTemplateOutlet="assignmentRow; context: { assignment: assignment }"></ng-container>
+                }
+              </div>
+            </section>
+          }
+
+          @if (unassignedAssignments().length > 0) {
+            <section>
+              <div class="flex items-center gap-2 py-1.5">
+                <h3 class="text-xs font-semibold uppercase tracking-wide text-amber-600">Chưa phân phối</h3>
+                <span class="text-xs text-slate-500">{{ unassignedAssignments().length }}</span>
+              </div>
+              <div class="space-y-1">
+                @for (assignment of unassignedAssignments(); track assignment.id) {
+                  <ng-container *ngTemplateOutlet="assignmentRow; context: { assignment: assignment }"></ng-container>
+                }
+              </div>
+            </section>
+          }
+        </div>
+      }
+
+      @if (error()) {
+        <div class="mt-3 p-3 bg-rose-50 border border-rose-100 text-rose-700 rounded-lg flex items-center gap-2 text-sm">
+          <lucide-icon name="alert-circle" [size]="16"></lucide-icon>
+          {{ error() }}
+        </div>
+      }
+    </div>
+
+    <ng-template #assignmentRow let-assignment="assignment">
+      <div class="bg-white rounded-lg border border-slate-200 hover:bg-slate-50/50 transition-colors cursor-pointer group focus-within:ring-2 focus-within:ring-[#0056D2]/15"
+           role="link"
+           tabindex="0"
+           [attr.aria-label]="'Mở bài tập ' + assignment.title"
+           (click)="navigateToAssignment(assignment.id)"
+           (keydown.enter)="navigateToAssignment(assignment.id)"
+           (keydown.space)="onAssignmentRowSpace($event, assignment.id)">
+        <div class="flex items-center gap-4 px-4 py-2.5">
+          <!-- Title + status -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <h3 class="text-sm font-semibold text-slate-900 truncate group-hover:text-[#0056D2] transition-colors">{{ assignment.title }}</h3>
+              <span class="px-1.5 py-0.5 text-[10px] font-semibold rounded shrink-0"
+                    [ngClass]="getStatusClass(assignment.status)">
+                {{ getStatusText(assignment.status) }}
+              </span>
+            </div>
+            <div class="flex items-center gap-2 mt-0.5">
+              <span class="text-xs text-slate-500">{{ assignment.courseTitle }}</span>
+              <span class="text-slate-300">&middot;</span>
+              <span class="text-xs font-medium"
+                    [ngClass]="getDeliveryBadgeClass(assignment.deliveryMode).includes('emerald') ? 'text-emerald-600' : 'text-[#0056D2]'">
+                {{ getAudienceLabel(assignment) }}
+              </span>
             </div>
           </div>
 
-          <div class="p-6 sm:w-72 flex-shrink-0 flex flex-col justify-between sm:border-l border-slate-100 bg-slate-50/20 group-hover:bg-[#0056D2]/[0.02] transition-all">
-            <div class="flex items-center justify-end gap-2">
-              <button (click)="deleteAssignment(assignment.id, $event)"
-                      class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition-all shadow-sm hover:shadow-md">
-                <lucide-icon name="trash-2" [size]="18"></lucide-icon>
-              </button>
-              <a [routerLink]="[assignment.id, 'settings']"
-                 (click)="$event.stopPropagation()"
-                 class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-[#0056D2] hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm hover:shadow-md">
-                <lucide-icon name="edit-3" [size]="18"></lucide-icon>
-              </a>
-            </div>
+          <!-- Metrics -->
+          <div class="hidden sm:flex items-center gap-3 shrink-0 text-xs text-slate-500">
+            <span class="font-medium">{{ assignment.submissionsCount }}/{{ assignment.totalStudents }} nộp</span>
+            @if (assignment.pendingCount && assignment.pendingCount > 0) {
+              <span class="font-semibold text-orange-600">{{ assignment.pendingCount }} chấm</span>
+            }
+            @if (hasAverageScore(assignment)) {
+              <span class="text-purple-600 font-medium">{{ assignment.averageScore | number:'1.0-0' }}%</span>
+            }
+          </div>
+
+          <!-- Due date -->
+          <div class="shrink-0 text-xs text-right w-20"
+               [ngClass]="isOverdue(assignment.dueDate) ? 'text-rose-500 font-semibold' : 'text-slate-400'">
+            {{ formatDate(assignment.dueDate) }}
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center gap-1 shrink-0 md:opacity-0 md:group-hover:opacity-100 md:transition-opacity">
+            <a [routerLink]="[assignment.id, 'settings']"
+               (click)="$event.stopPropagation()"
+               aria-label="Chỉnh sửa bài tập"
+               class="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-[#0056D2] hover:bg-blue-50 focus:ring-2 focus:ring-[#0056D2]/20 focus:outline-none transition-colors">
+              <lucide-icon name="edit-3" [size]="14"></lucide-icon>
+            </a>
+            <button (click)="deleteAssignment(assignment.id, $event)"
+                    aria-label="Xóa bài tập"
+                    class="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 focus:ring-2 focus:ring-rose-200 focus:outline-none transition-colors">
+              <lucide-icon name="trash-2" [size]="14"></lucide-icon>
+            </button>
           </div>
         </div>
-      </ng-template>
-    </div>
+      </div>
+    </ng-template>
   `
 })
 export class AssignmentListComponent implements OnInit {
@@ -365,6 +310,11 @@ export class AssignmentListComponent implements OnInit {
 
   navigateToAssignment(id: string): void {
     this.router.navigate(['/teacher/assessments/classes/assignments', id, 'overview']);
+  }
+
+  onAssignmentRowSpace(event: Event, id: string): void {
+    event.preventDefault();
+    this.navigateToAssignment(id);
   }
 
   async deleteAssignment(id: string, event: Event): Promise<void> {

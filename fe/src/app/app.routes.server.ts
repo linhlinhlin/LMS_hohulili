@@ -90,7 +90,31 @@ export const serverRoutes: ServerRoute[] = [
     renderMode: RenderMode.Client
   },
   {
+    path: 'student/courses',
+    renderMode: RenderMode.Client
+  },
+  {
+    path: 'student/courses/library',
+    renderMode: RenderMode.Client
+  },
+  {
+    path: 'student/courses/:id',
+    renderMode: RenderMode.Client
+  },
+  {
     path: 'student/my-courses',
+    renderMode: RenderMode.Client
+  },
+  {
+    path: 'student/course/:id',
+    renderMode: RenderMode.Client
+  },
+  {
+    path: 'student/tasks',
+    renderMode: RenderMode.Client
+  },
+  {
+    path: 'student/tasks/:id/work',
     renderMode: RenderMode.Client
   },
   {
@@ -114,7 +138,11 @@ export const serverRoutes: ServerRoute[] = [
     renderMode: RenderMode.Client
   },
   {
-    path: 'student/learn/course/:id',
+    path: 'student/learn/course/:courseId',
+    renderMode: RenderMode.Client
+  },
+  {
+    path: 'student/learn/course/:courseId/lesson/:lessonId',
     renderMode: RenderMode.Client
   },
   {
@@ -123,6 +151,14 @@ export const serverRoutes: ServerRoute[] = [
   },
   {
     path: 'student/learn/bookmarks',
+    renderMode: RenderMode.Client
+  },
+  {
+    path: 'student/results',
+    renderMode: RenderMode.Client
+  },
+  {
+    path: 'student/grades',
     renderMode: RenderMode.Client
   },
   {

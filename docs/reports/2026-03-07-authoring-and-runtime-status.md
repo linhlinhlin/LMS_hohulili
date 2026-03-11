@@ -14,6 +14,7 @@ This snapshot covers:
 - `SELF_PACED` vs `INSTRUCTOR_LED` delivery-mode separation
 - quiz and assignment authoring behavior
 - recent security and admin fixes that changed behavior
+- student course-first learner routing and assessment/runtime boundary
 
 ## Major Changes Completed
 
@@ -188,6 +189,15 @@ Implemented separation:
   - self-paced quiz editor now shows `Toàn khóa học` and `Toàn bộ học viên đã ghi danh` correctly under the same route family
   - essay grading now opens correctly for both class-scoped and self-paced quizzes inside the assessments workspace and uses the same context-aware back action
   - self-paced quiz creation no longer triggers a failing class-load request, so browser logs remain clean on the new scoped create route
+  - assignment creation under `/teacher/assessments/classes/assignments/create` now behaves honestly by context:
+    - self-paced courses expose only `ALL_STUDENTS`
+    - instructor-led courses expose `ALL_STUDENTS`, `CLASS`, and `SPECIFIC_STUDENTS`
+    - the distribution selector opens directly in management mode instead of an "already assigned" summary state
+    - self-paced assignment creation no longer requests class data or produces runtime `422` noise
+  - quiz essay grading now surfaces runtime context before the grader reviews answers:
+    - self-paced quizzes show `Khóa học`, `Toàn khóa học`, and `Toàn bộ học viên đã ghi danh`
+    - instructor-led quizzes show `Lớp học`, `Theo lớp`, and the concrete class target
+    - the empty-state copy on the grading screen now follows the same runtime scope
 
 There are currently three valid quiz authoring patterns in the product:
 
@@ -235,6 +245,31 @@ Verified negative path:
 Verified positive path:
 
 - the same student can still submit, read back the submission, load the quiz, and start an attempt after the assignment and quiz are restored to the student's own class
+
+### 4.3 Student course-first runtime
+
+- The student experience now follows a course-first structure instead of a flat feature-first route map.
+- Canonical learner routes are:
+  - `/student/courses`
+  - `/student/courses/library`
+  - `/student/tasks`
+  - `/student/results`
+  - `/student/learn/course/:courseId`
+- Legacy learner routes still redirect cleanly:
+  - `/student`
+  - `/student/dashboard`
+  - `/student/my-courses`
+  - `/student/assignments`
+  - `/student/grades`
+- The student shell no longer mounts AI assistant surfaces during normal learner navigation, reducing blank-screen risk and removing unrelated runtime noise from the learner workspace.
+- Learner course detail now uses real enrollment access to determine state:
+  - enrolled learners no longer see the incorrect `Đăng ký ngay để bắt đầu học` hero
+  - enrolled learners now see their progress and the correct `Bắt đầu học` or `Tiếp tục học` action
+- Learner boundary is now reflected honestly in the UI:
+  - self-paced course detail shows `Khóa học`
+  - instructor-led course detail shows `Lớp học`
+  - the cross-course task inbox mixes `Toàn khóa học` and `Lớp: <tên lớp>` where appropriate instead of flattening everything into one audience model
+  - `Kết quả` remains a cross-course review surface rather than a class-runtime workspace
 
 ### 5. Curriculum editor stability
 
@@ -318,6 +353,14 @@ Latest verified results:
 - `INSTRUCTOR_LED` assignment and quiz deep-links still preserve class context
 - browser verification passed for course info editor:
   - a new paid course draft loads `priceType = PAID`, `price`, and `salePrice` correctly in `/editor/info`
+- browser verification passed for the assessments operational workspace:
+  - assignment creation now switches distribution choices correctly when changing between self-paced and instructor-led courses
+  - self-paced assignment creation no longer logs a failing class-load request
+  - essay grading now shows class-aware context for instructor-led quizzes and course-wide context for self-paced quizzes
+- browser verification passed for the remaining assessments context shell routes:
+  - `/teacher/assessments/courses/overview`
+  - `/teacher/assessments/shared/question-bank`
+  - `/teacher/assessments/shared/rubrics`
   - `credits` remains blank when the stored value is `null`
   - `introVideoUrl` persists after save and reload
   - dirty state is visible before save
@@ -389,6 +432,18 @@ Latest verified results:
   - the self-paced curriculum shell still does not expose a `Lớp học` tab
   - self-paced quiz deep-link `a7dfa94d-74a0-4118-8e87-ea0aeff3d1aa / d13edad9-198d-4166-866a-d90ee65dc09a / 0eec95a0-7473-4862-9f17-c6d57d0207e1` now resolves without an avoidable `GET /api/v3/quizzes/{lessonId}` `404`
   - quiz summary text still states the correct course-wide audience: `Toàn bộ học viên đã ghi danh`
+- student browser smoke passed after the course-first runtime hardening:
+  - `student@maritime.edu / student123` login succeeds and lands on `/student/courses`
+  - `/student/courses`
+  - `/student/courses/library`
+  - `/student/tasks`
+  - `/student/results`
+  - desktop and mobile `student/courses`
+  - one enrolled self-paced course detail
+  - one enrolled instructor-led course detail
+- student detail verification confirmed:
+  - self-paced detail no longer shows the wrong enroll CTA and now shows `0% hoàn thành` + `Bắt đầu học`
+  - instructor-led detail no longer shows the wrong enroll CTA and now shows `0% hoàn thành` + `Bắt đầu học`
 
 ## Important Design Direction
 

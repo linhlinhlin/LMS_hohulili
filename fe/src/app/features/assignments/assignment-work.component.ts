@@ -85,7 +85,7 @@ export class AssignmentWorkComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['/student/assignments']);
+    this.router.navigate(['/student/tasks']);
   }
 
   onFileSelected(event: Event): void {

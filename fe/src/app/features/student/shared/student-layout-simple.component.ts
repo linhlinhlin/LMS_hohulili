@@ -116,7 +116,9 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
             <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-gray-200/50 shadow-2xl">
               <div class="flex items-center justify-around px-2 py-2">
                 <!-- Dashboard -->
-                <a routerLink="/student"
+                <a routerLink="/student/courses"
+                  data-mobile-label="Khóa học"
+                  aria-label="Khóa học"
                   routerLinkActive="text-[#0056D2]"
                   [routerLinkActiveOptions]="{exact: true}"
                   class="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-0 flex-1">
@@ -129,7 +131,9 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
                   <span class="text-xs font-medium">Trang chủ</span>
                 </a>
                 <!-- My Courses -->
-                <a routerLink="/student/my-courses"
+                <a routerLink="/student/tasks"
+                  data-mobile-label="Cần làm"
+                  aria-label="Cần làm"
                   routerLinkActive="text-emerald-600"
                   class="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-0 flex-1">
                   <div class="w-6 h-6 mb-1">
@@ -140,7 +144,9 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
                   <span class="text-xs font-medium">Khóa học</span>
                 </a>
                 <!-- Assignments -->
-                <a routerLink="/student/assignments"
+                <a routerLink="/student/results"
+                  data-mobile-label="Kết quả"
+                  aria-label="Kết quả"
                   routerLinkActive="text-purple-600"
                   class="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-0 flex-1 relative">
                   <div class="w-6 h-6 mb-1">
@@ -151,7 +157,9 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
                   <span class="text-xs font-medium">Bài tập</span>
                 </a>
                 <!-- Grades -->
-                <a routerLink="/student/grades"
+                <a routerLink="/student/browse"
+                  data-mobile-label="Khám phá"
+                  aria-label="Khám phá"
                   routerLinkActive="text-orange-600"
                   class="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-0 flex-1">
                   <div class="w-6 h-6 mb-1">
@@ -163,6 +171,8 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
                 </a>
                 <!-- Profile -->
                 <a routerLink="/student/profile"
+                  data-mobile-label="Hồ sơ"
+                  aria-label="Hồ sơ"
                   routerLinkActive="text-slate-600"
                   class="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-0 flex-1">
                   <div class="w-6 h-6 mb-1">
@@ -183,19 +193,20 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
         </div>
 
         <!-- AI Sidebar (Desktop) — always rendered, animated via CSS -->
-        <aside class="ai-sidebar hidden md:flex md:flex-col"
-               [class.ai-sidebar-open]="isAiSidebarOpen()"
-               [class.ai-sidebar-resizing]="isResizing()"
-               [style.width.px]="isAiSidebarOpen() ? aiSidebarWidth() : null"
-               [style.min-width.px]="isAiSidebarOpen() ? aiSidebarWidth() : null">
-          <app-chat-panel
-            mode="sidebar"
-            (closePanel)="toggleAiSidebar()"
-          />
-        </aside>
+        @if (enableAssistant && isAiSidebarOpen()) {
+          <aside class="ai-sidebar ai-sidebar-open hidden md:flex md:flex-col"
+                 [class.ai-sidebar-resizing]="isResizing()"
+                 [style.width.px]="aiSidebarWidth()"
+                 [style.min-width.px]="aiSidebarWidth()">
+            <app-chat-panel
+              mode="sidebar"
+              (closePanel)="toggleAiSidebar()"
+            />
+          </aside>
+        }
 
         <!-- Resize handle — fixed position at sidebar's left edge -->
-        @if (isAiSidebarOpen()) {
+        @if (enableAssistant && isAiSidebarOpen()) {
           <div class="resize-handle-track"
                [style.right.px]="aiSidebarWidth() - 6"
                [class.resize-active]="isResizing()"
@@ -206,12 +217,13 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
         }
 
         <!-- Resize overlay — blocks iframe from stealing mouse events during drag -->
-        @if (isResizing()) {
+        @if (enableAssistant && isResizing()) {
           <div class="resize-overlay"></div>
         }
       </div>
 
       <!-- Desktop: Toggle tab — always rendered, animated -->
+      @if (enableAssistant) {
       <button
         class="ai-sidebar-toggle hidden md:flex"
         [class.ai-toggle-hidden]="isAiSidebarOpen()"
@@ -222,10 +234,12 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
           <path fill-rule="evenodd" d="M9 4.5a.75.75 0 01.721.544l.813 2.846a3.75 3.75 0 002.576 2.576l2.846.813a.75.75 0 010 1.442l-2.846.813a3.75 3.75 0 00-2.576 2.576l-.813 2.846a.75.75 0 01-1.442 0l-.813-2.846a3.75 3.75 0 00-2.576-2.576l-2.846-.813a.75.75 0 010-1.442l2.846-.813A3.75 3.75 0 007.466 7.89l.813-2.846A.75.75 0 019 4.5zM18 1.5a.75.75 0 01.728.568l.258 1.036c.236.94.97 1.674 1.91 1.91l1.036.258a.75.75 0 010 1.456l-1.036.258c-.94.236-1.674.97-1.91 1.91l-.258 1.036a.75.75 0 01-1.456 0l-.258-1.036a2.625 2.625 0 00-1.91-1.91l-1.036-.258a.75.75 0 010-1.456l1.036-.258a2.625 2.625 0 001.91-1.91l.258-1.036A.75.75 0 0118 1.5z" clip-rule="evenodd" />
         </svg>
       </button>
+      }
 
       <!-- ============================================================
            MOBILE: Floating bubble + popup panel
            ============================================================ -->
+      @if (enableAssistant) {
       <div class="md:hidden">
         @if (isMobilePanelOpen()) {
           <app-chat-panel
@@ -238,6 +252,7 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
           (bubbleClick)="toggleMobilePanel()"
         />
       </div>
+      }
     </div>
     `,
   styles: [`
@@ -348,11 +363,25 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
       width: 18px;
       height: 18px;
     }
+
+    @media (max-width: 767px) {
+      nav a[data-mobile-label] span.text-xs {
+        display: none;
+      }
+
+      nav a[data-mobile-label]::after {
+        content: attr(data-mobile-label);
+        font-size: 0.75rem;
+        font-weight: 500;
+        line-height: 1rem;
+      }
+    }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
   protected authService = inject(AuthService);
+  protected readonly enableAssistant = false;
   private router = inject(Router);
   private notificationService = inject(NotificationService);
   private messagingService = inject(MessagingService);
@@ -437,7 +466,8 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
   private handleRouteChange(url: string) {
     const isInLearningInterface = url.includes('/student/learn/course/');
     const isInQuiz = url.includes('/student/quiz/take/'); // Hide sidebar when taking quiz
-    const shouldHide = isInLearningInterface || isInQuiz || url.includes('/ai-chat');
+    const isInTaskWork = /\/student\/tasks\/[^/]+\/work(?:[/?#].*)?$/.test(url);
+    const shouldHide = isInLearningInterface || isInQuiz || isInTaskWork || url.includes('/ai-chat');
     const isCurrentlyHidden = this.sidebarHidden();
 
     // Auto-hide sidebar when entering learning interface or quiz

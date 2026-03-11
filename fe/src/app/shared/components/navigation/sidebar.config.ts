@@ -7,24 +7,23 @@ export const studentSidebarConfig: SidebarConfig = {
   title: 'Cổng Học viên',
   logoIcon: 'courses',
   menuItems: [
-    // — Học tập —
     {
-      label: 'Trang chủ',
-      route: '/student',
-      icon: 'home',
+      label: 'Khóa học của tôi',
+      route: '/student/courses',
+      icon: 'courses',
       exact: true,
       group: 'Học tập'
     },
     {
-      label: 'Khóa học của tôi',
-      route: '/student/my-courses',
-      icon: 'courses',
+      label: 'Bài cần làm',
+      route: '/student/tasks',
+      icon: 'blog',
       group: 'Học tập'
     },
     {
-      label: 'Bài tập của tôi',
-      route: '/student/assignments',
-      icon: 'blog',
+      label: 'Kết quả',
+      route: '/student/results',
+      icon: 'check',
       group: 'Học tập'
     },
     {
@@ -33,16 +32,18 @@ export const studentSidebarConfig: SidebarConfig = {
       icon: 'search',
       group: 'Học tập'
     },
-    // — Công cụ —
     {
       label: 'Tin nhắn',
       route: '/student/messages',
       icon: 'mail',
       group: 'Công cụ'
     },
-    // Sprint 220b: "Trợ Lý AI" full-page route removed — AI chat is now an iframe widget (floating bubble)
-
-    // — Tài khoản —
+    {
+      label: 'Lưu trữ ngoại tuyến',
+      route: '/student/storage',
+      icon: 'download',
+      group: 'Công cụ'
+    },
     {
       label: 'Phân tích',
       route: '/student/analytics',
@@ -50,21 +51,15 @@ export const studentSidebarConfig: SidebarConfig = {
       group: 'Tài khoản'
     },
     {
-      label: 'Bảng điểm',
-      route: '/student/grades',
-      icon: 'check',
-      group: 'Tài khoản'
-    },
-    {
-      label: 'Lưu trữ ngoại tuyến',
-      route: '/student/storage',
-      icon: 'download',
-      group: 'Tài khoản'
-    },
-    {
       label: 'Lịch sử thanh toán',
       route: '/student/payments',
       icon: 'briefcase',
+      group: 'Tài khoản'
+    },
+    {
+      label: 'Hồ sơ',
+      route: '/student/profile',
+      icon: 'users',
       group: 'Tài khoản'
     }
   ]
@@ -76,7 +71,6 @@ export const teacherSidebarConfig: SidebarConfig = {
   title: 'Cổng Giảng viên',
   logoIcon: 'courses',
   menuItems: [
-    // — Giảng dạy —
     {
       label: 'Trang chủ',
       route: '/teacher/dashboard',
@@ -112,7 +106,6 @@ export const teacherSidebarConfig: SidebarConfig = {
         }
       ]
     },
-    // — Quản lý —
     {
       label: 'Học viên',
       route: '/teacher/students',
@@ -131,7 +124,6 @@ export const teacherSidebarConfig: SidebarConfig = {
       icon: 'tag',
       group: 'Quản lý'
     },
-    // — Khác —
     {
       label: 'Lời mời',
       route: '/teacher/invitations',
@@ -143,13 +135,11 @@ export const teacherSidebarConfig: SidebarConfig = {
       route: '/teacher/notifications',
       icon: 'bell',
       group: 'Khác'
-    },
-    // Sprint 220b: "Trợ Lý AI" full-page route removed — AI chat is now an iframe widget (floating bubble)
-
+    }
   ]
 };
 
-// Full Admin Sidebar Configuration (all items — SYSTEM_ADMIN sees everything)
+// Full Admin Sidebar Configuration (all items - SYSTEM_ADMIN sees everything)
 const allAdminMenuItems: SidebarMenuItem[] = [
   {
     label: 'Trang chủ',
@@ -186,9 +176,7 @@ const allAdminMenuItems: SidebarMenuItem[] = [
     label: 'Nhật ký kiểm toán',
     route: '/admin/logs',
     icon: 'file-text'
-  },
-  // Sprint 220b: "LMS AI" full-page route removed — AI chat is now an iframe widget (floating bubble)
-
+  }
 ];
 
 // Routes hidden from ORG_ADMIN (system-level only)
@@ -203,7 +191,7 @@ export const adminSidebarConfig: SidebarConfig = {
   menuItems: allAdminMenuItems
 };
 
-// ORG_ADMIN sidebar (operations only — no settings/logs/AI knowledge)
+// ORG_ADMIN sidebar (operations only - no settings/logs/AI knowledge)
 export const orgAdminSidebarConfig: SidebarConfig = {
   role: 'org_admin',
   title: 'Cổng Quản trị',
@@ -224,6 +212,6 @@ export function getSidebarConfig(role: UserRoleType): SidebarConfig {
     case 'admin':
       return adminSidebarConfig;
     default:
-      return studentSidebarConfig; // fallback
+      return studentSidebarConfig;
   }
 }

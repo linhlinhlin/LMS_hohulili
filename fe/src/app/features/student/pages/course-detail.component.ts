@@ -364,7 +364,7 @@ export class CourseDetailComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['/student/my-courses']);
+    this.router.navigate(['/student/courses/library']);
   }
 
   toggleDescription(): void {
@@ -419,6 +419,7 @@ export class CourseDetailComponent implements OnInit {
     this.courseApi.getCourseProgress(courseId).subscribe({
       next: (res: any) => {
         const data = res?.data ?? res;
+        this.isEnrolled.set(true);
         const pct = data?.progressPercentage;
         if (pct !== undefined && pct !== null) {
           this._realProgress.set({
@@ -428,7 +429,10 @@ export class CourseDetailComponent implements OnInit {
           });
         }
       },
-      error: () => { /* supplementary — silent fallback */ }
+      error: () => {
+        this.isEnrolled.set(false);
+        /* supplementary — silent fallback */
+      }
     });
   }
 

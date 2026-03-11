@@ -14,6 +14,10 @@ public record StudentAssignmentResponse(
     String instructions,
     String courseName,
     UUID courseId,
+    String deliveryMode,
+    String distributionType,
+    UUID classId,
+    String className,
     Instant dueDate,
     Integer maxScore,
     String status,        // NOT_SUBMITTED, SUBMITTED, GRADED, LATE, RESUBMITTED, RETURNED

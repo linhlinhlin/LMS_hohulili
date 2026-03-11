@@ -164,7 +164,7 @@ export class StudentDashboardComponent implements OnInit {
       this.router.navigate(['/student/learn/course', data.courseId, 'lesson', data.lessonId]);
     } else {
       // Fallback: navigate to my courses
-      this.router.navigate(['/student/my-courses']);
+      this.router.navigate(['/student/courses']);
     }
   }
 

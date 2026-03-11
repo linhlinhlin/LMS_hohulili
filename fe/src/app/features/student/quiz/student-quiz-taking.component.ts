@@ -646,7 +646,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
         : this.returnUrl;
       this.router.navigateByUrl(url);
     } else {
-      this.router.navigate(['/student/my-courses']);
+      this.router.navigate(['/student/courses']);
     }
   }
 

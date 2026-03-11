@@ -32,10 +32,15 @@ public interface StudentAssignmentQueryPort {
             String description,
             String instructions,
             UUID courseId,
+            String courseName,
+            String deliveryMode,
             Instant dueDate,
             Double maxScore,
             Boolean allowLateSubmission,
-            Integer maxAttempts
+            Integer maxAttempts,
+            String distributionType,
+            UUID classId,
+            String className
     ) {}
 
     record AssignmentDetail(
@@ -44,10 +49,15 @@ public interface StudentAssignmentQueryPort {
             String description,
             String instructions,
             UUID courseId,
+            String courseName,
+            String deliveryMode,
             Instant dueDate,
             Double maxScore,
             Boolean allowLateSubmission,
-            Integer maxAttempts
+            Integer maxAttempts,
+            String distributionType,
+            UUID classId,
+            String className
     ) {}
 
     record SubmissionInfo(

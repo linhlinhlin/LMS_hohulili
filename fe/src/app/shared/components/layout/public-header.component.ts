@@ -69,7 +69,7 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
     switch (role) {
       case 'admin': return '/admin/dashboard';
       case 'teacher': return '/teacher/dashboard';
-      default: return '/student/dashboard';
+      default: return '/student/courses';
     }
   }
 
@@ -77,7 +77,7 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
     const role = this.userRole();
     switch (role) {
       case 'teacher': return '/teacher/courses';
-      default: return '/student/my-courses';
+      default: return '/student/courses/library';
     }
   }
 
@@ -257,4 +257,3 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
     this.isMobileMenuOpen.set(false);
   }
 }
-

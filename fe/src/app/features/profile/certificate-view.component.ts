@@ -382,7 +382,7 @@ export class CertificateViewComponent implements OnInit {
   viewCourse(): void {
     const courseId = this.certificate()?.courseId;
     if (courseId) {
-      this.router.navigate(['/courses', courseId]);
+      this.router.navigate(['/student/courses', courseId]);
     }
   }
 

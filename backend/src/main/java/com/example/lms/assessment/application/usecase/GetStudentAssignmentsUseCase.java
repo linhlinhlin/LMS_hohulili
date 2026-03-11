@@ -63,15 +63,9 @@ public class GetStudentAssignmentsUseCase {
         // 4. Get student's submissions (batch query)
         Map<UUID, SubmissionInfo> submissionByAssignment = queryPort.findLatestSubmissionsByStudent(studentId);
 
-        // 5. Build course title map (batch)
-        Map<UUID, String> courseTitleMap = new HashMap<>();
-        for (UUID courseId : courseIds) {
-            queryPort.findCourseTitle(courseId).ifPresent(title -> courseTitleMap.put(courseId, title));
-        }
-
-        // 6. Map to response DTOs
+        // 5. Map to response DTOs
         return assignments.stream()
-                .map(a -> mapToResponse(a, submissionByAssignment.get(a.id()), courseTitleMap))
+                .map(a -> mapToResponse(a, submissionByAssignment.get(a.id())))
                 .sorted(Comparator.comparing(StudentAssignmentResponse::dueDate,
                         Comparator.nullsLast(Comparator.naturalOrder())))
                 .collect(Collectors.toList());
@@ -90,25 +84,20 @@ public class GetStudentAssignmentsUseCase {
                 .map(assignment -> {
                     SubmissionInfo submission = queryPort.findSubmission(assignmentId, studentId).orElse(null);
 
-                    Map<UUID, String> titleMap = new HashMap<>();
-                    if (assignment.courseId() != null) {
-                        queryPort.findCourseTitle(assignment.courseId())
-                                .ifPresent(title -> titleMap.put(assignment.courseId(), title));
-                    }
-
                     return mapToResponse(
                             new AssignmentSummary(
                                     assignment.id(), assignment.title(), assignment.description(),
-                                    assignment.instructions(), assignment.courseId(), assignment.dueDate(),
-                                    assignment.maxScore(), assignment.allowLateSubmission(), assignment.maxAttempts()),
-                            submission, titleMap);
+                                    assignment.instructions(), assignment.courseId(), assignment.courseName(),
+                                    assignment.deliveryMode(), assignment.dueDate(),
+                                    assignment.maxScore(), assignment.allowLateSubmission(), assignment.maxAttempts(),
+                                    assignment.distributionType(), assignment.classId(), assignment.className()),
+                            submission);
                 });
     }
 
     private StudentAssignmentResponse mapToResponse(
             AssignmentSummary assignment,
-            SubmissionInfo submission,
-            Map<UUID, String> courseTitleMap) {
+            SubmissionInfo submission) {
 
         String status;
         boolean isLate = false;
@@ -155,17 +144,17 @@ public class GetStudentAssignmentsUseCase {
             }
         }
 
-        String courseName = assignment.courseId() != null
-                ? courseTitleMap.getOrDefault(assignment.courseId(), null)
-                : null;
-
         return new StudentAssignmentResponse(
                 assignment.id(),
                 assignment.title(),
                 assignment.description(),
                 assignment.instructions(),
-                courseName,
+                assignment.courseName(),
                 assignment.courseId(),
+                assignment.deliveryMode(),
+                assignment.distributionType(),
+                assignment.classId(),
+                assignment.className(),
                 assignment.dueDate(),
                 assignment.maxScore() != null ? assignment.maxScore().intValue() : null,
                 status,

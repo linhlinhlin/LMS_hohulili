@@ -757,9 +757,9 @@ export class CourseLearningComponent implements OnInit {
   goBack(): void {
     const courseId = this.course()?.id;
     if (courseId) {
-      this.router.navigate(['/student/course', courseId]);
+      this.router.navigate(['/student/courses', courseId]);
     } else {
-      this.router.navigate(['/student/my-courses']);
+      this.router.navigate(['/student/courses']);
     }
   }
 

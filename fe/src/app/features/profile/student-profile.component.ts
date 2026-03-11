@@ -415,8 +415,8 @@ export class StudentProfileComponent implements OnInit {
   }
 
   goToDashboard(): void {
-    this.router.navigate(['/student/dashboard']).catch(error => {
-      this.errorService.handleNavigationError(error, '/student/dashboard');
+    this.router.navigate(['/student/courses']).catch(error => {
+      this.errorService.handleNavigationError(error, '/student/courses');
     });
   }
 

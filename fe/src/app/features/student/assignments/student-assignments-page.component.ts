@@ -174,5 +174,35 @@ export class StudentAssignmentsPageComponent implements OnInit {
         return 'Xem';
     }
   }
-}
 
+  getAudienceLabel(assignment: StudentAssignment): string {
+    if (assignment.deliveryMode === 'SELF_PACED') {
+      return 'Toàn khóa học';
+    }
+
+    switch (assignment.distributionType) {
+      case 'CLASS':
+        return assignment.className ? `Lớp: ${assignment.className}` : 'Theo lớp';
+      case 'SPECIFIC_STUDENTS':
+        return 'Nhóm học viên';
+      default:
+        return assignment.className ? `Lớp: ${assignment.className}` : 'Toàn bộ học viên trong lớp';
+    }
+  }
+
+  getAudienceBadgeClass(assignment: StudentAssignment): string {
+    if (assignment.deliveryMode === 'SELF_PACED') {
+      return 'bg-slate-100 text-slate-700';
+    }
+
+    if (assignment.distributionType === 'CLASS') {
+      return 'bg-[#0056D2]/10 text-[#004BB5]';
+    }
+
+    if (assignment.distributionType === 'SPECIFIC_STUDENTS') {
+      return 'bg-amber-100 text-amber-700';
+    }
+
+    return 'bg-indigo-100 text-indigo-700';
+  }
+}

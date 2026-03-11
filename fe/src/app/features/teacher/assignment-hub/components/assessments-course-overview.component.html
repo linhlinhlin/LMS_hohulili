@@ -1,113 +1,69 @@
-<div class="min-h-screen bg-slate-50/50">
-  <div class="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6">
-    <div class="grid gap-6 xl:grid-cols-[1.4fr_0.9fr]">
-      <section class="space-y-6">
-        <article class="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-          <div class="flex items-start gap-4">
-            <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0056D2]/10 text-[#0056D2]">
-              <lucide-icon name="book-open" [size]="26"></lucide-icon>
-            </div>
-            <div class="space-y-3">
-              <p class="text-[10px] font-black uppercase tracking-[0.18em] text-[#0056D2]">Khóa học</p>
-              <h2 class="text-2xl font-black tracking-tight text-slate-900">
-                Assessment ở đây là canonical content của khóa học
-              </h2>
-              <p class="max-w-3xl text-sm font-medium leading-6 text-slate-500">
-                Dùng khu vực này để hiểu assessment shell thuộc khóa học nào và nhảy trở lại curriculum. Việc giao cho lớp, bài nộp, chấm điểm,
-                và audit nằm ở ngữ cảnh <strong>Lớp học</strong>.
-              </p>
-            </div>
-          </div>
-        </article>
+<div class="mx-auto max-w-screen-2xl px-4 sm:px-6 py-3">
+  <div class="grid gap-4 lg:grid-cols-[1fr_320px]">
+    <!-- Main: context + quick actions -->
+    <div class="space-y-4">
+      <div class="rounded-lg border border-slate-200 bg-white px-4 py-3">
+        <p class="text-sm text-slate-600 font-medium">
+          Assessment ở cấp khóa học là canonical content — quiz shell và bài tập nằm trong curriculum.
+          Phân phối, bài nộp và chấm điểm nằm ở <a routerLink="/teacher/assessments/classes/assignments" class="text-[#0056D2] font-semibold hover:underline">Lớp học</a>.
+        </p>
+      </div>
 
-        <div class="grid gap-6 lg:grid-cols-2">
-          <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div class="flex items-center gap-3">
-              <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-[#0056D2]">
-                <lucide-icon name="list-checks" [size]="22"></lucide-icon>
-              </div>
-              <div>
-                <h3 class="text-lg font-black tracking-tight text-slate-900">Quiz trong curriculum</h3>
-                <p class="text-sm font-medium text-slate-500">Gắn với chapter hoặc lesson, sau đó mới được áp dụng cho lớp học hoặc toàn khóa học.</p>
-              </div>
-            </div>
-            <ul class="mt-5 space-y-3 text-sm font-medium text-slate-600">
-              <li class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">Sửa trong course editor, không sửa trong speed grader.</li>
-              <li class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">Dùng question bank dùng chung để tái sử dụng câu hỏi.</li>
-            </ul>
-          </article>
+      <div class="grid gap-2 sm:grid-cols-2">
+        <a routerLink="/teacher/courses"
+           class="flex items-center gap-3 px-4 py-3 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:border-[#0056D2] hover:text-[#0056D2] transition-colors group">
+          <lucide-icon name="book-open" [size]="16" class="text-slate-400 group-hover:text-[#0056D2] transition-colors"></lucide-icon>
+          <span class="flex-1">Danh sách khóa học</span>
+          <lucide-icon name="arrow-right" [size]="14" class="text-slate-300 group-hover:text-[#0056D2] transition-colors"></lucide-icon>
+        </a>
 
-          <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div class="flex items-center gap-3">
-              <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
-                <lucide-icon name="file-edit" [size]="22"></lucide-icon>
-              </div>
-              <div>
-                <h3 class="text-lg font-black tracking-tight text-slate-900">Bài tập tự luận trong curriculum</h3>
-                <p class="text-sm font-medium text-slate-500">Thiết kế prompt và yêu cầu chuẩn ở cấp khóa học, rồi phân phối trong workspace lớp học.</p>
-              </div>
-            </div>
-            <ul class="mt-5 space-y-3 text-sm font-medium text-slate-600">
-              <li class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">Rubric library là shared asset, không phải bài chấm cụ thể của từng lớp.</li>
-              <li class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">Self-paced sẽ áp dụng cho toàn bộ học viên đã ghi danh.</li>
-            </ul>
-          </article>
-        </div>
-      </section>
+        <a routerLink="/teacher/assessments/classes/assignments"
+           class="flex items-center gap-3 px-4 py-3 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:border-[#0056D2] hover:text-[#0056D2] transition-colors group">
+          <lucide-icon name="clipboard-list" [size]="16" class="text-slate-400 group-hover:text-[#0056D2] transition-colors"></lucide-icon>
+          <span class="flex-1">Vận hành bài tập</span>
+          <lucide-icon name="arrow-right" [size]="14" class="text-slate-300 group-hover:text-[#0056D2] transition-colors"></lucide-icon>
+        </a>
 
-      <aside class="space-y-6">
-        <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Đường đi chuẩn</p>
-          <ol class="mt-4 space-y-4 text-sm font-medium text-slate-600">
-            <li class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-              <strong class="block text-slate-900">1. Mở khóa học</strong>
-              Chọn khóa học rồi vào editor.
-            </li>
-            <li class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-              <strong class="block text-slate-900">2. Tạo assessment shell trong curriculum</strong>
-              Đặt quiz hoặc bài tập vào đúng chapter/lesson.
-            </li>
-            <li class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-              <strong class="block text-slate-900">3. Chuyển sang Lớp học để vận hành</strong>
-              Theo dõi bài nộp, chấm điểm, audit, và phạm vi phân phối.
-            </li>
-          </ol>
-        </article>
+        <a routerLink="/teacher/assessments/classes/quizzes"
+           class="flex items-center gap-3 px-4 py-3 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:border-[#0056D2] hover:text-[#0056D2] transition-colors group">
+          <lucide-icon name="list-checks" [size]="16" class="text-slate-400 group-hover:text-[#0056D2] transition-colors"></lucide-icon>
+          <span class="flex-1">Vận hành bài kiểm tra</span>
+          <lucide-icon name="arrow-right" [size]="14" class="text-slate-300 group-hover:text-[#0056D2] transition-colors"></lucide-icon>
+        </a>
 
-        <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Lối tắt</p>
-          <div class="mt-4 grid gap-3">
-            <a
-              routerLink="/teacher/courses"
-              class="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 transition-all hover:border-[#0056D2] hover:text-[#0056D2]"
-            >
-              <span>Danh sách khóa học</span>
-              <lucide-icon name="arrow-right" [size]="16"></lucide-icon>
-            </a>
-            <a
-              routerLink="/teacher/course-creation"
-              class="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 transition-all hover:border-[#0056D2] hover:text-[#0056D2]"
-            >
-              <span>Tạo khóa học mới</span>
-              <lucide-icon name="arrow-right" [size]="16"></lucide-icon>
-            </a>
-            <a
-              routerLink="/teacher/assessments/shared/question-bank"
-              class="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 transition-all hover:border-[#0056D2] hover:text-[#0056D2]"
-            >
-              <span>Mở ngân hàng câu hỏi</span>
-              <lucide-icon name="arrow-right" [size]="16"></lucide-icon>
-            </a>
-          </div>
-        </article>
+        <a routerLink="/teacher/assessments/shared/question-bank"
+           class="flex items-center gap-3 px-4 py-3 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:border-[#0056D2] hover:text-[#0056D2] transition-colors group">
+          <lucide-icon name="database" [size]="16" class="text-slate-400 group-hover:text-[#0056D2] transition-colors"></lucide-icon>
+          <span class="flex-1">Ngân hàng câu hỏi</span>
+          <lucide-icon name="arrow-right" [size]="14" class="text-slate-300 group-hover:text-[#0056D2] transition-colors"></lucide-icon>
+        </a>
 
-        <article class="rounded-3xl border border-blue-200 bg-blue-50/60 p-6 shadow-sm">
-          <p class="text-[10px] font-black uppercase tracking-[0.18em] text-[#0056D2]">Nhắc nhanh</p>
-          <p class="mt-3 text-sm font-semibold leading-6 text-slate-700">
-            Không clone assessment theo lớp. Course giữ canonical content; class chỉ giữ delivery overlay như due date, submissions, grading, và audit.
-          </p>
-        </article>
-      </aside>
+        <a routerLink="/teacher/assessments/shared/rubrics"
+           class="flex items-center gap-3 px-4 py-3 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:border-[#0056D2] hover:text-[#0056D2] transition-colors group">
+          <lucide-icon name="file-text" [size]="16" class="text-slate-400 group-hover:text-[#0056D2] transition-colors"></lucide-icon>
+          <span class="flex-1">Thư viện Rubric</span>
+          <lucide-icon name="arrow-right" [size]="14" class="text-slate-300 group-hover:text-[#0056D2] transition-colors"></lucide-icon>
+        </a>
+      </div>
     </div>
+
+    <!-- Sidebar: workflow -->
+    <aside class="rounded-lg border border-slate-200 bg-slate-50 p-4">
+      <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-3">Quy trình chuẩn</p>
+      <ol class="space-y-2.5 text-sm text-slate-600">
+        <li class="flex gap-2.5">
+          <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white border border-slate-200 text-[10px] font-semibold text-slate-500">1</span>
+          <span>Mở khóa học, vào curriculum editor</span>
+        </li>
+        <li class="flex gap-2.5">
+          <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white border border-slate-200 text-[10px] font-semibold text-slate-500">2</span>
+          <span>Tạo quiz hoặc bài tập shell trong đúng chapter</span>
+        </li>
+        <li class="flex gap-2.5">
+          <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white border border-slate-200 text-[10px] font-semibold text-slate-500">3</span>
+          <span>Chuyển sang <strong>Lớp học</strong> để phân phối, chấm điểm</span>
+        </li>
+      </ol>
+    </aside>
   </div>
 </div>

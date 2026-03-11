@@ -60,7 +60,7 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
                             <app-icon name="courses" size="sm" class="mr-1"/> Bắt đầu học ngay ({{ countdown() }}s)
                         </button>
                     } @else {
-                        <a routerLink="/student/my-courses" class="btn btn-primary">
+                        <a routerLink="/student/courses/library" class="btn btn-primary">
                             <app-icon name="courses" size="sm" class="mr-1"/> Xem khóa học của tôi
                         </a>
                     }
@@ -319,7 +319,7 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
         if (cid) {
             this.router.navigate(['/student/learn/course', cid]);
         } else {
-            this.router.navigate(['/student/my-courses']);
+            this.router.navigate(['/student/courses/library']);
         }
     }
 

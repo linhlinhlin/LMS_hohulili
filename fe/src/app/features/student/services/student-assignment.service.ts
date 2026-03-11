@@ -19,6 +19,10 @@ export interface StudentAssignment {
   description: string;
   courseId: string;
   courseTitle: string;
+  deliveryMode?: 'SELF_PACED' | 'INSTRUCTOR_LED';
+  distributionType?: 'ALL_STUDENTS' | 'CLASS' | 'SPECIFIC_STUDENTS';
+  classId?: string;
+  className?: string;
   instructorName?: string;
 
   // Deadline
@@ -112,7 +116,11 @@ export class StudentAssignmentService {
       assignmentTitle: item.title || '',
       description: item.description || '',
       courseId: item.courseId || '',
-      courseTitle: item.courseTitle || '',
+      courseTitle: item.courseTitle || item.courseName || '',
+      deliveryMode: item.deliveryMode || 'SELF_PACED',
+      distributionType: item.distributionType || 'ALL_STUDENTS',
+      classId: item.classId || undefined,
+      className: item.className || undefined,
       dueDate: item.dueDate || '',
       status,
       isOverdue,

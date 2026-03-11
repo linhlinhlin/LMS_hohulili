@@ -1,55 +1,38 @@
-<section class="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur-md">
-  <div class="mx-auto max-w-screen-2xl px-4 py-4 sm:px-6">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-      <div class="min-w-0">
-        <p class="text-[10px] font-black uppercase tracking-[0.18em] text-[#0056D2]">
-          {{ contextHeadline().eyebrow }}
-        </p>
-        <h1 class="mt-1 text-2xl font-black tracking-tight text-slate-900">
-          {{ contextHeadline().title }}
-        </h1>
-        <p class="mt-2 max-w-4xl text-sm font-medium leading-6 text-slate-500">
-          {{ contextHeadline().description }}
-        </p>
-      </div>
-
-      <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 shadow-sm">
-        <p class="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
-          Điều hướng đánh giá
-        </p>
-        <p class="mt-1 font-semibold">
-          Tách rõ thiết kế ở cấp khóa học, vận hành theo lớp học, và tài sản dùng chung để giáo viên không bị lẫn ngữ cảnh.
-        </p>
-      </div>
+<header class="sticky top-0 z-20 border-b border-slate-200 bg-white">
+  <div class="mx-auto flex h-11 max-w-screen-2xl items-center gap-3 overflow-x-auto px-4 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div class="flex shrink-0 items-center gap-2 border-r border-slate-200 pr-3">
+      <p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Assessments</p>
+      <h1 class="whitespace-nowrap text-sm font-semibold text-slate-900">{{ pageTitle() }}</h1>
     </div>
 
-    <nav class="mt-4 flex flex-wrap gap-2">
+    <nav class="flex items-center h-full -mb-px" aria-label="Chuyển ngữ cảnh đánh giá">
       @for (tab of contextTabs; track tab.id) {
-        <a
-          [routerLink]="tab.href"
-          routerLinkActive="border-[#0056D2] bg-[#0056D2]/5 text-[#0056D2]"
-          class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm transition-all hover:border-slate-300 hover:bg-slate-50"
-        >
-          <span class="block text-xs font-black uppercase tracking-[0.16em]">{{ tab.label }}</span>
-          <span class="mt-1 block max-w-xs text-xs font-medium leading-5 text-slate-500">
-            {{ tab.description }}
-          </span>
+        <a [routerLink]="tab.href"
+           [attr.aria-current]="currentContext() === tab.id ? 'page' : null"
+           class="relative h-full px-2 sm:px-3 flex items-center text-[12px] sm:text-[13px] font-semibold transition-colors whitespace-nowrap"
+           [ngClass]="currentContext() === tab.id
+             ? 'text-[#0056D2]'
+             : 'text-slate-500 hover:text-slate-800'">
+          {{ tab.label }}
+          @if (currentContext() === tab.id) {
+            <span class="absolute bottom-0 inset-x-1 h-0.5 rounded-full bg-[#0056D2]" aria-hidden="true"></span>
+          }
         </a>
       }
     </nav>
 
-    <div class="mt-4 flex flex-wrap gap-2">
+    <div class="mx-3 h-4 w-px bg-slate-200"></div>
+
+    <nav class="flex items-center gap-1" aria-label="Điều hướng trong ngữ cảnh hiện tại">
       @for (item of subnavItems(); track item.href) {
-        <a
-          [routerLink]="item.href"
-          routerLinkActive="bg-slate-900 text-white border-slate-900"
-          class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-slate-500 transition-all hover:border-slate-300 hover:text-slate-800"
-        >
+        <a [routerLink]="item.href"
+           routerLinkActive="!bg-slate-800 !text-white"
+           class="px-2 sm:px-2.5 py-1 text-xs font-medium rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors whitespace-nowrap">
           {{ item.label }}
         </a>
       }
-    </div>
+    </nav>
   </div>
-</section>
+</header>
 
 <router-outlet></router-outlet>

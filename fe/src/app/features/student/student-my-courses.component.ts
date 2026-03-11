@@ -77,6 +77,17 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
           <p class="page-subtitle">Quản lý và theo dõi tiến độ các khóa học đã đăng ký</p>
         </div>
 
+        <div style="margin:-4px 0 16px;display:flex;flex-wrap:wrap;gap:8px">
+          <a routerLink="/student/courses"
+             style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8;text-decoration:none;font-size:13px;font-weight:500">
+            Quay lại tổng quan
+          </a>
+          <a routerLink="/student/tasks"
+             style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:1px solid #e5e7eb;background:#fff;color:#374151;text-decoration:none;font-size:13px;font-weight:500">
+            Xem bài cần làm
+          </a>
+        </div>
+
         <!-- Tabs -->
         <div class="tabs-section">
           <div class="tabs-container" role="tablist">
@@ -133,7 +144,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
                     <span class="partner-name">{{ getInstructorName(course) }}</span>
                   </div>
                   <h3 class="course-title">
-                    <a [routerLink]="['/student/course', course.id]">
+                    <a [routerLink]="['/student/courses', course.id]">
                       {{ course.title }}
                     </a>
                   </h3>

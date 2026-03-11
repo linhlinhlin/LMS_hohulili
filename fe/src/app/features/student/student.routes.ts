@@ -1,70 +1,71 @@
 import { Routes } from '@angular/router';
 import { studentGuard } from '../../core/guards/role.guard';
 
-/** Student Routes — flat structure, lazy loading, consistent naming */
+/** Student Routes - hybrid course-first structure with compatibility redirects */
 export const studentRoutes: Routes = [
   {
     path: '',
     loadComponent: () => import('./shared/student-layout-simple.component').then(m => m.StudentLayoutSimpleComponent),
     canActivate: [studentGuard],
     children: [
-      // Default redirect to dashboard
       {
         path: '',
-        redirectTo: 'dashboard',
+        redirectTo: 'courses',
         pathMatch: 'full'
       },
 
-      // Dashboard - Trang chủ học viên
+      // Canonical course-first workspace
+      {
+        path: 'courses',
+        children: [
+          {
+            path: '',
+            loadComponent: () => import('./dashboard/student-dashboard.component').then(m => m.StudentDashboardComponent),
+            title: 'Khóa học của tôi'
+          },
+          {
+            path: 'library',
+            loadComponent: () => import('./student-my-courses.component').then(m => m.StudentMyCoursesComponent),
+            title: 'Tất cả khóa học'
+          },
+          {
+            path: ':id',
+            loadComponent: () => import('./pages/course-detail.component').then(m => m.CourseDetailComponent),
+            title: 'Chi tiết khóa học'
+          }
+        ]
+      },
+
+      // Legacy redirects
       {
         path: 'dashboard',
-        loadComponent: () => import('./dashboard/student-dashboard.component').then(m => m.StudentDashboardComponent),
-        title: 'Dashboard - Học viên'
-      },
-
-      // My Courses - Khóa học của tôi (detailed list with modules)
-      {
-        path: 'my-courses',
-        loadComponent: () => import('./student-my-courses.component').then(m => m.StudentMyCoursesComponent),
-        title: 'Khóa học của tôi'
-      },
-
-      // Course Detail - Chi tiết khóa học
-      {
-        path: 'course/:id',
-        loadComponent: () => import('./pages/course-detail.component').then(m => m.CourseDetailComponent),
-        title: 'Chi tiết khóa học'
-      },
-
-      // Lesson Viewer - redirect to my courses
-      {
-        path: 'lesson-viewer',
-        redirectTo: 'my-courses',
+        redirectTo: 'courses',
         pathMatch: 'full'
       },
-      
-      // Payment History - Lịch sử thanh toán
       {
-        path: 'payments',
-        loadComponent: () => import('./pages/student-payment-history.component').then(m => m.StudentPaymentHistoryComponent),
-        title: 'Lịch sử thanh toán'
+        path: 'my-courses',
+        redirectTo: 'courses/library',
+        pathMatch: 'full'
+      },
+      {
+        path: 'course/:id',
+        redirectTo: 'courses/:id',
+        pathMatch: 'full'
+      },
+      {
+        path: 'lesson-viewer',
+        redirectTo: 'courses',
+        pathMatch: 'full'
       },
 
-      // Offline Storage Management - Lưu trữ ngoại tuyến
+      // Cross-course task inbox
       {
-        path: 'storage',
-        loadComponent: () => import('./storage/student-storage-management.component').then(m => m.StudentStorageManagementComponent),
-        title: 'Lưu trữ ngoại tuyến'
-      },
-
-      // Assignment Routes - Unified page for all student assignments
-      {
-        path: 'assignments',
+        path: 'tasks',
         children: [
           {
             path: '',
             loadComponent: () => import('./assignments/student-assignments-page.component').then(m => m.StudentAssignmentsPageComponent),
-            title: 'Bài tập của tôi'
+            title: 'Bài cần làm'
           },
           {
             path: ':id/work',
@@ -74,41 +75,76 @@ export const studentRoutes: Routes = [
         ]
       },
 
-      // Learning Routes - Nested under student
+      // Legacy assignment routes
+      {
+        path: 'assignments',
+        children: [
+          {
+            path: '',
+            redirectTo: '/student/tasks',
+            pathMatch: 'full'
+          },
+          {
+            path: ':id/work',
+            redirectTo: '/student/tasks/:id/work',
+            pathMatch: 'full'
+          }
+        ]
+      },
+
+      // Canonical learning shell
       {
         path: 'learn',
         loadChildren: () => import('../learning/learning.routes').then(m => m.learningRoutes)
       },
-      // Quiz Routes
+
+      // Quiz routes remain compatibility/runtime routes, not primary navigation
       {
         path: 'quiz',
         children: [
           {
             path: '',
             loadComponent: () => import('../learning/quiz/presentation/components/quiz-list.component').then(m => m.QuizListComponent),
-            title: 'Quiz'
+            title: 'Bài kiểm tra'
           },
           {
             path: 'take/:id',
             loadComponent: () => import('./quiz/student-quiz-taking.component').then(m => m.StudentQuizTakingComponent),
-            title: 'Làm Quiz'
+            title: 'Làm bài kiểm tra'
           },
           {
             path: 'result',
             loadComponent: () => import('../learning/quiz/presentation/components/quiz-result.component').then(m => m.QuizResultComponent),
-            title: 'Kết quả Quiz'
+            title: 'Kết quả bài kiểm tra'
           }
         ]
       },
 
-      // Grades - Bảng điểm
+      // Cross-course results
       {
-        path: 'grades',
+        path: 'results',
         loadComponent: () => import('./grades/student-grades.component').then(m => m.StudentGradesComponent),
-        title: 'Bảng điểm'
+        title: 'Kết quả học tập'
       },
 
-      // Certificates
+      // Legacy grades route
+      {
+        path: 'grades',
+        redirectTo: 'results',
+        pathMatch: 'full'
+      },
+
+      {
+        path: 'payments',
+        loadComponent: () => import('./pages/student-payment-history.component').then(m => m.StudentPaymentHistoryComponent),
+        title: 'Lịch sử thanh toán'
+      },
+      {
+        path: 'storage',
+        loadComponent: () => import('./storage/student-storage-management.component').then(m => m.StudentStorageManagementComponent),
+        title: 'Lưu trữ ngoại tuyến'
+      },
+
       {
         path: 'certificates',
         loadComponent: () => import('./grades/student-grades.component').then(m => m.StudentGradesComponent),
@@ -119,36 +155,26 @@ export const studentRoutes: Routes = [
         loadComponent: () => import('../profile/certificate-view.component').then(m => m.CertificateViewComponent),
         title: 'Xem chứng chỉ'
       },
-
-      // Analytics Routes
       {
         path: 'analytics',
         loadComponent: () => import('../analytics/student-analytics.component').then(m => m.StudentAnalyticsComponent),
         title: 'Phân tích học tập'
       },
-
-      // Profile Routes
       {
         path: 'profile',
         loadComponent: () => import('../profile/student-profile.component').then(m => m.StudentProfileComponent),
         title: 'Hồ sơ cá nhân'
       },
-
-      // Browse Courses - Khám phá khóa học
       {
         path: 'browse',
         loadComponent: () => import('./browse/student-course-browser.component').then(m => m.StudentCourseBrowserComponent),
         title: 'Khám phá khóa học'
       },
-
-      // Messages Routes - Tin nhắn với giảng viên
       {
         path: 'messages',
         loadChildren: () => import('./messages/messages.routes').then(m => m.MESSAGES_ROUTES),
         title: 'Tin nhắn'
-      },
-
-      // Sprint 220b: ai-chat full-page route removed — AI chat is now an iframe widget
+      }
     ]
   }
 ];

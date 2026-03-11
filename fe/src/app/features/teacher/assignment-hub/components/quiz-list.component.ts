@@ -26,197 +26,145 @@ interface TeacherQuiz {
   selector: 'app-quiz-list',
   imports: [CommonModule, RouterModule, LucideAngularModule],
   template: `
-    <div class="min-h-screen bg-slate-50/50">
-      <!-- Header Section -->
-      <div class="bg-white border-b border-slate-200">
-        <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 py-6">
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <p class="text-[10px] font-black uppercase tracking-[0.18em] text-[#0056D2]">Vận hành</p>
-              <h1 class="text-2xl font-black text-slate-900 tracking-tight">Bài kiểm tra đang vận hành</h1>
-              <p class="text-sm text-slate-500 font-medium">Theo dõi bài kiểm tra đang áp dụng theo lớp, theo toàn khóa học, hoặc còn neo trong curriculum nhưng chưa phân phối.</p>
-              <p class="mt-2 text-xs font-semibold text-slate-400">Hub này dùng để nhìn đúng phạm vi vận hành rồi mở quiz gốc để chỉnh nội dung hoặc vào chấm tự luận khi cần.</p>
-            </div>
-            <a routerLink="/teacher/assessments/classes/quizzes/create"
-               class="h-10 px-4 bg-[#0056D2] text-white rounded-xl font-bold text-sm hover:bg-[#004BB5] transition-all flex items-center gap-2 shadow-md shadow-blue-100">
-              <lucide-icon name="plus" [size]="18"></lucide-icon>
-              Tạo bài kiểm tra
-            </a>
-          </div>
+    <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 py-3">
+      <!-- Toolbar -->
+      <div class="flex items-center justify-between gap-3 mb-3">
+        <div class="flex items-center gap-1.5">
+          <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-50 text-emerald-700">Theo lớp {{ classroomQuizzes().length }}</span>
+          <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-50 text-[#0056D2]">Toàn khóa học {{ coursewideQuizzes().length }}</span>
+          @if (unassignedQuizzes().length > 0) {
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-50 text-amber-700">Chưa phân phối {{ unassignedQuizzes().length }}</span>
+          }
         </div>
+        <a routerLink="/teacher/assessments/classes/quizzes/create"
+           class="h-8 px-3.5 bg-[#0056D2] text-white rounded-lg text-xs font-semibold hover:bg-[#004BB5] transition-colors flex items-center gap-1.5">
+          <lucide-icon name="plus" [size]="14"></lucide-icon>
+          Tạo bài kiểm tra
+        </a>
       </div>
 
-      <div class="max-w-screen-2xl mx-auto px-3 sm:px-4 py-4">
-        @if (loading()) {
-          <div class="grid grid-cols-1 gap-4">
-            @for (i of [1,2,3]; track i) {
-              <div class="bg-white rounded-xl border border-slate-100 p-6 animate-pulse">
-                <div class="flex gap-4">
-                  <div class="w-12 h-12 bg-slate-100 rounded-xl"></div>
-                  <div class="flex-grow space-y-3">
-                    <div class="h-5 bg-slate-100 rounded-md w-1/4"></div>
-                    <div class="h-3 bg-slate-50 rounded-md w-1/2"></div>
-                  </div>
-                </div>
-              </div>
-            }
-          </div>
-        } @else if (quizzes().length === 0) {
-          <div class="bg-white rounded-2xl border border-slate-200 border-dashed p-16 text-center shadow-inner">
-            <div class="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-6 text-slate-300">
-              <lucide-icon name="clipboard-list" [size]="40"></lucide-icon>
-            </div>
-            <h3 class="text-xl font-black text-slate-900 mb-2">Chưa có bài kiểm tra</h3>
-            <p class="text-sm text-slate-500 mb-8 max-w-xs mx-auto">Tạo bài kiểm tra trắc nghiệm đầu tiên cho khóa học để bắt đầu đánh giá học viên.</p>
-            <a routerLink="/teacher/assessments/classes/quizzes/create"
-               class="inline-flex items-center gap-2 px-6 py-3 bg-[#0056D2] text-white rounded-xl font-bold hover:bg-[#004BB5] transition-all shadow-lg shadow-blue-100">
-              <lucide-icon name="plus" [size]="18"></lucide-icon>
-              Tạo bài kiểm tra
-            </a>
-          </div>
-        } @else {
-          <div class="space-y-5">
-            <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <p class="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Ngữ cảnh vận hành</p>
-                  <p class="mt-1 text-sm text-slate-600 font-medium">Danh sách được chia thành ba nhóm: đang áp dụng theo lớp, đang áp dụng cho toàn khóa học, và quiz mới chỉ neo trong curriculum nhưng chưa phân phối cho lớp.</p>
-                </div>
-                <div class="flex flex-wrap items-center gap-2">
-                  <span class="px-3 py-1.5 rounded-xl border border-emerald-100 bg-emerald-50 text-[11px] font-black uppercase tracking-[0.14em] text-emerald-700">
-                    Theo lớp {{ classroomQuizzes().length }}
-                  </span>
-                  <span class="px-3 py-1.5 rounded-xl border border-blue-100 bg-blue-50 text-[11px] font-black uppercase tracking-[0.14em] text-[#0056D2]">
-                    Toàn khóa học {{ coursewideQuizzes().length }}
-                  </span>
-                  @if (unassignedQuizzes().length > 0) {
-                    <span class="px-3 py-1.5 rounded-xl border border-amber-100 bg-amber-50 text-[11px] font-black uppercase tracking-[0.14em] text-amber-700">
-                      Chưa phân phối {{ unassignedQuizzes().length }}
-                    </span>
-                  }
-                </div>
+      <!-- Content -->
+      @if (loading()) {
+        <div class="space-y-2">
+          @for (i of [1,2,3]; track i) {
+            <div class="bg-white rounded-lg border border-slate-200 px-4 py-3 animate-pulse">
+              <div class="flex items-center gap-4">
+                <div class="h-4 bg-slate-100 rounded w-1/4"></div>
+                <div class="h-4 bg-slate-50 rounded w-1/6"></div>
               </div>
             </div>
-
-            @if (classroomQuizzes().length > 0) {
-              <section class="space-y-3">
-                <div class="flex items-center justify-between gap-3">
-                  <div>
-                    <h2 class="text-sm font-black uppercase tracking-[0.18em] text-emerald-700">Theo lớp</h2>
-                    <p class="text-sm text-slate-500 font-medium">Bài kiểm tra đã phân phối cho một lớp cụ thể và sẵn sàng theo dõi trong vận hành.</p>
-                  </div>
-                  <span class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">{{ classroomQuizzes().length }} mục</span>
-                </div>
-                <div class="grid grid-cols-1 gap-4">
-                  @for (quiz of classroomQuizzes(); track quiz.id) {
-                    <ng-container *ngTemplateOutlet="quizCard; context: { quiz: quiz }"></ng-container>
-                  }
-                </div>
-              </section>
-            }
-
-            @if (coursewideQuizzes().length > 0) {
-              <section class="space-y-3">
-                <div class="flex items-center justify-between gap-3">
-                  <div>
-                    <h2 class="text-sm font-black uppercase tracking-[0.18em] text-[#0056D2]">Toàn khóa học</h2>
-                    <p class="text-sm text-slate-500 font-medium">Bài kiểm tra đang áp dụng cho toàn bộ học viên trong khóa học hoặc toàn bộ người đã ghi danh.</p>
-                  </div>
-                  <span class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">{{ coursewideQuizzes().length }} mục</span>
-                </div>
-                <div class="grid grid-cols-1 gap-4">
-                  @for (quiz of coursewideQuizzes(); track quiz.id) {
-                    <ng-container *ngTemplateOutlet="quizCard; context: { quiz: quiz }"></ng-container>
-                  }
-                </div>
-              </section>
-            }
-
-            @if (unassignedQuizzes().length > 0) {
-              <section class="space-y-3">
-                <div class="flex items-center justify-between gap-3">
-                  <div>
-                    <h2 class="text-sm font-black uppercase tracking-[0.18em] text-amber-700">Chưa phân phối</h2>
-                    <p class="text-sm text-slate-500 font-medium">Quiz đã tạo và neo trong curriculum nhưng vẫn chưa áp dụng cho lớp cụ thể.</p>
-                  </div>
-                  <span class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">{{ unassignedQuizzes().length }} mục</span>
-                </div>
-                <div class="grid grid-cols-1 gap-4">
-                  @for (quiz of unassignedQuizzes(); track quiz.id) {
-                    <ng-container *ngTemplateOutlet="quizCard; context: { quiz: quiz }"></ng-container>
-                  }
-                </div>
-              </section>
-            }
-          </div>
-        }
-
-        @if (error()) {
-          <div class="mt-8 p-4 bg-rose-50 border border-rose-100 text-rose-700 rounded-xl flex items-center gap-3 text-sm font-medium">
-            <lucide-icon name="alert-circle" [size]="18"></lucide-icon>
-            {{ error() }}
-          </div>
-        }
-      </div>
-
-      <ng-template #quizCard let-quiz="quiz">
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all group overflow-hidden flex flex-col sm:flex-row">
-          <div class="p-5 flex-grow min-w-0">
-            <div class="flex flex-col h-full justify-between gap-4">
-              <div>
-                <div class="flex items-center gap-3 mb-1.5">
-                  <h3 class="text-lg font-black text-slate-900 tracking-tight truncate group-hover:text-[#0056D2] transition-colors">{{ quiz.title || 'Không có tiêu đề' }}</h3>
-                  <span class="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border shadow-sm"
-                        [class]="getStatusClass(quiz.status)">
-                    {{ getStatusText(quiz.status) }}
-                  </span>
-                  <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-100 text-[11px] font-black text-slate-600 uppercase tracking-wider">
-                    <lucide-icon name="help-circle" [size]="12"></lucide-icon>
-                    {{ quiz.questionCount }} Câu hỏi
-                  </div>
-                  <div class="flex items-center gap-2 px-3 py-1.5 bg-blue-50/50 rounded-lg border border-blue-100/50 text-[11px] font-black text-blue-600 uppercase tracking-wider">
-                    <lucide-icon name="clock" [size]="12"></lucide-icon>
-                    {{ quiz.timeLimitMinutes ? quiz.timeLimitMinutes + ' phút' : 'Không giới hạn' }}
-                  </div>
-                  <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-black uppercase tracking-wider"
-                       [class]="getOperationalScopeClass(quiz)">
-                    <lucide-icon name="layers" [size]="12"></lucide-icon>
-                    {{ getOperationalScopeLabel(quiz) }}
-                  </div>
-                  <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-black tracking-[0.08em]"
-                       [class]="getOperationalAudienceClass(quiz)">
-                    <lucide-icon name="users" [size]="12"></lucide-icon>
-                    {{ getOperationalAudienceLabel(quiz) }}
-                  </div>
-                  @if (quiz.passingScore) {
-                    <div class="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-lg border border-emerald-100 text-[11px] font-black text-emerald-600 uppercase tracking-wider">
-                      <lucide-icon name="target" [size]="12"></lucide-icon>
-                      Đạt: {{ quiz.passingScore }}%
-                    </div>
-                  }
-                </div>
-                @if (quiz.description) {
-                  <p class="text-xs text-slate-500 font-medium line-clamp-1 italic">{{ quiz.description }}</p>
+          }
+        </div>
+      } @else if (quizzes().length === 0) {
+        <div class="bg-white rounded-lg border border-dashed border-slate-200 py-12 text-center">
+          <lucide-icon name="clipboard-list" [size]="32" class="mx-auto mb-3 text-slate-300"></lucide-icon>
+          <p class="text-sm font-medium text-slate-500 mb-4">Chưa có bài kiểm tra nào</p>
+          <a routerLink="/teacher/assessments/classes/quizzes/create"
+             class="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0056D2] text-white rounded-lg text-xs font-semibold hover:bg-[#004BB5] transition-colors">
+            <lucide-icon name="plus" [size]="14"></lucide-icon>
+            Tạo bài kiểm tra
+          </a>
+        </div>
+      } @else {
+        <div class="space-y-4">
+          @if (classroomQuizzes().length > 0) {
+            <section>
+              <div class="flex items-center gap-2 py-1.5">
+                <h3 class="text-xs font-semibold uppercase tracking-wide text-emerald-600">Theo lớp</h3>
+                <span class="text-xs text-slate-500">{{ classroomQuizzes().length }}</span>
+              </div>
+              <div class="space-y-1">
+                @for (quiz of classroomQuizzes(); track quiz.id) {
+                  <ng-container *ngTemplateOutlet="quizRow; context: { quiz: quiz }"></ng-container>
                 }
               </div>
+            </section>
+          }
+
+          @if (coursewideQuizzes().length > 0) {
+            <section>
+              <div class="flex items-center gap-2 py-1.5">
+                <h3 class="text-xs font-semibold uppercase tracking-wide text-[#0056D2]">Toàn khóa học</h3>
+                <span class="text-xs text-slate-500">{{ coursewideQuizzes().length }}</span>
+              </div>
+              <div class="space-y-1">
+                @for (quiz of coursewideQuizzes(); track quiz.id) {
+                  <ng-container *ngTemplateOutlet="quizRow; context: { quiz: quiz }"></ng-container>
+                }
+              </div>
+            </section>
+          }
+
+          @if (unassignedQuizzes().length > 0) {
+            <section>
+              <div class="flex items-center gap-2 py-1.5">
+                <h3 class="text-xs font-semibold uppercase tracking-wide text-amber-600">Chưa phân phối</h3>
+                <span class="text-xs text-slate-500">{{ unassignedQuizzes().length }}</span>
+              </div>
+              <div class="space-y-1">
+                @for (quiz of unassignedQuizzes(); track quiz.id) {
+                  <ng-container *ngTemplateOutlet="quizRow; context: { quiz: quiz }"></ng-container>
+                }
+              </div>
+            </section>
+          }
+        </div>
+      }
+
+      @if (error()) {
+        <div class="mt-3 p-3 bg-rose-50 border border-rose-100 text-rose-700 rounded-lg flex items-center gap-2 text-sm">
+          <lucide-icon name="alert-circle" [size]="16"></lucide-icon>
+          {{ error() }}
+        </div>
+      }
+    </div>
+
+    <ng-template #quizRow let-quiz="quiz">
+      <div class="bg-white rounded-lg border border-slate-200 hover:bg-slate-50/50 transition-colors group">
+        <div class="flex items-center gap-4 px-4 py-2.5">
+          <!-- Title + meta -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <h3 class="text-sm font-semibold text-slate-900 truncate">{{ quiz.title || 'Không có tiêu đề' }}</h3>
+              <span class="px-1.5 py-0.5 text-[10px] font-semibold rounded shrink-0"
+                    [ngClass]="getStatusClass(quiz.status)">
+                {{ getStatusText(quiz.status) }}
+              </span>
+            </div>
+            <div class="flex items-center gap-2 mt-0.5 text-xs text-slate-500 flex-wrap">
+              <span>{{ quiz.questionCount }} câu</span>
+              <span class="text-slate-300">&middot;</span>
+              <span>{{ quiz.timeLimitMinutes ? quiz.timeLimitMinutes + ' phút' : 'Không giới hạn' }}</span>
+              <span class="hidden md:contents">
+                <span class="text-slate-300">&middot;</span>
+                <span class="font-medium" [ngClass]="getOperationalScopeClass(quiz).includes('emerald') ? 'text-emerald-600' : getOperationalScopeClass(quiz).includes('amber') ? 'text-amber-600' : 'text-[#0056D2]'">
+                  {{ getOperationalAudienceLabel(quiz) }}
+                </span>
+              </span>
+              @if (quiz.passingScore) {
+                <span class="hidden md:contents">
+                  <span class="text-slate-300">&middot;</span>
+                  <span class="text-emerald-600">Đạt {{ quiz.passingScore }}%</span>
+                </span>
+              }
             </div>
           </div>
 
-          <div class="p-6 sm:w-72 flex-shrink-0 flex flex-col sm:border-l border-slate-100 bg-slate-50/20 group-hover:bg-[#0056D2]/[0.02] transition-all gap-3">
-                <a [routerLink]="['/teacher/assessments/classes/quizzes', quiz.id, 'editor']"
-                   class="h-10 px-6 rounded-xl bg-[#0056D2] text-white font-black text-xs hover:bg-[#004BB5] shadow-md shadow-blue-100 transition-all flex items-center justify-center gap-2">
-              Mở editor
-              <lucide-icon name="chevron-right" [size]="14"></lucide-icon>
+          <!-- Actions -->
+          <div class="flex items-center gap-1.5 shrink-0">
+            <a [routerLink]="['/teacher/assessments/classes/quizzes', quiz.id, 'editor']"
+               class="h-7 px-3 rounded-md bg-[#0056D2] text-white text-xs font-medium hover:bg-[#004BB5] transition-colors flex items-center gap-1">
+              Editor
+              <lucide-icon name="chevron-right" [size]="12"></lucide-icon>
             </a>
             <a [routerLink]="['/teacher/assessments/classes/quizzes', quiz.id, 'essay-grading']"
-               class="h-10 px-6 rounded-xl border border-slate-200 bg-white text-slate-700 font-black text-xs hover:border-[#0056D2] hover:text-[#0056D2] transition-all flex items-center justify-center gap-2">
+               class="h-7 px-3 rounded-md border border-slate-200 text-xs font-medium text-slate-600 hover:border-[#0056D2] hover:text-[#0056D2] transition-colors flex items-center gap-1">
               Chấm tự luận
-              <lucide-icon name="clipboard-check" [size]="14"></lucide-icon>
             </a>
           </div>
         </div>
-      </ng-template>
-    </div>
+      </div>
+    </ng-template>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })

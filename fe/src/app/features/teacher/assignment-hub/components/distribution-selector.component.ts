@@ -38,6 +38,7 @@ export class DistributionSelectorComponent {
   individualStudentIds = input<string[]>([]);
   courseId = input<string | null>(null);
   initialClassId = input<string | null>(null);
+  initialViewMode = input<ViewMode>('assigned');
   supportsClassDistribution = input<boolean>(true);
 
   distributionChange = output<DistributionSettings>();
@@ -188,11 +189,7 @@ export class DistributionSelectorComponent {
         this.selectedClassId.set(normalizedClassId);
         this.showError.set(false);
 
-        this.viewMode.set(
-          normalizedDistributionType === 'ALL_STUDENTS' || normalizedStudentIds.length > 0 || !!normalizedClassId
-            ? 'assigned'
-            : 'manage'
-        );
+        this.viewMode.set(this.initialViewMode());
 
         if (normalizedDistributionType === 'CLASS' && normalizedClassId) {
           void this.loadClassStudents(normalizedClassId);

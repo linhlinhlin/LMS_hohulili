@@ -258,3 +258,48 @@ Important behavior:
 - self-paced quiz creation does not request class data
 - instructor-led quiz creation loads class choices only after the course is known to support class delivery
 - canceling from the scoped create screen returns to `/teacher/assessments/classes/quizzes`
+
+## Current Assignment Creation Rule In The Operational Workspace
+
+Assignment creation under the operational workspace now follows the same boundary honesty as the quizzes flow.
+
+Route:
+
+- `/teacher/assessments/classes/assignments/create`
+
+Behavior:
+
+- the create screen opens in distribution-management mode instead of an "already assigned" summary state
+- `SELF_PACED` courses expose only `ALL_STUDENTS`
+- `INSTRUCTOR_LED` courses expose:
+  - `ALL_STUDENTS`
+  - `CLASS`
+  - `SPECIFIC_STUDENTS`
+- self-paced assignment creation does not request class data
+- instructor-led assignment creation loads class choices only after the selected course is known to support class delivery
+
+Operational copy on the screen must stay honest:
+
+- self-paced -> "this assignment applies to all enrolled learners in the course"
+- instructor-led -> "this assignment can be operated by class, by selected learners, or course-wide"
+
+## Current Essay Grading Rule In The Operational Workspace
+
+Essay grading inside the operational workspace must always surface runtime context before the grader starts reviewing answers.
+
+Route:
+
+- `/teacher/assessments/classes/quizzes/:quizId/essay-grading`
+
+Required runtime framing:
+
+- `SELF_PACED`
+  - delivery mode label: `Khóa học`
+  - scope label: `Toàn khóa học`
+  - target label: `Toàn bộ học viên đã ghi danh`
+- `INSTRUCTOR_LED`
+  - delivery mode label: `Lớp học`
+  - scope label: `Theo lớp` or the active runtime scope
+  - target label: the concrete class or selected audience
+
+The empty-state copy must also follow the same scope. It should never default to class-centric wording when the current quiz is course-wide.

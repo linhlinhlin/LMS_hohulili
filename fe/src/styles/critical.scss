@@ -25,10 +25,8 @@ body {
   transition: opacity 0.15s ease-in;
 }
 
-/* Loading state to prevent FOUC */
-body:not(.loaded) .dashboard-container {
-  opacity: 0;
-}
+/* Do not hide full dashboards behind component-level body class toggles.
+   That pattern makes route failures look like blank screens. */
 
 /* Critical layout styles */
 .dashboard-container {

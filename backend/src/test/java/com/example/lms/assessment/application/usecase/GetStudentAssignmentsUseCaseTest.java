@@ -58,6 +58,42 @@ class GetStudentAssignmentsUseCaseTest {
         lenient().when(accessPort.canAccessAssignment(any(UUID.class), eq(studentId))).thenReturn(true);
     }
 
+    private AssignmentSummary summary(UUID assignmentId, String title, Instant dueDate) {
+        return new AssignmentSummary(
+                assignmentId,
+                title,
+                "desc",
+                "inst",
+                courseId,
+                "Course",
+                "SELF_PACED",
+                dueDate,
+                100.0,
+                false,
+                1,
+                "ALL_STUDENTS",
+                null,
+                null);
+    }
+
+    private AssignmentDetail detail(UUID assignmentId, String title, Instant dueDate) {
+        return new AssignmentDetail(
+                assignmentId,
+                title,
+                "desc",
+                "inst",
+                courseId,
+                "Course",
+                "SELF_PACED",
+                dueDate,
+                100.0,
+                false,
+                1,
+                "ALL_STUDENTS",
+                null,
+                null);
+    }
+
     @Nested
     @DisplayName("List student assignments")
     class ListAssignments {
@@ -92,25 +128,15 @@ class GetStudentAssignmentsUseCaseTest {
             when(queryPort.findActiveEnrolledCourses(studentId))
                     .thenReturn(List.of(new EnrolledCourse(courseId)));
             when(queryPort.findPublishedAssignmentsByCourseIds(anyList()))
-                    .thenReturn(List.of(new AssignmentSummary(
-                            assignmentId,
-                            "Essay 1",
-                            "desc",
-                            "inst",
-                            courseId,
-                            Instant.now().plus(7, ChronoUnit.DAYS),
-                            100.0,
-                            false,
-                            1)));
+                    .thenReturn(List.of(summary(assignmentId, "Essay 1", Instant.now().plus(7, ChronoUnit.DAYS))));
             when(queryPort.findLatestSubmissionsByStudent(studentId)).thenReturn(Map.of());
-            when(queryPort.findCourseTitle(courseId)).thenReturn(Optional.of("Hang hai"));
 
             List<StudentAssignmentResponse> result = useCase.execute(studentId);
 
             assertThat(result).hasSize(1);
             assertThat(result.get(0).status()).isEqualTo("NOT_SUBMITTED");
             assertThat(result.get(0).isLate()).isFalse();
-            assertThat(result.get(0).courseName()).isEqualTo("Hang hai");
+            assertThat(result.get(0).courseName()).isEqualTo("Course");
         }
 
         @Test
@@ -120,18 +146,8 @@ class GetStudentAssignmentsUseCaseTest {
             when(queryPort.findActiveEnrolledCourses(studentId))
                     .thenReturn(List.of(new EnrolledCourse(courseId)));
             when(queryPort.findPublishedAssignmentsByCourseIds(anyList()))
-                    .thenReturn(List.of(new AssignmentSummary(
-                            assignmentId,
-                            "Overdue Essay",
-                            "desc",
-                            "inst",
-                            courseId,
-                            Instant.now().minus(2, ChronoUnit.DAYS),
-                            100.0,
-                            false,
-                            1)));
+                    .thenReturn(List.of(summary(assignmentId, "Overdue Essay", Instant.now().minus(2, ChronoUnit.DAYS))));
             when(queryPort.findLatestSubmissionsByStudent(studentId)).thenReturn(Map.of());
-            when(queryPort.findCourseTitle(courseId)).thenReturn(Optional.of("Course"));
 
             List<StudentAssignmentResponse> result = useCase.execute(studentId);
 
@@ -146,16 +162,7 @@ class GetStudentAssignmentsUseCaseTest {
             when(queryPort.findActiveEnrolledCourses(studentId))
                     .thenReturn(List.of(new EnrolledCourse(courseId)));
             when(queryPort.findPublishedAssignmentsByCourseIds(anyList()))
-                    .thenReturn(List.of(new AssignmentSummary(
-                            assignmentId,
-                            "Graded Essay",
-                            "desc",
-                            "inst",
-                            courseId,
-                            Instant.now().plus(7, ChronoUnit.DAYS),
-                            100.0,
-                            false,
-                            1)));
+                    .thenReturn(List.of(summary(assignmentId, "Graded Essay", Instant.now().plus(7, ChronoUnit.DAYS))));
             when(queryPort.findLatestSubmissionsByStudent(studentId))
                     .thenReturn(Map.of(assignmentId, new SubmissionInfo(
                             UUID.randomUUID(),
@@ -168,8 +175,6 @@ class GetStudentAssignmentsUseCaseTest {
                             null,
                             null,
                             "GRADED")));
-            when(queryPort.findCourseTitle(courseId)).thenReturn(Optional.of("Course"));
-
             List<StudentAssignmentResponse> result = useCase.execute(studentId);
 
             assertThat(result).hasSize(1);
@@ -186,16 +191,7 @@ class GetStudentAssignmentsUseCaseTest {
             when(queryPort.findActiveEnrolledCourses(studentId))
                     .thenReturn(List.of(new EnrolledCourse(courseId)));
             when(queryPort.findPublishedAssignmentsByCourseIds(anyList()))
-                    .thenReturn(List.of(new AssignmentSummary(
-                            assignmentId,
-                            "Late Essay",
-                            "desc",
-                            "inst",
-                            courseId,
-                            dueDate,
-                            100.0,
-                            false,
-                            1)));
+                    .thenReturn(List.of(summary(assignmentId, "Late Essay", dueDate)));
             when(queryPort.findLatestSubmissionsByStudent(studentId))
                     .thenReturn(Map.of(assignmentId, new SubmissionInfo(
                             UUID.randomUUID(),
@@ -208,8 +204,6 @@ class GetStudentAssignmentsUseCaseTest {
                             null,
                             null,
                             "SUBMITTED")));
-            when(queryPort.findCourseTitle(courseId)).thenReturn(Optional.of("Course"));
-
             List<StudentAssignmentResponse> result = useCase.execute(studentId);
 
             assertThat(result).hasSize(1);
@@ -227,28 +221,9 @@ class GetStudentAssignmentsUseCaseTest {
                     .thenReturn(List.of(new EnrolledCourse(courseId)));
             when(queryPort.findPublishedAssignmentsByCourseIds(anyList()))
                     .thenReturn(List.of(
-                            new AssignmentSummary(
-                                    laterId,
-                                    "Later",
-                                    "desc",
-                                    "inst",
-                                    courseId,
-                                    Instant.now().plus(10, ChronoUnit.DAYS),
-                                    100.0,
-                                    false,
-                                    1),
-                            new AssignmentSummary(
-                                    earlierId,
-                                    "Earlier",
-                                    "desc",
-                                    "inst",
-                                    courseId,
-                                    Instant.now().plus(2, ChronoUnit.DAYS),
-                                    100.0,
-                                    false,
-                                    1)));
+                            summary(laterId, "Later", Instant.now().plus(10, ChronoUnit.DAYS)),
+                            summary(earlierId, "Earlier", Instant.now().plus(2, ChronoUnit.DAYS))));
             when(queryPort.findLatestSubmissionsByStudent(studentId)).thenReturn(Map.of());
-            when(queryPort.findCourseTitle(courseId)).thenReturn(Optional.of("Course"));
 
             List<StudentAssignmentResponse> result = useCase.execute(studentId);
 
@@ -267,30 +242,11 @@ class GetStudentAssignmentsUseCaseTest {
                     .thenReturn(List.of(new EnrolledCourse(courseId)));
             when(queryPort.findPublishedAssignmentsByCourseIds(anyList()))
                     .thenReturn(List.of(
-                            new AssignmentSummary(
-                                    visibleAssignmentId,
-                                    "Visible",
-                                    "desc",
-                                    "inst",
-                                    courseId,
-                                    Instant.now().plus(3, ChronoUnit.DAYS),
-                                    100.0,
-                                    false,
-                                    1),
-                            new AssignmentSummary(
-                                    hiddenAssignmentId,
-                                    "Hidden",
-                                    "desc",
-                                    "inst",
-                                    courseId,
-                                    Instant.now().plus(4, ChronoUnit.DAYS),
-                                    100.0,
-                                    false,
-                                    1)));
+                            summary(visibleAssignmentId, "Visible", Instant.now().plus(3, ChronoUnit.DAYS)),
+                            summary(hiddenAssignmentId, "Hidden", Instant.now().plus(4, ChronoUnit.DAYS))));
             when(accessPort.filterAccessibleAssignmentIds(anyList(), eq(studentId)))
                     .thenReturn(List.of(visibleAssignmentId));
             when(queryPort.findLatestSubmissionsByStudent(studentId)).thenReturn(Map.of());
-            when(queryPort.findCourseTitle(courseId)).thenReturn(Optional.of("Course"));
 
             List<StudentAssignmentResponse> result = useCase.execute(studentId);
 
@@ -319,16 +275,7 @@ class GetStudentAssignmentsUseCaseTest {
             UUID assignmentId = UUID.randomUUID();
 
             when(queryPort.findAssignmentById(assignmentId))
-                    .thenReturn(Optional.of(new AssignmentDetail(
-                            assignmentId,
-                            "Detail Essay",
-                            "desc",
-                            "inst",
-                            courseId,
-                            Instant.now().plus(7, ChronoUnit.DAYS),
-                            100.0,
-                            false,
-                            1)));
+                    .thenReturn(Optional.of(detail(assignmentId, "Detail Essay", Instant.now().plus(7, ChronoUnit.DAYS))));
             when(queryPort.findSubmission(assignmentId, studentId))
                     .thenReturn(Optional.of(new SubmissionInfo(
                             UUID.randomUUID(),
@@ -341,14 +288,12 @@ class GetStudentAssignmentsUseCaseTest {
                             null,
                             null,
                             "SUBMITTED")));
-            when(queryPort.findCourseTitle(courseId)).thenReturn(Optional.of("Hang hai"));
-
             Optional<StudentAssignmentResponse> result = useCase.getById(assignmentId, studentId);
 
             assertThat(result).isPresent();
             assertThat(result.get().title()).isEqualTo("Detail Essay");
             assertThat(result.get().status()).isEqualTo("SUBMITTED");
-            assertThat(result.get().courseName()).isEqualTo("Hang hai");
+            assertThat(result.get().courseName()).isEqualTo("Course");
         }
 
         @Test
