@@ -54,18 +54,36 @@ public class AiAssistantControllerV3 {
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository lessonJpaRepository;
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository chapterJpaRepository;
 
+    private final com.example.lms.shared.integration.WiiiIntegrationConfig wiiiConfig;
+
     // ============== Health Check ==============
 
     @GetMapping("/health")
     @PreAuthorize("permitAll()")
     @Operation(summary = "Check AI service health status")
     public ResponseEntity<ApiResponse<Map<String, Object>>> healthCheck() {
-        Map<String, Object> health = Map.of(
-            "status", "healthy",
-            "aiServiceStatus", "available",
-            "version", "3.0"
-        );
-        return ResponseEntity.ok(ApiResponse.success(health, "Dịch vụ AI đang hoạt động"));
+        boolean webhookEnabled = wiiiConfig.getWebhook().isEnabled();
+        boolean secretConfigured = wiiiConfig.getWebhook().getSecret() != null
+                && !wiiiConfig.getWebhook().getSecret().isBlank();
+
+        String aiStatus;
+        if (webhookEnabled && secretConfigured) {
+            aiStatus = "available";
+        } else if (secretConfigured) {
+            aiStatus = "configured";
+        } else {
+            aiStatus = "not_configured";
+        }
+
+        Map<String, Object> health = new LinkedHashMap<>();
+        health.put("status", "healthy");
+        health.put("aiServiceStatus", aiStatus);
+        health.put("webhookEnabled", webhookEnabled);
+        health.put("version", "3.0");
+
+        String msg = "available".equals(aiStatus) ? "Dịch vụ AI đang hoạt động"
+                : "Dịch vụ AI chưa được cấu hình";
+        return ResponseEntity.ok(ApiResponse.success(health, msg));
     }
 
     // ============== Session Management ==============

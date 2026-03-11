@@ -190,15 +190,8 @@ public class CommunicationControllerV3 {
     public ResponseEntity<ApiResponse<Map<String, Object>>> getUnreadCount(
             @AuthenticationPrincipal UserJpaEntity user
     ) {
-        UUID userId = user.getId();
-        List<Conversation> conversations = conversationRepository.findActiveByParticipantId(userId);
-
-        long totalUnread = 0;
-        for (Conversation conv : conversations) {
-            List<Message> unread = messageRepository.findUnreadByConversationId(conv.getId());
-            // Only count messages NOT sent by us
-            totalUnread += unread.stream().filter(m -> !m.isFrom(userId)).count();
-        }
+        // Single query — replaces N+1 (conversations loop + per-conversation message fetch)
+        long totalUnread = messageRepository.countTotalUnreadForUser(user.getId());
 
         Map<String, Object> result = Map.of("unreadCount", totalUnread);
         return ResponseEntity.ok(ApiResponse.success(result, "Số tin nhắn chưa đọc"));

@@ -25,5 +25,22 @@ public interface MessageJpaRepositoryV3 extends JpaRepository<MessageJpaEntity, 
     @Modifying
     @Query("UPDATE MessageJpaEntity m SET m.isRead = true WHERE m.conversationId = :convId AND m.senderId != :userId")
     void markAllAsRead(@Param("convId") UUID conversationId, @Param("userId") UUID userId);
+
+    /**
+     * Count total unread messages for a user across all active (non-archived) conversations.
+     * Single query replaces N+1 pattern: conversations loop + per-conversation unread fetch.
+     */
+    @Query(value = """
+        SELECT COUNT(m.id) FROM messages m
+        JOIN conversations c ON m.conversation_id = c.id
+        WHERE m.is_read = false
+        AND m.sender_id != :userId
+        AND (
+            (c.participant1_id = :userId AND (c.is_archived_1 = false OR c.is_archived_1 IS NULL))
+            OR
+            (c.participant2_id = :userId AND (c.is_archived_2 = false OR c.is_archived_2 IS NULL))
+        )
+        """, nativeQuery = true)
+    long countTotalUnreadForUser(@Param("userId") UUID userId);
 }
 

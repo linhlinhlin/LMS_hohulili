@@ -60,6 +60,11 @@ public class MessageRepositoryAdapter implements MessageRepository {
     }
 
     @Override
+    public long countTotalUnreadForUser(java.util.UUID userId) {
+        return jpaRepository.countTotalUnreadForUser(userId);
+    }
+
+    @Override
     public void delete(Message message) {
         jpaRepository.deleteById(message.getId().value());
     }

@@ -39,6 +39,12 @@ public interface MessageRepository {
     long countUnreadByConversationId(ConversationId conversationId);
 
     /**
+     * Count total unread messages for a user across all active conversations.
+     * Single query — avoids N+1 pattern.
+     */
+    long countTotalUnreadForUser(java.util.UUID userId);
+
+    /**
      * Delete a message.
      */
     void delete(Message message);

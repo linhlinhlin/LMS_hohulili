@@ -107,18 +107,10 @@ class CommunicationControllerV3Test {
     class GetUnreadCount {
 
         @Test
-        @DisplayName("Đếm đúng số tin nhắn chưa đọc")
+        @DisplayName("Đếm đúng số tin nhắn chưa đọc (single query)")
         void countsCorrectly() {
-            var conv = createConversation(userAId, userBId);
-            when(conversationRepository.findActiveByParticipantId(userAId))
-                    .thenReturn(List.of(conv));
-
-            // 2 unread messages from userB, 1 unread from userA (own — should not count)
-            var msg1 = createMessage(conv.getId(), userBId, false);
-            var msg2 = createMessage(conv.getId(), userBId, false);
-            var msg3 = createMessage(conv.getId(), userAId, false); // Own message
-            when(messageRepository.findUnreadByConversationId(conv.getId()))
-                    .thenReturn(List.of(msg1, msg2, msg3));
+            // Single query returns total unread count directly
+            when(messageRepository.countTotalUnreadForUser(userAId)).thenReturn(2L);
 
             var response = controller.getUnreadCount(userA);
             assertThat(response.getStatusCode().value()).isEqualTo(200);
@@ -128,8 +120,7 @@ class CommunicationControllerV3Test {
         @Test
         @DisplayName("Trả về 0 khi tất cả đã đọc")
         void zeroWhenAllRead() {
-            when(conversationRepository.findActiveByParticipantId(userAId))
-                    .thenReturn(List.of());
+            when(messageRepository.countTotalUnreadForUser(userAId)).thenReturn(0L);
 
             var response = controller.getUnreadCount(userA);
             assertThat(response.getStatusCode().value()).isEqualTo(200);
