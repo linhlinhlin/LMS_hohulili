@@ -12,6 +12,8 @@ export interface OfflineCourse {
   version: number;
   sizeBytes: number;
   userId: string;
+  contentVersion?: number;
+  isStale?: boolean;
 }
 
 export interface OfflineChapter {
@@ -92,6 +94,27 @@ export interface SyncQueueItem {
   userId: string;
 }
 
+// ─── Offline Quiz Data (downloaded for offline quiz taking) ──────────
+
+export interface OfflineQuestion {
+  id: string;
+  content: string;
+  questionType: 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'FILL_IN_BLANK' | 'SHORT_ANSWER' | 'ESSAY';
+  options: Array<{ optionKey: string; content: string; displayOrder: number }>;
+}
+
+export interface OfflineQuizData {
+  quizId: string;
+  lessonId: string;
+  courseId: string;
+  userId: string;
+  title: string;
+  passingScore: number;
+  timeLimit?: number;       // minutes; null = no limit
+  questions: OfflineQuestion[];
+  downloadedAt: Date;
+}
+
 // ─── Download Checkpoint ─────────────────────────────────────────────
 
 export interface DownloadCheckpoint {
@@ -131,6 +154,7 @@ export class LmsOfflineDatabase extends Dexie {
   quizAttempts!: Table<OfflineQuizAttempt>;
   syncQueue!: Table<SyncQueueItem>;
   downloadCheckpoints!: Table<DownloadCheckpoint>;
+  quizData!: Table<OfflineQuizData>;
 
   constructor() {
     super('lms-maritime-offline');
@@ -184,6 +208,36 @@ export class LmsOfflineDatabase extends Dexie {
       tx.table('downloadCheckpoints').clear();
       tx.table('syncQueue').clear();
       console.log('[LMS-Offline] v4 migration: cleared old data for multi-account isolation');
+    });
+
+    // v5: Add contentVersion + isStale to courses (no index change, just data upgrade)
+    this.version(5).stores({
+      courses: '[userId+id], userId, downloadedAt',
+      chapters: '[userId+id], [userId+courseId], [userId+courseId+sortOrder]',
+      lessons: '[userId+id], [userId+courseId], [userId+chapterId], [userId+courseId+sortOrder]',
+      progress: '++id, lessonId, courseId, userId, syncStatus, updatedAt',
+      submissions: '++id, assignmentId, userId, syncStatus, submittedAt',
+      quizAttempts: '++id, quizId, userId, syncStatus, submittedAt',
+      syncQueue: '++id, entityType, userId, [syncStatus+createdAt], createdAt',
+      downloadCheckpoints: '[userId+courseId]',
+    }).upgrade(tx => {
+      return tx.table('courses').toCollection().modify(course => {
+        if (course.contentVersion == null) course.contentVersion = 1;
+        if (course.isStale == null) course.isStale = false;
+      });
+    });
+
+    // v6: Add quizData table for offline quiz taking
+    this.version(6).stores({
+      courses: '[userId+id], userId, downloadedAt',
+      chapters: '[userId+id], [userId+courseId], [userId+courseId+sortOrder]',
+      lessons: '[userId+id], [userId+courseId], [userId+chapterId], [userId+courseId+sortOrder]',
+      progress: '++id, lessonId, courseId, userId, syncStatus, updatedAt',
+      submissions: '++id, assignmentId, userId, syncStatus, submittedAt',
+      quizAttempts: '++id, quizId, userId, syncStatus, submittedAt',
+      syncQueue: '++id, entityType, userId, [syncStatus+createdAt], createdAt',
+      downloadCheckpoints: '[userId+courseId]',
+      quizData: '[userId+quizId], [userId+lessonId], [userId+courseId]',
     });
   }
 }

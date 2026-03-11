@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { offlineDb, getCurrentUserId, type OfflineCourse, type OfflineChapter, type OfflineLesson, type DownloadCheckpoint } from '../db/lms-offline.db';
+import { offlineDb, getCurrentUserId, type OfflineCourse, type OfflineChapter, type OfflineLesson, type DownloadCheckpoint, type OfflineQuizData, type OfflineQuestion } from '../db/lms-offline.db';
 import { StorageManagerService } from './storage-manager.service';
 import { ToastService } from './toast.service';
 import { OfflineVideoService } from './offline-video.service';
@@ -9,9 +9,9 @@ import { environment } from '../../../environments/environment';
 
 export type { OfflineCourse, OfflineChapter, OfflineLesson };
 
-export interface DownloadOptions {
-  videoQuality: 'none' | '360p' | '720p' | '1080p';
-}
+// Re-export DownloadOptions from the canonical source (download-dialog)
+export type { DownloadOptions } from '../../shared/components/download-dialog/download-dialog.component';
+import type { DownloadOptions } from '../../shared/components/download-dialog/download-dialog.component';
 
 export interface DownloadableCourse {
   id: string;
@@ -20,6 +20,9 @@ export interface DownloadableCourse {
   isDownloaded: boolean;
   downloadedAt?: Date;
   sizeBytes: number;
+  contentVersion?: number;
+  isStale?: boolean;
+  completionPercent: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -32,6 +35,8 @@ export class CourseDownloadService {
   readonly isDownloading = signal(false);
   readonly downloadProgress = signal(0);
   readonly currentDownloadId = signal<string | null>(null);
+  readonly isBulkUpdating = signal(false);
+  readonly bulkUpdateProgress = signal<{ current: number; total: number }>({ current: 0, total: 0 });
 
   readonly downloadedCount = computed(() => this.downloadedCourses().length);
 
@@ -190,6 +195,51 @@ export class CourseDownloadService {
         }
       }
 
+      // 5b. Download quiz data for lessons (offline quiz support)
+      if (!this.downloadCancelled) {
+        const allLessons = await offlineDb.lessons
+          .where('[userId+courseId]').equals([userId, courseId]).toArray();
+        for (const lesson of allLessons) {
+          if (this.downloadCancelled) break;
+          try {
+            const quizRes: any = await firstValueFrom(
+              this.http.get(`${environment.apiUrl}/api/v3/quizzes/lessons/${lesson.id}`)
+            );
+            const quizList: any[] = quizRes?.data ?? (Array.isArray(quizRes) ? quizRes : []);
+            for (const quiz of quizList) {
+              const qRes: any = await firstValueFrom(
+                this.http.get(`${environment.apiUrl}/api/v3/quizzes/${quiz.id}/questions`)
+              );
+              const rawQuestions: any[] = qRes?.data ?? qRes ?? [];
+              const questions: OfflineQuestion[] = rawQuestions.map((q: any) => ({
+                id: q.id,
+                content: q.content || q.text || '',
+                questionType: q.questionType,
+                options: (q.options || []).map((o: any) => ({
+                  optionKey: o.optionKey,
+                  content: o.content || o.text || '',
+                  displayOrder: o.displayOrder ?? 0,
+                })),
+              }));
+              const quizData: OfflineQuizData = {
+                quizId: quiz.id,
+                lessonId: lesson.id,
+                courseId,
+                userId,
+                title: quiz.title || quiz.name || '',
+                passingScore: quiz.passingScore ?? 60,
+                timeLimit: quiz.timeLimit ?? undefined,
+                questions,
+                downloadedAt: new Date(),
+              };
+              await offlineDb.quizData.put(quizData);
+            }
+          } catch {
+            // Quiz download failure is non-fatal — skip this lesson's quiz
+          }
+        }
+      }
+
       // 6. Count total lessons + size from DB (not memory — crash-safe)
       const dbLessons = await offlineDb.lessons.where('[userId+courseId]').equals([userId, courseId]).toArray();
       let totalSize = 0;
@@ -208,6 +258,8 @@ export class CourseDownloadService {
         version: 1,
         sizeBytes: totalSize,
         userId,
+        contentVersion: courseData.contentVersion || 1,
+        isStale: false,
       };
       await offlineDb.courses.put(course);
 
@@ -245,6 +297,7 @@ export class CourseDownloadService {
 
     await offlineDb.lessons.where('[userId+courseId]').equals([userId, courseId]).delete();
     await offlineDb.chapters.where('[userId+courseId]').equals([userId, courseId]).delete();
+    await offlineDb.quizData.where('[userId+courseId]').equals([userId, courseId]).delete();
     await offlineDb.progress.where('courseId').equals(courseId).filter(p => p.userId === userId).delete();
     await offlineDb.courses.delete([userId, courseId]);
     await offlineDb.downloadCheckpoints.delete([userId, courseId]);
@@ -283,6 +336,7 @@ export class CourseDownloadService {
     // 2. Delete all IndexedDB data for this user
     await offlineDb.lessons.where('userId').equals(userId).delete();
     await offlineDb.chapters.where('userId').equals(userId).delete();
+    await offlineDb.quizData.where('userId').equals(userId).delete();
     await offlineDb.progress.where('userId').equals(userId).delete();
     await offlineDb.courses.where('userId').equals(userId).delete();
     await offlineDb.downloadCheckpoints.where('userId').equals(userId).delete();
@@ -348,9 +402,50 @@ export class CourseDownloadService {
       .sortBy('sortOrder');
   }
 
+  /**
+   * Bulk re-download all stale courses sequentially.
+   * Shows progress: "Đang cập nhật 2/3 khóa học..."
+   */
+  async bulkUpdateStale(): Promise<void> {
+    if (this.isBulkUpdating()) return;
+    const stale = this.downloadedCourses().filter(c => c.isStale);
+    if (stale.length === 0) return;
+
+    this.isBulkUpdating.set(true);
+    this.bulkUpdateProgress.set({ current: 0, total: stale.length });
+    try {
+      for (let i = 0; i < stale.length; i++) {
+        this.bulkUpdateProgress.set({ current: i, total: stale.length });
+        await this.removeCourse(stale[i].id);
+        await this.downloadCourse(stale[i].id);
+      }
+      this.bulkUpdateProgress.set({ current: stale.length, total: stale.length });
+      this.toast.success(`Đã cập nhật ${stale.length} khóa học`);
+    } finally {
+      this.isBulkUpdating.set(false);
+      this.bulkUpdateProgress.set({ current: 0, total: 0 });
+    }
+  }
+
   private async refreshDownloadedCourses(): Promise<void> {
     const userId = getCurrentUserId();
     const courses = await offlineDb.courses.where('userId').equals(userId).toArray();
+
+    // Compute completion % per course from progress table (parallel queries)
+    const completionList = await Promise.all(
+      courses.map(async c => {
+        const [lessonCount, completedCount] = await Promise.all([
+          offlineDb.lessons.where('[userId+courseId]').equals([userId, c.id]).count(),
+          offlineDb.progress
+            .where('courseId').equals(c.id)
+            .filter(p => p.userId === userId && (p.completedAt != null || p.progressPercent >= 100))
+            .count(),
+        ]);
+        return { id: c.id, percent: lessonCount > 0 ? Math.round((completedCount / lessonCount) * 100) : 0 };
+      })
+    );
+    const completionMap = new Map(completionList.map(d => [d.id, d.percent]));
+
     this.downloadedCourses.set(
       courses.map(c => ({
         id: c.id,
@@ -359,6 +454,9 @@ export class CourseDownloadService {
         isDownloaded: true,
         downloadedAt: c.downloadedAt,
         sizeBytes: c.sizeBytes,
+        contentVersion: c.contentVersion,
+        isStale: c.isStale,
+        completionPercent: completionMap.get(c.id) ?? 0,
       }))
     );
   }

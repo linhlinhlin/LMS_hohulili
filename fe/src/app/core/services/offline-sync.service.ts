@@ -22,6 +22,11 @@ export class OfflineSyncService {
   readonly pendingCount = signal(0);
   readonly failedCount = signal(0);
   readonly lastSyncResult = signal<SyncResult | null>(null);
+  /**
+   * Earliest nextRetryAt across all pending items still in backoff.
+   * Used by UI to show "Thử lại sau X phút".
+   */
+  readonly earliestRetryAt = signal<Date | null>(null);
 
   /** True if there are failed items that can be retried */
   readonly hasFailedItems = computed(() => this.failedCount() > 0);
@@ -255,10 +260,11 @@ export class OfflineSyncService {
       return { synced: 0, failed: 0, pending: 0 };
     }
 
-    // Reset failed items to pending with retryCount preserved, clear backoff
+    // Reset failed items fully (retryCount resets so backoff restarts from scratch)
     for (const item of failedItems) {
       await offlineDb.syncQueue.update(item.id!, {
         syncStatus: 'pending',
+        retryCount: 0,
         lastError: undefined,
         nextRetryAt: undefined,
       });
@@ -421,11 +427,23 @@ export class OfflineSyncService {
   }
 
   private async refreshCounts(): Promise<void> {
+    const userId = getCurrentUserId();
     const [pending, failed] = await Promise.all([
       this.getPendingCount(),
       this.getFailedCount(),
     ]);
     this.pendingCount.set(pending);
     this.failedCount.set(failed);
+
+    // Find earliest nextRetryAt for display ("Thử lại sau X phút")
+    const now = new Date();
+    const backoffItems = await offlineDb.syncQueue
+      .where('userId').equals(userId)
+      .filter(item => item.syncStatus === 'pending' && !!item.nextRetryAt && item.nextRetryAt > now)
+      .toArray();
+    const earliest = backoffItems
+      .map(i => i.nextRetryAt!)
+      .sort((a, b) => a.getTime() - b.getTime())[0] ?? null;
+    this.earliestRetryAt.set(earliest);
   }
 }

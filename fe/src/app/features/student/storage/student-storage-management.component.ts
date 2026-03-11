@@ -44,6 +44,26 @@ import { ToastService } from '../../../core/services/toast.service';
           </div>
         }
 
+        <!-- Smart Cleanup Suggestion: completed courses occupying space -->
+        @if (storagePercent() >= 80 && completedCourseBytes() > 0) {
+          <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 flex items-start justify-between gap-3">
+            <div class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-emerald-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+              <div>
+                <p class="font-semibold text-emerald-800">{{ completedCourseCount() }} khóa học đã hoàn thành chiếm {{ storageManager.formatBytes(completedCourseBytes()) }}</p>
+                <p class="text-sm text-emerald-700 mt-0.5">Xóa để giải phóng không gian cho nội dung mới.</p>
+              </div>
+            </div>
+            <button
+              (click)="onDeleteCompletedCourses()"
+              class="shrink-0 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-white border border-emerald-300 rounded-lg hover:bg-emerald-50 transition-colors">
+              Xóa tất cả
+            </button>
+          </div>
+        }
+
         <!-- Storage Bar Card -->
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
           <div class="flex items-center justify-between mb-3">
@@ -118,12 +138,17 @@ import { ToastService } from '../../../core/services/toast.service';
                 </div>
               }
             </div>
+            @if (syncService.earliestRetryAt()) {
+              <p class="mt-2 text-xs text-gray-400">
+                Thử lại sau {{ retryCountdownLabel() }}
+              </p>
+            }
             @if (syncService.hasFailedItems()) {
               <div class="flex gap-2 mt-3">
                 <button
                   (click)="onRetryFailed()"
                   class="px-4 py-2 text-sm font-medium text-[#0056D2] bg-[#0056D2]/5 hover:bg-[#0056D2]/10 rounded-lg transition-colors">
-                  Thử lại
+                  Thử lại ngay
                 </button>
                 <button
                   (click)="onClearFailed()"
@@ -137,9 +162,29 @@ import { ToastService } from '../../../core/services/toast.service';
 
         <!-- Downloaded Courses -->
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <h2 class="text-base font-semibold text-gray-900 mb-4">
-            Khóa học đã tải ({{ downloadService.downloadedCount() }})
-          </h2>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-semibold text-gray-900">
+              Khóa học đã tải ({{ downloadService.downloadedCount() }})
+            </h2>
+            @if (downloadService.isBulkUpdating()) {
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-[#0056D2] bg-[#0056D2]/10 rounded-full">
+                <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4Z"/>
+                </svg>
+                Đang cập nhật {{ downloadService.bulkUpdateProgress().current }}/{{ downloadService.bulkUpdateProgress().total }}...
+              </span>
+            } @else if (staleCourseCount() > 0) {
+              <button
+                (click)="onBulkUpdateStale()"
+                class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-full transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" />
+                </svg>
+                Cập nhật tất cả ({{ staleCourseCount() }})
+              </button>
+            }
+          </div>
 
           @if (downloadService.downloadedCourses().length === 0) {
             <div class="text-center py-8 text-gray-400">
@@ -152,16 +197,52 @@ import { ToastService } from '../../../core/services/toast.service';
           } @else {
             <div class="space-y-3">
               @for (course of downloadService.downloadedCourses(); track course.id) {
-                <div class="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors">
+                <div class="flex items-center justify-between p-3 rounded-lg border transition-colors"
+                     [class]="course.isStale ? 'border-amber-200 bg-amber-50/50' : course.completionPercent === 100 ? 'border-emerald-100 bg-emerald-50/30' : 'border-gray-100 hover:border-gray-200'">
                   <div class="min-w-0 flex-1">
-                    <p class="font-medium text-gray-900 truncate">{{ course.title }}</p>
+                    <div class="flex items-center gap-2">
+                      <p class="font-medium text-gray-900 truncate">{{ course.title }}</p>
+                      @if (course.completionPercent === 100) {
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-emerald-700 bg-emerald-100 rounded-full shrink-0">
+                          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                          </svg>
+                          Hoàn thành
+                        </span>
+                      } @else if (course.isStale) {
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-amber-700 bg-amber-100 rounded-full shrink-0">
+                          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" />
+                          </svg>
+                          Bản cũ
+                        </span>
+                      }
+                    </div>
                     <div class="flex flex-wrap items-center gap-3 mt-1 text-xs text-gray-500">
+                      @if (course.completionPercent > 0 && course.completionPercent < 100) {
+                        <span class="text-[#0056D2]">{{ course.completionPercent }}% hoàn thành</span>
+                      }
                       <span>{{ course.totalLessons }} bài học</span>
                       <span>{{ storageManager.formatBytes(course.sizeBytes) }}</span>
                       @if (course.downloadedAt) {
                         <span>{{ course.downloadedAt | date:'dd/MM/yyyy' }}</span>
                       }
                     </div>
+                    @if (course.isStale && course.completionPercent < 100) {
+                      <button
+                        (click)="onRedownloadCourse(course)"
+                        [disabled]="downloadService.isBulkUpdating()"
+                        class="mt-2 text-xs font-medium text-amber-700 hover:text-amber-900 underline underline-offset-2 disabled:opacity-40">
+                        Cập nhật lại
+                      </button>
+                    }
+                    @if (course.completionPercent === 100) {
+                      <button
+                        (click)="onDeleteCourse(course)"
+                        class="mt-2 text-xs font-medium text-emerald-700 hover:text-emerald-900 underline underline-offset-2">
+                        Xóa để giải phóng {{ storageManager.formatBytes(course.sizeBytes) }}
+                      </button>
+                    }
                   </div>
                   <button
                     (click)="onDeleteCourse(course)"
@@ -277,6 +358,29 @@ export class StudentStorageManagementComponent implements OnInit {
     return Math.min((estimatedSyncBytes / quota) * 100, 1); // Cap at 1% visual
   });
 
+  readonly retryCountdownLabel = computed(() => {
+    const retryAt = this.syncService.earliestRetryAt();
+    if (!retryAt) return '';
+    const diffMs = retryAt.getTime() - Date.now();
+    if (diffMs <= 0) return 'ngay bây giờ';
+    const mins = Math.ceil(diffMs / 60_000);
+    return mins === 1 ? '1 phút' : `${mins} phút`;
+  });
+
+  readonly staleCourseCount = computed(() =>
+    this.downloadService.downloadedCourses().filter(c => c.isStale).length
+  );
+
+  readonly completedCourseCount = computed(() =>
+    this.downloadService.downloadedCourses().filter(c => c.completionPercent === 100).length
+  );
+
+  readonly completedCourseBytes = computed(() =>
+    this.downloadService.downloadedCourses()
+      .filter(c => c.completionPercent === 100)
+      .reduce((sum, c) => sum + (c.sizeBytes || 0), 0)
+  );
+
   readonly hasAnyData = computed(() =>
     this.downloadService.downloadedCount() > 0 ||
     this.videoService.downloads().length > 0 ||
@@ -289,6 +393,54 @@ export class StudentStorageManagementComponent implements OnInit {
       this.storageManager.refresh(),
       this.videoService.refreshList(),
     ]);
+  }
+
+  async onBulkUpdateStale(): Promise<void> {
+    const count = this.staleCourseCount();
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Cập nhật tất cả khóa học',
+      message: `Tải lại ${count} khóa học với nội dung mới nhất? Quá trình này có thể mất vài phút.`,
+      variant: 'info',
+      confirmText: `Cập nhật ${count} khóa học`,
+      cancelText: 'Hủy',
+    });
+    if (!confirmed) return;
+    await this.downloadService.bulkUpdateStale();
+  }
+
+  async onDeleteCompletedCourses(): Promise<void> {
+    const count = this.completedCourseCount();
+    const bytes = this.completedCourseBytes();
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xóa khóa học đã hoàn thành',
+      message: `Xóa ${count} khóa học đã học xong để giải phóng ${this.storageManager.formatBytes(bytes)}?`,
+      variant: 'danger',
+      confirmText: 'Xóa',
+      cancelText: 'Hủy',
+    });
+    if (!confirmed) return;
+
+    const completed = this.downloadService.downloadedCourses().filter(c => c.completionPercent === 100);
+    for (const c of completed) {
+      await this.downloadService.removeCourse(c.id);
+    }
+    await this.storageManager.refresh();
+    this.toast.success(`Đã giải phóng ${this.storageManager.formatBytes(bytes)}`);
+  }
+
+  async onRedownloadCourse(course: DownloadableCourse): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Cập nhật khóa học',
+      message: `Tải lại "${course.title}" với nội dung mới nhất? Dữ liệu cũ sẽ bị thay thế.`,
+      variant: 'info',
+      confirmText: 'Cập nhật',
+      cancelText: 'Hủy',
+    });
+    if (!confirmed) return;
+
+    await this.downloadService.removeCourse(course.id);
+    await this.downloadService.downloadCourse(course.id);
+    // Note: removeCourse() and downloadCourse() already call storageManager.refresh() internally
   }
 
   async onDeleteCourse(course: DownloadableCourse): Promise<void> {
