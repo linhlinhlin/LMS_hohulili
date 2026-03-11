@@ -32,6 +32,7 @@ export interface OfflineLesson {
   contentHtml: string;
   videoManifestUrl?: string;
   videoOfflineUri?: string;
+  streamVideoUid?: string;
   sortOrder: number;
   downloadedAt: Date;
   userId: string;

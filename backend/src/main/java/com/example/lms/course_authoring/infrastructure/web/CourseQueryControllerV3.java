@@ -386,6 +386,7 @@ public class CourseQueryControllerV3 {
                                             .orderIndex(lesson.getOrderIndex())
                                             .content(showContent ? contentText : null)
                                             .videoUrl(showContent ? lesson.getVideoUrl() : null)
+                                            .streamVideoUid(lesson.getStreamVideoUid())
                                             .quizTimeLimit(quiz != null ? quiz.getTimeLimitMinutes() : null)
                                             .quizPassingScore(quiz != null ? quiz.getPassingScore() : null)
                                             .quizMaxScore(quiz != null ? quiz.getPassingScore() : null)
@@ -642,6 +643,7 @@ public class CourseQueryControllerV3 {
                 .quizMaxAttempts(quiz != null ? quiz.getMaxAttempts() : null)
                 .assignment(toAssignmentInfo(assignment))
                 .sections(buildSectionResponses(lesson, showContent))
+                .streamVideoUid(lesson.getStreamVideoUid())
                 .build();
     }
 
@@ -779,6 +781,7 @@ public class CourseQueryControllerV3 {
         private Integer quizMaxAttempts;
         private AssignmentInfoResponse assignment;
         private List<SectionResponse> sections;
+        private String streamVideoUid;
     }
 
     @lombok.Builder
@@ -807,6 +810,7 @@ public class CourseQueryControllerV3 {
         private Integer orderIndex;
         private String content;
         private String videoUrl;
+        private String streamVideoUid;
         private Integer quizTimeLimit;
         private Integer quizPassingScore;
         private Integer quizMaxScore;

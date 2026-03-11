@@ -75,6 +75,7 @@ export interface SectionContent {
 export interface LessonDetail extends LessonSummary {
   content: string; // HTML content (fallback)
   videoUrl?: string; // Fallback video URL
+  streamVideoUid?: string; // Cloudflare Stream UID — use signed URL if present
   thumbnail?: string;
   attachments: LessonAttachment[];
   sectionId: string;

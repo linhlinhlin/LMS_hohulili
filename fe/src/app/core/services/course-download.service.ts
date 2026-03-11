@@ -146,6 +146,7 @@ export class CourseDownloadService {
               title: l.title || l.name,
               contentHtml,
               videoManifestUrl: l.sections?.[0]?.videoUrl || l.videoUrl,
+              streamVideoUid: l.streamVideoUid,
               sortOrder: l.sortOrder ?? l.orderIndex ?? l.order ?? 0,
               downloadedAt: new Date(),
               userId,
@@ -184,9 +185,23 @@ export class CourseDownloadService {
           if (this.downloadCancelled) break;
 
           const vl = videoLessons[vi];
-          // Phase 1: Download original quality (R2 single URL). Phase 2 will use quality-specific URLs.
           try {
-            await this.videoService.downloadVideo(vl.videoManifestUrl!, vl.id, vl.title);
+            let downloadUrl = vl.videoManifestUrl!;
+            // Phase 3C: Use CF quality-specific MP4 URL when lesson is CF-hosted
+            if (vl.streamVideoUid) {
+              try {
+                const cfRes: any = await firstValueFrom(
+                  this.http.get(`${environment.apiUrl}/api/v3/lessons/${vl.id}/video/download`, {
+                    params: { quality: videoQuality }
+                  })
+                );
+                const cfUrl = cfRes?.downloadUrl ?? cfRes?.data?.downloadUrl;
+                if (cfUrl) downloadUrl = cfUrl;
+              } catch {
+                // CF URL fetch failed — fall through to raw videoManifestUrl
+              }
+            }
+            await this.videoService.downloadVideo(downloadUrl, vl.id, vl.title);
           } catch {
             // Video download failure is non-fatal — skip and continue
           }

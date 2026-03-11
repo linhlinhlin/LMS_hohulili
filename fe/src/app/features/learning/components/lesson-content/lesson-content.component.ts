@@ -13,6 +13,8 @@ import { ReadingProgressTracker } from '../../services/reading-progress-tracker.
 import { VideoProgressApi } from '../../../../api/client/video-progress.api';
 import { YouTubePlayerComponent } from '../youtube-player/youtube-player.component';
 import { OfflineVideoService } from '../../../../core/services/offline-video.service';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../../environments/environment';
 import { NoteApi, NoteResponse, CreateNoteRequest, UpdateNoteRequest } from '../../../../api/endpoints/note.api';
 import { QuizApi } from '../../../../api/endpoints/quiz.api';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -40,6 +42,7 @@ export class LessonContentComponent implements AfterViewInit {
   private readingTracker = inject(ReadingProgressTracker);
   private videoProgressApi = inject(VideoProgressApi);
   private offlineVideo = inject(OfflineVideoService);
+  private http = inject(HttpClient);
   private noteApi = inject(NoteApi);
   private quizApi = inject(QuizApi);
   private toast = inject(ToastService);
@@ -346,11 +349,28 @@ export class LessonContentComponent implements AfterViewInit {
   });
 
   private async resolveOfflineVideoUrl(lessonId: string): Promise<void> {
+    // Priority 1: offline cache (zero RAM via SW)
     if (this.offlineVideo.isAvailableOffline(lessonId)) {
       const offlineUrl = await this.offlineVideo.getVideoUrl(lessonId);
       if (offlineUrl) {
         this.resolvedVideoUrl.set(offlineUrl);
         return;
+      }
+    }
+    // Priority 2: Cloudflare Stream signed URL (when streamVideoUid is set)
+    const uid = this.lesson()?.streamVideoUid;
+    if (uid) {
+      try {
+        const res: any = await firstValueFrom(
+          this.http.get(`${environment.apiUrl}/api/v3/lessons/${lessonId}/video/play`)
+        );
+        const playUrl = res?.playUrl ?? res?.data?.playUrl;
+        if (playUrl) {
+          this.resolvedVideoUrl.set(playUrl);
+          return;
+        }
+      } catch {
+        // Fall through to raw videoUrl
       }
     }
     this.resolvedVideoUrl.set(null);

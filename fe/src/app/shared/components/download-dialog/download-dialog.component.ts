@@ -19,6 +19,7 @@ interface LessonSummary {
   title: string;
   hasVideo: boolean;
   durationMinutes: number;
+  streamVideoUid?: string;
 }
 
 /**
@@ -156,6 +157,8 @@ export class DownloadDialogComponent implements OnInit {
   readonly selectedQuality = signal<VideoQuality>('720p');
   readonly freeSpace = signal(0);
   readonly lessons = signal<LessonSummary[]>([]);
+  /** Per-quality real sizes from CF API: quality → total bytes across all CF lessons */
+  readonly cfQualitySizes = signal<Record<string, number>>({});
 
   readonly totalLessons = computed(() => this.lessons().length);
   readonly videoLessonsCount = computed(() => this.lessons().filter(l => l.hasVideo).length);
@@ -182,6 +185,13 @@ export class DownloadDialogComponent implements OnInit {
   ];
 
   videoSizeForQuality(quality: VideoQuality): number {
+    if (quality === 'none') return 0;
+    // Use real CF sizes when available (at least one lesson has streamVideoUid)
+    const cfSizes = this.cfQualitySizes();
+    if (cfSizes[quality] != null && cfSizes[quality] > 0) {
+      return cfSizes[quality];
+    }
+    // Heuristic fallback (Phase 1)
     const minutes = this.totalVideoMinutes();
     const per10min = this.VIDEO_SIZE_PER_10MIN[quality];
     return Math.round((minutes / 10) * per10min);
@@ -228,19 +238,57 @@ export class DownloadDialogComponent implements OnInit {
           allLessons.push({
             id: lesson.id,
             title: lesson.title || lesson.name,
-            hasVideo: !!videoUrl,
+            hasVideo: !!videoUrl || !!lesson.streamVideoUid,
             durationMinutes: lesson.durationMinutes || 10,
+            streamVideoUid: lesson.streamVideoUid,
           });
         }
       }
 
       this.lessons.set(allLessons);
       this.freeSpace.set((storageEstimate.quotaBytes ?? 0) - (storageEstimate.usedBytes ?? 0));
+
+      // Try to load real CF sizes for lessons that have Cloudflare Stream
+      const cfLessons = allLessons.filter(l => !!l.streamVideoUid);
+      if (cfLessons.length > 0) {
+        this.loadCfQualitySizes(cfLessons);
+      }
     } catch {
       // Fallback: show dialog without lesson details
       this.lessons.set([]);
     } finally {
       this.isLoading.set(false);
+    }
+  }
+
+  /**
+   * Fetch real per-quality file sizes from Cloudflare Stream API.
+   * Aggregates across all CF-hosted lessons and sets cfQualitySizes signal.
+   * Non-blocking — heuristics remain if this fails.
+   */
+  private async loadCfQualitySizes(cfLessons: LessonSummary[]): Promise<void> {
+    const totals: Record<string, number> = { '360p': 0, '720p': 0, '1080p': 0 };
+    let hasRealData = false;
+
+    await Promise.all(cfLessons.map(async lesson => {
+      try {
+        const res: any = await firstValueFrom(
+          this.http.get(`${environment.apiUrl}/api/v3/lessons/${lesson.id}/video/sizes`)
+        );
+        const sizes: Record<string, number> = res?.sizes ?? res?.data?.sizes ?? {};
+        for (const q of ['360p', '720p', '1080p'] as const) {
+          if (sizes[q] > 0) {
+            totals[q] += sizes[q];
+            hasRealData = true;
+          }
+        }
+      } catch {
+        // Non-fatal — heuristics will be used for this lesson
+      }
+    }));
+
+    if (hasRealData) {
+      this.cfQualitySizes.set(totals);
     }
   }
 
