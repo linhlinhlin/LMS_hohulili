@@ -1155,6 +1155,12 @@ export class CourseCurriculumComponent implements OnDestroy {
     const lesson = this.selectedLesson();
     if (!lesson || !this.lessonTitle.trim()) return;
 
+    // Validate: quiz must have at least 1 question
+    if (this.getLessonType(lesson) === 'QUIZ' && this.quizQuestions().length === 0) {
+      this.toast.error('Bài kiểm tra phải có ít nhất 1 câu hỏi trước khi lưu');
+      return;
+    }
+
     this.isSaving.set(true);
     this.store.markSaving();
     try {
@@ -1566,9 +1572,13 @@ export class CourseCurriculumComponent implements OnDestroy {
         return;
       }
 
-      // 2. Shuffle and pick N
+      // 2. Shuffle (Fisher-Yates) and pick N
       const count = this.randomCount();
-      const shuffled = questions.sort(() => 0.5 - Math.random());
+      const shuffled = [...questions];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
       const selected = shuffled.slice(0, count);
 
       // 3. Add to quiz
@@ -1873,7 +1883,7 @@ export class CourseCurriculumComponent implements OnDestroy {
 
     try {
       const assignmentId = await this.ensureAssignmentIdForLesson(lesson, courseId);
-      this.router.navigate(['/teacher/assessments/assignments', assignmentId, 'settings']);
+      this.router.navigate(['/teacher/assessments/classes/assignments', assignmentId, 'settings']);
     } catch {
       this.toast.error('Không thể mở cài đặt bài tập');
     }
