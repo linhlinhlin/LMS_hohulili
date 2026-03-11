@@ -32,12 +32,106 @@
       </div>
 
       @if (sectionType() === 'VIDEO') {
-        <div class="space-y-2">
-          <label class="mb-2 block text-sm font-medium text-gray-700">Đường dẫn video <span class="text-red-500">*</span></label>
-          <input type="text" [ngModel]="sectionVideoUrl()" (ngModelChange)="onSectionVideoUrlInput($event)" class="w-full rounded-lg border border-gray-300 px-4 py-2.5" placeholder="https://youtube.com/...">
-          @if (sectionVideoUrl()) {
-            <div class="mt-2 aspect-video overflow-hidden rounded-lg bg-black">
-              <iframe class="h-full w-full" [src]="getSafeUrl(sectionVideoUrl())" frameborder="0" allowfullscreen></iframe>
+        <div class="space-y-3">
+          <!-- Video input mode tabs -->
+          <div class="flex gap-1 rounded-lg bg-gray-100 p-1 text-xs font-medium">
+            <button type="button"
+                    (click)="videoInputMode.set('url')"
+                    [class]="videoInputMode() === 'url'
+                      ? 'flex-1 rounded-md bg-white px-3 py-1.5 text-gray-900 shadow-sm'
+                      : 'flex-1 px-3 py-1.5 text-gray-500 hover:text-gray-700'">
+              YouTube / URL ngoài
+            </button>
+            @if (lessonId()) {
+              <button type="button"
+                      (click)="videoInputMode.set('upload')"
+                      [class]="videoInputMode() === 'upload'
+                        ? 'flex-1 rounded-md bg-white px-3 py-1.5 text-gray-900 shadow-sm'
+                        : 'flex-1 px-3 py-1.5 text-gray-500 hover:text-gray-700'">
+                Tải lên Cloudflare Stream
+              </button>
+            }
+          </div>
+
+          <!-- URL input tab -->
+          @if (videoInputMode() === 'url') {
+            <div class="space-y-2">
+              <label class="block text-sm font-medium text-gray-700">Đường dẫn video <span class="text-red-500">*</span></label>
+              <input type="text"
+                     [ngModel]="sectionVideoUrl()"
+                     (ngModelChange)="onSectionVideoUrlInput($event)"
+                     class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-[#0056D2]"
+                     placeholder="https://youtube.com/... hoặc URL video khác">
+              @if (sectionVideoUrl()) {
+                <div class="mt-2 aspect-video overflow-hidden rounded-lg bg-black">
+                  <iframe class="h-full w-full" [src]="getSafeUrl(sectionVideoUrl())" frameborder="0" allowfullscreen></iframe>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- CF Stream upload tab -->
+          @if (videoInputMode() === 'upload') {
+            <div class="space-y-3">
+              @if (cfUploadStatus() === 'idle') {
+                <div class="relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#0056D2]/40 bg-[#0056D2]/5 p-6 transition-colors hover:bg-[#0056D2]/10">
+                  <input type="file" accept="video/*" (change)="onCfVideoFileSelected($event)"
+                         class="absolute inset-0 h-full w-full cursor-pointer opacity-0">
+                  <div class="pointer-events-none text-center">
+                    <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#0056D2]/10">
+                      <lucide-icon name="upload-cloud" [size]="24" class="text-[#0056D2]"></lucide-icon>
+                    </div>
+                    <p class="text-sm font-semibold text-gray-800">Nhấn để chọn video</p>
+                    <p class="mt-1 text-xs text-gray-500">MP4, MOV, WebM — tối đa 200 GB</p>
+                    <p class="mt-2 text-xs text-[#0056D2]">Được xử lý bởi Cloudflare Stream (360p / 720p / 1080p)</p>
+                  </div>
+                </div>
+              }
+
+              @if (cfUploadStatus() === 'uploading') {
+                <div class="rounded-xl border border-[#0056D2]/20 bg-[#0056D2]/5 p-4">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-gray-700">Đang tải lên Cloudflare Stream...</span>
+                    <span class="text-sm font-semibold text-[#0056D2]">{{ cfUploadPercent() }}%</span>
+                  </div>
+                  <div class="h-2 w-full rounded-full bg-gray-200 overflow-hidden">
+                    <div class="h-full rounded-full bg-[#0056D2] transition-all duration-300"
+                         [style.width.%]="cfUploadPercent()"></div>
+                  </div>
+                  <p class="mt-2 text-xs text-gray-500">Video sẽ được xử lý thành nhiều chất lượng sau khi tải xong.</p>
+                </div>
+              }
+
+              @if (cfUploadStatus() === 'done') {
+                <div class="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                  <lucide-icon name="check-circle" [size]="20" class="text-emerald-600 mt-0.5 shrink-0"></lucide-icon>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-emerald-800">Video đã tải lên thành công!</p>
+                    <p class="mt-0.5 text-xs text-emerald-700">Cloudflare Stream đang xử lý các phiên bản chất lượng (360p / 720p / 1080p).</p>
+                    @if (cfStreamVideoUid()) {
+                      <p class="mt-1 text-xs text-gray-500 font-mono truncate">UID: {{ cfStreamVideoUid() }}</p>
+                    }
+                  </div>
+                  <button type="button" (click)="resetCfUpload()"
+                          class="shrink-0 text-xs text-gray-500 hover:text-gray-700 underline">
+                    Tải lại
+                  </button>
+                </div>
+              }
+
+              @if (cfUploadStatus() === 'error') {
+                <div class="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
+                  <lucide-icon name="alert-circle" [size]="20" class="text-red-600 mt-0.5 shrink-0"></lucide-icon>
+                  <div class="flex-1">
+                    <p class="text-sm font-semibold text-red-800">Tải lên thất bại</p>
+                    <p class="mt-0.5 text-xs text-red-700">Kiểm tra kết nối mạng hoặc liên hệ admin nếu lỗi tiếp diễn.</p>
+                  </div>
+                  <button type="button" (click)="resetCfUpload()"
+                          class="shrink-0 text-xs text-gray-500 hover:text-gray-700 underline">
+                    Thử lại
+                  </button>
+                </div>
+              }
             </div>
           }
         </div>

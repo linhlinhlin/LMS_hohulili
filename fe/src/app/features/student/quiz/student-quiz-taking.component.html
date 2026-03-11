@@ -67,6 +67,36 @@
   <!-- Spacer for fixed header -->
   <div class="h-16"></div>
 
+  <!-- Offline Mode Banner -->
+  @if (isOfflineMode() && !loading()) {
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+      <div class="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+        <svg class="w-5 h-5 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+        </svg>
+        <div>
+          <p class="text-sm font-semibold text-amber-800">Chế độ ngoại tuyến</p>
+          <p class="text-xs text-amber-700 mt-0.5">Bài làm sẽ được lưu cục bộ và đồng bộ khi có mạng. Kết quả sẽ hiển thị sau khi đồng bộ.</p>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Offline submit result banner (shown after offline submission) -->
+  @if (isOfflineMode() && showResults()) {
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+      <div class="flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-4">
+        <svg class="w-6 h-6 text-blue-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        </svg>
+        <div>
+          <p class="text-sm font-semibold text-blue-800">Bài làm đã được lưu!</p>
+          <p class="text-xs text-blue-700 mt-0.5">Kết quả sẽ được tính điểm và hiển thị khi thiết bị kết nối mạng trở lại.</p>
+        </div>
+      </div>
+    </div>
+  }
+
   <!-- Loading State -->
   @if (loading()) {
   <div class="flex items-center justify-center min-h-[60vh]">

@@ -1,11 +1,14 @@
 import { Component, OnInit, OnDestroy, signal, inject, computed, ChangeDetectionStrategy } from '@angular/core';
 
 import { ActivatedRoute, Router } from '@angular/router';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { QuizApi } from '../../../api/endpoints/quiz.api';
 import { firstValueFrom } from 'rxjs';
 import { IconComponent } from '../../../shared/components/ui/icon/icon.component';
 import { BlockRendererComponent } from '../../../shared/blocks/block-renderer/block-renderer.component';
+import { NetworkStatusService } from '../../../core/services/network-status.service';
+import { OfflineQuizService } from '../../../core/services/offline-quiz.service';
 
 type QuestionType = 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'FILL_IN_BLANK' | 'SHORT_ANSWER' | 'ESSAY';
 
@@ -33,7 +36,7 @@ interface QuizSettings {
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-student-quiz-taking',
-  imports: [IconComponent, BlockRendererComponent, FormsModule],
+  imports: [IconComponent, BlockRendererComponent, FormsModule, CommonModule],
   templateUrl: './student-quiz-taking.component.html',
   styles: [`
     @keyframes scale-in {
@@ -56,14 +59,20 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private quizApi = inject(QuizApi);
+  private network = inject(NetworkStatusService);
+  private offlineQuizService = inject(OfflineQuizService);
 
   Math = Math;
 
   quizReferenceId = '';
   quizId = '';
   attemptId = '';
+  lessonId = '';
+  courseId = '';
   quizTitle = signal('Bài kiểm tra');
   returnUrl = '';
+  /** True when taking quiz from offline IndexedDB (no server connection) */
+  isOfflineMode = signal(false);
 
   loading = signal(true);
   error = signal<string | null>(null);
@@ -151,6 +160,8 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     this.quizReferenceId = this.route.snapshot.paramMap.get('id') || '';
     this.quizTitle.set(this.route.snapshot.queryParamMap.get('title') || 'Bài kiểm tra');
     this.returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/student/learn/course';
+    this.lessonId = this.route.snapshot.queryParamMap.get('lessonId') || '';
+    this.courseId = this.route.snapshot.queryParamMap.get('courseId') || '';
 
     if (this.quizReferenceId) {
       this.loadQuiz();
@@ -165,6 +176,12 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   async loadQuiz(): Promise<void> {
     this.loading.set(true);
     this.error.set(null);
+
+    // Offline mode: load quiz from IndexedDB
+    if (!this.network.online()) {
+      await this.loadOfflineQuiz();
+      return;
+    }
 
     try {
       const quiz = await firstValueFrom(this.quizApi.getQuizByReference(this.quizReferenceId));
@@ -257,6 +274,64 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
       this.startAutoSave();
     } catch (err: any) {
       this.error.set(err?.message || 'Không thể tải bài kiểm tra');
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  /**
+   * Load quiz from offline IndexedDB (no network required).
+   * Questions are downloaded during course download (without correct answers).
+   * Submission is queued for server-side grading when back online.
+   */
+  private async loadOfflineQuiz(): Promise<void> {
+    try {
+      const offlineQuiz = this.lessonId
+        ? await this.offlineQuizService.getQuizForLesson(this.lessonId)
+        : await this.offlineQuizService.getQuizById(this.quizReferenceId);
+
+      if (!offlineQuiz || offlineQuiz.questions.length === 0) {
+        this.error.set('Bài kiểm tra không có sẵn ngoại tuyến. Vui lòng kết nối mạng để làm bài.');
+        return;
+      }
+
+      this.quizId = offlineQuiz.quizId;
+      this.quizTitle.set(offlineQuiz.title);
+      this.isOfflineMode.set(true);
+
+      if (offlineQuiz.timeLimit) {
+        this.timeRemaining.set(offlineQuiz.timeLimit * 60);
+      }
+
+      this.quizSettings.set({
+        timeLimitMinutes: offlineQuiz.timeLimit || null,
+        maxAttempts: 1,
+        passingScore: offlineQuiz.passingScore,
+        shuffleQuestions: false,
+        shuffleOptions: false,
+        showResultsImmediately: true,
+        showCorrectAnswers: false, // Correct answers not stored offline (academic integrity)
+      });
+
+      const questions: QuizQuestion[] = offlineQuiz.questions.map(q => ({
+        id: q.id,
+        content: q.content,
+        contentBlocks: [{ type: 'text', data: { text: q.content } }],
+        difficulty: 'MEDIUM',
+        questionType: q.questionType as QuestionType,
+        correctOption: null,
+        answerKey: null,
+        options: q.options.map(o => ({
+          key: o.optionKey,
+          content: o.content,
+          contentBlocks: [{ type: 'text', data: { text: o.content } }],
+        })).sort((a, b) => a.key.localeCompare(b.key)),
+      }));
+
+      this.questions.set(questions);
+      this.startTimer();
+    } catch {
+      this.error.set('Không thể tải dữ liệu bài kiểm tra ngoại tuyến.');
     } finally {
       this.loading.set(false);
     }
@@ -393,6 +468,22 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     this.submitting.set(true);
     this.stopTimer();
     this.stopAutoSave();
+
+    // Offline mode: queue submission for later sync; no client-side grading
+    if (this.isOfflineMode()) {
+      await this.offlineQuizService.queueOfflineSubmission({
+        quizId: this.quizId,
+        lessonId: this.lessonId,
+        courseId: this.courseId,
+        localAttemptId: crypto.randomUUID(),
+        answers: this.answers() as Record<string, string | number>,
+        submittedAt: new Date(),
+      });
+      this.showResults.set(true);
+      this.showResultsModal.set(true);
+      this.submitting.set(false);
+      return;
+    }
 
     if (this.attemptId && this.quizId) {
       try {

@@ -90,5 +90,59 @@ async function handleRangeRequest(fullResponse, rangeHeader) {
   });
 }
 
+// ─── Background Sync ─────────────────────────────────────────────────────────
+// Fires when device comes back online after offline mutations were queued.
+// OfflineSyncService registers 'lms-offline-sync' tag via SyncManager API.
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'lms-offline-sync') {
+    event.waitUntil(notifyClientsToSync());
+  }
+});
+
+async function notifyClientsToSync() {
+  try {
+    const clients = await self.clients.matchAll({ type: 'window' });
+    for (const client of clients) {
+      client.postMessage({ type: 'SYNC_OFFLINE_QUEUE' });
+    }
+  } catch {
+    // Sync will be retried automatically by the browser
+  }
+}
+
+// ─── Push Notifications ───────────────────────────────────────────────────────
+self.addEventListener('push', (event) => {
+  const data = event.data ? event.data.json() : {};
+  const options = {
+    body: data.body || 'Bạn có thông báo mới từ LMS Maritime',
+    icon: '/icons/icon-192x192.png',
+    badge: '/icons/icon-72x72.png',
+    vibrate: [200, 100, 200],
+    data: { url: data.url || '/' },
+    actions: [
+      { action: 'open', title: 'Xem chi tiết' },
+      { action: 'close', title: 'Đóng' },
+    ],
+  };
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'LMS Maritime', options)
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  if (event.action !== 'close') {
+    const url = event.notification.data?.url || '/';
+    event.waitUntil(self.clients.openWindow(url));
+  }
+});
+
+// Handle skip-waiting from Angular app (SW update flow)
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 // Delegate everything else to Angular NGSW
 importScripts('./ngsw-worker.js');
