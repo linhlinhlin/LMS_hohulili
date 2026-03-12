@@ -243,4 +243,31 @@ export class LmsOfflineDatabase extends Dexie {
   }
 }
 
-export const offlineDb = new LmsOfflineDatabase();
+/**
+ * Create the offline database with automatic recovery from UpgradeError.
+ * Dexie does not support changing primary keys between versions, so if a
+ * user's browser still has schema v1-v3 (PK = `id`) and the code expects
+ * v4+ (PK = `[userId+id]`), the open() call will fail. In that case we
+ * delete the database entirely and recreate it — offline data is a cache
+ * that can always be re-downloaded.
+ */
+function createOfflineDb(): LmsOfflineDatabase {
+  const db = new LmsOfflineDatabase();
+
+  // Hook into the open failure — if it's an UpgradeError, nuke and retry
+  db.open().catch(async (err) => {
+    if (err?.name === 'UpgradeError' || err?.message?.includes('primary key')) {
+      console.warn('[LMS-Offline] UpgradeError detected — deleting old DB and recreating');
+      await Dexie.delete('lms-maritime-offline');
+      // Re-open with clean slate
+      await db.open();
+      console.info('[LMS-Offline] Database recreated successfully');
+    } else {
+      console.error('[LMS-Offline] Database open failed:', err);
+    }
+  });
+
+  return db;
+}
+
+export const offlineDb = createOfflineDb();
