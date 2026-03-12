@@ -10,6 +10,7 @@ import { IconComponent } from '../../../shared/components/ui/icon/icon.component
 import { ButtonComponent } from '../../../shared/components/ui/button/button.component';
 import { ToastService } from '../../../core/services/toast.service';
 import { CourseDownloadButtonComponent } from '../../../shared/components/course-download-button/course-download-button.component';
+import { CourseDownloadService } from '../../../core/services/course-download.service';
 
 
 interface LessonSection {
@@ -75,6 +76,7 @@ export class StudentDashboardComponent implements OnInit {
   private courseApi = inject(CourseApi);
   private activityApi = inject(LearningActivityApi);
   private toast = inject(ToastService);
+  private courseDownload = inject(CourseDownloadService);
 
   // State
   activeTab = signal<'in-progress' | 'completed'>('in-progress');
@@ -353,13 +355,23 @@ export class StudentDashboardComponent implements OnInit {
         // Navigate to specific lesson
         this.router.navigate(['/student/learn/course', courseId, 'lesson', nextLessonId]);
       } else {
-        // Fallback to course overview
-        this.router.navigate(['/student/learn/course', courseId]);
+        await this.navigateToBestLesson(courseId);
       }
     } catch (error) {
-      // Fallback to course overview
-      this.router.navigate(['/student/learn/course', courseId]);
+      await this.navigateToBestLesson(courseId);
     }
+  }
+
+  private async navigateToBestLesson(courseId: string): Promise<void> {
+    if (this.courseDownload.isDownloadedSync(courseId)) {
+      const offlineLessonId = await this.courseDownload.getOfflineResumeLessonId(courseId);
+      if (offlineLessonId) {
+        this.router.navigate(['/student/learn/course', courseId, 'lesson', offlineLessonId]);
+        return;
+      }
+    }
+
+    this.router.navigate(['/student/learn/course', courseId]);
   }
 
   toggleModules(courseId: string): void {

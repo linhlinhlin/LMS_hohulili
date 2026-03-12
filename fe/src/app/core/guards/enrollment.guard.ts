@@ -2,6 +2,7 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { CourseApi } from '../../api/client/course.api';
 import { firstValueFrom } from 'rxjs';
+import { CourseDownloadService } from '../services/course-download.service';
 
 /**
  * Enrollment Guard - Ensures student is enrolled in the course before accessing learning content.
@@ -12,6 +13,7 @@ import { firstValueFrom } from 'rxjs';
  */
 export const enrollmentGuard: CanActivateFn = async (route) => {
   const courseApi = inject(CourseApi);
+  const courseDownload = inject(CourseDownloadService);
   const router = inject(Router);
 
   const courseId = route.paramMap.get('courseId') || route.paramMap.get('id');
@@ -29,7 +31,13 @@ export const enrollmentGuard: CanActivateFn = async (route) => {
 
     return true;
   } catch {
-    // On API error, redirect to course detail (fail-closed: don't expose paid content)
+    if (await courseDownload.isDownloaded(courseId)) {
+      // A downloaded course must remain accessible when the progress endpoint
+      // is temporarily unavailable or the learner is offline.
+      return true;
+    }
+
+    // No verified enrollment and no offline copy — keep the route fail-closed.
     return router.createUrlTree(['/student/courses', courseId]);
   }
 };

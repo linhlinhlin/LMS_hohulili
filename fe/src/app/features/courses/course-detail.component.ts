@@ -11,6 +11,7 @@ import { StudentEnrollmentService } from '../student/services/enrollment.service
 import { PaymentModalComponent, CoursePaymentInfo } from '../payment/payment-modal.component';
 import { PaymentService } from '../payment/payment.service';
 import { ToastService } from '../../core/services/toast.service';
+import { CourseDownloadService } from '../../core/services/course-download.service';
 
 /**
  * CourseDetailComponent - Coursera/Udemy-inspired Design (Dec 2025 SOTA)
@@ -49,6 +50,7 @@ export class CourseDetailComponent implements OnInit {
   private enrollmentService = inject(StudentEnrollmentService);
   private paymentService = inject(PaymentService);
   private toast = inject(ToastService);
+  private courseDownload = inject(CourseDownloadService);
   private destroyRef = inject(DestroyRef);
 
   ngOnInit(): void {
@@ -65,9 +67,17 @@ export class CourseDetailComponent implements OnInit {
     });
   }
 
-  continueLearning() {
+  async continueLearning(): Promise<void> {
     const courseId = this.course()?.id;
     if (courseId) {
+      if (this.courseDownload.isDownloadedSync(courseId)) {
+        const offlineLessonId = await this.courseDownload.getOfflineResumeLessonId(courseId);
+        if (offlineLessonId) {
+          this.router.navigate(['/student/learn/course', courseId, 'lesson', offlineLessonId]);
+          return;
+        }
+      }
+
       this.router.navigate(['/student/learn/course', courseId]);
     }
   }

@@ -437,6 +437,52 @@ export class CourseDownloadService {
   }
 
   /**
+   * Resolve the best lesson to open for an offline course.
+   * Prefers the learner's last accessed lesson, then the first incomplete lesson,
+   * then falls back to the first lesson in chapter/lesson order.
+   */
+  async getOfflineResumeLessonId(courseId: string): Promise<string | null> {
+    await this.ensureOfflineReady();
+
+    const [chapters, lessons] = await Promise.all([
+      this.getOfflineChapters(courseId),
+      this.getOfflineLessons(courseId),
+    ]);
+
+    if (lessons.length === 0) {
+      return null;
+    }
+
+    const chapterOrder = new Map(
+      chapters.map((chapter, index) => [chapter.id, chapter.sortOrder ?? index])
+    );
+
+    const orderedLessons = [...lessons].sort((left, right) => {
+      const leftChapterOrder = chapterOrder.get(left.chapterId) ?? Number.MAX_SAFE_INTEGER;
+      const rightChapterOrder = chapterOrder.get(right.chapterId) ?? Number.MAX_SAFE_INTEGER;
+
+      if (leftChapterOrder !== rightChapterOrder) {
+        return leftChapterOrder - rightChapterOrder;
+      }
+
+      return (left.sortOrder ?? 0) - (right.sortOrder ?? 0);
+    });
+
+    const progress = this.readOfflineLearningProgress(courseId);
+    const lessonIds = new Set(orderedLessons.map(lesson => lesson.id));
+    const lastAccessedLessonId = progress?.lastAccessedLessonId;
+
+    if (lastAccessedLessonId && lessonIds.has(lastAccessedLessonId)) {
+      return lastAccessedLessonId;
+    }
+
+    const completedLessonIds = new Set(progress?.completedLessons ?? []);
+    const firstIncompleteLesson = orderedLessons.find(lesson => !completedLessonIds.has(lesson.id));
+
+    return firstIncompleteLesson?.id ?? orderedLessons[0]?.id ?? null;
+  }
+
+  /**
    * Bulk re-download all stale courses sequentially.
    * Shows progress: "Đang cập nhật 2/3 khóa học..."
    */
@@ -499,5 +545,31 @@ export class CourseDownloadService {
 
   private async ensureOfflineReady(): Promise<void> {
     await ensureOfflineDbReady();
+  }
+
+  private readOfflineLearningProgress(courseId: string): {
+    completedLessons?: string[];
+    lastAccessedLessonId?: string;
+  } | null {
+    try {
+      const stored = localStorage.getItem(`learning_progress_${courseId}`);
+      if (!stored) {
+        return null;
+      }
+
+      const parsed = JSON.parse(stored);
+      if (!parsed || typeof parsed !== 'object') {
+        return null;
+      }
+
+      return {
+        completedLessons: Array.isArray(parsed.completedLessons) ? parsed.completedLessons : [],
+        lastAccessedLessonId: typeof parsed.lastAccessedLessonId === 'string'
+          ? parsed.lastAccessedLessonId
+          : undefined,
+      };
+    } catch {
+      return null;
+    }
   }
 }

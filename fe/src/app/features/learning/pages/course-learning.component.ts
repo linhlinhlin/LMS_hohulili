@@ -76,6 +76,7 @@ export class CourseLearningComponent implements OnInit {
 
   // Pending lesson ID for auto-expand (set from route, resolved reactively when sections load)
   private pendingExpandLessonId = signal<string | null>(null);
+  private shouldAutoSelectInitialLesson = signal(false);
 
   // Detect if course has locked lessons (paid course, user hasn't paid)
   private paymentDetectEffect = effect(() => {
@@ -154,6 +155,36 @@ export class CourseLearningComponent implements OnInit {
         }
       });
     }
+  });
+
+  private autoSelectInitialLessonEffect = effect(() => {
+    const shouldAutoSelect = this.shouldAutoSelectInitialLesson();
+    const sections = this.sections();
+
+    if (!shouldAutoSelect || sections.length === 0) {
+      return;
+    }
+
+    const currentLesson = this.currentLesson();
+    const currentLessonExistsInSections = !!currentLesson
+      && sections.some(section => section.lessons.some((lesson: any) => lesson.id === currentLesson.id));
+
+    if (currentLessonExistsInSections) {
+      untracked(() => {
+        this.shouldAutoSelectInitialLesson.set(false);
+      });
+      return;
+    }
+
+    const nextLesson = this.resolveInitialLessonSelection(sections);
+    if (!nextLesson) {
+      return;
+    }
+
+    untracked(() => {
+      this.openLessonFromSelection(nextLesson.id);
+      this.shouldAutoSelectInitialLesson.set(false);
+    });
   });
 
   // Computed from service
@@ -245,34 +276,54 @@ export class CourseLearningComponent implements OnInit {
 
       // Load specific lesson if provided, or auto-select next uncompleted lesson
       if (lessonId) {
+        this.shouldAutoSelectInitialLesson.set(false);
         this.learningService.loadLesson(lessonId);
       } else {
-        // Auto-select next uncompleted lesson after course loads
-        this.selectNextUncompletedLesson();
+        // Wait until sections are hydrated before picking the lesson to open.
+        this.shouldAutoSelectInitialLesson.set(true);
       }
     } catch (err: any) {
       this.error.set(err?.message || 'Không thể tải khóa học. Vui lòng thử lại.');
     }
   }
 
-  private selectNextUncompletedLesson(): void {
-    const sections = this.learningService.sections();
-    const allLessons = sections.flatMap(s => s.lessons);
+  private resolveInitialLessonSelection(sections = this.learningService.sections()) {
+    const allLessons = sections.flatMap(section => section.lessons);
+    if (allLessons.length === 0) {
+      return null;
+    }
 
-    // Find first uncompleted lesson
-    const nextLesson = allLessons.find(l => !l.isCompleted) ?? allLessons[0];
+    const isAccessible = (lesson: any) => !lesson.locked;
+    const lastAccessedLessonId = this.learningService.lastAccessedLessonId();
 
-    if (nextLesson) {
-      this.learningService.loadLesson(nextLesson.id);
-
-      // Update URL
-      const courseId = this.course()?.id;
-      if (courseId) {
-        this.router.navigate(
-          ['/student/learn/course', courseId, 'lesson', nextLesson.id],
-          { replaceUrl: true }
-        );
+    if (lastAccessedLessonId) {
+      const lastAccessedLesson = allLessons.find(
+        lesson => lesson.id === lastAccessedLessonId && isAccessible(lesson)
+      );
+      if (lastAccessedLesson) {
+        return lastAccessedLesson;
       }
+    }
+
+    return allLessons.find(lesson => !lesson.isCompleted && isAccessible(lesson))
+      ?? allLessons.find(lesson => isAccessible(lesson))
+      ?? allLessons[0]
+      ?? null;
+  }
+
+  private openLessonFromSelection(lessonId: string): void {
+    this.learningService.loadLesson(lessonId);
+    this.pendingExpandLessonId.set(lessonId);
+
+    const courseId = this.course()?.id
+      || this.route.snapshot.paramMap.get('courseId')
+      || this.route.snapshot.paramMap.get('id');
+
+    if (courseId) {
+      this.router.navigate(
+        ['/student/learn/course', courseId, 'lesson', lessonId],
+        { replaceUrl: true }
+      );
     }
   }
 
