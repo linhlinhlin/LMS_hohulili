@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { offlineDb, getCurrentUserId } from '../db/lms-offline.db';
+import { ensureOfflineDbReady, offlineDb, getCurrentUserId } from '../db/lms-offline.db';
 
 export interface OfflineVideoEntry {
   lessonId: string;
@@ -15,7 +15,9 @@ export class OfflineVideoService {
   readonly isDownloading = signal(false);
 
   constructor() {
-    this.refreshList();
+    void this.refreshList().catch((error) => {
+      console.error('[OfflineVideoService] Failed to initialize offline video list:', error);
+    });
   }
 
   /**
@@ -27,6 +29,7 @@ export class OfflineVideoService {
     this.isDownloading.set(true);
 
     try {
+      await ensureOfflineDbReady();
       const response = await fetch(videoUrl);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
@@ -107,6 +110,7 @@ export class OfflineVideoService {
    * response.blob() + URL.createObjectURL(). A 500MB video = 500MB RAM = crash.
    */
   async getVideoUrl(lessonId: string): Promise<string | null> {
+    await ensureOfflineDbReady();
     // Verify lesson belongs to current user before serving video
     const userId = getCurrentUserId();
     const lesson = await offlineDb.lessons.get([userId, lessonId]);
@@ -122,6 +126,7 @@ export class OfflineVideoService {
   }
 
   async deleteVideo(lessonId: string): Promise<void> {
+    await ensureOfflineDbReady();
     const cache = await caches.open('offline-videos');
     await cache.delete(`/offline-video/${lessonId}`);
 
@@ -139,6 +144,7 @@ export class OfflineVideoService {
   }
 
   async refreshList(): Promise<void> {
+    await ensureOfflineDbReady();
     try {
       const cache = await caches.open('offline-videos');
       const keys = await cache.keys();

@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { offlineDb, getCurrentUserId, type OfflineCourse, type OfflineChapter, type OfflineLesson, type DownloadCheckpoint, type OfflineQuizData, type OfflineQuestion } from '../db/lms-offline.db';
+import { ensureOfflineDbReady, offlineDb, getCurrentUserId, type OfflineCourse, type OfflineChapter, type OfflineLesson, type DownloadCheckpoint, type OfflineQuizData, type OfflineQuestion } from '../db/lms-offline.db';
 import { StorageManagerService } from './storage-manager.service';
 import { ToastService } from './toast.service';
 import { OfflineVideoService } from './offline-video.service';
@@ -44,7 +44,9 @@ export class CourseDownloadService {
   private downloadCancelled = false;
 
   constructor() {
-    this.refreshDownloadedCourses();
+    void this.refreshDownloadedCourses().catch((error) => {
+      console.error('[CourseDownloadService] Failed to initialize offline downloads:', error);
+    });
   }
 
   /**
@@ -77,6 +79,8 @@ export class CourseDownloadService {
     const userId = getCurrentUserId();
 
     try {
+      await this.ensureOfflineReady();
+
       // 0a. Request persistent storage on first download (prevent browser eviction)
       if (!this.storage.isPersisted()) {
         await this.storage.requestPersistence();
@@ -299,6 +303,7 @@ export class CourseDownloadService {
    * Remove a downloaded course from local storage.
    */
   async removeCourse(courseId: string): Promise<void> {
+    await this.ensureOfflineReady();
     const userId = getCurrentUserId();
     // Sync any pending progress before deleting (prevent data loss)
     const pendingProgress = await offlineDb.progress
@@ -348,6 +353,7 @@ export class CourseDownloadService {
    * Used by Storage Management UI "Delete All" action.
    */
   async removeAllCourses(videoService: OfflineVideoService): Promise<void> {
+    await this.ensureOfflineReady();
     const userId = getCurrentUserId();
 
     // 1. Delete all offline videos from Cache API
@@ -382,6 +388,7 @@ export class CourseDownloadService {
    * Check if a course is available offline (async version).
    */
   async isDownloaded(courseId: string): Promise<boolean> {
+    await this.ensureOfflineReady();
     const userId = getCurrentUserId();
     const course = await offlineDb.courses.get([userId, courseId]);
     return course !== undefined;
@@ -391,6 +398,7 @@ export class CourseDownloadService {
    * Get offline course metadata.
    */
   async getOfflineCourse(courseId: string): Promise<OfflineCourse | undefined> {
+    await this.ensureOfflineReady();
     const userId = getCurrentUserId();
     return offlineDb.courses.get([userId, courseId]);
   }
@@ -399,6 +407,7 @@ export class CourseDownloadService {
    * Get offline chapters for a course, sorted by sortOrder.
    */
   async getOfflineChapters(courseId: string): Promise<OfflineChapter[]> {
+    await this.ensureOfflineReady();
     const userId = getCurrentUserId();
     return offlineDb.chapters
       .where('[userId+courseId]')
@@ -410,6 +419,7 @@ export class CourseDownloadService {
    * Get offline lesson content.
    */
   async getOfflineLesson(lessonId: string): Promise<OfflineLesson | undefined> {
+    await this.ensureOfflineReady();
     const userId = getCurrentUserId();
     return offlineDb.lessons.get([userId, lessonId]);
   }
@@ -418,6 +428,7 @@ export class CourseDownloadService {
    * Get all lessons for an offline course.
    */
   async getOfflineLessons(courseId: string): Promise<OfflineLesson[]> {
+    await this.ensureOfflineReady();
     const userId = getCurrentUserId();
     return offlineDb.lessons
       .where('[userId+courseId]')
@@ -431,6 +442,7 @@ export class CourseDownloadService {
    */
   async bulkUpdateStale(): Promise<void> {
     if (this.isBulkUpdating()) return;
+    await this.ensureOfflineReady();
     const stale = this.downloadedCourses().filter(c => c.isStale);
     if (stale.length === 0) return;
 
@@ -451,6 +463,7 @@ export class CourseDownloadService {
   }
 
   private async refreshDownloadedCourses(): Promise<void> {
+    await this.ensureOfflineReady();
     const userId = getCurrentUserId();
     const courses = await offlineDb.courses.where('userId').equals(userId).toArray();
 
@@ -482,5 +495,9 @@ export class CourseDownloadService {
         completionPercent: completionMap.get(c.id) ?? 0,
       }))
     );
+  }
+
+  private async ensureOfflineReady(): Promise<void> {
+    await ensureOfflineDbReady();
   }
 }

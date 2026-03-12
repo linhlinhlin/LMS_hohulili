@@ -1,5 +1,5 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { offlineDb, getCurrentUserId, type OfflineQuizData, type OfflineQuizAttempt } from '../db/lms-offline.db';
+import { ensureOfflineDbReady, offlineDb, getCurrentUserId, type OfflineQuizData, type OfflineQuizAttempt } from '../db/lms-offline.db';
 import { NetworkStatusService } from './network-status.service';
 import { ToastService } from './toast.service';
 
@@ -33,7 +33,9 @@ export class OfflineQuizService {
   readonly pendingSubmissionCount = signal(0);
 
   constructor() {
-    this.refreshPendingCount();
+    void this.refreshPendingCount().catch((error) => {
+      console.error('[OfflineQuizService] Failed to initialize pending count:', error);
+    });
   }
 
   /**
@@ -41,6 +43,7 @@ export class OfflineQuizService {
    * Returns null if not downloaded.
    */
   async getQuizForLesson(lessonId: string): Promise<OfflineQuizData | null> {
+    await ensureOfflineDbReady();
     const userId = getCurrentUserId();
     const record = await offlineDb.quizData
       .where('[userId+lessonId]').equals([userId, lessonId])
@@ -52,6 +55,7 @@ export class OfflineQuizService {
    * Get offline quiz data by quizId.
    */
   async getQuizById(quizId: string): Promise<OfflineQuizData | null> {
+    await ensureOfflineDbReady();
     const userId = getCurrentUserId();
     const record = await offlineDb.quizData
       .where('[userId+quizId]').equals([userId, quizId])
@@ -77,6 +81,7 @@ export class OfflineQuizService {
    * 3. Return the graded result (student sees it after sync)
    */
   async queueOfflineSubmission(submission: OfflineQuizSubmission): Promise<void> {
+    await ensureOfflineDbReady();
     const userId = getCurrentUserId();
 
     // Store in quizAttempts for tracking
@@ -118,6 +123,7 @@ export class OfflineQuizService {
    * Get count of quiz attempts awaiting sync.
    */
   async refreshPendingCount(): Promise<void> {
+    await ensureOfflineDbReady();
     const userId = getCurrentUserId();
     const count = await offlineDb.quizAttempts
       .where('userId').equals(userId)
@@ -130,6 +136,7 @@ export class OfflineQuizService {
    * Delete quiz data for a course (called when course is removed).
    */
   async clearForCourse(courseId: string): Promise<void> {
+    await ensureOfflineDbReady();
     const userId = getCurrentUserId();
     await offlineDb.quizData
       .where('[userId+courseId]').equals([userId, courseId])

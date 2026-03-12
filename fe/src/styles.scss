@@ -4,6 +4,7 @@
 
 // Import variables after @use rules
 @use 'styles/variables' as *;
+@use 'styles/fonts';
 
 html {
   @include mat.theme((color: (primary: mat.$azure-palette,

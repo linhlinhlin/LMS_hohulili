@@ -1,5 +1,7 @@
 import Dexie, { type Table } from 'dexie';
 
+export const OFFLINE_DB_NAME = 'lms-maritime-offline';
+
 // ─── Offline Course Data ─────────────────────────────────────────────
 
 export interface OfflineCourse {
@@ -158,7 +160,7 @@ export class LmsOfflineDatabase extends Dexie {
   quizData!: Table<OfflineQuizData>;
 
   constructor() {
-    super('lms-maritime-offline');
+    super(OFFLINE_DB_NAME);
 
     this.version(1).stores({
       courses: 'id, downloadedAt',
@@ -243,31 +245,46 @@ export class LmsOfflineDatabase extends Dexie {
   }
 }
 
-/**
- * Create the offline database with automatic recovery from UpgradeError.
- * Dexie does not support changing primary keys between versions, so if a
- * user's browser still has schema v1-v3 (PK = `id`) and the code expects
- * v4+ (PK = `[userId+id]`), the open() call will fail. In that case we
- * delete the database entirely and recreate it — offline data is a cache
- * that can always be re-downloaded.
- */
-function createOfflineDb(): LmsOfflineDatabase {
-  const db = new LmsOfflineDatabase();
-
-  // Hook into the open failure — if it's an UpgradeError, nuke and retry
-  db.open().catch(async (err) => {
-    if (err?.name === 'UpgradeError' || err?.message?.includes('primary key')) {
-      console.warn('[LMS-Offline] UpgradeError detected — deleting old DB and recreating');
-      await Dexie.delete('lms-maritime-offline');
-      // Re-open with clean slate
-      await db.open();
-      console.info('[LMS-Offline] Database recreated successfully');
-    } else {
-      console.error('[LMS-Offline] Database open failed:', err);
-    }
-  });
-
-  return db;
+function isRecoverableUpgradeError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const message = err.message.toLowerCase();
+  return err.name === 'UpgradeError' ||
+    message.includes('primary key') ||
+    message.includes('not yet support for changing primary key');
 }
 
-export const offlineDb = createOfflineDb();
+async function openOfflineDbWithRecovery(db: LmsOfflineDatabase): Promise<LmsOfflineDatabase> {
+  try {
+    await db.open();
+    return db;
+  } catch (err) {
+    if (!isRecoverableUpgradeError(err)) {
+      console.error('[LMS-Offline] Database open failed:', err);
+      throw err;
+    }
+
+    console.warn('[LMS-Offline] UpgradeError detected. Resetting offline cache database.');
+    db.close();
+    await Dexie.delete(OFFLINE_DB_NAME);
+
+    const recreatedDb = new LmsOfflineDatabase();
+    await recreatedDb.open();
+    offlineDb = recreatedDb;
+
+    console.info('[LMS-Offline] Offline cache database recreated successfully.');
+    return recreatedDb;
+  }
+}
+
+export let offlineDb = new LmsOfflineDatabase();
+
+/**
+ * Shared readiness promise for every IndexedDB consumer.
+ * Consumers should await this before touching tables so first-load recovery
+ * from legacy primary-key migrations completes deterministically.
+ */
+export let offlineDbReady: Promise<LmsOfflineDatabase> = openOfflineDbWithRecovery(offlineDb);
+
+export function ensureOfflineDbReady(): Promise<LmsOfflineDatabase> {
+  return offlineDbReady;
+}

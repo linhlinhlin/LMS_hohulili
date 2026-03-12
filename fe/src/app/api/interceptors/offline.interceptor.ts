@@ -2,7 +2,7 @@ import { HttpRequest, HttpHandlerFn, HttpEvent, HttpResponse, HttpErrorResponse 
 import { Observable, from, of, throwError } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 import { inject } from '@angular/core';
-import { offlineDb, getCurrentUserId } from '../../core/db/lms-offline.db';
+import { ensureOfflineDbReady, offlineDb, getCurrentUserId } from '../../core/db/lms-offline.db';
 import { NetworkStatusService } from '../../core/services/network-status.service';
 import { OfflineSyncService } from '../../core/services/offline-sync.service';
 
@@ -95,6 +95,8 @@ export const offlineInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): 
  */
 async function getOfflineFallback(url: string): Promise<any | null> {
   try {
+    await ensureOfflineDbReady();
+
     // Extract path from full URL (remove base URL)
     const path = extractApiPath(url);
     if (!path) return null;
@@ -207,6 +209,7 @@ async function queueMutation(
   syncService: OfflineSyncService,
   req: HttpRequest<any>,
 ): Promise<void> {
+  await ensureOfflineDbReady();
   const path = extractApiPath(req.url) || req.url;
 
   // Determine entity type from path

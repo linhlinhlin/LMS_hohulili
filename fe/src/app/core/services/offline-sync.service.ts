@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { offlineDb, getCurrentUserId, type SyncQueueItem, type SyncEntityType, type SyncOperationType } from '../db/lms-offline.db';
+import { ensureOfflineDbReady, offlineDb, getCurrentUserId, type SyncQueueItem, type SyncEntityType, type SyncOperationType } from '../db/lms-offline.db';
 import { NetworkStatusService } from './network-status.service';
 import { ToastService } from './toast.service';
 import { environment } from '../../../environments/environment';
@@ -51,7 +51,9 @@ export class OfflineSyncService {
     }
 
     // Count pending + failed items on init
-    this.refreshCounts();
+    void this.refreshCounts().catch((error) => {
+      console.error('[OfflineSyncService] Failed to initialize sync counts:', error);
+    });
   }
 
   /**
@@ -65,6 +67,7 @@ export class OfflineSyncService {
     endpoint: string,
     payload: unknown,
   ): Promise<void> {
+    await ensureOfflineDbReady();
     const userId = getCurrentUserId();
 
     // Deduplicate: check for existing pending item with same entityType + endpoint for this user
@@ -102,6 +105,7 @@ export class OfflineSyncService {
    * Respects exponential backoff: skips items whose nextRetryAt is in the future.
    */
   async syncAll(): Promise<SyncResult> {
+    await ensureOfflineDbReady();
     if (this.syncInProgress || !this.network.online()) {
       return { synced: 0, failed: 0, pending: await this.getPendingCount() };
     }
@@ -204,6 +208,7 @@ export class OfflineSyncService {
    */
   async checkContentFreshness(): Promise<void> {
     try {
+      await ensureOfflineDbReady();
       const userId = getCurrentUserId();
       const offlineCourses = await offlineDb.courses.where('userId').equals(userId).toArray();
       if (offlineCourses.length === 0) return;
@@ -253,6 +258,7 @@ export class OfflineSyncService {
    * Resets failed items to pending and triggers syncAll().
    */
   async retryFailed(): Promise<SyncResult> {
+    await ensureOfflineDbReady();
     const failedItems = await offlineDb.syncQueue
       .where('userId').equals(getCurrentUserId())
       .filter(item => item.syncStatus === 'failed')
@@ -283,6 +289,7 @@ export class OfflineSyncService {
    * Get count of failed items (visible to user for retry).
    */
   async getFailedCount(): Promise<number> {
+    await ensureOfflineDbReady();
     return offlineDb.syncQueue
       .where('userId').equals(getCurrentUserId())
       .filter(item => item.syncStatus === 'failed')
@@ -293,6 +300,7 @@ export class OfflineSyncService {
    * Clear all failed items (user acknowledges data loss).
    */
   async clearFailed(): Promise<void> {
+    await ensureOfflineDbReady();
     await offlineDb.syncQueue
       .where('userId').equals(getCurrentUserId())
       .filter(item => item.syncStatus === 'failed')
@@ -475,6 +483,7 @@ export class OfflineSyncService {
   }
 
   private async getPendingCount(): Promise<number> {
+    await ensureOfflineDbReady();
     return offlineDb.syncQueue
       .where('userId').equals(getCurrentUserId())
       .filter(item => item.syncStatus === 'pending')
@@ -482,6 +491,7 @@ export class OfflineSyncService {
   }
 
   private async refreshCounts(): Promise<void> {
+    await ensureOfflineDbReady();
     const userId = getCurrentUserId();
     const [pending, failed] = await Promise.all([
       this.getPendingCount(),

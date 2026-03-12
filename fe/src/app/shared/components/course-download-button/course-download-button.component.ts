@@ -92,7 +92,12 @@ export class CourseDownloadButtonComponent implements OnInit {
   protected isOnline = computed(() => this.network.online());
 
   async ngOnInit(): Promise<void> {
-    this.isDownloaded.set(await this.downloadService.isDownloaded(this.courseId()));
+    try {
+      this.isDownloaded.set(await this.downloadService.isDownloaded(this.courseId()));
+    } catch (error) {
+      console.error('[CourseDownloadButton] Failed to read offline status:', error);
+      this.isDownloaded.set(false);
+    }
   }
 
   protected openDialog(): void {
@@ -105,8 +110,13 @@ export class CourseDownloadButtonComponent implements OnInit {
 
   protected async onDialogConfirm(options: DownloadOptions): Promise<void> {
     this.showDialog.set(false);
-    await this.downloadService.downloadCourse(this.courseId(), options);
-    this.isDownloaded.set(await this.downloadService.isDownloaded(this.courseId()));
+    try {
+      await this.downloadService.downloadCourse(this.courseId(), options);
+      this.isDownloaded.set(await this.downloadService.isDownloaded(this.courseId()));
+    } catch (error) {
+      console.error('[CourseDownloadButton] Download flow failed:', error);
+      this.toast.error('Không thể tải khóa học ngoại tuyến lúc này. Vui lòng thử lại sau.');
+    }
   }
 
   protected cancelDownload(): void {
@@ -114,7 +124,12 @@ export class CourseDownloadButtonComponent implements OnInit {
   }
 
   protected async removeCourse(): Promise<void> {
-    await this.downloadService.removeCourse(this.courseId());
-    this.isDownloaded.set(false);
+    try {
+      await this.downloadService.removeCourse(this.courseId());
+      this.isDownloaded.set(false);
+    } catch (error) {
+      console.error('[CourseDownloadButton] Failed to remove offline course:', error);
+      this.toast.error('Không thể xóa bản tải xuống lúc này. Vui lòng thử lại sau.');
+    }
   }
 }
