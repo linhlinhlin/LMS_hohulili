@@ -7,6 +7,7 @@ import { ConfirmDialogComponent } from './shared/components/confirm-dialog/confi
 import { OfflineIndicatorComponent } from './shared/components/offline-indicator/offline-indicator.component';
 import { SessionExpiredBannerComponent } from './shared/components/session-expired-banner/session-expired-banner.component';
 import { SessionExpiredService } from './core/services/session-expired.service';
+import { WebMcpService } from './core/services/webmcp.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -24,10 +25,12 @@ export class App {
   private pwaService = inject(PwaService);
   private swUpdate = inject(SwUpdateService);
   private sessionService = inject(SessionExpiredService);
+  private webMcp = inject(WebMcpService);
   protected readonly title = signal('LMS Maritime - Hệ thống Quản lý Học tập Phân tán');
 
   constructor() {
     this.swUpdate.initialize();
     this.sessionService.evaluateState();
+    this.webMcp.initialize();
   }
 }

@@ -2,8 +2,8 @@ import { Component, signal, inject, OnInit, DestroyRef, ChangeDetectionStrategy 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
-import { Title, Meta } from '@angular/platform-browser';
 import { CourseService } from '../../state/course.service';
+import { SeoService } from '../../core/services/seo.service';
 import { ExtendedCourse } from '../../shared/types/course.types';
 import { AuthService } from '../../core/services/auth.service';
 import { CourseApi } from '../../api/client/course.api';
@@ -35,8 +35,7 @@ export class CourseDetailComponent implements OnInit {
   protected authService = inject(AuthService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
-  private title = inject(Title);
-  private meta = inject(Meta);
+  private seo = inject(SeoService);
   private courseApi = inject(CourseApi);
 
   course = signal<ExtendedCourse | null>(null);
@@ -288,13 +287,7 @@ export class CourseDetailComponent implements OnInit {
   }
 
   private updateSeo(course: ExtendedCourse): void {
-    const pageTitle = `${course.title} - LMS Maritime`;
-    this.title.setTitle(pageTitle);
-
     const description = course.description?.slice(0, 160) || course.title;
-    this.meta.updateTag({ name: 'description', content: description });
-    this.meta.updateTag({ property: 'og:title', content: pageTitle });
-    this.meta.updateTag({ property: 'og:description', content: description });
-    this.meta.updateTag({ property: 'og:type', content: 'website' });
+    this.seo.setPageMeta(course.title, description, course.thumbnail);
   }
 }

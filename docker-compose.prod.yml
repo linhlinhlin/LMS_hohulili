@@ -37,12 +37,15 @@ services:
 
   frontend:
     # NO ports exposed — Caddy proxies internally
+    # Node.js SSR (~80-150MB) + nginx (~10MB) = ~200MB typical
     restart: always
+    environment:
+      NG_ALLOWED_HOSTS: "holilihu.online,localhost"
     deploy:
       resources:
         limits:
           cpus: '0.5'
-          memory: 256M
+          memory: 384M
 
   # ===== Caddy Reverse Proxy (Auto-HTTPS) =====
   caddy:

@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /teacher/
+Disallow: /student/
+Disallow: /auth/
+Disallow: /payment/
+Disallow: /offline
+Disallow: /reset-sw
+
+Sitemap: https://holilihu.online/sitemap.xml

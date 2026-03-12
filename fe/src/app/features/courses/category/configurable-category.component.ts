@@ -5,9 +5,9 @@ import { CategoryHeroComponent } from './shared/category-hero.component';
 import { CategoryCourseGridComponent, CategoryCourseItem } from './shared/category-course-grid.component';
 import { CategoryCareerComponent } from './shared/category-career.component';
 import { CategoryTrendsComponent } from './shared/category-trends.component';
-import { Meta, Title } from '@angular/platform-browser';
 import { PLATFORM_ID } from '@angular/core';
 import { CATEGORY_CONFIGS } from './category.configs';
+import { SeoService } from '../../../core/services/seo.service';
 import { IconName } from '../../../shared/components/icon/icon.component';
 
 export interface CategoryConfig {
@@ -132,8 +132,7 @@ export interface TrendCard {
   `
 })
 export class ConfigurableCategoryComponent implements OnInit {
-  private title = inject(Title);
-  private meta = inject(Meta);
+  private seo = inject(SeoService);
   private document = inject<Document>(DOCUMENT);
   private platformId = inject<Object>(PLATFORM_ID);
 
@@ -170,19 +169,15 @@ export class ConfigurableCategoryComponent implements OnInit {
     const config = this.config();
     if (!config) return;
 
-    this.title.setTitle(config.seoTitle);
-    this.meta.updateTag({ name: 'description', content: config.seoDescription });
-    this.meta.updateTag({ property: 'og:title', content: config.seoTitle });
-    this.meta.updateTag({ property: 'og:description', content: config.seoDescription });
-    this.meta.updateTag({ property: 'og:type', content: 'website' });
-    this.meta.updateTag({ name: 'keywords', content: config.keywords.join(', ') });
+    this.seo.setPageMeta(config.seoTitle.replace(' - LMS Maritime', ''), config.seoDescription);
+    this.seo.setKeywords(config.keywords);
   }
 
   private injectCollectionPageJsonLd(): void {
     const config = this.config();
     if (!config) return;
 
-    this.injectJsonLd(`jsonld-${config.id}-collection`, {
+    this.seo.setJsonLd(`jsonld-${config.id}-collection`, {
       '@context': 'https://schema.org',
       '@type': 'CollectionPage',
       name: config.title,
@@ -214,23 +209,11 @@ export class ConfigurableCategoryComponent implements OnInit {
       }
     }));
 
-    this.injectJsonLd(`jsonld-${config.id}-itemlist`, {
+    this.seo.setJsonLd(`jsonld-${config.id}-itemlist`, {
       '@context': 'https://schema.org',
       '@type': 'ItemList',
       numberOfItems: items.length,
       itemListElement: items
     });
-  }
-
-  private injectJsonLd(id: string, data: unknown): void {
-    if (!isPlatformBrowser(this.platformId)) return;
-    let scriptEl = this.document.getElementById(id) as HTMLScriptElement | null;
-    if (!scriptEl) {
-      scriptEl = this.document.createElement('script');
-      scriptEl.type = 'application/ld+json';
-      scriptEl.id = id;
-      this.document.head.appendChild(scriptEl);
-    }
-    scriptEl.text = JSON.stringify(data);
   }
 }

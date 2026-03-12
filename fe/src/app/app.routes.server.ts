@@ -30,7 +30,31 @@ export const serverRoutes: ServerRoute[] = [
     renderMode: RenderMode.Server
   },
   {
+    path: 'courses/safety',
+    renderMode: RenderMode.Server
+  },
+  {
     path: 'courses/:id',
+    renderMode: RenderMode.Server
+  },
+  {
+    path: 'about',
+    renderMode: RenderMode.Server
+  },
+  {
+    path: 'contact',
+    renderMode: RenderMode.Server
+  },
+  {
+    path: 'privacy',
+    renderMode: RenderMode.Server
+  },
+  {
+    path: 'terms',
+    renderMode: RenderMode.Server
+  },
+  {
+    path: 'refund-policy',
     renderMode: RenderMode.Server
   },
   {
@@ -75,10 +99,6 @@ export const serverRoutes: ServerRoute[] = [
   },
   {
     path: 'teacher/analytics',
-    renderMode: RenderMode.Client
-  },
-  {
-    path: '',
     renderMode: RenderMode.Client
   },
   {

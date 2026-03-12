@@ -8,12 +8,12 @@ import { PaginationComponent, PaginationInfo } from '../../shared/components/pag
 import { Course, CourseCategory, FilterOptions, ExtendedCourse, LEVEL_LABELS } from '../../shared/types/course.types';
 import { Course as DomainCourse, CourseFilters, CourseSortOptions, PaginationOptions, PaginatedResult } from './domain'; // Import domain types
 import { CourseLevel } from './domain/types'; // Import enum as value
-import { Meta, Title } from '@angular/platform-browser';
 import { PLATFORM_ID } from '@angular/core';
 import { StudentEnrollmentService } from '../student/services/enrollment.service';
 import { AuthService } from '../../core/services/auth.service';
 import { GetCoursesUseCase } from './application/use-cases/get-courses.use-case';
 import { ToastService } from '../../core/services/toast.service';
+import { SeoService } from '../../core/services/seo.service';
 
 @Component({
   selector: 'app-courses',
@@ -196,8 +196,7 @@ import { ToastService } from '../../core/services/toast.service';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CoursesComponent implements OnInit {
-  private title = inject(Title);
-  private meta = inject(Meta);
+  private seo = inject(SeoService);
   private document = inject<Document>(DOCUMENT);
   private platformId = inject<Object>(PLATFORM_ID);
 
@@ -239,12 +238,7 @@ export class CoursesComponent implements OnInit {
 
   ngOnInit(): void {
     // Static SEO for listing page
-    const pageTitle = 'Khóa học - LMS Maritime';
-    const description = 'Danh sách khóa học hàng hải với bộ lọc nâng cao theo danh mục, cấp độ, giá, đánh giá.';
-    this.title.setTitle(pageTitle);
-    this.meta.updateTag({ name: 'description', content: description });
-    this.meta.updateTag({ property: 'og:title', content: pageTitle });
-    this.meta.updateTag({ property: 'og:description', content: description });
+    this.seo.setPageMeta('Khóa học', 'Danh sách khóa học hàng hải với bộ lọc nâng cao theo danh mục, cấp độ, giá, đánh giá.');
 
     // Preload enrolled courses for logged-in students to enable isEnrolled check
     if (this.authService.isAuthenticated() && this.authService.userRole() === 'student') {
@@ -355,21 +349,12 @@ export class CoursesComponent implements OnInit {
         provider: { '@type': 'Organization', name: 'LMS Maritime' }
       }
     }));
-    const data = {
+    this.seo.setJsonLd('jsonld-courses-itemlist', {
       '@context': 'https://schema.org',
       '@type': 'ItemList',
       numberOfItems: items.length,
       itemListElement: items
-    };
-    const id = 'jsonld-courses-itemlist';
-    let scriptEl = this.document.getElementById(id) as HTMLScriptElement | null;
-    if (!scriptEl) {
-      scriptEl = this.document.createElement('script');
-      scriptEl.type = 'application/ld+json';
-      scriptEl.id = id;
-      this.document.head.appendChild(scriptEl);
-    }
-    scriptEl.text = JSON.stringify(data);
+    });
   }
 
   applyFilters(): void {
