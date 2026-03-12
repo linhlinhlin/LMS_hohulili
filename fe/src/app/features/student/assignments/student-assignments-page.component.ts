@@ -1,4 +1,4 @@
-﻿import {
+import {
   Component,
   inject,
   OnInit,
@@ -9,17 +9,19 @@
 
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../../core/services/auth.service';
 import { StudentAssignmentService, StudentAssignment, StudentTaskStatus } from '../services/student-assignment.service';
 import {
-  GroupedAssignments,
-  AssignmentStats,
+  TaskTab,
   AssignmentFilters,
-  groupTasksByStatus,
+  filterByTab,
+  countByTab,
   filterAssignments,
   calculateStats,
   formatDeadline,
   formatDeadlineWithExtension,
+  formatDeadlineRelative,
   getStatusBadge,
   getStatusClass,
   getDeadlineUrgencyClass,
@@ -27,18 +29,9 @@ import {
   getUniqueCourses,
 } from './utils/assignment-utils';
 
-/**
- * Student Assignments Page Component
- *
- * Trang hợp nhất hiển thị tất cả bài tập được giao cho học viên.
- * Hỗ trợ 2 chế độ xem: Kanban và List
- * Kết nối với API thực thông qua StudentAssignmentService
- *
- * @requirements 1.1, 2.1, 2.2, 2.3, 3.1, 3.2, 4.1-4.5, 5.1-5.4, 6.1-6.4, 7.1-7.3
- */
 @Component({
   selector: 'app-student-assignments-page',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, LucideAngularModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './student-assignments-page.component.html',
 })
@@ -51,41 +44,42 @@ export class StudentAssignmentsPageComponent implements OnInit {
   courses = signal<{ id: string; title: string }[]>([]);
   loading = signal(false);
   error = signal<string | null>(null);
-  viewMode = signal<'kanban' | 'list'>('kanban');
 
-  // Filters
-  selectedCourse = '';
-  selectedStatus: StudentTaskStatus | '' = '';
-  searchQuery = '';
+  // Filters as signals (OnPush-safe)
+  activeTab = signal<TaskTab>('todo');
+  selectedCourse = signal('');
+  searchQuery = signal('');
 
-  // Computed
+  // Computed: tab counts (always from full list, not filtered)
+  tabCounts = computed(() => countByTab(this.allAssignments()));
+
+  // Computed: filtered list
   filteredAssignments = computed(() => {
+    const all = this.allAssignments();
+    const tab = this.activeTab();
+
+    // First: tab filter
+    let result = filterByTab(all, tab);
+
+    // Then: course + search filters
     const filters: AssignmentFilters = {};
-    
-    if (this.selectedCourse) {
-      filters.courseId = this.selectedCourse;
-    }
-    if (this.selectedStatus) {
-      filters.status = this.selectedStatus as StudentTaskStatus;
-    }
-    if (this.searchQuery) {
-      filters.searchQuery = this.searchQuery;
-    }
+    const course = this.selectedCourse();
+    const search = this.searchQuery();
+    if (course) filters.courseId = course;
+    if (search) filters.searchQuery = search;
 
-    const filtered = filterAssignments(this.allAssignments(), filters);
-    return sortByDueDate(filtered);
+    result = filterAssignments(result, filters);
+    return sortByDueDate(result);
   });
 
-  groupedAssignments = computed(() => {
-    return groupTasksByStatus(this.filteredAssignments());
-  });
+  // Stats for toolbar
+  stats = computed(() => calculateStats(this.allAssignments()));
 
-  stats = computed(() => {
-    return calculateStats(this.filteredAssignments());
-  });
+  hasActiveFilters = computed(() =>
+    !!(this.selectedCourse() || this.searchQuery())
+  );
 
   ngOnInit(): void {
-    this.loadViewPreference();
     this.loadAssignments();
   }
 
@@ -105,46 +99,29 @@ export class StudentAssignmentsPageComponent implements OnInit {
         this.courses.set(getUniqueCourses(assignments));
         this.loading.set(false);
       },
-      error: (err) => {
+      error: () => {
         this.error.set('Không thể tải danh sách bài tập. Vui lòng thử lại.');
         this.loading.set(false);
       }
     });
   }
 
-  onFilterChange(): void {
-    // Filters are reactive via computed signals
+  setTab(tab: TaskTab): void {
+    this.activeTab.set(tab);
   }
 
   resetFilters(): void {
-    this.selectedCourse = '';
-    this.selectedStatus = '';
-    this.searchQuery = '';
-  }
-
-  hasActiveFilters(): boolean {
-    return !!(this.selectedCourse || this.selectedStatus || this.searchQuery);
-  }
-
-  setViewMode(mode: 'kanban' | 'list'): void {
-    this.viewMode.set(mode);
-    this.saveViewPreference(mode);
-  }
-
-  private loadViewPreference(): void {
-    const saved = localStorage.getItem('student-assignments-view');
-    if (saved === 'kanban' || saved === 'list') {
-      this.viewMode.set(saved);
-    }
-  }
-
-  private saveViewPreference(mode: 'kanban' | 'list'): void {
-    localStorage.setItem('student-assignments-view', mode);
+    this.selectedCourse.set('');
+    this.searchQuery.set('');
   }
 
   // Template helpers
   formatDeadlineDisplay(assignment: StudentAssignment): string {
     return formatDeadlineWithExtension(assignment.dueDate, assignment.personalDeadline);
+  }
+
+  formatRelativeDeadline(assignment: StudentAssignment): string {
+    return formatDeadlineRelative(assignment.daysUntilDue);
   }
 
   getDeadlineClass(assignment: StudentAssignment): string {
@@ -161,17 +138,12 @@ export class StudentAssignmentsPageComponent implements OnInit {
 
   getActionLabel(status: StudentTaskStatus): string {
     switch (status) {
-      case 'NOT_STARTED':
-        return 'Bắt đầu';
-      case 'IN_PROGRESS':
-        return 'Tiếp tục';
+      case 'NOT_STARTED': return 'Bắt đầu';
+      case 'IN_PROGRESS': return 'Tiếp tục';
       case 'SUBMITTED':
-      case 'GRADED':
-        return 'Xem';
-      case 'OVERDUE':
-        return 'Nộp muộn';
-      default:
-        return 'Xem';
+      case 'GRADED': return 'Xem';
+      case 'OVERDUE': return 'Nộp muộn';
+      default: return 'Xem';
     }
   }
 
@@ -179,30 +151,24 @@ export class StudentAssignmentsPageComponent implements OnInit {
     if (assignment.deliveryMode === 'SELF_PACED') {
       return 'Toàn khóa học';
     }
-
     switch (assignment.distributionType) {
       case 'CLASS':
         return assignment.className ? `Lớp: ${assignment.className}` : 'Theo lớp';
       case 'SPECIFIC_STUDENTS':
-        return 'Nhóm học viên';
+        return 'Giao riêng';
       default:
-        return assignment.className ? `Lớp: ${assignment.className}` : 'Toàn bộ học viên trong lớp';
+        return assignment.className ? `Lớp: ${assignment.className}` : 'Toàn bộ học viên';
     }
   }
 
   getAudienceBadgeClass(assignment: StudentAssignment): string {
-    if (assignment.deliveryMode === 'SELF_PACED') {
-      return 'bg-slate-100 text-slate-700';
-    }
+    if (assignment.deliveryMode === 'SELF_PACED') return 'bg-slate-100 text-slate-600';
+    if (assignment.distributionType === 'CLASS') return 'bg-[#0056D2]/10 text-[#004BB5]';
+    if (assignment.distributionType === 'SPECIFIC_STUDENTS') return 'bg-amber-50 text-amber-700';
+    return 'bg-slate-100 text-slate-600';
+  }
 
-    if (assignment.distributionType === 'CLASS') {
-      return 'bg-[#0056D2]/10 text-[#004BB5]';
-    }
-
-    if (assignment.distributionType === 'SPECIFIC_STUDENTS') {
-      return 'bg-amber-100 text-amber-700';
-    }
-
-    return 'bg-indigo-100 text-indigo-700';
+  isOverdue(assignment: StudentAssignment): boolean {
+    return assignment.status === 'OVERDUE' || assignment.isOverdue;
   }
 }

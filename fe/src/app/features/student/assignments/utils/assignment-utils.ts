@@ -1,110 +1,88 @@
 import { StudentAssignment, StudentTaskStatus } from '../../services/student-assignment.service';
 
 /**
- * Grouped Assignments - Nhóm bài tập theo trạng thái cho Kanban view
+ * Tab-based grouping for the task list (Coursera/Canvas pattern)
  */
-export interface GroupedAssignments {
-  toDo: StudentAssignment[];      // NOT_STARTED + OVERDUE
-  inProgress: StudentAssignment[]; // IN_PROGRESS
-  completed: StudentAssignment[];  // SUBMITTED + GRADED
-}
+export type TaskTab = 'todo' | 'submitted' | 'graded';
 
-/**
- * Assignment Stats - Thống kê bài tập
- */
 export interface AssignmentStats {
   total: number;
   toDo: number;
-  inProgress: number;
-  completed: number;
+  submitted: number;
+  graded: number;
   overdue: number;
 }
 
-/**
- * Assignment Filters - Bộ lọc bài tập
- */
 export interface AssignmentFilters {
   courseId?: string;
-  status?: StudentTaskStatus;
   searchQuery?: string;
 }
 
-/**
- * Status Badge - Badge hiển thị trạng thái
- */
 export interface StatusBadge {
   text: string;
   cssClass: string;
 }
 
-/**
- * Deadline Urgency - Mức độ khẩn cấp của deadline
- */
 export type DeadlineUrgency = 'normal' | 'warning' | 'danger';
 
 // ============================================
-// GROUPING FUNCTIONS
+// TAB FILTERING
 // ============================================
 
 /**
- * Nhóm bài tập theo trạng thái cho Kanban view
- * 
- * Property 3: Kanban grouping integrity
- * Tổng số items trong 3 cột phải bằng tổng số bài tập
+ * Filter assignments by active tab.
+ * - todo: NOT_STARTED + IN_PROGRESS + OVERDUE (things student needs to act on)
+ * - submitted: SUBMITTED (waiting for grading)
+ * - graded: GRADED (has score)
  */
-export function groupTasksByStatus(assignments: StudentAssignment[]): GroupedAssignments {
-  const toDo: StudentAssignment[] = [];
-  const inProgress: StudentAssignment[] = [];
-  const completed: StudentAssignment[] = [];
+export function filterByTab(assignments: StudentAssignment[], tab: TaskTab): StudentAssignment[] {
+  switch (tab) {
+    case 'todo':
+      return assignments.filter(a =>
+        a.status === 'NOT_STARTED' || a.status === 'IN_PROGRESS' || a.status === 'OVERDUE'
+      );
+    case 'submitted':
+      return assignments.filter(a => a.status === 'SUBMITTED');
+    case 'graded':
+      return assignments.filter(a => a.status === 'GRADED');
+  }
+}
 
-  for (const assignment of assignments) {
-    switch (assignment.status) {
+/**
+ * Count assignments per tab
+ */
+export function countByTab(assignments: StudentAssignment[]): Record<TaskTab, number> {
+  let todo = 0, submitted = 0, graded = 0;
+  for (const a of assignments) {
+    switch (a.status) {
       case 'NOT_STARTED':
-      case 'OVERDUE':
-        toDo.push(assignment);
-        break;
       case 'IN_PROGRESS':
-        inProgress.push(assignment);
+      case 'OVERDUE':
+        todo++;
         break;
       case 'SUBMITTED':
-      case 'GRADED':
-        completed.push(assignment);
+        submitted++;
         break;
-      default:
-        // Fallback to toDo for unknown status
-        toDo.push(assignment);
+      case 'GRADED':
+        graded++;
+        break;
     }
   }
-
-  return { toDo, inProgress, completed };
+  return { todo, submitted, graded };
 }
 
 // ============================================
-// FILTER FUNCTIONS
+// FILTER & SEARCH
 // ============================================
 
-/**
- * Lọc bài tập theo điều kiện
- * 
- * Property 9: Filter correctness
- * Tất cả items hiển thị phải thỏa mãn điều kiện filter
- */
 export function filterAssignments(
   assignments: StudentAssignment[],
   filters: AssignmentFilters
 ): StudentAssignment[] {
   return assignments.filter(assignment => {
-    // Filter by courseId
     if (filters.courseId && assignment.courseId !== filters.courseId) {
       return false;
     }
-
-    // Filter by status
-    if (filters.status && assignment.status !== filters.status) {
-      return false;
-    }
-
-    // Filter by search query (title or description)
     if (filters.searchQuery) {
       const query = filters.searchQuery.toLowerCase();
       const matchesTitle = assignment.assignmentTitle.toLowerCase().includes(query);
@@ -113,109 +91,52 @@ export function filterAssignments(
         return false;
       }
     }
-
     return true;
   });
 }
 
-/**
- * Lọc bài tập theo khóa học
- */
-export function filterByCourse(
-  assignments: StudentAssignment[],
-  courseId: string
-): StudentAssignment[] {
-  return assignments.filter(a => a.courseId === courseId);
-}
-
-/**
- * Lọc bài tập theo trạng thái
- */
-export function filterByStatus(
-  assignments: StudentAssignment[],
-  status: StudentTaskStatus
-): StudentAssignment[] {
-  return assignments.filter(a => a.status === status);
-}
-
-/**
- * Tìm kiếm bài tập theo từ khóa
- */
-export function searchAssignments(
-  assignments: StudentAssignment[],
-  query: string
-): StudentAssignment[] {
-  const lowerQuery = query.toLowerCase();
-  return assignments.filter(a => 
-    a.assignmentTitle.toLowerCase().includes(lowerQuery) ||
-    a.description.toLowerCase().includes(lowerQuery)
-  );
-}
-
 // ============================================
-// STATS FUNCTIONS
+// STATS
 // ============================================
 
-/**
- * Tính thống kê bài tập
- * 
- * Property 10: Stats calculation
- * Stats phải được tính đúng theo công thức
- */
 export function calculateStats(assignments: StudentAssignment[]): AssignmentStats {
   let toDo = 0;
-  let inProgress = 0;
-  let completed = 0;
+  let submitted = 0;
+  let graded = 0;
   let overdue = 0;
 
-  for (const assignment of assignments) {
-    switch (assignment.status) {
+  for (const a of assignments) {
+    switch (a.status) {
       case 'NOT_STARTED':
-        toDo++;
-        break;
       case 'IN_PROGRESS':
-        inProgress++;
-        break;
-      case 'SUBMITTED':
-      case 'GRADED':
-        completed++;
+        toDo++;
         break;
       case 'OVERDUE':
         toDo++;
         overdue++;
         break;
+      case 'SUBMITTED':
+        submitted++;
+        break;
+      case 'GRADED':
+        graded++;
+        break;
     }
-    
-    // Count overdue separately (can be in any status except completed)
-    if (assignment.isOverdue && assignment.status !== 'SUBMITTED' && assignment.status !== 'GRADED') {
-      if (assignment.status !== 'OVERDUE') {
-        overdue++;
-      }
+    // Also count overdue from non-OVERDUE statuses
+    if (a.isOverdue && a.status !== 'SUBMITTED' && a.status !== 'GRADED' && a.status !== 'OVERDUE') {
+      overdue++;
     }
   }
 
-  return {
-    total: assignments.length,
-    toDo,
-    inProgress,
-    completed,
-    overdue
-  };
+  return { total: assignments.length, toDo, submitted, graded, overdue };
 }
 
 // ============================================
-// FORMATTING FUNCTIONS
+// FORMATTING
 // ============================================
 
-/**
- * Format deadline theo định dạng Việt Nam
- * 
- * Property 6: Deadline formatting
- * Output phải theo định dạng dd/MM/yyyy HH:mm
- */
 export function formatDeadline(dateString: string): string {
   if (!dateString) return '';
-  
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return '';
 
@@ -228,183 +149,94 @@ export function formatDeadline(dateString: string): string {
   return `${day}/${month}/${year} ${hours}:${minutes}`;
 }
 
-/**
- * Format deadline với label gia hạn nếu có
- * 
- * Property 7: Personal deadline indicator
- * Nếu có personalDeadline, output phải chứa "(Gia hạn)"
- */
 export function formatDeadlineWithExtension(
   dueDate: string,
   personalDeadline?: string
 ): string {
   if (personalDeadline) {
-    return `${formatDeadline(personalDeadline)} (Gia hạn)`;
+    return `${formatDeadline(personalDeadline)} (Gia h\u1EA1n)`;
   }
   return formatDeadline(dueDate);
 }
 
+/**
+ * Relative deadline text: "Quá hạn 2 ngày", "Còn 3 ngày", "Hôm nay"
+ */
+export function formatDeadlineRelative(daysUntilDue: number): string {
+  if (daysUntilDue < 0) {
+    return `Qu\u00E1 h\u1EA1n ${Math.abs(daysUntilDue)} ng\u00E0y`;
+  }
+  if (daysUntilDue === 0) return 'H\u00F4m nay';
+  if (daysUntilDue === 1) return 'Ng\u00E0y mai';
+  return `C\u00F2n ${daysUntilDue} ng\u00E0y`;
+}
+
 // ============================================
-// STATUS BADGE FUNCTIONS
+// STATUS BADGE — Semantic colors
 // ============================================
 
-/**
- * Lấy badge text và CSS class cho status
- * 
- * Property 5: Status badge mapping
- * Badge text và class phải khớp với mapping table
- */
 export function getStatusBadge(status: StudentTaskStatus): StatusBadge {
   const mapping: Record<StudentTaskStatus, StatusBadge> = {
-    'NOT_STARTED': {
-      text: 'Chưa bắt đầu',
-      cssClass: 'bg-gray-100 text-gray-700'
-    },
-    'IN_PROGRESS': {
-      text: 'Đang làm',
-      cssClass: 'bg-[#0056D2]/10 text-[#004BB5]'
-    },
-    'SUBMITTED': {
-      text: 'Đã nộp',
-      cssClass: 'bg-yellow-100 text-yellow-700'
-    },
-    'GRADED': {
-      text: 'Đã chấm',
-      cssClass: 'bg-green-100 text-green-700'
-    },
-    'OVERDUE': {
-      text: 'Quá hạn',
-      cssClass: 'bg-red-100 text-red-700'
-    }
+    'NOT_STARTED': { text: 'Ch\u01B0a b\u1EAFt \u0111\u1EA7u', cssClass: 'bg-slate-100 text-slate-600' },
+    'IN_PROGRESS': { text: '\u0110ang l\u00E0m', cssClass: 'bg-[#0056D2]/10 text-[#004BB5]' },
+    'SUBMITTED':   { text: '\u0110\u00E3 n\u1ED9p', cssClass: 'bg-amber-50 text-amber-700' },
+    'GRADED':      { text: '\u0110\u00E3 ch\u1EA5m', cssClass: 'bg-emerald-50 text-emerald-700' },
+    'OVERDUE':     { text: 'Qu\u00E1 h\u1EA1n', cssClass: 'bg-red-50 text-red-700' },
   };
-
   return mapping[status] || mapping['NOT_STARTED'];
 }
 
-/**
- * Lấy label text cho status
- */
 export function getStatusLabel(status: StudentTaskStatus): string {
   return getStatusBadge(status).text;
 }
 
-/**
- * Lấy CSS class cho status
- */
 export function getStatusClass(status: StudentTaskStatus): string {
-  return `px-2 py-1 text-xs rounded ${getStatusBadge(status).cssClass}`;
+  return `px-2 py-0.5 text-[11px] font-medium rounded-full ${getStatusBadge(status).cssClass}`;
 }
 
 // ============================================
-// DEADLINE URGENCY FUNCTIONS
+// DEADLINE URGENCY — Semantic colors
 // ============================================
 
-/**
- * Tính mức độ khẩn cấp của deadline
- * 
- * Property 8: Deadline urgency styling
- * - daysUntilDue 0-3 → warning (orange)
- * - daysUntilDue < 0 → danger (red)
- * - otherwise → normal
- */
 export function getDeadlineUrgency(daysUntilDue: number): DeadlineUrgency {
-  if (daysUntilDue < 0) {
-    return 'danger';
-  }
-  if (daysUntilDue <= 3) {
-    return 'warning';
-  }
+  if (daysUntilDue < 0) return 'danger';
+  if (daysUntilDue <= 3) return 'warning';
   return 'normal';
 }
 
-/**
- * Lấy CSS class cho deadline urgency
- */
 export function getDeadlineUrgencyClass(daysUntilDue: number): string {
-  const urgency = getDeadlineUrgency(daysUntilDue);
-  
-  switch (urgency) {
-    case 'danger':
-      return 'text-gray-900 font-medium';
-    case 'warning':
-      return 'text-gray-900 font-medium';
-    default:
-      return 'text-gray-900';
+  switch (getDeadlineUrgency(daysUntilDue)) {
+    case 'danger':  return 'text-red-600 font-semibold';
+    case 'warning': return 'text-amber-600 font-medium';
+    default:        return 'text-slate-500';
   }
 }
 
-/**
- * Tính số ngày còn lại từ date string
- */
-export function calculateDaysUntilDue(dateString: string): number {
-  if (!dateString) return 999;
-  
-  const dueDate = new Date(dateString);
-  if (isNaN(dueDate.getTime())) return 999;
-  
-  const now = new Date();
-  const diffTime = dueDate.getTime() - now.getTime();
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-}
-
 // ============================================
-// SORTING FUNCTIONS
+// SORTING
 // ============================================
 
-/**
- * Sắp xếp bài tập theo deadline (gần nhất trước)
- */
 export function sortByDueDate(assignments: StudentAssignment[]): StudentAssignment[] {
   return [...assignments].sort((a, b) => {
     const dateA = a.personalDeadline || a.dueDate;
     const dateB = b.personalDeadline || b.dueDate;
-    
     if (!dateA && !dateB) return 0;
     if (!dateA) return 1;
     if (!dateB) return -1;
-    
     return new Date(dateA).getTime() - new Date(dateB).getTime();
   });
 }
 
-/**
- * Sắp xếp bài tập theo tiêu đề
- */
-export function sortByTitle(assignments: StudentAssignment[]): StudentAssignment[] {
-  return [...assignments].sort((a, b) => 
-    a.assignmentTitle.localeCompare(b.assignmentTitle, 'vi')
-  );
-}
-
 // ============================================
-// HELPER FUNCTIONS
+// HELPERS
 // ============================================
 
-/**
- * Lấy danh sách khóa học unique từ assignments
- */
 export function getUniqueCourses(assignments: StudentAssignment[]): { id: string; title: string }[] {
   const courseMap = new Map<string, string>();
-  
   for (const assignment of assignments) {
     if (!courseMap.has(assignment.courseId)) {
       courseMap.set(assignment.courseId, assignment.courseTitle);
     }
   }
-  
   return Array.from(courseMap.entries()).map(([id, title]) => ({ id, title }));
-}
-
-/**
- * Kiểm tra xem bài tập có quá hạn không
- */
-export function isAssignmentOverdue(assignment: StudentAssignment): boolean {
-  return assignment.isOverdue || assignment.status === 'OVERDUE';
-}
-
-/**
- * Kiểm tra xem bài tập đã hoàn thành chưa
- */
-export function isAssignmentCompleted(assignment: StudentAssignment): boolean {
-  return assignment.status === 'SUBMITTED' || assignment.status === 'GRADED';
 }
