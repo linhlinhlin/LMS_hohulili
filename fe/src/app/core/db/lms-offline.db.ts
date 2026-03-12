@@ -9,6 +9,8 @@ export interface OfflineCourse {
   title: string;
   description: string;
   thumbnailUrl?: string;
+  teacherName?: string;
+  deliveryMode?: 'SELF_PACED' | 'INSTRUCTOR_LED';
   totalLessons: number;
   downloadedAt: Date;
   version: number;

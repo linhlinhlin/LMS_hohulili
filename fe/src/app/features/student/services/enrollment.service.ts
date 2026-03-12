@@ -1,28 +1,23 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { CourseApi } from '../../../api/client/course.api';
 import { StudentApi } from '../../../api/client/student.api';
 import { CourseSummary } from '../../../api/types/course.types';
+import { CourseDownloadService, type DownloadableCourse } from '../../../core/services/course-download.service';
+import { NetworkStatusService } from '../../../core/services/network-status.service';
 import { EnrolledCourse } from '../../../shared/types/course.types';
-import { firstValueFrom } from 'rxjs';
 import { ErrorHandlingService } from '../../../shared/services/error-handling.service';
 
-/**
- * Student Enrollment Service
- * 
- * Quản lý việc đăng ký và theo dõi progress của student trong các khóa học
- * - Clean Architecture: Service layer tách biệt UI
- * - Domain-Driven Design: Focus on enrollment domain
- * - Reactive State Management: Signals cho realtime updates
- */
 @Injectable({
   providedIn: 'root'
 })
 export class StudentEnrollmentService {
   private courseApi = inject(CourseApi);
   private studentApi = inject(StudentApi);
+  private courseDownload = inject(CourseDownloadService);
+  private networkStatus = inject(NetworkStatusService);
   private errorService = inject(ErrorHandlingService);
 
-  // === REACTIVE STATE ===
   private _enrolledCourses = signal<EnrolledCourse[]>([]);
   private _availableCourses = signal<CourseSummary[]>([]);
   private _isLoading = signal<boolean>(false);
@@ -31,7 +26,6 @@ export class StudentEnrollmentService {
   private _totalPages = signal<number>(1);
   private _totalCount = signal<number>(0);
 
-  // === PUBLIC READONLY SIGNALS ===
   readonly enrolledCourses = this._enrolledCourses.asReadonly();
   readonly availableCourses = this._availableCourses.asReadonly();
   readonly isLoading = this._isLoading.asReadonly();
@@ -40,7 +34,6 @@ export class StudentEnrollmentService {
   readonly totalPages = this._totalPages.asReadonly();
   readonly totalCount = this._totalCount.asReadonly();
 
-  // === COMPUTED SIGNALS ===
   readonly hasNextPage = computed(() => this._currentPage() < this._totalPages());
   readonly hasPrevPage = computed(() => this._currentPage() > 1);
 
@@ -73,57 +66,53 @@ export class StudentEnrollmentService {
     this._enrolledCourses().filter(course => course.progress === 0)
   );
 
-  /**
-   * Set of enrolled course IDs for reactive UI binding
-   * Course cards can use this signal to reactively check enrollment status
-   */
   readonly enrolledCourseIds = computed(() =>
     new Set(this._enrolledCourses().map(course => course.id))
   );
 
-  // === PUBLIC METHODS ===
-
-  /**
-   * Load danh sách courses đã enroll của student
-   */
   async loadEnrolledCourses(page: number = 0, size: number = 50): Promise<void> {
     this._isLoading.set(true);
     this._error.set(null);
 
-    // Ensure page is always >= 0 (Spring Data 0-indexed)
     const safePage = Math.max(page, 0);
 
     try {
       const response = await firstValueFrom(this.courseApi.enrolledCourses({ page: safePage, size }));
+      const apiCourses = response?.data ?? [];
 
-      if (response?.data) {
-        // Backend already returns progress in enrolled courses response — no extra API calls needed
-        const enrolledCourses: EnrolledCourse[] = response.data.map(course =>
-          this.mapToEnrolledCourse(course)
-        );
-        this._enrolledCourses.set(enrolledCourses);
-
-        // Update pagination info
-        if (response.pagination) {
-          this._currentPage.set(response.pagination.page || page);
-          this._totalPages.set(response.pagination.totalPages || 1);
-          this._totalCount.set(response.pagination.totalItems || 0);
+      if (apiCourses.length === 0 && !this.networkStatus.online()) {
+        const loadedFromOffline = await this.tryLoadOfflineDownloadedCourses();
+        if (loadedFromOffline) {
+          return;
         }
+      }
 
+      const enrolledCourses: EnrolledCourse[] = apiCourses.map(course =>
+        this.mapToEnrolledCourse(course)
+      );
+      this._enrolledCourses.set(enrolledCourses);
+
+      if (response?.pagination) {
+        this._currentPage.set(response.pagination.page || page);
+        this._totalPages.set(response.pagination.totalPages || 1);
+        this._totalCount.set(response.pagination.totalItems || 0);
+      } else {
+        this._currentPage.set(safePage);
+        this._totalPages.set(1);
+        this._totalCount.set(enrolledCourses.length);
       }
     } catch (error: any) {
-      const errorMessage = error?.message || 'Không thể tải danh sách khóa học đã đăng ký';
-      this._error.set(errorMessage);
-      this.errorService.handleApiError(error, 'enrollment');
-
+      const loadedFromOffline = await this.tryLoadOfflineDownloadedCourses();
+      if (!loadedFromOffline) {
+        const errorMessage = error?.message || 'Không thể tải danh sách khóa học đã đăng ký';
+        this._error.set(errorMessage);
+        this.errorService.handleApiError(error, 'enrollment');
+      }
     } finally {
       this._isLoading.set(false);
     }
   }
 
-  /**
-   * Load danh sách courses available để enroll
-   */
   async loadAvailableCourses(page: number = 0, size: number = 10, filters?: {
     search?: string;
     teacher?: string;
@@ -140,49 +129,35 @@ export class StudentEnrollmentService {
 
       if (response?.data) {
         this._availableCourses.set(response.data);
-
       }
     } catch (error: any) {
       const errorMessage = error?.message || 'Không thể tải danh sách khóa học';
       this._error.set(errorMessage);
       this.errorService.handleApiError(error, 'enrollment');
-
     } finally {
       this._isLoading.set(false);
     }
   }
 
-  /**
-   * Enroll vào một course
-   * Nếu course có nhiều lớp, sẽ throw error để UI hiển thị class picker
-   */
   async enrollInCourse(courseId: string): Promise<boolean> {
     this._isLoading.set(true);
     this._error.set(null);
 
     try {
       await firstValueFrom(this.courseApi.enrollCourse(courseId));
-
-      // Reload enrolled courses after successful enrollment
       await this.loadEnrolledCourses();
-
       this.errorService.showSuccess('Đăng ký khóa học thành công!', 'enrollment');
-
       return true;
     } catch (error: any) {
       const errorMessage = error?.message || 'Không thể đăng ký khóa học';
       this._error.set(errorMessage);
       this.errorService.handleApiError(error, 'enrollment');
-
       return false;
     } finally {
       this._isLoading.set(false);
     }
   }
 
-  /**
-   * Làm mới thông tin progress của một khóa học cụ thể
-   */
   async refreshCourseProgress(courseId: string): Promise<void> {
     const courseIndex = this._enrolledCourses().findIndex(c => c.id === courseId);
     if (courseIndex === -1) return;
@@ -190,49 +165,38 @@ export class StudentEnrollmentService {
     try {
       const response = await firstValueFrom(this.courseApi.getCourseProgress(courseId));
       const data = response?.data ?? response;
-      
+
       this._enrolledCourses.update(courses => {
-        const newCourses = [...courses];
-        const existing = newCourses[courseIndex];
-        
-        // SOTA: Single Source of Truth - Tin tưởng tuyệt đối vào BE
-        // Không dùng Math.max hay các logic "vá" ở FE
+        const nextCourses = [...courses];
+        const existing = nextCourses[courseIndex];
+
         const progress = Math.round(data?.progressPercentage ?? existing.progress);
         const completedLessons = data?.completedLessons ?? existing.completedLessons;
         const totalLessons = data?.totalLessons ?? existing.totalLessons;
 
-        newCourses[courseIndex] = {
+        nextCourses[courseIndex] = {
           ...existing,
           progress,
           completedLessons,
           totalLessons,
           status: this.determineEnrollmentStatus(existing as any, progress)
         };
-        
-        return newCourses;
+
+        return nextCourses;
       });
     } catch {
-      // Silent error
+      // Keep existing progress silently when refresh is unavailable.
     }
   }
 
-  /**
-   * Check xem student đã enroll course này chưa
-   */
   isEnrolledInCourse(courseId: string): boolean {
     return this._enrolledCourses().some(course => course.id === courseId);
   }
 
-  /**
-   * Get thông tin một enrolled course
-   */
   getEnrolledCourse(courseId: string): EnrolledCourse | undefined {
     return this._enrolledCourses().find(course => course.id === courseId);
   }
 
-  /**
-   * Clear tất cả state
-   */
   clearState(): void {
     this._enrolledCourses.set([]);
     this._availableCourses.set([]);
@@ -242,18 +206,14 @@ export class StudentEnrollmentService {
     this._totalCount.set(0);
   }
 
-  // === PRIVATE METHODS ===
-
-  /**
-   * Map CourseSummary từ API thành EnrolledCourse cho UI
-   * Progress data is already included in the enrolled courses API response.
-   */
   private mapToEnrolledCourse(course: CourseSummary): EnrolledCourse {
     const courseAny = course as any;
     const actualProgress = courseAny.progress ?? 0;
     const status = this.determineEnrollmentStatus(course, actualProgress);
     const totalLessons = courseAny.totalLessons ?? 0;
-    const completedLessons = courseAny.completedLessons ?? (totalLessons > 0 ? Math.round((actualProgress / 100) * totalLessons) : 0);
+    const completedLessons = courseAny.completedLessons ?? (
+      totalLessons > 0 ? Math.round((actualProgress / 100) * totalLessons) : 0
+    );
 
     return {
       id: course.id,
@@ -266,12 +226,12 @@ export class StudentEnrollmentService {
       duration: totalLessons > 0 ? `${Math.ceil(totalLessons * 0.5)} giờ` : '',
       deadline: undefined,
       status,
-      thumbnail: courseAny.thumbnailUrl || null,
+      thumbnail: courseAny.thumbnailUrl || '',
       category: courseAny.categoryName || undefined,
       deliveryMode: course.deliveryMode || 'SELF_PACED',
       allowOfflineDownload: courseAny.allowOfflineDownload !== false,
       priceType: courseAny.priceType || 'FREE',
-      isPaid: courseAny.isPaid !== undefined ? !!courseAny.isPaid : (courseAny.priceType === 'FREE' || !courseAny.priceType),
+      isPaid: courseAny.isPaid !== undefined ? !!courseAny.isPaid : (courseAny.priceType !== 'FREE'),
       rating: undefined,
       lastAccessed: courseAny.lastAccessedAt || courseAny.enrolledAt || new Date().toISOString(),
       enrolledAt: course.createdAt ? new Date(course.createdAt) : new Date(),
@@ -279,9 +239,62 @@ export class StudentEnrollmentService {
     };
   }
 
-  /**
-   * Determine enrollment status based on course data
-   */
+  private async tryLoadOfflineDownloadedCourses(): Promise<boolean> {
+    try {
+      const downloads = await this.courseDownload.listDownloadedCourses();
+      if (downloads.length === 0) {
+        return false;
+      }
+
+      const enrolledCourses = downloads.map(download => this.mapOfflineDownloadToEnrolledCourse(download));
+      this._enrolledCourses.set(enrolledCourses);
+      this._currentPage.set(0);
+      this._totalPages.set(1);
+      this._totalCount.set(enrolledCourses.length);
+      this._error.set(null);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private mapOfflineDownloadToEnrolledCourse(download: DownloadableCourse): EnrolledCourse {
+    const totalLessons = download.totalLessons ?? 0;
+    const progress = Math.max(0, Math.min(100, download.completionPercent ?? 0));
+    const completedLessons = totalLessons > 0
+      ? Math.min(totalLessons, Math.round((progress / 100) * totalLessons))
+      : 0;
+
+    let status: EnrolledCourse['status'] = 'enrolled';
+    if (progress >= 100) {
+      status = 'completed';
+    } else if (progress > 0) {
+      status = 'in-progress';
+    }
+
+    return {
+      id: download.id,
+      title: download.title,
+      description: download.description || '',
+      instructor: download.teacherName || 'LMS Maritime',
+      thumbnail: download.thumbnailUrl || '',
+      progress,
+      totalLessons,
+      completedLessons,
+      duration: totalLessons > 0 ? `${Math.ceil(totalLessons * 0.5)} giờ` : '',
+      deadline: undefined,
+      status,
+      category: undefined,
+      deliveryMode: download.deliveryMode || 'SELF_PACED',
+      allowOfflineDownload: true,
+      priceType: 'FREE',
+      isPaid: false,
+      rating: undefined,
+      lastAccessed: download.downloadedAt || new Date().toISOString(),
+      studyTime: totalLessons > 0 ? totalLessons * 30 : 0
+    };
+  }
+
   private determineEnrollmentStatus(course: CourseSummary, progress: number): EnrolledCourse['status'] {
     if (progress >= 100) {
       return 'completed';
@@ -298,12 +311,8 @@ export class StudentEnrollmentService {
     return 'enrolled';
   }
 
-  /**
-   * Calculate estimated study time
-   */
   private calculateStudyTime(course: CourseSummary): number {
     const totalLessons = (course as any).totalLessons ?? 0;
-    return totalLessons > 0 ? totalLessons * 30 : 0; // ~30 min per lesson estimate
+    return totalLessons > 0 ? totalLessons * 30 : 0;
   }
-
 }

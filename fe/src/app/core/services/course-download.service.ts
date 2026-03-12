@@ -16,6 +16,10 @@ import type { DownloadOptions } from '../../shared/components/download-dialog/do
 export interface DownloadableCourse {
   id: string;
   title: string;
+  description?: string;
+  thumbnailUrl?: string;
+  teacherName?: string;
+  deliveryMode?: 'SELF_PACED' | 'INSTRUCTOR_LED';
   totalLessons: number;
   isDownloaded: boolean;
   downloadedAt?: Date;
@@ -272,6 +276,8 @@ export class CourseDownloadService {
         title: courseData.title || courseData.name,
         description: courseData.description || '',
         thumbnailUrl: courseData.thumbnailUrl,
+        teacherName: courseData.teacherName || courseData.instructorName || courseData.instructor?.name,
+        deliveryMode: courseData.deliveryMode || 'SELF_PACED',
         totalLessons: dbLessons.length,
         downloadedAt: new Date(),
         version: 1,
@@ -508,6 +514,15 @@ export class CourseDownloadService {
     }
   }
 
+  /**
+   * Return the latest downloaded-course snapshot for the current user.
+   * Intended for UI fallbacks such as offline "My Courses" surfaces.
+   */
+  async listDownloadedCourses(): Promise<DownloadableCourse[]> {
+    await this.refreshDownloadedCourses();
+    return this.downloadedCourses();
+  }
+
   private async refreshDownloadedCourses(): Promise<void> {
     await this.ensureOfflineReady();
     const userId = getCurrentUserId();
@@ -532,6 +547,10 @@ export class CourseDownloadService {
       courses.map(c => ({
         id: c.id,
         title: c.title,
+        description: c.description,
+        thumbnailUrl: c.thumbnailUrl,
+        teacherName: c.teacherName,
+        deliveryMode: c.deliveryMode,
         totalLessons: c.totalLessons,
         isDownloaded: true,
         downloadedAt: c.downloadedAt,
