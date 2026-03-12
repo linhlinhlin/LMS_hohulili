@@ -399,8 +399,7 @@ export class StudentDashboardComponent implements OnInit {
   canDownload(course: Course): boolean {
     const enrolled = this.enrolledCourses().find(c => c.id === course.id);
     const allowDownload = (enrolled as any)?.allowOfflineDownload !== false;
-    const isPaid = (enrolled as any)?.isPaid !== false;
-    return allowDownload && isPaid;
+    return allowDownload;
   }
 
   private getInstructorName(instructor: string | { name: string } | undefined): string {

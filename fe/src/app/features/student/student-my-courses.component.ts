@@ -1219,9 +1219,7 @@ export class StudentMyCoursesComponent implements OnInit {
   }
 
   canDownload(course: EnhancedEnrolledCourse): boolean {
-    // Only show download if: teacher enabled offline download AND (course is FREE or student has paid)
     const allowDownload = (course as any).allowOfflineDownload !== false;
-    const isPaid = (course as any).isPaid !== false;
-    return allowDownload && isPaid;
+    return allowDownload;
   }
 }
