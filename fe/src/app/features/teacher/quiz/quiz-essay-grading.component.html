@@ -1,0 +1,122 @@
+<div class="min-h-screen bg-slate-50/50">
+  <!-- Compact Toolbar Header -->
+  <div class="sticky top-0 z-30 border-b border-slate-200 bg-white">
+    <div class="mx-auto flex h-11 max-w-screen-2xl items-center justify-between gap-3 px-4 sm:px-6">
+      <div class="flex items-center gap-2 min-w-0">
+        <button type="button" (click)="goBack()"
+                class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-[#0056D2] transition-colors"
+                aria-label="{{ backButtonLabel() }}">
+          <lucide-icon name="arrow-left" [size]="16"></lucide-icon>
+        </button>
+        <div class="flex items-center gap-2 min-w-0">
+          <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Bài kiểm tra</p>
+          <span class="text-slate-300">/</span>
+          <h1 class="text-sm font-semibold text-slate-900 truncate">Chấm tự luận</h1>
+        </div>
+      </div>
+
+      @if (essayItems().length > 0) {
+        <div class="flex items-center gap-3 text-xs text-slate-500 shrink-0">
+          <span>Tổng: <span class="font-semibold text-slate-700">{{ essayItems().length }}</span></span>
+          <span class="text-slate-300">|</span>
+          <span>Chưa chấm: <span class="font-semibold text-amber-600">{{ pendingCount() }}</span></span>
+          <span class="text-slate-300">|</span>
+          <span>Đã chấm: <span class="font-semibold text-emerald-600">{{ gradedCount() }}</span></span>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="mx-auto max-w-screen-xl px-4 sm:px-6 py-3">
+    <!-- Quiz Context Banner -->
+    @if (quizContext()) {
+      <div class="mb-4 rounded-lg border border-slate-200 bg-white p-3">
+        <div class="flex items-center justify-between gap-3 mb-1.5">
+          <p class="text-sm font-semibold text-slate-800">{{ quizTitle() }}</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
+            {{ deliveryModeLabel() }}
+          </span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
+            {{ scopeLabel() }}
+          </span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
+            {{ targetLabel() }}
+          </span>
+        </div>
+        <p class="mt-1.5 text-xs text-slate-500">{{ gradingContextHint() }}</p>
+      </div>
+    }
+
+    <!-- Loading -->
+    @if (loading()) {
+      <div class="rounded-lg border border-slate-200 bg-white p-16 text-center">
+        <div class="mx-auto h-8 w-8 animate-spin rounded-full border-[3px] border-slate-200 border-t-[#0056D2] mb-3"></div>
+        <p class="text-xs text-slate-400 font-medium">Đang tải bài làm cần chấm...</p>
+      </div>
+    }
+
+    <!-- Empty State -->
+    @else if (essayItems().length === 0) {
+      <div class="rounded-lg border border-slate-200 bg-white p-12 text-center">
+        <lucide-icon name="check-circle" [size]="36" class="mx-auto text-slate-300 mb-3"></lucide-icon>
+        <h3 class="text-sm font-semibold text-slate-700 mb-1">Không có bài tự luận cần chấm</h3>
+        <p class="text-xs text-slate-500">{{ emptyStateMessage() }}</p>
+      </div>
+    }
+
+    <!-- Essay Items -->
+    @else {
+      <div class="space-y-3">
+        @for (item of essayItems(); track item.attemptId + item.questionId) {
+          <div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
+            <div class="p-4">
+              <!-- Header -->
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-[11px] font-medium px-2 py-0.5 rounded-full"
+                      [class]="item.graded ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">
+                  {{ item.graded ? 'Đã chấm' : 'Chưa chấm' }}
+                </span>
+                <span class="text-[11px] text-slate-400">Học viên: {{ item.studentId.substring(0, 8) }}...</span>
+              </div>
+
+              <h3 class="text-sm font-medium text-slate-800 mb-3">{{ item.questionText || 'Câu hỏi tự luận' }}</h3>
+
+              <!-- Student Answer -->
+              <div class="rounded-lg border border-slate-100 bg-slate-50/50 p-3 mb-3">
+                <p class="text-[11px] font-medium text-slate-500 mb-1">Bài làm:</p>
+                <p class="text-sm text-slate-800 whitespace-pre-wrap">{{ item.studentAnswer || 'Không có nội dung' }}</p>
+              </div>
+
+              <!-- Grading Form -->
+              <div class="flex flex-col sm:flex-row items-start sm:items-end gap-3">
+                <div class="flex-1 w-full sm:w-auto">
+                  <label class="block text-xs font-medium text-slate-600 mb-1">Điểm (0–{{ item.maxPoints }})</label>
+                  <input type="number" [min]="0" [max]="item.maxPoints" step="0.5"
+                         [(ngModel)]="item.currentScore"
+                         class="w-full sm:w-32 h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10 outline-none"
+                         placeholder="Điểm"
+                         [attr.aria-label]="'Nhập điểm cho bài làm của học viên ' + item.studentId.substring(0, 8)">
+                </div>
+                <div class="flex-1 w-full sm:w-auto">
+                  <label class="block text-xs font-medium text-slate-600 mb-1">Nhận xét</label>
+                  <input type="text" [(ngModel)]="item.feedback"
+                         class="w-full h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10 outline-none"
+                         placeholder="Nhận xét cho học viên"
+                         [attr.aria-label]="'Nhận xét cho bài làm của học viên ' + item.studentId.substring(0, 8)">
+                </div>
+                <button type="button" (click)="gradeItem(item)"
+                        [disabled]="item.currentScore === null || item.currentScore === undefined || grading()"
+                        class="h-8 px-4 rounded-lg bg-[#0056D2] text-xs font-semibold text-white hover:bg-[#004BB5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0 focus:ring-2 focus:ring-[#0056D2]/30">
+                  {{ grading() ? 'Đang chấm...' : 'Chấm điểm' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

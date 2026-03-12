@@ -167,7 +167,12 @@ public class CourseAuthoringControllerV3 {
             @AuthenticationPrincipal UserJpaEntity user
     ) {
         boolean isAdmin = isAdminRole(user);
-        deleteLessonUseCase.execute(courseId, chapterId, lessonId, user.getId(), isAdmin);
+        UUID resolvedChapterId = chapterId != null
+                ? chapterId
+                : lessonJpaRepository.findById(lessonId)
+                        .map(com.example.lms.course_authoring.infrastructure.persistence.entity.LessonJpaEntity::getChapterId)
+                        .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Lesson", lessonId));
+        deleteLessonUseCase.execute(courseId, resolvedChapterId, lessonId, user.getId(), isAdmin);
         return ResponseEntity.ok(ApiResponse.success(null, "Xóa bài học thành công"));
     }
 

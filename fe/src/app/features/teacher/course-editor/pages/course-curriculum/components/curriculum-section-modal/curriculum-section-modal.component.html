@@ -166,6 +166,151 @@
         </div>
       }
 
+      @if (sectionType() === 'QUIZ') {
+        <div class="space-y-4 rounded-xl border border-violet-200 bg-violet-50 p-4">
+          <div class="space-y-1">
+            <label class="block text-xs font-black uppercase text-violet-800">Thiết lập trắc nghiệm</label>
+            <p class="text-sm text-violet-900">Dùng mục này để giữ shell của phần trắc nghiệm trong bài giảng. Câu hỏi sẽ được quản lý qua ngân hàng hoặc bộ sinh ngẫu nhiên.</p>
+          </div>
+
+          <div class="grid gap-3 md:grid-cols-2">
+            <div class="rounded-lg border border-violet-200 bg-white p-3">
+              <label class="mb-2 block text-sm font-medium text-slate-700">Loại trắc nghiệm</label>
+              <div class="grid grid-cols-2 gap-2">
+                @for (type of sectionQuizTypes; track type) {
+                  <button
+                    type="button"
+                    (click)="onSectionQuizTypeInput(type)"
+                    class="rounded-lg border px-3 py-2 text-sm font-medium transition"
+                    [class.border-violet-600]="sectionQuizType() === type"
+                    [class.bg-violet-600]="sectionQuizType() === type"
+                    [class.text-white]="sectionQuizType() === type"
+                    [class.border-slate-200]="sectionQuizType() !== type"
+                    [class.bg-white]="sectionQuizType() !== type"
+                    [class.text-slate-700]="sectionQuizType() !== type">
+                    {{ getSectionQuizTypeLabel(type) }}
+                  </button>
+                }
+              </div>
+            </div>
+
+            <div class="rounded-lg border border-violet-200 bg-white p-3">
+              <label class="mb-2 block text-sm font-medium text-slate-700">Thiết lập làm bài</label>
+              <div class="grid grid-cols-3 gap-3">
+                <div>
+                  <label class="mb-1 block text-xs font-medium text-slate-500">Phút</label>
+                  <input
+                    type="number"
+                    min="1"
+                    [ngModel]="sectionQuizTimeLimit()"
+                    (ngModelChange)="onSectionQuizTimeLimitInput($event)"
+                    class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                </div>
+                <div>
+                  <label class="mb-1 block text-xs font-medium text-slate-500">Điểm đạt</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    [ngModel]="sectionQuizPassingScore()"
+                    (ngModelChange)="onSectionQuizPassingScoreInput($event)"
+                    class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                </div>
+                <div>
+                  <label class="mb-1 block text-xs font-medium text-slate-500">Số lần</label>
+                  <input
+                    type="number"
+                    min="1"
+                    [ngModel]="sectionQuizMaxAttempts()"
+                    (ngModelChange)="onSectionQuizMaxAttemptsInput($event)"
+                    class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid gap-2 md:grid-cols-3">
+            <label class="flex items-start gap-2 rounded-lg border border-violet-200 bg-white px-3 py-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                [ngModel]="sectionQuizShuffleQuestions()"
+                (ngModelChange)="onSectionQuizShuffleQuestionsInput($event)"
+                class="mt-0.5 h-4 w-4 rounded text-violet-600">
+              <span>Trộn thứ tự câu hỏi</span>
+            </label>
+            <label class="flex items-start gap-2 rounded-lg border border-violet-200 bg-white px-3 py-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                [ngModel]="sectionQuizShuffleOptions()"
+                (ngModelChange)="onSectionQuizShuffleOptionsInput($event)"
+                class="mt-0.5 h-4 w-4 rounded text-violet-600">
+              <span>Trộn đáp án</span>
+            </label>
+            <label class="flex items-start gap-2 rounded-lg border border-violet-200 bg-white px-3 py-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                [ngModel]="sectionQuizShowResults()"
+                (ngModelChange)="onSectionQuizShowResultsInput($event)"
+                class="mt-0.5 h-4 w-4 rounded text-violet-600">
+              <span>Hiện kết quả ngay</span>
+            </label>
+          </div>
+
+          <div class="rounded-lg border border-violet-200 bg-white">
+            <div class="flex items-center justify-between gap-3 border-b border-violet-100 px-4 py-3">
+              <div>
+                <h4 class="text-sm font-semibold text-slate-800">Câu hỏi được chọn</h4>
+                <p class="text-xs text-slate-500">Quản lý danh sách câu hỏi cho mục này ngay trong modal.</p>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  (click)="requestOpenSectionQuizBank()"
+                  class="rounded-lg border border-violet-200 px-3 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-50">
+                  Chọn từ ngân hàng
+                </button>
+                <button
+                  type="button"
+                  (click)="requestOpenSectionQuizRandom()"
+                  class="rounded-lg border border-violet-200 px-3 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-50">
+                  Thêm ngẫu nhiên
+                </button>
+              </div>
+            </div>
+
+            <div class="max-h-64 overflow-y-auto p-3">
+              @if (sectionQuizSelectedQuestions().length === 0) {
+                <div class="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center">
+                  <p class="text-sm font-medium text-slate-700">Mục trắc nghiệm này chưa có câu hỏi.</p>
+                  <p class="mt-1 text-xs text-slate-500">Hãy chọn từ ngân hàng hoặc thêm ngẫu nhiên trước khi lưu.</p>
+                </div>
+              } @else {
+                <div class="space-y-2">
+                  @for (question of sectionQuizSelectedQuestions(); track question.id; let idx = $index) {
+                    <div class="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+                      <span class="mt-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-violet-100 text-xs font-semibold text-violet-700">
+                        {{ idx + 1 }}
+                      </span>
+                      <div class="min-w-0 flex-1">
+                        <p class="line-clamp-2 text-sm font-medium text-slate-800">{{ question.content }}</p>
+                        <p class="mt-1 text-xs text-slate-500">Độ khó: {{ getDifficultyLabel(question.difficulty) }}</p>
+                      </div>
+                      <button
+                        type="button"
+                        (click)="requestRemoveSectionQuizQuestion(question.id)"
+                        class="rounded p-1 text-slate-400 hover:bg-white hover:text-red-600"
+                        aria-label="Xóa câu hỏi khỏi mục này">
+                        <lucide-icon name="x" [size]="16"></lucide-icon>
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
       @if (sectionType() === 'FILE') {
         <div class="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
           <div class="flex items-center justify-between">
@@ -232,7 +377,7 @@
       <button (click)="closeRequested.emit()" class="rounded-lg px-4 py-2 text-gray-700 hover:bg-gray-100">Hủy</button>
       <button
         (click)="requestSave()"
-        [disabled]="isSaving() || !sectionTitle().trim() || (sectionType() === 'FILE' && !selectedFile() && !sectionFileUrl())"
+        [disabled]="isSaving() || !sectionTitle().trim() || (sectionType() === 'FILE' && !selectedFile() && !sectionFileUrl()) || (sectionType() === 'QUIZ' && sectionQuizSelectedQuestions().length === 0)"
         class="flex items-center gap-2 rounded-lg bg-[#0056D2] px-5 py-2 text-white hover:bg-[#004BB5] disabled:opacity-50">
         @if (isSaving()) {
           <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">

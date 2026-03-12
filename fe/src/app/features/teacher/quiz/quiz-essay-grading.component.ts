@@ -1,9 +1,9 @@
 import { Component, OnInit, signal, inject, computed, ChangeDetectionStrategy, DestroyRef } from '@angular/core';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { LucideAngularModule } from 'lucide-angular';
 import { QuizApi } from '../../../api/endpoints/quiz.api';
 import { firstValueFrom } from 'rxjs';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 interface EssayItem {
   attemptId: string;
@@ -42,132 +42,9 @@ interface QuizGradingContext {
 
 @Component({
   selector: 'app-quiz-essay-grading',
-  imports: [RouterModule, FormsModule],
+  imports: [RouterModule, FormsModule, LucideAngularModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div class="min-h-screen bg-slate-50">
-      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- Header -->
-        <div class="mb-8">
-          <button
-            type="button"
-            (click)="goBack()"
-            class="text-[#0056D2] hover:text-[#004BB5] text-sm mb-2 inline-block"
-          >&larr; {{ backButtonLabel() }}</button>
-          <h1 class="text-2xl font-bold text-gray-900">Chấm điểm tự luận</h1>
-          <p class="text-gray-600 mt-1">{{ quizTitle() }}</p>
-          @if (quizContext()) {
-            <div class="mt-4 grid gap-3 sm:grid-cols-3">
-              <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                <p class="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Chế độ triển khai</p>
-                <p class="mt-1 text-sm font-semibold text-slate-900">{{ deliveryModeLabel() }}</p>
-              </div>
-              <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                <p class="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">{{ scopeTitle() }}</p>
-                <p class="mt-1 text-sm font-semibold text-slate-900">{{ scopeLabel() }}</p>
-              </div>
-              <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                <p class="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Đối tượng đang nhận</p>
-                <p class="mt-1 text-sm font-semibold text-slate-900">{{ targetLabel() }}</p>
-              </div>
-            </div>
-            <p class="mt-3 text-sm font-medium leading-6 text-slate-600">{{ gradingContextHint() }}</p>
-          }
-        </div>
-
-        @if (loading()) {
-          <div class="bg-white rounded-xl shadow-sm p-8 text-center">
-            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0056D2] mx-auto mb-4"></div>
-            <p class="text-gray-600">Đang tải bài làm cần chấm...</p>
-          </div>
-        } @else if (essayItems().length === 0) {
-          <div class="bg-white rounded-xl shadow-sm p-8 text-center">
-            <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">Không có bài tự luận cần chấm</h3>
-            <p class="text-gray-600">{{ emptyStateMessage() }}</p>
-          </div>
-        } @else {
-          <!-- Stats -->
-          <div class="grid grid-cols-3 gap-4 mb-6">
-            <div class="bg-white rounded-xl shadow-sm p-4 text-center">
-              <div class="text-2xl font-bold text-[#0056D2]">{{ essayItems().length }}</div>
-              <div class="text-sm text-gray-600">Tổng câu tự luận</div>
-            </div>
-            <div class="bg-white rounded-xl shadow-sm p-4 text-center">
-              <div class="text-2xl font-bold text-amber-600">{{ pendingCount() }}</div>
-              <div class="text-sm text-gray-600">Chưa chấm</div>
-            </div>
-            <div class="bg-white rounded-xl shadow-sm p-4 text-center">
-              <div class="text-2xl font-bold text-green-600">{{ gradedCount() }}</div>
-              <div class="text-sm text-gray-600">Đã chấm</div>
-            </div>
-          </div>
-
-          <!-- Essay Items -->
-          <div class="space-y-6">
-            @for (item of essayItems(); track item.attemptId + item.questionId) {
-              <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="p-6">
-                  <!-- Question -->
-                  <div class="mb-4">
-                    <div class="flex items-center gap-2 mb-2">
-                      <span class="text-xs font-medium px-2 py-0.5 rounded-full"
-                            [class]="item.graded ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'">
-                        {{ item.graded ? 'Đã chấm' : 'Chưa chấm' }}
-                      </span>
-                      <span class="text-xs text-gray-500">Học viên: {{ item.studentId.substring(0, 8) }}...</span>
-                    </div>
-                    <h3 class="text-base font-medium text-gray-900">{{ item.questionText || 'Câu hỏi tự luận' }}</h3>
-                  </div>
-
-                  <!-- Student Answer -->
-                  <div class="bg-gray-50 rounded-lg p-4 mb-4">
-                    <div class="text-sm font-medium text-gray-700 mb-1">Bài làm của học viên:</div>
-                    <p class="text-gray-800 whitespace-pre-wrap">{{ item.studentAnswer || 'Không có nội dung' }}</p>
-                  </div>
-
-                  <!-- Grading Form -->
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">
-                        Điểm (0 - {{ item.maxPoints }})
-                      </label>
-                      <input type="number"
-                             [min]="0"
-                             [max]="item.maxPoints"
-                             step="0.5"
-                             [(ngModel)]="item.currentScore"
-                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
-                             placeholder="Nhập điểm">
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Nhận xét</label>
-                      <input type="text"
-                             [(ngModel)]="item.feedback"
-                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
-                             placeholder="Nhận xét cho học viên">
-                    </div>
-                  </div>
-
-                  <!-- Submit Button -->
-                  <div class="mt-4 flex justify-end">
-                    <button
-                      (click)="gradeItem(item)"
-                      [disabled]="item.currentScore === null || item.currentScore === undefined || grading()"
-                      class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-sm font-medium">
-                      {{ grading() ? 'Đang chấm...' : 'Chấm điểm' }}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            }
-          </div>
-        }
-      </div>
-    </div>
-  `
+  templateUrl: './quiz-essay-grading.component.html',
 })
 export class QuizEssayGradingComponent implements OnInit {
   private route = inject(ActivatedRoute);

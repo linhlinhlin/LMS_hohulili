@@ -18,15 +18,15 @@ import { ToastService } from '../../../../../core/services/toast.service';
     template: `
     <div class="w-full h-full px-2 py-2 custom-scrollbar overflow-y-auto relative">
       <div class="mb-6">
-        <h2 class="text-2xl font-bold text-gray-800">Tạo bài trắc nghiệm cho bài học</h2>
+        <h2 class="text-sm font-semibold text-slate-800">Tạo bài trắc nghiệm cho bài học</h2>
         @if (lessonTitle()) {
-          <p class="text-gray-600">Bài học: {{ lessonTitle() }}</p>
+          <p class="text-slate-500">Bài học: {{ lessonTitle() }}</p>
         }
       </div>
     
       @if (isLoading()) {
         <div class="flex justify-center py-12">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0056D2]"></div>
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0056D2]"></div>
         </div>
       }
     
@@ -48,7 +48,7 @@ import { ToastService } from '../../../../../core/services/toast.service';
         <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
           <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <!-- Background overlay -->
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <div class="fixed inset-0 bg-black/50 transition-opacity" aria-hidden="true"></div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
             <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
               <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">

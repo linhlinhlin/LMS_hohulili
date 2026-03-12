@@ -19,6 +19,7 @@ type CfUploadStatus = 'idle' | 'uploading' | 'done' | 'error';
 export class CurriculumSectionModalComponent {
   private sanitizer = inject(DomSanitizer);
   private http = inject(HttpClient);
+  readonly sectionQuizTypes = ['ASSESSMENT', 'EXAM'] as const;
 
   private dialogShell = viewChild<ElementRef<HTMLElement>>('dialogShell');
 
@@ -36,6 +37,14 @@ export class CurriculumSectionModalComponent {
   isDataLoaded = input(false);
   editorHeight = input(380);
   wordCount = input(0);
+  sectionQuizType = input<'ASSESSMENT' | 'EXAM'>('ASSESSMENT');
+  sectionQuizTimeLimit = input(30);
+  sectionQuizPassingScore = input(60);
+  sectionQuizMaxAttempts = input(1);
+  sectionQuizShuffleQuestions = input(true);
+  sectionQuizShuffleOptions = input(true);
+  sectionQuizShowResults = input(true);
+  sectionQuizSelectedQuestions = input<any[]>([]);
   isSaving = input(false);
   editor = input<any>(null);
   editorConfig = input<any>(null);
@@ -46,11 +55,21 @@ export class CurriculumSectionModalComponent {
   sectionRequiredChange = output<boolean>();
   sectionVideoUrlChange = output<string>();
   sectionContentChange = output<string>();
+  sectionQuizTypeChange = output<'ASSESSMENT' | 'EXAM'>();
+  sectionQuizTimeLimitChange = output<string | number>();
+  sectionQuizPassingScoreChange = output<string | number>();
+  sectionQuizMaxAttemptsChange = output<string | number>();
+  sectionQuizShuffleQuestionsChange = output<boolean>();
+  sectionQuizShuffleOptionsChange = output<boolean>();
+  sectionQuizShowResultsChange = output<boolean>();
   fileSelected = output<Event>();
   clearSelectedFile = output<void>();
   resizeStarted = output<MouseEvent>();
   editorReady = output<any>();
   editorChange = output<any>();
+  openSectionQuizBank = output<void>();
+  openSectionQuizRandom = output<void>();
+  removeSectionQuizQuestion = output<string>();
 
   // ─── CF Stream Upload State ─────────────────────────────────────────
   readonly videoInputMode = signal<VideoInputMode>('url');
@@ -137,6 +156,34 @@ export class CurriculumSectionModalComponent {
     this.sectionContentChange.emit(value);
   }
 
+  onSectionQuizTypeInput(value: 'ASSESSMENT' | 'EXAM'): void {
+    this.sectionQuizTypeChange.emit(value);
+  }
+
+  onSectionQuizTimeLimitInput(value: string | number): void {
+    this.sectionQuizTimeLimitChange.emit(value);
+  }
+
+  onSectionQuizPassingScoreInput(value: string | number): void {
+    this.sectionQuizPassingScoreChange.emit(value);
+  }
+
+  onSectionQuizMaxAttemptsInput(value: string | number): void {
+    this.sectionQuizMaxAttemptsChange.emit(value);
+  }
+
+  onSectionQuizShuffleQuestionsInput(value: boolean): void {
+    this.sectionQuizShuffleQuestionsChange.emit(value);
+  }
+
+  onSectionQuizShuffleOptionsInput(value: boolean): void {
+    this.sectionQuizShuffleOptionsChange.emit(value);
+  }
+
+  onSectionQuizShowResultsInput(value: boolean): void {
+    this.sectionQuizShowResultsChange.emit(value);
+  }
+
   onFileInput(event: Event): void {
     this.fileSelected.emit(event);
   }
@@ -161,12 +208,41 @@ export class CurriculumSectionModalComponent {
     this.saveRequested.emit();
   }
 
+  requestOpenSectionQuizBank(): void {
+    this.openSectionQuizBank.emit();
+  }
+
+  requestOpenSectionQuizRandom(): void {
+    this.openSectionQuizRandom.emit();
+  }
+
+  requestRemoveSectionQuizQuestion(questionId: string): void {
+    this.removeSectionQuizQuestion.emit(questionId);
+  }
+
   getDialogTitle(): string {
     return this.editingSectionId() ? 'Chỉnh sửa mục' : 'Thêm mục mới';
   }
 
   getSubmitLabel(): string {
     return this.editingSectionId() ? 'Cập nhật' : 'Tạo mới';
+  }
+
+  getSectionQuizTypeLabel(type: 'ASSESSMENT' | 'EXAM'): string {
+    return type === 'EXAM' ? 'Bài thi' : 'Bài kiểm tra';
+  }
+
+  getDifficultyLabel(difficulty: string | null | undefined): string {
+    switch (difficulty) {
+      case 'EASY':
+        return 'Dễ';
+      case 'MEDIUM':
+        return 'Trung bình';
+      case 'HARD':
+        return 'Khó';
+      default:
+        return 'Chưa rõ';
+    }
   }
 
   getSafeUrl(url: string): SafeResourceUrl {

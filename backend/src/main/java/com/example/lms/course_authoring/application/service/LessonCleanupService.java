@@ -5,6 +5,9 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -23,61 +26,54 @@ public class LessonCleanupService {
      */
     @Transactional
     public void cleanupBeforeDelete(UUID lessonId) {
-        // Delete quiz-related data first (respecting FK hierarchy)
-        // 1. Delete quiz_attempt_items (FK to quiz_attempts)
-        entityManager.createNativeQuery(
-            "DELETE FROM quiz_attempt_items WHERE attempt_id IN " +
-            "(SELECT id FROM quiz_attempts WHERE quiz_id IN " +
-            "(SELECT id FROM quizzes WHERE lesson_id = :lessonId))")
-            .setParameter("lessonId", lessonId)
-            .executeUpdate();
-            
-        // 2. Delete quiz_attempts (FK to quizzes)
-        entityManager.createNativeQuery(
-            "DELETE FROM quiz_attempts WHERE quiz_id IN " +
-            "(SELECT id FROM quizzes WHERE lesson_id = :lessonId)")
-            .setParameter("lessonId", lessonId)
-            .executeUpdate();
-            
-        // 3. Delete quiz_questions (FK to quizzes)
-        entityManager.createNativeQuery(
-            "DELETE FROM quiz_questions WHERE quiz_id IN " +
-            "(SELECT id FROM quizzes WHERE lesson_id = :lessonId)")
-            .setParameter("lessonId", lessonId)
-            .executeUpdate();
-            
-        // 4. Delete quiz_assignments (FK to quizzes)
-        entityManager.createNativeQuery(
-            "DELETE FROM quiz_assignments WHERE quiz_id IN " +
-            "(SELECT id FROM quizzes WHERE lesson_id = :lessonId)")
-            .setParameter("lessonId", lessonId)
-            .executeUpdate();
+        Set<String> tables = loadExistingTables();
 
-        // 5. Delete quizzes
-        entityManager.createNativeQuery(
-            "DELETE FROM quizzes WHERE lesson_id = :lessonId")
-            .setParameter("lessonId", lessonId)
-            .executeUpdate();
+        // Tables without FK cleanup or with restrictive FK behavior
+        deleteByLessonIfPresent(tables, "student_notes",
+                "DELETE FROM student_notes WHERE lesson_id = :lessonId", lessonId);
+        deleteByLessonIfPresent(tables, "learning_events",
+                "DELETE FROM learning_events WHERE lesson_id = :lessonId", lessonId);
+        deleteByLessonIfPresent(tables, "video_progress",
+                "DELETE FROM video_progress WHERE lesson_id = :lessonId", lessonId);
 
-        // Delete lesson_assignments
-        entityManager.createNativeQuery(
-            "DELETE FROM lesson_assignments WHERE lesson_id = :lessonId")
-            .setParameter("lessonId", lessonId)
-            .executeUpdate();
+        // Delete assessment roots and let DB cascades clean child records
+        deleteByLessonIfPresent(tables, "assignments",
+                "DELETE FROM assignments WHERE lesson_id = :lessonId", lessonId);
+        deleteByLessonIfPresent(tables, "quizzes",
+                "DELETE FROM quizzes WHERE lesson_id = :lessonId", lessonId);
 
-        // Delete lesson_attachments
-        entityManager.createNativeQuery(
-            "DELETE FROM lesson_attachments WHERE lesson_id = :lessonId")
-            .setParameter("lessonId", lessonId)
-            .executeUpdate();
-
-        // Delete stu_lesson_progress
-        entityManager.createNativeQuery(
-            "DELETE FROM stu_lesson_progress WHERE lesson_id = :lessonId")
-            .setParameter("lessonId", lessonId)
-            .executeUpdate();
+        // Explicit lesson-owned cleanup kept for schema drift safety
+        deleteByLessonIfPresent(tables, "lesson_assignments",
+                "DELETE FROM lesson_assignments WHERE lesson_id = :lessonId", lessonId);
+        deleteByLessonIfPresent(tables, "lesson_attachments",
+                "DELETE FROM lesson_attachments WHERE lesson_id = :lessonId", lessonId);
+        deleteByLessonIfPresent(tables, "student_lesson_progress",
+                "DELETE FROM student_lesson_progress WHERE lesson_id = :lessonId", lessonId);
 
         // Flush to ensure all deletes are executed
         entityManager.flush();
+    }
+
+    @SuppressWarnings("unchecked")
+    private Set<String> loadExistingTables() {
+        List<Object> rows = entityManager.createNativeQuery(
+                "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
+                .getResultList();
+        Set<String> tables = new HashSet<>();
+        for (Object row : rows) {
+            if (row != null) {
+                tables.add(row.toString());
+            }
+        }
+        return tables;
+    }
+
+    private void deleteByLessonIfPresent(Set<String> tables, String tableName, String sql, UUID lessonId) {
+        if (!tables.contains(tableName)) {
+            return;
+        }
+        entityManager.createNativeQuery(sql)
+                .setParameter("lessonId", lessonId)
+                .executeUpdate();
     }
 }

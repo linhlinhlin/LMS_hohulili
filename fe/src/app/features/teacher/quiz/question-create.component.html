@@ -1,193 +1,214 @@
 <div class="min-h-screen bg-slate-50/50">
-  <!-- Slender Header -->
-  <div class="bg-white border-b border-slate-200 sticky top-0 z-50">
-    <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 py-6 font-sans">
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div class="flex items-center gap-2 mb-1">
-            <button (click)="onCancel()" class="p-1 -ml-1 text-slate-400 hover:text-[#0056D2] transition-colors">
-              <lucide-icon name="arrow-left" [size]="18"></lucide-icon>
-            </button>
-            <span class="text-[10px] font-black text-[#0056D2] uppercase tracking-[0.2em]">Ngân hàng câu hỏi</span>
-          </div>
-          <h1 class="text-2xl font-black text-slate-900 tracking-tight">Tạo Câu hỏi mới</h1>
-          <p class="text-sm text-slate-500 font-medium">Xây dựng nội dung và phương án đánh giá</p>
+  <!-- Compact Toolbar Header -->
+  <div class="sticky top-0 z-30 border-b border-slate-200 bg-white">
+    <div class="mx-auto flex h-11 max-w-screen-2xl items-center justify-between gap-3 px-4 sm:px-6">
+      <div class="flex items-center gap-2 min-w-0">
+        <button type="button" (click)="onCancel()"
+                class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-[#0056D2] transition-colors"
+                aria-label="Quay lại ngân hàng câu hỏi">
+          <lucide-icon name="arrow-left" [size]="16"></lucide-icon>
+        </button>
+        <div class="flex items-center gap-2 min-w-0">
+          <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Ngân hàng câu hỏi</p>
+          <span class="text-slate-300">/</span>
+          <h1 class="text-sm font-semibold text-slate-900 truncate">Tạo câu hỏi mới</h1>
         </div>
-        
-        <div class="flex items-center gap-3">
-          <button type="button" (click)="showPreview = true" 
-                  class="h-10 px-4 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2 font-bold text-xs shadow-sm">
-            <lucide-icon name="eye" [size]="16"></lucide-icon>
-            Xem trước
-          </button>
-          <button type="submit" form="questionCreateForm" 
-                  [disabled]="questionForm.invalid || !getCorrectOptionKey() || options.length < 2 || questionBlocks().length === 0"
-                  class="h-10 px-6 bg-[#0056D2] text-white rounded-xl font-bold text-sm hover:bg-[#004BB5] transition-all flex items-center gap-2 shadow-md shadow-blue-100 disabled:opacity-50">
-            <lucide-icon name="plus" [size]="18"></lucide-icon>
-            Tạo Câu hỏi
-          </button>
-        </div>
+      </div>
+
+      <div class="flex items-center gap-2 shrink-0">
+        <button type="button" (click)="showPreview = true"
+                class="h-8 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors flex items-center gap-1.5"
+                aria-label="Xem trước câu hỏi">
+          <lucide-icon name="eye" [size]="14"></lucide-icon>
+          <span class="hidden sm:inline">Xem trước</span>
+        </button>
+        <button type="button" (click)="onCancel()"
+                class="h-8 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+                aria-label="Hủy tạo câu hỏi">
+          Hủy
+        </button>
+        <button type="submit" form="questionCreateForm"
+                [disabled]="questionForm.invalid || !getCorrectOptionKey() || options.length < 2 || questionBlocks().length === 0"
+                class="h-8 px-4 rounded-lg bg-[#0056D2] text-xs font-semibold text-white hover:bg-[#004BB5] transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-[#0056D2]/30">
+          <lucide-icon name="plus" [size]="14"></lucide-icon>
+          Tạo câu hỏi
+        </button>
       </div>
     </div>
   </div>
 
-  <div class="max-w-screen-2xl mx-auto p-4 sm:p-6">
-    <!-- Question Creation Form -->
-    <form id="questionCreateForm" [formGroup]="questionForm" (ngSubmit)="onSubmit()" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <!-- Main Content -->
-      <div class="lg:col-span-8 space-y-6">
-        <!-- Editor Section -->
-        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-          <h2 class="text-[13px] font-black text-slate-900 uppercase tracking-widest mb-6 flex items-center gap-3">
-            <span class="w-1.5 h-1.5 rounded-full bg-[#0056D2]"></span>
-            Nội dung Câu hỏi
-          </h2>
-          
-          <div class="min-h-[200px] bg-slate-50 rounded-xl border border-slate-100 p-1">
+  <!-- Content -->
+  <div class="mx-auto max-w-screen-2xl px-4 sm:px-6 py-3">
+    <form id="questionCreateForm" [formGroup]="questionForm" (ngSubmit)="onSubmit()"
+          class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+      <!-- Main Column -->
+      <div class="lg:col-span-8 space-y-4">
+        <!-- Question Content Editor -->
+        <section class="rounded-lg border border-slate-200 bg-white p-4">
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Nội dung câu hỏi</h2>
+
+          <div class="min-h-[160px] rounded-lg border border-slate-100 bg-slate-50/50 p-1">
             <app-block-editor (blocksChange)="onQuestionContentChange($event)">
             </app-block-editor>
           </div>
-          
+
           @if (questionBlocks().length === 0 && questionForm.touched) {
-            <p class="text-rose-500 text-[10px] font-black uppercase tracking-widest mt-3 ml-1">Nội dung câu hỏi là bắt buộc</p>
+            <p class="text-xs text-rose-600 mt-2">Nội dung câu hỏi là bắt buộc</p>
           }
-        </div>
+        </section>
 
         <!-- Options Section -->
-        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-          <div class="flex items-center justify-between mb-6">
-            <h2 class="text-[13px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-3">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              Các phương án trả lời
-            </h2>
+        <section class="rounded-lg border border-slate-200 bg-white p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500">Các phương án trả lời</h2>
             <button type="button" (click)="addOption()"
-                    class="h-8 px-3 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-all flex items-center gap-2 font-black text-[10px] uppercase tracking-widest border border-emerald-100 shadow-sm">
-              <lucide-icon name="plus" [size]="14"></lucide-icon>
+                    class="h-7 px-2.5 rounded-md bg-emerald-50 text-emerald-600 text-xs font-medium hover:bg-emerald-100 transition-colors flex items-center gap-1 border border-emerald-100"
+                    aria-label="Thêm đáp án mới">
+              <lucide-icon name="plus" [size]="12"></lucide-icon>
               Thêm đáp án
             </button>
           </div>
 
-          <div formArrayName="options" class="space-y-3">
+          <div formArrayName="options" class="space-y-2">
             @for (option of options.controls; track option; let i = $index) {
-              <div [formGroupName]="i" class="group relative flex items-center gap-4 p-4 bg-slate-50/50 rounded-xl border border-slate-100 hover:bg-white hover:border-[#0056D2]/20 hover:shadow-lg hover:shadow-blue-50/50 transition-all"
-                   [class.border-emerald-500/30]="getCorrectOptionKey() === getOptionKey(i)"
-                   [class.bg-emerald-50/30]="getCorrectOptionKey() === getOptionKey(i)">
-                
-                <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs font-black shadow-sm">
+              <div [formGroupName]="i"
+                   class="group flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-slate-50/30 hover:bg-white hover:border-slate-200 transition-colors"
+                   [class.border-emerald-300]="getCorrectOptionKey() === getOptionKey(i)"
+                   [class.bg-emerald-50/40]="getCorrectOptionKey() === getOptionKey(i)">
+
+                <!-- Option Key Badge -->
+                <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-800 text-white text-xs font-semibold">
                   {{ getOptionKey(i) }}
                 </div>
 
-                <div class="flex-1 min-w-0">
+                <!-- Option Content -->
+                <div class="flex-1 min-w-0 relative">
                   <app-enriched-input [placeholder]="'Nhập nội dung đáp án (dùng [IMG] hoặc $...$)'"
                     (valueChange)="updateOptionText(i, $event)"
                     (blocksChange)="updateOptionBlocks(i, $event)"></app-enriched-input>
-                </div>
-
-                <div class="flex items-center gap-3 pr-2">
-                  <div class="flex items-center gap-2 cursor-pointer group/correct">
-                    <input type="radio" [id]="'opt-'+i" [value]="getOptionKey(i)" 
-                           [checked]="getCorrectOptionKey() === getOptionKey(i)"
-                           (change)="setCorrectOption(getOptionKey(i))"
-                           class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-300">
-                    <label [for]="'opt-'+i" class="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover/correct:text-emerald-600 transition-colors">Đúng</label>
-                  </div>
-
-                  @if (options.length > 2) {
-                    <button type="button" (click)="removeOption(i)"
-                            class="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-rose-500 transition-colors">
-                      <lucide-icon name="trash-2" [size]="14"></lucide-icon>
-                    </button>
+                  <!-- Mini Preview for Option Image -->
+                  @if (hasImageTag(options.at(i).get('content')?.value)) {
+                    <div class="absolute right-2 top-1 z-10">
+                      <img [src]="extractFileId(options.at(i).get('content')?.value) | authImage"
+                        class="w-8 h-8 rounded border border-slate-200 object-cover bg-white hover:scale-150 transition-transform origin-top-right cursor-zoom-in"
+                        alt="Ảnh đính kèm">
+                    </div>
                   }
                 </div>
+
+                <!-- Correct Radio -->
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <input type="radio" [id]="'opt-'+i" [value]="getOptionKey(i)"
+                         [checked]="getCorrectOptionKey() === getOptionKey(i)"
+                         (change)="setCorrectOption(getOptionKey(i))"
+                         class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-300"
+                         [attr.aria-label]="'Đánh dấu đáp án ' + getOptionKey(i) + ' là đúng'">
+                  <label [for]="'opt-'+i" class="text-xs text-slate-500 cursor-pointer select-none">Đúng</label>
+                </div>
+
+                <!-- Remove -->
+                @if (options.length > 2) {
+                  <button type="button" (click)="removeOption(i)"
+                          class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors"
+                          [attr.aria-label]="'Xóa đáp án ' + getOptionKey(i)">
+                    <lucide-icon name="trash-2" [size]="14"></lucide-icon>
+                  </button>
+                }
               </div>
             }
           </div>
 
+          <!-- Warnings -->
           @if (!getCorrectOptionKey()) {
-            <div class="mt-4 p-4 bg-amber-50 rounded-xl border border-amber-100 flex items-center gap-3">
-              <lucide-icon name="alert-triangle" [size]="16" class="text-amber-500"></lucide-icon>
-              <p class="text-[10px] font-bold text-amber-700 uppercase tracking-widest">Cần chọn ít nhất một đáp án đúng</p>
+            <div class="mt-3 p-2.5 bg-amber-50 rounded-lg border border-amber-200 flex items-center gap-2">
+              <lucide-icon name="alert-triangle" [size]="14" class="text-amber-500 shrink-0"></lucide-icon>
+              <p class="text-xs text-amber-700 font-medium">Cần chọn ít nhất một đáp án đúng</p>
             </div>
           }
-        </div>
+          @if (options.length < 2) {
+            <div class="mt-3 p-2.5 bg-amber-50 rounded-lg border border-amber-200 flex items-center gap-2">
+              <lucide-icon name="alert-triangle" [size]="14" class="text-amber-500 shrink-0"></lucide-icon>
+              <p class="text-xs text-amber-700 font-medium">Câu hỏi cần ít nhất 2 đáp án</p>
+            </div>
+          }
+        </section>
       </div>
 
       <!-- Sidebar -->
-      <div class="lg:col-span-4 space-y-6">
-        <div class="sticky top-24 space-y-6">
+      <aside class="lg:col-span-4">
+        <div class="sticky top-14 space-y-4">
           <!-- Properties Card -->
-          <div class="bg-indigo-950 rounded-2xl p-6 shadow-xl text-white relative overflow-hidden">
-            <div class="absolute -bottom-6 -right-6 text-white/5 pointer-events-none">
-              <lucide-icon name="database" [size]="120" strokeWidth="1"></lucide-icon>
-            </div>
-            
-            <h3 class="text-[10px] font-black uppercase tracking-widest mb-6 flex items-center gap-3">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              Thuộc tính Câu hỏi
-            </h3>
+          <section class="rounded-lg border border-slate-200 bg-white p-4">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Thuộc tính</h3>
 
-            <div class="space-y-6 relative z-10">
-              <div class="space-y-2">
-                <label class="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">Độ khó bài tập</label>
-                <select formControlName="difficulty"
-                        class="w-full h-10 px-3 bg-white/10 border border-white/10 rounded-xl text-xs font-bold focus:bg-white focus:text-slate-900 transition-all outline-none">
+            <div class="space-y-3">
+              <div>
+                <label for="difficulty" class="block text-xs font-medium text-slate-600 mb-1">Độ khó</label>
+                <select id="difficulty" formControlName="difficulty"
+                        class="w-full h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10 outline-none transition-colors"
+                        aria-label="Chọn độ khó câu hỏi">
                   <option value="EASY">Dễ</option>
                   <option value="MEDIUM">Trung bình</option>
                   <option value="HARD">Khó</option>
                 </select>
               </div>
 
-              <div class="space-y-2">
-                <label class="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">Thẻ phân loại</label>
-                <input type="text" formControlName="tags"
-                       class="w-full h-10 px-3 bg-white/10 border border-white/10 rounded-xl text-xs font-bold focus:bg-white focus:text-slate-900 transition-all outline-none"
-                       placeholder="toán học, đại số..."/>
+              <div>
+                <label for="tags" class="block text-xs font-medium text-slate-600 mb-1">Thẻ phân loại</label>
+                <input id="tags" type="text" formControlName="tags"
+                       class="w-full h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10 outline-none transition-colors"
+                       placeholder="toán học, đại số..."
+                       aria-label="Nhập thẻ phân loại, phân cách bằng dấu phẩy">
+                <p class="text-[11px] text-slate-400 mt-1">Phân cách bằng dấu phẩy</p>
               </div>
             </div>
-          </div>
+          </section>
 
-          <!-- Contextual Help -->
-          <div class="bg-white rounded-2xl p-6 border border-slate-200">
-            <h4 class="text-[13px] font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2">
-              <lucide-icon name="help-circle" [size]="14" class="text-[#0056D2]"></lucide-icon>
+          <!-- Help Card -->
+          <section class="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <h4 class="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1.5">
+              <lucide-icon name="help-circle" [size]="13" class="text-slate-400"></lucide-icon>
               Hướng dẫn
             </h4>
-            <div class="space-y-3">
-              <p class="text-[11px] font-semibold text-slate-500 leading-relaxed uppercase tracking-widest">• Nội dung nên chứa đủ thông tin để học viên hiểu yêu cầu.</p>
-              <p class="text-[11px] font-semibold text-slate-500 leading-relaxed uppercase tracking-widest">• Có thể chèn ảnh, công thức latex qua thanh công cụ.</p>
-            </div>
-          </div>
+            <ul class="space-y-1.5 text-[12px] text-slate-500 leading-relaxed">
+              <li>Nội dung nên đủ thông tin để học viên hiểu yêu cầu.</li>
+              <li>Dùng thanh công cụ để chèn ảnh hoặc công thức LaTeX.</li>
+              <li>Cần ít nhất 2 đáp án và chọn 1 đáp án đúng.</li>
+            </ul>
+          </section>
         </div>
-      </div>
+      </aside>
     </form>
   </div>
 </div>
 
 <!-- Preview Modal -->
 @if (showPreview) {
-<div class="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-6" (click)="showPreview = false">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden"
-    (click)="$event.stopPropagation()">
+<div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
+     role="dialog" aria-modal="true" aria-label="Xem trước câu hỏi"
+     (click)="showPreview = false">
+  <div class="w-full max-w-3xl max-h-[90vh] rounded-lg border border-slate-200 bg-white shadow-xl overflow-hidden"
+       (click)="$event.stopPropagation()">
     <!-- Modal Header -->
-    <div class="bg-[#0056D2] px-6 py-4 flex justify-between items-center">
-      <span class="text-white text-lg font-semibold flex items-center gap-2">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-        </svg>
+    <div class="flex h-11 items-center justify-between border-b border-slate-200 px-4">
+      <h2 class="text-sm font-semibold text-slate-900 flex items-center gap-2">
+        <lucide-icon name="eye" [size]="15" class="text-[#0056D2]"></lucide-icon>
         Xem trước câu hỏi
-      </span>
-      <button (click)="showPreview = false" class="text-white hover:text-red-300 transition-colors p-1">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
+      </h2>
+      <button (click)="showPreview = false"
+              class="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+              aria-label="Đóng xem trước">
+        <lucide-icon name="x" [size]="16"></lucide-icon>
       </button>
     </div>
     <!-- Modal Content -->
-    <div class="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
-      <app-question-preview [questionContent]="rawQuestionContent()" [optionsList]="_previewOptions()"
-        [correctOption]="getCorrectOptionKey() || ''" [showCorrectAnswer]="true">
+    <div class="p-4 sm:p-6 overflow-y-auto max-h-[calc(90vh-44px)]">
+      <app-question-preview
+        [questionContent]="rawQuestionContent()"
+        [optionsList]="_previewOptions()"
+        [correctOption]="getCorrectOptionKey() || ''"
+        [showCorrectAnswer]="true">
       </app-question-preview>
     </div>
   </div>

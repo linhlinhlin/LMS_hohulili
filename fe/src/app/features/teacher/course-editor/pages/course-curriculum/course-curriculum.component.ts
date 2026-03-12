@@ -42,7 +42,6 @@ import { PdfViewerService } from '../../../../../shared/services/pdf-viewer.serv
 import {
   LucideAngularModule
 } from 'lucide-angular';
-import { QuestionCreateComponent } from '../../../quiz/question-create.component';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
@@ -58,7 +57,6 @@ import { CurriculumSectionModalComponent } from './components/curriculum-section
   imports: [
     FormsModule,
     LucideAngularModule,
-    QuestionCreateComponent,
     DragDropModule,
     LectureSectionsPanelComponent,
     CurriculumAssessmentSummaryComponent,
@@ -94,6 +92,7 @@ export class CourseCurriculumComponent implements OnDestroy {
   private hydratedQuerySelectionKey: string | null = null;
   private hydratedSectionComposerKey: string | null = null;
   private inFlightSectionHydrationKey: string | null = null;
+  private lessonDetailRequestToken = 0;
   private ignoreNextSectionEditorChange = false;
   private lastHydratedSectionIdForModal: string | null = null;
   private readonly handleWindowKeydown = (event: KeyboardEvent) => {
@@ -105,35 +104,6 @@ export class CourseCurriculumComponent implements OnDestroy {
     event.stopPropagation();
     void this.closeSectionModal();
   };
-
-  // [NEW] In-Context Question Creation
-  showCreateQuestionModal = signal(false);
-
-  async onQuestionCreated(question: any) {
-    this.showCreateQuestionModal.set(false);
-
-    // Case 1: Active Section Modal (Section Quiz)
-    if (this.showSectionModal()) {
-      this.sectionQuizSelectedQuestions.update(prev => [...prev, question]);
-      this.markEditorUnsaved();
-      return;
-    }
-
-    // Case 2: Lesson Quiz
-    const lesson = this.selectedLesson();
-    if (!lesson) return;
-
-    try {
-      this.store.markSaving();
-      const quizId = await this.resolveQuizIdForLesson(lesson.id);
-      await firstValueFrom(this.quizApi.addQuestionToQuiz(quizId, question.id));
-      await this.loadQuizQuestions(lesson.id);
-      this.store.markSaved();
-    } catch {
-      this.store.markUnsaved();
-      this.toast.error('Thêm câu hỏi vào bài kiểm tra thất bại');
-    }
-  }
 
   // CKEditor
   public Editor = ClassicEditor;
@@ -263,6 +233,8 @@ export class CourseCurriculumComponent implements OnDestroy {
   isLoadingLesson = signal(false);
   showVideoPreview = signal(false);
   wordCount = signal(0); // Optimisation: Signal based word count
+  private editorBaselineSignature = signal('');
+  private editorDirty = signal(false);
 
   // Chapter form
   chapterTitle = '';
@@ -289,11 +261,6 @@ export class CourseCurriculumComponent implements OnDestroy {
   selectedPackageId = '';
   packageQuestions = signal<any[]>([]);
   selectedQuestionIds = signal<Set<string>>(new Set());
-  showAddQuestionsModal = signal(false);
-
-  // Random Questions
-  showRandomModal = signal(false);
-  randomCount = signal(10);
 
   // Section Quiz Fields (for QUIZ type sections)
   sectionQuizType: 'ASSESSMENT' | 'EXAM' = 'ASSESSMENT';
@@ -524,12 +491,13 @@ export class CourseCurriculumComponent implements OnDestroy {
       const selectedLesson = this.selectionService.selectedLesson();
       const currentSectionId = this.selectionService.selectedSectionId();
       const selectedSection = this.selectionService.selectedSection();
+      const preserveVisibleLessonState = this.editorDirty() || this.isSaving();
 
       if (tree && currentLessonId) {
         for (const chapter of tree.chapters) {
           const found = chapter.lessons.find(l => l.id === currentLessonId);
           if (found) {
-            if (selectedLesson !== found) {
+            if (selectedLesson !== found && !(preserveVisibleLessonState && selectedLesson?.id === currentLessonId)) {
               untracked(() => this.selectionService.selectedLesson.set(found));
               untracked(() => this.selectionService.selectedChapter.set(chapter));
             }
@@ -650,7 +618,8 @@ export class CourseCurriculumComponent implements OnDestroy {
   }
 
   onAssignmentMaxScoreChange(value: number | string) {
-    this.assignmentMaxScore = Number(value);
+    const next = this.coerceNumber(value, this.assignmentMaxScore);
+    this.assignmentMaxScore = Math.max(1, next);
     this.markEditorUnsaved();
   }
 
@@ -663,6 +632,21 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.markEditorUnsaved();
   }
 
+  onSectionQuizShuffleQuestionsChange(value: boolean) {
+    this.sectionQuizShuffleQuestions = value;
+    this.markEditorUnsaved();
+  }
+
+  onSectionQuizShuffleOptionsChange(value: boolean) {
+    this.sectionQuizShuffleOptions = value;
+    this.markEditorUnsaved();
+  }
+
+  onSectionQuizShowResultsChange(value: boolean) {
+    this.sectionQuizShowResults = value;
+    this.markEditorUnsaved();
+  }
+
   canDeactivate(): Promise<boolean> {
     return this.confirmDiscardChangesIfNeeded();
   }
@@ -672,7 +656,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       return;
     }
 
-    this.store.markUnsaved();
+    this.syncEditorDirtyState();
   }
 
   private async confirmDiscardChangesIfNeeded(): Promise<boolean> {
@@ -689,14 +673,14 @@ export class CourseCurriculumComponent implements OnDestroy {
     });
     if (shouldLeave) {
       this.restoreCurrentEditorState();
-      this.store.markSaved();
+      this.syncEditorDirtyState();
     }
 
     return shouldLeave;
   }
 
   private hasPendingChanges(): boolean {
-    return this.store.saveStatus() === 'unsaved' || this.isSaving();
+    return this.editorDirty() || this.isSaving();
   }
   async selectLessonFromChapter(lesson: LessonDraftDTO) {
     if (!(await this.confirmDiscardChangesIfNeeded())) {
@@ -852,11 +836,13 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.assignmentInstructions = lesson.assignmentInstructions || '';
     this.assignmentDueDate = this.toDateTimeLocalValue(lesson.assignmentDueDate);
     this.assignmentMaxScore = lesson.assignmentMaxScore || 100;
+    this.refreshEditorBaseline();
   }
 
   private loadChapterData(chapter: ChapterDraftDTO) {
     this.chapterTitle = chapter.title;
     this.chapterDescription = chapter.description || '';
+    this.refreshEditorBaseline();
   }
 
   private resetSectionModalTransientState() {
@@ -907,6 +893,7 @@ export class CourseCurriculumComponent implements OnDestroy {
         this.resetSectionQuizFields();
       }
       this.isDataLoaded.set(true);
+      this.refreshEditorBaseline();
       return;
     }
 
@@ -919,6 +906,7 @@ export class CourseCurriculumComponent implements OnDestroy {
         this.safePdfUrl.set(null);
       }
       this.isDataLoaded.set(true);
+      this.refreshEditorBaseline();
       return;
     }
 
@@ -926,11 +914,13 @@ export class CourseCurriculumComponent implements OnDestroy {
     if (this.newSectionType === 'TEXT') {
       setTimeout(() => {
         this.isDataLoaded.set(true);
+        this.refreshEditorBaseline();
       }, 100);
       return;
     }
 
     this.isDataLoaded.set(true);
+    this.refreshEditorBaseline();
   }
 
   private restoreCurrentEditorState() {
@@ -954,6 +944,123 @@ export class CourseCurriculumComponent implements OnDestroy {
     if (!this.showSectionModal()) {
       this.isDataLoaded.set(false);
     }
+
+    this.syncEditorDirtyState();
+  }
+
+  private refreshEditorBaseline() {
+    this.refreshEditorBaselineWithOptions();
+  }
+
+  private refreshEditorBaselineWithOptions(forceSaved = false) {
+    this.editorBaselineSignature.set(this.buildCurrentEditorSignature());
+    this.editorDirty.set(false);
+    if (forceSaved || !this.isSaving()) {
+      this.store.markSaved();
+    }
+  }
+
+  private syncEditorDirtyState() {
+    const isDirty = this.buildCurrentEditorSignature() !== this.editorBaselineSignature();
+    this.editorDirty.set(isDirty);
+    if (this.isSaving()) {
+      return;
+    }
+
+    if (isDirty) {
+      this.store.markUnsaved();
+    } else {
+      this.store.markSaved();
+    }
+  }
+
+  private buildCurrentEditorSignature(): string {
+    if (this.showSectionModal()) {
+      return this.buildSectionEditorSignature();
+    }
+
+    const lesson = this.selectedLesson();
+    if (lesson) {
+      return this.buildLessonEditorSignature(lesson);
+    }
+
+    const chapter = this.selectionService.selectedChapter();
+    if (chapter) {
+      return [
+        'chapter',
+        chapter.id,
+        this.chapterTitle.trim(),
+        this.chapterDescription.trim()
+      ].join('|');
+    }
+
+    return 'none';
+  }
+
+  private buildLessonEditorSignature(lesson: LessonDraftDTO): string {
+    const lessonType = this.getLessonType(lesson);
+    const base = ['lesson', lesson.id, lessonType, this.lessonTitle.trim()];
+
+    if (lessonType === 'LECTURE') {
+      return [
+        ...base,
+        this.lessonContent.trim(),
+        this.lessonVideoUrl.trim()
+      ].join('|');
+    }
+
+    if (lessonType === 'QUIZ') {
+      return [
+        ...base,
+        String(this.quizTimeLimit()),
+        String(this.quizPassingScore()),
+        String(this.quizMaxAttempts())
+      ].join('|');
+    }
+
+    if (lessonType === 'ASSIGNMENT') {
+      return [
+        ...base,
+        this.assignmentDescription.trim(),
+        this.assignmentInstructions.trim(),
+        this.assignmentDueDate,
+        String(this.assignmentMaxScore)
+      ].join('|');
+    }
+
+    return base.join('|');
+  }
+
+  private buildSectionEditorSignature(): string {
+    const selectedQuestionIds = this.sectionQuizSelectedQuestions()
+      .map(question => question.id)
+      .sort()
+      .join(',');
+    const selectedFileSignature = this.selectedFile
+      ? `${this.selectedFile.name}:${this.selectedFile.size}`
+      : '';
+
+    return [
+      'section',
+      this.editingSectionId() ?? 'new',
+      this.newSectionType,
+      this.sectionTitle.trim(),
+      String(this.sectionIsRequired),
+      this.sectionContent.trim(),
+      this.sectionVideoUrl.trim(),
+      this.sectionVideoType ?? '',
+      this.sectionCfObjectKey ?? '',
+      this.sectionFileUrl() ?? '',
+      selectedFileSignature,
+      this.sectionQuizType,
+      String(this.sectionQuizTimeLimit()),
+      String(this.sectionQuizPassingScore()),
+      String(this.sectionQuizMaxAttempts()),
+      String(this.sectionQuizShuffleQuestions),
+      String(this.sectionQuizShuffleOptions),
+      String(this.sectionQuizShowResults),
+      selectedQuestionIds
+    ].join('|');
   }
 
   private buildLessonHydrationKey(lesson: LessonDraftDTO): string {
@@ -981,14 +1088,23 @@ export class CourseCurriculumComponent implements OnDestroy {
       return;
     }
 
+    const requestToken = ++this.lessonDetailRequestToken;
     this.inFlightLessonDetailId = lessonId;
     this.isLoadingLesson.set(true);
     this.lessonApi.getLessonById(lessonId).subscribe({
       next: (response: any) => {
+        if (requestToken !== this.lessonDetailRequestToken) {
+          return;
+        }
+
         const detail = response.data || response;
-        this.lessonTitle = detail.title || this.lessonTitle;
-        this.lessonContent = detail.content || detail.description || this.lessonContent;
-        this.lessonVideoUrl = detail.videoUrl || this.lessonVideoUrl;
+        const lessonStillSelected = this.selectedLesson()?.id === lessonId;
+        const preserveVisibleEditorState = this.editorDirty() || this.isSaving();
+        if (lessonStillSelected && !preserveVisibleEditorState) {
+          this.lessonTitle = detail.title || this.lessonTitle;
+          this.lessonContent = detail.content || detail.description || this.lessonContent;
+          this.lessonVideoUrl = detail.videoUrl || this.lessonVideoUrl;
+        }
         if (detail.assignment?.id) {
           this.cacheAssignmentMetadata(lessonId, {
             id: detail.assignment.id,
@@ -997,12 +1113,15 @@ export class CourseCurriculumComponent implements OnDestroy {
             dueDate: detail.assignment.dueDate,
             maxScore: detail.assignment.maxScore,
             status: detail.assignment.status
-          });
+          }, preserveVisibleEditorState);
         }
         this.inFlightLessonDetailId = null;
         this.isLoadingLesson.set(false);
       },
       error: () => {
+        if (requestToken !== this.lessonDetailRequestToken) {
+          return;
+        }
         this.toast.error('Không thể tải chi tiết bài học');
         this.inFlightLessonDetailId = null;
         this.isLoadingLesson.set(false);
@@ -1116,6 +1235,7 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.isDataLoaded.set(false);
     this.lastHydratedSectionIdForModal = null;
     this.selectionService.clearSectionSelection();
+    this.refreshEditorBaseline();
   }
 
   onClearSelectedFile() {
@@ -1141,7 +1261,7 @@ export class CourseCurriculumComponent implements OnDestroy {
         title: this.chapterTitle.trim(),
         description: this.chapterDescription.trim()
       }));
-      this.store.markSaved();
+      this.refreshEditorBaselineWithOptions(true);
       this.store.loadCourse(courseId, true);
     } catch (err: any) {
       this.store.markUnsaved();
@@ -1158,6 +1278,11 @@ export class CourseCurriculumComponent implements OnDestroy {
     // Validate: quiz must have at least 1 question
     if (this.getLessonType(lesson) === 'QUIZ' && this.quizQuestions().length === 0) {
       this.toast.error('Bài kiểm tra phải có ít nhất 1 câu hỏi trước khi lưu');
+      return;
+    }
+
+    if (this.getLessonType(lesson) === 'ASSIGNMENT' && this.assignmentMaxScore < 1) {
+      this.toast.error('Điểm tối đa của bài tập phải lớn hơn 0');
       return;
     }
 
@@ -1206,7 +1331,7 @@ export class CourseCurriculumComponent implements OnDestroy {
         }));
       }
 
-      this.store.markSaved();
+      this.refreshEditorBaselineWithOptions(true);
       this.store.loadCourse(courseId, true);
     } catch (err: any) {
       this.store.markUnsaved();
@@ -1335,7 +1460,7 @@ export class CourseCurriculumComponent implements OnDestroy {
     dueDate?: string;
     maxScore?: number;
     status?: string;
-  }): void {
+  }, preserveVisibleSelection = false): void {
     const context = this.findLessonContext(lessonId);
     if (!context) {
       return;
@@ -1353,7 +1478,7 @@ export class CourseCurriculumComponent implements OnDestroy {
     // Refresh the selected lesson reference without clearing section selection.
     // Using selectLesson() would set sectionId/section to null, closing the modal
     // and triggering a re-hydration flash cycle via URL hydration.
-    if (this.selectedLesson()?.id === lessonId) {
+    if (this.selectedLesson()?.id === lessonId && !preserveVisibleSelection) {
       const refreshedContext = this.findLessonContext(lessonId);
       if (refreshedContext) {
         const currentSectionId = this.selectionService.selectedSectionId();
@@ -1430,10 +1555,10 @@ export class CourseCurriculumComponent implements OnDestroy {
 
   getQuizFlowDescription(): string {
     if (this.isInstructorLedCourse()) {
-      return 'Bạn đang chỉnh phần nội dung chuẩn của bài kiểm tra. Việc giao cho lớp hoặc nhóm học viên được tách riêng khỏi bài học này.';
+      return 'Bạn đang chỉnh lesson shell và thiết lập cốt lõi của bài kiểm tra. Việc giao theo lớp hoặc nhóm học viên được tách riêng, còn ngân hàng câu hỏi được quản lý ở builder chi tiết.';
     }
 
-    return 'Bài kiểm tra này áp dụng cho toàn bộ học viên đã ghi danh trong khóa học tự học.';
+    return 'Bài kiểm tra này áp dụng cho toàn bộ học viên đã ghi danh trong khóa học tự học. Hãy dùng builder chi tiết để thêm, tái sử dụng hoặc sắp xếp câu hỏi.';
   }
 
   getAssignmentFlowDescription(): string {
@@ -1479,130 +1604,6 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.selectedQuestionIds.set(newSet);
   }
 
-  async addSelectedQuestionsToQuiz() {
-    const lesson = this.selectedLesson();
-    if (!lesson || this.selectedQuestionIds().size === 0) return;
-
-    try {
-      this.store.markSaving();
-      const quizId = await this.resolveQuizIdForLesson(lesson.id);
-      const questionIds = Array.from(this.selectedQuestionIds());
-      for (const questionId of questionIds) {
-        await firstValueFrom(this.quizApi.addQuestionToQuiz(quizId, questionId));
-      }
-      await this.loadQuizQuestions(lesson.id);
-      this.showAddQuestionsModal.set(false);
-      this.selectedQuestionIds.set(new Set());
-      this.selectedPackageId = '';
-      this.packageQuestions.set([]);
-      this.store.markSaved();
-    } catch (err: any) {
-      this.store.markUnsaved();
-      this.toast.error('Thêm câu hỏi thất bại: ' + (err?.error?.message || err?.message || ''));
-    }
-  }
-
-  async removeQuestionFromQuiz(questionId: string) {
-    const lesson = this.selectedLesson();
-    if (!lesson) return;
-    const confirmed = await this.confirmDialog.confirm({
-      title: 'Xóa câu hỏi',
-      message: 'Bạn chắc chắn muốn xóa câu hỏi này?',
-      variant: 'danger',
-      confirmText: 'Xóa',
-      cancelText: 'Hủy'
-    });
-    if (!confirmed) return;
-
-    try {
-      this.store.markSaving();
-      const quizId = await this.resolveQuizIdForLesson(lesson.id);
-      await firstValueFrom(this.quizApi.removeQuestionFromQuiz(quizId, questionId));
-      await this.loadQuizQuestions(lesson.id);
-      this.store.markSaved();
-    } catch (err: any) {
-      this.store.markUnsaved();
-      this.toast.error('Xóa câu hỏi thất bại: ' + (err?.error?.message || err?.message || ''));
-    }
-  }
-
-  // Random Questions & Modal
-  openRandomizeModal() {
-    this.showRandomModal.set(true);
-    this.selectedPackageId = '';
-    this.randomCount.set(1);
-  }
-
-  onRandomPackageChange() {
-    this.randomCount.set(1);
-  }
-
-  getSelectedPackageCount(): number {
-    const pkg = this.quizPackages().find(p => p.id === this.selectedPackageId);
-    return pkg?.questionCount || 0;
-  }
-
-  updateRandomCount(delta: number) {
-    const max = this.getSelectedPackageCount();
-    let newVal = this.randomCount() + delta;
-    if (newVal < 1) newVal = 1;
-    if (newVal > max) newVal = max;
-    this.randomCount.set(newVal);
-  }
-
-  validateRandomCount(value: number) {
-    const max = this.getSelectedPackageCount();
-    if (value < 1) value = 1;
-    if (value > max) value = max;
-    this.randomCount.set(value);
-  }
-
-  async generateRandomQuestions() {
-    const lesson = this.selectedLesson();
-    if (!lesson || !this.selectedPackageId) return;
-
-    this.quizQuestionsLoading.set(true);
-    try {
-      this.store.markSaving();
-      const quizId = await this.resolveQuizIdForLesson(lesson.id);
-      // 1. Get all questions from the selected package
-      const questions = await firstValueFrom(this.packageApi.getQuestionsInPackage(this.selectedPackageId));
-      if (!questions || questions.length === 0) {
-        this.toast.warning('Gói câu hỏi này không có dữ liệu!');
-        return;
-      }
-
-      // 2. Shuffle (Fisher-Yates) and pick N
-      const count = this.randomCount();
-      const shuffled = [...questions];
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
-      const selected = shuffled.slice(0, count);
-
-      // 3. Add to quiz
-      // Note: Ideal if backend has bulk add. Using loop for now.
-      for (const q of selected) {
-        try {
-          await firstValueFrom(this.quizApi.addQuestionToQuiz(quizId, q.id));
-        } catch (e) {
-          // Ignore duplicates or specific errors to continue adding others
-          // Ignore duplicates or specific errors
-        }
-      }
-
-      this.showRandomModal.set(false);
-      await this.loadQuizQuestions(lesson.id);
-      this.selectedPackageId = ''; // Reset
-      this.store.markSaved();
-    } catch {
-      this.store.markUnsaved();
-      this.toast.error('Lỗi xảy ra khi tạo câu hỏi ngẫu nhiên.');
-    } finally {
-      this.quizQuestionsLoading.set(false);
-    }
-  }
   // Section Methods (L3)
   async openSectionEditor(type: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE') {
     if (!(await this.confirmDiscardChangesIfNeeded())) {
@@ -1622,11 +1623,13 @@ export class CourseCurriculumComponent implements OnDestroy {
     if (type === 'TEXT') {
       setTimeout(() => {
         this.isDataLoaded.set(true);
+        this.refreshEditorBaseline();
       }, 50);
       return;
     }
 
     this.isDataLoaded.set(true);
+    this.refreshEditorBaseline();
   }
 
   // Flag to control editor loading timing
@@ -1691,6 +1694,11 @@ export class CourseCurriculumComponent implements OnDestroy {
     const lesson = this.selectedLesson();
     if (!lesson || !this.sectionTitle.trim()) return;
 
+    if (this.newSectionType === 'QUIZ' && this.sectionQuizSelectedQuestions().length === 0) {
+      this.toast.error('Mục trắc nghiệm phải có ít nhất 1 câu hỏi trước khi lưu');
+      return;
+    }
+
     this.isSaving.set(true);
     this.store.markSaving();
     try {
@@ -1751,7 +1759,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       // Reload course to refresh tree
       const courseId = this.store.courseTree()?.id;
       if (courseId) this.store.loadCourse(courseId, true);
-      this.store.markSaved();
+      this.refreshEditorBaselineWithOptions(true);
       this.closeSectionSurface();
     } catch (e: any) {
       this.store.markUnsaved();
@@ -1784,6 +1792,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       if (courseId) this.store.loadCourse(courseId, true);
       if (this.selectedSectionId() === sectionId) {
         this.closeSectionSurface();
+        this.refreshEditorBaselineWithOptions(true);
       }
       this.store.markSaved();
     } catch (err: any) {

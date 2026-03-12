@@ -129,12 +129,12 @@
                             <app-curriculum-assessment-summary
                               accent="purple"
                               eyebrow="Bài kiểm tra trong bài học"
-                              title="Giữ nội dung chuẩn ở bài học, tách riêng phần phân phối"
+                              title="Giữ cấu hình chính ở bài học, chuyển quản lý câu hỏi sang builder"
                               [description]="getQuizFlowDescription()"
                               [placementLabel]="getLessonPlacementLabel()"
                               [audienceLabel]="getLessonAudienceLabel()"
                               [distributionLabel]="getLessonDistributionManagementLabel('QUIZ')"
-                              actionLabel="Mở trang quản lý bài kiểm tra"
+                              actionLabel="Mở builder bài kiểm tra"
                               (actionClick)="goToQuizBuilder()">
                             </app-curriculum-assessment-summary>
 
@@ -148,11 +148,7 @@
                               (timeLimitChange)="updateQuizTimeLimit($event)"
                               (passingScoreChange)="updateQuizPassingScore($event)"
                               (maxAttemptsChange)="updateQuizMaxAttempts($event)"
-                              (openRandomize)="openRandomizeModal()"
-                              (openQuestionBank)="showAddQuestionsModal.set(true)"
-                              (openCreateQuestion)="showCreateQuestionModal.set(true)"
-                              (removeQuestion)="removeQuestionFromQuiz($event)"
-                              (refreshQuestions)="loadQuizQuestions()">
+                              >
                             </app-curriculum-quiz-manager>
                           </div>
                             }
@@ -200,120 +196,10 @@
                       </div>
                     }
 
-                      <!-- Random Modal -->
-                      <!-- Random Modal -->
-                      @if (showRandomModal()) {
-                        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-                          <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100">
-                            <div class="p-5 border-b border-gray-100">
-                              <h3 class="text-lg font-bold text-gray-900">Tạo câu hỏi ngẫu nhiên</h3>
-                              <p class="text-sm text-gray-500 mt-1">Chọn gói câu hỏi và số lượng câu hỏi cần lấy.</p>
-                            </div>
-
-                            <div class="p-5 space-y-4">
-                              <!-- Select Package -->
-                              <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Nguồn câu hỏi</label>
-                                <select [(ngModel)]="selectedPackageId" (change)="onRandomPackageChange()" class="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-purple-500">
-                                  <option value="">-- Chọn gói câu hỏi --</option>
-                                  @for (pkg of quizPackages(); track pkg.id) {
-                                    <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} câu)</option>
-                                  }
-                                </select>
-                              </div>
-
-                              <!-- Quantity -->
-                              <div [class.opacity-50]="!selectedPackageId" [class.pointer-events-none]="!selectedPackageId">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">
-                                  Số lượng câu hỏi
-                                  @if(selectedPackageId) {
-                                    <span class="text-xs font-normal text-gray-500">(Tối đa: {{ getSelectedPackageCount() }})</span>
-                                  }
-                                </label>
-                                <div class="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-purple-500">
-                                  <button class="px-3 py-2 bg-gray-50 hover:bg-gray-100 border-r" (click)="updateRandomCount(-1)">-</button>
-                                  <input type="number" [ngModel]="randomCount()" (ngModelChange)="validateRandomCount($event)" class="w-full text-center border-none focus:ring-0 p-2">
-                                  <button class="px-3 py-2 bg-gray-50 hover:bg-gray-100 border-l" (click)="updateRandomCount(1)">+</button>
-                                </div>
-                              </div>
-
-                              <!-- Tùy chọn nâng cao -->
-                            </div>
-
-                            <div class="p-4 bg-gray-50 flex justify-end gap-3">
-                              <button (click)="showRandomModal.set(false)" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-                                Hủy bỏ
-                              </button>
-                              <button (click)="generateRandomQuestions()" [disabled]="!selectedPackageId || quizQuestionsLoading()"
-                                class="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-                                @if (quizQuestionsLoading()) {
-                                  <svg class="h-4 w-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                  </svg>
-                                }
-                                Tạo ngay
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      }
-
-                      <!-- Add Questions Modal -->
-                      @if (showAddQuestionsModal()) {
-                        <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" (click)="showAddQuestionsModal.set(false)">
-                          <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col" (click)="$event.stopPropagation()">
-                            <div class="p-5 border-b border-gray-200 flex items-center justify-between">
-                              <h3 class="text-lg font-semibold text-gray-900">Thêm câu hỏi từ ngân hàng</h3>
-                              <button (click)="showAddQuestionsModal.set(false)" class="rounded p-1 text-gray-400 hover:text-gray-600" aria-label="Đóng">
-                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                              </button>
-                            </div>
-                            <div class="p-5 space-y-4 overflow-y-auto flex-1">
-                              <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Chọn gói câu hỏi</label>
-                                <select [(ngModel)]="selectedPackageId" (change)="loadPackageQuestions()" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-white">
-                                  <option value="">-- Chọn gói câu hỏi --</option>
-                                  @for (pkg of quizPackages(); track pkg.id) {
-                                    <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} câu)</option>
-                                  }
-                                </select>
-                              </div>
-                              @if (packageQuestions().length > 0) {
-                                <div class="border border-gray-200 rounded-lg overflow-hidden">
-                                  <div class="px-4 py-3 bg-gray-50 border-b flex items-center justify-between">
-                                    <span class="text-sm font-medium">Danh sách câu hỏi</span>
-                                    <div class="flex items-center gap-2">
-                                      <button (click)="selectAllQuestions()" class="text-xs text-[#0056D2]">Chọn tất cả</button>
-                                      <button (click)="clearQuestionSelection()" class="text-xs text-gray-600">Bỏ chọn</button>
-                                    </div>
-                                  </div>
-                                  <div class="max-h-64 overflow-y-auto p-3 space-y-2">
-                                    @for (q of packageQuestions(); track q.id) {
-                                      <label class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer" [class.border-purple-500]="selectedQuestionIds().has(q.id)" [class.bg-purple-50]="selectedQuestionIds().has(q.id)">
-                                        <input type="checkbox" [checked]="selectedQuestionIds().has(q.id)" (change)="toggleQuestionSelection(q.id)" class="mt-1 h-4 w-4 text-purple-600 rounded">
-                                        <div class="flex-1"><p class="text-sm text-gray-900">{{ q.content }}</p></div>
-                                      </label>
-                                    }
-                                  </div>
-                                </div>
-                              }
-                            </div>
-                            <div class="p-5 border-t border-gray-200 flex justify-end gap-3">
-                              <button (click)="showAddQuestionsModal.set(false)" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Hủy bỏ</button>
-                              <button (click)="addSelectedQuestionsToQuiz()" [disabled]="selectedQuestionIds().size === 0" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50">
-                                Thêm {{ selectedQuestionIds().size }} câu hỏi
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      }
-
+                      
                       <!-- Section Quiz Bank Modal -->
                       @if (showSectionQuizBankModal()) {
-                        <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" (click)="showSectionQuizBankModal.set(false)">
+                        <div class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50" (click)="showSectionQuizBankModal.set(false)">
                           <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col" (click)="$event.stopPropagation()">
                             <div class="p-5 border-b border-gray-200 flex items-center justify-between">
                               <h3 class="text-lg font-semibold text-gray-900">Chọn câu hỏi từ ngân hàng</h3>
@@ -376,7 +262,7 @@
 
                       <!-- Section Quiz Random Modal -->
                       @if (showSectionQuizRandomModal()) {
-                        <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" (click)="showSectionQuizRandomModal.set(false)">
+                        <div class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50" (click)="showSectionQuizRandomModal.set(false)">
                           <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4" (click)="$event.stopPropagation()">
                             <div class="p-5 border-b border-gray-100">
                               <h3 class="text-lg font-bold text-gray-900">Tạo câu hỏi ngẫu nhiên</h3>
@@ -428,6 +314,14 @@
                           [isDataLoaded]="isDataLoaded()"
                           [editorHeight]="editorHeight()"
                           [wordCount]="wordCount()"
+                          [sectionQuizType]="sectionQuizType"
+                          [sectionQuizTimeLimit]="sectionQuizTimeLimit()"
+                          [sectionQuizPassingScore]="sectionQuizPassingScore()"
+                          [sectionQuizMaxAttempts]="sectionQuizMaxAttempts()"
+                          [sectionQuizShuffleQuestions]="sectionQuizShuffleQuestions"
+                          [sectionQuizShuffleOptions]="sectionQuizShuffleOptions"
+                          [sectionQuizShowResults]="sectionQuizShowResults"
+                          [sectionQuizSelectedQuestions]="sectionQuizSelectedQuestions()"
                           [isSaving]="isSaving()"
                           [editor]="Editor"
                           [editorConfig]="editorConfig"
@@ -437,6 +331,16 @@
                           (sectionRequiredChange)="onSectionRequiredChange($event)"
                           (sectionVideoUrlChange)="onSectionVideoUrlChange($event)"
                           (sectionContentChange)="onSectionContentModelChange($event)"
+                          (sectionQuizTypeChange)="onSectionQuizTypeChange($event)"
+                          (sectionQuizTimeLimitChange)="updateSectionQuizTimeLimit($event)"
+                          (sectionQuizPassingScoreChange)="updateSectionQuizPassingScore($event)"
+                          (sectionQuizMaxAttemptsChange)="updateSectionQuizMaxAttempts($event)"
+                          (sectionQuizShuffleQuestionsChange)="onSectionQuizShuffleQuestionsChange($event)"
+                          (sectionQuizShuffleOptionsChange)="onSectionQuizShuffleOptionsChange($event)"
+                          (sectionQuizShowResultsChange)="onSectionQuizShowResultsChange($event)"
+                          (openSectionQuizBank)="openSectionQuizBankModal()"
+                          (openSectionQuizRandom)="openSectionQuizRandomModal()"
+                          (removeSectionQuizQuestion)="removeSectionQuizQuestion($event)"
                           (fileSelected)="onFileSelected($event)"
                           (clearSelectedFile)="onClearSelectedFile()"
                           (resizeStarted)="startResize($event)"
@@ -444,22 +348,3 @@
                           (editorChange)="onEditorChange($event)">
                         </app-curriculum-section-modal>
                       }
-                        <!-- In-Context Question Creator Modal -->
-                        @if (showCreateQuestionModal()) {
-                          <div class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-                            <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] overflow-hidden flex flex-col relative" (click)="$event.stopPropagation()">
-                              <div class="absolute top-4 right-4 z-10">
-                                <button (click)="showCreateQuestionModal.set(false)" class="bg-white/80 p-1 rounded-full hover:bg-gray-100 text-gray-500">
-                                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                                </button>
-                              </div>
-                              <div class="flex-1 overflow-y-auto bg-gray-50">
-                                <app-question-create
-                                  [isDialog]="true"
-                                  (created)="onQuestionCreated($event)"
-                                  (cancel)="showCreateQuestionModal.set(false)">
-                                </app-question-create>
-                              </div>
-                            </div>
-                          </div>
-                        }

@@ -97,7 +97,7 @@ public class QuestionJpaEntity {
     @Column(name = "correct_rate", precision = 5, scale = 2)
     private BigDecimal correctRate = BigDecimal.ZERO;
 
-    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @OrderBy("orderIndex ASC")
     @org.hibernate.annotations.Fetch(org.hibernate.annotations.FetchMode.SUBSELECT)
     private List<QuestionOptionJpaEntity> options;

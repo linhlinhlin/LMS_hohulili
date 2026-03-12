@@ -432,6 +432,23 @@ Latest verified results:
   - the self-paced curriculum shell still does not expose a `Lớp học` tab
   - self-paced quiz deep-link `a7dfa94d-74a0-4118-8e87-ea0aeff3d1aa / d13edad9-198d-4166-866a-d90ee65dc09a / 0eec95a0-7473-4862-9f17-c6d57d0207e1` now resolves without an avoidable `GET /api/v3/quizzes/{lessonId}` `404`
   - quiz summary text still states the correct course-wide audience: `Toàn bộ học viên đã ghi danh`
+- quiz lesson curriculum shell is now intentionally `builder-first` rather than `question-manager-first`:
+  - the in-curriculum quiz surface only keeps lesson title, core quiz settings, boundary summary, and a lightweight question preview
+  - inline heavy question workflows were removed from the curriculum route; teachers now jump to the dedicated quiz builder for bank selection, randomization, and detailed question operations
+  - this keeps `Curriculum > Nội dung` aligned with course-outline authoring patterns used by major LMS products, where the outline edits the shell and the deep editor manages the activity internals
+- browser smoke passed for the instructor-led quiz deep-link `880194e2-4a22-4b18-92b2-1fbedbbb648c / 6608484a-a320-4201-891f-25be2f18656c / 9417a6b7-cd5a-4166-9a0b-6d2edbc02179` after the latest hardening:
+  - delaying `GET /api/v3/courses/lessons/:lessonId` no longer overwrites a locally edited quiz title
+  - changing the quiz title marks the header as unsaved, and restoring the original title clears the dirty state again without forcing a reload
+  - opening `Mở builder bài kiểm tra` while dirty now consistently routes through the shared discard dialog: `Ở lại` preserves the local draft, while `Rời màn này` hands off to `/teacher/quiz/:quizId/edit`
+- lecture section quiz authoring now uses a single canonical modal surface instead of splitting quiz setup between the section modal and unrelated parent-level controls:
+  - the section modal now exposes quiz-section settings, selected-question preview, and entry points for bank/random selection
+  - the quiz-section save action remains blocked until at least one question is selected
+  - the supporting bank/random overlays were raised above the section modal (`z-[70]`) so they no longer appear open while the underlying modal intercepts clicks
+  - instructor-led lecture smoke passed on `880194e2-4a22-4b18-92b2-1fbedbbb648c / 6608484a-a320-4201-891f-25be2f18656c / 09fd75b2-6910-4c91-be41-018fc7709cfd`: opening `+ Trắc nghiệm` shows the new quiz-section shell, the bank overlay opens, and `Escape` closes the section modal again
+- assignment lesson shell in curriculum is now hardened to match the quiz-shell trust model more closely:
+  - the in-curriculum assignment form now frames itself as the default lesson shell, while class-specific distribution remains in assignment settings
+  - `assignmentMaxScore` is clamped to a minimum of `1` in editor state, and assignment handoff still routes through the shared discard dialog
+  - browser smoke passed on a temporary instructor-led assignment lesson created under `880194e2-4a22-4b18-92b2-1fbedbbb648c / 6608484a-a320-4201-891f-25be2f18656c`: the assignment shell rendered correctly, the max-score guardrail was present, and `Mở cài đặt bài tập` respected dirty-state confirmation
 - student browser smoke passed after the course-first runtime hardening:
   - `student@maritime.edu / student123` login succeeds and lands on `/student/courses`
   - `/student/courses`
@@ -463,6 +480,10 @@ This means the system should keep converging toward:
 
 Next priorities in the teacher authoring area:
 
+- the generic lesson-delete path for temporary `ASSIGNMENT` lessons has now been hardened:
+  - lesson cleanup now checks the live schema before issuing native deletes, so it no longer references stale tables such as `quiz_attempt_items` or `stu_lesson_progress`
+  - `DELETE /api/v3/courses/lessons/{lessonId}` now resolves `chapterId` from `lessonId` when the request omits it, matching the controller contract
+  - runtime verification on Docker confirmed that deleting an assignment lesson now returns `200` and removes both the lesson and its linked assignment root
 - monitor the legacy `/sections/:sectionId` redirect path, but keep all authoring work on the current curriculum editor only
 - continued decomposition of the `curriculum` monolith into smaller editor surfaces now that section editing is modal-first
 - manual browser smoke for the new shared confirm-dialog flow across `info`, `settings`, `curriculum`, `quiz-edit`, and `assignment-editor`

@@ -15,11 +15,6 @@ export class CurriculumQuizManagerComponent {
   timeLimitChange = output<string>();
   passingScoreChange = output<string>();
   maxAttemptsChange = output<string>();
-  openRandomize = output<void>();
-  openQuestionBank = output<void>();
-  openCreateQuestion = output<void>();
-  removeQuestion = output<string>();
-  refreshQuestions = output<void>();
 
   onTimeLimitInput(value: string): void {
     this.timeLimitChange.emit(value);
@@ -33,26 +28,6 @@ export class CurriculumQuizManagerComponent {
     this.maxAttemptsChange.emit(value);
   }
 
-  onOpenRandomize(): void {
-    this.openRandomize.emit();
-  }
-
-  onOpenQuestionBank(): void {
-    this.openQuestionBank.emit();
-  }
-
-  onOpenCreateQuestion(): void {
-    this.openCreateQuestion.emit();
-  }
-
-  onRemoveQuestion(questionId: string): void {
-    this.removeQuestion.emit(questionId);
-  }
-
-  onRefreshQuestions(): void {
-    this.refreshQuestions.emit();
-  }
-
   getDifficultyLabel(difficulty: string | null | undefined): string {
     switch (difficulty) {
       case 'EASY':
@@ -64,5 +39,13 @@ export class CurriculumQuizManagerComponent {
       default:
         return 'Chưa rõ';
     }
+  }
+
+  getPreviewQuestions(): any[] {
+    return this.questions().slice(0, 5);
+  }
+
+  getOverflowCount(): number {
+    return Math.max(this.questions().length - this.getPreviewQuestions().length, 0);
   }
 }

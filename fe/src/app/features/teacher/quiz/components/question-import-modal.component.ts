@@ -19,26 +19,26 @@ import { IconComponent } from '../../../../shared/components/icon/icon.component
           <!-- Modal Content -->
           <div class="relative z-10 bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all w-full max-w-2xl">
             <!-- Header -->
-            <div class="bg-[#0056D2] px-6 py-4">
-              <div class="flex items-center justify-between">
-                <h3 id="question-import-title" class="text-lg font-semibold text-white flex items-center gap-2">
-                  <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
-                  </svg>
-                  Import câu hỏi từ file
-                </h3>
-                <button (click)="close()" class="text-white hover:text-gray-200">
-                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                  </svg>
-                </button>
-              </div>
+            <div class="flex h-11 items-center justify-between border-b border-slate-200 px-4">
+              <h3 id="question-import-title" class="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                <svg class="w-4 h-4 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                </svg>
+                Import câu hỏi từ file
+              </h3>
+              <button (click)="close()"
+                      class="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+                      aria-label="Đóng modal import">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
             </div>
             <!-- Body -->
             <div class="p-6 space-y-6">
               <!-- File Type Selection -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-3">Loại file</label>
+                <label class="block text-sm font-medium text-slate-600 mb-3">Loại file</label>
                 <div class="flex gap-4">
                   <label class="flex items-center gap-2 cursor-pointer">
                     <input type="radio" name="fileType" value="excel" [(ngModel)]="fileType"
@@ -64,30 +64,30 @@ import { IconComponent } from '../../../../shared/components/icon/icon.component
                   </div>
                   <!-- Difficulty Selection -->
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Độ khó mặc định</label>
+                    <label class="block text-sm font-medium text-slate-600 mb-2">Độ khó mặc định</label>
                     <select [(ngModel)]="difficulty"
-                      class="w-full border-2 border-gray-300 rounded-lg px-4 py-2.5 focus:border-[#0056D2] focus:outline-none">
+                      class="w-full border-2 border-slate-200 rounded-lg px-4 py-2.5 focus:border-[#0056D2] focus:outline-none">
                       <option value="EASY">Dễ</option>
                       <option value="MEDIUM">Trung bình</option>
                       <option value="HARD">Khó</option>
                     </select>
-                    <p class="mt-1 text-sm text-gray-500">Tất cả câu hỏi import sẽ có độ khó này</p>
+                    <p class="mt-1 text-sm text-slate-400">Tất cả câu hỏi import sẽ có độ khó này</p>
                   </div>
                   <!-- File Upload -->
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Chọn file</label>
-                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#0056D2] transition-colors"
+                    <label class="block text-sm font-medium text-slate-600 mb-2">Chọn file</label>
+                    <div class="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center hover:border-[#0056D2] transition-colors"
                       [class.border-[#0056D2]]="selectedFile"
                       [class.bg-[#0056D2]/5]="selectedFile">
                       <input type="file" #fileInput (change)="onFileSelected($event)"
                         accept=".xlsx,.xls" class="hidden">
                         @if (!selectedFile) {
                           <div (click)="fileInput.click()" class="cursor-pointer">
-                            <svg class="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                             </svg>
-                            <p class="text-gray-600 mb-1">Click để chọn file hoặc kéo thả vào đây</p>
-                            <p class="text-sm text-gray-400">Hỗ trợ: .xlsx, .xls</p>
+                            <p class="text-slate-500 mb-1">Click để chọn file hoặc kéo thả vào đây</p>
+                            <p class="text-sm text-slate-300">Hỗ trợ: .xlsx, .xls</p>
                           </div>
                         }
                         @if (selectedFile) {
@@ -96,11 +96,11 @@ import { IconComponent } from '../../../../shared/components/icon/icon.component
                               <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M12.9,14.5L15.8,19H14L12,15.6L10,19H8.2L11.1,14.5L8.2,10H10L12,13.4L14,10H15.8L12.9,14.5Z"/>
                             </svg>
                             <div class="text-left">
-                              <p class="font-medium text-gray-900">{{ selectedFile.name }}</p>
-                              <p class="text-sm text-gray-500">{{ formatFileSize(selectedFile.size) }}</p>
+                              <p class="font-medium text-slate-900">{{ selectedFile.name }}</p>
+                              <p class="text-sm text-slate-400">{{ formatFileSize(selectedFile.size) }}</p>
                             </div>
                             <button (click)="clearFile(); $event.stopPropagation()"
-                              class="ml-2 p-1 text-gray-400 hover:text-red-500">
+                              class="ml-2 p-1 text-slate-300 hover:text-red-500">
                               <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                               </svg>
@@ -118,7 +118,7 @@ import { IconComponent } from '../../../../shared/components/icon/icon.component
                         <div class="flex-1">
                           <h4 class="font-medium text-[#004BB5] mb-1">Định dạng file Excel</h4>
                           <p class="text-sm text-[#004BB5] mb-2">File cần có các cột theo thứ tự:</p>
-                          <div class="bg-white rounded p-2 text-xs font-mono text-gray-700 overflow-x-auto">
+                          <div class="bg-white rounded p-2 text-xs font-mono text-slate-600 overflow-x-auto">
                             Câu hỏi | Đáp án A | Đáp án B | Đáp án C | Đáp án D | Đáp án đúng
                           </div>
                           <p class="text-xs text-[#0056D2] mt-2">* Đáp án đúng: A, B, C hoặc D</p>
@@ -183,20 +183,17 @@ import { IconComponent } from '../../../../shared/components/icon/icon.component
                     }
                   </div>
                   <!-- Footer -->
-                  <div class="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3">
+                  <div class="border-t border-slate-200 px-4 py-3 flex items-center justify-end gap-2">
                     <button (click)="close()" type="button"
-                      class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
+                      class="h-8 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors">
                       {{ importResult() ? 'Đóng' : 'Hủy' }}
                     </button>
                     @if (!importResult()) {
                       <button (click)="import()" type="button"
                         [disabled]="isImporting() || !selectedFile"
-                        class="px-6 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
+                        class="h-8 px-4 rounded-lg bg-[#0056D2] text-xs font-semibold text-white hover:bg-[#004BB5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5">
                         @if (isImporting()) {
-                          <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
+                          <div class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white"></div>
                         }
                         <span>{{ isImporting() ? 'Đang import...' : 'Import' }}</span>
                       </button>

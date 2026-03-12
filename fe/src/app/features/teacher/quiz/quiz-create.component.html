@@ -1,0 +1,281 @@
+<div class="min-h-screen bg-slate-50/50">
+  <!-- Compact Toolbar Header -->
+  <div class="sticky top-0 z-30 border-b border-slate-200 bg-white">
+    <div class="mx-auto flex h-11 max-w-screen-2xl items-center justify-between gap-3 px-4 sm:px-6">
+      <div class="flex items-center gap-2 min-w-0">
+        <button type="button" (click)="handleCancel()"
+                class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-[#0056D2] transition-colors"
+                aria-label="Quay lại danh sách bài kiểm tra">
+          <lucide-icon name="arrow-left" [size]="16"></lucide-icon>
+        </button>
+        <div class="flex items-center gap-2 min-w-0">
+          <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Bài kiểm tra</p>
+          <span class="text-slate-300">/</span>
+          <h1 class="text-sm font-semibold text-slate-900 truncate">Tạo mới</h1>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 shrink-0">
+        <!-- Step Indicator -->
+        <div class="hidden sm:flex items-center gap-1 text-xs text-slate-400">
+          <span [class.text-[#0056D2]]="currentStep() >= 1" [class.font-semibold]="currentStep() === 1">Thông tin</span>
+          <lucide-icon name="chevron-right" [size]="12"></lucide-icon>
+          <span [class.text-[#0056D2]]="currentStep() >= 2" [class.font-semibold]="currentStep() === 2">Câu hỏi</span>
+          <lucide-icon name="chevron-right" [size]="12"></lucide-icon>
+          <span [class.text-[#0056D2]]="currentStep() >= 3" [class.font-semibold]="currentStep() === 3">Xem lại</span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button type="button" (click)="handleCancel()"
+                  class="h-8 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors">
+            {{ currentStep() === 1 ? 'Hủy' : 'Quay lại' }}
+          </button>
+          <button type="button" (click)="handleNext()"
+                  [disabled]="isPublishing"
+                  class="h-8 px-4 rounded-lg bg-[#0056D2] text-xs font-semibold text-white hover:bg-[#004BB5] transition-colors flex items-center gap-1.5 disabled:opacity-50 focus:ring-2 focus:ring-[#0056D2]/30">
+            @if (currentStep() === 3) {
+              @if (isPublishing) {
+                <div class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white"></div>
+                Đang tạo...
+              } @else {
+                <lucide-icon name="check" [size]="14"></lucide-icon>
+                Xuất bản
+              }
+            } @else {
+              Tiếp tục
+              <lucide-icon name="chevron-right" [size]="14"></lucide-icon>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="mx-auto max-w-screen-xl px-4 sm:px-6 py-3">
+    <!-- Progress Bar -->
+    <div class="mb-4">
+      <div class="flex items-center justify-between text-xs text-slate-500 mb-1.5">
+        <span>Bước {{ currentStep() }}/3: {{ getStepTitle() }}</span>
+        <span class="text-slate-400">{{ (currentStep() / 3 * 100) | number:'1.0-0' }}%</span>
+      </div>
+      <div class="h-1 rounded-full bg-slate-200">
+        <div class="h-1 rounded-full bg-[#0056D2] transition-all duration-300" [style.width.%]="(currentStep() / 3) * 100"></div>
+      </div>
+    </div>
+
+    <!-- Context Banner -->
+    <div class="mb-4 rounded-lg border border-[#0056D2]/10 bg-[#0056D2]/5 px-3 py-2">
+      <p class="text-xs text-slate-600">
+        Quiz được neo vào <span class="font-semibold text-slate-800">khóa học &amp; curriculum</span>.
+        Phân phối, lượt làm bài và kết quả thuộc không gian <span class="font-semibold text-slate-800">vận hành assessment</span>.
+      </p>
+    </div>
+
+    <div class="rounded-lg border border-slate-200 bg-white p-4 sm:p-6">
+      <!-- Step 1: General Info -->
+      @if (currentStep() === 1) {
+        <div class="space-y-4">
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500">Thông tin chung</h2>
+
+          <!-- Course Selection -->
+          <div class="p-3 rounded-lg border border-[#0056D2]/10 bg-[#0056D2]/5">
+            <label for="courseSelect" class="block text-xs font-semibold text-[#004BB5] mb-1.5">Chọn khóa học <span class="text-rose-500">*</span></label>
+            <select id="courseSelect" [(ngModel)]="quizForm.courseId" (ngModelChange)="onCourseChange($event)"
+                    class="w-full h-8 px-2.5 rounded-lg border border-[#0056D2]/20 bg-white text-sm text-slate-900 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10 outline-none"
+                    aria-label="Chọn khóa học để tạo bài kiểm tra">
+              <option value="" disabled selected>-- Chọn khóa học --</option>
+              @for (course of courses(); track course) {
+                <option [value]="course.id">{{ course.title }} ({{ course.code }})</option>
+              }
+            </select>
+            @if (showErrors && !quizForm.courseId) {
+              <p class="text-xs text-rose-600 mt-1">Vui lòng chọn khóa học.</p>
+            }
+          </div>
+
+          <div class="p-3 rounded-lg border border-slate-200 bg-white">
+            <label for="sectionSelect" class="block text-xs font-medium text-slate-700 mb-1.5">Chọn chương neo quiz <span class="text-rose-500">*</span></label>
+            <select id="sectionSelect" [(ngModel)]="quizForm.sectionId"
+                    class="w-full h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10 outline-none"
+                    aria-label="Chọn chương để gắn quiz">
+              <option value="" disabled selected>-- Chọn chương --</option>
+              @for (section of sections(); track section.id) {
+                <option [value]="section.id">{{ section.title }}</option>
+              }
+            </select>
+            @if (showErrors && !quizForm.sectionId) {
+              <p class="text-xs text-rose-600 mt-1">Vui lòng chọn chương.</p>
+            }
+            @if (quizForm.courseId && sections().length === 0) {
+              <p class="text-xs text-amber-600 mt-1">Khóa học này chưa có chương nào.</p>
+            }
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="col-span-2">
+              <label for="quizTitle" class="block text-xs font-medium text-slate-700 mb-1">Tên bài kiểm tra <span class="text-rose-500">*</span></label>
+              <input id="quizTitle" [(ngModel)]="quizForm.title"
+                     class="w-full h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10 outline-none"
+                     placeholder="VD: Kiểm tra giữa kỳ môn Luật Hàng hải">
+              @if (showErrors && !quizForm.title) {
+                <p class="text-xs text-rose-600 mt-1">Vui lòng nhập tên bài kiểm tra.</p>
+              }
+            </div>
+
+            <div class="col-span-2">
+              <label for="quizDesc" class="block text-xs font-medium text-slate-700 mb-1">Mô tả</label>
+              <textarea id="quizDesc" [(ngModel)]="quizForm.description"
+                        class="w-full min-h-[80px] px-2.5 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10 outline-none resize-y"
+                        placeholder="Mô tả ngắn gọn về bài kiểm tra..."></textarea>
+            </div>
+
+            <div>
+              <label for="timeLimit" class="block text-xs font-medium text-slate-700 mb-1">Thời gian (phút)</label>
+              <input id="timeLimit" [(ngModel)]="quizForm.timeLimit" type="number"
+                     class="w-full h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10 outline-none"
+                     placeholder="60">
+            </div>
+
+            <div>
+              <label for="passingScore" class="block text-xs font-medium text-slate-700 mb-1">Điểm đạt (%)</label>
+              <input id="passingScore" [(ngModel)]="quizForm.passingScore" type="number"
+                     class="w-full h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10 outline-none"
+                     placeholder="60">
+            </div>
+
+            <div>
+              <label for="maxAttempts" class="block text-xs font-medium text-slate-700 mb-1">Số lần làm tối đa</label>
+              <input id="maxAttempts" [(ngModel)]="quizForm.maxAttempts" type="number"
+                     class="w-full h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10 outline-none"
+                     placeholder="3">
+            </div>
+          </div>
+
+          <!-- Options -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-3 border-t border-slate-100">
+            <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <input type="checkbox" [(ngModel)]="quizForm.shuffleQuestions" class="h-4 w-4 rounded border-slate-300 text-[#0056D2] focus:ring-[#0056D2]">
+              Xáo trộn câu hỏi
+            </label>
+            <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <input type="checkbox" [(ngModel)]="quizForm.shuffleOptions" class="h-4 w-4 rounded border-slate-300 text-[#0056D2] focus:ring-[#0056D2]">
+              Xáo trộn đáp án
+            </label>
+            <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <input type="checkbox" [(ngModel)]="quizForm.showResultsImmediately" class="h-4 w-4 rounded border-slate-300 text-[#0056D2] focus:ring-[#0056D2]">
+              Hiện điểm ngay sau khi nộp
+            </label>
+            <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <input type="checkbox" [(ngModel)]="quizForm.showCorrectAnswers" class="h-4 w-4 rounded border-slate-300 text-[#0056D2] focus:ring-[#0056D2]">
+              Hiện đáp án đúng
+            </label>
+          </div>
+        </div>
+      }
+
+      <!-- Step 2: Select Questions -->
+      @if (currentStep() === 2) {
+        <div class="space-y-3">
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500">Chọn câu hỏi</h2>
+          <p class="text-xs text-slate-500">Chọn câu hỏi từ ngân hàng để thêm vào bài kiểm tra.</p>
+
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="filterQuestions()"
+                   placeholder="Tìm kiếm câu hỏi..."
+                   class="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10 outline-none w-full sm:max-w-xs"
+                   aria-label="Tìm kiếm câu hỏi">
+            <span class="text-xs text-slate-500 shrink-0">
+              Đã chọn: <span class="font-semibold text-[#0056D2]">{{ quizForm.selectedQuestions.length }}</span> câu
+            </span>
+          </div>
+
+          <div class="border border-slate-200 rounded-lg overflow-hidden max-h-[500px] overflow-y-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-50 text-slate-500 sticky top-0 z-10">
+                <tr>
+                  <th scope="col" class="p-2.5 w-10"></th>
+                  <th scope="col" class="p-2.5 text-xs font-semibold">Nội dung</th>
+                  <th scope="col" class="p-2.5 text-xs font-semibold hidden md:table-cell">Chủ đề</th>
+                  <th scope="col" class="p-2.5 text-xs font-semibold w-24">Độ khó</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 bg-white">
+                @for (question of filteredQuestions(); track question) {
+                  <tr class="hover:bg-slate-50 cursor-pointer transition-colors" (click)="toggleQuestion(question.id)">
+                    <td class="p-2.5">
+                      <input type="checkbox"
+                             [checked]="isQuestionSelected(question.id)"
+                             (click)="$event.stopPropagation(); toggleQuestion(question.id)"
+                             class="h-4 w-4 rounded border-slate-300 text-[#0056D2] focus:ring-[#0056D2]"
+                             [attr.aria-label]="'Chọn câu hỏi: ' + question.content">
+                    </td>
+                    <td class="p-2.5 text-slate-800 text-sm">{{ question.content }}</td>
+                    <td class="p-2.5 text-slate-500 text-sm hidden md:table-cell">{{ question.tags || '---' }}</td>
+                    <td class="p-2.5">
+                      <span class="inline-flex px-2 py-0.5 text-[11px] font-medium rounded-full"
+                            [ngClass]="{'bg-emerald-50 text-emerald-700': question.difficulty === 'EASY',
+                                       'bg-amber-50 text-amber-700': question.difficulty === 'MEDIUM',
+                                       'bg-rose-50 text-rose-700': question.difficulty === 'HARD'}">
+                        {{ getDifficultyLabel(question.difficulty) }}
+                      </span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- Step 3: Review & Publish -->
+      @if (currentStep() === 3) {
+        <div class="space-y-3">
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500">Xem lại và xuất bản</h2>
+
+          <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="col-span-2">
+                <p class="text-[11px] text-slate-400 font-medium">Khóa học</p>
+                <p class="text-sm font-semibold text-[#004BB5]">{{ getSelectedCourseTitle() }}</p>
+              </div>
+              <div class="col-span-2">
+                <p class="text-[11px] text-slate-400 font-medium">Chương</p>
+                <p class="text-sm font-medium text-slate-800">{{ getSelectedSectionTitle() }}</p>
+              </div>
+              <div>
+                <p class="text-[11px] text-slate-400 font-medium">Tên bài kiểm tra</p>
+                <p class="text-sm font-medium text-slate-800">{{ quizForm.title || 'Chưa nhập' }}</p>
+              </div>
+              <div>
+                <p class="text-[11px] text-slate-400 font-medium">Thời gian</p>
+                <p class="text-sm font-medium text-slate-800">{{ quizForm.timeLimit || 0 }} phút</p>
+              </div>
+              <div>
+                <p class="text-[11px] text-slate-400 font-medium">Số câu hỏi</p>
+                <p class="text-sm font-medium text-slate-800">{{ quizForm.selectedQuestions.length }} câu</p>
+              </div>
+              <div>
+                <p class="text-[11px] text-slate-400 font-medium">Điểm đạt</p>
+                <p class="text-sm font-medium text-slate-800">{{ quizForm.passingScore }}%</p>
+              </div>
+            </div>
+
+            <div>
+              <p class="text-[11px] text-slate-400 font-medium mb-1">Mô tả</p>
+              <p class="text-sm text-slate-700">{{ quizForm.description || 'Chưa có mô tả' }}</p>
+            </div>
+
+            <div class="pt-2 border-t border-slate-200">
+              <ul class="space-y-1 text-xs text-slate-600">
+                <li>Xáo trộn câu hỏi: <span class="font-medium">{{ quizForm.shuffleQuestions ? 'Có' : 'Không' }}</span></li>
+                <li>Xáo trộn đáp án: <span class="font-medium">{{ quizForm.shuffleOptions ? 'Có' : 'Không' }}</span></li>
+                <li>Hiện điểm ngay: <span class="font-medium">{{ quizForm.showResultsImmediately ? 'Có' : 'Không' }}</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>
