@@ -86,7 +86,7 @@ export class StudentEnrollmentService {
   /**
    * Load danh sách courses đã enroll của student
    */
-  async loadEnrolledCourses(page: number = 0, size: number = 10): Promise<void> {
+  async loadEnrolledCourses(page: number = 0, size: number = 50): Promise<void> {
     this._isLoading.set(true);
     this._error.set(null);
 
@@ -97,12 +97,9 @@ export class StudentEnrollmentService {
       const response = await firstValueFrom(this.courseApi.enrolledCourses({ page: safePage, size }));
 
       if (response?.data) {
-        // Fetch progress for each course and map to EnrolledCourse
-        const enrolledCourses: EnrolledCourse[] = await Promise.all(
-          response.data.map(async (course) => {
-            const progress = await this.fetchCourseProgress(course.id);
-            return this.mapToEnrolledCourse(course, progress);
-          })
+        // Backend already returns progress in enrolled courses response — no extra API calls needed
+        const enrolledCourses: EnrolledCourse[] = response.data.map(course =>
+          this.mapToEnrolledCourse(course)
         );
         this._enrolledCourses.set(enrolledCourses);
 
@@ -249,11 +246,11 @@ export class StudentEnrollmentService {
 
   /**
    * Map CourseSummary từ API thành EnrolledCourse cho UI
+   * Progress data is already included in the enrolled courses API response.
    */
-  private mapToEnrolledCourse(course: CourseSummary, progress?: number): EnrolledCourse {
-    // Use provided progress or extract from course data
+  private mapToEnrolledCourse(course: CourseSummary): EnrolledCourse {
     const courseAny = course as any;
-    const actualProgress = progress !== undefined ? progress : (courseAny.progress ?? 0);
+    const actualProgress = courseAny.progress ?? 0;
     const status = this.determineEnrollmentStatus(course, actualProgress);
     const totalLessons = courseAny.totalLessons ?? 0;
     const completedLessons = courseAny.completedLessons ?? (totalLessons > 0 ? Math.round((actualProgress / 100) * totalLessons) : 0);
@@ -280,21 +277,6 @@ export class StudentEnrollmentService {
       enrolledAt: course.createdAt ? new Date(course.createdAt) : new Date(),
       studyTime: this.calculateStudyTime(course)
     };
-  }
-
-  /**
-   * Fetch actual progress for enrolled courses from backend
-   */
-  private async fetchCourseProgress(courseId: string): Promise<number> {
-    try {
-      const response = await firstValueFrom(this.courseApi.getCourseProgress(courseId));
-      if (response?.data?.progressPercentage !== undefined) {
-        return Math.round(response.data.progressPercentage);
-      }
-      return 0;
-    } catch {
-      return 0;
-    }
   }
 
   /**
