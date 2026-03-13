@@ -56,6 +56,10 @@ public class PaymentTransactionJpaEntity {
     @Column(name = "vnp_card_type", length = 20)
     private String vnpCardType;
 
+    // SePay metadata (V80 migration)
+    @Column(name = "sepay_transaction_code", length = 100)
+    private String sepayTransactionCode;
+
     // Refund tracking (V60 migration)
     @Column(name = "refund_status", length = 20)
     private String refundStatus = "NONE";
@@ -130,6 +134,7 @@ public class PaymentTransactionJpaEntity {
     public String getVnpBankCode() { return vnpBankCode; }
     public String getVnpResponseCode() { return vnpResponseCode; }
     public String getVnpCardType() { return vnpCardType; }
+    public String getSepayTransactionCode() { return sepayTransactionCode; }
 
     public Long getVersion() { return version; }
 
@@ -147,6 +152,7 @@ public class PaymentTransactionJpaEntity {
     public void setVnpBankCode(String vnpBankCode) { this.vnpBankCode = vnpBankCode; }
     public void setVnpResponseCode(String vnpResponseCode) { this.vnpResponseCode = vnpResponseCode; }
     public void setVnpCardType(String vnpCardType) { this.vnpCardType = vnpCardType; }
+    public void setSepayTransactionCode(String sepayTransactionCode) { this.sepayTransactionCode = sepayTransactionCode; }
     public void setRefundStatus(String refundStatus) { this.refundStatus = refundStatus; }
     public void setRefundRequestedAt(Instant refundRequestedAt) { this.refundRequestedAt = refundRequestedAt; }
     public void setRefundCompletedAt(Instant refundCompletedAt) { this.refundCompletedAt = refundCompletedAt; }

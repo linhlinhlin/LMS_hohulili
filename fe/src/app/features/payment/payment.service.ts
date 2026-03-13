@@ -6,7 +6,8 @@ import {
     PaymentStatusResponse,
     CheckoutRequest,
     PaymentMethod,
-    PaymentStatus
+    PaymentStatus,
+    SepayQrData
 } from '../../api/client/payment.api';
 
 /**
@@ -202,6 +203,44 @@ export class PaymentService {
             });
         } else {
             this._paymentStatusCache.set(new Map());
+        }
+    }
+
+    /**
+     * Create SePay QR payment and return QR display data
+     */
+    async createSepayPayment(courseId: string): Promise<SepayQrData> {
+        this._isProcessing.set(true);
+        this._error.set(null);
+        try {
+            const response = await firstValueFrom(this.paymentApi.createSepayQr(courseId));
+            if (response.success) {
+                return response.data;
+            } else {
+                throw new Error(response.message || 'Không thể tạo QR thanh toán SePay');
+            }
+        } catch (error: any) {
+            const backendMsg = error?.error?.message || error?.error?.error;
+            const errorMessage = backendMsg || error?.message || 'Không thể tạo QR thanh toán.';
+            this._error.set(errorMessage);
+            throw error;
+        } finally {
+            this._isProcessing.set(false);
+        }
+    }
+
+    /**
+     * Poll SePay payment status
+     */
+    async pollSepayStatus(txnId: string): Promise<{ hasPaid: boolean; status: string }> {
+        try {
+            const response = await firstValueFrom(this.paymentApi.pollSepayStatus(txnId));
+            if (response.success) {
+                return { hasPaid: response.data.hasPaid, status: response.data.status };
+            }
+            return { hasPaid: false, status: 'PENDING' };
+        } catch {
+            return { hasPaid: false, status: 'PENDING' };
         }
     }
 

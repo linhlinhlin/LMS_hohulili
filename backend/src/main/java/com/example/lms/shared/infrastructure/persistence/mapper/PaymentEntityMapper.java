@@ -31,7 +31,8 @@ public class PaymentEntityMapper {
                 entity.getRefundCompletedAt(),
                 entity.getRefundReason(),
                 entity.getRefundAdminNote(),
-                entity.getVersion()
+                entity.getVersion(),
+                entity.getSepayTransactionCode()
         );
     }
 
@@ -52,6 +53,7 @@ public class PaymentEntityMapper {
         entity.setVnpBankCode(domain.getVnpBankCode());
         entity.setVnpResponseCode(domain.getVnpResponseCode());
         entity.setVnpCardType(domain.getVnpCardType());
+        entity.setSepayTransactionCode(domain.getSepayTransactionCode());
         entity.setRefundStatus(domain.getRefundStatus());
         entity.setRefundRequestedAt(domain.getRefundRequestedAt());
         entity.setRefundCompletedAt(domain.getRefundCompletedAt());

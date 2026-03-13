@@ -3,7 +3,9 @@ package com.example.lms.shared.infrastructure.web;
 import com.example.lms.shared.application.dto.PaymentResponse;
 import com.example.lms.shared.application.port.EmailServicePort;
 import com.example.lms.shared.application.usecase.CheckoutUseCase;
+import com.example.lms.shared.application.usecase.CreateSepayPaymentUseCase;
 import com.example.lms.shared.application.usecase.CreateVnPayUrlUseCase;
+import com.example.lms.shared.application.usecase.ProcessSepayWebhookUseCase;
 import com.example.lms.shared.application.usecase.ProcessVnPayIpnUseCase;
 import com.example.lms.shared.application.usecase.RefundPaymentUseCase;
 import com.example.lms.shared.domain.model.PaymentTransaction;
@@ -62,6 +64,8 @@ public class PaymentControllerV3 {
     private final CreateVnPayUrlUseCase createVnPayUrlUseCase;
     private final ProcessVnPayIpnUseCase processVnPayIpnUseCase;
     private final RefundPaymentUseCase refundPaymentUseCase;
+    private final CreateSepayPaymentUseCase createSepayPaymentUseCase;
+    private final ProcessSepayWebhookUseCase processSepayWebhookUseCase;
 
     // Domain repository (read queries)
     private final PaymentRepository paymentRepository;
@@ -327,6 +331,89 @@ public class PaymentControllerV3 {
                 .build();
     }
 
+    // ==================== SePay Endpoints ====================
+
+    @Operation(summary = "Tạo QR thanh toán SePay (bank transfer)")
+    @PostMapping("/sepay/create-qr")
+    @PreAuthorize("isAuthenticated()")
+    @Transactional
+    public ResponseEntity<ApiResponse<Map<String, Object>>> createSepayQr(
+            @AuthenticationPrincipal UserJpaEntity currentUser,
+            @Valid @RequestBody SepayCreateQrRequest request
+    ) {
+        if (currentUser == null) {
+            return ResponseEntity.status(401).body(ApiResponse.error("Không được phép truy cập"));
+        }
+
+        CourseJpaEntity course = courseRepository.findById(request.courseId())
+                .orElseThrow(() -> new IllegalArgumentException("Khóa học không tồn tại: " + request.courseId()));
+
+        BigDecimal serverPrice = resolvePrice(course);
+        var result = createSepayPaymentUseCase.execute(
+                currentUser.getId(), request.courseId(), serverPrice, course.getTitle());
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("txnId", result.payment().getId().toString());
+        data.put("qrUrl", result.qrUrl());
+        data.put("transferContent", result.transferContent());
+        data.put("bankCode", result.bankCode());
+        data.put("accountNumber", result.accountNumber());
+        data.put("accountName", result.accountName());
+        data.put("amount", result.amount());
+        data.put("courseTitle", course.getTitle());
+        return ResponseEntity.ok(ApiResponse.success(data, "QR thanh toán SePay đã được tạo"));
+    }
+
+    @Operation(summary = "SePay webhook - nhận thông báo chuyển khoản thành công")
+    @PostMapping("/sepay/webhook")
+    public ResponseEntity<Map<String, Object>> sepayWebhook(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestBody Map<String, Object> payload
+    ) {
+        var result = processSepayWebhookUseCase.execute(payload, authorization);
+
+        if (result.success() && result.payment() != null) {
+            autoEnrollStudent(result.payment().getStudentId(), result.payment().getCourseId());
+            sendPaymentEmails(result.payment());
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "success", result.success(),
+                "message", result.message()
+        ));
+    }
+
+    @Operation(summary = "Polling - kiểm tra trạng thái giao dịch SePay")
+    @GetMapping("/sepay/poll/{txnId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> pollSepayPayment(
+            @AuthenticationPrincipal UserJpaEntity currentUser,
+            @PathVariable UUID txnId
+    ) {
+        if (currentUser == null) {
+            return ResponseEntity.status(401).body(ApiResponse.error("Không được phép truy cập"));
+        }
+
+        var paymentOpt = paymentRepository.findById(txnId);
+        if (paymentOpt.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.error("Không tìm thấy giao dịch"));
+        }
+
+        var payment = paymentOpt.get();
+        if (!payment.getStudentId().equals(currentUser.getId())) {
+            return ResponseEntity.status(403).body(ApiResponse.error("Không có quyền xem giao dịch này"));
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(
+                Map.of(
+                        "txnId", txnId.toString(),
+                        "status", payment.getStatus().name(),
+                        "hasPaid", payment.isCompleted()
+                ),
+                "Trạng thái giao dịch"
+        ));
+    }
+
     // ==================== Admin Endpoints ====================
 
     @Operation(summary = "Admin: list all payments (paginated)")
@@ -503,5 +590,10 @@ public class PaymentControllerV3 {
             @NotBlank(message = "Lý do hoàn tiền không được để trống")
             String reason,
             String adminNote
+    ) {}
+
+    public record SepayCreateQrRequest(
+            @NotNull(message = "Mã khóa học không được để trống")
+            UUID courseId
     ) {}
 }

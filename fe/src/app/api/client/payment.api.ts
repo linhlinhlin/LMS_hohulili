@@ -59,12 +59,30 @@ export interface ApiResponse<T> {
 
 export type PaymentStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'EXPIRED' | 'REFUNDED' | 'UNPAID';
 
-export type PaymentMethod = 'VNPAY' | 'ZALOPAY' | 'MOMO' | 'BANK_TRANSFER' | 'SIMULATED';
+export type PaymentMethod = 'VNPAY' | 'SEPAY' | 'ZALOPAY' | 'MOMO' | 'BANK_TRANSFER' | 'SIMULATED';
+
+export interface SepayQrData {
+    txnId: string;
+    qrUrl: string;
+    transferContent: string;
+    bankCode: string;
+    accountNumber: string;
+    accountName: string;
+    amount: number;
+    courseTitle: string;
+}
+
+export interface SepayPollResponse {
+    txnId: string;
+    status: string;
+    hasPaid: boolean;
+}
 
 import { IconName } from '../../shared/components/icon/icon.component';
 
 export const PAYMENT_METHODS: { code: PaymentMethod; name: string; icon: IconName; description: string }[] = [
     { code: 'VNPAY', name: 'VNPay', icon: 'smartphone', description: 'Thanh toán qua VNPay' },
+    { code: 'SEPAY', name: 'SePay (Chuyển khoản QR)', icon: 'briefcase', description: 'Quét QR chuyển khoản ngân hàng' },
     { code: 'ZALOPAY', name: 'ZaloPay', icon: 'smartphone', description: 'Thanh toán qua ZaloPay' },
     { code: 'MOMO', name: 'MoMo', icon: 'smartphone', description: 'Thanh toán qua MoMo' },
     { code: 'BANK_TRANSFER', name: 'Chuyển khoản', icon: 'briefcase', description: 'Chuyển khoản ngân hàng' },
@@ -123,6 +141,20 @@ export class PaymentApi {
      */
     getPaymentByTxnRef(txnRef: string): Observable<ApiResponse<PaymentResponse>> {
         return this.http.get<ApiResponse<PaymentResponse>>(`${this.baseUrl}/by-ref/${txnRef}`);
+    }
+
+    /**
+     * Create SePay QR payment — returns QR URL + bank transfer info
+     */
+    createSepayQr(courseId: string): Observable<ApiResponse<SepayQrData>> {
+        return this.http.post<ApiResponse<SepayQrData>>(`${this.baseUrl}/sepay/create-qr`, { courseId });
+    }
+
+    /**
+     * Poll SePay payment status by transaction ID
+     */
+    pollSepayStatus(txnId: string): Observable<ApiResponse<SepayPollResponse>> {
+        return this.http.get<ApiResponse<SepayPollResponse>>(`${this.baseUrl}/sepay/poll/${txnId}`);
     }
 }
 

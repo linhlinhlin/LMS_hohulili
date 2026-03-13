@@ -32,6 +32,9 @@ public class PaymentTransaction {
     private String vnpResponseCode;
     private String vnpCardType;
 
+    // SePay metadata
+    private String sepayTransactionCode;
+
     // Refund tracking
     private String refundStatus;
     private Instant refundRequestedAt;
@@ -163,6 +166,10 @@ public class PaymentTransaction {
         this.vnpCardType = cardType;
     }
 
+    public void setSepayMetadata(String transactionCode) {
+        this.sepayTransactionCode = transactionCode;
+    }
+
     public boolean isCompleted() {
         return this.status == PaymentStatus.COMPLETED;
     }
@@ -187,6 +194,7 @@ public class PaymentTransaction {
     public String getVnpBankCode() { return vnpBankCode; }
     public String getVnpResponseCode() { return vnpResponseCode; }
     public String getVnpCardType() { return vnpCardType; }
+    public String getSepayTransactionCode() { return sepayTransactionCode; }
     public String getRefundStatus() { return refundStatus; }
     public Instant getRefundRequestedAt() { return refundRequestedAt; }
     public Instant getRefundCompletedAt() { return refundCompletedAt; }
@@ -204,7 +212,8 @@ public class PaymentTransaction {
             Instant paidAt, Instant createdAt,
             String vnpTransactionNo, String vnpBankCode, String vnpResponseCode, String vnpCardType,
             String refundStatus, Instant refundRequestedAt, Instant refundCompletedAt,
-            String refundReason, String refundAdminNote, Long version
+            String refundReason, String refundAdminNote, Long version,
+            String sepayTransactionCode
     ) {
         var p = new PaymentTransaction();
         p.id = id;
@@ -227,6 +236,7 @@ public class PaymentTransaction {
         p.refundReason = refundReason;
         p.refundAdminNote = refundAdminNote;
         p.version = version;
+        p.sepayTransactionCode = sepayTransactionCode;
         return p;
     }
 

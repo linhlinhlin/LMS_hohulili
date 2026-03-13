@@ -88,6 +88,13 @@ app:
     return-url: "${APP_BASE_URL:https://holilihu.online}/api/v3/payments/vnpay-return"
     ipn-url: "${APP_BASE_URL:https://holilihu.online}/api/v3/payments/vnpay-ipn"
     expire-minutes: 15
+  sepay:
+    enabled: "${SEPAY_ENABLED:false}"
+    bank-code: "${SEPAY_BANK_CODE:}"
+    account-number: "${SEPAY_ACCOUNT_NUMBER:}"
+    account-name: "${SEPAY_ACCOUNT_NAME:LMS MARITIME}"
+    webhook-api-key: "${SEPAY_WEBHOOK_API_KEY:}"
+    template-code: "${SEPAY_TEMPLATE_CODE:compact2}"
 
 # R2 Storage (set R2_ENABLED=false to use LocalStorageService)
 cloudflare:
