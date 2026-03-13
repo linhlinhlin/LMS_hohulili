@@ -31,12 +31,12 @@ public interface RevenueSplitJpaRepository
         """)
     BigDecimal sumTeacherAmountThisMonth(@Param("teacherId") UUID teacherId);
 
-    @Query("""
-        SELECT COALESCE(SUM(r.teacherAmount), 0) FROM RevenueSplitJpaEntity r
-        WHERE r.teacherId = :teacherId
-          AND r.createdAt >= DATE_TRUNC('month', CURRENT_TIMESTAMP - INTERVAL '1 month')
-          AND r.createdAt <  DATE_TRUNC('month', CURRENT_TIMESTAMP)
-        """)
+    @Query(value = """
+        SELECT COALESCE(SUM(r.teacher_amount), 0) FROM revenue_splits r
+        WHERE r.teacher_id = :teacherId
+          AND r.created_at >= DATE_TRUNC('month', CURRENT_TIMESTAMP - INTERVAL '1 month')
+          AND r.created_at <  DATE_TRUNC('month', CURRENT_TIMESTAMP)
+        """, nativeQuery = true)
     BigDecimal sumTeacherAmountLastMonth(@Param("teacherId") UUID teacherId);
 
     @Query("SELECT COUNT(DISTINCT r.courseId) FROM RevenueSplitJpaEntity r WHERE r.teacherId = :teacherId")
