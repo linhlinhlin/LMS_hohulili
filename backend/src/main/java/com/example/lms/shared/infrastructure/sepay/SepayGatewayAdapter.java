@@ -68,44 +68,32 @@ public class SepayGatewayAdapter implements SepayPaymentPort {
             return false;
         }
         if (authorizationHeader == null) return false;
-        String expected = "Bearer " + config.getWebhookApiKey();
+        // SePay sends: Authorization: Apikey {webhookApiKey}
+        String expected = "Apikey " + config.getWebhookApiKey();
         return expected.equals(authorizationHeader.trim());
     }
 
     @Override
     public UUID extractTransactionId(Map<String, Object> payload) {
-        // Primary: order.order_invoice_number
-        Object orderObj = payload.get("order");
-        if (orderObj instanceof Map<?, ?> order) {
-            Object invoiceNum = order.get("order_invoice_number");
-            if (invoiceNum instanceof String s && !s.isBlank()) {
-                UUID id = parseUUIDFromContent(s);
-                if (id != null) return id;
-            }
-        }
-        // Fallback: top-level "content" (the raw bank transfer description)
+        // Primary: "content" = raw bank transfer description (contains our UUID as des= param)
+        // SePay webhook payload is flat per docs: { "content": "...", "code": null, ... }
         Object content = payload.get("content");
         if (content instanceof String s && !s.isBlank()) {
-            return parseUUIDFromContent(s);
+            UUID id = parseUUIDFromContent(s);
+            if (id != null) return id;
+        }
+        // Secondary: "code" = SePay-detected payment code (if configured in SePay company settings)
+        Object code = payload.get("code");
+        if (code instanceof String s && !s.isBlank()) {
+            UUID id = parseUUIDFromContent(s);
+            if (id != null) return id;
         }
         return null;
     }
 
     @Override
     public BigDecimal extractTransferAmount(Map<String, Object> payload) {
-        // Try transaction.transferAmount first
-        Object txn = payload.get("transaction");
-        if (txn instanceof Map<?, ?> txnMap) {
-            Object amount = txnMap.get("transferAmount");
-            if (amount instanceof Number n) return BigDecimal.valueOf(n.longValue());
-        }
-        // Try order.amount
-        Object order = payload.get("order");
-        if (order instanceof Map<?, ?> orderMap) {
-            Object amount = orderMap.get("amount");
-            if (amount instanceof Number n) return BigDecimal.valueOf(n.longValue());
-        }
-        // Try top-level transferAmount
+        // SePay flat payload: transferAmount is top-level
         Object transferAmount = payload.get("transferAmount");
         if (transferAmount instanceof Number n) return BigDecimal.valueOf(n.longValue());
         return null;
@@ -113,13 +101,12 @@ public class SepayGatewayAdapter implements SepayPaymentPort {
 
     @Override
     public String extractTransactionCode(Map<String, Object> payload) {
-        Object txn = payload.get("transaction");
-        if (txn instanceof Map<?, ?> txnMap) {
-            Object code = txnMap.get("code");
-            if (code instanceof String s) return s;
-        }
-        Object code = payload.get("code");
-        if (code instanceof String s) return s;
+        // SePay flat payload: referenceCode = bank reference (e.g. "MBVCB.3278907687")
+        Object ref = payload.get("referenceCode");
+        if (ref instanceof String s && !s.isBlank()) return s;
+        // Fallback: SePay transaction id
+        Object id = payload.get("id");
+        if (id != null) return String.valueOf(id);
         return null;
     }
 
