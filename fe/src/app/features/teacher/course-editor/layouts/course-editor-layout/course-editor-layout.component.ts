@@ -177,7 +177,7 @@ export class CourseEditorLayoutComponent implements OnInit {
   ), {
     initialValue: this.router.url
   });
-  private hydratedCurriculumCourseId: string | null = null;
+  private lastSyncedCurriculumSelectionKey: string | null = null;
 
   /** Sidebar collapsed state - auto-managed by route */
   sidebarCollapsed = signal(false);
@@ -208,108 +208,9 @@ export class CourseEditorLayoutComponent implements OnInit {
       this.updateActiveTab(url);
     });
 
-    // Auto-select first content when on curriculum tab with no selection
-    effect(() => {
-      const tab = this.activeTab();
-      const tree = this.store.courseTree();
-      const selectedChapterId = this.selectionService.selectedChapterId();
-      const currentUrl = this.currentUrl();
-
-      if (tab !== 'curriculum' || !tree || currentUrl === null) {
-        return;
-      }
-
-      const queryParams = this.getCurrentQueryParams(currentUrl);
-
-      const hasValidSelection = !!selectedChapterId &&
-        tree.chapters.some(ch => ch.id === selectedChapterId);
-
-      const shouldHydrateFromUrl = this.hydratedCurriculumCourseId !== tree.id;
-
-      if (!shouldHydrateFromUrl && hasValidSelection) {
-        return;
-      }
-
-      const chapterIdFromUrl = queryParams.get('chapterId');
-      const lessonIdFromUrl = queryParams.get('lessonId');
-      const sectionIdFromUrl = queryParams.get('sectionId');
-      const requestedSelection = this.resolveCurriculumSelection(
-        tree,
-        chapterIdFromUrl,
-        lessonIdFromUrl,
-        sectionIdFromUrl
-      );
-
-      if (requestedSelection?.section && requestedSelection.lesson) {
-        const { chapter, lesson, section } = requestedSelection;
-        const matchesCurrentSelection =
-          this.selectionService.selectedChapterId() === chapter.id &&
-          this.selectionService.selectedLessonId() === lesson.id &&
-          this.selectionService.selectedSectionId() === section.id;
-
-        if (!matchesCurrentSelection) {
-          untracked(() => this.selectionService.selectSection(
-            chapter,
-            lesson,
-            section
-          ));
-        }
-        this.hydratedCurriculumCourseId = tree.id;
-        return;
-      }
-
-      if (requestedSelection?.lesson) {
-        const { chapter, lesson } = requestedSelection;
-        const matchesCurrentSelection =
-          this.selectionService.selectedChapterId() === chapter.id &&
-          this.selectionService.selectedLessonId() === lesson.id &&
-          this.selectionService.selectedSectionId() === null;
-
-        if (!matchesCurrentSelection) {
-          untracked(() => this.selectionService.selectLesson(
-            chapter,
-            lesson
-          ));
-        }
-        this.hydratedCurriculumCourseId = tree.id;
-        return;
-      }
-
-      if (requestedSelection) {
-        const { chapter } = requestedSelection;
-        const matchesCurrentSelection =
-          this.selectionService.selectedChapterId() === chapter.id &&
-          this.selectionService.selectedLessonId() === null &&
-          this.selectionService.selectedSectionId() === null;
-
-        if (!matchesCurrentSelection) {
-          untracked(() => this.selectionService.selectChapter(chapter));
-        }
-        this.hydratedCurriculumCourseId = tree.id;
-        return;
-      }
-
-      if (hasValidSelection) {
-        return;
-      }
-
-      if (tree.chapters?.length > 0) {
-        const firstChapter = tree.chapters[0];
-        const firstLesson = firstChapter.lessons?.[0];
-        if (firstLesson) {
-          untracked(() => this.selectionService.selectLesson(firstChapter, firstLesson));
-        } else {
-          untracked(() => this.selectionService.selectChapter(firstChapter));
-        }
-        this.hydratedCurriculumCourseId = tree.id;
-      } else if (selectedChapterId) {
-        untracked(() => this.selectionService.clearSelection());
-        this.hydratedCurriculumCourseId = tree.id;
-      }
-    });
-
     effect(() => {
       if (this.activeTab() !== 'curriculum') {
+        this.lastSyncedCurriculumSelectionKey = null;
         return;
       }
 
@@ -322,16 +223,20 @@ export class CourseEditorLayoutComponent implements OnInit {
       const chapterId = this.selectionService.selectedChapterId();
       const lessonId = this.selectionService.selectedLessonId();
       const sectionId = this.selectionService.selectedSectionId();
+      const nextSelectionKey = `${chapterId ?? ''}|${lessonId ?? ''}|${sectionId ?? ''}`;
+      const currentQueryKey = `${currentQueryParams.get('chapterId') ?? ''}|${currentQueryParams.get('lessonId') ?? ''}|${currentQueryParams.get('sectionId') ?? ''}`;
 
       if (!chapterId && !lessonId && !sectionId) {
+        this.lastSyncedCurriculumSelectionKey = null;
         return;
       }
 
-      if (
-        currentQueryParams.get('chapterId') === chapterId &&
-        currentQueryParams.get('lessonId') === lessonId &&
-        currentQueryParams.get('sectionId') === sectionId
-      ) {
+      if (currentQueryKey === nextSelectionKey) {
+        this.lastSyncedCurriculumSelectionKey = nextSelectionKey;
+        return;
+      }
+
+      if (this.lastSyncedCurriculumSelectionKey === nextSelectionKey) {
         return;
       }
 
@@ -359,6 +264,7 @@ export class CourseEditorLayoutComponent implements OnInit {
           replaceUrl: true
         });
       });
+      this.lastSyncedCurriculumSelectionKey = nextSelectionKey;
     });
 
     // Warn before leaving with unsaved changes

@@ -40,6 +40,57 @@ export class CurriculumSelectionService {
         this.selectedSection.set(section);
     }
 
+    /**
+     * Preserve an in-flight section deep-link or click selection while the
+     * latest tree/object reference is still being hydrated. This prevents the
+     * route sync layer from stripping `sectionId` back out of the URL and
+     * causing an open/close feedback loop.
+     */
+    primeSectionSelection(chapter: ChapterDraftDTO, lesson: LessonDraftDTO, sectionId: string) {
+        const currentSection = this.selectedSection();
+
+        this.selectedChapterId.set(chapter.id);
+        this.selectedChapter.set(chapter);
+        this.selectedLessonId.set(lesson.id);
+        this.selectedLesson.set(lesson);
+        this.selectedSectionId.set(sectionId);
+
+        if (currentSection?.id !== sectionId) {
+            this.selectedSection.set(null);
+        }
+    }
+
+    syncChapterReference(chapter: ChapterDraftDTO) {
+        if (this.selectedChapterId() !== chapter.id) {
+            return;
+        }
+
+        this.selectedChapter.set(chapter);
+    }
+
+    syncLessonReference(chapter: ChapterDraftDTO, lesson: LessonDraftDTO) {
+        if (this.selectedChapterId() !== chapter.id || this.selectedLessonId() !== lesson.id) {
+            return;
+        }
+
+        this.selectedChapter.set(chapter);
+        this.selectedLesson.set(lesson);
+    }
+
+    syncSectionReference(chapter: ChapterDraftDTO, lesson: LessonDraftDTO, section: SectionDraftDTO) {
+        if (
+            this.selectedChapterId() !== chapter.id
+            || this.selectedLessonId() !== lesson.id
+            || this.selectedSectionId() !== section.id
+        ) {
+            return;
+        }
+
+        this.selectedChapter.set(chapter);
+        this.selectedLesson.set(lesson);
+        this.selectedSection.set(section);
+    }
+
     clearSelection() {
         this.selectedChapterId.set(null);
         this.selectedChapter.set(null);

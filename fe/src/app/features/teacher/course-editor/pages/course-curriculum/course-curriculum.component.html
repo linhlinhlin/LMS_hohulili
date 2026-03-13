@@ -200,9 +200,15 @@
                       <!-- Section Quiz Bank Modal -->
                       @if (showSectionQuizBankModal()) {
                         <div class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50" (click)="showSectionQuizBankModal.set(false)">
-                          <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col" (click)="$event.stopPropagation()">
+                          <div
+                            class="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col"
+                            (click)="$event.stopPropagation()"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="section-quiz-bank-title"
+                            tabindex="-1">
                             <div class="p-5 border-b border-gray-200 flex items-center justify-between">
-                              <h3 class="text-lg font-semibold text-gray-900">Chọn câu hỏi từ ngân hàng</h3>
+                              <h3 id="section-quiz-bank-title" class="text-lg font-semibold text-gray-900">Chọn câu hỏi từ ngân hàng</h3>
                               <button (click)="showSectionQuizBankModal.set(false)" class="rounded p-1 text-gray-400 hover:text-gray-600" aria-label="Đóng">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -263,9 +269,15 @@
                       <!-- Section Quiz Random Modal -->
                       @if (showSectionQuizRandomModal()) {
                         <div class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50" (click)="showSectionQuizRandomModal.set(false)">
-                          <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4" (click)="$event.stopPropagation()">
+                          <div
+                            class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4"
+                            (click)="$event.stopPropagation()"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="section-quiz-random-title"
+                            tabindex="-1">
                             <div class="p-5 border-b border-gray-100">
-                              <h3 class="text-lg font-bold text-gray-900">Tạo câu hỏi ngẫu nhiên</h3>
+                              <h3 id="section-quiz-random-title" class="text-lg font-bold text-gray-900">Tạo câu hỏi ngẫu nhiên</h3>
                               <p class="text-sm text-gray-500 mt-1">Chọn gói câu hỏi</p>
                             </div>
                             <div class="p-5 space-y-4">

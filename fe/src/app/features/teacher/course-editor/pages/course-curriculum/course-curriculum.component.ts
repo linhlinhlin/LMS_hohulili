@@ -94,9 +94,29 @@ export class CourseCurriculumComponent implements OnDestroy {
   private inFlightSectionHydrationKey: string | null = null;
   private lessonDetailRequestToken = 0;
   private ignoreNextSectionEditorChange = false;
-  private lastHydratedSectionIdForModal: string | null = null;
+  private sectionSurfaceMode = signal<'closed' | 'create' | 'edit'>('closed');
+  private sectionSurfaceId = signal<string | null>(null);
+  private sectionSurfaceHydrationKey: string | null = null;
   private readonly handleWindowKeydown = (event: KeyboardEvent) => {
-    if (event.key !== 'Escape' || !this.showSectionModal() || this.confirmDialog.isOpen()) {
+    if (event.key !== 'Escape' || this.confirmDialog.isOpen()) {
+      return;
+    }
+
+    if (this.showSectionQuizBankModal()) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.showSectionQuizBankModal.set(false);
+      return;
+    }
+
+    if (this.showSectionQuizRandomModal()) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.showSectionQuizRandomModal.set(false);
+      return;
+    }
+
+    if (!this.showSectionModal()) {
       return;
     }
 
@@ -324,33 +344,51 @@ export class CourseCurriculumComponent implements OnDestroy {
       );
       const requestKey = `${tree.id}|${chapterId ?? ''}|${lessonId ?? ''}|${sectionId ?? ''}`;
 
+      if (this.hydratedQuerySelectionKey === requestKey) {
+        return;
+      }
+
       if (requestedSelection) {
         if (sectionId && requestedSelection.lesson && !requestedSelection.section) {
-          const sectionHydrationKey = `${tree.id}|${requestedSelection.lesson.id}|${sectionId}`;
+          const requestedLesson = requestedSelection.lesson;
+          const currentChapterId = untracked(() => this.selectionService.selectedChapterId());
+          const currentLessonId = untracked(() => this.selectionService.selectedLessonId());
+          const currentSectionId = untracked(() => this.selectionService.selectedSectionId());
+          const sectionHydrationKey = `${tree.id}|${requestedLesson.id}|${sectionId}`;
+
+          if (
+            currentChapterId !== requestedSelection.chapter.id
+            || currentLessonId !== requestedLesson.id
+            || currentSectionId !== sectionId
+          ) {
+            untracked(() => this.selectionService.primeSectionSelection(
+              requestedSelection.chapter,
+              requestedLesson,
+              sectionId
+            ));
+          }
+
           if (this.inFlightSectionHydrationKey !== sectionHydrationKey) {
             this.inFlightSectionHydrationKey = sectionHydrationKey;
             untracked(() => void this.hydrateMissingSectionSelection(
               tree.id,
               requestedSelection.chapter.id,
-              requestedSelection.lesson!.id,
+              requestedLesson.id,
               sectionId,
               requestKey
             ));
           }
-        }
 
-        const matchesCurrentSelection = this.matchesCurrentSelection(
-          requestedSelection.chapter.id,
-          requestedSelection.lesson?.id ?? null,
-          requestedSelection.section?.id ?? null
-        );
-        const selectionObjectsAreFresh = this.matchesSelectionObjects(requestedSelection);
-
-        if (this.hydratedQuerySelectionKey === requestKey && matchesCurrentSelection && selectionObjectsAreFresh) {
           return;
         }
 
-        if (!matchesCurrentSelection || !selectionObjectsAreFresh) {
+        const matchesCurrentSelection = untracked(() => this.matchesCurrentSelection(
+          requestedSelection.chapter.id,
+          requestedSelection.lesson?.id ?? null,
+          requestedSelection.section?.id ?? null
+        ));
+
+        if (!matchesCurrentSelection) {
           untracked(() => {
             if (requestedSelection.section && requestedSelection.lesson) {
               this.selectionService.selectSection(
@@ -377,7 +415,14 @@ export class CourseCurriculumComponent implements OnDestroy {
         return;
       }
 
-      if (this.selectionService.selectedChapterId() || this.selectionService.selectedLessonId()) {
+      const hasSelection = untracked(() =>
+        !!this.selectionService.selectedChapterId()
+        || !!this.selectionService.selectedLessonId()
+        || !!this.selectionService.selectedSectionId()
+      );
+
+      if (hasSelection) {
+        this.hydratedQuerySelectionKey = requestKey;
         return;
       }
 
@@ -459,27 +504,48 @@ export class CourseCurriculumComponent implements OnDestroy {
     });
 
     // Canonical section surface: every selected section opens in the modal editor.
-    // Guard by section ID to prevent re-hydration on tree-sync reference changes
-    // which would flash the modal (isDataLoaded false→true cycle).
+    // Re-hydration is keyed by section ID, so tree refreshes can swap object
+    // references silently without flashing or reopening the same modal.
     effect(() => {
-      const section = this.selectedSection();
-      if (!section) {
-        this.lastHydratedSectionIdForModal = null;
+      const surfaceMode = this.sectionSurfaceMode();
+      const selectedSectionId = this.selectedSectionId();
+      const sectionContext = selectedSectionId ? this.findSectionContext(selectedSectionId) : null;
+
+      if (!selectedSectionId) {
+        if (surfaceMode === 'edit') {
+          this.resetSectionSurfaceController();
+          this.closeSectionQuizChildSurfaces();
+          this.showSectionModal.set(false);
+        }
         return;
       }
 
-      if (this.lastHydratedSectionIdForModal === section.id) {
-        // Same section, just a new object reference from tree sync.
-        // Ensure modal stays open but skip the full re-hydration flash.
+      if (!sectionContext || sectionContext.section.id !== selectedSectionId) {
+        return;
+      }
+
+      if (surfaceMode === 'create') {
+        return;
+      }
+
+      const nextHydrationKey = `edit|${selectedSectionId}`;
+      if (
+        surfaceMode === 'edit'
+        && this.sectionSurfaceId() === selectedSectionId
+        && this.sectionSurfaceHydrationKey === nextHydrationKey
+      ) {
         if (!this.showSectionModal()) {
           this.showSectionModal.set(true);
         }
         return;
       }
 
-      this.lastHydratedSectionIdForModal = section.id;
+      this.sectionSurfaceMode.set('edit');
+      this.sectionSurfaceId.set(selectedSectionId);
+      this.sectionSurfaceHydrationKey = nextHydrationKey;
+      this.closeSectionQuizChildSurfaces();
       this.showSectionModal.set(true);
-      this.hydrateSectionState(section);
+      this.hydrateSectionState(sectionContext.section);
     });
 
     // Validates that the currently selected lesson is updated from the new tree.
@@ -488,29 +554,35 @@ export class CourseCurriculumComponent implements OnDestroy {
     effect(() => {
       const tree = this.store.courseTree();
       const currentLessonId = this.selectionService.selectedLessonId();
-      const selectedLesson = this.selectionService.selectedLesson();
       const currentSectionId = this.selectionService.selectedSectionId();
-      const selectedSection = this.selectionService.selectedSection();
       const preserveVisibleLessonState = this.editorDirty() || this.isSaving();
 
-      if (tree && currentLessonId) {
-        for (const chapter of tree.chapters) {
-          const found = chapter.lessons.find(l => l.id === currentLessonId);
-          if (found) {
-            if (selectedLesson !== found && !(preserveVisibleLessonState && selectedLesson?.id === currentLessonId)) {
-              untracked(() => this.selectionService.selectedLesson.set(found));
-              untracked(() => this.selectionService.selectedChapter.set(chapter));
-            }
+      if (!tree || !currentLessonId) {
+        return;
+      }
 
-            if (currentSectionId && found.sections) {
-              const foundSection = found.sections.find((s: any) => s.id === currentSectionId);
-              if (foundSection && selectedSection !== foundSection) {
-                untracked(() => this.selectionService.selectedSection.set(foundSection));
-              }
-            }
-            break;
-          }
+      const selectedLesson = untracked(() => this.selectionService.selectedLesson());
+      const selectedSection = untracked(() => this.selectionService.selectedSection());
+
+      for (const chapter of tree.chapters) {
+        const found = chapter.lessons.find(l => l.id === currentLessonId);
+        if (!found) {
+          continue;
         }
+
+        if (selectedLesson !== found && !(preserveVisibleLessonState && selectedLesson?.id === currentLessonId)) {
+          untracked(() => this.selectionService.syncLessonReference(chapter, found));
+        }
+
+        if (!currentSectionId || !found.sections) {
+          return;
+        }
+
+        const foundSection = found.sections.find((section: SectionDraftDTO) => section.id === currentSectionId);
+        if (foundSection && selectedSection !== foundSection) {
+          untracked(() => this.selectionService.syncSectionReference(chapter, found, foundSection));
+        }
+        return;
       }
     });
   }
@@ -705,6 +777,23 @@ export class CourseCurriculumComponent implements OnDestroy {
     return null;
   }
 
+  private findSectionContext(sectionId: string): {
+    chapter: ChapterDraftDTO;
+    lesson: LessonDraftDTO;
+    section: SectionDraftDTO;
+  } | null {
+    for (const chapter of this.store.chapters()) {
+      for (const lesson of chapter.lessons || []) {
+        const section = lesson.sections?.find(item => item.id === sectionId);
+        if (section) {
+          return { chapter, lesson, section };
+        }
+      }
+    }
+
+    return null;
+  }
+
   private resolveSelectionFromQuery(
     tree: NonNullable<ReturnType<CourseEditorStore['courseTree']>>,
     chapterId: string | null,
@@ -762,27 +851,21 @@ export class CourseCurriculumComponent implements OnDestroy {
         return;
       }
 
-      // Set the section ID first so that when updateLessonLocal triggers the
-      // tree-sync effect, it will find and sync the section reference automatically.
-      // This avoids double-triggering (updateLessonLocal + selectSection separately).
-      this.selectionService.selectedSectionId.set(sectionId);
-
       this.store.updateLessonLocal(chapterId, lessonId, {
         sections: fetchedSections
       } as Partial<LessonDraftDTO>);
 
-      // After tree update, tree-sync effect will sync the section reference.
-      // But we also need to ensure the section reference is set immediately
-      // for the section surface effect to open the modal.
       const refreshedContext = this.findLessonContext(lessonId);
       const refreshedSection = refreshedContext?.lesson.sections?.find(section => section.id === sectionId);
       if (!refreshedContext || !refreshedSection) {
         return;
       }
 
-      this.selectionService.selectedSection.set(refreshedSection);
-      this.selectionService.selectedLesson.set(refreshedContext.lesson);
-      this.selectionService.selectedChapter.set(refreshedContext.chapter);
+      this.selectionService.selectSection(
+        refreshedContext.chapter,
+        refreshedContext.lesson,
+        refreshedSection
+      );
       this.hydratedQuerySelectionKey = requestKey;
     } catch {
       // Keep the lesson selection path if section hydration fails.
@@ -803,26 +886,6 @@ export class CourseCurriculumComponent implements OnDestroy {
     return this.selectionService.selectedChapterId() === chapterId
       && this.selectionService.selectedLessonId() === lessonId
       && this.selectionService.selectedSectionId() === sectionId;
-  }
-
-  private matchesSelectionObjects(selection: {
-    chapter: ChapterDraftDTO;
-    lesson?: LessonDraftDTO;
-    section?: SectionDraftDTO;
-  }): boolean {
-    if (this.selectionService.selectedChapter() !== selection.chapter) {
-      return false;
-    }
-
-    if (selection.lesson && this.selectionService.selectedLesson() !== selection.lesson) {
-      return false;
-    }
-
-    if (selection.section && this.selectionService.selectedSection() !== selection.section) {
-      return false;
-    }
-
-    return true;
   }
 
   private loadLessonData(lesson: LessonDraftDTO) {
@@ -855,6 +918,17 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.selectedFile = null;
     this.safePdfUrl.set(null);
     this.wordCount.set(0);
+  }
+
+  private closeSectionQuizChildSurfaces() {
+    this.showSectionQuizBankModal.set(false);
+    this.showSectionQuizRandomModal.set(false);
+  }
+
+  private resetSectionSurfaceController() {
+    this.sectionSurfaceMode.set('closed');
+    this.sectionSurfaceId.set(null);
+    this.sectionSurfaceHydrationKey = null;
   }
 
   private hydrateSectionState(section: SectionDraftDTO) {
@@ -1230,10 +1304,11 @@ export class CourseCurriculumComponent implements OnDestroy {
   }
 
   private closeSectionSurface() {
+    this.closeSectionQuizChildSurfaces();
+    this.resetSectionSurfaceController();
     this.showSectionModal.set(false);
     this.editingSectionId.set(null);
     this.isDataLoaded.set(false);
-    this.lastHydratedSectionIdForModal = null;
     this.selectionService.clearSectionSelection();
     this.refreshEditorBaseline();
   }
@@ -1487,15 +1562,14 @@ export class CourseCurriculumComponent implements OnDestroy {
             (s: any) => s.id === currentSectionId
           );
           if (refreshedSection) {
-            this.selectionService.selectSection(
+            this.selectionService.syncSectionReference(
               refreshedContext.chapter, refreshedContext.lesson, refreshedSection
             );
           } else {
-            this.selectionService.selectedLesson.set(refreshedContext.lesson);
-            this.selectionService.selectedChapter.set(refreshedContext.chapter);
+            this.selectionService.syncLessonReference(refreshedContext.chapter, refreshedContext.lesson);
           }
         } else {
-          this.selectionService.selectLesson(refreshedContext.chapter, refreshedContext.lesson);
+          this.selectionService.syncLessonReference(refreshedContext.chapter, refreshedContext.lesson);
         }
       }
     }
@@ -1611,9 +1685,12 @@ export class CourseCurriculumComponent implements OnDestroy {
     }
 
     this.selectionService.clearSectionSelection();
+    this.closeSectionQuizChildSurfaces();
+    this.sectionSurfaceMode.set('create');
+    this.sectionSurfaceId.set(null);
+    this.sectionSurfaceHydrationKey = `create|${type}`;
     this.isDataLoaded.set(false);
     this.editingSectionId.set(null);
-    this.lastHydratedSectionIdForModal = null;
     this.newSectionType = type as any;
     this.sectionTitle = '';
     this.resetSectionModalTransientState();
@@ -1651,6 +1728,10 @@ export class CourseCurriculumComponent implements OnDestroy {
       return;
     }
 
+    this.sectionSurfaceMode.set('edit');
+    this.sectionSurfaceId.set(section.id);
+    this.sectionSurfaceHydrationKey = `edit|${section.id}`;
+    this.closeSectionQuizChildSurfaces();
     this.showSectionModal.set(true);
     this.hydrateSectionState(section);
   }
@@ -1932,6 +2013,11 @@ export class CourseCurriculumComponent implements OnDestroy {
   // ============================================
 
   openSectionQuizBankModal() {
+    if (!this.showSectionModal()) {
+      return;
+    }
+
+    this.showSectionQuizRandomModal.set(false);
     this.showSectionQuizBankModal.set(true);
     this.selectedPackageId = '';
     this.packageQuestions.set([]);
@@ -1939,6 +2025,11 @@ export class CourseCurriculumComponent implements OnDestroy {
   }
 
   openSectionQuizRandomModal() {
+    if (!this.showSectionModal()) {
+      return;
+    }
+
+    this.showSectionQuizBankModal.set(false);
     this.showSectionQuizRandomModal.set(true);
     this.selectedPackageId = '';
     this.sectionQuizRandomCount.set(5);
