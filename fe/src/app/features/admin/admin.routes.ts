@@ -116,6 +116,13 @@ export const adminRoutes: Routes = [
         title: 'Phân tích hệ thống'
       },
 
+      // Payout Management
+      {
+        path: 'payouts',
+        loadComponent: () => import('./presentation/components/admin-payouts.component').then(m => m.AdminPayoutsComponent),
+        title: 'Quản lý rút tiền'
+      },
+
       // Settings Routes - SYSTEM_ADMIN only
       {
         path: 'settings',

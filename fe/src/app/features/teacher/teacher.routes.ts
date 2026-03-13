@@ -131,6 +131,11 @@ export const teacherRoutes: Routes = [
         loadComponent: () => import('./revenue/teacher-payout-history.component').then(m => m.TeacherPayoutHistoryComponent),
         title: 'Lịch sử rút tiền'
       },
+      {
+        path: 'revenue/bank-accounts',
+        loadComponent: () => import('./revenue/teacher-bank-accounts.component').then(m => m.TeacherBankAccountsComponent),
+        title: 'Tài khoản ngân hàng'
+      },
 
       // Invitations Route
       {

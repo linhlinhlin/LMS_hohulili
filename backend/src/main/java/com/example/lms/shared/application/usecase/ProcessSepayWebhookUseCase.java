@@ -1,6 +1,8 @@
 package com.example.lms.shared.application.usecase;
 
 import com.example.lms.shared.application.port.SepayPaymentPort;
+import com.example.lms.shared.domain.event.DomainEventPublisher;
+import com.example.lms.shared.domain.event.PaymentCompletedEvent;
 import com.example.lms.shared.domain.model.PaymentTransaction;
 import com.example.lms.shared.domain.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,8 +30,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ProcessSepayWebhookUseCase {
 
-    private final PaymentRepository paymentRepository;
-    private final SepayPaymentPort sepayPayment;
+    private final PaymentRepository  paymentRepository;
+    private final SepayPaymentPort   sepayPayment;
+    private final DomainEventPublisher eventPublisher;
 
     public record WebhookResult(boolean success, String message, PaymentTransaction payment) {
         static WebhookResult success(PaymentTransaction p) {
@@ -96,6 +99,9 @@ public class ProcessSepayWebhookUseCase {
         payment.setSepayMetadata(sepayTxnCode);
         payment.markCompleted();
         payment = paymentRepository.save(payment);
+        eventPublisher.publish(new PaymentCompletedEvent(
+                payment.getId(), payment.getCourseId(),
+                payment.getStudentId(), payment.getAmount()));
 
         log.info("[SePay] Payment {} completed — student={} course={} txnCode={}",
                 txnId, payment.getStudentId(), payment.getCourseId(), sepayTxnCode);

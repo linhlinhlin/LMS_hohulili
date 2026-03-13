@@ -1,6 +1,8 @@
 package com.example.lms.shared.application.usecase;
 
 import com.example.lms.shared.application.port.PaymentGatewayPort;
+import com.example.lms.shared.domain.event.DomainEventPublisher;
+import com.example.lms.shared.domain.event.PaymentCompletedEvent;
 import com.example.lms.shared.domain.model.PaymentTransaction;
 import com.example.lms.shared.domain.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,8 +23,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ProcessVnPayIpnUseCase {
 
-    private final PaymentRepository paymentRepository;
+    private final PaymentRepository  paymentRepository;
     private final PaymentGatewayPort paymentGateway;
+    private final DomainEventPublisher eventPublisher;
 
     /** IPN response codes */
     public record IpnResult(String rspCode, String message, PaymentTransaction payment) {
@@ -108,6 +111,9 @@ public class ProcessVnPayIpnUseCase {
         if (isSuccess) {
             payment.markCompleted();
             paymentRepository.save(payment);
+            eventPublisher.publish(new PaymentCompletedEvent(
+                    payment.getId(), payment.getCourseId(),
+                    payment.getStudentId(), payment.getAmount()));
 
             log.info("[VNPay IPN] Payment completed: {} (bank={}, txnNo={})",
                     paymentId, params.get("vnp_BankCode"), params.get("vnp_TransactionNo"));

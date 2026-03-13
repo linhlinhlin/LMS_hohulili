@@ -168,6 +168,11 @@ const allAdminMenuItems: SidebarMenuItem[] = [
     icon: 'bar-chart'
   },
   {
+    label: 'Rút tiền',
+    route: '/admin/payouts',
+    icon: 'tag'
+  },
+  {
     label: 'Cài đặt hệ thống',
     route: '/admin/settings',
     icon: 'settings'

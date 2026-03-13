@@ -1,12 +1,11 @@
-import { Component, inject, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
-
+import { Component, inject, OnInit, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TeacherRevenueService, PayoutHistoryItem } from '../infrastructure/services/teacher-revenue.service';
 import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-teacher-payout-history',
     imports: [RouterModule, FormsModule],
     template: `
@@ -16,7 +15,7 @@ import { ToastService } from '../../../core/services/toast.service';
         <div class="mb-6">
           <a routerLink="/teacher/revenue" class="text-sm text-[#0056D2] hover:text-[#004BB5] flex items-center gap-1 mb-4">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
             </svg>
             Quay lại Doanh thu
           </a>
@@ -28,14 +27,14 @@ import { ToastService } from '../../../core/services/toast.service';
         <div class="bg-white rounded-lg shadow p-4 mb-6">
           <div class="flex items-center gap-4">
             <label class="text-sm font-medium text-gray-700">Trạng thái:</label>
-            <select [(ngModel)]="statusFilter" 
+            <select [(ngModel)]="statusFilter"
                     (change)="onFilterChange()"
                     class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
               <option value="">Tất cả</option>
-              <option value="pending">Chờ xử lý</option>
-              <option value="processing">Đang xử lý</option>
-              <option value="completed">Hoàn thành</option>
-              <option value="rejected">Bị từ chối</option>
+              <option value="PENDING">Chờ duyệt</option>
+              <option value="APPROVED">Đã duyệt</option>
+              <option value="COMPLETED">Hoàn thành</option>
+              <option value="REJECTED">Bị từ chối</option>
             </select>
           </div>
         </div>
@@ -44,9 +43,7 @@ import { ToastService } from '../../../core/services/toast.service';
         <div class="bg-white rounded-lg shadow overflow-hidden">
           @if (isLoading()) {
             <div class="p-12 text-center">
-              <div class="inline-block">
-                <div class="w-10 h-10 border-4 border-gray-200 border-t-[#0056D2] rounded-full animate-spin"></div>
-              </div>
+              <div class="w-10 h-10 border-4 border-gray-200 border-t-[#0056D2] rounded-full animate-spin mx-auto"></div>
               <p class="mt-4 text-sm text-gray-600">Đang tải dữ liệu...</p>
             </div>
           } @else if (filteredPayouts().length > 0) {
@@ -72,20 +69,20 @@ import { ToastService } from '../../../core/services/toast.service';
                       <td class="px-6 py-4 text-right">
                         <span class="text-sm font-semibold text-gray-900">{{ formatCurrency(payout.amount) }}</span>
                       </td>
-                      <td class="px-6 py-4 text-sm text-gray-600">{{ payout.bankName }}</td>
-                      <td class="px-6 py-4 text-sm font-mono text-gray-600">{{ maskBankAccount(payout.bankAccount) }}</td>
+                      <td class="px-6 py-4 text-sm text-gray-600">{{ getBankDisplayName(payout.bankCode) }}</td>
+                      <td class="px-6 py-4 text-sm font-mono text-gray-600">{{ payout.accountNumberMasked || '—' }}</td>
                       <td class="px-6 py-4 text-sm text-gray-600">{{ formatDate(payout.requestedAt) }}</td>
                       <td class="px-6 py-4 text-sm text-gray-600">
-                        {{ payout.processedAt ? formatDate(payout.processedAt) : '-' }}
+                        {{ payout.processedAt ? formatDate(payout.processedAt) : '—' }}
                       </td>
                       <td class="px-6 py-4 text-center">
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
                               [class]="getStatusClass(payout.status)">
                           {{ getStatusLabel(payout.status) }}
                         </span>
-                        @if (payout.rejectionReason) {
-                          <div class="text-xs text-red-600 mt-1 max-w-[150px] truncate" [title]="payout.rejectionReason">
-                            {{ payout.rejectionReason }}
+                        @if (payout.adminNote) {
+                          <div class="text-xs text-red-600 mt-1 max-w-[150px] truncate mx-auto" [title]="payout.adminNote">
+                            {{ payout.adminNote }}
                           </div>
                         }
                       </td>
@@ -97,11 +94,11 @@ import { ToastService } from '../../../core/services/toast.service';
           } @else {
             <div class="p-12 text-center">
               <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
               </svg>
               <h3 class="text-base font-medium text-gray-900 mb-2">Chưa có yêu cầu rút tiền</h3>
               <p class="text-sm text-gray-600 mb-4">Khi bạn yêu cầu rút tiền, lịch sử sẽ hiển thị ở đây</p>
-              <a routerLink="/teacher/revenue" 
+              <a routerLink="/teacher/revenue"
                  class="inline-flex items-center px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
                 Quay lại Doanh thu
               </a>
@@ -134,14 +131,10 @@ export class TeacherPayoutHistoryComponent implements OnInit {
     private revenueService = inject(TeacherRevenueService);
     private toast = inject(ToastService);
 
-    // Signals from service
     payoutHistory = this.revenueService.payoutHistory;
     isLoading = this.revenueService.isLoading;
 
-    // Filter
     statusFilter = '';
-
-    // Computed
     filteredPayouts = signal<PayoutHistoryItem[]>([]);
 
     ngOnInit(): void {
@@ -151,59 +144,34 @@ export class TeacherPayoutHistoryComponent implements OnInit {
     private loadData(): void {
         this.revenueService.getPayoutHistory().subscribe({
             next: () => this.applyFilter(),
-            error: () => { this.toast.error('Không thể tải lịch sử thanh toán. Vui lòng thử lại.'); }
+            error: () => this.toast.error('Không thể tải lịch sử rút tiền. Vui lòng thử lại.')
         });
     }
 
-    onFilterChange(): void {
-        this.applyFilter();
-    }
+    onFilterChange(): void { this.applyFilter(); }
 
     private applyFilter(): void {
         const all = this.payoutHistory();
-        if (!this.statusFilter) {
-            this.filteredPayouts.set(all);
-        } else {
-            this.filteredPayouts.set(all.filter(p => p.status === this.statusFilter));
-        }
+        this.filteredPayouts.set(
+            !this.statusFilter ? all : all.filter(p => p.status === this.statusFilter)
+        );
     }
 
-    // Computed values
     totalWithdrawn(): number {
-        return this.payoutHistory()
-            .filter(p => p.status === 'completed')
-            .reduce((sum, p) => sum + p.amount, 0);
+        return this.payoutHistory().filter(p => p.status === 'COMPLETED').reduce((s, p) => s + p.amount, 0);
     }
 
     pendingAmount(): number {
-        return this.payoutHistory()
-            .filter(p => p.status === 'pending' || p.status === 'processing')
-            .reduce((sum, p) => sum + p.amount, 0);
+        return this.payoutHistory().filter(p => p.status === 'PENDING' || p.status === 'APPROVED').reduce((s, p) => s + p.amount, 0);
     }
 
     completedCount(): number {
-        return this.payoutHistory().filter(p => p.status === 'completed').length;
+        return this.payoutHistory().filter(p => p.status === 'COMPLETED').length;
     }
 
-    // Helper methods
-    formatCurrency(amount: number): string {
-        return this.revenueService.formatCurrency(amount);
-    }
-
-    formatDate(dateString: string): string {
-        return this.revenueService.formatDate(dateString);
-    }
-
-    getStatusClass(status: string): string {
-        return this.revenueService.getStatusClass(status);
-    }
-
-    getStatusLabel(status: string): string {
-        return this.revenueService.getStatusLabel(status);
-    }
-
-    maskBankAccount(account: string): string {
-        if (account.length <= 4) return account;
-        return '****' + account.slice(-4);
-    }
+    getBankDisplayName(bankCode: string): string { return this.revenueService.getBankDisplayName(bankCode); }
+    formatCurrency(amount: number): string       { return this.revenueService.formatCurrency(amount); }
+    formatDate(dateString: string): string       { return this.revenueService.formatDate(dateString); }
+    getStatusClass(status: string): string       { return this.revenueService.getStatusClass(status); }
+    getStatusLabel(status: string): string       { return this.revenueService.getStatusLabel(status); }
 }
