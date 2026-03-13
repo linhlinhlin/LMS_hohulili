@@ -83,6 +83,13 @@ services:
       VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-}
       VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
       VNPAY_PAY_URL: ${VNPAY_PAY_URL:-}
+      # SePay
+      SEPAY_ENABLED: ${SEPAY_ENABLED:-false}
+      SEPAY_BANK_CODE: ${SEPAY_BANK_CODE:-}
+      SEPAY_ACCOUNT_NUMBER: ${SEPAY_ACCOUNT_NUMBER:-}
+      SEPAY_ACCOUNT_NAME: ${SEPAY_ACCOUNT_NAME:-}
+      SEPAY_WEBHOOK_API_KEY: ${SEPAY_WEBHOOK_API_KEY:-}
+      SEPAY_TEMPLATE_CODE: ${SEPAY_TEMPLATE_CODE:-compact2}
       # JVM Container Optimization
       JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
     volumes:
