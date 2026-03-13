@@ -122,7 +122,12 @@ export const teacherSidebarConfig: SidebarConfig = {
       label: 'Doanh thu',
       route: '/teacher/revenue',
       icon: 'tag',
-      group: 'Quản lý'
+      group: 'Quản lý',
+      children: [
+        { label: 'Tổng quan', route: '/teacher/revenue', icon: 'bar-chart', exact: true },
+        { label: 'Lịch sử rút tiền', route: '/teacher/revenue/payouts', icon: 'file-text' },
+        { label: 'Tài khoản ngân hàng', route: '/teacher/revenue/bank-accounts', icon: 'briefcase' }
+      ]
     },
     {
       label: 'Lời mời',
@@ -145,42 +150,50 @@ const allAdminMenuItems: SidebarMenuItem[] = [
     label: 'Trang chủ',
     route: '/admin/dashboard',
     icon: 'home',
-    exact: true
+    exact: true,
+    group: 'Tổng quan'
   },
   {
     label: 'Người dùng',
     route: '/admin/users',
-    icon: 'users'
+    icon: 'users',
+    group: 'Quản lý'
   },
   {
     label: 'Khóa học',
     route: '/admin/courses',
-    icon: 'courses'
+    icon: 'courses',
+    group: 'Quản lý'
   },
   {
     label: 'Danh mục',
     route: '/admin/categories',
-    icon: 'tag'
+    icon: 'tag',
+    group: 'Quản lý'
   },
   {
     label: 'Phân tích',
     route: '/admin/analytics',
-    icon: 'bar-chart'
+    icon: 'bar-chart',
+    group: 'Báo cáo'
   },
   {
     label: 'Rút tiền',
     route: '/admin/payouts',
-    icon: 'tag'
+    icon: 'briefcase',
+    group: 'Tài chính'
   },
   {
     label: 'Cài đặt hệ thống',
     route: '/admin/settings',
-    icon: 'settings'
+    icon: 'settings',
+    group: 'Hệ thống'
   },
   {
     label: 'Nhật ký kiểm toán',
     route: '/admin/logs',
-    icon: 'file-text'
+    icon: 'file-text',
+    group: 'Hệ thống'
   }
 ];
 

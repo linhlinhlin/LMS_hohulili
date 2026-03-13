@@ -155,7 +155,7 @@ import { FloatingChatBubbleComponent } from '../../ai-chat/presentation/componen
                 </a>
                 <!-- Revenue -->
                 <a routerLink="/teacher/revenue"
-                  routerLinkActive="text-slate-600"
+                  routerLinkActive="text-[#0056D2]"
                   class="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-0 flex-1">
                   <div class="w-6 h-6 mb-1">
                     <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
