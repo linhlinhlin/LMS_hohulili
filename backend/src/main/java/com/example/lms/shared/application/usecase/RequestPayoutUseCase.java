@@ -1,6 +1,7 @@
 package com.example.lms.shared.application.usecase;
 
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
+import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.domain.model.PayoutRequest;
 import com.example.lms.shared.domain.repository.PayoutRequestRepository;
 import com.example.lms.shared.domain.repository.RevenueSplitRepository;
@@ -61,5 +62,19 @@ public class RequestPayoutUseCase {
 
         var request = PayoutRequest.create(teacherId, bankAccountId, amount, teacherNote);
         return payoutRepo.save(request);
+    }
+
+    @Transactional
+    public void cancel(UUID payoutId, UUID teacherId) {
+        var request = payoutRepo.findById(payoutId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Yêu cầu rút tiền không tồn tại"));
+        if (!request.getTeacherId().equals(teacherId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Không có quyền truy cập");
+        }
+        if (request.getStatus() != PayoutRequest.Status.PENDING) {
+            throw new BusinessRuleException("Chỉ có thể hủy yêu cầu đang chờ duyệt");
+        }
+        payoutRepo.deleteById(payoutId);
     }
 }

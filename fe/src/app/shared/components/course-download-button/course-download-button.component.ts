@@ -1,7 +1,8 @@
 import {
   Component, input, signal, computed, inject,
-  ChangeDetectionStrategy, OnInit
+  ChangeDetectionStrategy, OnInit, PLATFORM_ID
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { CourseDownloadService } from '../../../core/services/course-download.service';
 import { NetworkStatusService } from '../../../core/services/network-status.service';
 import { ToastService } from '../../../core/services/toast.service';
@@ -77,6 +78,7 @@ export class CourseDownloadButtonComponent implements OnInit {
   private readonly downloadService = inject(CourseDownloadService);
   private readonly network = inject(NetworkStatusService);
   private readonly toast = inject(ToastService);
+  private readonly platformId = inject(PLATFORM_ID);
 
   courseId = input.required<string>();
   courseTitle = input<string>('');
@@ -92,6 +94,7 @@ export class CourseDownloadButtonComponent implements OnInit {
   protected isOnline = computed(() => this.network.online());
 
   async ngOnInit(): Promise<void> {
+    if (!isPlatformBrowser(this.platformId)) return; // IndexedDB not available in SSR
     try {
       this.isDownloaded.set(await this.downloadService.isDownloaded(this.courseId()));
     } catch (error) {

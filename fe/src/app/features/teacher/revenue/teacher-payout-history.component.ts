@@ -85,6 +85,12 @@ import { ToastService } from '../../../core/services/toast.service';
                             {{ payout.adminNote }}
                           </div>
                         }
+                        @if (payout.status === 'PENDING') {
+                          <button (click)="cancelPayout(payout.id)"
+                                  class="mt-1.5 text-xs text-red-500 hover:text-red-700 underline transition-colors">
+                            Hủy yêu cầu
+                          </button>
+                        }
                       </td>
                     </tr>
                   }
@@ -167,6 +173,16 @@ export class TeacherPayoutHistoryComponent implements OnInit {
 
     completedCount(): number {
         return this.payoutHistory().filter(p => p.status === 'COMPLETED').length;
+    }
+
+    cancelPayout(id: string): void {
+        this.revenueService.cancelPayout(id).subscribe({
+            next: () => {
+                this.toast.success('Đã hủy yêu cầu rút tiền');
+                this.loadData();
+            },
+            error: (e) => this.toast.error('Lỗi: ' + (e?.error?.message || 'Không thể hủy yêu cầu'))
+        });
     }
 
     getBankDisplayName(bankCode: string): string { return this.revenueService.getBankDisplayName(bankCode); }

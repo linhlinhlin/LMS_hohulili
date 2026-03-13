@@ -170,6 +170,20 @@ export class TeacherRevenueService {
         );
     }
 
+    cancelPayout(payoutId: string): Observable<void> {
+        return this.apiClient.deleteWithResponse<any>(
+            `/api/v3/teacher/payout/${payoutId}`
+        ).pipe(
+            map(() => {
+                this._payoutHistory.update(list => list.filter(p => p.id !== payoutId));
+            }),
+            tap(() => {
+                this.getPayoutBalance().subscribe({ error: () => {} });
+            }),
+            catchError(e => throwError(() => e))
+        );
+    }
+
     getPayoutHistory(params?: { page?: number; size?: number }): Observable<PayoutHistoryItem[]> {
         this._isLoading.next(true);
         this.isLoading.set(true);

@@ -29,6 +29,7 @@ public class ManageTeacherBankAccountUseCase {
         boolean isFirst = existing.isEmpty();
         var account = TeacherBankAccount.create(teacherId, bankCode.toUpperCase().trim(),
                 accountNumber.trim(), accountName.trim().toUpperCase(), isFirst);
+        account.verify(); // Auto-verify: no real-time Napas validation in current system
         return repo.save(account);
     }
 

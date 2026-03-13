@@ -84,6 +84,17 @@ public class TeacherRevenueControllerV3 {
                 "Yêu cầu rút tiền đã được gửi"));
     }
 
+    @DeleteMapping("/payout/{id}")
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(summary = "Cancel a PENDING payout request")
+    public ResponseEntity<ApiResponse<Map<String, String>>> cancelPayout(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        requestPayoutUseCase.cancel(id, user.getId());
+        return ResponseEntity.ok(ApiResponse.success(
+                Map.of("payoutId", id.toString()), "Đã hủy yêu cầu rút tiền"));
+    }
+
     public record PayoutRequestBody(
             String bankAccountId,
             double amount,

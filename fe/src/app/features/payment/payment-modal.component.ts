@@ -76,9 +76,10 @@ export interface CoursePaymentInfo {
             <div class="p-6">
               <!-- Course Info -->
               <div class="flex gap-4 p-4 bg-gray-50 rounded-xl mb-6">
-                <img [src]="courseInfo().thumbnail || 'assets/images/courses/placeholder.png'"
+                <img [src]="courseInfo().thumbnail || '/icons/icon-192x192.png'"
                      [alt]="courseInfo().title"
-                     class="w-24 h-16 object-cover rounded-lg">
+                     class="w-24 h-16 object-cover rounded-lg"
+                     (error)="$any($event.target).src='/icons/icon-192x192.png'">
                 <div class="flex-1 min-w-0">
                   <h3 class="font-semibold text-gray-900 truncate">{{ courseInfo().title }}</h3>
                   <p class="text-sm text-gray-500">{{ courseInfo().instructorName }}</p>
@@ -214,17 +215,25 @@ export class PaymentModalComponent {
       await this.paymentService.checkout(info.courseId, amount, method);
       this.paymentSuccess.set(true);
       this.paymentComplete.emit();
-    } catch (error) {
-      // Error handled by service → displayed via error signal
+    } catch (error: any) {
+      // If already paid → close modal and treat as success (idempotent UX)
+      const msg: string = error?.error?.message || error?.message || '';
+      if (msg.includes('đã thanh toán') || msg.includes('already paid') || msg.includes('already enrolled')) {
+        this.paymentService.markCourseAsPaid(info.courseId);
+        this.paymentComplete.emit();
+        this.close.emit(true);
+      }
+      // Otherwise: error signal is already set by service and shown in UI
     }
   }
 
   onSepayPaymentComplete(): void {
     // Update local cache so the course page immediately reflects paid status
     this.paymentService.markCourseAsPaid(this.courseInfo().courseId);
-    this.sepayQrData.set(null);
-    this.paymentSuccess.set(true);
+    // QR modal already showed "Thanh toán thành công!" — close payment modal directly
+    // (no need to show a second success screen)
     this.paymentComplete.emit();
+    this.close.emit(true);
   }
 
   onSepayClose(): void {

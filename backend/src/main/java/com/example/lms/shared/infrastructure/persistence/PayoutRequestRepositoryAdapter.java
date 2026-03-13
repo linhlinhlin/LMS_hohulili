@@ -49,6 +49,11 @@ public class PayoutRequestRepositoryAdapter implements PayoutRequestRepository {
         return jpaRepo.sumPendingAndApprovedByTeacherId(teacherId);
     }
 
+    @Override
+    public void deleteById(UUID id) {
+        jpaRepo.deleteById(id);
+    }
+
     private PayoutRequestJpaEntity toEntity(PayoutRequest r) {
         return PayoutRequestJpaEntity.builder()
                 .id(r.getId())

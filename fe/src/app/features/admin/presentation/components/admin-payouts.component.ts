@@ -2,16 +2,22 @@ import { Component, inject, OnInit, signal, computed, ChangeDetectionStrategy } 
 import { FormsModule } from '@angular/forms';
 import { ApiClient } from '../../../../api/client/api-client';
 import { ToastService } from '../../../../core/services/toast.service';
+import { AuthService, UserRole } from '../../../../core/services/auth.service';
 
 interface PayoutListItem {
     id: string;
     teacherId: string;
+    teacherName: string;
+    teacherEmail: string;
     amount: number;
     status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED';
     teacherNote?: string;
     adminNote?: string;
     requestedAt: string;
     processedAt?: string;
+    bankCode: string;
+    accountNumber: string;
+    accountName: string;
 }
 
 @Component({
@@ -45,6 +51,19 @@ interface PayoutListItem {
           </div>
         </div>
 
+        <!-- Info banner for APPROVED tab: guide admin to complete manual transfer -->
+        @if (activeStatus() === 'APPROVED' && payouts().length > 0) {
+          <div class="bg-[#0056D2]/5 border border-[#0056D2]/20 rounded-xl p-4 mb-4 flex items-start gap-3">
+            <svg class="w-5 h-5 text-[#0056D2] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div>
+              <p class="text-sm font-medium text-[#004BB5]">Hướng dẫn xử lý</p>
+              <p class="text-sm text-[#004BB5]/80 mt-0.5">Chuyển khoản thủ công tới tài khoản ngân hàng của giảng viên, sau đó bấm <strong>"Xác nhận đã CK"</strong> để hoàn tất.</p>
+            </div>
+          </div>
+        }
+
         <!-- Payouts Table -->
         <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
           @if (isLoading()) {
@@ -64,9 +83,10 @@ interface PayoutListItem {
               <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                   <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã yêu cầu</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Teacher ID</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã YC</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Giảng viên</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Số tiền</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tài khoản nhận</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ghi chú GV</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày yêu cầu</th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
@@ -80,15 +100,34 @@ interface PayoutListItem {
                         <span class="text-xs font-mono text-gray-700">{{ payout.id.slice(0, 8).toUpperCase() }}</span>
                       </td>
                       <td class="px-4 py-3">
-                        <span class="text-xs font-mono text-gray-500">{{ payout.teacherId.slice(0, 8) }}...</span>
+                        <p class="text-sm font-medium text-gray-900">{{ payout.teacherName }}</p>
+                        <p class="text-xs text-gray-500">{{ payout.teacherEmail }}</p>
                       </td>
                       <td class="px-4 py-3 text-right">
                         <span class="font-semibold text-gray-900">{{ formatCurrency(payout.amount) }}</span>
                       </td>
-                      <td class="px-4 py-3 text-sm text-gray-600 max-w-[180px] truncate" [title]="payout.teacherNote || ''">
+                      <!-- Bank transfer info — always visible for easy copy-paste -->
+                      <td class="px-4 py-3">
+                        <div class="flex items-center gap-1.5">
+                          <div>
+                            <p class="text-xs font-semibold text-gray-900">{{ getBankName(payout.bankCode) }}</p>
+                            <div class="flex items-center gap-1 mt-0.5">
+                              <span class="text-xs font-mono text-gray-700">{{ payout.accountNumber }}</span>
+                              <button (click)="copy(payout.accountNumber)" title="Sao chép số TK"
+                                      class="text-[#0056D2] hover:text-[#004BB5] transition-colors">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                </svg>
+                              </button>
+                            </div>
+                            <p class="text-xs text-gray-500">{{ payout.accountName }}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="px-4 py-3 text-sm text-gray-600 max-w-[160px] truncate" [title]="payout.teacherNote || ''">
                         {{ payout.teacherNote || '—' }}
                       </td>
-                      <td class="px-4 py-3 text-sm text-gray-600">{{ formatDate(payout.requestedAt) }}</td>
+                      <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{{ formatDate(payout.requestedAt) }}</td>
                       <td class="px-4 py-3 text-center">
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
                               [class]="getStatusClass(payout.status)">
@@ -112,11 +151,15 @@ interface PayoutListItem {
                               Từ chối
                             </button>
                           }
-                          @if (payout.status === 'APPROVED') {
-                            <button (click)="complete(payout.id)"
+                          <!-- Only ADMIN (not ORG_ADMIN) can mark as completed — they control the bank -->
+                          @if (payout.status === 'APPROVED' && isSystemAdmin()) {
+                            <button (click)="complete(payout)"
                                     class="px-3 py-1.5 bg-[#0056D2] text-white text-xs rounded-lg hover:bg-[#004BB5] transition-colors">
                               Xác nhận đã CK
                             </button>
+                          }
+                          @if (payout.status === 'APPROVED' && !isSystemAdmin()) {
+                            <span class="text-xs text-gray-400 italic">Chờ admin hoàn tất</span>
                           }
                         </div>
                       </td>
@@ -145,14 +188,27 @@ interface PayoutListItem {
       </div>
     </div>
 
+    <!-- Copy feedback toast-like -->
+    @if (copyFeedback()) {
+      <div class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-50">
+        Đã sao chép số tài khoản
+      </div>
+    }
+
     <!-- Approve Modal -->
     @if (approveTarget()) {
       <div class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-2">Duyệt yêu cầu rút tiền</h3>
-          <p class="text-sm text-gray-600 mb-4">
-            Duyệt yêu cầu rút <strong>{{ formatCurrency(approveTarget()!.amount) }}</strong>?
-          </p>
+
+          <!-- Bank transfer summary for admin reference -->
+          <div class="mb-4 p-3 bg-gray-50 rounded-xl text-sm space-y-1.5">
+            <p class="font-medium text-gray-900">{{ approveTarget()!.teacherName }}</p>
+            <p class="text-gray-600">{{ getBankName(approveTarget()!.bankCode) }} · <span class="font-mono">{{ approveTarget()!.accountNumber }}</span></p>
+            <p class="text-gray-600">{{ approveTarget()!.accountName }}</p>
+            <p class="text-lg font-bold text-green-600 mt-1">{{ formatCurrency(approveTarget()!.amount) }}</p>
+          </div>
+
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">Ghi chú (tuỳ chọn)</label>
             <textarea [(ngModel)]="actionNote" rows="2"
@@ -178,6 +234,9 @@ interface PayoutListItem {
       <div class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-2">Từ chối yêu cầu rút tiền</h3>
+          <p class="text-sm text-gray-500 mb-4">
+            {{ rejectTarget()!.teacherName }} · {{ formatCurrency(rejectTarget()!.amount) }}
+          </p>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">Lý do từ chối <span class="text-red-500">*</span></label>
             <textarea [(ngModel)]="actionNote" rows="3"
@@ -197,11 +256,38 @@ interface PayoutListItem {
         </div>
       </div>
     }
+
+    <!-- Complete Confirm Modal -->
+    @if (completeTarget()) {
+      <div class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Xác nhận đã chuyển khoản</h3>
+          <p class="text-sm text-gray-600 mb-4">Xác nhận bạn đã chuyển khoản thành công cho:</p>
+          <div class="p-3 bg-green-50 border border-green-200 rounded-xl text-sm space-y-1.5">
+            <p class="font-semibold text-gray-900">{{ completeTarget()!.teacherName }}</p>
+            <p class="text-gray-700">{{ getBankName(completeTarget()!.bankCode) }} · <span class="font-mono font-semibold">{{ completeTarget()!.accountNumber }}</span></p>
+            <p class="text-gray-600">{{ completeTarget()!.accountName }}</p>
+            <p class="text-2xl font-bold text-green-700 mt-2">{{ formatCurrency(completeTarget()!.amount) }}</p>
+          </div>
+          <div class="mt-5 flex gap-3">
+            <button (click)="completeTarget.set(null)"
+                    class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+              Hủy
+            </button>
+            <button (click)="submitComplete()"
+                    class="flex-1 px-4 py-2.5 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
+              Xác nhận đã CK
+            </button>
+          </div>
+        </div>
+      </div>
+    }
   `
 })
 export class AdminPayoutsComponent implements OnInit {
     private api = inject(ApiClient);
     private toast = inject(ToastService);
+    private authService = inject(AuthService);
 
     payouts = signal<PayoutListItem[]>([]);
     isLoading = signal(false);
@@ -209,11 +295,16 @@ export class AdminPayoutsComponent implements OnInit {
     currentPage = signal(0);
     hasMore = signal(false);
     pendingCount = signal(0);
+    copyFeedback = signal(false);
 
     // Action modals
-    approveTarget = signal<PayoutListItem | null>(null);
-    rejectTarget  = signal<PayoutListItem | null>(null);
-    actionNote    = '';
+    approveTarget  = signal<PayoutListItem | null>(null);
+    rejectTarget   = signal<PayoutListItem | null>(null);
+    completeTarget = signal<PayoutListItem | null>(null);
+    actionNote     = '';
+
+    // Only ADMIN (not ORG_ADMIN) can finalize a payout transfer
+    isSystemAdmin = computed(() => this.authService.currentUser()?.role === UserRole.ADMIN);
 
     readonly statusTabs = [
         { value: 'PENDING',   label: 'Chờ duyệt' },
@@ -277,6 +368,10 @@ export class AdminPayoutsComponent implements OnInit {
         this.rejectTarget.set(payout);
     }
 
+    complete(payout: PayoutListItem): void {
+        this.completeTarget.set(payout);
+    }
+
     submitApprove(): void {
         const target = this.approveTarget();
         if (!target) return;
@@ -311,14 +406,35 @@ export class AdminPayoutsComponent implements OnInit {
         });
     }
 
-    complete(id: string): void {
-        this.api.postWithResponse<any>(`/api/v3/admin/revenue/payouts/${id}/complete`, {}).subscribe({
+    submitComplete(): void {
+        const target = this.completeTarget();
+        if (!target) return;
+        this.api.postWithResponse<any>(`/api/v3/admin/revenue/payouts/${target.id}/complete`, {}).subscribe({
             next: () => {
+                this.completeTarget.set(null);
                 this.toast.success('Đã xác nhận chuyển khoản thành công');
                 this.loadPayouts();
             },
             error: (e) => this.toast.error('Lỗi: ' + (e?.error?.message || 'Không thể cập nhật'))
         });
+    }
+
+    copy(text: string): void {
+        navigator.clipboard.writeText(text).then(() => {
+            this.copyFeedback.set(true);
+            setTimeout(() => this.copyFeedback.set(false), 2000);
+        });
+    }
+
+    getBankName(bankCode: string): string {
+        const banks: Record<string, string> = {
+            'VCB': 'Vietcombank', 'TCB': 'Techcombank', 'MBB': 'MB Bank',
+            'VPB': 'VPBank', 'ACB': 'ACB', 'BID': 'BIDV', 'CTG': 'VietinBank',
+            'STB': 'Sacombank', 'TPB': 'TPBank', 'MSB': 'MSB', 'OCB': 'OCB',
+            'HDB': 'HDBank', 'VIB': 'VIB', 'SHB': 'SHB', 'EIB': 'Eximbank',
+            'NAB': 'Nam A Bank', 'CAKE': 'CAKE', 'UBANK': 'Ubank',
+        };
+        return banks[bankCode] ?? bankCode;
     }
 
     formatCurrency(amount: number): string {

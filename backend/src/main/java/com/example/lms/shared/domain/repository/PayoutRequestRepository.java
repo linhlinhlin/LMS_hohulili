@@ -18,4 +18,6 @@ public interface PayoutRequestRepository {
     BigDecimal sumCompletedByTeacherId(UUID teacherId);
     /** Sum of amounts in PENDING + APPROVED payouts for a teacher (reserved / in-flight). */
     BigDecimal sumPendingAndApprovedByTeacherId(UUID teacherId);
+    /** Delete a payout request (only for PENDING cancellation). */
+    void deleteById(UUID id);
 }
