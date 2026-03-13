@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 /**
@@ -49,7 +51,27 @@ public class CreateSepayPaymentUseCase {
                     "Khóa học này miễn phí. Vui lòng đăng ký trực tiếp thay vì thanh toán.");
         }
 
-        // Create PENDING transaction — reuse existing factory method, paymentMethod="SEPAY"
+        // Reuse existing PENDING SEPAY transaction if created within the 15-min QR window
+        // (Stripe pattern: findOrCreate payment intent — avoids duplicate PENDING rows on double-click)
+        var existing = paymentRepository.findLatestByStudentAndCourse(studentId, courseId);
+        if (existing.isPresent()) {
+            var prev = existing.get();
+            boolean isReusable = prev.isPending()
+                    && "SEPAY".equals(prev.getPaymentMethod())
+                    && prev.getCreatedAt() != null
+                    && prev.getCreatedAt().isAfter(Instant.now().minus(15, ChronoUnit.MINUTES));
+            if (isReusable) {
+                String qrUrlReuse = sepayPayment.generateQrUrl(prev.getId(), serverPrice);
+                String transferContentReuse = sepayPayment.getTransferContent(prev.getId());
+                log.info("[SePay] Reusing existing PENDING txn={} student={} course={}",
+                        prev.getId(), studentId, courseId);
+                return new Result(prev, qrUrlReuse, transferContentReuse,
+                        sepayPayment.getBankCode(), sepayPayment.getAccountNumber(),
+                        sepayPayment.getAccountName(), serverPrice);
+            }
+        }
+
+        // Create new PENDING transaction
         PaymentTransaction payment = PaymentTransaction.createPending(studentId, courseId, serverPrice, "SEPAY");
         payment = paymentRepository.save(payment);
 

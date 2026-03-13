@@ -16,7 +16,7 @@ import java.util.UUID;
  *
  * SePay webhook flow:
  *  1. SePay detects a bank transfer matching our QR's transferContent
- *  2. POSTs to /api/v3/payments/sepay/webhook with Authorization: Bearer {apiKey}
+ *  2. POSTs to /api/v3/payments/sepay/webhook with Authorization: Apikey {apiKey}
  *  3. We verify the API key
  *  4. We extract the payment UUID from order.order_invoice_number
  *  5. We find the PENDING payment and mark it COMPLETED

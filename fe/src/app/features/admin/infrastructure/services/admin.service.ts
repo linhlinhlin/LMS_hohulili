@@ -179,6 +179,19 @@ export interface AdminCourseSummary {
 // Alias for backward compatibility
 export type CourseSummary = AdminCourseSummary;
 
+export interface GatewayStatus {
+  vnpay: { enabled: boolean; sandbox: boolean; note: string };
+  sepay: {
+    enabled: boolean;
+    bankCode: string;
+    accountNumber: string;
+    accountName: string;
+    webhookUrl: string;
+    webhookConfigured: boolean;
+    hint?: string;
+  };
+}
+
 export interface SystemSettings {
   general: {
     siteName: string;
@@ -799,6 +812,18 @@ export class AdminService {
 
   updateSettings(settings: SystemSettings): Observable<{ message: string }> {
     return this.apiClient.put<{ message: string }>(ADMIN_ENDPOINTS.SETTINGS, settings);
+  }
+
+  getGatewayStatus(): Observable<GatewayStatus> {
+    return this.apiClient.get<{ success: boolean; data: GatewayStatus }>('/api/v3/payments/admin/gateway-status').pipe(
+      map((r: any) => r.data),
+      catchError(() => {
+        return new Observable<GatewayStatus>(s => {
+          s.next({ vnpay: { enabled: false, sandbox: true, note: '' }, sepay: { enabled: false, bankCode: '', accountNumber: '', accountName: '', webhookUrl: '', webhookConfigured: false } });
+          s.complete();
+        });
+      })
+    );
   }
 
   // ============================================

@@ -66,6 +66,7 @@ public class PaymentControllerV3 {
     private final RefundPaymentUseCase refundPaymentUseCase;
     private final CreateSepayPaymentUseCase createSepayPaymentUseCase;
     private final ProcessSepayWebhookUseCase processSepayWebhookUseCase;
+    private final com.example.lms.shared.application.port.SepayPaymentPort sepayPaymentPort;
 
     // Domain repository (read queries)
     private final PaymentRepository paymentRepository;
@@ -506,6 +507,42 @@ public class PaymentControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(
                 PaymentResponse.from(payment, courseTitle).toMap(),
                 "Hoàn tiền thành công. Vui lòng xử lý hoàn tiền qua VNPay merchant dashboard."));
+    }
+
+    // ==================== Admin Endpoints ====================
+
+    @Operation(summary = "Admin: trạng thái cổng thanh toán hiện tại (VNPay + SePay)")
+    @GetMapping("/admin/gateway-status")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getGatewayStatus() {
+        boolean isProd = isProductionProfile();
+
+        // SePay status from @ConfigurationProperties
+        boolean sepayEnabled = sepayPaymentPort.isEnabled();
+        String bankCode = sepayPaymentPort.getBankCode();
+        String accountNumber = sepayPaymentPort.getAccountNumber();
+        String accountName = sepayPaymentPort.getAccountName();
+
+        Map<String, Object> vnpay = new LinkedHashMap<>();
+        vnpay.put("enabled", isProd); // VNPay is always available in production
+        vnpay.put("sandbox", !isProd);
+        vnpay.put("note", isProd ? "Đang hoạt động — cấu hình qua env VNPAY_*" : "Chỉ dùng trong dev/test");
+
+        Map<String, Object> sepay = new LinkedHashMap<>();
+        sepay.put("enabled", sepayEnabled);
+        sepay.put("bankCode", bankCode);
+        sepay.put("accountNumber", accountNumber);
+        sepay.put("accountName", accountName);
+        sepay.put("webhookUrl", "https://holilihu.online/api/v3/payments/sepay/webhook");
+        sepay.put("webhookConfigured", !sepayPaymentPort.getAccountNumber().isBlank());
+        if (!sepayEnabled) {
+            sepay.put("hint", "Đặt SEPAY_ENABLED=true, SEPAY_BANK_CODE, SEPAY_ACCOUNT_NUMBER, SEPAY_ACCOUNT_NAME, SEPAY_WEBHOOK_API_KEY trong .env.prod rồi redeploy backend.");
+        }
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("vnpay", vnpay);
+        data.put("sepay", sepay);
+        return ResponseEntity.ok(ApiResponse.success(data, "Trạng thái cổng thanh toán"));
     }
 
     // ==================== Helpers ====================

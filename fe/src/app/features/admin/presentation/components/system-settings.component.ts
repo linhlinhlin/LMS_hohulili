@@ -1,7 +1,7 @@
 import { Component, signal, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import { AdminService, SystemSettings } from '../../infrastructure/services/admin.service';
+import { AdminService, SystemSettings, GatewayStatus } from '../../infrastructure/services/admin.service';
 import { ToastService } from '../../../../core/services/toast.service';
 
 @Component({
@@ -18,19 +18,23 @@ export class SystemSettingsComponent implements OnInit {
   activeTab = signal<'general' | 'email' | 'payment' | 'security'>('general');
   isSaving = signal(false);
   settings = signal<SystemSettings | null>(null);
+  gatewayStatus = signal<GatewayStatus | null>(null);
 
   ngOnInit(): void {
     this.loadSettings();
+    this.loadGatewayStatus();
   }
 
   private loadSettings(): void {
     this.adminService.getSettings().subscribe({
-      next: (settings) => {
-        this.settings.set(settings);
-      },
-      error: () => {
-        this.toast.error('Không thể tải cài đặt hệ thống');
-      }
+      next: (settings) => this.settings.set(settings),
+      error: () => this.toast.error('Không thể tải cài đặt hệ thống')
+    });
+  }
+
+  private loadGatewayStatus(): void {
+    this.adminService.getGatewayStatus().subscribe({
+      next: (status) => this.gatewayStatus.set(status)
     });
   }
 

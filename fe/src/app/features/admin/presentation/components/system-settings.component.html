@@ -212,70 +212,123 @@
             }
 
             @if (activeTab() === 'payment') {
-              <!-- Payment Settings -->
+              <!-- Payment Gateway Status -->
               <div class="space-y-6">
-                <h3 class="text-lg font-semibold text-gray-900">Cài đặt thanh toán</h3>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Stripe Public Key</label>
-                    <input type="text"
-                           [ngModel]="settings()?.payment?.stripePublicKey || ''"
-                           (ngModelChange)="updatePaymentSetting('stripePublicKey', $event)"
-                           placeholder="pk_test_..."
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#0056D2] focus:border-[#0056D2]">
-                  </div>
-
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Stripe Secret Key</label>
-                    <input type="password"
-                           [ngModel]="settings()?.payment?.stripeSecretKey || ''"
-                           (ngModelChange)="updatePaymentSetting('stripeSecretKey', $event)"
-                           placeholder="sk_test_..."
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#0056D2] focus:border-[#0056D2]">
-                  </div>
-
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">PayPal Client ID</label>
-                    <input type="text"
-                           [ngModel]="settings()?.payment?.paypalClientId || ''"
-                           (ngModelChange)="updatePaymentSetting('paypalClientId', $event)"
-                           placeholder="client_id_..."
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#0056D2] focus:border-[#0056D2]">
-                  </div>
-
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">PayPal Client Secret</label>
-                    <input type="password"
-                           [ngModel]="settings()?.payment?.paypalClientSecret || ''"
-                           (ngModelChange)="updatePaymentSetting('paypalClientSecret', $event)"
-                           placeholder="client_secret_..."
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#0056D2] focus:border-[#0056D2]">
-                  </div>
-
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Đơn vị tiền tệ</label>
-                    <select [ngModel]="settings()?.payment?.currency || 'VND'"
-                            (ngModelChange)="updatePaymentSetting('currency', $event)"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#0056D2] focus:border-[#0056D2]">
-                      <option value="VND">VND (Việt Nam Đồng)</option>
-                      <option value="USD">USD (US Dollar)</option>
-                      <option value="EUR">EUR (Euro)</option>
-                    </select>
-                  </div>
+                <div class="flex items-center justify-between">
+                  <h3 class="text-lg font-semibold text-gray-900">Cổng thanh toán</h3>
+                  <span class="text-xs text-gray-400">Cấu hình qua biến môi trường (.env.prod)</span>
                 </div>
 
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <div class="flex">
-                    <svg class="w-5 h-5 text-yellow-400 mt-0.5 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                    </svg>
-                    <div>
-                      <h4 class="text-sm font-medium text-yellow-800">Cảnh báo bảo mật</h4>
-                      <p class="text-sm text-yellow-700 mt-1">Không bao giờ chia sẻ thông tin API key với người khác. Sử dụng environment variables trong production.</p>
+                @if (!gatewayStatus()) {
+                  <div class="animate-pulse space-y-4">
+                    <div class="h-32 bg-gray-100 rounded-xl"></div>
+                    <div class="h-32 bg-gray-100 rounded-xl"></div>
+                  </div>
+                } @else {
+                  <!-- VNPay Card -->
+                  <div class="border border-gray-200 rounded-xl overflow-hidden">
+                    <div class="flex items-center justify-between px-5 py-4 bg-gray-50 border-b border-gray-200">
+                      <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">VN</div>
+                        <div>
+                          <p class="font-semibold text-gray-900">VNPay</p>
+                          <p class="text-xs text-gray-500">Cổng thanh toán nội địa Việt Nam</p>
+                        </div>
+                      </div>
+                      @if (gatewayStatus()!.vnpay.enabled) {
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                          <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                          Đang hoạt động
+                        </span>
+                      } @else {
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                          <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                          Sandbox (dev)
+                        </span>
+                      }
+                    </div>
+                    <div class="px-5 py-4 space-y-2 text-sm">
+                      <div class="flex justify-between">
+                        <span class="text-gray-500">Môi trường</span>
+                        <span class="font-medium text-gray-800">{{ gatewayStatus()!.vnpay.sandbox ? 'Sandbox / Testing' : 'Production' }}</span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span class="text-gray-500">IPN Callback</span>
+                        <code class="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-700">/api/v3/payments/vnpay-ipn</code>
+                      </div>
+                      <p class="text-xs text-gray-400 pt-1">{{ gatewayStatus()!.vnpay.note }}</p>
                     </div>
                   </div>
-                </div>
+
+                  <!-- SePay Card -->
+                  <div class="border border-gray-200 rounded-xl overflow-hidden">
+                    <div class="flex items-center justify-between px-5 py-4 bg-gray-50 border-b border-gray-200">
+                      <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-bold text-sm">SP</div>
+                        <div>
+                          <p class="font-semibold text-gray-900">SePay</p>
+                          <p class="text-xs text-gray-500">Chuyển khoản ngân hàng QR — sepay.vn</p>
+                        </div>
+                      </div>
+                      @if (gatewayStatus()!.sepay.enabled) {
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                          <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                          Đang hoạt động
+                        </span>
+                      } @else {
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                          <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                          Chưa kích hoạt
+                        </span>
+                      }
+                    </div>
+                    <div class="px-5 py-4 space-y-2.5 text-sm">
+                      @if (gatewayStatus()!.sepay.accountNumber) {
+                        <div class="flex justify-between">
+                          <span class="text-gray-500">Ngân hàng</span>
+                          <span class="font-medium text-gray-800">{{ gatewayStatus()!.sepay.bankCode }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-gray-500">Số tài khoản</span>
+                          <span class="font-mono font-medium text-gray-800">{{ gatewayStatus()!.sepay.accountNumber }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-gray-500">Chủ tài khoản</span>
+                          <span class="font-medium text-gray-800">{{ gatewayStatus()!.sepay.accountName }}</span>
+                        </div>
+                      }
+                      <div class="flex justify-between items-center">
+                        <span class="text-gray-500">Webhook URL</span>
+                        <code class="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-700 truncate max-w-[280px]">{{ gatewayStatus()!.sepay.webhookUrl }}</code>
+                      </div>
+                      <div class="flex justify-between">
+                        <span class="text-gray-500">Webhook đã cấu hình</span>
+                        @if (gatewayStatus()!.sepay.webhookConfigured) {
+                          <span class="text-green-600 font-medium">✓ Có</span>
+                        } @else {
+                          <span class="text-amber-600 font-medium">✗ Chưa</span>
+                        }
+                      </div>
+                    </div>
+                    @if (gatewayStatus()!.sepay.hint) {
+                      <div class="px-5 pb-4">
+                        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-700">
+                          <strong>Cách bật:</strong> {{ gatewayStatus()!.sepay.hint }}
+                        </div>
+                      </div>
+                    }
+                  </div>
+
+                  <!-- Env vars reference -->
+                  <div class="bg-gray-900 rounded-xl p-4 text-xs font-mono">
+                    <p class="text-gray-400 mb-2"># .env.prod — biến môi trường cần thiết</p>
+                    <p class="text-green-400">SEPAY_ENABLED=true</p>
+                    <p class="text-green-400">SEPAY_BANK_CODE=MBBank</p>
+                    <p class="text-green-400">SEPAY_ACCOUNT_NUMBER=0394769866</p>
+                    <p class="text-green-400">SEPAY_ACCOUNT_NAME=NGUYEN MANH HUNG</p>
+                    <p class="text-green-400">SEPAY_WEBHOOK_API_KEY=&lt;key-from-sepay.vn&gt;</p>
+                  </div>
+                }
               </div>
             }
 

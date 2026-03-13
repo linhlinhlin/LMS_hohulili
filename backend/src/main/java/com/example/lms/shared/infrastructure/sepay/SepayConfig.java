@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
  *   app.sepay.bank-code = MBBank (or BIDV, VCB, etc.)
  *   app.sepay.account-number = your bank account number
  *   app.sepay.account-name = display name on QR (e.g. "LMS MARITIME")
- *   app.sepay.webhook-api-key = secret token SePay sends in Authorization: Bearer
+ *   app.sepay.webhook-api-key = secret token SePay sends in Authorization: Apikey
  *   app.sepay.template-code = "compact2" (SePay QR template)
  */
 @Getter
@@ -36,7 +36,7 @@ public class SepayConfig {
 
     /**
      * API key for webhook authentication.
-     * SePay sends: Authorization: Bearer {webhookApiKey}
+     * SePay sends: Authorization: Apikey {webhookApiKey}
      */
     private String webhookApiKey = "";
 

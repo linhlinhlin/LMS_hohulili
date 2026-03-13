@@ -96,6 +96,8 @@ public class SecurityConfig {
                     // VNPay callbacks (server-to-server IPN + browser return)
                     "/api/v3/payments/vnpay-ipn",
                     "/api/v3/payments/vnpay-return",
+                    // SePay webhook (server-to-server, authenticated via Apikey header — NOT JWT)
+                    "/api/v3/payments/sepay/webhook",
                     // Public invite validation (rate-limited)
                     "/api/v3/invites/validate",
                     "/api/v3/invites/validate-token"

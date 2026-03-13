@@ -11,7 +11,7 @@ import java.util.UUID;
  *  1. createQrUrl() → returns a QR image URL (https://qr.sepay.vn/img?...)
  *  2. User scans QR → bank transfer with our transferContent in description
  *  3. SePay detects the transfer → POST webhook to our endpoint
- *  4. verifyWebhook() → verify the Authorization: Bearer header
+ *  4. verifyWebhook() → verify the Authorization: Apikey header
  *  5. extractTransactionId() → parse our payment UUID from the webhook payload
  *  6. Payment marked COMPLETED → student enrolled
  */
@@ -35,13 +35,13 @@ public interface SepayPaymentPort {
 
     /**
      * Verifies the webhook Authorization header.
-     * SePay sends: Authorization: Bearer {webhookApiKey}
+     * SePay sends: Authorization: Apikey {webhookApiKey}
      */
     boolean verifyWebhook(String authorizationHeader);
 
     /**
      * Extracts the payment transaction UUID from the SePay webhook payload.
-     * Parses order.order_invoice_number (or "content" fallback) back to UUID.
+     * Parses the "content" field (bank transfer description) to extract our UUID.
      * Returns null if parsing fails.
      */
     UUID extractTransactionId(Map<String, Object> payload);
