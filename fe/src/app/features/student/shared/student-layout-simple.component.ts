@@ -156,7 +156,7 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
                   </div>
                   <span class="text-xs font-medium">Bài tập</span>
                 </a>
-                <!-- Grades -->
+                <!-- Browse / Explore -->
                 <a routerLink="/student/browse"
                   data-mobile-label="Khám phá"
                   aria-label="Khám phá"
@@ -164,10 +164,10 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
                   class="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-0 flex-1">
                   <div class="w-6 h-6 mb-1">
                     <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                     </svg>
                   </div>
-                  <span class="text-xs font-medium">Bảng điểm</span>
+                  <span class="text-xs font-medium">Khám phá</span>
                 </a>
                 <!-- Profile -->
                 <a routerLink="/student/profile"
