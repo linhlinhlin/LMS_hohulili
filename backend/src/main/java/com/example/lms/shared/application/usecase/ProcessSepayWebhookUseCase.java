@@ -6,6 +6,7 @@ import com.example.lms.shared.domain.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -18,7 +19,7 @@ import java.util.UUID;
  *  1. SePay detects a bank transfer matching our QR's transferContent
  *  2. POSTs to /api/v3/payments/sepay/webhook with Authorization: Apikey {apiKey}
  *  3. We verify the API key
- *  4. We extract the payment UUID from order.order_invoice_number
+ *  4. We extract the payment UUID from the "content" field of the flat webhook payload
  *  5. We find the PENDING payment and mark it COMPLETED
  *  6. Controller then auto-enrolls the student
  */
@@ -45,6 +46,7 @@ public class ProcessSepayWebhookUseCase {
         }
     }
 
+    @Transactional
     public WebhookResult execute(Map<String, Object> payload, String authorizationHeader) {
         // 1. Verify API key
         if (!sepayPayment.verifyWebhook(authorizationHeader)) {

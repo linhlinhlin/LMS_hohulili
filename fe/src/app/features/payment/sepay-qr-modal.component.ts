@@ -41,7 +41,22 @@ import { SepayQrData } from '../../api/client/payment.api';
           <p class="text-white/80 text-sm mt-1">{{ qrData().courseTitle }}</p>
         </div>
 
-        @if (paymentConfirmed()) {
+        @if (isExpired()) {
+          <!-- Expired State -->
+          <div class="p-8 text-center">
+            <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-amber-100 flex items-center justify-center">
+              <svg class="w-10 h-10 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">QR đã hết hạn</h3>
+            <p class="text-gray-500 text-sm mb-6">Mã QR chỉ có hiệu lực trong 15 phút. Vui lòng tạo QR mới để tiếp tục thanh toán.</p>
+            <button (click)="cancel()"
+                    class="w-full py-3 px-6 rounded-xl bg-[#0056D2] hover:bg-[#004BB5] text-white font-semibold transition-all">
+              Tạo QR mới
+            </button>
+          </div>
+        } @else if (paymentConfirmed()) {
           <!-- Success State -->
           <div class="p-8 text-center">
             <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
@@ -161,6 +176,8 @@ export class SepayQrModalComponent implements OnInit, OnDestroy {
   copyFeedback = signal(false);
   secondsLeft = signal(15 * 60); // 15 minutes
 
+  isExpired = computed(() => !this.paymentConfirmed() && this.secondsLeft() <= 0);
+
   countdown = computed(() => {
     const s = this.secondsLeft();
     const m = Math.floor(s / 60);
@@ -201,6 +218,7 @@ export class SepayQrModalComponent implements OnInit, OnDestroy {
       const current = this.secondsLeft();
       if (current <= 0) {
         this.stopCountdown();
+        this.stopPolling(); // QR expired — stop polling immediately
         return;
       }
       this.secondsLeft.set(current - 1);

@@ -192,6 +192,26 @@ export class PaymentService {
     }
 
     /**
+     * Immediately mark a course as paid in the local cache.
+     * Used by SePay flow: once polling confirms hasPaid=true, cache is updated
+     * so the UI stops showing the "Buy" button without waiting for a server reload.
+     */
+    markCourseAsPaid(courseId: string): void {
+        this._paymentStatusCache.update(cache => {
+            const newCache = new Map(cache);
+            const existing = cache.get(courseId);
+            newCache.set(courseId, {
+                courseId,
+                hasPaid: true,
+                status: 'COMPLETED',
+                freeLessonsCount: 0,
+                transactionId: existing?.transactionId ?? null
+            });
+            return newCache;
+        });
+    }
+
+    /**
      * Clear cache for a course (e.g., after logout)
      */
     clearCache(courseId?: string): void {

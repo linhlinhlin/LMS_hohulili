@@ -220,6 +220,8 @@ export class PaymentModalComponent {
   }
 
   onSepayPaymentComplete(): void {
+    // Update local cache so the course page immediately reflects paid status
+    this.paymentService.markCourseAsPaid(this.courseInfo().courseId);
     this.sepayQrData.set(null);
     this.paymentSuccess.set(true);
     this.paymentComplete.emit();
