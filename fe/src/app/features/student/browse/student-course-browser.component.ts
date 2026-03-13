@@ -189,7 +189,7 @@ import { environment } from '../../../../environments/environment';
             </svg>
             <h3 class="text-lg font-medium text-gray-700 mb-1">Không tìm thấy khóa học</h3>
             <p class="text-sm text-gray-500 mb-4">Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc</p>
-            @if (searchQuery() || selectedRootCategory() || modeFilter() || levelFilter()) {
+            @if (searchQuery() || selectedRootCategory() || modeFilter()) {
               <button (click)="clearAllFilters()" class="px-4 py-2 text-sm font-medium text-[#0056D2] border border-[#0056D2] rounded-lg hover:bg-[#0056D2]/5 transition-colors">
                 Xóa bộ lọc
               </button>
@@ -508,7 +508,6 @@ export class StudentCourseBrowserComponent implements OnInit {
     this.selectedRootCategory.set(null);
     this.selectedSubId.set(null);
     this.modeFilter.set('');
-    this.levelFilter.set('');
     this.showEnrolledOnly.set(false);
     this.sortMode.set('newest');
     this.currentPage.set(0);
