@@ -7,6 +7,7 @@ import com.example.lms.shared.application.usecase.CreateSepayPaymentUseCase;
 import com.example.lms.shared.application.usecase.CreateVnPayUrlUseCase;
 import com.example.lms.shared.application.usecase.ProcessSepayWebhookUseCase;
 import com.example.lms.shared.application.usecase.ProcessVnPayIpnUseCase;
+import com.example.lms.shared.application.usecase.AdminSettingsUseCase;
 import com.example.lms.shared.application.usecase.RefundPaymentUseCase;
 import com.example.lms.shared.domain.model.PaymentTransaction;
 import com.example.lms.shared.domain.repository.PaymentRepository;
@@ -60,6 +61,7 @@ import java.util.*;
 public class PaymentControllerV3 {
 
     // Use cases (business logic)
+    private final AdminSettingsUseCase adminSettingsUseCase;
     private final CheckoutUseCase checkoutUseCase;
     private final CreateVnPayUrlUseCase createVnPayUrlUseCase;
     private final ProcessVnPayIpnUseCase processVnPayIpnUseCase;
@@ -271,6 +273,11 @@ public class PaymentControllerV3 {
             return ResponseEntity.status(401).body(ApiResponse.error("Không được phép truy cập"));
         }
 
+        if (!adminSettingsUseCase.getSettings().payment().vnpayEnabled()) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("VNPay chưa được kích hoạt. Vui lòng sử dụng phương thức thanh toán khác."));
+        }
+
         UUID courseId = request.courseId();
         CourseJpaEntity course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new IllegalArgumentException("Khóa học không tồn tại: " + courseId));
@@ -344,6 +351,11 @@ public class PaymentControllerV3 {
     ) {
         if (currentUser == null) {
             return ResponseEntity.status(401).body(ApiResponse.error("Không được phép truy cập"));
+        }
+
+        if (!adminSettingsUseCase.getSettings().payment().sepayEnabled()) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("SePay chưa được kích hoạt. Vui lòng liên hệ admin."));
         }
 
         CourseJpaEntity course = courseRepository.findById(request.courseId())
@@ -518,24 +530,31 @@ public class PaymentControllerV3 {
         boolean isProd = isProductionProfile();
 
         // SePay status from @ConfigurationProperties
-        boolean sepayEnabled = sepayPaymentPort.isEnabled();
+        boolean sepayConfigured = sepayPaymentPort.isEnabled();
         String bankCode = sepayPaymentPort.getBankCode();
         String accountNumber = sepayPaymentPort.getAccountNumber();
         String accountName = sepayPaymentPort.getAccountName();
 
+        // Gateway enabled/disabled controlled by admin settings
+        var paymentSettings = adminSettingsUseCase.getSettings().payment();
+        boolean vnpayAdminEnabled = paymentSettings.vnpayEnabled();
+        boolean sepayAdminEnabled = paymentSettings.sepayEnabled();
+
         Map<String, Object> vnpay = new LinkedHashMap<>();
-        vnpay.put("enabled", isProd); // VNPay is always available in production
+        vnpay.put("enabled", vnpayAdminEnabled);
         vnpay.put("sandbox", !isProd);
-        vnpay.put("note", isProd ? "Đang hoạt động — cấu hình qua env VNPAY_*" : "Chỉ dùng trong dev/test");
+        vnpay.put("note", vnpayAdminEnabled ? "Đang hoạt động — cấu hình qua env VNPAY_*" : "Đã tắt bởi admin");
 
         Map<String, Object> sepay = new LinkedHashMap<>();
-        sepay.put("enabled", sepayEnabled);
+        sepay.put("enabled", sepayAdminEnabled && sepayConfigured);
         sepay.put("bankCode", bankCode);
         sepay.put("accountNumber", accountNumber);
         sepay.put("accountName", accountName);
         sepay.put("webhookUrl", "https://holilihu.online/api/v3/payments/sepay/webhook");
         sepay.put("webhookConfigured", !sepayPaymentPort.getAccountNumber().isBlank());
-        if (!sepayEnabled) {
+        if (!sepayAdminEnabled) {
+            sepay.put("hint", "Bật SePay trong Cài đặt hệ thống → Thanh toán.");
+        } else if (!sepayConfigured) {
             sepay.put("hint", "Đặt SEPAY_ENABLED=true, SEPAY_BANK_CODE, SEPAY_ACCOUNT_NUMBER, SEPAY_ACCOUNT_NAME, SEPAY_WEBHOOK_API_KEY trong .env.prod rồi redeploy backend.");
         }
 

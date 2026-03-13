@@ -219,6 +219,50 @@
                   <span class="text-xs text-gray-400">Cấu hình qua biến môi trường (.env.prod)</span>
                 </div>
 
+                <!-- Gateway enable/disable toggles -->
+                <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                  <div class="px-5 py-3 bg-gray-50 border-b border-gray-200">
+                    <h4 class="text-sm font-semibold text-gray-700">Kích hoạt cổng thanh toán</h4>
+                    <p class="text-xs text-gray-500 mt-0.5">Bật/tắt từng cổng — học viên sẽ chỉ thấy các cổng đang hoạt động</p>
+                  </div>
+                  <div class="divide-y divide-gray-100">
+                    <!-- VNPay toggle -->
+                    <div class="flex items-center justify-between px-5 py-4">
+                      <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xs shrink-0">VN</div>
+                        <div>
+                          <p class="text-sm font-medium text-gray-900">VNPay</p>
+                          <p class="text-xs text-gray-500">Cổng thanh toán nội địa (VISA / thẻ ATM)</p>
+                        </div>
+                      </div>
+                      <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox"
+                               [ngModel]="settings()?.payment?.vnpayEnabled || false"
+                               (ngModelChange)="updatePaymentSetting('vnpayEnabled', $event)"
+                               class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#0056D2]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0056D2]"></div>
+                      </label>
+                    </div>
+                    <!-- SePay toggle -->
+                    <div class="flex items-center justify-between px-5 py-4">
+                      <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-bold text-xs shrink-0">SP</div>
+                        <div>
+                          <p class="text-sm font-medium text-gray-900">SePay</p>
+                          <p class="text-xs text-gray-500">Chuyển khoản ngân hàng QR — sepay.vn</p>
+                        </div>
+                      </div>
+                      <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox"
+                               [ngModel]="settings()?.payment?.sepayEnabled || false"
+                               (ngModelChange)="updatePaymentSetting('sepayEnabled', $event)"
+                               class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#0056D2]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0056D2]"></div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
                 @if (!gatewayStatus()) {
                   <div class="animate-pulse space-y-4">
                     <div class="h-32 bg-gray-100 rounded-xl"></div>

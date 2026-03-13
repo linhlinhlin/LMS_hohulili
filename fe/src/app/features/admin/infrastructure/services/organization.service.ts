@@ -105,4 +105,25 @@ export class OrganizationService {
       map(res => res.data)
     );
   }
+
+  // Payment config
+  getPaymentConfig(orgId: string): Observable<OrgPaymentConfig> {
+    return this.api.get<ApiResponse<OrgPaymentConfig>>(`/api/v3/organizations/${orgId}/payment-config`).pipe(
+      map(res => res.data)
+    );
+  }
+
+  updatePaymentConfig(orgId: string, data: { platformFeePct: number; teacherSharePct: number; minPayoutAmount: number }): Observable<OrgPaymentConfig> {
+    return this.api.put<ApiResponse<OrgPaymentConfig>>(`/api/v3/organizations/${orgId}/payment-config`, data).pipe(
+      map(res => res.data)
+    );
+  }
+}
+
+export interface OrgPaymentConfig {
+  orgId: string;
+  platformFeePct: number;
+  teacherSharePct: number;
+  orgSharePct: number;
+  minPayoutAmount: number;
 }

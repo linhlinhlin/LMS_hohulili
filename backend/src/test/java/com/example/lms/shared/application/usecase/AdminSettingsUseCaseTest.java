@@ -81,7 +81,7 @@ class AdminSettingsUseCaseTest {
         var input = new SettingsResponse(
                 new AdminSettingsUseCase.GeneralSettings("Maritime LMS", "desc", false, true, false),
                 new AdminSettingsUseCase.EmailSettings("smtp.gmail.com", 587, "", "********", "noreply@maritime.edu", "Maritime LMS"),
-                new AdminSettingsUseCase.PaymentSettings("", "********", "", "********", "VND"),
+                new AdminSettingsUseCase.PaymentSettings("", "********", "", "********", "VND", false, true),
                 new AdminSettingsUseCase.SecuritySettings(1440, 5, 8, false)
         );
 

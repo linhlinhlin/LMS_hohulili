@@ -41,7 +41,8 @@ public class AdminSettingsUseCase {
         email = new EmailSettings(email.smtpHost(), email.smtpPort(), email.smtpUser(),
                 MASKED, email.fromEmail(), email.fromName());
         payment = new PaymentSettings(payment.stripePublicKey(), MASKED,
-                payment.paypalClientId(), MASKED, payment.currency());
+                payment.paypalClientId(), MASKED, payment.currency(),
+                payment.vnpayEnabled(), payment.sepayEnabled());
 
         return new SettingsResponse(general, email, payment, security);
     }
@@ -75,7 +76,8 @@ public class AdminSettingsUseCase {
         String stripeSecret = MASKED.equals(incoming.stripeSecretKey()) ? existing.stripeSecretKey() : incoming.stripeSecretKey();
         String paypalSecret = MASKED.equals(incoming.paypalClientSecret()) ? existing.paypalClientSecret() : incoming.paypalClientSecret();
         return new PaymentSettings(incoming.stripePublicKey(), stripeSecret,
-                incoming.paypalClientId(), paypalSecret, incoming.currency());
+                incoming.paypalClientId(), paypalSecret, incoming.currency(),
+                incoming.vnpayEnabled(), incoming.sepayEnabled());
     }
 
     private <T> T loadSetting(String key, Class<T> type, T defaultValue) {
@@ -113,7 +115,7 @@ public class AdminSettingsUseCase {
     }
 
     private PaymentSettings defaultPayment() {
-        return new PaymentSettings("", "", "", "", "VND");
+        return new PaymentSettings("", "", "", "", "VND", false, true);
     }
 
     private SecuritySettings defaultSecurity() {
@@ -150,7 +152,9 @@ public class AdminSettingsUseCase {
             String stripeSecretKey,
             String paypalClientId,
             String paypalClientSecret,
-            String currency
+            String currency,
+            boolean vnpayEnabled,
+            boolean sepayEnabled
     ) {}
 
     public record SecuritySettings(

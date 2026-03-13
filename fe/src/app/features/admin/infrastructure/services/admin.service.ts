@@ -214,6 +214,8 @@ export interface SystemSettings {
     paypalClientId: string;
     paypalClientSecret: string;
     currency: string;
+    vnpayEnabled: boolean;
+    sepayEnabled: boolean;
   };
   security: {
     sessionTimeout: number;
@@ -801,7 +803,7 @@ export class AdminService {
               requireEmailVerification: false,
             },
             email: { smtpHost: '', smtpPort: 587, smtpUser: '', smtpPassword: '', fromEmail: '', fromName: '' },
-            payment: { stripePublicKey: '', stripeSecretKey: '', paypalClientId: '', paypalClientSecret: '', currency: 'VND' },
+            payment: { stripePublicKey: '', stripeSecretKey: '', paypalClientId: '', paypalClientSecret: '', currency: 'VND', vnpayEnabled: false, sepayEnabled: true },
             security: { sessionTimeout: 1440, maxLoginAttempts: 5, passwordMinLength: 8, requireTwoFactor: false },
           });
           subscriber.complete();

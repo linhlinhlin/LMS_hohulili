@@ -1,13 +1,13 @@
 import { Component, signal, inject, OnInit, ChangeDetectionStrategy, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute } from '@angular/router';
-import { OrganizationService } from '../../infrastructure/services/organization.service';
+import { OrganizationService, OrgPaymentConfig } from '../../infrastructure/services/organization.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { Organization, OrganizationInvite, OrgMember } from '../../../../shared/types/user.types';
 
-type Tab = 'members' | 'invites' | 'settings';
+type Tab = 'members' | 'invites' | 'settings' | 'payment-config';
 
 @Component({
   selector: 'app-organization-detail',
@@ -360,6 +360,142 @@ type Tab = 'members' | 'invites' | 'settings';
           </div>
         }
 
+        <!-- ==================== PAYMENT CONFIG TAB ==================== -->
+        @if (activeTab() === 'payment-config') {
+          <div class="max-w-lg">
+            @if (isLoadingConfig()) {
+              <div class="text-center py-10">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-[#0056D2] border-t-transparent"></div>
+              </div>
+            } @else {
+              <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                <div class="flex items-start gap-3 mb-5">
+                  <div class="w-10 h-10 bg-[#0056D2]/10 rounded-xl flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="text-base font-semibold text-gray-900">Tỷ lệ chia doanh thu</h3>
+                    <p class="text-xs text-gray-500 mt-0.5">Cấu hình riêng cho tổ chức này — ghi đè mặc định hệ thống</p>
+                  </div>
+                </div>
+
+                <div class="space-y-4">
+                  <!-- Platform fee -->
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                      Phí nền tảng (%)
+                      <span class="text-gray-400 font-normal text-xs ml-1">Platform fee</span>
+                    </label>
+                    <input #feeInput type="number" [value]="paymentConfig()?.platformFeePct ?? 20"
+                           min="0" max="50" step="0.5"
+                           (input)="configPreviewPlatform.set(+feeInput.value)"
+                           class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2] transition-colors">
+                    <p class="text-xs text-gray-400 mt-1">Phần trăm platform giữ lại trên mỗi giao dịch</p>
+                  </div>
+
+                  <!-- Teacher share -->
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                      Giảng viên nhận (%)
+                      <span class="text-gray-400 font-normal text-xs ml-1">Teacher share</span>
+                    </label>
+                    <input #teacherInput type="number" [value]="paymentConfig()?.teacherSharePct ?? 70"
+                           min="0" max="100" step="0.5"
+                           (input)="configPreviewTeacher.set(+teacherInput.value)"
+                           class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2] transition-colors">
+                    <p class="text-xs text-gray-400 mt-1">Phần trăm giảng viên nhận sau khi thanh toán hoàn tất</p>
+                  </div>
+
+                  <!-- Derived org share -->
+                  <div class="p-3 rounded-xl border"
+                       [class]="configError() ? 'bg-red-50 border-red-200' : 'bg-[#0056D2]/5 border-[#0056D2]/15'">
+                    <div class="flex items-center justify-between">
+                      <span class="text-sm font-medium" [class]="configError() ? 'text-red-700' : 'text-[#0056D2]'">
+                        Tổ chức nhận (%) — tính tự động
+                      </span>
+                      <span class="text-lg font-bold" [class]="configError() ? 'text-red-600' : 'text-[#0056D2]'">
+                        {{ configPreviewOrgShare() }}%
+                      </span>
+                    </div>
+                    @if (configError()) {
+                      <p class="text-xs text-red-600 mt-1">{{ configError() }}</p>
+                    } @else {
+                      <p class="text-xs mt-1" [class]="configError() ? 'text-red-500' : 'text-[#0056D2]/70'">
+                        = 100% - phí nền tảng - phần giảng viên
+                      </p>
+                    }
+                  </div>
+
+                  <!-- Min payout -->
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                      Số tiền rút tối thiểu (VND)
+                    </label>
+                    <input #minPayoutInput type="number" [value]="paymentConfig()?.minPayoutAmount ?? 100000"
+                           min="10000" step="10000"
+                           class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2] transition-colors">
+                    <p class="text-xs text-gray-400 mt-1">Giảng viên thuộc tổ chức này cần đủ số dư tối thiểu để yêu cầu rút</p>
+                  </div>
+
+                  <!-- Revenue split visual -->
+                  <div class="rounded-xl overflow-hidden border border-gray-200">
+                    <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200 text-xs font-medium text-gray-600">
+                      Phân bổ doanh thu — ví dụ 1.000.000đ
+                    </div>
+                    <div class="p-4 space-y-2">
+                      <div class="flex items-center gap-3">
+                        <div class="w-3 h-3 rounded-full bg-blue-500 shrink-0"></div>
+                        <span class="text-xs text-gray-600 w-28">Platform</span>
+                        <div class="flex-1 bg-gray-100 rounded-full h-2">
+                          <div class="h-2 rounded-full bg-blue-500 transition-all duration-300"
+                               [style.width.%]="configPreviewPlatform()"></div>
+                        </div>
+                        <span class="text-xs font-semibold text-gray-800 w-20 text-right">{{ configPreviewPlatformAmount() | number }}</span>
+                      </div>
+                      <div class="flex items-center gap-3">
+                        <div class="w-3 h-3 rounded-full bg-emerald-500 shrink-0"></div>
+                        <span class="text-xs text-gray-600 w-28">Giảng viên</span>
+                        <div class="flex-1 bg-gray-100 rounded-full h-2">
+                          <div class="h-2 rounded-full bg-emerald-500 transition-all duration-300"
+                               [style.width.%]="configPreviewTeacher()"></div>
+                        </div>
+                        <span class="text-xs font-semibold text-gray-800 w-20 text-right">{{ configPreviewTeacherAmount() | number }}</span>
+                      </div>
+                      <div class="flex items-center gap-3">
+                        <div class="w-3 h-3 rounded-full bg-amber-500 shrink-0"></div>
+                        <span class="text-xs text-gray-600 w-28">Tổ chức</span>
+                        <div class="flex-1 bg-gray-100 rounded-full h-2">
+                          <div class="h-2 rounded-full bg-amber-500 transition-all duration-300"
+                               [style.width.%]="configPreviewOrgShare()"></div>
+                        </div>
+                        <span class="text-xs font-semibold text-gray-800 w-20 text-right">{{ configPreviewOrgAmount() | number }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="pt-4 border-t border-gray-100">
+                    <button (click)="savePaymentConfig(feeInput.value, teacherInput.value, minPayoutInput.value)"
+                            [disabled]="isSavingConfig() || !!configError()"
+                            class="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0056D2] text-white rounded-xl text-sm font-medium hover:bg-[#004BB5] disabled:opacity-50 transition-colors shadow-sm">
+                      @if (isSavingConfig()) {
+                        <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Đang lưu...
+                      } @else {
+                        Lưu cấu hình
+                      }
+                    </button>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
         <!-- ==================== SETTINGS TAB ==================== -->
         @if (activeTab() === 'settings') {
           <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 max-w-lg">
@@ -432,12 +568,33 @@ export class OrganizationDetailComponent implements OnInit {
   isUpdating = signal(false);
   editingTokenMemberId = signal('');
 
+  // Payment config state
+  paymentConfig = signal<OrgPaymentConfig | null>(null);
+  isLoadingConfig = signal(false);
+  isSavingConfig = signal(false);
+  configPreviewPlatform = signal(20);
+  configPreviewTeacher = signal(70);
+  configPreviewOrgShare = computed(() => {
+    const org = 100 - this.configPreviewPlatform() - this.configPreviewTeacher();
+    return Math.round(org * 10) / 10;
+  });
+  configPreviewPlatformAmount = computed(() => Math.round(1000000 * this.configPreviewPlatform() / 100));
+  configPreviewTeacherAmount = computed(() => Math.round(1000000 * this.configPreviewTeacher() / 100));
+  configPreviewOrgAmount = computed(() => Math.round(1000000 * this.configPreviewOrgShare() / 100));
+  configError = computed(() => {
+    const sum = this.configPreviewPlatform() + this.configPreviewTeacher();
+    if (sum > 100) return `Tổng phí nền tảng + giảng viên = ${sum}% > 100%`;
+    if (this.configPreviewOrgShare() < 0) return 'Tỷ lệ tổ chức không thể âm';
+    return '';
+  });
+
   activeInvites = computed(() => this.invites().filter(i => i.status === 'ACTIVE'));
 
   readonly tabs = [
     { key: 'members' as Tab, label: 'Thành viên' },
     { key: 'invites' as Tab, label: 'Lời mời' },
-    { key: 'settings' as Tab, label: 'Cài đặt' }
+    { key: 'settings' as Tab, label: 'Cài đặt' },
+    { key: 'payment-config' as Tab, label: 'Cấu hình doanh thu' }
   ];
 
   private orgId = '';
@@ -445,6 +602,7 @@ export class OrganizationDetailComponent implements OnInit {
   ngOnInit(): void {
     this.orgId = this.route.snapshot.paramMap.get('id') || '';
     this.loadAll();
+    this.loadPaymentConfig();
   }
 
   private loadAll(): void {
@@ -615,6 +773,62 @@ export class OrganizationDetailComponent implements OnInit {
       error: (err) => {
         this.isUpdating.set(false);
         this.toast.error(err.error?.message || 'Không thể cập nhật tổ chức');
+      }
+    });
+  }
+
+  private loadPaymentConfig(): void {
+    this.isLoadingConfig.set(true);
+    this.orgService.getPaymentConfig(this.orgId).subscribe({
+      next: (config) => {
+        this.paymentConfig.set(config);
+        this.configPreviewPlatform.set(config.platformFeePct);
+        this.configPreviewTeacher.set(config.teacherSharePct);
+        this.isLoadingConfig.set(false);
+      },
+      error: () => {
+        this.isLoadingConfig.set(false);
+        // Use defaults silently — org may not have custom config yet
+      }
+    });
+  }
+
+  savePaymentConfig(platformFeeStr: string, teacherShareStr: string, minPayoutStr: string): void {
+    const platformFeePct = parseFloat(platformFeeStr);
+    const teacherSharePct = parseFloat(teacherShareStr);
+    const minPayoutAmount = parseFloat(minPayoutStr);
+
+    if (isNaN(platformFeePct) || isNaN(teacherSharePct) || isNaN(minPayoutAmount)) {
+      this.toast.warning('Vui lòng nhập đầy đủ giá trị hợp lệ');
+      return;
+    }
+    if (platformFeePct + teacherSharePct > 100) {
+      this.toast.warning('Tổng phí nền tảng + giảng viên không thể vượt quá 100%');
+      return;
+    }
+    if (platformFeePct < 0 || teacherSharePct < 0) {
+      this.toast.warning('Tỷ lệ không thể âm');
+      return;
+    }
+    if (minPayoutAmount < 10000) {
+      this.toast.warning('Số tiền rút tối thiểu phải ít nhất 10.000 VND');
+      return;
+    }
+
+    // Update preview signals
+    this.configPreviewPlatform.set(platformFeePct);
+    this.configPreviewTeacher.set(teacherSharePct);
+
+    this.isSavingConfig.set(true);
+    this.orgService.updatePaymentConfig(this.orgId, { platformFeePct, teacherSharePct, minPayoutAmount }).subscribe({
+      next: (config) => {
+        this.paymentConfig.set(config);
+        this.isSavingConfig.set(false);
+        this.toast.success('Đã cập nhật cấu hình doanh thu', `Platform ${config.platformFeePct}% / Giảng viên ${config.teacherSharePct}% / Tổ chức ${config.orgSharePct}%`);
+      },
+      error: (err) => {
+        this.isSavingConfig.set(false);
+        this.toast.error(err.error?.message || 'Không thể cập nhật cấu hình');
       }
     });
   }
