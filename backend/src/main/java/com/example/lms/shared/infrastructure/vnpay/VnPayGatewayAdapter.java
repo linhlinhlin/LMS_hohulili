@@ -1,6 +1,7 @@
 package com.example.lms.shared.infrastructure.vnpay;
 
 import com.example.lms.shared.application.port.PaymentGatewayPort;
+import com.example.lms.shared.exception.BusinessRuleException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -20,6 +21,13 @@ public class VnPayGatewayAdapter implements PaymentGatewayPort {
 
     @Override
     public String createPaymentUrl(UUID txnId, BigDecimal amount, String orderInfo, String ipAddress) {
+        if (config.getTmnCode() == null || config.getTmnCode().isBlank()) {
+            throw new BusinessRuleException("Cổng thanh toán VNPay chưa được cấu hình (TMN code trống). Vui lòng liên hệ quản trị viên.");
+        }
+        if (config.getHashSecret() == null || config.getHashSecret().isBlank()) {
+            throw new BusinessRuleException("Cổng thanh toán VNPay chưa được cấu hình (hash secret trống). Vui lòng liên hệ quản trị viên.");
+        }
+
         Map<String, String> params = new TreeMap<>();
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");

@@ -1,5 +1,6 @@
 package com.example.lms.shared.infrastructure.vnpay;
 
+import com.example.lms.shared.exception.BusinessRuleException;
 import jakarta.servlet.http.HttpServletRequest;
 
 import javax.crypto.Mac;
@@ -22,14 +23,19 @@ public final class VnPayUtil {
     private VnPayUtil() {}
 
     public static String hmacSHA512(String key, String data) {
+        if (key == null || key.isBlank()) {
+            throw new BusinessRuleException("Cổng thanh toán VNPay chưa được cấu hình (hash secret trống). Vui lòng liên hệ quản trị viên.");
+        }
         try {
             Mac hmac = Mac.getInstance("HmacSHA512");
             SecretKeySpec secretKey = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA512");
             hmac.init(secretKey);
             byte[] hash = hmac.doFinal(data.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hash);
+        } catch (BusinessRuleException e) {
+            throw e;
         } catch (Exception e) {
-            throw new IllegalStateException("HMAC-SHA512 computation failed", e);
+            throw new BusinessRuleException("Cổng thanh toán VNPay tạm thời không khả dụng: " + e.getMessage());
         }
     }
 

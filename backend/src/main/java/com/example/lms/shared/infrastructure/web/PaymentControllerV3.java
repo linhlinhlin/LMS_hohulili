@@ -103,7 +103,7 @@ public class PaymentControllerV3 {
         BigDecimal serverPrice = getServerPrice(courseId);
         if (serverPrice == null || serverPrice.compareTo(BigDecimal.ZERO) <= 0) {
             return ResponseEntity.badRequest().body(
-                    ApiResponse.error("KhÃ³a há»c nÃ y miá»…n phÃ­. Vui lÃ²ng Ä‘Äƒng kÃ½ trá»±c tiáº¿p thay vÃ¬ thanh toÃ¡n."));
+                    ApiResponse.error("Khóa học này miễn phí. Vui lòng đăng ký trực tiếp thay vì thanh toán."));
         }
 
         var payment = checkoutUseCase.execute(currentUser.getId(), courseId, serverPrice, request.paymentMethod);

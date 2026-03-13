@@ -110,10 +110,13 @@ export class PaymentService {
             // VNPay redirect flow
             if (method === 'VNPAY') {
                 const vnpayResponse = await firstValueFrom(this.paymentApi.createVnPayUrl(courseId, amount));
-                if (vnpayResponse.success && vnpayResponse.data.paymentUrl) {
+                if (vnpayResponse.success && vnpayResponse.data?.paymentUrl) {
                     window.location.href = vnpayResponse.data.paymentUrl;
                     // Will redirect — return a placeholder (never reached)
                     return {} as PaymentResponse;
+                } else if (vnpayResponse.success && !vnpayResponse.data?.paymentUrl) {
+                    // Already paid — no redirect needed, treat as completed
+                    return vnpayResponse.data as unknown as PaymentResponse;
                 } else {
                     throw new Error(vnpayResponse.message || 'Không thể tạo liên kết thanh toán VNPay');
                 }
@@ -149,7 +152,9 @@ export class PaymentService {
                 throw new Error(response.message || 'Payment failed');
             }
         } catch (error: any) {
-            const errorMessage = error?.message || 'Thanh toán thất bại. Vui lòng thử lại.';
+            // Extract backend's actual error message from HttpErrorResponse body
+            const backendMsg = error?.error?.message || error?.error?.error;
+            const errorMessage = backendMsg || error?.message || 'Thanh toán thất bại. Vui lòng thử lại.';
             this._error.set(errorMessage);
             throw error;
         } finally {
