@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> **Last Updated**: 2026-03-04 | **Version**: 15.2 | **Status**: Production Ready + Upload System Upgrade + Course Editor Redesign (806 tests, 0 failures)
+> **Last Updated**: 2026-03-13 | **Version**: 16.0 | **Status**: Production Ready + Full SSR + SEO + WebMCP + Branding (806 tests, 0 failures)
 
 This file provides guidance to Claude Code for working with this repository. **Read this first before any task.**
 
@@ -221,6 +221,14 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.
 **Cause**: `datasource`/`jpa`/`flyway`/`servlet` accidentally nested under `server:` instead of `spring:` due to misleading comment placement.
 **Fix**: Keep `spring:` and `server:` as separate top-level blocks. Always verify YAML structure with an IDE or linter.
 
+### 10. SSR: "Angular app engine manifest is not set"
+**Cause**: `angular.json` missing `"outputMode": "server"` in build options. Without it, the build doesn't inject manifest imports into `server.mjs`.
+**Fix**: Add `"outputMode": "server"` to `angular.json` → `projects.lms-angular.architect.build.options`.
+
+### 11. SSR: "URL with hostname 'X' is not allowed" (SSRF protection)
+**Cause**: Angular 20's SSRF protection blocks all hostnames when `outputMode: "server"` is set. The `allowedHosts` array is empty by default.
+**Fix**: Set `NG_ALLOWED_HOSTS=holilihu.online,localhost` environment variable in `docker-entrypoint.sh` and `docker-compose.prod.yml`.
+
 ---
 
 ## ANGULAR CONVENTIONS (CRITICAL)
@@ -289,11 +297,15 @@ export class ExampleComponent {
 | Environment | `fe/src/environments/environment.ts` |
 | API Client | `fe/src/app/api/client/api-client.ts` |
 | Root Routes | `fe/src/app/app.routes.ts` |
+| SSR Routes | `fe/src/app/app.routes.server.ts` |
 | Auth Service | `fe/src/app/core/services/auth.service.ts` |
+| SEO Service | `fe/src/app/core/services/seo.service.ts` |
+| WebMCP Service | `fe/src/app/core/services/webmcp.service.ts` |
 | Global State | `fe/src/app/state/global.state.ts` |
 | Course Editor Store | `fe/src/app/features/teacher/course-editor/store/course-editor.store.ts` |
 | Presigned Upload Service | `fe/src/app/core/services/presigned-upload.service.ts` |
 | Server Upload Adapter | `fe/src/app/core/utils/server-upload-adapter.ts` |
+| Base URL Interceptor | `fe/src/app/api/interceptors/base-url.interceptor.ts` (SSR: `isPlatformServer` → `http://backend:8080`) |
 
 ### PWA / Offline
 | Purpose | File |
@@ -307,12 +319,25 @@ export class ExampleComponent {
 | Offline Sync | `fe/src/app/core/services/offline-sync.service.ts` |
 | Offline Interceptor | `fe/src/app/api/interceptors/offline.interceptor.ts` |
 
+### SEO & Branding
+| Purpose | File |
+|---------|------|
+| robots.txt | `fe/public/robots.txt` |
+| Sitemap | `fe/public/sitemap.xml` (13 public URLs) |
+| OG Image | `fe/public/og-image.png` (1200x630 social share banner) |
+| PWA Icons | `fe/public/icons/icon-{72..512}x{72..512}.png` (compass rose) |
+| Master Logo | `fe/public/icons/logo-master.png` (1024x1024) |
+| Parent Brand | `fe/public/icons/thewiiilab.png` (The Wiii Lab) |
+
 ### Deployment
 | Purpose | File |
 |---------|------|
 | Base Docker Compose | `docker-compose.yml` |
 | Production Overrides | `docker-compose.prod.yml` |
 | Caddy Reverse Proxy | `Caddyfile` (auto-HTTPS for holilihu.online) |
+| FE Dockerfile | `fe/Dockerfile` (node:20-alpine + nginx, SSR + static) |
+| FE Entrypoint | `fe/docker-entrypoint.sh` (Node.js SSR:4000 + nginx:80) |
+| FE nginx | `fe/nginx.conf` (static → nginx, pages → SSR:4000, 502 → CSR fallback) |
 | Deploy Script | `deploy.sh` |
 | PWA Build Fix | `fe/scripts/fix-ngsw.js` (removes phantom CSS from ngsw.json) |
 | Test Checklist | `docs/testing/TEST_CHECKLIST.md` |
@@ -342,7 +367,11 @@ export class ExampleComponent {
 
 **Testing**: JUnit 5, Mockito, AssertJ, ArchUnit
 
-**Deploy**: Docker multi-stage, Caddy auto-HTTPS, GCP Compute Engine (e2-medium, asia-southeast1-b)
+**Deploy**: Docker multi-stage (Node.js SSR + nginx), Caddy auto-HTTPS, GCP Compute Engine (e2-medium, asia-southeast1-b)
+
+**SSR/SEO**: Full Angular SSR via `outputMode: "server"`, Node.js:4000 + nginx reverse proxy, CSR fallback on 502. robots.txt, sitemap.xml, JSON-LD, Open Graph, centralized SeoService
+
+**WebMCP**: W3C Draft (Feb 2026) — `navigator.modelContext.registerTool()` exposes 4 public tools to AI agents (search_courses, get_course_detail, get_course_curriculum, list_categories)
 
 ---
 
@@ -376,6 +405,7 @@ teacherGuard = [UserRole.TEACHER, UserRole.ADMIN, UserRole.ORG_ADMIN]
 
 | Sessions | Key Changes |
 |----------|-------------|
+| **S128** (2026-03-13) | **Full SSR deployment**: Angular `outputMode: "server"`, Dockerfile rewrite (node:20-alpine + nginx), base-url interceptor `isPlatformServer()` → `http://backend:8080`, `NG_ALLOWED_HOSTS` SSRF protection. **SEO foundation**: robots.txt, sitemap.xml (13 URLs), canonical tags, OG/Twitter meta, JSON-LD (Organization + WebSite + SearchAction), centralized SeoService. **Branding**: Compass rose PWA icons (8 sizes + favicon), OG image (1200x630), logo-master, The Wiii Lab parent brand. **WebMCP** (W3C Draft): 4 AI-agent tools via `navigator.modelContext.registerTool()`. **Course editor stabilization**: key-based selection dedup, section surface state machine, nested modal Escape, ARIA dialogs, sync helpers in CurriculumSelectionService. Deployed to production. |
 | **S124** (2026-03-04) | Upload system upgrade: 3-step presigned URL flow (BE: PresignedUploadUseCase, V74 migration, UploadCleanupScheduler; FE: PresignedUploadService, ServerUploadAdapter for CKEditor). Course info page redesign: 5-card sidebar (Shopify pattern), sticky save bar with discard. Thumbnail drag-drop + progress + cancel UX. Course settings CSS fixes. V70 migration production fix (legacy course_tags rename). 9 new BE + 3 new FE files. Deployed to production. |
 | **S121-S123** (2026-03-03) | Course creation UX redesign (two-panel, live progress). DeliveryMode enforcement (lock after enrollment). Course editor bugfixes (categoryName, tags, price validation). |
 | **S120** (2026-03-03) | Category/Taxonomy redesign: 2-level `course_categories` + controlled vocabulary `course_tags` (V70). Full DDD. 16 BE + 6 FE files. |

@@ -1,6 +1,6 @@
 # Frontend Architecture Reference
 
-> **Last Updated**: 2026-03-04 | **Angular**: 20.3 | **Score**: 10/10
+> **Last Updated**: 2026-03-13 | **Angular**: 20.3 | **Score**: 10/10
 
 This document is the **single source of truth** for the LMS frontend architecture.
 Read this instead of re-auditing the codebase.
@@ -30,8 +30,11 @@ Read this instead of re-auditing the codebase.
 | State Services | 3 (global, course, class) |
 | Guards | 5 (in 3 files) |
 | Routes | 70+ |
-| Port | 4200 |
+| Port | 4200 (dev) / 4000 (SSR prod) |
 | Build | `npm start` / `npm run build` |
+| SSR | `outputMode: "server"` — Node.js:4000 + nginx:80 |
+| SEO | robots.txt, sitemap.xml, SeoService, JSON-LD |
+| WebMCP | 4 AI-agent tools via `navigator.modelContext` |
 
 ---
 
@@ -43,10 +46,10 @@ fe/src/app/
 │   ├── client/             # ApiClient + domain-specific clients (18 files)
 │   ├── endpoints/          # URL constant definitions (23 files)
 │   ├── types/              # TypeScript interfaces for all DTOs (19 files)
-│   ├── interceptors/       # Auth, base-url, error, offline interceptors (4 files)
+│   ├── interceptors/       # Auth, base-url (SSR: isPlatformServer→backend:8080), error, offline (4 files)
 │   └── operators/          # RxJS operators (unwrapSpringPage)
 ├── core/                   # Singleton services & guards
-│   ├── services/           # Auth, messaging, notification, PWA offline, presigned upload, etc. (23 services)
+│   ├── services/           # Auth, messaging, notification, PWA offline, presigned upload, SEO, WebMCP, etc. (25 services)
 │   ├── utils/              # server-upload-adapter.ts (CKEditor upload plugin)
 │   ├── db/                 # lms-offline.db.ts (Dexie.js 4 - 7 tables)
 │   └── guards/             # auth.guard, role.guard, enrollment.guard (5 guard fns in 3 files)
@@ -432,6 +435,8 @@ ApiClient.delete<T> / deleteWithResponse<T>
 | **`qoe-tracker.service.ts`** | ~100 | **QoE metrics (startup, rebuffer, bitrate)** |
 | **`offline-video.service.ts`** | ~150 | **Video download via Cache API** |
 | **`presigned-upload.service.ts`** | ~140 | **3-step presigned URL upload: init → XHR PUT to R2 → confirm. Cancellable, progress tracking, dev fallback** |
+| **`seo.service.ts`** | ~60 | **Centralized SEO: setPageMeta(), setCanonical(), setJsonLd(), setKeywords(). Used by courses, course-detail, categories** |
+| **`webmcp.service.ts`** | ~190 | **WebMCP (W3C Draft Feb 2026): 4 AI-agent tools via `navigator.modelContext.registerTool()`. Feature-detects — zero impact on unsupported browsers** |
 
 ### Guards (5 functions in 3 files)
 
@@ -629,6 +634,51 @@ Sync:     NetworkStatus online → 2s delay → POST /api/v3/sync/push → confl
 | ~~P0~~ | ~~Multi-account no data isolation (courses/chapters/lessons missing userId)~~ | **Fixed S112** |
 | ~~P1~~ | ~~No storage management UI for end users~~ | **Fixed S113**: `/student/storage` page with segmented bar, per-item delete |
 | ~~P1~~ | ~~Full logout doesn't clean offline data~~ | **Fixed S113**: Pre-logout sync check + explicit cleanup via Storage Management |
+
+---
+
+## SSR & SEO Architecture
+
+### Server-Side Rendering (Angular SSR)
+
+```
+Production flow:
+  Caddy → nginx:80 ─┬─ static files (*.js, *.css, images) → nginx serves directly
+                     ├─ /api/* → proxy to backend:8080
+                     └─ page requests → proxy to Node.js:4000 (SSR)
+                                        └─ fallback: 502 → serve index.csr.html (CSR)
+```
+
+| Config | Value |
+|--------|-------|
+| `angular.json` | `"outputMode": "server"` |
+| SSR server | `dist/lms-angular/server/server.mjs` on port 4000 |
+| SSRF protection | `NG_ALLOWED_HOSTS=holilihu.online,localhost` |
+| SSR API routing | `base-url.interceptor.ts` → `isPlatformServer()` → `http://backend:8080` |
+| CSR fallback | `error_page 502 503 504 = /index.csr.html` in nginx |
+| Docker | `node:20-alpine` + `apk add nginx`, entrypoint starts both |
+
+### SEO
+
+| Asset | Purpose |
+|-------|---------|
+| `robots.txt` | Blocks /api/, /admin/, /teacher/, /student/, /auth/, /payment/ |
+| `sitemap.xml` | 13 public URLs with priority + changefreq |
+| `SeoService` | `setPageMeta()`, `setCanonical()`, `setJsonLd()`, `setKeywords()` |
+| JSON-LD | Organization + WebSite (SearchAction) in index.html; ItemList/CollectionPage per page |
+| Open Graph | og:title, og:description, og:image (1200x630), og:locale vi_VN |
+| Twitter | summary_large_image card |
+
+### WebMCP (AI Agent Integration)
+
+W3C Draft (Feb 2026), Chrome 146+ Canary behind flag. `WebMcpService` registers 4 public tools:
+
+| Tool | Description |
+|------|-------------|
+| `search_courses` | Search by query, category, level, page |
+| `get_course_detail` | Full course info by UUID |
+| `get_course_curriculum` | Chapters + lessons for a course |
+| `list_categories` | All 6 maritime categories |
 
 ---
 
