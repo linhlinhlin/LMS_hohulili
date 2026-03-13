@@ -56,6 +56,10 @@ export interface CreateQuestionRequest {
   optionBlocks?: any[];
 }
 
+export interface CreateQuestionResponse {
+  id: string;
+}
+
 export interface UpdateQuestionRequest {
   content: string;
   questionType?: QuestionTypeEnum;
@@ -113,7 +117,29 @@ export class QuestionApi {
   }
 
   createQuestion(request: CreateQuestionRequest) {
-    return this.apiClient.post<Question>('/api/v3/questions', request);
+    return this.apiClient
+      .post<any>('/api/v3/questions', request)
+      .pipe(
+        map((response: any) => {
+          if (typeof response === 'string') {
+            return { id: response } as CreateQuestionResponse;
+          }
+
+          if (typeof response?.data === 'string') {
+            return { id: response.data } as CreateQuestionResponse;
+          }
+
+          if (response?.data?.id) {
+            return { id: response.data.id } as CreateQuestionResponse;
+          }
+
+          if (response?.id) {
+            return { id: response.id } as CreateQuestionResponse;
+          }
+
+          throw new Error('Unexpected create question response shape');
+        })
+      );
   }
 
   updateQuestion(id: string, request: UpdateQuestionRequest) {

@@ -11,6 +11,7 @@ import { ContentBlock } from '../../../api/types/content-block.types';
 import { AuthImagePipe } from '../../../shared/pipes/auth-image.pipe';
 import { ToastService } from '../../../core/services/toast.service';
 import { LucideAngularModule } from 'lucide-angular';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -236,19 +237,31 @@ export class QuestionCreateComponent implements OnInit {
     };
 
     this.questionApi.createQuestion(request).subscribe({
-      next: (question) => {
+      next: async (question) => {
         if (this.isDialog()) {
-          this.created.emit(question);
-        } else {
-          const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
-          if (returnUrl) {
-            this.router.navigateByUrl(returnUrl);
-          } else {
-            // Navigate back to quiz-bank, preserving packageId selection
-            this.router.navigate(['/teacher/quiz/quiz-bank'], {
-              queryParams: this.packageId ? { packageId: this.packageId } : {}
-            });
+          try {
+            const createdQuestion = await firstValueFrom(this.questionApi.getQuestionById(question.id));
+            this.created.emit(createdQuestion);
+          } catch {
+            this.created.emit(question);
           }
+          return;
+        }
+
+        const addToQuizLessonId = this.route.snapshot.queryParamMap.get('addToQuiz');
+        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+
+        if (addToQuizLessonId) {
+          this.router.navigate(['/teacher/quiz/quiz-bank'], {
+            queryParams: this.buildQuestionBankReturnQueryParams(question.id)
+          });
+        } else if (returnUrl) {
+          this.router.navigateByUrl(returnUrl);
+        } else {
+          // Navigate back to quiz-bank, preserving packageId selection
+          this.router.navigate(['/teacher/quiz/quiz-bank'], {
+            queryParams: this.packageId ? { packageId: this.packageId } : {}
+          });
         }
       },
       error: (error) => {
@@ -323,13 +336,46 @@ export class QuestionCreateComponent implements OnInit {
     return uuidRegex.test(str);
   }
 
+  private buildQuestionBankReturnQueryParams(selectQuestionId?: string) {
+    const queryParams: Record<string, string> = {};
+
+    if (this.packageId) {
+      queryParams['packageId'] = this.packageId;
+    }
+
+    if (this.categoryId) {
+      queryParams['categoryId'] = this.categoryId;
+    }
+
+    const addToQuizLessonId = this.route.snapshot.queryParamMap.get('addToQuiz');
+    if (addToQuizLessonId) {
+      queryParams['addToQuiz'] = addToQuizLessonId;
+    }
+
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+    if (returnUrl) {
+      queryParams['returnUrl'] = returnUrl;
+    }
+
+    if (selectQuestionId) {
+      queryParams['selectQuestionId'] = selectQuestionId;
+    }
+
+    return queryParams;
+  }
+
   onCancel(): void {
     if (this.isDialog()) {
       this.cancel.emit();
       return;
     }
+    const addToQuizLessonId = this.route.snapshot.queryParamMap.get('addToQuiz');
     const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
-    if (returnUrl) {
+    if (addToQuizLessonId) {
+      this.router.navigate(['/teacher/quiz/quiz-bank'], {
+        queryParams: this.buildQuestionBankReturnQueryParams()
+      });
+    } else if (returnUrl) {
       this.router.navigateByUrl(returnUrl);
     } else {
       this.router.navigate(['/teacher/quiz/quiz-bank']);
@@ -379,4 +425,3 @@ export class QuestionCreateComponent implements OnInit {
     return result;
   }
 }
-

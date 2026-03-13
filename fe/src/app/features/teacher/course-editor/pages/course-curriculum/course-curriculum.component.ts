@@ -949,6 +949,7 @@ export class CourseCurriculumComponent implements OnDestroy {
     if (this.newSectionType === 'QUIZ') {
       const quizData = (section as any).quizData;
       if (quizData) {
+        this.sectionQuizType = quizData.quizType === 'EXAM' ? 'EXAM' : 'ASSESSMENT';
         this.sectionQuizTimeLimit.set(quizData.timeLimitMinutes || 30);
         this.sectionQuizPassingScore.set(quizData.passingScore || 60);
         this.sectionQuizMaxAttempts.set(quizData.maxAttempts || 1);
@@ -958,7 +959,8 @@ export class CourseCurriculumComponent implements OnDestroy {
         if (quizData.questions && quizData.questions.length > 0) {
           this.sectionQuizSelectedQuestions.set(quizData.questions.map((q: any) => ({
             id: q.id,
-            content: q.content
+            content: q.content,
+            difficulty: q.difficulty ?? 'MEDIUM'
           })));
         } else {
           this.sectionQuizSelectedQuestions.set([]);

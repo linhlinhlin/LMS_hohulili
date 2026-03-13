@@ -1,5 +1,7 @@
 package com.example.lms.course_authoring.infrastructure.web;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.lms.course_authoring.application.usecase.CreateChapterUseCaseV3;
 import com.example.lms.course_authoring.application.usecase.CreateLessonUseCaseV3;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
@@ -25,7 +27,11 @@ import com.example.lms.course_authoring.application.dto.UpdateCourseCommand;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -51,6 +57,7 @@ public class CourseAuthoringControllerV3 {
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository chapterJpaRepository;
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository lessonJpaRepository;
     private final com.example.lms.course_authoring.domain.repository.CourseRepository courseRepository;
+    private final ObjectMapper objectMapper;
 
     @Operation(summary = "Create a new chapter")
     @PostMapping("/{courseId}/chapters")
@@ -265,10 +272,17 @@ public class CourseAuthoringControllerV3 {
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<com.example.lms.shared.domain.model.ContentBlock>> addSection(
             @PathVariable UUID lessonId,
-            @RequestPart("data") java.util.Map<String, Object> payload,
+            @RequestPart("data") String payloadJson,
             @RequestPart(value = "file", required = false) org.springframework.web.multipart.MultipartFile file,
             @AuthenticationPrincipal UserJpaEntity user
     ) {
+        final Map<String, Object> payload;
+        try {
+            payload = parseSectionPayload(payloadJson);
+        } catch (ResponseStatusException ex) {
+            return ResponseEntity.status(ex.getStatusCode())
+                    .body(ApiResponse.error(ex.getReason()));
+        }
         // Process file upload and inject URL into payload
         if (file != null && !file.isEmpty()) {
             log.debug("Received file: {}", file.getOriginalFilename());
@@ -295,10 +309,17 @@ public class CourseAuthoringControllerV3 {
     public ResponseEntity<ApiResponse<com.example.lms.shared.domain.model.ContentBlock>> updateSection(
             @PathVariable UUID lessonId,
             @PathVariable String sectionId,
-            @RequestPart("data") java.util.Map<String, Object> payload,
+            @RequestPart("data") String payloadJson,
             @RequestPart(value = "file", required = false) org.springframework.web.multipart.MultipartFile file,
             @AuthenticationPrincipal UserJpaEntity user
     ) {
+        final Map<String, Object> payload;
+        try {
+            payload = parseSectionPayload(payloadJson);
+        } catch (ResponseStatusException ex) {
+            return ResponseEntity.status(ex.getStatusCode())
+                    .body(ApiResponse.error(ex.getReason()));
+        }
         // Process file upload and inject URL into payload
         if (file != null && !file.isEmpty()) {
             log.debug("Received file for update: {}", file.getOriginalFilename());
@@ -364,6 +385,15 @@ public class CourseAuthoringControllerV3 {
     }
     
     // --- Helpers ---
+
+    private Map<String, Object> parseSectionPayload(String payloadJson) {
+        try {
+            return objectMapper.readValue(payloadJson, new TypeReference<>() {});
+        } catch (IOException ex) {
+            log.warn("Invalid multipart section payload", ex);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Payload phần học không hợp lệ");
+        }
+    }
 
     private boolean isAdminRole(UserJpaEntity user) {
         return user.getRole() == UserJpaEntity.UserRole.ADMIN

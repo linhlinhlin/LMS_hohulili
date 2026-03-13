@@ -66,6 +66,7 @@ export class QuizBankComponent implements OnInit {
   // Add to Quiz mode
   addToQuizLessonId: string | null = null;
   returnUrl: string | null = null;
+  pendingSelectedQuestionId: string | null = null;
   addingToQuiz = signal<boolean>(false);
 
   // Create bank form
@@ -147,6 +148,7 @@ export class QuizBankComponent implements OnInit {
     this.route.queryParams.pipe(take(1)).subscribe(params => {
       this.addToQuizLessonId = params['addToQuiz'] || null;
       this.returnUrl = params['returnUrl'] || null;
+      this.pendingSelectedQuestionId = params['selectQuestionId'] || null;
 
       const bankIdFromUrl = params['packageId'] || params['bankId'] || null;
       if (bankIdFromUrl) {
@@ -182,6 +184,7 @@ export class QuizBankComponent implements OnInit {
         const allQuestions = await firstValueFrom(this.questionApi.getMyQuestions());
         this.questions.set(allQuestions || []);
         this.filterQuestions();
+        await this.restorePendingSelectionIfPresent();
       } catch {
         this.questions.set([]);
         this.filteredQuestions.set([]);
@@ -221,6 +224,7 @@ export class QuizBankComponent implements OnInit {
       );
       this.questions.set(questions);
       this.filterQuestions();
+      await this.restorePendingSelectionIfPresent();
     } catch {
       this.questions.set([]);
       this.filteredQuestions.set([]);
@@ -460,6 +464,12 @@ export class QuizBankComponent implements OnInit {
     if (this.selectedCategoryId()) {
       queryParams.categoryId = this.selectedCategoryId();
     }
+    if (this.addToQuizLessonId) {
+      queryParams.addToQuiz = this.addToQuizLessonId;
+    }
+    if (this.returnUrl) {
+      queryParams.returnUrl = this.returnUrl;
+    }
     this.router.navigate(['/teacher/quiz/question/create'], { queryParams });
   }
 
@@ -523,6 +533,32 @@ export class QuizBankComponent implements OnInit {
 
   clearSelection() {
     this.selectedQuestions.set([]);
+  }
+
+  private async restorePendingSelectionIfPresent() {
+    const questionId = this.pendingSelectedQuestionId;
+    if (!questionId) {
+      return;
+    }
+
+    const existsInCurrentBank = this.questions().some(question => question.id === questionId);
+    if (!existsInCurrentBank) {
+      return;
+    }
+
+    this.selectedQuestions.set([questionId]);
+    this.pendingSelectedQuestionId = null;
+
+    await this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { selectQuestionId: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    });
+
+    if (this.addToQuizLessonId) {
+      this.toast.success('Đã tạo câu hỏi mới. Hãy nhấn "Thêm vào Quiz" để gắn vào bài kiểm tra.');
+    }
   }
 
   // ==================== Add to Quiz ====================

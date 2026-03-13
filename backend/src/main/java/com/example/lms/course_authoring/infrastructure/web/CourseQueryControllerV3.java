@@ -1,8 +1,10 @@
 package com.example.lms.course_authoring.infrastructure.web;
 
 import com.example.lms.assessment.infrastructure.persistence.entity.AssignmentJpaEntity;
+import com.example.lms.assessment.infrastructure.persistence.entity.QuestionJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.entity.QuizJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentJpaRepository;
+import com.example.lms.assessment.infrastructure.persistence.repository.QuestionJpaRepository;
 import com.example.lms.assessment.infrastructure.persistence.repository.QuizJpaRepositoryV3;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
@@ -56,6 +58,7 @@ public class CourseQueryControllerV3 {
     private final PaymentTransactionJpaRepository paymentRepository;
     private final QuizJpaRepositoryV3 quizJpaRepository;
     private final AssignmentJpaRepository assignmentJpaRepository;
+    private final QuestionJpaRepository questionJpaRepository;
 
     @Operation(summary = "Get all published courses")
     @GetMapping
@@ -653,6 +656,7 @@ public class CourseQueryControllerV3 {
             return sectionResponses;
         }
 
+        Map<UUID, QuestionJpaEntity> questionMap = loadSectionQuizQuestionMap(lesson.getContentBlocks());
         for (var block : lesson.getContentBlocks()) {
             Map<String, Object> data = block.getData() != null ? block.getData() : new HashMap<>();
             sectionResponses.add(SectionResponse.builder()
@@ -665,9 +669,174 @@ public class CourseQueryControllerV3 {
                     .duration(data.get("duration") != null ? ((Number) data.get("duration")).intValue() : 0)
                     .orderIndex(data.get("orderIndex") != null ? ((Number) data.get("orderIndex")).intValue() : 0)
                     .isRequired(data.get("isRequired") != null ? (Boolean) data.get("isRequired") : false)
+                    .quizData(showContent ? buildSectionQuizData(data, questionMap) : null)
                     .build());
         }
         return sectionResponses;
+    }
+
+    private Map<UUID, QuestionJpaEntity> loadSectionQuizQuestionMap(List<com.example.lms.shared.domain.model.ContentBlock> blocks) {
+        List<UUID> questionIds = new ArrayList<>();
+        for (var block : blocks) {
+            if (!"QUIZ".equalsIgnoreCase(block.getType()) || block.getData() == null) {
+                continue;
+            }
+            questionIds.addAll(extractSectionQuizQuestionIds(block.getData()));
+        }
+
+        if (questionIds.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<UUID, QuestionJpaEntity> questionMap = new LinkedHashMap<>();
+        for (QuestionJpaEntity question : questionJpaRepository.findAllById(questionIds)) {
+            questionMap.put(question.getId(), question);
+        }
+        return questionMap;
+    }
+
+    private Map<String, Object> buildSectionQuizData(
+            Map<String, Object> blockData,
+            Map<UUID, QuestionJpaEntity> questionMap
+    ) {
+        Map<String, Object> quizData = asMap(blockData.get("quizData"));
+        if (quizData == null) {
+            return null;
+        }
+
+        Map<String, Object> normalized = new LinkedHashMap<>();
+        normalized.put("quizType", asString(quizData.get("quizType"), "ASSESSMENT"));
+        normalized.put("timeLimitMinutes", asInteger(quizData.get("timeLimitMinutes"), 30));
+        normalized.put("passingScore", asInteger(quizData.get("passingScore"), 60));
+        normalized.put("maxAttempts", asInteger(quizData.get("maxAttempts"), 1));
+        normalized.put("shuffleQuestions", asBoolean(quizData.get("shuffleQuestions"), true));
+        normalized.put("shuffleOptions", asBoolean(quizData.get("shuffleOptions"), true));
+        normalized.put("showResultsImmediately", asBoolean(quizData.get("showResultsImmediately"), true));
+
+        List<UUID> questionIds = extractSectionQuizQuestionIds(blockData);
+        if (!questionIds.isEmpty()) {
+            List<Map<String, Object>> questions = new ArrayList<>();
+            for (UUID questionId : questionIds) {
+                QuestionJpaEntity question = questionMap.get(questionId);
+                if (question == null) {
+                    continue;
+                }
+
+                Map<String, Object> questionDto = new LinkedHashMap<>();
+                questionDto.put("id", question.getId().toString());
+                questionDto.put("content", extractTextFromBlocks(question.getContentBlocks()));
+                questionDto.put("difficulty", question.getDifficulty() != null ? question.getDifficulty().name() : "MEDIUM");
+                questions.add(questionDto);
+            }
+            normalized.put("questions", questions);
+        } else {
+            normalized.put("questions", normalizeLegacySectionQuizQuestions(quizData.get("questions")));
+        }
+
+        return normalized;
+    }
+
+    private List<UUID> extractSectionQuizQuestionIds(Map<String, Object> blockData) {
+        Map<String, Object> quizData = asMap(blockData.get("quizData"));
+        if (quizData == null) {
+            return List.of();
+        }
+
+        Object rawQuestionIds = quizData.get("questionIds");
+        if (!(rawQuestionIds instanceof List<?> questionIdsList)) {
+            return List.of();
+        }
+
+        List<UUID> questionIds = new ArrayList<>();
+        for (Object rawQuestionId : questionIdsList) {
+            if (rawQuestionId == null) {
+                continue;
+            }
+
+            try {
+                questionIds.add(UUID.fromString(rawQuestionId.toString()));
+            } catch (IllegalArgumentException ignored) {
+                // Ignore malformed legacy values instead of breaking the whole section.
+            }
+        }
+        return questionIds;
+    }
+
+    private List<Map<String, Object>> normalizeLegacySectionQuizQuestions(Object rawQuestions) {
+        if (!(rawQuestions instanceof List<?> questions)) {
+            return List.of();
+        }
+
+        List<Map<String, Object>> normalized = new ArrayList<>();
+        for (Object rawQuestion : questions) {
+            Map<String, Object> question = asMap(rawQuestion);
+            if (question == null) {
+                continue;
+            }
+
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", question.get("id") != null ? question.get("id").toString() : null);
+            item.put("content", asString(question.get("content"), ""));
+            item.put("difficulty", asString(question.get("difficulty"), "MEDIUM"));
+            normalized.add(item);
+        }
+        return normalized;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> asMap(Object value) {
+        if (value instanceof Map<?, ?> map) {
+            return (Map<String, Object>) map;
+        }
+        return null;
+    }
+
+    private String asString(Object value, String fallback) {
+        if (value == null) {
+            return fallback;
+        }
+        String text = value.toString();
+        return text.isBlank() ? fallback : text;
+    }
+
+    private Integer asInteger(Object value, Integer fallback) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        if (value != null) {
+            try {
+                return Integer.parseInt(value.toString());
+            } catch (NumberFormatException ignored) {
+                // Fallback below.
+            }
+        }
+        return fallback;
+    }
+
+    private Boolean asBoolean(Object value, boolean fallback) {
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        if (value != null) {
+            return Boolean.parseBoolean(value.toString());
+        }
+        return fallback;
+    }
+
+    private String extractTextFromBlocks(List<com.example.lms.shared.domain.model.ContentBlock> blocks) {
+        if (blocks == null || blocks.isEmpty()) {
+            return "";
+        }
+
+        return blocks.stream()
+                .map(com.example.lms.shared.domain.model.ContentBlock::getData)
+                .filter(Objects::nonNull)
+                .map(data -> data.get("content"))
+                .filter(Objects::nonNull)
+                .map(Object::toString)
+                .filter(text -> !text.isBlank())
+                .findFirst()
+                .orElse("");
     }
 
     private AssignmentInfoResponse toAssignmentInfo(AssignmentJpaEntity assignment) {
@@ -796,6 +965,7 @@ public class CourseQueryControllerV3 {
         private Integer duration; // seconds
         private Integer orderIndex;
         private Boolean isRequired;
+        private Map<String, Object> quizData;
     }
 
     @lombok.Builder

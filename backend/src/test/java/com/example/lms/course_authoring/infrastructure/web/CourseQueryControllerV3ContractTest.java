@@ -1,7 +1,13 @@
 package com.example.lms.course_authoring.infrastructure.web;
 
+import com.example.lms.assessment.infrastructure.persistence.entity.QuestionJpaEntity;
+import com.example.lms.assessment.infrastructure.persistence.repository.QuestionJpaRepository;
+import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentJpaRepository;
+import com.example.lms.assessment.infrastructure.persistence.repository.QuizJpaRepositoryV3;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
+import com.example.lms.course_authoring.infrastructure.persistence.entity.ChapterJpaEntity;
+import com.example.lms.course_authoring.infrastructure.persistence.entity.LessonJpaEntity;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.CourseCategoryJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository;
@@ -23,6 +29,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -45,6 +52,9 @@ class CourseQueryControllerV3ContractTest {
     @Mock private UserJpaRepository userJpaRepository;
     @Mock private CourseCategoryJpaRepository courseCategoryJpaRepository;
     @Mock private PaymentTransactionJpaRepository paymentRepository;
+    @Mock private QuizJpaRepositoryV3 quizJpaRepository;
+    @Mock private AssignmentJpaRepository assignmentJpaRepository;
+    @Mock private QuestionJpaRepository questionJpaRepository;
 
     @InjectMocks
     private CourseQueryControllerV3 controller;
@@ -110,5 +120,92 @@ class CourseQueryControllerV3ContractTest {
         assertThat(detail.getPrice()).isEqualByComparingTo(BigDecimal.valueOf(1_500_000));
         assertThat(detail.getSalePrice()).isEqualByComparingTo(BigDecimal.valueOf(1_200_000));
         assertThat(detail.getDeliveryMode()).isEqualTo("SELF_PACED");
+    }
+
+    @Test
+    @DisplayName("lesson detail includes section quizData and question summaries for quiz sections")
+    void getLessonByIdIncludesSectionQuizData() {
+        UUID courseId = approvedPaidCourse.getId();
+        UUID chapterId = UUID.randomUUID();
+        UUID lessonId = UUID.randomUUID();
+        UUID questionId = UUID.randomUUID();
+
+        UserJpaEntity teacher = mock(UserJpaEntity.class);
+        when(teacher.getRole()).thenReturn(UserJpaEntity.UserRole.TEACHER);
+
+        LessonJpaEntity lesson = LessonJpaEntity.builder()
+                .id(lessonId)
+                .chapterId(chapterId)
+                .title("Lecture with section quiz")
+                .type(LessonJpaEntity.LessonType.LECTURE)
+                .contentBlocks(List.of(
+                        com.example.lms.shared.domain.model.ContentBlock.of(
+                                "section-quiz-1",
+                                "QUIZ",
+                                Map.of(
+                                        "title", "Section quiz",
+                                        "isRequired", true,
+                                        "quizData", Map.of(
+                                                "quizType", "EXAM",
+                                                "timeLimitMinutes", 25,
+                                                "passingScore", 80,
+                                                "maxAttempts", 2,
+                                                "shuffleQuestions", false,
+                                                "shuffleOptions", true,
+                                                "showResultsImmediately", false,
+                                                "questionIds", List.of(questionId.toString())
+                                        )
+                                )
+                        )
+                ))
+                .build();
+
+        ChapterJpaEntity chapter = ChapterJpaEntity.builder()
+                .id(chapterId)
+                .courseId(courseId)
+                .title("Week 1")
+                .build();
+
+        QuestionJpaEntity question = QuestionJpaEntity.builder()
+                .id(questionId)
+                .difficulty(QuestionJpaEntity.Difficulty.MEDIUM)
+                .questionType(QuestionJpaEntity.QuestionType.MULTIPLE_CHOICE)
+                .contentBlocks(List.of(
+                        com.example.lms.shared.domain.model.ContentBlock.of(
+                                "question-content-1",
+                                "TEXT",
+                                Map.of("content", "Question preview from bank")
+                        )
+                ))
+                .build();
+
+        when(lessonRepository.findById(lessonId)).thenReturn(Optional.of(lesson));
+        when(chapterRepository.findById(chapterId)).thenReturn(Optional.of(chapter));
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(approvedPaidCourse));
+        when(quizJpaRepository.findByLessonId(lessonId)).thenReturn(List.of());
+        when(assignmentJpaRepository.findByLessonId(lessonId)).thenReturn(List.of());
+        when(questionJpaRepository.findAllById(List.of(questionId))).thenReturn(List.of(question));
+
+        var response = controller.getLessonById(lessonId, teacher);
+        var detail = response.getBody().getData();
+        var section = detail.getSections().getFirst();
+
+        assertThat(section.getType()).isEqualTo("QUIZ");
+        assertThat(section.getQuizData()).isNotNull();
+        assertThat(section.getQuizData().get("quizType")).isEqualTo("EXAM");
+        assertThat(section.getQuizData().get("timeLimitMinutes")).isEqualTo(25);
+        assertThat(section.getQuizData().get("passingScore")).isEqualTo(80);
+        assertThat(section.getQuizData().get("maxAttempts")).isEqualTo(2);
+        assertThat(section.getQuizData().get("shuffleQuestions")).isEqualTo(false);
+        assertThat(section.getQuizData().get("shuffleOptions")).isEqualTo(true);
+        assertThat(section.getQuizData().get("showResultsImmediately")).isEqualTo(false);
+
+        @SuppressWarnings("unchecked")
+        var questions = (List<Map<String, Object>>) section.getQuizData().get("questions");
+        assertThat(questions).hasSize(1);
+        assertThat(questions.getFirst())
+                .containsEntry("id", questionId.toString())
+                .containsEntry("content", "Question preview from bank")
+                .containsEntry("difficulty", "MEDIUM");
     }
 }
