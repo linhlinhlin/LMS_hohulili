@@ -790,7 +790,8 @@ export class AdminService {
   }
 
   getSettings(): Observable<SystemSettings> {
-    return this.apiClient.get<SystemSettings>(ADMIN_ENDPOINTS.SETTINGS).pipe(
+    return this.apiClient.getWithResponse<SystemSettings>(ADMIN_ENDPOINTS.SETTINGS).pipe(
+      map(response => response.data),
       catchError(() => {
         // Return defaults if API not available
         return new Observable<SystemSettings>(subscriber => {
@@ -813,7 +814,9 @@ export class AdminService {
   }
 
   updateSettings(settings: SystemSettings): Observable<{ message: string }> {
-    return this.apiClient.put<{ message: string }>(ADMIN_ENDPOINTS.SETTINGS, settings);
+    return this.apiClient.putWithResponse<SystemSettings>(ADMIN_ENDPOINTS.SETTINGS, settings).pipe(
+      map(response => ({ message: response.message || 'Đã lưu cài đặt' }))
+    );
   }
 
   getGatewayStatus(): Observable<GatewayStatus> {
