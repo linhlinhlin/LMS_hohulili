@@ -92,9 +92,11 @@ import {
   Globe,
   Lock,
   FolderSync,
+  Filter,
   Image,
   MousePointer2,
   List,
+  SearchX,
   Type
 } from 'lucide-angular';
 
@@ -242,9 +244,11 @@ export const appConfig: ApplicationConfig = {
       Globe,
       Lock,
       FolderSync,
+      Filter,
       Image,
       MousePointer2,
       List,
+      SearchX,
       Type
     }))
   ]

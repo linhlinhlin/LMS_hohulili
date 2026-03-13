@@ -2049,6 +2049,11 @@ export class CourseCurriculumComponent implements OnDestroy {
       const currentIds = new Set(this.sectionQuizSelectedQuestions().map(q => q.id));
       const newQuestions = selectedQuestions.filter(q => !currentIds.has(q.id));
 
+      if (newQuestions.length === 0) {
+        this.toast.warning('Các câu hỏi đã chọn đã có trong mục này.');
+        return;
+      }
+
       this.sectionQuizSelectedQuestions.update(current => [...current, ...newQuestions]);
       this.markEditorUnsaved();
       this.showSectionQuizBankModal.set(false);
@@ -2068,17 +2073,25 @@ export class CourseCurriculumComponent implements OnDestroy {
         return;
       }
 
-      const count = this.sectionQuizRandomCount();
-      const shuffled = questions.sort(() => 0.5 - Math.random());
-      const selected = shuffled.slice(0, count);
-
       // Add to current selection (avoid duplicates)
       const currentIds = new Set(this.sectionQuizSelectedQuestions().map(q => q.id));
-      const newQuestions = selected.filter((q: any) => !currentIds.has(q.id));
+      const availableQuestions = questions.filter((q: any) => !currentIds.has(q.id));
+      if (availableQuestions.length === 0) {
+        this.toast.warning('Gói câu hỏi này không còn câu hỏi mới để thêm vào mục này.');
+        return;
+      }
+
+      const count = this.sectionQuizRandomCount();
+      const selectionCount = Math.min(count, availableQuestions.length);
+      const shuffled = [...availableQuestions].sort(() => 0.5 - Math.random());
+      const newQuestions = shuffled.slice(0, selectionCount);
 
       this.sectionQuizSelectedQuestions.update(current => [...current, ...newQuestions]);
       this.markEditorUnsaved();
       this.showSectionQuizRandomModal.set(false);
+      if (newQuestions.length < count) {
+        this.toast.info(`Chỉ còn ${newQuestions.length} câu hỏi mới trong gói này, hệ thống đã thêm toàn bộ câu khả dụng.`);
+      }
     } catch {
       this.toast.error('Lỗi khi tạo câu hỏi ngẫu nhiên.');
     }

@@ -208,4 +208,70 @@ class CourseQueryControllerV3ContractTest {
                 .containsEntry("content", "Question preview from bank")
                 .containsEntry("difficulty", "MEDIUM");
     }
+
+    @Test
+    @DisplayName("lesson detail extracts question preview text from EditorJS paragraph blocks")
+    void getLessonByIdExtractsQuestionPreviewFromEditorJsParagraphBlocks() {
+        UUID courseId = approvedPaidCourse.getId();
+        UUID chapterId = UUID.randomUUID();
+        UUID lessonId = UUID.randomUUID();
+        UUID questionId = UUID.randomUUID();
+
+        UserJpaEntity teacher = mock(UserJpaEntity.class);
+        when(teacher.getRole()).thenReturn(UserJpaEntity.UserRole.TEACHER);
+
+        LessonJpaEntity lesson = LessonJpaEntity.builder()
+                .id(lessonId)
+                .chapterId(chapterId)
+                .title("Lecture with section quiz")
+                .type(LessonJpaEntity.LessonType.LECTURE)
+                .contentBlocks(List.of(
+                        com.example.lms.shared.domain.model.ContentBlock.of(
+                                "section-quiz-1",
+                                "QUIZ",
+                                Map.of(
+                                        "title", "Section quiz",
+                                        "quizData", Map.of(
+                                                "questionIds", List.of(questionId.toString())
+                                        )
+                                )
+                        )
+                ))
+                .build();
+
+        ChapterJpaEntity chapter = ChapterJpaEntity.builder()
+                .id(chapterId)
+                .courseId(courseId)
+                .title("Week 1")
+                .build();
+
+        QuestionJpaEntity question = QuestionJpaEntity.builder()
+                .id(questionId)
+                .difficulty(QuestionJpaEntity.Difficulty.MEDIUM)
+                .questionType(QuestionJpaEntity.QuestionType.SINGLE_CHOICE)
+                .contentBlocks(List.of(
+                        com.example.lms.shared.domain.model.ContentBlock.of(
+                                "question-content-1",
+                                "paragraph",
+                                Map.of("text", "Dau la kieu du lieu nguyen thuy trong Java?")
+                        )
+                ))
+                .build();
+
+        when(lessonRepository.findById(lessonId)).thenReturn(Optional.of(lesson));
+        when(chapterRepository.findById(chapterId)).thenReturn(Optional.of(chapter));
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(approvedPaidCourse));
+        when(quizJpaRepository.findByLessonId(lessonId)).thenReturn(List.of());
+        when(assignmentJpaRepository.findByLessonId(lessonId)).thenReturn(List.of());
+        when(questionJpaRepository.findAllById(List.of(questionId))).thenReturn(List.of(question));
+
+        var response = controller.getLessonById(lessonId, teacher);
+        var detail = response.getBody().getData();
+        var section = detail.getSections().getFirst();
+
+        @SuppressWarnings("unchecked")
+        var questions = (List<Map<String, Object>>) section.getQuizData().get("questions");
+        assertThat(questions).hasSize(1);
+        assertThat(questions.getFirst()).containsEntry("content", "Dau la kieu du lieu nguyen thuy trong Java?");
+    }
 }

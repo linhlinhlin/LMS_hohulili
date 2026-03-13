@@ -147,7 +147,7 @@ export class QuizBankComponent implements OnInit {
   async ngOnInit() {
     this.route.queryParams.pipe(take(1)).subscribe(params => {
       this.addToQuizLessonId = params['addToQuiz'] || null;
-      this.returnUrl = params['returnUrl'] || null;
+      this.returnUrl = this.normalizeInternalReturnUrl(params['returnUrl'] || null);
       this.pendingSelectedQuestionId = params['selectQuestionId'] || null;
 
       const bankIdFromUrl = params['packageId'] || params['bankId'] || null;
@@ -467,9 +467,9 @@ export class QuizBankComponent implements OnInit {
     if (this.addToQuizLessonId) {
       queryParams.addToQuiz = this.addToQuizLessonId;
     }
-    if (this.returnUrl) {
-      queryParams.returnUrl = this.returnUrl;
-    }
+      if (this.returnUrl) {
+        queryParams.returnUrl = this.returnUrl;
+      }
     this.router.navigate(['/teacher/quiz/question/create'], { queryParams });
   }
 
@@ -695,5 +695,30 @@ export class QuizBankComponent implements OnInit {
   }
 
   onImportModalClosed() {
+  }
+
+  private normalizeInternalReturnUrl(returnUrl: string | null): string | null {
+    if (!returnUrl) {
+      return null;
+    }
+
+    if (returnUrl.startsWith('/')) {
+      return returnUrl;
+    }
+
+    if (typeof window === 'undefined') {
+      return null;
+    }
+
+    try {
+      const parsed = new URL(returnUrl, window.location.origin);
+      if (parsed.origin !== window.location.origin) {
+        return null;
+      }
+
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    } catch {
+      return null;
+    }
   }
 }

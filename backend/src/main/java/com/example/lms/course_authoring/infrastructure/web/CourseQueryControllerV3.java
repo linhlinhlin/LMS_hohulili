@@ -831,12 +831,52 @@ public class CourseQueryControllerV3 {
         return blocks.stream()
                 .map(com.example.lms.shared.domain.model.ContentBlock::getData)
                 .filter(Objects::nonNull)
-                .map(data -> data.get("content"))
-                .filter(Objects::nonNull)
-                .map(Object::toString)
+                .map(this::extractTextFromBlockData)
                 .filter(text -> !text.isBlank())
                 .findFirst()
                 .orElse("");
+    }
+
+    private String extractTextFromBlockData(Map<String, Object> data) {
+        if (data == null || data.isEmpty()) {
+            return "";
+        }
+
+        Object rawText = firstNonNull(
+                data.get("content"),
+                data.get("text"),
+                data.get("html")
+        );
+
+        if (rawText == null) {
+            return "";
+        }
+
+        return normalizePreviewText(rawText.toString());
+    }
+
+    private Object firstNonNull(Object... values) {
+        for (Object value : values) {
+            if (value != null) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    private String normalizePreviewText(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "";
+        }
+
+        return raw
+                .replaceAll("<[^>]+>", " ")
+                .replace("&nbsp;", " ")
+                .replace("&amp;", "&")
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replaceAll("\\s+", " ")
+                .trim();
     }
 
     private AssignmentInfoResponse toAssignmentInfo(AssignmentJpaEntity assignment) {

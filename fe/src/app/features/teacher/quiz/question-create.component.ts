@@ -249,7 +249,9 @@ export class QuestionCreateComponent implements OnInit {
         }
 
         const addToQuizLessonId = this.route.snapshot.queryParamMap.get('addToQuiz');
-        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+        const returnUrl = this.normalizeInternalReturnUrl(
+          this.route.snapshot.queryParamMap.get('returnUrl')
+        );
 
         if (addToQuizLessonId) {
           this.router.navigate(['/teacher/quiz/quiz-bank'], {
@@ -352,7 +354,9 @@ export class QuestionCreateComponent implements OnInit {
       queryParams['addToQuiz'] = addToQuizLessonId;
     }
 
-    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+    const returnUrl = this.normalizeInternalReturnUrl(
+      this.route.snapshot.queryParamMap.get('returnUrl')
+    );
     if (returnUrl) {
       queryParams['returnUrl'] = returnUrl;
     }
@@ -370,7 +374,9 @@ export class QuestionCreateComponent implements OnInit {
       return;
     }
     const addToQuizLessonId = this.route.snapshot.queryParamMap.get('addToQuiz');
-    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+    const returnUrl = this.normalizeInternalReturnUrl(
+      this.route.snapshot.queryParamMap.get('returnUrl')
+    );
     if (addToQuizLessonId) {
       this.router.navigate(['/teacher/quiz/quiz-bank'], {
         queryParams: this.buildQuestionBankReturnQueryParams()
@@ -423,5 +429,30 @@ export class QuestionCreateComponent implements OnInit {
       });
     }
     return result;
+  }
+
+  private normalizeInternalReturnUrl(returnUrl: string | null): string | null {
+    if (!returnUrl) {
+      return null;
+    }
+
+    if (returnUrl.startsWith('/')) {
+      return returnUrl;
+    }
+
+    if (typeof window === 'undefined') {
+      return null;
+    }
+
+    try {
+      const parsed = new URL(returnUrl, window.location.origin);
+      if (parsed.origin !== window.location.origin) {
+        return null;
+      }
+
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    } catch {
+      return null;
+    }
   }
 }

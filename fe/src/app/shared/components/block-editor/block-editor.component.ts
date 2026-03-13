@@ -199,11 +199,28 @@ export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlVa
                 data: this.value || undefined,
 
                 onChange: async () => {
-                    const data = await this.editor.save();
-                    this.value = data;
-                    this.onChange(data);
-                    if (data && data.blocks) {
-                        this.blocksChange.emit(data.blocks);
+                    const activeEditor = this.editor;
+                    if (!activeEditor || typeof activeEditor.save !== 'function') {
+                        return;
+                    }
+
+                    try {
+                        const data = await activeEditor.save();
+
+                        // Ignore late onChange callbacks from an editor instance
+                        // that has already been replaced or destroyed.
+                        if (this.editor !== activeEditor) {
+                            return;
+                        }
+
+                        this.value = data;
+                        this.onChange(data);
+                        if (data && data.blocks) {
+                            this.blocksChange.emit(data.blocks);
+                        }
+                    } catch {
+                        // EditorJS can emit a late change event while the
+                        // component is being torn down. Ignore those races.
                     }
                 },
 
