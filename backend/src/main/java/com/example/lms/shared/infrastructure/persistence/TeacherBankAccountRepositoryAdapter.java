@@ -41,6 +41,11 @@ public class TeacherBankAccountRepositoryAdapter implements TeacherBankAccountRe
     }
 
     @Override
+    public boolean existsByTeacherIdAndBankCodeAndAccountNumber(UUID teacherId, String bankCode, String accountNumber) {
+        return jpaRepo.existsByTeacherIdAndBankCodeAndAccountNumber(teacherId, bankCode, accountNumber);
+    }
+
+    @Override
     @Transactional
     public void clearDefaultForTeacher(UUID teacherId) {
         jpaRepo.clearDefaultForTeacher(teacherId);

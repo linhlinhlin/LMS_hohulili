@@ -25,10 +25,21 @@ public class ManageTeacherBankAccountUseCase {
     @Transactional
     public TeacherBankAccount addAccount(UUID teacherId, String bankCode,
                                           String accountNumber, String accountName) {
+        String normalizedBank = bankCode.toUpperCase().trim();
+        String normalizedNumber = accountNumber.trim();
+
+        if (repo.existsByTeacherIdAndBankCodeAndAccountNumber(teacherId, normalizedBank, normalizedNumber)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tài khoản ngân hàng này đã được thêm");
+        }
+
         List<TeacherBankAccount> existing = repo.findByTeacherId(teacherId);
+        if (existing.size() >= 5) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tối đa 5 tài khoản ngân hàng");
+        }
+
         boolean isFirst = existing.isEmpty();
-        var account = TeacherBankAccount.create(teacherId, bankCode.toUpperCase().trim(),
-                accountNumber.trim(), accountName.trim().toUpperCase(), isFirst);
+        var account = TeacherBankAccount.create(teacherId, normalizedBank,
+                normalizedNumber, accountName.trim().toUpperCase(), isFirst);
         account.verify(); // Auto-verify: no real-time Napas validation in current system
         return repo.save(account);
     }

@@ -11,6 +11,8 @@ public interface TeacherBankAccountRepository {
     Optional<TeacherBankAccount> findById(UUID id);
     List<TeacherBankAccount> findByTeacherId(UUID teacherId);
     Optional<TeacherBankAccount> findDefaultByTeacherId(UUID teacherId);
+    /** Check if a specific bank account already exists for this teacher. */
+    boolean existsByTeacherIdAndBankCodeAndAccountNumber(UUID teacherId, String bankCode, String accountNumber);
     /** Sets is_default=FALSE for all accounts of this teacher (used before setting a new default). */
     void clearDefaultForTeacher(UUID teacherId);
     void delete(UUID id);
