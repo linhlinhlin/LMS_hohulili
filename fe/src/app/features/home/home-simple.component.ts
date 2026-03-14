@@ -312,10 +312,13 @@ interface FeaturedCourse {
          ══════════════════════════════════════════════ -->
     <section class="scroll-reveal border-y border-gray-100 bg-white py-14">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <p class="mb-8 text-center text-sm font-medium uppercase tracking-widest text-gray-400">Đối tác đào tạo</p>
-        <div class="flex flex-wrap items-center justify-center gap-8 opacity-50 grayscale transition-all hover:opacity-70 hover:grayscale-0 lg:gap-14">
+        <p class="mb-8 text-center text-sm font-medium uppercase tracking-widest text-gray-400">Hệ sinh thái The Wiii Lab</p>
+        <div class="flex flex-wrap items-center justify-center gap-10 lg:gap-16">
           @for (partner of partners; track partner.name) {
-            <img [src]="partner.logo" [alt]="partner.name" class="h-8 w-auto object-contain sm:h-10">
+            <div class="flex flex-col items-center gap-2">
+              <img [src]="partner.logo" [alt]="partner.name" class="h-12 w-12 rounded-xl object-contain sm:h-14 sm:w-14">
+              <span class="text-xs font-medium text-gray-500">{{ partner.name }}</span>
+            </div>
           }
         </div>
       </div>
@@ -498,11 +501,9 @@ export class HomeSimpleComponent implements OnInit, AfterViewInit {
   ];
 
   readonly partners = [
-    { name: 'Gemadept', logo: '/images/partners/gemadept.jpg' },
-    { name: 'PetroVietnam', logo: '/images/partners/petrovietnam.jpg' },
-    { name: 'Saigon Port', logo: '/images/partners/saigonport.jpg' },
-    { name: 'VIMC', logo: '/images/partners/vimc.jpg' },
-    { name: 'Vinalines', logo: '/images/partners/vinalines.jpg' },
+    { name: 'LMS Maritime', logo: '/icons/logo-master.png' },
+    { name: 'Wiii AI', logo: '/images/wiii-avatar.png' },
+    { name: 'The Wiii Lab', logo: '/icons/thewiiilab.png' },
   ];
 
   readonly orgFeatures = [
