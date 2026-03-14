@@ -213,6 +213,7 @@ export class PaymentModalComponent {
       }
 
       await this.paymentService.checkout(info.courseId, amount, method);
+      await this.paymentService.ensureEnrollment(info.courseId);
       this.paymentSuccess.set(true);
       this.paymentComplete.emit();
     } catch (error: any) {
@@ -220,6 +221,7 @@ export class PaymentModalComponent {
       const msg: string = error?.error?.message || error?.message || '';
       if (msg.includes('đã thanh toán') || msg.includes('already paid') || msg.includes('already enrolled')) {
         this.paymentService.markCourseAsPaid(info.courseId);
+        await this.paymentService.ensureEnrollment(info.courseId);
         this.paymentComplete.emit();
         this.close.emit(true);
       }
@@ -227,9 +229,10 @@ export class PaymentModalComponent {
     }
   }
 
-  onSepayPaymentComplete(): void {
+  async onSepayPaymentComplete(): Promise<void> {
     // Update local cache so the course page immediately reflects paid status
     this.paymentService.markCourseAsPaid(this.courseInfo().courseId);
+    await this.paymentService.ensureEnrollment(this.courseInfo().courseId);
     // QR modal already showed "Thanh toán thành công!" — close payment modal directly
     // (no need to show a second success screen)
     this.paymentComplete.emit();

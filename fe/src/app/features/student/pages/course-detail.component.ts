@@ -429,7 +429,7 @@ export class CourseDetailComponent implements OnInit {
       next: (res: any) => {
         const data = res?.data ?? res;
         const status = String(data?.status || '').toLowerCase();
-        const isActuallyEnrolled = status !== '' && status !== 'not_enrolled' && status !== 'not_authenticated';
+        const isActuallyEnrolled = status === 'active' || status === 'completed';
         this.isEnrolled.set(isActuallyEnrolled);
         if (!isActuallyEnrolled) {
           this._realProgress.set(null);

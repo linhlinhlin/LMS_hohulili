@@ -9,6 +9,8 @@ import {
     PaymentStatus,
     SepayQrData
 } from '../../api/client/payment.api';
+import { CourseApi } from '../../api/client/course.api';
+import { AuthService } from '../../core/services/auth.service';
 
 /**
  * Payment Service
@@ -30,6 +32,8 @@ export interface PaymentState {
 @Injectable({ providedIn: 'root' })
 export class PaymentService {
     private paymentApi = inject(PaymentApi);
+    private courseApi = inject(CourseApi);
+    private authService = inject(AuthService);
 
     // === STATE ===
     private _paymentStatusCache = signal<Map<string, PaymentState>>(new Map());
@@ -50,7 +54,7 @@ export class PaymentService {
      */
     hasPaidForCourse(courseId: string): boolean {
         const cache = this._paymentStatusCache();
-        const status = cache.get(courseId);
+        const status = cache.get(this.getCacheKey(courseId));
         return status?.hasPaid ?? false;
     }
 
@@ -58,7 +62,7 @@ export class PaymentService {
      * Get payment state for a course
      */
     getPaymentState(courseId: string): PaymentState | undefined {
-        return this._paymentStatusCache().get(courseId);
+        return this._paymentStatusCache().get(this.getCacheKey(courseId));
     }
 
     /**
@@ -80,7 +84,7 @@ export class PaymentService {
                 // Update cache
                 this._paymentStatusCache.update(cache => {
                     const newCache = new Map(cache);
-                    newCache.set(courseId, state);
+                    newCache.set(this.getCacheKey(courseId), state);
                     return newCache;
                 });
 
@@ -138,7 +142,7 @@ export class PaymentService {
                 // Update cache with paid status
                 this._paymentStatusCache.update(cache => {
                     const newCache = new Map(cache);
-                    newCache.set(courseId, {
+                    newCache.set(this.getCacheKey(courseId), {
                         courseId,
                         hasPaid: response.data.status === 'COMPLETED',
                         status: response.data.status,
@@ -199,8 +203,8 @@ export class PaymentService {
     markCourseAsPaid(courseId: string): void {
         this._paymentStatusCache.update(cache => {
             const newCache = new Map(cache);
-            const existing = cache.get(courseId);
-            newCache.set(courseId, {
+            const existing = cache.get(this.getCacheKey(courseId));
+            newCache.set(this.getCacheKey(courseId), {
                 courseId,
                 hasPaid: true,
                 status: 'COMPLETED',
@@ -218,7 +222,7 @@ export class PaymentService {
         if (courseId) {
             this._paymentStatusCache.update(cache => {
                 const newCache = new Map(cache);
-                newCache.delete(courseId);
+                newCache.delete(this.getCacheKey(courseId));
                 return newCache;
             });
         } else {
@@ -274,5 +278,32 @@ export class PaymentService {
         } catch (error) {
             return [];
         }
+    }
+
+    async ensureEnrollment(courseId: string): Promise<void> {
+        if (!this.authService.isAuthenticated() || this.authService.userRole() !== 'student') {
+            return;
+        }
+
+        try {
+            await firstValueFrom(this.courseApi.enrollCourse(courseId));
+        } catch (error: any) {
+            const backendMsg = error?.error?.message || error?.error?.error || error?.message || '';
+            const message = String(backendMsg).toLowerCase();
+            if (message.includes('đã đăng ký')
+                || message.includes('already enrolled')
+                || message.includes('already paid')) {
+                return;
+            }
+
+            const errorMessage = backendMsg || 'Thanh toán đã hoàn tất nhưng chưa thể kích hoạt quyền học. Vui lòng thử lại.';
+            this._error.set(errorMessage);
+            throw error;
+        }
+    }
+
+    private getCacheKey(courseId: string): string {
+        const userId = this.authService.currentUser()?.id ?? 'anon';
+        return `${userId}:${courseId}`;
     }
 }

@@ -58,17 +58,33 @@ public class SelfEnrollUseCase {
             throw new BusinessRuleException("Khóa học dạng lớp học không hỗ trợ tự đăng ký trực tiếp");
         }
 
-        // 2. Check if student already enrolled (idempotent)
+        // 2. Reuse or reactivate an existing enrollment shell if present
         var existingEnrollment = enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId);
         if (existingEnrollment.isPresent()) {
-            log.info("Student {} already enrolled in course {}", studentId, courseId);
-            return existingEnrollment.get().getId();
+            var enrollment = existingEnrollment.get();
+            if (enrollment.getStatus() == Enrollment.EnrollmentStatus.ACTIVE
+                    || enrollment.getStatus() == Enrollment.EnrollmentStatus.COMPLETED) {
+                log.info("Student {} already enrolled in course {}", studentId, courseId);
+                return enrollment.getId();
+            }
         }
 
         // 3. For PAID courses, verify payment exists
         if (course.getPriceType() == Course.PriceType.PAID) {
             if (!paymentVerification.hasCompletedPayment(studentId, courseId)) {
                 throw new BusinessRuleException("Khóa học trả phí — cần thanh toán trước khi đăng ký");
+            }
+        }
+
+        if (existingEnrollment.isPresent()) {
+            var enrollment = existingEnrollment.get();
+            if (enrollment.getStatus() == Enrollment.EnrollmentStatus.DROPPED
+                    || enrollment.getStatus() == Enrollment.EnrollmentStatus.SUSPENDED) {
+                enrollment.reactivate();
+                Enrollment reactivated = enrollmentRepository.save(enrollment);
+                log.info("Reactivated enrollment {} for student {} course {}",
+                        reactivated.getId(), studentId, courseId);
+                return reactivated.getId();
             }
         }
 

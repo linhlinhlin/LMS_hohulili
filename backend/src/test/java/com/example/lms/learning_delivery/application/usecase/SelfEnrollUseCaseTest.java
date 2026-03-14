@@ -281,6 +281,33 @@ class SelfEnrollUseCaseTest {
     }
 
     @Test
+    @DisplayName("Should reactivate dropped enrollment after successful repayment")
+    void selfEnroll_reactivatesDroppedEnrollment() {
+        Course paidCourse = createApprovedPaidCourse();
+        courseId = paidCourse.getId();
+
+        Enrollment droppedEnrollment = Enrollment.builder()
+                .id(UUID.randomUUID())
+                .learningClass(defaultClass)
+                .studentId(studentId)
+                .status(Enrollment.EnrollmentStatus.DROPPED)
+                .build();
+
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(paidCourse));
+        when(enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId))
+                .thenReturn(Optional.of(droppedEnrollment));
+        when(paymentVerification.hasCompletedPayment(studentId, courseId)).thenReturn(true);
+        when(enrollmentRepository.save(any(Enrollment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UUID result = useCase.execute(new SelfEnrollCommand(courseId, studentId));
+
+        assertThat(result).isEqualTo(droppedEnrollment.getId());
+        assertThat(droppedEnrollment.getStatus()).isEqualTo(Enrollment.EnrollmentStatus.ACTIVE);
+        verify(enrollmentRepository).save(droppedEnrollment);
+        verify(learningClassRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("Should throw when course not found")
     void selfEnroll_throwsWhenCourseNotFound() {
         // Given

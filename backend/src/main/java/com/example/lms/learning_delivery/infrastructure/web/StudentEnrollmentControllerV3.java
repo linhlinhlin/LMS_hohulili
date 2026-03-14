@@ -258,7 +258,7 @@ public class StudentEnrollmentControllerV3 {
         
         // SOTA: Single query to find enrollment by studentId + courseId
         // Replaces N+1 loop pattern with direct JOIN query
-        Optional<Enrollment> enrollmentOpt = enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId);
+        Optional<Enrollment> enrollmentOpt = findAccessibleEnrollment(studentId, courseId);
         
         if (enrollmentOpt.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.success(
@@ -304,7 +304,7 @@ public class StudentEnrollmentControllerV3 {
         UUID studentId = currentUser.getId();
         
         // SOTA: Single query to find enrollment by studentId + courseId
-        Optional<Enrollment> enrollmentOpt = enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId);
+        Optional<Enrollment> enrollmentOpt = findAccessibleEnrollment(studentId, courseId);
 
         if (enrollmentOpt.isPresent()) {
             Enrollment enrollment = enrollmentOpt.get();
@@ -346,7 +346,7 @@ public class StudentEnrollmentControllerV3 {
         }
 
         UUID courseId = courseOpt.get().getId();
-        Optional<Enrollment> enrollmentOpt = enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId);
+        Optional<Enrollment> enrollmentOpt = findAccessibleEnrollment(studentId, courseId);
 
         if (enrollmentOpt.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.success(
@@ -420,7 +420,7 @@ public class StudentEnrollmentControllerV3 {
         }
 
         UUID courseId = courseOpt.get().getId();
-        Optional<Enrollment> enrollmentOpt = enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId);
+        Optional<Enrollment> enrollmentOpt = findAccessibleEnrollment(studentId, courseId);
 
         if (enrollmentOpt.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.success(
@@ -512,7 +512,7 @@ public class StudentEnrollmentControllerV3 {
         UUID studentId = currentUser.getId();
         
         // SOTA: Single query to find enrollment by studentId + courseId
-        Optional<Enrollment> enrollmentOpt = enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId);
+        Optional<Enrollment> enrollmentOpt = findAccessibleEnrollment(studentId, courseId);
 
         if (enrollmentOpt.isPresent()) {
             Enrollment enrollment = enrollmentOpt.get();
@@ -884,5 +884,15 @@ public class StudentEnrollmentControllerV3 {
         if (chapters.isEmpty()) return 0;
         List<UUID> chapterIds = chapters.stream().map(ChapterJpaEntity::getId).toList();
         return lessonJpaRepository.findByChapterIdIn(chapterIds).size();
+    }
+
+    private Optional<Enrollment> findAccessibleEnrollment(UUID studentId, UUID courseId) {
+        return enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId)
+                .filter(this::isAccessibleEnrollment);
+    }
+
+    private boolean isAccessibleEnrollment(Enrollment enrollment) {
+        return enrollment.getStatus() == Enrollment.EnrollmentStatus.ACTIVE
+                || enrollment.getStatus() == Enrollment.EnrollmentStatus.COMPLETED;
     }
 }

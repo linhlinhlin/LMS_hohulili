@@ -3,6 +3,7 @@ import { Component, OnInit, OnDestroy, signal, inject, ChangeDetectionStrategy }
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { take } from 'rxjs';
 import { IconComponent } from '../../shared/components/icon/icon.component';
+import { PaymentService } from './payment.service';
 
 /**
  * Payment Success Component
@@ -280,6 +281,7 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
 export class PaymentSuccessComponent implements OnInit, OnDestroy {
     private route = inject(ActivatedRoute);
     private router = inject(Router);
+    private paymentService = inject(PaymentService);
 
     transactionId = signal<string | null>(null);
     orderId = signal<string | null>(null);
@@ -287,6 +289,7 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
     isPending = signal(false);
     countdown = signal(5);
     private countdownInterval: any;
+    private accessReady: Promise<boolean> | null = null;
 
     ngOnInit() {
         this.route.queryParams.pipe(take(1)).subscribe(params => {
@@ -297,6 +300,8 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
 
             // Auto-redirect to learning page after 5s (only if we have courseId and not pending)
             if (this.courseId() && !this.isPending()) {
+                this.paymentService.markCourseAsPaid(this.courseId()!);
+                this.accessReady = this.prepareLearningAccess(this.courseId()!);
                 this.startCountdown();
             }
         });
@@ -314,12 +319,26 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
         }, 1000);
     }
 
-    goToLearning(): void {
+    async goToLearning(): Promise<void> {
         const cid = this.courseId();
         if (cid) {
-            this.router.navigate(['/student/learn/course', cid]);
+            const accessReady = await (this.accessReady ?? this.prepareLearningAccess(cid));
+            if (accessReady) {
+                this.router.navigate(['/student/learn/course', cid]);
+            } else {
+                this.router.navigate(['/student/courses', cid]);
+            }
         } else {
             this.router.navigate(['/student/courses/library']);
+        }
+    }
+
+    private async prepareLearningAccess(courseId: string): Promise<boolean> {
+        try {
+            await this.paymentService.ensureEnrollment(courseId);
+            return true;
+        } catch {
+            return false;
         }
     }
 
