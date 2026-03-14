@@ -3,7 +3,6 @@ import { Component, ChangeDetectionStrategy, signal, inject } from '@angular/cor
 
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { ToastService } from '../../../../core/services/toast.service';
 
 @Component({
   selector: 'app-footer',
@@ -11,36 +10,6 @@ import { ToastService } from '../../../../core/services/toast.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <footer class="bg-gray-900 text-white">
-      <!-- Newsletter Section -->
-      <div class="bg-[#0056D2] py-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div class="text-center">
-            <h2 class="text-3xl font-bold mb-4">Đăng ký nhận thông tin mới nhất</h2>
-            <p class="text-white/80 mb-8 max-w-2xl mx-auto">
-              Cập nhật các khóa học mới, tin tức ngành hàng hải và cơ hội nghề nghiệp
-            </p>
-            <div class="max-w-md mx-auto flex gap-4">
-              <input
-                type="email"
-                [ngModel]="newsletterEmail()"
-                (ngModelChange)="newsletterEmail.set($event)"
-                placeholder="Nhập email của bạn"
-                class="flex-1 px-4 py-3 rounded-lg text-gray-900 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
-              />
-              <button
-                (click)="subscribeNewsletter()"
-                class="px-6 py-3 bg-yellow-400 text-[#004BB5] font-bold rounded-lg hover:bg-yellow-300 transition-colors duration-200 flex items-center"
-              >
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                </svg>
-                Đăng ký
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Main Footer Content -->
       <div class="py-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -53,11 +22,12 @@ import { ToastService } from '../../../../core/services/toast.service';
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                   </svg>
                 </div>
-                <span class="text-xl font-bold">Maritime Academy</span>
+                <span class="text-xl font-bold">LMS Maritime</span>
               </div>
               <p class="text-gray-400 mb-6">
-                Nền tảng đào tạo hàng hải hiện đại, kết nối kiến thức với thực tiễn.
+                Nền tảng đào tạo hàng hải hiện đại, tích hợp AI và hoạt động ngoại tuyến.
               </p>
+              <p class="text-gray-500 text-xs mb-4">Sản phẩm của <span class="text-gray-400">The Wiii Lab</span></p>
               <div class="flex space-x-4">
                 <a href="https://twitter.com/maritime_academy" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-white transition-colors duration-200">
                   <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
@@ -143,7 +113,7 @@ import { ToastService } from '../../../../core/services/toast.service';
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex flex-col md:flex-row justify-between items-center">
             <div class="text-gray-400 text-sm mb-4 md:mb-0">
-              © 2025 HoLiLiHu Maritime Academy. Tất cả quyền được bảo lưu.
+              © 2026 The Wiii Lab · LMS Maritime. Tất cả quyền được bảo lưu.
             </div>
             <div class="flex space-x-6 text-sm">
               <a routerLink="/privacy" class="text-gray-400 hover:text-white">Chính sách bảo mật</a>
@@ -157,14 +127,5 @@ import { ToastService } from '../../../../core/services/toast.service';
   `,
 })
 export class FooterComponent {
-  private toast = inject(ToastService);
-  newsletterEmail = signal('');
   selectedLanguage = signal<'vi' | 'en' | 'ko'>('vi');
-
-  subscribeNewsletter(): void {
-    if (this.newsletterEmail()) {
-      this.toast.success('Cảm ơn bạn đã đăng ký! Chúng tôi sẽ gửi thông tin mới nhất đến email của bạn.');
-      this.newsletterEmail.set('');
-    }
-  }
 }
