@@ -1,5 +1,5 @@
 <div class="min-h-screen bg-slate-50">
-    <!-- Hero — maritime mini-hero consistent with /courses -->
+    <!-- Hero -->
     <div class="relative overflow-hidden bg-[#0a1628]">
         <div class="absolute inset-0 bg-gradient-to-r from-[#0a1628] to-[#0d2847]"></div>
         <div class="relative z-10 mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -14,57 +14,59 @@
             <!-- Form — 3 columns -->
             <div class="lg:col-span-3">
                 <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-                    <h2 class="mb-6 text-lg font-bold text-gray-900">Gửi tin nhắn</h2>
+                    <h2 class="mb-1 text-lg font-bold text-gray-900">Gửi tin nhắn</h2>
+                    <p class="mb-6 text-sm text-gray-400">Chúng tôi sẽ phản hồi trong vòng 24 giờ làm việc</p>
 
                     <form (ngSubmit)="onSubmit()" #contactForm="ngForm" class="space-y-5">
                         <div class="grid gap-5 sm:grid-cols-2">
                             <div>
-                                <label for="name" class="mb-1.5 block text-xs font-medium text-gray-500">Họ và tên *</label>
+                                <label for="name" class="mb-1.5 block text-xs font-medium text-gray-600">Họ và tên <span class="text-red-400">*</span></label>
                                 <input type="text" id="name" name="name" [(ngModel)]="formData.name" required
-                                    class="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20"
-                                    placeholder="Nhập họ và tên">
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 transition-colors"
+                                    placeholder="Nguyễn Văn A">
                             </div>
                             <div>
-                                <label for="email" class="mb-1.5 block text-xs font-medium text-gray-500">Email *</label>
+                                <label for="email" class="mb-1.5 block text-xs font-medium text-gray-600">Email <span class="text-red-400">*</span></label>
                                 <input type="email" id="email" name="email" [(ngModel)]="formData.email" required email
-                                    class="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20"
-                                    placeholder="email@example.com">
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 transition-colors"
+                                    placeholder="ten@congty.com">
                             </div>
                         </div>
 
                         <div class="grid gap-5 sm:grid-cols-2">
                             <div>
-                                <label for="phone" class="mb-1.5 block text-xs font-medium text-gray-500">Số điện thoại</label>
+                                <label for="phone" class="mb-1.5 block text-xs font-medium text-gray-600">Số điện thoại</label>
                                 <input type="tel" id="phone" name="phone" [(ngModel)]="formData.phone"
-                                    class="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20"
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 transition-colors"
                                     placeholder="0912 345 678">
                             </div>
                             <div>
-                                <label for="subject" class="mb-1.5 block text-xs font-medium text-gray-500">Chủ đề *</label>
+                                <label for="subject" class="mb-1.5 block text-xs font-medium text-gray-600">Chủ đề <span class="text-red-400">*</span></label>
                                 <select id="subject" name="subject" [(ngModel)]="formData.subject" required
-                                    class="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
-                                    <option value="">Chọn chủ đề</option>
-                                    <option value="enterprise">Đào tạo doanh nghiệp</option>
-                                    <option value="course">Về khóa học</option>
-                                    <option value="partnership">Hợp tác đối tác</option>
-                                    <option value="technical">Hỗ trợ kỹ thuật</option>
-                                    <option value="billing">Thanh toán</option>
-                                    <option value="other">Khác</option>
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 transition-colors"
+                                    [class]="formData.subject ? 'text-gray-900' : 'text-gray-400'">
+                                    <option value="" class="text-gray-400">Chọn chủ đề</option>
+                                    <option value="enterprise" class="text-gray-900">Đào tạo doanh nghiệp</option>
+                                    <option value="course" class="text-gray-900">Về khóa học</option>
+                                    <option value="partnership" class="text-gray-900">Hợp tác đối tác</option>
+                                    <option value="technical" class="text-gray-900">Hỗ trợ kỹ thuật</option>
+                                    <option value="billing" class="text-gray-900">Thanh toán</option>
+                                    <option value="other" class="text-gray-900">Khác</option>
                                 </select>
                             </div>
                         </div>
 
                         <div>
-                            <label for="message" class="mb-1.5 block text-xs font-medium text-gray-500">Nội dung *</label>
+                            <label for="message" class="mb-1.5 block text-xs font-medium text-gray-600">Nội dung <span class="text-red-400">*</span></label>
                             <textarea id="message" name="message" [(ngModel)]="formData.message" required rows="4"
-                                class="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20"
-                                placeholder="Mô tả nhu cầu của bạn..."></textarea>
+                                class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 transition-colors resize-none"
+                                placeholder="Mô tả nhu cầu của bạn — ví dụ: số lượng học viên, lĩnh vực đào tạo, thời gian dự kiến..."></textarea>
                         </div>
 
-                        <div class="flex items-start gap-2">
+                        <div class="flex items-start gap-2.5">
                             <input type="checkbox" id="agree" name="agree" [(ngModel)]="formData.agree" required
-                                class="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#0056D2] focus:ring-[#0056D2]">
-                            <label for="agree" class="text-xs text-gray-500">
+                                class="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#0056D2] focus:ring-[#0056D2]/30">
+                            <label for="agree" class="text-xs leading-relaxed text-gray-500">
                                 Tôi đồng ý với
                                 <a routerLink="/privacy" class="text-[#0056D2] hover:underline">chính sách bảo mật</a> và
                                 <a routerLink="/terms" class="text-[#0056D2] hover:underline">điều khoản sử dụng</a>
@@ -72,7 +74,7 @@
                         </div>
 
                         <button type="submit" [disabled]="!contactForm.form.valid || !formData.agree"
-                            class="w-full rounded-lg bg-[#0056D2] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#004BB5] disabled:cursor-not-allowed disabled:bg-gray-300">
+                            class="w-full rounded-lg bg-[#0056D2] px-6 py-3 text-sm font-semibold text-white shadow-sm shadow-[#0056D2]/20 transition-all hover:bg-[#004BB5] hover:shadow-md hover:shadow-[#0056D2]/30 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none">
                             Gửi tin nhắn
                         </button>
                     </form>
@@ -80,29 +82,29 @@
             </div>
 
             <!-- Info — 2 columns -->
-            <div class="space-y-6 lg:col-span-2">
+            <div class="space-y-5 lg:col-span-2">
                 <!-- Contact Info -->
                 <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                    <h2 class="mb-5 text-lg font-bold text-gray-900">Thông tin liên hệ</h2>
+                    <h2 class="mb-5 text-sm font-bold uppercase tracking-wide text-gray-900">Thông tin liên hệ</h2>
                     <div class="space-y-5">
                         <div class="flex items-start gap-3">
                             <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[#0056D2]/10">
-                                <svg class="h-4 w-4 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                                <svg class="h-4 w-4 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                             </div>
                             <div>
                                 <p class="text-sm font-medium text-gray-900">Email</p>
-                                <p class="text-sm text-gray-500">contact&#64;holilihu.online</p>
+                                <a href="mailto:contact@holilihu.online" class="text-sm text-gray-500 hover:text-[#0056D2] transition-colors">contact&#64;holilihu.online</a>
                             </div>
                         </div>
                         <div class="flex items-start gap-3">
-                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[#0056D2]/10">
-                                <svg class="h-4 w-4 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-cyan-500/10">
+                                <svg class="h-4 w-4 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
                             </div>
                             <div>
-                                <p class="text-sm font-medium text-gray-900">Hỗ trợ</p>
-                                <p class="text-sm text-gray-500">Wiii AI hỗ trợ 24/7</p>
+                                <p class="text-sm font-medium text-gray-900">Hỗ trợ AI 24/7</p>
+                                <p class="text-sm text-gray-500">Wiii AI giải đáp mọi thắc mắc</p>
                                 <a href="https://wiii.holilihu.online" target="_blank" rel="noopener noreferrer"
-                                   class="mt-1 inline-flex items-center text-xs font-medium text-cyan-600 hover:text-cyan-700">
+                                   class="mt-1.5 inline-flex items-center rounded-md bg-cyan-50 px-2.5 py-1 text-xs font-medium text-cyan-700 transition-colors hover:bg-cyan-100">
                                     Hỏi Wiii AI
                                     <svg class="ml-1 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                                 </a>
@@ -111,19 +113,22 @@
                     </div>
                 </div>
 
-                <!-- Wiii Lab Info -->
+                <!-- Brand Card -->
                 <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                     <div class="flex items-center gap-3 mb-4">
                         <img src="/icons/logo-master.png" alt="LMS Maritime" class="h-10 w-10 rounded-lg">
                         <div>
                             <p class="text-sm font-bold text-gray-900">LMS Maritime</p>
-                            <p class="text-xs text-gray-500">by The Wiii Lab</p>
+                            <p class="text-xs text-gray-400">by The Wiii Lab</p>
                         </div>
                     </div>
-                    <p class="text-sm text-gray-500 leading-relaxed">
-                        Nền tảng đào tạo hàng hải hiện đại, tích hợp AI và hoạt động ngoại tuyến.
-                        Được phát triển bởi The Wiii Lab.
+                    <p class="text-sm leading-relaxed text-gray-500">
+                        Nền tảng đào tạo hàng hải tích hợp AI và hoạt động ngoại tuyến — được thiết kế cho người đi biển.
                     </p>
+                    <div class="mt-4 flex items-center gap-3">
+                        <img src="/images/wiii-avatar.png" alt="Wiii AI" class="h-7 w-7 rounded-full">
+                        <img src="/icons/thewiiilab.png" alt="The Wiii Lab" class="h-6 w-auto opacity-60">
+                    </div>
                 </div>
             </div>
         </div>
