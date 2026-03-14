@@ -57,12 +57,8 @@ export const routes: Routes = [
         loadComponent: () => import('./features/courses/course-detail.component').then(m => m.CourseDetailComponent),
         title: 'Chi tiết khóa học - LMS Maritime'
       },
-      // Fallback dynamic route for any other categories (non-UUID paths)
-      {
-        path: 'courses/:category',
-        loadComponent: () => import('./features/courses/category/configurable-category.component').then(m => m.ConfigurableCategoryComponent),
-        title: 'Khóa học - LMS Maritime'
-      },
+      // Fallback for unknown /courses/{slug} → redirect to courses listing
+      { path: 'courses/:slug', redirectTo: '/courses', pathMatch: 'full' },
       {
         path: 'about',
         loadComponent: () => import('./features/about/about.component').then(m => m.AboutComponent),
