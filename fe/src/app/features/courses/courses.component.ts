@@ -19,40 +19,40 @@ import { SeoService } from '../../core/services/seo.service';
   selector: 'app-courses',
   imports: [RouterModule, FormsModule, CourseCardComponent, PaginationComponent],
   template: `
-    <div class="min-h-screen bg-gray-50">
-      <!-- Header -->
-      <div class="bg-white shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h1 class="text-3xl font-bold text-gray-900">Khóa học Hàng hải</h1>
-          <p class="text-lg text-gray-600 mt-2">Khám phá các khóa học chuyên nghiệp dành cho ngành hàng hải</p>
+    <div class="min-h-screen bg-slate-50">
+      <!-- Page Header — maritime mini-hero -->
+      <div class="relative overflow-hidden bg-[#0a1628]">
+        <div class="absolute inset-0 bg-gradient-to-r from-[#0a1628] to-[#0d2847]"></div>
+        <div class="relative z-10 mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+          <p class="mb-1 text-xs font-medium uppercase tracking-widest text-blue-300/60">Danh mục khóa học</p>
+          <h1 class="text-2xl font-bold text-white sm:text-3xl">Khóa học Hàng hải</h1>
+          <p class="mt-2 max-w-xl text-sm text-blue-100/50">Khám phá các khóa học chuyên nghiệp dành cho ngành hàng hải</p>
         </div>
       </div>
 
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div class="flex flex-col lg:flex-row gap-8">
+      <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div class="flex flex-col gap-8 lg:flex-row">
           <!-- Filters Sidebar -->
           <div class="lg:w-1/4" role="region" aria-label="Bộ lọc khóa học">
-            <div class="bg-white rounded-lg shadow-sm p-6">
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">Bộ lọc</h3>
-              
+            <div class="sticky top-24 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+              <h3 class="mb-5 text-sm font-bold uppercase tracking-wide text-gray-900">Bộ lọc</h3>
+
               <!-- Search -->
-              <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Tìm kiếm</label>
-                <input type="text" 
+              <div class="mb-5">
+                <label class="mb-1.5 block text-xs font-medium text-gray-500">Tìm kiếm</label>
+                <input type="text"
                        [ngModel]="filters.search"
                        (ngModelChange)="onSearchChange($event)"
                        placeholder="Nhập từ khóa..."
-                       aria-label="Tìm kiếm khóa học theo từ khóa"
-                       class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
+                       class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
               </div>
 
               <!-- Category -->
-              <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Danh mục</label>
+              <div class="mb-5">
+                <label class="mb-1.5 block text-xs font-medium text-gray-500">Danh mục</label>
                 <select [(ngModel)]="filters.category"
                         (ngModelChange)="applyFilters()"
-                        aria-label="Lọc theo danh mục"
-                        class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
+                        class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
                   <option [ngValue]="undefined">Tất cả danh mục</option>
                   <option [ngValue]="CourseCategory.MARINE_ENGINEERING">Kỹ thuật tàu biển</option>
                   <option [ngValue]="CourseCategory.PORT_MANAGEMENT">Quản lý cảng</option>
@@ -64,12 +64,11 @@ import { SeoService } from '../../core/services/seo.service';
               </div>
 
               <!-- Level -->
-              <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Cấp độ</label>
+              <div class="mb-5">
+                <label class="mb-1.5 block text-xs font-medium text-gray-500">Cấp độ</label>
                 <select [(ngModel)]="filters.level"
                         (ngModelChange)="applyFilters()"
-                        aria-label="Lọc theo cấp độ"
-                        class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
+                        class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
                   <option [ngValue]="undefined">Tất cả cấp độ</option>
                   <option [ngValue]="'beginner'">Cơ bản</option>
                   <option [ngValue]="'intermediate'">Trung cấp</option>
@@ -78,55 +77,49 @@ import { SeoService } from '../../core/services/seo.service';
               </div>
 
               <!-- Price Range -->
-              <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Khoảng giá (VND)</label>
-                <div class="flex gap-3">
+              <div class="mb-5">
+                <label class="mb-1.5 block text-xs font-medium text-gray-500">Khoảng giá (VND)</label>
+                <div class="flex gap-2">
                   <input type="number"
                          [ngModel]="priceMin"
                          (ngModelChange)="onPriceMinChange($event)"
                          placeholder="Từ"
-                         aria-label="Giá tối thiểu"
-                         class="w-1/2 px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
+                         class="w-1/2 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
                   <input type="number"
                          [ngModel]="priceMax"
                          (ngModelChange)="onPriceMaxChange($event)"
                          placeholder="Đến"
-                         aria-label="Giá tối đa"
-                         class="w-1/2 px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
+                         class="w-1/2 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
                 </div>
               </div>
 
               <!-- Rating -->
-              <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Đánh giá tối thiểu</label>
+              <div class="mb-5">
+                <label class="mb-1.5 block text-xs font-medium text-gray-500">Đánh giá tối thiểu</label>
                 <select [ngModel]="filters.rating"
                         (ngModelChange)="onRatingChange($event)"
-                        aria-label="Lọc theo đánh giá tối thiểu"
-                        class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
+                        class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
                   <option [ngValue]="undefined">Tất cả</option>
-                  <option [ngValue]="3.5">Từ 3.5</option>
-                  <option [ngValue]="4">Từ 4.0</option>
-                  <option [ngValue]="4.5">Từ 4.5</option>
+                  <option [ngValue]="3.5">Từ 3.5 sao</option>
+                  <option [ngValue]="4">Từ 4.0 sao</option>
+                  <option [ngValue]="4.5">Từ 4.5 sao</option>
                 </select>
               </div>
 
               <!-- Sort -->
-              <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Sắp xếp</label>
+              <div class="mb-5">
+                <label class="mb-1.5 block text-xs font-medium text-gray-500">Sắp xếp</label>
                 <select [(ngModel)]="filters.sortBy"
                         (ngModelChange)="applyFilters()"
-                        aria-label="Sắp xếp khóa học"
-                        class="w-full px-3 py-2 border border-gray-800 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
+                        class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
                   <option [ngValue]="'rating'">Đánh giá cao</option>
                   <option [ngValue]="'title'">Tên A-Z</option>
                   <option [ngValue]="'price'">Giá thấp đến cao</option>
                 </select>
               </div>
 
-              <!-- Clear Filters -->
               <button (click)="clearFilters()"
-                      aria-label="Xóa tất cả bộ lọc"
-                      class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                      class="w-full rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50">
                 Xóa bộ lọc
               </button>
             </div>
@@ -134,50 +127,43 @@ import { SeoService } from '../../core/services/seo.service';
 
           <!-- Courses Grid -->
           <div class="lg:w-3/4" role="region" aria-label="Kết quả khóa học">
-            <!-- Results Header -->
-            <div class="flex justify-between items-center mb-6">
-              <div>
-                <p class="text-gray-600">
-                  Hiển thị {{ paginationInfo().totalItems }} khóa học
-                  @if (paginationInfo().totalPages > 1) {
-                    (trang {{ paginationInfo().currentPage }}/{{ paginationInfo().totalPages }})
-                  }
-                </p>
-              </div>
+            <div class="mb-6 flex items-center justify-between">
+              <p class="text-sm text-gray-500">
+                {{ paginationInfo().totalItems }} khóa học
+                @if (paginationInfo().totalPages > 1) {
+                  · trang {{ paginationInfo().currentPage }}/{{ paginationInfo().totalPages }}
+                }
+              </p>
             </div>
 
-            <!-- Loading State -->
             @if (isLoading()) {
-              <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
                 @for (item of [1,2,3,4,5,6]; track item) {
-                  <div class="bg-white rounded-lg shadow-sm overflow-hidden animate-pulse">
-                    <div class="h-48 bg-gray-300"></div>
-                    <div class="p-6">
-                      <div class="h-4 bg-gray-300 rounded mb-2"></div>
-                      <div class="h-4 bg-gray-300 rounded w-3/4 mb-4"></div>
-                      <div class="h-3 bg-gray-300 rounded w-1/2"></div>
+                  <div class="animate-pulse overflow-hidden rounded-xl border border-gray-100 bg-white">
+                    <div class="h-44 bg-gray-100"></div>
+                    <div class="space-y-3 p-4">
+                      <div class="h-4 w-3/4 rounded bg-gray-100"></div>
+                      <div class="h-3 w-1/2 rounded bg-gray-100"></div>
+                      <div class="h-3 w-1/3 rounded bg-gray-100"></div>
                     </div>
                   </div>
                 }
               </div>
             } @else if (courses().length === 0) {
-              <!-- Empty State -->
-              <div class="text-center py-12">
-                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              <div class="py-16 text-center">
+                <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                 </svg>
-                <h3 class="mt-2 text-sm font-medium text-gray-900">Không tìm thấy khóa học</h3>
+                <h3 class="mt-3 text-sm font-semibold text-gray-900">Không tìm thấy khóa học</h3>
                 <p class="mt-1 text-sm text-gray-500">Thử thay đổi bộ lọc để tìm khóa học phù hợp</p>
               </div>
             } @else {
-              <!-- Courses Grid -->
-              <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
                 @for (course of courses(); track course.id) {
                   <app-course-card [course]="course"></app-course-card>
                 }
               </div>
 
-              <!-- Pagination -->
               @if (paginationInfo().totalPages > 1) {
                 <app-pagination
                   [currentPage]="paginationInfo().currentPage"

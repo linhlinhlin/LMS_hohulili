@@ -367,16 +367,6 @@ interface FeaturedCourse {
       </div>
     </section>
 
-    <!-- ══════════════════════════════════════════════
-         BRAND FOOTER
-         ══════════════════════════════════════════════ -->
-    <section class="border-t border-gray-100 bg-white py-10">
-      <div class="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
-        <p class="text-sm text-gray-400">
-          Sản phẩm của <span class="font-medium text-gray-600">The Wiii Lab</span>
-        </p>
-      </div>
-    </section>
   `,
   styles: [`
     .hero-section { min-height: 85vh; }
