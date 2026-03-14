@@ -17,6 +17,7 @@ Use them differently.
 - `architecture/TEACHER_ASSESSMENTS_CONTEXT_SPLIT.md`: teacher assessment workspace split between course authoring, class delivery, and shared assets.
 - `architecture/STUDENT_COURSE_FIRST_EXPERIENCE.md`: student-side course-first navigation model after the teacher workspace split.
 - `reports/2026-03-07-authoring-and-runtime-status.md`: current implementation snapshot for runtime hardening and teacher authoring.
+- `reports/2026-03-14-payment-runtime-status.md`: current production verification snapshot for payment completion, revoke, and payout guardrails.
 - `research/2026-03-09-authoring-frontend-design-audit.md`: current frontend design direction for teacher authoring routes.
 - `PWA_OFFLINE_RESEARCH.md`: deep offline architecture context.
 
