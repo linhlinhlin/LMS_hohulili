@@ -102,7 +102,7 @@ public class FileUploadControllerV3 {
 
             Map<String, Object> fileData = new HashMap<>();
             fileData.put("url", attachment.getFileUrl());
-            fileData.put("id", attachment.getEntityId());
+            fileData.put("id", attachment.getId());
             fileData.put("uuid", attachment.getId());
             fileData.put("storageKey", attachment.getFileName());
 
@@ -154,7 +154,7 @@ public class FileUploadControllerV3 {
 
             Map<String, Object> fileData = new HashMap<>();
             fileData.put("url", attachment.getFileUrl());
-            fileData.put("id", attachment.getEntityId());
+            fileData.put("id", attachment.getId());
             fileData.put("uuid", attachment.getId());
             fileData.put("storageKey", attachment.getFileName());
 

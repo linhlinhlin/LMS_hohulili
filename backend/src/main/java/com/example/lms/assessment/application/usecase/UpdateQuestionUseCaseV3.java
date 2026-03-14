@@ -2,6 +2,7 @@ package com.example.lms.assessment.application.usecase;
 
 import com.example.lms.assessment.domain.model.Question;
 import com.example.lms.assessment.domain.repository.QuestionRepository;
+import com.example.lms.shared.application.port.FileManagementPort;
 import com.example.lms.shared.domain.model.ContentBlock;
 import com.example.lms.shared.exception.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ public class UpdateQuestionUseCaseV3 {
     private static final Logger log = LoggerFactory.getLogger(UpdateQuestionUseCaseV3.class);
 
     private final QuestionRepository questionRepository;
+    private final FileManagementPort fileManagementService;
 
     @Transactional
     public void execute(UUID questionId, Command command) {
@@ -43,7 +45,21 @@ public class UpdateQuestionUseCaseV3 {
         question.updateStatus(command.status());
 
         // Update options if provided
-        if (command.options() != null && !command.options().isEmpty()) {
+        if (command.optionCommands() != null && !command.optionCommands().isEmpty()) {
+            List<Question.QuestionOption> domainOptions = new java.util.ArrayList<>();
+            for (int i = 0; i < command.optionCommands().size(); i++) {
+                OptionCommand optionCommand = command.optionCommands().get(i);
+                String key = optionCommand.key() != null ? optionCommand.key() : resolveOptionKey(i);
+
+                Question.QuestionOption option = Question.QuestionOption.create(
+                        key,
+                        optionCommand.contentBlocks(),
+                        optionCommand.orderIndex() != null ? optionCommand.orderIndex() : i
+                );
+                domainOptions.add(option);
+            }
+            question.replaceOptions(domainOptions);
+        } else if (command.options() != null && !command.options().isEmpty()) {
             String[] keys = {"A", "B", "C", "D", "E", "F"};
 
             List<Question.QuestionOption> domainOptions = new java.util.ArrayList<>();
@@ -63,8 +79,19 @@ public class UpdateQuestionUseCaseV3 {
             question.replaceOptions(domainOptions);
         }
 
-        questionRepository.save(question);
+        Question savedQuestion = questionRepository.save(question);
+        fileManagementService.linkFilesToEntity(savedQuestion.getContentBlocks(), savedQuestion.getId(), "QUESTION");
+
+        if (savedQuestion.getOptions() != null) {
+            savedQuestion.getOptions().forEach(opt ->
+                    fileManagementService.linkFilesToEntity(opt.getContentBlocks(), opt.getId(), "QUESTION_OPTION"));
+        }
         log.info("Question {} updated successfully", questionId);
+    }
+
+    private String resolveOptionKey(int index) {
+        String[] keys = {"A", "B", "C", "D", "E", "F"};
+        return index < keys.length ? keys[index] : "?";
     }
 
     public record Command(
@@ -73,8 +100,15 @@ public class UpdateQuestionUseCaseV3 {
             Map<String, Object> answerKey,
             Question.QuestionType questionType,
             List<String> options,
+            List<OptionCommand> optionCommands,
             Question.Difficulty difficulty,
             String tags,
             Question.Status status
+    ) {}
+
+    public record OptionCommand(
+            List<ContentBlock> contentBlocks,
+            Integer orderIndex,
+            String key
     ) {}
 }

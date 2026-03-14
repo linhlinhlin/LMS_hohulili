@@ -124,6 +124,7 @@ export class QuestionCreateComponent implements OnInit {
 
   updateOptionBlocks(index: number, blocks: ContentBlock[]) {
     this.optionBlocksMap.set(index, blocks);
+    this.updatePreviewOptions();
   }
 
   // --- Helper Methods for Preview ---
@@ -177,16 +178,12 @@ export class QuestionCreateComponent implements OnInit {
     if (this.options.length > 2) {
       const removedKey = this.getOptionKey(index);
       this.options.removeAt(index);
-      // Re-map keys if needed? 
-      // For simplicity, we just keep existing keys or could re-generate A,B,C...
-      // But typically removing B shifts C -> B. 
-      // Let's rely on standard logic, but need to fix optionBlocksMap potentially.
-      // Re-indexing map is complex, simplified for now: just clear removed index
-      this.optionBlocksMap.delete(index);
+      this.reindexOptionBlocksMap(index);
 
       if (this.getCorrectOptionKey() === removedKey) {
         this.questionForm.patchValue({ correctOption: this.getOptionKey(0) });
       }
+      this.updatePreviewOptions();
     }
   }
 
@@ -336,6 +333,18 @@ export class QuestionCreateComponent implements OnInit {
   private isValidUuid(str: string): boolean {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     return uuidRegex.test(str);
+  }
+
+  private reindexOptionBlocksMap(removedIndex: number): void {
+    const next = new Map<number, ContentBlock[]>();
+    for (const [index, blocks] of this.optionBlocksMap.entries()) {
+      if (index < removedIndex) {
+        next.set(index, blocks);
+      } else if (index > removedIndex) {
+        next.set(index - 1, blocks);
+      }
+    }
+    this.optionBlocksMap = next;
   }
 
   private buildQuestionBankReturnQueryParams(selectQuestionId?: string) {

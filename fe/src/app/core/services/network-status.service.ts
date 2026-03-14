@@ -75,8 +75,8 @@ export class NetworkStatusService implements OnDestroy {
   }
 
   /**
-   * Probe actual latency via HEAD to favicon (cached by SW).
-   * Uses /favicon.ico which is in the app-shell prefetch group,
+   * Probe actual latency via HEAD to a bundled icon (cached by SW).
+   * Uses /icons/icon-192x192.png which is in the app-shell prefetch group,
    * so it works even when served from SW cache.
    *
    * IMPORTANT: Does NOT use cache: 'no-cache' — allows SW to serve
@@ -93,7 +93,7 @@ export class NetworkStatusService implements OnDestroy {
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
     const start = performance.now();
-    fetch('/favicon.ico', { method: 'HEAD', signal: controller.signal })
+    fetch('/icons/icon-192x192.png', { method: 'HEAD', signal: controller.signal })
       .then(() => {
         clearTimeout(timeoutId);
         const rtt = performance.now() - start;

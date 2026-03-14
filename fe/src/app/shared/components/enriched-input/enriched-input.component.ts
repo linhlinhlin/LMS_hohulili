@@ -94,15 +94,19 @@ import katex from 'katex';
         </div>
 
         <!-- Action Buttons -->
-        <div class="absolute right-1 bottom-1 flex items-center space-x-1 text-slate-400 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+        <div class="absolute right-1 bottom-1 flex items-center space-x-1 text-slate-400 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 transition-opacity">
            <button type="button" (click)="fileInput.click()" 
-                   class="w-7 h-7 flex items-center justify-center hover:text-[#0056D2] rounded-lg hover:bg-[#0056D2]/5 transition-colors relative group/btn">
+                   class="w-7 h-7 flex items-center justify-center hover:text-[#0056D2] rounded-lg hover:bg-[#0056D2]/5 transition-colors relative group/btn"
+                   aria-label="Chèn ảnh vào đáp án"
+                   title="Chèn ảnh">
              <lucide-icon name="image" size="16"></lucide-icon>
              <div class="hidden group-hover/btn:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg whitespace-nowrap z-50">Chèn ảnh</div>
            </button>
            
            <button type="button" (click)="insertMath()" 
-                   class="w-7 h-7 flex items-center justify-center hover:text-amber-600 rounded-lg hover:bg-amber-50 transition-colors relative group/btn">
+                   class="w-7 h-7 flex items-center justify-center hover:text-amber-600 rounded-lg hover:bg-amber-50 transition-colors relative group/btn"
+                   aria-label="Chèn công thức vào đáp án"
+                   title="Chèn công thức">
              <span class="font-serif italic font-bold text-base leading-none">Σ</span>
              <div class="hidden group-hover/btn:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg whitespace-nowrap z-50">Công thức</div>
            </button>
@@ -182,7 +186,7 @@ export class EnrichedInputFieldComponent {
     imageChips = computed(() => {
         const val = this.rawValue();
         const images: { uuid: string; url: string }[] = [];
-        const regex = /\[IMG:([a-zA-Z0-9-]+)\]/g;
+        const regex = /\[IMG:([^\]]+)\]/g;
         let match;
         while ((match = regex.exec(val)) !== null) {
             const uuid = match[1];
@@ -210,7 +214,7 @@ export class EnrichedInputFieldComponent {
     textOnlyValue = computed(() => {
         let val = this.rawValue();
         // Remove image tags
-        val = val.replace(/\[IMG:[a-zA-Z0-9-]+\]/g, '');
+        val = val.replace(/\[IMG:[^\]]+\]/g, '');
         // Remove formula tags
         val = val.replace(/\$\$[\s\S]*?\$\$|\$[\s\S]*?\$/g, '');
         return val.trim();
@@ -234,7 +238,7 @@ export class EnrichedInputFieldComponent {
     highlightedParts = computed(() => {
         const val = this.rawValue();
         const parts: { text: string; type: 'text' | 'latex' | 'image' }[] = [];
-        const regex = /(\[IMG:[a-zA-Z0-9-]+\]|\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g;
+        const regex = /(\[IMG:[^\]]+\]|\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g;
         
         const splitParts = val.split(regex);
         splitParts.forEach(part => {
@@ -442,7 +446,7 @@ export class EnrichedInputFieldComponent {
 
     onImageError(event: Event) {
         const img = event.target as HTMLImageElement;
-        img.src = 'assets/placeholder.png';
+        img.src = '/icons/icon-192x192.png';
     }
 
     renderFormulaPreview(latex: string): SafeHtml {
@@ -458,8 +462,8 @@ export class EnrichedInputFieldComponent {
         let text = this.rawValue();
 
         // Parse Images: [IMG:uuid] -> <img src="...">
-        text = text.replace(/\[IMG:([a-zA-Z0-9-]+)\]/g, (match, uuid) => {
-            const url = this.identityService.resolveUrl(uuid);
+        text = text.replace(/\[IMG:([^\]]+)\]/g, (match, idOrUrl) => {
+            const url = this.identityService.resolveUrl(idOrUrl);
             return `<img src="${url}" class="h-12 w-auto object-cover rounded border border-gray-200 inline-block align-middle mx-1" />`;
         });
 
@@ -539,7 +543,7 @@ export class EnrichedInputFieldComponent {
         this.valueChange.emit(val);
 
         const blocks: ContentBlock[] = [];
-        const regex = /(\[IMG:[a-zA-Z0-9-]+\]|\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g;
+        const regex = /(\[IMG:[^\]]+\]|\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g;
         const parts = val.split(regex);
 
         parts.forEach(part => {
@@ -547,10 +551,11 @@ export class EnrichedInputFieldComponent {
 
             if (part.startsWith('[IMG:') && part.endsWith(']')) {
                 const uuid = part.slice(5, -1);
+                const resolvedUrl = this.identityService.resolveUrl(uuid);
                 blocks.push({
                     id: crypto.randomUUID(),
                     type: 'image',
-                    url: uuid
+                    url: resolvedUrl || uuid
                 });
             } else if (part.startsWith('$')) {
                 const isDisplay = part.startsWith('$$');
@@ -579,4 +584,3 @@ export class EnrichedInputFieldComponent {
         this.blocksChange.emit(validBlocks);
     }
 }
-

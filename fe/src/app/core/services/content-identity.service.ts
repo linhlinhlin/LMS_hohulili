@@ -46,7 +46,7 @@ export class ContentIdentityService {
         }
 
         // Fallback: placeholder (image not found)
-        return 'assets/placeholder.png';
+        return '/icons/icon-192x192.png';
     }
 
     /**
@@ -58,4 +58,3 @@ export class ContentIdentityService {
         return url;
     }
 }
-

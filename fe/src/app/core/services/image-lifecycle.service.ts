@@ -31,7 +31,7 @@ export class ImageLifecycleService {
         return this.http.post<any>('/api/v3/files/upload/editor', formData).pipe(
             map(response => {
                 // Backend returns EditorJS-native format: { success: 1, file: { url, id } }
-                const uuid = response.file?.id;
+                const uuid = response.file?.uuid || response.file?.id;
                 const url = response.file?.url;
 
                 if (!uuid) {

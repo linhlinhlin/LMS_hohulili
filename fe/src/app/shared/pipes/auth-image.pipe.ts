@@ -9,7 +9,7 @@ export class AuthImagePipe implements PipeTransform {
     private identityService = inject(ContentIdentityService);
 
     transform(fileId: string | null): string {
-        if (!fileId) return 'assets/placeholder.png';
+        if (!fileId) return '/icons/icon-192x192.png';
 
         // Check if full URL (R2 CDN or other)
         if (fileId.startsWith('http')) {
@@ -20,4 +20,3 @@ export class AuthImagePipe implements PipeTransform {
         return this.identityService.resolveUrl(fileId);
     }
 }
-

@@ -6,6 +6,7 @@ export interface QuestionOption {
   id: string;
   optionKey: string;
   content: string;
+  contentBlocks?: any[];
   displayOrder: number;
 }
 
@@ -23,6 +24,7 @@ export type QuestionTypeEnum = 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'TRUE_FALSE
 export interface Question {
   id: string;
   content: string;
+  contentBlocks?: any[];
   questionType: QuestionTypeEnum;
   correctOption: string | null;
   answerKey: Record<string, unknown> | null;
@@ -53,7 +55,7 @@ export interface CreateQuestionRequest {
   packageId?: string;
   categoryId?: string;
   blocks?: any[];
-  optionBlocks?: any[];
+  optionBlocks?: any[][];
 }
 
 export interface CreateQuestionResponse {
@@ -66,11 +68,11 @@ export interface UpdateQuestionRequest {
   correctOption?: string;
   answerKey?: Record<string, unknown>;
   options: string[];
+  optionBlocks?: any[][];
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
   tags: string;
   status: 'DRAFT' | 'ACTIVE' | 'INACTIVE';
   blocks?: any[];
-  optionBlocks?: any[];
 }
 
 @Injectable({ providedIn: 'root' })

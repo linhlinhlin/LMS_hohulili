@@ -100,15 +100,18 @@ export class QuestionEditComponent implements OnInit {
     
     if (question.options && question.options.length > 0) {
       question.options.forEach((opt, index) => {
+        const hydratedBlocks = opt.contentBlocks ? this.transformFromBackendBlocks(opt.contentBlocks) : [];
+        const hydratedContent = hydratedBlocks.length > 0
+          ? this.serializeBlocksToInlineValue(hydratedBlocks)
+          : opt.content;
+
         optionsArray.push(this.fb.group({
           optionKey: [opt.optionKey],
-          content: [opt.content]
+          content: [hydratedContent]
         }));
-        
-        // Populate option blocks if available
-        const optBlocks = (question as any).optionBlocks ? (question as any).optionBlocks[index] : null;
-        if (optBlocks) {
-          this.optionBlocksMap.set(index, this.transformFromBackendBlocks(optBlocks));
+
+        if (hydratedBlocks.length > 0) {
+          this.optionBlocksMap.set(index, hydratedBlocks);
         }
       });
     }
@@ -118,7 +121,7 @@ export class QuestionEditComponent implements OnInit {
     let blocks: ContentBlock[] = [];
 
     if (rawBlocks && rawBlocks.length > 0) {
-      blocks = this.transformFromBackendBlocks(rawBlocks);
+      blocks = this.transformQuestionBlocksForEditor(rawBlocks);
     } else {
       blocks = this.parseRawText(question.content);
     }
@@ -160,6 +163,7 @@ export class QuestionEditComponent implements OnInit {
 
   updateOptionBlocks(index: number, blocks: ContentBlock[]) {
     this.optionBlocksMap.set(index, blocks);
+    this.updatePreviewOptions();
   }
 
   private updatePreviewOptions(): void {
@@ -205,7 +209,7 @@ export class QuestionEditComponent implements OnInit {
     if (this.options.length > 2) {
       const removedKey = this.getOptionKey(index);
       this.options.removeAt(index);
-      this.optionBlocksMap.delete(index);
+      this.reindexOptionBlocksMap(index);
 
       if (this.getCorrectOptionKey() === removedKey) {
         this.questionForm.patchValue({ correctOption: this.getOptionKey(0) });
@@ -343,6 +347,58 @@ export class QuestionEditComponent implements OnInit {
     });
   }
 
+  private transformQuestionBlocksForEditor(backendBlocks: any[]): ContentBlock[] {
+    return backendBlocks.map((block: any) => {
+      const { id, type, data } = block;
+
+      if (type === 'text') {
+        return {
+          id,
+          type: 'paragraph',
+          data: { text: data?.html || data?.text || '' }
+        } as any;
+      }
+
+      if (type === 'paragraph') {
+        return {
+          id,
+          type: 'paragraph',
+          data: { text: data?.text || data?.html || '' }
+        } as any;
+      }
+
+      if (type === 'image') {
+        const url = data?.file?.url || data?.url || '';
+        return {
+          id,
+          type: 'image',
+          data: {
+            file: {
+              url,
+              id: data?.file?.id,
+              storageKey: data?.file?.storageKey
+            },
+            url,
+            caption: data?.caption || ''
+          }
+        } as any;
+      }
+
+      if (type === 'formula') {
+        return {
+          id,
+          type: 'math',
+          data: {
+            latex: data?.latex || data?.text || '',
+            format: data?.format || 'inline'
+          }
+        } as any;
+      }
+
+      return block;
+    });
+  }
+
   private parseRawText(content: string): ContentBlock[] {
     if (!content) return [];
     return [{
@@ -350,6 +406,36 @@ export class QuestionEditComponent implements OnInit {
       type: 'text',
       content: content
     }];
+  }
+
+  private serializeBlocksToInlineValue(blocks: ContentBlock[]): string {
+    return blocks.map((block: any) => {
+      if (block.type === 'text') {
+        return block.content || '';
+      }
+      if (block.type === 'formula') {
+        const latex = block.content || '';
+        const format = block.format || 'inline';
+        return format === 'display' ? `$$${latex}$$` : `$${latex}$`;
+      }
+      if (block.type === 'image') {
+        const idOrUrl = block.url || block.data?.url || block.data?.file?.url || '';
+        return idOrUrl ? `[IMG:${idOrUrl}]` : '';
+      }
+      return '';
+    }).filter(Boolean).join(' ').trim();
+  }
+
+  private reindexOptionBlocksMap(removedIndex: number): void {
+    const next = new Map<number, ContentBlock[]>();
+    for (const [index, blocks] of this.optionBlocksMap.entries()) {
+      if (index < removedIndex) {
+        next.set(index, blocks);
+      } else if (index > removedIndex) {
+        next.set(index - 1, blocks);
+      }
+    }
+    this.optionBlocksMap = next;
   }
 
   // --- Preview Helpers ---

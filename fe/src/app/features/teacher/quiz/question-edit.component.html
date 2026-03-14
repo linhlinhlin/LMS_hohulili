@@ -82,6 +82,8 @@
               </button>
             </div>
 
+            <p class="mb-3 text-[11px] text-slate-500">Dùng nút ảnh hoặc công thức ở bên phải mỗi ô đáp án. Trên thiết bị cảm ứng, các nút này luôn hiện.</p>
+
             <div formArrayName="options" class="space-y-2">
               @for (option of options.controls; track $index; let i = $index) {
                 <div [formGroupName]="i"
@@ -96,7 +98,7 @@
 
                   <!-- Option Content -->
                   <div class="flex-1 min-w-0 relative">
-                    <app-enriched-input [placeholder]="'Nhập nội dung đáp án...'"
+                    <app-enriched-input [placeholder]="'Nhập nội dung đáp án. Dùng nút ảnh / công thức bên phải'"
                       [initialValue]="option.get('content')?.value"
                       (valueChange)="updateOptionText(i, $event)"
                       (blocksChange)="updateOptionBlocks(i, $event)"></app-enriched-input>

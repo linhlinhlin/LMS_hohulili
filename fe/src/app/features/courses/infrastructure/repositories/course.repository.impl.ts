@@ -296,7 +296,7 @@ export class CourseRepositoryImpl implements CourseRepository {
       CourseStatus.PUBLISHED,
       d.tags ?? [],
       [],
-      '/assets/images/courses/placeholder.png',
+      '/icons/icon-192x192.png',
       {
         createdAt: d.createdAt ? new Date(d.createdAt as unknown as any) : now,
         updatedAt: d.updatedAt ? new Date(d.updatedAt as unknown as any) : now,

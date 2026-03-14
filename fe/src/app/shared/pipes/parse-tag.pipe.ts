@@ -26,10 +26,9 @@ export class ParseTagPipe implements PipeTransform {
             }
 
             // Fallback: show placeholder with UUID for debugging
-            return `<img src="assets/placeholder.png" alt="Image ${uuid}" title="Image not found: ${uuid}" style="max-height: 100px; display: inline-block; vertical-align: middle; border-radius: 4px; opacity: 0.5;">`;
+            return `<img src="/icons/icon-192x192.png" alt="Image ${uuid}" title="Image not found: ${uuid}" style="max-height: 100px; display: inline-block; vertical-align: middle; border-radius: 4px; opacity: 0.5;">`;
         });
 
         return this.sanitizer.bypassSecurityTrustHtml(parsedContent);
     }
 }
-

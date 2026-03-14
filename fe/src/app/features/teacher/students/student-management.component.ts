@@ -339,7 +339,7 @@ export class StudentManagementComponent {
 
   onThumbError(event: Event) {
     const img = event.target as HTMLImageElement;
-    img.src = 'assets/images/courses/placeholder.png';
+    img.src = '/icons/icon-192x192.png';
   }
 
   viewCourseStudents(course: CourseSummary) {

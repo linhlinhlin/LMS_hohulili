@@ -8,6 +8,7 @@ import com.example.lms.assessment.infrastructure.persistence.entity.QuestionJpaE
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.repository.QuestionJpaRepository;
 import com.example.lms.shared.domain.model.ContentBlock;
+import com.example.lms.shared.infrastructure.persistence.repository.FileAttachmentJpaRepository;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,8 +23,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -38,6 +41,7 @@ public class QuestionControllerV3 {
     private final QuestionRepository questionRepository;
     private final com.example.lms.assessment.domain.repository.QuestionBankRepository questionBankRepository;
     private final QuestionJpaRepository questionJpaRepository; // Only for Excel import (infra concern)
+    private final FileAttachmentJpaRepository fileAttachmentJpaRepository;
 
     // ============== Response DTOs ==============
 
@@ -117,25 +121,7 @@ public class QuestionControllerV3 {
         // S78: Verify ownership — only creator or ADMIN/ORG_ADMIN can update
         verifyQuestionOwnership(id, user);
 
-        // Resolve question type
-        Question.QuestionType questionType = null;
-        if (request.questionType() != null) {
-            try {
-                questionType = Question.QuestionType.valueOf(request.questionType().toUpperCase());
-            } catch (IllegalArgumentException ignored) { }
-        }
-
-        var command = new UpdateQuestionUseCaseV3.Command(
-                request.blocks(),
-                request.correctOption(),
-                request.answerKey(),
-                questionType,
-                request.options(),
-                request.difficulty(),
-                request.tags(),
-                request.status()
-        );
-        updateQuestionUseCase.execute(id, command);
+        updateQuestionUseCase.execute(id, mapToUpdateCommand(request));
 
         return ResponseEntity.ok(ApiResponse.success(
                 Map.of("id", id.toString(), "message", "Cập nhật câu hỏi thành công")));
@@ -147,6 +133,7 @@ public class QuestionControllerV3 {
             Map<String, Object> answerKey,
             String questionType,
             List<String> options,
+            List<List<ContentBlock>> optionBlocks,
             Question.Difficulty difficulty,
             String tags,
             Question.Status status
@@ -263,6 +250,39 @@ public class QuestionControllerV3 {
                 .packageId(request.packageId())
                 .options(optionCommands)
                 .build();
+    }
+
+    private UpdateQuestionUseCaseV3.Command mapToUpdateCommand(UpdateQuestionRequest request) {
+        Question.QuestionType questionType = null;
+        if (request.questionType() != null) {
+            try {
+                questionType = Question.QuestionType.valueOf(request.questionType().toUpperCase());
+            } catch (IllegalArgumentException ignored) { }
+        }
+
+        List<UpdateQuestionUseCaseV3.OptionCommand> optionCommands = null;
+        if (request.optionBlocks() != null && !request.optionBlocks().isEmpty()) {
+            optionCommands = new java.util.ArrayList<>();
+            String[] keys = {"A", "B", "C", "D", "E", "F"};
+
+            for (int index = 0; index < request.optionBlocks().size(); index++) {
+                List<ContentBlock> blocks = request.optionBlocks().get(index);
+                String key = index < keys.length ? keys[index] : "?";
+                optionCommands.add(new UpdateQuestionUseCaseV3.OptionCommand(blocks, index, key));
+            }
+        }
+
+        return new UpdateQuestionUseCaseV3.Command(
+                request.blocks(),
+                request.correctOption(),
+                request.answerKey(),
+                questionType,
+                request.options(),
+                optionCommands,
+                request.difficulty(),
+                request.tags(),
+                request.status()
+        );
     }
 
     public record CreateQuestionRequest(
@@ -417,14 +437,15 @@ public class QuestionControllerV3 {
     }
 
     private QuestionDetailResponse toDetailResponse(Question q) {
+        List<ContentBlock> normalizedQuestionBlocks = normalizeImageBlocks(q.getContentBlocks());
         List<QuestionOptionResponse> optionResponses = null;
         if (q.getOptions() != null) {
             optionResponses = q.getOptions().stream()
                     .map(opt -> new QuestionOptionResponse(
                             opt.getId() != null ? opt.getId().toString() : null,
                             opt.getKey(),
-                            extractTextFromBlocks(opt.getContentBlocks()),
-                            opt.getContentBlocks(),
+                            extractTextFromBlocks(normalizeImageBlocks(opt.getContentBlocks())),
+                            normalizeImageBlocks(opt.getContentBlocks()),
                             opt.getOrderIndex()
                     ))
                     .toList();
@@ -432,8 +453,8 @@ public class QuestionControllerV3 {
 
         return new QuestionDetailResponse(
                 q.getId().toString(),
-                extractTextFromBlocks(q.getContentBlocks()),
-                q.getContentBlocks(),
+                extractTextFromBlocks(normalizedQuestionBlocks),
+                normalizedQuestionBlocks,
                 q.getDifficulty() != null ? q.getDifficulty().name() : "MEDIUM",
                 q.getQuestionType() != null ? q.getQuestionType().name() : "SINGLE_CHOICE",
                 q.getTags(),
@@ -446,6 +467,74 @@ public class QuestionControllerV3 {
         );
     }
 
+    private List<ContentBlock> normalizeImageBlocks(List<ContentBlock> blocks) {
+        if (blocks == null || blocks.isEmpty()) {
+            return blocks;
+        }
+
+        return blocks.stream()
+                .map(this::normalizeImageBlock)
+                .toList();
+    }
+
+    private ContentBlock normalizeImageBlock(ContentBlock block) {
+        if (block == null || !"image".equals(block.getType()) || block.getData() == null) {
+            return block;
+        }
+
+        Map<String, Object> data = new HashMap<>(block.getData());
+        Map<String, Object> fileData = data.get("file") instanceof Map<?, ?> file
+                ? new HashMap<>((Map<String, Object>) file)
+                : new HashMap<>();
+
+        String rawUrl = stringValue(data.get("url"));
+        String rawFileUrl = stringValue(fileData.get("url"));
+        String fileId = stringValue(fileData.get("id"));
+
+        String resolvedUrl = resolveAttachmentUrl(rawUrl)
+                .or(() -> resolveAttachmentUrl(rawFileUrl))
+                .or(() -> resolveAttachmentUrl(fileId))
+                .orElse(null);
+
+        if (resolvedUrl == null) {
+            return block;
+        }
+
+        data.put("url", resolvedUrl);
+        fileData.put("url", resolvedUrl);
+        if (fileId == null || fileId.isBlank()) {
+            UUID inferredId = tryParseUuid(rawUrl).or(() -> tryParseUuid(rawFileUrl)).orElse(null);
+            if (inferredId != null) {
+                fileData.put("id", inferredId.toString());
+            }
+        }
+        data.put("file", fileData);
+
+        return block.withData(data);
+    }
+
+    private Optional<String> resolveAttachmentUrl(String candidate) {
+        return tryParseUuid(candidate)
+                .flatMap(fileAttachmentJpaRepository::findById)
+                .map(attachment -> attachment.getFileUrl());
+    }
+
+    private Optional<UUID> tryParseUuid(String value) {
+        if (value == null || value.isBlank() || value.startsWith("http")) {
+            return Optional.empty();
+        }
+
+        try {
+            return Optional.of(UUID.fromString(value));
+        } catch (IllegalArgumentException ignored) {
+            return Optional.empty();
+        }
+    }
+
+    private String stringValue(Object value) {
+        return value != null ? value.toString() : null;
+    }
+
     private String extractTextFromBlocks(List<ContentBlock> blocks) {
         if (blocks == null || blocks.isEmpty()) {
             return "";
@@ -454,6 +543,9 @@ public class QuestionControllerV3 {
         for (var block : blocks) {
             if (block.getData() != null) {
                 Object text = block.getData().get("text");
+                if (text == null) {
+                    text = block.getData().get("html");
+                }
                 if (text != null) {
                     if (sb.length() > 0) sb.append(" ");
                     sb.append(text.toString());

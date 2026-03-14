@@ -66,7 +66,7 @@ export class SwUpdateService {
         const onlineHandler = () => {
           window.removeEventListener('online', onlineHandler);
           // Confirm we're truly online with a probe before reload
-          fetch('/favicon.ico', { method: 'HEAD' })
+          fetch('/icons/icon-192x192.png', { method: 'HEAD' })
             .then(() => document.location.reload())
             .catch(() => { /* still offline, wait more */ });
         };

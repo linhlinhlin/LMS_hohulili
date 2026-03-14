@@ -193,7 +193,7 @@ export class QuestionPreviewComponent {
       const isUrl = idOrUrl.startsWith('http');
       const url = isUrl ? idOrUrl : this.identityService.resolveUrl(idOrUrl);
 
-      return `<img src="${url}" class="max-h-32 rounded-lg shadow-sm inline-block" alt="Image" onerror="this.src='assets/placeholder.png'" />`;
+      return `<img src="${url}" class="max-h-32 rounded-lg shadow-sm inline-block" alt="Image" onerror="this.src='/icons/icon-192x192.png'" />`;
     });
 
     // Parse Math using KaTeX
