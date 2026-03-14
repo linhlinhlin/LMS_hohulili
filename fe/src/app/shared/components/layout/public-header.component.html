@@ -103,14 +103,16 @@
               </nav>
             </div>
 
-            <!-- Center: Search Box — Clean, functional -->
+            <!-- Center: Search Box with API autocomplete -->
             <div class="flex-1 px-8 transition-all duration-300" style="min-width: 400px;">
               <div class="relative">
                 <input
                   type="text"
                   placeholder="Bạn muốn học gì hôm nay?"
                   [ngModel]="searchQuery()"
-                  (ngModelChange)="searchQuery.set($event)"
+                  (ngModelChange)="onSearchInput($event)"
+                  (focus)="onSearchFocus()"
+                  (blur)="onSearchBlur()"
                   (keydown)="onSearchKeydown($event)"
                   class="w-full h-12 pl-5 pr-12 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 transition-all duration-200">
                 <button (click)="onSearchSubmit()"
@@ -119,6 +121,38 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                   </svg>
                 </button>
+
+                <!-- Search Results Dropdown -->
+                @if (isSearchOpen() && searchResults().length > 0) {
+                  <div class="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl">
+                    @for (result of searchResults(); track result.id) {
+                      <button (mousedown)="selectResult(result)"
+                              class="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[#0056D2]/5">
+                        <svg class="h-4 w-4 flex-shrink-0 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                        </svg>
+                        <div class="min-w-0 flex-1">
+                          <p class="truncate text-sm font-medium text-gray-900">{{ result.title }}</p>
+                          <p class="truncate text-xs text-gray-500">{{ result.teacherName }}{{ result.categoryName ? ' · ' + result.categoryName : '' }}</p>
+                        </div>
+                        <span class="flex-shrink-0 text-xs font-medium" [class]="result.priceType === 'FREE' ? 'text-green-600' : 'text-gray-500'">
+                          {{ formatSearchPrice(result) }}
+                        </span>
+                      </button>
+                    }
+                    <button (mousedown)="onSearchSubmit()"
+                            class="flex w-full items-center justify-center gap-1 border-t border-gray-100 px-4 py-2.5 text-sm font-medium text-[#0056D2] transition-colors hover:bg-[#0056D2]/5">
+                      Xem tất cả kết quả
+                      <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+                  </div>
+                }
+                @if (isSearchOpen() && searchQuery().length >= 2 && searchResults().length === 0) {
+                  <div class="absolute left-0 right-0 top-full z-50 mt-2 rounded-xl border border-gray-200 bg-white px-4 py-6 text-center shadow-xl">
+                    <p class="text-sm text-gray-500">Không tìm thấy khóa học phù hợp</p>
+                    <button (mousedown)="onSearchSubmit()" class="mt-2 text-sm font-medium text-[#0056D2]">Xem tất cả khóa học →</button>
+                  </div>
+                }
               </div>
             </div>
 
