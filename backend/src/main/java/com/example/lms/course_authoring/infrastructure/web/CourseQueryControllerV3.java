@@ -67,12 +67,13 @@ public class CourseQueryControllerV3 {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String search
     ) {
-        PageRequest pageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100), Sort.by("createdAt").descending());
-        
         Page<Course> courses;
         if (search != null && !search.isBlank()) {
-            courses = courseRepository.findByStatusAndTitleContaining(Course.CourseStatus.APPROVED, search, pageable);
+            // Native query uses snake_case column names
+            PageRequest nativePageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100), Sort.by("created_at").descending());
+            courses = courseRepository.findByStatusAndTitleContaining(Course.CourseStatus.APPROVED, search, nativePageable);
         } else {
+            PageRequest pageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100), Sort.by("createdAt").descending());
             courses = courseRepository.findByStatus(Course.CourseStatus.APPROVED, pageable);
         }
         
