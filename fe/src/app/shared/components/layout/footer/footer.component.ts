@@ -16,12 +16,8 @@ import { FormsModule } from '@angular/forms';
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <!-- Company Info -->
             <div class="lg:col-span-1">
-              <div class="flex items-center space-x-2 mb-6">
-                <div class="w-10 h-10 bg-[#0056D2] rounded-lg flex items-center justify-center">
-                  <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                  </svg>
-                </div>
+              <div class="flex items-center space-x-3 mb-6">
+                <img src="/icons/logo-master.png" alt="LMS Maritime" class="w-10 h-10 rounded-lg">
                 <span class="text-xl font-bold">LMS Maritime</span>
               </div>
               <p class="text-gray-400 mb-6">
