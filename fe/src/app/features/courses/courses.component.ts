@@ -53,7 +53,7 @@ import { SeoService } from '../../core/services/seo.service';
                     </button>
                   }
                 </div>
-                <p class="mt-1 text-[10px] text-gray-400">Lưu ý: tìm kiếm có phân biệt dấu tiếng Việt</p>
+                <p class="mt-1 text-[10px] text-gray-400">Hỗ trợ tìm kiếm không dấu</p>
               </div>
 
               <!-- Category -->

@@ -196,7 +196,7 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
   }
 
   private fetchSearchResults(q: string): void {
-    this.api.getWithResponse<any>(`/api/v3/courses?q=${encodeURIComponent(q)}&page=0&size=5`)
+    this.api.getWithResponse<any>(`/api/v3/courses?search=${encodeURIComponent(q)}&page=0&size=5`)
       .subscribe({
         next: (res) => {
           const content = res.data?.content || [];
