@@ -10,30 +10,6 @@ export const serverRoutes: ServerRoute[] = [
     renderMode: RenderMode.Server
   },
   {
-    path: 'courses/navigation',
-    renderMode: RenderMode.Server
-  },
-  {
-    path: 'courses/engineering',
-    renderMode: RenderMode.Server
-  },
-  {
-    path: 'courses/logistics',
-    renderMode: RenderMode.Server
-  },
-  {
-    path: 'courses/law',
-    renderMode: RenderMode.Server
-  },
-  {
-    path: 'courses/certificates',
-    renderMode: RenderMode.Server
-  },
-  {
-    path: 'courses/safety',
-    renderMode: RenderMode.Server
-  },
-  {
     path: 'courses/:id',
     renderMode: RenderMode.Server
   },
