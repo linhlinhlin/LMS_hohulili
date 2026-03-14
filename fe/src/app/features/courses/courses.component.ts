@@ -473,82 +473,53 @@ export class CoursesComponent implements OnInit {
    * This version is defensive and handles null/undefined values safely.
    */
   private mapDomainToExtendedCourse(domainCourse: DomainCourse): ExtendedCourse {
-    // Cast to any to access raw properties without calling methods
-    const rawCourse = domainCourse as any;
-
-    // Safely extract nested objects with null checks
-    const metadata = rawCourse?.metadata ?? {};
-    const specifications = rawCourse?.specifications ?? {};
-    const teacherName = rawCourse?.teacherName ?? this.getTeacherName(rawCourse?.instructorId);
-
-    // Calculate formatted duration directly (avoid calling .getFormattedDuration())
-    const durationHours = specifications?.durationHours ?? 10;
-    const formattedDuration = durationHours < 1
-      ? `${Math.round(durationHours * 60)} phút`
-      : `${durationHours} giờ`;
-
-    // Calculate rating directly (avoid calling .getRating())
-    const rawRating = metadata?.rating ?? 5;
-    const rating = Math.round(rawRating * 10) / 10;
-
-    // Determine if published directly (avoid calling .isPublished())
-    const status = rawCourse?.status;
-    const isPublished = status === 'published';
-
-    // Determine if free directly (avoid calling .isFree())
-    const price = specifications?.price ?? 0;
-    const isFree = price === 0;
-
-    // Determine if popular directly (avoid calling .isPopular())
-    const studentsCount = metadata?.studentsCount ?? 0;
-    const isPopular = studentsCount > 50;
-
-    // Determine if new directly (avoid calling .isNew())
-    const createdAt = metadata?.createdAt ? new Date(metadata.createdAt) : new Date();
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const isNew = createdAt >= thirtyDaysAgo;
+    const raw = domainCourse as any;
+    const meta = raw?.metadata ?? {};
+    const specs = raw?.specifications ?? {};
+    const price = specs?.price ?? 0;
+    const studentsCount = meta?.studentsCount ?? 0;
+    // instructorId field stores teacherName (from mapSummaryToDomain)
+    const teacherName = raw?.instructorId ?? 'Giảng viên';
+    const lessonsCount = specs?.lessonsCount ?? 0;
 
     return {
-      id: rawCourse?.id ?? '',
-      title: rawCourse?.title ?? '',
-      description: rawCourse?.description ?? '',
-      shortDescription: rawCourse?.shortDescription ?? rawCourse?.description?.slice(0, 120) ?? '',
-      level: specifications?.level ?? 'beginner',
-      duration: formattedDuration,
+      id: raw?.id ?? '',
+      title: raw?.title ?? '',
+      description: raw?.description ?? '',
+      shortDescription: raw?.shortDescription ?? raw?.description?.slice(0, 120) ?? '',
+      level: specs?.level ?? 'beginner',
+      duration: `${specs?.durationHours ?? 10} giờ`,
       students: studentsCount,
-      rating: rating,
-      reviews: metadata?.reviewsCount ?? 0,
+      rating: Math.round((meta?.rating ?? 5) * 10) / 10,
+      reviews: meta?.reviewsCount ?? 0,
       price: price,
       originalPrice: undefined,
       instructor: {
-        id: rawCourse?.instructorId ?? '',
+        id: '',
         name: teacherName,
         title: 'Giảng viên',
-        avatar: 'assets/avatar-default.png',
+        avatar: '',
         credentials: [],
         experience: 0,
-        rating: rating,
+        rating: 5,
         studentsCount: studentsCount
       },
-      thumbnail: rawCourse?.thumbnail ?? 'assets/images/courses/placeholder.png',
-      category: rawCourse?.category ?? 'engineering',
-      tags: rawCourse?.tags ?? [],
-      skills: rawCourse?.skills ?? [],
+      // Use real thumbnail; empty string triggers gradient fallback in card
+      thumbnail: raw?.thumbnail || '',
+      // category field stores categoryName (from mapSummaryToDomain)
+      category: raw?.category ?? 'engineering',
+      tags: raw?.tags ?? [],
+      skills: raw?.skills ?? [],
       prerequisites: [],
       certificate: { type: 'Completion', description: '' },
-      curriculum: {
-        modules: specifications?.modulesCount ?? 0,
-        lessons: specifications?.lessonsCount ?? 0,
-        duration: formattedDuration
-      },
-      isPopular: isPopular,
-      isNew: isNew,
-      isFree: isFree,
+      curriculum: { modules: specs?.modulesCount ?? 0, lessons: lessonsCount, duration: '' },
+      isPopular: studentsCount > 50,
+      isNew: true,
+      isFree: price === 0,
       studentsCount: studentsCount,
-      lessonsCount: specifications?.lessonsCount ?? 0,
-      isPublished: isPublished,
-      isEnrolled: rawCourse?.metadata?.isEnrolled ?? this.enrollmentService.isEnrolledInCourse(rawCourse?.id) ?? false
+      lessonsCount: lessonsCount,
+      isPublished: true,
+      isEnrolled: meta?.isEnrolled ?? this.enrollmentService.isEnrolledInCourse(raw?.id) ?? false
     };
   }
 

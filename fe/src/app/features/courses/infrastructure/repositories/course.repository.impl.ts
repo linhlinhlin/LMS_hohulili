@@ -214,51 +214,46 @@ export class CourseRepositoryImpl implements CourseRepository {
   private mapSummaryToDomain(s: CourseSummary): Course | null {
     try {
       const now = new Date();
-
-      // Ensure description meets minimum length requirement (20 characters)
       let description = s.description ?? '';
-      if (description.length < 20) {
-        description = description.padEnd(20, ' '); // Pad with spaces to meet minimum length
-      }
-
-      // Ensure title meets minimum length requirement (5 characters)
+      if (description.length < 20) description = description.padEnd(20, ' ');
       let title = s.title ?? '';
-      if (title.length < 5) {
-        title = title.padEnd(5, ' '); // Pad with spaces to meet minimum length
-      }
+      if (title.length < 5) title = title.padEnd(5, ' ');
+
+      // Resolve price from API (priceType + price fields)
+      const price = s.priceType === 'FREE' ? 0 : (s.salePrice ?? s.price ?? 0);
 
       return new Course(
         (s.id as unknown as string) as CourseId,
         title,
         description,
-        (description).slice(0, 120),
-        'engineering', // backend doesn't provide category yet
-        (s.teacherName ?? 'teacher') as unknown as InstructorId,
+        description.slice(0, 120),
+        s.categoryName ?? 'engineering', // Use real category from API
+        (s.teacherName ?? 'Giảng viên') as unknown as InstructorId,
         new CourseSpecifications(
-          10, // durationHours - default value
+          10,
           CourseLevel.BEGINNER,
-          Math.max(s.enrolledCount ?? 0, 50), // maxStudents - ensure positive, default to 50
-          0, // price
-          [], // prerequisites
+          Math.max(s.enrolledCount ?? 0, 50),
+          price, // Real price from API
+          [],
           CertificateType.COMPLETION,
-          1, // modulesCount - must be at least 1
-          1  // lessonsCount - must be at least 1
+          s.sectionCount ?? 1,  // Real section count
+          s.lessonCount ?? 1    // Real lesson count
         ),
         CourseStatus.PUBLISHED,
         [],
         [],
-        '/assets/images/courses/placeholder.png',
+        s.thumbnailUrl ?? '', // Real thumbnail from API (empty = fallback gradient)
         {
           createdAt: s.createdAt ? new Date(s.createdAt as unknown as any) : now,
           updatedAt: now,
-          createdBy: (s.teacherName ?? 'teacher') as unknown as InstructorId,
+          createdBy: (s.teacherName ?? 'Giảng viên') as unknown as InstructorId,
           studentsCount: s.enrolledCount ?? 0,
           rating: 5,
-          reviewsCount: 0,
+          reviewsCount: s.enrolledCount ?? 0,
           isPopular: (s.enrolledCount ?? 0) > 50,
           isNew: true,
           version: 1,
-          isEnrolled: s.enrolled ?? s.isEnrolled ?? false // Map enrollment status from API (support both 'enrolled' and 'isEnrolled' fields)
+          isEnrolled: s.enrolled ?? s.isEnrolled ?? false
         }
       );
     } catch (error) {

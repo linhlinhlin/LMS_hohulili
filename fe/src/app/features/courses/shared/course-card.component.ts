@@ -13,7 +13,7 @@ import { StudentEnrollmentService } from '../../../features/student/services/enr
       <!-- Thumbnail -->
       <a [routerLink]="['/courses', course().id]" class="block">
         <div class="relative h-44 overflow-hidden">
-          @if (course().thumbnail && !course().thumbnail.includes('placeholder')) {
+          @if (course().thumbnail && course().thumbnail.length > 1 && !course().thumbnail.includes('placeholder') && !course().thumbnail.includes('assets/')) {
             <img [src]="course().thumbnail"
                  [alt]="course().title"
                  (error)="$any($event.target).style.display='none'"
