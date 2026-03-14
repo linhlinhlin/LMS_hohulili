@@ -268,23 +268,31 @@ interface FeaturedCourse {
               </a>
             </div>
           </div>
-          <!-- Chat mockup -->
+          <!-- Chat mockup with real Wiii mascot -->
           <div class="relative">
+            <!-- Wiii mascot floating above chat -->
+            <div class="mb-6 flex justify-center lg:mb-8">
+              <div class="wiii-float relative">
+                <img src="/images/wiii-avatar.png" alt="Wiii AI mascot"
+                     class="h-24 w-24 rounded-3xl shadow-xl shadow-orange-500/20 lg:h-28 lg:w-28">
+                <div class="absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-2 border-[#0a1628] bg-green-400"></div>
+              </div>
+            </div>
+            <!-- Chat window -->
             <div class="rounded-2xl border border-white/10 bg-white/5 p-1 shadow-2xl backdrop-blur-sm">
-              <div class="rounded-xl bg-[#111b2e] p-6">
-                <div class="mb-6 flex items-center gap-3 border-b border-white/10 pb-4">
-                  <div class="flex h-9 w-9 items-center justify-center rounded-full bg-cyan-500/20">
-                    <svg class="h-5 w-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-                  </div>
+              <div class="rounded-xl bg-[#111b2e] p-5">
+                <div class="mb-5 flex items-center gap-3 border-b border-white/10 pb-3">
+                  <img src="/images/wiii-avatar.png" alt="Wiii" class="h-8 w-8 rounded-full">
                   <div><p class="text-sm font-semibold text-white">Wiii AI</p><p class="text-xs text-green-400">Trực tuyến</p></div>
                 </div>
-                <div class="space-y-4">
+                <div class="space-y-3">
                   <div class="flex justify-end">
                     <div class="rounded-2xl rounded-tr-md bg-[#0056D2] px-4 py-2.5 text-sm text-white">
                       Quy tắc tránh va COLREGS áp dụng thế nào khi hai tàu đối hướng?
                     </div>
                   </div>
-                  <div class="flex justify-start">
+                  <div class="flex items-start gap-2">
+                    <img src="/images/wiii-avatar.png" alt="" class="mt-0.5 h-6 w-6 rounded-full">
                     <div class="max-w-[85%] rounded-2xl rounded-tl-md bg-white/10 px-4 py-2.5 text-sm leading-relaxed text-blue-100/80">
                       Theo Quy tắc 14 (COLREGS), khi hai tàu máy đối hướng, mỗi tàu phải
                       <span class="text-cyan-300">chuyển hướng sang mạn phải</span>
@@ -423,6 +431,15 @@ interface FeaturedCourse {
     }
     @keyframes staggerIn {
       to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Wiii mascot gentle float ── */
+    .wiii-float {
+      animation: wiiiFloat 4s ease-in-out infinite;
+    }
+    @keyframes wiiiFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
     }
 
     /* ── Line clamp ── */
