@@ -110,11 +110,7 @@ type ForgotPasswordForm = {
           <div class="relative z-10 flex flex-col justify-center items-center text-white p-12 w-full">
             <div class="text-center max-w-sm">
               <!-- Logo -->
-              <div class="w-20 h-20 bg-[#0056D2] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
-                <svg class="w-11 h-11 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
-                </svg>
-              </div>
+              <img src="/icons/logo-master.png" alt="LMS Maritime" class="w-16 h-16 rounded-2xl mx-auto mb-6 shadow-xl">
 
               <!-- Title -->
               <h2 class="text-3xl font-bold mb-3 text-white">
@@ -134,11 +130,7 @@ type ForgotPasswordForm = {
           <div class="w-full max-w-md mx-auto">
             <!-- Mobile Logo -->
             <div class="lg:hidden flex justify-center mb-8">
-              <div class="w-16 h-16 bg-[#0056D2] rounded-2xl flex items-center justify-center shadow-lg">
-                <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
-                </svg>
-              </div>
+              <img src="/icons/logo-master.png" alt="LMS Maritime" class="w-14 h-14 rounded-2xl shadow-lg">
             </div>
 
             <!-- Heading -->
