@@ -136,8 +136,16 @@ interface PayoutListItem {
                               [class]="getStatusClass(payout.status)">
                           {{ getStatusLabel(payout.status) }}
                         </span>
+                        @if (payout.status === 'CANCELLED') {
+                          <div class="mx-auto mt-1 max-w-[190px] text-xs text-slate-500">
+                            Giảng viên đã chủ động hủy yêu cầu. Số dư đã được hoàn lại.
+                          </div>
+                        }
                         @if (payout.adminNote) {
-                          <div class="mx-auto mt-1 max-w-[150px] truncate text-xs text-gray-500" [title]="payout.adminNote">
+                          <div class="mx-auto mt-1 max-w-[190px] truncate text-xs"
+                               [class.text-slate-500]="payout.status === 'CANCELLED'"
+                               [class.text-gray-500]="payout.status !== 'CANCELLED'"
+                               [title]="payout.adminNote">
                             {{ payout.adminNote }}
                           </div>
                         }
@@ -507,7 +515,7 @@ export class AdminPayoutsComponent implements OnInit {
             PENDING: 'Chờ duyệt',
             APPROVED: 'Đã duyệt',
             REJECTED: 'Từ chối',
-            CANCELLED: 'Đã hủy',
+            CANCELLED: 'GV đã hủy',
         };
         return map[status] || status;
     }

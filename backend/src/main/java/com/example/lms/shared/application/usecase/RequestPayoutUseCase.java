@@ -75,7 +75,7 @@ public class RequestPayoutUseCase {
         if (request.getStatus() != PayoutRequest.Status.PENDING) {
             throw new BusinessRuleException("Chỉ có thể hủy yêu cầu đang chờ duyệt");
         }
-        request.cancelByTeacher("Teacher cancelled request");
+        request.cancelByTeacher("Giảng viên đã hủy yêu cầu rút tiền");
         payoutRepo.save(request);
     }
 }

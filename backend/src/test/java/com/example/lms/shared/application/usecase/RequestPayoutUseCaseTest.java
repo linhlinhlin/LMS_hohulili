@@ -61,7 +61,7 @@ class RequestPayoutUseCaseTest {
         useCase.cancel(payoutId, teacherId);
 
         assertThat(request.getStatus()).isEqualTo(PayoutRequest.Status.CANCELLED);
-        assertThat(request.getAdminNote()).isEqualTo("Teacher cancelled request");
+        assertThat(request.getAdminNote()).isEqualTo("Giảng viên đã hủy yêu cầu rút tiền");
         assertThat(request.getProcessedAt()).isNotNull();
         assertThat(request.getProcessedBy()).isNull();
         verify(payoutRepo).save(request);

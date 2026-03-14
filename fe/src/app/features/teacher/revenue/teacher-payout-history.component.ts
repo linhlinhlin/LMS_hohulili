@@ -81,8 +81,16 @@ import { ToastService } from '../../../core/services/toast.service';
                               [class]="getStatusClass(payout.status)">
                           {{ getStatusLabel(payout.status) }}
                         </span>
+                        @if (payout.status === 'CANCELLED') {
+                          <div class="mx-auto mt-1 max-w-[210px] text-xs text-slate-500">
+                            Bạn đã hủy yêu cầu này. Số dư khả dụng đã được hoàn lại.
+                          </div>
+                        }
                         @if (payout.adminNote) {
-                          <div class="text-xs text-red-600 mt-1 max-w-[150px] truncate mx-auto" [title]="payout.adminNote">
+                          <div class="mx-auto mt-1 max-w-[210px] truncate text-xs"
+                               [class.text-slate-500]="payout.status === 'CANCELLED'"
+                               [class.text-red-600]="payout.status !== 'CANCELLED'"
+                               [title]="payout.adminNote">
                             {{ payout.adminNote }}
                           </div>
                         }
