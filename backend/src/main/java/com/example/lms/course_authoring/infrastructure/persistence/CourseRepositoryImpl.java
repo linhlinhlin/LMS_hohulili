@@ -85,7 +85,7 @@ public class CourseRepositoryImpl implements CourseRepository {
     @Override
     public Page<Course> findApprovedByTitleContaining(String search, Pageable pageable) {
         return jpaRepository.findByStatusAndTitleContaining(
-                CourseJpaEntity.CourseStatus.APPROVED, search, pageable)
+                CourseJpaEntity.CourseStatus.APPROVED.name(), search, pageable)
                 .map(mapper::toDomain);
     }
 
