@@ -162,6 +162,7 @@ export class StudentPaymentHistoryComponent implements OnInit {
     if (!method) return '—';
     const map: Record<string, string> = {
       'VNPAY': 'VNPay',
+      'SEPAY': 'SePay',
       'SIMULATED': 'Demo',
       'BANK_TRANSFER': 'Chuyển khoản',
       'MOMO': 'MoMo',

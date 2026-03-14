@@ -2,6 +2,7 @@ package com.example.lms.shared.infrastructure.persistence.repository;
 
 import com.example.lms.shared.infrastructure.persistence.entity.PaymentTransactionJpaEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import org.springframework.data.jpa.repository.Query;
@@ -57,4 +58,15 @@ public interface PaymentTransactionJpaRepository extends JpaRepository<PaymentTr
     @Query(value = "SELECT p FROM PaymentTransactionJpaEntity p WHERE p.courseId IN :courseIds AND p.status = :status ORDER BY p.createdAt DESC",
            countQuery = "SELECT COUNT(p) FROM PaymentTransactionJpaEntity p WHERE p.courseId IN :courseIds AND p.status = :status")
     org.springframework.data.domain.Page<PaymentTransactionJpaEntity> findByCourseIdInAndStatus(@Param("courseIds") List<UUID> courseIds, @Param("status") PaymentTransactionJpaEntity.PaymentStatus status, org.springframework.data.domain.Pageable pageable);
+
+    @Query("""
+        SELECT p.id FROM PaymentTransactionJpaEntity p
+        WHERE p.status = 'COMPLETED'
+          AND NOT EXISTS (
+            SELECT 1 FROM RevenueSplitJpaEntity r
+            WHERE r.paymentId = p.id
+          )
+        ORDER BY p.paidAt DESC, p.createdAt DESC
+        """)
+    List<UUID> findCompletedPaymentIdsWithoutRevenueSplit(Pageable pageable);
 }

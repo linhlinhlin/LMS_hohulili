@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { ensureOfflineDbReady, offlineDb, getCurrentUserId, type OfflineCourse, type OfflineChapter, type OfflineLesson, type DownloadCheckpoint, type OfflineQuizData, type OfflineQuestion } from '../db/lms-offline.db';
+import { ensureOfflineDbReady, isOfflinePersistenceSupported, offlineDb, getCurrentUserId, type OfflineCourse, type OfflineChapter, type OfflineLesson, type DownloadCheckpoint, type OfflineQuizData, type OfflineQuestion } from '../db/lms-offline.db';
 import { StorageManagerService } from './storage-manager.service';
 import { ToastService } from './toast.service';
 import { OfflineVideoService } from './offline-video.service';
@@ -46,8 +46,12 @@ export class CourseDownloadService {
 
   /** Set to true to cancel current download after the current chapter finishes */
   private downloadCancelled = false;
+  private readonly offlineSupported = isOfflinePersistenceSupported();
 
   constructor() {
+    if (!this.offlineSupported) {
+      return;
+    }
     void this.refreshDownloadedCourses().catch((error) => {
       console.error('[CourseDownloadService] Failed to initialize offline downloads:', error);
     });

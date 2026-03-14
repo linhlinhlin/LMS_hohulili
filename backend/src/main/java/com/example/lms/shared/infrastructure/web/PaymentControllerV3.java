@@ -32,13 +32,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.env.Environment;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -435,21 +438,11 @@ public class PaymentControllerV3 {
     public ResponseEntity<ApiResponse<Map<String, Object>>> adminListPayments(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String status
+            @RequestParam(required = false) String status,
+            @AuthenticationPrincipal UserJpaEntity currentUser
     ) {
         var pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-
-        Page<PaymentTransactionJpaEntity> payments;
-        if (status != null && !status.isBlank()) {
-            try {
-                var paymentStatus = PaymentTransactionJpaEntity.PaymentStatus.valueOf(status);
-                payments = paymentJpaRepository.findByStatus(paymentStatus, pageable);
-            } catch (IllegalArgumentException e) {
-                payments = paymentJpaRepository.findAll(pageable);
-            }
-        } else {
-            payments = paymentJpaRepository.findAll(pageable);
-        }
+        Page<PaymentTransactionJpaEntity> payments = resolveAdminPaymentsPage(pageable, status, currentUser);
 
         // Batch-load student names + course titles
         var studentIds = payments.getContent().stream().map(PaymentTransactionJpaEntity::getStudentId).distinct().toList();
@@ -499,6 +492,7 @@ public class PaymentControllerV3 {
             @PathVariable UUID paymentId,
             @Valid @RequestBody RefundRequest request
     ) {
+        verifyPaymentAccess(paymentId, currentUser);
         var payment = refundPaymentUseCase.execute(
                 paymentId, request.reason(), request.adminNote(), currentUser.getEmail());
 
@@ -525,7 +519,7 @@ public class PaymentControllerV3 {
 
     @Operation(summary = "Admin: trạng thái cổng thanh toán hiện tại (VNPay + SePay)")
     @GetMapping("/admin/gateway-status")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getGatewayStatus() {
         boolean isProd = isProductionProfile();
 
@@ -625,6 +619,103 @@ public class PaymentControllerV3 {
         } catch (Exception e) {
             log.error("[Payment] Failed to send payment email: {}", e.getMessage());
         }
+    }
+
+    private Page<PaymentTransactionJpaEntity> resolveAdminPaymentsPage(
+            PageRequest pageable,
+            String status,
+            UserJpaEntity currentUser
+    ) {
+        if (!isOrgAdmin(currentUser)) {
+            return findPaymentsByStatus(status, pageable);
+        }
+
+        List<UUID> orgTeacherIds = getOrgTeacherIds(currentUser.getOrganizationId());
+        if (orgTeacherIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        List<UUID> courseIds = courseRepository.findCourseIdsByTeacherIdIn(orgTeacherIds);
+        if (courseIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        return findPaymentsByCourseIds(courseIds, status, pageable);
+    }
+
+    private Page<PaymentTransactionJpaEntity> findPaymentsByStatus(String status, PageRequest pageable) {
+        if (status != null && !status.isBlank()) {
+            try {
+                var paymentStatus = PaymentTransactionJpaEntity.PaymentStatus.valueOf(status);
+                return paymentJpaRepository.findByStatus(paymentStatus, pageable);
+            } catch (IllegalArgumentException ignored) {
+                return paymentJpaRepository.findAll(pageable);
+            }
+        }
+        return paymentJpaRepository.findAll(pageable);
+    }
+
+    private Page<PaymentTransactionJpaEntity> findPaymentsByCourseIds(
+            List<UUID> courseIds,
+            String status,
+            PageRequest pageable
+    ) {
+        if (courseIds.isEmpty()) {
+            return new PageImpl<>(List.of(), pageable, 0);
+        }
+        if (status != null && !status.isBlank()) {
+            try {
+                var paymentStatus = PaymentTransactionJpaEntity.PaymentStatus.valueOf(status);
+                return paymentJpaRepository.findByCourseIdInAndStatus(courseIds, paymentStatus, pageable);
+            } catch (IllegalArgumentException ignored) {
+                return paymentJpaRepository.findByCourseIdIn(courseIds, pageable);
+            }
+        }
+        return paymentJpaRepository.findByCourseIdIn(courseIds, pageable);
+    }
+
+    private void verifyPaymentAccess(UUID paymentId, UserJpaEntity currentUser) {
+        if (!isOrgAdmin(currentUser)) {
+            return;
+        }
+
+        PaymentTransactionJpaEntity payment = paymentJpaRepository.findById(paymentId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND,
+                        "Giao dịch không tồn tại"));
+        verifyCourseAccess(payment.getCourseId(), currentUser);
+    }
+
+    private void verifyCourseAccess(UUID courseId, UserJpaEntity currentUser) {
+        if (!isOrgAdmin(currentUser)) {
+            return;
+        }
+
+        CourseJpaEntity course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND,
+                        "Khóa học không tồn tại"));
+        if (course.getTeacherId() == null) {
+            throw new AccessDeniedException("Không có quyền truy cập giao dịch này");
+        }
+        UserJpaEntity teacher = userRepository.findById(course.getTeacherId()).orElse(null);
+        if (teacher == null || !Objects.equals(teacher.getOrganizationId(), currentUser.getOrganizationId())) {
+            throw new AccessDeniedException("Không có quyền truy cập giao dịch của tổ chức khác");
+        }
+    }
+
+    private List<UUID> getOrgTeacherIds(UUID organizationId) {
+        if (organizationId == null) {
+            return List.of();
+        }
+        return userRepository.findByOrganizationId(organizationId).stream()
+                .filter(user -> user.getRole() == UserJpaEntity.UserRole.TEACHER)
+                .map(UserJpaEntity::getId)
+                .toList();
+    }
+
+    private boolean isOrgAdmin(UserJpaEntity currentUser) {
+        return currentUser != null && currentUser.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
     }
 
     // ==================== Request DTOs ====================

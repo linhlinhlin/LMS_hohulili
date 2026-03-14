@@ -1,5 +1,5 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { ensureOfflineDbReady, offlineDb, getCurrentUserId, type OfflineQuizData, type OfflineQuizAttempt } from '../db/lms-offline.db';
+import { ensureOfflineDbReady, isOfflinePersistenceSupported, offlineDb, getCurrentUserId, type OfflineQuizData, type OfflineQuizAttempt } from '../db/lms-offline.db';
 import { NetworkStatusService } from './network-status.service';
 import { ToastService } from './toast.service';
 
@@ -28,11 +28,15 @@ export interface OfflineQuizSubmission {
 export class OfflineQuizService {
   private readonly network = inject(NetworkStatusService);
   private readonly toast = inject(ToastService);
+  private readonly offlineSupported = isOfflinePersistenceSupported();
 
   /** Pending quiz submissions not yet synced (signal for badge display) */
   readonly pendingSubmissionCount = signal(0);
 
   constructor() {
+    if (!this.offlineSupported) {
+      return;
+    }
     void this.refreshPendingCount().catch((error) => {
       console.error('[OfflineQuizService] Failed to initialize pending count:', error);
     });

@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { ensureOfflineDbReady, offlineDb, getCurrentUserId } from '../db/lms-offline.db';
+import { ensureOfflineDbReady, isOfflinePersistenceSupported, offlineDb, getCurrentUserId } from '../db/lms-offline.db';
 
 export interface OfflineVideoEntry {
   lessonId: string;
@@ -13,8 +13,12 @@ export class OfflineVideoService {
   readonly downloads = signal<OfflineVideoEntry[]>([]);
   readonly downloadProgress = signal<Map<string, number>>(new Map());
   readonly isDownloading = signal(false);
+  private readonly offlineSupported = isOfflinePersistenceSupported();
 
   constructor() {
+    if (!this.offlineSupported) {
+      return;
+    }
     void this.refreshList().catch((error) => {
       console.error('[OfflineVideoService] Failed to initialize offline video list:', error);
     });

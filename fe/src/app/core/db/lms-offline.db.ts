@@ -148,6 +148,10 @@ export function getCurrentUserId(): string {
   }
 }
 
+export function isOfflinePersistenceSupported(): boolean {
+  return typeof window !== 'undefined' && typeof indexedDB !== 'undefined';
+}
+
 // ─── Database Class ──────────────────────────────────────────────────
 
 export class LmsOfflineDatabase extends Dexie {
@@ -256,6 +260,10 @@ function isRecoverableUpgradeError(err: unknown): boolean {
 }
 
 async function openOfflineDbWithRecovery(db: LmsOfflineDatabase): Promise<LmsOfflineDatabase> {
+  if (!isOfflinePersistenceSupported()) {
+    return db;
+  }
+
   try {
     await db.open();
     return db;
@@ -279,14 +287,27 @@ async function openOfflineDbWithRecovery(db: LmsOfflineDatabase): Promise<LmsOff
 }
 
 export let offlineDb = new LmsOfflineDatabase();
+let offlineDbOpenStarted = false;
 
 /**
  * Shared readiness promise for every IndexedDB consumer.
  * Consumers should await this before touching tables so first-load recovery
  * from legacy primary-key migrations completes deterministically.
  */
-export let offlineDbReady: Promise<LmsOfflineDatabase> = openOfflineDbWithRecovery(offlineDb);
+export let offlineDbReady: Promise<LmsOfflineDatabase> = Promise.resolve(offlineDb);
 
 export function ensureOfflineDbReady(): Promise<LmsOfflineDatabase> {
+  if (!isOfflinePersistenceSupported()) {
+    return Promise.resolve(offlineDb);
+  }
+
+  if (!offlineDbOpenStarted) {
+    offlineDbOpenStarted = true;
+    offlineDbReady = openOfflineDbWithRecovery(offlineDb).catch((error) => {
+      offlineDbOpenStarted = false;
+      throw error;
+    });
+  }
+
   return offlineDbReady;
 }

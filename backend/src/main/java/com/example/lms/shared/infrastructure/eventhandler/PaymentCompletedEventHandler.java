@@ -26,7 +26,7 @@ public class PaymentCompletedEventHandler {
             createRevenueSplitUseCase.execute(event.getPaymentId());
         } catch (Exception ex) {
             // Log and swallow — revenue split failure must not affect payment confirmation
-            log.error("[Revenue] Failed to create revenue split for payment {}",
+            log.error("[Revenue] Failed to create revenue split for payment {}. Reconciliation scheduler will retry.",
                     event.getPaymentId(), ex);
         }
     }

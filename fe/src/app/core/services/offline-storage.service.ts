@@ -21,10 +21,14 @@ interface MaritimeLMSDB extends DBSchema {
     providedIn: 'root'
 })
 export class OfflineStorageService {
-    private dbPromise: Promise<IDBPDatabase<MaritimeLMSDB>>;
-    isOffline = signal<boolean>(!navigator.onLine);
+    private dbPromise: Promise<IDBPDatabase<MaritimeLMSDB>> | null = null;
+    isOffline = signal<boolean>(typeof navigator !== 'undefined' ? !navigator.onLine : false);
 
     constructor() {
+        if (typeof window === 'undefined' || typeof indexedDB === 'undefined') {
+            return;
+        }
+
         this.dbPromise = openDB<MaritimeLMSDB>('maritime-lms-db', 1, {
             upgrade(db) {
                 db.createObjectStore('content-blocks');
@@ -37,6 +41,7 @@ export class OfflineStorageService {
     }
 
     async saveBlocks(key: string, blocks: ContentBlock[]) {
+        if (!this.dbPromise) return;
         const db = await this.dbPromise;
         const tx = db.transaction(['content-blocks', 'image-queue'], 'readwrite');
 
@@ -61,11 +66,13 @@ export class OfflineStorageService {
     }
 
     async getBlocks(key: string): Promise<ContentBlock[] | undefined> {
+        if (!this.dbPromise) return undefined;
         const db = await this.dbPromise;
         return db.get('content-blocks', key);
     }
 
     async getPendingImages() {
+        if (!this.dbPromise) return [];
         const db = await this.dbPromise;
         return db.getAll('image-queue');
     }
