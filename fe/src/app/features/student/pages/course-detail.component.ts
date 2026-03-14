@@ -155,7 +155,6 @@ export class CourseDetailComponent implements OnInit {
     const courseId = this.route.snapshot.paramMap.get('id');
     if (courseId) {
       this.loadCourse(courseId);
-      this.checkPaymentStatus(courseId);
       this.loadReviews(courseId);
       this.loadMyReview(courseId);
       this.loadProgress(courseId);
@@ -171,7 +170,7 @@ export class CourseDetailComponent implements OnInit {
         const detail = res?.data;
         const price = detail?.price ?? 0;
         const priceType = detail?.priceType;
-        this.course.set({
+        const courseDetail: CourseDetail = {
           id: courseId,
           title: detail?.title || '',
           description: detail?.description || '',
@@ -182,9 +181,12 @@ export class CourseDetailComponent implements OnInit {
           salePrice: detail?.salePrice,
           priceType,
           deliveryMode: detail?.deliveryMode
-        });
+        };
+        this.course.set(courseDetail);
         if (!price || price === 0 || priceType === 'FREE') {
           this.hasPaid.set(true);
+        } else {
+          void this.checkPaymentStatus(courseId, courseDetail);
         }
       },
       error: () => {
@@ -394,11 +396,16 @@ export class CourseDetailComponent implements OnInit {
 
   // ============ Payment Methods ============
 
-  async checkPaymentStatus(courseId: string): Promise<void> {
+  async checkPaymentStatus(courseId: string, courseDetail?: CourseDetail | null): Promise<void> {
     this.paymentLoading.set(true);
     try {
-      const course = this.course();
-      const isFree = !course?.price || course.price === 0 || course.priceType === 'FREE';
+      const course = courseDetail ?? this.course();
+      if (!course) {
+        this.hasPaid.set(false);
+        return;
+      }
+
+      const isFree = !course.price || course.price === 0 || course.priceType === 'FREE';
       if (isFree) {
         this.hasPaid.set(true);
         return;
@@ -406,9 +413,11 @@ export class CourseDetailComponent implements OnInit {
       const state = await this.paymentService.loadPaymentStatus(courseId);
       this.hasPaid.set(state.hasPaid);
     } catch {
-      const course = this.course();
-      if (!course?.price || course.price === 0 || course.priceType === 'FREE') {
+      const course = courseDetail ?? this.course();
+      if (course && (!course.price || course.price === 0 || course.priceType === 'FREE')) {
         this.hasPaid.set(true);
+      } else {
+        this.hasPaid.set(false);
       }
     } finally {
       this.paymentLoading.set(false);
@@ -419,7 +428,13 @@ export class CourseDetailComponent implements OnInit {
     this.courseApi.getCourseProgress(courseId).subscribe({
       next: (res: any) => {
         const data = res?.data ?? res;
-        this.isEnrolled.set(true);
+        const status = String(data?.status || '').toLowerCase();
+        const isActuallyEnrolled = status !== '' && status !== 'not_enrolled' && status !== 'not_authenticated';
+        this.isEnrolled.set(isActuallyEnrolled);
+        if (!isActuallyEnrolled) {
+          this._realProgress.set(null);
+          return;
+        }
         const pct = data?.progressPercentage;
         if (pct !== undefined && pct !== null) {
           this._realProgress.set({
@@ -431,6 +446,7 @@ export class CourseDetailComponent implements OnInit {
       },
       error: () => {
         this.isEnrolled.set(false);
+        this._realProgress.set(null);
         /* supplementary — silent fallback */
       }
     });
