@@ -1,12 +1,13 @@
 import { Component, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-contact',
-  imports: [FormsModule],
+  imports: [FormsModule, RouterModule],
   templateUrl: './contact.component.html',
 })
 export class ContactComponent {
@@ -35,7 +36,7 @@ export class ContactComponent {
     const body = encodeURIComponent(
       `Tên: ${this.formData.name}\nEmail: ${this.formData.email}\nSĐT: ${this.formData.phone}\n\n${this.formData.message}`
     );
-    window.open(`mailto:support@maritime.edu?subject=${subject}&body=${body}`, '_self');
+    window.open(`mailto:contact@holilihu.online?subject=${subject}&body=${body}`, '_self');
     this.toast.success('Đã mở ứng dụng email. Vui lòng gửi email để liên hệ.');
   }
 }
