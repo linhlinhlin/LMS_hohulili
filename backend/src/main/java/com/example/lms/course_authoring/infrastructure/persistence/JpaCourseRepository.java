@@ -40,9 +40,9 @@ public interface JpaCourseRepository extends JpaRepository<CourseJpaEntity, UUID
 
     Page<CourseJpaEntity> findByStatus(CourseJpaEntity.CourseStatus status, Pageable pageable);
 
-    @Query("SELECT c FROM CourseJpaEntity c WHERE c.status = :status AND LOWER(c.title) LIKE LOWER(CONCAT('%', :search, '%'))")
+    @Query(value = "SELECT * FROM courses c WHERE c.status = :status AND unaccent(LOWER(c.title)) LIKE unaccent(LOWER(CONCAT('%', :search, '%')))", nativeQuery = true)
     Page<CourseJpaEntity> findByStatusAndTitleContaining(
-            @Param("status") CourseJpaEntity.CourseStatus status,
+            @Param("status") String status,
             @Param("search") String search,
             Pageable pageable);
 
@@ -52,7 +52,7 @@ public interface JpaCourseRepository extends JpaRepository<CourseJpaEntity, UUID
 
     long countByStatus(CourseJpaEntity.CourseStatus status);
 
-    @Query("SELECT c FROM CourseJpaEntity c WHERE LOWER(c.title) LIKE LOWER(CONCAT('%', :search, '%'))")
+    @Query(value = "SELECT * FROM courses c WHERE unaccent(LOWER(c.title)) LIKE unaccent(LOWER(CONCAT('%', :search, '%')))", nativeQuery = true)
     Page<CourseJpaEntity> findByTitleContaining(@Param("search") String search, Pageable pageable);
 
     @Query("SELECT c FROM CourseJpaEntity c WHERE c.id = (SELECT ch.courseId FROM ChapterJpaEntity ch WHERE ch.id = :chapterId)")

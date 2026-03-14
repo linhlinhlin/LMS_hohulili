@@ -39,79 +39,91 @@ import { SeoService } from '../../core/services/seo.service';
 
               <!-- Search -->
               <div class="mb-5">
-                <label class="mb-1.5 block text-xs font-medium text-gray-500">Tìm kiếm</label>
-                <input type="text"
-                       [ngModel]="filters.search"
-                       (ngModelChange)="onSearchChange($event)"
-                       placeholder="Nhập từ khóa..."
-                       class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
+                <label class="mb-1.5 block text-xs font-medium text-gray-600">Tìm kiếm</label>
+                <div class="relative">
+                  <input type="text"
+                         [ngModel]="filters.search"
+                         (ngModelChange)="onSearchChange($event)"
+                         placeholder="VD: An toàn, ECDIS, Diesel..."
+                         class="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-3.5 pr-9 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 transition-colors">
+                  @if (filters.search) {
+                    <button (click)="filters.search = ''; applyFilters()"
+                            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
+                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                  }
+                </div>
+                <p class="mt-1 text-[10px] text-gray-400">Lưu ý: tìm kiếm có phân biệt dấu tiếng Việt</p>
               </div>
 
               <!-- Category -->
               <div class="mb-5">
-                <label class="mb-1.5 block text-xs font-medium text-gray-500">Danh mục</label>
+                <label class="mb-1.5 block text-xs font-medium text-gray-600">Danh mục</label>
                 <select [(ngModel)]="filters.category"
                         (ngModelChange)="applyFilters()"
-                        class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
-                  <option [ngValue]="undefined">Tất cả danh mục</option>
-                  <option [ngValue]="CourseCategory.MARINE_ENGINEERING">Kỹ thuật tàu biển</option>
-                  <option [ngValue]="CourseCategory.PORT_MANAGEMENT">Quản lý cảng</option>
-                  <option [ngValue]="CourseCategory.MARITIME_SAFETY">An toàn hàng hải</option>
-                  <option [ngValue]="CourseCategory.NAVIGATION">Hàng hải</option>
-                  <option [ngValue]="CourseCategory.CARGO_HANDLING">Xếp dỡ hàng hóa</option>
-                  <option [ngValue]="CourseCategory.MARITIME_LAW">Luật hàng hải</option>
+                        class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 transition-colors"
+                        [class]="filters.category ? 'text-gray-900' : 'text-gray-400'">
+                  <option [ngValue]="undefined" class="text-gray-400">Tất cả danh mục</option>
+                  <option [ngValue]="CourseCategory.MARINE_ENGINEERING" class="text-gray-900">Kỹ thuật tàu biển</option>
+                  <option [ngValue]="CourseCategory.PORT_MANAGEMENT" class="text-gray-900">Quản lý cảng</option>
+                  <option [ngValue]="CourseCategory.MARITIME_SAFETY" class="text-gray-900">An toàn hàng hải</option>
+                  <option [ngValue]="CourseCategory.NAVIGATION" class="text-gray-900">Hàng hải</option>
+                  <option [ngValue]="CourseCategory.CARGO_HANDLING" class="text-gray-900">Xếp dỡ hàng hóa</option>
+                  <option [ngValue]="CourseCategory.MARITIME_LAW" class="text-gray-900">Luật hàng hải</option>
                 </select>
               </div>
 
               <!-- Level -->
               <div class="mb-5">
-                <label class="mb-1.5 block text-xs font-medium text-gray-500">Cấp độ</label>
+                <label class="mb-1.5 block text-xs font-medium text-gray-600">Cấp độ</label>
                 <select [(ngModel)]="filters.level"
                         (ngModelChange)="applyFilters()"
-                        class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
-                  <option [ngValue]="undefined">Tất cả cấp độ</option>
-                  <option [ngValue]="'beginner'">Cơ bản</option>
-                  <option [ngValue]="'intermediate'">Trung cấp</option>
-                  <option [ngValue]="'advanced'">Nâng cao</option>
+                        class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 transition-colors"
+                        [class]="filters.level ? 'text-gray-900' : 'text-gray-400'">
+                  <option [ngValue]="undefined" class="text-gray-400">Tất cả cấp độ</option>
+                  <option [ngValue]="'beginner'" class="text-gray-900">Cơ bản</option>
+                  <option [ngValue]="'intermediate'" class="text-gray-900">Trung cấp</option>
+                  <option [ngValue]="'advanced'" class="text-gray-900">Nâng cao</option>
                 </select>
               </div>
 
               <!-- Price Range -->
               <div class="mb-5">
-                <label class="mb-1.5 block text-xs font-medium text-gray-500">Khoảng giá (VND)</label>
+                <label class="mb-1.5 block text-xs font-medium text-gray-600">Khoảng giá (VND)</label>
                 <div class="flex gap-2">
                   <input type="number"
                          [ngModel]="priceMin"
                          (ngModelChange)="onPriceMinChange($event)"
                          placeholder="Từ"
-                         class="w-1/2 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
+                         class="w-1/2 rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 transition-colors">
                   <input type="number"
                          [ngModel]="priceMax"
                          (ngModelChange)="onPriceMaxChange($event)"
                          placeholder="Đến"
-                         class="w-1/2 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
+                         class="w-1/2 rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 transition-colors">
                 </div>
               </div>
 
               <!-- Rating -->
               <div class="mb-5">
-                <label class="mb-1.5 block text-xs font-medium text-gray-500">Đánh giá tối thiểu</label>
+                <label class="mb-1.5 block text-xs font-medium text-gray-600">Đánh giá tối thiểu</label>
                 <select [ngModel]="filters.rating"
                         (ngModelChange)="onRatingChange($event)"
-                        class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
-                  <option [ngValue]="undefined">Tất cả</option>
-                  <option [ngValue]="3.5">Từ 3.5 sao</option>
-                  <option [ngValue]="4">Từ 4.0 sao</option>
-                  <option [ngValue]="4.5">Từ 4.5 sao</option>
+                        class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 transition-colors"
+                        [class]="filters.rating ? 'text-gray-900' : 'text-gray-400'">
+                  <option [ngValue]="undefined" class="text-gray-400">Tất cả</option>
+                  <option [ngValue]="3.5" class="text-gray-900">Từ 3.5 sao</option>
+                  <option [ngValue]="4" class="text-gray-900">Từ 4.0 sao</option>
+                  <option [ngValue]="4.5" class="text-gray-900">Từ 4.5 sao</option>
                 </select>
               </div>
 
               <!-- Sort -->
               <div class="mb-5">
-                <label class="mb-1.5 block text-xs font-medium text-gray-500">Sắp xếp</label>
+                <label class="mb-1.5 block text-xs font-medium text-gray-600">Sắp xếp</label>
                 <select [(ngModel)]="filters.sortBy"
                         (ngModelChange)="applyFilters()"
-                        class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
+                        class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 transition-colors">
                   <option [ngValue]="'rating'">Đánh giá cao</option>
                   <option [ngValue]="'title'">Tên A-Z</option>
                   <option [ngValue]="'price'">Giá thấp đến cao</option>
@@ -119,7 +131,7 @@ import { SeoService } from '../../core/services/seo.service';
               </div>
 
               <button (click)="clearFilters()"
-                      class="w-full rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50">
+                      class="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700">
                 Xóa bộ lọc
               </button>
             </div>

@@ -144,7 +144,7 @@ public class CourseRepositoryImpl implements CourseRepository {
 
     @Override
     public Page<Course> findByStatusAndTitleContaining(Course.CourseStatus status, String search, Pageable pageable) {
-        CourseJpaEntity.CourseStatus entityStatus = mapStatusToEntity(status);
+        String entityStatus = mapStatusToEntity(status).name();
         return jpaRepository.findByStatusAndTitleContaining(entityStatus, search, pageable)
                 .map(mapper::toDomain);
     }
