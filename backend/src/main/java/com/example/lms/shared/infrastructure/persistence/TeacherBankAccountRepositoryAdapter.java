@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,6 +28,14 @@ public class TeacherBankAccountRepositoryAdapter implements TeacherBankAccountRe
     @Override
     public Optional<TeacherBankAccount> findById(UUID id) {
         return jpaRepo.findById(id).map(this::toDomain);
+    }
+
+    @Override
+    public List<TeacherBankAccount> findByIds(Collection<UUID> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return jpaRepo.findByIdIn(List.copyOf(ids)).stream().map(this::toDomain).toList();
     }
 
     @Override

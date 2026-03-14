@@ -2,6 +2,7 @@ package com.example.lms.shared.infrastructure.web;
 
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
+import com.example.lms.shared.application.support.BankAccountMasking;
 import com.example.lms.shared.application.usecase.ProcessPayoutUseCase;
 import com.example.lms.shared.domain.model.PayoutRequest;
 import com.example.lms.shared.domain.model.TeacherBankAccount;
@@ -13,16 +14,19 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -33,12 +37,10 @@ import java.util.stream.Collectors;
 @SecurityRequirement(name = "bearerAuth")
 public class AdminRevenueControllerV3 {
 
-    private final ProcessPayoutUseCase          processPayoutUseCase;
-    private final PayoutRequestRepository       payoutRepo;
-    private final UserJpaRepository             userRepo;
-    private final TeacherBankAccountRepository  bankAccountRepo;
-
-    // ── Payout management ─────────────────────────────────────────────────
+    private final ProcessPayoutUseCase processPayoutUseCase;
+    private final PayoutRequestRepository payoutRepo;
+    private final UserJpaRepository userRepo;
+    private final TeacherBankAccountRepository bankAccountRepo;
 
     @GetMapping("/payouts")
     @PreAuthorize("hasAnyRole('ADMIN','ORG_ADMIN')")
@@ -46,22 +48,20 @@ public class AdminRevenueControllerV3 {
     public ResponseEntity<ApiResponse<Page<PayoutListDto>>> listPayouts(
             @RequestParam(defaultValue = "PENDING") String status,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        Page<PayoutRequest> pageResult = payoutRepo.findAllByStatus(status, PageRequest.of(page, size));
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        PageRequest pageable = PageRequest.of(page, size);
+        Page<PayoutRequest> pageResult = resolveScopedPayoutPage(status, pageable, currentUser);
 
-        // Batch-load teacher names
         List<UUID> teacherIds = pageResult.stream().map(PayoutRequest::getTeacherId).distinct().toList();
         Map<UUID, UserJpaEntity> users = userRepo.findAllById(teacherIds)
                 .stream().collect(Collectors.toMap(UserJpaEntity::getId, u -> u));
 
-        // Batch-load bank accounts
         List<UUID> bankIds = pageResult.stream().map(PayoutRequest::getBankAccountId).distinct().toList();
-        Map<UUID, TeacherBankAccount> banks = new HashMap<>();
-        for (UUID id : bankIds) {
-            bankAccountRepo.findById(id).ifPresent(b -> banks.put(id, b));
-        }
+        Map<UUID, TeacherBankAccount> banks = bankAccountRepo.findByIds(bankIds)
+                .stream().collect(Collectors.toMap(TeacherBankAccount::getId, b -> b));
 
-        var result = pageResult.map(p -> toDto(p, users.get(p.getTeacherId()), banks.get(p.getBankAccountId())));
+        var result = pageResult.map(p -> toDto(p, users.get(p.getTeacherId()), banks.get(p.getBankAccountId()), currentUser));
         return ResponseEntity.ok(ApiResponse.success(result, "Danh sách yêu cầu rút tiền"));
     }
 
@@ -72,9 +72,9 @@ public class AdminRevenueControllerV3 {
             @PathVariable UUID id,
             @RequestBody(required = false) AdminNoteBody body,
             @AuthenticationPrincipal UserJpaEntity admin) {
-        var result = processPayoutUseCase.approve(id, admin.getId(),
-                body != null ? body.adminNote() : null);
-        return ResponseEntity.ok(ApiResponse.success(enrich(result), "Đã duyệt yêu cầu rút tiền"));
+        verifyPayoutAccess(id, admin);
+        var result = processPayoutUseCase.approve(id, admin.getId(), body != null ? body.adminNote() : null);
+        return ResponseEntity.ok(ApiResponse.success(enrich(result, admin), "Đã duyệt yêu cầu rút tiền"));
     }
 
     @PostMapping("/payouts/{id}/reject")
@@ -84,8 +84,9 @@ public class AdminRevenueControllerV3 {
             @PathVariable UUID id,
             @RequestBody AdminNoteBody body,
             @AuthenticationPrincipal UserJpaEntity admin) {
+        verifyPayoutAccess(id, admin);
         var result = processPayoutUseCase.reject(id, admin.getId(), body.adminNote());
-        return ResponseEntity.ok(ApiResponse.success(enrich(result), "Đã từ chối yêu cầu rút tiền"));
+        return ResponseEntity.ok(ApiResponse.success(enrich(result, admin), "Đã từ chối yêu cầu rút tiền"));
     }
 
     @PostMapping("/payouts/{id}/complete")
@@ -94,53 +95,98 @@ public class AdminRevenueControllerV3 {
     public ResponseEntity<ApiResponse<PayoutListDto>> complete(
             @PathVariable UUID id,
             @AuthenticationPrincipal UserJpaEntity admin) {
+        verifyPayoutAccess(id, admin);
         var result = processPayoutUseCase.complete(id, admin.getId());
-        return ResponseEntity.ok(ApiResponse.success(enrich(result), "Đã xác nhận chuyển khoản thành công"));
+        return ResponseEntity.ok(ApiResponse.success(enrich(result, admin), "Đã xác nhận chuyển khoản thành công"));
     }
-
-    // ── DTO ───────────────────────────────────────────────────────────────
 
     public record AdminNoteBody(String adminNote) {}
 
     public record PayoutListDto(
-            UUID       id,
-            UUID       teacherId,
-            String     teacherName,
-            String     teacherEmail,
+            UUID id,
+            UUID teacherId,
+            String teacherName,
+            String teacherEmail,
             BigDecimal amount,
-            String     status,
-            String     teacherNote,
-            String     adminNote,
-            Instant    requestedAt,
-            Instant    processedAt,
-            // Bank transfer info (full account number for admin — never masked)
-            String     bankCode,
-            String     accountNumber,
-            String     accountName
+            String status,
+            String teacherNote,
+            String adminNote,
+            Instant requestedAt,
+            Instant processedAt,
+            String bankCode,
+            String accountNumber,
+            String accountName
     ) {}
 
-    /** Enrich a single payout with teacher + bank info (used by action endpoints). */
-    private PayoutListDto enrich(PayoutRequest p) {
-        UserJpaEntity user = userRepo.findById(p.getTeacherId()).orElse(null);
-        TeacherBankAccount bank = bankAccountRepo.findById(p.getBankAccountId()).orElse(null);
-        return toDto(p, user, bank);
+    private PayoutListDto enrich(PayoutRequest payout, UserJpaEntity viewer) {
+        UserJpaEntity teacher = userRepo.findById(payout.getTeacherId()).orElse(null);
+        TeacherBankAccount bank = bankAccountRepo.findById(payout.getBankAccountId()).orElse(null);
+        return toDto(payout, teacher, bank, viewer);
     }
 
-    private PayoutListDto toDto(PayoutRequest p, UserJpaEntity user, TeacherBankAccount bank) {
+    private PayoutListDto toDto(
+            PayoutRequest payout,
+            UserJpaEntity teacher,
+            TeacherBankAccount bank,
+            UserJpaEntity viewer
+    ) {
         return new PayoutListDto(
-                p.getId(),
-                p.getTeacherId(),
-                user != null ? user.getFullName() : "—",
-                user != null ? user.getEmail()    : "—",
-                p.getAmount(),
-                p.getStatus().name(),
-                p.getTeacherNote(),
-                p.getAdminNote(),
-                p.getRequestedAt(),
-                p.getProcessedAt(),
-                bank != null ? bank.getBankCode()      : "—",
-                bank != null ? bank.getAccountNumber() : "—",   // Full number for admin
-                bank != null ? bank.getAccountName()   : "—"
+                payout.getId(),
+                payout.getTeacherId(),
+                teacher != null ? teacher.getFullName() : "—",
+                teacher != null ? teacher.getEmail() : "—",
+                payout.getAmount(),
+                payout.getStatus().name(),
+                payout.getTeacherNote(),
+                payout.getAdminNote(),
+                payout.getRequestedAt(),
+                payout.getProcessedAt(),
+                bank != null ? bank.getBankCode() : "—",
+                bank != null ? BankAccountMasking.viewerAware(bank.getAccountNumber(), isSystemAdmin(viewer)) : "—",
+                bank != null ? bank.getAccountName() : "—"
         );
+    }
+
+    private Page<PayoutRequest> resolveScopedPayoutPage(String status, PageRequest pageable, UserJpaEntity currentUser) {
+        if (!isOrgAdmin(currentUser)) {
+            return payoutRepo.findAllByStatus(status, pageable);
+        }
+
+        List<UUID> orgTeacherIds = getOrgTeacherIds(currentUser.getOrganizationId());
+        if (orgTeacherIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        return payoutRepo.findAllByStatusAndTeacherIds(status, orgTeacherIds, pageable);
+    }
+
+    private void verifyPayoutAccess(UUID payoutId, UserJpaEntity admin) {
+        if (!isOrgAdmin(admin)) {
+            return;
+        }
+
+        PayoutRequest payout = payoutRepo.findById(payoutId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Yêu cầu rút tiền không tồn tại"));
+        UserJpaEntity teacher = userRepo.findById(payout.getTeacherId()).orElse(null);
+        if (teacher == null || !Objects.equals(teacher.getOrganizationId(), admin.getOrganizationId())) {
+            throw new AccessDeniedException("Không có quyền truy cập yêu cầu rút tiền của tổ chức khác");
+        }
+    }
+
+    private List<UUID> getOrgTeacherIds(UUID organizationId) {
+        if (organizationId == null) {
+            return List.of();
+        }
+        return userRepo.findByOrganizationId(organizationId).stream()
+                .filter(user -> user.getRole() == UserJpaEntity.UserRole.TEACHER)
+                .map(UserJpaEntity::getId)
+                .toList();
+    }
+
+    private boolean isOrgAdmin(UserJpaEntity viewer) {
+        return viewer != null && viewer.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
+    }
+
+    private boolean isSystemAdmin(UserJpaEntity viewer) {
+        return viewer != null && viewer.getRole() == UserJpaEntity.UserRole.ADMIN;
     }
 }

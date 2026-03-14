@@ -72,7 +72,7 @@ import { ToastService } from '../../../core/services/toast.service';
                         <span class="px-2 py-0.5 bg-[#0056D2]/10 text-[#004BB5] text-xs rounded-full font-medium">Mặc định</span>
                       }
                       @if (!account.verified) {
-                        <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">Chưa xác minh</span>
+                        <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">Chưa đủ điều kiện nhận payout</span>
                       }
                     </div>
                     <p class="text-sm text-gray-600 font-mono mt-0.5">{{ account.accountNumberMasked }}</p>

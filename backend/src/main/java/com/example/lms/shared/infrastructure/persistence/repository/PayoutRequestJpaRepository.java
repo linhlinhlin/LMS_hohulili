@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.UUID;
 
 @Repository
@@ -18,6 +19,12 @@ public interface PayoutRequestJpaRepository
     Page<PayoutRequestJpaEntity> findByTeacherIdOrderByRequestedAtDesc(UUID teacherId, Pageable pageable);
 
     Page<PayoutRequestJpaEntity> findByStatusOrderByRequestedAtDesc(String status, Pageable pageable);
+
+    Page<PayoutRequestJpaEntity> findByStatusAndTeacherIdInOrderByRequestedAtDesc(
+            String status,
+            Collection<UUID> teacherIds,
+            Pageable pageable
+    );
 
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM PayoutRequestJpaEntity p WHERE p.teacherId = :teacherId AND p.status = 'COMPLETED'")
     BigDecimal sumCompletedByTeacherId(@Param("teacherId") UUID teacherId);

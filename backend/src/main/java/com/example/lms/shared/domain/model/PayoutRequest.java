@@ -6,7 +6,7 @@ import java.util.UUID;
 
 public class PayoutRequest {
 
-    public enum Status { PENDING, APPROVED, REJECTED, COMPLETED }
+    public enum Status { PENDING, APPROVED, REJECTED, COMPLETED, CANCELLED }
 
     private final UUID       id;
     private final UUID       teacherId;
@@ -70,6 +70,14 @@ public class PayoutRequest {
         this.status      = Status.COMPLETED;
         this.processedBy = adminId;
         this.processedAt = Instant.now();
+    }
+
+    public void cancelByTeacher(String note) {
+        if (status != Status.PENDING) throw new IllegalStateException("Only PENDING requests can be cancelled");
+        this.status = Status.CANCELLED;
+        this.adminNote = note;
+        this.processedAt = Instant.now();
+        this.processedBy = null;
     }
 
     public UUID       getId()            { return id; }

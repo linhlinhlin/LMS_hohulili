@@ -35,6 +35,7 @@ import { ToastService } from '../../../core/services/toast.service';
               <option value="APPROVED">Đã duyệt</option>
               <option value="COMPLETED">Hoàn thành</option>
               <option value="REJECTED">Bị từ chối</option>
+              <option value="CANCELLED">Đã hủy</option>
             </select>
           </div>
         </div>
@@ -179,7 +180,7 @@ export class TeacherPayoutHistoryComponent implements OnInit {
         this.revenueService.cancelPayout(id).subscribe({
             next: () => {
                 this.toast.success('Đã hủy yêu cầu rút tiền');
-                this.loadData();
+                this.applyFilter();
             },
             error: (e) => this.toast.error('Lỗi: ' + (e?.error?.message || 'Không thể hủy yêu cầu'))
         });

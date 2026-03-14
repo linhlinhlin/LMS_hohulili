@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -40,6 +41,12 @@ public class PayoutRequestRepositoryAdapter implements PayoutRequestRepository {
     }
 
     @Override
+    public Page<PayoutRequest> findAllByStatusAndTeacherIds(String status, Collection<UUID> teacherIds, Pageable pageable) {
+        return jpaRepo.findByStatusAndTeacherIdInOrderByRequestedAtDesc(status, teacherIds, pageable)
+                .map(this::toDomain);
+    }
+
+    @Override
     public BigDecimal sumCompletedByTeacherId(UUID teacherId) {
         return jpaRepo.sumCompletedByTeacherId(teacherId);
     }
@@ -47,11 +54,6 @@ public class PayoutRequestRepositoryAdapter implements PayoutRequestRepository {
     @Override
     public BigDecimal sumPendingAndApprovedByTeacherId(UUID teacherId) {
         return jpaRepo.sumPendingAndApprovedByTeacherId(teacherId);
-    }
-
-    @Override
-    public void deleteById(UUID id) {
-        jpaRepo.deleteById(id);
     }
 
     private PayoutRequestJpaEntity toEntity(PayoutRequest r) {

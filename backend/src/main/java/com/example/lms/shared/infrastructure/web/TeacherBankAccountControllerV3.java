@@ -1,6 +1,7 @@
 package com.example.lms.shared.infrastructure.web;
 
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
+import com.example.lms.shared.application.support.BankAccountMasking;
 import com.example.lms.shared.application.usecase.ManageTeacherBankAccountUseCase;
 import com.example.lms.shared.domain.model.TeacherBankAccount;
 import io.swagger.v3.oas.annotations.Operation;
@@ -76,10 +77,7 @@ public class TeacherBankAccountControllerV3 {
     ) {}
 
     private BankAccountDto toDto(TeacherBankAccount a) {
-        String num = a.getAccountNumber();
-        String masked = num.length() > 4
-                ? "****" + num.substring(num.length() - 4)
-                : num;
+        String masked = BankAccountMasking.mask(a.getAccountNumber());
         return new BankAccountDto(a.getId(), a.getBankCode(), masked,
                 a.getAccountName(), a.isDefault(), a.isVerified());
     }

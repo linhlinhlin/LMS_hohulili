@@ -2,6 +2,7 @@ package com.example.lms.shared.application.usecase;
 
 import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
+import com.example.lms.shared.application.support.BankAccountMasking;
 import com.example.lms.shared.domain.model.PayoutRequest;
 import com.example.lms.shared.domain.model.RevenueSplit;
 import com.example.lms.shared.domain.model.TeacherBankAccount;
@@ -125,16 +126,14 @@ public class GetTeacherRevenueUseCase {
         List<UUID> bankAccountIds = requests.stream()
                 .map(PayoutRequest::getBankAccountId)
                 .distinct().toList();
-        Map<UUID, TeacherBankAccount> bankAccounts = new java.util.HashMap<>();
-        for (UUID id : bankAccountIds) {
-            bankAccountRepository.findById(id).ifPresent(a -> bankAccounts.put(id, a));
-        }
+        Map<UUID, TeacherBankAccount> bankAccounts = bankAccountRepository.findByIds(bankAccountIds).stream()
+                .collect(Collectors.toMap(TeacherBankAccount::getId, account -> account));
 
         return requests.map(p -> {
             TeacherBankAccount acct = bankAccounts.get(p.getBankAccountId());
             String bankCode = acct != null ? acct.getBankCode() : "—";
             String num      = acct != null ? acct.getAccountNumber() : "";
-            String masked   = num.length() > 4 ? "****" + num.substring(num.length() - 4) : num;
+            String masked   = BankAccountMasking.mask(num);
             return new PayoutHistoryDto(
                     p.getId(), p.getAmount(), p.getStatus().name(),
                     p.getTeacherNote(), p.getAdminNote(),

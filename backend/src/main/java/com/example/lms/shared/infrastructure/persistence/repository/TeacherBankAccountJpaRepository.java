@@ -17,6 +17,8 @@ public interface TeacherBankAccountJpaRepository
 
     List<TeacherBankAccountJpaEntity> findByTeacherIdOrderByCreatedAtDesc(UUID teacherId);
 
+    List<TeacherBankAccountJpaEntity> findByIdIn(List<UUID> ids);
+
     Optional<TeacherBankAccountJpaEntity> findByTeacherIdAndIsDefaultTrue(UUID teacherId);
 
     boolean existsByTeacherIdAndBankCodeAndAccountNumber(UUID teacherId, String bankCode, String accountNumber);
