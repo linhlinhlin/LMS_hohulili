@@ -21,9 +21,7 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
   // Signals
   searchQuery = signal('');
   isMobileMenuOpen = signal(false);
-  isSearchFocused = signal(false);
   selectedUserType = signal('personal');
-  searchSuggestions = signal<string[]>([]);
   isScrolled = signal(false);
 
   // Scroll management
@@ -138,92 +136,24 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Maritime search suggestions data
-  private suggestions = [
-    // Chuyên ngành nổi bật
-    'Điều hướng & Radar nâng cao — Hợp tác với IMO',
-    'An toàn & Cứu sinh — Chứng chỉ SOLAS',
-    'Quản lý cảng biển hiện đại — ĐH Hàng hải VN',
-    'GMDSS — Thông tin liên lạc tàu biển — Bộ GTVT',
-
-    // Đang phổ biến hiện nay
-    'ECDIS',
-    'Radar ARPA',
-    'STCW cơ bản',
-    'Quản lý đội tàu',
-    'MARPOL',
-
-    // CTA định hướng
-    'Không chắc nên bắt đầu từ đâu? → Làm bài kiểm tra định hướng lộ trình học'
-  ];
-
   onSearch(event: Event): void {
     const target = event.target as HTMLInputElement;
-    const query = target.value;
-    this.searchQuery.set(query);
+    this.searchQuery.set(target.value);
+  }
 
-    // Filter suggestions based on query
-    if (query.length > 0) {
-      const filtered = this.suggestions.filter(s =>
-        s.toLowerCase().includes(query.toLowerCase())
-      );
-      this.searchSuggestions.set(filtered.slice(0, 5));
+  onSearchSubmit(): void {
+    const q = this.searchQuery().trim();
+    if (q) {
+      this.router.navigate(['/courses'], { queryParams: { q } });
     } else {
-      this.searchSuggestions.set([]);
+      this.router.navigate(['/courses']);
     }
   }
 
-  onSearchFocus(): void {
-    this.isSearchFocused.set(true);
-    if (this.searchQuery().length > 0) {
-      this.searchSuggestions.set(this.suggestions.slice(0, 5));
-    }
-  }
-
-  onSearchBlur(): void {
-    // Delay to allow clicking on suggestions
-    setTimeout(() => {
-      this.isSearchFocused.set(false);
-      this.searchSuggestions.set([]);
-    }, 200);
-  }
-
-  getSearchInputClass(): string {
-    return this.isSearchFocused()
-      ? 'ring-2 ring-yellow-400 ring-opacity-50'
-      : '';
-  }
-
-  selectSuggestion(suggestion: string): void {
-    this.searchQuery.set(suggestion);
-    this.searchSuggestions.set([]);
-    this.isSearchFocused.set(false);
-
-    // Navigate to search results or specific course
-    this.navigateToSearch(suggestion);
-  }
-
-  private navigateToSearch(query: string): void {
-    // Map suggestions to specific routes
-    const suggestionRoutes: { [key: string]: string } = {
-      'Điều hướng & Radar nâng cao — Hợp tác với IMO': '/courses/navigation',
-      'An toàn & Cứu sinh — Chứng chỉ SOLAS': '/courses/safety',
-      'Quản lý cảng biển hiện đại — ĐH Hàng hải VN': '/courses/logistics',
-      'GMDSS — Thông tin liên lạc tàu biển — Bộ GTVT': '/courses/navigation',
-      'ECDIS': '/courses/navigation',
-      'Radar ARPA': '/courses/navigation',
-      'STCW cơ bản': '/courses/safety',
-      'Quản lý đội tàu': '/courses/logistics',
-      'MARPOL': '/courses/law',
-      'Không chắc nên bắt đầu từ đâu? → Làm bài kiểm tra định hướng lộ trình học': '/assessment'
-    };
-
-    const route = suggestionRoutes[query];
-    if (route) {
-      this.router.navigate([route]);
-    } else {
-      // Default to courses page with search query
-      this.router.navigate(['/courses'], { queryParams: { search: query } });
+  onSearchKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.onSearchSubmit();
     }
   }
 

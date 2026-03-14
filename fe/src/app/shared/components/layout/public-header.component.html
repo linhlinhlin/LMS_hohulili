@@ -103,84 +103,22 @@
               </nav>
             </div>
 
-            <!-- Center: Search Box - MAIN FOCUS - Full width with min-width -->
-            <div class="flex-1 px-8 transition-all duration-300"
-                 [class]="isScrolled() ? 'max-w-none' : ''"
-                 style="min-width: 480px;">
-              <div class="search-lighthouse relative">
-                <!-- Search Input -->
+            <!-- Center: Search Box — Clean, functional -->
+            <div class="flex-1 px-8 transition-all duration-300" style="min-width: 400px;">
+              <div class="relative">
                 <input
                   type="text"
                   placeholder="Bạn muốn học gì hôm nay?"
-                  [(ngModel)]="searchQuery"
-                  (input)="onSearch($event)"
-                  (focus)="onSearchFocus()"
-                  (blur)="onSearchBlur()"
-                  [class]="getSearchInputClass()"
-                  class="search-input w-full h-14 pl-6 pr-16 text-lg border-2 border-gray-300 rounded-3xl focus:outline-none focus:border-yellow-400 focus:shadow-lg focus:shadow-yellow-100 bg-gray-50 focus:bg-white transition-all duration-300 shadow-sm">
-
-                <!-- Search Icon - Moved to right edge -->
-                <div class="absolute right-5 top-1/2 transform -translate-y-1/2">
-                  <svg class="search-icon w-6 h-6 text-gray-400 transition-all duration-300"
-                        [class]="isSearchFocused() ? 'focused text-yellow-500' : 'text-gray-400'"
-                        fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
+                  [ngModel]="searchQuery()"
+                  (ngModelChange)="searchQuery.set($event)"
+                  (keydown)="onSearchKeydown($event)"
+                  class="w-full h-12 pl-5 pr-12 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 transition-all duration-200">
+                <button (click)="onSearchSubmit()"
+                        class="absolute right-1.5 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#0056D2]/5 hover:text-[#0056D2]">
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                   </svg>
-                </div>
-
-                <!-- Maritime Search Suggestions -->
-                @if (isSearchFocused() && searchSuggestions().length > 0) {
-                  <div class="search-suggestions-container absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden z-50">
-                    <!-- Chuyên ngành nổi bật -->
-                    <div class="px-6 py-3 bg-gradient-to-r from-[#0056D2]/5 to-indigo-50 border-b border-gray-100">
-                      <h4 class="text-sm font-semibold text-[#004BB5] mb-2">Chuyên ngành nổi bật</h4>
-                      @for (suggestion of searchSuggestions().slice(0, 4); track suggestion) {
-                        <button 
-                          (click)="selectSuggestion(suggestion)"
-                          class="w-full text-left hover:bg-white/50 transition-colors duration-200 rounded-lg p-2 mb-1">
-                          <div class="flex items-center space-x-3">
-                            <svg class="w-4 h-4 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
-                              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                            </svg>
-                            <span class="text-gray-700 text-sm">{{ suggestion }}</span>
-                          </div>
-                        </button>
-                      }
-                    </div>
-                    
-                    <!-- Đang phổ biến hiện nay -->
-                    <div class="px-6 py-3 bg-gradient-to-r from-yellow-50 to-orange-50 border-b border-gray-100">
-                      <h4 class="text-sm font-semibold text-orange-800 mb-2">Đang phổ biến hiện nay</h4>
-                      @for (suggestion of searchSuggestions().slice(4, 9); track suggestion) {
-                        <button 
-                          (click)="selectSuggestion(suggestion)"
-                          class="w-full text-left hover:bg-white/50 transition-colors duration-200 rounded-lg p-2 mb-1">
-                          <div class="flex items-center space-x-3">
-                            <svg class="w-4 h-4 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
-                              <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                            </svg>
-                            <span class="text-gray-700 text-sm font-medium">"{{ suggestion }}"</span>
-                          </div>
-                        </button>
-                      }
-                    </div>
-                    
-                    <!-- CTA định hướng -->
-                    <div class="px-6 py-3 bg-gradient-to-r from-green-50 to-emerald-50">
-                      <h4 class="text-sm font-semibold text-green-800 mb-2">Cần hỗ trợ?</h4>
-                      <button 
-                        (click)="goToAssessment()"
-                        class="w-full text-left hover:bg-white/50 transition-colors duration-200 rounded-lg p-2">
-                        <div class="flex items-center space-x-3">
-                          <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path>
-                          </svg>
-                          <span class="text-gray-700 text-sm">{{ searchSuggestions()[9] }}</span>
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-                }
+                </button>
               </div>
             </div>
 
@@ -267,9 +205,7 @@
               <!-- Mobile Logo -->
               <div class="flex-shrink-0">
                 <a routerLink="/" class="flex items-center">
-                  <div class="w-8 h-8 bg-[#0056D2] rounded-lg flex items-center justify-center mr-2">
-                    <span class="text-white text-sm font-bold">đŸ¢</span>
-                  </div>
+                  <img src="/icons/logo-master.png" alt="LMS Maritime" class="w-8 h-8 rounded-lg mr-2">
                   <span class="text-lg font-bold text-gray-900">LMS Maritime</span>
                 </a>
               </div>
@@ -290,18 +226,15 @@
             </div>
 
             <!-- Mobile Search Bar -->
-            <div class="pb-4">
-              <div class="search-lighthouse relative">
-                <!-- Search Input -->
-                <input
-                  type="text"
-                  placeholder="Bạn muốn học gì hôm nay?"
-                  [(ngModel)]="searchQuery"
-                  (input)="onSearch($event)"
-                  class="w-full h-12 pl-4 pr-12 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-gray-50 focus:bg-white transition-all duration-200">
-                <svg class="absolute right-4 top-3.5 w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
-                </svg>
+            <div class="pb-3">
+              <div class="relative">
+                <input type="text" placeholder="Tìm kiếm khóa học..."
+                       [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)"
+                       (keydown)="onSearchKeydown($event)"
+                       class="w-full h-10 pl-4 pr-10 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 transition-all">
+                <button (click)="onSearchSubmit()" class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                </button>
               </div>
             </div>
           </div>
