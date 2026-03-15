@@ -37,7 +37,7 @@ type ForgotPasswordForm = {
 
       .input-field:focus {
         outline: none;
-        border-color: #0288D1;
+        border-color: #0056D2;
         box-shadow: 0 0 0 3px rgba(2, 136, 209, 0.1);
       }
 
@@ -60,7 +60,7 @@ type ForgotPasswordForm = {
         top: 0;
         transform: translateY(-50%);
         font-size: 12px;
-        color: #0288D1;
+        color: #0056D2;
         font-weight: 600;
         background: rgba(0, 86, 210, 0.03);
         padding: 3px 12px;
@@ -135,13 +135,8 @@ type ForgotPasswordForm = {
 
             <!-- Heading -->
             <div class="text-center mb-10">
-              <h1 class="text-4xl lg:text-5xl font-bold mb-4 leading-tight"
-                  style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #92400e 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-                Quên mật khẩu?
-              </h1>
-              <p class="text-lg lg:text-xl text-[#004BB5] font-medium leading-relaxed">
-                Nhập email để nhận hướng dẫn khôi phục
-              </p>
+              <h1 class="text-3xl font-bold text-gray-900 mb-2">Quên mật khẩu?</h1>
+              <p class="text-sm text-gray-500">Nhập email để nhận hướng dẫn khôi phục</p>
             </div>
 
             <!-- Success State -->
