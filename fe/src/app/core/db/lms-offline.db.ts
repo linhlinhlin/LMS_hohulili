@@ -152,6 +152,16 @@ export function isOfflinePersistenceSupported(): boolean {
   return typeof window !== 'undefined' && typeof indexedDB !== 'undefined';
 }
 
+export class OfflineDbUnavailableError extends Error {
+  readonly originalError: unknown;
+
+  constructor(originalError: unknown) {
+    super('Offline persistence is unavailable in this browser session.');
+    this.name = 'OfflineDbUnavailableError';
+    this.originalError = originalError;
+  }
+}
+
 // ─── Database Class ──────────────────────────────────────────────────
 
 export class LmsOfflineDatabase extends Dexie {
@@ -259,30 +269,88 @@ function isRecoverableUpgradeError(err: unknown): boolean {
     message.includes('not yet support for changing primary key');
 }
 
+function isRecoverableBackingStoreError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const message = err.message.toLowerCase();
+  return err.name === 'UnknownError' ||
+    err.name === 'InvalidStateError' ||
+    message.includes('backing store') ||
+    message.includes('indexeddb.open') ||
+    message.includes('internal error opening backing store');
+}
+
+function isRecoverableOpenError(err: unknown): boolean {
+  return isRecoverableUpgradeError(err) || isRecoverableBackingStoreError(err);
+}
+
+export function isOfflineDbUnavailableError(err: unknown): err is OfflineDbUnavailableError {
+  return err instanceof OfflineDbUnavailableError;
+}
+
+let offlineDbDisabledReason: OfflineDbUnavailableError | null = null;
+let offlineDbDisableLogged = false;
+let offlineDbRecoveryAttempted = false;
+
+function disableOfflineDb(err: unknown): OfflineDbUnavailableError {
+  const unavailableError = isOfflineDbUnavailableError(err)
+    ? err
+    : new OfflineDbUnavailableError(err);
+
+  offlineDbDisabledReason = unavailableError;
+  offlineDbOpenStarted = false;
+
+  if (!offlineDbDisableLogged) {
+    offlineDbDisableLogged = true;
+    console.warn(
+      '[LMS-Offline] Offline cache unavailable for this browser session. Falling back to online-only mode.',
+      unavailableError.originalError,
+    );
+  }
+
+  return unavailableError;
+}
+
+async function recreateOfflineDb(db: LmsOfflineDatabase): Promise<LmsOfflineDatabase> {
+  db.close();
+  await Dexie.delete(OFFLINE_DB_NAME);
+
+  const recreatedDb = new LmsOfflineDatabase();
+  await recreatedDb.open();
+  offlineDb = recreatedDb;
+
+  console.info('[LMS-Offline] Offline cache database recreated successfully.');
+  return recreatedDb;
+}
+
 async function openOfflineDbWithRecovery(db: LmsOfflineDatabase): Promise<LmsOfflineDatabase> {
   if (!isOfflinePersistenceSupported()) {
     return db;
+  }
+
+  if (offlineDbDisabledReason) {
+    throw offlineDbDisabledReason;
   }
 
   try {
     await db.open();
     return db;
   } catch (err) {
-    if (!isRecoverableUpgradeError(err)) {
-      console.error('[LMS-Offline] Database open failed:', err);
-      throw err;
+    if (!isRecoverableOpenError(err)) {
+      throw disableOfflineDb(err);
     }
 
-    console.warn('[LMS-Offline] UpgradeError detected. Resetting offline cache database.');
-    db.close();
-    await Dexie.delete(OFFLINE_DB_NAME);
+    if (!offlineDbRecoveryAttempted) {
+      offlineDbRecoveryAttempted = true;
+      console.warn('[LMS-Offline] IndexedDB open failed. Resetting offline cache database.', err);
 
-    const recreatedDb = new LmsOfflineDatabase();
-    await recreatedDb.open();
-    offlineDb = recreatedDb;
+      try {
+        return await recreateOfflineDb(db);
+      } catch (recoveryError) {
+        throw disableOfflineDb(recoveryError);
+      }
+    }
 
-    console.info('[LMS-Offline] Offline cache database recreated successfully.');
-    return recreatedDb;
+    throw disableOfflineDb(err);
   }
 }
 
@@ -301,11 +369,15 @@ export function ensureOfflineDbReady(): Promise<LmsOfflineDatabase> {
     return Promise.resolve(offlineDb);
   }
 
+  if (offlineDbDisabledReason) {
+    return Promise.reject(offlineDbDisabledReason);
+  }
+
   if (!offlineDbOpenStarted) {
     offlineDbOpenStarted = true;
     offlineDbReady = openOfflineDbWithRecovery(offlineDb).catch((error) => {
       offlineDbOpenStarted = false;
-      throw error;
+      throw isOfflineDbUnavailableError(error) ? error : disableOfflineDb(error);
     });
   }
 

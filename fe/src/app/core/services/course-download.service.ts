@@ -1,7 +1,19 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { ensureOfflineDbReady, isOfflinePersistenceSupported, offlineDb, getCurrentUserId, type OfflineCourse, type OfflineChapter, type OfflineLesson, type DownloadCheckpoint, type OfflineQuizData, type OfflineQuestion } from '../db/lms-offline.db';
+import {
+  ensureOfflineDbReady,
+  isOfflineDbUnavailableError,
+  isOfflinePersistenceSupported,
+  offlineDb,
+  getCurrentUserId,
+  type OfflineCourse,
+  type OfflineChapter,
+  type OfflineLesson,
+  type DownloadCheckpoint,
+  type OfflineQuizData,
+  type OfflineQuestion,
+} from '../db/lms-offline.db';
 import { StorageManagerService } from './storage-manager.service';
 import { ToastService } from './toast.service';
 import { OfflineVideoService } from './offline-video.service';
@@ -47,13 +59,16 @@ export class CourseDownloadService {
   /** Set to true to cancel current download after the current chapter finishes */
   private downloadCancelled = false;
   private readonly offlineSupported = isOfflinePersistenceSupported();
+  private offlineUnavailableToastShown = false;
 
   constructor() {
     if (!this.offlineSupported) {
       return;
     }
     void this.refreshDownloadedCourses().catch((error) => {
-      console.error('[CourseDownloadService] Failed to initialize offline downloads:', error);
+      if (!isOfflineDbUnavailableError(error)) {
+        console.error('[CourseDownloadService] Failed to initialize offline downloads:', error);
+      }
     });
   }
 
@@ -301,6 +316,9 @@ export class CourseDownloadService {
       await this.refreshDownloadedCourses();
       await this.storage.refresh();
     } catch (error: any) {
+      if (isOfflineDbUnavailableError(error)) {
+        return;
+      }
       this.toast.error(`Lỗi tải khóa học: ${error?.message || 'Không xác định'}`);
     } finally {
       this.isDownloading.set(false);
@@ -398,7 +416,9 @@ export class CourseDownloadService {
    * Check if a course is available offline (async version).
    */
   async isDownloaded(courseId: string): Promise<boolean> {
-    await this.ensureOfflineReady();
+    if (!(await this.ensureOfflineReady(true))) {
+      return false;
+    }
     const userId = getCurrentUserId();
     const course = await offlineDb.courses.get([userId, courseId]);
     return course !== undefined;
@@ -408,7 +428,9 @@ export class CourseDownloadService {
    * Get offline course metadata.
    */
   async getOfflineCourse(courseId: string): Promise<OfflineCourse | undefined> {
-    await this.ensureOfflineReady();
+    if (!(await this.ensureOfflineReady(true))) {
+      return undefined;
+    }
     const userId = getCurrentUserId();
     return offlineDb.courses.get([userId, courseId]);
   }
@@ -417,7 +439,9 @@ export class CourseDownloadService {
    * Get offline chapters for a course, sorted by sortOrder.
    */
   async getOfflineChapters(courseId: string): Promise<OfflineChapter[]> {
-    await this.ensureOfflineReady();
+    if (!(await this.ensureOfflineReady(true))) {
+      return [];
+    }
     const userId = getCurrentUserId();
     return offlineDb.chapters
       .where('[userId+courseId]')
@@ -429,7 +453,9 @@ export class CourseDownloadService {
    * Get offline lesson content.
    */
   async getOfflineLesson(lessonId: string): Promise<OfflineLesson | undefined> {
-    await this.ensureOfflineReady();
+    if (!(await this.ensureOfflineReady(true))) {
+      return undefined;
+    }
     const userId = getCurrentUserId();
     return offlineDb.lessons.get([userId, lessonId]);
   }
@@ -438,7 +464,9 @@ export class CourseDownloadService {
    * Get all lessons for an offline course.
    */
   async getOfflineLessons(courseId: string): Promise<OfflineLesson[]> {
-    await this.ensureOfflineReady();
+    if (!(await this.ensureOfflineReady(true))) {
+      return [];
+    }
     const userId = getCurrentUserId();
     return offlineDb.lessons
       .where('[userId+courseId]')
@@ -452,7 +480,9 @@ export class CourseDownloadService {
    * then falls back to the first lesson in chapter/lesson order.
    */
   async getOfflineResumeLessonId(courseId: string): Promise<string | null> {
-    await this.ensureOfflineReady();
+    if (!(await this.ensureOfflineReady(true))) {
+      return null;
+    }
 
     const [chapters, lessons] = await Promise.all([
       this.getOfflineChapters(courseId),
@@ -523,12 +553,21 @@ export class CourseDownloadService {
    * Intended for UI fallbacks such as offline "My Courses" surfaces.
    */
   async listDownloadedCourses(): Promise<DownloadableCourse[]> {
-    await this.refreshDownloadedCourses();
+    try {
+      await this.refreshDownloadedCourses();
+    } catch (error) {
+      if (!isOfflineDbUnavailableError(error)) {
+        throw error;
+      }
+    }
     return this.downloadedCourses();
   }
 
   private async refreshDownloadedCourses(): Promise<void> {
-    await this.ensureOfflineReady();
+    if (!(await this.ensureOfflineReady(true))) {
+      this.downloadedCourses.set([]);
+      return;
+    }
     const userId = getCurrentUserId();
     const courses = await offlineDb.courses.where('userId').equals(userId).toArray();
 
@@ -566,8 +605,35 @@ export class CourseDownloadService {
     );
   }
 
-  private async ensureOfflineReady(): Promise<void> {
-    await ensureOfflineDbReady();
+  private async ensureOfflineReady(optional = false): Promise<boolean> {
+    try {
+      await ensureOfflineDbReady();
+      return true;
+    } catch (error) {
+      if (!isOfflineDbUnavailableError(error)) {
+        throw error;
+      }
+
+      if (!optional) {
+        this.maybeToastOfflineUnavailable();
+        throw error;
+      }
+
+      return false;
+    }
+  }
+
+  private maybeToastOfflineUnavailable(): void {
+    if (this.offlineUnavailableToastShown) {
+      return;
+    }
+
+    this.offlineUnavailableToastShown = true;
+    this.toast.warning(this.getOfflineUnavailableMessage());
+  }
+
+  private getOfflineUnavailableMessage(): string {
+    return 'Bộ nhớ ngoại tuyến trên trình duyệt này đang gặp sự cố. Hệ thống sẽ tạm chuyển sang chế độ chỉ dùng online.';
   }
 
   private readOfflineLearningProgress(courseId: string): {

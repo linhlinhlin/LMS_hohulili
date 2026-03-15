@@ -1,8 +1,15 @@
 import {
-  Component, input, signal, computed, inject,
-  ChangeDetectionStrategy, OnInit, PLATFORM_ID
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  PLATFORM_ID,
+  computed,
+  inject,
+  input,
+  signal,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { isOfflineDbUnavailableError } from '../../../core/db/lms-offline.db';
 import { CourseDownloadService } from '../../../core/services/course-download.service';
 import { NetworkStatusService } from '../../../core/services/network-status.service';
 import { ToastService } from '../../../core/services/toast.service';
@@ -14,57 +21,60 @@ import { DownloadDialogComponent, DownloadOptions } from '../download-dialog/dow
   imports: [DownloadDialogComponent],
   template: `
     @if (allowOfflineDownload()) {
-    @if (isDownloaded()) {
-      <!-- Already downloaded -->
-      <div class="flex items-center gap-2">
-        <span class="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
-          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-          Đã tải xuống
-        </span>
-        <button (click)="removeCourse()"
-                class="text-xs text-gray-400 hover:text-red-500 transition-colors"
-                title="Xóa bản tải xuống">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </button>
-      </div>
-    } @else if (isDownloading()) {
-      <!-- Download in progress -->
-      <div class="flex items-center gap-2">
-        <div class="w-24 bg-gray-200 rounded-full h-1.5">
-          <div class="bg-[#0056D2] h-1.5 rounded-full transition-all duration-300"
-               [style.width.%]="downloadProgress()"></div>
+      @if (isDownloaded()) {
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-xs text-green-600">
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            Đã tải xuống
+          </span>
+          <button
+            (click)="removeCourse()"
+            class="text-xs text-gray-400 transition-colors hover:text-red-500"
+            title="Xóa bản tải xuống">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
         </div>
-        <span class="text-xs text-gray-500 min-w-[2.5rem] text-right">{{ downloadProgress() }}%</span>
-        <button (click)="cancelDownload()"
-                class="text-xs text-gray-400 hover:text-red-500 transition-colors"
-                title="Hủy tải xuống">
-          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+      } @else if (isDownloading()) {
+        <div class="flex items-center gap-2">
+          <div class="h-1.5 w-24 rounded-full bg-gray-200">
+            <div
+              class="h-1.5 rounded-full bg-[#0056D2] transition-all duration-300"
+              [style.width.%]="downloadProgress()"></div>
+          </div>
+          <span class="min-w-[2.5rem] text-right text-xs text-gray-500">{{ downloadProgress() }}%</span>
+          <button
+            (click)="cancelDownload()"
+            class="text-xs text-gray-400 transition-colors hover:text-red-500"
+            title="Hủy tải xuống">
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      } @else {
+        <button
+          (click)="openDialog()"
+          [disabled]="!isOnline()"
+          class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs transition-colors"
+          [class]="isOnline()
+            ? 'bg-[#0056D2]/10 text-[#0056D2] hover:bg-[#0056D2]/20'
+            : 'cursor-not-allowed bg-gray-100 text-gray-400'"
+          [title]="isOnline() ? 'Tải xuống để xem ngoại tuyến' : 'Cần kết nối mạng để tải'">
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
+          Tải xuống
         </button>
-      </div>
-    } @else {
-      <!-- Download button (opens dialog) -->
-      <button (click)="openDialog()"
-              [disabled]="!isOnline()"
-              class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors"
-              [class]="isOnline()
-                ? 'bg-[#0056D2]/10 text-[#0056D2] hover:bg-[#0056D2]/20'
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed'"
-              [title]="isOnline() ? 'Tải xuống để xem ngoại tuyến' : 'Cần kết nối mạng để tải'">
-        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-        </svg>
-        Tải xuống
-      </button>
-    }
+      }
     }
 
-    <!-- Download dialog -->
     @if (showDialog()) {
       <app-download-dialog
         [courseId]="courseId()"
@@ -94,11 +104,16 @@ export class CourseDownloadButtonComponent implements OnInit {
   protected isOnline = computed(() => this.network.online());
 
   async ngOnInit(): Promise<void> {
-    if (!isPlatformBrowser(this.platformId)) return; // IndexedDB not available in SSR
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
     try {
       this.isDownloaded.set(await this.downloadService.isDownloaded(this.courseId()));
     } catch (error) {
-      console.error('[CourseDownloadButton] Failed to read offline status:', error);
+      if (!isOfflineDbUnavailableError(error)) {
+        console.error('[CourseDownloadButton] Failed to read offline status:', error);
+      }
       this.isDownloaded.set(false);
     }
   }
@@ -108,17 +123,21 @@ export class CourseDownloadButtonComponent implements OnInit {
       this.toast.warning('Cần kết nối mạng để tải khóa học');
       return;
     }
+
     this.showDialog.set(true);
   }
 
   protected async onDialogConfirm(options: DownloadOptions): Promise<void> {
     this.showDialog.set(false);
+
     try {
       await this.downloadService.downloadCourse(this.courseId(), options);
       this.isDownloaded.set(await this.downloadService.isDownloaded(this.courseId()));
     } catch (error) {
-      console.error('[CourseDownloadButton] Download flow failed:', error);
-      this.toast.error('Không thể tải khóa học ngoại tuyến lúc này. Vui lòng thử lại sau.');
+      if (!isOfflineDbUnavailableError(error)) {
+        console.error('[CourseDownloadButton] Download flow failed:', error);
+        this.toast.error('Không thể tải khóa học ngoại tuyến lúc này. Vui lòng thử lại sau.');
+      }
     }
   }
 
@@ -131,8 +150,10 @@ export class CourseDownloadButtonComponent implements OnInit {
       await this.downloadService.removeCourse(this.courseId());
       this.isDownloaded.set(false);
     } catch (error) {
-      console.error('[CourseDownloadButton] Failed to remove offline course:', error);
-      this.toast.error('Không thể xóa bản tải xuống lúc này. Vui lòng thử lại sau.');
+      if (!isOfflineDbUnavailableError(error)) {
+        console.error('[CourseDownloadButton] Failed to remove offline course:', error);
+        this.toast.error('Không thể xóa bản tải xuống lúc này. Vui lòng thử lại sau.');
+      }
     }
   }
 }

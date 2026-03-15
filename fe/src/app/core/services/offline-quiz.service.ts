@@ -1,5 +1,13 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { ensureOfflineDbReady, isOfflinePersistenceSupported, offlineDb, getCurrentUserId, type OfflineQuizData, type OfflineQuizAttempt } from '../db/lms-offline.db';
+import {
+  ensureOfflineDbReady,
+  isOfflineDbUnavailableError,
+  isOfflinePersistenceSupported,
+  offlineDb,
+  getCurrentUserId,
+  type OfflineQuizData,
+  type OfflineQuizAttempt,
+} from '../db/lms-offline.db';
 import { NetworkStatusService } from './network-status.service';
 import { ToastService } from './toast.service';
 
@@ -38,7 +46,9 @@ export class OfflineQuizService {
       return;
     }
     void this.refreshPendingCount().catch((error) => {
-      console.error('[OfflineQuizService] Failed to initialize pending count:', error);
+      if (!isOfflineDbUnavailableError(error)) {
+        console.error('[OfflineQuizService] Failed to initialize pending count:', error);
+      }
     });
   }
 
@@ -47,7 +57,9 @@ export class OfflineQuizService {
    * Returns null if not downloaded.
    */
   async getQuizForLesson(lessonId: string): Promise<OfflineQuizData | null> {
-    await ensureOfflineDbReady();
+    if (!(await this.ensureOfflineReady(true))) {
+      return null;
+    }
     const userId = getCurrentUserId();
     const record = await offlineDb.quizData
       .where('[userId+lessonId]').equals([userId, lessonId])
@@ -59,7 +71,9 @@ export class OfflineQuizService {
    * Get offline quiz data by quizId.
    */
   async getQuizById(quizId: string): Promise<OfflineQuizData | null> {
-    await ensureOfflineDbReady();
+    if (!(await this.ensureOfflineReady(true))) {
+      return null;
+    }
     const userId = getCurrentUserId();
     const record = await offlineDb.quizData
       .where('[userId+quizId]').equals([userId, quizId])
@@ -85,7 +99,7 @@ export class OfflineQuizService {
    * 3. Return the graded result (student sees it after sync)
    */
   async queueOfflineSubmission(submission: OfflineQuizSubmission): Promise<void> {
-    await ensureOfflineDbReady();
+    await this.ensureOfflineReady();
     const userId = getCurrentUserId();
 
     // Store in quizAttempts for tracking
@@ -127,7 +141,10 @@ export class OfflineQuizService {
    * Get count of quiz attempts awaiting sync.
    */
   async refreshPendingCount(): Promise<void> {
-    await ensureOfflineDbReady();
+    if (!(await this.ensureOfflineReady(true))) {
+      this.pendingSubmissionCount.set(0);
+      return;
+    }
     const userId = getCurrentUserId();
     const count = await offlineDb.quizAttempts
       .where('userId').equals(userId)
@@ -140,10 +157,30 @@ export class OfflineQuizService {
    * Delete quiz data for a course (called when course is removed).
    */
   async clearForCourse(courseId: string): Promise<void> {
-    await ensureOfflineDbReady();
+    if (!(await this.ensureOfflineReady(true))) {
+      return;
+    }
     const userId = getCurrentUserId();
     await offlineDb.quizData
       .where('[userId+courseId]').equals([userId, courseId])
       .delete();
+  }
+
+  private async ensureOfflineReady(optional = false): Promise<boolean> {
+    try {
+      await ensureOfflineDbReady();
+      return true;
+    } catch (error) {
+      if (!isOfflineDbUnavailableError(error)) {
+        throw error;
+      }
+
+      if (!optional) {
+        this.toast.warning('Bộ nhớ ngoại tuyến hiện không khả dụng trên trình duyệt này.');
+        throw error;
+      }
+
+      return false;
+    }
   }
 }
