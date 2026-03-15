@@ -109,7 +109,7 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   }
 
   viewAllNotifications(): void {
-    this.router.navigate(['/notifications']);
+    // No dedicated notifications page yet — just close dropdown
     this.isOpen.set(false);
   }
 
