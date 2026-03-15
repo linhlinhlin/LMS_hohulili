@@ -274,10 +274,10 @@ export class AdminLayoutSimpleComponent implements OnInit, OnDestroy {
   protected isMobileSidebarOpen = signal(false);
 
   // Sidebar config — use shared config based on user role
-  protected adminSidebarConfig = computed(() => {
+  protected get adminSidebarConfig() {
     const role = this.authService.userRole() || 'admin';
     return getSidebarConfig(role as any);
-  });
+  }
 
   // AI Sidebar state
   protected isAiSidebarOpen = signal(false);
