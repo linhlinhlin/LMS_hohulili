@@ -134,12 +134,6 @@ export const teacherSidebarConfig: SidebarConfig = {
       route: '/teacher/invitations',
       icon: 'mail',
       group: 'Khác'
-    },
-    {
-      label: 'Thông báo',
-      route: '/teacher/notifications',
-      icon: 'bell',
-      group: 'Khác'
     }
   ]
 };
