@@ -19,12 +19,10 @@ interface NavigationItem {
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="admin-sidebar">
-      <!-- Header — matches teacher/student style: white bg, small logo, dark text -->
+      <!-- Header -->
       <div class="sidebar-header">
         <div class="flex items-center space-x-3">
-          <div class="sidebar-logo">
-            <app-icon name="settings" size="md" class="text-white"/>
-          </div>
+          <img src="/icons/logo-master.png" alt="LMS Maritime" class="sidebar-brand-logo">
           <div class="flex-1 min-w-0">
             <h2 class="sidebar-title">{{ roleTitleText() }}</h2>
             <p class="sidebar-subtitle">{{ authService.currentUser()?.fullName }}</p>
@@ -125,15 +123,12 @@ interface NavigationItem {
       border-bottom: 1px solid rgba(229, 231, 235, 0.5);
     }
 
-    .sidebar-logo {
+    .sidebar-brand-logo {
       width: 2.5rem;
       height: 2.5rem;
       border-radius: 0.75rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(to bottom right, #0056D2, #004BB5);
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      flex-shrink: 0;
+      object-fit: contain;
     }
 
     .sidebar-title {
@@ -369,12 +364,13 @@ export class AdminSidebarComponent {
       ]
     },
     { label: 'Khóa học', icon: 'courses', route: '/admin/courses' },
+    { label: 'Danh mục', icon: 'tag', route: '/admin/categories' },
     { label: 'Tổ chức', icon: 'briefcase', route: '/admin/organizations' },
     { label: 'Phân tích', icon: 'bar-chart', route: '/admin/analytics' },
+    { label: 'Rút tiền', icon: 'briefcase', route: '/admin/payouts' },
     { label: 'Hệ thống', icon: 'settings', route: '_separator_system', separator: true },
     { label: 'Cài đặt hệ thống', icon: 'settings', route: '/admin/settings' },
-    { label: 'Nhật ký kiểm toán', icon: 'file-text', route: '/admin/logs' },
-    { label: 'LMS AI', icon: 'globe', route: '/admin/ai-chat', badge: 'NEW' }
+    { label: 'Nhật ký kiểm toán', icon: 'file-text', route: '/admin/logs' }
   ];
 
   // ORG_ADMIN navigation — operations only, no system section
@@ -388,9 +384,10 @@ export class AdminSidebarComponent {
       ]
     },
     { label: 'Khóa học', icon: 'courses', route: '/admin/courses' },
+    { label: 'Danh mục', icon: 'tag', route: '/admin/categories' },
     { label: 'Tổ chức', icon: 'briefcase', route: '/admin/organizations' },
     { label: 'Phân tích', icon: 'bar-chart', route: '/admin/analytics' },
-    { label: 'LMS AI', icon: 'globe', route: '/admin/ai-chat', badge: 'NEW' }
+    { label: 'Rút tiền', icon: 'briefcase', route: '/admin/payouts' }
   ];
 
   navigationItems = signal<NavigationItem[]>(
