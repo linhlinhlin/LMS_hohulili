@@ -31,7 +31,7 @@ holilihu.online {
         Strict-Transport-Security "max-age=31536000; includeSubDomains"
         Referrer-Policy "strict-origin-when-cross-origin"
         Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
-        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://wiii.holilihu.online https://sandbox.vnpayment.vn https://pay.vnpay.vn https://qr.sepay.vn wss:; font-src 'self' data:; frame-src https://wiii.holilihu.online; object-src 'none'; base-uri 'self';"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://wiii.holilihu.online https://sandbox.vnpayment.vn https://pay.vnpay.vn https://qr.sepay.vn https://videodelivery.net wss:; media-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' https: blob:; object-src 'none'; base-uri 'self';"
     }
 
     # Compression

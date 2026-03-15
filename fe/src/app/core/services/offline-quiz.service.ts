@@ -17,9 +17,11 @@ export interface OfflineQuizSubmission {
   quizId: string;
   lessonId: string;
   courseId: string;
+  sectionId?: string;
+  mode?: 'lesson' | 'section';
   /** client-generated UUID used as attemptId until server creates a real one */
   localAttemptId: string;
-  answers: Record<string, string | number>;
+  answers: Record<string, string | number | string[]>;
   submittedAt: Date;
 }
 
@@ -56,36 +58,46 @@ export class OfflineQuizService {
    * Get offline quiz data for a lesson.
    * Returns null if not downloaded.
    */
-  async getQuizForLesson(lessonId: string): Promise<OfflineQuizData | null> {
+  async getQuizForLesson(lessonId: string, sectionId?: string): Promise<OfflineQuizData | null> {
     if (!(await this.ensureOfflineReady(true))) {
       return null;
     }
     const userId = getCurrentUserId();
-    const record = await offlineDb.quizData
+    const records = await offlineDb.quizData
       .where('[userId+lessonId]').equals([userId, lessonId])
-      .first();
-    return record ?? null;
+      .toArray();
+
+    if (sectionId) {
+      return records.find(record => record.mode === 'section' && record.sectionId === sectionId) ?? null;
+    }
+
+    return records.find(record => record.mode !== 'section') ?? records[0] ?? null;
   }
 
   /**
    * Get offline quiz data by quizId.
    */
-  async getQuizById(quizId: string): Promise<OfflineQuizData | null> {
+  async getQuizById(quizId: string, sectionId?: string): Promise<OfflineQuizData | null> {
     if (!(await this.ensureOfflineReady(true))) {
       return null;
     }
     const userId = getCurrentUserId();
-    const record = await offlineDb.quizData
+    const records = await offlineDb.quizData
       .where('[userId+quizId]').equals([userId, quizId])
-      .first();
-    return record ?? null;
+      .toArray();
+
+    if (sectionId) {
+      return records.find(record => record.sectionId === sectionId) ?? null;
+    }
+
+    return records.find(record => record.mode !== 'section') ?? records[0] ?? null;
   }
 
   /**
    * Check if a lesson has a quiz available offline.
    */
-  async hasOfflineQuiz(lessonId: string): Promise<boolean> {
-    const quiz = await this.getQuizForLesson(lessonId);
+  async hasOfflineQuiz(lessonId: string, sectionId?: string): Promise<boolean> {
+    const quiz = await this.getQuizForLesson(lessonId, sectionId);
     return quiz !== null && quiz.questions.length > 0;
   }
 
@@ -101,10 +113,14 @@ export class OfflineQuizService {
   async queueOfflineSubmission(submission: OfflineQuizSubmission): Promise<void> {
     await this.ensureOfflineReady();
     const userId = getCurrentUserId();
+    const mode = submission.mode ?? 'lesson';
 
     // Store in quizAttempts for tracking
     const attempt: OfflineQuizAttempt = {
       quizId: submission.quizId,
+      lessonId: submission.lessonId,
+      sectionId: submission.sectionId,
+      mode,
       userId,
       answers: submission.answers,
       submittedAt: submission.submittedAt,
@@ -117,12 +133,15 @@ export class OfflineQuizService {
     await offlineDb.syncQueue.add({
       entityType: 'quizAttempt',
       operationType: 'CREATE',
-      // Endpoint pattern: sync service starts a fresh attempt using quizId, then submits answers
-      endpoint: `/api/v3/quizzes/${submission.quizId}/attempts/start`,
+      endpoint: mode === 'section' && submission.sectionId
+        ? `/api/v3/quizzes/lessons/${submission.lessonId}/sections/${submission.sectionId}/submit`
+        : `/api/v3/quizzes/${submission.quizId}/attempts/start`,
       payload: {
         quizId: submission.quizId,
         lessonId: submission.lessonId,
         courseId: submission.courseId,
+        sectionId: submission.sectionId,
+        mode,
         localAttemptId: submission.localAttemptId,
         answers: submission.answers,
         submittedAt: submission.submittedAt.toISOString(),

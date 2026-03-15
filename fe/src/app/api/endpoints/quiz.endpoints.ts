@@ -8,6 +8,8 @@ export const QUIZ_ENDPOINTS = {
   QUIZZES: '/api/v3/quizzes',
   QUIZ_BY_ID: (id: string) => `/api/v3/quizzes/${id}`,
   QUIZZES_BY_LESSON: (lessonId: string) => `/api/v3/quizzes/lessons/${lessonId}`,
+  SECTION_QUIZ: (lessonId: string, sectionId: string) => `/api/v3/quizzes/lessons/${lessonId}/sections/${sectionId}`,
+  SUBMIT_SECTION_QUIZ: (lessonId: string, sectionId: string) => `/api/v3/quizzes/lessons/${lessonId}/sections/${sectionId}/submit`,
 
   // === Quiz Actions ===
   DELETE_QUIZ: (id: string) => `/api/v3/quizzes/${id}`,

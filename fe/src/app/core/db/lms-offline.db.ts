@@ -34,12 +34,56 @@ export interface OfflineLesson {
   chapterId: string;
   title: string;
   contentHtml: string;
+  lessonType?: string;
+  isFree?: boolean;
+  sections?: OfflineLessonSection[];
   videoManifestUrl?: string;
   videoOfflineUri?: string;
   streamVideoUid?: string;
   sortOrder: number;
   downloadedAt: Date;
   userId: string;
+}
+
+export interface OfflineLessonSection {
+  id: string;
+  lessonId: string;
+  title: string;
+  type: 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT';
+  content?: string;
+  contentBlocks?: any[];
+  videoUrl?: string;
+  videoOfflineUri?: string;
+  fileUrl?: string;
+  fileOfflineUri?: string;
+  fileName?: string;
+  sortOrder?: number;
+  quizData?: OfflineSectionQuizData;
+}
+
+export interface OfflineSectionQuizQuestionSummary {
+  id: string;
+  content: string;
+  contentBlocks?: any[];
+  questionType: 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'FILL_IN_BLANK' | 'SHORT_ANSWER' | 'ESSAY';
+  options: Array<{
+    optionKey: string;
+    content: string;
+    contentBlocks?: any[];
+    displayOrder: number;
+  }>;
+}
+
+export interface OfflineSectionQuizData {
+  quizType?: string;
+  timeLimitMinutes?: number | null;
+  passingScore?: number | null;
+  maxAttempts?: number | null;
+  shuffleQuestions?: boolean;
+  shuffleOptions?: boolean;
+  showResultsImmediately?: boolean;
+  showCorrectAnswers?: boolean;
+  questions?: OfflineSectionQuizQuestionSummary[];
 }
 
 // ─── Offline Progress ────────────────────────────────────────────────
@@ -71,8 +115,11 @@ export interface OfflineSubmission {
 export interface OfflineQuizAttempt {
   id?: number;
   quizId: string;
+  lessonId?: string;
+  sectionId?: string;
+  mode?: 'lesson' | 'section';
   userId: string;
-  answers: Record<string, number | string>;
+  answers: Record<string, number | string | string[]>;
   score?: number;
   passed?: boolean;
   submittedAt: Date;
@@ -104,18 +151,26 @@ export interface SyncQueueItem {
 export interface OfflineQuestion {
   id: string;
   content: string;
+  contentBlocks?: any[];
   questionType: 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'FILL_IN_BLANK' | 'SHORT_ANSWER' | 'ESSAY';
-  options: Array<{ optionKey: string; content: string; displayOrder: number }>;
+  options: Array<{ optionKey: string; content: string; contentBlocks?: any[]; displayOrder: number }>;
 }
 
 export interface OfflineQuizData {
   quizId: string;
   lessonId: string;
+  sectionId?: string;
+  mode?: 'lesson' | 'section';
   courseId: string;
   userId: string;
   title: string;
   passingScore: number;
   timeLimit?: number;       // minutes; null = no limit
+  maxAttempts?: number;
+  shuffleQuestions?: boolean;
+  shuffleOptions?: boolean;
+  showResultsImmediately?: boolean;
+  showCorrectAnswers?: boolean;
   questions: OfflineQuestion[];
   downloadedAt: Date;
 }

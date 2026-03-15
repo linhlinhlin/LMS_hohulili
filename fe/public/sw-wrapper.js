@@ -13,11 +13,15 @@
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  if (!url.pathname.startsWith('/offline-video/')) {
-    return; // Let NGSW handle it
+  if (url.pathname.startsWith('/offline-video/')) {
+    event.respondWith(handleOfflineVideo(event.request));
+    return;
   }
 
-  event.respondWith(handleOfflineVideo(event.request));
+  if (url.pathname.startsWith('/offline-file/')) {
+    event.respondWith(handleOfflineFile(event.request));
+    return;
+  }
 });
 
 /**
@@ -46,6 +50,27 @@ async function handleOfflineVideo(request) {
     return cachedResponse;
   } catch (error) {
     return new Response('Error loading offline video', {
+      status: 500,
+      headers: { 'Content-Type': 'text/plain' },
+    });
+  }
+}
+
+async function handleOfflineFile(request) {
+  try {
+    const cache = await caches.open('offline-files');
+    const cachedResponse = await cache.match(request.url);
+
+    if (!cachedResponse) {
+      return new Response('File not available offline', {
+        status: 404,
+        headers: { 'Content-Type': 'text/plain' },
+      });
+    }
+
+    return cachedResponse;
+  } catch (error) {
+    return new Response('Error loading offline file', {
       status: 500,
       headers: { 'Content-Type': 'text/plain' },
     });

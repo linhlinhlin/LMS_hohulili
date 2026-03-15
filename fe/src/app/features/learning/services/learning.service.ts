@@ -336,6 +336,44 @@ export class LearningService {
     }
   }
 
+  private mapSectionContent(section: any): SectionContent {
+    const offlineVideoUrl = (section.videoOfflineUri && section.videoOfflineUri !== 'undefined' && section.videoOfflineUri !== 'null')
+      ? section.videoOfflineUri
+      : undefined;
+    const offlineFileUrl = (section.fileOfflineUri && section.fileOfflineUri !== 'undefined' && section.fileOfflineUri !== 'null')
+      ? section.fileOfflineUri
+      : undefined;
+
+    return {
+      id: section.id,
+      title: section.title || '',
+      type: (section.type?.toUpperCase() || 'TEXT') as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
+      content: (section.content && section.content !== 'undefined' && section.content !== 'null') ? section.content : undefined,
+      videoUrl: offlineVideoUrl || ((section.videoUrl && section.videoUrl !== 'undefined' && section.videoUrl !== 'null') ? section.videoUrl : undefined),
+      fileUrl: offlineFileUrl || ((section.fileUrl && section.fileUrl !== 'undefined' && section.fileUrl !== 'null') ? section.fileUrl : undefined),
+      duration: section.duration,
+      orderIndex: section.orderIndex ?? 0,
+      isRequired: section.isRequired ?? false,
+      quizData: section.quizData ? {
+        quizType: section.quizData.quizType,
+        timeLimitMinutes: section.quizData.timeLimitMinutes,
+        passingScore: section.quizData.passingScore,
+        maxAttempts: section.quizData.maxAttempts,
+        shuffleQuestions: section.quizData.shuffleQuestions,
+        shuffleOptions: section.quizData.shuffleOptions,
+        showResultsImmediately: section.quizData.showResultsImmediately,
+        showCorrectAnswers: section.quizData.showCorrectAnswers,
+        questions: Array.isArray(section.quizData.questions)
+          ? section.quizData.questions.map((question: any) => ({
+              id: question.id,
+              content: question.content || '',
+              difficulty: question.difficulty,
+            }))
+          : [],
+      } : undefined,
+    };
+  }
+
   /**
    * Load course data from IndexedDB (download-first).
    * Uses real chapter titles from IndexedDB instead of generic "Chương X".
@@ -394,10 +432,13 @@ export class LearningService {
             id: l.id,
             title: l.title,
             description: '',
-            lessonType: l.videoManifestUrl ? LessonType.LECTURE : LessonType.READING,
+            lessonType: (l.lessonType as LessonType | undefined) || (l.videoManifestUrl ? LessonType.LECTURE : LessonType.READING),
             duration: 0,
             orderIndex: l.sortOrder ?? i,
             isCompleted: false,
+            sections: Array.isArray(l.sections)
+              ? l.sections.map(section => this.mapSectionContent(section))
+              : [],
           })),
       }));
 
@@ -430,7 +471,7 @@ export class LearningService {
         id: offlineLesson.id,
         title: offlineLesson.title,
         description: '',
-        lessonType: offlineLesson.videoManifestUrl ? LessonType.LECTURE : LessonType.READING,
+        lessonType: (offlineLesson.lessonType as LessonType | undefined) || (offlineLesson.videoManifestUrl ? LessonType.LECTURE : LessonType.READING),
         duration: 0,
         orderIndex: offlineLesson.sortOrder,
         content: offlineLesson.contentHtml,
@@ -442,14 +483,16 @@ export class LearningService {
         courseId: offlineLesson.courseId,
         courseTitle: '',
         durationMinutes: 0,
-        sections: offlineLesson.contentHtml ? [{
-          id: `${offlineLesson.id}-text`,
-          title: offlineLesson.title,
-          type: 'TEXT' as const,
-          content: offlineLesson.contentHtml,
-          orderIndex: 0,
-          isRequired: true,
-        }] : [],
+        sections: Array.isArray(offlineLesson.sections) && offlineLesson.sections.length > 0
+          ? offlineLesson.sections.map(section => this.mapSectionContent(section))
+          : (offlineLesson.contentHtml ? [{
+              id: `${offlineLesson.id}-text`,
+              title: offlineLesson.title,
+              type: 'TEXT' as const,
+              content: offlineLesson.contentHtml,
+              orderIndex: 0,
+              isRequired: true,
+            }] : []),
       };
 
       this.lessonCache.set(lessonId, lessonDetail);
@@ -579,17 +622,7 @@ export class LearningService {
    * Map API lesson response to LessonDetail model.
    */
   private mapLessonResponse(data: any): LessonDetail {
-    let mappedSections: SectionContent[] = (data.sections || []).map((s: any) => ({
-      id: s.id,
-      title: s.title || '',
-      type: (s.type?.toUpperCase() || 'TEXT') as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
-      content: (s.content && s.content !== 'undefined' && s.content !== 'null') ? s.content : undefined,
-      videoUrl: (s.videoUrl && s.videoUrl !== 'undefined' && s.videoUrl !== 'null') ? s.videoUrl : undefined,
-      fileUrl: (s.fileUrl && s.fileUrl !== 'undefined' && s.fileUrl !== 'null') ? s.fileUrl : undefined,
-      duration: s.duration,
-      orderIndex: s.orderIndex ?? 0,
-      isRequired: s.isRequired ?? false
-    }));
+    let mappedSections: SectionContent[] = (data.sections || []).map((s: any) => this.mapSectionContent(s));
 
     if (mappedSections.length === 0) {
       const fromCourseContent = this.findSectionsFromCourseContent(data.id);
@@ -811,17 +844,7 @@ export class LearningService {
             .map((lesson: ApiLessonSummary, idx) => {
               // Cache sections from /content for later use in loadLesson()
               if (lesson.sections && lesson.sections.length > 0) {
-                this.lessonSectionsCache.set(lesson.id, lesson.sections.map(s => ({
-                  id: s.id,
-                  title: s.title,
-                  type: (s.type?.toUpperCase() || 'TEXT') as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
-                  content: s.content,
-                  videoUrl: s.videoUrl,
-                  fileUrl: s.fileUrl,
-                  duration: s.duration,
-                  orderIndex: s.orderIndex ?? 0,
-                  isRequired: s.isRequired ?? false
-                })));
+                this.lessonSectionsCache.set(lesson.id, lesson.sections.map(s => this.mapSectionContent(s)));
               }
               return {
                 id: lesson.id,
@@ -832,17 +855,7 @@ export class LearningService {
                 orderIndex: lesson.orderIndex || idx,
                 isFree: (lesson as any).isFree === true,
                 locked: (lesson as any).locked === true,
-                sections: (lesson.sections || []).map(s => ({
-                  id: s.id,
-                  title: s.title,
-                  type: (s.type?.toUpperCase() || 'TEXT') as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
-                  content: s.content,
-                  videoUrl: s.videoUrl,
-                  fileUrl: s.fileUrl,
-                  duration: s.duration,
-                  orderIndex: s.orderIndex ?? 0,
-                  isRequired: s.isRequired ?? false
-                }))
+                sections: (lesson.sections || []).map(s => this.mapSectionContent(s))
               };
             })
         };

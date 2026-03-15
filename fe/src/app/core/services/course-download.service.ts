@@ -10,6 +10,7 @@ import {
   type OfflineCourse,
   type OfflineChapter,
   type OfflineLesson,
+  type OfflineLessonSection,
   type DownloadCheckpoint,
   type OfflineQuizData,
   type OfflineQuestion,
@@ -17,6 +18,7 @@ import {
 import { StorageManagerService } from './storage-manager.service';
 import { ToastService } from './toast.service';
 import { OfflineVideoService } from './offline-video.service';
+import { OfflineFileService } from './offline-file.service';
 import { environment } from '../../../environments/environment';
 
 export type { OfflineCourse, OfflineChapter, OfflineLesson };
@@ -46,6 +48,8 @@ export class CourseDownloadService {
   private readonly http = inject(HttpClient);
   private readonly storage = inject(StorageManagerService);
   private readonly toast = inject(ToastService);
+  private readonly videoService = inject(OfflineVideoService);
+  private readonly fileService = inject(OfflineFileService);
 
   readonly downloadedCourses = signal<DownloadableCourse[]>([]);
   readonly isDownloading = signal(false);
@@ -82,8 +86,6 @@ export class CourseDownloadService {
       this.toast.info('Đang hủy tải xuống...');
     }
   }
-
-  private readonly videoService = inject(OfflineVideoService);
 
   /**
    * Download entire course for offline access.
@@ -172,7 +174,10 @@ export class CourseDownloadService {
               chapterId: l.chapterId,
               title: l.title || l.name,
               contentHtml,
-              videoManifestUrl: l.sections?.[0]?.videoUrl || l.videoUrl,
+              lessonType: l.lessonType || l.type || 'LECTURE',
+              isFree: l.isFree === true,
+              sections: this.mapOfflineLessonSections(l),
+              videoManifestUrl: l.sections?.find((section: any) => section.type === 'VIDEO' && !!section.videoUrl)?.videoUrl || l.videoUrl,
               streamVideoUid: l.streamVideoUid,
               sortOrder: l.sortOrder ?? l.orderIndex ?? l.order ?? 0,
               downloadedAt: new Date(),
@@ -237,6 +242,44 @@ export class CourseDownloadService {
         }
       }
 
+      if (!this.downloadCancelled) {
+        const lessonsWithSectionAssets = await offlineDb.lessons
+          .where('[userId+courseId]').equals([userId, courseId]).toArray();
+
+        for (const lesson of lessonsWithSectionAssets) {
+          if (this.downloadCancelled || !lesson.sections?.length) break;
+
+          let sectionsChanged = false;
+          const updatedSections = lesson.sections.map(section => ({ ...section }));
+
+          for (const section of updatedSections) {
+            if (section.type === 'VIDEO' && section.videoUrl && videoQuality !== 'none') {
+              try {
+                section.videoOfflineUri = await this.videoService.downloadSectionVideo(section.videoUrl, section.id);
+                sectionsChanged = true;
+              } catch {
+                // Section video download failure is non-fatal
+              }
+            }
+
+            if (section.type === 'FILE' && section.fileUrl) {
+              try {
+                section.fileOfflineUri = await this.fileService.downloadSectionFile(section.fileUrl, section.id);
+                sectionsChanged = true;
+              } catch {
+                // Section file download failure is non-fatal
+              }
+            }
+          }
+
+          if (sectionsChanged) {
+            await offlineDb.lessons.update([userId, lesson.id], {
+              sections: updatedSections,
+            });
+          }
+        }
+      }
+
       // 5b. Download quiz data for lessons (offline quiz support)
       if (!this.downloadCancelled) {
         const allLessons = await offlineDb.lessons
@@ -253,24 +296,21 @@ export class CourseDownloadService {
                 this.http.get(`${environment.apiUrl}/api/v3/quizzes/${quiz.id}/questions`)
               );
               const rawQuestions: any[] = qRes?.data ?? qRes ?? [];
-              const questions: OfflineQuestion[] = rawQuestions.map((q: any) => ({
-                id: q.id,
-                content: q.content || q.text || '',
-                questionType: q.questionType,
-                options: (q.options || []).map((o: any) => ({
-                  optionKey: o.optionKey,
-                  content: o.content || o.text || '',
-                  displayOrder: o.displayOrder ?? 0,
-                })),
-              }));
+              const questions: OfflineQuestion[] = this.mapOfflineQuizQuestions(rawQuestions);
               const quizData: OfflineQuizData = {
                 quizId: quiz.id,
                 lessonId: lesson.id,
+                mode: 'lesson',
                 courseId,
                 userId,
                 title: quiz.title || quiz.name || '',
                 passingScore: quiz.passingScore ?? 60,
-                timeLimit: quiz.timeLimit ?? undefined,
+                timeLimit: quiz.timeLimitMinutes ?? quiz.timeLimit ?? undefined,
+                maxAttempts: quiz.maxAttempts ?? 1,
+                shuffleQuestions: quiz.shuffleQuestions === true,
+                shuffleOptions: quiz.shuffleOptions === true,
+                showResultsImmediately: quiz.showResultsImmediately !== false,
+                showCorrectAnswers: quiz.showCorrectAnswers !== false,
                 questions,
                 downloadedAt: new Date(),
               };
@@ -283,6 +323,39 @@ export class CourseDownloadService {
       }
 
       // 6. Count total lessons + size from DB (not memory — crash-safe)
+      if (!this.downloadCancelled) {
+        const allLessons = await offlineDb.lessons
+          .where('[userId+courseId]').equals([userId, courseId]).toArray();
+
+        for (const lesson of allLessons) {
+          for (const section of lesson.sections ?? []) {
+            if (section.type !== 'QUIZ' || !section.quizData?.questions?.length) {
+              continue;
+            }
+
+            const quizData: OfflineQuizData = {
+              quizId: `section:${section.id}`,
+              lessonId: lesson.id,
+              sectionId: section.id,
+              mode: 'section',
+              courseId,
+              userId,
+              title: section.title || lesson.title,
+              passingScore: section.quizData.passingScore ?? 60,
+              timeLimit: section.quizData.timeLimitMinutes ?? undefined,
+              maxAttempts: section.quizData.maxAttempts ?? 1,
+              shuffleQuestions: section.quizData.shuffleQuestions === true,
+              shuffleOptions: section.quizData.shuffleOptions === true,
+              showResultsImmediately: section.quizData.showResultsImmediately !== false,
+              showCorrectAnswers: section.quizData.showCorrectAnswers !== false,
+              questions: this.mapOfflineQuizQuestions(section.quizData.questions),
+              downloadedAt: new Date(),
+            };
+            await offlineDb.quizData.put(quizData);
+          }
+        }
+      }
+
       const dbLessons = await offlineDb.lessons.where('[userId+courseId]').equals([userId, courseId]).toArray();
       let totalSize = 0;
       for (const l of dbLessons) {
@@ -346,8 +419,16 @@ export class CourseDownloadService {
     // Delete offline videos from Cache API before removing lesson records
     const lessonsToRemove = await offlineDb.lessons.where('[userId+courseId]').equals([userId, courseId]).toArray();
     for (const l of lessonsToRemove) {
-      if (this.videoService.isAvailableOffline(l.id)) {
+      if (l.videoOfflineUri || this.videoService.isAvailableOffline(l.id)) {
         await this.videoService.deleteVideo(l.id);
+      }
+      for (const section of l.sections ?? []) {
+        if (section.videoOfflineUri) {
+          await this.videoService.deleteSectionVideo(section.id);
+        }
+        if (section.fileOfflineUri) {
+          await this.fileService.deleteSectionFile(section.id);
+        }
       }
     }
 
@@ -383,11 +464,22 @@ export class CourseDownloadService {
   async removeAllCourses(videoService: OfflineVideoService): Promise<void> {
     await this.ensureOfflineReady();
     const userId = getCurrentUserId();
+    const lessons = await offlineDb.lessons.where('userId').equals(userId).toArray();
 
     // 1. Delete all offline videos from Cache API
     const videos = videoService.downloads();
     for (const video of videos) {
       await videoService.deleteVideo(video.lessonId);
+    }
+    for (const lesson of lessons) {
+      for (const section of lesson.sections ?? []) {
+        if (section.videoOfflineUri) {
+          await this.videoService.deleteSectionVideo(section.id);
+        }
+        if (section.fileOfflineUri) {
+          await this.fileService.deleteSectionFile(section.id);
+        }
+      }
     }
 
     // 2. Delete all IndexedDB data for this user
@@ -561,6 +653,70 @@ export class CourseDownloadService {
       }
     }
     return this.downloadedCourses();
+  }
+
+  private mapOfflineLessonSections(lesson: any): OfflineLessonSection[] | undefined {
+    if (!Array.isArray(lesson?.sections) || lesson.sections.length === 0) {
+      return undefined;
+    }
+
+    return lesson.sections.map((section: any, index: number) => ({
+      id: section.id,
+      lessonId: lesson.id,
+      title: section.title || `Muc ${index + 1}`,
+      type: section.type || 'TEXT',
+      content: section.content || '',
+      contentBlocks: Array.isArray(section.contentBlocks) ? section.contentBlocks : [],
+      videoUrl: section.videoUrl,
+      fileUrl: section.fileUrl || section.downloadUrl,
+      fileName: section.fileName,
+      sortOrder: section.sortOrder ?? index,
+      quizData: section.quizData ? {
+        quizType: section.quizData.quizType,
+        timeLimitMinutes: section.quizData.timeLimitMinutes ?? null,
+        passingScore: section.quizData.passingScore ?? null,
+        maxAttempts: section.quizData.maxAttempts ?? null,
+        shuffleQuestions: section.quizData.shuffleQuestions === true,
+        shuffleOptions: section.quizData.shuffleOptions === true,
+        showResultsImmediately: section.quizData.showResultsImmediately !== false,
+        showCorrectAnswers: section.quizData.showCorrectAnswers !== false,
+        questions: Array.isArray(section.quizData.questions)
+          ? section.quizData.questions.map((question: any) => ({
+              id: question.id,
+              content: question.content || '',
+              contentBlocks: Array.isArray(question.contentBlocks) ? question.contentBlocks : [],
+              questionType: question.questionType || 'SINGLE_CHOICE',
+              options: Array.isArray(question.options)
+                ? question.options.map((option: any, optionIndex: number) => ({
+                    optionKey: option.optionKey || option.key || String.fromCharCode(65 + optionIndex),
+                    content: option.content || '',
+                    contentBlocks: Array.isArray(option.contentBlocks) ? option.contentBlocks : [],
+                    displayOrder: option.displayOrder ?? optionIndex,
+                  }))
+                : [],
+            }))
+          : [],
+      } : undefined,
+    }));
+  }
+
+  private mapOfflineQuizQuestions(rawQuestions: any[]): OfflineQuestion[] {
+    return rawQuestions.map((q: any) => ({
+      id: q.id,
+      content: q.content || q.text || '',
+      contentBlocks: Array.isArray(q.contentBlocks)
+        ? q.contentBlocks
+        : Array.isArray(q.structuredContent)
+          ? q.structuredContent
+          : [],
+      questionType: q.questionType || 'SINGLE_CHOICE',
+      options: (q.options || []).map((o: any, index: number) => ({
+        optionKey: o.optionKey || o.key || String.fromCharCode(65 + index),
+        content: o.content || o.text || '',
+        contentBlocks: Array.isArray(o.contentBlocks) ? o.contentBlocks : [],
+        displayOrder: o.displayOrder ?? index,
+      })),
+    }));
   }
 
   private async refreshDownloadedCourses(): Promise<void> {

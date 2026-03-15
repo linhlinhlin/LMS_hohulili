@@ -1,9 +1,11 @@
 package com.example.lms.assessment.infrastructure.web;
 
 import com.example.lms.assessment.application.usecase.CreateQuizUseCaseV3;
+import com.example.lms.assessment.application.usecase.EvaluateSectionQuizUseCase;
 import com.example.lms.assessment.application.usecase.GetQuizStatisticsUseCase;
 import com.example.lms.assessment.application.usecase.QuizAttemptUseCase;
 import com.example.lms.assessment.application.usecase.QuizManagementUseCase;
+import com.example.lms.assessment.application.port.StudentAssessmentAccessPort;
 import com.example.lms.assessment.domain.model.Quiz;
 import com.example.lms.assessment.infrastructure.persistence.entity.QuizAssignmentJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.entity.QuizJpaEntity;
@@ -21,6 +23,7 @@ import com.example.lms.course_authoring.infrastructure.persistence.repository.Le
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.learning_delivery.infrastructure.persistence.JpaLearningClassRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.entity.LearningClassJpaEntity;
+import com.example.lms.shared.infrastructure.persistence.repository.PaymentTransactionJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,6 +52,7 @@ class QuizControllerV3CreateFlowTest {
     @Mock private CreateQuizUseCaseV3 createQuizUseCase;
     @Mock private QuizManagementUseCase quizManagementUseCase;
     @Mock private QuizAttemptUseCase quizAttemptUseCase;
+    @Mock private EvaluateSectionQuizUseCase evaluateSectionQuizUseCase;
     @Mock private GetQuizStatisticsUseCase getQuizStatisticsUseCase;
     @Mock private QuestionJpaRepository questionJpaRepository;
     @Mock private QuizJpaRepositoryV3 quizJpaRepository;
@@ -59,6 +63,8 @@ class QuizControllerV3CreateFlowTest {
     @Mock private LessonJpaRepository lessonJpaRepository;
     @Mock private QuizAssignmentJpaRepository quizAssignmentJpaRepository;
     @Mock private JpaLearningClassRepository classJpaRepository;
+    @Mock private StudentAssessmentAccessPort studentAssessmentAccessPort;
+    @Mock private PaymentTransactionJpaRepository paymentTransactionJpaRepository;
 
     @InjectMocks
     private QuizControllerV3 controller;

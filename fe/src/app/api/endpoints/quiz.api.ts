@@ -118,6 +118,38 @@ export interface QuizAttemptResponse {
   isPassed?: boolean;
 }
 
+export interface SectionQuizResponse {
+  id: string;
+  quizId: string;
+  lessonId: string;
+  sectionId: string;
+  title: string;
+  timeLimitMinutes?: number | null;
+  maxAttempts: number;
+  passingScore: number;
+  shuffleQuestions: boolean;
+  shuffleOptions: boolean;
+  showResultsImmediately: boolean;
+  showCorrectAnswers: boolean;
+  questionCount: number;
+  questions: Question[];
+}
+
+export interface SectionQuizSubmitResponse {
+  id: string;
+  quizId: string;
+  lessonId: string;
+  sectionId: string;
+  status: 'SUBMITTED';
+  score?: number | null;
+  correctAnswers?: number | null;
+  totalQuestions: number;
+  isPassed?: boolean | null;
+  items?: Array<Record<string, unknown>>;
+  message?: string | null;
+  submittedAt?: string;
+}
+
 export interface QuizResult {
   attemptId: string;
   quizTitle: string;
@@ -290,6 +322,14 @@ export class QuizApi {
     );
   }
 
+  getSectionQuiz(lessonId: string, sectionId: string) {
+    return this.apiClient.get<SectionQuizResponse | { data?: SectionQuizResponse }>(
+      QUIZ_ENDPOINTS.SECTION_QUIZ(lessonId, sectionId)
+    ).pipe(
+      map(response => this.unwrapApiData(response as any))
+    );
+  }
+
   resolveQuizIdByLessonId(lessonId: string) {
     return this.getQuizByLessonId(lessonId).pipe(
       map(quiz => quiz.id)
@@ -392,6 +432,15 @@ export class QuizApi {
     return this.apiClient.post<QuizAttemptResponse>(
       QUIZ_ENDPOINTS.SUBMIT_ATTEMPT(attemptId),
       body
+    );
+  }
+
+  submitSectionQuiz(lessonId: string, sectionId: string, answers: AttemptAnswer[]) {
+    return this.apiClient.post<SectionQuizSubmitResponse | { data?: SectionQuizSubmitResponse }>(
+      QUIZ_ENDPOINTS.SUBMIT_SECTION_QUIZ(lessonId, sectionId),
+      answers
+    ).pipe(
+      map(response => this.unwrapApiData(response as any))
     );
   }
 

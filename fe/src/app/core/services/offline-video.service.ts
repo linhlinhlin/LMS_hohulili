@@ -110,6 +110,25 @@ export class OfflineVideoService {
     }
   }
 
+  async downloadSectionVideo(videoUrl: string, sectionId: string): Promise<string> {
+    if (this.isDownloading()) {
+      throw new Error('Video download already in progress');
+    }
+
+    this.isDownloading.set(true);
+    try {
+      await this.ensureOfflineReady();
+      const response = await fetch(videoUrl);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const cache = await caches.open('offline-videos');
+      await cache.put(`/offline-video/${sectionId}`, response);
+      return `/offline-video/${sectionId}`;
+    } finally {
+      this.isDownloading.set(false);
+    }
+  }
+
   /**
    * Get video URL for offline playback.
    *
@@ -139,6 +158,16 @@ export class OfflineVideoService {
     return `/offline-video/${lessonId}`;
   }
 
+  async getSectionVideoUrl(sectionId: string): Promise<string | null> {
+    if (!(await this.ensureOfflineReady(true))) {
+      return null;
+    }
+
+    const cache = await caches.open('offline-videos');
+    const response = await cache.match(`/offline-video/${sectionId}`);
+    return response ? `/offline-video/${sectionId}` : null;
+  }
+
   async deleteVideo(lessonId: string): Promise<void> {
     if (!(await this.ensureOfflineReady(true))) {
       return;
@@ -153,6 +182,15 @@ export class OfflineVideoService {
     }
 
     await this.refreshList();
+  }
+
+  async deleteSectionVideo(sectionId: string): Promise<void> {
+    if (!(await this.ensureOfflineReady(true))) {
+      return;
+    }
+
+    const cache = await caches.open('offline-videos');
+    await cache.delete(`/offline-video/${sectionId}`);
   }
 
   isAvailableOffline(lessonId: string): boolean {

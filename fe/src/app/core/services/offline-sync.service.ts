@@ -350,6 +350,14 @@ export class OfflineSyncService {
    * Returns null if batch endpoint fails (triggers individual fallback).
    */
   private async tryBatchSync(items: SyncQueueItem[]): Promise<SyncResult | null> {
+    const hasEmbeddedSectionQuiz = items.some(item =>
+      item.entityType === 'quizAttempt' &&
+      ((item.payload as Record<string, unknown> | null)?.['mode'] === 'section')
+    );
+    if (hasEmbeddedSectionQuiz) {
+      return null;
+    }
+
     try {
       const operations = items.map(item => ({
         entityType: item.entityType,
@@ -425,10 +433,19 @@ export class OfflineSyncService {
   private async markQuizAttemptSynced(item: SyncQueueItem): Promise<void> {
     const payload = item.payload as Record<string, unknown> | null;
     const quizId = payload?.['quizId'] as string | undefined;
+    const lessonId = payload?.['lessonId'] as string | undefined;
+    const sectionId = payload?.['sectionId'] as string | undefined;
+    const mode = payload?.['mode'] as string | undefined;
     if (!quizId) return;
     await offlineDb.quizAttempts
       .where('userId').equals(item.userId)
-      .filter((a: any) => a.quizId === quizId && a.syncStatus === 'pending')
+      .filter((a: any) =>
+        a.quizId === quizId &&
+        a.syncStatus === 'pending' &&
+        (mode ? a.mode === mode : true) &&
+        (lessonId ? a.lessonId === lessonId : true) &&
+        (sectionId ? a.sectionId === sectionId : true)
+      )
       .modify({ syncStatus: 'synced' });
   }
 
@@ -439,16 +456,11 @@ export class OfflineSyncService {
     if (item.entityType === 'quizAttempt') {
       const payload = item.payload as Record<string, unknown>;
       const quizId = payload['quizId'] as string;
+      const mode = (payload['mode'] as string | undefined) ?? 'lesson';
+      const lessonId = payload['lessonId'] as string | undefined;
+      const sectionId = payload['sectionId'] as string | undefined;
       if (!quizId) throw new Error('Missing quizId in quizAttempt sync item');
 
-      // Step 1: start a server-side attempt
-      const startRes: any = await firstValueFrom(
-        this.http.post(`${environment.apiUrl}/api/v3/quizzes/${quizId}/attempts/start`, {})
-      );
-      const attemptId = (startRes?.data || startRes)?.id as string | undefined;
-      if (!attemptId) throw new Error('Failed to start quiz attempt: no attemptId returned');
-
-      // Step 2: convert Map answers to array and submit
       const answersMap = payload['answers'] as Record<string, unknown> | null;
       const answersArray = answersMap
         ? Object.entries(answersMap).map(([qId, val]) => ({
@@ -458,6 +470,28 @@ export class OfflineSyncService {
           }))
         : [];
 
+      if (mode === 'section') {
+        if (!lessonId || !sectionId) {
+          throw new Error('Missing lessonId or sectionId in section quiz sync item');
+        }
+
+        await firstValueFrom(
+          this.http.post(
+            `${environment.apiUrl}/api/v3/quizzes/lessons/${lessonId}/sections/${sectionId}/submit`,
+            answersArray,
+          )
+        );
+        return;
+      }
+
+      // Step 1: start a server-side attempt
+      const startRes: any = await firstValueFrom(
+        this.http.post(`${environment.apiUrl}/api/v3/quizzes/${quizId}/attempts/start`, {})
+      );
+      const attemptId = (startRes?.data || startRes)?.id as string | undefined;
+      if (!attemptId) throw new Error('Failed to start quiz attempt: no attemptId returned');
+
+      // Step 2: convert Map answers to array and submit
       await firstValueFrom(
         this.http.post(`${environment.apiUrl}/api/v3/quizzes/attempts/${attemptId}/submit`, answersArray)
       );

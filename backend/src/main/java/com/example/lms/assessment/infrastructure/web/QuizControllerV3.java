@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.example.lms.assessment.application.port.StudentAssessmentAccessPort;
 import com.example.lms.assessment.application.usecase.CreateQuizUseCaseV3;
+import com.example.lms.assessment.application.usecase.EvaluateSectionQuizUseCase;
 import com.example.lms.assessment.application.usecase.GetQuizStatisticsUseCase;
 import com.example.lms.assessment.application.usecase.QuizAttemptUseCase;
 import com.example.lms.assessment.application.usecase.QuizManagementUseCase;
@@ -26,6 +27,8 @@ import com.example.lms.course_authoring.infrastructure.persistence.repository.Le
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.learning_delivery.infrastructure.persistence.JpaLearningClassRepository;
 import com.example.lms.shared.domain.model.ContentBlock;
+import com.example.lms.shared.infrastructure.persistence.entity.PaymentTransactionJpaEntity;
+import com.example.lms.shared.infrastructure.persistence.repository.PaymentTransactionJpaRepository;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -47,10 +50,14 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 @Slf4j
@@ -63,6 +70,7 @@ public class QuizControllerV3 {
     private final CreateQuizUseCaseV3 createQuizUseCase;
     private final QuizManagementUseCase quizManagementUseCase;
     private final QuizAttemptUseCase quizAttemptUseCase;
+    private final EvaluateSectionQuizUseCase evaluateSectionQuizUseCase;
     private final GetQuizStatisticsUseCase getQuizStatisticsUseCase;
     private final QuestionJpaRepository questionJpaRepository;
     private final QuizJpaRepositoryV3 quizJpaRepository;
@@ -74,6 +82,7 @@ public class QuizControllerV3 {
     private final QuizAssignmentJpaRepository quizAssignmentJpaRepository;
     private final JpaLearningClassRepository classJpaRepository;
     private final StudentAssessmentAccessPort studentAssessmentAccessPort;
+    private final PaymentTransactionJpaRepository paymentTransactionJpaRepository;
 
     // ============ Teacher CRUD Operations ============
 
@@ -260,6 +269,60 @@ public class QuizControllerV3 {
             @AuthenticationPrincipal UserJpaEntity user) {
         QuizJpaEntity quizEntity = resolveQuizEntityByLessonId(lessonId);
         return getQuizQuestions(quizEntity.getId(), user);
+    }
+
+    @GetMapping("/lessons/{lessonId}/sections/{sectionId}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN', 'STUDENT')")
+    @Transactional(readOnly = true)
+    @Operation(summary = "Get embedded section quiz for learner flow")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getSectionQuiz(
+            @PathVariable UUID lessonId,
+            @PathVariable UUID sectionId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        try {
+            SectionQuizDefinition definition = loadSectionQuizDefinition(lessonId, sectionId, user);
+            return ResponseEntity.ok(ApiResponse.success(toSectionQuizMap(definition)));
+        } catch (org.springframework.security.access.AccessDeniedException ex) {
+            return ResponseEntity.status(403).body(ApiResponse.error(ex.getMessage()));
+        }
+    }
+
+    @PostMapping("/lessons/{lessonId}/sections/{sectionId}/submit")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Transactional(readOnly = true)
+    @Operation(summary = "Submit answers for an embedded section quiz")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> submitSectionQuiz(
+            @PathVariable UUID lessonId,
+            @PathVariable UUID sectionId,
+            @Valid @RequestBody List<QuizAttempt.AttemptAnswer> answers,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        try {
+            SectionQuizDefinition definition = loadSectionQuizDefinition(lessonId, sectionId, user);
+            EvaluateSectionQuizUseCase.Result result = evaluateSectionQuizUseCase.execute(
+                    new EvaluateSectionQuizUseCase.Command(
+                            definition.questionIds(),
+                            definition.passingScore(),
+                            definition.showResultsImmediately(),
+                            definition.showCorrectAnswers(),
+                            answers));
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("id", definition.quizId());
+            payload.put("quizId", definition.quizId());
+            payload.put("lessonId", lessonId.toString());
+            payload.put("sectionId", sectionId.toString());
+            payload.put("status", "SUBMITTED");
+            payload.put("score", result.score());
+            payload.put("correctAnswers", result.correctAnswers());
+            payload.put("totalQuestions", result.totalQuestions());
+            payload.put("isPassed", result.isPassed());
+            payload.put("items", result.items());
+            payload.put("message", result.message());
+            payload.put("submittedAt", Instant.now().toString());
+            return ResponseEntity.ok(ApiResponse.success(payload));
+        } catch (org.springframework.security.access.AccessDeniedException ex) {
+            return ResponseEntity.status(403).body(ApiResponse.error(ex.getMessage()));
+        }
     }
 
     @PostMapping("/{quizId}/questions")
@@ -557,6 +620,199 @@ public class QuizControllerV3 {
     }
 
     // ============ Helper Methods ============
+
+    private record SectionQuizDefinition(
+            String quizId,
+            UUID lessonId,
+            UUID sectionId,
+            String title,
+            Integer timeLimitMinutes,
+            Integer maxAttempts,
+            Integer passingScore,
+            boolean shuffleQuestions,
+            boolean shuffleOptions,
+            boolean showResultsImmediately,
+            boolean showCorrectAnswers,
+            List<UUID> questionIds,
+            List<QuestionJpaEntity> questions
+    ) {}
+
+    private SectionQuizDefinition loadSectionQuizDefinition(UUID lessonId, UUID sectionId, UserJpaEntity user) {
+        LessonJpaEntity lesson = lessonJpaRepository.findById(lessonId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Lesson", lessonId));
+
+        CourseJpaEntity course = courseJpaRepository.findByLessonId(lessonId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Khóa học", lessonId));
+
+        verifySectionQuizAccess(course, lesson, user);
+
+        ContentBlock quizSection = findSectionQuizBlock(lesson, sectionId);
+        Map<String, Object> blockData = quizSection.getData() != null ? quizSection.getData() : Map.of();
+        Map<String, Object> quizData = asMap(blockData.get("quizData"));
+        if (quizData == null) {
+            throw new com.example.lms.shared.exception.EntityNotFoundException("Section quiz", sectionId);
+        }
+
+        List<UUID> questionIds = extractSectionQuizQuestionIds(blockData);
+        Map<UUID, QuestionJpaEntity> questionMap = new LinkedHashMap<>();
+        if (!questionIds.isEmpty()) {
+            for (QuestionJpaEntity question : questionJpaRepository.findAllById(questionIds)) {
+                questionMap.put(question.getId(), question);
+            }
+        }
+
+        List<QuestionJpaEntity> orderedQuestions = questionIds.stream()
+                .map(questionMap::get)
+                .filter(Objects::nonNull)
+                .toList();
+
+        return new SectionQuizDefinition(
+                "section:" + sectionId,
+                lessonId,
+                sectionId,
+                asString(firstNonNull(quizData.get("title"), blockData.get("title"), lesson.getTitle()), lesson.getTitle()),
+                asInteger(quizData.get("timeLimitMinutes"), 30),
+                asInteger(quizData.get("maxAttempts"), 1),
+                asInteger(quizData.get("passingScore"), 60),
+                asBoolean(quizData.get("shuffleQuestions"), true),
+                asBoolean(quizData.get("shuffleOptions"), true),
+                asBoolean(quizData.get("showResultsImmediately"), true),
+                asBoolean(quizData.get("showCorrectAnswers"), true),
+                questionIds,
+                orderedQuestions
+        );
+    }
+
+    private void verifySectionQuizAccess(CourseJpaEntity course, LessonJpaEntity lesson, UserJpaEntity user) {
+        if (user.getRole() == UserJpaEntity.UserRole.STUDENT) {
+            boolean lessonFree = Boolean.TRUE.equals(lesson.getIsFree());
+            boolean paid = paymentTransactionJpaRepository.existsByStudentIdAndCourseIdAndStatus(
+                    user.getId(),
+                    course.getId(),
+                    PaymentTransactionJpaEntity.PaymentStatus.COMPLETED
+            );
+            if (!lessonFree && !paid) {
+                throw new org.springframework.security.access.AccessDeniedException("Bạn cần thanh toán để mở bài kiểm tra này");
+            }
+            return;
+        }
+
+        verifyLessonOwnership(lesson.getId(), user);
+    }
+
+    private ContentBlock findSectionQuizBlock(LessonJpaEntity lesson, UUID sectionId) {
+        return lesson.getContentBlocks().stream()
+                .filter(block -> block.getId() != null && sectionId.toString().equals(block.getId()))
+                .filter(block -> "QUIZ".equalsIgnoreCase(block.getType()))
+                .findFirst()
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Section quiz", sectionId));
+    }
+
+    private Map<String, Object> toSectionQuizMap(SectionQuizDefinition definition) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", definition.quizId());
+        map.put("quizId", definition.quizId());
+        map.put("lessonId", definition.lessonId().toString());
+        map.put("sectionId", definition.sectionId().toString());
+        map.put("title", definition.title());
+        map.put("timeLimitMinutes", definition.timeLimitMinutes());
+        map.put("maxAttempts", definition.maxAttempts());
+        map.put("passingScore", definition.passingScore());
+        map.put("shuffleQuestions", definition.shuffleQuestions());
+        map.put("shuffleOptions", definition.shuffleOptions());
+        map.put("showResultsImmediately", definition.showResultsImmediately());
+        map.put("showCorrectAnswers", definition.showCorrectAnswers());
+        map.put("questionCount", definition.questions().size());
+        map.put("questions", definition.questions().stream().map(this::toStudentQuestionMap).toList());
+        return map;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> asMap(Object value) {
+        if (value instanceof Map<?, ?> map) {
+            return (Map<String, Object>) map;
+        }
+        return null;
+    }
+
+    private List<UUID> extractSectionQuizQuestionIds(Map<String, Object> blockData) {
+        Map<String, Object> quizData = asMap(blockData.get("quizData"));
+        if (quizData == null) {
+            return List.of();
+        }
+
+        Object rawQuestionIds = firstNonNull(quizData.get("questionIds"), quizData.get("questions"));
+        if (!(rawQuestionIds instanceof List<?> questionList)) {
+            return List.of();
+        }
+
+        List<UUID> questionIds = new ArrayList<>();
+        for (Object rawItem : questionList) {
+            if (rawItem == null) {
+                continue;
+            }
+
+            String rawId = null;
+            if (rawItem instanceof Map<?, ?> question) {
+                Object questionId = question.get("id");
+                rawId = questionId != null ? questionId.toString() : null;
+            } else {
+                rawId = rawItem.toString();
+            }
+
+            if (rawId == null || rawId.isBlank()) {
+                continue;
+            }
+
+            try {
+                questionIds.add(UUID.fromString(rawId));
+            } catch (IllegalArgumentException ignored) {
+                // Ignore malformed legacy values instead of failing the entire quiz.
+            }
+        }
+        return questionIds;
+    }
+
+    private String asString(Object value, String fallback) {
+        if (value == null) {
+            return fallback;
+        }
+        String text = value.toString();
+        return text.isBlank() ? fallback : text;
+    }
+
+    private Integer asInteger(Object value, Integer fallback) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        if (value != null) {
+            try {
+                return Integer.parseInt(value.toString());
+            } catch (NumberFormatException ignored) {
+                // Fallback below.
+            }
+        }
+        return fallback;
+    }
+
+    private boolean asBoolean(Object value, boolean fallback) {
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        if (value != null) {
+            return Boolean.parseBoolean(value.toString());
+        }
+        return fallback;
+    }
+
+    private Object firstNonNull(Object... values) {
+        for (Object value : values) {
+            if (value != null) {
+                return value;
+            }
+        }
+        return null;
+    }
 
     private Map<String, Object> toQuizMap(Quiz quiz) {
         Map<String, Object> map = new HashMap<>();

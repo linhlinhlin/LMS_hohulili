@@ -66,6 +66,25 @@ export interface SectionContent {
   duration?: number;
   orderIndex: number;
   isRequired: boolean;
+  quizData?: SectionQuizData;
+}
+
+export interface SectionQuizQuestionSummary {
+  id: string;
+  content: string;
+  difficulty?: 'EASY' | 'MEDIUM' | 'HARD' | string;
+}
+
+export interface SectionQuizData {
+  quizType?: string;
+  timeLimitMinutes?: number;
+  passingScore?: number;
+  maxAttempts?: number;
+  shuffleQuestions?: boolean;
+  shuffleOptions?: boolean;
+  showResultsImmediately?: boolean;
+  showCorrectAnswers?: boolean;
+  questions?: SectionQuizQuestionSummary[];
 }
 
 /**

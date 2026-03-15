@@ -396,11 +396,27 @@ export class LessonContentComponent implements AfterViewInit {
   async onGoToQuiz(): Promise<void> {
     const ls = this.lesson();
     const currentUrl = this.router.url;
+    const section = this.currentSection();
     try {
+      if (section?.type === 'QUIZ' && section.id) {
+        await this.router.navigate(['/student/quiz/take', section.id], {
+          queryParams: {
+            mode: 'section',
+            lessonId: ls.id,
+            courseId: ls.courseId,
+            sectionId: section.id,
+            title: section.title || ls.title,
+            returnUrl: currentUrl
+          }
+        });
+        return;
+      }
+
       const quizId = await firstValueFrom(this.quizApi.resolveQuizIdByLessonId(ls.id));
       await this.router.navigate(['/student/quiz/take', quizId], {
         queryParams: {
           lessonId: ls.id,
+          courseId: ls.courseId,
           title: ls.title,
           returnUrl: currentUrl
         }

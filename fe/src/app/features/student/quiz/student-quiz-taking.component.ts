@@ -69,6 +69,8 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   attemptId = '';
   lessonId = '';
   courseId = '';
+  sectionId = '';
+  quizMode: 'lesson' | 'section' = 'lesson';
   quizTitle = signal('Bài kiểm tra');
   returnUrl = '';
   /** True when taking quiz from offline IndexedDB (no server connection) */
@@ -82,6 +84,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   showResultsModal = signal(true);
   serverScore = signal<number | null>(null);
   serverCorrectCount = signal<number | null>(null);
+  serverPassed = signal<boolean | null>(null);
   /** Map of questionId → isCorrect from server grading (for review highlighting) */
   serverIsCorrectMap = signal<Record<string, boolean>>({});
   submitting = signal(false);
@@ -164,6 +167,8 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     this.returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/student/learn/course';
     this.lessonId = this.route.snapshot.queryParamMap.get('lessonId') || '';
     this.courseId = this.route.snapshot.queryParamMap.get('courseId') || '';
+    this.sectionId = this.route.snapshot.queryParamMap.get('sectionId') || this.quizReferenceId;
+    this.quizMode = this.route.snapshot.queryParamMap.get('mode') === 'section' ? 'section' : 'lesson';
 
     if (this.quizReferenceId) {
       this.loadQuiz();
@@ -186,6 +191,11 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     }
 
     try {
+      if (this.isSectionQuizMode()) {
+        await this.loadOnlineSectionQuiz();
+        return;
+      }
+
       const quiz = await firstValueFrom(this.quizApi.getQuizByReference(this.quizReferenceId));
       this.quizId = quiz.id;
 
@@ -281,6 +291,105 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     }
   }
 
+  private isSectionQuizMode(): boolean {
+    return this.quizMode === 'section';
+  }
+
+  private applyQuizSettings(quiz: {
+    id: string;
+    title?: string;
+    timeLimitMinutes?: number | null;
+    maxAttempts?: number;
+    passingScore?: number;
+    shuffleQuestions?: boolean;
+    shuffleOptions?: boolean;
+    showResultsImmediately?: boolean;
+    showCorrectAnswers?: boolean;
+  }): void {
+    this.quizId = quiz.id;
+
+    if (quiz.title) this.quizTitle.set(quiz.title);
+    if (quiz.timeLimitMinutes) this.timeRemaining.set(quiz.timeLimitMinutes * 60);
+
+    this.quizSettings.set({
+      timeLimitMinutes: quiz.timeLimitMinutes || null,
+      maxAttempts: quiz.maxAttempts || 1,
+      passingScore: quiz.passingScore || 60,
+      shuffleQuestions: quiz.shuffleQuestions || false,
+      shuffleOptions: quiz.shuffleOptions || false,
+      showResultsImmediately: quiz.showResultsImmediately !== false,
+      showCorrectAnswers: quiz.showCorrectAnswers !== false,
+    });
+  }
+
+  private mapQuestions(rawQuestions: any[]): QuizQuestion[] {
+    let mappedQuestions: QuizQuestion[] = rawQuestions.map((q: any) => {
+      let qBlocks = q.contentBlocks || q.structuredContent || [];
+      if (!qBlocks.length && q.content) {
+        qBlocks = [{ type: 'text', data: { text: q.content } }];
+      }
+
+      return {
+        id: q.id,
+        content: q.content,
+        contentBlocks: qBlocks,
+        difficulty: q.difficulty,
+        questionType: q.questionType || 'SINGLE_CHOICE',
+        correctOption: q.correctOption,
+        answerKey: q.answerKey || null,
+        options: (q.options || []).map((opt: any) => {
+          let blocks = opt.contentBlocks || [];
+
+          if (!blocks.length && typeof opt.content === 'string' && opt.content.trim().startsWith('[')) {
+            try {
+              blocks = JSON.parse(opt.content);
+            } catch {
+              blocks = [{ type: 'text', data: { text: opt.content } }];
+            }
+          } else if (!blocks.length && opt.content) {
+            blocks = [{ type: 'text', data: { text: opt.content } }];
+          }
+
+          return {
+            key: opt.optionKey || opt.key,
+            content: opt.content,
+            contentBlocks: blocks
+          };
+        }).sort((a: any, b: any) => a.key.localeCompare(b.key))
+      };
+    });
+
+    const settings = this.quizSettings();
+    if (settings.shuffleQuestions) {
+      mappedQuestions = this.shuffleArray(mappedQuestions);
+    }
+    if (settings.shuffleOptions) {
+      mappedQuestions = mappedQuestions.map(q => ({
+        ...q,
+        options: q.questionType !== 'TRUE_FALSE' ? this.shuffleArray([...q.options]) : q.options
+      }));
+    }
+
+    return mappedQuestions;
+  }
+
+  private async loadOnlineSectionQuiz(): Promise<void> {
+    if (!this.lessonId || !this.sectionId) {
+      throw new Error('Thiếu thông tin section quiz');
+    }
+
+    const quiz = await firstValueFrom(this.quizApi.getSectionQuiz(this.lessonId, this.sectionId));
+    this.applyQuizSettings(quiz);
+
+    if (!quiz.questions || quiz.questions.length === 0) {
+      this.error.set('Bài kiểm tra này chưa có câu hỏi nào.');
+      return;
+    }
+
+    this.questions.set(this.mapQuestions(quiz.questions));
+    this.startTimer();
+  }
+
   /**
    * Load quiz from offline IndexedDB (no network required).
    * Questions are downloaded during course download (without correct answers).
@@ -289,8 +398,14 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   private async loadOfflineQuiz(): Promise<void> {
     try {
       const offlineQuiz = this.lessonId
-        ? await this.offlineQuizService.getQuizForLesson(this.lessonId)
-        : await this.offlineQuizService.getQuizById(this.quizReferenceId);
+        ? await this.offlineQuizService.getQuizForLesson(
+            this.lessonId,
+            this.isSectionQuizMode() ? this.sectionId : undefined,
+          )
+        : await this.offlineQuizService.getQuizById(
+            this.quizReferenceId,
+            this.isSectionQuizMode() ? this.sectionId : undefined,
+          );
 
       if (!offlineQuiz || offlineQuiz.questions.length === 0) {
         this.error.set('Bài kiểm tra không có sẵn ngoại tuyến. Vui lòng kết nối mạng để làm bài.');
@@ -307,18 +422,18 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
 
       this.quizSettings.set({
         timeLimitMinutes: offlineQuiz.timeLimit || null,
-        maxAttempts: 1,
+        maxAttempts: offlineQuiz.maxAttempts || 1,
         passingScore: offlineQuiz.passingScore,
-        shuffleQuestions: false,
-        shuffleOptions: false,
-        showResultsImmediately: true,
-        showCorrectAnswers: false, // Correct answers not stored offline (academic integrity)
+        shuffleQuestions: offlineQuiz.shuffleQuestions === true,
+        shuffleOptions: offlineQuiz.shuffleOptions === true,
+        showResultsImmediately: offlineQuiz.showResultsImmediately !== false,
+        showCorrectAnswers: offlineQuiz.showCorrectAnswers === true,
       });
 
       const questions: QuizQuestion[] = offlineQuiz.questions.map(q => ({
         id: q.id,
         content: q.content,
-        contentBlocks: [{ type: 'text', data: { text: q.content } }],
+        contentBlocks: q.contentBlocks?.length ? q.contentBlocks : [{ type: 'text', data: { text: q.content } }],
         difficulty: 'MEDIUM',
         questionType: q.questionType as QuestionType,
         correctOption: null,
@@ -326,7 +441,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
         options: q.options.map(o => ({
           key: o.optionKey,
           content: o.content,
-          contentBlocks: [{ type: 'text', data: { text: o.content } }],
+          contentBlocks: o.contentBlocks?.length ? o.contentBlocks : [{ type: 'text', data: { text: o.content } }],
         })).sort((a, b) => a.key.localeCompare(b.key)),
       }));
 
@@ -504,12 +619,37 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
         quizId: this.quizId,
         lessonId: this.lessonId,
         courseId: this.courseId,
+        sectionId: this.isSectionQuizMode() ? this.sectionId : undefined,
+        mode: this.quizMode,
         localAttemptId: crypto.randomUUID(),
-        answers: this.answers() as Record<string, string | number>,
+        answers: this.answers() as Record<string, string | number | string[]>,
         submittedAt: new Date(),
       });
       this.showResults.set(true);
       this.showResultsModal.set(true);
+      this.submitting.set(false);
+      return;
+    }
+
+    if (this.isSectionQuizMode()) {
+      try {
+        const answersArray = this.buildAnswersForSubmission();
+        const result: any = await firstValueFrom(
+          this.quizApi.submitSectionQuiz(this.lessonId, this.sectionId, answersArray)
+        );
+        const data = result?.data || result;
+        this.applySubmissionResult(data);
+      } catch {
+        this.error.set('Khong the nop bai kiem tra nay. Vui long thu lai.');
+        this.submitting.set(false);
+        this.startTimer();
+        return;
+      }
+
+      this.showResults.set(true);
+      if (this.quizSettings().showResultsImmediately) {
+        this.showResultsModal.set(true);
+      }
       this.submitting.set(false);
       return;
     }
@@ -519,24 +659,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
         const answersArray = this.buildAnswersForSubmission();
         const result: any = await firstValueFrom(this.quizApi.submitAttempt(this.attemptId, answersArray));
         const data = result?.data || result;
-        if (data?.score != null) {
-          this.serverScore.set(data.score);
-        }
-        if (data?.correctAnswers != null) {
-          this.serverCorrectCount.set(data.correctAnswers);
-        } else if (Array.isArray(data?.items) && data.items.length > 0) {
-          const correct = (data.items as any[]).filter(i => i.isCorrect === true).length;
-          this.serverCorrectCount.set(correct);
-        }
-        if (Array.isArray(data?.items)) {
-          const map: Record<string, boolean> = {};
-          for (const item of data.items as any[]) {
-            if (item.questionId != null && item.isCorrect != null) {
-              map[item.questionId] = item.isCorrect;
-            }
-          }
-          this.serverIsCorrectMap.set(map);
-        }
+        this.applySubmissionResult(data);
       } catch {
         // Non-blocking: show local results if server fails
       }
@@ -587,6 +710,30 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
       });
   }
 
+  private applySubmissionResult(data: any): void {
+    if (data?.score != null) {
+      this.serverScore.set(data.score);
+    }
+    if (data?.isPassed != null) {
+      this.serverPassed.set(Boolean(data.isPassed));
+    }
+    if (data?.correctAnswers != null) {
+      this.serverCorrectCount.set(data.correctAnswers);
+    } else if (Array.isArray(data?.items) && data.items.length > 0) {
+      const correct = (data.items as any[]).filter(i => i.isCorrect === true).length;
+      this.serverCorrectCount.set(correct);
+    }
+    if (Array.isArray(data?.items)) {
+      const map: Record<string, boolean> = {};
+      for (const item of data.items as any[]) {
+        if (item.questionId != null && item.isCorrect != null) {
+          map[item.questionId] = item.isCorrect;
+        }
+      }
+      this.serverIsCorrectMap.set(map);
+    }
+  }
+
   closeResults() {
     this.showResultsModal.set(false);
   }
@@ -598,6 +745,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     this.showResultsModal.set(false);
     this.serverScore.set(null);
     this.serverCorrectCount.set(null);
+    this.serverPassed.set(null);
     this.serverIsCorrectMap.set({});
     this.timeRemaining.set((this.quizSettings().timeLimitMinutes || 30) * 60);
     this.timeSpent.set(0);
@@ -609,7 +757,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   }
 
   startAutoSave() {
-    if (!this.attemptId) return;
+    if (this.isSectionQuizMode() || !this.attemptId) return;
     this.autoSaveInterval = setInterval(() => this.doAutoSave(), this.AUTO_SAVE_INTERVAL_MS);
   }
 
@@ -621,7 +769,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   }
 
   private async doAutoSave() {
-    if (!this.attemptId || this.showResults() || this.submitting()) return;
+    if (this.isSectionQuizMode() || !this.attemptId || this.showResults() || this.submitting()) return;
     const answersArray = this.buildAnswersForSubmission();
     if (answersArray.length === 0) return;
 
@@ -641,9 +789,15 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     this.stopTimer();
     if (this.returnUrl && this.returnUrl !== '/student/learn/course') {
       const separator = this.returnUrl.includes('?') ? '&' : '?';
-      const url = this.showResults() && this.attemptId
-        ? `${this.returnUrl}${separator}quizCompleted=true&attemptId=${this.attemptId}`
-        : this.returnUrl;
+      let url = this.returnUrl;
+      if (this.showResults()) {
+        if (this.isSectionQuizMode() && !this.isOfflineMode()) {
+          const passed = this.serverPassed() ?? (this.scorePercent() >= this.quizSettings().passingScore);
+          url = `${this.returnUrl}${separator}sectionQuizCompleted=true&completedSectionId=${encodeURIComponent(this.sectionId)}&passed=${passed}`;
+        } else if (this.attemptId) {
+          url = `${this.returnUrl}${separator}quizCompleted=true&attemptId=${this.attemptId}`;
+        }
+      }
       this.router.navigateByUrl(url);
     } else {
       this.router.navigate(['/student/courses']);

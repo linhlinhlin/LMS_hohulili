@@ -77,6 +77,9 @@ export class CourseLearningComponent implements OnInit {
   // Pending lesson ID for auto-expand (set from route, resolved reactively when sections load)
   private pendingExpandLessonId = signal<string | null>(null);
   private shouldAutoSelectInitialLesson = signal(false);
+  private handledReturnKeys = new Set<string>();
+  private pendingReturnedQuizAttemptId = signal<string | null>(null);
+  private pendingReturnedSectionQuiz = signal<{ sectionId: string; passed: boolean } | null>(null);
 
   // Detect if course has locked lessons (paid course, user hasn't paid)
   private paymentDetectEffect = effect(() => {
@@ -157,6 +160,35 @@ export class CourseLearningComponent implements OnInit {
     }
   });
 
+  private autoExpandCurrentLessonEffect = effect(() => {
+    const lesson = this.currentLesson();
+    const sections = this.sections();
+
+    if (!lesson || sections.length === 0) {
+      return;
+    }
+
+    const lessonSummary = sections
+      .flatMap(section => section.lessons)
+      .find(candidate => candidate.id === lesson.id);
+
+    if (!lessonSummary?.sections?.length) {
+      return;
+    }
+
+    untracked(() => {
+      this.expandedLessons.update(expanded => {
+        if (expanded.has(lesson.id)) {
+          return expanded;
+        }
+
+        const next = new Set(expanded);
+        next.add(lesson.id);
+        return next;
+      });
+    });
+  });
+
   private autoSelectInitialLessonEffect = effect(() => {
     const shouldAutoSelect = this.shouldAutoSelectInitialLesson();
     const sections = this.sections();
@@ -185,6 +217,42 @@ export class CourseLearningComponent implements OnInit {
       this.openLessonFromSelection(nextLesson.id);
       this.shouldAutoSelectInitialLesson.set(false);
     });
+  });
+
+  private returnedQuizCompletionEffect = effect(() => {
+    const lesson = this.currentLesson();
+    const attemptId = this.pendingReturnedQuizAttemptId();
+    if (!lesson || !attemptId) {
+      return;
+    }
+
+    const completionKey = `lesson:${attemptId}`;
+    if (this.handledReturnKeys.has(completionKey)) {
+      untracked(() => this.pendingReturnedQuizAttemptId.set(null));
+      return;
+    }
+
+    this.handledReturnKeys.add(completionKey);
+    untracked(() => this.pendingReturnedQuizAttemptId.set(null));
+    void this.validateAndCompleteQuizLesson(attemptId);
+  });
+
+  private returnedSectionQuizCompletionEffect = effect(() => {
+    const lesson = this.currentLesson();
+    const pending = this.pendingReturnedSectionQuiz();
+    if (!lesson || !pending) {
+      return;
+    }
+
+    const completionKey = `section:${pending.sectionId}:${pending.passed}`;
+    if (this.handledReturnKeys.has(completionKey)) {
+      untracked(() => this.pendingReturnedSectionQuiz.set(null));
+      return;
+    }
+
+    this.handledReturnKeys.add(completionKey);
+    untracked(() => this.pendingReturnedSectionQuiz.set(null));
+    void this.handleReturnedSectionQuizCompletion(pending.sectionId, pending.passed);
   });
 
   // Computed from service
@@ -245,7 +313,20 @@ export class CourseLearningComponent implements OnInit {
     // Security: Validate quiz completion server-side before marking lesson complete
     this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
       if (params['quizCompleted'] === 'true' && params['attemptId']) {
-        this.validateAndCompleteQuizLesson(params['attemptId']);
+        const completionKey = `lesson:${params['attemptId']}`;
+        if (!this.handledReturnKeys.has(completionKey)) {
+          this.pendingReturnedQuizAttemptId.set(params['attemptId']);
+        }
+      }
+
+      if (params['sectionQuizCompleted'] === 'true' && params['completedSectionId']) {
+        const completionKey = `section:${params['completedSectionId']}:${params['passed']}`;
+        if (!this.handledReturnKeys.has(completionKey)) {
+          this.pendingReturnedSectionQuiz.set({
+            sectionId: params['completedSectionId'],
+            passed: params['passed'] !== 'false',
+          });
+        }
       }
     });
   }
@@ -862,6 +943,52 @@ export class CourseLearningComponent implements OnInit {
       }
     } catch {
       // Failed to validate - don't mark as complete
+    }
+  }
+
+  private async handleReturnedSectionQuizCompletion(sectionId: string, passed: boolean): Promise<void> {
+    if (!passed) {
+      return;
+    }
+
+    const lesson = this.currentLesson();
+    if (!lesson?.sections?.length) {
+      return;
+    }
+
+    const completedSection = lesson.sections.find(section => section.id === sectionId);
+    if (!completedSection) {
+      return;
+    }
+
+    const alreadyCompleted = this.isSectionCompleted(sectionId);
+    if (!alreadyCompleted) {
+      this.markSectionAsCompleted(sectionId);
+    }
+
+    const allSectionsCompleted = lesson.sections.every(section =>
+      this.isSectionCompleted(section.id) || section.id === sectionId
+    );
+
+    if (!allSectionsCompleted) {
+      if (!alreadyCompleted) {
+        this.toast.success(`Đã hoàn thành phần: ${completedSection.title}`);
+      }
+      return;
+    }
+
+    try {
+      const lessonAlreadyCompleted = this.learningService.isLessonCompleted(lesson.id)();
+      if (!lessonAlreadyCompleted) {
+        await firstValueFrom(this.lessonApi.markLessonComplete(lesson.id));
+        await this.enrollmentService.refreshCourseProgress(lesson.courseId);
+        this.learningService.markCurrentLessonComplete();
+      }
+      this.toast.success(`Đã hoàn thành bài: ${lesson.title}`);
+    } catch {
+      if (!alreadyCompleted) {
+        this.toast.success(`Đã hoàn thành phần: ${completedSection.title}`);
+      }
     }
   }
 
