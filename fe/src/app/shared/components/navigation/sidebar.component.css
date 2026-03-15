@@ -27,6 +27,14 @@
   flex-shrink: 0;
 }
 
+.sidebar-brand-logo {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
 .sidebar-title {
   font-size: 1.125rem;
   font-weight: 700;
