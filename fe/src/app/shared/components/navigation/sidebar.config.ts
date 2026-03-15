@@ -151,7 +151,12 @@ const allAdminMenuItems: SidebarMenuItem[] = [
     label: 'Người dùng',
     route: '/admin/users',
     icon: 'users',
-    group: 'Quản lý'
+    group: 'Quản lý',
+    children: [
+      { label: 'Tất cả', route: '/admin/users/all', icon: 'users' },
+      { label: 'Giảng viên', route: '/admin/users/teachers', icon: 'briefcase' },
+      { label: 'Học viên', route: '/admin/users/students', icon: 'graduation-cap' }
+    ]
   },
   {
     label: 'Khóa học',
@@ -163,6 +168,12 @@ const allAdminMenuItems: SidebarMenuItem[] = [
     label: 'Danh mục',
     route: '/admin/categories',
     icon: 'tag',
+    group: 'Quản lý'
+  },
+  {
+    label: 'Tổ chức',
+    route: '/admin/organizations',
+    icon: 'globe',
     group: 'Quản lý'
   },
   {

@@ -3,20 +3,21 @@ import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, 
 import { RouterModule, RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../../../core/services/auth.service';
-import { AdminSidebarComponent } from '../../../../shared/components/navigation/admin-sidebar.component';
+import { SidebarComponent } from '../../../../shared/components/navigation/sidebar.component';
+import { getSidebarConfig } from '../../../../shared/components/navigation/sidebar.config';
 import { ChatPanelComponent } from '../../../ai-chat/presentation/components/chat-panel/chat-panel.component';
 import { FloatingChatBubbleComponent } from '../../../ai-chat/presentation/components/floating-chat-bubble/floating-chat-bubble.component';
 
 @Component({
   selector: 'app-admin-layout-simple',
-  imports: [RouterModule, RouterOutlet, AdminSidebarComponent, ChatPanelComponent, FloatingChatBubbleComponent],
+  imports: [RouterModule, RouterOutlet, SidebarComponent, ChatPanelComponent, FloatingChatBubbleComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="min-h-screen flex">
       <!-- Desktop Sidebar -->
       @if (!shouldHideSidebar()) {
         <div class="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-50">
-          <app-admin-sidebar></app-admin-sidebar>
+          <app-sidebar [config]="adminSidebarConfig" [collapsed]="false"></app-sidebar>
         </div>
       }
 
@@ -26,7 +27,7 @@ import { FloatingChatBubbleComponent } from '../../../ai-chat/presentation/compo
           (click)="toggleMobileSidebar()">
           <div class="fixed inset-0 bg-black bg-opacity-50"></div>
           <div class="fixed inset-y-0 left-0 w-64 bg-white shadow-lg">
-            <app-admin-sidebar></app-admin-sidebar>
+            <app-sidebar [config]="adminSidebarConfig" [collapsed]="false"></app-sidebar>
           </div>
         </div>
       }
@@ -271,6 +272,12 @@ export class AdminLayoutSimpleComponent implements OnInit, OnDestroy {
   protected authService = inject(AuthService);
   private router = inject(Router);
   protected isMobileSidebarOpen = signal(false);
+
+  // Sidebar config — use shared config based on user role
+  protected adminSidebarConfig = computed(() => {
+    const role = this.authService.userRole() || 'admin';
+    return getSidebarConfig(role as any);
+  });
 
   // AI Sidebar state
   protected isAiSidebarOpen = signal(false);
