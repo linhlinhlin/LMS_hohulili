@@ -19,7 +19,9 @@ import com.example.lms.course_authoring.infrastructure.persistence.entity.Lesson
 import com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
+import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.JpaLearningClassRepository;
+import com.example.lms.learning_delivery.infrastructure.persistence.entity.EnrollmentJpaEntity;
 import com.example.lms.shared.domain.model.ContentBlock;
 import com.example.lms.shared.infrastructure.persistence.entity.PaymentTransactionJpaEntity;
 import com.example.lms.shared.infrastructure.persistence.repository.PaymentTransactionJpaRepository;
@@ -63,6 +65,7 @@ class QuizControllerV3EmbeddedSectionFlowTest {
     @Mock private LessonJpaRepository lessonJpaRepository;
     @Mock private QuizAssignmentJpaRepository quizAssignmentJpaRepository;
     @Mock private JpaLearningClassRepository classJpaRepository;
+    @Mock private JpaEnrollmentRepository enrollmentJpaRepository;
     @Mock private StudentAssessmentAccessPort studentAssessmentAccessPort;
     @Mock private PaymentTransactionJpaRepository paymentTransactionJpaRepository;
 
@@ -115,6 +118,7 @@ class QuizControllerV3EmbeddedSectionFlowTest {
                 .id(courseId)
                 .teacherId(UUID.randomUUID())
                 .title("Maritime Safety")
+                .priceType(CourseJpaEntity.PriceType.PAID)
                 .price(java.math.BigDecimal.valueOf(100_000))
                 .build();
     }
@@ -122,6 +126,8 @@ class QuizControllerV3EmbeddedSectionFlowTest {
     @Test
     @DisplayName("getSectionQuiz returns learner-safe embedded quiz payload")
     void getSectionQuizReturnsLearnerSafePayload() {
+        course.setPriceType(CourseJpaEntity.PriceType.FREE);
+        lesson.setIsFree(false);
         when(lessonJpaRepository.findById(lessonId)).thenReturn(Optional.of(lesson));
         when(courseJpaRepository.findByLessonId(lessonId)).thenReturn(Optional.of(course));
         when(questionJpaRepository.findAllById(List.of(questionId))).thenReturn(List.of(question(questionId)));
@@ -141,11 +147,33 @@ class QuizControllerV3EmbeddedSectionFlowTest {
     }
 
     @Test
+    @DisplayName("getSectionQuiz allows enrolled student in paid course without payment")
+    void getSectionQuizAllowsEnrolledStudentWithoutPayment() {
+        lesson.setIsFree(false);
+        when(lessonJpaRepository.findById(lessonId)).thenReturn(Optional.of(lesson));
+        when(courseJpaRepository.findByLessonId(lessonId)).thenReturn(Optional.of(course));
+        when(enrollmentJpaRepository.findByStudentIdAndCourseId(student.getId(), courseId))
+                .thenReturn(Optional.of(EnrollmentJpaEntity.builder()
+                        .id(UUID.randomUUID())
+                        .studentId(student.getId())
+                        .status(EnrollmentJpaEntity.EnrollmentStatus.ACTIVE)
+                        .build()));
+        when(questionJpaRepository.findAllById(List.of(questionId))).thenReturn(List.of(question(questionId)));
+
+        var response = controller.getSectionQuiz(lessonId, sectionId, student);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().isSuccess()).isTrue();
+    }
+
+    @Test
     @DisplayName("getSectionQuiz rejects unpaid locked content for student")
     void getSectionQuizRejectsLockedPaidContent() {
         lesson.setIsFree(false);
         when(lessonJpaRepository.findById(lessonId)).thenReturn(Optional.of(lesson));
         when(courseJpaRepository.findByLessonId(lessonId)).thenReturn(Optional.of(course));
+        when(enrollmentJpaRepository.findByStudentIdAndCourseId(student.getId(), courseId)).thenReturn(Optional.empty());
         when(paymentTransactionJpaRepository.existsByStudentIdAndCourseIdAndStatus(
                 student.getId(),
                 courseId,
@@ -156,6 +184,7 @@ class QuizControllerV3EmbeddedSectionFlowTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().isSuccess()).isFalse();
+        assertThat(response.getBody().getMessage()).contains("đăng ký hoặc thanh toán");
         verify(questionJpaRepository, never()).findAllById(any());
     }
 

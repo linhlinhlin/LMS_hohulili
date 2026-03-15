@@ -1,4 +1,6 @@
-# LMS Maritime - Deep System Audit Report (S62)
+# [LỊCH SỬ] LMS Maritime - Deep System Audit Report (S62)
+
+> Lưu ý: Đây là báo cáo historical để tham chiếu. Không dùng làm source of truth hiện tại nếu chưa đối chiếu với code và runtime report mới hơn.
 
 > **Date**: 2026-02-23 | **Methodology**: CoT SOTA Research | **Scope**: Full-stack (BE + FE + PWA + SQL + UX)
 > **References**: YouTube ABR, Netflix Download Manager, Coursera Offline, Moodle Mobile, Google Workbox 7.x

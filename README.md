@@ -2,154 +2,123 @@
 
 # Maritime LMS
 
-Production-oriented learning management system for maritime education.
+Hệ thống quản lý học tập dành cho đào tạo hàng hải, vận hành theo hướng production-first.
 
-[![Angular](https://img.shields.io/badge/Angular-20.3-DD0031?style=flat-square&logo=angular&logoColor=white)](https://angular.dev)
-[![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.2.6-6DB33F?style=flat-square&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org)
-[![Java](https://img.shields.io/badge/Java-21-ED8B00?style=flat-square&logo=openjdk&logoColor=white)](https://openjdk.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![License](https://img.shields.io/badge/License-Proprietary-blue?style=flat-square)](#license)
-
-[Quick Start](#quick-start) · [Architecture](#architecture) · [Docs Map](#docs-map) · [Development](#development) · [Deployment](#deployment)
+[Khởi động nhanh](#khởi-động-nhanh) · [Bản đồ tài liệu](#bản-đồ-tài-liệu) · [Kiến trúc](#kiến-trúc) · [Phát triển](#phát-triển) · [Triển khai](#triển-khai)
 
 </div>
 
 ---
 
-## Overview
+## Tổng quan
 
-Maritime LMS is a full-stack LMS for maritime training providers. It supports course authoring, structured lesson delivery, assignments, quizzes, progress tracking, payments, and an embedded AI assistant.
+Maritime LMS là một LMS full-stack cho đơn vị đào tạo hàng hải. Hệ thống hỗ trợ:
 
-The system is designed around three practical requirements:
+- biên soạn khóa học theo `Chương -> Bài -> Mục`
+- học tập có theo dõi tiến độ, quiz, assignment, chứng chỉ
+- thanh toán và quản trị doanh thu
+- PWA/offline cho bối cảnh mạng yếu hoặc gián đoạn
+- AI assistant tích hợp
+- mô hình quyền nhiều tầng: `ADMIN`, `ORG_ADMIN`, `TEACHER`, `STUDENT`
 
-- role-based operations for `ADMIN`, `ORG_ADMIN`, `TEACHER`, and `STUDENT`
-- offline-first learning for unstable maritime connectivity
-- production deployment with Docker, reverse proxying, and environment-based configuration
+## Năng lực chính
 
-## Core Capabilities
+- Course authoring với chapter, lesson, section, reorder, review workflow
+- Learner flow với progress, quiz, assignment, messaging, certificate
+- PWA/offline dùng Angular Service Worker, IndexedDB, Cache API, background sync
+- Payment/payout với guard vai trò, revoke access, history
+- Hạ tầng production bằng Docker Compose, Caddy, nginx, PostgreSQL
 
-- Course authoring with chapters, lessons, sections, curriculum reorder, and review workflow
-- Student learning flow with progress tracking, certificates, assignments, quizzes, and messaging
-- Offline/PWA support using Angular Service Worker, IndexedDB, Cache API, and background sync
-- AI assistant integration with SSE streaming and embedded Wiii experience
-- Payment and file storage integration through VNPay and Cloudflare-compatible storage
-- Multi-tier administration with escalation prevention for organization admins
+## Công nghệ chính
 
-## Tech Stack
-
-| Layer | Stack |
-|------|-------|
+| Lớp | Stack |
+|-----|-------|
 | Frontend | Angular 20, TypeScript 5.9, RxJS, Sass, Dexie.js, Shaka Player |
 | Backend | Java 21, Spring Boot 3.2.6, Spring Security, Spring Data JPA |
 | Database | PostgreSQL 16, Flyway |
-| Infra | Docker Compose, Caddy, nginx, Cloudflare R2 |
+| Hạ tầng | Docker Compose, Caddy, nginx, Cloudflare R2 |
 
-## Quick Start
+## Khởi động nhanh
 
-### Runtime Conventions
+### Quy ước runtime
 
-- Frontend dev URL: `http://localhost:4200`
-- Backend dev URL on host: `http://localhost:8088`
-- Spring Boot internal container/app port: `8080`
-- Production API: same-origin `/api/*` behind `https://holilihu.online`
-- Root `docker-compose*.yml` files are the only supported Docker runtime topology
+- Frontend local: `http://localhost:4200`
+- Backend local trên host: `http://localhost:8088`
+- Port nội bộ Spring Boot/container: `8080`
+- Production API: same-origin dưới `https://holilihu.online/api/*`
+- Chỉ hỗ trợ topology bằng `docker-compose.yml` + `docker-compose.dev.yml` / `docker-compose.prod.yml`
 
-### Prerequisites
+### Yêu cầu
 
-| Tool | Version |
-|------|---------|
-| Docker | Current |
+| Công cụ | Khuyến nghị |
+|--------|-------------|
+| Docker Desktop | Bản ổn định mới |
 | Node.js | 22.x |
-| Java | 21+ |
-| Maven | 3.9+ (host-native backend only) |
+| Java | 21 |
+| Maven | 3.9+ |
 
-### Option A: Full Stack in Docker
-
-```bash
-# 1. Prepare local env
-cp .env.dev.example .env
-
-# 2. Build and boot the full dev stack
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build --wait
-
-# 3. Verify backend + frontend
-curl -s http://localhost:8088/actuator/health
-curl -I http://localhost:4200/
-```
-
-### Option B: Docker Backend + Local Frontend
+### Cách 1: Backend bằng Docker, frontend chạy local
 
 ```bash
-# 1. Prepare local env
 cp .env.dev.example .env
-
-# 2. Start only the backend services needed for local FE work
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db backend
 
-# 3. Start frontend locally
 cd fe
 npm install
 npm start
 ```
 
-Optional local pgAdmin:
+### Cách 2: Chạy toàn bộ bằng Docker
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile devtools up -d pgadmin
+cp .env.dev.example .env
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build --wait
 ```
 
-### Host-Native Backend
+### Kiểm tra nhanh
 
 ```bash
-cd backend
-SERVER_PORT=8088 mvn spring-boot:run -Dspring-boot.run.profiles=dev
+curl -s http://localhost:8088/actuator/health
+curl -I http://localhost:4200/
 ```
 
-### Access Points
+### Tài khoản mặc định
 
-| Service | URL |
-|---------|-----|
-| Frontend | http://localhost:4200 |
-| Backend API | http://localhost:8088/api/v3 |
-| Swagger UI | http://localhost:8088/swagger-ui |
-| pgAdmin (optional `devtools` profile) | http://localhost:8081 |
-
-### Default Accounts
-
-| Role | Email | Password |
-|------|-------|----------|
+| Vai trò | Email | Mật khẩu |
+|--------|-------|----------|
 | ADMIN | `admin@maritime.edu` | `admin123` |
 | ORG_ADMIN | `orgadmin@maritime.edu` | `orgadmin123` |
 | TEACHER | `teacher@maritime.edu` | `teacher123` |
 | STUDENT | `student@maritime.edu` | `student123` |
 
-For expanded manual QA coverage, use [docs/testing/TEST_CHECKLIST.md](docs/testing/TEST_CHECKLIST.md).
+Tài khoản seed mở rộng nằm trong [docs/testing/TEST_CHECKLIST.md](docs/testing/TEST_CHECKLIST.md).
 
-## Docs Map
+## Bản đồ tài liệu
 
-Start here depending on what you need:
+Bắt đầu từ các tài liệu này:
 
-| Document | Purpose |
-|----------|---------|
-| [ONBOARDING.md](ONBOARDING.md) | 15-minute teammate setup guide |
-| [backend/README.md](backend/README.md) | Backend runbook, API, schema, backend-specific workflows |
-| [fe/FRONTEND_ARCHITECTURE.md](fe/FRONTEND_ARCHITECTURE.md) | Frontend structure, state, feature architecture |
-| [docs/README.md](docs/README.md) | Documentation map and folder semantics |
-| [docs/architecture/STREAMING_PWA_ROADMAP.md](docs/architecture/STREAMING_PWA_ROADMAP.md) | Offline/PWA implementation roadmap |
-| [docs/architecture/LESSON_VIEW_ARCHITECTURE.md](docs/architecture/LESSON_VIEW_ARCHITECTURE.md) | Lesson learning experience reference |
-| [docs/testing/TEST_CHECKLIST.md](docs/testing/TEST_CHECKLIST.md) | Manual QA checklist |
-| [CLAUDE.md](CLAUDE.md) | Internal agent/developer context file |
-| [.github/workflows/ci.yml](.github/workflows/ci.yml) | Backend tests, frontend build, compose validation, and Docker smoke test |
+| Tài liệu | Mục đích |
+|---------|----------|
+| [ONBOARDING.md](ONBOARDING.md) | Setup nhanh cho teammate mới |
+| [CHANGELOG.md](CHANGELOG.md) | Lịch sử thay đổi cấp dự án |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Quy tắc đóng góp, cập nhật docs, test trước khi ship |
+| [backend/README.md](backend/README.md) | Runbook backend và DDD conventions |
+| [fe/FRONTEND_ARCHITECTURE.md](fe/FRONTEND_ARCHITECTURE.md) | Cấu trúc frontend và feature architecture |
+| [docs/README.md](docs/README.md) | Bản đồ tài liệu chi tiết |
+| [docs/reference/BACKEND_OVERVIEW.md](docs/reference/BACKEND_OVERVIEW.md) | Tổng quan backend bằng tiếng Việt |
+| [docs/reference/FRONTEND_OVERVIEW.md](docs/reference/FRONTEND_OVERVIEW.md) | Tổng quan frontend bằng tiếng Việt |
+| [docs/reference/RUNTIME_CONVENTIONS.md](docs/reference/RUNTIME_CONVENTIONS.md) | Quy ước runtime chuẩn của repo |
+| [docs/runbooks/PRODUCTION_SMOKE_TEST.md](docs/runbooks/PRODUCTION_SMOKE_TEST.md) | Smoke test sau deploy |
+| [docs/testing/TEST_CHECKLIST.md](docs/testing/TEST_CHECKLIST.md) | Checklist QA thủ công |
 
-## Architecture
+## Kiến trúc
 
-### System Snapshot
+### Toàn hệ thống
 
 ```mermaid
 graph TD
-    FE["Angular PWA<br/>:4200"]
-    API["Spring Boot API<br/>:8088 host / :8080 container"]
+    FE["Angular PWA"]
+    API["Spring Boot API"]
     DB[("PostgreSQL 16")]
     SW["Service Worker"]
     IDB["IndexedDB / Dexie"]
@@ -164,7 +133,7 @@ graph TD
     FE --> WIII
 ```
 
-### Backend Modules
+### Backend
 
 ```text
 backend/src/main/java/com/example/lms/
@@ -178,7 +147,7 @@ backend/src/main/java/com/example/lms/
 └── config
 ```
 
-The backend follows a modular Clean Architecture layout:
+Backend đi theo Clean Architecture / DDD:
 
 ```text
 {module}/
@@ -187,7 +156,7 @@ The backend follows a modular Clean Architecture layout:
 └── infrastructure
 ```
 
-### Frontend Structure
+### Frontend
 
 ```text
 fe/src/app/
@@ -198,11 +167,9 @@ fe/src/app/
 └── state
 ```
 
-The frontend uses standalone Angular features, lazy route loading, service-level state, and PWA/offline services.
+## Phát triển
 
-## Development
-
-### Common Commands
+### Lệnh thường dùng
 
 ```bash
 # Frontend
@@ -210,64 +177,28 @@ cd fe
 npm start
 npm run build
 
-# Backend tests
+# Backend
 cd backend
 mvn test -B
 ```
 
-### Configuration Notes
+### Lưu ý cấu hình
 
-- Dev frontend uses `fe/proxy.conf.json` for `/api/*`
-- Dev frontend `apiUrl` is intentionally empty in `fe/src/environments/environment.ts`
-- Production frontend uses same-origin API calls behind Caddy
-- Production Wiii embed/app URL points to `https://wiii.holilihu.online`
+- Frontend dev dùng `fe/proxy.conf.json` cho `/api/*`
+- `environment.ts` dev chủ động dùng same-origin/proxy, không hardcode backend host vào code
+- Production frontend dùng same-origin API sau Caddy
 
-### Repository Layout
-
-```text
-.
-├── backend/     # Spring Boot application
-├── fe/          # Angular application
-├── docs/        # Architecture, plans, reports, testing docs
-├── scripts/     # Operational helper scripts
-├── docker-compose.yml
-├── docker-compose.dev.yml
-├── docker-compose.prod.yml
-├── Caddyfile
-├── ONBOARDING.md
-└── README.md
-```
-
-## Deployment
-
-Production deployment is container-based.
+## Triển khai
 
 - Base compose: `docker-compose.yml`
 - Production overrides: `docker-compose.prod.yml`
 - Reverse proxy: `Caddyfile`
-- Deploy helper: `deploy.sh`
-- Dev environment template: `.env.dev.example`
-- Production environment template: `.env.prod.example`
-- CI workflow: `.github/workflows/ci.yml`
-- Manual deploy workflow: `.github/workflows/deploy.yml`
-- Deploy runbook: `docs/deployment/GITHUB_ACTIONS_DEPLOY.md`
+- Script deploy: `deploy.sh`
+- Runbook deploy: [docs/deployment/GITHUB_ACTIONS_DEPLOY.md](docs/deployment/GITHUB_ACTIONS_DEPLOY.md)
 
-For production setup details, use `deploy.sh` together with `docker-compose.prod.yml` and the environment templates in the repository root.
+## Chất lượng tối thiểu trước khi ship
 
-## Quality Checks
-
-Minimum checks before shipping:
-
-```bash
-# Backend
-cd backend && mvn test -B
-
-# Frontend
-cd fe && npm run build
-```
-
-For manual verification flows, use [docs/testing/TEST_CHECKLIST.md](docs/testing/TEST_CHECKLIST.md).
-
-## License
-
-Proprietary software for maritime education. All rights reserved.
+- `cd backend && mvn test -B`
+- `cd fe && npm run build`
+- kiểm tra manual theo [docs/testing/TEST_CHECKLIST.md](docs/testing/TEST_CHECKLIST.md)
+- nếu có thay đổi runtime/workflow đáng kể, cập nhật `CHANGELOG.md` và tài liệu chuẩn liên quan

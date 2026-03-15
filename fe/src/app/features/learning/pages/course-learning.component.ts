@@ -502,7 +502,7 @@ export class CourseLearningComponent implements OnInit {
         // 🔒 CHECK 75% RULE before going to next section
         const currentSection = currentLesson.sections[this.currentSectionIndex()];
         
-        if (currentSection.type === 'VIDEO' && currentSection.videoUrl) {
+        if (currentSection.type === 'VIDEO' && (currentSection.videoUrl || currentSection.streamVideoUid)) {
           try {
             const progressCheck: any = await firstValueFrom(
               this.videoProgressApi.canProceedToNext(currentSection.id)
@@ -557,7 +557,7 @@ export class CourseLearningComponent implements OnInit {
       }
 
       // 🔒 CHECK 50% RULE for VIDEO sections
-      if (currentSection.type === 'VIDEO' && currentSection.videoUrl) {
+      if (currentSection.type === 'VIDEO' && (currentSection.videoUrl || currentSection.streamVideoUid)) {
         try {
           const progressCheck: any = await firstValueFrom(
             this.videoProgressApi.canProceedToNext(currentSection.id)
@@ -665,12 +665,12 @@ export class CourseLearningComponent implements OnInit {
   // Helper: Check if lesson has video content
   private hasVideoContent(lesson: any): boolean {
     // Check if lesson has videoUrl (fallback)
-    if (lesson.videoUrl) {
+    if (lesson.videoUrl || lesson.streamVideoUid) {
       return true;
     }
     // Check if lesson has sections with VIDEO type
     if (lesson.sections && lesson.sections.length > 0) {
-      return lesson.sections.some((s: any) => s.type === 'VIDEO' && s.videoUrl);
+      return lesson.sections.some((s: any) => s.type === 'VIDEO' && (s.videoUrl || s.streamVideoUid));
     }
     return false;
   }
@@ -678,7 +678,7 @@ export class CourseLearningComponent implements OnInit {
   // Helper: Get first video section from lesson
   private getFirstVideoSection(lesson: any): any {
     if (lesson.sections && lesson.sections.length > 0) {
-      return lesson.sections.find((s: any) => s.type === 'VIDEO' && s.videoUrl);
+      return lesson.sections.find((s: any) => s.type === 'VIDEO' && (s.videoUrl || s.streamVideoUid));
     }
     return null;
   }

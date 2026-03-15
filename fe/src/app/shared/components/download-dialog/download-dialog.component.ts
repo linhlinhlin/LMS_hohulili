@@ -19,7 +19,15 @@ interface LessonSummary {
   title: string;
   hasVideo: boolean;
   durationMinutes: number;
+  videoAssets: VideoAssetSummary[];
+}
+
+interface VideoAssetSummary {
+  lessonId: string;
+  sectionId: string | null;
+  durationMinutes: number;
   streamVideoUid?: string;
+  videoType: 'YOUTUBE' | 'CLOUDFLARE' | 'EXTERNAL';
 }
 
 /**
@@ -94,6 +102,12 @@ interface LessonSummary {
                 </div>
               </div>
 
+              @if (youtubeVideoCount() > 0) {
+                <div class="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                  CÃ³ {{ youtubeVideoCount() }} video YouTube/external chá»‰ phÃ¡t online, khÃ´ng táº£i vá» cÃ¹ng gÃ³i offline nÃ y.
+                </div>
+              }
+
               <hr class="border-gray-200">
             }
 
@@ -163,7 +177,16 @@ export class DownloadDialogComponent implements OnInit {
   readonly totalLessons = computed(() => this.lessons().length);
   readonly videoLessonsCount = computed(() => this.lessons().filter(l => l.hasVideo).length);
   readonly totalVideoMinutes = computed(() =>
-    this.lessons().filter(l => l.hasVideo).reduce((sum, l) => sum + (l.durationMinutes || 10), 0)
+    this.lessons()
+      .flatMap(lesson => lesson.videoAssets)
+      .filter(asset => asset.videoType !== 'YOUTUBE')
+      .reduce((sum, asset) => sum + (asset.durationMinutes || 10), 0)
+  );
+  readonly youtubeVideoCount = computed(() =>
+    this.lessons()
+      .flatMap(lesson => lesson.videoAssets)
+      .filter(asset => asset.videoType === 'YOUTUBE')
+      .length
   );
 
   /** ~1.5 MB per lesson (HTML + images) */
@@ -234,13 +257,13 @@ export class DownloadDialogComponent implements OnInit {
 
       for (const chapter of chapters) {
         for (const lesson of (chapter.lessons || [])) {
-          const videoUrl = lesson.sections?.[0]?.videoUrl || lesson.videoUrl;
+          const videoAssets = this.extractVideoAssets(lesson);
           allLessons.push({
             id: lesson.id,
             title: lesson.title || lesson.name,
-            hasVideo: !!videoUrl || !!lesson.streamVideoUid,
+            hasVideo: videoAssets.some(asset => asset.videoType !== 'YOUTUBE'),
             durationMinutes: lesson.durationMinutes || 10,
-            streamVideoUid: lesson.streamVideoUid,
+            videoAssets,
           });
         }
       }
@@ -249,9 +272,11 @@ export class DownloadDialogComponent implements OnInit {
       this.freeSpace.set((storageEstimate.quotaBytes ?? 0) - (storageEstimate.usedBytes ?? 0));
 
       // Try to load real CF sizes for lessons that have Cloudflare Stream
-      const cfLessons = allLessons.filter(l => !!l.streamVideoUid);
-      if (cfLessons.length > 0) {
-        this.loadCfQualitySizes(cfLessons);
+      const cfVideoAssets = allLessons
+        .flatMap(lesson => lesson.videoAssets)
+        .filter(asset => !!asset.streamVideoUid);
+      if (cfVideoAssets.length > 0) {
+        this.loadCfQualitySizes(cfVideoAssets);
       }
     } catch {
       // Fallback: show dialog without lesson details
@@ -266,15 +291,16 @@ export class DownloadDialogComponent implements OnInit {
    * Aggregates across all CF-hosted lessons and sets cfQualitySizes signal.
    * Non-blocking — heuristics remain if this fails.
    */
-  private async loadCfQualitySizes(cfLessons: LessonSummary[]): Promise<void> {
+  private async loadCfQualitySizes(cfVideoAssets: VideoAssetSummary[]): Promise<void> {
     const totals: Record<string, number> = { '360p': 0, '720p': 0, '1080p': 0 };
     let hasRealData = false;
 
-    await Promise.all(cfLessons.map(async lesson => {
+    await Promise.all(cfVideoAssets.map(async asset => {
       try {
-        const res: any = await firstValueFrom(
-          this.http.get(`${environment.apiUrl}/api/v3/lessons/${lesson.id}/video/sizes`)
-        );
+        const endpoint = asset.sectionId
+          ? `${environment.apiUrl}/api/v3/sections/${asset.sectionId}/video/sizes`
+          : `${environment.apiUrl}/api/v3/lessons/${asset.lessonId}/video/sizes`;
+        const res: any = await firstValueFrom(this.http.get(endpoint));
         const sizes: Record<string, number> = res?.sizes ?? res?.data?.sizes ?? {};
         for (const q of ['360p', '720p', '1080p'] as const) {
           if (sizes[q] > 0) {
@@ -290,6 +316,49 @@ export class DownloadDialogComponent implements OnInit {
     if (hasRealData) {
       this.cfQualitySizes.set(totals);
     }
+  }
+
+  private extractVideoAssets(lesson: any): VideoAssetSummary[] {
+    const lessonDuration = lesson.durationMinutes || 10;
+    const inferVideoType = (
+      videoUrl?: string | null,
+      streamVideoUid?: string | null
+    ): 'YOUTUBE' | 'CLOUDFLARE' | 'EXTERNAL' => {
+      if (streamVideoUid) {
+        return 'CLOUDFLARE';
+      }
+
+      const normalizedUrl = (videoUrl || '').toLowerCase();
+      if (normalizedUrl.includes('youtube.com') || normalizedUrl.includes('youtu.be')) {
+        return 'YOUTUBE';
+      }
+
+      return 'EXTERNAL';
+    };
+
+    if (Array.isArray(lesson.sections) && lesson.sections.length > 0) {
+      return lesson.sections
+        .filter((section: any) => section.type === 'VIDEO' && (section.videoUrl || section.streamVideoUid))
+        .map((section: any) => ({
+          lessonId: lesson.id,
+          sectionId: section.id,
+          durationMinutes: section.durationMinutes || lessonDuration,
+          streamVideoUid: section.streamVideoUid || undefined,
+          videoType: inferVideoType(section.videoUrl, section.streamVideoUid),
+        }));
+    }
+
+    if (lesson.videoUrl || lesson.streamVideoUid) {
+      return [{
+        lessonId: lesson.id,
+        sectionId: null,
+        durationMinutes: lessonDuration,
+        streamVideoUid: lesson.streamVideoUid || undefined,
+        videoType: inferVideoType(lesson.videoUrl, lesson.streamVideoUid),
+      }];
+    }
+
+    return [];
   }
 
   onBackdropClick(event: MouseEvent): void {

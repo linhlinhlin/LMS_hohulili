@@ -274,4 +274,55 @@ class CourseQueryControllerV3ContractTest {
         assertThat(questions).hasSize(1);
         assertThat(questions.getFirst()).containsEntry("content", "Dau la kieu du lieu nguyen thuy trong Java?");
     }
+
+    @Test
+    @DisplayName("lesson detail exposes section streamVideoUid with legacy lesson fallback for single video section")
+    void getLessonByIdExposesSectionStreamVideoUidFromLegacyLessonField() {
+        UUID courseId = approvedPaidCourse.getId();
+        UUID chapterId = UUID.randomUUID();
+        UUID lessonId = UUID.randomUUID();
+
+        UserJpaEntity teacher = mock(UserJpaEntity.class);
+        when(teacher.getRole()).thenReturn(UserJpaEntity.UserRole.TEACHER);
+
+        LessonJpaEntity lesson = LessonJpaEntity.builder()
+                .id(lessonId)
+                .chapterId(chapterId)
+                .title("Lecture with internal video")
+                .type(LessonJpaEntity.LessonType.LECTURE)
+                .streamVideoUid("legacy-stream-uid")
+                .contentBlocks(List.of(
+                        com.example.lms.shared.domain.model.ContentBlock.of(
+                                "section-video-1",
+                                "VIDEO",
+                                Map.of(
+                                        "title", "Bridge simulation video",
+                                        "videoUrl", "https://videodelivery.net/legacy-stream-uid/manifest/video.m3u8"
+                                )
+                        )
+                ))
+                .build();
+
+        ChapterJpaEntity chapter = ChapterJpaEntity.builder()
+                .id(chapterId)
+                .courseId(courseId)
+                .title("Week 1")
+                .build();
+
+        when(lessonRepository.findById(lessonId)).thenReturn(Optional.of(lesson));
+        when(chapterRepository.findById(chapterId)).thenReturn(Optional.of(chapter));
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(approvedPaidCourse));
+        when(quizJpaRepository.findByLessonId(lessonId)).thenReturn(List.of());
+        when(assignmentJpaRepository.findByLessonId(lessonId)).thenReturn(List.of());
+
+        var response = controller.getLessonById(lessonId, teacher);
+        var detail = response.getBody().getData();
+        var section = detail.getSections().getFirst();
+
+        assertThat(detail.getStreamVideoUid()).isEqualTo("legacy-stream-uid");
+        assertThat(section.getType()).isEqualTo("VIDEO");
+        assertThat(section.getStreamVideoUid()).isEqualTo("legacy-stream-uid");
+        assertThat(section.getVideoType()).isEqualTo("CLOUDFLARE");
+        assertThat(section.getVideoUrl()).isEqualTo("https://videodelivery.net/legacy-stream-uid/manifest/video.m3u8");
+    }
 }

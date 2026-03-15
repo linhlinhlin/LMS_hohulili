@@ -177,7 +177,7 @@ export class CourseDownloadService {
               lessonType: l.lessonType || l.type || 'LECTURE',
               isFree: l.isFree === true,
               sections: this.mapOfflineLessonSections(l),
-              videoManifestUrl: l.sections?.find((section: any) => section.type === 'VIDEO' && !!section.videoUrl)?.videoUrl || l.videoUrl,
+              videoManifestUrl: l.sections?.find((section: any) => section.type === 'VIDEO' && (!!section.videoUrl || !!section.streamVideoUid))?.videoUrl || l.videoUrl,
               streamVideoUid: l.streamVideoUid,
               sortOrder: l.sortOrder ?? l.orderIndex ?? l.order ?? 0,
               downloadedAt: new Date(),
@@ -253,10 +253,13 @@ export class CourseDownloadService {
           const updatedSections = lesson.sections.map(section => ({ ...section }));
 
           for (const section of updatedSections) {
-            if (section.type === 'VIDEO' && section.videoUrl && videoQuality !== 'none') {
+            if (section.type === 'VIDEO' && videoQuality !== 'none') {
               try {
-                section.videoOfflineUri = await this.videoService.downloadSectionVideo(section.videoUrl, section.id);
-                sectionsChanged = true;
+                const downloadUrl = await this.resolveSectionVideoDownloadUrl(section, videoQuality);
+                if (downloadUrl) {
+                  section.videoOfflineUri = await this.videoService.downloadSectionVideo(downloadUrl, section.id);
+                  sectionsChanged = true;
+                }
               } catch {
                 // Section video download failure is non-fatal
               }
@@ -668,6 +671,8 @@ export class CourseDownloadService {
       content: section.content || '',
       contentBlocks: Array.isArray(section.contentBlocks) ? section.contentBlocks : [],
       videoUrl: section.videoUrl,
+      videoType: section.videoType,
+      streamVideoUid: section.streamVideoUid,
       fileUrl: section.fileUrl || section.downloadUrl,
       fileName: section.fileName,
       sortOrder: section.sortOrder ?? index,
@@ -698,6 +703,30 @@ export class CourseDownloadService {
           : [],
       } : undefined,
     }));
+  }
+
+  private async resolveSectionVideoDownloadUrl(
+    section: OfflineLessonSection,
+    quality: '360p' | '720p' | '1080p'
+  ): Promise<string | null> {
+    if (section.videoType === 'YOUTUBE') {
+      return null;
+    }
+
+    if (section.streamVideoUid) {
+      try {
+        const response: any = await firstValueFrom(
+          this.http.get(`${environment.apiUrl}/api/v3/sections/${section.id}/video/download`, {
+            params: { quality }
+          })
+        );
+        return response?.downloadUrl ?? response?.data?.downloadUrl ?? null;
+      } catch {
+        // Fall back to raw video URL when a section still carries a direct URL.
+      }
+    }
+
+    return section.videoUrl || null;
   }
 
   private mapOfflineQuizQuestions(rawQuestions: any[]): OfflineQuestion[] {

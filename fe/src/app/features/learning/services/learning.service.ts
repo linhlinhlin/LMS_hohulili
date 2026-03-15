@@ -350,6 +350,11 @@ export class LearningService {
       type: (section.type?.toUpperCase() || 'TEXT') as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
       content: (section.content && section.content !== 'undefined' && section.content !== 'null') ? section.content : undefined,
       videoUrl: offlineVideoUrl || ((section.videoUrl && section.videoUrl !== 'undefined' && section.videoUrl !== 'null') ? section.videoUrl : undefined),
+      videoType: section.videoType,
+      streamVideoUid: (section.streamVideoUid && section.streamVideoUid !== 'undefined' && section.streamVideoUid !== 'null')
+        ? section.streamVideoUid
+        : undefined,
+      videoOfflineUri: offlineVideoUrl,
       fileUrl: offlineFileUrl || ((section.fileUrl && section.fileUrl !== 'undefined' && section.fileUrl !== 'null') ? section.fileUrl : undefined),
       duration: section.duration,
       orderIndex: section.orderIndex ?? 0,
@@ -476,6 +481,7 @@ export class LearningService {
         orderIndex: offlineLesson.sortOrder,
         content: offlineLesson.contentHtml,
         videoUrl: offlineLesson.videoOfflineUri || offlineLesson.videoManifestUrl,
+        streamVideoUid: offlineLesson.streamVideoUid,
         thumbnail: '',
         attachments: [],
         sectionId: offlineLesson.chapterId,

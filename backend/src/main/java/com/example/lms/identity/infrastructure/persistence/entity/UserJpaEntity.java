@@ -33,6 +33,37 @@ public class UserJpaEntity implements UserDetails {
     public UserJpaEntity(UUID id, String username, String email, String password, String fullName, UserRole role, Boolean enabled, Instant createdAt, Instant updatedAt) {
         this.id = id; this.username = username; this.email = email; this.password = password; this.fullName = fullName; this.role = role; this.enabled = enabled; this.createdAt = createdAt; this.updatedAt = updatedAt;
     }
+    public static Builder builder() { return new Builder(); }
+    public static class Builder {
+        private UUID id;
+        private String username;
+        private String email;
+        private String password;
+        private String fullName;
+        private UserRole role = UserRole.STUDENT;
+        private Boolean enabled = true;
+        private Instant createdAt = Instant.now();
+        private Instant updatedAt;
+        private UUID organizationId;
+        private Integer tokenExpiryDays;
+        public Builder id(UUID id) { this.id = id; return this; }
+        public Builder username(String username) { this.username = username; return this; }
+        public Builder email(String email) { this.email = email; return this; }
+        public Builder password(String password) { this.password = password; return this; }
+        public Builder fullName(String fullName) { this.fullName = fullName; return this; }
+        public Builder role(UserRole role) { this.role = role; return this; }
+        public Builder enabled(Boolean enabled) { this.enabled = enabled; return this; }
+        public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
+        public Builder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
+        public Builder organizationId(UUID organizationId) { this.organizationId = organizationId; return this; }
+        public Builder tokenExpiryDays(Integer tokenExpiryDays) { this.tokenExpiryDays = tokenExpiryDays; return this; }
+        public UserJpaEntity build() {
+            UserJpaEntity user = new UserJpaEntity(id, username, email, password, fullName, role, enabled, createdAt, updatedAt);
+            user.setOrganizationId(organizationId);
+            user.setTokenExpiryDays(tokenExpiryDays);
+            return user;
+        }
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

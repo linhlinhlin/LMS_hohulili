@@ -1,9 +1,20 @@
 # Frontend Architecture Reference
 
-> **Last Updated**: 2026-03-13 | **Angular**: 20.3 | **Score**: 10/10
+> **Cập nhật gần nhất**: 2026-03-13 | **Angular**: 20.3
 
-This document is the **single source of truth** for the LMS frontend architecture.
-Read this instead of re-auditing the codebase.
+Tài liệu này là reference kiến trúc frontend ở mức sâu.
+
+Nó nên được dùng khi bạn cần:
+
+- hiểu cấu trúc tổng thể frontend
+- xem pattern Angular hiện hành của repo
+- rà boundary giữa `api`, `core`, `features`, `shared`, `state`
+
+Nếu bạn chỉ cần khởi động nhanh hoặc tìm tài liệu chuẩn, hãy đọc trước:
+
+- [README.md](E:/Sach/Sua/LMS_hohulili/README.md)
+- [fe/README.md](E:/Sach/Sua/LMS_hohulili/fe/README.md)
+- [docs/README.md](E:/Sach/Sua/LMS_hohulili/docs/README.md)
 
 ---
 

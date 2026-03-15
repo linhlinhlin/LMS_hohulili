@@ -119,6 +119,7 @@ export interface SectionSummary {
   content?: string;
   videoUrl?: string;
   videoType?: 'YOUTUBE' | 'CLOUDFLARE';
+  streamVideoUid?: string;
   cfObjectKey?: string;
   fileUrl?: string;
   duration?: number;
@@ -224,6 +225,8 @@ export interface CreateSectionRequest {
   type?: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE';
   content?: string;
   videoUrl?: string;
+  videoType?: 'YOUTUBE' | 'CLOUDFLARE';
+  streamVideoUid?: string;
   duration?: number;
   orderIndex?: number;
   isRequired?: boolean;
@@ -234,6 +237,8 @@ export interface UpdateSectionRequest {
   type?: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE'; // Usually type shouldn't change, but ok
   content?: string;
   videoUrl?: string;
+  videoType?: 'YOUTUBE' | 'CLOUDFLARE';
+  streamVideoUid?: string;
   duration?: number;
   orderIndex?: number;
   isRequired?: boolean;
@@ -247,6 +252,7 @@ export interface SectionDetail { // New L3 Section
   content: string;
   videoUrl: string;
   videoType?: 'YOUTUBE' | 'CLOUDFLARE';
+  streamVideoUid?: string;
   cfObjectKey?: string;
   fileUrl: string;
   duration: number;

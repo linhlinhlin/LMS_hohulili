@@ -1,44 +1,42 @@
-# Maritime LMS Onboarding
+# Onboarding Maritime LMS
 
-Use this guide to get a working local environment quickly without guessing which document is authoritative.
+Tài liệu này giúp teammate mới dựng môi trường local nhanh, không phải đoán tài liệu nào là chuẩn.
 
-## Runtime Baseline
+## 1. Hiểu nhanh runtime chuẩn
 
-- Frontend dev URL: `http://localhost:4200`
-- Backend dev URL on host: `http://localhost:8088`
-- Spring Boot internal/container port: `8080`
-- Production API: same-origin `/api/*` behind `https://holilihu.online`
-- Root `docker-compose*.yml` files are the only supported Docker runtime topology
+- Frontend local: `http://localhost:4200`
+- Backend local trên host: `http://localhost:8088`
+- Port nội bộ Spring Boot/container: `8080`
+- Production API: same-origin `/api/*` sau `https://holilihu.online`
+- Topology runtime được hỗ trợ: `docker-compose.yml` + `docker-compose.dev.yml` / `docker-compose.prod.yml`
 
-Use `8088` from the host machine. Use `8080` only for container and reverse-proxy wiring.
+## 2. Công cụ cần có
 
-## Prerequisites
-
-| Tool | Recommended |
-|------|-------------|
-| Docker Desktop | Current stable |
+| Công cụ | Khuyến nghị |
+|--------|-------------|
+| Docker Desktop | Bản ổn định mới |
 | Node.js | 22.x |
 | Java | 21 |
-| Maven | 3.9+ (host-native backend only) |
-| Git | Current stable |
+| Maven | 3.9+ |
+| Git | Bản ổn định mới |
 
-## Recommended Local Setup
+## 3. Cách khởi động khuyến nghị
 
-### 1. Start the backend stack
+### Backend bằng Docker
 
 ```bash
 cp .env.dev.example .env
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db backend
 ```
 
-Verify:
+Kiểm tra:
 
 ```bash
 curl -s http://localhost:8088/actuator/health
 curl -s http://localhost:8088/api/v3/courses
 ```
 
-### 2. Start the frontend
+### Frontend chạy local
 
 ```bash
 cd fe
@@ -46,52 +44,45 @@ npm install
 npm start
 ```
 
-Open `http://localhost:4200`.
+Mở `http://localhost:4200`.
 
-The frontend should use `fe/proxy.conf.json` for `/api/*` in development. Do not hardcode the backend host into frontend code for local development.
+## 4. Cách chạy thay thế
 
-## Alternative: Run the Full Stack in Docker
+### Chạy full stack bằng Docker
 
 ```bash
 cp .env.dev.example .env
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build --wait
 ```
 
-Optional pgAdmin:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile devtools up -d pgadmin
-```
-
-## Alternative: Run Backend on the Host
+### Chạy backend host-native
 
 ```bash
 cd backend
 SERVER_PORT=8088 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-This keeps the same host-facing URL as the Docker-based setup.
+## 5. Tài khoản mặc định
 
-## Default Accounts
-
-| Role | Email | Password |
-|------|-------|----------|
+| Vai trò | Email | Mật khẩu |
+|--------|-------|----------|
 | ADMIN | `admin@maritime.edu` | `admin123` |
 | ORG_ADMIN | `orgadmin@maritime.edu` | `orgadmin123` |
 | TEACHER | `teacher@maritime.edu` | `teacher123` |
 | STUDENT | `student@maritime.edu` | `student123` |
 
-For broader seeded data and manual verification flows, use [docs/testing/TEST_CHECKLIST.md](docs/testing/TEST_CHECKLIST.md).
+Tài khoản seed mở rộng và luồng test tay nằm ở [docs/testing/TEST_CHECKLIST.md](docs/testing/TEST_CHECKLIST.md).
 
-## First Files To Read
+## 6. Đọc gì trước
 
-- [README.md](README.md): repository overview and current quick start
-- [backend/README.md](backend/README.md): backend runbook, API notes, and backend workflows
-- [fe/FRONTEND_ARCHITECTURE.md](fe/FRONTEND_ARCHITECTURE.md): frontend structure and feature organization
-- [docs/README.md](docs/README.md): documentation map and folder semantics
-- [.github/workflows/ci.yml](.github/workflows/ci.yml): baseline CI checks for the repo
+- [README.md](README.md): tổng quan repo
+- [CHANGELOG.md](CHANGELOG.md): thay đổi gần đây
+- [CONTRIBUTING.md](CONTRIBUTING.md): nguyên tắc làm việc trong repo
+- [backend/README.md](backend/README.md): backend runbook
+- [fe/FRONTEND_ARCHITECTURE.md](fe/FRONTEND_ARCHITECTURE.md): frontend architecture
+- [docs/README.md](docs/README.md): bản đồ docs
 
-## Common Development Tasks
+## 7. Lệnh thường dùng
 
 ### Backend
 
@@ -110,34 +101,27 @@ npm run build
 npm test
 ```
 
-## Troubleshooting
+## 8. Troubleshooting nhanh
 
-### Backend does not start
+### Backend không lên
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.dev.yml ps
 docker compose -f docker-compose.yml -f docker-compose.dev.yml logs backend --tail=100
 ```
 
-Typical causes:
+### Frontend không gọi được API
 
-- port `8088` already in use on the host
-- missing environment variables for optional integrations
-- Flyway or database startup failure
+Kiểm tra:
 
-### Frontend cannot reach the API
+- `http://localhost:8088/actuator/health`
+- `fe/proxy.conf.json`
+- frontend dev có đang dùng `/api/*` thay vì hardcode host không
 
-Check:
+## 9. Khi cần đào sâu hơn
 
-- backend health at `http://localhost:8088/actuator/health`
-- dev proxy config in `fe/proxy.conf.json`
-- that frontend API calls still use same-origin `/api/*` in dev
-
-### Need deeper context
-
-Use the source-specific documents instead of extending this file:
-
-- architecture details in `docs/architecture/`
-- verification flows in `docs/testing/`
-- design history in `docs/plans/`
-- investigation outputs in `docs/reports/`
+- runbook runtime: `docs/reference/`
+- runbook thao tác: `docs/runbooks/`
+- tài liệu kiến trúc: `docs/architecture/`
+- testing: `docs/testing/`
+- lịch sử kế hoạch và audit: `docs/plans/`, `docs/reports/`, `docs/research/`

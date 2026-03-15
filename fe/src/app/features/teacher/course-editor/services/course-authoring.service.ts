@@ -15,6 +15,8 @@ export interface SectionDraftDTO { // Renamed from TopicDraftDTO
     type: string;
     content?: string;
     videoUrl?: string;
+    videoType?: 'YOUTUBE' | 'CLOUDFLARE';
+    streamVideoUid?: string;
     fileUrl?: string;
     duration?: number;
     orderIndex: number;
@@ -188,6 +190,8 @@ interface ChapterResponse { // Was SectionWithLessons
             type: string;
             content?: string;
             videoUrl?: string;
+            videoType?: 'YOUTUBE' | 'CLOUDFLARE';
+            streamVideoUid?: string;
             fileUrl?: string; // [NEW] For FILE type sections - SOTA 2025
             duration?: number;
             orderIndex: number;
@@ -211,6 +215,8 @@ interface ChapterResponse { // Was SectionWithLessons
             type: string;
             content?: string;
             videoUrl?: string;
+            videoType?: 'YOUTUBE' | 'CLOUDFLARE';
+            streamVideoUid?: string;
             fileUrl?: string;
             duration?: number;
             orderIndex: number;
@@ -283,6 +289,8 @@ export class CourseAuthoringService {
                             type: (t.type || 'TEXT').toUpperCase(),
                             content: t.content,
                             videoUrl: t.videoUrl,
+                            videoType: t.videoType,
+                            streamVideoUid: t.streamVideoUid,
                             fileUrl: t.fileUrl,
                             duration: t.duration,
                             orderIndex: t.orderIndex,

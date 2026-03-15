@@ -62,6 +62,9 @@ export interface SectionContent {
   type: 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT';
   content?: string;
   videoUrl?: string;
+  videoType?: 'YOUTUBE' | 'CLOUDFLARE';
+  streamVideoUid?: string;
+  videoOfflineUri?: string;
   fileUrl?: string;
   duration?: number;
   orderIndex: number;

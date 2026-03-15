@@ -31,4 +31,36 @@ export class SectionApi {
     if (params.cfObjectKey) query.set('cfObjectKey', params.cfObjectKey);
     return this.api.patchWithResponse<SectionDetail>(`${SECTION_ENDPOINTS.UPDATE_VIDEO(lessonId, sectionId)}?${query.toString()}`, {});
   }
+
+  uploadStreamVideo(sectionId: string, file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.api.post<{ sectionId: string; lessonId: string; streamVideoUid: string; playbackUrl: string }>(
+      SECTION_ENDPOINTS.UPLOAD_STREAM_VIDEO(sectionId),
+      formData
+    );
+  }
+
+  getStreamPlayUrl(sectionId: string) {
+    return this.api.get<{ playUrl: string; uid: string; sectionId: string }>(
+      SECTION_ENDPOINTS.GET_STREAM_PLAY_URL(sectionId)
+    );
+  }
+
+  getStreamDownloadUrl(sectionId: string, quality: '360p' | '720p' | '1080p') {
+    return this.api.get<{ downloadUrl: string; quality: string; uid: string; sectionId: string }>(
+      SECTION_ENDPOINTS.GET_STREAM_DOWNLOAD_URL(sectionId),
+      { params: { quality } }
+    );
+  }
+
+  getStreamSizes(sectionId: string) {
+    return this.api.get<{ sizes: Record<string, number>; uid?: string; sectionId: string }>(
+      SECTION_ENDPOINTS.GET_STREAM_SIZES(sectionId)
+    );
+  }
+
+  deleteStreamVideo(sectionId: string) {
+    return this.api.delete<void>(SECTION_ENDPOINTS.DELETE_STREAM_VIDEO(sectionId));
+  }
 }

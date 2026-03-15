@@ -1,5 +1,7 @@
 # AUDIT_TRACKER.md — LMS Maritime Systematic Deep Audit
 
+> Lưu ý: Đây là tracker historical của một đợt audit trước. Không coi đây là runtime truth hiện tại.
+>
 > **Created**: 2026-02-27 | **Last Updated**: 2026-02-28 (S104)
 > **Approach**: Module-by-module, 9-category checklist, no re-auditing
 

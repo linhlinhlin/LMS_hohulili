@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { WatchedSegmentsTracker } from '../../services/watched-segments-tracker.service';
 import { VideoProgressApi } from '../../../../api/client/video-progress.api';
+import { HeartbeatTracker } from '../../services/heartbeat-tracker.service';
 
 declare global {
   interface Window {
@@ -88,6 +89,7 @@ export class YouTubePlayerComponent implements OnInit, OnDestroy {
 
   private tracker = inject(WatchedSegmentsTracker);
   private videoProgressApi = inject(VideoProgressApi);
+  private heartbeat = inject(HeartbeatTracker);
   private zone = inject(NgZone);
   private player: any = null;
   private pollInterval: ReturnType<typeof setInterval> | null = null;
@@ -150,13 +152,16 @@ export class YouTubePlayerComponent implements OnInit, OnDestroy {
     if (!YT) return;
 
     if (event.data === YT.PlayerState.PLAYING) {
+      this.heartbeat.start(this.lessonId(), this.sectionId(), 'VIDEO');
       this.startPolling();
     } else {
+      this.heartbeat.stop();
       this.stopPolling();
     }
 
     if (event.data === YT.PlayerState.ENDED) {
       this.tracker.stopTracking();
+      this.heartbeat.stop();
       this.zone.run(() => this.videoEnded.emit());
     }
   }
@@ -181,6 +186,7 @@ export class YouTubePlayerComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.stopPolling();
     this.tracker.stopTracking();
+    this.heartbeat.stop();
     if (this.player?.destroy) {
       this.player.destroy();
       this.player = null;

@@ -88,6 +88,23 @@
                 </div>
               }
 
+              @if (cfUploadStatus() === 'staged') {
+                <div class="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4">
+                  <lucide-icon name="clock-3" [size]="20" class="mt-0.5 shrink-0 text-sky-600"></lucide-icon>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold text-sky-900">Video đã được chọn và sẽ tải lên sau khi tạo mục.</p>
+                    <p class="mt-0.5 text-xs text-sky-800">Luồng này giữ stream gắn đúng vào section mới thay vì bám tạm vào lesson.</p>
+                    @if (stagedVideoFileName()) {
+                      <p class="mt-1 truncate text-xs font-medium text-slate-600">{{ stagedVideoFileName() }}</p>
+                    }
+                  </div>
+                  <button type="button" (click)="resetCfUpload()"
+                          class="shrink-0 text-xs text-slate-500 underline hover:text-slate-700">
+                    Bỏ chọn
+                  </button>
+                </div>
+              }
+
               @if (cfUploadStatus() === 'uploading') {
                 <div class="rounded-xl border border-[#0056D2]/20 bg-[#0056D2]/5 p-4">
                   <div class="flex items-center justify-between mb-2">

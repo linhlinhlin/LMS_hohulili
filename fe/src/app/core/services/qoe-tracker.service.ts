@@ -87,6 +87,24 @@ export class QoETrackerService {
     this.metrics.update(m => m ? { ...m, errorCount: m.errorCount + 1 } : null);
   }
 
+  finishSession(totalPlayTimeMs: number): QoEMetrics | null {
+    let snapshot: QoEMetrics | null = null;
+    this.metrics.update(m => {
+      if (!m) {
+        snapshot = null;
+        return null;
+      }
+
+      snapshot = {
+        ...m,
+        totalPlayTimeMs,
+        totalBufferTimeMs: this.totalBufferTime,
+      };
+      return snapshot;
+    });
+    return snapshot;
+  }
+
   private detectConnectionType(): string {
     const conn = (navigator as any).connection;
     if (!conn) return 'unknown';

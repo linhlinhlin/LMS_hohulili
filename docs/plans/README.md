@@ -1,19 +1,19 @@
 # Plans Guide
 
-This folder stores working plans, design notes, and change proposals captured during implementation sessions.
+Thư mục này chứa plan, design note, và execution note theo từng đợt làm việc.
 
-## How To Read These Files
+## Cách đọc đúng
 
-- Treat them as historical working documents unless a file explicitly says it is still active.
-- A plan may describe intended work, partial work, or already-completed work from the date in its filename.
-- Code, root runbooks, and `docs/architecture/` are the source of truth for current behavior.
+- đây là tài liệu đang làm hoặc đã làm theo phiên
+- có thể mô tả ý định, triển khai một phần, hoặc công việc đã hoàn tất tại thời điểm ghi
+- không mặc định là source of truth hiện tại
 
-## Naming Convention
+## Quy ước tên file
 
-- `YYYY-MM-DD-*-design.md`: design direction, UX reasoning, or option analysis.
-- `YYYY-MM-DD-*.md`: implementation plan, execution notes, or change checklist.
+- `YYYY-MM-DD-*-design.md`: hướng thiết kế, phương án, UX reasoning
+- `YYYY-MM-DD-*.md`: execution plan, checklist, note triển khai
 
-## Maintenance Rule
+## Quy tắc bảo trì
 
-- Do not move active runtime guidance into this folder.
-- If a plan becomes an enduring reference, promote the stable result into `docs/architecture/`, `docs/testing/`, or a root runbook.
+- plan nào trở thành quy ước sống thì promote sang `docs/architecture/`, `docs/reference/`, `docs/runbooks/`, hoặc `docs/testing/`
+- không dùng thư mục này để giữ runtime guidance lâu dài

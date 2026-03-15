@@ -25,7 +25,9 @@ import com.example.lms.course_authoring.infrastructure.persistence.entity.Lesson
 import com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
+import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.JpaLearningClassRepository;
+import com.example.lms.learning_delivery.infrastructure.persistence.entity.EnrollmentJpaEntity;
 import com.example.lms.shared.domain.model.ContentBlock;
 import com.example.lms.shared.infrastructure.persistence.entity.PaymentTransactionJpaEntity;
 import com.example.lms.shared.infrastructure.persistence.repository.PaymentTransactionJpaRepository;
@@ -81,6 +83,7 @@ public class QuizControllerV3 {
     private final LessonJpaRepository lessonJpaRepository;
     private final QuizAssignmentJpaRepository quizAssignmentJpaRepository;
     private final JpaLearningClassRepository classJpaRepository;
+    private final JpaEnrollmentRepository enrollmentJpaRepository;
     private final StudentAssessmentAccessPort studentAssessmentAccessPort;
     private final PaymentTransactionJpaRepository paymentTransactionJpaRepository;
 
@@ -685,14 +688,22 @@ public class QuizControllerV3 {
 
     private void verifySectionQuizAccess(CourseJpaEntity course, LessonJpaEntity lesson, UserJpaEntity user) {
         if (user.getRole() == UserJpaEntity.UserRole.STUDENT) {
+            if (course.getPriceType() == CourseJpaEntity.PriceType.FREE) {
+                return;
+            }
             boolean lessonFree = Boolean.TRUE.equals(lesson.getIsFree());
+            boolean enrolled = enrollmentJpaRepository.findByStudentIdAndCourseId(user.getId(), course.getId())
+                    .map(EnrollmentJpaEntity::getStatus)
+                    .map(status -> status == EnrollmentJpaEntity.EnrollmentStatus.ACTIVE
+                            || status == EnrollmentJpaEntity.EnrollmentStatus.COMPLETED)
+                    .orElse(false);
             boolean paid = paymentTransactionJpaRepository.existsByStudentIdAndCourseIdAndStatus(
                     user.getId(),
                     course.getId(),
                     PaymentTransactionJpaEntity.PaymentStatus.COMPLETED
             );
-            if (!lessonFree && !paid) {
-                throw new org.springframework.security.access.AccessDeniedException("Bạn cần thanh toán để mở bài kiểm tra này");
+            if (!lessonFree && !enrolled && !paid) {
+                throw new org.springframework.security.access.AccessDeniedException("Bạn cần đăng ký hoặc thanh toán để mở bài kiểm tra này");
             }
             return;
         }

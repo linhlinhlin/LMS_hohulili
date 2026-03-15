@@ -22,12 +22,12 @@ import java.util.UUID;
 public class LessonJpaEntity {
     // Manual boilerplate
     public LessonJpaEntity() {}
-    public LessonJpaEntity(UUID id, UUID chapterId, String title, String description, LessonType type, String videoUrl, Integer durationMinutes, Integer orderIndex, Boolean isFree, Instant createdAt, Instant updatedAt, List<ContentBlock> contentBlocks) {
-        this.id = id; this.chapterId = chapterId; this.title = title; this.description = description; this.type = type; this.videoUrl = videoUrl; this.durationMinutes = durationMinutes; this.orderIndex = orderIndex; this.isFree = isFree; this.createdAt = createdAt; this.updatedAt = updatedAt; this.contentBlocks = contentBlocks;
+    public LessonJpaEntity(UUID id, UUID chapterId, String title, String description, LessonType type, String videoUrl, Integer durationMinutes, Integer orderIndex, Boolean isFree, Instant createdAt, Instant updatedAt, List<ContentBlock> contentBlocks, String streamVideoUid) {
+        this.id = id; this.chapterId = chapterId; this.title = title; this.description = description; this.type = type; this.videoUrl = videoUrl; this.durationMinutes = durationMinutes; this.orderIndex = orderIndex; this.isFree = isFree; this.createdAt = createdAt; this.updatedAt = updatedAt; this.contentBlocks = contentBlocks; this.streamVideoUid = streamVideoUid;
     }
     public static Builder builder() { return new Builder(); }
     public static class Builder {
-        private UUID id; private UUID chapterId; private String title; private String description; private LessonType type = LessonType.VIDEO; private String videoUrl; private Integer durationMinutes = 0; private Integer orderIndex = 0; private Boolean isFree = false; private Instant createdAt; private Instant updatedAt; private List<ContentBlock> contentBlocks = new ArrayList<>();
+        private UUID id; private UUID chapterId; private String title; private String description; private LessonType type = LessonType.VIDEO; private String videoUrl; private Integer durationMinutes = 0; private Integer orderIndex = 0; private Boolean isFree = false; private Instant createdAt; private Instant updatedAt; private List<ContentBlock> contentBlocks = new ArrayList<>(); private String streamVideoUid;
         public Builder id(UUID id) { this.id = id; return this; }
         public Builder chapterId(UUID chapterId) { this.chapterId = chapterId; return this; }
         public Builder title(String title) { this.title = title; return this; }
@@ -40,7 +40,8 @@ public class LessonJpaEntity {
         public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
         public Builder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
         public Builder contentBlocks(List<ContentBlock> contentBlocks) { this.contentBlocks = contentBlocks; return this; }
-        public LessonJpaEntity build() { return new LessonJpaEntity(id, chapterId, title, description, type, videoUrl, durationMinutes, orderIndex, isFree, createdAt, updatedAt, contentBlocks); }
+        public Builder streamVideoUid(String streamVideoUid) { this.streamVideoUid = streamVideoUid; return this; }
+        public LessonJpaEntity build() { return new LessonJpaEntity(id, chapterId, title, description, type, videoUrl, durationMinutes, orderIndex, isFree, createdAt, updatedAt, contentBlocks, streamVideoUid); }
     }
 
     @Id

@@ -1,5 +1,7 @@
 # BÁO CÁO KIỂM TRA TOÀN DIỆN HỆ THỐNG - MARITIME LMS
 
+> Lưu ý: Báo cáo này được giữ lại để truy vết lịch sử. Vui lòng đối chiếu với runtime report và code hiện tại trước khi dùng để ra quyết định.
+>
 > **Session 49: Deep System Audit**
 > Ngày: 11/02/2026 | Phiên bản: 2.0 | Phương pháp: 9 agent song song kiểm tra toàn bộ codebase
 

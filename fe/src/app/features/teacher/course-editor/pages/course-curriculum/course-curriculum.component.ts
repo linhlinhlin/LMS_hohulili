@@ -244,8 +244,10 @@ export class CourseCurriculumComponent implements OnDestroy {
   sectionIsRequired = false;
   sectionFileUrl = signal<string | null>(null); // [NEW] For FILE type sections
   sectionVideoType: 'YOUTUBE' | 'CLOUDFLARE' | null = null; // [NEW] Video source type
+  sectionStreamVideoUid: string | null = null;
   sectionCfObjectKey: string | null = null; // [NEW] Cloudflare R2 object key
   selectedFile: File | null = null; // [NEW] For FILE upload
+  selectedSectionVideoFile: File | null = null;
   safePdfUrl = signal<SafeResourceUrl | null>(null); // [NEW] SOTA 2025 Secure PDF
 
   // State
@@ -671,6 +673,37 @@ export class CourseCurriculumComponent implements OnDestroy {
 
   onSectionVideoUrlChange(value: string) {
     this.sectionVideoUrl = value;
+    if (!value) {
+      this.sectionStreamVideoUid = null;
+    } else if (!value.includes('videodelivery.net')) {
+      this.sectionStreamVideoUid = null;
+      this.selectedSectionVideoFile = null;
+    }
+    this.syncSectionVideoMetadata(value);
+    this.markEditorUnsaved();
+  }
+
+  onSectionStreamVideoUidChange(value: string | null) {
+    this.sectionStreamVideoUid = value;
+    if (value) {
+      this.sectionVideoType = 'CLOUDFLARE';
+    }
+    this.markEditorUnsaved();
+  }
+
+  onSectionVideoFileSelected(file: File | null) {
+    this.selectedSectionVideoFile = file;
+    if (file) {
+      this.sectionVideoType = 'CLOUDFLARE';
+    }
+    this.markEditorUnsaved();
+  }
+
+  onClearSelectedSectionVideoFile() {
+    this.selectedSectionVideoFile = null;
+    if (!this.sectionStreamVideoUid && !this.sectionVideoUrl) {
+      this.sectionVideoType = null;
+    }
     this.markEditorUnsaved();
   }
 
@@ -912,10 +945,12 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.sectionContent = '';
     this.sectionVideoUrl = '';
     this.sectionVideoType = null;
+    this.sectionStreamVideoUid = null;
     this.sectionCfObjectKey = null;
     this.sectionFileUrl.set(null);
     this.sectionIsRequired = false;
     this.selectedFile = null;
+    this.selectedSectionVideoFile = null;
     this.safePdfUrl.set(null);
     this.wordCount.set(0);
   }
@@ -941,6 +976,7 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.sectionContent = section.content || '';
     this.sectionVideoUrl = section.videoUrl || '';
     this.sectionVideoType = (section as any).videoType || null;
+    this.sectionStreamVideoUid = (section as any).streamVideoUid || null;
     this.sectionCfObjectKey = (section as any).cfObjectKey || null;
     this.sectionFileUrl.set(section.fileUrl || null);
     this.sectionIsRequired = (section as any).isRequired || false;
@@ -1125,9 +1161,13 @@ export class CourseCurriculumComponent implements OnDestroy {
       this.sectionContent.trim(),
       this.sectionVideoUrl.trim(),
       this.sectionVideoType ?? '',
+      this.sectionStreamVideoUid ?? '',
       this.sectionCfObjectKey ?? '',
       this.sectionFileUrl() ?? '',
       selectedFileSignature,
+      this.selectedSectionVideoFile
+        ? `${this.selectedSectionVideoFile.name}:${this.selectedSectionVideoFile.size}`
+        : '',
       this.sectionQuizType,
       String(this.sectionQuizTimeLimit()),
       String(this.sectionQuizPassingScore()),
@@ -1747,6 +1787,11 @@ export class CourseCurriculumComponent implements OnDestroy {
 
   // Video Preview Logic [NEW]
   private syncSectionVideoMetadata(url: string) {
+    if (this.sectionStreamVideoUid || this.selectedSectionVideoFile) {
+      this.sectionVideoType = 'CLOUDFLARE';
+      return;
+    }
+
     if (!url) {
       if (!this.sectionCfObjectKey) {
         this.sectionVideoType = null;
@@ -1785,6 +1830,8 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.isSaving.set(true);
     this.store.markSaving();
     try {
+      const isCreatingSection = !this.editingSectionId();
+
       // Construction of DTO Payload
       const payload: any = {
         lessonId: lesson.id,
@@ -1798,6 +1845,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       } else if (this.newSectionType === 'VIDEO') {
         payload.videoUrl = this.sectionVideoUrl;
         payload.videoType = this.sectionVideoType;
+        payload.streamVideoUid = this.sectionStreamVideoUid;
         payload.cfObjectKey = this.sectionCfObjectKey;
       } else if (this.newSectionType === 'QUIZ') {
         payload.quizData = {
@@ -1833,11 +1881,34 @@ export class CourseCurriculumComponent implements OnDestroy {
           this.sectionFileUrl.set(updatedSection.fileUrl);
         }
       } else {
-        await firstValueFrom(this.sectionApi.createSection(lesson.id, formData));
+        const res: any = await firstValueFrom(this.sectionApi.createSection(lesson.id, formData));
+        const createdSection = res.data || res;
+        this.editingSectionId.set(createdSection?.id ?? null);
+      }
+
+      if (this.newSectionType === 'VIDEO' && isCreatingSection && this.selectedSectionVideoFile && this.editingSectionId()) {
+        try {
+          const uploadResponse: any = await firstValueFrom(
+            this.sectionApi.uploadStreamVideo(this.editingSectionId()!, this.selectedSectionVideoFile)
+          );
+          const uploadData = uploadResponse?.data || uploadResponse;
+          if (uploadData?.playbackUrl) {
+            this.sectionVideoUrl = uploadData.playbackUrl;
+          }
+          if (uploadData?.streamVideoUid) {
+            this.sectionStreamVideoUid = uploadData.streamVideoUid;
+            this.sectionVideoType = 'CLOUDFLARE';
+          }
+        } catch (uploadError: any) {
+          await this.safeRollbackCreatedSection(lesson.id, this.editingSectionId()!);
+          this.editingSectionId.set(null);
+          throw new Error(uploadError?.message || 'Tải video nội bộ thất bại sau khi tạo mục mới');
+        }
       }
 
       // Clear staged file after successful save
       this.selectedFile = null;
+      this.selectedSectionVideoFile = null;
 
       // Reload course to refresh tree
       const courseId = this.store.courseTree()?.id;
@@ -1849,6 +1920,14 @@ export class CourseCurriculumComponent implements OnDestroy {
       this.toast.error('Lỗi khi lưu mục: ' + (e?.message || 'Không rõ lỗi'));
     } finally {
       this.isSaving.set(false);
+    }
+  }
+
+  private async safeRollbackCreatedSection(lessonId: string, sectionId: string): Promise<void> {
+    try {
+      await firstValueFrom(this.sectionApi.deleteSection(lessonId, sectionId));
+    } catch {
+      // Best-effort rollback. The user still gets the upload error, but we avoid masking it.
     }
   }
 

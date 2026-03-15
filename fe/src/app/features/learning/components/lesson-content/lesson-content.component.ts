@@ -12,9 +12,7 @@ import { HeartbeatTracker } from '../../services/heartbeat-tracker.service';
 import { ReadingProgressTracker } from '../../services/reading-progress-tracker.service';
 import { VideoProgressApi } from '../../../../api/client/video-progress.api';
 import { YouTubePlayerComponent } from '../youtube-player/youtube-player.component';
-import { OfflineVideoService } from '../../../../core/services/offline-video.service';
-import { HttpClient } from '@angular/common/http';
-import { environment } from '../../../../../environments/environment';
+import { AdaptiveVideoPlayerComponent } from '../adaptive-video-player/adaptive-video-player.component';
 import { NoteApi, NoteResponse, CreateNoteRequest, UpdateNoteRequest } from '../../../../api/endpoints/note.api';
 import { QuizApi } from '../../../../api/endpoints/quiz.api';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -29,7 +27,7 @@ import { ToastService } from '../../../../core/services/toast.service';
  */
 @Component({
   selector: 'app-lesson-content',
-  imports: [YouTubePlayerComponent, CommonModule, FormsModule],
+  imports: [AdaptiveVideoPlayerComponent, YouTubePlayerComponent, CommonModule, FormsModule],
   templateUrl: './lesson-content.component.html',
   styleUrls: ['./lesson-content.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -41,8 +39,6 @@ export class LessonContentComponent implements AfterViewInit {
   private heartbeat = inject(HeartbeatTracker);
   private readingTracker = inject(ReadingProgressTracker);
   private videoProgressApi = inject(VideoProgressApi);
-  private offlineVideo = inject(OfflineVideoService);
-  private http = inject(HttpClient);
   private noteApi = inject(NoteApi);
   private quizApi = inject(QuizApi);
   private toast = inject(ToastService);
@@ -189,8 +185,8 @@ export class LessonContentComponent implements AfterViewInit {
   /** Whether current view is a video section (used to show/hide tab bar) */
   readonly isVideoSection = computed(() => {
     const section = this.currentSection();
-    if (section) return section.type === 'VIDEO' && !!section.videoUrl;
-    return !this.hasSections() && !!this.lesson()?.videoUrl;
+    if (section) return section.type === 'VIDEO' && !!(section.videoUrl || section.streamVideoUid);
+    return !this.hasSections() && !!(this.lesson()?.videoUrl || this.lesson()?.streamVideoUid);
   });
 
   /** Safe PDF URL for iframe embedding */
@@ -274,7 +270,13 @@ export class LessonContentComponent implements AfterViewInit {
     const lesson = this.lesson();
     if (!section || !lesson) return;
 
-    // Start heartbeat for this section's content type
+    if (section.type === 'VIDEO') {
+      this.readingTracker.stopTracking();
+      this.heartbeat.stop();
+      return;
+    }
+
+    // Start heartbeat for non-video content types.
     this.heartbeat.start(lesson.id, section.id, section.type || 'TEXT');
 
     // Start reading tracker for TEXT sections (after view renders)
@@ -336,51 +338,6 @@ export class LessonContentComponent implements AfterViewInit {
       },
       error: () => {} // Ignore — fresh start is fine
     });
-  }
-
-  /** Resolved video URL — uses offline path if available (zero RAM via SW) */
-  readonly resolvedVideoUrl = signal<string | null>(null);
-
-  private resolveVideoEffect = effect(() => {
-    const lesson = this.lesson();
-    if (lesson?.id) {
-      this.resolveOfflineVideoUrl(lesson.id);
-    }
-  });
-
-  private async resolveOfflineVideoUrl(lessonId: string): Promise<void> {
-    // Priority 1: offline cache (zero RAM via SW)
-    if (this.offlineVideo.isAvailableOffline(lessonId)) {
-      const offlineUrl = await this.offlineVideo.getVideoUrl(lessonId);
-      if (offlineUrl) {
-        this.resolvedVideoUrl.set(offlineUrl);
-        return;
-      }
-    }
-    // Priority 2: Cloudflare Stream signed URL (when streamVideoUid is set)
-    const uid = this.lesson()?.streamVideoUid;
-    if (uid) {
-      try {
-        const res: any = await firstValueFrom(
-          this.http.get(`${environment.apiUrl}/api/v3/lessons/${lessonId}/video/play`)
-        );
-        const playUrl = res?.playUrl ?? res?.data?.playUrl;
-        if (playUrl) {
-          this.resolvedVideoUrl.set(playUrl);
-          return;
-        }
-      } catch {
-        // Fall through to raw videoUrl
-      }
-    }
-    this.resolvedVideoUrl.set(null);
-  }
-
-  /**
-   * Get the best video URL — offline path (served by SW from cache) or original URL
-   */
-  getVideoSrc(originalUrl: string | undefined): string | undefined {
-    return this.resolvedVideoUrl() || originalUrl;
   }
 
   isYouTubeUrl(url: string | undefined): boolean {

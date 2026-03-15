@@ -1,14 +1,13 @@
-import { ChangeDetectionStrategy, Component, ElementRef, afterNextRender, inject, input, output, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, afterNextRender, effect, inject, input, output, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { HttpClient, HttpEventType } from '@angular/common/http';
 import { CKEditorModule } from '@ckeditor/ckeditor5-angular';
 import { LucideAngularModule } from 'lucide-angular';
-import { environment } from '../../../../../../../../environments/environment';
+import { SectionApi } from '../../../../../../../api/client/section.api';
 
 type SectionEditorType = 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE';
 type VideoInputMode = 'url' | 'upload';
-type CfUploadStatus = 'idle' | 'uploading' | 'done' | 'error';
+type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
 
 @Component({
   selector: 'app-curriculum-section-modal',
@@ -18,7 +17,7 @@ type CfUploadStatus = 'idle' | 'uploading' | 'done' | 'error';
 })
 export class CurriculumSectionModalComponent {
   private sanitizer = inject(DomSanitizer);
-  private http = inject(HttpClient);
+  private sectionApi = inject(SectionApi);
   readonly sectionQuizTypes = ['ASSESSMENT', 'EXAM'] as const;
 
   private dialogShell = viewChild<ElementRef<HTMLElement>>('dialogShell');
@@ -28,6 +27,8 @@ export class CurriculumSectionModalComponent {
   sectionTitle = input('');
   sectionIsRequired = input(false);
   sectionVideoUrl = input('');
+  sectionStreamVideoUid = input<string | null>(null);
+  selectedVideoFile = input<File | null>(null);
   /** Lesson ID — required for CF Stream upload. Provided by parent curriculum component. */
   lessonId = input<string | null>(null);
   sectionContent = input('');
@@ -54,6 +55,9 @@ export class CurriculumSectionModalComponent {
   sectionTitleChange = output<string>();
   sectionRequiredChange = output<boolean>();
   sectionVideoUrlChange = output<string>();
+  sectionStreamVideoUidChange = output<string | null>();
+  videoFileSelected = output<File | null>();
+  clearSelectedVideoFile = output<void>();
   sectionContentChange = output<string>();
   sectionQuizTypeChange = output<'ASSESSMENT' | 'EXAM'>();
   sectionQuizTimeLimitChange = output<string | number>();
@@ -76,10 +80,41 @@ export class CurriculumSectionModalComponent {
   readonly cfUploadStatus = signal<CfUploadStatus>('idle');
   readonly cfUploadPercent = signal(0);
   readonly cfStreamVideoUid = signal<string | null>(null);
+  readonly stagedVideoFileName = signal<string | null>(null);
 
   constructor() {
     afterNextRender(() => {
       this.dialogShell()?.nativeElement.focus();
+    });
+
+    effect(() => {
+      const streamUid = this.sectionStreamVideoUid();
+      const stagedFile = this.selectedVideoFile();
+      const currentStatus = this.cfUploadStatus();
+      if (currentStatus === 'uploading' || currentStatus === 'error') {
+        return;
+      }
+
+      if (stagedFile) {
+        this.stagedVideoFileName.set(stagedFile.name);
+        this.cfUploadStatus.set('staged');
+        this.cfUploadPercent.set(0);
+        this.cfStreamVideoUid.set(null);
+        this.videoInputMode.set('upload');
+        return;
+      }
+
+      this.stagedVideoFileName.set(null);
+      if (streamUid) {
+        this.cfStreamVideoUid.set(streamUid);
+        this.cfUploadStatus.set('done');
+        this.videoInputMode.set('upload');
+        return;
+      }
+
+      this.cfStreamVideoUid.set(null);
+      this.cfUploadPercent.set(0);
+      this.cfUploadStatus.set('idle');
     });
   }
 
@@ -106,41 +141,35 @@ export class CurriculumSectionModalComponent {
   }
 
   /**
-   * Upload video file to Cloudflare Stream via backend proxy.
-   * Shows real-time progress; on success auto-populates videoUrl with HLS playback URL.
+   * Upload section video for existing sections.
+   * New sections stage the file and let the parent upload after the section shell is created.
    */
   onCfVideoFileSelected(event: Event): void {
     const file = (event.target as HTMLInputElement).files?.[0];
-    const lessonId = this.lessonId();
-    if (!file || !lessonId) return;
+    const sectionId = this.editingSectionId();
+    if (!file) return;
 
-    const formData = new FormData();
-    formData.append('file', file);
+    if (!sectionId) {
+      this.videoInputMode.set('upload');
+      this.videoFileSelected.emit(file);
+      return;
+    }
 
     this.cfUploadStatus.set('uploading');
     this.cfUploadPercent.set(0);
+    this.stagedVideoFileName.set(file.name);
 
-    this.http.post(
-      `${environment.apiUrl}/api/v3/lessons/${lessonId}/video`,
-      formData,
-      { reportProgress: true, observe: 'events' }
-    ).subscribe({
-      next: (httpEvent: any) => {
-        if (httpEvent.type === HttpEventType.UploadProgress) {
-          const pct = httpEvent.total
-            ? Math.round(100 * httpEvent.loaded / httpEvent.total)
-            : 0;
-          this.cfUploadPercent.set(pct);
-        } else if (httpEvent.type === HttpEventType.Response) {
-          const body = httpEvent.body as any;
-          this.cfStreamVideoUid.set(body?.streamVideoUid ?? null);
-          // Populate videoUrl with the HLS playback URL for section save
-          const playUrl = body?.playbackUrl ?? '';
-          if (playUrl) {
-            this.sectionVideoUrlChange.emit(playUrl);
-          }
-          this.cfUploadStatus.set('done');
+    this.sectionApi.uploadStreamVideo(sectionId, file).subscribe({
+      next: (body: any) => {
+        const streamVideoUid = body?.streamVideoUid ?? null;
+        const playUrl = body?.playbackUrl ?? '';
+        this.cfUploadPercent.set(100);
+        this.cfStreamVideoUid.set(streamVideoUid);
+        this.sectionStreamVideoUidChange.emit(streamVideoUid);
+        if (playUrl) {
+          this.sectionVideoUrlChange.emit(playUrl);
         }
+        this.cfUploadStatus.set('done');
       },
       error: () => this.cfUploadStatus.set('error'),
     });
@@ -150,6 +179,12 @@ export class CurriculumSectionModalComponent {
     this.cfUploadStatus.set('idle');
     this.cfUploadPercent.set(0);
     this.cfStreamVideoUid.set(null);
+    this.stagedVideoFileName.set(null);
+    if (!this.editingSectionId()) {
+      this.clearSelectedVideoFile.emit();
+      this.sectionStreamVideoUidChange.emit(null);
+      this.sectionVideoUrlChange.emit('');
+    }
   }
 
   onSectionContentInput(value: string): void {

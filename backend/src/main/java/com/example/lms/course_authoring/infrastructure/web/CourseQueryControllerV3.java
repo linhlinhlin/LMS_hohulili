@@ -657,15 +657,22 @@ public class CourseQueryControllerV3 {
             return sectionResponses;
         }
 
+        long videoSectionCount = lesson.getContentBlocks().stream()
+                .filter(block -> "VIDEO".equalsIgnoreCase(block.getType()))
+                .count();
         Map<UUID, QuestionJpaEntity> questionMap = loadSectionQuizQuestionMap(lesson.getContentBlocks());
         for (var block : lesson.getContentBlocks()) {
             Map<String, Object> data = block.getData() != null ? block.getData() : new HashMap<>();
+            String streamVideoUid = resolveSectionStreamVideoUid(lesson, block, data, videoSectionCount);
+            String videoType = resolveSectionVideoType(data, streamVideoUid);
             sectionResponses.add(SectionResponse.builder()
                     .id(block.getId())
                     .title((String) data.getOrDefault("title", "Untitled"))
                     .type(block.getType() != null ? block.getType().toUpperCase(Locale.ROOT) : "TEXT")
                     .content(showContent ? (String) data.get("content") : null)
                     .videoUrl(showContent ? (String) data.get("videoUrl") : null)
+                    .videoType(showContent ? videoType : null)
+                    .streamVideoUid(showContent ? streamVideoUid : null)
                     .fileUrl(showContent ? (String) data.get("fileUrl") : null)
                     .duration(data.get("duration") != null ? ((Number) data.get("duration")).intValue() : 0)
                     .orderIndex(data.get("orderIndex") != null ? ((Number) data.get("orderIndex")).intValue() : 0)
@@ -735,6 +742,32 @@ public class CourseQueryControllerV3 {
         }
 
         return normalized;
+    }
+
+    private String resolveSectionStreamVideoUid(
+            LessonJpaEntity lesson,
+            com.example.lms.shared.domain.model.ContentBlock block,
+            Map<String, Object> blockData,
+            long videoSectionCount
+    ) {
+        String sectionStreamUid = asString(blockData.get("streamVideoUid"), null);
+        if (sectionStreamUid != null) {
+            return sectionStreamUid;
+        }
+
+        if ("VIDEO".equalsIgnoreCase(block.getType()) && videoSectionCount == 1) {
+            return lesson.getStreamVideoUid();
+        }
+
+        return null;
+    }
+
+    private String resolveSectionVideoType(Map<String, Object> blockData, String streamVideoUid) {
+        String explicitType = asString(blockData.get("videoType"), null);
+        if (explicitType != null) {
+            return explicitType;
+        }
+        return streamVideoUid != null ? "CLOUDFLARE" : null;
     }
 
     private List<UUID> extractSectionQuizQuestionIds(Map<String, Object> blockData) {
@@ -1002,6 +1035,8 @@ public class CourseQueryControllerV3 {
         private String type;
         private String content;
         private String videoUrl;
+        private String videoType;
+        private String streamVideoUid;
         private String fileUrl;
         private Integer duration; // seconds
         private Integer orderIndex;
