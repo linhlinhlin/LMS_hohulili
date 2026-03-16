@@ -64,6 +64,11 @@ public class GetCourseDraftUseCase {
                 .status(course.getStatus() != null ? course.getStatus().name() : null)
                 .visibility(course.getVisibility() != null ? course.getVisibility().name() : null)
                 .tags(course.getTags())
+                .welcomeMessage(course.getWelcomeMessage())
+                .courseInformation(course.getCourseInformation())
+                .benefits(course.getBenefits())
+                .introVideoUrl(course.getIntroVideoUrl())
+                .credits(course.getCredits())
                 .chapters(chapters)
                 .hasEnrollments(enrollmentRepository.existsByCourseId(course.getId()))
                 .build();

@@ -15,6 +15,7 @@ Thư mục này chứa các tài liệu giải thích về boundary, decision, v
 - `STUDENT_COURSE_FIRST_EXPERIENCE.md`
 - `LESSON_VIEW_ARCHITECTURE.md`
 - `STREAMING_PWA_ROADMAP.md`
+- `2026-03-16-course-publication-pwa-sync-model.md`
 - `2026-03-15-adaptive-video-v1-implementation-plan.md`
 
 Nếu một tài liệu ở đây chỉ còn là plan đang làm dở, hãy nói rõ trong file hoặc chuyển về `docs/plans/`.

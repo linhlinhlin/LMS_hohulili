@@ -4,10 +4,16 @@ Thư mục này chứa các báo cáo điều tra, audit, và snapshot runtime.
 
 ## Báo cáo còn giá trị hiện hành
 
+- `2026-03-16-claude-code-handoff-platform-status.md`
 - `2026-03-07-authoring-and-runtime-status.md`
 - `2026-03-14-payment-runtime-status.md`
 
-Đây là hai báo cáo gần nhất còn phản ánh runtime thực tế khá sát.
+Đây là các báo cáo gần nhất còn phản ánh trạng thái triển khai hoặc runtime thực tế khá sát.
+
+Trong đó:
+
+- `2026-03-16-claude-code-handoff-platform-status.md` là báo cáo handoff cho team Claude Code, tập trung vào trạng thái local vs production, publication/PWA/offline, video, quiz/exam, certificate, và checklist deploy-smoke kế tiếp.
+- Hai báo cáo còn lại là runtime snapshot đã được verify ở các batch trước.
 
 ## Báo cáo lịch sử
 

@@ -23,6 +23,15 @@ public interface LessonJpaRepository extends JpaRepository<LessonJpaEntity, UUID
     List<LessonJpaEntity> findByChapterIdIn(List<UUID> chapterIds);
 
     @Query(value = """
+            SELECT l.*
+            FROM lessons l
+            JOIN chapters ch ON ch.id = l.chapter_id
+            WHERE ch.course_id = :courseId
+            ORDER BY ch.order_index ASC, l.order_index ASC
+            """, nativeQuery = true)
+    List<LessonJpaEntity> findByCourseIdOrderByChapterAndLesson(@Param("courseId") UUID courseId);
+
+    @Query(value = """
             SELECT *
             FROM lessons l
             WHERE EXISTS (

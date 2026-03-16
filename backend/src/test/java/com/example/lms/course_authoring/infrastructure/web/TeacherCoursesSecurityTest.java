@@ -5,6 +5,8 @@ import com.example.lms.course_authoring.application.usecase.CourseAuthoringUseCa
 import com.example.lms.course_authoring.application.usecase.GetCourseDraftUseCase;
 import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity;
+import com.example.lms.course_authoring.infrastructure.persistence.repository.CourseReviewJpaRepository;
+import com.example.lms.course_authoring.infrastructure.service.CoursePublicationService;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.EnrollmentRepositoryImpl;
@@ -37,6 +39,8 @@ class TeacherCoursesSecurityTest {
     @Mock private UserJpaRepository userRepository;
     @Mock private JpaCourseRepository jpaCourseRepository;
     @Mock private JpaEnrollmentRepository jpaEnrollmentRepository;
+    @Mock private CourseReviewJpaRepository courseReviewRepository;
+    @Mock private CoursePublicationService coursePublicationService;
 
     @InjectMocks
     private TeacherCoursesControllerV3 controller;

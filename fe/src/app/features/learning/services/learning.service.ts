@@ -361,6 +361,8 @@ export class LearningService {
       isRequired: section.isRequired ?? false,
       quizData: section.quizData ? {
         quizType: section.quizData.quizType,
+        countsTowardCertificate: section.quizData.countsTowardCertificate,
+        allowOffline: section.quizData.allowOffline,
         timeLimitMinutes: section.quizData.timeLimitMinutes,
         passingScore: section.quizData.passingScore,
         maxAttempts: section.quizData.maxAttempts,
@@ -653,6 +655,9 @@ export class LearningService {
       courseId: data.courseId,
       courseTitle: data.courseTitle || '',
       durationMinutes: data.durationMinutes,
+      quizType: data.quizType,
+      countsTowardCertificate: data.countsTowardCertificate,
+      quizAllowOffline: data.quizAllowOffline,
       sections: mappedSections
     };
   }
@@ -861,6 +866,9 @@ export class LearningService {
                 orderIndex: lesson.orderIndex || idx,
                 isFree: (lesson as any).isFree === true,
                 locked: (lesson as any).locked === true,
+                quizType: (lesson as any).quizType,
+                countsTowardCertificate: (lesson as any).countsTowardCertificate,
+                quizAllowOffline: (lesson as any).quizAllowOffline,
                 sections: (lesson.sections || []).map(s => this.mapSectionContent(s))
               };
             })

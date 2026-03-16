@@ -2,6 +2,7 @@ package com.example.lms.learning_delivery.application.usecase;
 
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
+import com.example.lms.course_authoring.infrastructure.persistence.repository.CoursePublicationJpaRepository;
 import com.example.lms.learning_delivery.application.dto.SelfEnrollCommand;
 import com.example.lms.learning_delivery.application.port.PaymentVerificationPort;
 import com.example.lms.learning_delivery.domain.model.Enrollment;
@@ -38,6 +39,7 @@ public class SelfEnrollUseCase {
     private final LearningClassRepositoryPort learningClassRepository;
     private final EnrollmentRepositoryPort enrollmentRepository;
     private final PaymentVerificationPort paymentVerification;
+    private final CoursePublicationJpaRepository publicationRepository;
 
     @Transactional
     public UUID execute(SelfEnrollCommand command) {
@@ -114,10 +116,15 @@ public class SelfEnrollUseCase {
 
         // Create new default class — handle concurrent creation race condition
         String defaultCode = "DEFAULT-" + course.getCode().getValue();
+        UUID latestPublicationId = publicationRepository.findTopByCourseIdOrderByPublicationNumberDesc(courseId)
+                .map(publication -> publication.getId())
+                .orElse(null);
         LearningClass defaultClass = LearningClass.builder()
                 .name(DEFAULT_CLASS_NAME)
                 .code(defaultCode)
                 .courseId(courseId)
+                .courseVersionId(latestPublicationId)
+                .versionMode(LearningClass.VersionMode.FOLLOW_LATEST)
                 .teacherId(course.getTeacherId())
                 .maxStudents(9999)
                 .status(LearningClass.ClassStatus.OPEN)

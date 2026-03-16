@@ -51,6 +51,8 @@ import { CurriculumAssignmentDetailsComponent } from './components/curriculum-as
 import { CurriculumQuizManagerComponent } from './components/curriculum-quiz-manager/curriculum-quiz-manager.component';
 import { CurriculumSectionModalComponent } from './components/curriculum-section-modal/curriculum-section-modal.component';
 
+type SectionQuizAssessmentType = 'PRACTICE' | 'ASSESSMENT' | 'EXAM';
+
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-course-curriculum',
@@ -285,7 +287,8 @@ export class CourseCurriculumComponent implements OnDestroy {
   selectedQuestionIds = signal<Set<string>>(new Set());
 
   // Section Quiz Fields (for QUIZ type sections)
-  sectionQuizType: 'ASSESSMENT' | 'EXAM' = 'ASSESSMENT';
+  sectionQuizType: SectionQuizAssessmentType = 'PRACTICE';
+  sectionQuizCountsTowardCertificate = false;
   sectionQuizTimeLimit = signal(30);
   sectionQuizPassingScore = signal(60);
   sectionQuizMaxAttempts = signal(1);
@@ -728,12 +731,20 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.markEditorUnsaved();
   }
 
-  onSectionQuizTypeChange(type: 'ASSESSMENT' | 'EXAM') {
+  onSectionQuizTypeChange(type: SectionQuizAssessmentType) {
     if (this.sectionQuizType === type) {
       return;
     }
 
     this.sectionQuizType = type;
+    if (type !== 'EXAM') {
+      this.sectionQuizCountsTowardCertificate = false;
+    }
+    this.markEditorUnsaved();
+  }
+
+  onSectionQuizCountsTowardCertificateChange(value: boolean) {
+    this.sectionQuizCountsTowardCertificate = this.sectionQuizType === 'EXAM' && value;
     this.markEditorUnsaved();
   }
 
@@ -985,7 +996,11 @@ export class CourseCurriculumComponent implements OnDestroy {
     if (this.newSectionType === 'QUIZ') {
       const quizData = (section as any).quizData;
       if (quizData) {
-        this.sectionQuizType = quizData.quizType === 'EXAM' ? 'EXAM' : 'ASSESSMENT';
+        this.sectionQuizType = quizData.quizType === 'PRACTICE'
+          ? 'PRACTICE'
+          : (quizData.quizType === 'EXAM' ? 'EXAM' : 'ASSESSMENT');
+        this.sectionQuizCountsTowardCertificate = this.sectionQuizType === 'EXAM'
+          && quizData.countsTowardCertificate === true;
         this.sectionQuizTimeLimit.set(quizData.timeLimitMinutes || 30);
         this.sectionQuizPassingScore.set(quizData.passingScore || 60);
         this.sectionQuizMaxAttempts.set(quizData.maxAttempts || 1);
@@ -1851,9 +1866,10 @@ export class CourseCurriculumComponent implements OnDestroy {
         payload.quizData = {
           // Mapping variables to DTO fields
           quizType: this.sectionQuizType,
+          countsTowardCertificate: this.sectionQuizType === 'EXAM' && this.sectionQuizCountsTowardCertificate,
           timeLimitMinutes: this.sectionQuizTimeLimit(),
           passingScore: this.sectionQuizPassingScore(),
-          maxAttempts: this.sectionQuizType === 'EXAM' ? this.sectionQuizMaxAttempts() : 999,
+          maxAttempts: this.sectionQuizMaxAttempts(),
           shuffleQuestions: this.sectionQuizShuffleQuestions,
           shuffleOptions: this.sectionQuizShuffleOptions,
           showResultsImmediately: this.sectionQuizShowResults,
@@ -2197,7 +2213,8 @@ export class CourseCurriculumComponent implements OnDestroy {
 
   // Reset section quiz fields when opening new section
   private resetSectionQuizFields() {
-    this.sectionQuizType = 'ASSESSMENT';
+    this.sectionQuizType = 'PRACTICE';
+    this.sectionQuizCountsTowardCertificate = false;
     this.sectionQuizTimeLimit.set(30);
     this.sectionQuizPassingScore.set(60);
     this.sectionQuizMaxAttempts.set(1);

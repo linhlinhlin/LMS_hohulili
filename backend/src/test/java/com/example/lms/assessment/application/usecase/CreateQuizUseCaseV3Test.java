@@ -53,7 +53,9 @@ class CreateQuizUseCaseV3Test {
             30,  // 30 minutes
             70,  // 70% passing score
             true,
-            true
+            true,
+            Quiz.AssessmentType.PRACTICE,
+            false
         );
     }
 
@@ -107,6 +109,8 @@ class CreateQuizUseCaseV3Test {
             assertThat(captured.getSettings().passingScore()).isEqualTo(70);
             assertThat(captured.getSettings().shuffleQuestions()).isTrue();
             assertThat(captured.getSettings().showResultsImmediately()).isTrue();
+            assertThat(captured.getAssessmentType()).isEqualTo(Quiz.AssessmentType.PRACTICE);
+            assertThat(captured.isCountsTowardCertificate()).isFalse();
         }
 
         @Test
@@ -149,7 +153,7 @@ class CreateQuizUseCaseV3Test {
             // Given
             CreateQuizUseCaseV3.CreateQuizCommand minimalCommand = 
                 new CreateQuizUseCaseV3.CreateQuizCommand(
-                    lessonId, "Basic Quiz", null, null, null, null, null
+                    lessonId, "Basic Quiz", null, null, null, null, null, null, null
                 );
             Quiz savedQuiz = Quiz.create(lessonId, "Basic Quiz", null, null);
             when(quizRepository.findByLessonId(lessonId)).thenReturn(java.util.List.of());

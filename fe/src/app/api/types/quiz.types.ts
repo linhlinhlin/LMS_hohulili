@@ -16,6 +16,9 @@ export type QuestionStatus = 'DRAFT' | 'ACTIVE' | 'INACTIVE';
 /** PostgreSQL: type VARCHAR(50) CHECK (...) in quizzes table */
 export type QuizType = 'LESSON_QUIZ' | 'ASSIGNMENT';
 
+/** Assessment taxonomy for learner/runtime policy */
+export type QuizAssessmentType = 'PRACTICE' | 'ASSESSMENT' | 'EXAM';
+
 /** PostgreSQL: status VARCHAR(50) CHECK (...) in quizzes table */
 export type QuizStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 
@@ -102,6 +105,9 @@ export interface Quiz {
     title: string | null;              // VARCHAR(500) NULLABLE
     description: string | null;        // TEXT NULLABLE
     type: QuizType;                    // VARCHAR(50) NOT NULL
+    quizType?: QuizAssessmentType;     // learner/offline taxonomy
+    countsTowardCertificate?: boolean;
+    allowOffline?: boolean;
     status: QuizStatus;                // VARCHAR(50) NOT NULL
     timeLimitMinutes: number | null;   // INTEGER NULLABLE
     maxAttempts: number;               // INTEGER NOT NULL DEFAULT 1
@@ -174,6 +180,8 @@ export interface CreateQuizRequest {
     title: string;
     description?: string;
     type?: QuizType;
+    quizType?: QuizAssessmentType;
+    countsTowardCertificate?: boolean;
     timeLimitMinutes?: number;
     maxAttempts?: number;
     passingScore?: number;
@@ -223,6 +231,9 @@ export interface QuizSummary {
     id: string;
     title: string | null;
     type: QuizType;
+    quizType?: QuizAssessmentType;
+    countsTowardCertificate?: boolean;
+    allowOffline?: boolean;
     status: QuizStatus;
     questionCount: number;
     timeLimitMinutes: number | null;
@@ -278,6 +289,8 @@ export interface QuizFormConfig {
 export interface QuizFormData {
     title: string;
     description?: string;
+    quizType?: QuizAssessmentType;
+    countsTowardCertificate?: boolean;
     timeLimitMinutes?: number;
     maxAttempts: number;
     passingScore: number;

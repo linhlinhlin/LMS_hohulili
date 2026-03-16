@@ -25,6 +25,7 @@ public class CreateChapterUseCaseV3 {
 
     private final ChapterRepositoryPort chapterRepository;
     private final CourseRepository courseRepository;
+    private final CourseDraftMutationService courseDraftMutationService;
 
     public record CreateChapterCommand(
         UUID courseId,
@@ -49,12 +50,15 @@ public class CreateChapterUseCaseV3 {
             }
         }
 
+        courseDraftMutationService.requireEditableCourse(command.courseId());
+
         UUID chapterId = chapterRepository.save(
             command.courseId(),
             command.title(),
             command.description(),
             command.orderIndex()
         );
+        courseDraftMutationService.markCourseChanged(command.courseId());
 
         log.info("Chapter {} created with ID {} (V3)", command.title(), chapterId);
         return chapterId;

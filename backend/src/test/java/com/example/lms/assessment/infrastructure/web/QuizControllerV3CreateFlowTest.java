@@ -107,7 +107,9 @@ class QuizControllerV3CreateFlowTest {
                 30,
                 70,
                 true,
-                true
+                true,
+                Quiz.AssessmentType.PRACTICE,
+                false
         );
         when(courseJpaRepository.findByLessonId(lessonId)).thenReturn(Optional.of(ownedCourse));
         when(lessonJpaRepository.findById(lessonId)).thenReturn(Optional.of(
@@ -310,6 +312,8 @@ class QuizControllerV3CreateFlowTest {
         return new QuizControllerV3.StructuredQuizRequest(
                 "Weekly Quiz",
                 "Quiz description",
+                "PRACTICE",
+                false,
                 30,
                 2,
                 70,

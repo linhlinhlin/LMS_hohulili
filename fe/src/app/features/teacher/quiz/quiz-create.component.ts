@@ -1,222 +1,185 @@
-import { Component, signal, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { QuestionApi, Question } from '../../../api/endpoints/question.api';
-import { QuizApi, CreateAssignmentQuizRequest } from '../../../api/endpoints/quiz.api';
 import { CourseApi } from '../../../api/client/course.api';
 import { CourseContentChapter, CourseSummary } from '../../../api/types/course.types';
-import { firstValueFrom } from 'rxjs';
 import { ToastService } from '../../../core/services/toast.service';
 
+type QuizCreationPath = 'LESSON' | 'ASSIGNMENT';
+
 @Component({
-  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-quiz-create',
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [FormsModule, LucideAngularModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './quiz-create.component.html',
 })
-export class QuizCreateComponent implements OnInit {
-  private router = inject(Router);
-  private route = inject(ActivatedRoute);
-  private questionApi = inject(QuestionApi);
-  private quizApi = inject(QuizApi);
-  private courseApi = inject(CourseApi);
-  private toast = inject(ToastService);
+export class QuizCreateComponent {
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly courseApi = inject(CourseApi);
+  private readonly toast = inject(ToastService);
 
-  currentStep = signal<number>(1);
-  courses = signal<CourseSummary[]>([]); // Updated type
-  sections = signal<Array<{ id: string; title: string }>>([]);
-  questions = signal<Question[]>([]);
-  filteredQuestions = signal<Question[]>([]);
-  searchTerm = '';
-  showErrors = false;
-  isPublishing = false;
+  readonly courses = signal<CourseSummary[]>([]);
+  readonly chapters = signal<Array<{ id: string; title: string }>>([]);
+  readonly selectedCourseId = signal('');
+  readonly selectedChapterId = signal('');
+  readonly selectedPath = signal<QuizCreationPath>('LESSON');
+  readonly creationPaths: QuizCreationPath[] = ['LESSON', 'ASSIGNMENT'];
+  readonly isLoadingCourses = signal(false);
+  readonly isLoadingChapters = signal(false);
 
-  quizForm = {
-    courseId: '',
-    sectionId: '',
-    title: '',
-    description: '',
-    timeLimit: 60,
-    passingScore: 60,
-    maxAttempts: 3,
-    shuffleQuestions: true,
-    shuffleOptions: false,
-    showResultsImmediately: true,
-    showCorrectAnswers: false,
-    selectedQuestions: [] as string[]
-  };
+  readonly canContinue = computed(() =>
+    this.selectedCourseId().length > 0 && this.selectedChapterId().length > 0
+  );
+  readonly selectedCourseTitle = computed(() =>
+    this.courses().find((course) => course.id === this.selectedCourseId())?.title || 'Chưa chọn'
+  );
+  readonly selectedChapterTitle = computed(() =>
+    this.chapters().find((chapter) => chapter.id === this.selectedChapterId())?.title || 'Chưa chọn'
+  );
 
-  async ngOnInit() {
-    await this.loadCourses();
-    await this.loadQuestions();
-  }
+  constructor() {
+    void this.loadCourses();
 
-  async loadCourses() {
-    try {
-      // Load all teacher's courses
-      this.courseApi.myCourses().subscribe({
-        next: (res: any) => {
-          const courseList = Array.isArray(res) ? res : (res.data || []);
-          this.courses.set(courseList);
-        },
-        error: () => { this.toast.error('Không thể tải danh sách khóa học. Vui lòng thử lại.'); }
-      });
-    } catch {
+    const courseId = this.route.snapshot.queryParamMap.get('courseId') ?? '';
+    const chapterId = this.route.snapshot.queryParamMap.get('chapterId')
+      ?? this.route.snapshot.queryParamMap.get('sectionId')
+      ?? '';
+    const path = this.route.snapshot.queryParamMap.get('path');
+
+    if (path === 'assignment') {
+      this.selectedPath.set('ASSIGNMENT');
+    }
+
+    if (courseId) {
+      this.selectedCourseId.set(courseId);
+      void this.loadChapters(courseId, chapterId);
     }
   }
 
-  onCourseChange(courseId: string) {
-    this.quizForm.sectionId = '';
-    this.sections.set([]);
-    if (!courseId) {
-      return;
-    }
-    this.courseApi.getCourseContent(courseId).subscribe({
-      next: (response: any) => {
-        const chapters: CourseContentChapter[] = response?.data ?? response ?? [];
-        this.sections.set(chapters.map(chapter => ({
-          id: chapter.id,
-          title: chapter.title
-        })));
+  async loadCourses(): Promise<void> {
+    this.isLoadingCourses.set(true);
+
+    this.courseApi.myCourses().subscribe({
+      next: (response: unknown) => {
+        const courseList = Array.isArray(response)
+          ? response
+          : (((response as { data?: CourseSummary[] } | null)?.data) ?? []);
+        this.courses.set(courseList);
+        this.isLoadingCourses.set(false);
+
+        if (!this.selectedCourseId() && courseList.length === 1) {
+          const courseId = courseList[0]?.id ?? '';
+          if (courseId) {
+            this.onCourseChange(courseId);
+          }
+        }
       },
       error: () => {
-        this.sections.set([]);
-        this.toast.error('Không thể tải danh sách chương của khóa học.');
+        this.isLoadingCourses.set(false);
+        this.toast.error('Không thể tải danh sách khóa học. Vui lòng thử lại.');
       }
     });
   }
 
-  async loadQuestions() {
-    try {
-      const questionsRes = await firstValueFrom(this.questionApi.getMyQuestions());
-      if (questionsRes) {
-        this.questions.set(questionsRes);
-        this.filteredQuestions.set(questionsRes);
-      }
-    } catch {
-      this.toast.error('Không thể tải danh sách câu hỏi. Vui lòng thử lại sau.');
-    }
-  }
+  onCourseChange(courseId: string): void {
+    this.selectedCourseId.set(courseId);
+    this.selectedChapterId.set('');
+    this.chapters.set([]);
 
-  filterQuestions() {
-    if (!this.searchTerm) {
-      this.filteredQuestions.set(this.questions());
+    if (!courseId) {
       return;
     }
-    const term = this.searchTerm.toLowerCase();
-    const filtered = this.questions().filter(q =>
-      q.content.toLowerCase().includes(term) ||
-      (q.tags && q.tags.toLowerCase().includes(term))
-    );
-    this.filteredQuestions.set(filtered);
+
+    void this.loadChapters(courseId);
   }
 
-  toggleQuestion(questionId: string) {
-    const index = this.quizForm.selectedQuestions.indexOf(questionId);
-    if (index > -1) {
-      this.quizForm.selectedQuestions.splice(index, 1);
-    } else {
-      this.quizForm.selectedQuestions.push(questionId);
+  onPathChange(path: QuizCreationPath | string): void {
+    this.selectedPath.set(path === 'ASSIGNMENT' ? 'ASSIGNMENT' : 'LESSON');
+  }
+
+  handleCancel(): void {
+    this.router.navigate(['/teacher/quiz/quiz-bank']);
+  }
+
+  continueCreation(): void {
+    if (!this.selectedCourseId()) {
+      this.toast.warning('Vui lòng chọn khóa học trước.');
+      return;
     }
-  }
 
-  isQuestionSelected(questionId: string): boolean {
-    return this.quizForm.selectedQuestions.includes(questionId);
-  }
-
-  getDifficultyLabel(difficulty: string): string {
-    switch (difficulty) {
-      case 'EASY': return 'Dễ';
-      case 'MEDIUM': return 'Trung bình';
-      case 'HARD': return 'Khó';
-      default: return difficulty;
+    if (!this.selectedChapterId()) {
+      this.toast.warning('Vui lòng chọn chương hoặc bài học để neo quiz.');
+      return;
     }
-  }
 
-  getStepTitle(): string {
-    switch (this.currentStep()) {
-      case 1: return 'Thông tin chung';
-      case 2: return 'Chọn câu hỏi';
-      case 3: return 'Xem lại và xuất bản';
-      default: return '';
+    if (this.selectedPath() === 'LESSON') {
+      this.router.navigate(['/teacher/quiz/create/chapter', this.selectedChapterId()], {
+        queryParams: { courseId: this.selectedCourseId() }
+      });
+      return;
     }
-  }
 
-  getSelectedCourseTitle(): string {
-    const c = this.courses().find(c => c.id === this.quizForm.courseId);
-    return c ? c.title : 'Chưa chọn';
-  }
-
-  getSelectedSectionTitle(): string {
-    const section = this.sections().find(item => item.id === this.quizForm.sectionId);
-    return section ? section.title : 'Chưa chọn';
-  }
-
-  handleNext() {
-    // Validate Step 1
-    if (this.currentStep() === 1) {
-      this.showErrors = true;
-      if (!this.quizForm.courseId || !this.quizForm.sectionId || !this.quizForm.title) {
-        return;
+    this.router.navigate(['/teacher/quiz/create/assignment', this.selectedCourseId()], {
+      queryParams: {
+        chapterId: this.selectedChapterId(),
+        path: 'assignment'
       }
-    }
+    });
+  }
 
-    // Validate Step 2
-    if (this.currentStep() === 2) {
-      if (this.quizForm.selectedQuestions.length === 0) {
-        this.toast.warning('Vui lòng chọn ít nhất 1 câu hỏi.');
-        return;
+  getPathTitle(path: QuizCreationPath): string {
+    return path === 'LESSON' ? 'Quiz trong lesson/chương' : 'Bài kiểm tra được giao';
+  }
+
+  getPathDescription(path: QuizCreationPath): string {
+    if (path === 'LESSON') {
+      return 'Dùng cho quiz học tập nằm cố định trong nội dung khóa học: luyện tập, bài kiểm tra, hoặc bài thi.';
+    }
+    return 'Dùng cho đánh giá được giao trong workspace vận hành. Flow này luôn online-only và không phải nguồn chân lý của lesson.';
+  }
+
+  getContinueLabel(): string {
+    return this.selectedPath() === 'LESSON'
+      ? 'Tiếp tục tạo quiz trong lesson'
+      : 'Tiếp tục sang flow đánh giá được giao';
+  }
+
+  private async loadChapters(courseId: string, preferredChapterId?: string): Promise<void> {
+    this.isLoadingChapters.set(true);
+
+    this.courseApi.getCourseContent(courseId).subscribe({
+      next: (response: unknown) => {
+        const chapters = (((response as { data?: CourseContentChapter[] } | null)?.data)
+          ?? (response as CourseContentChapter[])
+          ?? []);
+
+        const mappedChapters = chapters.map((chapter) => ({
+          id: chapter.id,
+          title: chapter.title,
+        }));
+
+        this.chapters.set(mappedChapters);
+        this.isLoadingChapters.set(false);
+
+        const targetChapterId = preferredChapterId && mappedChapters.some((chapter) => chapter.id === preferredChapterId)
+          ? preferredChapterId
+          : '';
+
+        if (targetChapterId) {
+          this.selectedChapterId.set(targetChapterId);
+          return;
+        }
+
+        if (mappedChapters.length === 1) {
+          this.selectedChapterId.set(mappedChapters[0].id);
+        }
+      },
+      error: () => {
+        this.isLoadingChapters.set(false);
+        this.toast.error('Không thể tải cấu trúc khóa học để chọn vị trí neo quiz.');
       }
-    }
-
-    if (this.currentStep() < 3) {
-      this.currentStep.set(this.currentStep() + 1);
-      this.showErrors = false;
-    } else {
-      // Publish quiz
-      this.publishQuiz();
-    }
-  }
-
-  handleCancel() {
-    if (this.currentStep() === 1) {
-      this.router.navigate(['/teacher/assessments/classes/quizzes']);
-    } else {
-      this.currentStep.set(this.currentStep() - 1);
-    }
-  }
-
-  async publishQuiz() {
-    if (this.isPublishing) return;
-    this.isPublishing = true;
-
-    try {
-      const request: CreateAssignmentQuizRequest = {
-        title: this.quizForm.title,
-        description: this.quizForm.description,
-        timeLimitMinutes: this.quizForm.timeLimit,
-        maxAttempts: this.quizForm.maxAttempts,
-        passingScore: this.quizForm.passingScore,
-        shuffleQuestions: this.quizForm.shuffleQuestions,
-        shuffleOptions: this.quizForm.shuffleOptions,
-        showResultsImmediately: this.quizForm.showResultsImmediately,
-        showCorrectAnswers: this.quizForm.showCorrectAnswers,
-        chapterId: this.quizForm.sectionId,
-        questionIds: this.quizForm.selectedQuestions,
-        publishImmediately: true
-      };
-
-      await firstValueFrom(this.quizApi.createCourseQuizV3(this.quizForm.courseId, request));
-
-      this.toast.success('Tạo bài kiểm tra thành công!');
-      // Navigate to assessment list
-      this.router.navigate(['/teacher/assessments/classes/quizzes']);
-    } catch (error: any) {
-      this.toast.error('Lỗi khi tạo bài kiểm tra: ' + (error?.message || 'Không xác định'));
-    } finally {
-      this.isPublishing = false;
-    }
+    });
   }
 }

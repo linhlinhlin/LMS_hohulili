@@ -114,6 +114,15 @@ export class OfflineQuizService {
     await this.ensureOfflineReady();
     const userId = getCurrentUserId();
     const mode = submission.mode ?? 'lesson';
+    const quiz = await this.getQuizById(submission.quizId, submission.sectionId);
+
+    if (!quiz) {
+      throw new Error('Bài kiểm tra này chưa được tải về cho chế độ ngoại tuyến.');
+    }
+
+    if (this.normalizeQuizType(quiz.quizType) !== 'PRACTICE') {
+      throw new Error('Bài kiểm tra này chỉ được làm online để bảo toàn tính nghiêm túc của đánh giá.');
+    }
 
     // Store in quizAttempts for tracking
     const attempt: OfflineQuizAttempt = {
@@ -201,5 +210,17 @@ export class OfflineQuizService {
 
       return false;
     }
+  }
+
+  private normalizeQuizType(rawQuizType: unknown): 'PRACTICE' | 'ASSESSMENT' | 'EXAM' {
+    const normalized = typeof rawQuizType === 'string'
+      ? rawQuizType.trim().toUpperCase()
+      : 'ASSESSMENT';
+
+    if (normalized === 'PRACTICE' || normalized === 'EXAM') {
+      return normalized;
+    }
+
+    return 'ASSESSMENT';
   }
 }

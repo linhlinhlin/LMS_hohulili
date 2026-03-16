@@ -7,7 +7,9 @@ export interface ContentBlock {
 }
 
 export interface TextBlockData {
-    html: string;
+    html?: string;
+    text?: string;
+    content?: string;
 }
 
 export interface ImageBlockData {

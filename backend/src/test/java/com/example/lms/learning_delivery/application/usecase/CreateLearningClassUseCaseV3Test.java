@@ -1,5 +1,6 @@
 package com.example.lms.learning_delivery.application.usecase;
 
+import com.example.lms.course_authoring.infrastructure.persistence.repository.CoursePublicationJpaRepository;
 import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepository;
 import com.example.lms.shared.exception.BusinessRuleException;
@@ -30,6 +31,9 @@ class CreateLearningClassUseCaseV3Test {
     @Mock
     private LearningClassRepository classRepository;
 
+    @Mock
+    private CoursePublicationJpaRepository publicationRepository;
+
     @InjectMocks
     private CreateLearningClassUseCaseV3 useCase;
 
@@ -41,6 +45,8 @@ class CreateLearningClassUseCaseV3Test {
     void setUp() {
         courseId = UUID.randomUUID();
         teacherId = UUID.randomUUID();
+        lenient().when(publicationRepository.findTopByCourseIdOrderByPublicationNumberDesc(courseId))
+                .thenReturn(java.util.Optional.empty());
 
         validCommand = new CreateLearningClassUseCaseV3.CreateClassCommand(
             courseId,
@@ -106,6 +112,8 @@ class CreateLearningClassUseCaseV3Test {
                     Instant.now(), Instant.now().plusSeconds(86400), null, null, null
                 );
             when(classRepository.existsByCode("CLASS-002")).thenReturn(false);
+            when(publicationRepository.findTopByCourseIdOrderByPublicationNumberDesc(courseId))
+                    .thenReturn(java.util.Optional.empty());
             ArgumentCaptor<LearningClass> captor = ArgumentCaptor.forClass(LearningClass.class);
             when(classRepository.save(captor.capture())).thenAnswer(inv -> inv.getArgument(0));
 

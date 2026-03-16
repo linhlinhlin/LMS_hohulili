@@ -1,5 +1,6 @@
 package com.example.lms.course_authoring.infrastructure.web;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.lms.assessment.infrastructure.persistence.entity.AssignmentJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.entity.QuestionJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.entity.QuizJpaEntity;
@@ -8,6 +9,7 @@ import com.example.lms.assessment.infrastructure.persistence.repository.Question
 import com.example.lms.assessment.infrastructure.persistence.repository.QuizJpaRepositoryV3;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
+import com.example.lms.course_authoring.infrastructure.service.CoursePublicationService;
 import com.example.lms.course_authoring.infrastructure.persistence.entity.LessonJpaEntity;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.EnrollmentRepositoryImpl;
@@ -59,6 +61,8 @@ public class CourseQueryControllerV3 {
     private final QuizJpaRepositoryV3 quizJpaRepository;
     private final AssignmentJpaRepository assignmentJpaRepository;
     private final QuestionJpaRepository questionJpaRepository;
+    private final CoursePublicationService coursePublicationService;
+    private final ObjectMapper objectMapper;
 
     @Operation(summary = "Get all published courses")
     @GetMapping
@@ -111,8 +115,14 @@ public class CourseQueryControllerV3 {
     @Operation(summary = "Get course details by ID")
     @GetMapping("/{courseId}")
     public ResponseEntity<ApiResponse<CourseDetailResponse>> getCourseById(
-            @PathVariable UUID courseId
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal UserJpaEntity currentUser
     ) {
+        CourseDetailResponse publishedDetail = getPublishedCourseDetail(courseId, currentUser);
+        if (publishedDetail != null) {
+            return ResponseEntity.ok(ApiResponse.success(publishedDetail, "ThÃ´ng tin khÃ³a há»c"));
+        }
+
         // FIX: Use findByIdWithContent to eagerly load chapters via JOIN FETCH
         // This prevents LazyInitializationException when open-in-view=false
         return courseRepository.findByIdWithContent(courseId)
@@ -120,10 +130,15 @@ public class CourseQueryControllerV3 {
                 .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Khóa học", courseId));
     }
 
+    public ResponseEntity<ApiResponse<CourseDetailResponse>> getCourseById(UUID courseId) {
+        return getCourseById(courseId, null);
+    }
+
     @Operation(summary = "Batch check course content versions (for PWA offline freshness)")
     @GetMapping("/versions")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getCourseVersions(
-            @RequestParam List<UUID> ids
+            @RequestParam List<UUID> ids,
+            @AuthenticationPrincipal UserJpaEntity currentUser
     ) {
         if (ids == null || ids.isEmpty() || ids.size() > 50) {
             return ResponseEntity.badRequest().body(ApiResponse.error("Cần 1-50 course IDs"));
@@ -131,12 +146,17 @@ public class CourseQueryControllerV3 {
 
         Map<String, Object> versions = new LinkedHashMap<>();
         for (UUID id : ids) {
-            courseRepository.findById(id).ifPresent(course -> {
+            CoursePublicationService.VersionInfo versionInfo = coursePublicationService.resolveVersionInfo(id, currentUserId(currentUser));
+            if (versionInfo != null) {
                 Map<String, Object> info = new LinkedHashMap<>();
-                info.put("contentVersion", course.getContentVersion());
-                info.put("updatedAt", course.getUpdatedAt() != null ? course.getUpdatedAt().toString() : null);
+                info.put("publicationId", versionInfo.publicationId() != null ? versionInfo.publicationId().toString() : null);
+                info.put("publicationNumber", versionInfo.publicationNumber());
+                info.put("contentVersion", versionInfo.contentVersion());
+                info.put("updatedAt", versionInfo.updatedAt() != null ? versionInfo.updatedAt().toString() : null);
+                info.put("versionMode", versionInfo.versionMode());
+                info.put("updateAvailable", versionInfo.updateAvailable());
                 versions.put(id.toString(), info);
-            });
+            }
         }
 
         return ResponseEntity.ok(ApiResponse.success(versions, "Course versions"));
@@ -148,6 +168,11 @@ public class CourseQueryControllerV3 {
             @PathVariable UUID courseId,
             @AuthenticationPrincipal UserJpaEntity currentUser
     ) {
+        List<ChapterResponse> publishedChapters = getPublishedCourseContent(courseId, currentUser);
+        if (publishedChapters != null) {
+            return ResponseEntity.ok(ApiResponse.success(publishedChapters, "Ná»™i dung khÃ³a há»c"));
+        }
+
         // Query chapters and lessons directly from JPA repositories
         // (CourseEntityMapper.toDomain() doesn't load chapters - they're separate entities)
         var chapterEntities = chapterRepository.findByCourseIdOrderByOrderIndex(courseId);
@@ -344,6 +369,11 @@ public class CourseQueryControllerV3 {
             @PathVariable UUID lessonId,
             @AuthenticationPrincipal UserJpaEntity currentUser
     ) {
+        LessonDetailResponse publishedLesson = getPublishedLessonDetail(lessonId, currentUser);
+        if (publishedLesson != null) {
+            return ResponseEntity.ok(ApiResponse.success(publishedLesson, "ThÃ´ng tin bÃ i há»c"));
+        }
+
         // Query chain: Lesson -> Chapter -> Course (3 indexed queries, no nested loops)
         return lessonRepository.findById(lessonId)
                 .flatMap(lesson -> chapterRepository.findById(lesson.getChapterId())
@@ -391,6 +421,9 @@ public class CourseQueryControllerV3 {
                                             .content(showContent ? contentText : null)
                                             .videoUrl(showContent ? lesson.getVideoUrl() : null)
                                             .streamVideoUid(lesson.getStreamVideoUid())
+                                            .quizType(quiz != null && quiz.getAssessmentType() != null ? quiz.getAssessmentType().name() : "ASSESSMENT")
+                                            .countsTowardCertificate(quiz != null && Boolean.TRUE.equals(quiz.getCountsTowardCertificate()))
+                                            .quizAllowOffline(quiz != null && quiz.getAssessmentType() == QuizJpaEntity.AssessmentType.PRACTICE)
                                             .quizTimeLimit(quiz != null ? quiz.getTimeLimitMinutes() : null)
                                             .quizPassingScore(quiz != null ? quiz.getPassingScore() : null)
                                             .quizMaxScore(quiz != null ? quiz.getPassingScore() : null)
@@ -459,7 +492,147 @@ public class CourseQueryControllerV3 {
     }
 
     // === Mapping methods ===
-    
+
+    private UUID currentUserId(UserJpaEntity currentUser) {
+        return currentUser != null ? currentUser.getId() : null;
+    }
+
+    private CourseDetailResponse getPublishedCourseDetail(UUID courseId, UserJpaEntity currentUser) {
+        Map<String, Object> publishedDetail = coursePublicationService.getPublishedDetail(courseId, currentUserId(currentUser));
+        if (publishedDetail == null) {
+            return null;
+        }
+
+        CourseDetailResponse response = objectMapper.convertValue(publishedDetail, CourseDetailResponse.class);
+        CoursePublicationService.VersionInfo versionInfo = coursePublicationService.resolveVersionInfo(courseId, currentUserId(currentUser));
+        if (versionInfo != null) {
+            response.setPublicationId(versionInfo.publicationId() != null ? versionInfo.publicationId().toString() : null);
+            response.setPublicationNumber(versionInfo.publicationNumber());
+            response.setVersionMode(versionInfo.versionMode());
+            response.setUpdateAvailable(versionInfo.updateAvailable());
+        }
+        return response;
+    }
+
+    private List<ChapterResponse> getPublishedCourseContent(UUID courseId, UserJpaEntity currentUser) {
+        List<Map<String, Object>> publishedContent = coursePublicationService.getPublishedContent(courseId, currentUserId(currentUser));
+        if (publishedContent == null) {
+            return null;
+        }
+
+        List<ChapterResponse> chapters = publishedContent.stream()
+                .map(item -> objectMapper.convertValue(item, ChapterResponse.class))
+                .toList();
+
+        Course course = courseRepository.findById(courseId).orElse(null);
+        if (course != null && !isContentUnlocked(course, currentUser)) {
+            return maskLockedPublishedChapters(chapters);
+        }
+
+        return chapters;
+    }
+
+    private LessonDetailResponse getPublishedLessonDetail(UUID lessonId, UserJpaEntity currentUser) {
+        Course course = courseRepository.findByLessonId(lessonId).orElse(null);
+        if (course == null) {
+            return null;
+        }
+
+        List<ChapterResponse> chapters = getPublishedCourseContent(course.getId(), currentUser);
+        if (chapters == null) {
+            return null;
+        }
+
+        for (ChapterResponse chapter : chapters) {
+            if (chapter.getLessons() == null) {
+                continue;
+            }
+            for (LessonResponse lesson : chapter.getLessons()) {
+                if (lessonId.toString().equals(lesson.getId())) {
+                    return toPublishedLessonDetail(course, chapter, lesson);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private LessonDetailResponse toPublishedLessonDetail(Course course, ChapterResponse chapter, LessonResponse lesson) {
+        String textContent = null;
+        String videoUrl = null;
+        String streamVideoUid = lesson.getStreamVideoUid();
+
+        if (lesson.getSections() != null) {
+            for (SectionResponse section : lesson.getSections()) {
+                if (textContent == null && "TEXT".equalsIgnoreCase(section.getType()) && section.getContent() != null) {
+                    textContent = section.getContent();
+                }
+                if (videoUrl == null && "VIDEO".equalsIgnoreCase(section.getType())) {
+                    videoUrl = section.getVideoUrl();
+                    if (streamVideoUid == null) {
+                        streamVideoUid = section.getStreamVideoUid();
+                    }
+                }
+            }
+        }
+
+        return LessonDetailResponse.builder()
+                .id(lesson.getId())
+                .title(lesson.getTitle())
+                .description(lesson.getDescription())
+                .type(lesson.getType())
+                .lessonType(lesson.getLessonType())
+                .durationMinutes(lesson.getDurationMinutes())
+                .orderIndex(lesson.getOrderIndex())
+                .content(textContent)
+                .videoUrl(videoUrl)
+                .streamVideoUid(streamVideoUid)
+                .quizType(lesson.getQuizType())
+                .countsTowardCertificate(lesson.getCountsTowardCertificate())
+                .quizAllowOffline(lesson.getQuizAllowOffline())
+                .quizTimeLimit(lesson.getQuizTimeLimit())
+                .quizPassingScore(lesson.getQuizPassingScore())
+                .quizMaxScore(lesson.getQuizMaxScore())
+                .quizMaxAttempts(lesson.getQuizMaxAttempts())
+                .assignment(lesson.getAssignment())
+                .sectionId(chapter.getId())
+                .sectionTitle(chapter.getTitle())
+                .courseId(course.getId().toString())
+                .courseTitle(course.getTitle())
+                .isPreview(Boolean.TRUE.equals(lesson.getIsFree()))
+                .locked(Boolean.TRUE.equals(lesson.getLocked()))
+                .sections(lesson.getSections())
+                .build();
+    }
+
+    private List<ChapterResponse> maskLockedPublishedChapters(List<ChapterResponse> chapters) {
+        for (ChapterResponse chapter : chapters) {
+            if (chapter.getLessons() == null) {
+                continue;
+            }
+            for (LessonResponse lesson : chapter.getLessons()) {
+                if (Boolean.TRUE.equals(lesson.getIsFree())) {
+                    lesson.setLocked(false);
+                    continue;
+                }
+                lesson.setLocked(true);
+                lesson.setStreamVideoUid(null);
+                if (lesson.getSections() == null) {
+                    continue;
+                }
+                for (SectionResponse section : lesson.getSections()) {
+                    section.setContent(null);
+                    section.setVideoUrl(null);
+                    section.setVideoType(null);
+                    section.setStreamVideoUid(null);
+                    section.setFileUrl(null);
+                    section.setQuizData(null);
+                }
+            }
+        }
+        return chapters;
+    }
+
     private CourseSummaryResponse toSummary(Course course) {
         String teacherName = resolveTeacherName(course.getTeacherId());
         String categoryName = resolveCategoryName(course.getCategoryId());
@@ -641,6 +814,9 @@ public class CourseQueryControllerV3 {
                 .orderIndex(lesson.getOrderIndex())
                 .isFree(lessonFree)
                 .locked(!showContent)
+                .quizType(quiz != null && quiz.getAssessmentType() != null ? quiz.getAssessmentType().name() : "ASSESSMENT")
+                .countsTowardCertificate(quiz != null && Boolean.TRUE.equals(quiz.getCountsTowardCertificate()))
+                .quizAllowOffline(quiz != null && quiz.getAssessmentType() == QuizJpaEntity.AssessmentType.PRACTICE)
                 .quizTimeLimit(quiz != null ? quiz.getTimeLimitMinutes() : null)
                 .quizPassingScore(quiz != null ? quiz.getPassingScore() : null)
                 .quizMaxScore(quiz != null ? quiz.getPassingScore() : null)
@@ -713,7 +889,10 @@ public class CourseQueryControllerV3 {
         }
 
         Map<String, Object> normalized = new LinkedHashMap<>();
-        normalized.put("quizType", asString(quizData.get("quizType"), "ASSESSMENT"));
+        String quizType = asString(quizData.get("quizType"), "ASSESSMENT");
+        normalized.put("quizType", quizType);
+        normalized.put("countsTowardCertificate", asBoolean(quizData.get("countsTowardCertificate"), false) && "EXAM".equalsIgnoreCase(quizType));
+        normalized.put("allowOffline", "PRACTICE".equalsIgnoreCase(quizType));
         normalized.put("timeLimitMinutes", asInteger(quizData.get("timeLimitMinutes"), 30));
         normalized.put("passingScore", asInteger(quizData.get("passingScore"), 60));
         normalized.put("maxAttempts", asInteger(quizData.get("maxAttempts"), 1));
@@ -990,6 +1169,10 @@ public class CourseQueryControllerV3 {
         private java.math.BigDecimal salePrice;
         private Boolean allowOfflineDownload;
         private Integer contentVersion;
+        private String publicationId;
+        private Integer publicationNumber;
+        private String versionMode;
+        private Boolean updateAvailable;
         // Counts & timestamps
         private Integer chapterCount;
         private String createdAt;
@@ -1018,6 +1201,9 @@ public class CourseQueryControllerV3 {
         private Integer orderIndex;
         private Boolean isFree;
         private Boolean locked;
+        private String quizType;
+        private Boolean countsTowardCertificate;
+        private Boolean quizAllowOffline;
         private Integer quizTimeLimit;
         private Integer quizPassingScore;
         private Integer quizMaxScore;
@@ -1057,6 +1243,9 @@ public class CourseQueryControllerV3 {
         private String content;
         private String videoUrl;
         private String streamVideoUid;
+        private String quizType;
+        private Boolean countsTowardCertificate;
+        private Boolean quizAllowOffline;
         private Integer quizTimeLimit;
         private Integer quizPassingScore;
         private Integer quizMaxScore;

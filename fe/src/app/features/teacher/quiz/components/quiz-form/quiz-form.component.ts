@@ -2,6 +2,7 @@ import { Component, input, output, OnInit, signal, inject, ChangeDetectionStrate
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Question } from '../../../../../api/endpoints/question.api';
+import { QuizAssessmentType } from '../../../../../api/endpoints/quiz.api';
 import { dateRangeValidator } from '../../../../../shared/validators/quiz.validators';
 import { QuestionSelectorComponent } from '../question-selector/question-selector.component';
 
@@ -26,6 +27,8 @@ import { QuestionSelectorComponent } from '../question-selector/question-selecto
     styleUrls: ['./quiz-form.component.scss']
 })
 export class QuizFormComponent implements OnInit {
+    readonly assessmentTypes: QuizAssessmentType[] = ['PRACTICE', 'ASSESSMENT', 'EXAM'];
+
     // Signal inputs (Angular v20+)
     readonly config = input.required<QuizFormConfig>();
     readonly questions = input<Question[]>([]);
@@ -64,9 +67,12 @@ export class QuizFormComponent implements OnInit {
 
     private initForm() {
         const cfg = this.config();
+        const defaultAssessmentType = cfg.defaultAssessmentType ?? 'ASSESSMENT';
         this.quizForm = this.fb.group({
             title: ['', [Validators.required, Validators.maxLength(255)]],
             description: [''],
+            quizType: [defaultAssessmentType, Validators.required],
+            countsTowardCertificate: [false],
             timeLimitMinutes: [cfg.defaults.timeLimitMinutes],
             maxAttempts: [
                 cfg.defaults.maxAttempts,
@@ -91,6 +97,12 @@ export class QuizFormComponent implements OnInit {
             // Add date range validator to the form group
             this.quizForm.addValidators(dateRangeValidator);
         }
+
+        this.quizForm.get('quizType')?.valueChanges.subscribe((quizType) => {
+            if (quizType !== 'EXAM' && this.quizForm.get('countsTowardCertificate')?.value) {
+                this.quizForm.patchValue({ countsTowardCertificate: false }, { emitEvent: false });
+            }
+        });
     }
 
     // ========== Step Navigation ==========
@@ -196,9 +208,47 @@ export class QuizFormComponent implements OnInit {
         return this.quizForm.valid && this.selectedQuestionIds().length > 0;
     }
 
+    get assessmentOptions(): QuizAssessmentType[] {
+        const options = this.config().assessmentOptions;
+        return options && options.length > 0 ? options : this.assessmentTypes;
+    }
+
+    get showAssessmentMetadata(): boolean {
+        return this.config().showAssessmentMetadata === true;
+    }
+
+    get canCountTowardCertificate(): boolean {
+        return this.config().allowCertificateToggle === true
+            && this.quizForm.get('quizType')?.value === 'EXAM';
+    }
+
+    getAssessmentLabel(type: QuizAssessmentType): string {
+        switch (type) {
+            case 'PRACTICE':
+                return 'Luyện tập';
+            case 'EXAM':
+                return 'Bài thi';
+            default:
+                return 'Bài kiểm tra';
+        }
+    }
+
+    getAssessmentHint(type: QuizAssessmentType): string {
+        switch (type) {
+            case 'PRACTICE':
+                return 'Dùng cho ôn tập, có thể cho phép ngoại tuyến.';
+            case 'EXAM':
+                return 'Dùng cho đánh giá nghiêm túc hoặc điều kiện chứng chỉ.';
+            default:
+                return 'Dùng cho bài kiểm tra online trong lesson.';
+        }
+    }
+
     // Form field getters for template
     get titleControl() { return this.quizForm.get('title'); }
     get descriptionControl() { return this.quizForm.get('description'); }
+    get quizTypeControl() { return this.quizForm.get('quizType'); }
+    get countsTowardCertificateControl() { return this.quizForm.get('countsTowardCertificate'); }
     get timeLimitControl() { return this.quizForm.get('timeLimitMinutes'); }
     get maxAttemptsControl() { return this.quizForm.get('maxAttempts'); }
     get passingScoreControl() { return this.quizForm.get('passingScore'); }
@@ -210,6 +260,10 @@ export class QuizFormComponent implements OnInit {
 
 export interface QuizFormConfig {
     showDates: boolean;  // Show start/end date fields for Assignment
+    showAssessmentMetadata?: boolean;
+    allowCertificateToggle?: boolean;
+    assessmentOptions?: QuizAssessmentType[];
+    defaultAssessmentType?: QuizAssessmentType;
     defaults: {
         timeLimitMinutes?: number;
         maxAttempts: number;
@@ -225,6 +279,8 @@ export interface QuizFormConfig {
 export interface QuizFormData {
     title: string;
     description?: string;
+    quizType?: QuizAssessmentType;
+    countsTowardCertificate?: boolean;
     timeLimitMinutes?: number;
     maxAttempts: number;
     passingScore: number;

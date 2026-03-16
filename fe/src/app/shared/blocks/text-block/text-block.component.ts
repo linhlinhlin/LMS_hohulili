@@ -24,15 +24,37 @@ export class TextBlockComponent {
         effect(() => {
             const value = this.data();
             if (!value) return;
-            if (value.html) {
-                this.safeHtml.set(this.sanitizer.bypassSecurityTrustHtml(value.html));
-            } else if ((value as any).text) {
-                // Fallback: plain text from quiz questions / content blocks
-                const text = (value as any).text;
-                // If text contains HTML tags, render as HTML; otherwise wrap in <p>
-                const rendered = text.includes('<') ? text : `<p>${text}</p>`;
-                this.safeHtml.set(this.sanitizer.bypassSecurityTrustHtml(rendered));
+            const rawValue = value.html ?? value.text ?? value.content;
+            if (!rawValue) {
+                this.safeHtml.set('');
+                return;
             }
+
+            const rendered = this.renderTextBlock(rawValue);
+            this.safeHtml.set(this.sanitizer.bypassSecurityTrustHtml(rendered));
         });
+    }
+
+    private renderTextBlock(rawValue: string): string {
+        const text = rawValue.trim();
+        if (!text) {
+            return '';
+        }
+
+        // Preserve trusted HTML blocks from the editor; wrap plain text payloads safely.
+        if (text.includes('<')) {
+            return text;
+        }
+
+        return `<p>${this.escapeHtml(text)}</p>`;
+    }
+
+    private escapeHtml(value: string): string {
+        return value
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 }

@@ -121,7 +121,14 @@ public class QuizManagementUseCase {
     }
 
     @Transactional
-    public Quiz updateQuizSettings(UUID quizId, Quiz.QuizSettings newSettings, String title, UUID userId, String userRole) {
+    public Quiz updateQuizSettings(
+            UUID quizId,
+            Quiz.QuizSettings newSettings,
+            String title,
+            Quiz.AssessmentType assessmentType,
+            boolean countsTowardCertificate,
+            UUID userId,
+            String userRole) {
         Quiz quiz = quizRepository.findById(QuizId.of(quizId))
                 .orElseThrow(() -> new EntityNotFoundException("Quiz", quizId));
 
@@ -131,11 +138,17 @@ public class QuizManagementUseCase {
             quiz.updateInfo(title, null);
         }
         quiz.updateSettings(newSettings);
+        quiz.updateAssessmentMetadata(assessmentType != null ? assessmentType : quiz.getAssessmentType(), countsTowardCertificate);
         return quizRepository.save(quiz);
     }
 
     @Transactional
-    public Quiz updateQuizSettings(UUID quizId, Quiz.QuizSettings newSettings, String title) {
+    public Quiz updateQuizSettings(
+            UUID quizId,
+            Quiz.QuizSettings newSettings,
+            String title,
+            Quiz.AssessmentType assessmentType,
+            boolean countsTowardCertificate) {
         Quiz quiz = quizRepository.findById(QuizId.of(quizId))
                 .orElseThrow(() -> new EntityNotFoundException("Quiz", quizId));
 
@@ -143,6 +156,7 @@ public class QuizManagementUseCase {
             quiz.updateInfo(title, null);
         }
         quiz.updateSettings(newSettings);
+        quiz.updateAssessmentMetadata(assessmentType != null ? assessmentType : quiz.getAssessmentType(), countsTowardCertificate);
         return quizRepository.save(quiz);
     }
 

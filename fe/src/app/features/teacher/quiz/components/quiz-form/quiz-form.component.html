@@ -45,6 +45,40 @@
           placeholder="Nhập mô tả (tùy chọn)"></textarea>
       </div>
 
+      @if (showAssessmentMetadata) {
+      <div class="form-group">
+        <label class="mb-3 block">Loại quiz</label>
+        <div class="grid gap-3 md:grid-cols-3">
+          @for (type of assessmentOptions; track type) {
+          <button
+            type="button"
+            class="rounded-xl border px-4 py-3 text-left transition"
+            [class.border-[#0056D2]]="quizTypeControl?.value === type"
+            [class.bg-[#0056D2]/5]="quizTypeControl?.value === type"
+            [class.shadow-sm]="quizTypeControl?.value === type"
+            [class.border-gray-200]="quizTypeControl?.value !== type"
+            [class.hover:border-[#0056D2]/40]="quizTypeControl?.value !== type"
+            (click)="quizTypeControl?.setValue(type)">
+            <div class="text-sm font-semibold text-slate-900">{{ getAssessmentLabel(type) }}</div>
+            <p class="mt-1 text-xs leading-5 text-slate-500">{{ getAssessmentHint(type) }}</p>
+          </button>
+          }
+        </div>
+      </div>
+      }
+
+      @if (canCountTowardCertificate) {
+      <div class="form-group">
+        <label class="checkbox-label">
+          <input type="checkbox" formControlName="countsTowardCertificate" />
+          <span>Tính vào điều kiện cấp chứng chỉ</span>
+        </label>
+        <p class="mt-2 text-xs text-slate-500">
+          Chỉ bật khi đây là bài thi bắt buộc để hoàn thành khóa học.
+        </p>
+      </div>
+      }
+
       <div class="form-row">
         <div class="form-group">
           <label for="timeLimitMinutes">Thời gian làm bài (phút)</label>

@@ -36,6 +36,11 @@ public class LearningClassJpaEntity {
     @Column(name = "course_version_id")
     private UUID courseVersionId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "version_mode", nullable = false)
+    @Builder.Default
+    private VersionMode versionMode = VersionMode.PINNED;
+
     @Column(name = "course_id", nullable = false)
     private UUID courseId;
 
@@ -96,6 +101,21 @@ public class LearningClassJpaEntity {
         private final String displayName;
 
         ScheduleType(String displayName) {
+            this.displayName = displayName;
+        }
+
+        public String getDisplayName() {
+            return displayName;
+        }
+    }
+
+    public enum VersionMode {
+        PINNED("Gắn phiên bản"),
+        FOLLOW_LATEST("Theo bản phát hành mới nhất");
+
+        private final String displayName;
+
+        VersionMode(String displayName) {
             this.displayName = displayName;
         }
 

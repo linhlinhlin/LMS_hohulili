@@ -39,7 +39,11 @@ export interface DownloadableCourse {
   downloadedAt?: Date;
   sizeBytes: number;
   contentVersion?: number;
+  publicationId?: string | null;
+  publicationNumber?: number | null;
+  versionModeSnapshot?: 'PINNED' | 'FOLLOW_LATEST' | 'LEGACY';
   isStale?: boolean;
+  staleReason?: string | null;
   completionPercent: number;
 }
 
@@ -295,6 +299,11 @@ export class CourseDownloadService {
             );
             const quizList: any[] = quizRes?.data ?? (Array.isArray(quizRes) ? quizRes : []);
             for (const quiz of quizList) {
+              const quizType = this.normalizeQuizAssessmentType(quiz.quizType);
+              if (!this.canDownloadQuizOffline(quizType)) {
+                continue;
+              }
+
               const qRes: any = await firstValueFrom(
                 this.http.get(`${environment.apiUrl}/api/v3/quizzes/${quiz.id}/questions`)
               );
@@ -307,6 +316,9 @@ export class CourseDownloadService {
                 courseId,
                 userId,
                 title: quiz.title || quiz.name || '',
+                quizType,
+                countsTowardCertificate: Boolean(quiz.countsTowardCertificate) && quizType === 'EXAM',
+                allowOffline: true,
                 passingScore: quiz.passingScore ?? 60,
                 timeLimit: quiz.timeLimitMinutes ?? quiz.timeLimit ?? undefined,
                 maxAttempts: quiz.maxAttempts ?? 1,
@@ -336,6 +348,11 @@ export class CourseDownloadService {
               continue;
             }
 
+            const quizType = this.normalizeQuizAssessmentType(section.quizData.quizType);
+            if (!this.canDownloadQuizOffline(quizType)) {
+              continue;
+            }
+
             const quizData: OfflineQuizData = {
               quizId: `section:${section.id}`,
               lessonId: lesson.id,
@@ -344,6 +361,9 @@ export class CourseDownloadService {
               courseId,
               userId,
               title: section.title || lesson.title,
+              quizType,
+              countsTowardCertificate: Boolean(section.quizData.countsTowardCertificate) && quizType === 'EXAM',
+              allowOffline: true,
               passingScore: section.quizData.passingScore ?? 60,
               timeLimit: section.quizData.timeLimitMinutes ?? undefined,
               maxAttempts: section.quizData.maxAttempts ?? 1,
@@ -379,7 +399,11 @@ export class CourseDownloadService {
         sizeBytes: totalSize,
         userId,
         contentVersion: courseData.contentVersion || 1,
+        publicationId: courseData.publicationId ?? null,
+        publicationNumber: courseData.publicationNumber ?? null,
+        versionModeSnapshot: courseData.versionMode ?? 'LEGACY',
         isStale: false,
+        staleReason: null,
       };
       await offlineDb.courses.put(course);
 
@@ -677,7 +701,10 @@ export class CourseDownloadService {
       fileName: section.fileName,
       sortOrder: section.sortOrder ?? index,
       quizData: section.quizData ? {
-        quizType: section.quizData.quizType,
+        quizType: this.normalizeQuizAssessmentType(section.quizData.quizType),
+        countsTowardCertificate: Boolean(section.quizData.countsTowardCertificate)
+          && this.normalizeQuizAssessmentType(section.quizData.quizType) === 'EXAM',
+        allowOffline: this.canDownloadQuizOffline(this.normalizeQuizAssessmentType(section.quizData.quizType)),
         timeLimitMinutes: section.quizData.timeLimitMinutes ?? null,
         passingScore: section.quizData.passingScore ?? null,
         maxAttempts: section.quizData.maxAttempts ?? null,
@@ -703,6 +730,22 @@ export class CourseDownloadService {
           : [],
       } : undefined,
     }));
+  }
+
+  private normalizeQuizAssessmentType(rawQuizType: unknown): 'PRACTICE' | 'ASSESSMENT' | 'EXAM' {
+    const normalized = typeof rawQuizType === 'string'
+      ? rawQuizType.trim().toUpperCase()
+      : 'ASSESSMENT';
+
+    if (normalized === 'PRACTICE' || normalized === 'EXAM') {
+      return normalized;
+    }
+
+    return 'ASSESSMENT';
+  }
+
+  private canDownloadQuizOffline(quizType: unknown): boolean {
+    return this.normalizeQuizAssessmentType(quizType) === 'PRACTICE';
   }
 
   private async resolveSectionVideoDownloadUrl(
@@ -784,7 +827,11 @@ export class CourseDownloadService {
         downloadedAt: c.downloadedAt,
         sizeBytes: c.sizeBytes,
         contentVersion: c.contentVersion,
+        publicationId: c.publicationId,
+        publicationNumber: c.publicationNumber,
+        versionModeSnapshot: c.versionModeSnapshot,
         isStale: c.isStale,
+        staleReason: c.staleReason,
         completionPercent: completionMap.get(c.id) ?? 0,
       }))
     );

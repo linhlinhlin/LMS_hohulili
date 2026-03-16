@@ -6,6 +6,7 @@ import com.example.lms.learning_delivery.application.dto.UpdateLessonProgressCom
 import com.example.lms.learning_delivery.application.usecase.TrackVideoProgressUseCase;
 import com.example.lms.learning_delivery.application.usecase.UpdateLessonProgressUseCase;
 import com.example.lms.learning_delivery.domain.model.Enrollment;
+import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.repository.EnrollmentRepository;
 import com.example.lms.learning_delivery.domain.repository.VideoProgressRepository;
 import com.example.lms.learning_delivery.domain.model.VideoProgress;
@@ -62,6 +63,7 @@ public class SyncUseCase {
         int accepted = 0;
         int rejected = 0;
         List<SyncResponse.Conflict> conflicts = new ArrayList<>();
+        List<String> ackedOperationIds = new ArrayList<>();
         UUID studentId = UUID.fromString(userId);
 
         for (SyncOperation op : operations) {
@@ -69,6 +71,9 @@ public class SyncUseCase {
                 boolean applied = processOperation(studentId, op, conflicts);
                 if (applied) {
                     accepted++;
+                    if (op.clientOperationId() != null && !op.clientOperationId().isBlank()) {
+                        ackedOperationIds.add(op.clientOperationId());
+                    }
                 } else {
                     rejected++;
                 }
@@ -96,7 +101,7 @@ public class SyncUseCase {
         log.info("Sync push complete: accepted={}, rejected={}, conflicts={}",
                 accepted, rejected, conflicts.size());
 
-        return new SyncResponse.PushResult(accepted, rejected, Instant.now(), conflicts);
+        return new SyncResponse.PushResult(accepted, rejected, Instant.now(), conflicts, ackedOperationIds);
     }
 
     /**
@@ -109,6 +114,44 @@ public class SyncUseCase {
 
         UUID studentId = UUID.fromString(userId);
         List<Map<String, Object>> changes = new ArrayList<>();
+        List<Map<String, Object>> courseStates = new ArrayList<>();
+        List<Map<String, Object>> lessonProgress = new ArrayList<>();
+        List<Map<String, Object>> videoProgress = new ArrayList<>();
+        List<Map<String, Object>> quizAttempts = new ArrayList<>();
+        List<SyncResponse.Conflict> conflicts = new ArrayList<>();
+
+        for (Enrollment enrollment : enrollmentRepository.findActiveByStudentId(studentId)) {
+            LearningClass learningClass = enrollment.getLearningClass();
+            UUID courseId = learningClass != null ? learningClass.getCourseId() : null;
+
+            Map<String, Object> courseState = new LinkedHashMap<>();
+            courseState.put("courseId", courseId != null ? courseId.toString() : null);
+            courseState.put("classId", learningClass != null && learningClass.getId() != null ? learningClass.getId().toString() : null);
+            courseState.put("publicationId", learningClass != null && learningClass.getCourseVersionId() != null ? learningClass.getCourseVersionId().toString() : null);
+            courseState.put("versionMode", learningClass != null && learningClass.getVersionMode() != null ? learningClass.getVersionMode().name() : "PINNED");
+            courseState.put("completionPercent", enrollment.getCompletionPercent());
+            courseState.put("status", enrollment.getStatus().name());
+            courseStates.add(courseState);
+
+            if (enrollment.getProgress() == null) {
+                continue;
+            }
+
+            for (Map.Entry<String, Enrollment.LessonProgress> entry : enrollment.getProgress().entrySet()) {
+                Enrollment.LessonProgress progress = entry.getValue();
+                Map<String, Object> lessonProgressItem = new LinkedHashMap<>();
+                lessonProgressItem.put("courseId", courseId != null ? courseId.toString() : null);
+                lessonProgressItem.put("enrollmentId", enrollment.getId() != null ? enrollment.getId().toString() : null);
+                lessonProgressItem.put("lessonId", entry.getKey());
+                lessonProgressItem.put("status", progress != null ? progress.getStatus() : null);
+                lessonProgressItem.put("watchSeconds", progress != null ? progress.getWatchSeconds() : null);
+                lessonProgressItem.put("grade", progress != null ? progress.getGrade() : null);
+                lessonProgressItem.put("lastActivity", progress != null && progress.getLastActivity() != null ? progress.getLastActivity().toString() : null);
+                lessonProgressItem.put("completedSections", progress != null && progress.getCompletedSections() != null ? progress.getCompletedSections() : List.of());
+                lessonProgress.add(lessonProgressItem);
+                changes.add(new LinkedHashMap<>(lessonProgressItem));
+            }
+        }
 
         // Single batch query replaces O(enrollments × lessons) N+1 loop
         Instant effectiveSince = since != null ? since : Instant.EPOCH;
@@ -116,7 +159,7 @@ public class SyncUseCase {
                 .findByStudentIdAndUpdatedAtAfter(studentId, effectiveSince);
 
         for (VideoProgress vp : videoChanges) {
-            changes.add(Map.of(
+            Map<String, Object> videoProgressItem = Map.of(
                     "entityType", "videoProgress",
                     "sectionId", vp.getSectionId(),
                     "lessonId", vp.getLessonId().toString(),
@@ -125,10 +168,12 @@ public class SyncUseCase {
                     "completed", vp.isCompleted(),
                     "lastPosition", vp.getLastPosition(),
                     "updatedAt", vp.getUpdatedAt().toString()
-            ));
+            );
+            videoProgress.add(videoProgressItem);
+            changes.add(videoProgressItem);
         }
 
-        return new SyncResponse.PullResult(Instant.now(), changes);
+        return new SyncResponse.PullResult(Instant.now(), changes, courseStates, lessonProgress, videoProgress, quizAttempts, conflicts);
     }
 
     /**
@@ -136,6 +181,10 @@ public class SyncUseCase {
      */
     public SyncResponse.Status getStatus(String userId) {
         return SyncResponse.Status.ok();
+    }
+
+    private SyncResponse.Conflict conflict(SyncOperation op, String entityType, String entityId, String message) {
+        return new SyncResponse.Conflict(entityType, entityId, message, op != null ? op.clientOperationId() : null);
     }
 
     // ─── Operation Routing ─────────────────────────────────────────────

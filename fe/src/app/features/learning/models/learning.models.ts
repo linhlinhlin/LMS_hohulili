@@ -49,6 +49,9 @@ export interface LessonSummary {
   isCompleted?: boolean; // Added for progress tracking
   isFree?: boolean; // Lesson is free (accessible without payment)
   locked?: boolean; // Lesson content is locked (requires payment)
+  quizType?: string;
+  countsTowardCertificate?: boolean;
+  quizAllowOffline?: boolean;
   sections?: SectionContent[]; // L3 content blocks from API
 }
 
@@ -80,6 +83,8 @@ export interface SectionQuizQuestionSummary {
 
 export interface SectionQuizData {
   quizType?: string;
+  countsTowardCertificate?: boolean;
+  allowOffline?: boolean;
   timeLimitMinutes?: number;
   passingScore?: number;
   maxAttempts?: number;
@@ -98,6 +103,9 @@ export interface LessonDetail extends LessonSummary {
   content: string; // HTML content (fallback)
   videoUrl?: string; // Fallback video URL
   streamVideoUid?: string; // Cloudflare Stream UID — use signed URL if present
+  quizType?: string;
+  countsTowardCertificate?: boolean;
+  quizAllowOffline?: boolean;
   thumbnail?: string;
   attachments: LessonAttachment[];
   sectionId: string;

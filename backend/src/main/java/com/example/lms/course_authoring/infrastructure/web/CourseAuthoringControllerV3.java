@@ -57,6 +57,7 @@ public class CourseAuthoringControllerV3 {
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository chapterJpaRepository;
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository lessonJpaRepository;
     private final com.example.lms.course_authoring.domain.repository.CourseRepository courseRepository;
+    private final com.example.lms.course_authoring.application.usecase.CourseDraftMutationService courseDraftMutationService;
     private final ObjectMapper objectMapper;
 
     @Operation(summary = "Create a new chapter")
@@ -198,6 +199,7 @@ public class CourseAuthoringControllerV3 {
         try {
             UUID courseId = UUID.fromString(request.courseId());
             verifyOwnership(courseId, user);
+            courseDraftMutationService.requireEditableCourse(courseId);
             var chapters = chapterJpaRepository.findByCourseIdOrderByOrderIndex(courseId);
             java.util.Map<UUID, com.example.lms.course_authoring.infrastructure.persistence.entity.ChapterJpaEntity> map = new java.util.HashMap<>();
             for (var ch : chapters) map.put(ch.getId(), ch);
@@ -206,6 +208,7 @@ public class CourseAuthoringControllerV3 {
                 if (ch != null) ch.setOrderIndex(i);
             }
             chapterJpaRepository.saveAll(chapters);
+            courseDraftMutationService.markCourseChanged(courseId);
             return ResponseEntity.ok(ApiResponse.success(null, "Đã sắp xếp lại chương"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("Định dạng UUID không hợp lệ"));
@@ -223,6 +226,7 @@ public class CourseAuthoringControllerV3 {
         try {
             UUID chapterId = UUID.fromString(request.chapterId());
             verifyOwnershipByChapter(chapterId, user);
+            courseDraftMutationService.requireEditableCourseByChapter(chapterId);
             var lessons = lessonJpaRepository.findByChapterIdOrderByOrderIndex(chapterId);
             java.util.Map<UUID, com.example.lms.course_authoring.infrastructure.persistence.entity.LessonJpaEntity> map = new java.util.HashMap<>();
             for (var l : lessons) map.put(l.getId(), l);
@@ -231,6 +235,7 @@ public class CourseAuthoringControllerV3 {
                 if (l != null) l.setOrderIndex(i);
             }
             lessonJpaRepository.saveAll(lessons);
+            courseDraftMutationService.markCourseChangedByChapter(chapterId);
             return ResponseEntity.ok(ApiResponse.success(null, "Đã sắp xếp lại bài học"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("Định dạng UUID không hợp lệ"));

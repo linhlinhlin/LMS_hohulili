@@ -4,6 +4,7 @@ import com.example.lms.course_authoring.application.dto.CourseResponse;
 import com.example.lms.course_authoring.application.dto.UpdateCourseCommand;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
+import com.example.lms.learning_delivery.domain.repository.EnrollmentRepositoryPort;
 import com.example.lms.shared.domain.valueobject.CourseCode;
 import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.exception.EntityNotFoundException;
@@ -43,6 +44,12 @@ class UpdateCourseUseCaseTest {
 
     @Mock
     private CourseRepository courseRepository;
+
+    @Mock
+    private EnrollmentRepositoryPort enrollmentRepository;
+
+    @Mock
+    private CourseDraftMutationService courseDraftMutationService;
 
     @InjectMocks
     private UpdateCourseUseCase useCase;

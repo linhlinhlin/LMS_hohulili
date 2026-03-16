@@ -52,6 +52,7 @@ public class ClassControllerV3 {
     private final DropStudentUseCase dropStudentUseCase;
     private final com.example.lms.learning_delivery.infrastructure.persistence.JpaLearningClassRepository classJpaRepository;
     private final com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository courseJpaRepository;
+    private final com.example.lms.course_authoring.infrastructure.persistence.repository.CoursePublicationJpaRepository coursePublicationJpaRepository;
     private final UserJpaRepository userJpaRepository;
     private final JpaEnrollmentRepository enrollmentJpaRepository;
 
@@ -156,6 +157,8 @@ public class ClassControllerV3 {
         map.put("maxStudents", e.getMaxStudents());
         map.put("studentCount", enrollmentJpaRepository.countByClassId(e.getId()));
         map.put("semester", e.getSemester());
+        map.put("courseVersionId", e.getCourseVersionId() != null ? e.getCourseVersionId().toString() : null);
+        map.put("versionMode", e.getVersionMode() != null ? e.getVersionMode().name() : "PINNED");
         map.put("startDate", e.getStartDate() != null ? e.getStartDate().toString() : null);
         map.put("endDate", e.getEndDate() != null ? e.getEndDate().toString() : null);
         map.put("createdAt", e.getCreatedAt() != null ? e.getCreatedAt().toString() : null);
@@ -283,6 +286,48 @@ public class ClassControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(response, "Thông tin lớp học"));
     }
 
+    @Operation(summary = "Adopt a published course release for this class")
+    @PostMapping("/{classId}/adopt-publication")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> adoptPublication(
+            @PathVariable String classId,
+            @RequestBody(required = false) AdoptPublicationRequest request,
+            @AuthenticationPrincipal UserJpaEntity user
+    ) {
+        var context = resolveOwnedClassContext(UUID.fromString(classId), user);
+        ensureInstructorLedCourse(context.course());
+
+        UUID publicationId = null;
+        if (request != null && request.getPublicationId() != null && !request.getPublicationId().isBlank()) {
+            publicationId = UUID.fromString(request.getPublicationId());
+        }
+
+        var publication = publicationId != null
+                ? coursePublicationJpaRepository.findById(publicationId)
+                : coursePublicationJpaRepository.findTopByCourseIdOrderByPublicationNumberDesc(context.course().getId());
+
+        var resolvedPublication = publication.orElseThrow(() -> new BusinessRuleException(
+                "PUBLICATION_NOT_FOUND",
+                "KhÃ³a há»c chÆ°a cÃ³ báº£n phÃ¡t hÃ nh Ä‘Æ°á»£c phÃª duyá»‡t."
+        ));
+
+        if (!resolvedPublication.getCourseId().equals(context.course().getId())) {
+            throw new AccessDeniedException("Ban khong the ap dung phien ban cua khoa hoc khac.");
+        }
+
+        var learningClass = context.learningClass();
+        learningClass.setCourseVersionId(resolvedPublication.getId());
+        learningClass.setVersionMode(LearningClassJpaEntity.VersionMode.PINNED);
+        classJpaRepository.save(learningClass);
+
+        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("classId", learningClass.getId().toString());
+        result.put("courseVersionId", resolvedPublication.getId().toString());
+        result.put("publicationNumber", resolvedPublication.getPublicationNumber());
+        result.put("versionMode", learningClass.getVersionMode().name());
+        return ResponseEntity.ok(ApiResponse.success(result, "Da cap nhat phien ban khoa hoc cho lop."));
+    }
+
     // ================================================================================================
     // Student Enrollment Management Endpoints
     // ================================================================================================
@@ -401,6 +446,13 @@ public class ClassControllerV3 {
         @jakarta.validation.constraints.NotBlank(message = "Email không được để trống")
         @jakarta.validation.constraints.Email(message = "Email không hợp lệ")
         private String email;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AdoptPublicationRequest {
+        private String publicationId;
     }
 
     // === Ownership Helpers ===

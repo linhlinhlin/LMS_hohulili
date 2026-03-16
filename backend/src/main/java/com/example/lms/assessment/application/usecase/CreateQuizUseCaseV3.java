@@ -31,7 +31,9 @@ public class CreateQuizUseCaseV3 {
         Integer timeLimitMinutes,
         Integer passingScore,
         Boolean shuffleQuestions,
-        Boolean showResultsImmediately
+        Boolean showResultsImmediately,
+        Quiz.AssessmentType assessmentType,
+        Boolean countsTowardCertificate
     ) {}
 
     @Transactional
@@ -58,6 +60,11 @@ public class CreateQuizUseCaseV3 {
             settings
         );
 
+        quiz.updateAssessmentMetadata(
+            command.assessmentType() != null ? command.assessmentType() : Quiz.AssessmentType.PRACTICE,
+            Boolean.TRUE.equals(command.countsTowardCertificate())
+        );
+
         // Save via repository port
         Quiz saved = quizRepository.save(quiz);
         
@@ -65,4 +72,3 @@ public class CreateQuizUseCaseV3 {
         return saved.getId().value();
     }
 }
-

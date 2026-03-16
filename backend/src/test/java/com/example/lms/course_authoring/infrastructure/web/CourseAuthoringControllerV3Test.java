@@ -5,6 +5,7 @@ import com.example.lms.course_authoring.application.usecase.CreateChapterUseCase
 import com.example.lms.course_authoring.application.usecase.CreateLessonUseCaseV3;
 import com.example.lms.course_authoring.application.usecase.DeleteChapterUseCase;
 import com.example.lms.course_authoring.application.usecase.DeleteLessonUseCase;
+import com.example.lms.course_authoring.application.usecase.CourseDraftMutationService;
 import com.example.lms.course_authoring.application.usecase.UpdateChapterUseCase;
 import com.example.lms.course_authoring.application.usecase.UpdateCourseUseCase;
 import com.example.lms.course_authoring.application.usecase.UpdateLessonUseCase;
@@ -86,6 +87,9 @@ class CourseAuthoringControllerV3Test {
     @Mock
     private CourseRepository courseRepository;
 
+    @Mock
+    private CourseDraftMutationService courseDraftMutationService;
+
     private CourseAuthoringControllerV3 controller;
     private ObjectMapper objectMapper;
 
@@ -105,6 +109,7 @@ class CourseAuthoringControllerV3Test {
                 chapterJpaRepository,
                 lessonJpaRepository,
                 courseRepository,
+                courseDraftMutationService,
                 objectMapper
         );
     }

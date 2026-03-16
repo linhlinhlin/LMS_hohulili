@@ -12,7 +12,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angu
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { QuizApi, QuizResponse } from '../../../api/endpoints/quiz.api';
+import { QuizApi, QuizAssessmentType, QuizResponse } from '../../../api/endpoints/quiz.api';
 import { QuestionApi, Question } from '../../../api/endpoints/question.api';
 import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
 
@@ -23,6 +23,12 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QuizEditComponent implements OnInit {
+  readonly quizTypeOptions: Array<{ value: QuizAssessmentType; label: string; hint: string }> = [
+    { value: 'PRACTICE', label: 'Luyện tập', hint: 'Phù hợp cho quiz ôn tập và có thể hỗ trợ ngoại tuyến.' },
+    { value: 'ASSESSMENT', label: 'Bài kiểm tra', hint: 'Dùng cho kiểm tra online trong lesson.' },
+    { value: 'EXAM', label: 'Bài thi', hint: 'Dùng cho đánh giá nghiêm túc hoặc điều kiện chứng chỉ.' },
+  ];
+
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -190,8 +196,19 @@ export class QuizEditComponent implements OnInit {
       ? 'Quay lại vận hành bài kiểm tra'
       : 'Quay lại chương trình học'
   );
+  readonly isLessonOwnedQuiz = computed(() => (this.quiz()?.assignmentScope ?? 'LESSON') === 'LESSON');
+  readonly availableQuizTypes = computed(() =>
+    this.isLessonOwnedQuiz()
+      ? this.quizTypeOptions
+      : this.quizTypeOptions.filter(option => option.value !== 'PRACTICE')
+  );
+  readonly canCountTowardCertificate = computed(() =>
+    this.isLessonOwnedQuiz() && this.quizForm.get('quizType')?.value === 'EXAM'
+  );
 
   readonly quizForm = this.fb.group({
+    quizType: ['ASSESSMENT' as QuizAssessmentType, Validators.required],
+    countsTowardCertificate: [false],
     timeLimitMinutes: [30, [Validators.min(5), Validators.max(120)]],
     maxAttempts: [1, [Validators.min(1), Validators.max(10)]],
     passingScore: [70, [Validators.min(0), Validators.max(100)]],
@@ -202,6 +219,14 @@ export class QuizEditComponent implements OnInit {
   });
 
   constructor() {
+    this.quizForm.get('quizType')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((quizType) => {
+        if (quizType !== 'EXAM' && this.quizForm.get('countsTowardCertificate')?.value) {
+          this.quizForm.patchValue({ countsTowardCertificate: false }, { emitEvent: false });
+        }
+      });
+
     this.quizForm.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
@@ -244,6 +269,10 @@ export class QuizEditComponent implements OnInit {
     try {
       await firstValueFrom(
         this.quizApi.updateQuizSettings(quizId, {
+          quizType: (formValue.quizType as QuizAssessmentType) ?? 'ASSESSMENT',
+          countsTowardCertificate: this.isLessonOwnedQuiz()
+            && formValue.quizType === 'EXAM'
+            && formValue.countsTowardCertificate === true,
           timeLimitMinutes: formValue.timeLimitMinutes ?? 30,
           maxAttempts: formValue.maxAttempts ?? 1,
           passingScore: formValue.passingScore ?? 70,
@@ -369,6 +398,8 @@ export class QuizEditComponent implements OnInit {
 
   private updateFormWithQuiz(quiz: QuizResponse): void {
     this.quizForm.patchValue({
+      quizType: (quiz.quizType as QuizAssessmentType) || 'ASSESSMENT',
+      countsTowardCertificate: quiz.quizType === 'EXAM' && quiz.countsTowardCertificate === true,
       timeLimitMinutes: quiz.timeLimitMinutes,
       maxAttempts: quiz.maxAttempts,
       passingScore: quiz.passingScore,

@@ -12,6 +12,7 @@ import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRep
 import com.example.lms.learning_delivery.application.usecase.CertificateUseCase;
 import com.example.lms.learning_delivery.application.usecase.SelfEnrollUseCase;
 import com.example.lms.learning_delivery.domain.model.Enrollment;
+import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.EnrollmentRepositoryImpl;
 import com.example.lms.learning_delivery.infrastructure.persistence.CertificateJpaRepository;
@@ -24,11 +25,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -98,6 +102,41 @@ class StudentEnrollmentControllerV3Test {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().isSuccess()).isTrue();
         assertThat(response.getBody().getData()).isEqualTo(List.of());
+    }
+
+    @Test
+    @DisplayName("issue certificate should return business error when required exam is not passed")
+    void issueCertificateReturnsBusinessErrorWhenIneligible() {
+        UUID studentId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        UserJpaEntity student = student(studentId);
+
+        Enrollment enrollment = Enrollment.builder()
+                .id(enrollmentId)
+                .studentId(studentId)
+                .status(Enrollment.EnrollmentStatus.ACTIVE)
+                .completionPercent(100)
+                .learningClass(LearningClass.builder()
+                        .id(UUID.randomUUID())
+                        .courseId(courseId)
+                        .name("Lớp học")
+                        .build())
+                .enrolledAt(Instant.now())
+                .build();
+
+        when(enrollmentRepository.findActiveWithClass(studentId)).thenReturn(List.of(enrollment));
+        when(certificateRepository.existsByEnrollmentId(enrollmentId)).thenReturn(false);
+        when(certificateUseCase.issueIfNotExists(enrollmentId, studentId, courseId))
+                .thenThrow(new IllegalStateException("Bạn cần vượt qua bài thi chứng chỉ"));
+
+        var response = controller.issueCertificate(student, enrollmentId);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().isSuccess()).isFalse();
+        assertThat(response.getBody().getMessage()).isEqualTo("Bạn cần vượt qua bài thi chứng chỉ");
+        verify(certificateRepository, never()).findByEnrollmentId(enrollmentId);
     }
 
     private UserJpaEntity student(UUID id) {

@@ -18,6 +18,7 @@ import java.util.UUID;
 public class CreateLessonUseCaseV3 {
 
     private final LessonRepositoryPort lessonRepository;
+    private final CourseDraftMutationService courseDraftMutationService;
 
     public record CreateLessonCommand(
         UUID chapterId,
@@ -34,6 +35,8 @@ public class CreateLessonUseCaseV3 {
     public UUID execute(CreateLessonCommand command) {
         log.info("Creating lesson {} for chapter {} (V3)", command.title(), command.chapterId());
 
+        courseDraftMutationService.requireEditableCourseByChapter(command.chapterId());
+
         UUID lessonId = lessonRepository.save(
             command.chapterId(),
             command.title(),
@@ -44,6 +47,7 @@ public class CreateLessonUseCaseV3 {
             command.orderIndex(),
             command.isFree()
         );
+        courseDraftMutationService.markCourseChangedByChapter(command.chapterId());
 
         log.info("Lesson created successfully with ID: {}", lessonId);
         return lessonId;

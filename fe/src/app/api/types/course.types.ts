@@ -136,6 +136,8 @@ export interface SectionQuizQuestionSummary {
 
 export interface SectionQuizData {
   quizType?: string;
+  countsTowardCertificate?: boolean;
+  allowOffline?: boolean;
   timeLimitMinutes?: number;
   passingScore?: number;
   maxAttempts?: number;
@@ -151,6 +153,9 @@ export interface LessonSummary {
   title: string;
   description: string;
   orderIndex: number;
+  quizType?: string;
+  countsTowardCertificate?: boolean;
+  quizAllowOffline?: boolean;
   content?: string; // Fallback
   videoUrl?: string; // Fallback
   sections?: SectionSummary[]; // Renamed from topics
@@ -178,6 +183,9 @@ export interface LessonDetail {
   durationMinutes: number;
   orderIndex: number;
   lessonType: 'LECTURE' | 'ASSIGNMENT' | 'QUIZ';
+  quizType?: string;
+  countsTowardCertificate?: boolean;
+  quizAllowOffline?: boolean;
   sectionId: string; // This technically links to Chapter now (chapter_id), so maybe rename to chapterId? Backend returns chapterId if entity updated? 
   // Backend Lesson.java has @JoinColumn(name = "chapter_id"). 
   // But DTOs might still call it sectionId if not updated. 

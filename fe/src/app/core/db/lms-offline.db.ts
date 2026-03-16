@@ -17,7 +17,11 @@ export interface OfflineCourse {
   sizeBytes: number;
   userId: string;
   contentVersion?: number;
+  publicationId?: string | null;
+  publicationNumber?: number | null;
+  versionModeSnapshot?: 'PINNED' | 'FOLLOW_LATEST' | 'LEGACY';
   isStale?: boolean;
+  staleReason?: 'UPDATE_AVAILABLE' | 'CLASS_ADOPTED_NEW_PUBLICATION' | 'LEGACY_PACKAGE' | 'UNKNOWN' | null;
 }
 
 export interface OfflineChapter {
@@ -78,6 +82,8 @@ export interface OfflineSectionQuizQuestionSummary {
 
 export interface OfflineSectionQuizData {
   quizType?: string;
+  countsTowardCertificate?: boolean;
+  allowOffline?: boolean;
   timeLimitMinutes?: number | null;
   passingScore?: number | null;
   maxAttempts?: number | null;
@@ -140,6 +146,12 @@ export interface SyncQueueItem {
   operationType: SyncOperationType;
   endpoint: string;
   payload: unknown;
+  clientOperationId?: string;
+  occurredAt?: Date;
+  courseId?: string;
+  publicationId?: string | null;
+  entityId?: string | null;
+  baseServerUpdatedAt?: string | null;
   createdAt: Date;
   syncStatus: 'pending' | 'synced' | 'failed';
   retryCount: number;
@@ -166,6 +178,9 @@ export interface OfflineQuizData {
   courseId: string;
   userId: string;
   title: string;
+  quizType?: string;
+  countsTowardCertificate?: boolean;
+  allowOffline?: boolean;
   passingScore: number;
   timeLimit?: number;       // minutes; null = no limit
   maxAttempts?: number;
@@ -314,6 +329,34 @@ export class LmsOfflineDatabase extends Dexie {
       syncQueue: '++id, entityType, userId, [syncStatus+createdAt], createdAt',
       downloadCheckpoints: '[userId+courseId]',
       quizData: '[userId+quizId], [userId+lessonId], [userId+courseId]',
+    });
+
+    this.version(7).stores({
+      courses: '[userId+id], userId, downloadedAt, [userId+publicationId]',
+      chapters: '[userId+id], [userId+courseId], [userId+courseId+sortOrder]',
+      lessons: '[userId+id], [userId+courseId], [userId+chapterId], [userId+courseId+sortOrder]',
+      progress: '++id, lessonId, courseId, userId, syncStatus, updatedAt',
+      submissions: '++id, assignmentId, userId, syncStatus, submittedAt',
+      quizAttempts: '++id, quizId, userId, syncStatus, submittedAt',
+      syncQueue: '++id, entityType, userId, [syncStatus+createdAt], [userId+courseId], clientOperationId, createdAt',
+      downloadCheckpoints: '[userId+courseId]',
+      quizData: '[userId+quizId], [userId+lessonId], [userId+courseId]',
+    }).upgrade(tx => {
+      return tx.table('courses').toCollection().modify(course => {
+        if (course.publicationId === undefined) course.publicationId = null;
+        if (course.publicationNumber === undefined) course.publicationNumber = null;
+        if (course.versionModeSnapshot == null) course.versionModeSnapshot = 'LEGACY';
+        if (course.staleReason === undefined) course.staleReason = null;
+      }).then(() =>
+        tx.table('syncQueue').toCollection().modify(item => {
+          if (item.clientOperationId == null) item.clientOperationId = null;
+          if (item.occurredAt == null) item.occurredAt = item.createdAt ?? new Date();
+          if (item.courseId === undefined) item.courseId = undefined;
+          if (item.publicationId === undefined) item.publicationId = null;
+          if (item.entityId === undefined) item.entityId = undefined;
+          if (item.baseServerUpdatedAt === undefined) item.baseServerUpdatedAt = null;
+        })
+      );
     });
   }
 }

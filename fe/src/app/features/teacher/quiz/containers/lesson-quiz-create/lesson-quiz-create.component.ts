@@ -89,6 +89,10 @@ export class LessonQuizCreateComponent implements OnInit {
 
     formConfig: QuizFormConfig = {
         showDates: false, // Lesson quiz doesn't need dates
+        showAssessmentMetadata: true,
+        allowCertificateToggle: true,
+        assessmentOptions: ['PRACTICE', 'ASSESSMENT', 'EXAM'],
+        defaultAssessmentType: 'PRACTICE',
         defaults: {
             maxAttempts: 1,
             passingScore: 60,
@@ -213,6 +217,8 @@ export class LessonQuizCreateComponent implements OnInit {
         const request: CreateLessonQuizRequest = {
             title: formData.title,
             description: formData.description,
+            quizType: formData.quizType ?? 'PRACTICE',
+            countsTowardCertificate: formData.quizType === 'EXAM' && formData.countsTowardCertificate === true,
             timeLimitMinutes: formData.timeLimitMinutes,
             maxAttempts: formData.maxAttempts,
             passingScore: formData.passingScore,

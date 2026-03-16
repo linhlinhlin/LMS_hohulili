@@ -16,6 +16,7 @@ import { AdaptiveVideoPlayerComponent } from '../adaptive-video-player/adaptive-
 import { NoteApi, NoteResponse, CreateNoteRequest, UpdateNoteRequest } from '../../../../api/endpoints/note.api';
 import { QuizApi } from '../../../../api/endpoints/quiz.api';
 import { ToastService } from '../../../../core/services/toast.service';
+import { NetworkStatusService } from '../../../../core/services/network-status.service';
 
 /**
  * Lesson Content Component
@@ -42,6 +43,7 @@ export class LessonContentComponent implements AfterViewInit {
   private noteApi = inject(NoteApi);
   private quizApi = inject(QuizApi);
   private toast = inject(ToastService);
+  private network = inject(NetworkStatusService);
 
   // --- Notes state ---
   readonly lessonNotes = signal<NoteResponse[]>([]);
@@ -223,6 +225,46 @@ export class LessonContentComponent implements AfterViewInit {
     const ls = this.lesson();
     return this.hasSections() && this.sectionIndex() < ls.sections!.length - 1;
   });
+  readonly quizPresentation = computed(() => {
+    const section = this.currentSection();
+    if (section?.type === 'QUIZ') {
+      const quizType = this.normalizeQuizType(section.quizData?.quizType);
+      const allowOffline = section.quizData?.allowOffline === true;
+      return {
+        quizType,
+        allowOffline,
+        label: this.getQuizTypeLabel(quizType),
+        supportLabel: allowOffline ? 'Hỗ trợ ngoại tuyến' : 'Online-only',
+        hint: allowOffline
+          ? 'Quiz luyện tập này có thể tải về để làm khi mất mạng.'
+          : (quizType === 'EXAM'
+            ? 'Bài thi này chỉ hỗ trợ trực tuyến để bảo toàn tính nghiêm túc.'
+            : 'Bài kiểm tra này chỉ hỗ trợ trực tuyến.')
+      };
+    }
+
+    if ((this.hasQuiz() || this.lesson().lessonType === LessonType.QUIZ) && !this.hasSections()) {
+      const quizType = this.normalizeQuizType(this.lesson().quizType);
+      const allowOffline = this.lesson().quizAllowOffline === true;
+      return {
+        quizType,
+        allowOffline,
+        label: this.getQuizTypeLabel(quizType),
+        supportLabel: allowOffline ? 'Hỗ trợ ngoại tuyến' : 'Online-only',
+        hint: allowOffline
+          ? 'Quiz luyện tập này có thể tải về để làm khi mất mạng.'
+          : (quizType === 'EXAM'
+            ? 'Bài thi này chỉ hỗ trợ trực tuyến để bảo toàn tính nghiêm túc.'
+            : 'Bài kiểm tra này chỉ hỗ trợ trực tuyến.')
+      };
+    }
+
+    return null;
+  });
+  readonly isQuizOfflineBlocked = computed(() => {
+    const metadata = this.quizPresentation();
+    return !!metadata && !this.network.online() && !metadata.allowOffline;
+  });
 
   isYouTubeVideo(): boolean {
     const currentSec = this.currentSection();
@@ -354,6 +396,11 @@ export class LessonContentComponent implements AfterViewInit {
     const ls = this.lesson();
     const currentUrl = this.router.url;
     const section = this.currentSection();
+    const quizMetadata = this.quizPresentation();
+    if (this.isQuizOfflineBlocked()) {
+      this.toast.warning('Quiz này chỉ hỗ trợ trực tuyến. Hãy kết nối mạng để tiếp tục.');
+      return;
+    }
     try {
       if (section?.type === 'QUIZ' && section.id) {
         await this.router.navigate(['/student/quiz/take', section.id], {
@@ -363,6 +410,8 @@ export class LessonContentComponent implements AfterViewInit {
             courseId: ls.courseId,
             sectionId: section.id,
             title: section.title || ls.title,
+            quizType: quizMetadata?.quizType,
+            allowOffline: quizMetadata?.allowOffline === true,
             returnUrl: currentUrl
           }
         });
@@ -375,6 +424,8 @@ export class LessonContentComponent implements AfterViewInit {
           lessonId: ls.id,
           courseId: ls.courseId,
           title: ls.title,
+          quizType: quizMetadata?.quizType,
+          allowOffline: quizMetadata?.allowOffline === true,
           returnUrl: currentUrl
         }
       });
@@ -440,5 +491,24 @@ export class LessonContentComponent implements AfterViewInit {
       'ASSIGNMENT': 'Bài tập'
     };
     return labels[type] || type;
+  }
+
+  getQuizTypeLabel(type: string): string {
+    switch (this.normalizeQuizType(type)) {
+      case 'PRACTICE':
+        return 'Quiz luyện tập';
+      case 'EXAM':
+        return 'Bài thi';
+      default:
+        return 'Bài kiểm tra';
+    }
+  }
+
+  private normalizeQuizType(type: string | undefined | null): 'PRACTICE' | 'ASSESSMENT' | 'EXAM' {
+    const normalized = (type || '').toUpperCase();
+    if (normalized === 'PRACTICE' || normalized === 'EXAM') {
+      return normalized;
+    }
+    return 'ASSESSMENT';
   }
 }

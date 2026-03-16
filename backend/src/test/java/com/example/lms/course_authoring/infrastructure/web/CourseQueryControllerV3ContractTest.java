@@ -1,5 +1,6 @@
 package com.example.lms.course_authoring.infrastructure.web;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.lms.assessment.infrastructure.persistence.entity.QuestionJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.repository.QuestionJpaRepository;
 import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentJpaRepository;
@@ -11,6 +12,7 @@ import com.example.lms.course_authoring.infrastructure.persistence.entity.Lesson
 import com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.CourseCategoryJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository;
+import com.example.lms.course_authoring.infrastructure.service.CoursePublicationService;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepository;
@@ -55,6 +57,8 @@ class CourseQueryControllerV3ContractTest {
     @Mock private QuizJpaRepositoryV3 quizJpaRepository;
     @Mock private AssignmentJpaRepository assignmentJpaRepository;
     @Mock private QuestionJpaRepository questionJpaRepository;
+    @Mock private CoursePublicationService coursePublicationService;
+    @Mock private ObjectMapper objectMapper;
 
     @InjectMocks
     private CourseQueryControllerV3 controller;

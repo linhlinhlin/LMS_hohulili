@@ -1,7 +1,5 @@
 # Changelog
 
-> Cập nhật mới nhất: thêm fix learner section quiz cho khóa học miễn phí và case student đã được enroll nhưng chưa có payment record.
-
 Mọi thay đổi đáng chú ý của dự án này sẽ được ghi ở đây.
 
 Định dạng bám theo tinh thần của [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), nhưng dùng tiếng Việt và phù hợp với cách vận hành của repo này.
@@ -12,12 +10,49 @@ Mọi thay đổi đáng chú ý của dự án này sẽ được ghi ở đây
 
 - Sửa guard truy cập `section quiz` để không chặn student trong khóa học `FREE`.
 - Cho phép truy cập khi student có enrollment hợp lệ (`ACTIVE` hoặc `COMPLETED`) dù không đi qua payment flow.
+- Sửa learner quiz renderer để hiểu `contentBlocks.data.content`, không còn vào `quiz/take` rồi trắng nội dung câu hỏi/đáp án.
+- Chuẩn hóa metadata assessment cho quiz:
+  - `PRACTICE`
+  - `ASSESSMENT`
+  - `EXAM`
+- Chỉ cho phép `PRACTICE` tải và nộp offline; `ASSESSMENT` và `EXAM` là online-only.
+- Route `/teacher/quiz/create` không còn tạo quiz qua legacy course/class path; nay là hub điều hướng sang flow lesson quiz hoặc assignment assessment.
+- Gắn certificate issuance với rule:
+  - phải hoàn thành 100%
+  - phải pass mọi `EXAM` có `countsTowardCertificate = true`
+
+### PWA / Publication / Sync
+
+- Thêm `course_publications` làm learner-facing source of truth cho course đã publish.
+- Thêm `draftChangeStatus` cho course shell để tách draft workflow khỏi publication đang live.
+- Kích hoạt `learning_classes.courseVersionId` và `versionMode` (`PINNED` / `FOLLOW_LATEST`) cho class.
+- Tách teacher draft content query khỏi learner/public course query.
+- Chuẩn hóa offline package metadata theo publication:
+  - `publicationId`
+  - `publicationNumber`
+  - `versionModeSnapshot`
+  - `staleReason`
+- Mở rộng sync contract cho offline queue:
+  - `clientOperationId`
+  - `occurredAt`
+  - `courseId`
+  - `publicationId`
+  - `entityId`
+  - `baseServerUpdatedAt`
+- `sync/pull` trả thêm snapshot tối thiểu cho `courseStates`, `lessonProgress`, `videoProgress`, `quizAttempts`, và `conflicts`.
 
 ### Tài liệu
 
 - Dựng lại trục tài liệu chuẩn theo hướng Việt-first.
 - Thêm `CONTRIBUTING.md`, nhóm `docs/reference/`, và `docs/runbooks/`.
 - Làm sạch docs index, tách rõ tài liệu chuẩn, tài liệu working, và tài liệu historical.
+- Thêm spec `docs/superpowers/specs/2026-03-16-learner-quiz-policy-normalization.md`.
+- Rewrite `docs/architecture/STREAMING_PWA_ROADMAP.md` theo truth pass, không overclaim PWA/offline đã hoàn tất.
+- Thêm canonical spec `docs/architecture/2026-03-16-course-publication-pwa-sync-model.md`.
+- Thêm runbook:
+  - `docs/runbooks/PWA_OFFLINE_RUNBOOK.md`
+  - `docs/runbooks/PUBLICATION_REFRESH_RUNBOOK.md`
+  - `docs/runbooks/SYNC_CONFLICT_RUNBOOK.md`
 
 ## [2026-03-15]
 

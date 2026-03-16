@@ -4,12 +4,16 @@ import { Question } from './question.api';
 import { Observable, catchError, map } from 'rxjs';
 import { QUIZ_ENDPOINTS } from './quiz.endpoints';
 
+export type QuizAssessmentType = 'PRACTICE' | 'ASSESSMENT' | 'EXAM';
+
 // ============================================
 // Request DTOs
 // ============================================
 
 export interface CreateQuizRequest {
   title?: string;
+  quizType?: QuizAssessmentType;
+  countsTowardCertificate?: boolean;
   questionIds: string[];
   timeLimitMinutes?: number;
   maxAttempts?: number;
@@ -41,6 +45,8 @@ export interface AttemptAnswer {
 export interface CreateLessonQuizRequest {
   title: string;
   description?: string;
+  quizType?: QuizAssessmentType;
+  countsTowardCertificate?: boolean;
   timeLimitMinutes?: number;
   maxAttempts: number;
   passingScore: number;
@@ -55,6 +61,8 @@ export interface CreateLessonQuizRequest {
 export interface CreateAssignmentQuizRequest {
   title: string;
   description?: string;
+  quizType?: QuizAssessmentType;
+  countsTowardCertificate?: boolean;
   timeLimitMinutes?: number;
   maxAttempts: number;
   passingScore: number;
@@ -79,6 +87,9 @@ export interface QuizResponse {
   lessonId: string;
   title?: string;
   description?: string;
+  quizType?: QuizAssessmentType;
+  countsTowardCertificate?: boolean;
+  allowOffline?: boolean;
   assignmentScope?: 'LESSON' | 'COURSE' | 'CLASS';
   courseId?: string;
   courseTitle?: string;
@@ -124,6 +135,9 @@ export interface SectionQuizResponse {
   lessonId: string;
   sectionId: string;
   title: string;
+  quizType?: QuizAssessmentType;
+  countsTowardCertificate?: boolean;
+  allowOffline?: boolean;
   timeLimitMinutes?: number | null;
   maxAttempts: number;
   passingScore: number;
@@ -140,6 +154,8 @@ export interface SectionQuizSubmitResponse {
   quizId: string;
   lessonId: string;
   sectionId: string;
+  quizType?: QuizAssessmentType;
+  countsTowardCertificate?: boolean;
   status: 'SUBMITTED';
   score?: number | null;
   correctAnswers?: number | null;
@@ -209,6 +225,9 @@ interface BaseQuizResponse {
   title: string;
   description?: string;
   type: 'LESSON_QUIZ' | 'ASSIGNMENT';
+  quizType?: QuizAssessmentType;
+  countsTowardCertificate?: boolean;
+  allowOffline?: boolean;
   assignmentScope?: 'LESSON' | 'COURSE' | 'CLASS';
   classId?: string;
   className?: string;
@@ -388,6 +407,8 @@ export class QuizApi {
    */
   updateQuizSettings(quizId: string, settings: {
     title?: string;
+    quizType?: QuizAssessmentType;
+    countsTowardCertificate?: boolean;
     timeLimitMinutes?: number | null;
     maxAttempts?: number;
     passingScore?: number;

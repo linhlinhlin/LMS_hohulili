@@ -292,7 +292,7 @@ public class QuizControllerV3 {
 
     @PostMapping("/lessons/{lessonId}/sections/{sectionId}/submit")
     @PreAuthorize("hasRole('STUDENT')")
-    @Transactional(readOnly = true)
+    @Transactional
     @Operation(summary = "Submit answers for an embedded section quiz")
     public ResponseEntity<ApiResponse<Map<String, Object>>> submitSectionQuiz(
             @PathVariable UUID lessonId,
@@ -309,11 +309,17 @@ public class QuizControllerV3 {
                             definition.showCorrectAnswers(),
                             answers));
 
+            if (result.isPassed()) {
+                recordPassedSectionQuiz(user.getId(), courseIdForLesson(lessonId), lessonId, sectionId);
+            }
+
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("id", definition.quizId());
             payload.put("quizId", definition.quizId());
             payload.put("lessonId", lessonId.toString());
             payload.put("sectionId", sectionId.toString());
+            payload.put("quizType", definition.assessmentType().name());
+            payload.put("countsTowardCertificate", definition.countsTowardCertificate());
             payload.put("status", "SUBMITTED");
             payload.put("score", result.score());
             payload.put("correctAnswers", result.correctAnswers());
@@ -380,8 +386,14 @@ public class QuizControllerV3 {
                 .dueAt(dueAt)
                 .lockAt(lockAt)
                 .build();
-        Quiz updated = quizManagementUseCase.updateQuizSettings(quizId, newSettings, request.title(),
-                user.getId(), user.getRole().name());
+        Quiz updated = quizManagementUseCase.updateQuizSettings(
+                quizId,
+                newSettings,
+                request.title(),
+                parseAssessmentType(request.quizType(), null),
+                Boolean.TRUE.equals(request.countsTowardCertificate()),
+                user.getId(),
+                user.getRole().name());
         return ResponseEntity.ok(ApiResponse.success(toQuizMap(updated), "Cập nhật cài đặt bài kiểm tra"));
     }
 
@@ -629,6 +641,8 @@ public class QuizControllerV3 {
             UUID lessonId,
             UUID sectionId,
             String title,
+            Quiz.AssessmentType assessmentType,
+            boolean countsTowardCertificate,
             Integer timeLimitMinutes,
             Integer maxAttempts,
             Integer passingScore,
@@ -674,6 +688,9 @@ public class QuizControllerV3 {
                 lessonId,
                 sectionId,
                 asString(firstNonNull(quizData.get("title"), blockData.get("title"), lesson.getTitle()), lesson.getTitle()),
+                parseAssessmentType(quizData.get("quizType"), Quiz.AssessmentType.ASSESSMENT),
+                asBoolean(quizData.get("countsTowardCertificate"), false)
+                        && parseAssessmentType(quizData.get("quizType"), Quiz.AssessmentType.ASSESSMENT) == Quiz.AssessmentType.EXAM,
                 asInteger(quizData.get("timeLimitMinutes"), 30),
                 asInteger(quizData.get("maxAttempts"), 1),
                 asInteger(quizData.get("passingScore"), 60),
@@ -726,6 +743,9 @@ public class QuizControllerV3 {
         map.put("lessonId", definition.lessonId().toString());
         map.put("sectionId", definition.sectionId().toString());
         map.put("title", definition.title());
+        map.put("quizType", definition.assessmentType().name());
+        map.put("countsTowardCertificate", definition.countsTowardCertificate());
+        map.put("allowOffline", definition.assessmentType() == Quiz.AssessmentType.PRACTICE);
         map.put("timeLimitMinutes", definition.timeLimitMinutes());
         map.put("maxAttempts", definition.maxAttempts());
         map.put("passingScore", definition.passingScore());
@@ -816,6 +836,57 @@ public class QuizControllerV3 {
         return fallback;
     }
 
+    private Quiz.AssessmentType parseAssessmentType(Object value, Quiz.AssessmentType fallback) {
+        if (value == null) {
+            return fallback;
+        }
+
+        try {
+            return Quiz.AssessmentType.valueOf(value.toString().trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            return fallback;
+        }
+    }
+
+    private UUID courseIdForLesson(UUID lessonId) {
+        return courseJpaRepository.findByLessonId(lessonId)
+                .map(CourseJpaEntity::getId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Course for lesson", lessonId));
+    }
+
+    private void recordPassedSectionQuiz(UUID studentId, UUID courseId, UUID lessonId, UUID sectionId) {
+        enrollmentJpaRepository.findByStudentIdAndCourseId(studentId, courseId).ifPresent(enrollment -> {
+            Map<String, EnrollmentJpaEntity.LessonProgressData> progress = enrollment.getProgress();
+            if (progress == null) {
+                progress = new HashMap<>();
+                enrollment.setProgress(progress);
+            }
+
+            String lessonKey = lessonId.toString();
+            EnrollmentJpaEntity.LessonProgressData lessonProgress = progress.getOrDefault(
+                    lessonKey,
+                    EnrollmentJpaEntity.LessonProgressData.builder()
+                            .status("UNLOCKED")
+                            .completedSections(new ArrayList<>())
+                            .build());
+
+            List<String> completedSections = lessonProgress.getCompletedSections();
+            if (completedSections == null) {
+                completedSections = new ArrayList<>();
+                lessonProgress.setCompletedSections(completedSections);
+            }
+
+            String marker = "quiz:" + sectionId;
+            if (!completedSections.contains(marker)) {
+                completedSections.add(marker);
+            }
+
+            lessonProgress.setLastActivity(Instant.now().toString());
+            progress.put(lessonKey, lessonProgress);
+            enrollmentJpaRepository.save(enrollment);
+        });
+    }
+
     private Object firstNonNull(Object... values) {
         for (Object value : values) {
             if (value != null) {
@@ -831,6 +902,9 @@ public class QuizControllerV3 {
         map.put("lessonId", quiz.getLessonId().toString());
         map.put("title", quiz.getTitle());
         map.put("description", quiz.getDescription());
+        map.put("quizType", quiz.getAssessmentType().name());
+        map.put("countsTowardCertificate", quiz.isCountsTowardCertificate());
+        map.put("allowOffline", quiz.getAssessmentType() == Quiz.AssessmentType.PRACTICE);
         map.put("timeLimitMinutes", quiz.getSettings().timeLimitMinutes());
         map.put("maxAttempts", quiz.getSettings().maxAttempts());
         map.put("passingScore", quiz.getSettings().passingScore());
@@ -855,6 +929,9 @@ public class QuizControllerV3 {
         map.put("lessonId", entity.getLessonId().toString());
         map.put("title", entity.getTitle());
         map.put("description", entity.getDescription());
+        map.put("quizType", entity.getAssessmentType().name());
+        map.put("countsTowardCertificate", Boolean.TRUE.equals(entity.getCountsTowardCertificate()));
+        map.put("allowOffline", entity.getAssessmentType() == QuizJpaEntity.AssessmentType.PRACTICE);
         map.put("timeLimitMinutes", entity.getTimeLimitMinutes());
         map.put("maxAttempts", entity.getMaxAttempts());
         map.put("passingScore", entity.getPassingScore());
@@ -1101,6 +1178,8 @@ public class QuizControllerV3 {
 
     public record UpdateQuizSettingsRequest(
             String title,
+            String quizType,
+            Boolean countsTowardCertificate,
             @Min(value = 1, message = "Thời gian giới hạn phải lớn hơn 0")
             Integer timeLimitMinutes,
             @Min(value = 1, message = "Số lần làm bài tối đa phải lớn hơn 0")
@@ -1126,6 +1205,8 @@ public class QuizControllerV3 {
             @NotBlank(message = "Quiz title is required")
             String title,
             String description,
+            String quizType,
+            Boolean countsTowardCertificate,
             @Min(value = 1, message = "Time limit must be greater than 0")
             Integer timeLimitMinutes,
             @Min(value = 1, message = "Max attempts must be greater than 0")
@@ -1283,7 +1364,9 @@ public class QuizControllerV3 {
                 request.timeLimitMinutes(),
                 request.passingScore(),
                 request.shuffleQuestions(),
-                request.showResultsImmediately()
+                request.showResultsImmediately(),
+                parseAssessmentType(request.quizType(), Quiz.AssessmentType.PRACTICE),
+                Boolean.TRUE.equals(request.countsTowardCertificate())
         ));
 
         for (int i = 0; i < questionIds.size(); i++) {
@@ -1309,8 +1392,14 @@ public class QuizControllerV3 {
                 .lockAt(schedule.dueAt())
                 .build();
 
-        quizManagementUseCase.updateQuizSettings(quizId, newSettings, request.title(),
-                user.getId(), user.getRole().name());
+        quizManagementUseCase.updateQuizSettings(
+                quizId,
+                newSettings,
+                request.title(),
+                parseAssessmentType(request.quizType(), Quiz.AssessmentType.PRACTICE),
+                Boolean.TRUE.equals(request.countsTowardCertificate()),
+                user.getId(),
+                user.getRole().name());
 
         if (Boolean.TRUE.equals(request.publishImmediately())) {
             quizManagementUseCase.publishQuiz(quizId, user.getId(), user.getRole().name());

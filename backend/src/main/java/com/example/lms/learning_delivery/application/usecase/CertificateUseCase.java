@@ -1,5 +1,6 @@
 package com.example.lms.learning_delivery.application.usecase;
 
+import com.example.lms.learning_delivery.application.port.CertificateEligibilityPort;
 import com.example.lms.learning_delivery.domain.model.Certificate;
 import com.example.lms.learning_delivery.domain.repository.CertificateRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import java.util.UUID;
 public class CertificateUseCase {
 
     private final CertificateRepository certificateRepository;
+    private final CertificateEligibilityPort certificateEligibilityPort;
 
     /**
      * Issue a certificate if one doesn't already exist for this enrollment.
@@ -32,6 +34,12 @@ public class CertificateUseCase {
         if (existing.isPresent()) {
             log.debug("Certificate already exists for enrollment {}", enrollmentId);
             return existing.get();
+        }
+
+        CertificateEligibilityPort.EligibilityResult eligibility =
+                certificateEligibilityPort.evaluate(enrollmentId, studentId, courseId);
+        if (!eligibility.eligible()) {
+            throw new IllegalStateException(eligibility.reason());
         }
 
         Certificate certificate = Certificate.issue(enrollmentId, studentId, courseId);

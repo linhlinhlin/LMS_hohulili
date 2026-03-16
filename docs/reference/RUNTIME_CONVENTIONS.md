@@ -39,3 +39,16 @@ Không coi các topology khác là chuẩn vận hành của repo.
 
 - port `8088` là port host-facing ở local
 - port `8080` chỉ dùng cho container/reverse proxy wiring
+
+## Quy ước publication / offline
+
+- learner/public course query phải ưu tiên publication snapshot khi đã có publication
+- teacher authoring không dùng learner/public content query để hydrate draft
+- package offline mới phải có:
+  - `publicationId`
+  - `publicationNumber`
+  - `versionModeSnapshot`
+  - `staleReason`
+- self-paced mặc định theo `FOLLOW_LATEST`
+- instructor-led class mặc định theo `PINNED`
+- `PRACTICE` là quiz duy nhất được phép offline

@@ -25,7 +25,6 @@ import com.example.lms.learning_delivery.application.usecase.CertificateUseCase;
 import com.example.lms.learning_delivery.application.usecase.SelfEnrollUseCase;
 import com.example.lms.learning_delivery.infrastructure.persistence.CertificateJpaRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.EnrollmentRepositoryImpl;
-import com.example.lms.learning_delivery.infrastructure.persistence.entity.CertificateJpaEntity;
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepository;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -611,10 +610,10 @@ public class StudentEnrollmentControllerV3 {
             return ResponseEntity.ok(ApiResponse.success(result, "Chứng chỉ đã được cấp"));
         }
 
-        // Check course completion (>= 80% progress)
+        // Check course completion (must be fully complete before certificate)
         int progress = enrollment.getCompletionPercent() != null ? enrollment.getCompletionPercent() : 0;
-        if (progress < 80) {
-            return ResponseEntity.ok(ApiResponse.error("Khóa học phải hoàn thành ít nhất 80% để cấp chứng chỉ"));
+        if (progress < 100) {
+            return ResponseEntity.ok(ApiResponse.error("Khóa học phải hoàn thành 100% trước khi cấp chứng chỉ"));
         }
 
         UUID courseId = enrollment.getLearningClass() != null ? enrollment.getLearningClass().getCourseId() : null;
@@ -622,14 +621,12 @@ public class StudentEnrollmentControllerV3 {
             return ResponseEntity.ok(ApiResponse.error("Không tìm thấy khóa học cho đăng ký này"));
         }
 
-        // Issue certificate
-        CertificateJpaEntity cert = CertificateJpaEntity.builder()
-                .enrollmentId(enrollmentId)
-                .studentId(currentUser.getId())
-                .courseId(courseId)
-                .build();
-
-        CertificateJpaEntity saved = certificateRepository.save(cert);
+        final com.example.lms.learning_delivery.domain.model.Certificate saved;
+        try {
+            saved = certificateUseCase.issueIfNotExists(enrollmentId, currentUser.getId(), courseId);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
+        }
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("id", saved.getId().toString());

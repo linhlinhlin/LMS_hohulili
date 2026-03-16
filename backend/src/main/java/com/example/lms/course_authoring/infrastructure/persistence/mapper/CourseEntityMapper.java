@@ -43,6 +43,7 @@ public class CourseEntityMapper {
         entity.setDeliveryMode(mapDeliveryModeToEntity(domain.getDeliveryMode()));
         entity.setAllowOfflineDownload(domain.isAllowOfflineDownload());
         entity.setContentVersion(domain.getContentVersion());
+        entity.setDraftChangeStatus(mapDraftChangeStatusToEntity(domain.getDraftChangeStatus()));
         entity.setReviewComment(domain.getReviewComment());
         entity.setReviewedAt(domain.getReviewedAt());
         entity.setReviewedById(domain.getReviewedById());
@@ -143,6 +144,7 @@ public class CourseEntityMapper {
             setField(course, "deliveryMode", mapDeliveryModeToDomain(entity.getDeliveryMode()));
             setField(course, "allowOfflineDownload", entity.isAllowOfflineDownload());
             setField(course, "contentVersion", entity.getContentVersion());
+            setField(course, "draftChangeStatus", mapDraftChangeStatusToDomain(entity.getDraftChangeStatus()));
             setField(course, "reviewComment", entity.getReviewComment());
             setField(course, "reviewedAt", entity.getReviewedAt());
             setField(course, "reviewedById", entity.getReviewedById());
@@ -200,6 +202,26 @@ public class CourseEntityMapper {
         return switch (entityMode) {
             case SELF_PACED -> Course.DeliveryMode.SELF_PACED;
             case INSTRUCTOR_LED -> Course.DeliveryMode.INSTRUCTOR_LED;
+        };
+    }
+
+    private CourseJpaEntity.DraftChangeStatus mapDraftChangeStatusToEntity(Course.DraftChangeStatus domainStatus) {
+        if (domainStatus == null) return CourseJpaEntity.DraftChangeStatus.NONE;
+        return switch (domainStatus) {
+            case NONE -> CourseJpaEntity.DraftChangeStatus.NONE;
+            case DRAFT -> CourseJpaEntity.DraftChangeStatus.DRAFT;
+            case PENDING_REVIEW -> CourseJpaEntity.DraftChangeStatus.PENDING_REVIEW;
+            case CHANGES_REQUESTED -> CourseJpaEntity.DraftChangeStatus.CHANGES_REQUESTED;
+        };
+    }
+
+    private Course.DraftChangeStatus mapDraftChangeStatusToDomain(CourseJpaEntity.DraftChangeStatus entityStatus) {
+        if (entityStatus == null) return Course.DraftChangeStatus.NONE;
+        return switch (entityStatus) {
+            case NONE -> Course.DraftChangeStatus.NONE;
+            case DRAFT -> Course.DraftChangeStatus.DRAFT;
+            case PENDING_REVIEW -> Course.DraftChangeStatus.PENDING_REVIEW;
+            case CHANGES_REQUESTED -> Course.DraftChangeStatus.CHANGES_REQUESTED;
         };
     }
 

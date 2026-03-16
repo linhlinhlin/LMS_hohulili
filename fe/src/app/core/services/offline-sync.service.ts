@@ -79,6 +79,7 @@ export class OfflineSyncService {
   ): Promise<void> {
     await ensureOfflineDbReady();
     const userId = getCurrentUserId();
+    const metadata = this.extractSyncMetadata(payload);
 
     // Deduplicate: check for existing pending item with same entityType + endpoint for this user
     const existing = await offlineDb.syncQueue
@@ -89,6 +90,7 @@ export class OfflineSyncService {
     if (existing?.id != null) {
       await offlineDb.syncQueue.update(existing.id, {
         payload,
+        ...metadata,
       });
     } else {
       await offlineDb.syncQueue.add({
@@ -97,6 +99,12 @@ export class OfflineSyncService {
         operationType,
         endpoint,
         payload,
+        clientOperationId: metadata.clientOperationId,
+        occurredAt: metadata.occurredAt,
+        courseId: metadata.courseId,
+        publicationId: metadata.publicationId,
+        entityId: metadata.entityId,
+        baseServerUpdatedAt: metadata.baseServerUpdatedAt,
         createdAt: new Date(),
         syncStatus: 'pending',
         retryCount: 0,
@@ -242,17 +250,40 @@ export class OfflineSyncService {
         if (!serverInfo) continue;
 
         const serverVersion = serverInfo.contentVersion || 1;
-        const localVersion = (course as any).contentVersion || 1;
+        const localVersion = course.contentVersion || 1;
+        const serverPublicationId = serverInfo.publicationId ?? null;
+        const localPublicationId = course.publicationId ?? null;
+        const versionMode = course.versionModeSnapshot ?? 'LEGACY';
         const serverUpdatedAt = serverInfo.updatedAt ? new Date(serverInfo.updatedAt) : null;
         const localDownloadedAt = course.downloadedAt ? new Date(course.downloadedAt) : null;
 
-        const isStale = serverVersion > localVersion ||
-          (serverUpdatedAt && localDownloadedAt && serverUpdatedAt > localDownloadedAt);
+        let isStale = false;
+        let staleReason: string | null = null;
+
+        if (versionMode === 'FOLLOW_LATEST') {
+          isStale = serverPublicationId != null && localPublicationId != null
+            ? serverPublicationId !== localPublicationId
+            : serverVersion > localVersion ||
+              Boolean(serverUpdatedAt && localDownloadedAt && serverUpdatedAt > localDownloadedAt);
+          staleReason = isStale ? 'UPDATE_AVAILABLE' : null;
+        } else if (versionMode === 'PINNED') {
+          isStale = !!localPublicationId && !!serverPublicationId && localPublicationId !== serverPublicationId;
+          staleReason = isStale ? 'CLASS_ADOPTED_NEW_PUBLICATION' : null;
+        } else {
+          isStale = !!serverPublicationId || serverVersion > localVersion;
+          staleReason = isStale ? 'LEGACY_PACKAGE' : null;
+        }
 
         if (isStale) {
           staleCourseNames.push(course.title);
           await offlineDb.courses.update([userId, course.id], {
             isStale: true,
+            staleReason,
+          } as any);
+        } else if (course.isStale || course.staleReason) {
+          await offlineDb.courses.update([userId, course.id], {
+            isStale: false,
+            staleReason: null,
           } as any);
         }
       }
@@ -363,6 +394,12 @@ export class OfflineSyncService {
         entityType: item.entityType,
         operationType: item.operationType,
         endpoint: item.endpoint,
+        clientOperationId: item.clientOperationId,
+        occurredAt: item.occurredAt?.toISOString?.() ?? item.createdAt.toISOString(),
+        courseId: item.courseId,
+        publicationId: item.publicationId,
+        entityId: item.entityId,
+        baseServerUpdatedAt: item.baseServerUpdatedAt,
         payload: item.payload as Record<string, unknown>,
       }));
 
@@ -373,9 +410,17 @@ export class OfflineSyncService {
       const pushResult = response?.data;
       if (!pushResult) return null;
 
-      // Mark all as synced (server processes batch atomically)
+      const ackedOperationIds = new Set<string>(
+        Array.isArray(pushResult.ackedOperationIds)
+          ? pushResult.ackedOperationIds.filter((id: unknown): id is string => typeof id === 'string' && id.length > 0)
+          : items.map(item => item.clientOperationId).filter((id): id is string => !!id)
+      );
+
       for (const item of items) {
-        await offlineDb.syncQueue.update(item.id!, { syncStatus: 'synced' });
+        const synced = item.clientOperationId ? ackedOperationIds.has(item.clientOperationId) : true;
+        if (synced) {
+          await offlineDb.syncQueue.update(item.id!, { syncStatus: 'synced' });
+        }
       }
 
       // Handle conflicts returned by server (overrides synced → failed for conflicted items)
@@ -384,6 +429,9 @@ export class OfflineSyncService {
         for (const conflict of pushResult.conflicts) {
           // Find the matching item by entityType + entityId from payload
           const matchingItem = items.find(i =>
+            i.clientOperationId != null &&
+            i.clientOperationId === conflict.clientOperationId
+          ) || items.find(i =>
             i.entityType === conflict.entityType &&
             this.extractEntityIdFromItem(i) === conflict.entityId
           ) || items.find(i => i.entityType === conflict.entityType);
@@ -400,13 +448,14 @@ export class OfflineSyncService {
 
       // Mark quizAttempts records as synced (only for non-conflicted items)
       for (const item of items) {
-        if (item.entityType === 'quizAttempt' && item.id != null && !conflictedItemIds.has(item.id)) {
+        const isAcked = item.clientOperationId ? ackedOperationIds.has(item.clientOperationId) : true;
+        if (item.entityType === 'quizAttempt' && item.id != null && isAcked && !conflictedItemIds.has(item.id)) {
           await this.markQuizAttemptSynced(item);
         }
       }
 
       return {
-        synced: pushResult.accepted || items.length,
+        synced: ackedOperationIds.size > 0 ? ackedOperationIds.size : (pushResult.accepted || items.length),
         failed: pushResult.rejected || 0,
         pending: 0,
       };
@@ -424,6 +473,36 @@ export class OfflineSyncService {
     if (!payload) return undefined;
     const id = payload['id'] ?? payload['quizId'] ?? payload['lessonId'] ?? payload['localAttemptId'] ?? payload['sectionId'];
     return id != null ? String(id) : undefined;
+  }
+
+  private extractSyncMetadata(payload: unknown): Pick<SyncQueueItem, 'clientOperationId' | 'occurredAt' | 'courseId' | 'publicationId' | 'entityId' | 'baseServerUpdatedAt'> {
+    const record = (payload && typeof payload === 'object') ? payload as Record<string, unknown> : {};
+    const rawOccurredAt = record['occurredAt'];
+    const occurredAt = rawOccurredAt instanceof Date
+      ? rawOccurredAt
+      : typeof rawOccurredAt === 'string'
+        ? new Date(rawOccurredAt)
+        : new Date();
+
+    const courseId = typeof record['courseId'] === 'string' ? record['courseId'] : undefined;
+    const publicationId = typeof record['publicationId'] === 'string' ? record['publicationId'] : null;
+    const entityId = ['entityId', 'id', 'quizId', 'lessonId', 'sectionId', 'localAttemptId']
+      .map(key => record[key])
+      .find((value): value is string => typeof value === 'string' && value.length > 0);
+    const baseServerUpdatedAt = typeof record['baseServerUpdatedAt'] === 'string' ? record['baseServerUpdatedAt'] : null;
+
+    return {
+      clientOperationId: typeof record['clientOperationId'] === 'string' && record['clientOperationId'].length > 0
+        ? record['clientOperationId']
+        : (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+            ? crypto.randomUUID()
+            : `offline-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`),
+      occurredAt,
+      courseId,
+      publicationId,
+      entityId,
+      baseServerUpdatedAt,
+    };
   }
 
   /**

@@ -247,13 +247,11 @@ export class CourseAuthoringService {
 
     getCourseDraft(courseId: string): Observable<CourseDraftDTO> {
         return forkJoin({
-            course: this.http.get<ApiResponse<CourseDetailResponse>>(`${this.baseUrl}/courses/${courseId}`),
-            content: this.http.get<ApiResponse<ChapterResponse[]>>(`${this.baseUrl}/courses/${courseId}/content`),
-            teacherDraft: this.http.get<ApiResponse<{ hasEnrollments?: boolean }>>(`${this.baseUrl}/teacher/courses/${courseId}`)
+            course: this.http.get<ApiResponse<CourseDraftDTO>>(`${this.baseUrl}/teacher/courses/${courseId}`),
+            content: this.http.get<ApiResponse<ChapterResponse[]>>(`${this.baseUrl}/teacher/courses/${courseId}/draft/content`)
         }).pipe(
-            map(({ course, content, teacherDraft }) => {
+            map(({ course, content }) => {
                 const courseData = course.data;
-                courseData.hasEnrollments = teacherDraft.data?.hasEnrollments ?? false;
                 const backendChapters = content.data || [];
 
                 // Map chapters

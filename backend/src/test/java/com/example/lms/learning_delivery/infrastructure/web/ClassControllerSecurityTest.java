@@ -44,6 +44,7 @@ class ClassControllerSecurityTest {
     @Mock private DropStudentUseCase dropStudentUseCase;
     @Mock private JpaLearningClassRepository classJpaRepository;
     @Mock private JpaCourseRepository courseJpaRepository;
+    @Mock private com.example.lms.course_authoring.infrastructure.persistence.repository.CoursePublicationJpaRepository coursePublicationJpaRepository;
     @Mock private UserJpaRepository userJpaRepository;
     @Mock private JpaEnrollmentRepository enrollmentJpaRepository;
 
@@ -294,6 +295,8 @@ class ClassControllerSecurityTest {
                         "Lớp mới",
                         "CLS-001",
                         courseId,
+                        null,
+                        null,
                         newTeacherId,
                         "OPEN",
                         "SEMESTER",

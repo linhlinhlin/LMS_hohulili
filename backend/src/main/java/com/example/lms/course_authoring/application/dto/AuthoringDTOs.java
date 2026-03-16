@@ -25,6 +25,11 @@ public class AuthoringDTOs {
         private String status;
         private String visibility;
         private Set<String> tags;
+        private String welcomeMessage;
+        private String courseInformation;
+        private String benefits;
+        private String introVideoUrl;
+        private Integer credits;
         private List<ChapterDraftDTO> chapters;
         private boolean hasEnrollments;
 
@@ -61,6 +66,16 @@ public class AuthoringDTOs {
         public void setVisibility(String visibility) { this.visibility = visibility; }
         public Set<String> getTags() { return tags; }
         public void setTags(Set<String> tags) { this.tags = tags; }
+        public String getWelcomeMessage() { return welcomeMessage; }
+        public void setWelcomeMessage(String welcomeMessage) { this.welcomeMessage = welcomeMessage; }
+        public String getCourseInformation() { return courseInformation; }
+        public void setCourseInformation(String courseInformation) { this.courseInformation = courseInformation; }
+        public String getBenefits() { return benefits; }
+        public void setBenefits(String benefits) { this.benefits = benefits; }
+        public String getIntroVideoUrl() { return introVideoUrl; }
+        public void setIntroVideoUrl(String introVideoUrl) { this.introVideoUrl = introVideoUrl; }
+        public Integer getCredits() { return credits; }
+        public void setCredits(Integer credits) { this.credits = credits; }
         public List<ChapterDraftDTO> getChapters() { return chapters; }
         public void setChapters(List<ChapterDraftDTO> chapters) { this.chapters = chapters; }
         public boolean isHasEnrollments() { return hasEnrollments; }
@@ -85,6 +100,11 @@ public class AuthoringDTOs {
             public CourseDraftDTOBuilder status(String s) { dto.setStatus(s); return this; }
             public CourseDraftDTOBuilder visibility(String v) { dto.setVisibility(v); return this; }
             public CourseDraftDTOBuilder tags(Set<String> t) { dto.setTags(t); return this; }
+            public CourseDraftDTOBuilder welcomeMessage(String w) { dto.setWelcomeMessage(w); return this; }
+            public CourseDraftDTOBuilder courseInformation(String c) { dto.setCourseInformation(c); return this; }
+            public CourseDraftDTOBuilder benefits(String b) { dto.setBenefits(b); return this; }
+            public CourseDraftDTOBuilder introVideoUrl(String i) { dto.setIntroVideoUrl(i); return this; }
+            public CourseDraftDTOBuilder credits(Integer c) { dto.setCredits(c); return this; }
             public CourseDraftDTOBuilder chapters(List<ChapterDraftDTO> c) { dto.setChapters(c); return this; }
             public CourseDraftDTOBuilder hasEnrollments(boolean h) { dto.setHasEnrollments(h); return this; }
             public CourseDraftDTO build() { return dto; }

@@ -17,6 +17,7 @@ public class LearningClass {
     private String name;
     private String code;
     private UUID courseVersionId;
+    private VersionMode versionMode = VersionMode.PINNED;
     private UUID courseId;
     private UUID teacherId;
     private Instant startDate;
@@ -38,6 +39,10 @@ public class LearningClass {
 
     public enum ScheduleType {
         SEMESTER, CUSTOM
+    }
+
+    public enum VersionMode {
+        PINNED, FOLLOW_LATEST
     }
 
     // ==================== Behavior Methods ====================
@@ -111,6 +116,7 @@ public class LearningClass {
     public String getName() { return name; }
     public String getCode() { return code; }
     public UUID getCourseVersionId() { return courseVersionId; }
+    public VersionMode getVersionMode() { return versionMode; }
     public UUID getCourseId() { return courseId; }
     public UUID getTeacherId() { return teacherId; }
     public Instant getStartDate() { return startDate; }
@@ -131,6 +137,7 @@ public class LearningClass {
         private String name;
         private String code;
         private UUID courseVersionId;
+        private VersionMode versionMode = VersionMode.PINNED;
         private UUID courseId;
         private UUID teacherId;
         private Instant startDate;
@@ -146,6 +153,7 @@ public class LearningClass {
         public Builder name(String name) { this.name = name; return this; }
         public Builder code(String code) { this.code = code; return this; }
         public Builder courseVersionId(UUID courseVersionId) { this.courseVersionId = courseVersionId; return this; }
+        public Builder versionMode(VersionMode versionMode) { this.versionMode = versionMode; return this; }
         public Builder courseId(UUID courseId) { this.courseId = courseId; return this; }
         public Builder teacherId(UUID teacherId) { this.teacherId = teacherId; return this; }
         public Builder startDate(Instant startDate) { this.startDate = startDate; return this; }
@@ -163,6 +171,7 @@ public class LearningClass {
             lc.name = this.name;
             lc.code = this.code;
             lc.courseVersionId = this.courseVersionId;
+            lc.versionMode = this.versionMode;
             lc.courseId = this.courseId;
             lc.teacherId = this.teacherId;
             lc.startDate = this.startDate;

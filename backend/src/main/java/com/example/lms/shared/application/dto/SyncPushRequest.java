@@ -20,6 +20,21 @@ public record SyncPushRequest(
             String entityType,
             String operationType,
             String endpoint,
+            String clientOperationId,
+            String occurredAt,
+            String courseId,
+            String publicationId,
+            String entityId,
+            String baseServerUpdatedAt,
             Map<String, Object> payload
-    ) {}
+    ) {
+        public SyncOperation(
+                String entityType,
+                String operationType,
+                String endpoint,
+                Map<String, Object> payload
+        ) {
+            this(entityType, operationType, endpoint, null, null, null, null, null, null, payload);
+        }
+    }
 }

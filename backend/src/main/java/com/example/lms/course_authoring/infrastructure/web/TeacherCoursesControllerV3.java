@@ -38,6 +38,7 @@ public class TeacherCoursesControllerV3 {
     private final JpaCourseRepository jpaCourseRepository;
     private final JpaEnrollmentRepository jpaEnrollmentRepository;
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.CourseReviewJpaRepository courseReviewRepository;
+    private final com.example.lms.course_authoring.infrastructure.service.CoursePublicationService coursePublicationService;
 
     @GetMapping("/my-courses")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
@@ -104,6 +105,15 @@ public class TeacherCoursesControllerV3 {
         verifyCourseOwnership(courseId, user);
         var draft = getCourseDraftUseCase.execute(courseId);
         return ResponseEntity.ok(ApiResponse.success(draft));
+    }
+
+    @GetMapping("/{courseId}/draft/content")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    public ResponseEntity<ApiResponse<Object>> getCourseDraftContent(
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        verifyCourseOwnership(courseId, user);
+        return ResponseEntity.ok(ApiResponse.success(coursePublicationService.getDraftContent(courseId)));
     }
 
     @PostMapping

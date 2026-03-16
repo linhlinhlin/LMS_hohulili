@@ -1,5 +1,6 @@
 package com.example.lms.learning_delivery.application.usecase;
 
+import com.example.lms.learning_delivery.application.port.CertificateEligibilityPort;
 import com.example.lms.learning_delivery.domain.model.Certificate;
 import com.example.lms.learning_delivery.domain.repository.CertificateRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +25,9 @@ class CertificateUseCaseTest {
     @Mock
     private CertificateRepository certificateRepository;
 
+    @Mock
+    private CertificateEligibilityPort certificateEligibilityPort;
+
     @InjectMocks
     private CertificateUseCase useCase;
 
@@ -42,6 +46,8 @@ class CertificateUseCaseTest {
     @DisplayName("Should issue certificate when none exists")
     void shouldIssueCertificate() {
         when(certificateRepository.findByEnrollmentId(enrollmentId)).thenReturn(Optional.empty());
+        when(certificateEligibilityPort.evaluate(enrollmentId, studentId, courseId))
+                .thenReturn(CertificateEligibilityPort.EligibilityResult.allowed());
         when(certificateRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         Certificate result = useCase.issueIfNotExists(enrollmentId, studentId, courseId);
@@ -53,6 +59,7 @@ class CertificateUseCaseTest {
         assertThat(result.getVerificationToken()).isNotNull();
         assertThat(result.getIssuedAt()).isNotNull();
         verify(certificateRepository).save(any());
+        verify(certificateEligibilityPort).evaluate(enrollmentId, studentId, courseId);
     }
 
     @Test
@@ -64,6 +71,21 @@ class CertificateUseCaseTest {
         Certificate result = useCase.issueIfNotExists(enrollmentId, studentId, courseId);
 
         assertThat(result.getId()).isEqualTo(existing.getId());
+        verify(certificateRepository, never()).save(any());
+        verifyNoInteractions(certificateEligibilityPort);
+    }
+
+    @Test
+    @DisplayName("Should reject certificate issuance when required exam is not passed")
+    void shouldRejectCertificateWhenIneligible() {
+        when(certificateRepository.findByEnrollmentId(enrollmentId)).thenReturn(Optional.empty());
+        when(certificateEligibilityPort.evaluate(enrollmentId, studentId, courseId))
+                .thenReturn(CertificateEligibilityPort.EligibilityResult.denied("Chưa vượt qua bài thi chứng chỉ"));
+
+        assertThatThrownBy(() -> useCase.issueIfNotExists(enrollmentId, studentId, courseId))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Chưa vượt qua bài thi chứng chỉ");
+
         verify(certificateRepository, never()).save(any());
     }
 

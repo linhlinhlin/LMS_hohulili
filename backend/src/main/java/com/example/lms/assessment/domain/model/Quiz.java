@@ -18,6 +18,8 @@ public class Quiz {
     private String title;
     private String description;
     private QuizSettings settings;
+    private AssessmentType assessmentType;
+    private boolean countsTowardCertificate;
     private QuizStatus status;
     private java.util.List<QuizQuestion> questions;
     private Instant createdAt;
@@ -25,12 +27,15 @@ public class Quiz {
 
     // Private constructor
     private Quiz(QuizId id, UUID lessonId, String title, String description, QuizSettings settings,
+                 AssessmentType assessmentType, boolean countsTowardCertificate,
                  QuizStatus status, java.util.List<QuizQuestion> questions, Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.lessonId = lessonId;
         this.title = title;
         this.description = description;
         this.settings = settings;
+        this.assessmentType = normalizeAssessmentType(assessmentType);
+        this.countsTowardCertificate = normalizeCountsTowardCertificate(this.assessmentType, countsTowardCertificate);
         this.status = status;
         this.questions = questions;
         this.createdAt = createdAt;
@@ -47,6 +52,8 @@ public class Quiz {
         private String title;
         private String description;
         private QuizSettings settings;
+        private AssessmentType assessmentType;
+        private boolean countsTowardCertificate;
         private QuizStatus status;
         private java.util.List<QuizQuestion> questions;
         private Instant createdAt;
@@ -57,13 +64,27 @@ public class Quiz {
         public Builder title(String title) { this.title = title; return this; }
         public Builder description(String description) { this.description = description; return this; }
         public Builder settings(QuizSettings settings) { this.settings = settings; return this; }
+        public Builder assessmentType(AssessmentType assessmentType) { this.assessmentType = assessmentType; return this; }
+        public Builder countsTowardCertificate(boolean countsTowardCertificate) { this.countsTowardCertificate = countsTowardCertificate; return this; }
         public Builder status(QuizStatus status) { this.status = status; return this; }
         public Builder questions(java.util.List<QuizQuestion> questions) { this.questions = questions; return this; }
         public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
         public Builder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
 
         public Quiz build() {
-            return new Quiz(id, lessonId, title, description, settings, status, questions, createdAt, updatedAt);
+            return new Quiz(
+                id,
+                lessonId,
+                title,
+                description,
+                settings,
+                assessmentType,
+                countsTowardCertificate,
+                status,
+                questions,
+                createdAt,
+                updatedAt
+            );
         }
     }
 
@@ -154,6 +175,12 @@ public class Quiz {
         ARCHIVED
     }
 
+    public enum AssessmentType {
+        PRACTICE,
+        ASSESSMENT,
+        EXAM
+    }
+
     // ============ Factory Methods ============
 
     /**
@@ -173,6 +200,8 @@ public class Quiz {
             .title(title)
             .description(description)
             .settings(settings != null ? settings : QuizSettings.defaults())
+            .assessmentType(AssessmentType.PRACTICE)
+            .countsTowardCertificate(false)
             .status(QuizStatus.DRAFT)
             .questions(new java.util.ArrayList<>())
             .createdAt(Instant.now())
@@ -189,6 +218,8 @@ public class Quiz {
             String title,
             String description,
             QuizSettings settings,
+            AssessmentType assessmentType,
+            boolean countsTowardCertificate,
             QuizStatus status,
             Instant createdAt,
             Instant updatedAt
@@ -199,6 +230,8 @@ public class Quiz {
             .title(title)
             .description(description)
             .settings(settings)
+            .assessmentType(assessmentType)
+            .countsTowardCertificate(countsTowardCertificate)
             .status(status)
             .createdAt(createdAt)
             .updatedAt(updatedAt)
@@ -247,6 +280,12 @@ public class Quiz {
             this.settings = newSettings;
             this.updatedAt = Instant.now();
         }
+    }
+
+    public void updateAssessmentMetadata(AssessmentType assessmentType, boolean countsTowardCertificate) {
+        this.assessmentType = normalizeAssessmentType(assessmentType);
+        this.countsTowardCertificate = normalizeCountsTowardCertificate(this.assessmentType, countsTowardCertificate);
+        this.updatedAt = Instant.now();
     }
 
     /**
@@ -300,8 +339,18 @@ public class Quiz {
     public String getTitle() { return title; }
     public String getDescription() { return description; }
     public QuizSettings getSettings() { return settings; }
+    public AssessmentType getAssessmentType() { return assessmentType; }
+    public boolean isCountsTowardCertificate() { return countsTowardCertificate; }
     public QuizStatus getStatus() { return status; }
     public java.util.List<QuizQuestion> getQuestions() { return questions; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
+
+    private static AssessmentType normalizeAssessmentType(AssessmentType assessmentType) {
+        return assessmentType != null ? assessmentType : AssessmentType.ASSESSMENT;
+    }
+
+    private static boolean normalizeCountsTowardCertificate(AssessmentType assessmentType, boolean countsTowardCertificate) {
+        return assessmentType == AssessmentType.EXAM && countsTowardCertificate;
+    }
 }

@@ -8,6 +8,7 @@ import { SectionApi } from '../../../../../../../api/client/section.api';
 type SectionEditorType = 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE';
 type VideoInputMode = 'url' | 'upload';
 type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
+type SectionQuizAssessmentType = 'PRACTICE' | 'ASSESSMENT' | 'EXAM';
 
 @Component({
   selector: 'app-curriculum-section-modal',
@@ -18,7 +19,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
 export class CurriculumSectionModalComponent {
   private sanitizer = inject(DomSanitizer);
   private sectionApi = inject(SectionApi);
-  readonly sectionQuizTypes = ['ASSESSMENT', 'EXAM'] as const;
+  readonly sectionQuizTypes: SectionQuizAssessmentType[] = ['PRACTICE', 'ASSESSMENT', 'EXAM'];
 
   private dialogShell = viewChild<ElementRef<HTMLElement>>('dialogShell');
 
@@ -38,7 +39,8 @@ export class CurriculumSectionModalComponent {
   isDataLoaded = input(false);
   editorHeight = input(380);
   wordCount = input(0);
-  sectionQuizType = input<'ASSESSMENT' | 'EXAM'>('ASSESSMENT');
+  sectionQuizType = input<SectionQuizAssessmentType>('PRACTICE');
+  sectionQuizCountsTowardCertificate = input(false);
   sectionQuizTimeLimit = input(30);
   sectionQuizPassingScore = input(60);
   sectionQuizMaxAttempts = input(1);
@@ -59,7 +61,8 @@ export class CurriculumSectionModalComponent {
   videoFileSelected = output<File | null>();
   clearSelectedVideoFile = output<void>();
   sectionContentChange = output<string>();
-  sectionQuizTypeChange = output<'ASSESSMENT' | 'EXAM'>();
+  sectionQuizTypeChange = output<SectionQuizAssessmentType>();
+  sectionQuizCountsTowardCertificateChange = output<boolean>();
   sectionQuizTimeLimitChange = output<string | number>();
   sectionQuizPassingScoreChange = output<string | number>();
   sectionQuizMaxAttemptsChange = output<string | number>();
@@ -191,8 +194,12 @@ export class CurriculumSectionModalComponent {
     this.sectionContentChange.emit(value);
   }
 
-  onSectionQuizTypeInput(value: 'ASSESSMENT' | 'EXAM'): void {
+  onSectionQuizTypeInput(value: SectionQuizAssessmentType): void {
     this.sectionQuizTypeChange.emit(value);
+  }
+
+  onSectionQuizCountsTowardCertificateInput(value: boolean): void {
+    this.sectionQuizCountsTowardCertificateChange.emit(value);
   }
 
   onSectionQuizTimeLimitInput(value: string | number): void {
@@ -263,8 +270,26 @@ export class CurriculumSectionModalComponent {
     return this.editingSectionId() ? 'Cập nhật' : 'Tạo mới';
   }
 
-  getSectionQuizTypeLabel(type: 'ASSESSMENT' | 'EXAM'): string {
-    return type === 'EXAM' ? 'Bài thi' : 'Bài kiểm tra';
+  getSectionQuizTypeLabel(type: SectionQuizAssessmentType): string {
+    switch (type) {
+      case 'PRACTICE':
+        return 'Luyện tập';
+      case 'EXAM':
+        return 'Bài thi';
+      default:
+        return 'Bài kiểm tra';
+    }
+  }
+
+  getSectionQuizTypeHint(type: SectionQuizAssessmentType): string {
+    switch (type) {
+      case 'PRACTICE':
+        return 'Cho phép ôn tập, có thể mở ngoại tuyến ở learner.';
+      case 'EXAM':
+        return 'Dùng cho đánh giá nghiêm túc hoặc điều kiện chứng chỉ.';
+      default:
+        return 'Dùng cho kiểm tra online trong lesson.';
+    }
   }
 
   getDifficultyLabel(difficulty: string | null | undefined): string {

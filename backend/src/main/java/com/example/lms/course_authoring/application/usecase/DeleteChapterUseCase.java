@@ -22,6 +22,7 @@ public class DeleteChapterUseCase {
     private final CourseRepository courseRepository;
     private final CourseStructureCommandPort courseStructureCommandPort;
     private final LessonCleanupService lessonCleanupService;
+    private final CourseDraftMutationService courseDraftMutationService;
 
     @Transactional
     public void execute(UUID courseId, UUID chapterId, UUID userId, boolean isAdmin) {
@@ -32,9 +33,12 @@ public class DeleteChapterUseCase {
             throw new UnauthorizedException("xÃ³a chÆ°Æ¡ng trong", "khÃ³a há»c nÃ y");
         }
 
+        courseDraftMutationService.requireEditableCourse(courseId);
+
         for (UUID lessonId : courseStructureCommandPort.listLessonIds(courseId, chapterId)) {
             lessonCleanupService.cleanupBeforeDelete(lessonId);
         }
         courseStructureCommandPort.deleteChapter(courseId, chapterId);
+        courseDraftMutationService.markCourseChanged(courseId);
     }
 }

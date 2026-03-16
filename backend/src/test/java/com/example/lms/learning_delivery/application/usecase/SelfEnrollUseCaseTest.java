@@ -2,6 +2,7 @@ package com.example.lms.learning_delivery.application.usecase;
 
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
+import com.example.lms.course_authoring.infrastructure.persistence.repository.CoursePublicationJpaRepository;
 import com.example.lms.learning_delivery.application.dto.SelfEnrollCommand;
 import com.example.lms.learning_delivery.application.port.PaymentVerificationPort;
 import com.example.lms.learning_delivery.domain.model.Enrollment;
@@ -43,6 +44,9 @@ class SelfEnrollUseCaseTest {
     @Mock
     private PaymentVerificationPort paymentVerification;
 
+    @Mock
+    private CoursePublicationJpaRepository publicationRepository;
+
     @InjectMocks
     private SelfEnrollUseCase useCase;
 
@@ -58,6 +62,8 @@ class SelfEnrollUseCaseTest {
         studentId = UUID.randomUUID();
         teacherId = UUID.randomUUID();
         reviewerId = UUID.randomUUID();
+        lenient().when(publicationRepository.findTopByCourseIdOrderByPublicationNumberDesc(any()))
+                .thenReturn(Optional.empty());
 
         defaultClass = LearningClass.builder()
                 .id(UUID.randomUUID())

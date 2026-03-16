@@ -2,7 +2,7 @@
 
 > **Reported**: 2026-03-15 | **Severity**: P0 — Critical (chặn học viên làm bài)
 > **Reporter**: QA Team (via Claude Code audit)
-> **Status**: Fixed locally — chờ verify/runtime merge
+> **Status**: Đã deploy và verify production
 
 ---
 
@@ -98,3 +98,13 @@ private void verifySectionQuizAccess(CourseJpaEntity course, LessonJpaEntity les
 - Lesson: `49c6721b-73a7-457e-94f3-f4cee2069845` (title: "Bài 1: 7")
 - Section: `1a78ccad-b844-4d6b-bb74-4778b70a863c` (type: QUIZ, title: "1.1:", 1 question)
 - Student: `student@maritime.edu` / `student123`
+
+## Verify production
+
+- Ngày verify: `2026-03-15`
+- `GET /api/v3/quizzes/lessons/49c6721b-73a7-457e-94f3-f4cee2069845/sections/1a78ccad-b844-4d6b-bb74-4778b70a863c`
+  - Kết quả: `HTTP 200`
+  - Payload: title `1.1:`, `1` câu hỏi
+- `POST /api/v3/quizzes/lessons/49c6721b-73a7-457e-94f3-f4cee2069845/sections/1a78ccad-b844-4d6b-bb74-4778b70a863c/submit`
+  - Kết quả: `HTTP 200`
+  - Payload: `status = SUBMITTED`, `score = 100`, `totalQuestions = 1`

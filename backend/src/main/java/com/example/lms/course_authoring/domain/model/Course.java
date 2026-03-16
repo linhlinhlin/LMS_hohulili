@@ -40,6 +40,7 @@ public class Course extends AggregateRoot {
     private DeliveryMode deliveryMode = DeliveryMode.SELF_PACED;
     private boolean allowOfflineDownload = true;
     private int contentVersion = 1;
+    private DraftChangeStatus draftChangeStatus = DraftChangeStatus.NONE;
 
     // Review workflow fields
     private String reviewComment;
@@ -86,6 +87,7 @@ public class Course extends AggregateRoot {
             this.title = title.trim();
         }
         this.description = description;
+        markDraftChanged();
     }
 
     /**
@@ -100,11 +102,13 @@ public class Course extends AggregateRoot {
         this.benefits = benefits;
         this.introVideoUrl = introVideoUrl;
         this.credits = credits;
+        markDraftChanged();
     }
 
     public void updateThumbnail(String thumbnailUrl) {
         ensureEditable();
         this.thumbnailUrl = thumbnailUrl; // No validation for now
+        markDraftChanged();
     }
 
     /**
@@ -125,6 +129,7 @@ public class Course extends AggregateRoot {
             this.price = null;
             this.salePrice = null;
         }
+        markDraftChanged();
     }
 
     /**
@@ -133,6 +138,7 @@ public class Course extends AggregateRoot {
     public void updateVisibility(Visibility visibility) {
         ensureEditable();
         this.visibility = visibility != null ? visibility : Visibility.PUBLIC;
+        markDraftChanged();
     }
 
     /**
@@ -143,6 +149,7 @@ public class Course extends AggregateRoot {
     public void updateDeliveryMode(DeliveryMode deliveryMode) {
         ensureEditable();
         this.deliveryMode = deliveryMode != null ? deliveryMode : DeliveryMode.SELF_PACED;
+        markDraftChanged();
     }
 
     /**
@@ -151,6 +158,7 @@ public class Course extends AggregateRoot {
     public void updateAllowOfflineDownload(boolean value) {
         ensureEditable();
         this.allowOfflineDownload = value;
+        markDraftChanged();
     }
 
     /**
@@ -159,6 +167,7 @@ public class Course extends AggregateRoot {
     public void updateCategory(UUID categoryId) {
         ensureEditable();
         this.categoryId = categoryId;
+        markDraftChanged();
     }
 
     /**
@@ -170,6 +179,7 @@ public class Course extends AggregateRoot {
         if (tags != null) {
             this.tags.addAll(tags);
         }
+        markDraftChanged();
     }
 
     /**
@@ -177,6 +187,18 @@ public class Course extends AggregateRoot {
      * Only allowed from DRAFT or REJECTED status.
      */
     public void submitForApproval() {
+        if (status == CourseStatus.APPROVED) {
+            if (draftChangeStatus != DraftChangeStatus.DRAFT
+                    && draftChangeStatus != DraftChangeStatus.CHANGES_REQUESTED) {
+                throw new BusinessRuleException("INVALID_STATUS",
+                    "Chỉ có thể gửi duyệt bản nháp thay đổi khi khóa học đã có thay đổi chưa xuất bản");
+            }
+
+            this.draftChangeStatus = DraftChangeStatus.PENDING_REVIEW;
+            clearReviewInfo();
+            return;
+        }
+
         if (status != CourseStatus.DRAFT && status != CourseStatus.REJECTED) {
             throw new BusinessRuleException("INVALID_STATUS",
                 "Chỉ có thể gửi duyệt khóa học ở trạng thái Bản nháp hoặc Bị từ chối");
@@ -196,6 +218,11 @@ public class Course extends AggregateRoot {
      * Only allowed when status is PENDING.
      */
     public void cancelApprovalRequest() {
+        if (status == CourseStatus.APPROVED && draftChangeStatus == DraftChangeStatus.PENDING_REVIEW) {
+            this.draftChangeStatus = DraftChangeStatus.DRAFT;
+            return;
+        }
+
         if (status != CourseStatus.PENDING) {
             throw new BusinessRuleException("INVALID_STATUS", 
                 "Chỉ có thể hủy yêu cầu duyệt khi đang chờ duyệt");
@@ -209,6 +236,19 @@ public class Course extends AggregateRoot {
      * Only allowed when status is PENDING.
      */
     public void approve(UUID reviewerId, String comment) {
+        if (status == CourseStatus.APPROVED) {
+            if (draftChangeStatus != DraftChangeStatus.PENDING_REVIEW) {
+                throw new BusinessRuleException("INVALID_STATUS",
+                    "Chỉ có thể duyệt bản nháp thay đổi đang chờ duyệt");
+            }
+
+            this.draftChangeStatus = DraftChangeStatus.NONE;
+            this.reviewedById = reviewerId;
+            this.reviewComment = comment;
+            this.reviewedAt = Instant.now();
+            return;
+        }
+
         if (status != CourseStatus.PENDING) {
             throw new BusinessRuleException("INVALID_STATUS", 
                 "Chỉ có thể duyệt khóa học đang chờ duyệt");
@@ -233,6 +273,23 @@ public class Course extends AggregateRoot {
      * Only allowed when status is PENDING.
      */
     public void reject(UUID reviewerId, String reason) {
+        if (status == CourseStatus.APPROVED) {
+            if (draftChangeStatus != DraftChangeStatus.PENDING_REVIEW) {
+                throw new BusinessRuleException("INVALID_STATUS",
+                    "Chỉ có thể từ chối bản nháp thay đổi đang chờ duyệt");
+            }
+
+            if (reason == null || reason.isBlank()) {
+                throw new IllegalArgumentException("Lý do từ chối không được để trống");
+            }
+
+            this.draftChangeStatus = DraftChangeStatus.CHANGES_REQUESTED;
+            this.reviewedById = reviewerId;
+            this.reviewComment = reason;
+            this.reviewedAt = Instant.now();
+            return;
+        }
+
         if (status != CourseStatus.PENDING) {
             throw new BusinessRuleException("INVALID_STATUS",
                 "Chỉ có thể từ chối khóa học đang chờ duyệt");
@@ -325,6 +382,16 @@ public class Course extends AggregateRoot {
         }
     }
 
+    public void markDraftChanged() {
+        if (status == CourseStatus.APPROVED && draftChangeStatus != DraftChangeStatus.PENDING_REVIEW) {
+            this.draftChangeStatus = DraftChangeStatus.DRAFT;
+        }
+    }
+
+    public void incrementContentVersion() {
+        this.contentVersion++;
+    }
+
     private void clearReviewInfo() {
         this.reviewComment = null;
         this.reviewedAt = null;
@@ -350,9 +417,10 @@ public class Course extends AggregateRoot {
     // ==================== Query Methods ====================
 
     public boolean isEditable() {
-        // Course is editable only in DRAFT or REJECTED status
-        // PENDING and APPROVED courses cannot be modified
-        return status == CourseStatus.DRAFT || status == CourseStatus.REJECTED;
+        if (status == CourseStatus.DRAFT || status == CourseStatus.REJECTED) {
+            return true;
+        }
+        return status == CourseStatus.APPROVED && draftChangeStatus != DraftChangeStatus.PENDING_REVIEW;
     }
 
     public boolean isPublished() {
@@ -399,6 +467,7 @@ public class Course extends AggregateRoot {
     public DeliveryMode getDeliveryMode() { return deliveryMode; }
     public boolean isAllowOfflineDownload() { return allowOfflineDownload; }
     public int getContentVersion() { return contentVersion; }
+    public DraftChangeStatus getDraftChangeStatus() { return draftChangeStatus; }
     public String getReviewComment() { return reviewComment; }
     public Instant getReviewedAt() { return reviewedAt; }
     public UUID getReviewedById() { return reviewedById; }
@@ -466,5 +535,12 @@ public class Course extends AggregateRoot {
         public String getDisplayName() {
             return displayName;
         }
+    }
+
+    public enum DraftChangeStatus {
+        NONE,
+        DRAFT,
+        PENDING_REVIEW,
+        CHANGES_REQUESTED
     }
 }

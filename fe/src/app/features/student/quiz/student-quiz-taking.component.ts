@@ -72,6 +72,8 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   sectionId = '';
   quizMode: 'lesson' | 'section' = 'lesson';
   quizTitle = signal('Bài kiểm tra');
+  quizType = signal<'PRACTICE' | 'ASSESSMENT' | 'EXAM'>('ASSESSMENT');
+  allowOfflineQuiz = signal(false);
   returnUrl = '';
   /** True when taking quiz from offline IndexedDB (no server connection) */
   isOfflineMode = signal(false);
@@ -169,6 +171,8 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     this.courseId = this.route.snapshot.queryParamMap.get('courseId') || '';
     this.sectionId = this.route.snapshot.queryParamMap.get('sectionId') || this.quizReferenceId;
     this.quizMode = this.route.snapshot.queryParamMap.get('mode') === 'section' ? 'section' : 'lesson';
+    this.quizType.set(this.normalizeAssessmentType(this.route.snapshot.queryParamMap.get('quizType')));
+    this.allowOfflineQuiz.set(this.route.snapshot.queryParamMap.get('allowOffline') === 'true');
 
     if (this.quizReferenceId) {
       this.loadQuiz();
@@ -219,41 +223,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
         return;
       }
 
-      let mappedQuestions: QuizQuestion[] = questions.map((q: any) => {
-        let qBlocks = q.contentBlocks || q.structuredContent || [];
-        if (!qBlocks.length && q.content) {
-          qBlocks = [{ type: 'text', data: { text: q.content } }];
-        }
-
-        return {
-          id: q.id,
-          content: q.content,
-          contentBlocks: qBlocks,
-          difficulty: q.difficulty,
-          questionType: q.questionType || 'SINGLE_CHOICE',
-          correctOption: q.correctOption,
-          answerKey: q.answerKey || null,
-          options: (q.options || []).map((opt: any) => {
-            let blocks = opt.contentBlocks || [];
-
-            if (!blocks.length && typeof opt.content === 'string' && opt.content.trim().startsWith('[')) {
-              try {
-                blocks = JSON.parse(opt.content);
-              } catch {
-                blocks = [{ type: 'text', data: { text: opt.content } }];
-              }
-            } else if (!blocks.length && opt.content) {
-              blocks = [{ type: 'text', data: { text: opt.content } }];
-            }
-
-            return {
-              key: opt.optionKey || opt.key,
-              content: opt.content,
-              contentBlocks: blocks
-            };
-          }).sort((a: any, b: any) => a.key.localeCompare(b.key))
-        };
-      });
+      let mappedQuestions = this.mapQuestions(questions);
 
       const settings = this.quizSettings();
       if (settings.shuffleQuestions) {
@@ -298,6 +268,8 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   private applyQuizSettings(quiz: {
     id: string;
     title?: string;
+    quizType?: string;
+    allowOffline?: boolean;
     timeLimitMinutes?: number | null;
     maxAttempts?: number;
     passingScore?: number;
@@ -307,6 +279,8 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     showCorrectAnswers?: boolean;
   }): void {
     this.quizId = quiz.id;
+    this.quizType.set(this.normalizeAssessmentType(quiz.quizType));
+    this.allowOfflineQuiz.set(quiz.allowOffline === true);
 
     if (quiz.title) this.quizTitle.set(quiz.title);
     if (quiz.timeLimitMinutes) this.timeRemaining.set(quiz.timeLimitMinutes * 60);
@@ -323,41 +297,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   }
 
   private mapQuestions(rawQuestions: any[]): QuizQuestion[] {
-    let mappedQuestions: QuizQuestion[] = rawQuestions.map((q: any) => {
-      let qBlocks = q.contentBlocks || q.structuredContent || [];
-      if (!qBlocks.length && q.content) {
-        qBlocks = [{ type: 'text', data: { text: q.content } }];
-      }
-
-      return {
-        id: q.id,
-        content: q.content,
-        contentBlocks: qBlocks,
-        difficulty: q.difficulty,
-        questionType: q.questionType || 'SINGLE_CHOICE',
-        correctOption: q.correctOption,
-        answerKey: q.answerKey || null,
-        options: (q.options || []).map((opt: any) => {
-          let blocks = opt.contentBlocks || [];
-
-          if (!blocks.length && typeof opt.content === 'string' && opt.content.trim().startsWith('[')) {
-            try {
-              blocks = JSON.parse(opt.content);
-            } catch {
-              blocks = [{ type: 'text', data: { text: opt.content } }];
-            }
-          } else if (!blocks.length && opt.content) {
-            blocks = [{ type: 'text', data: { text: opt.content } }];
-          }
-
-          return {
-            key: opt.optionKey || opt.key,
-            content: opt.content,
-            contentBlocks: blocks
-          };
-        }).sort((a: any, b: any) => a.key.localeCompare(b.key))
-      };
-    });
+    let mappedQuestions = rawQuestions.map(q => this.mapQuestion(q));
 
     const settings = this.quizSettings();
     if (settings.shuffleQuestions) {
@@ -371,6 +311,98 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     }
 
     return mappedQuestions;
+  }
+
+  private mapQuestion(question: any): QuizQuestion {
+    return {
+      id: question.id,
+      content: question.content,
+      contentBlocks: this.normalizeContentBlocks(
+        question.contentBlocks || question.structuredContent,
+        question.content,
+      ),
+      difficulty: question.difficulty,
+      questionType: question.questionType || 'SINGLE_CHOICE',
+      correctOption: question.correctOption,
+      answerKey: question.answerKey || null,
+      options: (question.options || [])
+        .map((option: any) => ({
+          key: option.optionKey || option.key,
+          content: option.content,
+          contentBlocks: this.normalizeOptionBlocks(option),
+        }))
+        .sort((a: any, b: any) => a.key.localeCompare(b.key)),
+    };
+  }
+
+  private normalizeOptionBlocks(option: any): any[] {
+    return this.normalizeContentBlocks(option.contentBlocks, option.content);
+  }
+
+  private normalizeContentBlocks(rawBlocks: unknown, fallbackContent?: string): any[] {
+    let blocks = rawBlocks;
+
+    if (typeof blocks === 'string' && blocks.trim().startsWith('[')) {
+      try {
+        blocks = JSON.parse(blocks);
+      } catch {
+        blocks = [];
+      }
+    }
+
+    if (!Array.isArray(blocks)) {
+      blocks = [];
+    }
+
+    const normalized = (blocks as any[])
+      .map((block: any) => this.normalizeTextLikeBlock(block))
+      .filter(Boolean);
+
+    if (normalized.length > 0) {
+      return normalized;
+    }
+
+    if (fallbackContent) {
+      return [this.buildTextBlock(fallbackContent)];
+    }
+
+    return [];
+  }
+
+  private normalizeTextLikeBlock(block: any): any {
+    if (!block || typeof block !== 'object') {
+      return block;
+    }
+
+    if (block.type !== 'text' || !block.data || typeof block.data !== 'object') {
+      return block;
+    }
+
+    const value = block.data.html ?? block.data.text ?? block.data.content;
+    if (typeof value !== 'string' || !value.trim()) {
+      return block;
+    }
+
+    if (block.data.html != null || block.data.text != null) {
+      return block;
+    }
+
+    return {
+      ...block,
+      data: {
+        ...block.data,
+        text: value,
+      },
+    };
+  }
+
+  private buildTextBlock(content: string): any {
+    return {
+      type: 'text',
+      data: {
+        text: content,
+      },
+    };
   }
 
   private async loadOnlineSectionQuiz(): Promise<void> {
@@ -397,6 +429,11 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
    */
   private async loadOfflineQuiz(): Promise<void> {
     try {
+      if (!this.allowOfflineQuiz()) {
+        this.error.set('Bài kiểm tra này chỉ hỗ trợ trực tuyến để bảo toàn tính nghiêm túc của đánh giá.');
+        return;
+      }
+
       const offlineQuiz = this.lessonId
         ? await this.offlineQuizService.getQuizForLesson(
             this.lessonId,
@@ -415,6 +452,8 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
       this.quizId = offlineQuiz.quizId;
       this.quizTitle.set(offlineQuiz.title);
       this.isOfflineMode.set(true);
+      this.quizType.set(this.normalizeAssessmentType(offlineQuiz.quizType));
+      this.allowOfflineQuiz.set(offlineQuiz.allowOffline === true);
 
       if (offlineQuiz.timeLimit) {
         this.timeRemaining.set(offlineQuiz.timeLimit * 60);
@@ -433,16 +472,18 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
       const questions: QuizQuestion[] = offlineQuiz.questions.map(q => ({
         id: q.id,
         content: q.content,
-        contentBlocks: q.contentBlocks?.length ? q.contentBlocks : [{ type: 'text', data: { text: q.content } }],
+        contentBlocks: this.normalizeContentBlocks(q.contentBlocks, q.content),
         difficulty: 'MEDIUM',
         questionType: q.questionType as QuestionType,
         correctOption: null,
         answerKey: null,
-        options: q.options.map(o => ({
-          key: o.optionKey,
-          content: o.content,
-          contentBlocks: o.contentBlocks?.length ? o.contentBlocks : [{ type: 'text', data: { text: o.content } }],
-        })).sort((a, b) => a.key.localeCompare(b.key)),
+        options: q.options
+          .map(o => ({
+            key: o.optionKey,
+            content: o.content,
+            contentBlocks: this.normalizeContentBlocks(o.contentBlocks, o.content),
+          }))
+          .sort((a, b) => a.key.localeCompare(b.key)),
       }));
 
       this.questions.set(questions);
@@ -640,7 +681,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
         const data = result?.data || result;
         this.applySubmissionResult(data);
       } catch {
-        this.error.set('Khong the nop bai kiem tra nay. Vui long thu lai.');
+        this.error.set('Không thể nộp bài kiểm tra này. Vui lòng thử lại.');
         this.submitting.set(false);
         this.startTimer();
         return;
@@ -811,5 +852,13 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     return shuffled;
+  }
+
+  private normalizeAssessmentType(value: string | null | undefined): 'PRACTICE' | 'ASSESSMENT' | 'EXAM' {
+    const normalized = (value || '').toUpperCase();
+    if (normalized === 'PRACTICE' || normalized === 'EXAM') {
+      return normalized;
+    }
+    return 'ASSESSMENT';
   }
 }

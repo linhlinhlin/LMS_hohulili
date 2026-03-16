@@ -212,6 +212,8 @@ export class AssignmentQuizCreateComponent implements OnInit {
     const request: CreateAssignmentQuizRequest = {
       title: formData.title,
       description: formData.description,
+      quizType: 'ASSESSMENT',
+      countsTowardCertificate: false,
       timeLimitMinutes: formData.timeLimitMinutes,
       maxAttempts: formData.maxAttempts,
       passingScore: formData.passingScore,

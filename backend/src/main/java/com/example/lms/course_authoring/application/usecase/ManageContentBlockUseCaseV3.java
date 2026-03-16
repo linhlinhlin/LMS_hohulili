@@ -25,10 +25,12 @@ public class ManageContentBlockUseCaseV3 {
 
     private final LessonRepositoryPort lessonRepository;
     private final CourseRepository courseRepository;
+    private final CourseDraftMutationService courseDraftMutationService;
 
     @Transactional
     public ContentBlock addBlock(UUID lessonId, String type, Map<String, Object> data, UUID userId, boolean isAdmin) {
         verifyOwnership(lessonId, userId, isAdmin);
+        courseDraftMutationService.requireEditableCourseByLesson(lessonId);
 
         List<ContentBlock> blocks = lessonRepository.getContentBlocks(lessonId)
                 .orElseThrow(() -> new EntityNotFoundException("Lesson", lessonId));
@@ -42,6 +44,7 @@ public class ManageContentBlockUseCaseV3 {
         List<ContentBlock> updated = new ArrayList<>(blocks);
         updated.add(block);
         lessonRepository.saveContentBlocks(lessonId, updated);
+        courseDraftMutationService.markCourseChangedByLesson(lessonId);
 
         return block;
     }
@@ -49,6 +52,7 @@ public class ManageContentBlockUseCaseV3 {
     @Transactional
     public ContentBlock updateBlock(UUID lessonId, String blockId, Map<String, Object> data, UUID userId, boolean isAdmin) {
         verifyOwnership(lessonId, userId, isAdmin);
+        courseDraftMutationService.requireEditableCourseByLesson(lessonId);
 
         List<ContentBlock> blocks = lessonRepository.getContentBlocks(lessonId)
                 .orElseThrow(() -> new EntityNotFoundException("Lesson", lessonId));
@@ -71,6 +75,7 @@ public class ManageContentBlockUseCaseV3 {
         List<ContentBlock> updated = new ArrayList<>(blocks);
         updated.set(blockIndex, updatedBlock);
         lessonRepository.saveContentBlocks(lessonId, updated);
+        courseDraftMutationService.markCourseChangedByLesson(lessonId);
 
         return updatedBlock;
     }
@@ -83,12 +88,15 @@ public class ManageContentBlockUseCaseV3 {
 
     @Transactional
     public void saveBlocks(UUID lessonId, List<ContentBlock> blocks) {
+        courseDraftMutationService.requireEditableCourseByLesson(lessonId);
         lessonRepository.saveContentBlocks(lessonId, blocks);
+        courseDraftMutationService.markCourseChangedByLesson(lessonId);
     }
 
     @Transactional
     public void deleteBlock(UUID lessonId, String blockId, UUID userId, boolean isAdmin) {
         verifyOwnership(lessonId, userId, isAdmin);
+        courseDraftMutationService.requireEditableCourseByLesson(lessonId);
 
         List<ContentBlock> blocks = lessonRepository.getContentBlocks(lessonId)
                 .orElseThrow(() -> new EntityNotFoundException("Lesson", lessonId));
@@ -97,6 +105,7 @@ public class ManageContentBlockUseCaseV3 {
         boolean removed = updated.removeIf(b -> b.getId().equals(blockId));
         if (removed) {
             lessonRepository.saveContentBlocks(lessonId, updated);
+            courseDraftMutationService.markCourseChangedByLesson(lessonId);
         } else {
             throw new EntityNotFoundException("ContentBlock", blockId);
         }

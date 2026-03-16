@@ -103,6 +103,51 @@
               </p>
             </div>
 
+            <div class="mb-5 space-y-3">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <h3 class="text-sm font-semibold text-gray-900">Taxonomy assessment</h3>
+                  <p class="mt-1 text-xs text-gray-500">
+                    Quiz trong lesson là nguồn chân lý cho learner flow. Quiz được giao ngoài lesson chỉ giữ tương thích vận hành.
+                  </p>
+                </div>
+                @if (!isLessonOwnedQuiz()) {
+                  <span class="rounded-full bg-amber-50 px-3 py-1 text-[11px] font-semibold text-amber-700">
+                    Legacy runtime-compatible
+                  </span>
+                }
+              </div>
+
+              <div class="grid gap-3 md:grid-cols-3">
+                @for (option of availableQuizTypes(); track option.value) {
+                  <button
+                    type="button"
+                    class="rounded-xl border px-4 py-3 text-left transition"
+                    [class.border-[#0056D2]]="quizForm.get('quizType')?.value === option.value"
+                    [class.bg-[#0056D2]/5]="quizForm.get('quizType')?.value === option.value"
+                    [class.shadow-sm]="quizForm.get('quizType')?.value === option.value"
+                    [class.border-gray-200]="quizForm.get('quizType')?.value !== option.value"
+                    (click)="quizForm.patchValue({ quizType: option.value })">
+                    <div class="text-sm font-semibold text-slate-900">{{ option.label }}</div>
+                    <p class="mt-1 text-xs leading-5 text-slate-500">{{ option.hint }}</p>
+                  </button>
+                }
+              </div>
+
+              @if (canCountTowardCertificate()) {
+                <label class="flex items-start gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    formControlName="countsTowardCertificate"
+                    class="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#0056D2] focus:ring-[#0056D2]" />
+                  <span>
+                    <span class="block font-medium text-gray-900">Tính vào điều kiện cấp chứng chỉ</span>
+                    <span class="mt-1 block text-xs text-gray-500">Chỉ bật khi đây là bài thi bắt buộc để hoàn thành khóa học.</span>
+                  </span>
+                </label>
+              }
+            </div>
+
             <div class="grid gap-4 md:grid-cols-3">
               <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
                 <label for="timeLimitMinutes" class="block text-xs font-semibold uppercase tracking-wide text-gray-500">

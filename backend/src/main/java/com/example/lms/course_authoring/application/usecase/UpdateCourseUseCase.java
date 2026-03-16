@@ -21,6 +21,7 @@ public class UpdateCourseUseCase {
 
     private final CourseRepository courseRepository;
     private final EnrollmentRepositoryPort enrollmentRepository;
+    private final CourseDraftMutationService courseDraftMutationService;
 
     @Transactional
     public CourseResponse execute(UpdateCourseCommand command) {
@@ -33,6 +34,8 @@ public class UpdateCourseUseCase {
         if (!course.isOwnedBy(command.userId()) && !command.isAdmin()) {
             throw new UnauthorizedException("chỉnh sửa", "khóa học này");
         }
+
+        courseDraftMutationService.requireEditableCourse(command.courseId());
 
         // Update basic info
         course.updateInfo(command.title(), command.description());
@@ -103,6 +106,8 @@ public class UpdateCourseUseCase {
             }
             course.updateDeliveryMode(newDeliveryMode);
         }
+
+        course.incrementContentVersion();
 
         // Save course
         course = courseRepository.save(course);

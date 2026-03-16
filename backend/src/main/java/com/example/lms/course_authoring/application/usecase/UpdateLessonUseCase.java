@@ -20,6 +20,7 @@ public class UpdateLessonUseCase {
 
     private final CourseRepository courseRepository;
     private final CourseStructureCommandPort courseStructureCommandPort;
+    private final CourseDraftMutationService courseDraftMutationService;
 
     @Transactional
     public LessonResponse execute(UpdateLessonCommand command) {
@@ -29,6 +30,8 @@ public class UpdateLessonUseCase {
         if (!course.isOwnedBy(command.userId()) && !command.isAdmin()) {
             throw new UnauthorizedException("chá»‰nh sá»­a bÃ i há»c trong", "khÃ³a há»c nÃ y");
         }
+
+        courseDraftMutationService.requireEditableCourse(command.courseId());
 
         var savedLesson = courseStructureCommandPort.updateLesson(
                 command.courseId(),
@@ -45,6 +48,7 @@ public class UpdateLessonUseCase {
                         command.isPreview()
                 )
         );
+        courseDraftMutationService.markCourseChanged(command.courseId());
         return new LessonResponse(
                 savedLesson.id(),
                 savedLesson.title(),

@@ -41,6 +41,8 @@ Nếu có mâu thuẫn giữa tài liệu và runtime thực tế, ưu tiên:
 - `runbooks/README.md`
 - `runbooks/PRODUCTION_SMOKE_TEST.md`
 - `runbooks/PWA_OFFLINE_RUNBOOK.md`
+- `runbooks/PUBLICATION_REFRESH_RUNBOOK.md`
+- `runbooks/SYNC_CONFLICT_RUNBOOK.md`
 - `runbooks/PAYMENT_PAYOUT_RUNBOOK.md`
 - `runbooks/LEARNER_FLOW_RUNBOOK.md`
 
@@ -57,6 +59,7 @@ Nếu có mâu thuẫn giữa tài liệu và runtime thực tế, ưu tiên:
 - `architecture/STUDENT_COURSE_FIRST_EXPERIENCE.md`
 - `architecture/LESSON_VIEW_ARCHITECTURE.md`
 - `architecture/STREAMING_PWA_ROADMAP.md`
+- `architecture/2026-03-16-course-publication-pwa-sync-model.md`
 - `PWA_OFFLINE_RESEARCH.md`
 
 ## 3. Tài liệu đang triển khai

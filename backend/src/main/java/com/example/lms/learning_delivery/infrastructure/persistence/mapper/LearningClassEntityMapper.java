@@ -25,6 +25,13 @@ public class LearningClassEntityMapper {
             } catch (IllegalArgumentException ignored) {}
         }
 
+        LearningClassJpaEntity.VersionMode versionMode = LearningClassJpaEntity.VersionMode.PINNED;
+        if (domain.getVersionMode() != null) {
+            try {
+                versionMode = LearningClassJpaEntity.VersionMode.valueOf(domain.getVersionMode().name());
+            } catch (IllegalArgumentException ignored) {}
+        }
+
         LearningClassJpaEntity.ClassStatus status = LearningClassJpaEntity.ClassStatus.OPEN;
         if (domain.getStatus() != null) {
             try {
@@ -37,6 +44,7 @@ public class LearningClassEntityMapper {
             .name(domain.getName())
             .code(domain.getCode())
             .courseVersionId(domain.getCourseVersionId())
+            .versionMode(versionMode)
             .courseId(domain.getCourseId())
             .teacherId(domain.getTeacherId())
             .startDate(domain.getStartDate())
@@ -64,6 +72,13 @@ public class LearningClassEntityMapper {
             } catch (IllegalArgumentException ignored) {}
         }
 
+        LearningClass.VersionMode versionMode = LearningClass.VersionMode.PINNED;
+        if (entity.getVersionMode() != null) {
+            try {
+                versionMode = LearningClass.VersionMode.valueOf(entity.getVersionMode().name());
+            } catch (IllegalArgumentException ignored) {}
+        }
+
         LearningClass.ClassStatus status = LearningClass.ClassStatus.OPEN;
         if (entity.getStatus() != null) {
             try {
@@ -76,6 +91,7 @@ public class LearningClassEntityMapper {
             .name(entity.getName())
             .code(entity.getCode())
             .courseVersionId(entity.getCourseVersionId())
+            .versionMode(versionMode)
             .courseId(entity.getCourseId())
             .teacherId(entity.getTeacherId())
             .startDate(entity.getStartDate())
