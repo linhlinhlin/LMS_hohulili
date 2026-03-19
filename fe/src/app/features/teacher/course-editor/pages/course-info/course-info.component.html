@@ -363,15 +363,41 @@
                 <input
                   id="course-intro-video"
                   formControlName="introVideoUrl"
-                  class="editor-input"
+                  class="sr-only"
                   [class.editor-input--error]="!!introVideoError()"
                   [attr.aria-invalid]="!!introVideoError()"
                   [attr.aria-describedby]="introVideoError() ? 'course-intro-video-error' : 'course-intro-video-hint'"
                   placeholder="https://youtube.com/..." />
+                <input
+                  type="file"
+                  accept="video/*"
+                  class="sr-only"
+                  #introVideoInput
+                  (change)="onIntroVideoSelected($event)" />
+                <div class="editor-callout editor-callout--info">
+                  Tải video giới thiệu nội bộ để hệ thống tạo playback online và profile asset chuẩn. Liên kết ngoài chỉ còn giữ cho nội dung legacy cũ.
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    class="editor-link-button"
+                    (click)="introVideoInput.click()">
+                    {{ hasIntroVideoAsset() ? 'Chọn video mới' : 'Tải video giới thiệu' }}
+                  </button>
+                  @if (selectedIntroVideoFile()) {
+                    <span class="editor-hint">{{ selectedIntroVideoFile()?.name }}</span>
+                    <button type="button" class="editor-link-button" (click)="clearIntroVideoSelection()">Bỏ chọn</button>
+                  }
+                </div>
+                @if (introVideoUploadState() === 'uploading') {
+                  <p class="editor-hint">Đang tải video gốc và tạo asset... {{ introVideoUploadProgress() }}%</p>
+                } @else if (introVideoStatusCopy()) {
+                  <p class="editor-hint">{{ introVideoStatusCopy() }}</p>
+                }
                 @if (introVideoError()) {
                   <p id="course-intro-video-error" class="editor-field-error">{{ introVideoError() }}</p>
                 } @else {
-                  <p id="course-intro-video-hint" class="editor-hint">Dùng liên kết YouTube hoặc URL video công khai.</p>
+                  <p id="course-intro-video-hint" class="editor-hint">Trường này hiện dùng cho liên kết preview công khai. Video bài giảng bên trong khóa học đã chuyển sang pipeline tải tệp nội bộ và video asset riêng.</p>
                 }
 
                 @if (introVideoPreviewUrl()) {
@@ -381,6 +407,42 @@
                       <p class="editor-link-preview__value">{{ introVideoHost() }}</p>
                     </div>
                     <a class="editor-link-button" [href]="introVideoPreviewUrl()" rel="noopener noreferrer" target="_blank">Mở liên kết</a>
+                  </div>
+                }
+
+                @if (hasIntroVideoAsset()) {
+                  <div class="editor-link-preview">
+                    <div>
+                      <p class="editor-link-preview__label">Video asset nội bộ</p>
+                      <p class="editor-link-preview__value">{{ introVideoProcessingStatus() || 'PENDING' }}</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                      @if (introVideoPreviewUrl()) {
+                        <a class="editor-link-button" [href]="introVideoPreviewUrl()" rel="noopener noreferrer" target="_blank">Mở preview</a>
+                      }
+                      @if (introVideoProcessingStatus() === 'FAILED') {
+                        <button type="button" class="editor-link-button" (click)="retryIntroVideoAsset()">Thử xử lý lại</button>
+                      }
+                    </div>
+                  </div>
+
+                  @if (introVideoAvailableOfflineProfiles().length) {
+                    <div class="editor-hint">
+                      Profile hiện có:
+                      @for (profile of introVideoAvailableOfflineProfiles(); track profile.id) {
+                        <span>{{ getIntroVideoProfileLabel(profile) }}@if (!$last) {, }</span>
+                      }
+                    </div>
+                  }
+                }
+
+                @if (hasLegacyIntroVideoLink()) {
+                  <div class="editor-link-preview">
+                    <div>
+                      <p class="editor-link-preview__label">Liên kết legacy đang lưu</p>
+                      <p class="editor-link-preview__value">{{ introVideoHost() }}</p>
+                    </div>
+                    <button type="button" class="editor-link-button" (click)="removeLegacyIntroVideoLink()">Xóa liên kết cũ</button>
                   </div>
                 }
               </div>

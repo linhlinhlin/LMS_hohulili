@@ -1,0 +1,86 @@
+# =============================================================================
+# Dedicated Video Worker Deployment
+# Deploy this file on a separate VM when video ingest should be isolated from
+# the main web/app node. It assumes PostgreSQL is reachable over the network.
+# =============================================================================
+
+name: lms-video-worker
+
+services:
+  video-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    init: true
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      LOGGING_LEVEL_ROOT: WARN
+      LOGGING_LEVEL_COM_EXAMPLE_LMS: INFO
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-lms}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      APP_JWT_SECRET: ${JWT_SECRET}
+      APP_JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+      APP_JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-604800000}
+      CLOUDFLARE_R2_ENABLED: ${CLOUDFLARE_R2_ENABLED:-true}
+      CLOUDFLARE_R2_ACCOUNT_ID: ${CLOUDFLARE_R2_ACCOUNT_ID}
+      CLOUDFLARE_R2_ACCESS_KEY: ${CLOUDFLARE_R2_ACCESS_KEY}
+      CLOUDFLARE_R2_SECRET_KEY: ${CLOUDFLARE_R2_SECRET_KEY}
+      CLOUDFLARE_R2_BUCKET: ${CLOUDFLARE_R2_BUCKET:-lms-cdn}
+      CLOUDFLARE_R2_VIDEO_BUCKET: ${CLOUDFLARE_R2_VIDEO_BUCKET:-lms-storage}
+      CLOUDFLARE_R2_PUBLIC_URL: ${CLOUDFLARE_R2_PUBLIC_URL}
+      VIDEO_INGEST_ENABLED: "true"
+      VIDEO_PLAYBACK_TOKEN_EXPIRY_SECONDS: ${VIDEO_PLAYBACK_TOKEN_EXPIRY_SECONDS:-14400}
+      VIDEO_SEGMENT_PRESIGN_TTL_SECONDS: ${VIDEO_SEGMENT_PRESIGN_TTL_SECONDS:-120}
+      VIDEO_MANIFEST_CACHE_SECONDS: ${VIDEO_MANIFEST_CACHE_SECONDS:-60}
+      VIDEO_OBJECT_REDIRECT_CACHE_SECONDS: ${VIDEO_OBJECT_REDIRECT_CACHE_SECONDS:-30}
+      VIDEO_PACKAGE_UPLOAD_CONCURRENCY: ${VIDEO_PACKAGE_UPLOAD_CONCURRENCY:-6}
+      VIDEO_ADAPTIVE_SEGMENT_DURATION_SECONDS: ${VIDEO_ADAPTIVE_SEGMENT_DURATION_SECONDS:-6}
+      VIDEO_FFMPEG_PRESET: ${VIDEO_FFMPEG_PRESET:-superfast}
+      APP_BASE_URL: ${APP_BASE_URL:-https://holilihu.online}
+      APP_CORS_ORIGINS: ${APP_CORS_ORIGINS:-https://holilihu.online}
+      AI_SERVICE_URL: ${AI_SERVICE_URL:-https://wiii.holilihu.online}
+      AI_SERVICE_API_KEY: ${AI_SERVICE_API_KEY:-}
+      WIII_WEBHOOK_URL: ${WIII_WEBHOOK_URL:-}
+      WIII_WEBHOOK_SECRET: ${WIII_WEBHOOK_SECRET:-}
+      WIII_WEBHOOK_ENABLED: ${WIII_WEBHOOK_ENABLED:-false}
+      WIII_SERVICE_TOKEN: ${WIII_SERVICE_TOKEN:-}
+      WIII_TOKEN_EXCHANGE_URL: ${WIII_TOKEN_EXCHANGE_URL:-}
+      SPRING_MAIL_HOST: ${MAIL_HOST:-}
+      SPRING_MAIL_PORT: ${MAIL_PORT:-587}
+      SPRING_MAIL_USERNAME: ${MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-}
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
+      VNPAY_PAY_URL: ${VNPAY_PAY_URL:-}
+      SEPAY_ENABLED: ${SEPAY_ENABLED:-false}
+      SEPAY_BANK_CODE: ${SEPAY_BANK_CODE:-}
+      SEPAY_ACCOUNT_NUMBER: ${SEPAY_ACCOUNT_NUMBER:-}
+      SEPAY_ACCOUNT_NAME: ${SEPAY_ACCOUNT_NAME:-}
+      SEPAY_WEBHOOK_API_KEY: ${SEPAY_WEBHOOK_API_KEY:-}
+      SEPAY_TEMPLATE_CODE: ${SEPAY_TEMPLATE_CODE:-compact2}
+      JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
+    volumes:
+      - lms-video-worker-uploads:/app/uploads
+    cpus: "${VIDEO_WORKER_CPU_LIMIT:-3.0}"
+    mem_limit: "${VIDEO_WORKER_MEMORY_LIMIT:-3072M}"
+    mem_reservation: "${VIDEO_WORKER_MEMORY_RESERVATION:-2048M}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:8080/actuator/health >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  lms-video-worker-uploads:
+    name: lms-video-worker-uploads

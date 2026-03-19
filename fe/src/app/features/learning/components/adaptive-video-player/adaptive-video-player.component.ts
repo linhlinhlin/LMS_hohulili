@@ -21,19 +21,24 @@ import { WatchedSegmentsTracker } from '../../services/watched-segments-tracker.
 
 type ResolvedVideoSource =
   | { kind: 'native'; url: string }
-  | { kind: 'hls'; url: string };
+  | { kind: 'adaptive'; url: string };
 
 @Component({
   selector: 'app-adaptive-video-player',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [],
   template: `
-    <div class="relative h-full w-full bg-black">
+    <div class="relative h-full w-full bg-black" data-testid="adaptive-video-player">
       <video
         #videoElement
+        data-testid="adaptive-video-element"
         [poster]="posterUrl() || null"
         controls
         controlsList="nodownload"
+        playsinline
+        webkit-playsinline
+        preload="metadata"
+        crossorigin="anonymous"
         class="h-full w-full object-contain"
         [class.opacity-0]="isLoading() && !error()"
         (loadedmetadata)="onLoadedMetadata($event)"
@@ -41,6 +46,7 @@ type ResolvedVideoSource =
         (play)="onPlay()"
         (pause)="onPause()"
         (ended)="onEnded()"
+        (error)="onVideoError($event)"
         (waiting)="onBufferStart()"
         (playing)="onPlaying()">
         Trình duyệt của bạn không hỗ trợ phát video.
@@ -56,7 +62,7 @@ type ResolvedVideoSource =
       }
 
       @if (error(); as errorText) {
-        <div class="absolute inset-0 flex items-center justify-center bg-slate-950/85 px-6 text-white">
+        <div class="absolute inset-0 flex items-center justify-center bg-slate-950/85 px-6 text-white" data-testid="adaptive-video-error">
           <div class="max-w-md rounded-2xl border border-white/10 bg-slate-900/90 p-5 text-center shadow-xl">
             <p class="text-base font-semibold">Không tải được video</p>
             <p class="mt-2 text-sm text-slate-300">{{ errorText }}</p>
@@ -71,7 +77,7 @@ type ResolvedVideoSource =
       }
 
       @if (qualityLabel()) {
-        <div class="absolute left-3 top-3 rounded-full bg-slate-950/80 px-2.5 py-1 text-[11px] font-semibold text-white">
+        <div class="absolute left-3 top-3 rounded-full bg-slate-950/80 px-2.5 py-1 text-[11px] font-semibold text-white" data-testid="adaptive-video-quality">
           {{ qualityLabel() }}
         </div>
       }
@@ -94,6 +100,8 @@ export class AdaptiveVideoPlayerComponent {
 
   readonly lessonId = input.required<string>();
   readonly sectionId = input<string | null>(null);
+  readonly videoAssetId = input<string | null>(null);
+  readonly videoSourceKind = input<string | null>(null);
   readonly rawVideoUrl = input<string | null>(null);
   readonly streamVideoUid = input<string | null>(null);
   readonly offlineVideoUrl = input<string | null>(null);
@@ -120,6 +128,9 @@ export class AdaptiveVideoPlayerComponent {
   private playbackStartedAtMs: number | null = null;
   private totalPlayTimeMs = 0;
   private startupRecorded = false;
+  private offlineBlobUrl: string | null = null;
+  private attemptedOfflineBlobFallback = false;
+  private readonly offlineBlobFallbackLimitBytes = 220 * 1024 * 1024;
 
   constructor() {
     effect(() => {
@@ -127,6 +138,8 @@ export class AdaptiveVideoPlayerComponent {
       const sourceKey = [
         this.lessonId(),
         this.sectionId() ?? '',
+        this.videoAssetId() ?? '',
+        this.videoSourceKind() ?? '',
         this.rawVideoUrl() ?? '',
         this.streamVideoUid() ?? '',
         this.offlineVideoUrl() ?? '',
@@ -149,6 +162,7 @@ export class AdaptiveVideoPlayerComponent {
   async ngOnDestroy(): Promise<void> {
     this.finishPlaybackSession();
     await this.destroyShakaPlayer();
+    this.revokeOfflineBlobUrl();
   }
 
   onLoadedMetadata(event: Event): void {
@@ -192,6 +206,10 @@ export class AdaptiveVideoPlayerComponent {
     this.videoEnded.emit();
   }
 
+  onVideoError(event: Event): void {
+    void this.handleVideoError(event.target as HTMLVideoElement | null);
+  }
+
   onBufferStart(): void {
     this.qoe.recordBufferStart();
   }
@@ -217,6 +235,8 @@ export class AdaptiveVideoPlayerComponent {
     this.isLoading.set(true);
     this.qualityLabel.set(null);
     this.startupRecorded = false;
+    this.attemptedOfflineBlobFallback = false;
+    this.revokeOfflineBlobUrl();
     this.qoe.startSession(this.lessonId());
 
     try {
@@ -231,7 +251,7 @@ export class AdaptiveVideoPlayerComponent {
         return;
       }
 
-      if (source.kind === 'hls') {
+      if (source.kind === 'adaptive') {
         await this.initializeShaka(videoRef, source.url);
       } else {
         videoRef.src = source.url;
@@ -246,14 +266,29 @@ export class AdaptiveVideoPlayerComponent {
   }
 
   private async resolveVideoSource(): Promise<ResolvedVideoSource | null> {
-    if (this.offlineVideoUrl()) {
-      return { kind: 'native', url: this.offlineVideoUrl()! };
+    const normalizedOfflineUrl = this.normalizeOfflineVideoUrl(this.offlineVideoUrl());
+    if (normalizedOfflineUrl) {
+      if (this.shouldPreferOfflineBlobPlayback()) {
+        const blobUrl = await this.createOfflineBlobUrl(normalizedOfflineUrl);
+        if (blobUrl) {
+          this.attemptedOfflineBlobFallback = true;
+          return { kind: 'native', url: blobUrl };
+        }
+      }
+      return { kind: 'native', url: normalizedOfflineUrl };
+    }
+
+    if (this.shouldUseAdaptivePlayback()) {
+      const playUrl = await this.resolveAdaptivePlayUrl();
+      if (playUrl) {
+        return { kind: 'adaptive', url: playUrl };
+      }
     }
 
     if (this.streamVideoUid()) {
-      const playUrl = await this.resolveSignedPlaybackUrl();
+      const playUrl = await this.resolveLegacyStreamPlaybackUrl();
       if (playUrl) {
-        return { kind: 'hls', url: playUrl };
+        return { kind: 'adaptive', url: playUrl };
       }
     }
 
@@ -263,30 +298,155 @@ export class AdaptiveVideoPlayerComponent {
     }
 
     return {
-      kind: rawUrl.includes('.m3u8') || rawUrl.includes('videodelivery.net') ? 'hls' : 'native',
+      kind: rawUrl.includes('.m3u8') || rawUrl.includes('.mpd') || rawUrl.includes('videodelivery.net') ? 'adaptive' : 'native',
       url: rawUrl,
     };
   }
 
-  private async resolveSignedPlaybackUrl(): Promise<string | null> {
+  private shouldUseAdaptivePlayback(): boolean {
+    const videoAssetId = this.videoAssetId();
+    if (!videoAssetId) {
+      return false;
+    }
+
+    const sourceKind = this.videoSourceKind();
+    return sourceKind === 'ADAPTIVE_R2' || !this.rawVideoUrl();
+  }
+
+  private normalizeOfflineVideoUrl(url: string | null): string | null {
+    if (!url) {
+      return null;
+    }
+
+    if (url.startsWith('cache:')) {
+      const cacheKey = url.slice('cache:'.length).trim();
+      return cacheKey ? `/offline-video/${cacheKey}` : null;
+    }
+
+    return url;
+  }
+
+  private shouldPreferOfflineBlobPlayback(): boolean {
+    if (typeof navigator === 'undefined') {
+      return false;
+    }
+
+    const ua = navigator.userAgent || '';
+    const platform = navigator.platform || '';
+    const maxTouchPoints = (navigator as Navigator & { maxTouchPoints?: number }).maxTouchPoints ?? 0;
+    const isIOSDevice = /iPad|iPhone|iPod/i.test(ua);
+    const isIPadDesktopMode = platform === 'MacIntel' && maxTouchPoints > 1;
+    return isIOSDevice || isIPadDesktopMode;
+  }
+
+  private async handleVideoError(video: HTMLVideoElement | null): Promise<void> {
+    if (await this.tryOfflineBlobFallback(video)) {
+      return;
+    }
+
+    this.qoe.recordError();
+    const hasOfflineSource = !!this.normalizeOfflineVideoUrl(this.offlineVideoUrl());
+    this.error.set(
+      hasOfflineSource
+        ? 'Video ngoại tuyến này chưa phát được trên trình duyệt hiện tại. Hãy thử cập nhật gói hoặc phát trực tuyến.'
+        : 'Không thể phát video này. Vui lòng thử lại.'
+    );
+    this.isLoading.set(false);
+  }
+
+  private async tryOfflineBlobFallback(video: HTMLVideoElement | null): Promise<boolean> {
+    if (!video || this.attemptedOfflineBlobFallback) {
+      return false;
+    }
+
+    const normalizedOfflineUrl = this.normalizeOfflineVideoUrl(this.offlineVideoUrl());
+    if (!normalizedOfflineUrl) {
+      return false;
+    }
+
+    this.attemptedOfflineBlobFallback = true;
+    const blobUrl = await this.createOfflineBlobUrl(normalizedOfflineUrl);
+    if (!blobUrl) {
+      return false;
+    }
+
+    this.error.set(null);
+    this.isLoading.set(true);
+    video.src = blobUrl;
+    video.load();
+    return true;
+  }
+
+  private async createOfflineBlobUrl(offlineUrl: string): Promise<string | null> {
+    if (typeof caches === 'undefined' || typeof window === 'undefined') {
+      return null;
+    }
+
+    try {
+      const cache = await caches.open('offline-videos');
+      const absoluteUrl = new URL(offlineUrl, window.location.origin);
+      const cachedResponse =
+        await cache.match(absoluteUrl.toString())
+        || await cache.match(offlineUrl)
+        || await cache.match(absoluteUrl.pathname);
+
+      if (!cachedResponse) {
+        return null;
+      }
+
+      const declaredLength = Number(cachedResponse.headers.get('content-length')) || 0;
+      if (declaredLength > this.offlineBlobFallbackLimitBytes) {
+        return null;
+      }
+
+      const blob = await cachedResponse.blob();
+      if (blob.size > this.offlineBlobFallbackLimitBytes) {
+        return null;
+      }
+
+      this.revokeOfflineBlobUrl();
+      this.offlineBlobUrl = URL.createObjectURL(blob);
+      return this.offlineBlobUrl;
+    } catch {
+      return null;
+    }
+  }
+
+  private revokeOfflineBlobUrl(): void {
+    if (!this.offlineBlobUrl || typeof URL === 'undefined') {
+      this.offlineBlobUrl = null;
+      return;
+    }
+
+    URL.revokeObjectURL(this.offlineBlobUrl);
+    this.offlineBlobUrl = null;
+  }
+
+  private async resolveAdaptivePlayUrl(format: 'hls' | 'dash' = 'hls'): Promise<string | null> {
     const sectionId = this.sectionId();
     if (sectionId) {
       try {
-        const response: any = await firstValueFrom(this.sectionApi.getStreamPlayUrl(sectionId));
+        const response: any = await firstValueFrom(this.sectionApi.getVideoPlayUrl(sectionId, format));
         return response?.playUrl ?? response?.data?.playUrl ?? null;
       } catch {
-        // Fall back to legacy lesson endpoint below.
+        // Fall back to lesson endpoint below.
       }
     }
 
     try {
       const response: any = await firstValueFrom(
-        this.http.get(`${environment.apiUrl}/api/v3/lessons/${this.lessonId()}/video/play`)
+        this.http.get(`${environment.apiUrl}/api/v3/lessons/${this.lessonId()}/video/play`, {
+          params: { format },
+        })
       );
       return response?.playUrl ?? response?.data?.playUrl ?? null;
     } catch {
       return null;
     }
+  }
+
+  private async resolveLegacyStreamPlaybackUrl(): Promise<string | null> {
+    return this.resolveAdaptivePlayUrl('hls');
   }
 
   private async initializeShaka(videoElement: HTMLVideoElement, manifestUrl: string): Promise<void> {
@@ -313,6 +473,8 @@ export class AdaptiveVideoPlayerComponent {
       streaming: {
         bufferingGoal: 30,
         rebufferingGoal: 8,
+        bufferBehind: 30,
+        segmentPrefetchLimit: 2,
         retryParameters: {
           baseDelay: 1_000,
           backoffFactor: 2,

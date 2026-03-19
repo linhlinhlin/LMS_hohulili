@@ -1,12 +1,20 @@
 import { Component, input, output, signal, computed, inject, ChangeDetectionStrategy, ElementRef, viewChild } from '@angular/core';
-import { HttpClient, HttpEventType } from '@angular/common/http';
-import { environment } from '../../../../environments/environment';
+import { firstValueFrom } from 'rxjs';
+import { PresignedUploadService, type UploadEvent } from '../../../core/services/presigned-upload.service';
+import { VideoAssetApi } from '../../../api/client/video-asset.api';
+import type { VideoSourceKind } from '../../../core/models/video-quality';
 
 export interface VideoUploadResult {
   objectKey: string;
   publicUrl: string;
   fileName: string;
   fileSize: number;
+  attachmentId: string;
+  assetId: string;
+  status: string;
+  playbackUrl?: string | null;
+  streamVideoUid?: string | null;
+  videoSourceKind?: VideoSourceKind;
 }
 
 @Component({
@@ -39,13 +47,13 @@ export interface VideoUploadResult {
               <span class="upload-link">chọn file</span>
             </p>
             <p class="upload-hint">
-              Hỗ trợ: MP4, AVI, MOV, MKV (Tối đa {{ maxFileSizeMB() }}MB)
+              Hỗ trợ: MP4, MOV, WEBM, AVI, MKV (khuyến nghị MP4/MOV, tối đa {{ maxFileSizeLabel() }})
             </p>
           </div>
           <input #fileInput
                  type="file"
                  class="hidden-input"
-                 accept="video/mp4,video/avi,video/mov,video/x-matroska"
+                 accept=".mp4,.mov,.webm,.avi,.mkv,video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska,video/avi"
                  (change)="onFileSelected($event)">
         </div>
       }
@@ -91,6 +99,14 @@ export interface VideoUploadResult {
                   <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
                 </svg>
                 <span class="info-text">{{ formatFileSize(videoFileSize()) }}</span>
+              </div>
+            }
+            @if (videoAssetId()) {
+              <div class="info-row">
+                <svg class="info-icon" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v2a1 1 0 11-2 0V4H6v12h4a1 1 0 110 2H6a2 2 0 01-2-2V4zm9.293 4.293a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L14.586 11H9a1 1 0 110-2h5.586l-1.293-1.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                </svg>
+                <span class="info-text">{{ getProcessingCopy() }}</span>
               </div>
             }
           </div>
@@ -405,10 +421,11 @@ export interface VideoUploadResult {
   `]
 })
 export class VideoUploadComponent {
-  private http = inject(HttpClient);
+  private presignedUpload = inject(PresignedUploadService);
+  private videoAssetApi = inject(VideoAssetApi);
 
   // Inputs
-  maxFileSize = input<number>(500 * 1024 * 1024); // 500MB default
+  maxFileSize = input<number>(5_000_000_000); // 5 GB via presigned direct upload
   initialVideoUrl = input<string>('');
   disabled = input<boolean>(false);
   compact = input<boolean>(false);
@@ -425,6 +442,9 @@ export class VideoUploadComponent {
   videoFileName = signal<string>('');
   videoFileSize = signal<number>(0);
   videoStorageKey = signal<string>('');
+  videoAttachmentId = signal<string>('');
+  videoAssetId = signal<string>('');
+  videoProcessingStatus = signal<string>('');
   isUploading = signal<boolean>(false);
   uploadProgress = signal<number>(0);
   uploadingFileName = signal<string>('');
@@ -433,6 +453,13 @@ export class VideoUploadComponent {
 
   // Computed
   maxFileSizeMB = computed(() => Math.round(this.maxFileSize() / (1024 * 1024)));
+  maxFileSizeLabel = computed(() => {
+    const bytes = this.maxFileSize();
+    if (bytes >= 1_000_000_000) {
+      return `${Math.round(bytes / 1_000_000_000)} GB`;
+    }
+    return `${Math.round(bytes / (1024 * 1024))} MB`;
+  });
 
   constructor() {
     // Set initial video URL if provided
@@ -485,15 +512,15 @@ export class VideoUploadComponent {
     this.errorMessage.set('');
 
     // Validate file type
-    const allowedTypes = ['video/mp4', 'video/avi', 'video/mov', 'video/x-matroska', 'video/quicktime'];
+    const allowedTypes = ['video/mp4', 'video/webm', 'video/avi', 'video/x-msvideo', 'video/mov', 'video/x-matroska', 'video/quicktime'];
     if (!allowedTypes.includes(file.type)) {
-      this.errorMessage.set('Định dạng video không được hỗ trợ. Vui lòng chọn file MP4, AVI, MOV hoặc MKV.');
+      this.errorMessage.set('Định dạng video không được hỗ trợ. Vui lòng chọn file MP4, MOV, WEBM, AVI hoặc MKV.');
       return;
     }
 
     // Validate file size
     if (file.size > this.maxFileSize()) {
-      this.errorMessage.set(`Kích thước video vượt quá giới hạn ${this.maxFileSizeMB()}MB.`);
+      this.errorMessage.set(`Kích thước video vượt quá giới hạn ${this.maxFileSizeLabel()}.`);
       return;
     }
 
@@ -506,42 +533,46 @@ export class VideoUploadComponent {
     this.uploadProgress.set(0);
     this.uploadingFileName.set(file.name);
     this.errorMessage.set('');
+    this.presignedUpload.upload(file, 'videos').subscribe({
+      next: async (event: UploadEvent) => {
+        if (event.type === 'progress') {
+          this.uploadProgress.set(event.progress);
+          return;
+        }
 
-    const formData = new FormData();
-    formData.append('file', file);
+        try {
+          const response: any = await firstValueFrom(this.videoAssetApi.createFromUpload(event.id, file.name));
+          const asset = response?.data || response;
 
-    this.http.post<{ success: number; file: { url: string; id: string; uuid: string; storageKey: string } }>(
-      `${environment.apiUrl}/api/v3/files/upload/video`,
-      formData,
-      { reportProgress: true, observe: 'events' }
-    ).subscribe({
-      next: (event) => {
-        if (event.type === HttpEventType.UploadProgress && event.total) {
-          this.uploadProgress.set(Math.round(100 * event.loaded / event.total));
-        } else if (event.type === HttpEventType.Response) {
-          const body = event.body;
-          if (body && body.success === 1 && body.file) {
-            this.isUploading.set(false);
-            this.videoUrl.set(body.file.url);
-            this.videoFileName.set(file.name);
-            this.videoFileSize.set(file.size);
-            this.videoStorageKey.set(body.file.storageKey);
+          this.isUploading.set(false);
+          this.videoUrl.set(asset.playbackUrl || event.url);
+          this.videoFileName.set(file.name);
+          this.videoFileSize.set(file.size);
+          this.videoStorageKey.set(event.key);
+          this.videoAttachmentId.set(event.id);
+          this.videoAssetId.set(asset.id);
+          this.videoProcessingStatus.set(asset.status || '');
 
-            this.videoUploaded.emit({
-              objectKey: body.file.storageKey,
-              publicUrl: body.file.url,
-              fileName: file.name,
-              fileSize: file.size
-            });
-          } else {
-            this.isUploading.set(false);
-            this.errorMessage.set('Upload video thất bại. Phản hồi không hợp lệ.');
-          }
+          this.videoUploaded.emit({
+            objectKey: event.key,
+            publicUrl: asset.playbackUrl || event.url,
+            fileName: file.name,
+            fileSize: file.size,
+            attachmentId: event.id,
+            assetId: asset.id,
+            status: asset.status,
+            playbackUrl: asset.playbackUrl,
+            streamVideoUid: asset.streamVideoUid,
+            videoSourceKind: asset.videoSourceKind,
+          });
+        } catch (err: any) {
+          this.isUploading.set(false);
+          this.errorMessage.set(err?.error?.message || err?.message || 'Tạo video asset thất bại. Vui lòng thử lại.');
         }
       },
       error: (err) => {
         this.isUploading.set(false);
-        const msg = err.error?.message || 'Upload video thất bại. Vui lòng thử lại.';
+        const msg = err?.error?.message || err?.message || 'Upload video thất bại. Vui lòng thử lại.';
         this.errorMessage.set(msg);
       }
     });
@@ -549,23 +580,8 @@ export class VideoUploadComponent {
 
   removeVideo(): void {
     if (this.disabled()) return;
-
-    const storageKey = this.videoStorageKey();
-    if (storageKey) {
-      this.http.delete(`${environment.apiUrl}/api/v3/files/${encodeURIComponent(storageKey)}`).subscribe({
-        next: () => {
-          this.resetVideo();
-          this.videoRemoved.emit();
-        },
-        error: () => {
-          this.resetVideo();
-          this.videoRemoved.emit();
-        }
-      });
-    } else {
-      this.resetVideo();
-      this.videoRemoved.emit();
-    }
+    this.resetVideo();
+    this.videoRemoved.emit();
   }
 
   private resetVideo(): void {
@@ -573,8 +589,24 @@ export class VideoUploadComponent {
     this.videoFileName.set('');
     this.videoFileSize.set(0);
     this.videoStorageKey.set('');
+    this.videoAttachmentId.set('');
+    this.videoAssetId.set('');
+    this.videoProcessingStatus.set('');
     this.uploadProgress.set(0);
     this.errorMessage.set('');
+  }
+
+  getProcessingCopy(): string {
+    switch (this.videoProcessingStatus().toUpperCase()) {
+      case 'READY':
+        return 'Asset đã sẵn sàng cho phát trực tuyến và profile ngoại tuyến.';
+      case 'FAILED':
+        return 'Asset đã tạo nhưng pipeline xử lý video bị lỗi.';
+      case 'PROCESSING':
+        return 'Asset đang được xử lý để tạo playback và profile ngoại tuyến.';
+      default:
+        return 'Asset đã được tạo và đang chờ hoàn tất xử lý.';
+    }
   }
 
   formatFileSize(bytes: number): string {

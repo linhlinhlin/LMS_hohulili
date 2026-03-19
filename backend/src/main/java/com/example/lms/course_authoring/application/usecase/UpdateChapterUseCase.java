@@ -20,7 +20,7 @@ public class UpdateChapterUseCase {
 
     private final CourseRepository courseRepository;
     private final CourseStructureCommandPort courseStructureCommandPort;
-    private final CourseDraftMutationService courseDraftMutationService;
+    private final CourseDraftMutationUseCase courseDraftMutationUseCase;
 
     @Transactional
     public ChapterResponse execute(UpdateChapterCommand command) {
@@ -31,7 +31,7 @@ public class UpdateChapterUseCase {
             throw new UnauthorizedException("chá»‰nh sá»­a chÆ°Æ¡ng trong", "khÃ³a há»c nÃ y");
         }
 
-        courseDraftMutationService.requireEditableCourse(command.courseId());
+        courseDraftMutationUseCase.requireEditableCourse(command.courseId());
 
         var savedChapter = courseStructureCommandPort.updateChapter(
                 command.courseId(),
@@ -39,7 +39,7 @@ public class UpdateChapterUseCase {
                 command.title(),
                 command.description()
         );
-        courseDraftMutationService.markCourseChanged(command.courseId());
+        courseDraftMutationUseCase.markCourseChanged(command.courseId());
         return new ChapterResponse(
                 savedChapter.id(),
                 savedChapter.title(),

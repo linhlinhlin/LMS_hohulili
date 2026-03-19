@@ -23,6 +23,7 @@ public class UploadCleanupScheduler {
     private final UploadSessionJpaRepository sessionRepository;
     private final FileAttachmentJpaRepository fileAttachmentRepository;
     private final java.util.Optional<R2StorageService> r2StorageService;
+    private final java.util.Optional<R2VideoStorageService> r2VideoStorageService;
     private final java.util.Optional<LocalStorageService> localStorageService;
 
     @Autowired
@@ -30,10 +31,12 @@ public class UploadCleanupScheduler {
             UploadSessionJpaRepository sessionRepository,
             FileAttachmentJpaRepository fileAttachmentRepository,
             @Autowired(required = false) R2StorageService r2StorageService,
+            @Autowired(required = false) R2VideoStorageService r2VideoStorageService,
             @Autowired(required = false) LocalStorageService localStorageService) {
         this.sessionRepository = sessionRepository;
         this.fileAttachmentRepository = fileAttachmentRepository;
         this.r2StorageService = java.util.Optional.ofNullable(r2StorageService);
+        this.r2VideoStorageService = java.util.Optional.ofNullable(r2VideoStorageService);
         this.localStorageService = java.util.Optional.ofNullable(localStorageService);
     }
 
@@ -52,7 +55,7 @@ public class UploadCleanupScheduler {
         for (UploadSessionJpaEntity session : expired) {
             // Delete from storage
             try {
-                deleteFromStorage(session.getStorageKey());
+                expirePendingUpload(session);
             } catch (Exception e) {
                 log.warn("[Cleanup] Failed to delete storage object: {}", session.getStorageKey(), e);
             }
@@ -77,7 +80,7 @@ public class UploadCleanupScheduler {
         int count = 0;
         for (var attachment : orphans) {
             try {
-                deleteFromStorage(attachment.getFileName());
+                deleteFromStorage(attachment.getFileName(), attachment.getFileCategory(), attachment.getFileUrl());
             } catch (Exception e) {
                 log.warn("[Cleanup] Failed to delete orphaned file: {}", attachment.getFileName(), e);
             }
@@ -87,8 +90,22 @@ public class UploadCleanupScheduler {
         log.info("[Cleanup] Removed {} orphaned file attachments", count);
     }
 
-    private void deleteFromStorage(String key) {
-        if (r2StorageService.isPresent()) {
+    private void expirePendingUpload(UploadSessionJpaEntity session) {
+        if ("MULTIPART".equalsIgnoreCase(session.getUploadStrategy()) && session.getMultipartUploadId() != null) {
+            r2VideoStorageService.ifPresent(service -> service.abortMultipartUpload(session.getStorageKey(), session.getMultipartUploadId()));
+            return;
+        }
+        deleteFromStorage(session.getStorageKey(), session.getFolder(), null);
+    }
+
+    private void deleteFromStorage(String key, String storageHint, String fileUrl) {
+        boolean usePrivateVideoStorage = "VIDEO".equalsIgnoreCase(storageHint)
+                || "videos".equalsIgnoreCase(storageHint)
+                || (fileUrl != null && fileUrl.startsWith("video-private://"));
+
+        if (usePrivateVideoStorage && r2VideoStorageService.isPresent()) {
+            r2VideoStorageService.get().delete(key);
+        } else if (r2StorageService.isPresent()) {
             r2StorageService.get().delete(key);
         } else if (localStorageService.isPresent()) {
             localStorageService.get().delete(key);

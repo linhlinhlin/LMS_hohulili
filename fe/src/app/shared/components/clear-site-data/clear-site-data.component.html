@@ -1,0 +1,55 @@
+<div class="min-h-screen bg-slate-50 px-4 py-10 sm:px-6 lg:px-8" data-testid="clear-site-data-page">
+  <div class="mx-auto max-w-3xl space-y-6">
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+      <p class="text-sm font-medium uppercase tracking-wide text-[#0056D2]">Du lieu trinh duyet</p>
+      <h1 class="mt-2 text-2xl font-bold text-slate-900 sm:text-3xl" data-testid="clear-site-data-heading">
+        Lam sach site data khi kho ngoai tuyen bi hong nang
+      </h1>
+      <p class="mt-3 text-sm leading-6 text-slate-600 sm:text-base">
+        Chi dung buoc nay khi man hinh Luu tru ngoai tuyen van bao loi sau khi ban da thu khoi phuc trong app.
+        Viec xoa site data se don service worker, cache, IndexedDB va phien dang nhap tren trinh duyet nay.
+      </p>
+    </div>
+
+    <div class="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+      <h2 class="text-base font-semibold text-amber-950">Khi nao nen dung</h2>
+      <ul class="mt-4 space-y-2 text-sm text-amber-900">
+        <li>- Da reset trong app nhung trang thai online-only van quay lai ngay.</li>
+        <li>- Chrome, Safari hoac Edge bao UnknownError hay backing store khi mo IndexedDB.</li>
+        <li>- QA can tra trinh duyet ve trang thai sach hoan toan de test lai PWA.</li>
+      </ul>
+    </div>
+
+    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 class="text-base font-semibold text-slate-900">Cach lam an toan</h2>
+      <ol class="mt-4 list-decimal space-y-3 pl-5 text-sm leading-6 text-slate-600">
+        <li>Dong tat ca tab dang mo cua <strong>holilihu.online</strong> tren trinh duyet nay.</li>
+        <li>Vao phan <strong>Site settings</strong> hoac <strong>Clear browsing data</strong> cua browser.</li>
+        <li>Xoa du lieu site cua <strong>holilihu.online</strong>.</li>
+        <li>Mo lai LMS Maritime, dang nhap va tai lai cac khoa hoc ngoai tuyen neu can.</li>
+      </ol>
+
+      <div class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+        <p class="font-semibold text-slate-900">Luu y</p>
+        <p class="mt-2">
+          Trang nay khong the tu dong xoa site data sau o moi trinh duyet. Neu ban chi can don cache PWA,
+          hay quay lai man hinh khoi phuc trong app truoc.
+        </p>
+      </div>
+
+      <div class="mt-6 flex flex-wrap gap-3">
+        <a
+          routerLink="/reset-sw"
+          class="rounded-xl bg-[#0056D2] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#004BB5]">
+          Thu khoi phuc trong app truoc
+        </a>
+
+        <a
+          [routerLink]="returnUrl()"
+          class="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
+          Toi da xoa xong, quay lai
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

@@ -20,15 +20,18 @@ import java.util.UUID;
 public class FileManagementService implements FileManagementPort {
 
     private final Optional<R2StorageService> r2StorageService;
+    private final Optional<R2VideoStorageService> r2VideoStorageService;
     private final Optional<LocalStorageService> localStorageService;
     private final FileAttachmentJpaRepository fileRepository;
 
     @Autowired
     public FileManagementService(
             @Autowired(required = false) R2StorageService r2StorageService,
+            @Autowired(required = false) R2VideoStorageService r2VideoStorageService,
             @Autowired(required = false) LocalStorageService localStorageService,
             FileAttachmentJpaRepository fileRepository) {
         this.r2StorageService = Optional.ofNullable(r2StorageService);
+        this.r2VideoStorageService = Optional.ofNullable(r2VideoStorageService);
         this.localStorageService = Optional.ofNullable(localStorageService);
         this.fileRepository = fileRepository;
     }
@@ -40,18 +43,23 @@ public class FileManagementService implements FileManagementPort {
      */
     @Transactional
     public FileAttachmentJpaEntity uploadFile(MultipartFile file, String folder, UUID uploadedBy) throws IOException {
-        R2StorageService.UploadResult result;
-        if (r2StorageService.isPresent()) {
-            result = r2StorageService.get().upload(file, folder);
+        UploadResult result;
+        if (isVideoFolder(folder) && r2VideoStorageService.isPresent()) {
+            R2VideoStorageService.UploadResult upload = r2VideoStorageService.get().upload(file, folder);
+            result = new UploadResult(upload.storageKey(), upload.internalUrl(), upload.fileSize());
+        } else if (r2StorageService.isPresent()) {
+            R2StorageService.UploadResult upload = r2StorageService.get().upload(file, folder);
+            result = new UploadResult(upload.storageKey(), upload.publicUrl(), upload.fileSize());
         } else if (localStorageService.isPresent()) {
-            result = localStorageService.get().upload(file, folder);
+            R2StorageService.UploadResult upload = localStorageService.get().upload(file, folder);
+            result = new UploadResult(upload.storageKey(), upload.publicUrl(), upload.fileSize());
         } else {
             throw new IllegalStateException("File upload is not available: no storage service configured");
         }
 
         // 2. Save metadata to DB
         FileAttachmentJpaEntity attachment = FileAttachmentJpaEntity.builder()
-                .fileUrl(result.publicUrl())
+                .fileUrl(result.fileUrl())
                 .fileName(result.storageKey())
                 .originalName(file.getOriginalFilename())
                 .fileSize(result.fileSize())
@@ -125,4 +133,10 @@ public class FileManagementService implements FileManagementPort {
             log.info("Linked file {} to {} {}", file.getId(), entityType, entityId);
         });
     }
+
+    private boolean isVideoFolder(String folder) {
+        return "videos".equalsIgnoreCase(folder);
+    }
+
+    private record UploadResult(String storageKey, String fileUrl, long fileSize) {}
 }

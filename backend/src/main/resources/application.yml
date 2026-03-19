@@ -12,13 +12,18 @@ spring:
   threads:
     virtual:
       enabled: true
+  task:
+    scheduling:
+      pool:
+        size: 4
+      thread-name-prefix: lms-scheduler-
   profiles:
     active: dev
   servlet:
     multipart:
       enabled: true
-      max-file-size: 50MB
-      max-request-size: 60MB
+      max-file-size: 500MB
+      max-request-size: 520MB
   jpa:
     show-sql: false
     properties:
@@ -65,6 +70,16 @@ app:
     secret: ${APP_JWT_SECRET:ZGV2ZWxvcG1lbnQtb25seS1zZWNyZXQta2V5LWZvci1sbXMtYXBwbGljYXRpb24tbWluaW11bS0yNTYtYml0cw==}
     expiration: ${APP_JWT_EXPIRATION:86400000}  # 24 hours in milliseconds
     refresh-expiration: ${APP_JWT_REFRESH_EXPIRATION:604800000}  # 7 days in milliseconds
+  video:
+    ingest:
+      enabled: ${VIDEO_INGEST_ENABLED:true}
+    playback-token-expiry-seconds: ${VIDEO_PLAYBACK_TOKEN_EXPIRY_SECONDS:14400}
+    segment-presign-ttl-seconds: ${VIDEO_SEGMENT_PRESIGN_TTL_SECONDS:120}
+    manifest-cache-seconds: ${VIDEO_MANIFEST_CACHE_SECONDS:60}
+    object-redirect-cache-seconds: ${VIDEO_OBJECT_REDIRECT_CACHE_SECONDS:30}
+    package-upload-concurrency: ${VIDEO_PACKAGE_UPLOAD_CONCURRENCY:6}
+    adaptive-segment-duration-seconds: ${VIDEO_ADAPTIVE_SEGMENT_DURATION_SECONDS:6}
+    ffmpeg-preset: ${VIDEO_FFMPEG_PRESET:veryfast}
 
 # Wiii AI Integration (Sprint 175: "Cắm Phích Cắm")
 wiii:
@@ -87,6 +102,7 @@ cloudflare:
     access-key: ${CLOUDFLARE_R2_ACCESS_KEY:}
     secret-key: ${CLOUDFLARE_R2_SECRET_KEY:}
     bucket: ${CLOUDFLARE_R2_BUCKET:lms-tracnghiemj-image}
+    video-bucket: ${CLOUDFLARE_R2_VIDEO_BUCKET:lms-storage}
     public-url: ${CLOUDFLARE_R2_PUBLIC_URL:}
 
 

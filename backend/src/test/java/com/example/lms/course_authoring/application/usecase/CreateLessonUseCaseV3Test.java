@@ -24,6 +24,9 @@ class CreateLessonUseCaseV3Test {
     @Mock
     private LessonRepositoryPort lessonRepository;
 
+    @Mock
+    private CourseDraftMutationUseCase courseDraftMutationUseCase;
+
     @InjectMocks
     private CreateLessonUseCaseV3 useCase;
 

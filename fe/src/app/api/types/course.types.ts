@@ -117,14 +117,23 @@ export interface SectionSummary {
   title: string;
   type: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE';
   content?: string;
+  videoAssetId?: string;
+  videoProcessingStatus?: string;
+  videoSourceKind?: 'ADAPTIVE_R2' | 'STREAM' | 'EXTERNAL' | 'LEGACY_DIRECT';
   videoUrl?: string;
-  videoType?: 'YOUTUBE' | 'CLOUDFLARE';
+  videoType?: 'YOUTUBE' | 'CLOUDFLARE' | 'ADAPTIVE_R2' | string;
   streamVideoUid?: string;
   cfObjectKey?: string;
   fileUrl?: string;
   duration?: number;
   orderIndex: number;
   isRequired?: boolean;
+  availableOfflineProfiles?: Array<{
+    id: 'SAVER' | 'STANDARD' | 'HIGH' | 'ORIGINAL' | string;
+    label: string;
+    actualResolution?: string | null;
+    sizeBytes?: number | null;
+  }>;
   quizData?: SectionQuizData;
 }
 
@@ -232,8 +241,9 @@ export interface CreateSectionRequest {
   title: string;
   type?: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE';
   content?: string;
+  videoAssetId?: string;
   videoUrl?: string;
-  videoType?: 'YOUTUBE' | 'CLOUDFLARE';
+  videoType?: 'YOUTUBE' | 'CLOUDFLARE' | 'ADAPTIVE_R2' | string;
   streamVideoUid?: string;
   duration?: number;
   orderIndex?: number;
@@ -244,8 +254,9 @@ export interface UpdateSectionRequest {
   title?: string;
   type?: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE'; // Usually type shouldn't change, but ok
   content?: string;
+  videoAssetId?: string;
   videoUrl?: string;
-  videoType?: 'YOUTUBE' | 'CLOUDFLARE';
+  videoType?: 'YOUTUBE' | 'CLOUDFLARE' | 'ADAPTIVE_R2' | string;
   streamVideoUid?: string;
   duration?: number;
   orderIndex?: number;
@@ -258,8 +269,11 @@ export interface SectionDetail { // New L3 Section
   title: string;
   type: string;
   content: string;
+  videoAssetId?: string;
+  videoProcessingStatus?: string;
+  videoSourceKind?: 'ADAPTIVE_R2' | 'STREAM' | 'EXTERNAL' | 'LEGACY_DIRECT';
   videoUrl: string;
-  videoType?: 'YOUTUBE' | 'CLOUDFLARE';
+  videoType?: 'YOUTUBE' | 'CLOUDFLARE' | 'ADAPTIVE_R2' | string;
   streamVideoUid?: string;
   cfObjectKey?: string;
   fileUrl: string;
@@ -267,6 +281,12 @@ export interface SectionDetail { // New L3 Section
   orderIndex: number;
   lessonId: string;
   isRequired?: boolean;
+  availableOfflineProfiles?: Array<{
+    id: 'SAVER' | 'STANDARD' | 'HIGH' | 'ORIGINAL' | string;
+    label: string;
+    actualResolution?: string | null;
+    sizeBytes?: number | null;
+  }>;
   createdAt: string;
   updatedAt: string | null;
 }

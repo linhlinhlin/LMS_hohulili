@@ -6,6 +6,7 @@ import com.example.lms.learning_delivery.application.dto.UpdateLessonProgressCom
 import com.example.lms.learning_delivery.application.usecase.TrackVideoProgressUseCase;
 import com.example.lms.learning_delivery.application.usecase.UpdateLessonProgressUseCase;
 import com.example.lms.learning_delivery.domain.model.Enrollment;
+import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.model.VideoProgress;
 import com.example.lms.learning_delivery.domain.repository.EnrollmentRepository;
 import com.example.lms.learning_delivery.domain.repository.VideoProgressRepository;
@@ -44,6 +45,23 @@ class SyncUseCaseTest {
 
     private static final String USER_ID = UUID.randomUUID().toString();
     private static final UUID STUDENT_ID = UUID.fromString(USER_ID);
+
+    private Enrollment buildEnrollment(UUID enrollmentId, UUID courseId, UUID publicationId,
+                                       LearningClass.VersionMode versionMode) {
+        LearningClass learningClass = LearningClass.builder()
+                .id(UUID.randomUUID())
+                .courseId(courseId)
+                .courseVersionId(publicationId)
+                .versionMode(versionMode)
+                .build();
+
+        return Enrollment.builder()
+                .id(enrollmentId)
+                .studentId(STUDENT_ID)
+                .learningClass(learningClass)
+                .status(Enrollment.EnrollmentStatus.ACTIVE)
+                .build();
+    }
 
     // ─── pushChanges ─────────────────────────────────────────────────
 
@@ -139,6 +157,98 @@ class SyncUseCaseTest {
             SyncResponse.PushResult result = useCase.pushChanges(USER_ID, request);
 
             assertThat(result.rejected()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("Should reject stale video progress when pinned publication mismatches")
+        void shouldRejectPinnedPublicationMismatch() {
+            UUID lessonId = UUID.randomUUID();
+            UUID courseId = UUID.randomUUID();
+            UUID serverPublicationId = UUID.randomUUID();
+            UUID stalePublicationId = UUID.randomUUID();
+            Enrollment enrollment = buildEnrollment(
+                    UUID.randomUUID(),
+                    courseId,
+                    serverPublicationId,
+                    LearningClass.VersionMode.PINNED
+            );
+            when(enrollmentRepository.findByStudentIdAndCourseId(STUDENT_ID, courseId))
+                    .thenReturn(Optional.of(enrollment));
+
+            Map<String, Object> payload = Map.of(
+                    "lessonId", lessonId.toString(),
+                    "sectionId", "section-1",
+                    "durationSeconds", 120,
+                    "fromSecond", 0,
+                    "toSecond", 30,
+                    "lastPosition", 30.0
+            );
+            SyncOperation op = new SyncOperation(
+                    "videoProgress",
+                    "UPDATE",
+                    "/api/v3/video-progress/track",
+                    "client-video-1",
+                    Instant.now().toString(),
+                    courseId.toString(),
+                    stalePublicationId.toString(),
+                    "section-1",
+                    null,
+                    payload
+            );
+
+            SyncResponse.PushResult result = useCase.pushChanges(USER_ID, new SyncPushRequest(List.of(op)));
+
+            assertThat(result.accepted()).isZero();
+            assertThat(result.rejected()).isEqualTo(1);
+            assertThat(result.conflicts()).hasSize(1);
+            assertThat(result.conflicts().get(0).clientOperationId()).isEqualTo("client-video-1");
+            assertThat(result.conflicts().get(0).message()).contains("cap nhat khoa hoc");
+            verifyNoInteractions(videoProgressUseCase);
+        }
+
+        @Test
+        @DisplayName("Should allow video progress when pinned publication matches")
+        void shouldAllowPinnedPublicationMatch() {
+            UUID lessonId = UUID.randomUUID();
+            UUID courseId = UUID.randomUUID();
+            UUID publicationId = UUID.randomUUID();
+            Enrollment enrollment = buildEnrollment(
+                    UUID.randomUUID(),
+                    courseId,
+                    publicationId,
+                    LearningClass.VersionMode.PINNED
+            );
+            when(enrollmentRepository.findByStudentIdAndCourseId(STUDENT_ID, courseId))
+                    .thenReturn(Optional.of(enrollment));
+
+            Map<String, Object> payload = Map.of(
+                    "lessonId", lessonId.toString(),
+                    "sectionId", "section-2",
+                    "durationSeconds", 240,
+                    "fromSecond", 20,
+                    "toSecond", 60,
+                    "lastPosition", 58.0
+            );
+            SyncOperation op = new SyncOperation(
+                    "videoProgress",
+                    "UPDATE",
+                    "/api/v3/video-progress/track",
+                    "client-video-2",
+                    Instant.now().toString(),
+                    courseId.toString(),
+                    publicationId.toString(),
+                    "section-2",
+                    null,
+                    payload
+            );
+
+            SyncResponse.PushResult result = useCase.pushChanges(USER_ID, new SyncPushRequest(List.of(op)));
+
+            assertThat(result.accepted()).isEqualTo(1);
+            assertThat(result.rejected()).isZero();
+            verify(videoProgressUseCase).trackSegments(
+                    eq(STUDENT_ID), eq(lessonId), eq("section-2"),
+                    eq(240), eq(20), eq(60), eq(58.0));
         }
     }
 
@@ -248,6 +358,119 @@ class SyncUseCaseTest {
                     ArgumentCaptor.forClass(UpdateLessonProgressCommand.class);
             verify(lessonProgressUseCase).execute(captor.capture());
             assertThat(captor.getValue().status()).isEqualTo("COMPLETED");
+        }
+
+        @Test
+        @DisplayName("Should reject stale lesson progress when pinned publication mismatches")
+        void shouldRejectPinnedPublicationMismatch() {
+            UUID courseId = UUID.randomUUID();
+            UUID serverPublicationId = UUID.randomUUID();
+            UUID stalePublicationId = UUID.randomUUID();
+            Enrollment enrollment = buildEnrollment(
+                    ENROLLMENT_ID,
+                    courseId,
+                    serverPublicationId,
+                    LearningClass.VersionMode.PINNED
+            );
+            when(enrollmentRepository.findByStudentIdAndCourseId(STUDENT_ID, courseId))
+                    .thenReturn(Optional.of(enrollment));
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("lessonId", LESSON_ID.toString());
+            payload.put("courseId", courseId.toString());
+            payload.put("status", "COMPLETED");
+            SyncOperation op = new SyncOperation(
+                    "progress",
+                    "UPDATE",
+                    "/api/v3/student/progress/lessons/" + LESSON_ID + "/complete",
+                    "client-progress-1",
+                    Instant.now().toString(),
+                    courseId.toString(),
+                    stalePublicationId.toString(),
+                    LESSON_ID.toString(),
+                    null,
+                    payload
+            );
+
+            SyncResponse.PushResult result = useCase.pushChanges(USER_ID, new SyncPushRequest(List.of(op)));
+
+            assertThat(result.accepted()).isZero();
+            assertThat(result.rejected()).isEqualTo(1);
+            assertThat(result.conflicts()).hasSize(1);
+            assertThat(result.conflicts().get(0).clientOperationId()).isEqualTo("client-progress-1");
+            verifyNoInteractions(lessonProgressUseCase);
+        }
+
+        @Test
+        @DisplayName("Should allow lesson progress for follow-latest classes even when publication differs")
+        void shouldAllowFollowLatestPublicationMismatch() {
+            UUID courseId = UUID.randomUUID();
+            Enrollment enrollment = buildEnrollment(
+                    ENROLLMENT_ID,
+                    courseId,
+                    UUID.randomUUID(),
+                    LearningClass.VersionMode.FOLLOW_LATEST
+            );
+            when(enrollmentRepository.findByStudentIdAndCourseId(STUDENT_ID, courseId))
+                    .thenReturn(Optional.of(enrollment));
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("lessonId", LESSON_ID.toString());
+            payload.put("courseId", courseId.toString());
+            SyncOperation op = new SyncOperation(
+                    "progress",
+                    "UPDATE",
+                    "/api/v3/student/progress/lessons/" + LESSON_ID + "/complete",
+                    "client-progress-2",
+                    Instant.now().toString(),
+                    courseId.toString(),
+                    UUID.randomUUID().toString(),
+                    LESSON_ID.toString(),
+                    null,
+                    payload
+            );
+
+            SyncResponse.PushResult result = useCase.pushChanges(USER_ID, new SyncPushRequest(List.of(op)));
+
+            assertThat(result.accepted()).isEqualTo(1);
+            assertThat(result.rejected()).isZero();
+            verify(lessonProgressUseCase).execute(any(UpdateLessonProgressCommand.class));
+        }
+
+        @Test
+        @DisplayName("Should allow legacy lesson progress without publication id")
+        void shouldAllowLegacyWithoutPublicationId() {
+            UUID courseId = UUID.randomUUID();
+            Enrollment enrollment = buildEnrollment(
+                    ENROLLMENT_ID,
+                    courseId,
+                    UUID.randomUUID(),
+                    LearningClass.VersionMode.PINNED
+            );
+            when(enrollmentRepository.findByStudentIdAndCourseId(STUDENT_ID, courseId))
+                    .thenReturn(Optional.of(enrollment));
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("lessonId", LESSON_ID.toString());
+            payload.put("courseId", courseId.toString());
+            SyncOperation op = new SyncOperation(
+                    "progress",
+                    "UPDATE",
+                    "/api/v3/student/progress/lessons/" + LESSON_ID + "/complete",
+                    "client-progress-3",
+                    Instant.now().toString(),
+                    courseId.toString(),
+                    null,
+                    LESSON_ID.toString(),
+                    null,
+                    payload
+            );
+
+            SyncResponse.PushResult result = useCase.pushChanges(USER_ID, new SyncPushRequest(List.of(op)));
+
+            assertThat(result.accepted()).isEqualTo(1);
+            assertThat(result.rejected()).isZero();
+            verify(lessonProgressUseCase).execute(any(UpdateLessonProgressCommand.class));
         }
     }
 

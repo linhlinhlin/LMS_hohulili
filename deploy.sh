@@ -6,8 +6,6 @@
 
 set -euo pipefail
 
-COMPOSE_ARGS=(--env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml)
-
 echo "=== LMS Maritime Production Deploy ==="
 echo ""
 
@@ -21,6 +19,11 @@ fi
 set -a
 . ./.env.prod
 set +a
+
+COMPOSE_ARGS=(--env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml)
+if [ "${ENABLE_LOCAL_VIDEO_WORKER:-true}" = "true" ]; then
+  COMPOSE_ARGS+=(--profile video-worker)
+fi
 
 if [ "${POSTGRES_PASSWORD:-}" = "CHANGE_ME_STRONG_PASSWORD" ] || [ -z "${POSTGRES_PASSWORD:-}" ]; then
   echo "ERROR: POSTGRES_PASSWORD not set in .env.prod"
@@ -37,6 +40,19 @@ if [ "${WIII_WEBHOOK_ENABLED:-false}" = "true" ]; then
     echo "ERROR: WIII_WEBHOOK_ENABLED=true but one or more Wiii variables are missing."
     exit 1
   fi
+fi
+
+if [ "${CLOUDFLARE_R2_ENABLED:-false}" = "true" ]; then
+  if [ -z "${CLOUDFLARE_R2_ACCOUNT_ID:-}" ] || [ -z "${CLOUDFLARE_R2_ACCESS_KEY:-}" ] || [ -z "${CLOUDFLARE_R2_SECRET_KEY:-}" ] || [ -z "${CLOUDFLARE_R2_BUCKET:-}" ] || [ -z "${CLOUDFLARE_R2_VIDEO_BUCKET:-}" ] || [ -z "${CLOUDFLARE_R2_PUBLIC_URL:-}" ]; then
+    echo "ERROR: CLOUDFLARE_R2_ENABLED=true but one or more R2 variables are missing."
+    exit 1
+  fi
+fi
+
+if [ "${ENABLE_LOCAL_VIDEO_WORKER:-true}" != "true" ]; then
+  echo "WARN: ENABLE_LOCAL_VIDEO_WORKER=false"
+  echo "      Ensure a dedicated worker VM is deployed before relying on video ingest."
+  echo ""
 fi
 
 echo "[1/5] Validating Docker Compose configuration..."

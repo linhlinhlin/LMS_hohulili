@@ -36,8 +36,9 @@ public class StudentAssignmentQueryAdapter implements StudentAssignmentQueryPort
 
     @Override
     public List<EnrolledCourse> findActiveEnrolledCourses(UUID studentId) {
-        List<EnrollmentJpaEntity> enrollments = enrollmentRepository.findActiveWithClass(studentId);
+        List<EnrollmentJpaEntity> enrollments = enrollmentRepository.findActiveAndCompletedWithClass(studentId);
         return enrollments.stream()
+                .filter(e -> e.getLearningClass() != null && e.getLearningClass().getCourseId() != null)
                 .map(e -> new EnrolledCourse(e.getLearningClass().getCourseId()))
                 .distinct()
                 .collect(Collectors.toList());

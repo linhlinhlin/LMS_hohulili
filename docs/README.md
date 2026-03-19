@@ -39,6 +39,10 @@ Nếu có mâu thuẫn giữa tài liệu và runtime thực tế, ưu tiên:
 ### Runbook thao tác
 
 - `runbooks/README.md`
+- `runbooks/CLOUDFLARE_R2_VIDEO_SETUP.md`
+- `runbooks/CLOUDFLARE_MEDIA_DOMAIN_EDGE_AUTH_RUNBOOK.md`
+- `runbooks/VIDEO_R2_SHAKA_CUTOVER_CHECKLIST.md`
+- `runbooks/DEDICATED_VIDEO_WORKER_RUNBOOK.md`
 - `runbooks/PRODUCTION_SMOKE_TEST.md`
 - `runbooks/PWA_OFFLINE_RUNBOOK.md`
 - `runbooks/PUBLICATION_REFRESH_RUNBOOK.md`
@@ -58,6 +62,10 @@ Nếu có mâu thuẫn giữa tài liệu và runtime thực tế, ưu tiên:
 - `architecture/TEACHER_ASSESSMENTS_CONTEXT_SPLIT.md`
 - `architecture/STUDENT_COURSE_FIRST_EXPERIENCE.md`
 - `architecture/LESSON_VIEW_ARCHITECTURE.md`
+- `architecture/2026-03-18-video-architecture-r2-shaka-private-playback.md`
+- `architecture/2026-03-18-video-scale-gap-analysis-r2-shaka-vs-stream-youtube.md`
+- `architecture/2026-03-18-video-delivery-roadmap-lms-to-large-concurrency.md`
+- `architecture/2026-03-19-media-domain-edge-auth-plan.md`
 - `architecture/STREAMING_PWA_ROADMAP.md`
 - `architecture/2026-03-16-course-publication-pwa-sync-model.md`
 - `PWA_OFFLINE_RESEARCH.md`

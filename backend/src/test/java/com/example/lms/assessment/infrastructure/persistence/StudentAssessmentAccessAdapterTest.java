@@ -30,6 +30,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -59,7 +60,7 @@ class StudentAssessmentAccessAdapterTest {
         classAId = UUID.randomUUID();
         classBId = UUID.randomUUID();
 
-        when(enrollmentRepository.findActiveWithClass(studentId)).thenReturn(List.of(
+        lenient().when(enrollmentRepository.findActiveAndCompletedWithClass(studentId)).thenReturn(List.of(
                 EnrollmentJpaEntity.builder()
                         .id(UUID.randomUUID())
                         .studentId(studentId)
@@ -71,6 +72,45 @@ class StudentAssessmentAccessAdapterTest {
                         .status(EnrollmentJpaEntity.EnrollmentStatus.ACTIVE)
                         .build()
         ));
+    }
+
+    @Test
+    @DisplayName("Should allow class scoped assignment for completed enrollment in same class")
+    void shouldAllowClassScopedAssignmentForCompletedEnrollmentInSameClass() {
+        UUID completedStudentId = UUID.randomUUID();
+        UUID assignmentId = UUID.randomUUID();
+        when(enrollmentRepository.findActiveAndCompletedWithClass(completedStudentId)).thenReturn(List.of(
+                EnrollmentJpaEntity.builder()
+                        .id(UUID.randomUUID())
+                        .studentId(completedStudentId)
+                        .learningClass(LearningClassJpaEntity.builder()
+                                .id(classAId)
+                                .courseId(courseId)
+                                .name("A1")
+                                .build())
+                        .status(EnrollmentJpaEntity.EnrollmentStatus.COMPLETED)
+                        .build()
+        ));
+        when(assignmentRepository.findById(assignmentId)).thenReturn(Optional.of(
+                AssignmentJpaEntity.builder()
+                        .id(assignmentId)
+                        .courseId(courseId)
+                        .title("Assignment")
+                        .maxScore(BigDecimal.valueOf(100))
+                        .status(AssignmentJpaEntity.AssignmentStatus.PUBLISHED)
+                        .build()
+        ));
+        when(allocationRepository.findByAssignmentId(assignmentId)).thenReturn(List.of(
+                AssignmentAllocationJpaEntity.builder()
+                        .id(UUID.randomUUID())
+                        .assignmentId(assignmentId)
+                        .distributionType("CLASS")
+                        .classId(classAId)
+                        .isActive(true)
+                        .build()
+        ));
+
+        assertThat(adapter.canAccessAssignment(assignmentId, completedStudentId)).isTrue();
     }
 
     @Test

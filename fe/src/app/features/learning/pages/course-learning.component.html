@@ -153,7 +153,7 @@
             [class.bg-blue-50]="currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex"
             [class.text-slate-500]="!isSectionCompleted(sectionItem.id) && !(currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex)"
             (click)="selectSectionInSidebar(sectionIndex, $event)">
-              <span class="font-bold text-[10px] text-[#0056D2] min-w-[20px]">{{ $index + 1 }}.{{ sectionIndex + 1 }}</span>
+              <span class="font-bold text-[10px] text-[#0056D2] min-w-[20px]">{{ lessonIdx + 1 }}.{{ sectionIndex + 1 }}</span>
               @if (sectionItem.type === 'VIDEO') {
             <span class="material-symbols-outlined text-[14px]">play_circle</span>
             } @else if (sectionItem.type === 'TEXT') {
@@ -202,6 +202,22 @@
       </div>
       }
 
+      @if (staleOfflineBanner(); as staleBanner) {
+      <div class="mx-4 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-sm font-semibold">{{ staleBanner.title }}</p>
+            <p class="mt-1 text-sm text-amber-800">{{ staleBanner.message }}</p>
+          </div>
+          <a
+            routerLink="/student/storage"
+            class="shrink-0 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100 transition-colors">
+            Mở lưu trữ
+          </a>
+        </div>
+      </div>
+      }
+
       @if (isLoadingLesson()) {
       <div class="flex flex-col items-center justify-center py-20 text-slate-400">
         <div class="w-10 h-10 border-[3px] border-slate-200 border-t-[#0056D2] rounded-full animate-spin mb-4"></div>
@@ -225,6 +241,8 @@
         [sectionIndex]="currentSectionIndex()"
         [chapterIndex]="currentChapterIndex()"
         [lessonIndex]="currentLessonIndex()"
+        [isOfflinePackageStale]="course()?.isOfflinePackage === true && course()?.isStale === true"
+        [staleReason]="course()?.staleReason ?? null"
         [(activeTab)]="activeTab"
         (sectionIndexChange)="onSectionIndexChange($event)"
         (markComplete)="onMarkComplete()"

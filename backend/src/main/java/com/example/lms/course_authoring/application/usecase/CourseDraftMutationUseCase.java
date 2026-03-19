@@ -11,14 +11,14 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class CourseDraftMutationService {
+public class CourseDraftMutationUseCase {
 
     private final CourseRepository courseRepository;
 
     @Transactional(readOnly = true)
     public Course requireEditableCourse(UUID courseId) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new EntityNotFoundException("Khóa học", courseId));
+                .orElseThrow(() -> new EntityNotFoundException("KhÃ³a há»c", courseId));
 
         if (!course.isEditable()) {
             throw com.example.lms.shared.exception.BusinessRuleException.courseNotEditable();
@@ -30,7 +30,7 @@ public class CourseDraftMutationService {
     @Transactional(readOnly = true)
     public Course requireEditableCourseByChapter(UUID chapterId) {
         Course course = courseRepository.findByChapterId(chapterId)
-                .orElseThrow(() -> new EntityNotFoundException("Khóa học", chapterId));
+                .orElseThrow(() -> new EntityNotFoundException("KhÃ³a há»c", chapterId));
 
         if (!course.isEditable()) {
             throw com.example.lms.shared.exception.BusinessRuleException.courseNotEditable();
@@ -42,7 +42,7 @@ public class CourseDraftMutationService {
     @Transactional(readOnly = true)
     public Course requireEditableCourseByLesson(UUID lessonId) {
         Course course = courseRepository.findByLessonId(lessonId)
-                .orElseThrow(() -> new EntityNotFoundException("Khóa học", lessonId));
+                .orElseThrow(() -> new EntityNotFoundException("KhÃ³a há»c", lessonId));
 
         if (!course.isEditable()) {
             throw com.example.lms.shared.exception.BusinessRuleException.courseNotEditable();
@@ -54,7 +54,7 @@ public class CourseDraftMutationService {
     @Transactional
     public Course markCourseChanged(UUID courseId) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new EntityNotFoundException("Khóa học", courseId));
+                .orElseThrow(() -> new EntityNotFoundException("KhÃ³a há»c", courseId));
         course.markDraftChanged();
         course.incrementContentVersion();
         return courseRepository.save(course);
@@ -63,7 +63,7 @@ public class CourseDraftMutationService {
     @Transactional
     public Course markCourseChangedByChapter(UUID chapterId) {
         Course course = courseRepository.findByChapterId(chapterId)
-                .orElseThrow(() -> new EntityNotFoundException("Khóa học", chapterId));
+                .orElseThrow(() -> new EntityNotFoundException("KhÃ³a há»c", chapterId));
         course.markDraftChanged();
         course.incrementContentVersion();
         return courseRepository.save(course);
@@ -72,7 +72,7 @@ public class CourseDraftMutationService {
     @Transactional
     public Course markCourseChangedByLesson(UUID lessonId) {
         Course course = courseRepository.findByLessonId(lessonId)
-                .orElseThrow(() -> new EntityNotFoundException("Khóa học", lessonId));
+                .orElseThrow(() -> new EntityNotFoundException("KhÃ³a há»c", lessonId));
         course.markDraftChanged();
         course.incrementContentVersion();
         return courseRepository.save(course);

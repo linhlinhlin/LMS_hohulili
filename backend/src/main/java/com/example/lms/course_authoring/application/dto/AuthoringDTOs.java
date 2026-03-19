@@ -29,6 +29,12 @@ public class AuthoringDTOs {
         private String courseInformation;
         private String benefits;
         private String introVideoUrl;
+        private UUID introVideoAssetId;
+        private String introVideoProcessingStatus;
+        private String introVideoSourceKind;
+        private String introVideoPlaybackUrl;
+        private String introVideoStreamVideoUid;
+        private List<java.util.Map<String, Object>> introVideoAvailableOfflineProfiles;
         private Integer credits;
         private List<ChapterDraftDTO> chapters;
         private boolean hasEnrollments;
@@ -74,6 +80,18 @@ public class AuthoringDTOs {
         public void setBenefits(String benefits) { this.benefits = benefits; }
         public String getIntroVideoUrl() { return introVideoUrl; }
         public void setIntroVideoUrl(String introVideoUrl) { this.introVideoUrl = introVideoUrl; }
+        public UUID getIntroVideoAssetId() { return introVideoAssetId; }
+        public void setIntroVideoAssetId(UUID introVideoAssetId) { this.introVideoAssetId = introVideoAssetId; }
+        public String getIntroVideoProcessingStatus() { return introVideoProcessingStatus; }
+        public void setIntroVideoProcessingStatus(String introVideoProcessingStatus) { this.introVideoProcessingStatus = introVideoProcessingStatus; }
+        public String getIntroVideoSourceKind() { return introVideoSourceKind; }
+        public void setIntroVideoSourceKind(String introVideoSourceKind) { this.introVideoSourceKind = introVideoSourceKind; }
+        public String getIntroVideoPlaybackUrl() { return introVideoPlaybackUrl; }
+        public void setIntroVideoPlaybackUrl(String introVideoPlaybackUrl) { this.introVideoPlaybackUrl = introVideoPlaybackUrl; }
+        public String getIntroVideoStreamVideoUid() { return introVideoStreamVideoUid; }
+        public void setIntroVideoStreamVideoUid(String introVideoStreamVideoUid) { this.introVideoStreamVideoUid = introVideoStreamVideoUid; }
+        public List<java.util.Map<String, Object>> getIntroVideoAvailableOfflineProfiles() { return introVideoAvailableOfflineProfiles; }
+        public void setIntroVideoAvailableOfflineProfiles(List<java.util.Map<String, Object>> introVideoAvailableOfflineProfiles) { this.introVideoAvailableOfflineProfiles = introVideoAvailableOfflineProfiles; }
         public Integer getCredits() { return credits; }
         public void setCredits(Integer credits) { this.credits = credits; }
         public List<ChapterDraftDTO> getChapters() { return chapters; }
@@ -104,6 +122,12 @@ public class AuthoringDTOs {
             public CourseDraftDTOBuilder courseInformation(String c) { dto.setCourseInformation(c); return this; }
             public CourseDraftDTOBuilder benefits(String b) { dto.setBenefits(b); return this; }
             public CourseDraftDTOBuilder introVideoUrl(String i) { dto.setIntroVideoUrl(i); return this; }
+            public CourseDraftDTOBuilder introVideoAssetId(UUID i) { dto.setIntroVideoAssetId(i); return this; }
+            public CourseDraftDTOBuilder introVideoProcessingStatus(String status) { dto.setIntroVideoProcessingStatus(status); return this; }
+            public CourseDraftDTOBuilder introVideoSourceKind(String kind) { dto.setIntroVideoSourceKind(kind); return this; }
+            public CourseDraftDTOBuilder introVideoPlaybackUrl(String url) { dto.setIntroVideoPlaybackUrl(url); return this; }
+            public CourseDraftDTOBuilder introVideoStreamVideoUid(String uid) { dto.setIntroVideoStreamVideoUid(uid); return this; }
+            public CourseDraftDTOBuilder introVideoAvailableOfflineProfiles(List<java.util.Map<String, Object>> profiles) { dto.setIntroVideoAvailableOfflineProfiles(profiles); return this; }
             public CourseDraftDTOBuilder credits(Integer c) { dto.setCredits(c); return this; }
             public CourseDraftDTOBuilder chapters(List<ChapterDraftDTO> c) { dto.setChapters(c); return this; }
             public CourseDraftDTOBuilder hasEnrollments(boolean h) { dto.setHasEnrollments(h); return this; }

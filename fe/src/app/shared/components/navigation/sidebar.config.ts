@@ -199,11 +199,17 @@ const allAdminMenuItems: SidebarMenuItem[] = [
     route: '/admin/logs',
     icon: 'file-text',
     group: 'Hệ thống'
+  },
+  {
+    label: 'Bộ nhớ ngoại tuyến',
+    route: '/admin/offline-storage',
+    icon: 'download',
+    group: 'Hệ thống'
   }
 ];
 
 // Routes hidden from ORG_ADMIN (system-level only)
-const systemOnlyRoutes = new Set(['/admin/settings', '/admin/logs']);
+const systemOnlyRoutes = new Set(['/admin/settings', '/admin/logs', '/admin/offline-storage']);
 
 // System Admin sidebar (full access)
 export const adminSidebarConfig: SidebarConfig = {

@@ -12,13 +12,25 @@ import {
   type OfflineLesson,
   type OfflineLessonSection,
   type DownloadCheckpoint,
+  type OfflineQuizAttempt,
   type OfflineQuizData,
   type OfflineQuestion,
+  type SyncQueueItem,
 } from '../db/lms-offline.db';
 import { StorageManagerService } from './storage-manager.service';
 import { ToastService } from './toast.service';
 import { OfflineVideoService } from './offline-video.service';
 import { OfflineFileService } from './offline-file.service';
+import { OfflineSyncService } from './offline-sync.service';
+import { NetworkStatusService } from './network-status.service';
+import { OfflineDeviceSettingsService } from './offline-device-settings.service';
+import {
+  formatOfflineVideoProfileLabel,
+  getOfflineVideoProfileLabel,
+  normalizeVideoQuality,
+  type OfflineVideoProfileId,
+  type VideoSourceKind,
+} from '../models/video-quality';
 import { environment } from '../../../environments/environment';
 
 export type { OfflineCourse, OfflineChapter, OfflineLesson };
@@ -44,7 +56,40 @@ export interface DownloadableCourse {
   versionModeSnapshot?: 'PINNED' | 'FOLLOW_LATEST' | 'LEGACY';
   isStale?: boolean;
   staleReason?: string | null;
+  downloadOptions?: DownloadOptions | null;
   completionPercent: number;
+}
+
+interface DownloadCourseBehavior {
+  throwOnError?: boolean;
+  silentSuccessToast?: boolean;
+  silentErrorToast?: boolean;
+}
+
+interface RemoveCourseOptions {
+  preserveProgress?: boolean;
+  preserveSyncArtifacts?: boolean;
+  preserveAssetCaches?: boolean;
+  silent?: boolean;
+}
+
+interface RefreshCoursePackageOptions {
+  autoSyncAfterRefresh?: boolean;
+}
+
+interface OfflineVideoDownloadDescriptor {
+  downloadUrl: string | null;
+  actualResolution?: string | null;
+  profile?: string | null;
+  profileLabel?: string | null;
+  fileSizeBytes?: number | null;
+}
+
+interface OfflineCourseSnapshot {
+  course: OfflineCourse | null;
+  chapters: OfflineChapter[];
+  lessons: OfflineLesson[];
+  quizData: OfflineQuizData[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -54,6 +99,9 @@ export class CourseDownloadService {
   private readonly toast = inject(ToastService);
   private readonly videoService = inject(OfflineVideoService);
   private readonly fileService = inject(OfflineFileService);
+  private readonly syncService = inject(OfflineSyncService);
+  private readonly network = inject(NetworkStatusService);
+  private readonly offlineSettings = inject(OfflineDeviceSettingsService);
 
   readonly downloadedCourses = signal<DownloadableCourse[]>([]);
   readonly isDownloading = signal(false);
@@ -98,21 +146,34 @@ export class CourseDownloadService {
    *
    * @param options - Video quality selection from download dialog (Phase 1)
    */
-  async downloadCourse(courseId: string, options?: DownloadOptions): Promise<void> {
-    if (this.isDownloading()) return;
+  async downloadCourse(
+    courseId: string,
+    options?: DownloadOptions,
+    behavior: DownloadCourseBehavior = {},
+  ): Promise<boolean> {
+    if (this.isDownloading()) return false;
     this.isDownloading.set(true);
     this.currentDownloadId.set(courseId);
     this.downloadProgress.set(0);
 
     this.downloadCancelled = false;
     const userId = getCurrentUserId();
+    const effectiveOptions = this.resolveEffectiveDownloadOptions(options);
 
     try {
       await this.ensureOfflineReady();
 
+      if (this.shouldBlockDownloadOnCurrentNetwork()) {
+        if (!behavior.silentErrorToast) {
+          this.toast.info('Thiết bị này đang ưu tiên chỉ tải khi có Wi‑Fi hoặc mạng không giới hạn. Hãy đổi mạng hoặc tắt giới hạn trong Lưu trữ ngoại tuyến.');
+        }
+        return false;
+      }
+
       // 0a. Request persistent storage on first download (prevent browser eviction)
       if (!this.storage.isPersisted()) {
         await this.storage.requestPersistence();
+        this.offlineSettings.markPersistenceRequested();
       }
 
       // 0b. Check storage quota before downloading
@@ -120,7 +181,7 @@ export class CourseDownloadService {
       const percentUsed = estimate.percentUsed ?? 0;
       if (percentUsed > 90) {
         this.toast.error('Bộ nhớ gần đầy (>90%). Vui lòng xóa dữ liệu cũ trước khi tải.');
-        return;
+        return false;
       }
 
       // 1. Fetch course details
@@ -172,6 +233,20 @@ export class CourseDownloadService {
                 .join('\n');
             }
 
+            const shouldPersistLessonQuizMetadata = typeof l.quizType === 'string'
+              || String(l.lessonType || l.type || '').toUpperCase() === 'QUIZ';
+            const normalizedLessonQuizType = shouldPersistLessonQuizMetadata
+              ? this.normalizeQuizAssessmentType(l.quizType)
+              : undefined;
+
+            const hasSectionVideoAssets = Array.isArray(l.sections)
+              && l.sections.some((section: any) => section.type === 'VIDEO' && (!!section.videoUrl || !!section.streamVideoUid));
+            const lessonVideoSourceKind = this.resolveVideoSourceKind(
+              l.videoSourceKind,
+              hasSectionVideoAssets ? null : l.videoUrl,
+              hasSectionVideoAssets ? null : l.streamVideoUid,
+              hasSectionVideoAssets ? null : l.videoType,
+            );
             const lesson: OfflineLesson = {
               id: l.id,
               courseId,
@@ -180,9 +255,17 @@ export class CourseDownloadService {
               contentHtml,
               lessonType: l.lessonType || l.type || 'LECTURE',
               isFree: l.isFree === true,
+              quizType: normalizedLessonQuizType,
+              countsTowardCertificate: normalizedLessonQuizType
+                ? Boolean(l.countsTowardCertificate) && normalizedLessonQuizType === 'EXAM'
+                : undefined,
+              quizAllowOffline: normalizedLessonQuizType
+                ? this.canDownloadQuizOffline(normalizedLessonQuizType)
+                : undefined,
               sections: this.mapOfflineLessonSections(l),
-              videoManifestUrl: l.sections?.find((section: any) => section.type === 'VIDEO' && (!!section.videoUrl || !!section.streamVideoUid))?.videoUrl || l.videoUrl,
-              streamVideoUid: l.streamVideoUid,
+              videoManifestUrl: hasSectionVideoAssets ? undefined : l.videoUrl,
+              streamVideoUid: hasSectionVideoAssets ? undefined : l.streamVideoUid,
+              videoSourceKind: hasSectionVideoAssets ? undefined : lessonVideoSourceKind,
               sortOrder: l.sortOrder ?? l.orderIndex ?? l.order ?? 0,
               downloadedAt: new Date(),
               userId,
@@ -206,13 +289,13 @@ export class CourseDownloadService {
 
         if (this.downloadCancelled) {
           this.toast.info('Đã hủy tải xuống. Bạn có thể tiếp tục sau.');
-          return;
+          return false;
         }
       }
 
       // 5. Download videos if quality selected (Phase 1 — single quality from R2)
-      const videoQuality = options?.videoQuality || 'none';
-      if (videoQuality !== 'none' && !this.downloadCancelled) {
+      const videoPreference = effectiveOptions.videoQuality || 'none';
+      if (videoPreference !== 'none' && !this.downloadCancelled) {
         const dbLessonsForVideo = await offlineDb.lessons
           .where('[userId+courseId]').equals([userId, courseId]).toArray();
         const videoLessons = dbLessonsForVideo.filter(l => !!l.videoManifestUrl);
@@ -223,21 +306,43 @@ export class CourseDownloadService {
           const vl = videoLessons[vi];
           try {
             let downloadUrl = vl.videoManifestUrl!;
+            let downloadedVideoProfileId: OfflineVideoProfileId | null = null;
+            let downloadedVideoProfileLabel: string | null = null;
+            let downloadedVideoResolution: string | null = null;
+            let videoSourceKind = vl.videoSourceKind ?? this.resolveVideoSourceKind(
+              null,
+              vl.videoManifestUrl,
+              vl.streamVideoUid,
+            );
             // Phase 3C: Use CF quality-specific MP4 URL when lesson is CF-hosted
             if (vl.streamVideoUid) {
               try {
-                const cfRes: any = await firstValueFrom(
-                  this.http.get(`${environment.apiUrl}/api/v3/lessons/${vl.id}/video/download`, {
-                    params: { quality: videoQuality }
-                  })
+                const descriptor = await this.resolveLessonVideoDownloadDescriptor(vl.id, videoPreference);
+                if (descriptor.downloadUrl) {
+                  downloadUrl = descriptor.downloadUrl;
+                }
+                downloadedVideoProfileId = this.normalizeDownloadedProfileId(descriptor.profile);
+                downloadedVideoProfileLabel = this.resolveDownloadedProfileLabel(
+                  descriptor.profile,
+                  descriptor.profileLabel,
+                  descriptor.actualResolution,
                 );
-                const cfUrl = cfRes?.downloadUrl ?? cfRes?.data?.downloadUrl;
-                if (cfUrl) downloadUrl = cfUrl;
+                downloadedVideoResolution = descriptor.actualResolution ?? null;
+                videoSourceKind = 'STREAM';
               } catch {
                 // CF URL fetch failed — fall through to raw videoManifestUrl
               }
+            } else if (downloadUrl) {
+              downloadedVideoProfileId = 'ORIGINAL';
+              downloadedVideoProfileLabel = getOfflineVideoProfileLabel('ORIGINAL');
             }
-            await this.videoService.downloadVideo(downloadUrl, vl.id, vl.title);
+            await this.videoService.downloadVideo(downloadUrl, vl.id);
+            await offlineDb.lessons.update([userId, vl.id], {
+              downloadedVideoProfileId,
+              downloadedVideoProfileLabel,
+              downloadedVideoResolution,
+              videoSourceKind,
+            });
           } catch {
             // Video download failure is non-fatal — skip and continue
           }
@@ -251,17 +356,37 @@ export class CourseDownloadService {
           .where('[userId+courseId]').equals([userId, courseId]).toArray();
 
         for (const lesson of lessonsWithSectionAssets) {
-          if (this.downloadCancelled || !lesson.sections?.length) break;
+          if (this.downloadCancelled) {
+            break;
+          }
+
+          if (!lesson.sections?.length) {
+            continue;
+          }
 
           let sectionsChanged = false;
           const updatedSections = lesson.sections.map(section => ({ ...section }));
 
           for (const section of updatedSections) {
-            if (section.type === 'VIDEO' && videoQuality !== 'none') {
+            if (section.type === 'VIDEO' && videoPreference !== 'none') {
               try {
-                const downloadUrl = await this.resolveSectionVideoDownloadUrl(section, videoQuality);
-                if (downloadUrl) {
-                  section.videoOfflineUri = await this.videoService.downloadSectionVideo(downloadUrl, section.id);
+                const descriptor = await this.resolveSectionVideoDownloadDescriptor(section, videoPreference);
+                if (descriptor.downloadUrl) {
+                  section.videoOfflineUri = await this.videoService.downloadSectionVideo(descriptor.downloadUrl, lesson.id, section.id);
+                  section.downloadedVideoProfileId = this.normalizeDownloadedProfileId(descriptor.profile)
+                    ?? (section.streamVideoUid ? null : 'ORIGINAL');
+                  section.downloadedVideoProfileLabel = this.resolveDownloadedProfileLabel(
+                    descriptor.profile,
+                    descriptor.profileLabel,
+                    descriptor.actualResolution,
+                  ) ?? (section.streamVideoUid ? null : getOfflineVideoProfileLabel('ORIGINAL'));
+                  section.downloadedVideoResolution = descriptor.actualResolution ?? null;
+                  section.videoSourceKind = this.resolveVideoSourceKind(
+                    section.videoSourceKind,
+                    section.videoUrl,
+                    section.streamVideoUid,
+                    section.videoType,
+                  );
                   sectionsChanged = true;
                 }
               } catch {
@@ -330,6 +455,11 @@ export class CourseDownloadService {
                 downloadedAt: new Date(),
               };
               await offlineDb.quizData.put(quizData);
+              await offlineDb.lessons.update([userId, lesson.id], {
+                quizType,
+                countsTowardCertificate: Boolean(quiz.countsTowardCertificate) && quizType === 'EXAM',
+                quizAllowOffline: true,
+              });
             }
           } catch {
             // Quiz download failure is non-fatal — skip this lesson's quiz
@@ -380,6 +510,7 @@ export class CourseDownloadService {
       }
 
       const dbLessons = await offlineDb.lessons.where('[userId+courseId]').equals([userId, courseId]).toArray();
+      await this.snapshotInitialProgress(courseId, dbLessons);
       let totalSize = 0;
       for (const l of dbLessons) {
         totalSize += new Blob([l.contentHtml || '']).size;
@@ -404,6 +535,7 @@ export class CourseDownloadService {
         versionModeSnapshot: courseData.versionMode ?? 'LEGACY',
         isStale: false,
         staleReason: null,
+        downloadOptions: effectiveOptions,
       };
       await offlineDb.courses.put(course);
 
@@ -411,15 +543,27 @@ export class CourseDownloadService {
       await offlineDb.downloadCheckpoints.delete([userId, courseId]);
 
       this.downloadProgress.set(100);
-      this.toast.success(`Đã tải khóa học "${courseData.title || courseData.name}" cho ngoại tuyến`);
+      if (!behavior.silentSuccessToast) {
+        this.toast.success(`Đã tải khóa học "${courseData.title || courseData.name}" cho ngoại tuyến`);
+      }
 
       await this.refreshDownloadedCourses();
       await this.storage.refresh();
+      return true;
     } catch (error: any) {
       if (isOfflineDbUnavailableError(error)) {
-        return;
+        if (behavior.throwOnError) {
+          throw error;
+        }
+        return false;
       }
-      this.toast.error(`Lỗi tải khóa học: ${error?.message || 'Không xác định'}`);
+      if (!behavior.silentErrorToast) {
+        this.toast.error(`Lỗi tải khóa học: ${error?.message || 'Không xác định'}`);
+      }
+      if (behavior.throwOnError) {
+        throw error;
+      }
+      return false;
     } finally {
       this.isDownloading.set(false);
       this.currentDownloadId.set(null);
@@ -430,31 +574,42 @@ export class CourseDownloadService {
   /**
    * Remove a downloaded course from local storage.
    */
-  async removeCourse(courseId: string): Promise<void> {
+  async removeCourse(courseId: string, options: RemoveCourseOptions = {}): Promise<void> {
     await this.ensureOfflineReady();
     const userId = getCurrentUserId();
+    const preserveProgress = options.preserveProgress === true;
+    const preserveSyncArtifacts = options.preserveSyncArtifacts === true;
+    const preserveAssetCaches = options.preserveAssetCaches === true;
     // Sync any pending progress before deleting (prevent data loss)
-    const pendingProgress = await offlineDb.progress
-      .where('courseId').equals(courseId)
-      .filter(p => p.userId === userId && p.syncStatus === 'pending')
-      .count();
-    if (pendingProgress > 0) {
+    const pendingProgress = preserveProgress
+      ? 0
+      : await offlineDb.progress
+        .where('courseId').equals(courseId)
+        .filter(p => p.userId === userId && p.syncStatus === 'pending')
+        .count();
+    if (!options.silent && pendingProgress > 0) {
       this.toast.warning(`${pendingProgress} mục tiến trình chưa đồng bộ. Đang đồng bộ trước khi xóa...`);
       // Progress will be synced next time user goes online
     }
 
     // Delete offline videos from Cache API before removing lesson records
     const lessonsToRemove = await offlineDb.lessons.where('[userId+courseId]').equals([userId, courseId]).toArray();
-    for (const l of lessonsToRemove) {
-      if (l.videoOfflineUri || this.videoService.isAvailableOffline(l.id)) {
-        await this.videoService.deleteVideo(l.id);
-      }
-      for (const section of l.sections ?? []) {
-        if (section.videoOfflineUri) {
-          await this.videoService.deleteSectionVideo(section.id);
+    const lessonIdsToRemove = new Set(lessonsToRemove.map(lesson => lesson.id));
+    const sectionIdsToRemove = new Set(
+      lessonsToRemove.flatMap(lesson => (lesson.sections ?? []).map(section => section.id))
+    );
+    if (!preserveAssetCaches) {
+      for (const l of lessonsToRemove) {
+        if (l.videoOfflineUri || this.videoService.isAvailableOffline(l.id)) {
+          await this.videoService.deleteVideo(l.id);
         }
-        if (section.fileOfflineUri) {
-          await this.fileService.deleteSectionFile(section.id);
+        for (const section of l.sections ?? []) {
+          if (section.videoOfflineUri) {
+            await this.videoService.deleteSectionVideo(section.id);
+          }
+          if (section.fileOfflineUri) {
+            await this.fileService.deleteSectionFile(section.id);
+          }
         }
       }
     }
@@ -462,25 +617,52 @@ export class CourseDownloadService {
     await offlineDb.lessons.where('[userId+courseId]').equals([userId, courseId]).delete();
     await offlineDb.chapters.where('[userId+courseId]').equals([userId, courseId]).delete();
     await offlineDb.quizData.where('[userId+courseId]').equals([userId, courseId]).delete();
-    await offlineDb.progress.where('courseId').equals(courseId).filter(p => p.userId === userId).delete();
+    if (!preserveProgress) {
+      await offlineDb.progress.where('courseId').equals(courseId).filter(p => p.userId === userId).delete();
+    }
+    if (!preserveSyncArtifacts) {
+      await offlineDb.quizAttempts
+        .where('userId').equals(userId)
+        .filter(attempt =>
+          (attempt.lessonId != null && lessonIdsToRemove.has(attempt.lessonId))
+          || (attempt.sectionId != null && sectionIdsToRemove.has(attempt.sectionId))
+        )
+        .delete();
+    }
     await offlineDb.courses.delete([userId, courseId]);
     await offlineDb.downloadCheckpoints.delete([userId, courseId]);
 
     // Clean orphaned syncQueue entries for this course
-    const allQueueItems = await offlineDb.syncQueue.where('userId').equals(userId).toArray();
-    const relatedIds = allQueueItems
-      .filter(item =>
-        item.endpoint.includes(courseId) ||
-        (item.payload as any)?.courseId === courseId
-      )
-      .map(item => item.id!)
-      .filter(id => id != null);
-    if (relatedIds.length > 0) {
-      await offlineDb.syncQueue.bulkDelete(relatedIds);
+    if (!preserveSyncArtifacts) {
+      const allQueueItems = await offlineDb.syncQueue.where('userId').equals(userId).toArray();
+      const relatedIds = allQueueItems
+        .filter(item => {
+          const payload = (item.payload && typeof item.payload === 'object')
+            ? item.payload as Record<string, unknown>
+            : null;
+          const payloadCourseId = typeof payload?.['courseId'] === 'string' ? payload['courseId'] : null;
+          const payloadLessonId = typeof payload?.['lessonId'] === 'string' ? payload['lessonId'] : null;
+          const payloadSectionId = typeof payload?.['sectionId'] === 'string' ? payload['sectionId'] : null;
+
+          return item.courseId === courseId
+            || payloadCourseId === courseId
+            || (payloadLessonId != null && lessonIdsToRemove.has(payloadLessonId))
+            || (payloadSectionId != null && sectionIdsToRemove.has(payloadSectionId))
+            || item.endpoint.includes(courseId);
+        })
+        .map(item => item.id!)
+        .filter(id => id != null);
+      if (relatedIds.length > 0) {
+        await offlineDb.syncQueue.bulkDelete(relatedIds);
+      }
     }
 
     await this.refreshDownloadedCourses();
     await this.storage.refresh();
+    await this.syncService.refreshState();
+    if (options.silent) {
+      return;
+    }
     this.toast.info('Đã xóa khóa học ngoại tuyến');
   }
 
@@ -496,7 +678,7 @@ export class CourseDownloadService {
     // 1. Delete all offline videos from Cache API
     const videos = videoService.downloads();
     for (const video of videos) {
-      await videoService.deleteVideo(video.lessonId);
+      await videoService.deleteEntry(video);
     }
     for (const lesson of lessons) {
       for (const section of lesson.sections ?? []) {
@@ -513,6 +695,7 @@ export class CourseDownloadService {
     await offlineDb.lessons.where('userId').equals(userId).delete();
     await offlineDb.chapters.where('userId').equals(userId).delete();
     await offlineDb.quizData.where('userId').equals(userId).delete();
+    await offlineDb.quizAttempts.where('userId').equals(userId).delete();
     await offlineDb.progress.where('userId').equals(userId).delete();
     await offlineDb.courses.where('userId').equals(userId).delete();
     await offlineDb.downloadCheckpoints.where('userId').equals(userId).delete();
@@ -520,6 +703,7 @@ export class CourseDownloadService {
 
     await this.refreshDownloadedCourses();
     await this.storage.refresh();
+    await this.syncService.refreshState();
   }
 
   /**
@@ -576,7 +760,12 @@ export class CourseDownloadService {
       return undefined;
     }
     const userId = getCurrentUserId();
-    return offlineDb.lessons.get([userId, lessonId]);
+    const lesson = await offlineDb.lessons.get([userId, lessonId]);
+    if (!lesson) {
+      return undefined;
+    }
+
+    return this.repairLessonVideoFallbackInStorage(userId, lesson);
   }
 
   /**
@@ -587,10 +776,70 @@ export class CourseDownloadService {
       return [];
     }
     const userId = getCurrentUserId();
-    return offlineDb.lessons
+    const lessons = await offlineDb.lessons
       .where('[userId+courseId]')
       .equals([userId, courseId])
       .sortBy('sortOrder');
+    return Promise.all(lessons.map((lesson) => this.repairLessonVideoFallbackInStorage(userId, lesson)));
+  }
+
+  async getOfflineProgressState(courseId: string): Promise<{
+    completedLessons: string[];
+    lastAccessedLessonId?: string;
+  }> {
+    const localSnapshot = this.readOfflineLearningProgress(courseId);
+    const completedLessons = new Set(localSnapshot?.completedLessons ?? []);
+
+    if (await this.ensureOfflineReady(true)) {
+      const userId = getCurrentUserId();
+      const progressRecords = await offlineDb.progress
+        .where('courseId').equals(courseId)
+        .filter(record => record.userId === userId && (record.completedAt != null || record.progressPercent >= 100))
+        .toArray();
+
+      for (const record of progressRecords) {
+        completedLessons.add(record.lessonId);
+      }
+    }
+
+    return {
+      completedLessons: Array.from(completedLessons),
+      lastAccessedLessonId: localSnapshot?.lastAccessedLessonId,
+    };
+  }
+
+  async markLessonCompletedOffline(courseId: string, lessonId: string): Promise<void> {
+    if (!(await this.ensureOfflineReady(true))) {
+      return;
+    }
+
+    const userId = getCurrentUserId();
+    const existing = await offlineDb.progress
+      .where('lessonId').equals(lessonId)
+      .filter(record => record.userId === userId && record.courseId === courseId)
+      .first();
+    const completedAt = existing?.completedAt ?? new Date();
+
+    if (existing?.id != null) {
+      await offlineDb.progress.update(existing.id, {
+        progressPercent: 100,
+        completedAt,
+        syncStatus: existing.syncStatus === 'conflict' ? 'conflict' : 'synced',
+        updatedAt: new Date(),
+      });
+      return;
+    }
+
+    await offlineDb.progress.add({
+      lessonId,
+      courseId,
+      userId,
+      progressPercent: 100,
+      videoPosition: 0,
+      completedAt,
+      syncStatus: 'synced',
+      updatedAt: new Date(),
+    });
   }
 
   /**
@@ -627,7 +876,7 @@ export class CourseDownloadService {
       return (left.sortOrder ?? 0) - (right.sortOrder ?? 0);
     });
 
-    const progress = this.readOfflineLearningProgress(courseId);
+    const progress = await this.getOfflineProgressState(courseId);
     const lessonIds = new Set(orderedLessons.map(lesson => lesson.id));
     const lastAccessedLessonId = progress?.lastAccessedLessonId;
 
@@ -656,14 +905,78 @@ export class CourseDownloadService {
     try {
       for (let i = 0; i < stale.length; i++) {
         this.bulkUpdateProgress.set({ current: i, total: stale.length });
-        await this.removeCourse(stale[i].id);
-        await this.downloadCourse(stale[i].id);
+        await this.refreshCoursePackage(
+          stale[i].id,
+          stale[i].downloadOptions ?? undefined,
+          { autoSyncAfterRefresh: false },
+        );
       }
       this.bulkUpdateProgress.set({ current: stale.length, total: stale.length });
+      if (this.network.online()) {
+        await this.syncService.syncWithPriority();
+      }
       this.toast.success(`Đã cập nhật ${stale.length} khóa học`);
     } finally {
       this.isBulkUpdating.set(false);
       this.bulkUpdateProgress.set({ current: 0, total: 0 });
+    }
+  }
+
+  async refreshCoursePackage(
+    courseId: string,
+    options?: DownloadOptions,
+    refreshOptions: RefreshCoursePackageOptions = {},
+  ): Promise<void> {
+    await this.ensureOfflineReady();
+
+    const userId = getCurrentUserId();
+    const snapshot = await this.captureCourseSnapshot(userId, courseId);
+    const existingCourse = await offlineDb.courses.get([userId, courseId]);
+    const effectiveOptions = this.resolveEffectiveDownloadOptions(options ?? existingCourse?.downloadOptions ?? null);
+    const previousLessonIds = new Set(snapshot.lessons.map(lesson => lesson.id));
+    const previousSectionIds = new Set(
+      snapshot.lessons.flatMap(lesson => (lesson.sections ?? []).map(section => section.id))
+    );
+
+    try {
+      await this.removeCourse(courseId, {
+        preserveProgress: true,
+        preserveSyncArtifacts: true,
+        preserveAssetCaches: true,
+        silent: true,
+      });
+
+      const downloaded = await this.downloadCourse(courseId, effectiveOptions, {
+        throwOnError: true,
+        silentSuccessToast: true,
+        silentErrorToast: true,
+      });
+      if (!downloaded) {
+        throw new Error('Tai lai goi ngoai tuyen chua hoan tat.');
+      }
+
+      await this.rebindPreservedCourseState(courseId, previousSectionIds);
+      await this.cleanupObsoleteAssetCaches(userId, courseId, previousLessonIds, previousSectionIds);
+      await this.refreshDownloadedCourses();
+      await this.storage.refresh();
+      await this.syncService.refreshState();
+
+      if (refreshOptions.autoSyncAfterRefresh !== false && this.network.online()) {
+        try {
+          await this.syncService.syncWithPriority();
+        } catch {
+          this.toast.info('Da cap nhat goi ngoai tuyen. Du lieu dong bo con lai se duoc thu lai khi ket noi on dinh hon.');
+        }
+      }
+
+      this.toast.success('Đã cập nhật gói ngoại tuyến.');
+    } catch (error: any) {
+      await this.restoreCourseSnapshot(snapshot);
+      await this.refreshDownloadedCourses();
+      await this.storage.refresh();
+      await this.syncService.refreshState();
+      this.toast.error(`Khong the cap nhat goi ngoai tuyen: ${error?.message || 'Khong xac dinh'}`);
+      throw error;
     }
   }
 
@@ -682,54 +995,77 @@ export class CourseDownloadService {
     return this.downloadedCourses();
   }
 
+  async getDownloadedCourse(courseId: string): Promise<DownloadableCourse | null> {
+    try {
+      await this.refreshDownloadedCourses();
+    } catch (error) {
+      if (!isOfflineDbUnavailableError(error)) {
+        throw error;
+      }
+      return null;
+    }
+
+    return this.downloadedCourses().find(course => course.id === courseId) ?? null;
+  }
+
   private mapOfflineLessonSections(lesson: any): OfflineLessonSection[] | undefined {
     if (!Array.isArray(lesson?.sections) || lesson.sections.length === 0) {
       return undefined;
     }
 
-    return lesson.sections.map((section: any, index: number) => ({
-      id: section.id,
-      lessonId: lesson.id,
-      title: section.title || `Muc ${index + 1}`,
-      type: section.type || 'TEXT',
-      content: section.content || '',
-      contentBlocks: Array.isArray(section.contentBlocks) ? section.contentBlocks : [],
-      videoUrl: section.videoUrl,
-      videoType: section.videoType,
-      streamVideoUid: section.streamVideoUid,
-      fileUrl: section.fileUrl || section.downloadUrl,
-      fileName: section.fileName,
-      sortOrder: section.sortOrder ?? index,
-      quizData: section.quizData ? {
-        quizType: this.normalizeQuizAssessmentType(section.quizData.quizType),
-        countsTowardCertificate: Boolean(section.quizData.countsTowardCertificate)
-          && this.normalizeQuizAssessmentType(section.quizData.quizType) === 'EXAM',
-        allowOffline: this.canDownloadQuizOffline(this.normalizeQuizAssessmentType(section.quizData.quizType)),
-        timeLimitMinutes: section.quizData.timeLimitMinutes ?? null,
-        passingScore: section.quizData.passingScore ?? null,
-        maxAttempts: section.quizData.maxAttempts ?? null,
-        shuffleQuestions: section.quizData.shuffleQuestions === true,
-        shuffleOptions: section.quizData.shuffleOptions === true,
-        showResultsImmediately: section.quizData.showResultsImmediately !== false,
-        showCorrectAnswers: section.quizData.showCorrectAnswers !== false,
-        questions: Array.isArray(section.quizData.questions)
-          ? section.quizData.questions.map((question: any) => ({
-              id: question.id,
-              content: question.content || '',
-              contentBlocks: Array.isArray(question.contentBlocks) ? question.contentBlocks : [],
-              questionType: question.questionType || 'SINGLE_CHOICE',
-              options: Array.isArray(question.options)
-                ? question.options.map((option: any, optionIndex: number) => ({
-                    optionKey: option.optionKey || option.key || String.fromCharCode(65 + optionIndex),
-                    content: option.content || '',
-                    contentBlocks: Array.isArray(option.contentBlocks) ? option.contentBlocks : [],
-                    displayOrder: option.displayOrder ?? optionIndex,
-                  }))
-                : [],
-            }))
-          : [],
-      } : undefined,
-    }));
+    return lesson.sections.map((section: any, index: number) => {
+      const videoSourceKind = this.resolveVideoSourceKind(
+        section.videoSourceKind,
+        section.videoUrl,
+        section.streamVideoUid,
+        section.videoType,
+      );
+
+      return {
+        id: section.id,
+        lessonId: lesson.id,
+        title: section.title || `Muc ${index + 1}`,
+        type: section.type || 'TEXT',
+        content: section.content || '',
+        contentBlocks: Array.isArray(section.contentBlocks) ? section.contentBlocks : [],
+        videoUrl: section.videoUrl,
+        videoType: section.videoType,
+        streamVideoUid: section.streamVideoUid,
+        videoSourceKind,
+        fileUrl: section.fileUrl || section.downloadUrl,
+        fileName: section.fileName,
+        sortOrder: section.sortOrder ?? index,
+        quizData: section.quizData ? {
+          quizType: this.normalizeQuizAssessmentType(section.quizData.quizType),
+          countsTowardCertificate: Boolean(section.quizData.countsTowardCertificate)
+            && this.normalizeQuizAssessmentType(section.quizData.quizType) === 'EXAM',
+          allowOffline: this.canDownloadQuizOffline(this.normalizeQuizAssessmentType(section.quizData.quizType)),
+          timeLimitMinutes: section.quizData.timeLimitMinutes ?? null,
+          passingScore: section.quizData.passingScore ?? null,
+          maxAttempts: section.quizData.maxAttempts ?? null,
+          shuffleQuestions: section.quizData.shuffleQuestions === true,
+          shuffleOptions: section.quizData.shuffleOptions === true,
+          showResultsImmediately: section.quizData.showResultsImmediately !== false,
+          showCorrectAnswers: section.quizData.showCorrectAnswers !== false,
+          questions: Array.isArray(section.quizData.questions)
+            ? section.quizData.questions.map((question: any) => ({
+                id: question.id,
+                content: question.content || '',
+                contentBlocks: Array.isArray(question.contentBlocks) ? question.contentBlocks : [],
+                questionType: question.questionType || 'SINGLE_CHOICE',
+                options: Array.isArray(question.options)
+                  ? question.options.map((option: any, optionIndex: number) => ({
+                      optionKey: option.optionKey || option.key || String.fromCharCode(65 + optionIndex),
+                      content: option.content || '',
+                      contentBlocks: Array.isArray(option.contentBlocks) ? option.contentBlocks : [],
+                      displayOrder: option.displayOrder ?? optionIndex,
+                    }))
+                  : [],
+              }))
+            : [],
+        } : undefined,
+      };
+    });
   }
 
   private normalizeQuizAssessmentType(rawQuizType: unknown): 'PRACTICE' | 'ASSESSMENT' | 'EXAM' {
@@ -748,28 +1084,138 @@ export class CourseDownloadService {
     return this.normalizeQuizAssessmentType(quizType) === 'PRACTICE';
   }
 
-  private async resolveSectionVideoDownloadUrl(
+  private async resolveSectionVideoDownloadDescriptor(
     section: OfflineLessonSection,
-    quality: '360p' | '720p' | '1080p'
-  ): Promise<string | null> {
-    if (section.videoType === 'YOUTUBE') {
-      return null;
+    profile: OfflineVideoProfileId,
+  ): Promise<OfflineVideoDownloadDescriptor> {
+    if (section.videoType === 'YOUTUBE' || section.videoSourceKind === 'EXTERNAL') {
+      return { downloadUrl: null };
     }
 
     if (section.streamVideoUid) {
       try {
-        const response: any = await firstValueFrom(
-          this.http.get(`${environment.apiUrl}/api/v3/sections/${section.id}/video/download`, {
-            params: { quality }
-          })
-        );
-        return response?.downloadUrl ?? response?.data?.downloadUrl ?? null;
+        return await this.fetchSectionVideoDownloadDescriptor(section.id, profile);
       } catch {
         // Fall back to raw video URL when a section still carries a direct URL.
       }
     }
 
-    return section.videoUrl || null;
+    return {
+      downloadUrl: section.videoUrl || null,
+      profile: 'ORIGINAL',
+      profileLabel: getOfflineVideoProfileLabel('ORIGINAL'),
+      actualResolution: null,
+    };
+  }
+
+  private async resolveLessonVideoDownloadDescriptor(
+    lessonId: string,
+    profile: OfflineVideoProfileId,
+  ): Promise<OfflineVideoDownloadDescriptor> {
+    return this.fetchLessonVideoDownloadDescriptor(lessonId, profile);
+  }
+
+  private async fetchLessonVideoDownloadDescriptor(
+    lessonId: string,
+    profile: OfflineVideoProfileId,
+  ): Promise<OfflineVideoDownloadDescriptor> {
+    const response: any = await firstValueFrom(
+      this.http.get(`${environment.apiUrl}/api/v3/lessons/${lessonId}/video/download`, {
+        params: { profile }
+      })
+    );
+    return {
+      downloadUrl: response?.downloadUrl ?? response?.data?.downloadUrl ?? null,
+      actualResolution: response?.actualResolution ?? response?.data?.actualResolution ?? null,
+      profile: response?.profile ?? response?.data?.profile ?? profile,
+      profileLabel: response?.profileLabel ?? response?.data?.profileLabel ?? null,
+      fileSizeBytes: response?.fileSizeBytes ?? response?.data?.fileSizeBytes ?? null,
+    };
+  }
+
+  private async fetchSectionVideoDownloadDescriptor(
+    sectionId: string,
+    profile: OfflineVideoProfileId,
+  ): Promise<OfflineVideoDownloadDescriptor> {
+    const response: any = await firstValueFrom(
+      this.http.get(`${environment.apiUrl}/api/v3/sections/${sectionId}/video/download`, {
+        params: { profile }
+      })
+    );
+    return {
+      downloadUrl: response?.downloadUrl ?? response?.data?.downloadUrl ?? null,
+      actualResolution: response?.actualResolution ?? response?.data?.actualResolution ?? null,
+      profile: response?.profile ?? response?.data?.profile ?? profile,
+      profileLabel: response?.profileLabel ?? response?.data?.profileLabel ?? null,
+      fileSizeBytes: response?.fileSizeBytes ?? response?.data?.fileSizeBytes ?? null,
+    };
+  }
+
+  private resolveVideoSourceKind(
+    explicitSourceKind: unknown,
+    videoUrl?: string | null,
+    streamVideoUid?: string | null,
+    videoType?: string | null,
+  ): VideoSourceKind | undefined {
+    if (explicitSourceKind === 'STREAM' || explicitSourceKind === 'EXTERNAL' || explicitSourceKind === 'LEGACY_DIRECT') {
+      return explicitSourceKind;
+    }
+
+    if (streamVideoUid) {
+      return 'STREAM';
+    }
+
+    const normalizedVideoType = typeof videoType === 'string'
+      ? videoType.trim().toUpperCase()
+      : '';
+    if (normalizedVideoType === 'YOUTUBE' || this.isExternalVideoUrl(videoUrl)) {
+      return 'EXTERNAL';
+    }
+
+    return videoUrl ? 'LEGACY_DIRECT' : undefined;
+  }
+
+  private normalizeDownloadedProfileId(profile: unknown): OfflineVideoProfileId | null {
+    if (profile === 'SAVER' || profile === 'STANDARD' || profile === 'HIGH' || profile === 'ORIGINAL') {
+      return profile;
+    }
+
+    return null;
+  }
+
+  private resolveDownloadedProfileLabel(
+    profile: unknown,
+    profileLabel?: string | null,
+    actualResolution?: string | null,
+  ): string | null {
+    const normalizedProfile = this.normalizeDownloadedProfileId(profile);
+    if (!normalizedProfile) {
+      return null;
+    }
+
+    if (normalizedProfile === 'ORIGINAL') {
+      return getOfflineVideoProfileLabel('ORIGINAL');
+    }
+
+    return formatOfflineVideoProfileLabel({
+      id: normalizedProfile,
+      actualResolution: actualResolution ?? null,
+    }) || profileLabel || getOfflineVideoProfileLabel(normalizedProfile);
+  }
+
+  private isExternalVideoUrl(url: string | null | undefined): boolean {
+    if (!url) {
+      return false;
+    }
+
+    if (/(youtube\.com|youtu\.be)/i.test(url)) {
+      return true;
+    }
+
+    return /^https?:\/\//i.test(url)
+      && !url.includes('videodelivery.net')
+      && !url.startsWith(environment.apiUrl)
+      && !(typeof window !== 'undefined' && url.startsWith(`${window.location.origin}/`));
   }
 
   private mapOfflineQuizQuestions(rawQuestions: any[]): OfflineQuestion[] {
@@ -791,7 +1237,544 @@ export class CourseDownloadService {
     }));
   }
 
-  private async refreshDownloadedCourses(): Promise<void> {
+  private resolveEffectiveDownloadOptions(
+    options?: Partial<DownloadOptions> | null,
+  ): DownloadOptions {
+    if (options?.videoQuality) {
+      return this.normalizeDownloadOptions(options);
+    }
+
+    return this.normalizeDownloadOptions({
+      videoQuality: this.offlineSettings.defaultVideoQuality(),
+    });
+  }
+
+  private shouldBlockDownloadOnCurrentNetwork(): boolean {
+    return this.offlineSettings.downloadOnWifiOnly() && this.network.isLikelyMetered();
+  }
+
+  private normalizeDownloadOptions(
+    options?: Partial<DownloadOptions> | null,
+  ): DownloadOptions {
+    const normalizedVideoQuality = normalizeVideoQuality(options?.videoQuality);
+    return {
+      videoQuality: normalizedVideoQuality,
+    };
+  }
+
+  private async rebindPreservedCourseState(
+    courseId: string,
+    previousSectionIds: Set<string>,
+  ): Promise<void> {
+    const userId = getCurrentUserId();
+    const lessons = await offlineDb.lessons.where('[userId+courseId]').equals([userId, courseId]).toArray();
+    const validLessonIds = new Set(lessons.map(lesson => lesson.id));
+    const validSectionIds = new Set(
+      lessons.flatMap(lesson => (lesson.sections ?? []).map(section => section.id))
+    );
+    const latestCourse = await offlineDb.courses.get([userId, courseId]);
+    const latestPublicationId = latestCourse?.publicationId ?? null;
+    const quizData = await offlineDb.quizData.where('[userId+courseId]').equals([userId, courseId]).toArray();
+    const validLessonQuizIds = new Set(
+      quizData
+        .filter(quiz => quiz.mode !== 'section')
+        .map(quiz => quiz.quizId)
+    );
+
+    await this.pruneInvalidProgressRecords(userId, courseId, validLessonIds);
+    await this.pruneAndRebindQuizAttempts(userId, validLessonIds, validSectionIds, validLessonQuizIds);
+    await this.rebindCourseQueueItems(userId, courseId, latestPublicationId, validLessonIds, validSectionIds, validLessonQuizIds);
+    this.rewriteOfflineLearningProgress(courseId, validLessonIds);
+    this.rewriteCompletedSections(previousSectionIds, validSectionIds);
+  }
+
+  private async captureCourseSnapshot(
+    userId: string,
+    courseId: string,
+  ): Promise<OfflineCourseSnapshot> {
+    const [course, chapters, lessons, quizData] = await Promise.all([
+      offlineDb.courses.get([userId, courseId]),
+      offlineDb.chapters.where('[userId+courseId]').equals([userId, courseId]).toArray(),
+      offlineDb.lessons.where('[userId+courseId]').equals([userId, courseId]).toArray(),
+      offlineDb.quizData.where('[userId+courseId]').equals([userId, courseId]).toArray(),
+    ]);
+
+    return {
+      course: course ?? null,
+      chapters,
+      lessons,
+      quizData,
+    };
+  }
+
+  private async restoreCourseSnapshot(snapshot: OfflineCourseSnapshot): Promise<void> {
+    if (!snapshot.course) {
+      return;
+    }
+
+    await offlineDb.transaction(
+      'rw',
+      [offlineDb.courses, offlineDb.chapters, offlineDb.lessons, offlineDb.quizData],
+      async () => {
+        await offlineDb.courses.put(snapshot.course!);
+
+        if (snapshot.chapters.length > 0) {
+          await offlineDb.chapters.bulkPut(snapshot.chapters);
+        }
+
+        if (snapshot.lessons.length > 0) {
+          await offlineDb.lessons.bulkPut(snapshot.lessons);
+        }
+
+        if (snapshot.quizData.length > 0) {
+          await offlineDb.quizData.bulkPut(snapshot.quizData);
+        }
+      },
+    );
+  }
+
+  private async cleanupObsoleteAssetCaches(
+    userId: string,
+    courseId: string,
+    previousLessonIds: Set<string>,
+    previousSectionIds: Set<string>,
+  ): Promise<void> {
+    const latestLessons = await offlineDb.lessons
+      .where('[userId+courseId]')
+      .equals([userId, courseId])
+      .toArray();
+    const validLessonIds = new Set(latestLessons.map(lesson => lesson.id));
+    const validSectionIds = new Set(
+      latestLessons.flatMap(lesson => (lesson.sections ?? []).map(section => section.id))
+    );
+
+    for (const lessonId of previousLessonIds) {
+      if (!validLessonIds.has(lessonId)) {
+        await this.videoService.deleteVideo(lessonId);
+      }
+    }
+
+    for (const sectionId of previousSectionIds) {
+      if (!validSectionIds.has(sectionId)) {
+        await this.videoService.deleteSectionVideo(sectionId);
+        await this.fileService.deleteSectionFile(sectionId);
+      }
+    }
+
+    await this.videoService.refreshList();
+  }
+
+  private async pruneInvalidProgressRecords(
+    userId: string,
+    courseId: string,
+    validLessonIds: Set<string>,
+  ): Promise<void> {
+    const progressRecords = await offlineDb.progress
+      .where('courseId').equals(courseId)
+      .filter(progress => progress.userId === userId)
+      .toArray();
+    const staleProgressIds = progressRecords
+      .filter(progress => !validLessonIds.has(progress.lessonId))
+      .map(progress => progress.id)
+      .filter((id): id is number => typeof id === 'number');
+
+    if (staleProgressIds.length > 0) {
+      await offlineDb.progress.bulkDelete(staleProgressIds);
+    }
+  }
+
+  private async pruneAndRebindQuizAttempts(
+    userId: string,
+    validLessonIds: Set<string>,
+    validSectionIds: Set<string>,
+    validLessonQuizIds: Set<string>,
+  ): Promise<void> {
+    const attempts = await offlineDb.quizAttempts.where('userId').equals(userId).toArray();
+    const staleAttemptIds = attempts
+      .filter(attempt => !this.isQuizAttemptStillValid(attempt, validLessonIds, validSectionIds, validLessonQuizIds))
+      .map(attempt => attempt.id)
+      .filter((id): id is number => typeof id === 'number');
+
+    if (staleAttemptIds.length > 0) {
+      await offlineDb.quizAttempts.bulkDelete(staleAttemptIds);
+    }
+  }
+
+  private isQuizAttemptStillValid(
+    attempt: OfflineQuizAttempt,
+    validLessonIds: Set<string>,
+    validSectionIds: Set<string>,
+    validLessonQuizIds: Set<string>,
+  ): boolean {
+    if (attempt.lessonId && !validLessonIds.has(attempt.lessonId)) {
+      return false;
+    }
+
+    if (attempt.sectionId && !validSectionIds.has(attempt.sectionId)) {
+      return false;
+    }
+
+    if ((attempt.mode ?? 'lesson') !== 'section' && !validLessonQuizIds.has(attempt.quizId)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private async rebindCourseQueueItems(
+    userId: string,
+    courseId: string,
+    publicationId: string | null,
+    validLessonIds: Set<string>,
+    validSectionIds: Set<string>,
+    validLessonQuizIds: Set<string>,
+  ): Promise<void> {
+    const queueItems = await offlineDb.syncQueue
+      .where('userId').equals(userId)
+      .filter(item => item.courseId === courseId || this.getPayloadCourseId(item) === courseId)
+      .toArray();
+
+    const staleQueueIds: number[] = [];
+    const queueUpdates: Array<Promise<number | undefined>> = [];
+
+    for (const item of queueItems) {
+      if (!this.isQueueItemStillValid(item, validLessonIds, validSectionIds, validLessonQuizIds)) {
+        if (typeof item.id === 'number') {
+          staleQueueIds.push(item.id);
+        }
+        continue;
+      }
+
+      if (typeof item.id === 'number') {
+        const reboundPayload = this.rebindQueuePayload(item, courseId, publicationId);
+        const isRecoverableConflict = typeof item.lastError === 'string'
+          && item.lastError.toLowerCase().includes('publication');
+        queueUpdates.push(offlineDb.syncQueue.update(item.id, {
+          publicationId,
+          payload: reboundPayload,
+          syncStatus: isRecoverableConflict ? 'pending' : item.syncStatus,
+          retryCount: isRecoverableConflict ? 0 : item.retryCount,
+          nextRetryAt: isRecoverableConflict ? undefined : item.nextRetryAt,
+          lastError: isRecoverableConflict ? undefined : item.lastError,
+        }));
+      }
+    }
+
+    if (staleQueueIds.length > 0) {
+      await offlineDb.syncQueue.bulkDelete(staleQueueIds);
+    }
+
+    if (queueUpdates.length > 0) {
+      await Promise.all(queueUpdates);
+    }
+  }
+
+  private isQueueItemStillValid(
+    item: SyncQueueItem,
+    validLessonIds: Set<string>,
+    validSectionIds: Set<string>,
+    validLessonQuizIds: Set<string>,
+  ): boolean {
+    const payload = this.getQueuePayload(item);
+    const payloadLessonId = typeof payload?.['lessonId'] === 'string' ? payload['lessonId'] : null;
+    const payloadSectionId = typeof payload?.['sectionId'] === 'string' ? payload['sectionId'] : null;
+
+    if (payloadLessonId && !validLessonIds.has(payloadLessonId)) {
+      return false;
+    }
+
+    if (payloadSectionId && !validSectionIds.has(payloadSectionId)) {
+      return false;
+    }
+
+    if (item.entityType === 'progress' || item.entityType === 'videoProgress') {
+      const entityId = item.entityId ?? payloadSectionId ?? payloadLessonId;
+      if (entityId && !validLessonIds.has(entityId) && !validSectionIds.has(entityId)) {
+        return false;
+      }
+    }
+
+    if (item.entityType === 'quizAttempt') {
+      const mode = typeof payload?.['mode'] === 'string' ? payload['mode'] : 'lesson';
+      if (mode === 'section') {
+        return payloadSectionId == null || validSectionIds.has(payloadSectionId);
+      }
+
+      const quizId = typeof payload?.['quizId'] === 'string' ? payload['quizId'] : null;
+      return quizId == null || validLessonQuizIds.has(quizId);
+    }
+
+    return true;
+  }
+
+  private getQueuePayload(item: SyncQueueItem): Record<string, unknown> | null {
+    return item.payload && typeof item.payload === 'object'
+      ? item.payload as Record<string, unknown>
+      : null;
+  }
+
+  private rebindQueuePayload(
+    item: SyncQueueItem,
+    courseId: string,
+    publicationId: string | null,
+  ): Record<string, unknown> | null {
+    const payload = this.getQueuePayload(item);
+    if (!payload) {
+      return null;
+    }
+
+    return {
+      ...payload,
+      courseId,
+      publicationId,
+    };
+  }
+
+  private getPayloadCourseId(item: SyncQueueItem): string | null {
+    const payload = this.getQueuePayload(item);
+    return typeof payload?.['courseId'] === 'string' ? payload['courseId'] : null;
+  }
+
+  private rewriteOfflineLearningProgress(
+    courseId: string,
+    validLessonIds: Set<string>,
+  ): void {
+    const progress = this.readOfflineLearningProgress(courseId);
+    if (!progress) {
+      return;
+    }
+
+    const completedLessons = (progress.completedLessons ?? [])
+      .filter(lessonId => validLessonIds.has(lessonId));
+    const lastAccessedLessonId = progress.lastAccessedLessonId && validLessonIds.has(progress.lastAccessedLessonId)
+      ? progress.lastAccessedLessonId
+      : undefined;
+
+    try {
+      if (completedLessons.length === 0 && !lastAccessedLessonId) {
+        localStorage.removeItem(`learning_progress_${courseId}`);
+        return;
+      }
+
+      localStorage.setItem(`learning_progress_${courseId}`, JSON.stringify({
+        completedLessons,
+        lastAccessedLessonId,
+        progressPercentage: null,
+        lastUpdated: new Date().toISOString(),
+      }));
+    } catch {
+      // localStorage rewrite is best-effort only.
+    }
+  }
+
+  private rewriteCompletedSections(
+    previousSectionIds: Set<string>,
+    validSectionIds: Set<string>,
+  ): void {
+    try {
+      const raw = localStorage.getItem('completed_sections');
+      if (!raw) {
+        return;
+      }
+
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) {
+        return;
+      }
+
+      const next = parsed.filter((value): value is string => {
+        if (typeof value !== 'string') {
+          return false;
+        }
+
+        return !previousSectionIds.has(value) || validSectionIds.has(value);
+      });
+
+      if (next.length === 0) {
+        localStorage.removeItem('completed_sections');
+        return;
+      }
+
+      localStorage.setItem('completed_sections', JSON.stringify(next));
+    } catch {
+      // localStorage rewrite is best-effort only.
+    }
+  }
+
+  private async snapshotInitialProgress(
+    courseId: string,
+    lessons: OfflineLesson[],
+  ): Promise<void> {
+    if (lessons.length === 0 || !(await this.ensureOfflineReady(true))) {
+      return;
+    }
+
+    const userId = getCurrentUserId();
+    const validLessonIds = new Set(lessons.map(lesson => lesson.id));
+    const completedLessons = new Set(this.readOfflineLearningProgress(courseId)?.completedLessons ?? []);
+
+    if (this.network.online()) {
+      try {
+        const response: any = await firstValueFrom(
+          this.http.get(`${environment.apiUrl}/api/v3/student/progress/courses/${courseId}/completed-ids`)
+        );
+        const completedFromServer = Array.isArray(response?.data)
+          ? response.data
+          : Array.isArray(response)
+            ? response
+            : Array.isArray(response?.completedLessonIds)
+              ? response.completedLessonIds
+              : [];
+
+        for (const lessonId of completedFromServer) {
+          if (typeof lessonId === 'string') {
+            completedLessons.add(lessonId);
+          }
+        }
+      } catch {
+        // Best-effort snapshot only.
+      }
+    }
+
+    const existingProgress = await offlineDb.progress
+      .where('courseId').equals(courseId)
+      .filter(record => record.userId === userId)
+      .toArray();
+    const existingByLesson = new Map(existingProgress.map(record => [record.lessonId, record]));
+
+    for (const lessonId of completedLessons) {
+      if (!validLessonIds.has(lessonId)) {
+        continue;
+      }
+
+      const existing = existingByLesson.get(lessonId);
+      const completedAt = existing?.completedAt ?? new Date();
+
+      if (existing?.id != null) {
+        await offlineDb.progress.update(existing.id, {
+          progressPercent: Math.max(existing.progressPercent, 100),
+          completedAt,
+          syncStatus: existing.syncStatus === 'conflict' ? 'conflict' : 'synced',
+          updatedAt: new Date(),
+        });
+        continue;
+      }
+
+      await offlineDb.progress.add({
+        lessonId,
+        courseId,
+        userId,
+        progressPercent: 100,
+        videoPosition: 0,
+        completedAt,
+        syncStatus: 'synced',
+        updatedAt: new Date(),
+      });
+    }
+  }
+
+  private async repairLessonVideoFallbackInStorage(
+    userId: string,
+    lesson: OfflineLesson,
+  ): Promise<OfflineLesson> {
+    let lessonUpdates: Partial<OfflineLesson> = {};
+
+    if (!lesson.videoOfflineUri || !Array.isArray(lesson.sections) || lesson.sections.length === 0) {
+      return this.repairLessonQuizMetadataInStorage(userId, lesson);
+    }
+
+    let changed = false;
+    const repairedSections = lesson.sections.map((section) => {
+      const isYoutube = section.videoType === 'YOUTUBE'
+        || (typeof section.videoUrl === 'string' && /(youtube\.com|youtu\.be)/i.test(section.videoUrl));
+
+      if (
+        section.type !== 'VIDEO'
+        || section.videoOfflineUri
+        || section.streamVideoUid
+        || isYoutube
+      ) {
+        return section;
+      }
+
+      changed = true;
+      return {
+        ...section,
+        videoUrl: lesson.videoOfflineUri,
+        videoOfflineUri: lesson.videoOfflineUri,
+      };
+    });
+
+    if (changed) {
+      lessonUpdates.sections = repairedSections;
+    }
+
+    const quizMetadataUpdates = await this.resolveLessonQuizMetadataRepair(userId, lesson);
+    if (quizMetadataUpdates) {
+      lessonUpdates = {
+        ...lessonUpdates,
+        ...quizMetadataUpdates,
+      };
+    }
+
+    if (Object.keys(lessonUpdates).length === 0) {
+      return lesson;
+    }
+
+    await offlineDb.lessons.update([userId, lesson.id], lessonUpdates);
+
+    return {
+      ...lesson,
+      ...lessonUpdates,
+      sections: (lessonUpdates.sections as OfflineLessonSection[] | undefined) ?? repairedSections,
+    };
+  }
+
+  private async repairLessonQuizMetadataInStorage(
+    userId: string,
+    lesson: OfflineLesson,
+  ): Promise<OfflineLesson> {
+    const quizMetadataUpdates = await this.resolveLessonQuizMetadataRepair(userId, lesson);
+    if (!quizMetadataUpdates) {
+      return lesson;
+    }
+
+    await offlineDb.lessons.update([userId, lesson.id], quizMetadataUpdates);
+    return {
+      ...lesson,
+      ...quizMetadataUpdates,
+    };
+  }
+
+  private async resolveLessonQuizMetadataRepair(
+    userId: string,
+    lesson: OfflineLesson,
+  ): Promise<Partial<OfflineLesson> | null> {
+    const hasQuizMetadata =
+      !!lesson.quizType
+      && lesson.quizAllowOffline !== undefined
+      && lesson.countsTowardCertificate !== undefined;
+    if (hasQuizMetadata) {
+      return null;
+    }
+
+    const quizRecord = await offlineDb.quizData
+      .where('[userId+lessonId]')
+      .equals([userId, lesson.id])
+      .first();
+    if (!quizRecord) {
+      return null;
+    }
+
+    const quizType = this.normalizeQuizAssessmentType(quizRecord.quizType);
+    return {
+      quizType,
+      countsTowardCertificate: Boolean(quizRecord.countsTowardCertificate) && quizType === 'EXAM',
+      quizAllowOffline: quizRecord.allowOffline === true || this.canDownloadQuizOffline(quizType),
+    };
+  }
+
+  async refreshDownloadedCourses(): Promise<void> {
     if (!(await this.ensureOfflineReady(true))) {
       this.downloadedCourses.set([]);
       return;
@@ -832,6 +1815,7 @@ export class CourseDownloadService {
         versionModeSnapshot: c.versionModeSnapshot,
         isStale: c.isStale,
         staleReason: c.staleReason,
+        downloadOptions: this.normalizeDownloadOptions(c.downloadOptions),
         completionPercent: completionMap.get(c.id) ?? 0,
       }))
     );
@@ -865,7 +1849,7 @@ export class CourseDownloadService {
   }
 
   private getOfflineUnavailableMessage(): string {
-    return 'Bộ nhớ ngoại tuyến trên trình duyệt này đang gặp sự cố. Hệ thống sẽ tạm chuyển sang chế độ chỉ dùng online.';
+    return 'Bộ nhớ ngoại tuyến trên trình duyệt này đang gặp sự cố. Hệ thống sẽ tạm chuyển sang chế độ chỉ dùng online. Bạn có thể vào Lưu trữ ngoại tuyến để đặt lại bộ nhớ, hoặc mở trang khôi phục PWA nâng cao nếu trình duyệt vẫn còn cache cũ.';
   }
 
   private readOfflineLearningProgress(courseId: string): {

@@ -1,0 +1,41 @@
+{
+  "url": "https://holilihu.online/student/storage",
+  "console": [
+    {
+      "type": "info",
+      "text": "[Storage] Persistent storage DENIED"
+    },
+    {
+      "type": "info",
+      "text": "[Storage] Persistent storage DENIED"
+    }
+  ],
+  "page_errors": [],
+  "failed_requests": [
+    {
+      "url": "https://holilihu.online/icons/icon-192x192.png",
+      "method": "HEAD",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://holilihu.online/api/v3/sync/pull",
+      "method": "GET",
+      "failure": "net::ERR_ABORTED"
+    }
+  ],
+  "api_responses": [
+    {
+      "url": "https://holilihu.online/api/v3/messages/conversations?includeArchived=false",
+      "status": 200
+    },
+    {
+      "url": "https://holilihu.online/api/v3/gamification/notifications?page=0&size=20",
+      "status": 200
+    },
+    {
+      "url": "https://holilihu.online/api/v3/sync/pull",
+      "status": 200
+    }
+  ],
+  "body_text_excerpt": "Cổng Học viên\n\nHọc viên Mẫu\n\nHỌC TẬP\nKhóa học của tôi\nKhóa học của tôi\nBài cần làm\nBài cần làm\nKết quả\nKết quả\nKhám phá\nKhám phá\nCÔNG CỤ\nTin nhắn\nTin nhắn\nLưu trữ ngoại tuyến\nLưu trữ ngoại tuyến\nTÀI KHOẢN\nPhân tích\nPhân tích\nLịch sử thanh toán\nLịch sử thanh toán\nHồ sơ\nHồ sơ\nĐăng xuất\nLưu trữ ngoại tuyến\n\nQuản lý dung lượng, chất lượng video, đồng bộ và các gói khóa học đã tải trên thiết bị này.\n\nTrực tuyến\nTổng quan dung lượng\n\nPhân bổ bộ nhớ cho khóa học, video và hàng đợi đồng bộ.\n\n104 KB / 925.1 MB\n\nKhóa học\n\n0 B\n\nVideo\n\n0 B\n\nHàng đợi sync\n\n0 mục\n\nDung lượng trống\n\n925.0 MB\n\nThiết lập ngoại tuyến trên thiết bị này\n\nCác thiết lập này chỉ áp dụng cho thiết bị hiện tại, không đồng bộ sang máy khác.\n\nThiết bị này\nChất lượng video mặc định\n\nÁp dụng cho lượt tải mới và là mặc định khi làm mới gói nếu khóa học chưa có lựa chọn riêng.\n\n720p\n\nKhông tải video\n\nChỉ lưu văn bản, tệp và quiz luyện tập.\n\nTiết kiệm 360p\n\nƯu tiên tiết kiệm dung lượng và dữ liệu.\n\nCân bằng 720p\n\nĐang dùng\n\nThiết lập mặc định phù hợp cho hầu hết thiết bị.\n\nCao 1080p\n\nChỉ nên dùng khi máy còn nhiều dung lượng.\n\nChỉ tải khi có Wi‑Fi\n\nHạn chế bắt đầu lượt tải mới trên kết nối có thể bị tính theo dữ liệu.\n\nBạn đang cho phép tải xuống trên mọi kết nối khả dụng.\n\nTự đồng bộ khi có mạng\n\nKhi bật, ứng dụng sẽ tự xử lý queue progress và dữ liệu học tập sau khi kết nối trở lại.\n\nTự đồng bộ đang bật. Bạn vẫn có thể đồng bộ ngay thủ công nếu muốn.\n\nGiữ bộ nhớ lâu dài\n\nTrình duyệt chưa xác nhận giữ dữ liệu lâu dài. Dữ liệu ngoại tuyến vẫn có thể bị dọn nếu bộ nhớ thiếu.\n\nYêu cầu giữ dữ liệu lâu dài\nTrạng thái đồng bộ\n\nMọi dữ liệu hiện đã đồng bộ hoặc chưa có thay đổi mới.\n\nĐồng bộ thủ công gần nhất: 16/03/2026 23:05\n\nĐồng bộ ngay\n\nĐANG CHỜ\n\n0\n\nTHẤT BẠI\n\n0\n\nTỰ ĐỒNG BỘ\n\nĐang bật\n\nKhóa học đã tải\n0\n\nChưa có khóa học nào được tải xuống.\n\nHãy vào trang khóa học và chọn tải về để dùng ngoại tuyến.\n\nVideo ngoại tuyến\n0\n\nChỉ video nội bộ của hệ thống mới có thể tải ngoại tuyến. Video YouTube hoặc nguồn ngoài vẫn cần m"
+}

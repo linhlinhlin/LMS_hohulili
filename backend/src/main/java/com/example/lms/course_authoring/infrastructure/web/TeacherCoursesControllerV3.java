@@ -3,9 +3,12 @@ package com.example.lms.course_authoring.infrastructure.web;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
 import com.example.lms.course_authoring.application.dto.CourseDTOs;
+import com.example.lms.course_authoring.application.dto.AuthoringDTOs;
 import com.example.lms.course_authoring.application.usecase.GetCourseDraftUseCase;
 import com.example.lms.course_authoring.application.usecase.CourseAuthoringUseCase;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
+import com.example.lms.learning_delivery.infrastructure.service.AdaptiveVideoPlaybackService;
+import com.example.lms.learning_delivery.infrastructure.service.VideoAssetPresentationService;
 import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,6 +42,8 @@ public class TeacherCoursesControllerV3 {
     private final JpaEnrollmentRepository jpaEnrollmentRepository;
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.CourseReviewJpaRepository courseReviewRepository;
     private final com.example.lms.course_authoring.infrastructure.service.CoursePublicationService coursePublicationService;
+    private final VideoAssetPresentationService videoAssetPresentationService;
+    private final AdaptiveVideoPlaybackService adaptiveVideoPlaybackService;
 
     @GetMapping("/my-courses")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
@@ -104,6 +109,7 @@ public class TeacherCoursesControllerV3 {
             @AuthenticationPrincipal UserJpaEntity user) {
         verifyCourseOwnership(courseId, user);
         var draft = getCourseDraftUseCase.execute(courseId);
+        enrichIntroVideoAsset(draft, user);
         return ResponseEntity.ok(ApiResponse.success(draft));
     }
 
@@ -242,5 +248,37 @@ public class TeacherCoursesControllerV3 {
         private String email;
         private String enrolledAt;
         private Integer progressPercentage;
+    }
+
+    private void enrichIntroVideoAsset(AuthoringDTOs.CourseDraftDTO draft, UserJpaEntity user) {
+        if (draft == null || draft.getIntroVideoAssetId() == null) {
+            return;
+        }
+
+        videoAssetPresentationService.getView(draft.getIntroVideoAssetId()).ifPresent(view -> {
+            draft.setIntroVideoAssetId(view.id());
+            draft.setIntroVideoProcessingStatus(view.status());
+            draft.setIntroVideoSourceKind(view.videoSourceKind());
+            String playUrl = user == null
+                    ? null
+                    : adaptiveVideoPlaybackService.createPlaybackSession(view.id(), user.getId(), "hls")
+                    .map(AdaptiveVideoPlaybackService.PlaybackSession::playUrl)
+                    .orElse(null);
+            draft.setIntroVideoPlaybackUrl(playUrl);
+            draft.setIntroVideoStreamVideoUid(null);
+            draft.setIntroVideoAvailableOfflineProfiles(
+                    view.availableOfflineProfiles().stream()
+                            .map(profile -> {
+                                Map<String, Object> option = new LinkedHashMap<>();
+                                option.put("id", profile.id());
+                                option.put("label", profile.label());
+                                option.put("actualResolution", profile.actualResolution());
+                                option.put("sizeBytes", profile.sizeBytes());
+                                return option;
+                            })
+                            .toList()
+            );
+            draft.setIntroVideoUrl(playUrl);
+        });
     }
 }

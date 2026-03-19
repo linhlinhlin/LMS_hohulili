@@ -1,12 +1,12 @@
 package com.example.lms.shared.application.usecase;
 
-import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
+import com.example.lms.identity.domain.repository.UserRepository;
+import com.example.lms.shared.application.port.RevenueConfigPort;
 import com.example.lms.shared.domain.model.PayoutRequest;
 import com.example.lms.shared.domain.repository.PayoutRequestRepository;
 import com.example.lms.shared.domain.repository.RevenueSplitRepository;
 import com.example.lms.shared.domain.repository.TeacherBankAccountRepository;
 import com.example.lms.shared.exception.BusinessRuleException;
-import com.example.lms.shared.infrastructure.service.RevenueConfigService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,8 +33,8 @@ class RequestPayoutUseCaseTest {
     @Mock private PayoutRequestRepository payoutRepo;
     @Mock private RevenueSplitRepository splitRepo;
     @Mock private TeacherBankAccountRepository bankRepo;
-    @Mock private UserJpaRepository userRepo;
-    @Mock private RevenueConfigService revenueConfigService;
+    @Mock private UserRepository userRepo;
+    @Mock private RevenueConfigPort revenueConfigPort;
 
     @InjectMocks
     private RequestPayoutUseCase useCase;

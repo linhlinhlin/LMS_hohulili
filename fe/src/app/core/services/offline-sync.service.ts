@@ -11,6 +11,7 @@ import {
   type SyncOperationType,
 } from '../db/lms-offline.db';
 import { NetworkStatusService } from './network-status.service';
+import { OfflineDeviceSettingsService } from './offline-device-settings.service';
 import { ToastService } from './toast.service';
 import { environment } from '../../../environments/environment';
 
@@ -20,10 +21,49 @@ export interface SyncResult {
   pending: number;
 }
 
+interface SyncPullConflict {
+  entityType?: string;
+  entityId?: string;
+  message?: string;
+  clientOperationId?: string | null;
+}
+
+interface SyncCourseState {
+  courseId?: string | null;
+  publicationId?: string | null;
+  versionMode?: string | null;
+}
+
+interface SyncLessonProgressItem {
+  courseId?: string | null;
+  lessonId?: string | null;
+  status?: string | null;
+  watchSeconds?: number | null;
+  lastActivity?: string | null;
+}
+
+interface SyncVideoProgressItem {
+  lessonId?: string | null;
+  lastPosition?: number | null;
+  watchedSeconds?: number | null;
+  updatedAt?: string | null;
+}
+
+interface SyncPullPayload {
+  serverTimestamp?: string | null;
+  courseStates?: SyncCourseState[];
+  lessonProgress?: SyncLessonProgressItem[];
+  videoProgress?: SyncVideoProgressItem[];
+  conflicts?: SyncPullConflict[];
+}
+
+const LAST_PULL_SYNC_KEY_PREFIX = 'offline_sync_pull_state_';
+
 @Injectable({ providedIn: 'root' })
 export class OfflineSyncService {
   private readonly http = inject(HttpClient);
   private readonly network = inject(NetworkStatusService);
+  private readonly offlineSettings = inject(OfflineDeviceSettingsService);
   private readonly toast = inject(ToastService);
 
   readonly isSyncing = signal(false);
@@ -46,13 +86,16 @@ export class OfflineSyncService {
 
     // Auto-sync with priority when coming back online
     window.addEventListener('online', () => {
+      if (!this.offlineSettings.autoSyncWhenOnline()) {
+        return;
+      }
       setTimeout(() => this.syncWithPriority(), 2000);
     });
 
     // Listen for SW background sync trigger (sw.js sends SYNC_OFFLINE_QUEUE)
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data?.type === 'SYNC_OFFLINE_QUEUE') {
+        if (event.data?.type === 'SYNC_OFFLINE_QUEUE' && this.offlineSettings.autoSyncWhenOnline()) {
           this.syncAll();
         }
       });
@@ -76,16 +119,19 @@ export class OfflineSyncService {
     operationType: SyncOperationType,
     endpoint: string,
     payload: unknown,
+    metadataOverrides?: Partial<Pick<SyncQueueItem, 'clientOperationId' | 'occurredAt' | 'courseId' | 'publicationId' | 'entityId' | 'baseServerUpdatedAt'>>,
   ): Promise<void> {
     await ensureOfflineDbReady();
     const userId = getCurrentUserId();
-    const metadata = this.extractSyncMetadata(payload);
+    const metadata = this.resolveSyncMetadata(payload, metadataOverrides);
+    const shouldDedupe = entityType === 'progress';
 
-    // Deduplicate: check for existing pending item with same entityType + endpoint for this user
-    const existing = await offlineDb.syncQueue
-      .where('userId').equals(userId)
-      .filter(item => item.syncStatus === 'pending' && item.entityType === entityType && item.endpoint === endpoint)
-      .first();
+    const existing = shouldDedupe
+      ? await offlineDb.syncQueue
+        .where('userId').equals(userId)
+        .filter(item => item.syncStatus === 'pending' && item.entityType === entityType && item.endpoint === endpoint)
+        .first()
+      : undefined;
 
     if (existing?.id != null) {
       await offlineDb.syncQueue.update(existing.id, {
@@ -122,9 +168,12 @@ export class OfflineSyncService {
    * Uses /api/v3/sync/push for batch processing with conflict detection.
    * Respects exponential backoff: skips items whose nextRetryAt is in the future.
    */
-  async syncAll(): Promise<SyncResult> {
+  async syncAll(force = false): Promise<SyncResult> {
     if (!(await this.ensureOfflineReady(true))) {
       return { synced: 0, failed: 0, pending: 0 };
+    }
+    if (!force && !this.offlineSettings.autoSyncWhenOnline()) {
+      return { synced: 0, failed: 0, pending: await this.getPendingCount() };
     }
     if (this.syncInProgress || !this.network.online()) {
       return { synced: 0, failed: 0, pending: await this.getPendingCount() };
@@ -152,25 +201,31 @@ export class OfflineSyncService {
         return result;
       }
 
-      // Try batch sync via dedicated endpoint first
-      const batchResult = await this.tryBatchSync(readyItems);
-      if (batchResult) {
-        result.synced = batchResult.synced;
-        result.failed = batchResult.failed;
-      } else {
-        // Fallback: sync items individually
-        for (const item of readyItems) {
-          try {
-            await this.syncItem(item);
-            await offlineDb.syncQueue.update(item.id!, { syncStatus: 'synced' });
-            if (item.entityType === 'quizAttempt') {
-              await this.markQuizAttemptSynced(item);
-            }
-            result.synced++;
-          } catch (error: any) {
-            await this.handleSyncFailure(item, error);
-            result.failed++;
+      const batchableItems = readyItems.filter(item => this.isBatchableSyncItem(item));
+      const fallbackItems = readyItems.filter(item => !this.isBatchableSyncItem(item));
+      const individualItems = [...fallbackItems];
+
+      if (batchableItems.length > 0) {
+        const batchResult = await this.tryBatchSync(batchableItems);
+        if (batchResult) {
+          result.synced += batchResult.synced;
+          result.failed += batchResult.failed;
+        } else {
+          individualItems.unshift(...batchableItems);
+        }
+      }
+
+      for (const item of individualItems) {
+        try {
+          await this.syncItem(item);
+          await offlineDb.syncQueue.update(item.id!, { syncStatus: 'synced' });
+          if (item.entityType === 'quizAttempt') {
+            await this.markQuizAttemptSynced(item);
           }
+          result.synced++;
+        } catch (error: any) {
+          await this.handleSyncFailure(item, error);
+          result.failed++;
         }
       }
 
@@ -208,14 +263,17 @@ export class OfflineSyncService {
    *
    * Never auto-downloads content updates — user decides.
    */
-  async syncWithPriority(): Promise<void> {
+  async syncWithPriority(force = false): Promise<void> {
+    if (!force && !this.offlineSettings.autoSyncWhenOnline()) return;
     if (this.syncInProgress || !this.network.online()) return;
 
     // Step 1: Sync all queued operations (progress, submissions, quiz attempts)
-    const result = await this.syncAll();
+    const result = await this.syncAll(force);
 
-    // Step 2: Check content freshness for all downloaded courses
+    // Step 2: Pull server state back into local caches.
+    // This keeps local progress and stale flags aligned after reconnect.
     if (result.synced > 0 || result.failed === 0) {
+      await this.pullServerState();
       await this.checkContentFreshness();
     }
   }
@@ -329,7 +387,12 @@ export class OfflineSyncService {
     await this.refreshCounts();
     this.toast.info(`Đang thử lại ${failedItems.length} mục...`);
 
-    return this.syncAll();
+    return this.syncAll(true);
+  }
+
+  async syncNow(): Promise<void> {
+    this.offlineSettings.markManualSync();
+    await this.syncWithPriority(true);
   }
 
   /**
@@ -360,6 +423,10 @@ export class OfflineSyncService {
     await this.refreshCounts();
   }
 
+  async refreshState(): Promise<void> {
+    await this.refreshCounts();
+  }
+
   /**
    * Register Background Sync with ServiceWorker.
    * Allows sync to happen even when app is closed.
@@ -381,14 +448,6 @@ export class OfflineSyncService {
    * Returns null if batch endpoint fails (triggers individual fallback).
    */
   private async tryBatchSync(items: SyncQueueItem[]): Promise<SyncResult | null> {
-    const hasEmbeddedSectionQuiz = items.some(item =>
-      item.entityType === 'quizAttempt' &&
-      ((item.payload as Record<string, unknown> | null)?.['mode'] === 'section')
-    );
-    if (hasEmbeddedSectionQuiz) {
-      return null;
-    }
-
     try {
       const operations = items.map(item => ({
         entityType: item.entityType,
@@ -400,7 +459,7 @@ export class OfflineSyncService {
         publicationId: item.publicationId,
         entityId: item.entityId,
         baseServerUpdatedAt: item.baseServerUpdatedAt,
-        payload: item.payload as Record<string, unknown>,
+        payload: this.buildBatchPayload(item),
       }));
 
       const response: any = await firstValueFrom(
@@ -426,6 +485,7 @@ export class OfflineSyncService {
       // Handle conflicts returned by server (overrides synced → failed for conflicted items)
       const conflictedItemIds = new Set<number>();
       if (pushResult.conflicts?.length > 0) {
+        const userId = getCurrentUserId();
         for (const conflict of pushResult.conflicts) {
           // Find the matching item by entityType + entityId from payload
           const matchingItem = items.find(i =>
@@ -442,6 +502,10 @@ export class OfflineSyncService {
               lastError: `Xung đột: ${conflict.message}`,
             });
             conflictedItemIds.add(matchingItem.id);
+          }
+
+          if (this.isStalePublicationConflict(conflict.message)) {
+            await this.markCourseStaleFromQueueItem(userId, matchingItem);
           }
         }
       }
@@ -469,10 +533,30 @@ export class OfflineSyncService {
    * Extract entity ID from a sync queue item's payload.
    */
   private extractEntityIdFromItem(item: SyncQueueItem): string | undefined {
+    if (item.entityId) {
+      return item.entityId;
+    }
+
     const payload = item.payload as Record<string, unknown> | null;
     if (!payload) return undefined;
     const id = payload['id'] ?? payload['quizId'] ?? payload['lessonId'] ?? payload['localAttemptId'] ?? payload['sectionId'];
     return id != null ? String(id) : undefined;
+  }
+
+  private resolveSyncMetadata(
+    payload: unknown,
+    overrides?: Partial<Pick<SyncQueueItem, 'clientOperationId' | 'occurredAt' | 'courseId' | 'publicationId' | 'entityId' | 'baseServerUpdatedAt'>>,
+  ): Pick<SyncQueueItem, 'clientOperationId' | 'occurredAt' | 'courseId' | 'publicationId' | 'entityId' | 'baseServerUpdatedAt'> {
+    const extracted = this.extractSyncMetadata(payload);
+
+    return {
+      clientOperationId: overrides?.clientOperationId ?? extracted.clientOperationId,
+      occurredAt: overrides?.occurredAt ?? extracted.occurredAt,
+      courseId: overrides?.courseId ?? extracted.courseId,
+      publicationId: overrides?.publicationId ?? extracted.publicationId,
+      entityId: overrides?.entityId ?? extracted.entityId,
+      baseServerUpdatedAt: overrides?.baseServerUpdatedAt ?? extracted.baseServerUpdatedAt,
+    };
   }
 
   private extractSyncMetadata(payload: unknown): Pick<SyncQueueItem, 'clientOperationId' | 'occurredAt' | 'courseId' | 'publicationId' | 'entityId' | 'baseServerUpdatedAt'> {
@@ -503,6 +587,45 @@ export class OfflineSyncService {
       entityId,
       baseServerUpdatedAt,
     };
+  }
+
+  private isBatchableSyncItem(item: SyncQueueItem): boolean {
+    const path = item.endpoint;
+
+    if (item.entityType === 'videoProgress') {
+      return path === '/api/v3/video-progress/track';
+    }
+
+    if (item.entityType === 'progress') {
+      return /^\/api\/v3\/student\/progress\/lessons\/[a-f0-9-]+\/complete$/i.test(path);
+    }
+
+    if (item.entityType === 'quizAttempt') {
+      const payload = item.payload as Record<string, unknown> | null;
+      return payload?.['mode'] !== 'section';
+    }
+
+    return false;
+  }
+
+  private buildBatchPayload(item: SyncQueueItem): Record<string, unknown> {
+    const originalPayload = (item.payload && typeof item.payload === 'object')
+      ? { ...(item.payload as Record<string, unknown>) }
+      : {};
+
+    const lessonCompleteMatch = item.endpoint.match(
+      /^\/api\/v3\/student\/progress\/lessons\/([a-f0-9-]+)\/complete$/i,
+    );
+    if (lessonCompleteMatch) {
+      return {
+        ...originalPayload,
+        lessonId: lessonCompleteMatch[1],
+        courseId: item.courseId ?? originalPayload['courseId'],
+        status: originalPayload['status'] ?? 'COMPLETED',
+      };
+    }
+
+    return originalPayload;
   }
 
   /**
@@ -668,5 +791,386 @@ export class OfflineSyncService {
 
       return false;
     }
+  }
+
+  private async pullServerState(): Promise<void> {
+    if (!(await this.ensureOfflineReady(true)) || !this.network.online()) {
+      return;
+    }
+
+    try {
+      const userId = getCurrentUserId();
+      const lastPullTimestamp = this.readLastPullTimestamp(userId);
+      const query = lastPullTimestamp
+        ? `?since=${encodeURIComponent(lastPullTimestamp)}`
+        : '';
+      const response: any = await firstValueFrom(
+        this.http.get(`${environment.apiUrl}/api/v3/sync/pull${query}`)
+      );
+      const pullResult = (response?.data || response || {}) as SyncPullPayload;
+      await this.applyPullResult(userId, pullResult);
+    } catch {
+      // Pull is best-effort. Push remains the critical path.
+    }
+  }
+
+  private async applyPullResult(userId: string, payload: SyncPullPayload): Promise<void> {
+    const touchedCourseIds = new Set<string>();
+
+    if (Array.isArray(payload.courseStates) && payload.courseStates.length > 0) {
+      await this.applyPulledCourseStates(userId, payload.courseStates, touchedCourseIds);
+    }
+
+    if (Array.isArray(payload.lessonProgress) && payload.lessonProgress.length > 0) {
+      await this.applyPulledLessonProgress(userId, payload.lessonProgress, touchedCourseIds);
+    }
+
+    if (Array.isArray(payload.videoProgress) && payload.videoProgress.length > 0) {
+      await this.applyPulledVideoProgress(userId, payload.videoProgress, touchedCourseIds);
+    }
+
+    if (Array.isArray(payload.conflicts) && payload.conflicts.length > 0) {
+      await this.applyPulledConflicts(userId, payload.conflicts);
+    }
+
+    if (touchedCourseIds.size > 0) {
+      await this.syncLearningProgressStorage(userId, touchedCourseIds);
+    }
+
+    const serverTimestamp = this.normalizeIsoTimestamp(payload.serverTimestamp);
+    this.writeLastPullTimestamp(
+      userId,
+      serverTimestamp ?? new Date().toISOString(),
+    );
+  }
+
+  private async applyPulledCourseStates(
+    userId: string,
+    courseStates: SyncCourseState[],
+    touchedCourseIds: Set<string>,
+  ): Promise<void> {
+    for (const state of courseStates) {
+      const courseId = state.courseId ?? null;
+      if (!courseId) {
+        continue;
+      }
+
+      const course = await offlineDb.courses.get([userId, courseId]);
+      if (!course) {
+        continue;
+      }
+
+      const versionMode = typeof state.versionMode === 'string'
+        ? state.versionMode.toUpperCase()
+        : null;
+      const serverPublicationId = state.publicationId ?? null;
+
+      if (
+        course.versionModeSnapshot === 'PINNED' &&
+        serverPublicationId &&
+        course.publicationId &&
+        serverPublicationId !== course.publicationId
+      ) {
+        await offlineDb.courses.update([userId, courseId], {
+          isStale: true,
+          staleReason: 'CLASS_ADOPTED_NEW_PUBLICATION',
+        } as any);
+        touchedCourseIds.add(courseId);
+        continue;
+      }
+
+      if (
+        course.isStale &&
+        course.staleReason === 'CLASS_ADOPTED_NEW_PUBLICATION' &&
+        versionMode === 'PINNED' &&
+        serverPublicationId === course.publicationId
+      ) {
+        await offlineDb.courses.update([userId, courseId], {
+          isStale: false,
+          staleReason: null,
+        } as any);
+        touchedCourseIds.add(courseId);
+      }
+    }
+  }
+
+  private async applyPulledLessonProgress(
+    userId: string,
+    lessonProgress: SyncLessonProgressItem[],
+    touchedCourseIds: Set<string>,
+  ): Promise<void> {
+    for (const item of lessonProgress) {
+      const lessonId = item.lessonId ?? null;
+      const courseId = item.courseId ?? null;
+      if (!lessonId || !courseId) {
+        continue;
+      }
+
+      const existing = await offlineDb.progress
+        .where('lessonId')
+        .equals(lessonId)
+        .filter(record => record.userId === userId && record.courseId === courseId)
+        .first();
+
+      const status = (item.status || '').toUpperCase();
+      const lastActivity = this.parseDate(item.lastActivity);
+      const watchSeconds = typeof item.watchSeconds === 'number'
+        ? Math.max(0, Math.trunc(item.watchSeconds))
+        : 0;
+      const progressPercent = status === 'COMPLETED'
+        ? 100
+        : Math.max(existing?.progressPercent ?? 0, watchSeconds > 0 ? 1 : 0);
+      const videoPosition = Math.max(existing?.videoPosition ?? 0, watchSeconds);
+      const completedAt = status === 'COMPLETED'
+        ? lastActivity ?? existing?.completedAt ?? new Date()
+        : existing?.completedAt;
+
+      if (existing?.id != null) {
+        await offlineDb.progress.update(existing.id, {
+          progressPercent,
+          videoPosition,
+          completedAt,
+          syncStatus: 'synced',
+          updatedAt: lastActivity ?? new Date(),
+        });
+      } else {
+        await offlineDb.progress.add({
+          lessonId,
+          courseId,
+          userId,
+          progressPercent,
+          videoPosition,
+          completedAt,
+          syncStatus: 'synced',
+          updatedAt: lastActivity ?? new Date(),
+        });
+      }
+
+      touchedCourseIds.add(courseId);
+    }
+  }
+
+  private async applyPulledVideoProgress(
+    userId: string,
+    videoProgress: SyncVideoProgressItem[],
+    touchedCourseIds: Set<string>,
+  ): Promise<void> {
+    for (const item of videoProgress) {
+      const lessonId = item.lessonId ?? null;
+      if (!lessonId) {
+        continue;
+      }
+
+      const lesson = await offlineDb.lessons.get([userId, lessonId]);
+      const courseId = lesson?.courseId ?? null;
+      if (!courseId) {
+        continue;
+      }
+
+      const existing = await offlineDb.progress
+        .where('lessonId')
+        .equals(lessonId)
+        .filter(record => record.userId === userId && record.courseId === courseId)
+        .first();
+      const lastPosition = typeof item.lastPosition === 'number'
+        ? Math.max(0, Math.trunc(item.lastPosition))
+        : 0;
+      const watchedSeconds = typeof item.watchedSeconds === 'number'
+        ? Math.max(0, Math.trunc(item.watchedSeconds))
+        : 0;
+      const nextVideoPosition = Math.max(existing?.videoPosition ?? 0, lastPosition, watchedSeconds);
+      const nextProgressPercent = Math.max(existing?.progressPercent ?? 0, nextVideoPosition > 0 ? 1 : 0);
+      const updatedAt = this.parseDate(item.updatedAt) ?? new Date();
+
+      if (existing?.id != null) {
+        await offlineDb.progress.update(existing.id, {
+          videoPosition: nextVideoPosition,
+          progressPercent: nextProgressPercent,
+          syncStatus: existing.syncStatus === 'conflict' ? 'conflict' : 'synced',
+          updatedAt,
+        });
+      } else {
+        await offlineDb.progress.add({
+          lessonId,
+          courseId,
+          userId,
+          progressPercent: nextProgressPercent,
+          videoPosition: nextVideoPosition,
+          syncStatus: 'synced',
+          updatedAt,
+        });
+      }
+
+      touchedCourseIds.add(courseId);
+    }
+  }
+
+  private async applyPulledConflicts(
+    userId: string,
+    conflicts: SyncPullConflict[],
+  ): Promise<void> {
+    const queueItems = await offlineDb.syncQueue.where('userId').equals(userId).toArray();
+    for (const conflict of conflicts) {
+      const matchingItem = queueItems.find(item =>
+        !!conflict.clientOperationId &&
+        item.clientOperationId === conflict.clientOperationId
+      );
+      if (matchingItem?.id == null) {
+        continue;
+      }
+
+      await offlineDb.syncQueue.update(matchingItem.id, {
+        syncStatus: 'failed',
+        lastError: conflict.message || 'Sync conflict',
+      });
+
+      if (this.isStalePublicationConflict(conflict.message)) {
+        await this.markCourseStaleFromQueueItem(userId, matchingItem);
+      }
+    }
+  }
+
+  private isStalePublicationConflict(message?: string | null): boolean {
+    if (!message) {
+      return false;
+    }
+
+    const normalized = message.toLowerCase();
+    return normalized.includes('goi ngoai tuyen da cu')
+      || normalized.includes('cap nhat khoa hoc truoc khi dong bo');
+  }
+
+  private async markCourseStaleFromQueueItem(
+    userId: string,
+    item: SyncQueueItem | undefined,
+  ): Promise<void> {
+    if (!item?.courseId) {
+      return;
+    }
+
+    const course = await offlineDb.courses.get([userId, item.courseId]);
+    if (!course) {
+      return;
+    }
+
+    const staleReason =
+      course.versionModeSnapshot === 'FOLLOW_LATEST'
+        ? 'UPDATE_AVAILABLE'
+        : 'CLASS_ADOPTED_NEW_PUBLICATION';
+
+    await offlineDb.courses.update([userId, item.courseId], {
+      isStale: true,
+      staleReason,
+    } as any);
+  }
+
+  private async syncLearningProgressStorage(
+    userId: string,
+    courseIds: Iterable<string>,
+  ): Promise<void> {
+    if (typeof localStorage === 'undefined') {
+      return;
+    }
+
+    for (const courseId of courseIds) {
+      const progressRecords = await offlineDb.progress
+        .where('courseId')
+        .equals(courseId)
+        .filter(record => record.userId === userId)
+        .toArray();
+      const completedLessons = progressRecords
+        .filter(record => record.completedAt != null || record.progressPercent >= 100)
+        .map(record => record.lessonId);
+
+      const existing = this.readLearningProgressSnapshot(courseId);
+      const offlineCourse = await offlineDb.courses.get([userId, courseId]);
+      const totalLessons = offlineCourse?.totalLessons ?? 0;
+      const progressPercentage = totalLessons > 0
+        ? Math.round((completedLessons.length / totalLessons) * 100)
+        : existing?.progressPercentage ?? 0;
+
+      localStorage.setItem(`learning_progress_${courseId}`, JSON.stringify({
+        completedLessons,
+        lastAccessedLessonId: existing?.lastAccessedLessonId,
+        progressPercentage,
+        lastUpdated: new Date().toISOString(),
+      }));
+    }
+  }
+
+  private readLearningProgressSnapshot(courseId: string): {
+    completedLessons?: string[];
+    lastAccessedLessonId?: string;
+    progressPercentage?: number;
+  } | null {
+    if (typeof localStorage === 'undefined') {
+      return null;
+    }
+
+    try {
+      const raw = localStorage.getItem(`learning_progress_${courseId}`);
+      if (!raw) {
+        return null;
+      }
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') {
+        return null;
+      }
+
+      return {
+        completedLessons: Array.isArray(parsed.completedLessons) ? parsed.completedLessons : [],
+        lastAccessedLessonId: typeof parsed.lastAccessedLessonId === 'string'
+          ? parsed.lastAccessedLessonId
+          : undefined,
+        progressPercentage: typeof parsed.progressPercentage === 'number'
+          ? parsed.progressPercentage
+          : undefined,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private getPullStateStorageKey(userId: string): string {
+    return `${LAST_PULL_SYNC_KEY_PREFIX}${userId}`;
+  }
+
+  private readLastPullTimestamp(userId: string): string | null {
+    if (typeof localStorage === 'undefined') {
+      return null;
+    }
+
+    try {
+      const raw = localStorage.getItem(this.getPullStateStorageKey(userId));
+      return this.normalizeIsoTimestamp(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  private writeLastPullTimestamp(userId: string, timestamp: string): void {
+    if (typeof localStorage === 'undefined') {
+      return;
+    }
+
+    try {
+      localStorage.setItem(this.getPullStateStorageKey(userId), timestamp);
+    } catch {
+      // Ignore storage write failures.
+    }
+  }
+
+  private normalizeIsoTimestamp(value: string | null | undefined): string | null {
+    if (!value) {
+      return null;
+    }
+
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+  }
+
+  private parseDate(value: string | null | undefined): Date | null {
+    const normalized = this.normalizeIsoTimestamp(value);
+    return normalized ? new Date(normalized) : null;
   }
 }

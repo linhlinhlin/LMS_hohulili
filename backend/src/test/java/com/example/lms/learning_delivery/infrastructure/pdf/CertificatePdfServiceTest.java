@@ -60,11 +60,9 @@ class CertificatePdfServiceTest {
         @Test
         @DisplayName("Should accept Vietnamese characters in name and course title")
         void shouldAcceptVietnameseCharacters() throws IOException {
-            // PDFBox Standard14Fonts do not render Vietnamese diacritics,
-            // but the service uses ASCII transliteration so this should not throw.
             byte[] pdf = service.generateCertificate(
-                    "Tran Van Cuong",
-                    "Khoa hoc An toan Hang hai",
+                    "Trần Văn Cường",
+                    "Khóa học An toàn hàng hải",
                     Instant.now(),
                     UUID.randomUUID()
             );

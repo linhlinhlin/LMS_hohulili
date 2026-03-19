@@ -23,12 +23,12 @@ public class CourseJpaEntity {
 
     // Manual boilerplate
     public CourseJpaEntity() {}
-    public CourseJpaEntity(UUID id, String code, String title, String description, CourseStatus status, UUID teacherId, UUID categoryId, Set<String> tags, String welcomeMessage, String courseInformation, String benefits, String introVideoUrl, Integer credits, Visibility visibility, PriceType priceType, BigDecimal price, BigDecimal salePrice, DeliveryMode deliveryMode, boolean allowOfflineDownload, DraftChangeStatus draftChangeStatus, String reviewComment, Instant reviewedAt, UUID reviewedById, Instant createdAt, Instant updatedAt) {
-        this.id = id; this.code = code; this.title = title; this.description = description; this.status = status; this.teacherId = teacherId; this.categoryId = categoryId; this.tags = tags; this.welcomeMessage = welcomeMessage; this.courseInformation = courseInformation; this.benefits = benefits; this.introVideoUrl = introVideoUrl; this.credits = credits; this.visibility = visibility; this.priceType = priceType; this.price = price; this.salePrice = salePrice; this.deliveryMode = deliveryMode; this.allowOfflineDownload = allowOfflineDownload; this.draftChangeStatus = draftChangeStatus; this.reviewComment = reviewComment; this.reviewedAt = reviewedAt; this.reviewedById = reviewedById; this.createdAt = createdAt; this.updatedAt = updatedAt;
+    public CourseJpaEntity(UUID id, String code, String title, String description, CourseStatus status, UUID teacherId, UUID categoryId, Set<String> tags, String welcomeMessage, String courseInformation, String benefits, String introVideoUrl, UUID introVideoAssetId, Integer credits, Visibility visibility, PriceType priceType, BigDecimal price, BigDecimal salePrice, DeliveryMode deliveryMode, boolean allowOfflineDownload, DraftChangeStatus draftChangeStatus, String reviewComment, Instant reviewedAt, UUID reviewedById, Instant createdAt, Instant updatedAt) {
+        this.id = id; this.code = code; this.title = title; this.description = description; this.status = status; this.teacherId = teacherId; this.categoryId = categoryId; this.tags = tags; this.welcomeMessage = welcomeMessage; this.courseInformation = courseInformation; this.benefits = benefits; this.introVideoUrl = introVideoUrl; this.introVideoAssetId = introVideoAssetId; this.credits = credits; this.visibility = visibility; this.priceType = priceType; this.price = price; this.salePrice = salePrice; this.deliveryMode = deliveryMode; this.allowOfflineDownload = allowOfflineDownload; this.draftChangeStatus = draftChangeStatus; this.reviewComment = reviewComment; this.reviewedAt = reviewedAt; this.reviewedById = reviewedById; this.createdAt = createdAt; this.updatedAt = updatedAt;
     }
     public static Builder builder() { return new Builder(); }
     public static class Builder {
-        private UUID id; private String code; private String title; private String description; private CourseStatus status = CourseStatus.DRAFT; private UUID teacherId; private UUID categoryId; private Set<String> tags = new HashSet<>(); private String welcomeMessage; private String courseInformation; private String benefits; private String introVideoUrl; private Integer credits; private Visibility visibility = Visibility.PUBLIC; private PriceType priceType = PriceType.FREE; private BigDecimal price; private BigDecimal salePrice; private DeliveryMode deliveryMode = DeliveryMode.SELF_PACED; private boolean allowOfflineDownload = true; private DraftChangeStatus draftChangeStatus = DraftChangeStatus.NONE; private String reviewComment; private Instant reviewedAt; private UUID reviewedById; private Instant createdAt = Instant.now(); private Instant updatedAt;
+        private UUID id; private String code; private String title; private String description; private CourseStatus status = CourseStatus.DRAFT; private UUID teacherId; private UUID categoryId; private Set<String> tags = new HashSet<>(); private String welcomeMessage; private String courseInformation; private String benefits; private String introVideoUrl; private UUID introVideoAssetId; private Integer credits; private Visibility visibility = Visibility.PUBLIC; private PriceType priceType = PriceType.FREE; private BigDecimal price; private BigDecimal salePrice; private DeliveryMode deliveryMode = DeliveryMode.SELF_PACED; private boolean allowOfflineDownload = true; private DraftChangeStatus draftChangeStatus = DraftChangeStatus.NONE; private String reviewComment; private Instant reviewedAt; private UUID reviewedById; private Instant createdAt = Instant.now(); private Instant updatedAt;
         public Builder id(UUID id) { this.id = id; return this; }
         public Builder code(String code) { this.code = code; return this; }
         public Builder title(String title) { this.title = title; return this; }
@@ -41,6 +41,7 @@ public class CourseJpaEntity {
         public Builder courseInformation(String courseInformation) { this.courseInformation = courseInformation; return this; }
         public Builder benefits(String benefits) { this.benefits = benefits; return this; }
         public Builder introVideoUrl(String introVideoUrl) { this.introVideoUrl = introVideoUrl; return this; }
+        public Builder introVideoAssetId(UUID introVideoAssetId) { this.introVideoAssetId = introVideoAssetId; return this; }
         public Builder credits(Integer credits) { this.credits = credits; return this; }
         public Builder visibility(Visibility visibility) { this.visibility = visibility; return this; }
         public Builder priceType(PriceType priceType) { this.priceType = priceType; return this; }
@@ -54,7 +55,7 @@ public class CourseJpaEntity {
         public Builder reviewedById(UUID reviewedById) { this.reviewedById = reviewedById; return this; }
         public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
         public Builder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
-        public CourseJpaEntity build() { return new CourseJpaEntity(id, code, title, description, status, teacherId, categoryId, tags, welcomeMessage, courseInformation, benefits, introVideoUrl, credits, visibility, priceType, price, salePrice, deliveryMode, allowOfflineDownload, draftChangeStatus, reviewComment, reviewedAt, reviewedById, createdAt, updatedAt); }
+        public CourseJpaEntity build() { return new CourseJpaEntity(id, code, title, description, status, teacherId, categoryId, tags, welcomeMessage, courseInformation, benefits, introVideoUrl, introVideoAssetId, credits, visibility, priceType, price, salePrice, deliveryMode, allowOfflineDownload, draftChangeStatus, reviewComment, reviewedAt, reviewedById, createdAt, updatedAt); }
     }
 
     @Id
@@ -97,6 +98,9 @@ public class CourseJpaEntity {
 
     @Column(name = "intro_video_url")
     private String introVideoUrl;
+
+    @Column(name = "intro_video_asset_id")
+    private UUID introVideoAssetId;
 
     @Column
     private Integer credits;
@@ -172,6 +176,8 @@ public class CourseJpaEntity {
     public void setBenefits(String benefits) { this.benefits = benefits; }
     public String getIntroVideoUrl() { return introVideoUrl; }
     public void setIntroVideoUrl(String introVideoUrl) { this.introVideoUrl = introVideoUrl; }
+    public UUID getIntroVideoAssetId() { return introVideoAssetId; }
+    public void setIntroVideoAssetId(UUID introVideoAssetId) { this.introVideoAssetId = introVideoAssetId; }
     public Integer getCredits() { return credits; }
     public void setCredits(Integer credits) { this.credits = credits; }
     public Visibility getVisibility() { return visibility; }

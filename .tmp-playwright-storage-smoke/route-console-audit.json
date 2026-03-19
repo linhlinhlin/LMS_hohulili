@@ -1,0 +1,118 @@
+[
+  {
+    "case": "student-storage",
+    "route": "/student/storage",
+    "final_url": "https://holilihu.online/auth/login?returnUrl=%2Fstudent%2Fstorage",
+    "title": "Đăng nhập - LMS Maritime",
+    "console": [
+      {
+        "type": "info",
+        "text": "[Storage] Persistent storage DENIED"
+      },
+      {
+        "type": "info",
+        "text": "[Storage] Persistent storage DENIED"
+      }
+    ],
+    "failures": [
+      {
+        "url": "https://holilihu.online/icons/icon-192x192.png",
+        "method": "HEAD",
+        "failure": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://holilihu.online/api/v3/auth/login",
+        "method": "POST",
+        "failure": "net::ERR_ABORTED"
+      }
+    ],
+    "responses": []
+  },
+  {
+    "case": "student-courses",
+    "route": "/student/courses",
+    "final_url": "https://holilihu.online/auth/login?returnUrl=%2Fstudent%2Fcourses",
+    "title": "Đăng nhập - LMS Maritime",
+    "console": [
+      {
+        "type": "info",
+        "text": "[Storage] Persistent storage DENIED"
+      },
+      {
+        "type": "info",
+        "text": "[Storage] Persistent storage DENIED"
+      }
+    ],
+    "failures": [
+      {
+        "url": "https://holilihu.online/icons/icon-192x192.png",
+        "method": "HEAD",
+        "failure": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://holilihu.online/api/v3/auth/login",
+        "method": "POST",
+        "failure": "net::ERR_ABORTED"
+      }
+    ],
+    "responses": []
+  },
+  {
+    "case": "teacher-dashboard",
+    "route": "/teacher/dashboard",
+    "final_url": "https://holilihu.online/auth/login?returnUrl=%2Fteacher%2Fdashboard",
+    "title": "Đăng nhập - LMS Maritime",
+    "console": [
+      {
+        "type": "info",
+        "text": "[Storage] Persistent storage DENIED"
+      },
+      {
+        "type": "info",
+        "text": "[Storage] Persistent storage DENIED"
+      }
+    ],
+    "failures": [
+      {
+        "url": "https://holilihu.online/icons/icon-192x192.png",
+        "method": "HEAD",
+        "failure": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://holilihu.online/api/v3/auth/login",
+        "method": "POST",
+        "failure": "net::ERR_ABORTED"
+      }
+    ],
+    "responses": []
+  },
+  {
+    "case": "admin-offline-storage",
+    "route": "/admin/offline-storage",
+    "final_url": "https://holilihu.online/auth/login?returnUrl=%2Fadmin%2Foffline-storage",
+    "title": "Đăng nhập - LMS Maritime",
+    "console": [
+      {
+        "type": "info",
+        "text": "[Storage] Persistent storage DENIED"
+      },
+      {
+        "type": "info",
+        "text": "[Storage] Persistent storage DENIED"
+      }
+    ],
+    "failures": [
+      {
+        "url": "https://holilihu.online/icons/icon-192x192.png",
+        "method": "HEAD",
+        "failure": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://holilihu.online/api/v3/auth/login",
+        "method": "POST",
+        "failure": "net::ERR_ABORTED"
+      }
+    ],
+    "responses": []
+  }
+]

@@ -18,6 +18,7 @@ import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRep
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.EnrollmentRepositoryImpl;
 import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
+import com.example.lms.learning_delivery.infrastructure.service.VideoAssetPresentationService;
 import com.example.lms.shared.domain.valueobject.CourseCode;
 import com.example.lms.shared.infrastructure.persistence.repository.PaymentTransactionJpaRepository;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
@@ -39,6 +40,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -58,6 +60,7 @@ class CourseQueryControllerV3ContractTest {
     @Mock private AssignmentJpaRepository assignmentJpaRepository;
     @Mock private QuestionJpaRepository questionJpaRepository;
     @Mock private CoursePublicationService coursePublicationService;
+    @Mock private VideoAssetPresentationService videoAssetPresentationService;
     @Mock private ObjectMapper objectMapper;
 
     @InjectMocks
@@ -328,5 +331,110 @@ class CourseQueryControllerV3ContractTest {
         assertThat(section.getStreamVideoUid()).isEqualTo("legacy-stream-uid");
         assertThat(section.getVideoType()).isEqualTo("CLOUDFLARE");
         assertThat(section.getVideoUrl()).isEqualTo("https://videodelivery.net/legacy-stream-uid/manifest/video.m3u8");
+    }
+
+    @Test
+    @DisplayName("published course content hydrates lesson-level video from persisted lesson when publication snapshot is legacy")
+    void getCourseContentHydratesLegacyLessonLevelVideo() {
+        UUID courseId = approvedPaidCourse.getId();
+        UUID chapterId = UUID.randomUUID();
+        UUID lessonId = UUID.randomUUID();
+
+        CourseQueryControllerV3.LessonResponse lesson = CourseQueryControllerV3.LessonResponse.builder()
+                .id(lessonId.toString())
+                .title("Legacy video lesson")
+                .type("LECTURE")
+                .lessonType("LECTURE")
+                .durationMinutes(12)
+                .orderIndex(1)
+                .isFree(true)
+                .locked(false)
+                .sections(List.of())
+                .videoUrl(null)
+                .streamVideoUid(null)
+                .build();
+
+        CourseQueryControllerV3.ChapterResponse chapter = CourseQueryControllerV3.ChapterResponse.builder()
+                .id(chapterId.toString())
+                .title("Week 1")
+                .orderIndex(1)
+                .lessons(List.of(lesson))
+                .build();
+
+        LessonJpaEntity persistedLesson = LessonJpaEntity.builder()
+                .id(lessonId)
+                .chapterId(chapterId)
+                .title("Legacy video lesson")
+                .videoUrl("https://holilihu.online/uploads/videos/legacy-lesson.mp4")
+                .build();
+
+        when(coursePublicationService.getPublishedContent(courseId, null))
+                .thenReturn(List.of(Map.of("id", chapterId.toString())));
+        when(objectMapper.convertValue(any(), eq(CourseQueryControllerV3.ChapterResponse.class)))
+                .thenReturn(chapter);
+        when(lessonRepository.findAllById(List.of(lessonId))).thenReturn(List.of(persistedLesson));
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(approvedPaidCourse));
+
+        var response = controller.getCourseContent(courseId, null);
+        var chapters = response.getBody().getData();
+        var hydratedLesson = chapters.getFirst().getLessons().getFirst();
+
+        assertThat(hydratedLesson.getVideoUrl()).isEqualTo("https://holilihu.online/uploads/videos/legacy-lesson.mp4");
+    }
+
+    @Test
+    @DisplayName("published lesson detail falls back to persisted lesson video when publication snapshot predates lesson videoUrl support")
+    void getLessonByIdHydratesLegacyPublishedLessonLevelVideo() {
+        UUID courseId = approvedPaidCourse.getId();
+        UUID chapterId = UUID.randomUUID();
+        UUID lessonId = UUID.randomUUID();
+
+        CourseQueryControllerV3.LessonResponse publishedLesson = CourseQueryControllerV3.LessonResponse.builder()
+                .id(lessonId.toString())
+                .title("Legacy published video lesson")
+                .description("desc")
+                .type("LECTURE")
+                .lessonType("LECTURE")
+                .durationMinutes(15)
+                .orderIndex(1)
+                .isFree(true)
+                .locked(false)
+                .sections(List.of(
+                        CourseQueryControllerV3.SectionResponse.builder()
+                                .id("text-1")
+                                .type("TEXT")
+                                .content("<p>content</p>")
+                                .build()
+                ))
+                .videoUrl(null)
+                .streamVideoUid(null)
+                .build();
+
+        CourseQueryControllerV3.ChapterResponse chapter = CourseQueryControllerV3.ChapterResponse.builder()
+                .id(chapterId.toString())
+                .title("Week 1")
+                .orderIndex(1)
+                .lessons(List.of(publishedLesson))
+                .build();
+
+        LessonJpaEntity persistedLesson = LessonJpaEntity.builder()
+                .id(lessonId)
+                .chapterId(chapterId)
+                .title("Legacy published video lesson")
+                .videoUrl("https://holilihu.online/uploads/videos/legacy-published.mp4")
+                .build();
+
+        when(courseRepository.findByLessonId(lessonId)).thenReturn(Optional.of(approvedPaidCourse));
+        when(coursePublicationService.getPublishedContent(courseId, null))
+                .thenReturn(List.of(Map.of("id", chapterId.toString())));
+        when(objectMapper.convertValue(any(), eq(CourseQueryControllerV3.ChapterResponse.class)))
+                .thenReturn(chapter);
+        when(lessonRepository.findAllById(List.of(lessonId))).thenReturn(List.of(persistedLesson));
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(approvedPaidCourse));
+
+        var response = controller.getLessonById(lessonId, null);
+        var detail = response.getBody().getData();
+
+        assertThat(detail.getVideoUrl()).isEqualTo("https://holilihu.online/uploads/videos/legacy-published.mp4");
     }
 }

@@ -30,6 +30,7 @@ public record UpdateCourseCommand(
     String courseInformation,
     String benefits,
     String introVideoUrl,
+    UUID introVideoAssetId,
     Integer credits,
     String visibility,
     String priceType,

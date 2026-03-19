@@ -20,7 +20,7 @@ public class CloudflareStreamConfig {
     private boolean enabled = false;
     /** Signing key ID for JWT playback tokens */
     private String keyId;
-    /** RSA private key (PEM, base64-encoded) for JWT signing */
+    /** RSA private key for JWT signing. Supports PEM text, escaped-newline PEM, or base64-wrapped PEM text. */
     private String privateKey;
     /** Playback token lifetime in seconds (default 4 hours) */
     private int tokenExpirySeconds = 14_400;

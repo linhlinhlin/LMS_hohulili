@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
+import { Observable } from 'rxjs';
 import { switchMap, map, filter } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { HttpEventType, HttpEvent } from '@angular/common/http';
@@ -15,6 +16,9 @@ interface InitResponse {
   storageKey: string | null;
   expiresAt: string | null;
   isServerRelay: boolean;
+  uploadStrategy?: 'SINGLE_PUT' | 'MULTIPART' | 'SERVER_RELAY' | null;
+  multipartUploadId?: string | null;
+  multipartPartSizeBytes?: number | null;
 }
 
 interface ConfirmResponse {
@@ -22,6 +26,12 @@ interface ConfirmResponse {
   id: string;
   url: string;
   storageKey: string;
+}
+
+interface MultipartPartUrlResponse {
+  success: boolean;
+  uploadUrl: string;
+  partNumber: number;
 }
 
 /**
@@ -36,6 +46,7 @@ interface ConfirmResponse {
 export class PresignedUploadService {
   private http = inject(HttpClient);
   private baseUrl = `${environment.apiUrl}/api/v3/files`;
+  private readonly defaultMultipartPartSizeBytes = 64 * 1024 * 1024;
 
   /**
    * Upload a file using the presigned URL flow.
@@ -50,6 +61,14 @@ export class PresignedUploadService {
     }).pipe(
       switchMap(initRes => {
         if (initRes.isServerRelay || !initRes.uploadUrl) {
+          if (initRes.uploadStrategy === 'MULTIPART' && initRes.storageKey && initRes.multipartUploadId) {
+            return this.multipartUpload(
+              file,
+              initRes.storageKey,
+              initRes.multipartUploadId,
+              initRes.multipartPartSizeBytes ?? this.defaultMultipartPartSizeBytes
+            );
+          }
           // Dev fallback: use server relay
           return this.serverRelayUpload(file, folder);
         }
@@ -105,6 +124,154 @@ export class PresignedUploadService {
           xhr.abort();
         }
       };
+    });
+  }
+
+  private multipartUpload(
+    file: File,
+    storageKey: string,
+    uploadId: string,
+    partSizeBytes: number
+  ): Observable<UploadEvent> {
+    return new Observable<UploadEvent>(subscriber => {
+      const activeXhrs = new Set<XMLHttpRequest>();
+      let aborted = false;
+
+      const run = async () => {
+        const completedParts: Array<{ partNumber: number; eTag: string }> = [];
+        const totalParts = Math.max(1, Math.ceil(file.size / partSizeBytes));
+        let uploadedBytes = 0;
+
+        for (let partIndex = 0; partIndex < totalParts; partIndex++) {
+          if (aborted) {
+            return;
+          }
+
+          const partNumber = partIndex + 1;
+          const start = partIndex * partSizeBytes;
+          const end = Math.min(file.size, start + partSizeBytes);
+          const blob = file.slice(start, end);
+
+          const partUrlResponse = await this.requestMultipartPartUrl(storageKey, uploadId, partNumber);
+          const eTag = await this.uploadMultipartPart(
+            blob,
+            file.type,
+            partUrlResponse.uploadUrl,
+            (loadedBytes) => {
+              const progress = Math.round(100 * Math.min(file.size, uploadedBytes + loadedBytes) / file.size);
+              subscriber.next({ type: 'progress', progress });
+            },
+            activeXhrs
+          );
+
+          uploadedBytes += blob.size;
+          subscriber.next({ type: 'progress', progress: Math.round(100 * uploadedBytes / file.size) });
+          completedParts.push({ partNumber, eTag });
+        }
+
+        await firstValueFrom(this.http.post<{ success: boolean }>(`${this.baseUrl}/upload/multipart/complete`, {
+          storageKey,
+          uploadId,
+          parts: completedParts,
+        }));
+
+        if (aborted) {
+          return;
+        }
+
+        this.http.post<ConfirmResponse>(`${this.baseUrl}/upload/confirm`, {
+          storageKey,
+          originalName: file.name
+        }).subscribe({
+          next: (confirmRes) => {
+            subscriber.next({
+              type: 'complete',
+              url: confirmRes.url,
+              key: confirmRes.storageKey,
+              id: confirmRes.id
+            });
+            subscriber.complete();
+          },
+          error: (err) => subscriber.error(err)
+        });
+      };
+
+      void run().catch(error => subscriber.error(error));
+
+      return () => {
+        aborted = true;
+        activeXhrs.forEach(xhr => {
+          if (xhr.readyState !== XMLHttpRequest.DONE) {
+            xhr.abort();
+          }
+        });
+        activeXhrs.clear();
+      };
+    });
+  }
+
+  private async requestMultipartPartUrl(
+    storageKey: string,
+    uploadId: string,
+    partNumber: number
+  ): Promise<MultipartPartUrlResponse> {
+    const response = await firstValueFrom(this.http.post<MultipartPartUrlResponse>(`${this.baseUrl}/upload/multipart/part-url`, {
+      storageKey,
+      uploadId,
+      partNumber,
+    }));
+
+    if (!response?.uploadUrl) {
+      throw new Error(`Missing upload URL for part ${partNumber}`);
+    }
+
+    return response;
+  }
+
+  private uploadMultipartPart(
+    blob: Blob,
+    contentType: string,
+    uploadUrl: string,
+    onProgress: (loadedBytes: number) => void,
+    activeXhrs: Set<XMLHttpRequest>
+  ): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      activeXhrs.add(xhr);
+
+      xhr.upload.onprogress = (event: ProgressEvent) => {
+        if (event.lengthComputable) {
+          onProgress(event.loaded);
+        }
+      };
+
+      xhr.onload = () => {
+        activeXhrs.delete(xhr);
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const eTag = xhr.getResponseHeader('ETag') || xhr.getResponseHeader('etag');
+          if (!eTag) {
+            reject(new Error('Multipart upload part completed without ETag response header'));
+            return;
+          }
+          resolve(eTag);
+        } else {
+          reject(new Error(`Multipart upload failed with status ${xhr.status}`));
+        }
+      };
+
+      xhr.onerror = () => {
+        activeXhrs.delete(xhr);
+        reject(new Error('Multipart upload network error'));
+      };
+
+      xhr.onabort = () => {
+        activeXhrs.delete(xhr);
+        reject(new Error('Multipart upload aborted'));
+      };
+
+      xhr.open('PUT', uploadUrl);
+      xhr.setRequestHeader('Content-Type', contentType || 'application/octet-stream');
+      xhr.send(blob);
     });
   }
 

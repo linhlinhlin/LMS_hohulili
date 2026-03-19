@@ -14,6 +14,7 @@ import { PaymentService } from '../../payment/payment.service';
 import { PaymentModalComponent, CoursePaymentInfo } from '../../payment/payment-modal.component';
 import { AuthService } from '../../../core/services/auth.service';
 import { StudentEnrollmentService } from '../../student/services/enrollment.service';
+import { getOfflineCourseStaleCopy } from '../../../core/utils/offline-course-staleness';
 
 /**
  * Course Learning Component
@@ -266,6 +267,19 @@ export class CourseLearningComponent implements OnInit {
   canGoPrevious = this.learningService.canGoPrevious;
   canGoNext = this.learningService.canGoNext;
   progressPercentage = this.learningService.progressPercentage;
+
+  readonly staleOfflineBanner = computed(() => {
+    const course = this.course();
+    if (!course?.isOfflinePackage || !course.isStale) {
+      return null;
+    }
+
+    const copy = getOfflineCourseStaleCopy(course.staleReason);
+    return {
+      title: copy.title,
+      message: copy.description,
+    };
+  });
 
   /** Index of the chapter (section) containing the current lesson */
   currentChapterIndex = computed(() => {
@@ -1026,10 +1040,32 @@ export class CourseLearningComponent implements OnInit {
   async goToQuiz(lessonId: string, event: Event): Promise<void> {
     event.stopPropagation(); // Prevent lesson selection
     try {
+      const lesson = this.sections()
+        .flatMap(section => section.lessons)
+        .find(item => item.id === lessonId);
+      const courseId = this.course()?.id;
+      const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
+
+      if (isOffline && lesson?.quizAllowOffline === true) {
+        await this.router.navigate(['/student/quiz/take', lessonId], {
+          queryParams: {
+            lessonId,
+            courseId,
+            quizType: lesson.quizType,
+            allowOffline: true,
+            returnUrl: this.router.url
+          }
+        });
+        return;
+      }
+
       const quizId = await firstValueFrom(this.quizApi.resolveQuizIdByLessonId(lessonId));
       await this.router.navigate(['/student/quiz/take', quizId], {
         queryParams: {
           lessonId,
+          courseId,
+          quizType: lesson?.quizType,
+          allowOffline: lesson?.quizAllowOffline === true,
           returnUrl: this.router.url
         }
       });

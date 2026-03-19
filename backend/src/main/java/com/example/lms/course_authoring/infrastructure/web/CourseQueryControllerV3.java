@@ -16,6 +16,7 @@ import com.example.lms.learning_delivery.infrastructure.persistence.EnrollmentRe
 import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
 import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepository;
+import com.example.lms.learning_delivery.infrastructure.service.VideoAssetPresentationService;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -62,6 +63,7 @@ public class CourseQueryControllerV3 {
     private final AssignmentJpaRepository assignmentJpaRepository;
     private final QuestionJpaRepository questionJpaRepository;
     private final CoursePublicationService coursePublicationService;
+    private final VideoAssetPresentationService videoAssetPresentationService;
     private final ObjectMapper objectMapper;
 
     @Operation(summary = "Get all published courses")
@@ -523,6 +525,7 @@ public class CourseQueryControllerV3 {
         List<ChapterResponse> chapters = publishedContent.stream()
                 .map(item -> objectMapper.convertValue(item, ChapterResponse.class))
                 .toList();
+        hydratePublishedLessonMedia(chapters);
 
         Course course = courseRepository.findById(courseId).orElse(null);
         if (course != null && !isContentUnlocked(course, currentUser)) {
@@ -530,6 +533,53 @@ public class CourseQueryControllerV3 {
         }
 
         return chapters;
+    }
+
+    private void hydratePublishedLessonMedia(List<ChapterResponse> chapters) {
+        if (chapters == null || chapters.isEmpty()) {
+            return;
+        }
+
+        List<UUID> lessonIds = chapters.stream()
+                .filter(Objects::nonNull)
+                .flatMap(chapter -> Optional.ofNullable(chapter.getLessons()).orElse(List.of()).stream())
+                .map(LessonResponse::getId)
+                .filter(Objects::nonNull)
+                .map(UUID::fromString)
+                .toList();
+
+        if (lessonIds.isEmpty()) {
+            return;
+        }
+
+        Map<UUID, LessonJpaEntity> lessonMap = lessonRepository.findAllById(lessonIds).stream()
+                .collect(Collectors.toMap(LessonJpaEntity::getId, lesson -> lesson));
+
+        for (ChapterResponse chapter : chapters) {
+            if (chapter.getLessons() == null) {
+                continue;
+            }
+            for (LessonResponse lesson : chapter.getLessons()) {
+                if (lesson.getId() == null) {
+                    continue;
+                }
+                LessonJpaEntity persistedLesson = lessonMap.get(UUID.fromString(lesson.getId()));
+                if (persistedLesson == null) {
+                    continue;
+                }
+
+                boolean hasSectionVideo = lesson.getSections() != null
+                        && lesson.getSections().stream().anyMatch(section -> "VIDEO".equalsIgnoreCase(section.getType()));
+
+                if ((lesson.getVideoUrl() == null || lesson.getVideoUrl().isBlank()) && !hasSectionVideo) {
+                    lesson.setVideoUrl(persistedLesson.getVideoUrl());
+                }
+
+                if ((lesson.getStreamVideoUid() == null || lesson.getStreamVideoUid().isBlank()) && !hasSectionVideo) {
+                    lesson.setStreamVideoUid(persistedLesson.getStreamVideoUid());
+                }
+            }
+        }
     }
 
     private LessonDetailResponse getPublishedLessonDetail(UUID lessonId, UserJpaEntity currentUser) {
@@ -559,7 +609,7 @@ public class CourseQueryControllerV3 {
 
     private LessonDetailResponse toPublishedLessonDetail(Course course, ChapterResponse chapter, LessonResponse lesson) {
         String textContent = null;
-        String videoUrl = null;
+        String videoUrl = lesson.getVideoUrl();
         String streamVideoUid = lesson.getStreamVideoUid();
 
         if (lesson.getSections() != null) {
@@ -679,6 +729,12 @@ public class CourseQueryControllerV3 {
         String teacherName = resolveTeacherName(course.getTeacherId());
         String categoryName = resolveCategoryName(course.getCategoryId());
         int enrolledCount = (int) enrollmentJpaRepository.countTotalByCourseIds(List.of(course.getId()));
+        VideoAssetPresentationService.VideoAssetView introAssetView = course.getIntroVideoAssetId() == null
+                ? null
+                : videoAssetPresentationService.getView(course.getIntroVideoAssetId()).orElse(null);
+        String introVideoUrl = course.getIntroVideoAssetId() == null
+                ? course.getIntroVideoUrl()
+                : null;
 
         return CourseDetailResponse.builder()
                 .id(course.getId().toString())
@@ -698,7 +754,21 @@ public class CourseQueryControllerV3 {
                 .welcomeMessage(course.getWelcomeMessage())
                 .courseInformation(course.getCourseInformation())
                 .benefits(course.getBenefits())
-                .introVideoUrl(course.getIntroVideoUrl())
+                .introVideoUrl(introVideoUrl)
+                .introVideoAssetId(course.getIntroVideoAssetId() != null ? course.getIntroVideoAssetId().toString() : null)
+                .introVideoProcessingStatus(introAssetView != null ? introAssetView.status() : null)
+                .introVideoSourceKind(introAssetView != null ? introAssetView.videoSourceKind() : null)
+                .introVideoStreamVideoUid(null)
+                .introVideoAvailableOfflineProfiles(introAssetView != null ? introAssetView.availableOfflineProfiles().stream()
+                        .map(profile -> {
+                            Map<String, Object> option = new LinkedHashMap<>();
+                            option.put("id", profile.id());
+                            option.put("label", profile.label());
+                            option.put("actualResolution", profile.actualResolution());
+                            option.put("sizeBytes", profile.sizeBytes());
+                            return option;
+                        })
+                        .toList() : List.of())
                 .credits(course.getCredits())
                 // Visibility & Pricing
                 .visibility(course.getVisibility() != null ? course.getVisibility().name() : "PUBLIC")
@@ -823,7 +893,8 @@ public class CourseQueryControllerV3 {
                 .quizMaxAttempts(quiz != null ? quiz.getMaxAttempts() : null)
                 .assignment(toAssignmentInfo(assignment))
                 .sections(buildSectionResponses(lesson, showContent))
-                .streamVideoUid(lesson.getStreamVideoUid())
+                .videoUrl(showContent ? lesson.getVideoUrl() : null)
+                .streamVideoUid(null)
                 .build();
     }
 
@@ -837,11 +908,14 @@ public class CourseQueryControllerV3 {
                 .filter(block -> "VIDEO".equalsIgnoreCase(block.getType()))
                 .count();
         Map<UUID, QuestionJpaEntity> questionMap = loadSectionQuizQuestionMap(lesson.getContentBlocks());
+        Map<UUID, VideoAssetPresentationService.VideoAssetView> videoAssets = videoAssetPresentationService.getViews(
+                extractVideoAssetIds(lesson.getContentBlocks())
+        );
         for (var block : lesson.getContentBlocks()) {
             Map<String, Object> data = block.getData() != null ? block.getData() : new HashMap<>();
             String streamVideoUid = resolveSectionStreamVideoUid(lesson, block, data, videoSectionCount);
             String videoType = resolveSectionVideoType(data, streamVideoUid);
-            sectionResponses.add(SectionResponse.builder()
+            SectionResponse response = SectionResponse.builder()
                     .id(block.getId())
                     .title((String) data.getOrDefault("title", "Untitled"))
                     .type(block.getType() != null ? block.getType().toUpperCase(Locale.ROOT) : "TEXT")
@@ -854,9 +928,86 @@ public class CourseQueryControllerV3 {
                     .orderIndex(data.get("orderIndex") != null ? ((Number) data.get("orderIndex")).intValue() : 0)
                     .isRequired(data.get("isRequired") != null ? (Boolean) data.get("isRequired") : false)
                     .quizData(showContent ? buildSectionQuizData(data, questionMap) : null)
-                    .build());
+                    .build();
+            if (showContent) {
+                applyVideoAssetView(response, data, resolveVideoAssetView(videoAssets, data.get("videoAssetId")), videoType);
+            } else {
+                UUID videoAssetId = parseVideoAssetId(data.get("videoAssetId"));
+                if (videoAssetId != null) {
+                    response.setVideoAssetId(videoAssetId.toString());
+                }
+            }
+            sectionResponses.add(response);
         }
         return sectionResponses;
+    }
+
+    private List<UUID> extractVideoAssetIds(List<com.example.lms.shared.domain.model.ContentBlock> blocks) {
+        List<UUID> ids = new ArrayList<>();
+        for (var block : blocks) {
+            if (block.getData() == null) {
+                continue;
+            }
+            UUID videoAssetId = parseVideoAssetId(block.getData().get("videoAssetId"));
+            if (videoAssetId != null) {
+                ids.add(videoAssetId);
+            }
+        }
+        return ids;
+    }
+
+    private UUID parseVideoAssetId(Object value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            return UUID.fromString(value.toString());
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private VideoAssetPresentationService.VideoAssetView resolveVideoAssetView(
+            Map<UUID, VideoAssetPresentationService.VideoAssetView> videoAssets,
+            Object rawVideoAssetId
+    ) {
+        UUID videoAssetId = parseVideoAssetId(rawVideoAssetId);
+        return videoAssetId == null ? null : videoAssets.get(videoAssetId);
+    }
+
+    private void applyVideoAssetView(
+            SectionResponse response,
+            Map<String, Object> rawData,
+            VideoAssetPresentationService.VideoAssetView assetView,
+            String fallbackVideoType
+    ) {
+        UUID videoAssetId = parseVideoAssetId(rawData.get("videoAssetId"));
+        if (videoAssetId != null) {
+            response.setVideoAssetId(videoAssetId.toString());
+        }
+        if (assetView == null) {
+            return;
+        }
+
+        response.setVideoAssetId(assetView.id().toString());
+        response.setVideoProcessingStatus(assetView.status());
+        response.setVideoSourceKind(assetView.videoSourceKind());
+        response.setAvailableOfflineProfiles(assetView.availableOfflineProfiles().stream()
+                .map(profile -> {
+                    Map<String, Object> option = new LinkedHashMap<>();
+                    option.put("id", profile.id());
+                    option.put("label", profile.label());
+                    option.put("actualResolution", profile.actualResolution());
+                    option.put("sizeBytes", profile.sizeBytes());
+                    return option;
+                })
+                .toList());
+        response.setVideoUrl(null);
+        response.setStreamVideoUid(null);
+        response.setVideoType("ADAPTIVE_R2");
+        if (fallbackVideoType != null && !"VIDEO".equalsIgnoreCase(fallbackVideoType)) {
+            response.setVideoType(fallbackVideoType);
+        }
     }
 
     private Map<UUID, QuestionJpaEntity> loadSectionQuizQuestionMap(List<com.example.lms.shared.domain.model.ContentBlock> blocks) {
@@ -1161,6 +1312,11 @@ public class CourseQueryControllerV3 {
         private String courseInformation;
         private String benefits;
         private String introVideoUrl;
+        private String introVideoAssetId;
+        private String introVideoProcessingStatus;
+        private String introVideoSourceKind;
+        private String introVideoStreamVideoUid;
+        private List<Map<String, Object>> introVideoAvailableOfflineProfiles;
         private Integer credits;
         // Visibility & Pricing
         private String visibility;
@@ -1210,6 +1366,7 @@ public class CourseQueryControllerV3 {
         private Integer quizMaxAttempts;
         private AssignmentInfoResponse assignment;
         private List<SectionResponse> sections;
+        private String videoUrl;
         private String streamVideoUid;
     }
 
@@ -1220,6 +1377,9 @@ public class CourseQueryControllerV3 {
         private String title;
         private String type;
         private String content;
+        private String videoAssetId;
+        private String videoProcessingStatus;
+        private String videoSourceKind;
         private String videoUrl;
         private String videoType;
         private String streamVideoUid;
@@ -1227,6 +1387,7 @@ public class CourseQueryControllerV3 {
         private Integer duration; // seconds
         private Integer orderIndex;
         private Boolean isRequired;
+        private List<Map<String, Object>> availableOfflineProfiles;
         private Map<String, Object> quizData;
     }
 

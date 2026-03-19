@@ -1,16 +1,18 @@
 # Reference Docs
 
-Đây là nhóm tài liệu tham chiếu chuẩn của dự án.
+Day la nhom tai lieu tham chieu chuan cua du an.
 
-Đọc nhóm này khi bạn cần câu trả lời ngắn, chính xác, và ổn định cho các câu hỏi kiểu:
+Doc nhom nay khi can cau tra loi ngan, chinh xac, va on dinh cho cac cau hoi kieu:
 
-- runtime hiện tại chạy thế nào
-- local dev nên bật gì
-- vai trò nào được làm gì
-- production có những bề mặt nào cần kiểm tra
+- runtime hien tai chay the nao
+- local dev nen bat gi
+- vai tro nao duoc lam gi
+- production co nhung be mat nao can kiem tra
+- nhanh publication / PWA da du dieu kien sign-off chua
 
-## Tài liệu hiện có
+## Tai lieu hien co
 
+- `PUBLICATION_PWA_DEFINITION_OF_DONE.md`
 - `BACKEND_OVERVIEW.md`
 - `FRONTEND_OVERVIEW.md`
 - `DOCUMENTATION_POLICY.md`
@@ -19,4 +21,4 @@
 - `ROLE_ACCESS_MATRIX.md`
 - `PRODUCTION_SURFACES.md`
 
-Nếu một reference doc lệch với code thực tế, phải cập nhật lại ngay sau khi xác minh.
+Neu mot reference doc lech voi code thuc te, phai cap nhat lai ngay sau khi xac minh.

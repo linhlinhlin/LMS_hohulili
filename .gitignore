@@ -124,3 +124,4 @@ coord/visuals/runtime/
 !coord/REPORTS/TEMPLATE.md
 !coord/REVIEW/TEMPLATE.md
 .tmp-cdp-profile/
+lms-deploy-sync-*.tgz

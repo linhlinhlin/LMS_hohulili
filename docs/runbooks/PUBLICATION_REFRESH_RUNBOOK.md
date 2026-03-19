@@ -20,6 +20,15 @@ Runbook này dùng khi course đã có publication mới và team cần xác min
 - mặc định theo `PINNED`
 - chỉ stale khi class adopt publication mới
 
+### Case quan trọng: video nội bộ trên course đã APPROVED
+
+- nếu teacher thêm section video mới hoặc đổi `videoAssetId` trong draft của course đã `APPROVED`, learner sẽ chưa thấy thay đổi ngay
+- lý do: learner đọc từ `course_publications` snapshot, không đọc trực tiếp draft `content_blocks`
+- muốn learner thấy video mới, team phải:
+  1. `POST /api/v3/teacher/courses/{courseId}/submit-for-approval`
+  2. `PATCH /api/v3/admin/courses/{courseId}/approve`
+- chỉ sau khi publication snapshot mới được tạo, learner `/api/v3/courses/{courseId}/content` mới phản ánh `videoAssetId` / `videoSourceKind=ADAPTIVE_R2` mới
+
 ## Trình tự smoke cho self-paced
 
 1. learner A tải package của course
@@ -62,6 +71,7 @@ Nếu package không có `publicationId`:
 - refresh package không được làm mất tiến trình học đã sync hoặc đang queue local
 - stale package không được cho learner làm `ASSESSMENT` hoặc `EXAM`
 - stale package có thể vẫn cho đọc text/video cũ nếu team chấp nhận trong V1
+- nếu course đã `APPROVED` nhưng chưa submit + approve lại sau khi đổi video nội bộ, learner phải tiếp tục thấy publication cũ thay vì draft mới
 
 ## Nếu có lỗi
 

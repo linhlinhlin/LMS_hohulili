@@ -1,12 +1,13 @@
 package com.example.lms.shared.application.usecase;
 
-import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
+import com.example.lms.identity.domain.repository.UserRepository;
+import com.example.lms.shared.application.port.RevenueConfigPort;
 import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.domain.model.PayoutRequest;
 import com.example.lms.shared.domain.repository.PayoutRequestRepository;
 import com.example.lms.shared.domain.repository.RevenueSplitRepository;
 import com.example.lms.shared.domain.repository.TeacherBankAccountRepository;
-import com.example.lms.shared.infrastructure.service.RevenueConfigService;
+import com.example.lms.shared.domain.valueobject.UserId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -23,8 +24,8 @@ public class RequestPayoutUseCase {
     private final PayoutRequestRepository    payoutRepo;
     private final RevenueSplitRepository     splitRepo;
     private final TeacherBankAccountRepository bankRepo;
-    private final UserJpaRepository          userRepo;
-    private final RevenueConfigService       revenueConfigService;
+    private final UserRepository             userRepo;
+    private final RevenueConfigPort          revenueConfigPort;
 
     @Transactional
     public PayoutRequest execute(UUID teacherId, UUID bankAccountId,
@@ -42,8 +43,8 @@ public class RequestPayoutUseCase {
         }
 
         // Resolve min payout
-        UUID orgId = userRepo.findById(teacherId).map(u -> u.getOrganizationId()).orElse(null);
-        BigDecimal minPayout = revenueConfigService.resolveConfig(orgId).getMinPayoutAmount();
+        UUID orgId = userRepo.findById(UserId.of(teacherId)).map(u -> u.getOrganizationId()).orElse(null);
+        BigDecimal minPayout = revenueConfigPort.resolveConfig(orgId).getMinPayoutAmount();
         if (amount.compareTo(minPayout) < 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Số tiền rút tối thiểu là " + minPayout.toPlainString() + "đ");

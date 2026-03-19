@@ -1,6 +1,7 @@
 package com.example.lms.config;
 
 import com.example.lms.identity.infrastructure.security.UserDetailsServiceImpl;
+import com.example.lms.learning_delivery.infrastructure.web.VideoPlaybackCacheHeaderFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -17,6 +18,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.HeaderWriterFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -35,8 +37,9 @@ public class SecurityConfig {
     private final RateLimitingFilter rateLimitingFilter;
     private final UserDetailsServiceImpl userDetailsService;
     private final PasswordEncoder passwordEncoder;
+    private final VideoPlaybackCacheHeaderFilter videoPlaybackCacheHeaderFilter;
 
-    @Value("${app.cors.allowed-origins:http://localhost:4200,http://127.0.0.1:4200,http://localhost:61361,http://127.0.0.1:61361}")
+    @Value("${app.cors.allowed-origins:http://localhost:4200,http://127.0.0.1:4200,http://localhost:4300,http://127.0.0.1:4300,http://localhost:61361,http://127.0.0.1:61361}")
     private String allowedOrigins;
 
     @Bean
@@ -100,12 +103,15 @@ public class SecurityConfig {
                     "/api/v3/payments/sepay/webhook",
                     // Public invite validation (rate-limited)
                     "/api/v3/invites/validate",
-                    "/api/v3/invites/validate-token"
+                    "/api/v3/invites/validate-token",
+                    // Tokenized adaptive video playback validates access via playback token, not JWT auth
+                    "/api/v3/video-assets/*/adaptive/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authenticationProvider(authenticationProvider())
+            .addFilterAfter(videoPlaybackCacheHeaderFilter, HeaderWriterFilter.class)
             .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

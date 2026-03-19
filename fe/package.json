@@ -10,6 +10,7 @@
     "test:coverage": "ng test --code-coverage",
     "test:ci": "ng test --watch=false --browsers=ChromeHeadlessCI",
     "test:e2e": "playwright test",
+    "test:e2e:smoke": "npm run build && playwright test --config=playwright.smoke.config.ts",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:all": "npm run test:ci && npm run test:e2e",

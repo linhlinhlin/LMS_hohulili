@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { isOfflineDbUnavailableError } from '../../../core/db/lms-offline.db';
+import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
 import { CourseDownloadService } from '../../../core/services/course-download.service';
 import { NetworkStatusService } from '../../../core/services/network-status.service';
 import { ToastService } from '../../../core/services/toast.service';
@@ -85,6 +86,7 @@ import { DownloadDialogComponent, DownloadOptions } from '../download-dialog/dow
   `,
 })
 export class CourseDownloadButtonComponent implements OnInit {
+  private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly downloadService = inject(CourseDownloadService);
   private readonly network = inject(NetworkStatusService);
   private readonly toast = inject(ToastService);
@@ -146,6 +148,19 @@ export class CourseDownloadButtonComponent implements OnInit {
   }
 
   protected async removeCourse(): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xoa khoa hoc ngoai tuyen?',
+      message:
+        'Ban sao tai ve cua khoa hoc nay se bi xoa khoi thiet bi hien tai. Tien trinh da dong bo tren may chu van duoc giu nguyen.',
+      variant: 'danger',
+      confirmText: 'Xoa ban tai xuong',
+      cancelText: 'Giu lai',
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
     try {
       await this.downloadService.removeCourse(this.courseId());
       this.isDownloaded.set(false);

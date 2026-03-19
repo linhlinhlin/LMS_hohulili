@@ -90,7 +90,7 @@ app:
     from: "${MAIL_FROM:LMS Maritime <noreply@maritime.edu>}"
     base-url: "http://localhost:4200"
   cors:
-    allowed-origins: "http://localhost:4200,http://127.0.0.1:4200,http://localhost:61361,http://127.0.0.1:61361"
+    allowed-origins: "http://localhost:4200,http://127.0.0.1:4200,http://localhost:4300,http://127.0.0.1:4300,http://localhost:61361,http://127.0.0.1:61361"
   vnpay:
     tmn-code: "${VNPAY_TMN_CODE:DEMOV210}"
     hash-secret: "${VNPAY_HASH_SECRET:DEMOSECRET}"
@@ -105,13 +105,17 @@ app:
     account-name: "${SEPAY_ACCOUNT_NAME:LMS MARITIME}"
     webhook-api-key: "${SEPAY_WEBHOOK_API_KEY:}"
     template-code: "${SEPAY_TEMPLATE_CODE:compact2}"
+  video:
+    playback-token-expiry-seconds: 14400
+    segment-presign-ttl-seconds: 120
 
-# Disable Cloudflare R2 in dev — LocalStorageService activates as fallback
+# Cloudflare services in dev:
+# - R2 would store master/offline files if enabled
+# - Shaka + private tokenized playback uses the same R2 credentials when enabled
+# Keep R2 off by default so LocalStorageService remains the fallback.
 cloudflare:
   r2:
     enabled: false
-  stream:
-    enabled: false  # Set true + fill env vars to test CF Stream locally
 
 # Wiii AI Integration (Sprint 175: "Cắm Phích Cắm")
 # Secrets loaded from environment variables — NEVER hardcode in git
@@ -123,5 +127,3 @@ wiii:
   webhook:
     enabled: ${WIII_WEBHOOK_ENABLED:false}
   # secret and service-token already defined in application.yml with ${} placeholders
-
-

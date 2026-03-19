@@ -43,7 +43,9 @@ export class StorageManagerService {
     try {
       const granted = await navigator.storage.persist();
       this.isPersisted.set(granted);
-      console.info(`[Storage] Persistent storage ${granted ? 'GRANTED' : 'DENIED'}`);
+      if (granted) {
+        console.info('[Storage] Persistent storage GRANTED');
+      }
       return granted;
     } catch {
       console.warn('[Storage] Persistence request failed');

@@ -24,43 +24,15 @@ export class SectionApi {
     return this.api.getWithResponse<SectionDetail>(SECTION_ENDPOINTS.GET(lessonId, sectionId));
   }
 
-  updateVideo(lessonId: string, sectionId: string, params: { videoType?: string; videoUrl?: string; cfObjectKey?: string }) {
-    const query = new URLSearchParams();
-    if (params.videoType) query.set('videoType', params.videoType);
-    if (params.videoUrl) query.set('videoUrl', params.videoUrl);
-    if (params.cfObjectKey) query.set('cfObjectKey', params.cfObjectKey);
-    return this.api.patchWithResponse<SectionDetail>(`${SECTION_ENDPOINTS.UPDATE_VIDEO(lessonId, sectionId)}?${query.toString()}`, {});
-  }
-
-  uploadStreamVideo(sectionId: string, file: File) {
-    const formData = new FormData();
-    formData.append('file', file);
-    return this.api.post<{ sectionId: string; lessonId: string; streamVideoUid: string; playbackUrl: string }>(
-      SECTION_ENDPOINTS.UPLOAD_STREAM_VIDEO(sectionId),
-      formData
-    );
-  }
-
-  getStreamPlayUrl(sectionId: string) {
-    return this.api.get<{ playUrl: string; uid: string; sectionId: string }>(
-      SECTION_ENDPOINTS.GET_STREAM_PLAY_URL(sectionId)
-    );
-  }
-
-  getStreamDownloadUrl(sectionId: string, quality: '360p' | '720p' | '1080p') {
-    return this.api.get<{ downloadUrl: string; quality: string; uid: string; sectionId: string }>(
-      SECTION_ENDPOINTS.GET_STREAM_DOWNLOAD_URL(sectionId),
-      { params: { quality } }
-    );
-  }
-
-  getStreamSizes(sectionId: string) {
-    return this.api.get<{ sizes: Record<string, number>; uid?: string; sectionId: string }>(
-      SECTION_ENDPOINTS.GET_STREAM_SIZES(sectionId)
-    );
-  }
-
-  deleteStreamVideo(sectionId: string) {
-    return this.api.delete<void>(SECTION_ENDPOINTS.DELETE_STREAM_VIDEO(sectionId));
+  getVideoPlayUrl(sectionId: string, format: 'hls' | 'dash' = 'hls') {
+    return this.api.get<{
+      playUrl: string;
+      videoAssetId: string;
+      videoSourceKind: string;
+      format: 'hls' | 'dash';
+      sectionId: string;
+    }>(SECTION_ENDPOINTS.GET_STREAM_PLAY_URL(sectionId), {
+      params: { format },
+    });
   }
 }

@@ -27,8 +27,7 @@ export class PdfViewerService {
             return new Observable(observer => observer.next(null));
         }
 
-        // Determine the full URL (handle both relative and absolute paths)
-        const fullUrl = fileUrl.startsWith('http') ? fileUrl : `${this.baseUrl}${fileUrl}`;
+        const fullUrl = this.resolveFileUrl(fileUrl);
 
         return this.http.get(fullUrl, { responseType: 'blob' }).pipe(
             map(blob => {
@@ -39,6 +38,18 @@ export class PdfViewerService {
                 return this.sanitizer.bypassSecurityTrustResourceUrl(this.currentUrl);
             })
         );
+    }
+
+    private resolveFileUrl(fileUrl: string): string {
+        if (/^(https?:|blob:|data:)/i.test(fileUrl)) {
+            return fileUrl;
+        }
+
+        if (fileUrl.startsWith('/')) {
+            return `${window.location.origin}${fileUrl}`;
+        }
+
+        return `${this.baseUrl}${fileUrl}`;
     }
 
     /**

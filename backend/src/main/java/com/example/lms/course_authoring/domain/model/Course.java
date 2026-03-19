@@ -31,6 +31,7 @@ public class Course extends AggregateRoot {
     private String courseInformation;
     private String benefits;
     private String introVideoUrl;
+    private UUID introVideoAssetId;
     private String thumbnailUrl;
     private Integer credits;
     private Visibility visibility = Visibility.PUBLIC;
@@ -93,14 +94,15 @@ public class Course extends AggregateRoot {
     /**
      * Update course extended information.
      */
-    public void updateExtendedInfo(String welcomeMessage, String courseInformation, 
-                                    String benefits, String introVideoUrl, Integer credits) {
+    public void updateExtendedInfo(String welcomeMessage, String courseInformation,
+                                    String benefits, String introVideoUrl, UUID introVideoAssetId, Integer credits) {
         ensureEditable();
         
         this.welcomeMessage = welcomeMessage;
         this.courseInformation = courseInformation;
         this.benefits = benefits;
         this.introVideoUrl = introVideoUrl;
+        this.introVideoAssetId = introVideoAssetId;
         this.credits = credits;
         markDraftChanged();
     }
@@ -458,6 +460,7 @@ public class Course extends AggregateRoot {
     public String getCourseInformation() { return courseInformation; }
     public String getBenefits() { return benefits; }
     public String getIntroVideoUrl() { return introVideoUrl; }
+    public UUID getIntroVideoAssetId() { return introVideoAssetId; }
     public String getThumbnailUrl() { return thumbnailUrl; }
     public Integer getCredits() { return credits; }
     public Visibility getVisibility() { return visibility; }

@@ -3,10 +3,10 @@ import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { CKEditorModule } from '@ckeditor/ckeditor5-angular';
 import { LucideAngularModule } from 'lucide-angular';
-import { SectionApi } from '../../../../../../../api/client/section.api';
+import { formatOfflineVideoProfileLabel, type OfflineVideoProfileDescriptor } from '../../../../../../../core/models/video-quality';
 
 type SectionEditorType = 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE';
-type VideoInputMode = 'url' | 'upload';
+type VideoInputMode = 'upload';
 type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
 type SectionQuizAssessmentType = 'PRACTICE' | 'ASSESSMENT' | 'EXAM';
 
@@ -18,7 +18,6 @@ type SectionQuizAssessmentType = 'PRACTICE' | 'ASSESSMENT' | 'EXAM';
 })
 export class CurriculumSectionModalComponent {
   private sanitizer = inject(DomSanitizer);
-  private sectionApi = inject(SectionApi);
   readonly sectionQuizTypes: SectionQuizAssessmentType[] = ['PRACTICE', 'ASSESSMENT', 'EXAM'];
 
   private dialogShell = viewChild<ElementRef<HTMLElement>>('dialogShell');
@@ -27,6 +26,9 @@ export class CurriculumSectionModalComponent {
   sectionType = input<SectionEditorType>('TEXT');
   sectionTitle = input('');
   sectionIsRequired = input(false);
+  sectionVideoAssetId = input<string | null>(null);
+  sectionVideoProcessingStatus = input<string | null>(null);
+  sectionVideoAvailableOfflineProfiles = input<OfflineVideoProfileDescriptor[]>([]);
   sectionVideoUrl = input('');
   sectionStreamVideoUid = input<string | null>(null);
   selectedVideoFile = input<File | null>(null);
@@ -56,8 +58,11 @@ export class CurriculumSectionModalComponent {
   saveRequested = output<void>();
   sectionTitleChange = output<string>();
   sectionRequiredChange = output<boolean>();
+  sectionVideoAssetIdChange = output<string | null>();
+  sectionVideoProcessingStatusChange = output<string | null>();
   sectionVideoUrlChange = output<string>();
   sectionStreamVideoUidChange = output<string | null>();
+  retryVideoAssetRequested = output<void>();
   videoFileSelected = output<File | null>();
   clearSelectedVideoFile = output<void>();
   sectionContentChange = output<string>();
@@ -79,7 +84,7 @@ export class CurriculumSectionModalComponent {
   removeSectionQuizQuestion = output<string>();
 
   // ─── CF Stream Upload State ─────────────────────────────────────────
-  readonly videoInputMode = signal<VideoInputMode>('url');
+  readonly videoInputMode = signal<VideoInputMode>('upload');
   readonly cfUploadStatus = signal<CfUploadStatus>('idle');
   readonly cfUploadPercent = signal(0);
   readonly cfStreamVideoUid = signal<string | null>(null);
@@ -91,6 +96,8 @@ export class CurriculumSectionModalComponent {
     });
 
     effect(() => {
+      const assetId = this.sectionVideoAssetId();
+      const processingStatus = this.sectionVideoProcessingStatus();
       const streamUid = this.sectionStreamVideoUid();
       const stagedFile = this.selectedVideoFile();
       const currentStatus = this.cfUploadStatus();
@@ -103,6 +110,14 @@ export class CurriculumSectionModalComponent {
         this.cfUploadStatus.set('staged');
         this.cfUploadPercent.set(0);
         this.cfStreamVideoUid.set(null);
+        this.videoInputMode.set('upload');
+        return;
+      }
+
+      if (assetId) {
+        this.cfStreamVideoUid.set(streamUid);
+        this.cfUploadPercent.set(processingStatus === 'READY' ? 100 : 0);
+        this.cfUploadStatus.set('done');
         this.videoInputMode.set('upload');
         return;
       }
@@ -143,39 +158,32 @@ export class CurriculumSectionModalComponent {
     this.sectionVideoUrlChange.emit(value);
   }
 
+  hasLegacyVideoSource(): boolean {
+    return !!this.sectionVideoUrl() && !this.sectionStreamVideoUid() && !this.selectedVideoFile();
+  }
+
+  isLegacyYouTubeVideo(): boolean {
+    return this.isYouTubeUrl(this.sectionVideoUrl());
+  }
+
+  getLegacyVideoPolicyCopy(): string {
+    if (this.isLegacyYouTubeVideo()) {
+      return 'Mục này đang dùng YouTube hoặc nguồn ngoài cũ. Learner chỉ xem trực tuyến được và không thể tải offline theo chuẩn production mới.';
+    }
+
+    return 'Mục này đang dùng URL video cũ. Để phát trực tuyến và tải ngoại tuyến đúng kiến trúc mới, hãy thay bằng video tải lên nội bộ.';
+  }
+
   /**
-   * Upload section video for existing sections.
-   * New sections stage the file and let the parent upload after the section shell is created.
+   * Stage section video upload. Parent flow now uploads to storage, creates a video asset,
+   * and binds videoAssetId into the section payload so both create/update use one path.
    */
   onCfVideoFileSelected(event: Event): void {
     const file = (event.target as HTMLInputElement).files?.[0];
-    const sectionId = this.editingSectionId();
     if (!file) return;
 
-    if (!sectionId) {
-      this.videoInputMode.set('upload');
-      this.videoFileSelected.emit(file);
-      return;
-    }
-
-    this.cfUploadStatus.set('uploading');
-    this.cfUploadPercent.set(0);
-    this.stagedVideoFileName.set(file.name);
-
-    this.sectionApi.uploadStreamVideo(sectionId, file).subscribe({
-      next: (body: any) => {
-        const streamVideoUid = body?.streamVideoUid ?? null;
-        const playUrl = body?.playbackUrl ?? '';
-        this.cfUploadPercent.set(100);
-        this.cfStreamVideoUid.set(streamVideoUid);
-        this.sectionStreamVideoUidChange.emit(streamVideoUid);
-        if (playUrl) {
-          this.sectionVideoUrlChange.emit(playUrl);
-        }
-        this.cfUploadStatus.set('done');
-      },
-      error: () => this.cfUploadStatus.set('error'),
-    });
+    this.videoInputMode.set('upload');
+    this.videoFileSelected.emit(file);
   }
 
   resetCfUpload(): void {
@@ -183,11 +191,36 @@ export class CurriculumSectionModalComponent {
     this.cfUploadPercent.set(0);
     this.cfStreamVideoUid.set(null);
     this.stagedVideoFileName.set(null);
-    if (!this.editingSectionId()) {
-      this.clearSelectedVideoFile.emit();
-      this.sectionStreamVideoUidChange.emit(null);
-      this.sectionVideoUrlChange.emit('');
+    this.clearSelectedVideoFile.emit();
+    this.sectionVideoAssetIdChange.emit(null);
+    this.sectionVideoProcessingStatusChange.emit(null);
+    this.sectionStreamVideoUidChange.emit(null);
+    this.sectionVideoUrlChange.emit('');
+  }
+
+  requestRetryVideoAsset(): void {
+    this.retryVideoAssetRequested.emit();
+  }
+
+  getVideoProcessingCopy(): string {
+    switch ((this.sectionVideoProcessingStatus() || '').toUpperCase()) {
+      case 'READY':
+        return 'Video đã sẵn sàng phát trực tuyến và có metadata offline.';
+      case 'FAILED':
+        return 'Video đã được gắn vào mục nhưng pipeline xử lý lỗi. Hãy tải lại hoặc thử lại asset.';
+      case 'PROCESSING':
+        return 'Video đã được gắn vào mục và đang xử lý playback/rendition.';
+      default:
+        return 'Video đã được gắn vào mục và đang chờ pipeline xử lý.';
     }
+  }
+
+  getOfflineProfileLabel(profile: OfflineVideoProfileDescriptor): string {
+    return formatOfflineVideoProfileLabel(profile);
+  }
+
+  canRetryVideoAsset(): boolean {
+    return !!this.sectionVideoAssetId() && (this.sectionVideoProcessingStatus() || '').toUpperCase() === 'FAILED';
   }
 
   onSectionContentInput(value: string): void {
@@ -348,5 +381,13 @@ export class CurriculumSectionModalComponent {
     }
 
     return null;
+  }
+
+  private isYouTubeUrl(url: string | null | undefined): boolean {
+    if (!url) {
+      return false;
+    }
+
+    return url.includes('youtube.com') || url.includes('youtu.be');
   }
 }

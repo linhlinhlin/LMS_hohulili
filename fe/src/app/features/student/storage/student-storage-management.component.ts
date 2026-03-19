@@ -1,340 +1,77 @@
-import { Component, ChangeDetectionStrategy, inject, computed, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { StorageManagerService } from '../../../core/services/storage-manager.service';
-import { CourseDownloadService, type DownloadableCourse } from '../../../core/services/course-download.service';
-import { OfflineVideoService, type OfflineVideoEntry } from '../../../core/services/offline-video.service';
+import { Router } from '@angular/router';
+import {
+  CourseDownloadService,
+  type DownloadableCourse,
+} from '../../../core/services/course-download.service';
+import {
+  OfflineVideoService,
+  type OfflineVideoEntry,
+} from '../../../core/services/offline-video.service';
 import { OfflineSyncService } from '../../../core/services/offline-sync.service';
+import { StorageManagerService } from '../../../core/services/storage-manager.service';
 import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { OfflineDeviceSettingsService } from '../../../core/services/offline-device-settings.service';
+import { NetworkStatusService } from '../../../core/services/network-status.service';
+import { OfflineStorageHealthService } from '../../../core/services/offline-storage-health.service';
+import {
+  OfflineStorageTelemetryService,
+} from '../../../core/services/offline-storage-telemetry.service';
+import { getOfflineCourseStaleCopy } from '../../../core/utils/offline-course-staleness';
+import {
+  formatOfflineVideoProfileLabel,
+  getOfflineVideoProfileLabel,
+  type OfflineVideoProfileId,
+  type OfflineVideoPreference,
+  type VideoQuality,
+} from '../../../core/models/video-quality';
 
 @Component({
   selector: 'app-student-storage-management',
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div class="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
-      <div class="max-w-4xl mx-auto space-y-6">
-
-        <!-- Page Header -->
-        <div>
-          <h1 class="text-2xl font-bold text-gray-900">Lưu trữ ngoại tuyến</h1>
-          <p class="mt-1 text-sm text-gray-500">Quản lý dữ liệu đã tải xuống cho truy cập ngoại tuyến</p>
-        </div>
-
-        <!-- Warning Banners -->
-        @if (storagePercent() >= 95) {
-          <div class="rounded-xl border border-red-200 bg-red-50 p-4 flex items-start gap-3">
-            <svg class="w-5 h-5 text-red-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-            </svg>
-            <div>
-              <p class="font-semibold text-red-800">Bộ nhớ gần đầy ({{ storagePercent() | number:'1.0-0' }}%)</p>
-              <p class="text-sm text-red-700 mt-0.5">Xóa bớt dữ liệu để tránh lỗi khi tải thêm nội dung.</p>
-            </div>
-          </div>
-        } @else if (storagePercent() >= 80) {
-          <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
-            <svg class="w-5 h-5 text-amber-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-            </svg>
-            <div>
-              <p class="font-semibold text-amber-800">Bộ nhớ đang cao ({{ storagePercent() | number:'1.0-0' }}%)</p>
-              <p class="text-sm text-amber-700 mt-0.5">Cân nhắc xóa bớt dữ liệu không cần thiết.</p>
-            </div>
-          </div>
-        }
-
-        <!-- Smart Cleanup Suggestion: completed courses occupying space -->
-        @if (storagePercent() >= 80 && completedCourseBytes() > 0) {
-          <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 flex items-start justify-between gap-3">
-            <div class="flex items-start gap-3">
-              <svg class="w-5 h-5 text-emerald-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-              </svg>
-              <div>
-                <p class="font-semibold text-emerald-800">{{ completedCourseCount() }} khóa học đã hoàn thành chiếm {{ storageManager.formatBytes(completedCourseBytes()) }}</p>
-                <p class="text-sm text-emerald-700 mt-0.5">Xóa để giải phóng không gian cho nội dung mới.</p>
-              </div>
-            </div>
-            <button
-              (click)="onDeleteCompletedCourses()"
-              class="shrink-0 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-white border border-emerald-300 rounded-lg hover:bg-emerald-50 transition-colors">
-              Xóa tất cả
-            </button>
-          </div>
-        }
-
-        <!-- Storage Bar Card -->
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <div class="flex items-center justify-between mb-3">
-            <h2 class="text-base font-semibold text-gray-900">Dung lượng sử dụng</h2>
-            <span class="text-sm text-gray-500">
-              {{ storageManager.formatBytes(estimate().usedBytes) }} / {{ storageManager.formatBytes(estimate().quotaBytes) }}
-            </span>
-          </div>
-
-          <!-- Segmented Bar -->
-          <div class="w-full h-4 bg-gray-100 rounded-full overflow-hidden flex">
-            @if (courseBarPercent() > 0) {
-              <div
-                class="h-full bg-[#0056D2] transition-all duration-300"
-                [style.width.%]="courseBarPercent()">
-              </div>
-            }
-            @if (videoBarPercent() > 0) {
-              <div
-                class="h-full bg-emerald-500 transition-all duration-300"
-                [style.width.%]="videoBarPercent()">
-              </div>
-            }
-            @if (syncBarPercent() > 0) {
-              <div
-                class="h-full bg-amber-500 transition-all duration-300"
-                [style.width.%]="syncBarPercent()">
-              </div>
-            }
-          </div>
-
-          <!-- Legend -->
-          <div class="flex flex-wrap gap-4 mt-3 text-xs text-gray-600">
-            <div class="flex items-center gap-1.5">
-              <span class="w-3 h-3 rounded-full bg-[#0056D2] inline-block"></span>
-              Khóa học ({{ storageManager.formatBytes(totalCourseBytes()) }})
-            </div>
-            <div class="flex items-center gap-1.5">
-              <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
-              Video ({{ storageManager.formatBytes(totalVideoBytes()) }})
-            </div>
-            <div class="flex items-center gap-1.5">
-              <span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>
-              Hàng đợi đồng bộ ({{ syncService.pendingCount() + syncService.failedCount() }} mục)
-            </div>
-            <div class="flex items-center gap-1.5">
-              <span class="w-3 h-3 rounded-full bg-gray-100 border border-gray-300 inline-block"></span>
-              Trống ({{ storageManager.formatBytes(freeBytes()) }})
-            </div>
-          </div>
-        </div>
-
-        <!-- Sync Queue Section -->
-        @if (syncService.pendingCount() > 0 || syncService.failedCount() > 0) {
-          <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-            <h2 class="text-base font-semibold text-gray-900 mb-3">Hàng đợi đồng bộ</h2>
-            <div class="flex flex-wrap items-center gap-4 text-sm">
-              @if (syncService.pendingCount() > 0) {
-                <div class="flex items-center gap-2 text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg">
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                  </svg>
-                  {{ syncService.pendingCount() }} đang chờ
-                </div>
-              }
-              @if (syncService.failedCount() > 0) {
-                <div class="flex items-center gap-2 text-red-700 bg-red-50 px-3 py-1.5 rounded-lg">
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
-                  </svg>
-                  {{ syncService.failedCount() }} thất bại
-                </div>
-              }
-            </div>
-            @if (syncService.earliestRetryAt()) {
-              <p class="mt-2 text-xs text-gray-400">
-                Thử lại sau {{ retryCountdownLabel() }}
-              </p>
-            }
-            @if (syncService.hasFailedItems()) {
-              <div class="flex gap-2 mt-3">
-                <button
-                  (click)="onRetryFailed()"
-                  class="px-4 py-2 text-sm font-medium text-[#0056D2] bg-[#0056D2]/5 hover:bg-[#0056D2]/10 rounded-lg transition-colors">
-                  Thử lại ngay
-                </button>
-                <button
-                  (click)="onClearFailed()"
-                  class="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
-                  Xóa mục lỗi
-                </button>
-              </div>
-            }
-          </div>
-        }
-
-        <!-- Downloaded Courses -->
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-base font-semibold text-gray-900">
-              Khóa học đã tải ({{ downloadService.downloadedCount() }})
-            </h2>
-            @if (downloadService.isBulkUpdating()) {
-              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-[#0056D2] bg-[#0056D2]/10 rounded-full">
-                <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4Z"/>
-                </svg>
-                Đang cập nhật {{ downloadService.bulkUpdateProgress().current }}/{{ downloadService.bulkUpdateProgress().total }}...
-              </span>
-            } @else if (staleCourseCount() > 0) {
-              <button
-                (click)="onBulkUpdateStale()"
-                class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-full transition-colors">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" />
-                </svg>
-                Cập nhật tất cả ({{ staleCourseCount() }})
-              </button>
-            }
-          </div>
-
-          @if (downloadService.downloadedCourses().length === 0) {
-            <div class="text-center py-8 text-gray-400">
-              <svg class="w-12 h-12 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
-              </svg>
-              <p class="text-sm">Chưa có khóa học nào được tải xuống</p>
-              <p class="text-xs mt-1 text-gray-300">Vào trang khóa học và nhấn nút tải để sử dụng ngoại tuyến</p>
-            </div>
-          } @else {
-            <div class="space-y-3">
-              @for (course of downloadService.downloadedCourses(); track course.id) {
-                <div class="flex items-center justify-between p-3 rounded-lg border transition-colors"
-                     [class]="course.isStale ? 'border-amber-200 bg-amber-50/50' : course.completionPercent === 100 ? 'border-emerald-100 bg-emerald-50/30' : 'border-gray-100 hover:border-gray-200'">
-                  <div class="min-w-0 flex-1">
-                    <div class="flex items-center gap-2">
-                      <p class="font-medium text-gray-900 truncate">{{ course.title }}</p>
-                      @if (course.completionPercent === 100) {
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-emerald-700 bg-emerald-100 rounded-full shrink-0">
-                          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                          </svg>
-                          Hoàn thành
-                        </span>
-                      } @else if (course.isStale) {
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-amber-700 bg-amber-100 rounded-full shrink-0">
-                          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" />
-                          </svg>
-                          Bản cũ
-                        </span>
-                      }
-                    </div>
-                    <div class="flex flex-wrap items-center gap-3 mt-1 text-xs text-gray-500">
-                      @if (course.completionPercent > 0 && course.completionPercent < 100) {
-                        <span class="text-[#0056D2]">{{ course.completionPercent }}% hoàn thành</span>
-                      }
-                      <span>{{ course.totalLessons }} bài học</span>
-                      <span>{{ storageManager.formatBytes(course.sizeBytes) }}</span>
-                      @if (course.downloadedAt) {
-                        <span>{{ course.downloadedAt | date:'dd/MM/yyyy' }}</span>
-                      }
-                    </div>
-                    @if (course.isStale && course.completionPercent < 100) {
-                      <button
-                        (click)="onRedownloadCourse(course)"
-                        [disabled]="downloadService.isBulkUpdating()"
-                        class="mt-2 text-xs font-medium text-amber-700 hover:text-amber-900 underline underline-offset-2 disabled:opacity-40">
-                        Cập nhật lại
-                      </button>
-                    }
-                    @if (course.completionPercent === 100) {
-                      <button
-                        (click)="onDeleteCourse(course)"
-                        class="mt-2 text-xs font-medium text-emerald-700 hover:text-emerald-900 underline underline-offset-2">
-                        Xóa để giải phóng {{ storageManager.formatBytes(course.sizeBytes) }}
-                      </button>
-                    }
-                  </div>
-                  <button
-                    (click)="onDeleteCourse(course)"
-                    class="ml-3 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors shrink-0"
-                    title="Xóa khóa học">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                    </svg>
-                  </button>
-                </div>
-              }
-            </div>
-          }
-        </div>
-
-        <!-- Offline Videos -->
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <h2 class="text-base font-semibold text-gray-900 mb-4">
-            Video ngoại tuyến ({{ videoService.downloads().length }})
-          </h2>
-
-          @if (videoService.downloads().length === 0) {
-            <div class="text-center py-8 text-gray-400">
-              <svg class="w-12 h-12 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
-              </svg>
-              <p class="text-sm">Chưa có video nào được lưu ngoại tuyến</p>
-              <p class="text-xs mt-1 text-gray-300">Tải video từ bài học để xem khi không có mạng</p>
-            </div>
-          } @else {
-            <div class="space-y-3">
-              @for (video of videoService.downloads(); track video.lessonId) {
-                <div class="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors">
-                  <div class="min-w-0 flex-1">
-                    <p class="font-medium text-gray-900 truncate">{{ video.title }}</p>
-                    <div class="flex flex-wrap items-center gap-3 mt-1 text-xs text-gray-500">
-                      <span>{{ storageManager.formatBytes(video.sizeBytes) }}</span>
-                      @if (video.downloadedAt) {
-                        <span>{{ video.downloadedAt | date:'dd/MM/yyyy' }}</span>
-                      }
-                    </div>
-                  </div>
-                  <button
-                    (click)="onDeleteVideo(video)"
-                    class="ml-3 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors shrink-0"
-                    title="Xóa video">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                    </svg>
-                  </button>
-                </div>
-              }
-            </div>
-          }
-        </div>
-
-        <!-- Delete All Button -->
-        @if (hasAnyData()) {
-          <button
-            (click)="onDeleteAll()"
-            class="w-full py-3 px-4 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-xl hover:bg-red-50 hover:border-red-300 transition-colors shadow-sm">
-            Xóa tất cả dữ liệu ngoại tuyến
-          </button>
-        }
-
-      </div>
-    </div>
-  `
+  templateUrl: './student-storage-management.component.html',
 })
 export class StudentStorageManagementComponent implements OnInit {
   readonly storageManager = inject(StorageManagerService);
   readonly downloadService = inject(CourseDownloadService);
   readonly videoService = inject(OfflineVideoService);
   readonly syncService = inject(OfflineSyncService);
+  readonly offlineSettings = inject(OfflineDeviceSettingsService);
+  readonly network = inject(NetworkStatusService);
+  readonly offlineHealthService = inject(OfflineStorageHealthService);
+  readonly offlineTelemetryService = inject(OfflineStorageTelemetryService);
   private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly toast = inject(ToastService);
+  private readonly router = inject(Router);
 
   readonly estimate = this.storageManager.estimate;
+  readonly deviceSettings = this.offlineSettings.settings;
+  readonly offlineHealth = this.offlineHealthService.status;
+  readonly offlineTelemetryEvents = this.offlineTelemetryService.events;
+
+  readonly qualityOptions: Array<{ value: VideoQuality; label: string; hint: string }> = [
+  { value: 'none', label: 'Không tải video', hint: 'Chỉ lưu văn bản, tệp, và quiz luyện tập.' },
+  { value: 'SAVER', label: 'Tiết kiệm dữ liệu', hint: 'Ưu tiên gói nhỏ nhất đang sẵn sàng cho video nội bộ.' },
+  { value: 'STANDARD', label: 'Chuẩn', hint: 'Mức cân bằng phù hợp cho đa số thiết bị và thời lượng học.' },
+  { value: 'HIGH', label: 'Chất lượng cao', hint: 'Chỉ dùng khi video thực sự có bản chất lượng cao và máy còn nhiều dung lượng.' },
+];
 
   readonly storagePercent = computed(() => this.estimate().percentUsed);
 
   readonly totalCourseBytes = computed(() =>
-    this.downloadService.downloadedCourses().reduce((sum, c) => sum + (c.sizeBytes || 0), 0)
+    this.downloadService.downloadedCourses().reduce((sum, course) => sum + (course.sizeBytes || 0), 0),
   );
 
   readonly totalVideoBytes = computed(() =>
-    this.videoService.downloads().reduce((sum, v) => sum + (v.sizeBytes || 0), 0)
+    this.videoService.downloads().reduce((sum, video) => sum + (video.sizeBytes || 0), 0),
   );
 
   readonly freeBytes = computed(() => {
-    const est = this.estimate();
-    return Math.max(0, est.quotaBytes - est.usedBytes);
+    const estimate = this.estimate();
+    return Math.max(0, estimate.quotaBytes - estimate.usedBytes);
   });
 
   readonly courseBarPercent = computed(() => {
@@ -350,61 +87,270 @@ export class StudentStorageManagementComponent implements OnInit {
   });
 
   readonly syncBarPercent = computed(() => {
-    // Sync queue items are tiny (JSON payloads), estimate ~1KB each
     const syncItems = this.syncService.pendingCount() + this.syncService.failedCount();
     const quota = this.estimate().quotaBytes;
     if (quota <= 0 || syncItems === 0) return 0;
-    const estimatedSyncBytes = syncItems * 1024;
-    return Math.min((estimatedSyncBytes / quota) * 100, 1); // Cap at 1% visual
+    return Math.min(((syncItems * 1024) / quota) * 100, 1);
   });
 
   readonly retryCountdownLabel = computed(() => {
     const retryAt = this.syncService.earliestRetryAt();
     if (!retryAt) return '';
+
     const diffMs = retryAt.getTime() - Date.now();
     if (diffMs <= 0) return 'ngay bây giờ';
-    const mins = Math.ceil(diffMs / 60_000);
-    return mins === 1 ? '1 phút' : `${mins} phút`;
+
+    const minutes = Math.ceil(diffMs / 60_000);
+    return minutes === 1 ? '1 phút' : `${minutes} phút`;
   });
 
   readonly staleCourseCount = computed(() =>
-    this.downloadService.downloadedCourses().filter(c => c.isStale).length
+    this.downloadService.downloadedCourses().filter(course => course.isStale).length,
   );
 
   readonly completedCourseCount = computed(() =>
-    this.downloadService.downloadedCourses().filter(c => c.completionPercent === 100).length
+    this.downloadService.downloadedCourses().filter(course => course.completionPercent === 100).length,
   );
 
   readonly completedCourseBytes = computed(() =>
     this.downloadService.downloadedCourses()
-      .filter(c => c.completionPercent === 100)
-      .reduce((sum, c) => sum + (c.sizeBytes || 0), 0)
+      .filter(course => course.completionPercent === 100)
+      .reduce((sum, course) => sum + (course.sizeBytes || 0), 0),
   );
 
+  readonly groupedOfflineVideos = computed(() => {
+    const groups = new Map<string, {
+      lessonId: string;
+      lessonTitle: string;
+      items: OfflineVideoEntry[];
+      totalSizeBytes: number;
+    }>();
+
+    for (const video of this.videoService.downloads()) {
+      const existing = groups.get(video.lessonId);
+      if (existing) {
+        existing.items.push(video);
+        existing.totalSizeBytes += video.sizeBytes;
+        continue;
+      }
+
+      groups.set(video.lessonId, {
+        lessonId: video.lessonId,
+        lessonTitle: video.lessonTitle,
+        items: [video],
+        totalSizeBytes: video.sizeBytes,
+      });
+    }
+
+    return Array.from(groups.values()).map(group => ({
+      ...group,
+      items: [...group.items].sort((left, right) => {
+        if (!left.sectionTitle && right.sectionTitle) return -1;
+        if (left.sectionTitle && !right.sectionTitle) return 1;
+        return (left.sectionTitle || left.title).localeCompare(right.sectionTitle || right.title);
+      }),
+    }));
+  });
+
   readonly hasAnyData = computed(() =>
-    this.downloadService.downloadedCount() > 0 ||
-    this.videoService.downloads().length > 0 ||
-    this.syncService.pendingCount() > 0 ||
-    this.syncService.failedCount() > 0
+    this.downloadService.downloadedCount() > 0
+      || this.videoService.downloads().length > 0
+      || this.syncService.pendingCount() > 0
+      || this.syncService.failedCount() > 0,
   );
+
+  readonly persistenceStatusLabel = computed(() =>
+    this.storageManager.isPersisted()
+      ? 'Trình duyệt đang ưu tiên giữ dữ liệu ngoại tuyến cho thiết bị này.'
+      : 'Trình duyệt chưa xác nhận giữ dữ liệu lâu dài. Dữ liệu ngoại tuyến vẫn có thể bị dọn nếu bộ nhớ thiếu.',
+  );
+
+  readonly syncStatusLabel = computed(() => {
+    if (this.syncService.isSyncing()) return 'Đang đồng bộ dữ liệu học tập...';
+    if (this.syncService.failedCount() > 0) return 'Có mục đồng bộ cần xử lý.';
+    if (this.syncService.pendingCount() > 0) return 'Có dữ liệu đang chờ đồng bộ.';
+    return 'Mọi dữ liệu hiện đã đồng bộ hoặc chưa có thay đổi mới.';
+  });
+
+  readonly currentConnectionLabel = computed(() => {
+    const base = this.network.connectionLabel();
+    if (this.network.isLikelyMetered()) {
+      return `${base} • kết nối có thể tính theo dữ liệu`;
+    }
+    return base;
+  });
+
+  readonly wifiPolicyHint = computed(() => {
+    if (!this.offlineSettings.downloadOnWifiOnly()) {
+      return 'Bạn đang cho phép tải xuống trên mọi kết nối khả dụng.';
+    }
+
+    if (this.network.isLikelyMetered()) {
+      return 'Trình duyệt đang báo kết nối có thể bị tính dung lượng. Các lượt tải mới sẽ bị chặn cho đến khi đổi mạng hoặc tắt giới hạn này.';
+    }
+
+    if (!this.network.connectionDetailsAvailable()) {
+      return 'Trình duyệt không luôn cung cấp đủ thông tin để nhận biết Wi‑Fi. Ứng dụng sẽ áp dụng giới hạn này theo best-effort.';
+    }
+
+    return 'Ứng dụng sẽ tránh bắt đầu lượt tải mới khi trình duyệt báo kết nối di động hoặc tiết kiệm dữ liệu.';
+  });
+
+  readonly staleSummary = computed(() => {
+    if (this.staleCourseCount() === 0) {
+      return null;
+    }
+
+    if (this.downloadService.isBulkUpdating()) {
+      return 'Đang cập nhật các gói ngoại tuyến cũ. Tiến trình hợp lệ sẽ được giữ lại khi có thể.';
+    }
+
+    return `${this.staleCourseCount()} khóa học đã có phiên bản mới hoặc cần làm mới để tiếp tục đồng bộ an toàn.`;
+  });
+
+  readonly offlineRecoveryCard = computed(() => {
+    const status = this.offlineHealth();
+
+    if (status.availability === 'recovering') {
+      return {
+        tone: 'blue' as const,
+        title: 'Hệ thống đang tự kiểm tra lại bộ nhớ ngoại tuyến',
+        description: 'Ứng dụng đang thử khôi phục kho dữ liệu ngoại tuyến cục bộ. Nếu trạng thái này kéo dài hoặc lặp lại, bạn có thể đặt lại bộ nhớ ngoại tuyến để tạo lại kho sạch.',
+        actionLabel: 'Đặt lại bộ nhớ ngoại tuyến',
+        action: 'reset' as const,
+      };
+    }
+
+    if (status.availability === 'online-only') {
+      return {
+        tone: 'red' as const,
+        title: 'Bộ nhớ ngoại tuyến đang tạm không dùng được',
+        description: 'Trình duyệt không mở được dữ liệu ngoại tuyến cục bộ. Bạn vẫn có thể học online, hoặc để hệ thống làm sạch toàn bộ dữ liệu ứng dụng của holilihu.online trên trình duyệt này trước khi đăng nhập lại và tải lại khóa học.',
+        actionLabel: 'Làm sạch dữ liệu trình duyệt',
+        action: 'clear-site-data' as const,
+      };
+    }
+
+    if (status.lastRecoveryAction === 'recreated-db' || status.lastRecoveryAction === 'rotated-db') {
+      return {
+        tone: 'amber' as const,
+        title: 'Bộ nhớ ngoại tuyến đã được tự khôi phục',
+        description: 'Hệ thống đã phát hiện dữ liệu ngoại tuyến cục bộ bị hỏng và tạo lại kho dữ liệu mới. Bạn cần tải lại các khóa học ngoại tuyến để tiếp tục dùng offline ổn định.',
+        actionLabel: 'Đặt lại bộ nhớ ngoại tuyến',
+        action: 'reset' as const,
+      };
+    }
+
+    if (status.lastRecoveryAction === 'manual-reset') {
+      return {
+        tone: 'blue' as const,
+        title: 'Bộ nhớ ngoại tuyến đã được đặt lại',
+        description: 'Thiết bị này đang dùng một kho dữ liệu ngoại tuyến sạch. Nếu cần học offline, hãy mở danh sách khóa học để tải lại nội dung từ đầu.',
+        actionLabel: 'Mở danh sách khóa học',
+        action: 'browse-courses' as const,
+      };
+    }
+
+    return null;
+  });
+
+  readonly lastManualSyncDate = computed(() => {
+    const value = this.offlineSettings.lastManualSyncAt();
+    return value ? new Date(value) : null;
+  });
+
+  readonly latestOfflineTelemetryEvent = computed(() => this.offlineTelemetryEvents()[0] ?? null);
 
   async ngOnInit(): Promise<void> {
     await Promise.all([
       this.storageManager.refresh(),
+      this.downloadService.refreshDownloadedCourses(),
       this.videoService.refreshList(),
+      this.syncService.refreshState(),
     ]);
+  }
+
+  async onRequestPersistence(): Promise<void> {
+    const granted = await this.storageManager.requestPersistence();
+    this.offlineSettings.markPersistenceRequested();
+
+    if (granted) {
+      this.toast.success('Trình duyệt đã chấp nhận ưu tiên giữ dữ liệu ngoại tuyến cho thiết bị này.');
+      return;
+    }
+
+    this.toast.info('Trình duyệt chưa cấp quyền lưu trữ bền vững. Bạn vẫn có thể tiếp tục tải dữ liệu ngoại tuyến.');
+  }
+
+  onSelectDefaultQuality(videoQuality: VideoQuality): void {
+    this.offlineSettings.setDefaultVideoQuality(videoQuality);
+    const selected = this.qualityOptions.find(option => option.value === videoQuality);
+    this.toast.success(`Đã đặt mặc định tải video: ${selected?.label ?? this.getDefaultVideoQualityLabel(videoQuality)}`);
+  }
+
+  getDefaultVideoQualityLabel(videoQuality: VideoQuality): string {
+    if (videoQuality === 'none') {
+      return 'Không tải video';
+    }
+
+    return getOfflineVideoProfileLabel(videoQuality);
+  }
+
+  getDownloadedVideoProfileBadge(video: OfflineVideoEntry): string | null {
+    if (!video.profileId) {
+      return null;
+    }
+
+    const profileId = video.profileId as OfflineVideoProfileId;
+    if (video.actualResolution) {
+      return formatOfflineVideoProfileLabel({
+        id: profileId,
+        actualResolution: video.actualResolution,
+      });
+    }
+
+    return getOfflineVideoProfileLabel(profileId);
+  }
+
+  isGroupedOfflinePreference(value: VideoQuality): value is OfflineVideoPreference {
+    return value === 'SAVER' || value === 'STANDARD' || value === 'HIGH';
+  }
+
+  onToggleWifiOnly(): void {
+    const next = !this.offlineSettings.downloadOnWifiOnly();
+    this.offlineSettings.setDownloadOnWifiOnly(next);
+    this.toast.info(
+      next
+        ? 'Ứng dụng sẽ hạn chế bắt đầu lượt tải mới trên kết nối có thể tính theo dữ liệu.'
+        : 'Đã cho phép tải xuống trên mọi kết nối khả dụng.',
+    );
+  }
+
+  onToggleAutoSync(): void {
+    const next = !this.offlineSettings.autoSyncWhenOnline();
+    this.offlineSettings.setAutoSyncWhenOnline(next);
+    this.toast.info(
+      next
+        ? 'Đã bật tự đồng bộ khi có mạng.'
+        : 'Đã tắt tự đồng bộ. Bạn vẫn có thể bấm "Đồng bộ ngay" khi cần.',
+    );
+  }
+
+  async onSyncNow(): Promise<void> {
+    await this.syncService.syncNow();
   }
 
   async onBulkUpdateStale(): Promise<void> {
     const count = this.staleCourseCount();
     const confirmed = await this.confirmDialog.confirm({
-      title: 'Cập nhật tất cả khóa học',
-      message: `Tải lại ${count} khóa học với nội dung mới nhất? Quá trình này có thể mất vài phút.`,
+      title: 'Cập nhật tất cả khóa học cũ',
+      message: `Tải lại ${count} khóa học với nội dung mới nhất? Hệ thống sẽ giữ lại tiến trình và dữ liệu đồng bộ còn hợp lệ khi có thể. Quá trình này có thể mất vài phút.`,
       variant: 'info',
       confirmText: `Cập nhật ${count} khóa học`,
       cancelText: 'Hủy',
     });
     if (!confirmed) return;
+
     await this.downloadService.bulkUpdateStale();
   }
 
@@ -420,10 +366,11 @@ export class StudentStorageManagementComponent implements OnInit {
     });
     if (!confirmed) return;
 
-    const completed = this.downloadService.downloadedCourses().filter(c => c.completionPercent === 100);
-    for (const c of completed) {
-      await this.downloadService.removeCourse(c.id);
+    const completedCourses = this.downloadService.downloadedCourses().filter(course => course.completionPercent === 100);
+    for (const course of completedCourses) {
+      await this.downloadService.removeCourse(course.id);
     }
+
     await this.storageManager.refresh();
     this.toast.success(`Đã giải phóng ${this.storageManager.formatBytes(bytes)}`);
   }
@@ -431,16 +378,14 @@ export class StudentStorageManagementComponent implements OnInit {
   async onRedownloadCourse(course: DownloadableCourse): Promise<void> {
     const confirmed = await this.confirmDialog.confirm({
       title: 'Cập nhật khóa học',
-      message: `Tải lại "${course.title}" với nội dung mới nhất? Dữ liệu cũ sẽ bị thay thế.`,
+      message: `Tải lại "${course.title}" với nội dung mới nhất? Hệ thống sẽ giữ lại tiến trình và dữ liệu đồng bộ còn hợp lệ khi có thể.`,
       variant: 'info',
       confirmText: 'Cập nhật',
       cancelText: 'Hủy',
     });
     if (!confirmed) return;
 
-    await this.downloadService.removeCourse(course.id);
-    await this.downloadService.downloadCourse(course.id);
-    // Note: removeCourse() and downloadCourse() already call storageManager.refresh() internally
+    await this.downloadService.refreshCoursePackage(course.id, course.downloadOptions ?? undefined);
   }
 
   async onDeleteCourse(course: DownloadableCourse): Promise<void> {
@@ -467,8 +412,50 @@ export class StudentStorageManagementComponent implements OnInit {
     });
     if (!confirmed) return;
 
-    await this.videoService.deleteVideo(video.lessonId);
+    await this.videoService.deleteEntry(video);
     await this.storageManager.refresh();
+  }
+
+  getStaleReasonDescription(course: DownloadableCourse): string {
+    return getOfflineCourseStaleCopy(course.staleReason).description;
+  }
+
+  getStaleActionLabel(course: DownloadableCourse): string {
+    return getOfflineCourseStaleCopy(course.staleReason).actionLabel;
+  }
+
+  getOfflineTelemetryTypeLabel(type: string): string {
+    switch (type) {
+      case 'recovery-started':
+        return 'Bắt đầu khôi phục';
+      case 'recreate-failed':
+        return 'Tạo lại DB cũ thất bại';
+      case 'recovered':
+        return 'Đã khôi phục';
+      case 'disabled':
+        return 'Chuyển sang online-only';
+      case 'manual-reset':
+        return 'Đặt lại thủ công';
+      case 'telemetry-cleared':
+        return 'Đã xóa lịch sử chẩn đoán';
+      default:
+        return type;
+    }
+  }
+
+  async onCopyOfflineDiagnostics(): Promise<void> {
+    const copied = await this.offlineTelemetryService.copyDiagnostics();
+    if (copied) {
+      this.toast.success('Đã sao chép chẩn đoán ngoại tuyến. Bạn có thể gửi cho QA hoặc đội hỗ trợ.');
+      return;
+    }
+
+    this.toast.info('Trình duyệt không hỗ trợ sao chép tự động. Hãy mở DevTools hoặc thử trên trình duyệt khác.');
+  }
+
+  onClearOfflineDiagnostics(): void {
+    this.offlineTelemetryService.clearDiagnostics();
+    this.toast.info('Đã xóa lịch sử chẩn đoán ngoại tuyến cục bộ trên thiết bị này.');
   }
 
   async onRetryFailed(): Promise<void> {
@@ -486,7 +473,7 @@ export class StudentStorageManagementComponent implements OnInit {
     if (!confirmed) return;
 
     await this.syncService.clearFailed();
-    this.toast.info('Đã xóa các mục đồng bộ thất bại');
+    this.toast.info('Đã xóa các mục đồng bộ thất bại.');
   }
 
   async onDeleteAll(): Promise<void> {
@@ -501,6 +488,61 @@ export class StudentStorageManagementComponent implements OnInit {
 
     await this.downloadService.removeAllCourses(this.videoService);
     await this.storageManager.refresh();
-    this.toast.success('Đã xóa tất cả dữ liệu ngoại tuyến');
+    this.toast.success('Đã xóa tất cả dữ liệu ngoại tuyến.');
+  }
+
+  async onRecoveryAction(): Promise<void> {
+    const action = this.offlineRecoveryCard()?.action;
+    if (action === 'browse-courses') {
+      await this.router.navigateByUrl('/student/courses');
+      return;
+    }
+    if (action === 'clear-site-data') {
+      this.openBrowserSiteDataResetPage();
+      return;
+    }
+
+    await this.onResetOfflineStorage();
+  }
+
+  async onResetOfflineStorage(): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Đặt lại bộ nhớ ngoại tuyến',
+      message: 'Hệ thống sẽ xóa kho dữ liệu ngoại tuyến cục bộ bị lỗi và tạo lại từ đầu. Các khóa học, video và hàng đợi đồng bộ chưa sync sẽ bị xóa khỏi thiết bị này.',
+      variant: 'danger',
+      confirmText: 'Đặt lại',
+      cancelText: 'Hủy',
+    });
+    if (!confirmed) return;
+
+    await this.offlineHealthService.resetOfflineStorage();
+    await Promise.all([
+      this.storageManager.refresh(),
+      this.downloadService.refreshDownloadedCourses(),
+      this.videoService.refreshList(),
+      this.syncService.refreshState(),
+    ]);
+
+    this.toast.success('Đã đặt lại bộ nhớ ngoại tuyến. Bạn có thể tải lại khóa học nếu muốn dùng offline.');
+  }
+
+  async onOpenAdvancedRepair(): Promise<void> {
+    this.openHardPwaResetPage();
+  }
+
+  private openBrowserSiteDataResetPage(): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.location.href = `/clear-site-data?returnUrl=${encodeURIComponent('/auth/login?message=Đã làm sạch dữ liệu trình duyệt. Hãy đăng nhập lại.')}`;
+  }
+
+  private openHardPwaResetPage(): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.location.href = `/reset-sw?returnUrl=${encodeURIComponent('/student/storage')}`;
   }
 }

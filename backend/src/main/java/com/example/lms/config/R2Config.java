@@ -55,4 +55,9 @@ public class R2Config {
                 .region(Region.of("auto"))
                 .build();
     }
+
+    @Bean
+    public URI r2EndpointUri() {
+        return URI.create("https://" + accountId + ".r2.cloudflarestorage.com");
+    }
 }

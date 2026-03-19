@@ -37,10 +37,10 @@ public class FileUploadControllerV3 {
     );
 
     private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-    private static final long MAX_VIDEO_SIZE = 500L * 1024 * 1024; // 500MB
+    private static final long MAX_VIDEO_SIZE = 500L * 1024 * 1024; // Legacy direct-upload ceiling; large videos should use presigned upload
 
     private static final Set<String> ALLOWED_VIDEO_TYPES = Set.of(
-        "video/mp4", "video/webm", "video/quicktime"
+        "video/mp4", "video/webm", "video/quicktime", "video/x-matroska", "video/x-msvideo", "video/avi"
     );
 
     private final Optional<R2StorageService> r2StorageService;
@@ -139,7 +139,10 @@ public class FileUploadControllerV3 {
                 return ResponseEntity.badRequest().body(Map.of("success", 0, "message", "Tập tin rỗng"));
             }
             if (file.getSize() > MAX_VIDEO_SIZE) {
-                return ResponseEntity.badRequest().body(Map.of("success", 0, "message", "Video vượt quá dung lượng tối đa 500MB"));
+                return ResponseEntity.badRequest().body(Map.of(
+                        "success", 0,
+                        "message", "Upload video trực tiếp qua backend chỉ hỗ trợ đến 500MB. Với video lớn, hãy dùng flow presigned upload (/api/v3/files/upload/init + /api/v3/files/upload/confirm)."
+                ));
             }
             String contentType = file.getContentType();
             if (contentType == null || !ALLOWED_VIDEO_TYPES.contains(contentType.toLowerCase())) {
@@ -258,6 +261,9 @@ public class FileUploadControllerV3 {
             response.put("storageKey", result.storageKey());
             response.put("expiresAt", result.expiresAt() != null ? result.expiresAt().toString() : null);
             response.put("isServerRelay", result.isServerRelay());
+            response.put("uploadStrategy", result.uploadStrategy());
+            response.put("multipartUploadId", result.multipartUploadId());
+            response.put("multipartPartSizeBytes", result.multipartPartSizeBytes());
             return ResponseEntity.ok(response);
 
         } catch (IllegalArgumentException e) {
@@ -300,6 +306,86 @@ public class FileUploadControllerV3 {
         } catch (RuntimeException e) {
             log.error("Confirm presigned upload failed", e);
             return ResponseEntity.internalServerError().body(Map.of("success", false, "message", "Xác nhận upload thất bại"));
+        }
+    }
+
+    @PostMapping("/upload/multipart/part-url")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @Operation(summary = "Sign one multipart upload part URL for direct video upload")
+    public ResponseEntity<Map<String, Object>> createMultipartPartUrl(
+            @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        try {
+            if (user == null) {
+                return ResponseEntity.status(401).body(Map.of("success", false, "message", "Không được phép truy cập"));
+            }
+
+            String storageKey = body.get("storageKey") instanceof String value ? value : null;
+            String uploadId = body.get("uploadId") instanceof String value ? value : null;
+            Number partNumberValue = body.get("partNumber") instanceof Number value ? value : null;
+
+            if (storageKey == null || uploadId == null || partNumberValue == null) {
+                return ResponseEntity.badRequest().body(Map.of("success", false, "message", "storageKey, uploadId và partNumber là bắt buộc"));
+            }
+
+            var result = presignedUploadUseCase.createMultipartPartUrl(
+                    storageKey,
+                    uploadId,
+                    partNumberValue.intValue(),
+                    user.getId()
+            );
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "uploadUrl", result.uploadUrl(),
+                    "partNumber", result.partNumber()
+            ));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", e.getMessage()));
+        } catch (RuntimeException e) {
+            log.error("Create multipart part URL failed", e);
+            return ResponseEntity.internalServerError().body(Map.of("success", false, "message", "Không thể ký part upload URL"));
+        }
+    }
+
+    @PostMapping("/upload/multipart/complete")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @Operation(summary = "Complete multipart upload before attachment confirmation")
+    public ResponseEntity<Map<String, Object>> completeMultipartUpload(
+            @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        try {
+            if (user == null) {
+                return ResponseEntity.status(401).body(Map.of("success", false, "message", "Không được phép truy cập"));
+            }
+
+            String storageKey = body.get("storageKey") instanceof String value ? value : null;
+            String uploadId = body.get("uploadId") instanceof String value ? value : null;
+            Object rawParts = body.get("parts");
+
+            if (storageKey == null || uploadId == null || !(rawParts instanceof List<?> rawPartList)) {
+                return ResponseEntity.badRequest().body(Map.of("success", false, "message", "storageKey, uploadId và parts là bắt buộc"));
+            }
+
+            List<PresignedUploadUseCase.MultipartUploadedPart> parts = new ArrayList<>();
+            for (Object rawPart : rawPartList) {
+                if (!(rawPart instanceof Map<?, ?> rawPartMap)) {
+                    continue;
+                }
+                Object partNumberValue = rawPartMap.get("partNumber");
+                Object eTagValue = rawPartMap.get("eTag");
+                if (!(partNumberValue instanceof Number number) || !(eTagValue instanceof String eTag) || eTag.isBlank()) {
+                    return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Mỗi part phải có partNumber và eTag"));
+                }
+                parts.add(new PresignedUploadUseCase.MultipartUploadedPart(number.intValue(), eTag));
+            }
+
+            presignedUploadUseCase.completeMultipartUpload(storageKey, uploadId, parts, user.getId());
+            return ResponseEntity.ok(Map.of("success", true));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", e.getMessage()));
+        } catch (RuntimeException e) {
+            log.error("Complete multipart upload failed", e);
+            return ResponseEntity.internalServerError().body(Map.of("success", false, "message", "Không thể hoàn tất multipart upload"));
         }
     }
 

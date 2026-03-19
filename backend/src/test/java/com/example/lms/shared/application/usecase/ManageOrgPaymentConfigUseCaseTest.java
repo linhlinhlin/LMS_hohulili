@@ -1,9 +1,9 @@
 package com.example.lms.shared.application.usecase;
 
 import com.example.lms.identity.domain.repository.OrganizationRepository;
+import com.example.lms.shared.application.port.RevenueConfigPort;
 import com.example.lms.shared.domain.repository.OrgPaymentConfigRepository;
 import com.example.lms.shared.exception.EntityNotFoundException;
-import com.example.lms.shared.infrastructure.service.RevenueConfigService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,7 +25,7 @@ class ManageOrgPaymentConfigUseCaseTest {
 
     @Mock private OrganizationRepository orgRepo;
     @Mock private OrgPaymentConfigRepository configRepo;
-    @Mock private RevenueConfigService revenueConfigService;
+    @Mock private RevenueConfigPort revenueConfigPort;
 
     @InjectMocks
     private ManageOrgPaymentConfigUseCase useCase;
@@ -39,7 +39,7 @@ class ManageOrgPaymentConfigUseCaseTest {
         assertThatThrownBy(() -> useCase.getConfig(orgId))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining(orgId.toString());
-        verify(revenueConfigService, never()).resolveConfig(orgId);
+        verify(revenueConfigPort, never()).resolveConfig(orgId);
     }
 
     @Test

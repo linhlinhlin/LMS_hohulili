@@ -4,6 +4,16 @@
 # =============================================================================
 
 holilihu.online {
+    @adaptivePlayback path /api/v3/video-assets/*/adaptive/*
+
+    handle @adaptivePlayback {
+        reverse_proxy backend:8080 {
+            header_down Cache-Control "private, max-age=30"
+            header_down -Pragma
+            header_down -Expires
+        }
+    }
+
     # Backend API
     handle /api/* {
         reverse_proxy backend:8080
@@ -33,7 +43,6 @@ holilihu.online {
         Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
         Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://wiii.holilihu.online https://sandbox.vnpayment.vn https://pay.vnpay.vn https://qr.sepay.vn https://videodelivery.net wss:; media-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' https: blob:; object-src 'none'; base-uri 'self';"
     }
-
     # Compression
     encode gzip zstd
 }

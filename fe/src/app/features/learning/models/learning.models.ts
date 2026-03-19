@@ -21,6 +21,9 @@ export interface CourseOverview {
   lessonsCount: number;
   duration: string;
   isEnrolled: boolean;
+  isOfflinePackage?: boolean;
+  isStale?: boolean;
+  staleReason?: 'UPDATE_AVAILABLE' | 'CLASS_ADOPTED_NEW_PUBLICATION' | 'LEGACY_PACKAGE' | 'UNKNOWN' | null;
 }
 
 /**
@@ -64,8 +67,11 @@ export interface SectionContent {
   title: string;
   type: 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT';
   content?: string;
+  videoAssetId?: string;
+  videoProcessingStatus?: string;
+  videoSourceKind?: 'ADAPTIVE_R2' | 'STREAM' | 'EXTERNAL' | 'LEGACY_DIRECT';
   videoUrl?: string;
-  videoType?: 'YOUTUBE' | 'CLOUDFLARE';
+  videoType?: 'YOUTUBE' | 'CLOUDFLARE' | 'ADAPTIVE_R2' | string;
   streamVideoUid?: string;
   videoOfflineUri?: string;
   fileUrl?: string;
@@ -103,6 +109,7 @@ export interface LessonDetail extends LessonSummary {
   content: string; // HTML content (fallback)
   videoUrl?: string; // Fallback video URL
   streamVideoUid?: string; // Cloudflare Stream UID — use signed URL if present
+  videoOfflineUri?: string;
   quizType?: string;
   countsTowardCertificate?: boolean;
   quizAllowOffline?: boolean;

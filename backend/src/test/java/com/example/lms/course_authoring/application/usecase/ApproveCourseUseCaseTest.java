@@ -1,9 +1,9 @@
 package com.example.lms.course_authoring.application.usecase;
 
 import com.example.lms.course_authoring.application.dto.CourseResponse;
+import com.example.lms.course_authoring.application.port.CoursePublicationPort;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
-import com.example.lms.course_authoring.infrastructure.service.CoursePublicationService;
 import com.example.lms.shared.domain.valueobject.CourseCode;
 import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.exception.EntityNotFoundException;
@@ -35,7 +35,7 @@ class ApproveCourseUseCaseTest {
     private DomainEventPublisher eventPublisher;
 
     @Mock
-    private CoursePublicationService coursePublicationService;
+    private CoursePublicationPort coursePublicationPort;
 
     @InjectMocks
     private ApproveCourseUseCase useCase;
@@ -90,7 +90,7 @@ class ApproveCourseUseCaseTest {
         assertThat(response.reviewedAt()).isNotNull();
 
         verify(courseRepository).save(any(Course.class));
-        verify(coursePublicationService).publish(pendingCourse.getId(), reviewerId);
+        verify(coursePublicationPort).publish(pendingCourse.getId(), reviewerId);
     }
 
     @Test
@@ -109,7 +109,7 @@ class ApproveCourseUseCaseTest {
         assertThat(response.reviewComment()).isNull();
 
         verify(courseRepository).save(any(Course.class));
-        verify(coursePublicationService).publish(pendingCourse.getId(), reviewerId);
+        verify(coursePublicationPort).publish(pendingCourse.getId(), reviewerId);
     }
 
     @Test

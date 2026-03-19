@@ -4,16 +4,22 @@ import { Observable, forkJoin } from 'rxjs';
 import { map, filter } from 'rxjs/operators';
 import { environment } from '../../../../../environments/environment';
 import { PresignedUploadService, UploadEvent } from '../../../../core/services/presigned-upload.service';
+import type { OfflineVideoProfileDescriptor, VideoSourceKind } from '../../../../core/models/video-quality';
 
 export type UploadProgressEvent =
   | { type: 'progress'; progress: number }
   | { type: 'complete'; fileUrl: string };
+
+type CourseVideoOfflineProfile = OfflineVideoProfileDescriptor;
 
 export interface SectionDraftDTO { // Renamed from TopicDraftDTO
     id: string;
     title: string;
     type: string;
     content?: string;
+    videoAssetId?: string;
+    videoProcessingStatus?: string;
+    videoSourceKind?: VideoSourceKind;
     videoUrl?: string;
     videoType?: 'YOUTUBE' | 'CLOUDFLARE';
     streamVideoUid?: string;
@@ -21,6 +27,7 @@ export interface SectionDraftDTO { // Renamed from TopicDraftDTO
     duration?: number;
     orderIndex: number;
     isRequired?: boolean;
+    availableOfflineProfiles?: CourseVideoOfflineProfile[];
     // [NEW] Quiz Data for hydration - SOTA 2025
     quizData?: {
         quizId?: string;
@@ -43,6 +50,7 @@ export interface LessonDraftDTO {
     contentText?: string; // Fallback
     content?: string; // Fallback
     videoUrl?: string; // Fallback
+    streamVideoUid?: string; // Legacy lesson-level stream metadata (read-only migration aid)
     durationSeconds?: number;
     isRequired: boolean;
     // Quiz fields
@@ -106,6 +114,12 @@ export interface CourseDraftDTO {
     courseInformation?: string;
     benefits?: string;
     introVideoUrl?: string;
+    introVideoAssetId?: string;
+    introVideoProcessingStatus?: string;
+    introVideoSourceKind?: VideoSourceKind;
+    introVideoPlaybackUrl?: string;
+    introVideoStreamVideoUid?: string;
+    introVideoAvailableOfflineProfiles?: CourseVideoOfflineProfile[];
     credits?: number;
     visibility?: 'PUBLIC' | 'PRIVATE';
     priceType?: 'FREE' | 'PAID';
@@ -143,6 +157,12 @@ interface CourseDetailResponse {
     courseInformation?: string;
     benefits?: string;
     introVideoUrl?: string;
+    introVideoAssetId?: string;
+    introVideoProcessingStatus?: string;
+    introVideoSourceKind?: VideoSourceKind;
+    introVideoPlaybackUrl?: string;
+    introVideoStreamVideoUid?: string;
+    introVideoAvailableOfflineProfiles?: CourseVideoOfflineProfile[];
     credits?: number;
     visibility?: string;
     priceType?: string;
@@ -189,6 +209,9 @@ interface ChapterResponse { // Was SectionWithLessons
             title: string;
             type: string;
             content?: string;
+            videoAssetId?: string;
+            videoProcessingStatus?: string;
+            videoSourceKind?: VideoSourceKind;
             videoUrl?: string;
             videoType?: 'YOUTUBE' | 'CLOUDFLARE';
             streamVideoUid?: string;
@@ -196,6 +219,7 @@ interface ChapterResponse { // Was SectionWithLessons
             duration?: number;
             orderIndex: number;
             isRequired?: boolean;
+            availableOfflineProfiles?: CourseVideoOfflineProfile[];
             // [NEW] Quiz Data for hydration - SOTA 2025
             quizData?: {
                 quizId?: string;
@@ -214,6 +238,9 @@ interface ChapterResponse { // Was SectionWithLessons
             title: string;
             type: string;
             content?: string;
+            videoAssetId?: string;
+            videoProcessingStatus?: string;
+            videoSourceKind?: VideoSourceKind;
             videoUrl?: string;
             videoType?: 'YOUTUBE' | 'CLOUDFLARE';
             streamVideoUid?: string;
@@ -221,6 +248,7 @@ interface ChapterResponse { // Was SectionWithLessons
             duration?: number;
             orderIndex: number;
             isRequired?: boolean;
+            availableOfflineProfiles?: CourseVideoOfflineProfile[];
             quizData?: {
                 quizId?: string;
                 timeLimitMinutes?: number;
@@ -286,6 +314,9 @@ export class CourseAuthoringService {
                             title: t.title,
                             type: (t.type || 'TEXT').toUpperCase(),
                             content: t.content,
+                            videoAssetId: t.videoAssetId,
+                            videoProcessingStatus: t.videoProcessingStatus,
+                            videoSourceKind: t.videoSourceKind,
                             videoUrl: t.videoUrl,
                             videoType: t.videoType,
                             streamVideoUid: t.streamVideoUid,
@@ -293,6 +324,7 @@ export class CourseAuthoringService {
                             duration: t.duration,
                             orderIndex: t.orderIndex,
                             isRequired: t.isRequired,
+                            availableOfflineProfiles: t.availableOfflineProfiles || [],
                             // [NEW] Quiz Data hydration - SOTA 2025
                             quizData: t.quizData ? {
                                 quizId: t.quizData.quizId,
@@ -322,6 +354,12 @@ export class CourseAuthoringService {
                     courseInformation: courseData.courseInformation,
                     benefits: courseData.benefits,
                     introVideoUrl: courseData.introVideoUrl,
+                    introVideoAssetId: courseData.introVideoAssetId,
+                    introVideoProcessingStatus: courseData.introVideoProcessingStatus,
+                    introVideoSourceKind: courseData.introVideoSourceKind,
+                    introVideoPlaybackUrl: courseData.introVideoPlaybackUrl,
+                    introVideoStreamVideoUid: courseData.introVideoStreamVideoUid,
+                    introVideoAvailableOfflineProfiles: courseData.introVideoAvailableOfflineProfiles ?? [],
                     credits: courseData.credits,
                     visibility: courseData.visibility as CourseDraftDTO['visibility'],
                     priceType: courseData.priceType as CourseDraftDTO['priceType'],
@@ -379,6 +417,7 @@ export class CourseAuthoringService {
         courseInformation: string | null;
         benefits: string | null;
         introVideoUrl: string | null;
+        introVideoAssetId: string | null;
         credits: number | null;
         visibility: string;
         priceType: string;

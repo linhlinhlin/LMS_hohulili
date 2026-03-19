@@ -1,17 +1,28 @@
 import { Injectable, signal } from '@angular/core';
 import {
   ensureOfflineDbReady,
+  getCurrentUserId,
   isOfflineDbUnavailableError,
   isOfflinePersistenceSupported,
   offlineDb,
-  getCurrentUserId,
+  type OfflineLessonSection,
 } from '../db/lms-offline.db';
+import type { OfflineVideoProfileId, VideoSourceKind } from '../models/video-quality';
 
 export interface OfflineVideoEntry {
+  cacheKey: string;
   lessonId: string;
+  lessonTitle: string;
+  sectionId?: string;
+  sectionTitle?: string;
+  courseId?: string;
   title: string;
   sizeBytes: number;
   downloadedAt: Date;
+  profileId?: OfflineVideoProfileId | null;
+  profileLabel?: string | null;
+  actualResolution?: string | null;
+  sourceKind?: VideoSourceKind;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -25,6 +36,7 @@ export class OfflineVideoService {
     if (!this.offlineSupported) {
       return;
     }
+
     void this.refreshList().catch((error) => {
       if (!isOfflineDbUnavailableError(error)) {
         console.error('[OfflineVideoService] Failed to initialize offline video list:', error);
@@ -32,11 +44,7 @@ export class OfflineVideoService {
     });
   }
 
-  /**
-   * Download video and stream directly to Cache API (zero RAM accumulation).
-   * Google Kino PWA pattern: ReadableStream -> Cache API pipe.
-   */
-  async downloadVideo(videoUrl: string, lessonId: string, title: string): Promise<void> {
+  async downloadVideo(videoUrl: string, lessonId: string): Promise<void> {
     if (this.isDownloading()) return;
     this.isDownloading.set(true);
 
@@ -45,72 +53,32 @@ export class OfflineVideoService {
       const response = await fetch(videoUrl);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      const reader = response.body?.getReader();
-      const contentLength = Number(response.headers.get('content-length')) || 0;
-      const contentType = response.headers.get('content-type') || 'video/mp4';
+      await this.cacheVideoResponse(`/offline-video/${lessonId}`, response, lessonId);
 
-      if (!reader) throw new Error('No readable stream');
-
-      let received = 0;
-
-      // Create a ReadableStream that tracks progress without accumulating chunks in RAM
-      const progressStream = new ReadableStream({
-        pull: async (controller) => {
-          const { done, value } = await reader.read();
-          if (done) {
-            controller.close();
-            return;
-          }
-
-          received += value.length;
-          controller.enqueue(value);
-
-          if (contentLength > 0) {
-            this.downloadProgress.update(map => {
-              const newMap = new Map(map);
-              newMap.set(lessonId, Math.round((received / contentLength) * 100));
-              return newMap;
-            });
-          }
-        },
-        cancel: () => {
-          reader.cancel();
-        },
-      });
-
-      // Write directly to Cache API — zero RAM accumulation
-      const cache = await caches.open('offline-videos');
-      const cacheResponse = new Response(progressStream, {
-        headers: {
-          'Content-Type': contentType,
-          ...(contentLength > 0 ? { 'Content-Length': String(contentLength) } : {}),
-        },
-      });
-      await cache.put(`/offline-video/${lessonId}`, cacheResponse);
-
-      // Update IndexedDB lesson record (compound primary key: [userId, lessonId])
       const userId = getCurrentUserId();
       const existingLesson = await offlineDb.lessons.get([userId, lessonId]);
       if (existingLesson) {
+        const lessonOfflineUri = `/offline-video/${lessonId}`;
+        const repairedSections = this.applyLessonOfflineUriToVideoSections(existingLesson.sections, lessonOfflineUri);
         await offlineDb.lessons.update([userId, lessonId], {
-          videoOfflineUri: `cache:${lessonId}`,
+          videoOfflineUri: lessonOfflineUri,
+          ...(repairedSections !== existingLesson.sections ? { sections: repairedSections } : {}),
           downloadedAt: new Date(),
         });
       }
 
-      this.downloadProgress.update(map => {
-        const newMap = new Map(map);
-        newMap.delete(lessonId);
-        return newMap;
-      });
-
+      this.clearDownloadProgress(lessonId);
       await this.refreshList();
     } finally {
       this.isDownloading.set(false);
     }
   }
 
-  async downloadSectionVideo(videoUrl: string, sectionId: string): Promise<string> {
+  async downloadSectionVideo(
+    videoUrl: string,
+    lessonId: string,
+    sectionId: string,
+  ): Promise<string> {
     if (this.isDownloading()) {
       throw new Error('Video download already in progress');
     }
@@ -121,40 +89,37 @@ export class OfflineVideoService {
       const response = await fetch(videoUrl);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      const cache = await caches.open('offline-videos');
-      await cache.put(`/offline-video/${sectionId}`, response);
+      await this.cacheVideoResponse(`/offline-video/${sectionId}`, response, sectionId);
+      this.clearDownloadProgress(sectionId);
+
+      const userId = getCurrentUserId();
+      const lesson = await offlineDb.lessons.get([userId, lessonId]);
+      if (lesson) {
+        await offlineDb.lessons.update([userId, lessonId], {
+          downloadedAt: lesson.downloadedAt || new Date(),
+        });
+      }
+
+      await this.refreshList();
       return `/offline-video/${sectionId}`;
     } finally {
       this.isDownloading.set(false);
     }
   }
 
-  /**
-   * Get video URL for offline playback.
-   *
-   * Returns a virtual path `/offline-video/{lessonId}` that the SW wrapper
-   * intercepts and serves directly from Cache API. The browser streams
-   * chunk-by-chunk from disk — zero RAM usage. Supports Range requests
-   * for seeking.
-   *
-   * OOM FIX: Previously this loaded the entire video blob into RAM via
-   * response.blob() + URL.createObjectURL(). A 500MB video = 500MB RAM = crash.
-   */
   async getVideoUrl(lessonId: string): Promise<string | null> {
     if (!(await this.ensureOfflineReady(true))) {
       return null;
     }
-    // Verify lesson belongs to current user before serving video
+
     const userId = getCurrentUserId();
     const lesson = await offlineDb.lessons.get([userId, lessonId]);
     if (!lesson) return null;
 
-    // Verify video actually exists in cache
     const cache = await caches.open('offline-videos');
     const response = await cache.match(`/offline-video/${lessonId}`);
     if (!response) return null;
 
-    // Return virtual path — SW wrapper serves from Cache API (zero RAM)
     return `/offline-video/${lessonId}`;
   }
 
@@ -168,10 +133,20 @@ export class OfflineVideoService {
     return response ? `/offline-video/${sectionId}` : null;
   }
 
+  async deleteEntry(entry: OfflineVideoEntry): Promise<void> {
+    if (entry.sectionId) {
+      await this.deleteSectionVideo(entry.sectionId);
+      return;
+    }
+
+    await this.deleteVideo(entry.lessonId);
+  }
+
   async deleteVideo(lessonId: string): Promise<void> {
     if (!(await this.ensureOfflineReady(true))) {
       return;
     }
+
     const cache = await caches.open('offline-videos');
     await cache.delete(`/offline-video/${lessonId}`);
 
@@ -191,10 +166,11 @@ export class OfflineVideoService {
 
     const cache = await caches.open('offline-videos');
     await cache.delete(`/offline-video/${sectionId}`);
+    await this.refreshList();
   }
 
   isAvailableOffline(lessonId: string): boolean {
-    return this.downloads().some(d => d.lessonId === lessonId);
+    return this.downloads().some(entry => entry.lessonId === lessonId);
   }
 
   async refreshList(): Promise<void> {
@@ -202,35 +178,193 @@ export class OfflineVideoService {
       this.downloads.set([]);
       return;
     }
+
     try {
       const cache = await caches.open('offline-videos');
       const keys = await cache.keys();
       const entries: OfflineVideoEntry[] = [];
       const userId = getCurrentUserId();
+      const lessons = await offlineDb.lessons.where('userId').equals(userId).toArray();
+      const lessonMap = new Map(lessons.map(lesson => [lesson.id, lesson]));
+      const sectionMap = new Map(
+        lessons.flatMap(lesson =>
+          (lesson.sections ?? [])
+            .filter(section => section.type === 'VIDEO')
+            .map(section => [section.id, {
+              lessonId: lesson.id,
+              lessonTitle: lesson.title,
+              sectionTitle: section.title || lesson.title,
+              courseId: lesson.courseId,
+              downloadedAt: lesson.downloadedAt || new Date(),
+              profileId: section.downloadedVideoProfileId ?? null,
+              profileLabel: section.downloadedVideoProfileLabel ?? null,
+              actualResolution: section.downloadedVideoResolution ?? null,
+              sourceKind: section.videoSourceKind,
+            }] as const),
+        ),
+      );
 
       for (const request of keys) {
         const url = new URL(request.url);
-        const lessonId = url.pathname.replace('/offline-video/', '');
+        const cacheKey = url.pathname.replace('/offline-video/', '');
         const response = await cache.match(request);
         if (!response) continue;
 
-        // Use Content-Length header to avoid loading blob into RAM
         const sizeBytes = Number(response.headers.get('content-length')) || 0;
-        const lesson = await offlineDb.lessons.get([userId, lessonId]);
-        if (!lesson) continue;
+        const lesson = lessonMap.get(cacheKey);
+        if (lesson) {
+          const hasDedicatedVideoSections = (lesson.sections ?? []).some(
+            section => section.type === 'VIDEO' && !!section.videoOfflineUri,
+          );
+          if (hasDedicatedVideoSections) {
+            continue;
+          }
+          entries.push({
+            cacheKey,
+            lessonId: lesson.id,
+            lessonTitle: lesson.title,
+            courseId: lesson.courseId,
+            title: lesson.title || cacheKey,
+            sizeBytes,
+            downloadedAt: lesson.downloadedAt || new Date(),
+            profileId: lesson.downloadedVideoProfileId ?? null,
+            profileLabel: lesson.downloadedVideoProfileLabel ?? null,
+            actualResolution: lesson.downloadedVideoResolution ?? null,
+            sourceKind: lesson.videoSourceKind,
+          });
+          continue;
+        }
+
+        const section = sectionMap.get(cacheKey);
+        if (!section) continue;
 
         entries.push({
-          lessonId,
-          title: lesson?.title || lessonId,
+          cacheKey,
+          lessonId: section.lessonId,
+          lessonTitle: section.lessonTitle,
+          sectionId: cacheKey,
+          sectionTitle: section.sectionTitle,
+          courseId: section.courseId,
+          title: section.sectionTitle || section.lessonTitle || cacheKey,
           sizeBytes,
-          downloadedAt: lesson?.downloadedAt || new Date(),
+          downloadedAt: section.downloadedAt,
+          profileId: section.profileId,
+          profileLabel: section.profileLabel,
+          actualResolution: section.actualResolution,
+          sourceKind: section.sourceKind,
         });
       }
 
+      entries.sort((left, right) => {
+        if (left.lessonTitle !== right.lessonTitle) {
+          return left.lessonTitle.localeCompare(right.lessonTitle);
+        }
+
+        return (left.sectionTitle || left.title).localeCompare(right.sectionTitle || right.title);
+      });
+
       this.downloads.set(entries);
     } catch {
-      // Cache API not available
+      // Cache API unavailable
     }
+  }
+
+  private clearDownloadProgress(progressKey: string): void {
+    this.downloadProgress.update(map => {
+      const next = new Map(map);
+      next.delete(progressKey);
+      return next;
+    });
+  }
+
+  private applyLessonOfflineUriToVideoSections(
+    sections: OfflineLessonSection[] | undefined,
+    lessonOfflineUri: string,
+  ): OfflineLessonSection[] | undefined {
+    if (!Array.isArray(sections) || sections.length === 0) {
+      return sections;
+    }
+
+    let changed = false;
+    const updatedSections = sections.map((section) => {
+      const isYoutube = section?.videoType === 'YOUTUBE'
+        || (typeof section?.videoUrl === 'string'
+          && /(youtube\.com|youtu\.be)/i.test(section.videoUrl));
+
+      if (
+        section?.type !== 'VIDEO'
+        || section?.videoOfflineUri
+        || section?.streamVideoUid
+        || isYoutube
+      ) {
+        return section;
+      }
+
+      changed = true;
+      return {
+        ...section,
+        videoUrl: lessonOfflineUri,
+        videoOfflineUri: lessonOfflineUri,
+      };
+    });
+
+    return changed ? updatedSections : sections;
+  }
+
+  private async cacheVideoResponse(
+    cacheKey: string,
+    response: Response,
+    progressKey: string,
+  ): Promise<void> {
+    const contentLength = Number(response.headers.get('content-length')) || 0;
+    const contentType = response.headers.get('content-type') || 'video/mp4';
+    const cache = await caches.open('offline-videos');
+    const reader = response.body?.getReader();
+
+    if (!reader) {
+      const blob = await response.blob();
+      await cache.put(cacheKey, new Response(blob, {
+        headers: {
+          'Content-Type': contentType,
+          'Content-Length': String(contentLength || blob.size),
+          'Accept-Ranges': 'bytes',
+        },
+      }));
+      return;
+    }
+
+    let received = 0;
+    const progressStream = new ReadableStream({
+      pull: async (controller) => {
+        const { done, value } = await reader.read();
+        if (done) {
+          controller.close();
+          return;
+        }
+
+        received += value.length;
+        controller.enqueue(value);
+
+        if (contentLength > 0) {
+          this.downloadProgress.update(map => {
+            const next = new Map(map);
+            next.set(progressKey, Math.round((received / contentLength) * 100));
+            return next;
+          });
+        }
+      },
+      cancel: () => {
+        reader.cancel();
+      },
+    });
+
+    await cache.put(cacheKey, new Response(progressStream, {
+      headers: {
+        'Content-Type': contentType,
+        ...(contentLength > 0 ? { 'Content-Length': String(contentLength) } : {}),
+        'Accept-Ranges': 'bytes',
+      },
+    }));
   }
 
   private async ensureOfflineReady(optional = false): Promise<boolean> {

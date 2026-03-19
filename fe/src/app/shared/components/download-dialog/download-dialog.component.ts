@@ -1,14 +1,28 @@
 import {
-  Component, input, output, signal, computed, inject,
-  ChangeDetectionStrategy, OnInit
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  OnInit,
+  output,
+  signal,
 } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { RouterLink } from '@angular/router';
 import { StorageManagerService } from '../../../core/services/storage-manager.service';
+import { OfflineDeviceSettingsService } from '../../../core/services/offline-device-settings.service';
+import {
+  OFFLINE_VIDEO_PREFERENCES,
+  formatOfflineVideoProfileLabel,
+  getOfflineVideoProfileLabel,
+  type OfflineVideoProfileDescriptor,
+  type OfflineVideoProfileId,
+  type VideoQuality,
+  type VideoSourceKind,
+} from '../../../core/models/video-quality';
 import { environment } from '../../../../environments/environment';
-
-export type VideoQuality = 'none' | '360p' | '720p' | '1080p';
 
 export interface DownloadOptions {
   videoQuality: VideoQuality;
@@ -27,42 +41,37 @@ interface VideoAssetSummary {
   sectionId: string | null;
   durationMinutes: number;
   streamVideoUid?: string;
-  videoType: 'YOUTUBE' | 'CLOUDFLARE' | 'EXTERNAL';
+  sourceKind: VideoSourceKind;
 }
 
-/**
- * Download Dialog — lets user choose video quality before downloading a course.
- *
- * Displays size estimates per quality level, free storage, and warnings.
- * Phase 1: Uses heuristic size estimates (no Cloudflare Stream yet).
- * Phase 2: Will use real sizes from API.
- */
+interface QualityOption {
+  value: VideoQuality;
+  label: string;
+  hint: string;
+}
+
 @Component({
   selector: 'app-download-dialog',
   imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-         (click)="onBackdropClick($event)">
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
-           (click)="$event.stopPropagation()">
-        <!-- Header -->
-        <div class="px-6 pt-6 pb-4">
-          <h3 class="text-lg font-semibold text-gray-900 leading-tight">
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" (click)="onBackdropClick($event)">
+      <div class="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-xl" (click)="$event.stopPropagation()">
+        <div class="px-6 pb-4 pt-6">
+          <h3 class="text-lg font-semibold leading-tight text-gray-900">
             Tải về: "{{ courseTitle() }}"
           </h3>
         </div>
 
         @if (isLoading()) {
-          <div class="px-6 pb-6 flex items-center justify-center h-48">
-            <div class="w-8 h-8 border-2 border-[#0056D2] border-t-transparent rounded-full animate-spin"></div>
+          <div class="flex h-48 items-center justify-center px-6 pb-6">
+            <div class="h-8 w-8 animate-spin rounded-full border-2 border-[#0056D2] border-t-transparent"></div>
           </div>
         } @else {
-          <div class="px-6 space-y-4">
-            <!-- Text content summary -->
+          <div class="space-y-4 px-6">
             <div class="flex items-center justify-between py-2">
               <div class="flex items-center gap-2 text-sm text-gray-700">
-                <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 Nội dung bài học ({{ totalLessons() }} bài)
@@ -72,83 +81,111 @@ interface VideoAssetSummary {
 
             <hr class="border-gray-200">
 
-            <!-- Video section -->
             @if (videoLessonsCount() > 0) {
               <div class="space-y-3">
                 <div class="flex items-center gap-2 text-sm text-gray-700">
-                  <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   Video ({{ videoLessonsCount() }} bài có video)
                 </div>
 
-                <!-- Quality radio buttons -->
-                <div class="space-y-2 ml-6">
-                  @for (option of qualityOptions; track option.value) {
-                    <label class="flex items-center justify-between cursor-pointer group">
+                <div class="ml-6 space-y-2">
+                  @for (option of qualityOptions(); track option.value) {
+                    <label class="group flex cursor-pointer items-center justify-between">
                       <div class="flex items-center gap-2">
-                        <input type="radio"
-                               name="videoQuality"
-                               [value]="option.value"
-                               [checked]="selectedQuality() === option.value"
-                               (change)="selectedQuality.set(option.value)"
-                               class="w-4 h-4 text-[#0056D2] border-gray-300 focus:ring-[#0056D2]">
-                        <span class="text-sm text-gray-700 group-hover:text-gray-900">{{ option.label }}</span>
+                        <input
+                          type="radio"
+                          name="videoQuality"
+                          [value]="option.value"
+                          [checked]="selectedQuality() === option.value"
+                          (change)="selectedQuality.set(option.value)"
+                          class="h-4 w-4 border-gray-300 text-[#0056D2] focus:ring-[#0056D2]">
+                        <div>
+                          <span class="text-sm text-gray-700 group-hover:text-gray-900">
+                            {{ getQualityOptionLabel(option.value) }}
+                          </span>
+                          @if (option.value !== 'none') {
+                            <p class="text-xs text-gray-400">{{ option.hint }}</p>
+                          }
+                        </div>
                       </div>
-                      <span class="text-sm text-gray-500">{{ option.value === 'none' ? '0 MB' : '~' + formatSize(videoSizeForQuality(option.value)) }}</span>
+                      <span class="text-sm text-gray-500">
+                        {{ option.value === 'none' ? '0 MB' : '~' + formatSize(videoSizeForQuality(option.value)) }}
+                      </span>
                     </label>
                   }
                 </div>
+
+                @if (showGroupedProfileFallbackNote()) {
+                  <p class="ml-6 text-xs text-gray-500">
+                    Nếu một video không có đúng mức này, hệ thống sẽ chọn bản gần nhất đang sẵn sàng để tải offline.
+                  </p>
+                }
               </div>
 
-              @if (youtubeVideoCount() > 0) {
+              @if (externalVideoCount() > 0) {
                 <div class="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                  CÃ³ {{ youtubeVideoCount() }} video YouTube/external chá»‰ phÃ¡t online, khÃ´ng táº£i vá» cÃ¹ng gÃ³i offline nÃ y.
+                  Có {{ externalVideoCount() }} video ngoài hệ thống chỉ phát trực tuyến, không tải về cùng gói offline này.
+                </div>
+              }
+
+              @if (originalOnlyVideoCount() > 0) {
+                <div class="rounded-lg bg-slate-100 px-3 py-2 text-xs text-slate-700">
+                  Có {{ originalOnlyVideoCount() }} video chỉ có bản tải ngoại tuyến dạng {{ originalProfileLabel }}.
+                </div>
+              }
+
+              @if (groupedStreamVideoCount() > 0) {
+                <div class="rounded-lg bg-[#0056D2]/5 px-3 py-2 text-xs text-[#0056D2]">
+                  {{ groupedStreamVideoCount() }} video phát trực tuyến đã có profile tải ngoại tuyến theo nhóm Tiết kiệm dữ liệu / Chuẩn / Chất lượng cao.
+                </div>
+              }
+
+              @if (unknownStreamVideoCount() > 0) {
+                <div class="rounded-lg bg-gray-100 px-3 py-2 text-xs text-gray-600">
+                  Không đọc được metadata profile của {{ unknownStreamVideoCount() }} video. Ứng dụng sẽ dùng ước lượng và chọn bản phù hợp nhất khi tải.
                 </div>
               }
 
               <hr class="border-gray-200">
             }
 
-            <!-- Total estimate -->
             <div class="flex items-center justify-between py-1">
               <span class="text-sm font-medium text-gray-900">Tổng ước tính</span>
               <span class="text-sm font-semibold text-gray-900">~{{ formatSize(totalEstimate()) }}</span>
             </div>
 
-            <!-- Free space -->
             <div class="flex items-center justify-between py-1">
               <span class="text-sm text-gray-500">Dung lượng trống</span>
               <span class="text-sm text-gray-500">{{ formatSize(freeSpace()) }}</span>
             </div>
 
-            <!-- Storage warnings -->
             @if (storageWarning()) {
-              <div class="rounded-lg px-3 py-2 text-xs"
-                   [class]="insufficientStorage() ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'">
+              <div
+                class="rounded-lg px-3 py-2 text-xs"
+                [class]="insufficientStorage() ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'">
                 {{ storageWarning() }}
               </div>
             }
 
-            <!-- Storage management link -->
-            <a routerLink="/student/storage" class="block text-xs text-[#0056D2] hover:underline py-1">
+            <a routerLink="/student/storage" class="block py-1 text-xs text-[#0056D2] hover:underline">
               Quản lý bộ nhớ
             </a>
           </div>
 
-          <!-- Footer buttons -->
-          <div class="px-6 py-4 mt-2 flex items-center justify-end gap-3 border-t border-gray-100">
-            <button (click)="close.emit()"
-                    class="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-colors">
+          <div class="mt-2 flex items-center justify-end gap-3 border-t border-gray-100 px-6 py-4">
+            <button
+              (click)="close.emit()"
+              class="rounded-lg px-4 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900">
               Hủy
             </button>
-            <button (click)="onConfirm()"
-                    [disabled]="insufficientStorage()"
-                    class="px-5 py-2 text-sm font-medium text-white rounded-lg transition-colors"
-                    [class]="insufficientStorage()
-                      ? 'bg-gray-300 cursor-not-allowed'
-                      : 'bg-[#0056D2] hover:bg-[#004BB5]'">
+            <button
+              (click)="onConfirm()"
+              [disabled]="insufficientStorage()"
+              class="rounded-lg px-5 py-2 text-sm font-medium text-white transition-colors"
+              [class]="insufficientStorage() ? 'cursor-not-allowed bg-gray-300' : 'bg-[#0056D2] hover:bg-[#004BB5]'">
               Tải về
             </button>
           </div>
@@ -160,6 +197,7 @@ interface VideoAssetSummary {
 export class DownloadDialogComponent implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly storage = inject(StorageManagerService);
+  private readonly offlineSettings = inject(OfflineDeviceSettingsService);
 
   readonly courseId = input.required<string>();
   readonly courseTitle = input<string>('');
@@ -168,62 +206,100 @@ export class DownloadDialogComponent implements OnInit {
   readonly confirm = output<DownloadOptions>();
 
   readonly isLoading = signal(true);
-  readonly selectedQuality = signal<VideoQuality>('720p');
+  readonly selectedQuality = signal<VideoQuality>(this.offlineSettings.defaultVideoQuality());
   readonly freeSpace = signal(0);
   readonly lessons = signal<LessonSummary[]>([]);
-  /** Per-quality real sizes from CF API: quality → total bytes across all CF lessons */
-  readonly cfQualitySizes = signal<Record<string, number>>({});
+  readonly detectedProfileIds = signal<OfflineVideoProfileId[]>([]);
+  readonly profileSizeTotals = signal<Partial<Record<OfflineVideoProfileId, number>>>({});
+  readonly profileResolutionHints = signal<Partial<Record<OfflineVideoProfileId, string>>>({});
+  readonly groupedStreamVideoMinutes = signal(0);
+  readonly groupedStreamVideoCount = signal(0);
+  readonly originalOnlyStreamVideoMinutes = signal(0);
+  readonly originalOnlyStreamVideoCount = signal(0);
+  readonly originalOnlyStreamSizeBytes = signal(0);
+  readonly unknownStreamVideoMinutes = signal(0);
+  readonly unknownStreamVideoCount = signal(0);
+  readonly originalProfileLabel = getOfflineVideoProfileLabel('ORIGINAL');
 
   readonly totalLessons = computed(() => this.lessons().length);
-  readonly videoLessonsCount = computed(() => this.lessons().filter(l => l.hasVideo).length);
+  readonly videoLessonsCount = computed(() => this.lessons().filter((lesson) => lesson.hasVideo).length);
   readonly totalVideoMinutes = computed(() =>
     this.lessons()
-      .flatMap(lesson => lesson.videoAssets)
-      .filter(asset => asset.videoType !== 'YOUTUBE')
-      .reduce((sum, asset) => sum + (asset.durationMinutes || 10), 0)
+      .flatMap((lesson) => lesson.videoAssets)
+      .filter((asset) => asset.sourceKind !== 'EXTERNAL')
+      .reduce((sum, asset) => sum + (asset.durationMinutes || 10), 0),
   );
-  readonly youtubeVideoCount = computed(() =>
+  readonly externalVideoCount = computed(() =>
     this.lessons()
-      .flatMap(lesson => lesson.videoAssets)
-      .filter(asset => asset.videoType === 'YOUTUBE')
-      .length
+      .flatMap((lesson) => lesson.videoAssets)
+      .filter((asset) => asset.sourceKind === 'EXTERNAL')
+      .length,
   );
-
-  /** ~1.5 MB per lesson (HTML + images) */
+  readonly streamVideoCount = computed(() =>
+    this.lessons()
+      .flatMap((lesson) => lesson.videoAssets)
+      .filter((asset) => asset.sourceKind === 'STREAM')
+      .length,
+  );
+  readonly directVideoCount = computed(() =>
+    this.lessons()
+      .flatMap((lesson) => lesson.videoAssets)
+      .filter((asset) => asset.sourceKind === 'LEGACY_DIRECT')
+      .length,
+  );
+  readonly directVideoMinutes = computed(() =>
+    this.lessons()
+      .flatMap((lesson) => lesson.videoAssets)
+      .filter((asset) => asset.sourceKind === 'LEGACY_DIRECT')
+      .reduce((sum, asset) => sum + (asset.durationMinutes || 10), 0),
+  );
+  readonly originalOnlyVideoCount = computed(() => this.directVideoCount() + this.originalOnlyStreamVideoCount());
   readonly textSizeBytes = computed(() => this.totalLessons() * 1.5 * 1024 * 1024);
 
-  /** Video size heuristics per quality level (Phase 1 — no Cloudflare Stream) */
   readonly VIDEO_SIZE_PER_10MIN: Record<VideoQuality, number> = {
-    'none': 0,
-    '360p': 30 * 1024 * 1024,    // ~30 MB per 10 min
-    '720p': 85 * 1024 * 1024,    // ~85 MB per 10 min
-    '1080p': 170 * 1024 * 1024,  // ~170 MB per 10 min
+    none: 0,
+    SAVER: 30 * 1024 * 1024,
+    STANDARD: 85 * 1024 * 1024,
+    HIGH: 170 * 1024 * 1024,
+    ORIGINAL: 120 * 1024 * 1024,
   };
 
-  readonly qualityOptions = [
-    { value: 'none' as VideoQuality, label: 'Không tải video' },
-    { value: '360p' as VideoQuality, label: 'Tiết kiệm (360p)' },
-    { value: '720p' as VideoQuality, label: 'Cân bằng (720p)' },
-    { value: '1080p' as VideoQuality, label: 'Cao (1080p)' },
-  ];
+  readonly qualityOptions = computed<QualityOption[]>(() => {
+    const options: QualityOption[] = [
+      { value: 'none', label: 'Không tải video', hint: '' },
+    ];
+    const detectedProfiles = this.detectedProfileIds();
+    const hasGroupedProfiles = OFFLINE_VIDEO_PREFERENCES.some((profile) => detectedProfiles.includes(profile));
 
-  videoSizeForQuality(quality: VideoQuality): number {
-    if (quality === 'none') return 0;
-    // Use real CF sizes when available (at least one lesson has streamVideoUid)
-    const cfSizes = this.cfQualitySizes();
-    if (cfSizes[quality] != null && cfSizes[quality] > 0) {
-      return cfSizes[quality];
+    if (hasGroupedProfiles) {
+      for (const profile of OFFLINE_VIDEO_PREFERENCES) {
+        if (!detectedProfiles.includes(profile)) {
+          continue;
+        }
+        options.push(this.buildGroupedQualityOption(profile));
+      }
+      return options;
     }
-    // Heuristic fallback (Phase 1)
-    const minutes = this.totalVideoMinutes();
-    const per10min = this.VIDEO_SIZE_PER_10MIN[quality];
-    return Math.round((minutes / 10) * per10min);
-  }
 
-  readonly totalEstimate = computed(() => {
-    const text = this.textSizeBytes();
-    const video = this.videoSizeForQuality(this.selectedQuality());
-    return text + video;
+    if (this.originalOnlyVideoCount() > 0 || detectedProfiles.includes('ORIGINAL')) {
+      options.push(this.buildOriginalQualityOption());
+      return options;
+    }
+
+    if (this.streamVideoCount() > 0) {
+      for (const profile of OFFLINE_VIDEO_PREFERENCES) {
+        options.push(this.buildGroupedQualityOption(profile));
+      }
+    }
+
+    return options;
+  });
+
+  readonly totalEstimate = computed(() => this.textSizeBytes() + this.videoSizeForQuality(this.selectedQuality()));
+
+  readonly showGroupedProfileFallbackNote = computed(() => {
+    const selectedQuality = this.selectedQuality();
+    return selectedQuality !== 'none' && selectedQuality !== 'ORIGINAL' && this.groupedStreamVideoCount() > 0;
   });
 
   readonly storageWarning = computed(() => {
@@ -233,7 +309,7 @@ export class DownloadDialogComponent implements OnInit {
       return 'Không đủ dung lượng để tải. Vui lòng xóa dữ liệu cũ.';
     }
     if (free > 0 && needed > free * 0.8) {
-      return 'Dung lượng còn ít. Tải xong có thể chiếm >80% bộ nhớ trống.';
+      return 'Dung lượng còn ít. Tải xong có thể chiếm hơn 80% bộ nhớ trống.';
     }
     return null;
   });
@@ -246,7 +322,6 @@ export class DownloadDialogComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     try {
-      // Fetch course content + storage estimate in parallel
       const [contentRes, storageEstimate] = await Promise.all([
         firstValueFrom(this.http.get<any>(`${environment.apiUrl}/api/v3/courses/${this.courseId()}/content`)),
         this.storage.refresh(),
@@ -256,12 +331,12 @@ export class DownloadDialogComponent implements OnInit {
       const allLessons: LessonSummary[] = [];
 
       for (const chapter of chapters) {
-        for (const lesson of (chapter.lessons || [])) {
+        for (const lesson of chapter.lessons || []) {
           const videoAssets = this.extractVideoAssets(lesson);
           allLessons.push({
             id: lesson.id,
             title: lesson.title || lesson.name,
-            hasVideo: videoAssets.some(asset => asset.videoType !== 'YOUTUBE'),
+            hasVideo: videoAssets.length > 0,
             durationMinutes: lesson.durationMinutes || 10,
             videoAssets,
           });
@@ -271,69 +346,186 @@ export class DownloadDialogComponent implements OnInit {
       this.lessons.set(allLessons);
       this.freeSpace.set((storageEstimate.quotaBytes ?? 0) - (storageEstimate.usedBytes ?? 0));
 
-      // Try to load real CF sizes for lessons that have Cloudflare Stream
-      const cfVideoAssets = allLessons
-        .flatMap(lesson => lesson.videoAssets)
-        .filter(asset => !!asset.streamVideoUid);
-      if (cfVideoAssets.length > 0) {
-        this.loadCfQualitySizes(cfVideoAssets);
+      const streamVideoAssets = allLessons
+        .flatMap((lesson) => lesson.videoAssets)
+        .filter((asset) => asset.sourceKind === 'STREAM' && !!asset.streamVideoUid);
+      if (streamVideoAssets.length > 0) {
+        await this.loadStreamProfileSizes(streamVideoAssets);
       }
+      this.syncSelectedQualityToAvailableOptions();
     } catch {
-      // Fallback: show dialog without lesson details
       this.lessons.set([]);
     } finally {
       this.isLoading.set(false);
     }
   }
 
-  /**
-   * Fetch real per-quality file sizes from Cloudflare Stream API.
-   * Aggregates across all CF-hosted lessons and sets cfQualitySizes signal.
-   * Non-blocking — heuristics remain if this fails.
-   */
-  private async loadCfQualitySizes(cfVideoAssets: VideoAssetSummary[]): Promise<void> {
-    const totals: Record<string, number> = { '360p': 0, '720p': 0, '1080p': 0 };
-    let hasRealData = false;
+  videoSizeForQuality(quality: VideoQuality): number {
+    if (quality === 'none') {
+      return 0;
+    }
 
-    await Promise.all(cfVideoAssets.map(async asset => {
+    let totalBytes = 0;
+
+    totalBytes += this.estimateBytesForMinutes(this.directVideoMinutes(), 'ORIGINAL');
+
+    const originalOnlyExactSize = this.originalOnlyStreamSizeBytes();
+    if (originalOnlyExactSize > 0) {
+      totalBytes += originalOnlyExactSize;
+    } else {
+      totalBytes += this.estimateBytesForMinutes(this.originalOnlyStreamVideoMinutes(), 'ORIGINAL');
+    }
+
+    if (quality === 'ORIGINAL') {
+      totalBytes += this.estimateBytesForMinutes(
+        this.groupedStreamVideoMinutes() + this.unknownStreamVideoMinutes(),
+        'ORIGINAL',
+      );
+      return totalBytes;
+    }
+
+    const groupedTotals = this.profileSizeTotals();
+    const exactGroupedSize = groupedTotals[quality] ?? 0;
+    if (exactGroupedSize > 0) {
+      totalBytes += exactGroupedSize;
+    } else {
+      totalBytes += this.estimateBytesForMinutes(this.groupedStreamVideoMinutes(), quality);
+    }
+
+    totalBytes += this.estimateBytesForMinutes(this.unknownStreamVideoMinutes(), quality);
+    return totalBytes;
+  }
+
+  getQualityOptionLabel(quality: VideoQuality): string {
+    const option = this.qualityOptions().find((item) => item.value === quality);
+    if (!option || quality === 'none') {
+      return option?.label ?? '';
+    }
+
+    const resolutionHint = this.profileResolutionHints()[quality];
+    return resolutionHint
+      ? formatOfflineVideoProfileLabel({ id: quality, actualResolution: resolutionHint })
+      : option.label;
+  }
+
+  private async loadStreamProfileSizes(videoAssets: VideoAssetSummary[]): Promise<void> {
+    const totals: Partial<Record<OfflineVideoProfileId, number>> = {};
+    const resolutions = new Map<OfflineVideoProfileId, Set<string>>();
+    const detectedProfiles = new Set<OfflineVideoProfileId>();
+    let groupedMinutes = 0;
+    let groupedCount = 0;
+    let originalOnlyMinutes = 0;
+    let originalOnlyCount = 0;
+    let originalOnlySizeBytes = 0;
+    let unknownMinutes = 0;
+    let unknownCount = 0;
+
+    await Promise.all(videoAssets.map(async (asset) => {
       try {
         const endpoint = asset.sectionId
           ? `${environment.apiUrl}/api/v3/sections/${asset.sectionId}/video/sizes`
           : `${environment.apiUrl}/api/v3/lessons/${asset.lessonId}/video/sizes`;
-        const res: any = await firstValueFrom(this.http.get(endpoint));
-        const sizes: Record<string, number> = res?.sizes ?? res?.data?.sizes ?? {};
-        for (const q of ['360p', '720p', '1080p'] as const) {
-          if (sizes[q] > 0) {
-            totals[q] += sizes[q];
-            hasRealData = true;
-          }
+        const response: any = await firstValueFrom(this.http.get(endpoint));
+        const rawProfiles = (response?.profiles ?? response?.data?.profiles ?? []) as OfflineVideoProfileDescriptor[];
+        const profiles: Array<OfflineVideoProfileDescriptor & { id: OfflineVideoProfileId }> = rawProfiles.filter(
+          (profile: OfflineVideoProfileDescriptor): profile is OfflineVideoProfileDescriptor & { id: OfflineVideoProfileId } =>
+            this.isOfflineProfileId(profile.id),
+        );
+
+        if (profiles.length === 0) {
+          unknownMinutes += asset.durationMinutes;
+          unknownCount += 1;
+          return;
         }
+
+        const groupedProfiles = profiles.filter(
+          (
+            profile,
+          ): profile is OfflineVideoProfileDescriptor & { id: Exclude<OfflineVideoProfileId, 'ORIGINAL'> } =>
+            profile.id !== 'ORIGINAL',
+        );
+        if (groupedProfiles.length > 0) {
+          groupedMinutes += asset.durationMinutes;
+          groupedCount += 1;
+
+          for (const profile of groupedProfiles) {
+            detectedProfiles.add(profile.id);
+            if ((profile.sizeBytes ?? 0) > 0) {
+              totals[profile.id] = (totals[profile.id] ?? 0) + (profile.sizeBytes ?? 0);
+            }
+            if (profile.actualResolution) {
+              const current = resolutions.get(profile.id) ?? new Set<string>();
+              current.add(profile.actualResolution);
+              resolutions.set(profile.id, current);
+            }
+          }
+          return;
+        }
+
+        const originalProfile = profiles.find(
+          (profile): profile is OfflineVideoProfileDescriptor & { id: 'ORIGINAL' } => profile.id === 'ORIGINAL',
+        );
+        if (originalProfile) {
+          detectedProfiles.add('ORIGINAL');
+          originalOnlyMinutes += asset.durationMinutes;
+          originalOnlyCount += 1;
+          if ((originalProfile.sizeBytes ?? 0) > 0) {
+            originalOnlySizeBytes += originalProfile.sizeBytes ?? 0;
+          }
+          if (originalProfile.actualResolution) {
+            const current = resolutions.get('ORIGINAL') ?? new Set<string>();
+            current.add(originalProfile.actualResolution);
+            resolutions.set('ORIGINAL', current);
+          }
+          return;
+        }
+
+        unknownMinutes += asset.durationMinutes;
+        unknownCount += 1;
       } catch {
-        // Non-fatal — heuristics will be used for this lesson
+        unknownMinutes += asset.durationMinutes;
+        unknownCount += 1;
       }
     }));
 
-    if (hasRealData) {
-      this.cfQualitySizes.set(totals);
-    }
+    this.detectedProfileIds.set(this.sortProfileIds([...detectedProfiles]));
+    this.profileSizeTotals.set(totals);
+    this.profileResolutionHints.set({
+      SAVER: this.pickResolutionHint(resolutions.get('SAVER')),
+      STANDARD: this.pickResolutionHint(resolutions.get('STANDARD')),
+      HIGH: this.pickResolutionHint(resolutions.get('HIGH')),
+      ORIGINAL: this.pickResolutionHint(resolutions.get('ORIGINAL')),
+    });
+    this.groupedStreamVideoMinutes.set(groupedMinutes);
+    this.groupedStreamVideoCount.set(groupedCount);
+    this.originalOnlyStreamVideoMinutes.set(originalOnlyMinutes);
+    this.originalOnlyStreamVideoCount.set(originalOnlyCount);
+    this.originalOnlyStreamSizeBytes.set(originalOnlySizeBytes);
+    this.unknownStreamVideoMinutes.set(unknownMinutes);
+    this.unknownStreamVideoCount.set(unknownCount);
   }
 
   private extractVideoAssets(lesson: any): VideoAssetSummary[] {
     const lessonDuration = lesson.durationMinutes || 10;
-    const inferVideoType = (
+    const inferSourceKind = (
       videoUrl?: string | null,
-      streamVideoUid?: string | null
-    ): 'YOUTUBE' | 'CLOUDFLARE' | 'EXTERNAL' => {
+      streamVideoUid?: string | null,
+      explicitSourceKind?: string | null,
+    ): VideoSourceKind => {
+      if (explicitSourceKind === 'STREAM' || explicitSourceKind === 'EXTERNAL' || explicitSourceKind === 'LEGACY_DIRECT') {
+        return explicitSourceKind;
+      }
+
       if (streamVideoUid) {
-        return 'CLOUDFLARE';
+        return 'STREAM';
       }
 
       const normalizedUrl = (videoUrl || '').toLowerCase();
       if (normalizedUrl.includes('youtube.com') || normalizedUrl.includes('youtu.be')) {
-        return 'YOUTUBE';
+        return 'EXTERNAL';
       }
 
-      return 'EXTERNAL';
+      return videoUrl ? 'LEGACY_DIRECT' : 'EXTERNAL';
     };
 
     if (Array.isArray(lesson.sections) && lesson.sections.length > 0) {
@@ -344,7 +536,7 @@ export class DownloadDialogComponent implements OnInit {
           sectionId: section.id,
           durationMinutes: section.durationMinutes || lessonDuration,
           streamVideoUid: section.streamVideoUid || undefined,
-          videoType: inferVideoType(section.videoUrl, section.streamVideoUid),
+          sourceKind: inferSourceKind(section.videoUrl, section.streamVideoUid, section.videoSourceKind),
         }));
     }
 
@@ -354,11 +546,77 @@ export class DownloadDialogComponent implements OnInit {
         sectionId: null,
         durationMinutes: lessonDuration,
         streamVideoUid: lesson.streamVideoUid || undefined,
-        videoType: inferVideoType(lesson.videoUrl, lesson.streamVideoUid),
+        sourceKind: inferSourceKind(lesson.videoUrl, lesson.streamVideoUid, lesson.videoSourceKind),
       }];
     }
 
     return [];
+  }
+
+  private buildGroupedQualityOption(profile: OfflineVideoProfileId): QualityOption {
+    return {
+      value: profile,
+      label: getOfflineVideoProfileLabel(profile),
+      hint: this.getGroupedProfileHint(profile),
+    };
+  }
+
+  private buildOriginalQualityOption(): QualityOption {
+    return {
+      value: 'ORIGINAL',
+      label: getOfflineVideoProfileLabel('ORIGINAL'),
+      hint: 'Giữ nguyên tệp gốc khi video chỉ có bản tải ngoại tuyến dạng gốc.',
+    };
+  }
+
+  private getGroupedProfileHint(profile: OfflineVideoProfileId): string {
+    switch (profile) {
+      case 'SAVER':
+        return 'Ưu tiên gói nhỏ nhất mà video thật sự đang có.';
+      case 'STANDARD':
+        return 'Mức cân bằng cho đa số bài học và thiết bị.';
+      case 'HIGH':
+        return 'Dùng bản tốt nhất nếu video đã có sẵn.';
+      default:
+        return this.buildOriginalQualityOption().hint;
+    }
+  }
+
+  private estimateBytesForMinutes(minutes: number, quality: VideoQuality): number {
+    if (minutes <= 0 || quality === 'none') {
+      return 0;
+    }
+    return Math.round((minutes / 10) * this.VIDEO_SIZE_PER_10MIN[quality]);
+  }
+
+  private sortProfileIds(profileIds: OfflineVideoProfileId[]): OfflineVideoProfileId[] {
+    const order: OfflineVideoProfileId[] = ['SAVER', 'STANDARD', 'HIGH', 'ORIGINAL'];
+    return [...profileIds].sort((left, right) => order.indexOf(left) - order.indexOf(right));
+  }
+
+  private isOfflineProfileId(profileId: unknown): profileId is OfflineVideoProfileId {
+    return profileId === 'SAVER'
+      || profileId === 'STANDARD'
+      || profileId === 'HIGH'
+      || profileId === 'ORIGINAL';
+  }
+
+  private syncSelectedQualityToAvailableOptions(): void {
+    const availableValues = new Set(this.qualityOptions().map((option) => option.value));
+    if (availableValues.has(this.selectedQuality())) {
+      return;
+    }
+
+    const firstDownloadableOption = this.qualityOptions().find((option) => option.value !== 'none')?.value ?? 'none';
+    this.selectedQuality.set(firstDownloadableOption);
+  }
+
+  private pickResolutionHint(values: Set<string> | undefined): string | undefined {
+    if (!values || values.size === 0) {
+      return undefined;
+    }
+
+    return [...values].sort((left, right) => left.localeCompare(right)).at(-1);
   }
 
   onBackdropClick(event: MouseEvent): void {
@@ -372,9 +630,15 @@ export class DownloadDialogComponent implements OnInit {
   }
 
   formatSize(bytes: number): string {
-    if (bytes === 0) return '0 MB';
-    if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
-    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+    if (bytes === 0) {
+      return '0 MB';
+    }
+    if (bytes < 1024 * 1024) {
+      return `${Math.round(bytes / 1024)} KB`;
+    }
+    if (bytes < 1024 * 1024 * 1024) {
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
   }
 }

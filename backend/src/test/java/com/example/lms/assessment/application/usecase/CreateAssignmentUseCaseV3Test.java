@@ -93,6 +93,27 @@ class CreateAssignmentUseCaseV3Test {
         }
 
         @Test
+        @DisplayName("Should infer CLASS distribution from classId when distributionType is omitted")
+        void shouldInferClassDistributionFromClassId() {
+            UUID courseId = UUID.randomUUID();
+            UUID classId = UUID.randomUUID();
+            Course course = mock(Course.class);
+            doReturn(Course.DeliveryMode.INSTRUCTOR_LED).when(course).getDeliveryMode();
+            doReturn(Optional.of(course)).when(courseRepository).findById(courseId);
+            doAnswer(invocation -> invocation.getArgument(0)).when(assignmentRepository).save(any(Assignment.class));
+
+            CreateAssignmentCommand command = new CreateAssignmentCommand(
+                    UUID.randomUUID(), courseId, "Task", "desc", "instr",
+                    "FILE_UPLOAD", 50, null, null, null, null, classId, null
+            );
+
+            UUID result = useCase.execute(command);
+
+            assertThat(result).isNotNull();
+            verify(assignmentRepository).allocate(any(UUID.class), eq("CLASS"), eq(classId), eq(null));
+        }
+
+        @Test
         @DisplayName("Should set due date when provided")
         void shouldSetDueDateWhenProvided() {
             UUID courseId = UUID.randomUUID();

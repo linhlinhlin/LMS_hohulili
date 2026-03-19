@@ -34,6 +34,7 @@ public class CourseEntityMapper {
         entity.setCourseInformation(domain.getCourseInformation());
         entity.setBenefits(domain.getBenefits());
         entity.setIntroVideoUrl(domain.getIntroVideoUrl());
+        entity.setIntroVideoAssetId(domain.getIntroVideoAssetId());
         entity.setCredits(domain.getCredits());
         entity.setVisibility(mapVisibilityToEntity(domain.getVisibility()));
         entity.setPriceType(mapPriceTypeToEntity(domain.getPriceType()));
@@ -135,6 +136,7 @@ public class CourseEntityMapper {
             setField(course, "courseInformation", entity.getCourseInformation());
             setField(course, "benefits", entity.getBenefits());
             setField(course, "introVideoUrl", entity.getIntroVideoUrl());
+            setField(course, "introVideoAssetId", entity.getIntroVideoAssetId());
             setField(course, "credits", entity.getCredits());
             setField(course, "visibility", mapVisibilityToDomain(entity.getVisibility()));
             setField(course, "priceType", mapPriceTypeToDomain(entity.getPriceType()));

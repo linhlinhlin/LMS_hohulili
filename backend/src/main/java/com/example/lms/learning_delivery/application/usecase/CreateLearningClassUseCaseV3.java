@@ -1,8 +1,8 @@
 package com.example.lms.learning_delivery.application.usecase;
 
+import com.example.lms.course_authoring.application.port.CoursePublicationPort;
 import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepository;
-import com.example.lms.course_authoring.infrastructure.persistence.repository.CoursePublicationJpaRepository;
 import com.example.lms.shared.exception.BusinessRuleException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +22,7 @@ import java.util.UUID;
 public class CreateLearningClassUseCaseV3 {
 
     private final LearningClassRepository classRepository;
-    private final CoursePublicationJpaRepository publicationRepository;
+    private final CoursePublicationPort coursePublicationPort;
 
     public record CreateClassCommand(
         UUID courseId,
@@ -56,8 +56,7 @@ public class CreateLearningClassUseCaseV3 {
             }
         }
 
-        UUID latestPublicationId = publicationRepository.findTopByCourseIdOrderByPublicationNumberDesc(command.courseId())
-                .map(publication -> publication.getId())
+        UUID latestPublicationId = coursePublicationPort.findLatestPublicationId(command.courseId())
                 .orElse(null);
 
         // Create domain model

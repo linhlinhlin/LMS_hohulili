@@ -21,7 +21,7 @@ public class UpdateCourseUseCase {
 
     private final CourseRepository courseRepository;
     private final EnrollmentRepositoryPort enrollmentRepository;
-    private final CourseDraftMutationService courseDraftMutationService;
+    private final CourseDraftMutationUseCase courseDraftMutationUseCase;
 
     @Transactional
     public CourseResponse execute(UpdateCourseCommand command) {
@@ -35,7 +35,7 @@ public class UpdateCourseUseCase {
             throw new UnauthorizedException("chỉnh sửa", "khóa học này");
         }
 
-        courseDraftMutationService.requireEditableCourse(command.courseId());
+        courseDraftMutationUseCase.requireEditableCourse(command.courseId());
 
         // Update basic info
         course.updateInfo(command.title(), command.description());
@@ -61,6 +61,7 @@ public class UpdateCourseUseCase {
             command.courseInformation(),
             command.benefits(),
             command.introVideoUrl(),
+            command.introVideoAssetId(),
             command.credits()
         );
 

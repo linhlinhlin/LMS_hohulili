@@ -4,12 +4,13 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
-import org.apache.pdfbox.pdmodel.font.PDType1Font;
-import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
+import org.apache.pdfbox.pdmodel.font.PDFont;
+import org.apache.pdfbox.pdmodel.font.PDType0Font;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -21,6 +22,9 @@ import java.util.UUID;
  */
 @Service
 public class CertificatePdfService {
+
+    private static final String FONT_REGULAR_PATH = "/fonts/roboto-400.ttf";
+    private static final String FONT_BOLD_PATH = "/fonts/roboto-500.ttf";
 
     private static final DateTimeFormatter VN_DATE = DateTimeFormatter
             .ofPattern("dd/MM/yyyy")
@@ -50,9 +54,9 @@ public class CertificatePdfService {
             float pageHeight = page.getMediaBox().getHeight();
 
             try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
-                PDType1Font fontBold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-                PDType1Font fontRegular = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
-                PDType1Font fontItalic = new PDType1Font(Standard14Fonts.FontName.HELVETICA_OBLIQUE);
+                PDFont fontBold = loadFont(doc, FONT_BOLD_PATH);
+                PDFont fontRegular = loadFont(doc, FONT_REGULAR_PATH);
+                PDFont fontItalic = fontRegular;
 
                 // Border
                 float borderMargin = 30;
@@ -116,8 +120,17 @@ public class CertificatePdfService {
         }
     }
 
+    private PDFont loadFont(PDDocument doc, String resourcePath) throws IOException {
+        try (InputStream input = CertificatePdfService.class.getResourceAsStream(resourcePath)) {
+            if (input == null) {
+                throw new IOException("Không tìm thấy font resource: " + resourcePath);
+            }
+            return PDType0Font.load(doc, input);
+        }
+    }
+
     private void drawCenteredText(PDPageContentStream cs, String text, float centerX, float y,
-                                   PDType1Font font, float fontSize, float pageWidth) throws IOException {
+                                   PDFont font, float fontSize, float pageWidth) throws IOException {
         float textWidth = font.getStringWidth(text) / 1000 * fontSize;
         float x = (pageWidth - textWidth) / 2;
         cs.beginText();

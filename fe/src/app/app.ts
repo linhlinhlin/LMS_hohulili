@@ -1,6 +1,5 @@
 import { Component, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { PwaService } from './core/services/pwa.service';
 import { SwUpdateService } from './core/services/sw-update.service';
 import { ToastContainerComponent } from './shared/components/toast-container/toast-container.component';
 import { ConfirmDialogComponent } from './shared/components/confirm-dialog/confirm-dialog.component';
@@ -8,6 +7,7 @@ import { OfflineIndicatorComponent } from './shared/components/offline-indicator
 import { SessionExpiredBannerComponent } from './shared/components/session-expired-banner/session-expired-banner.component';
 import { SessionExpiredService } from './core/services/session-expired.service';
 import { WebMcpService } from './core/services/webmcp.service';
+import { OfflineStorageTelemetryIngestService } from './core/services/offline-storage-telemetry-ingest.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -22,10 +22,10 @@ import { WebMcpService } from './core/services/webmcp.service';
   `,
 })
 export class App {
-  private pwaService = inject(PwaService);
   private swUpdate = inject(SwUpdateService);
   private sessionService = inject(SessionExpiredService);
   private webMcp = inject(WebMcpService);
+  private offlineStorageTelemetryIngest = inject(OfflineStorageTelemetryIngestService);
   protected readonly title = signal('LMS Maritime - Hệ thống Quản lý Học tập Phân tán');
 
   constructor() {

@@ -1,13 +1,11 @@
-import { Component, signal, inject, ChangeDetectionStrategy, computed } from '@angular/core';
-
-import { RouterModule, Router, ActivatedRoute } from '@angular/router';
-import { FormBuilder, FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 import { NetworkStatusService } from '../../../core/services/network-status.service';
 import { LoginRequest } from '../../../shared/types/user.types';
 import { UserRole } from '../../../shared/types/user.types';
 
-// Typed form interface
 type LoginForm = {
   email: FormControl<string>;
   password: FormControl<string>;
@@ -18,7 +16,7 @@ type LoginForm = {
   selector: 'app-login',
   imports: [RouterModule, ReactiveFormsModule],
   templateUrl: './login.component.html',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoginComponent {
   protected authService = inject(AuthService);
@@ -35,7 +33,6 @@ export class LoginComponent {
   isLoading = signal(false);
   errorMessage = signal('');
 
-  /** 3-mode login page: Online / Offline+Resume / Offline+NoSession */
   readonly isOffline = computed(() => !this.network.online());
   readonly canResume = computed(() =>
     this.isOffline() && this.authService.canResumeSession()
@@ -48,7 +45,9 @@ export class LoginComponent {
   );
   readonly savedUserInitial = computed(() => {
     const user = this.savedUser();
-    if (!user) return '';
+    if (!user) {
+      return '';
+    }
     const name = user.fullName || user.name || user.email || '';
     return name.charAt(0).toUpperCase();
   });
@@ -57,11 +56,10 @@ export class LoginComponent {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, this.emailOrUsernameValidator]],
       password: ['', [Validators.required, Validators.minLength(6)]],
-      rememberMe: [false]
+      rememberMe: [false],
     }) as FormGroup<LoginForm>;
   }
 
-  /** Resume the offline session — restores UI state from cached tokens */
   resumeOffline(): void {
     this.authService.resumeOfflineSession();
   }
@@ -78,7 +76,7 @@ export class LoginComponent {
     const formValue = this.loginForm.getRawValue();
     const credentials: LoginRequest = {
       email: formValue.email,
-      password: formValue.password
+      password: formValue.password,
     };
 
     this.authService.login(credentials).subscribe({
@@ -91,14 +89,15 @@ export class LoginComponent {
       error: (error: any) => {
         this.isLoading.set(false);
         this.errorMessage.set(error.error?.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
-      }
+      },
     });
   }
 
-  // Allow either a valid email or a simple username (alphanumeric, dots, underscores, hyphens)
   private emailOrUsernameValidator(control: any) {
     const value = (control?.value || '').trim();
-    if (!value) return { required: true };
+    if (!value) {
+      return { required: true };
+    }
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
     const isUsername = /^[a-zA-Z0-9._-]{3,}$/.test(value);
     return isEmail || isUsername ? null : { emailOrUsername: true };
@@ -131,7 +130,6 @@ export class LoginComponent {
   }
 
   getErrorMessage(error: string): string {
-    // Map common error messages to user-friendly Vietnamese messages
     const errorMappings: Record<string, string> = {
       'Invalid credentials': 'Tên đăng nhập hoặc mật khẩu không đúng',
       'User not found': 'Tài khoản không tồn tại',
@@ -139,17 +137,15 @@ export class LoginComponent {
       'Too many attempts': 'Quá nhiều lần thử đăng nhập. Vui lòng thử lại sau.',
       'Network error': 'Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet.',
       'Server error': 'Lỗi máy chủ. Vui lòng thử lại sau.',
-      'Login failed': 'Đăng nhập thất bại. Vui lòng thử lại.'
+      'Login failed': 'Đăng nhập thất bại. Vui lòng thử lại.',
     };
 
-    // Check if the error message contains any known patterns
     for (const [key, message] of Object.entries(errorMappings)) {
       if (error.toLowerCase().includes(key.toLowerCase())) {
         return message;
       }
     }
 
-    // Return the original error if no mapping found
     return error;
   }
 }

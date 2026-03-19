@@ -169,7 +169,7 @@ public class StudentAssessmentAccessAdapter implements StudentAssessmentAccessPo
     }
 
     private StudentEnrollmentContext loadEnrollmentContext(UUID studentId) {
-        List<EnrollmentJpaEntity> enrollments = enrollmentRepository.findActiveWithClass(studentId);
+        List<EnrollmentJpaEntity> enrollments = enrollmentRepository.findActiveAndCompletedWithClass(studentId);
         Set<UUID> courseIds = new HashSet<>();
         Set<UUID> classIds = new HashSet<>();
 

@@ -60,6 +60,36 @@ SERVER_PORT=8088 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 
 ---
 
+## Current Video Runtime
+
+- Teacher upload path: `upload/init -> presigned PUT -> upload/confirm -> POST /api/v3/video-assets/from-upload`
+- Storage layout:
+  - `CLOUDFLARE_R2_BUCKET`: public/general LMS assets such as files and covers (`lms-cdn`)
+  - `CLOUDFLARE_R2_VIDEO_BUCKET`: private learner-facing video/storage objects (`lms-storage`)
+- Upload path now supports multipart direct-to-R2 for larger video files instead of relying only on a single PUT request
+- Processing path: `ffprobe` + `ffmpeg` + `Shaka Packager`
+- Production compose can run a dedicated `video-worker` service so ingest can be isolated from the web-serving backend
+- `video-worker` needs a network with outbound internet access in production; attaching it only to Docker `internal` networks will break R2 fetch/upload operations during ingest
+- Learner playback path: backend-signed adaptive manifest (`HLS` default, `DASH` supported) + short-lived presigned R2 segment/object redirects
+- Offline path: LMS-managed MP4 profiles `SAVER`, `STANDARD`, `HIGH`, `ORIGINAL`
+- Published learner content comes from `course_publications` snapshots. If a teacher adds or changes `videoAssetId` on an already `APPROVED` course, the draft must be submitted and approved again before learner smoke will see the new internal video.
+- Observed production baseline on the current VM: a sample `~156 MB` `1080p` upload took a little over `20 minutes` to reach `READY/READY`. That impacts teacher upload-to-ready latency and ingest queue throughput, not playback quality/performance for assets already `READY`.
+- `upload -> READY` latency is not primarily the learner/teacher network upload speed. After upload finishes, the worker still has to `download source -> ffprobe -> ffmpeg renditions -> Shaka package -> upload adaptive package`, so bottlenecks usually sit in worker CPU/IO.
+- Ingest now exposes three safe tuning knobs for production experiments without code changes: `VIDEO_PACKAGE_UPLOAD_CONCURRENCY`, `VIDEO_ADAPTIVE_SEGMENT_DURATION_SECONDS`, and `VIDEO_FFMPEG_PRESET`.
+- The repository now claims ingest jobs with `SKIP LOCKED` semantics before processing so future worker scale-out has a safer foundation than the old plain polling approach.
+- Multipart upload smoke on production confirmed that real R2 `multipart_upload_id` values can exceed `255` characters, so `upload_sessions.multipart_upload_id` must stay on a wide type such as `text`.
+- The worker now uses a one-pass multi-rendition ffmpeg path for adaptive transcodes so `SAVER` and `STANDARD` no longer re-decode the same source in separate ffmpeg runs.
+- Latest production measurement on the current VM: after switching to `VIDEO_FFMPEG_PRESET=superfast` and one-pass transcode, the sample `~156 MB / 1080p` asset reached `READY/READY` in about `14m19s` instead of `21m22s`; the trade-off is higher `SAVER` / `STANDARD` output size and average bandwidth than the older `veryfast` baseline.
+- Reusable production smoke helper now lives at `../scripts/prod-video-smoke.ps1` for `upload -> confirm -> asset -> READY -> manifest preview` verification.
+- Playback now uses short-lived backend caches for raw manifests and presigned object redirects, which lowers repeat R2 reads/signing work when multiple learners are pulling the same asset around the same time.
+- `../docker-compose.prod.yml` now exposes resource tuning knobs such as `VIDEO_WORKER_CPU_LIMIT`, `VIDEO_WORKER_MEMORY_LIMIT`, `BACKEND_CPU_LIMIT`, and `BACKEND_MEMORY_LIMIT` so production can rebalance worker vs web capacity without editing the compose file itself.
+- Cloudflare Stream is no longer the target runtime dependency for new internal video. Keep `CLOUDFLARE_STREAM_ENABLED=false` unless doing legacy investigation.
+- Setup/cutover runbooks:
+  - `../docs/runbooks/CLOUDFLARE_R2_VIDEO_SETUP.md`
+  - `../docs/runbooks/VIDEO_R2_SHAKA_CUTOVER_CHECKLIST.md`
+
+---
+
 ## Architecture
 
 ### Clean Architecture + DDD (Modular Monolith)
@@ -1009,6 +1039,8 @@ docker compose down -v && docker compose up -d
 
 ### Environment Variables
 
+For production env names, use the repo-root `.env.prod.example` as the source of truth.
+
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SPRING_PROFILES_ACTIVE` | dev | Active profile |
@@ -1017,10 +1049,16 @@ docker compose down -v && docker compose up -d
 | `SPRING_DATASOURCE_PASSWORD` | lms | DB password |
 | `CORS_ALLOWED_ORIGINS` | http://localhost:4200 | CORS origins (comma-separated) |
 | `SPRING_AI_SERVICE_URL` | (Render URL) | AI chatbot backend |
-| `R2_ACCESS_KEY` | - | Cloudflare R2 access key |
-| `R2_SECRET_KEY` | - | Cloudflare R2 secret key |
-| `R2_BUCKET_NAME` | - | R2 bucket name |
-| `R2_ENDPOINT` | - | R2 endpoint URL |
+| `CLOUDFLARE_R2_ENABLED` | false | Enable Cloudflare R2 storage |
+| `CLOUDFLARE_R2_ACCOUNT_ID` | - | Cloudflare account ID used for R2 endpoint construction |
+| `CLOUDFLARE_R2_ACCESS_KEY` | - | Cloudflare R2 S3 access key |
+| `CLOUDFLARE_R2_SECRET_KEY` | - | Cloudflare R2 S3 secret key |
+| `CLOUDFLARE_R2_BUCKET` | lms-cdn | Public/general LMS asset bucket |
+| `CLOUDFLARE_R2_VIDEO_BUCKET` | lms-storage | Private adaptive video bucket |
+| `CLOUDFLARE_R2_PUBLIC_URL` | - | Public URL / custom domain for `CLOUDFLARE_R2_BUCKET` |
+| `VIDEO_PLAYBACK_TOKEN_EXPIRY_SECONDS` | 14400 | Backend-signed adaptive playback session TTL |
+| `VIDEO_SEGMENT_PRESIGN_TTL_SECONDS` | 120 | TTL for redirected segment/object presigned URLs |
+| `CLOUDFLARE_STREAM_ENABLED` | false | Legacy-only switch; keep disabled for current video stack |
 | `MAIL_USERNAME` | - | SMTP username (Gmail email) |
 | `MAIL_PASSWORD` | - | SMTP password (Gmail App Password) |
 | `MAIL_FROM` | LMS Maritime | Email sender display name |
@@ -1307,7 +1345,7 @@ public ResponseEntity<?> create(@Valid @RequestBody CreateCourseCommand cmd) {
 JPA repository using domain model. Check `infrastructure/persistence/` for repos extending `JpaRepository<DomainModel, UUID>` and change to `JpaRepository<XJpaEntity, UUID>`.
 
 ### "Access key cannot be blank"
-R2 storage not configured. Set `R2_ACCESS_KEY`, `R2_SECRET_KEY`, `R2_BUCKET_NAME`, `R2_ENDPOINT` env vars, or disable R2 in `application-dev.yml`.
+R2 storage not configured. Set `CLOUDFLARE_R2_ACCOUNT_ID`, `CLOUDFLARE_R2_ACCESS_KEY`, `CLOUDFLARE_R2_SECRET_KEY`, and the required bucket vars in `.env.prod` / `.env`, or disable R2 in `application-dev.yml`.
 
 ### Bean name collision
 Two `@Component` classes with same bean name across modules. Add explicit `@Component("moduleName_BeanName")`.
@@ -1338,4 +1376,4 @@ docker inspect "$(docker compose -f docker-compose.yml -f docker-compose.dev.yml
 
 ---
 
-*Last updated: 2026-03-06*
+*Last updated: 2026-03-19*

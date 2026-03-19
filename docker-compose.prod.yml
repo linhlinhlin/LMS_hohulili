@@ -3,6 +3,62 @@
 # Usage: docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d
 # =============================================================================
 
+x-backend-runtime-env: &backend-runtime-env
+  SPRING_PROFILES_ACTIVE: prod
+  LOGGING_LEVEL_ROOT: WARN
+  LOGGING_LEVEL_COM_EXAMPLE_LMS: INFO
+  SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-lms}
+  SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-lms}
+  SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-lms}
+  APP_JWT_SECRET: ${JWT_SECRET:-development-only-secret-change-in-prod}
+  APP_JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+  APP_JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-604800000}
+  CLOUDFLARE_R2_ENABLED: ${CLOUDFLARE_R2_ENABLED:-false}
+  CLOUDFLARE_R2_ACCOUNT_ID: ${CLOUDFLARE_R2_ACCOUNT_ID:-}
+  CLOUDFLARE_R2_ACCESS_KEY: ${CLOUDFLARE_R2_ACCESS_KEY:-}
+  CLOUDFLARE_R2_SECRET_KEY: ${CLOUDFLARE_R2_SECRET_KEY:-}
+  CLOUDFLARE_R2_BUCKET: ${CLOUDFLARE_R2_BUCKET:-lms-cdn}
+  CLOUDFLARE_R2_VIDEO_BUCKET: ${CLOUDFLARE_R2_VIDEO_BUCKET:-lms-storage}
+  CLOUDFLARE_R2_PUBLIC_URL: ${CLOUDFLARE_R2_PUBLIC_URL:-}
+  VIDEO_INGEST_ENABLED: "true"
+  VIDEO_PLAYBACK_TOKEN_EXPIRY_SECONDS: ${VIDEO_PLAYBACK_TOKEN_EXPIRY_SECONDS:-14400}
+  VIDEO_SEGMENT_PRESIGN_TTL_SECONDS: ${VIDEO_SEGMENT_PRESIGN_TTL_SECONDS:-120}
+  VIDEO_MANIFEST_CACHE_SECONDS: ${VIDEO_MANIFEST_CACHE_SECONDS:-60}
+  VIDEO_OBJECT_REDIRECT_CACHE_SECONDS: ${VIDEO_OBJECT_REDIRECT_CACHE_SECONDS:-30}
+  VIDEO_PACKAGE_UPLOAD_CONCURRENCY: ${VIDEO_PACKAGE_UPLOAD_CONCURRENCY:-6}
+  VIDEO_ADAPTIVE_SEGMENT_DURATION_SECONDS: ${VIDEO_ADAPTIVE_SEGMENT_DURATION_SECONDS:-6}
+  VIDEO_FFMPEG_PRESET: ${VIDEO_FFMPEG_PRESET:-veryfast}
+  CLOUDFLARE_STREAM_ENABLED: ${CLOUDFLARE_STREAM_ENABLED:-false}
+  CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:-}
+  CLOUDFLARE_STREAM_API_TOKEN: ${CLOUDFLARE_STREAM_API_TOKEN:-}
+  CLOUDFLARE_STREAM_KEY_ID: ${CLOUDFLARE_STREAM_KEY_ID:-}
+  CLOUDFLARE_STREAM_PRIVATE_KEY: ${CLOUDFLARE_STREAM_PRIVATE_KEY:-}
+  CLOUDFLARE_STREAM_TOKEN_EXPIRY: ${CLOUDFLARE_STREAM_TOKEN_EXPIRY:-14400}
+  APP_BASE_URL: ${APP_BASE_URL:-https://holilihu.online}
+  APP_CORS_ORIGINS: ${APP_CORS_ORIGINS:-https://holilihu.online}
+  AI_SERVICE_URL: ${AI_SERVICE_URL:-https://wiii.holilihu.online}
+  AI_SERVICE_API_KEY: ${AI_SERVICE_API_KEY:-}
+  WIII_WEBHOOK_URL: ${WIII_WEBHOOK_URL:-}
+  WIII_WEBHOOK_SECRET: ${WIII_WEBHOOK_SECRET:-}
+  WIII_WEBHOOK_ENABLED: ${WIII_WEBHOOK_ENABLED:-false}
+  WIII_SERVICE_TOKEN: ${WIII_SERVICE_TOKEN:-}
+  WIII_TOKEN_EXCHANGE_URL: ${WIII_TOKEN_EXCHANGE_URL:-}
+  SPRING_MAIL_HOST: ${MAIL_HOST:-}
+  SPRING_MAIL_PORT: ${MAIL_PORT:-587}
+  SPRING_MAIL_USERNAME: ${MAIL_USERNAME:-}
+  SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+  RESEND_API_KEY: ${RESEND_API_KEY:-}
+  VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-}
+  VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
+  VNPAY_PAY_URL: ${VNPAY_PAY_URL:-}
+  SEPAY_ENABLED: ${SEPAY_ENABLED:-false}
+  SEPAY_BANK_CODE: ${SEPAY_BANK_CODE:-}
+  SEPAY_ACCOUNT_NUMBER: ${SEPAY_ACCOUNT_NUMBER:-}
+  SEPAY_ACCOUNT_NAME: ${SEPAY_ACCOUNT_NAME:-}
+  SEPAY_WEBHOOK_API_KEY: ${SEPAY_WEBHOOK_API_KEY:-}
+  SEPAY_TEMPLATE_CODE: ${SEPAY_TEMPLATE_CODE:-compact2}
+  JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
+
 services:
   db:
     # No port exposure in production - internal network only
@@ -15,20 +71,66 @@ services:
           memory: 256M
 
   backend:
-    # NO ports exposed — Caddy proxies internally via lms-frontend network
+    # NO ports exposed - Caddy proxies internally via lms-frontend network
     restart: always
     environment:
       SPRING_PROFILES_ACTIVE: prod
       LOGGING_LEVEL_ROOT: WARN
       LOGGING_LEVEL_COM_EXAMPLE_LMS: INFO
+      VIDEO_INGEST_ENABLED: "false"
+    cpus: "${BACKEND_CPU_LIMIT:-1.5}"
+    mem_limit: "${BACKEND_MEMORY_LIMIT:-1536M}"
+    mem_reservation: "${BACKEND_MEMORY_RESERVATION:-768M}"
     deploy:
       resources:
         limits:
-          cpus: '1.5'
-          memory: 1536M
+          cpus: "${BACKEND_CPU_LIMIT:-1.5}"
+          memory: "${BACKEND_MEMORY_LIMIT:-1536M}"
         reservations:
-          cpus: '0.5'
-          memory: 768M
+          cpus: "${BACKEND_CPU_RESERVATION:-0.5}"
+          memory: "${BACKEND_MEMORY_RESERVATION:-768M}"
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+  video-worker:
+    profiles:
+      - video-worker
+    init: true
+    restart: always
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      <<: *backend-runtime-env
+    volumes:
+      - lms-uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - lms-backend
+      - lms-frontend
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cpus: "${VIDEO_WORKER_CPU_LIMIT:-1.5}"
+    mem_limit: "${VIDEO_WORKER_MEMORY_LIMIT:-1536M}"
+    mem_reservation: "${VIDEO_WORKER_MEMORY_RESERVATION:-768M}"
+    deploy:
+      resources:
+        limits:
+          cpus: "${VIDEO_WORKER_CPU_LIMIT:-1.5}"
+          memory: "${VIDEO_WORKER_MEMORY_LIMIT:-1536M}"
+        reservations:
+          cpus: "${VIDEO_WORKER_CPU_RESERVATION:-0.5}"
+          memory: "${VIDEO_WORKER_MEMORY_RESERVATION:-768M}"
       restart_policy:
         condition: on-failure
         delay: 5s
@@ -36,16 +138,18 @@ services:
         window: 120s
 
   frontend:
-    # NO ports exposed — Caddy proxies internally
+    # NO ports exposed - Caddy proxies internally
     # Node.js SSR (~80-150MB) + nginx (~10MB) = ~200MB typical
     restart: always
     environment:
       NG_ALLOWED_HOSTS: "holilihu.online,localhost"
+    cpus: "${FRONTEND_CPU_LIMIT:-0.5}"
+    mem_limit: "${FRONTEND_MEMORY_LIMIT:-384M}"
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 384M
+          cpus: "${FRONTEND_CPU_LIMIT:-0.5}"
+          memory: "${FRONTEND_MEMORY_LIMIT:-384M}"
 
   # ===== Caddy Reverse Proxy (Auto-HTTPS) =====
   caddy:
@@ -54,7 +158,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "443:443/udp"   # HTTP/3 QUIC
+      - "443:443/udp"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -67,8 +171,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
-          memory: 128M
+          cpus: "${CADDY_CPU_LIMIT:-0.25}"
+          memory: "${CADDY_MEMORY_LIMIT:-128M}"
     networks:
       - lms-frontend
     logging:

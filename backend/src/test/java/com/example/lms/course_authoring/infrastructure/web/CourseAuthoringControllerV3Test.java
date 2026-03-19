@@ -5,7 +5,7 @@ import com.example.lms.course_authoring.application.usecase.CreateChapterUseCase
 import com.example.lms.course_authoring.application.usecase.CreateLessonUseCaseV3;
 import com.example.lms.course_authoring.application.usecase.DeleteChapterUseCase;
 import com.example.lms.course_authoring.application.usecase.DeleteLessonUseCase;
-import com.example.lms.course_authoring.application.usecase.CourseDraftMutationService;
+import com.example.lms.course_authoring.application.usecase.CourseDraftMutationUseCase;
 import com.example.lms.course_authoring.application.usecase.UpdateChapterUseCase;
 import com.example.lms.course_authoring.application.usecase.UpdateCourseUseCase;
 import com.example.lms.course_authoring.application.usecase.UpdateLessonUseCase;
@@ -14,10 +14,12 @@ import com.example.lms.course_authoring.infrastructure.persistence.entity.Lesson
 import com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
+import com.example.lms.learning_delivery.infrastructure.persistence.entity.VideoAssetJpaEntity;
 import com.example.lms.shared.domain.model.ContentBlock;
 import com.example.lms.shared.exception.EntityNotFoundException;
 import com.example.lms.shared.infrastructure.service.FileManagementService;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -79,6 +81,9 @@ class CourseAuthoringControllerV3Test {
     private FileManagementService fileManagementService;
 
     @Mock
+    private com.example.lms.learning_delivery.infrastructure.service.VideoAssetLifecycleService videoAssetLifecycleService;
+
+    @Mock
     private ChapterJpaRepository chapterJpaRepository;
 
     @Mock
@@ -88,7 +93,7 @@ class CourseAuthoringControllerV3Test {
     private CourseRepository courseRepository;
 
     @Mock
-    private CourseDraftMutationService courseDraftMutationService;
+    private CourseDraftMutationUseCase courseDraftMutationUseCase;
 
     private CourseAuthoringControllerV3 controller;
     private ObjectMapper objectMapper;
@@ -106,10 +111,11 @@ class CourseAuthoringControllerV3Test {
                 manageContentBlockUseCase,
                 updateCourseUseCase,
                 fileManagementService,
+                videoAssetLifecycleService,
                 chapterJpaRepository,
                 lessonJpaRepository,
                 courseRepository,
-                courseDraftMutationService,
+                courseDraftMutationUseCase,
                 objectMapper
         );
     }
@@ -229,5 +235,364 @@ class CourseAuthoringControllerV3Test {
         Map<String, Object> quizData = (Map<String, Object>) payloadCaptor.getValue().get("quizData");
         assertThat(quizData).isNotNull();
         assertThat(quizData.get("questionIds")).isEqualTo(List.of(questionId));
+    }
+
+    @Test
+    @DisplayName("Should reject creating a new video section from an external URL")
+    void shouldRejectCreatingNewVideoSectionFromExternalUrl() {
+        UUID lessonId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        UserJpaEntity user = new UserJpaEntity();
+        user.setId(userId);
+        user.setRole(UserJpaEntity.UserRole.TEACHER);
+
+        var response = controller.addSection(
+                lessonId,
+                """
+                {
+                  "lessonId": "%s",
+                  "title": "Video legacy",
+                  "type": "VIDEO",
+                  "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+                }
+                """.formatted(lessonId),
+                null,
+                user
+        );
+
+        assertThat(response.getStatusCode().is4xxClientError()).isTrue();
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMessage()).contains("tải lên nội bộ");
+        verifyNoInteractions(manageContentBlockUseCase);
+    }
+
+    @Test
+    @DisplayName("Should allow updating a legacy external video section when the URL is unchanged")
+    void shouldAllowUpdatingLegacyExternalVideoSectionWhenUrlIsUnchanged() {
+        UUID lessonId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        String sectionId = "legacy-video-1";
+        String legacyUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+
+        UserJpaEntity user = new UserJpaEntity();
+        user.setId(userId);
+        user.setRole(UserJpaEntity.UserRole.TEACHER);
+
+        when(manageContentBlockUseCase.getBlocks(lessonId))
+                .thenReturn(List.of(ContentBlock.of(sectionId, "VIDEO", Map.of("videoUrl", legacyUrl))));
+        when(manageContentBlockUseCase.updateBlock(eq(lessonId), eq(sectionId), anyMap(), eq(userId), eq(false)))
+                .thenReturn(ContentBlock.of(sectionId, "VIDEO", Map.of("videoUrl", legacyUrl)));
+
+        var response = controller.updateSection(
+                lessonId,
+                sectionId,
+                """
+                {
+                  "lessonId": "%s",
+                  "title": "Video legacy",
+                  "type": "VIDEO",
+                  "videoUrl": "%s"
+                }
+                """.formatted(lessonId, legacyUrl),
+                null,
+                user
+        );
+
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        verify(manageContentBlockUseCase).getBlocks(lessonId);
+        verify(manageContentBlockUseCase).updateBlock(eq(lessonId), eq(sectionId), anyMap(), eq(userId), eq(false));
+    }
+
+    @Test
+    @DisplayName("Should reject creating a new lesson with a legacy video URL")
+    void shouldRejectCreatingNewLessonWithLegacyVideoUrl() {
+        UUID chapterId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        UserJpaEntity user = new UserJpaEntity();
+        user.setId(userId);
+        user.setRole(UserJpaEntity.UserRole.TEACHER);
+
+        assertThatThrownBy(() -> controller.createLesson(
+                chapterId,
+                new CourseAuthoringControllerV3.CreateLessonRequest(
+                        "Legacy lesson",
+                        "Mo ta",
+                        "LECTURE",
+                        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                        10,
+                        0,
+                        false
+                ),
+                user
+        ))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class)
+                .hasMessageContaining("asset pipeline");
+
+        verifyNoInteractions(createLessonUseCase);
+    }
+
+    @Test
+    @DisplayName("Should allow updating a legacy lesson when the lesson video URL is unchanged")
+    void shouldAllowUpdatingLegacyLessonWhenVideoUrlIsUnchanged() {
+        UUID courseId = UUID.randomUUID();
+        UUID chapterId = UUID.randomUUID();
+        UUID lessonId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        String legacyUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+
+        LessonJpaEntity lesson = LessonJpaEntity.builder()
+                .id(lessonId)
+                .chapterId(chapterId)
+                .title("Legacy lesson")
+                .videoUrl(legacyUrl)
+                .type(LessonJpaEntity.LessonType.LECTURE)
+                .build();
+
+        UserJpaEntity user = new UserJpaEntity();
+        user.setId(userId);
+        user.setRole(UserJpaEntity.UserRole.TEACHER);
+
+        when(lessonJpaRepository.findById(lessonId)).thenReturn(Optional.of(lesson));
+        when(updateLessonUseCase.execute(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new com.example.lms.course_authoring.application.dto.LessonResponse(
+                        lessonId,
+                        "Legacy lesson",
+                        "Mo ta",
+                        "Noi dung",
+                        legacyUrl,
+                        "LECTURE",
+                        0,
+                        10,
+                        false,
+                        false,
+                        0,
+                        Instant.now(),
+                        Instant.now()
+                ));
+
+        var response = controller.updateLesson(
+                lessonId,
+                new CourseAuthoringControllerV3.UpdateLessonRequest(
+                        courseId,
+                        chapterId,
+                        "Legacy lesson",
+                        "Mo ta",
+                        "LECTURE",
+                        "Noi dung",
+                        legacyUrl,
+                        10,
+                        false,
+                        false
+                ),
+                user
+        );
+
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        verify(lessonJpaRepository).findById(lessonId);
+        verify(updateLessonUseCase).execute(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    @DisplayName("Should reject assigning a new legacy URL to lesson-level video")
+    void shouldRejectAssigningNewLegacyUrlToLessonLevelVideo() {
+        UUID courseId = UUID.randomUUID();
+        UUID chapterId = UUID.randomUUID();
+        UUID lessonId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        LessonJpaEntity lesson = LessonJpaEntity.builder()
+                .id(lessonId)
+                .chapterId(chapterId)
+                .title("Legacy lesson")
+                .type(LessonJpaEntity.LessonType.LECTURE)
+                .build();
+
+        UserJpaEntity user = new UserJpaEntity();
+        user.setId(userId);
+        user.setRole(UserJpaEntity.UserRole.TEACHER);
+
+        when(lessonJpaRepository.findById(lessonId)).thenReturn(Optional.of(lesson));
+
+        assertThatThrownBy(() -> controller.updateLesson(
+                lessonId,
+                new CourseAuthoringControllerV3.UpdateLessonRequest(
+                        courseId,
+                        chapterId,
+                        "Legacy lesson",
+                        "Mo ta",
+                        "LECTURE",
+                        "Noi dung",
+                        "https://cdn.example.com/new-video.mp4",
+                        10,
+                        false,
+                        false
+                ),
+                user
+        ))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class)
+                .hasMessageContaining("video section");
+
+        verify(lessonJpaRepository).findById(lessonId);
+        verifyNoInteractions(updateLessonUseCase);
+    }
+
+    @Test
+    @DisplayName("Should reject assigning a new external intro video URL when no intro asset is provided")
+    void shouldRejectAssigningNewExternalIntroVideoUrlWhenNoIntroAssetIsProvided() {
+        UUID courseId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        UserJpaEntity user = new UserJpaEntity();
+        user.setId(userId);
+        user.setRole(UserJpaEntity.UserRole.TEACHER);
+
+        var course = org.mockito.Mockito.mock(com.example.lms.course_authoring.domain.model.Course.class);
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(course));
+        when(course.getIntroVideoUrl()).thenReturn(null);
+
+        assertThatThrownBy(() -> controller.updateCourse(
+                courseId,
+                new CourseAuthoringControllerV3.UpdateCourseRequest(
+                        "Khoa hoc",
+                        "Mo ta",
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                        null,
+                        null,
+                        null,
+                        "FREE",
+                        null,
+                        null,
+                        "SELF_PACED",
+                        true
+                ),
+                user
+        ))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class)
+                .hasMessageContaining("video asset");
+
+        verify(courseRepository).findById(courseId);
+        verifyNoInteractions(updateCourseUseCase);
+        verifyNoInteractions(videoAssetLifecycleService);
+    }
+
+    @Test
+    @DisplayName("Should sanitize legacy fields when creating a new video section from a validated asset")
+    void shouldSanitizeLegacyFieldsWhenCreatingNewVideoSectionFromValidatedAsset() {
+        UUID lessonId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID assetId = UUID.randomUUID();
+
+        UserJpaEntity user = new UserJpaEntity();
+        user.setId(userId);
+        user.setRole(UserJpaEntity.UserRole.TEACHER);
+
+        when(videoAssetLifecycleService.requireAccessibleAsset(assetId, user))
+                .thenReturn(VideoAssetJpaEntity.builder().id(assetId).ownerId(userId).build());
+        when(manageContentBlockUseCase.addBlock(eq(lessonId), eq("VIDEO"), anyMap(), eq(userId), eq(false)))
+                .thenReturn(ContentBlock.of("section-video-asset", "VIDEO", Map.of("videoAssetId", assetId.toString())));
+
+        var response = controller.addSection(
+                lessonId,
+                """
+                {
+                  "lessonId": "%s",
+                  "title": "Video asset",
+                  "type": "VIDEO",
+                  "videoAssetId": "%s",
+                  "videoUrl": "https://legacy.example/video.mp4",
+                  "streamVideoUid": "legacy-stream-uid",
+                  "videoType": "CLOUDFLARE",
+                  "cfObjectKey": "videos/legacy.mp4"
+                }
+                """.formatted(lessonId, assetId),
+                null,
+                user
+        );
+
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Object>> payloadCaptor = ArgumentCaptor.forClass((Class) Map.class);
+        verify(manageContentBlockUseCase).addBlock(eq(lessonId), eq("VIDEO"), payloadCaptor.capture(), eq(userId), eq(false));
+        verify(videoAssetLifecycleService).requireAccessibleAsset(assetId, user);
+
+        assertThat(payloadCaptor.getValue())
+                .containsEntry("videoAssetId", assetId.toString())
+                .doesNotContainKeys("videoUrl", "streamVideoUid", "videoType", "cfObjectKey");
+    }
+
+    @Test
+    @DisplayName("Should reject creating a new video section with a manual stream UID")
+    void shouldRejectCreatingNewVideoSectionWithManualStreamUid() {
+        UUID lessonId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        UserJpaEntity user = new UserJpaEntity();
+        user.setId(userId);
+        user.setRole(UserJpaEntity.UserRole.TEACHER);
+
+        var response = controller.addSection(
+                lessonId,
+                """
+                {
+                  "lessonId": "%s",
+                  "title": "Video stream",
+                  "type": "VIDEO",
+                  "streamVideoUid": "manual-stream-uid"
+                }
+                """.formatted(lessonId),
+                null,
+                user
+        );
+
+        assertThat(response.getStatusCode().is4xxClientError()).isTrue();
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMessage()).contains("streamVideoUid");
+        verifyNoInteractions(manageContentBlockUseCase);
+    }
+
+    @Test
+    @DisplayName("Should allow updating a legacy video section when stream UID is unchanged")
+    void shouldAllowUpdatingLegacyVideoSectionWhenStreamUidIsUnchanged() {
+        UUID lessonId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        String sectionId = "legacy-stream-section";
+        String legacyStreamUid = "legacy-stream-uid";
+
+        UserJpaEntity user = new UserJpaEntity();
+        user.setId(userId);
+        user.setRole(UserJpaEntity.UserRole.TEACHER);
+
+        when(manageContentBlockUseCase.getBlocks(lessonId))
+                .thenReturn(List.of(ContentBlock.of(sectionId, "VIDEO", Map.of("streamVideoUid", legacyStreamUid))));
+        when(manageContentBlockUseCase.updateBlock(eq(lessonId), eq(sectionId), anyMap(), eq(userId), eq(false)))
+                .thenReturn(ContentBlock.of(sectionId, "VIDEO", Map.of("streamVideoUid", legacyStreamUid)));
+
+        var response = controller.updateSection(
+                lessonId,
+                sectionId,
+                """
+                {
+                  "lessonId": "%s",
+                  "title": "Video stream legacy",
+                  "type": "VIDEO",
+                  "streamVideoUid": "%s"
+                }
+                """.formatted(lessonId, legacyStreamUid),
+                null,
+                user
+        );
+
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        verify(manageContentBlockUseCase).getBlocks(lessonId);
+        verify(manageContentBlockUseCase).updateBlock(eq(lessonId), eq(sectionId), anyMap(), eq(userId), eq(false));
     }
 }

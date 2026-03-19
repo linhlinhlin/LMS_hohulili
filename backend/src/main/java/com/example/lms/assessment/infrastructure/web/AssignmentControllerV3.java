@@ -83,7 +83,7 @@ public class AssignmentControllerV3 {
             @AuthenticationPrincipal UserJpaEntity user) {
         verifyCourseOwnership(courseId, user);
         var result = getAssignmentsByCourseUseCase.execute(courseId);
-        return ResponseEntity.ok(ApiResponse.success(result));
+        return ResponseEntity.ok(ApiResponse.success(enrichAssignmentSummaries(result)));
     }
 
     @GetMapping("/{id}")
@@ -133,7 +133,11 @@ public class AssignmentControllerV3 {
             validateLessonBinding(courseId, request.lessonId());
 
             Instant dueDate = parseDueDate(request.dueDate());
-            String distributionType = normalizeDistributionType(request.distributionType());
+            String distributionType = normalizeDistributionType(
+                    request.distributionType() != null
+                            ? request.distributionType()
+                            : inferDistributionType(request.classId(), request.studentIds())
+            );
             validateDistributionConfiguration(courseId, distributionType, request.classId(), request.studentIds());
 
             UUID assignmentId = createAssignmentUseCaseV3.execute(new CreateAssignmentCommand(

@@ -50,6 +50,8 @@ interface Lesson {
   orderIndex: number;
   durationMinutes?: number;
   hasQuiz?: boolean;
+  quizType?: string;
+  quizAllowOffline?: boolean;
   primaryType?: 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT';
   sections: SectionContent[];
 }
@@ -231,6 +233,8 @@ export class CourseDetailComponent implements OnInit {
                   orderIndex: lesson.orderIndex ?? 0,
                   durationMinutes: lessonAny.durationMinutes || sections.reduce((sum, s) => sum + (s.duration || 0), 0) || 0,
                   hasQuiz: sections.some(s => s.type === 'QUIZ') || false,
+                  quizType: lessonAny.quizType,
+                  quizAllowOffline: lessonAny.quizAllowOffline === true,
                   primaryType,
                   sections
                 };
@@ -382,10 +386,31 @@ export class CourseDetailComponent implements OnInit {
 
   async goToQuiz(lessonId: string): Promise<void> {
     try {
+      const lesson = this.sections()
+        .flatMap(section => section.lessons)
+        .find(item => item.id === lessonId);
+      const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
+
+      if (isOffline && lesson?.quizAllowOffline === true) {
+        await this.router.navigate(['/student/quiz/take', lessonId], {
+          queryParams: {
+            lessonId,
+            courseId: this.course()?.id,
+            quizType: lesson.quizType,
+            allowOffline: true,
+            returnUrl: this.router.url
+          }
+        });
+        return;
+      }
+
       const quizId = await firstValueFrom(this.quizApi.resolveQuizIdByLessonId(lessonId));
       await this.router.navigate(['/student/quiz/take', quizId], {
         queryParams: {
           lessonId,
+          courseId: this.course()?.id,
+          quizType: lesson?.quizType,
+          allowOffline: lesson?.quizAllowOffline === true,
           returnUrl: this.router.url
         }
       });

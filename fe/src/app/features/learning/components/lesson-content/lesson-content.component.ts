@@ -17,6 +17,7 @@ import { NoteApi, NoteResponse, CreateNoteRequest, UpdateNoteRequest } from '../
 import { QuizApi } from '../../../../api/endpoints/quiz.api';
 import { ToastService } from '../../../../core/services/toast.service';
 import { NetworkStatusService } from '../../../../core/services/network-status.service';
+import { PdfViewerService } from '../../../../shared/services/pdf-viewer.service';
 
 /**
  * Lesson Content Component
@@ -44,6 +45,7 @@ export class LessonContentComponent implements AfterViewInit {
   private quizApi = inject(QuizApi);
   private toast = inject(ToastService);
   private network = inject(NetworkStatusService);
+  private pdfViewer = inject(PdfViewerService);
 
   // --- Notes state ---
   readonly lessonNotes = signal<NoteResponse[]>([]);
@@ -153,6 +155,8 @@ export class LessonContentComponent implements AfterViewInit {
   readonly hasQuiz = input(false);
   readonly chapterIndex = input(0);
   readonly lessonIndex = input(0);
+  readonly isOfflinePackageStale = input(false);
+  readonly staleReason = input<'UPDATE_AVAILABLE' | 'CLASS_ADOPTED_NEW_PUBLICATION' | 'LEGACY_PACKAGE' | 'UNKNOWN' | null>(null);
 
   /** Numbered lesson label: "Bài 1.1" */
   readonly lessonNumber = computed(() =>
@@ -184,20 +188,47 @@ export class LessonContentComponent implements AfterViewInit {
     return ls.sections[this.sectionIndex()] || null;
   });
 
+  readonly hasLessonLevelVideo = computed(() => !!(this.lesson()?.videoUrl || this.lesson()?.streamVideoUid));
+
+  readonly hasVideoSections = computed(() => {
+    const lesson = this.lesson();
+    return !!lesson?.sections?.some(section =>
+      section.type === 'VIDEO' && !!(section.videoUrl || section.streamVideoUid || section.videoAssetId),
+    );
+  });
+
+  readonly shouldShowLessonLevelVideo = computed(() => this.hasLessonLevelVideo() && !this.hasVideoSections());
+
   /** Whether current view is a video section (used to show/hide tab bar) */
   readonly isVideoSection = computed(() => {
     const section = this.currentSection();
-    if (section) return section.type === 'VIDEO' && !!(section.videoUrl || section.streamVideoUid);
-    return !this.hasSections() && !!(this.lesson()?.videoUrl || this.lesson()?.streamVideoUid);
+    if (section) return section.type === 'VIDEO' && !!(section.videoUrl || section.streamVideoUid || section.videoAssetId);
+    return this.shouldShowLessonLevelVideo();
   });
 
   /** Safe PDF URL for iframe embedding */
-  readonly safePdfUrl = computed(() => {
+  readonly safePdfUrl = signal<SafeResourceUrl | null>(null);
+
+  private pdfPreviewEffect = effect((onCleanup) => {
     const section = this.currentSection();
-    if (section?.type === 'FILE' && section.fileUrl) {
-      return this.sanitizer.bypassSecurityTrustResourceUrl(section.fileUrl);
+    const fileUrl = section?.type === 'FILE' ? (section.fileUrl || null) : null;
+
+    this.safePdfUrl.set(null);
+    this.pdfViewer.cleanup();
+
+    if (!fileUrl || !this.isPdfFileUrl(fileUrl)) {
+      return;
     }
-    return null;
+
+    const sub = this.pdfViewer.getSafePdfUrl(fileUrl).subscribe({
+      next: url => this.safePdfUrl.set(url),
+      error: () => this.safePdfUrl.set(null)
+    });
+
+    onCleanup(() => {
+      sub.unsubscribe();
+      this.pdfViewer.cleanup();
+    });
   });
 
   private pdfContainer = viewChild<ElementRef>('pdfContainer');
@@ -265,6 +296,29 @@ export class LessonContentComponent implements AfterViewInit {
     const metadata = this.quizPresentation();
     return !!metadata && !this.network.online() && !metadata.allowOffline;
   });
+  readonly isQuizStaleBlocked = computed(() => {
+    const metadata = this.quizPresentation();
+    return this.isOfflinePackageStale() && !!metadata && !metadata.allowOffline;
+  });
+  readonly isQuizActionBlocked = computed(() => this.isQuizOfflineBlocked() || this.isQuizStaleBlocked());
+  readonly quizBlockedMessage = computed(() => {
+    if (this.isQuizOfflineBlocked()) {
+      return 'Quiz này chỉ hỗ trợ trực tuyến. Hãy kết nối mạng để tiếp tục.';
+    }
+
+    if (!this.isQuizStaleBlocked()) {
+      return null;
+    }
+
+    switch (this.staleReason()) {
+      case 'CLASS_ADOPTED_NEW_PUBLICATION':
+        return 'Lớp học này đã chuyển sang phiên bản mới. Hãy cập nhật gói ngoại tuyến trước khi mở bài kiểm tra hoặc bài thi.';
+      case 'LEGACY_PACKAGE':
+        return 'Gói ngoại tuyến này dùng dữ liệu cũ trước publication version. Hãy tải lại gói trước khi mở bài kiểm tra hoặc bài thi.';
+      default:
+        return 'Khóa học đã có bản cập nhật mới. Hãy cập nhật gói ngoại tuyến trước khi mở bài kiểm tra hoặc bài thi.';
+    }
+  });
 
   isYouTubeVideo(): boolean {
     const currentSec = this.currentSection();
@@ -295,6 +349,24 @@ export class LessonContentComponent implements AfterViewInit {
     const content = this.lesson()?.content;
     if (!content || content === 'undefined' || content === 'null') return '';
     return this.sanitizer.bypassSecurityTrustHtml(content);
+  }
+
+  resolveSectionOfflineVideoUrl(section: NonNullable<LessonDetail['sections']>[number]): string | null {
+    if (section.videoOfflineUri) {
+      return section.videoOfflineUri;
+    }
+
+    const lesson = this.lesson();
+    if (!lesson?.videoOfflineUri) {
+      return null;
+    }
+
+    const isSectionEligibleForLessonFallback =
+      section.type === 'VIDEO'
+      && section.videoType !== 'YOUTUBE'
+      && !section.streamVideoUid;
+
+    return isSectionEligibleForLessonFallback ? lesson.videoOfflineUri : null;
   }
 
   // Get sanitized HTML for any content (used by template)
@@ -397,8 +469,8 @@ export class LessonContentComponent implements AfterViewInit {
     const currentUrl = this.router.url;
     const section = this.currentSection();
     const quizMetadata = this.quizPresentation();
-    if (this.isQuizOfflineBlocked()) {
-      this.toast.warning('Quiz này chỉ hỗ trợ trực tuyến. Hãy kết nối mạng để tiếp tục.');
+    if (this.isQuizActionBlocked()) {
+      this.toast.warning(this.quizBlockedMessage() ?? 'Không thể mở bài kiểm tra lúc này.');
       return;
     }
     try {
@@ -412,6 +484,20 @@ export class LessonContentComponent implements AfterViewInit {
             title: section.title || ls.title,
             quizType: quizMetadata?.quizType,
             allowOffline: quizMetadata?.allowOffline === true,
+            returnUrl: currentUrl
+          }
+        });
+        return;
+      }
+
+      if (!this.network.online() && quizMetadata?.allowOffline === true) {
+        await this.router.navigate(['/student/quiz/take', ls.id], {
+          queryParams: {
+            lessonId: ls.id,
+            courseId: ls.courseId,
+            title: ls.title,
+            quizType: quizMetadata?.quizType,
+            allowOffline: true,
             returnUrl: currentUrl
           }
         });
@@ -510,5 +596,10 @@ export class LessonContentComponent implements AfterViewInit {
       return normalized;
     }
     return 'ASSESSMENT';
+  }
+
+  private isPdfFileUrl(fileUrl: string): boolean {
+    const normalized = fileUrl.toLowerCase();
+    return normalized.endsWith('.pdf') || normalized.includes('.pdf?') || normalized.startsWith('/offline-file/');
   }
 }

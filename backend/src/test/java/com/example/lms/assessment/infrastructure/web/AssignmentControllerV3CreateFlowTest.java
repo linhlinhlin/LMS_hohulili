@@ -197,6 +197,119 @@ class AssignmentControllerV3CreateFlowTest {
         verify(createAssignmentUseCaseV3, never()).execute(any());
     }
 
+    @Test
+    @DisplayName("createAssignment: infer CLASS distribution when classId is provided for instructor-led course")
+    void createAssignmentInfersClassDistributionForInstructorLedCourse() {
+        UUID classId = UUID.randomUUID();
+
+        ownedCourse.setDeliveryMode(CourseJpaEntity.DeliveryMode.INSTRUCTOR_LED);
+
+        when(courseJpaRepository.findById(courseId)).thenReturn(Optional.of(ownedCourse));
+        when(courseJpaRepository.findByLessonId(lessonId)).thenReturn(Optional.of(ownedCourse));
+        when(assignmentRepository.findByLessonId(lessonId)).thenReturn(List.of());
+        when(classRepository.findById(classId)).thenReturn(Optional.of(
+                com.example.lms.learning_delivery.infrastructure.persistence.entity.LearningClassJpaEntity.builder()
+                        .id(classId)
+                        .courseId(courseId)
+                        .name("Lớp mô phỏng radar")
+                        .build()
+        ));
+        when(createAssignmentUseCaseV3.execute(any())).thenReturn(assignmentId);
+        when(assignmentRepository.findById(assignmentId)).thenReturn(Optional.of(
+                AssignmentJpaEntity.builder()
+                        .id(assignmentId)
+                        .lessonId(lessonId)
+                        .courseId(courseId)
+                        .title("Task")
+                        .status(AssignmentJpaEntity.AssignmentStatus.PUBLISHED)
+                        .maxScore(new BigDecimal("100"))
+                        .build()
+        ));
+        when(allocationRepository.findByAssignmentId(assignmentId)).thenReturn(List.of());
+        when(submissionRepository.findByAssignmentId(assignmentId)).thenReturn(List.of());
+
+        var response = controller.createAssignment(
+                courseId,
+                new AssignmentControllerV3.CreateAssignmentRequest(
+                        "Task",
+                        "Description",
+                        "Instructions",
+                        null,
+                        100,
+                        "PUBLISHED",
+                        null,
+                        classId,
+                        null,
+                        lessonId
+                ),
+                owner
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().isSuccess()).isTrue();
+
+        ArgumentCaptor<CreateAssignmentCommand> commandCaptor = ArgumentCaptor.forClass(CreateAssignmentCommand.class);
+        verify(createAssignmentUseCaseV3).execute(commandCaptor.capture());
+        assertThat(commandCaptor.getValue().distributionType()).isEqualTo("CLASS");
+        assertThat(commandCaptor.getValue().classId()).isEqualTo(classId);
+    }
+
+    @Test
+    @DisplayName("getAssignmentsByCourse: enrich class scope metadata for teacher list")
+    @SuppressWarnings("unchecked")
+    void getAssignmentsByCourseEnrichesClassScopeMetadata() {
+        UUID classId = UUID.randomUUID();
+        UUID allocationId = UUID.randomUUID();
+
+        when(courseJpaRepository.findById(courseId)).thenReturn(Optional.of(ownedCourse));
+        when(getAssignmentsByCourseUseCase.execute(courseId)).thenReturn(List.of(
+                com.example.lms.assessment.application.dto.AssignmentDTOs.AssignmentSummary.builder()
+                        .id(assignmentId.toString())
+                        .title("Task")
+                        .description("Description")
+                        .courseId(courseId.toString())
+                        .courseTitle("Course")
+                        .deliveryMode("INSTRUCTOR_LED")
+                        .status("PUBLISHED")
+                        .submissionsCount(1)
+                        .totalStudents(0)
+                        .gradedCount(0)
+                        .pendingCount(1)
+                        .build()
+        ));
+        when(allocationRepository.findByAssignmentIdIn(List.of(assignmentId))).thenReturn(List.of(
+                com.example.lms.assessment.infrastructure.persistence.entity.AssignmentAllocationJpaEntity.builder()
+                        .id(allocationId)
+                        .assignmentId(assignmentId)
+                        .distributionType("CLASS")
+                        .classId(classId)
+                        .isActive(true)
+                        .build()
+        ));
+        when(allocationStudentRepository.findByAllocationIdIn(List.of(allocationId))).thenReturn(List.of());
+        when(classRepository.findAllById(any())).thenReturn(List.of(
+                com.example.lms.learning_delivery.infrastructure.persistence.entity.LearningClassJpaEntity.builder()
+                        .id(classId)
+                        .courseId(courseId)
+                        .name("Lớp radar")
+                        .build()
+        ));
+        when(enrollmentRepository.countByClassId(classId)).thenReturn(1L);
+
+        var response = controller.getAssignmentsByCourse(courseId, owner);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        List<com.example.lms.assessment.application.dto.AssignmentDTOs.AssignmentSummary> data =
+                (List<com.example.lms.assessment.application.dto.AssignmentDTOs.AssignmentSummary>) response.getBody().getData();
+        assertThat(data).hasSize(1);
+        assertThat(data.getFirst().getDistributionType()).isEqualTo("CLASS");
+        assertThat(data.getFirst().getClassId()).isEqualTo(classId.toString());
+        assertThat(data.getFirst().getClassName()).isEqualTo("Lớp radar");
+        assertThat(data.getFirst().getTotalStudents()).isEqualTo(1);
+    }
+
     private AssignmentControllerV3.CreateAssignmentRequest request(UUID lessonId) {
         return new AssignmentControllerV3.CreateAssignmentRequest(
                 "Task",

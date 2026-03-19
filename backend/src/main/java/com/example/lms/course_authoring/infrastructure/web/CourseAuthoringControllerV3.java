@@ -54,10 +54,11 @@ public class CourseAuthoringControllerV3 {
     private final com.example.lms.course_authoring.application.usecase.ManageContentBlockUseCaseV3 manageContentBlockUseCase;
     private final com.example.lms.course_authoring.application.usecase.UpdateCourseUseCase updateCourseUseCase;
     private final com.example.lms.shared.infrastructure.service.FileManagementService fileManagementService;
+    private final com.example.lms.learning_delivery.infrastructure.service.VideoAssetLifecycleService videoAssetLifecycleService;
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository chapterJpaRepository;
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository lessonJpaRepository;
     private final com.example.lms.course_authoring.domain.repository.CourseRepository courseRepository;
-    private final com.example.lms.course_authoring.application.usecase.CourseDraftMutationService courseDraftMutationService;
+    private final com.example.lms.course_authoring.application.usecase.CourseDraftMutationUseCase courseDraftMutationUseCase;
     private final ObjectMapper objectMapper;
 
     @Operation(summary = "Create a new chapter")
@@ -78,7 +79,7 @@ public class CourseAuthoringControllerV3 {
             isAdmin
         );
         UUID chapterId = createChapterUseCase.execute(command);
-        return ResponseEntity.ok(ApiResponse.success(chapterId, "Tạo chương thành công"));
+        return ResponseEntity.ok(ApiResponse.success(chapterId, "Táº¡o chÆ°Æ¡ng thÃ nh cÃ´ng"));
     }
 
     @Operation(summary = "Create a new lesson in a chapter")
@@ -89,6 +90,7 @@ public class CourseAuthoringControllerV3 {
             @Valid @RequestBody CreateLessonRequest request,
             @AuthenticationPrincipal UserJpaEntity user
     ) {
+        enforceLessonVideoAuthoringPolicyOnCreate(request);
         // P0-11: Verify teacher owns the course via chapter
         verifyOwnershipByChapter(chapterId, user);
         var command = new CreateLessonUseCaseV3.CreateLessonCommand(
@@ -102,7 +104,7 @@ public class CourseAuthoringControllerV3 {
             request.isFree()
         );
         UUID lessonId = createLessonUseCase.execute(command);
-        return ResponseEntity.ok(ApiResponse.success(lessonId, "Tạo bài học thành công"));
+        return ResponseEntity.ok(ApiResponse.success(lessonId, "Táº¡o bÃ i há»c thÃ nh cÃ´ng"));
     }
 
     @Operation(summary = "Update a chapter")
@@ -122,7 +124,7 @@ public class CourseAuthoringControllerV3 {
             isAdminRole(user)
         );
         ChapterResponse response = updateChapterUseCase.execute(command);
-        return ResponseEntity.ok(ApiResponse.success(response, "Cập nhật chương thành công"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Cáº­p nháº­t chÆ°Æ¡ng thÃ nh cÃ´ng"));
     }
 
     @Operation(summary = "Delete a chapter")
@@ -135,7 +137,7 @@ public class CourseAuthoringControllerV3 {
     ) {
         boolean isAdmin = isAdminRole(user);
         deleteChapterUseCase.execute(courseId, chapterId, user.getId(), isAdmin);
-        return ResponseEntity.ok(ApiResponse.success(null, "Xóa chương thành công"));
+        return ResponseEntity.ok(ApiResponse.success(null, "XÃ³a chÆ°Æ¡ng thÃ nh cÃ´ng"));
     }
 
     @Operation(summary = "Update a lesson")
@@ -146,6 +148,7 @@ public class CourseAuthoringControllerV3 {
             @Valid @RequestBody UpdateLessonRequest request,
             @AuthenticationPrincipal UserJpaEntity user
     ) {
+        enforceLessonVideoAuthoringPolicyOnUpdate(lessonId, request);
         var command = new UpdateLessonCommand(
             request.courseId(),
             request.chapterId(),
@@ -162,7 +165,7 @@ public class CourseAuthoringControllerV3 {
             isAdminRole(user)
         );
         LessonResponse response = updateLessonUseCase.execute(command);
-        return ResponseEntity.ok(ApiResponse.success(response, "Cập nhật bài học thành công"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Cáº­p nháº­t bÃ i há»c thÃ nh cÃ´ng"));
     }
 
     @Operation(summary = "Delete a lesson")
@@ -181,7 +184,7 @@ public class CourseAuthoringControllerV3 {
                         .map(com.example.lms.course_authoring.infrastructure.persistence.entity.LessonJpaEntity::getChapterId)
                         .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Lesson", lessonId));
         deleteLessonUseCase.execute(courseId, resolvedChapterId, lessonId, user.getId(), isAdmin);
-        return ResponseEntity.ok(ApiResponse.success(null, "Xóa bài học thành công"));
+        return ResponseEntity.ok(ApiResponse.success(null, "XÃ³a bÃ i há»c thÃ nh cÃ´ng"));
     }
 
     // ================================================================================================
@@ -199,7 +202,7 @@ public class CourseAuthoringControllerV3 {
         try {
             UUID courseId = UUID.fromString(request.courseId());
             verifyOwnership(courseId, user);
-            courseDraftMutationService.requireEditableCourse(courseId);
+            courseDraftMutationUseCase.requireEditableCourse(courseId);
             var chapters = chapterJpaRepository.findByCourseIdOrderByOrderIndex(courseId);
             java.util.Map<UUID, com.example.lms.course_authoring.infrastructure.persistence.entity.ChapterJpaEntity> map = new java.util.HashMap<>();
             for (var ch : chapters) map.put(ch.getId(), ch);
@@ -208,10 +211,10 @@ public class CourseAuthoringControllerV3 {
                 if (ch != null) ch.setOrderIndex(i);
             }
             chapterJpaRepository.saveAll(chapters);
-            courseDraftMutationService.markCourseChanged(courseId);
-            return ResponseEntity.ok(ApiResponse.success(null, "Đã sắp xếp lại chương"));
+            courseDraftMutationUseCase.markCourseChanged(courseId);
+            return ResponseEntity.ok(ApiResponse.success(null, "ÄÃ£ sáº¯p xáº¿p láº¡i chÆ°Æ¡ng"));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("Định dạng UUID không hợp lệ"));
+            return ResponseEntity.badRequest().body(ApiResponse.error("Äá»‹nh dáº¡ng UUID khÃ´ng há»£p lá»‡"));
         }
     }
 
@@ -226,7 +229,7 @@ public class CourseAuthoringControllerV3 {
         try {
             UUID chapterId = UUID.fromString(request.chapterId());
             verifyOwnershipByChapter(chapterId, user);
-            courseDraftMutationService.requireEditableCourseByChapter(chapterId);
+            courseDraftMutationUseCase.requireEditableCourseByChapter(chapterId);
             var lessons = lessonJpaRepository.findByChapterIdOrderByOrderIndex(chapterId);
             java.util.Map<UUID, com.example.lms.course_authoring.infrastructure.persistence.entity.LessonJpaEntity> map = new java.util.HashMap<>();
             for (var l : lessons) map.put(l.getId(), l);
@@ -235,10 +238,10 @@ public class CourseAuthoringControllerV3 {
                 if (l != null) l.setOrderIndex(i);
             }
             lessonJpaRepository.saveAll(lessons);
-            courseDraftMutationService.markCourseChangedByChapter(chapterId);
-            return ResponseEntity.ok(ApiResponse.success(null, "Đã sắp xếp lại bài học"));
+            courseDraftMutationUseCase.markCourseChangedByChapter(chapterId);
+            return ResponseEntity.ok(ApiResponse.success(null, "ÄÃ£ sáº¯p xáº¿p láº¡i bÃ i há»c"));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("Định dạng UUID không hợp lệ"));
+            return ResponseEntity.badRequest().body(ApiResponse.error("Äá»‹nh dáº¡ng UUID khÃ´ng há»£p lá»‡"));
         }
     }
 
@@ -261,9 +264,9 @@ public class CourseAuthoringControllerV3 {
                 if (block != null) reordered.add(block);
             }
             manageContentBlockUseCase.saveBlocks(lessonId, reordered);
-            return ResponseEntity.ok(ApiResponse.success(null, "Đã sắp xếp lại phần học"));
+            return ResponseEntity.ok(ApiResponse.success(null, "ÄÃ£ sáº¯p xáº¿p láº¡i pháº§n há»c"));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("Định dạng UUID không hợp lệ"));
+            return ResponseEntity.badRequest().body(ApiResponse.error("Äá»‹nh dáº¡ng UUID khÃ´ng há»£p lá»‡"));
         }
     }
 
@@ -297,15 +300,22 @@ public class CourseAuthoringControllerV3 {
                 payload.put("fileName", file.getOriginalFilename());
             } catch (java.io.IOException e) {
                 log.error("File upload failed for section", e);
-                return ResponseEntity.badRequest().body(ApiResponse.error("Tải file thất bại: " + e.getMessage()));
+                return ResponseEntity.badRequest().body(ApiResponse.error("Táº£i file tháº¥t báº¡i: " + e.getMessage()));
             }
+        }
+
+        try {
+            enforceVideoSectionAuthoringPolicy(lessonId, null, payload, user);
+        } catch (ResponseStatusException ex) {
+            return ResponseEntity.status(ex.getStatusCode())
+                    .body(ApiResponse.error(ex.getReason()));
         }
 
         String type = (String) payload.getOrDefault("type", "TEXT");
         log.debug("Processing addSection for lesson: {}, type: {}", lessonId, type);
         boolean isAdmin = isAdminRole(user);
         com.example.lms.shared.domain.model.ContentBlock block = manageContentBlockUseCase.addBlock(lessonId, type, payload, user.getId(), isAdmin);
-        return ResponseEntity.ok(ApiResponse.success(block, "Tạo phần học thành công"));
+        return ResponseEntity.ok(ApiResponse.success(block, "Táº¡o pháº§n há»c thÃ nh cÃ´ng"));
     }
 
     @Operation(summary = "Update a section (content block)")
@@ -334,13 +344,20 @@ public class CourseAuthoringControllerV3 {
                 payload.put("fileName", file.getOriginalFilename());
             } catch (java.io.IOException e) {
                 log.error("File upload failed for section update", e);
-                return ResponseEntity.badRequest().body(ApiResponse.error("Tải file thất bại: " + e.getMessage()));
+                return ResponseEntity.badRequest().body(ApiResponse.error("Táº£i file tháº¥t báº¡i: " + e.getMessage()));
             }
+        }
+
+        try {
+            enforceVideoSectionAuthoringPolicy(lessonId, sectionId, payload, user);
+        } catch (ResponseStatusException ex) {
+            return ResponseEntity.status(ex.getStatusCode())
+                    .body(ApiResponse.error(ex.getReason()));
         }
 
         boolean isAdmin = isAdminRole(user);
         com.example.lms.shared.domain.model.ContentBlock block = manageContentBlockUseCase.updateBlock(lessonId, sectionId, payload, user.getId(), isAdmin);
-        return ResponseEntity.ok(ApiResponse.success(block, "Cập nhật phần học thành công"));
+        return ResponseEntity.ok(ApiResponse.success(block, "Cáº­p nháº­t pháº§n há»c thÃ nh cÃ´ng"));
     }
 
     @Operation(summary = "Delete a section (content block)")
@@ -353,7 +370,7 @@ public class CourseAuthoringControllerV3 {
     ) {
         boolean isAdmin = isAdminRole(user);
         manageContentBlockUseCase.deleteBlock(lessonId, sectionId, user.getId(), isAdmin);
-        return ResponseEntity.ok(ApiResponse.success(null, "Xóa phần học thành công"));
+        return ResponseEntity.ok(ApiResponse.success(null, "XÃ³a pháº§n há»c thÃ nh cÃ´ng"));
     }
 
     @Operation(summary = "Update course details")
@@ -364,6 +381,10 @@ public class CourseAuthoringControllerV3 {
             @Valid @RequestBody UpdateCourseRequest request,
             @AuthenticationPrincipal UserJpaEntity user
     ) {
+        enforceIntroVideoAuthoringPolicy(courseId, request);
+        if (request.introVideoAssetId() != null) {
+            videoAssetLifecycleService.requireAccessibleAsset(request.introVideoAssetId(), user);
+        }
         var command = new com.example.lms.course_authoring.application.dto.UpdateCourseCommand(
             courseId,
             user.getId(),
@@ -376,6 +397,7 @@ public class CourseAuthoringControllerV3 {
             request.courseInformation(),
             request.benefits(),
             request.introVideoUrl(),
+            request.introVideoAssetId(),
             request.credits(),
             request.visibility(),
             request.priceType(),
@@ -386,7 +408,7 @@ public class CourseAuthoringControllerV3 {
             isAdminRole(user)
         );
         com.example.lms.course_authoring.application.dto.CourseResponse response = updateCourseUseCase.execute(command);
-        return ResponseEntity.ok(ApiResponse.success(response, "Cập nhật khóa học thành công"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Cáº­p nháº­t khÃ³a há»c thÃ nh cÃ´ng"));
     }
     
     // --- Helpers ---
@@ -396,8 +418,172 @@ public class CourseAuthoringControllerV3 {
             return objectMapper.readValue(payloadJson, new TypeReference<>() {});
         } catch (IOException ex) {
             log.warn("Invalid multipart section payload", ex);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Payload phần học không hợp lệ");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Payload pháº§n há»c khÃ´ng há»£p lá»‡");
         }
+    }
+
+    private void enforceVideoSectionAuthoringPolicy(
+            UUID lessonId,
+            String sectionId,
+            Map<String, Object> payload,
+            UserJpaEntity user
+    ) {
+        String type = asString(payload.get("type"));
+        if (!"VIDEO".equalsIgnoreCase(type)) {
+            return;
+        }
+
+        String videoAssetId = normalizeText(asString(payload.get("videoAssetId")));
+        if (videoAssetId != null) {
+            UUID assetId = parseUuidOrBadRequest(videoAssetId, "Video asset ID khong hop le");
+            try {
+                videoAssetLifecycleService.requireAccessibleAsset(assetId, user);
+            } catch (IllegalArgumentException ex) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Video asset duoc chon khong ton tai hoac khong con hop le",
+                        ex
+                );
+            }
+
+            payload.put("videoAssetId", assetId.toString());
+            payload.remove("videoUrl");
+            payload.remove("videoType");
+            payload.remove("streamVideoUid");
+            payload.remove("cfObjectKey");
+            return;
+        }
+
+        String streamVideoUid = normalizeText(asString(payload.get("streamVideoUid")));
+        if (streamVideoUid != null) {
+            if (sectionId == null) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Muc video moi phai di qua upload noi bo va video asset. Khong the gan streamVideoUid thu cong."
+                );
+            }
+
+            var existingBlock = manageContentBlockUseCase.getBlocks(lessonId).stream()
+                    .filter(block -> block.getId().equals(sectionId))
+                    .findFirst()
+                    .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("ContentBlock", sectionId));
+
+            String existingStreamUid = normalizeText(asString(existingBlock.getData().get("streamVideoUid")));
+            if (java.util.Objects.equals(streamVideoUid, existingStreamUid)) {
+                return;
+            }
+
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Khong the gan streamVideoUid thu cong cho muc video. Hay tai video len noi bo de tao video asset."
+            );
+        }
+
+        String videoUrl = normalizeText(asString(payload.get("videoUrl")));
+        if (videoUrl == null) {
+            return;
+        }
+
+        if (sectionId == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Mục video mới chỉ hỗ trợ tải lên nội bộ. URL video ngoài hoặc legacy không còn là luồng tạo mới."
+            );
+        }
+
+        var existingBlock = manageContentBlockUseCase.getBlocks(lessonId).stream()
+                .filter(block -> block.getId().equals(sectionId))
+                .findFirst()
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("ContentBlock", sectionId));
+
+        String existingVideoUrl = normalizeText(asString(existingBlock.getData().get("videoUrl")));
+        String existingStreamUid = normalizeText(asString(existingBlock.getData().get("streamVideoUid")));
+        if (existingStreamUid != null) {
+            return;
+        }
+
+        if (java.util.Objects.equals(videoUrl, existingVideoUrl)) {
+            return;
+        }
+
+        throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Không thể gán URL video ngoài mới cho mục video. Hãy tải video lên nội bộ để chuẩn hóa playback và offline."
+        );
+    }
+
+    private UUID parseUuidOrBadRequest(String value, String message) {
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, message, ex);
+        }
+    }
+
+    private void enforceLessonVideoAuthoringPolicyOnCreate(CreateLessonRequest request) {
+        String requestedVideoUrl = normalizeText(request.videoUrl());
+        if (requestedVideoUrl == null) {
+            return;
+        }
+
+        throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Lesson video mới không còn hỗ trợ URL ngoài hoặc direct MP4 legacy. Hãy tạo mục video và tải video lên nội bộ qua asset pipeline."
+        );
+    }
+
+    private void enforceLessonVideoAuthoringPolicyOnUpdate(UUID lessonId, UpdateLessonRequest request) {
+        String requestedVideoUrl = normalizeText(request.videoUrl());
+        if (requestedVideoUrl == null) {
+            return;
+        }
+
+        var lesson = lessonJpaRepository.findById(lessonId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Lesson", lessonId));
+        String existingVideoUrl = normalizeText(lesson.getVideoUrl());
+        if (java.util.Objects.equals(requestedVideoUrl, existingVideoUrl)) {
+            return;
+        }
+
+        throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Không thể gán lesson-level video mới bằng URL ngoài hoặc direct MP4 legacy. Hãy chuyển sang video section tải lên nội bộ."
+        );
+    }
+
+    private void enforceIntroVideoAuthoringPolicy(UUID courseId, UpdateCourseRequest request) {
+        if (request.introVideoAssetId() != null) {
+            return;
+        }
+
+        String requestedIntroVideoUrl = normalizeText(request.introVideoUrl());
+        if (requestedIntroVideoUrl == null) {
+            return;
+        }
+
+        var course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Course", courseId));
+        String existingIntroVideoUrl = normalizeText(course.getIntroVideoUrl());
+        if (java.util.Objects.equals(requestedIntroVideoUrl, existingIntroVideoUrl)) {
+            return;
+        }
+
+        throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Video giới thiệu mới cần đi qua upload nội bộ và video asset. Liên kết ngoài chỉ còn được giữ cho nội dung legacy hiện có."
+        );
+    }
+
+    private String asString(Object value) {
+        return value instanceof String str ? str : null;
+    }
+
+    private String normalizeText(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private boolean isAdminRole(UserJpaEntity user) {
@@ -410,7 +596,7 @@ public class CourseAuthoringControllerV3 {
         var course = courseRepository.findById(courseId)
             .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Course", courseId));
         if (!course.getTeacherId().equals(user.getId())) {
-            throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu khóa học này");
+            throw new org.springframework.security.access.AccessDeniedException("Báº¡n khÃ´ng sá»Ÿ há»¯u khÃ³a há»c nÃ y");
         }
     }
 
@@ -419,7 +605,7 @@ public class CourseAuthoringControllerV3 {
         var course = courseRepository.findByChapterId(chapterId)
             .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Course", chapterId));
         if (!course.getTeacherId().equals(user.getId())) {
-            throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu khóa học này");
+            throw new org.springframework.security.access.AccessDeniedException("Báº¡n khÃ´ng sá»Ÿ há»¯u khÃ³a há»c nÃ y");
         }
     }
 
@@ -428,20 +614,20 @@ public class CourseAuthoringControllerV3 {
         var course = courseRepository.findByLessonId(lessonId)
             .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Course", lessonId));
         if (!course.getTeacherId().equals(user.getId())) {
-            throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu khóa học này");
+            throw new org.springframework.security.access.AccessDeniedException("Báº¡n khÃ´ng sá»Ÿ há»¯u khÃ³a há»c nÃ y");
         }
     }
 
     // Request DTOs
     public record CreateChapterRequest(
-        @NotBlank(message = "Tiêu đề không được để trống")
+        @NotBlank(message = "TiÃªu Ä‘á» khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng")
         String title,
         String description,
         Integer orderIndex
     ) {}
 
     public record CreateLessonRequest(
-        @NotBlank(message = "Tiêu đề không được để trống")
+        @NotBlank(message = "TiÃªu Ä‘á» khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng")
         String title,
         String description,
         String type,
@@ -472,7 +658,7 @@ public class CourseAuthoringControllerV3 {
     ) {}
 
     public record UpdateCourseRequest(
-        @jakarta.validation.constraints.Size(max = 255, message = "Tiêu đề không được quá 255 ký tự") String title,
+        @jakarta.validation.constraints.Size(max = 255, message = "TiÃªu Ä‘á» khÃ´ng Ä‘Æ°á»£c quÃ¡ 255 kÃ½ tá»±") String title,
         String description,
         String thumbnailUrl,
         UUID categoryId,
@@ -481,29 +667,30 @@ public class CourseAuthoringControllerV3 {
         String courseInformation,
         String benefits,
         String introVideoUrl,
-        @jakarta.validation.constraints.Min(value = 0, message = "Số tín chỉ phải >= 0") @jakarta.validation.constraints.Max(value = 30, message = "Số tín chỉ phải <= 30") Integer credits,
+        UUID introVideoAssetId,
+        @jakarta.validation.constraints.Min(value = 0, message = "Sá»‘ tÃ­n chá»‰ pháº£i >= 0") @jakarta.validation.constraints.Max(value = 30, message = "Sá»‘ tÃ­n chá»‰ pháº£i <= 30") Integer credits,
         String visibility,
         String priceType,
-        @jakarta.validation.constraints.DecimalMin(value = "0", message = "Giá phải >= 0") java.math.BigDecimal price,
-        @jakarta.validation.constraints.DecimalMin(value = "0", message = "Giá khuyến mãi phải >= 0") java.math.BigDecimal salePrice,
+        @jakarta.validation.constraints.DecimalMin(value = "0", message = "GiÃ¡ pháº£i >= 0") java.math.BigDecimal price,
+        @jakarta.validation.constraints.DecimalMin(value = "0", message = "GiÃ¡ khuyáº¿n mÃ£i pháº£i >= 0") java.math.BigDecimal salePrice,
         String deliveryMode,
         Boolean allowOfflineDownload
     ) {}
 
     public record ReorderChaptersRequest(
-        @NotBlank(message = "Mã khóa học không được để trống") String courseId,
-        @jakarta.validation.constraints.NotEmpty(message = "Danh sách ID không được để trống") java.util.List<String> orderedIds
+        @NotBlank(message = "MÃ£ khÃ³a há»c khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng") String courseId,
+        @jakarta.validation.constraints.NotEmpty(message = "Danh sÃ¡ch ID khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng") java.util.List<String> orderedIds
     ) {}
 
     public record ReorderLessonsRequest(
-        @NotBlank(message = "Mã khóa học không được để trống") String courseId,
-        @NotBlank(message = "Mã chương không được để trống") String chapterId,
-        @jakarta.validation.constraints.NotEmpty(message = "Danh sách ID không được để trống") java.util.List<String> orderedIds
+        @NotBlank(message = "MÃ£ khÃ³a há»c khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng") String courseId,
+        @NotBlank(message = "MÃ£ chÆ°Æ¡ng khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng") String chapterId,
+        @jakarta.validation.constraints.NotEmpty(message = "Danh sÃ¡ch ID khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng") java.util.List<String> orderedIds
     ) {}
 
     public record ReorderSectionsRequest(
-        @NotBlank(message = "Mã bài học không được để trống") String lessonId,
-        @jakarta.validation.constraints.NotEmpty(message = "Danh sách ID không được để trống") java.util.List<String> orderedIds
+        @NotBlank(message = "MÃ£ bÃ i há»c khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng") String lessonId,
+        @jakarta.validation.constraints.NotEmpty(message = "Danh sÃ¡ch ID khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng") java.util.List<String> orderedIds
     ) {}
 }
 

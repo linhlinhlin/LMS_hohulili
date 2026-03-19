@@ -46,7 +46,7 @@ export class CourseEditorStore {
             { label: 'Ít nhất 1 chương', done: (tree.chapters?.length || 0) > 0, critical: true },
             { label: 'Ít nhất 1 bài học có nội dung', done: hasLessonWithContent, critical: true },
             { label: 'Giá khóa học', done: tree.priceType !== 'PAID' || (tree.price != null && tree.price > 0), critical: false },
-            { label: 'Video giới thiệu', done: !!tree.introVideoUrl, critical: false },
+            { label: 'Video giới thiệu', done: !!tree.introVideoAssetId || !!tree.introVideoUrl, critical: false },
         ];
 
         // Instructor-led mode: delivery mode must be explicitly set

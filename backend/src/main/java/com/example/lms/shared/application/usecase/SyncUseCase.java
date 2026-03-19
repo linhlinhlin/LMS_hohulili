@@ -191,6 +191,12 @@ public class SyncUseCase {
 
     private boolean processOperation(UUID studentId, SyncOperation op,
                                      List<SyncResponse.Conflict> conflicts) {
+        SyncResponse.Conflict publicationConflict = detectPublicationConflict(studentId, op);
+        if (publicationConflict != null) {
+            conflicts.add(publicationConflict);
+            return false;
+        }
+
         return switch (op.entityType()) {
             case "videoProgress" -> processVideoProgress(studentId, op, conflicts);
             case "progress" -> processLessonProgress(studentId, op, conflicts);
@@ -438,7 +444,78 @@ public class SyncUseCase {
 
     // ─── Helpers ───────────────────────────────────────────────────────
 
+    private SyncResponse.Conflict detectPublicationConflict(UUID studentId, SyncOperation op) {
+        if (op == null || !requiresPublicationGuard(op.entityType())) {
+            return null;
+        }
+
+        Optional<Enrollment> enrollment = resolveEnrollmentForSync(studentId, op);
+        if (enrollment.isEmpty()) {
+            return null;
+        }
+
+        LearningClass learningClass = enrollment.get().getLearningClass();
+        if (learningClass == null || learningClass.getVersionMode() != LearningClass.VersionMode.PINNED) {
+            return null;
+        }
+
+        UUID serverPublicationId = learningClass.getCourseVersionId();
+        UUID clientPublicationId = parseUUID(op.publicationId());
+        if (serverPublicationId == null || clientPublicationId == null) {
+            return null;
+        }
+
+        if (serverPublicationId.equals(clientPublicationId)) {
+            return null;
+        }
+
+        return conflict(
+                op,
+                op.entityType(),
+                extractEntityId(op),
+                "Goi ngoai tuyen da cu; vui long cap nhat khoa hoc truoc khi dong bo."
+        );
+    }
+
+    private boolean requiresPublicationGuard(String entityType) {
+        return "videoProgress".equals(entityType)
+                || "progress".equals(entityType)
+                || "quizAttempt".equals(entityType);
+    }
+
+    private Optional<Enrollment> resolveEnrollmentForSync(UUID studentId, SyncOperation op) {
+        UUID courseId = parseUUID(op.courseId());
+        if (courseId == null && op.payload() != null) {
+            courseId = parseUUID(op.payload(), "courseId");
+        }
+        if (courseId != null) {
+            Optional<Enrollment> enrollment = enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId);
+            if (enrollment != null && enrollment.isPresent()) {
+                return enrollment;
+            }
+        }
+
+        if (op.payload() == null) {
+            return Optional.empty();
+        }
+
+        UUID enrollmentId = parseUUID(op.payload(), "enrollmentId");
+        if (enrollmentId == null) {
+            return Optional.empty();
+        }
+
+        Optional<Enrollment> enrollment = enrollmentRepository.findById(enrollmentId);
+        if (enrollment == null) {
+            return Optional.empty();
+        }
+
+        return enrollment.filter(candidate -> studentId.equals(candidate.getStudentId()));
+    }
+
     private String extractEntityId(SyncOperation op) {
+        if (op.entityId() != null && !op.entityId().isBlank()) {
+            return op.entityId();
+        }
         if (op.payload() != null) {
             Object id = op.payload().get("id");
             if (id != null) return id.toString();
@@ -453,6 +530,17 @@ public class SyncUseCase {
         if (val == null) return null;
         try {
             return UUID.fromString(val.toString());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private UUID parseUUID(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            return UUID.fromString(raw);
         } catch (IllegalArgumentException e) {
             return null;
         }

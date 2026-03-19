@@ -5,6 +5,7 @@ import com.example.lms.assessment.domain.model.Assignment;
 import com.example.lms.assessment.domain.repository.AssignmentRepository;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -37,7 +38,11 @@ public class CreateAssignmentUseCaseV3 {
         Course course = courseRepository.findById(command.courseId())
                 .orElseThrow(() -> new IllegalArgumentException("Khong tim thay khoa hoc"));
 
-        String distributionType = normalizeDistributionType(command.distributionType());
+        String distributionType = resolveDistributionType(
+                command.distributionType(),
+                command.classId(),
+                command.studentIds()
+        );
         if (course.getDeliveryMode() == Course.DeliveryMode.SELF_PACED && !"ALL_STUDENTS".equals(distributionType)) {
             throw new IllegalArgumentException("SELF_PACED assignments only support ALL_STUDENTS distribution");
         }
@@ -74,7 +79,7 @@ public class CreateAssignmentUseCaseV3 {
         Assignment saved = assignmentRepository.save(assignment);
         log.info("Assignment {} created with ID {} (V3)", command.title(), saved.getId().value());
 
-        if (command.distributionType() != null) {
+        if (shouldAllocate(command, distributionType)) {
             assignmentRepository.allocate(
                     saved.getId().value(),
                     distributionType,
@@ -86,11 +91,23 @@ public class CreateAssignmentUseCaseV3 {
         return saved.getId().value();
     }
 
-    private String normalizeDistributionType(String distributionType) {
-        if (distributionType == null || distributionType.isBlank()) {
-            return "ALL_STUDENTS";
-        }
+    private boolean shouldAllocate(CreateAssignmentCommand command, String distributionType) {
+        return command.distributionType() != null
+                || command.classId() != null
+                || (command.studentIds() != null && !command.studentIds().isEmpty())
+                || !"ALL_STUDENTS".equals(distributionType);
+    }
 
-        return distributionType.trim().toUpperCase();
+    private String resolveDistributionType(String distributionType, UUID classId, List<UUID> studentIds) {
+        if (distributionType != null && !distributionType.isBlank()) {
+            return distributionType.trim().toUpperCase();
+        }
+        if (classId != null) {
+            return "CLASS";
+        }
+        if (studentIds != null && !studentIds.isEmpty()) {
+            return "SPECIFIC_STUDENTS";
+        }
+        return "ALL_STUDENTS";
     }
 }

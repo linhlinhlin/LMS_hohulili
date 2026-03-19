@@ -1,0 +1,134 @@
+[
+  {
+    "case": "student-storage-postfix",
+    "route": "/student/storage",
+    "final_url": "https://holilihu.online/student/storage",
+    "title": "Lưu trữ ngoại tuyến",
+    "console": [],
+    "failures": [
+      {
+        "url": "https://holilihu.online/icons/icon-192x192.png",
+        "method": "HEAD",
+        "failure": "net::ERR_ABORTED"
+      }
+    ],
+    "responses": [
+      {
+        "url": "https://holilihu.online/api/v3/gamification/notifications?page=0&size=20",
+        "status": 200
+      },
+      {
+        "url": "https://holilihu.online/api/v3/messages/conversations?includeArchived=false",
+        "status": 200
+      }
+    ]
+  },
+  {
+    "case": "student-courses-postfix",
+    "route": "/student/courses",
+    "final_url": "https://holilihu.online/student/courses",
+    "title": "Khóa học của tôi",
+    "console": [],
+    "failures": [
+      {
+        "url": "https://holilihu.online/icons/icon-192x192.png",
+        "method": "HEAD",
+        "failure": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://holilihu.online/api/v3/messages/conversations?includeArchived=false",
+        "method": "GET",
+        "failure": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://holilihu.online/api/v3/student/courses/enrolled?page=0&size=20",
+        "method": "GET",
+        "failure": "net::ERR_ABORTED"
+      }
+    ],
+    "responses": [
+      {
+        "url": "https://holilihu.online/api/v3/messages/conversations?includeArchived=false",
+        "status": 200
+      },
+      {
+        "url": "https://holilihu.online/api/v3/gamification/notifications?page=0&size=20",
+        "status": 200
+      },
+      {
+        "url": "https://holilihu.online/api/v3/learning-activity/continue",
+        "status": 200
+      },
+      {
+        "url": "https://holilihu.online/api/v3/student/courses/enrolled?page=0&size=20",
+        "status": 200
+      }
+    ]
+  },
+  {
+    "case": "teacher-dashboard-postfix",
+    "route": "/teacher/dashboard",
+    "final_url": "https://holilihu.online/teacher/dashboard",
+    "title": "Dashboard - Giảng viên",
+    "console": [],
+    "failures": [
+      {
+        "url": "https://holilihu.online/icons/icon-192x192.png",
+        "method": "HEAD",
+        "failure": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://holilihu.online/api/v3/gamification/notifications?page=0&size=20",
+        "method": "GET",
+        "failure": "net::ERR_ABORTED"
+      }
+    ],
+    "responses": [
+      {
+        "url": "https://holilihu.online/api/v3/teacher/courses/my-courses?page=0&size=100",
+        "status": 200
+      },
+      {
+        "url": "https://holilihu.online/api/v3/gamification/notifications?page=0&size=20",
+        "status": 200
+      },
+      {
+        "url": "https://holilihu.online/api/v3/teacher/courses/my-courses?page=0&size=100",
+        "status": 200
+      },
+      {
+        "url": "https://holilihu.online/api/v3/teacher/analytics",
+        "status": 200
+      }
+    ]
+  },
+  {
+    "case": "admin-offline-storage-postfix",
+    "route": "/admin/offline-storage",
+    "final_url": "https://holilihu.online/admin/offline-storage",
+    "title": "Giám sát bộ nhớ ngoại tuyến",
+    "console": [],
+    "failures": [
+      {
+        "url": "https://holilihu.online/icons/icon-192x192.png",
+        "method": "HEAD",
+        "failure": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://holilihu.online/api/v3/admin/client-telemetry/offline-storage?page=0&size=20",
+        "method": "GET",
+        "failure": "net::ERR_ABORTED"
+      }
+    ],
+    "responses": [
+      {
+        "url": "https://holilihu.online/api/v3/admin/client-telemetry/offline-storage?page=0&size=20",
+        "status": 200
+      },
+      {
+        "url": "https://holilihu.online/api/v3/admin/client-telemetry/offline-storage/analytics?days=7",
+        "status": 200
+      }
+    ]
+  }
+]

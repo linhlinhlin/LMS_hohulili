@@ -6,6 +6,7 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.concurrent.TimeUnit;
 
@@ -22,6 +23,12 @@ import java.util.concurrent.TimeUnit;
 @Configuration
 @EnableCaching
 public class CacheConfig {
+
+    @Value("${app.video.manifest-cache-seconds:60}")
+    private long videoManifestCacheSeconds;
+
+    @Value("${app.video.object-redirect-cache-seconds:30}")
+    private long videoObjectRedirectCacheSeconds;
 
     @Bean
     public CacheManager cacheManager() {
@@ -47,6 +54,18 @@ public class CacheConfig {
             Caffeine.newBuilder().expireAfterWrite(2, TimeUnit.MINUTES).maximumSize(2000).recordStats().build());
         cacheManager.registerCustomCache("studentProgress",
             Caffeine.newBuilder().expireAfterWrite(2, TimeUnit.MINUTES).maximumSize(2000).recordStats().build());
+        cacheManager.registerCustomCache("videoPlaybackManifests",
+            Caffeine.newBuilder()
+                .expireAfterWrite(Math.max(10, videoManifestCacheSeconds), TimeUnit.SECONDS)
+                .maximumSize(1000)
+                .recordStats()
+                .build());
+        cacheManager.registerCustomCache("videoPlaybackObjectRedirects",
+            Caffeine.newBuilder()
+                .expireAfterWrite(Math.max(10, videoObjectRedirectCacheSeconds), TimeUnit.SECONDS)
+                .maximumSize(10000)
+                .recordStats()
+                .build());
 
         return cacheManager;
     }

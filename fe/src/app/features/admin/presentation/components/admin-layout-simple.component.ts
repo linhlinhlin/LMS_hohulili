@@ -72,16 +72,18 @@ import { FloatingChatBubbleComponent } from '../../../ai-chat/presentation/compo
         </div>
 
         <!-- AI Sidebar (Desktop) — always rendered, animated via CSS -->
-        @if (!shouldHideSidebar()) {
+        @if (canShowAssistant()) {
           <aside class="ai-sidebar hidden lg:flex lg:flex-col"
                  [class.ai-sidebar-open]="isAiSidebarOpen()"
                  [class.ai-sidebar-resizing]="isResizing()"
                  [style.width.px]="isAiSidebarOpen() ? aiSidebarWidth() : null"
                  [style.min-width.px]="isAiSidebarOpen() ? aiSidebarWidth() : null">
-            <app-chat-panel
-              mode="sidebar"
-              (closePanel)="toggleAiSidebar()"
-            />
+            @if (isAiSidebarOpen()) {
+              <app-chat-panel
+                mode="sidebar"
+                (closePanel)="toggleAiSidebar()"
+              />
+            }
           </aside>
 
           <!-- Resize handle — fixed position at sidebar's left edge -->
@@ -103,7 +105,7 @@ import { FloatingChatBubbleComponent } from '../../../ai-chat/presentation/compo
       </div>
 
       <!-- Desktop: Toggle tab — always rendered, animated -->
-      @if (!shouldHideSidebar()) {
+      @if (canShowAssistant()) {
         <button
           class="ai-sidebar-toggle hidden lg:flex"
           [class.ai-toggle-hidden]="isAiSidebarOpen()"
@@ -117,7 +119,7 @@ import { FloatingChatBubbleComponent } from '../../../ai-chat/presentation/compo
       }
 
       <!-- MOBILE: Floating bubble + popup -->
-      @if (!shouldHideSidebar()) {
+      @if (canShowAssistant()) {
         <div class="lg:hidden">
           @if (isMobilePanelOpen()) {
             <app-chat-panel
@@ -295,9 +297,17 @@ export class AdminLayoutSimpleComponent implements OnInit, OnDestroy {
   );
 
   private sidebarHidden = signal<boolean>(false);
+  private currentRoute = signal('');
   private routerSubscription?: Subscription;
 
   protected shouldHideSidebar = computed(() => this.sidebarHidden());
+  protected canShowAssistant = computed(() => {
+    const route = this.currentRoute();
+    const isOperationalAdminRoute = route.startsWith('/admin/offline-storage')
+      || route.startsWith('/admin/settings')
+      || route.startsWith('/admin/logs');
+    return !this.shouldHideSidebar() && !isOperationalAdminRoute;
+  });
 
   ngOnInit(): void {
     this.loadAiSidebarState();
@@ -318,6 +328,7 @@ export class AdminLayoutSimpleComponent implements OnInit, OnDestroy {
   }
 
   private handleRouteChange(url: string) {
+    this.currentRoute.set(url);
     const isInAiChat = url.includes('/ai-chat');
     const isInPreview = url.includes('/preview');
     this.sidebarHidden.set(isInAiChat || isInPreview);

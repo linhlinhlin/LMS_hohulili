@@ -211,21 +211,18 @@ async function queueMutation(
 ): Promise<void> {
   await ensureOfflineDbReady();
   const path = extractApiPath(req.url) || req.url;
-
-  // Determine entity type from path
-  let entityType: 'progress' | 'submission' | 'quizAttempt' | 'videoProgress' = 'progress';
-  if (path.includes('/submissions') || path.includes('/assignments')) {
-    entityType = 'submission';
-  } else if (path.includes('/quiz') || path.includes('/attempts')) {
-    entityType = 'quizAttempt';
-  } else if (path.includes('/video-progress') || path.includes('/progress')) {
-    entityType = 'videoProgress';
-  }
+  const syncDescriptor = await resolveSyncDescriptor(path, req.body);
 
   const operationType = req.method === 'POST' ? 'CREATE'
     : req.method === 'DELETE' ? 'DELETE' : 'UPDATE';
 
-  await syncService.queueOperation(entityType, operationType, path, req.body);
+  await syncService.queueOperation(
+    syncDescriptor.entityType,
+    operationType,
+    path,
+    req.body,
+    syncDescriptor.metadata,
+  );
 }
 
 /**
@@ -240,4 +237,155 @@ function extractApiPath(fullUrl: string): string | null {
     if (fullUrl.startsWith('/api/')) return fullUrl;
     return null;
   }
+}
+
+type SyncDescriptor = {
+  entityType: 'progress' | 'submission' | 'quizAttempt' | 'videoProgress';
+  metadata: {
+    courseId?: string;
+    publicationId?: string | null;
+    entityId?: string;
+  };
+};
+
+async function resolveSyncDescriptor(path: string, payload: unknown): Promise<SyncDescriptor> {
+  const payloadRecord = (payload && typeof payload === 'object')
+    ? payload as Record<string, unknown>
+    : {};
+  const courseId = typeof payloadRecord['courseId'] === 'string'
+    ? payloadRecord['courseId']
+    : inferRouteCourseId();
+  const publicationId = courseId
+    ? await findOfflinePublicationId(courseId)
+    : null;
+
+  const sectionCompleteMatch = path.match(
+    /^\/api\/v3\/student\/progress\/lessons\/([a-f0-9-]+)\/sections\/([^/]+)\/complete$/i,
+  );
+  if (sectionCompleteMatch) {
+    return {
+      entityType: 'progress',
+      metadata: {
+        courseId: courseId ?? undefined,
+        publicationId,
+        entityId: sectionCompleteMatch[2],
+      },
+    };
+  }
+
+  const lessonCompleteMatch = path.match(
+    /^\/api\/v3\/student\/progress\/lessons\/([a-f0-9-]+)\/complete$/i,
+  );
+  if (lessonCompleteMatch) {
+    return {
+      entityType: 'progress',
+      metadata: {
+        courseId: courseId ?? undefined,
+        publicationId,
+        entityId: lessonCompleteMatch[1],
+      },
+    };
+  }
+
+  if (path === '/api/v3/video-progress/track') {
+    const entityId = typeof payloadRecord['sectionId'] === 'string'
+      ? payloadRecord['sectionId']
+      : (typeof payloadRecord['lessonId'] === 'string' ? payloadRecord['lessonId'] : undefined);
+    return {
+      entityType: 'videoProgress',
+      metadata: {
+        courseId: courseId ?? undefined,
+        publicationId,
+        entityId,
+      },
+    };
+  }
+
+  if (path.startsWith('/api/v3/learning-activity/')) {
+    const entityId = typeof payloadRecord['sectionId'] === 'string'
+      ? payloadRecord['sectionId']
+      : (typeof payloadRecord['lessonId'] === 'string' ? payloadRecord['lessonId'] : undefined);
+    return {
+      entityType: 'submission',
+      metadata: {
+        courseId: courseId ?? undefined,
+        publicationId,
+        entityId,
+      },
+    };
+  }
+
+  if (path.includes('/submissions') || path.includes('/assignments')) {
+    return {
+      entityType: 'submission',
+      metadata: {
+        courseId: courseId ?? undefined,
+        publicationId,
+        entityId: getEntityIdFromPayload(payloadRecord),
+      },
+    };
+  }
+
+  if (path.includes('/quiz') || path.includes('/attempts')) {
+    return {
+      entityType: 'quizAttempt',
+      metadata: {
+        courseId: courseId ?? undefined,
+        publicationId,
+        entityId: getEntityIdFromPayload(payloadRecord),
+      },
+    };
+  }
+
+  if (path.includes('/video-progress')) {
+    return {
+      entityType: 'videoProgress',
+      metadata: {
+        courseId: courseId ?? undefined,
+        publicationId,
+        entityId: getEntityIdFromPayload(payloadRecord),
+      },
+    };
+  }
+
+  return {
+    entityType: 'progress',
+    metadata: {
+      courseId: courseId ?? undefined,
+      publicationId,
+      entityId: getEntityIdFromPayload(payloadRecord),
+    },
+  };
+}
+
+function inferRouteCourseId(): string | undefined {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+
+  const path = window.location.pathname;
+  const courseMatch = path.match(/\/course\/([a-f0-9-]{36})(?:\/|$)/i)
+    || path.match(/\/courses\/([a-f0-9-]{36})(?:\/|$)/i);
+
+  return courseMatch?.[1];
+}
+
+async function findOfflinePublicationId(courseId: string): Promise<string | null> {
+  try {
+    const userId = getCurrentUserId();
+    const offlineCourse = await offlineDb.courses.get([userId, courseId]);
+    return offlineCourse?.publicationId ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function getEntityIdFromPayload(payload: Record<string, unknown>): string | undefined {
+  const rawValue = payload['entityId']
+    ?? payload['id']
+    ?? payload['sectionId']
+    ?? payload['lessonId']
+    ?? payload['quizId']
+    ?? payload['assignmentId'];
+  return typeof rawValue === 'string' && rawValue.length > 0 ? rawValue : undefined;
 }

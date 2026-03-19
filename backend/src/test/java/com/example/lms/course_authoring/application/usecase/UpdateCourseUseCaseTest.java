@@ -49,7 +49,7 @@ class UpdateCourseUseCaseTest {
     private EnrollmentRepositoryPort enrollmentRepository;
 
     @Mock
-    private CourseDraftMutationService courseDraftMutationService;
+    private CourseDraftMutationUseCase courseDraftMutationUseCase;
 
     @InjectMocks
     private UpdateCourseUseCase useCase;
@@ -86,7 +86,7 @@ class UpdateCourseUseCaseTest {
                     courseId, teacherId,
                     "Tên mới", "Mô tả mới",
                     "https://img.example.com/thumb.jpg",
-                    null, null, null, null, null, null, null,
+                    null, null, null, null, null, null, null, null,
                     "PUBLIC", "FREE", null, null, "SELF_PACED", null, false
             );
 
@@ -120,6 +120,7 @@ class UpdateCourseUseCaseTest {
                     Set.of("java", "lập trình"),
                     "Chào mừng!", "Thông tin khóa học", "Lợi ích",
                     "https://video.example.com/intro.mp4",
+                    null,
                     3,
                     "PUBLIC", "PAID",
                     new BigDecimal("199000"), new BigDecimal("149000"),
@@ -161,7 +162,7 @@ class UpdateCourseUseCaseTest {
             UpdateCourseCommand command = new UpdateCourseCommand(
                     nonExistentId, teacherId,
                     "Tên mới", "Mô tả mới",
-                    null, null, null, null, null, null, null, null,
+                    null, null, null, null, null, null, null, null, null,
                     null, null, null, null, null, null, false
             );
 
@@ -189,7 +190,7 @@ class UpdateCourseUseCaseTest {
             UpdateCourseCommand command = new UpdateCourseCommand(
                     courseId, otherUserId,
                     "Tên mới", "Mô tả mới",
-                    null, null, null, null, null, null, null, null,
+                    null, null, null, null, null, null, null, null, null,
                     null, null, null, null, null, null, false
             );
 
@@ -219,7 +220,7 @@ class UpdateCourseUseCaseTest {
             UpdateCourseCommand command = new UpdateCourseCommand(
                     courseId, teacherId,
                     "Tên mới", "Mô tả mới",
-                    null, null, null, null, null, null, null, null,
+                    null, null, null, null, null, null, null, null, null,
                     null, null, null, null, null, null, false
             );
 

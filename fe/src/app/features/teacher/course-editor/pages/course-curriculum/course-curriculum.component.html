@@ -113,6 +113,29 @@
                         <!-- LECTURE fields (Refactored for Level 3 Topics) -->
                         @if (getLessonType(selectedLesson()) === 'LECTURE') {
                           <div class="space-y-4">
+                            @if (hasLegacyLessonLevelVideo()) {
+                              <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                                <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                  <div class="min-w-0">
+                                    <p class="text-sm font-semibold text-amber-900">Video legacy ở cấp bài học</p>
+                                    <p class="mt-1 text-sm text-amber-800">{{ getLegacyLessonVideoPolicyCopy() }}</p>
+                                    @if (getLegacyLessonVideoReference(); as legacyVideoRef) {
+                                      <p class="mt-2 truncate text-xs text-amber-700">{{ legacyVideoRef }}</p>
+                                    }
+                                  </div>
+
+                                  @if (!hasVideoSections()) {
+                                    <button
+                                      type="button"
+                                      (click)="openSectionEditor('VIDEO')"
+                                      class="shrink-0 rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-medium text-amber-900 transition hover:bg-amber-100">
+                                      Tạo mục video chuẩn mới
+                                    </button>
+                                  }
+                                </div>
+                              </div>
+                            }
+
                             <app-lecture-sections-panel
                               [sections]="selectedLesson()?.sections || []"
                               (createSection)="openSectionEditor($event)"
@@ -317,9 +340,12 @@
                           [lessonId]="selectedLessonId()"
                           [sectionType]="newSectionType"
                           [sectionTitle]="sectionTitle"
-            [sectionIsRequired]="sectionIsRequired"
-            [sectionVideoUrl]="sectionVideoUrl"
-            [sectionStreamVideoUid]="sectionStreamVideoUid"
+              [sectionIsRequired]="sectionIsRequired"
+              [sectionVideoAssetId]="sectionVideoAssetId"
+              [sectionVideoProcessingStatus]="sectionVideoProcessingStatus"
+              [sectionVideoAvailableOfflineProfiles]="sectionVideoAvailableOfflineProfiles"
+              [sectionVideoUrl]="sectionVideoUrl"
+              [sectionStreamVideoUid]="sectionStreamVideoUid"
             [selectedVideoFile]="selectedSectionVideoFile"
             [sectionContent]="sectionContent"
             [selectedFile]="selectedFile"
@@ -342,10 +368,13 @@
                           [editorConfig]="editorConfig"
                           (closeRequested)="closeSectionModal()"
                           (saveRequested)="saveSection()"
-            (sectionTitleChange)="onSectionTitleChange($event)"
-            (sectionRequiredChange)="onSectionRequiredChange($event)"
-            (sectionVideoUrlChange)="onSectionVideoUrlChange($event)"
-            (sectionStreamVideoUidChange)="onSectionStreamVideoUidChange($event)"
+              (sectionTitleChange)="onSectionTitleChange($event)"
+              (sectionRequiredChange)="onSectionRequiredChange($event)"
+              (sectionVideoAssetIdChange)="onSectionVideoAssetIdChange($event)"
+              (sectionVideoProcessingStatusChange)="onSectionVideoProcessingStatusChange($event)"
+              (sectionVideoUrlChange)="onSectionVideoUrlChange($event)"
+              (sectionStreamVideoUidChange)="onSectionStreamVideoUidChange($event)"
+            (retryVideoAssetRequested)="retrySectionVideoAsset()"
             (videoFileSelected)="onSectionVideoFileSelected($event)"
             (clearSelectedVideoFile)="onClearSelectedSectionVideoFile()"
             (sectionContentChange)="onSectionContentModelChange($event)"

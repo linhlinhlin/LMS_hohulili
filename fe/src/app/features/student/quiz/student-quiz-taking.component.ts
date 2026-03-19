@@ -9,6 +9,8 @@ import { IconComponent } from '../../../shared/components/ui/icon/icon.component
 import { BlockRendererComponent } from '../../../shared/blocks/block-renderer/block-renderer.component';
 import { NetworkStatusService } from '../../../core/services/network-status.service';
 import { OfflineQuizService } from '../../../core/services/offline-quiz.service';
+import { CourseDownloadService } from '../../../core/services/course-download.service';
+import { getOfflineCourseStaleCopy } from '../../../core/utils/offline-course-staleness';
 
 type QuestionType = 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'FILL_IN_BLANK' | 'SHORT_ANSWER' | 'ESSAY';
 
@@ -61,6 +63,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   private quizApi = inject(QuizApi);
   private network = inject(NetworkStatusService);
   private offlineQuizService = inject(OfflineQuizService);
+  private courseDownloadService = inject(CourseDownloadService);
 
   Math = Math;
 
@@ -77,6 +80,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   returnUrl = '';
   /** True when taking quiz from offline IndexedDB (no server connection) */
   isOfflineMode = signal(false);
+  stalePackageBlocked = signal(false);
 
   loading = signal(true);
   error = signal<string | null>(null);
@@ -187,9 +191,18 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   async loadQuiz(): Promise<void> {
     this.loading.set(true);
     this.error.set(null);
+    this.stalePackageBlocked.set(false);
+
+    if (await this.blockIfStalePackageDisallowsAssessment(this.allowOfflineQuiz())) {
+      this.loading.set(false);
+      return;
+    }
 
     // Offline mode: load quiz from IndexedDB
     if (!this.network.online()) {
+      if (this.lessonId) {
+        this.allowOfflineQuiz.set(true);
+      }
       await this.loadOfflineQuiz();
       return;
     }
@@ -201,20 +214,10 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
       }
 
       const quiz = await firstValueFrom(this.quizApi.getQuizByReference(this.quizReferenceId));
-      this.quizId = quiz.id;
-
-      if (quiz.title) this.quizTitle.set(quiz.title);
-      if (quiz.timeLimitMinutes) this.timeRemaining.set(quiz.timeLimitMinutes * 60);
-
-      this.quizSettings.set({
-        timeLimitMinutes: quiz.timeLimitMinutes || null,
-        maxAttempts: quiz.maxAttempts || 1,
-        passingScore: quiz.passingScore || 60,
-        shuffleQuestions: quiz.shuffleQuestions || false,
-        shuffleOptions: quiz.shuffleOptions || false,
-        showResultsImmediately: quiz.showResultsImmediately !== false,
-        showCorrectAnswers: quiz.showCorrectAnswers !== false,
-      });
+      this.applyQuizSettings(quiz);
+      if (await this.blockIfStalePackageDisallowsAssessment(this.allowOfflineQuiz())) {
+        return;
+      }
 
       const questions = await firstValueFrom(this.quizApi.getQuizQuestions(this.quizId));
 
@@ -294,6 +297,21 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
       showResultsImmediately: quiz.showResultsImmediately !== false,
       showCorrectAnswers: quiz.showCorrectAnswers !== false,
     });
+  }
+
+  private async blockIfStalePackageDisallowsAssessment(allowOffline: boolean): Promise<boolean> {
+    if (!this.courseId || allowOffline) {
+      return false;
+    }
+
+    const downloadedCourse = await this.courseDownloadService.getDownloadedCourse(this.courseId);
+    if (!downloadedCourse?.isStale) {
+      return false;
+    }
+
+    this.stalePackageBlocked.set(true);
+    this.error.set(getOfflineCourseStaleCopy(downloadedCourse.staleReason).assessmentBlockedMessage);
+    return true;
   }
 
   private mapQuestions(rawQuestions: any[]): QuizQuestion[] {
@@ -412,6 +430,9 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
 
     const quiz = await firstValueFrom(this.quizApi.getSectionQuiz(this.lessonId, this.sectionId));
     this.applyQuizSettings(quiz);
+    if (await this.blockIfStalePackageDisallowsAssessment(this.allowOfflineQuiz())) {
+      return;
+    }
 
     if (!quiz.questions || quiz.questions.length === 0) {
       this.error.set('Bài kiểm tra này chưa có câu hỏi nào.');
@@ -843,6 +864,11 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
     } else {
       this.router.navigate(['/student/courses']);
     }
+  }
+
+  openStorageManagement(): void {
+    this.stopTimer();
+    this.router.navigate(['/student/storage']);
   }
 
   private shuffleArray<T>(arr: T[]): T[] {

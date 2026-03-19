@@ -22,6 +22,13 @@ RUN --mount=type=cache,target=/root/.m2/repository \
 # ----- Stage 2: Runtime -----
 FROM eclipse-temurin:21-jre-alpine
 
+ARG SHAKA_PACKAGER_VERSION=v3.4.2
+
+RUN apk add --no-cache ffmpeg wget ca-certificates && \
+    wget -q "https://github.com/shaka-project/shaka-packager/releases/download/${SHAKA_PACKAGER_VERSION}/packager-linux-x64" -O /usr/local/bin/packager && \
+    chmod +x /usr/local/bin/packager && \
+    /usr/local/bin/packager --version
+
 # Security: Create non-root user with specific UID/GID
 RUN addgroup -g 1001 -S lmsgroup && \
     adduser -S lmsuser -u 1001 -G lmsgroup -s /sbin/nologin

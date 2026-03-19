@@ -36,7 +36,7 @@ class ManageContentBlockUseCaseV3Test {
     private CourseRepository courseRepository;
 
     @Mock
-    private CourseDraftMutationService courseDraftMutationService;
+    private CourseDraftMutationUseCase courseDraftMutationUseCase;
 
     @InjectMocks
     private ManageContentBlockUseCaseV3 useCase;

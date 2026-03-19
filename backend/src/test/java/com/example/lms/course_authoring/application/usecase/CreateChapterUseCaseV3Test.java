@@ -31,6 +31,9 @@ class CreateChapterUseCaseV3Test {
     @Mock
     private CourseRepository courseRepository;
 
+    @Mock
+    private CourseDraftMutationUseCase courseDraftMutationUseCase;
+
     @InjectMocks
     private CreateChapterUseCaseV3 useCase;
 

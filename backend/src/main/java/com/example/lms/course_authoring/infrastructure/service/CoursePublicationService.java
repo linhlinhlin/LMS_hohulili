@@ -17,6 +17,7 @@ import com.example.lms.course_authoring.infrastructure.persistence.repository.Co
 import com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
+import com.example.lms.learning_delivery.infrastructure.service.VideoAssetPresentationService;
 import com.example.lms.shared.domain.model.ContentBlock;
 import com.example.lms.shared.exception.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,7 @@ public class CoursePublicationService {
     private final AssignmentJpaRepository assignmentJpaRepository;
     private final QuestionJpaRepository questionJpaRepository;
     private final CoursePublicationJpaRepository publicationRepository;
+    private final VideoAssetPresentationService videoAssetPresentationService;
 
     @Transactional
     public CoursePublicationJpaEntity publish(UUID courseId, UUID publishedById) {
@@ -139,7 +141,7 @@ public class CoursePublicationService {
     @Transactional(readOnly = true)
     public Map<String, Object> getPublishedDetail(UUID courseId, UUID studentId) {
         return resolvePublication(courseId, studentId)
-                .map(resolved -> (Map<String, Object>) resolved.publication().getSnapshot().get("detail"))
+                .map(resolved -> enrichPublishedDetail((Map<String, Object>) resolved.publication().getSnapshot().get("detail")))
                 .orElse(null);
     }
 
@@ -147,7 +149,7 @@ public class CoursePublicationService {
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getPublishedContent(UUID courseId, UUID studentId) {
         return resolvePublication(courseId, studentId)
-                .map(resolved -> (List<Map<String, Object>>) resolved.publication().getSnapshot().get("content"))
+                .map(resolved -> enrichPublishedContent((List<Map<String, Object>>) resolved.publication().getSnapshot().get("content")))
                 .orElse(null);
     }
 
@@ -169,7 +171,10 @@ public class CoursePublicationService {
         detail.put("welcomeMessage", course.getWelcomeMessage());
         detail.put("courseInformation", course.getCourseInformation());
         detail.put("benefits", course.getBenefits());
-        detail.put("introVideoUrl", course.getIntroVideoUrl());
+        detail.put("introVideoUrl", course.getIntroVideoAssetId() == null ? course.getIntroVideoUrl() : null);
+        if (course.getIntroVideoAssetId() != null) {
+            detail.put("introVideoAssetId", course.getIntroVideoAssetId().toString());
+        }
         detail.put("credits", course.getCredits());
         detail.put("visibility", course.getVisibility() != null ? course.getVisibility().name() : "PUBLIC");
         detail.put("priceType", course.getPriceType() != null ? course.getPriceType().name() : "FREE");
@@ -180,6 +185,17 @@ public class CoursePublicationService {
         detail.put("chapterCount", course.getChapters() != null ? course.getChapters().size() : 0);
         detail.put("createdAt", course.getCreatedAt() != null ? course.getCreatedAt().toString() : null);
         detail.put("updatedAt", course.getUpdatedAt() != null ? course.getUpdatedAt().toString() : null);
+        applyIntroVideoAssetView(detail, course.getIntroVideoAssetId());
+        return detail;
+    }
+
+    private Map<String, Object> enrichPublishedDetail(Map<String, Object> detailSnapshot) {
+        if (detailSnapshot == null || detailSnapshot.isEmpty()) {
+            return detailSnapshot;
+        }
+
+        Map<String, Object> detail = new LinkedHashMap<>(detailSnapshot);
+        applyIntroVideoAssetView(detail, parseVideoAssetId(detail.get("introVideoAssetId")));
         return detail;
     }
 
@@ -237,7 +253,8 @@ public class CoursePublicationService {
         lessonDto.put("quizMaxAttempts", quiz != null ? quiz.getMaxAttempts() : null);
         lessonDto.put("assignment", toAssignmentInfo(assignment));
         lessonDto.put("sections", buildSectionResponses(lesson));
-        lessonDto.put("streamVideoUid", lesson.getStreamVideoUid());
+        lessonDto.put("videoUrl", lesson.getVideoUrl());
+        lessonDto.put("streamVideoUid", null);
         return lessonDto;
     }
 
@@ -251,6 +268,9 @@ public class CoursePublicationService {
                 .filter(block -> "VIDEO".equalsIgnoreCase(block.getType()))
                 .count();
         Map<UUID, QuestionJpaEntity> questionMap = loadSectionQuizQuestionMap(lesson.getContentBlocks());
+        Map<UUID, VideoAssetPresentationService.VideoAssetView> videoAssets = videoAssetPresentationService.getViews(
+                extractVideoAssetIds(lesson.getContentBlocks().stream().map(ContentBlock::getData).toList())
+        );
 
         for (ContentBlock block : lesson.getContentBlocks()) {
             Map<String, Object> data = block.getData() != null ? block.getData() : new HashMap<>();
@@ -270,10 +290,66 @@ public class CoursePublicationService {
             section.put("orderIndex", asInteger(data.get("orderIndex"), 0));
             section.put("isRequired", asBoolean(data.get("isRequired"), false));
             section.put("quizData", buildSectionQuizData(data, questionMap));
+            applyVideoAssetView(section, data, resolveVideoAssetView(videoAssets, data.get("videoAssetId")), videoType);
             sections.add(section);
         }
 
         return sections;
+    }
+
+    private List<Map<String, Object>> enrichPublishedContent(List<Map<String, Object>> chaptersSnapshot) {
+        if (chaptersSnapshot == null || chaptersSnapshot.isEmpty()) {
+            return chaptersSnapshot;
+        }
+
+        Map<UUID, VideoAssetPresentationService.VideoAssetView> videoAssets = videoAssetPresentationService.getViews(
+                extractVideoAssetIdsFromPublishedSnapshot(chaptersSnapshot)
+        );
+
+        List<Map<String, Object>> chapters = new ArrayList<>();
+        for (Map<String, Object> chapter : chaptersSnapshot) {
+            Map<String, Object> chapterCopy = new LinkedHashMap<>(chapter);
+            List<Map<String, Object>> lessonCopies = new ArrayList<>();
+
+            Object lessonsObj = chapter.get("lessons");
+            if (lessonsObj instanceof List<?> lessons) {
+                for (Object lessonObj : lessons) {
+                    if (!(lessonObj instanceof Map<?, ?> rawLesson)) {
+                        continue;
+                    }
+
+                    Map<String, Object> lessonCopy = new LinkedHashMap<>();
+                    rawLesson.forEach((key, value) -> lessonCopy.put(String.valueOf(key), value));
+                    List<Map<String, Object>> sectionCopies = new ArrayList<>();
+
+                    Object sectionsObj = rawLesson.get("sections");
+                    if (sectionsObj instanceof List<?> rawSections) {
+                        for (Object sectionObj : rawSections) {
+                            if (!(sectionObj instanceof Map<?, ?> rawSection)) {
+                                continue;
+                            }
+                            Map<String, Object> sectionCopy = new LinkedHashMap<>();
+                            rawSection.forEach((key, value) -> sectionCopy.put(String.valueOf(key), value));
+                            applyVideoAssetView(
+                                    sectionCopy,
+                                    sectionCopy,
+                                    resolveVideoAssetView(videoAssets, sectionCopy.get("videoAssetId")),
+                                    sectionCopy.get("videoType") instanceof String type ? type : null
+                            );
+                            sectionCopies.add(sectionCopy);
+                        }
+                    }
+
+                    lessonCopy.put("sections", sectionCopies);
+                    lessonCopies.add(lessonCopy);
+                }
+            }
+
+            chapterCopy.put("lessons", lessonCopies);
+            chapters.add(chapterCopy);
+        }
+
+        return chapters;
     }
 
     private Map<UUID, QuizJpaEntity> loadQuizMap(List<UUID> lessonIds) {
@@ -381,6 +457,127 @@ public class CoursePublicationService {
         }
 
         return normalized;
+    }
+
+    private List<UUID> extractVideoAssetIds(List<Map<String, Object>> blockDataList) {
+        List<UUID> ids = new ArrayList<>();
+        if (blockDataList == null) {
+            return ids;
+        }
+        for (Map<String, Object> data : blockDataList) {
+            UUID videoAssetId = parseVideoAssetId(data.get("videoAssetId"));
+            if (videoAssetId != null) {
+                ids.add(videoAssetId);
+            }
+        }
+        return ids;
+    }
+
+    private List<UUID> extractVideoAssetIdsFromPublishedSnapshot(List<Map<String, Object>> chaptersSnapshot) {
+        List<UUID> ids = new ArrayList<>();
+        for (Map<String, Object> chapter : chaptersSnapshot) {
+            Object lessonsObj = chapter.get("lessons");
+            if (!(lessonsObj instanceof List<?> lessons)) {
+                continue;
+            }
+            for (Object lessonObj : lessons) {
+                if (!(lessonObj instanceof Map<?, ?> lesson)) {
+                    continue;
+                }
+                Object sectionsObj = lesson.get("sections");
+                if (!(sectionsObj instanceof List<?> sections)) {
+                    continue;
+                }
+                for (Object sectionObj : sections) {
+                    if (!(sectionObj instanceof Map<?, ?> section)) {
+                        continue;
+                    }
+                    UUID id = parseVideoAssetId(section.get("videoAssetId"));
+                    if (id != null) {
+                        ids.add(id);
+                    }
+                }
+            }
+        }
+        return ids;
+    }
+
+    private UUID parseVideoAssetId(Object value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            return UUID.fromString(value.toString());
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private VideoAssetPresentationService.VideoAssetView resolveVideoAssetView(
+            Map<UUID, VideoAssetPresentationService.VideoAssetView> videoAssets,
+            Object rawVideoAssetId
+    ) {
+        UUID videoAssetId = parseVideoAssetId(rawVideoAssetId);
+        return videoAssetId == null ? null : videoAssets.get(videoAssetId);
+    }
+
+    private void applyVideoAssetView(
+            Map<String, Object> section,
+            Map<String, Object> rawData,
+            VideoAssetPresentationService.VideoAssetView assetView,
+            String fallbackVideoType
+    ) {
+        UUID videoAssetId = parseVideoAssetId(rawData.get("videoAssetId"));
+        if (videoAssetId != null) {
+            section.put("videoAssetId", videoAssetId.toString());
+        }
+        if (assetView == null) {
+            return;
+        }
+
+        section.put("videoAssetId", assetView.id().toString());
+        section.put("videoProcessingStatus", assetView.status());
+        section.put("videoSourceKind", assetView.videoSourceKind());
+        section.put("availableOfflineProfiles", assetView.availableOfflineProfiles().stream()
+                .map(profile -> {
+                    Map<String, Object> option = new LinkedHashMap<>();
+                    option.put("id", profile.id());
+                    option.put("label", profile.label());
+                    option.put("actualResolution", profile.actualResolution());
+                    option.put("sizeBytes", profile.sizeBytes());
+                    return option;
+                })
+                .toList());
+        section.remove("videoUrl");
+        section.remove("streamVideoUid");
+        section.put("videoType", "ADAPTIVE_R2");
+        if (fallbackVideoType != null && !"VIDEO".equalsIgnoreCase(fallbackVideoType)) {
+            section.put("videoType", fallbackVideoType);
+        }
+    }
+
+    private void applyIntroVideoAssetView(Map<String, Object> detail, UUID introVideoAssetId) {
+        if (detail == null || introVideoAssetId == null) {
+            return;
+        }
+
+        detail.put("introVideoAssetId", introVideoAssetId.toString());
+        videoAssetPresentationService.getView(introVideoAssetId).ifPresent(view -> {
+            detail.put("introVideoProcessingStatus", view.status());
+            detail.put("introVideoSourceKind", view.videoSourceKind());
+            detail.remove("introVideoStreamVideoUid");
+            detail.put("introVideoAvailableOfflineProfiles", view.availableOfflineProfiles().stream()
+                    .map(profile -> {
+                        Map<String, Object> option = new LinkedHashMap<>();
+                        option.put("id", profile.id());
+                        option.put("label", profile.label());
+                        option.put("actualResolution", profile.actualResolution());
+                        option.put("sizeBytes", profile.sizeBytes());
+                        return option;
+                    })
+                    .toList());
+            detail.remove("introVideoUrl");
+        });
     }
 
     private Map<String, Object> buildSectionQuizQuestion(QuestionJpaEntity question) {

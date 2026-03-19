@@ -1,16 +1,30 @@
 import { Injectable, signal, computed, OnDestroy } from '@angular/core';
 
 export type ConnectionTier = 'none' | 'slow' | 'fast';
+export type ConnectionTransport = 'wifi' | 'ethernet' | 'cellular' | 'unknown';
 
 @Injectable({ providedIn: 'root' })
 export class NetworkStatusService implements OnDestroy {
   readonly online = signal(typeof navigator !== 'undefined' ? navigator.onLine : true);
   readonly effectiveBandwidthMbps = signal(2);
+  readonly connectionTransport = signal<ConnectionTransport>('unknown');
+  readonly saveDataEnabled = signal(false);
+  readonly effectiveNetworkType = signal<string | null>(null);
 
   readonly connectionTier = computed<ConnectionTier>(() => {
     if (!this.online()) return 'none';
     return this.effectiveBandwidthMbps() < 1 ? 'slow' : 'fast';
   });
+
+  readonly isLikelyMetered = computed(() => {
+    if (!this.online()) return false;
+    if (this.saveDataEnabled()) return true;
+    return this.connectionTransport() === 'cellular';
+  });
+
+  readonly connectionDetailsAvailable = computed(() =>
+    this.connectionTransport() !== 'unknown' || this.effectiveNetworkType() != null || this.saveDataEnabled()
+  );
 
   readonly connectionLabel = computed(() => {
     switch (this.connectionTier()) {
@@ -65,6 +79,10 @@ export class NetworkStatusService implements OnDestroy {
     this.online.set(navigator.onLine);
 
     const conn = (navigator as any).connection;
+    this.connectionTransport.set(this.normalizeConnectionTransport(conn?.type));
+    this.saveDataEnabled.set(conn?.saveData === true);
+    this.effectiveNetworkType.set(typeof conn?.effectiveType === 'string' ? conn.effectiveType : null);
+
     if (!navigator.onLine) {
       this.effectiveBandwidthMbps.set(0);
     } else if (conn?.downlink != null) {
@@ -113,5 +131,13 @@ export class NetworkStatusService implements OnDestroy {
         }
         // AbortError (timeout) → keep existing state (might be slow, not offline)
       });
+  }
+
+  private normalizeConnectionTransport(value: unknown): ConnectionTransport {
+    if (value === 'wifi' || value === 'ethernet' || value === 'cellular') {
+      return value;
+    }
+
+    return 'unknown';
   }
 }

@@ -1,6 +1,7 @@
 package com.example.lms.course_authoring.application.usecase;
 
 import com.example.lms.course_authoring.application.dto.CourseResponse;
+import com.example.lms.course_authoring.application.port.CoursePublicationPort;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
 import com.example.lms.shared.exception.EntityNotFoundException;
@@ -22,7 +23,7 @@ public class ApproveCourseUseCase {
 
     private final CourseRepository courseRepository;
     private final DomainEventPublisher eventPublisher;
-    private final com.example.lms.course_authoring.infrastructure.service.CoursePublicationService coursePublicationService;
+    private final CoursePublicationPort coursePublicationPort;
 
     @Transactional
     public CourseResponse execute(UUID courseId, UUID reviewerId, String comment) {
@@ -36,7 +37,7 @@ public class ApproveCourseUseCase {
         // Save course
         course = courseRepository.save(course);
 
-        coursePublicationService.publish(course.getId(), reviewerId);
+        coursePublicationPort.publish(course.getId(), reviewerId);
 
         // Publish domain events (CourseApprovedEvent will be received by Learning Delivery)
         course.getDomainEvents().forEach(eventPublisher::publish);

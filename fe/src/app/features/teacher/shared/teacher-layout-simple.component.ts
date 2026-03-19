@@ -180,10 +180,12 @@ import { FloatingChatBubbleComponent } from '../../ai-chat/presentation/componen
                [class.ai-sidebar-resizing]="isResizing()"
                [style.width.px]="isAiSidebarOpen() ? aiSidebarWidth() : null"
                [style.min-width.px]="isAiSidebarOpen() ? aiSidebarWidth() : null">
-          <app-chat-panel
-            mode="sidebar"
-            (closePanel)="toggleAiSidebar()"
-          />
+          @if (isAiSidebarOpen()) {
+            <app-chat-panel
+              mode="sidebar"
+              (closePanel)="toggleAiSidebar()"
+            />
+          }
         </aside>
 
         <!-- Resize handle — fixed position at sidebar's left edge -->

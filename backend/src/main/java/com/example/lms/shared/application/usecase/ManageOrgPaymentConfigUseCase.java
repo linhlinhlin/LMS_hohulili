@@ -1,10 +1,10 @@
 package com.example.lms.shared.application.usecase;
 
 import com.example.lms.identity.domain.repository.OrganizationRepository;
+import com.example.lms.shared.application.port.RevenueConfigPort;
 import com.example.lms.shared.domain.model.OrgPaymentConfig;
 import com.example.lms.shared.domain.repository.OrgPaymentConfigRepository;
 import com.example.lms.shared.exception.EntityNotFoundException;
-import com.example.lms.shared.infrastructure.service.RevenueConfigService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,13 +18,13 @@ public class ManageOrgPaymentConfigUseCase {
 
     private final OrganizationRepository orgRepo;
     private final OrgPaymentConfigRepository configRepo;
-    private final RevenueConfigService       revenueConfigService;
+    private final RevenueConfigPort          revenueConfigPort;
 
     @Transactional(readOnly = true)
     public OrgPaymentConfig getConfig(UUID orgId) {
         ensureOrganizationExists(orgId);
         // Returns org-specific config or platform default
-        return revenueConfigService.resolveConfig(orgId);
+        return revenueConfigPort.resolveConfig(orgId);
     }
 
     @Transactional

@@ -1,0 +1,288 @@
+[
+  {
+    "case": "student-storage",
+    "route": "/student/storage",
+    "final_url": "https://holilihu.online/student/storage",
+    "title": "Lưu trữ ngoại tuyến",
+    "console": [
+      {
+        "type": "info",
+        "text": "[Storage] Persistent storage DENIED"
+      }
+    ],
+    "failures": [
+      {
+        "url": "https://holilihu.online/icons/icon-192x192.png",
+        "method": "HEAD",
+        "failure": "net::ERR_ABORTED"
+      }
+    ],
+    "responses": [
+      {
+        "url": "https://holilihu.online/api/v3/gamification/notifications?page=0&size=20",
+        "status": 200
+      },
+      {
+        "url": "https://holilihu.online/api/v3/messages/conversations?includeArchived=false",
+        "status": 200
+      }
+    ]
+  },
+  {
+    "case": "student-courses",
+    "route": "/student/courses",
+    "final_url": "https://holilihu.online/student/courses",
+    "title": "Khóa học của tôi",
+    "console": [
+      {
+        "type": "info",
+        "text": "[Storage] Persistent storage DENIED"
+      }
+    ],
+    "failures": [
+      {
+        "url": "https://holilihu.online/icons/icon-192x192.png",
+        "method": "HEAD",
+        "failure": "net::ERR_ABORTED"
+      }
+    ],
+    "responses": [
+      {
+        "url": "https://holilihu.online/api/v3/messages/conversations?includeArchived=false",
+        "status": 200
+      },
+      {
+        "url": "https://holilihu.online/api/v3/gamification/notifications?page=0&size=20",
+        "status": 200
+      },
+      {
+        "url": "https://holilihu.online/api/v3/learning-activity/continue",
+        "status": 200
+      },
+      {
+        "url": "https://holilihu.online/api/v3/student/courses/enrolled?page=0&size=20",
+        "status": 200
+      }
+    ]
+  },
+  {
+    "case": "teacher-dashboard",
+    "route": "/teacher/dashboard",
+    "final_url": "https://holilihu.online/teacher/dashboard",
+    "title": "Dashboard - Giảng viên",
+    "console": [
+      {
+        "type": "info",
+        "text": "[Storage] Persistent storage DENIED"
+      },
+      {
+        "type": "warning",
+        "text": "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 ()"
+      },
+      {
+        "type": "warning",
+        "text": "[OrgStore] Failed to fetch organizations: Error: Multi-tenant is not enabled\n    at QT._throwApiError (https://wiii.holilihu.online/embed/assets/embed-CxDNS-kV.js:319:7670)\n    at async QT.get (https://wiii.holilihu.online/embed/assets/embed-CxDNS-kV.js:319:8018)\n    at async fetchOrganizations (https://wiii.holilihu.online/embed/assets/embed-CxDNS-kV.js:325:16329)"
+      },
+      {
+        "type": "warning",
+        "text": "[org-store] Attempted switch to unknown org: maritime-lms — ignored"
+      }
+    ],
+    "failures": [
+      {
+        "url": "https://holilihu.online/icons/icon-192x192.png",
+        "method": "HEAD",
+        "failure": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://holilihu.online/api/v3/gamification/notifications?page=0&size=20",
+        "method": "GET",
+        "failure": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://holilihu.online/api/v3/ai/token",
+        "method": "POST",
+        "failure": "net::ERR_ABORTED"
+      }
+    ],
+    "responses": [
+      {
+        "url": "https://holilihu.online/api/v3/teacher/courses/my-courses?page=0&size=100",
+        "status": 200
+      },
+      {
+        "url": "https://holilihu.online/api/v3/gamification/notifications?page=0&size=20",
+        "status": 200
+      },
+      {
+        "url": "https://holilihu.online/api/v3/teacher/courses/my-courses?page=0&size=100",
+        "status": 200
+      },
+      {
+        "url": "https://holilihu.online/api/v3/teacher/analytics",
+        "status": 200
+      },
+      {
+        "url": "https://holilihu.online/api/v3/ai/token",
+        "status": 200
+      },
+      {
+        "url": "https://wiii.holilihu.online/embed",
+        "status": 301
+      },
+      {
+        "url": "https://wiii.holilihu.online/embed/",
+        "status": 200
+      },
+      {
+        "url": "https://wiii.holilihu.online/embed/assets/embed-Ccj0g40t.css",
+        "status": 200
+      },
+      {
+        "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&display=swap",
+        "status": 200
+      },
+      {
+        "url": "https://wiii.holilihu.online/embed/assets/embed-CxDNS-kV.js",
+        "status": 200
+      },
+      {
+        "url": "https://wiii.holilihu.online/cdn-cgi/rum?",
+        "status": 204
+      },
+      {
+        "url": "https://wiii.holilihu.online/embed/assets/core-DVXOVh46.js",
+        "status": 200
+      },
+      {
+        "url": "https://wiii.holilihu.online/embed/assets/index-DjqTiSrW.js",
+        "status": 200
+      },
+      {
+        "url": "https://wiii.holilihu.online/embed/assets/threads-Bfwwm0cV.js",
+        "status": 200
+      },
+      {
+        "url": "https://wiii.holilihu.online/api/v1/health",
+        "status": 200
+      },
+      {
+        "url": "https://wiii.holilihu.online/api/v1/organizations",
+        "status": 404
+      },
+      {
+        "url": "https://wiii.holilihu.online/api/v1/admin/domains",
+        "status": 200
+      },
+      {
+        "url": "https://wiii.holilihu.online/api/v1/threads?limit=200&offset=0",
+        "status": 200
+      }
+    ]
+  },
+  {
+    "case": "admin-offline-storage",
+    "route": "/admin/offline-storage",
+    "final_url": "https://holilihu.online/admin/offline-storage",
+    "title": "Giám sát bộ nhớ ngoại tuyến",
+    "console": [
+      {
+        "type": "info",
+        "text": "[Storage] Persistent storage DENIED"
+      },
+      {
+        "type": "warning",
+        "text": "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing."
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 ()"
+      },
+      {
+        "type": "warning",
+        "text": "[OrgStore] Failed to fetch organizations: Error: Multi-tenant is not enabled\n    at QT._throwApiError (https://wiii.holilihu.online/embed/assets/embed-CxDNS-kV.js:319:7670)\n    at async QT.get (https://wiii.holilihu.online/embed/assets/embed-CxDNS-kV.js:319:8018)\n    at async fetchOrganizations (https://wiii.holilihu.online/embed/assets/embed-CxDNS-kV.js:325:16329)"
+      },
+      {
+        "type": "warning",
+        "text": "[org-store] Attempted switch to unknown org: maritime-lms — ignored"
+      }
+    ],
+    "failures": [
+      {
+        "url": "https://holilihu.online/icons/icon-192x192.png",
+        "method": "HEAD",
+        "failure": "net::ERR_ABORTED"
+      }
+    ],
+    "responses": [
+      {
+        "url": "https://holilihu.online/api/v3/admin/client-telemetry/offline-storage?page=0&size=20",
+        "status": 200
+      },
+      {
+        "url": "https://holilihu.online/api/v3/ai/token",
+        "status": 200
+      },
+      {
+        "url": "https://holilihu.online/api/v3/admin/client-telemetry/offline-storage/analytics?days=7",
+        "status": 200
+      },
+      {
+        "url": "https://wiii.holilihu.online/embed",
+        "status": 301
+      },
+      {
+        "url": "https://wiii.holilihu.online/embed/",
+        "status": 200
+      },
+      {
+        "url": "https://wiii.holilihu.online/embed/assets/embed-Ccj0g40t.css",
+        "status": 200
+      },
+      {
+        "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&display=swap",
+        "status": 200
+      },
+      {
+        "url": "https://wiii.holilihu.online/embed/assets/embed-CxDNS-kV.js",
+        "status": 200
+      },
+      {
+        "url": "https://wiii.holilihu.online/cdn-cgi/rum?",
+        "status": 204
+      },
+      {
+        "url": "https://wiii.holilihu.online/embed/assets/index-DjqTiSrW.js",
+        "status": 200
+      },
+      {
+        "url": "https://wiii.holilihu.online/embed/assets/core-DVXOVh46.js",
+        "status": 200
+      },
+      {
+        "url": "https://wiii.holilihu.online/embed/assets/threads-Bfwwm0cV.js",
+        "status": 200
+      },
+      {
+        "url": "https://wiii.holilihu.online/api/v1/health",
+        "status": 200
+      },
+      {
+        "url": "https://wiii.holilihu.online/api/v1/admin/domains",
+        "status": 200
+      },
+      {
+        "url": "https://wiii.holilihu.online/api/v1/organizations",
+        "status": 404
+      },
+      {
+        "url": "https://wiii.holilihu.online/api/v1/threads?limit=200&offset=0",
+        "status": 200
+      }
+    ]
+  }
+]

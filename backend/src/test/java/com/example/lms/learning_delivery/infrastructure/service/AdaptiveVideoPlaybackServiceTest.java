@@ -1,0 +1,82 @@
+package com.example.lms.learning_delivery.infrastructure.service;
+
+import com.example.lms.learning_delivery.infrastructure.persistence.entity.VideoAssetJpaEntity;
+import com.example.lms.learning_delivery.infrastructure.persistence.repository.VideoAssetJpaRepository;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class AdaptiveVideoPlaybackServiceTest {
+
+    @Mock
+    private VideoAssetJpaRepository videoAssetRepository;
+    @Mock
+    private AdaptiveVideoPlaybackCacheService adaptiveVideoPlaybackCacheService;
+    @Mock
+    private VideoPlaybackTokenService videoPlaybackTokenService;
+
+    @InjectMocks
+    private AdaptiveVideoPlaybackService service;
+
+    @Test
+    @DisplayName("renderHlsManifest rewrites child playlist and segment URLs to tokenized backend paths")
+    void renderHlsManifestRewritesUrls() throws Exception {
+        UUID assetId = UUID.randomUUID();
+        String token = "play-token";
+        String manifestKey = "video-packages/" + assetId + "/hls/master.m3u8";
+
+        VideoAssetJpaEntity asset = VideoAssetJpaEntity.builder()
+                .id(assetId)
+                .status("READY")
+                .adaptivePackagingStatus("READY")
+                .hlsManifestStorageKey(manifestKey)
+                .build();
+
+        when(videoAssetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(videoPlaybackTokenService.parseAndValidate(token)).thenReturn(
+                new VideoPlaybackTokenService.PlaybackClaims(assetId, UUID.randomUUID(), "hls")
+        );
+        when(adaptiveVideoPlaybackCacheService.readManifest(manifestKey)).thenReturn("""
+                #EXTM3U
+                #EXT-X-STREAM-INF:BANDWIDTH=1200000
+                saver.m3u8
+                #EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="Default",URI="audio.m3u8"
+                """);
+
+        String rewritten = service.renderHlsManifest(assetId, token, null);
+
+        assertThat(rewritten)
+                .contains("/api/v3/video-assets/" + assetId + "/adaptive/" + token + "/hls/playlist?key=")
+                .contains("audio.m3u8");
+    }
+
+    @Test
+    @DisplayName("resolveObjectRedirect returns a short-lived signed storage URL")
+    void resolveObjectRedirectUsesVideoStorageReadUrl() {
+        UUID assetId = UUID.randomUUID();
+        String token = "play-token";
+        String storageKey = "video-packages/" + assetId + "/segments/standard/1.m4s";
+
+        ReflectionTestUtils.setField(service, "segmentPresignTtlSeconds", 90L);
+        when(videoPlaybackTokenService.parseAndValidate(token)).thenReturn(
+                new VideoPlaybackTokenService.PlaybackClaims(assetId, UUID.randomUUID(), "hls")
+        );
+        when(adaptiveVideoPlaybackCacheService.createObjectRedirect(storageKey, java.time.Duration.ofSeconds(90)))
+                .thenReturn("https://signed.example/segment.m4s");
+
+        String redirectUrl = service.resolveObjectRedirect(assetId, token, storageKey);
+
+        assertThat(redirectUrl).isEqualTo("https://signed.example/segment.m4s");
+    }
+}

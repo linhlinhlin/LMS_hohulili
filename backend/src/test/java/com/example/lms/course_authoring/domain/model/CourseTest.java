@@ -254,10 +254,20 @@ class CourseTest {
         }
 
         @Test
-        @DisplayName("Should not be editable in APPROVED")
-        void shouldNotBeEditableInApproved() {
+        @DisplayName("Should be editable in APPROVED when no draft review is pending")
+        void shouldBeEditableInApprovedWithLocalDraft() {
             Course course = createPendingCourse();
             course.approve(UUID.randomUUID(), "ok");
+            assertThat(course.isEditable()).isTrue();
+        }
+
+        @Test
+        @DisplayName("Should not be editable in APPROVED when draft changes are pending review")
+        void shouldNotBeEditableInApprovedPendingDraftReview() {
+            Course course = createPendingCourse();
+            course.approve(UUID.randomUUID(), "ok");
+            course.markDraftChanged();
+            course.submitForApproval();
             assertThat(course.isEditable()).isFalse();
         }
 

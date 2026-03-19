@@ -39,12 +39,22 @@ public class UploadSessionJpaEntity {
     @Builder.Default
     private String status = "PENDING";
 
+    @Column(name = "upload_strategy", nullable = false, length = 20)
+    @Builder.Default
+    private String uploadStrategy = "SINGLE_PUT";
+
+    @Column(name = "multipart_upload_id", columnDefinition = "text")
+    private String multipartUploadId;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;
 
     @Column(name = "confirmed_at")
     private Instant confirmedAt;
+
+    @Column(name = "multipart_completed_at")
+    private Instant multipartCompletedAt;
 
     @Column(name = "expires_at")
     private Instant expiresAt;

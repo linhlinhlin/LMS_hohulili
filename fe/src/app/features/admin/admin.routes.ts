@@ -138,6 +138,12 @@ export const adminRoutes: Routes = [
         canActivate: [systemAdminGuard],
         title: 'Nhật ký kiểm toán'
       },
+      {
+        path: 'offline-storage',
+        loadComponent: () => import('./presentation/components/offline-storage-telemetry.component').then(m => m.OfflineStorageTelemetryComponent),
+        canActivate: [systemAdminGuard],
+        title: 'Giám sát bộ nhớ ngoại tuyến'
+      },
 
       // Sprint 220b: ai-chat full-page route removed — AI chat is now an iframe widget
     ]

@@ -6,16 +6,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.UUID;
 
 /**
- * Cloudflare R2 Storage Service
- * Handles file uploads, downloads, and deletions to R2 bucket.
- *
- * This service is conditional and only activates when cloudflare.r2.enabled=true
+ * Cloudflare R2 Storage Service.
+ * Handles file uploads, downloads, and deletions to the configured bucket.
  */
 @Service
 @ConditionalOnProperty(name = "cloudflare.r2.enabled", havingValue = "true", matchIfMissing = false)
@@ -27,22 +31,17 @@ public class R2StorageService {
     private String bucket;
 
     @Value("${cloudflare.r2.public-url}")
-    private String publicUrl; // e.g., https://pub-xxx.r2.dev
+    private String publicUrl;
 
     public R2StorageService(S3Client r2Client) {
         this.r2Client = r2Client;
     }
 
-    /**
-     * Upload a file to R2 storage.
-     * Returns the file ID and public URL.
-     */
     public UploadResult upload(MultipartFile file, String folder) throws IOException {
         String fileId = UUID.randomUUID().toString();
         String extension = getExtension(file.getOriginalFilename());
         String key = buildKey(folder, fileId, extension);
 
-        // Upload to R2
         r2Client.putObject(
                 PutObjectRequest.builder()
                         .bucket(bucket)
@@ -53,14 +52,24 @@ public class R2StorageService {
                 RequestBody.fromInputStream(file.getInputStream(), file.getSize())
         );
 
-        String publicFileUrl = publicUrl + "/" + key;
-        
-        return new UploadResult(fileId, publicFileUrl, key, file.getSize());
+        return new UploadResult(fileId, resolvePublicUrl(key), key, file.getSize());
     }
 
-    /**
-     * Delete a file from R2 storage by its key.
-     */
+    public UploadResult upload(Path file, String storageKey, String contentType) throws IOException {
+        long fileSize = Files.size(file);
+        r2Client.putObject(
+                PutObjectRequest.builder()
+                        .bucket(bucket)
+                        .key(storageKey)
+                        .contentType(contentType)
+                        .contentLength(fileSize)
+                        .build(),
+                RequestBody.fromFile(file)
+        );
+
+        return new UploadResult(storageKey, resolvePublicUrl(storageKey), storageKey, fileSize);
+    }
+
     public void delete(String key) {
         r2Client.deleteObject(DeleteObjectRequest.builder()
                 .bucket(bucket)
@@ -68,9 +77,6 @@ public class R2StorageService {
                 .build());
     }
 
-    /**
-     * Check if a file exists in R2.
-     */
     public boolean exists(String key) {
         try {
             r2Client.headObject(HeadObjectRequest.builder()
@@ -81,6 +87,25 @@ public class R2StorageService {
         } catch (NoSuchKeyException e) {
             return false;
         }
+    }
+
+    public void downloadToFile(String key, Path destination) throws IOException {
+        if (destination.getParent() != null) {
+            Files.createDirectories(destination.getParent());
+        }
+        // The AWS SDK target path must not already exist when using Path-based downloads.
+        Files.deleteIfExists(destination);
+        r2Client.getObject(
+                GetObjectRequest.builder()
+                        .bucket(bucket)
+                        .key(key)
+                        .build(),
+                destination
+        );
+    }
+
+    public String resolvePublicUrl(String key) {
+        return publicUrl + "/" + key;
     }
 
     private String buildKey(String folder, String fileId, String extension) {
@@ -97,9 +122,6 @@ public class R2StorageService {
         return filename.substring(filename.lastIndexOf(".")).toLowerCase();
     }
 
-    /**
-     * Result of an upload operation.
-     */
     public record UploadResult(
             String fileId,
             String publicUrl,

@@ -37,10 +37,10 @@
             "allowedCommonJsDependencies": [
               "extend",
               "fuzzysort",
-              "es-toolkit/compat/isEqual"
+              "es-toolkit/compat/isEqual",
+              "shaka-player/dist/shaka-player.compiled"
             ],
             "server": "src/main.server.ts",
-            "prerender": false,
             "ssr": {
               "entry": "src/server.ts"
             },

@@ -300,7 +300,10 @@ export class LearningService {
       sectionsCount: courseData?.chapterCount || 0,
       lessonsCount: this.countLessons(courseContent.data || []),
       duration: this.calculateTotalDuration(courseContent.data || []),
-      isEnrolled: true
+      isEnrolled: true,
+      isOfflinePackage: false,
+      isStale: false,
+      staleReason: null,
     };
 
     const sections = this.mapSections(courseContent.data || []);
@@ -332,7 +335,7 @@ export class LearningService {
         progressPercentage
       }));
     } else {
-      this.loadProgressFromStorage(courseId);
+      void this.loadOfflineProgressState(courseId);
     }
   }
 
@@ -349,6 +352,15 @@ export class LearningService {
       title: section.title || '',
       type: (section.type?.toUpperCase() || 'TEXT') as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
       content: (section.content && section.content !== 'undefined' && section.content !== 'null') ? section.content : undefined,
+      videoAssetId: (section.videoAssetId && section.videoAssetId !== 'undefined' && section.videoAssetId !== 'null')
+        ? section.videoAssetId
+        : undefined,
+      videoProcessingStatus: (section.videoProcessingStatus && section.videoProcessingStatus !== 'undefined' && section.videoProcessingStatus !== 'null')
+        ? section.videoProcessingStatus
+        : undefined,
+      videoSourceKind: (section.videoSourceKind && section.videoSourceKind !== 'undefined' && section.videoSourceKind !== 'null')
+        ? section.videoSourceKind
+        : undefined,
       videoUrl: offlineVideoUrl || ((section.videoUrl && section.videoUrl !== 'undefined' && section.videoUrl !== 'null') ? section.videoUrl : undefined),
       videoType: section.videoType,
       streamVideoUid: (section.streamVideoUid && section.streamVideoUid !== 'undefined' && section.streamVideoUid !== 'null')
@@ -379,6 +391,27 @@ export class LearningService {
           : [],
       } : undefined,
     };
+  }
+
+  private applyLessonOfflineVideoFallback(
+    sections: SectionContent[],
+    lessonOfflineVideoUri?: string,
+  ): SectionContent[] {
+    if (!lessonOfflineVideoUri) {
+      return sections;
+    }
+
+    return sections.map(section => {
+      if (section.type !== 'VIDEO' || section.videoOfflineUri || section.videoType === 'YOUTUBE' || section.streamVideoUid) {
+        return section;
+      }
+
+      return {
+        ...section,
+        videoUrl: lessonOfflineVideoUri,
+        videoOfflineUri: lessonOfflineVideoUri,
+      };
+    });
   }
 
   /**
@@ -417,6 +450,9 @@ export class LearningService {
         lessonsCount: offlineLessons.length,
         duration: '',
         isEnrolled: true,
+        isOfflinePackage: true,
+        isStale: offlineCourse?.isStale === true,
+        staleReason: offlineCourse?.staleReason ?? null,
       };
 
       // Group lessons by chapter (preserve chapter order from offlineChapters)
@@ -443,15 +479,21 @@ export class LearningService {
             duration: 0,
             orderIndex: l.sortOrder ?? i,
             isCompleted: false,
+            quizType: l.quizType,
+            countsTowardCertificate: l.countsTowardCertificate,
+            quizAllowOffline: l.quizAllowOffline,
             sections: Array.isArray(l.sections)
-              ? l.sections.map(section => this.mapSectionContent(section))
+              ? this.applyLessonOfflineVideoFallback(
+                  l.sections.map(section => this.mapSectionContent(section)),
+                  l.videoOfflineUri,
+                )
               : [],
           })),
       }));
 
       // Merge progress from localStorage
       this.courseState.set({ course, sections, loading: false, error: null });
-      this.loadProgressFromStorage(courseId);
+      await this.loadOfflineProgressState(courseId);
     } catch {
       this.courseState.update(s => ({
         ...s, loading: false,
@@ -484,6 +526,7 @@ export class LearningService {
         content: offlineLesson.contentHtml,
         videoUrl: offlineLesson.videoOfflineUri || offlineLesson.videoManifestUrl,
         streamVideoUid: offlineLesson.streamVideoUid,
+        videoOfflineUri: offlineLesson.videoOfflineUri,
         thumbnail: '',
         attachments: [],
         sectionId: offlineLesson.chapterId,
@@ -491,8 +534,14 @@ export class LearningService {
         courseId: offlineLesson.courseId,
         courseTitle: '',
         durationMinutes: 0,
+        quizType: offlineLesson.quizType,
+        countsTowardCertificate: offlineLesson.countsTowardCertificate,
+        quizAllowOffline: offlineLesson.quizAllowOffline,
         sections: Array.isArray(offlineLesson.sections) && offlineLesson.sections.length > 0
-          ? offlineLesson.sections.map(section => this.mapSectionContent(section))
+          ? this.applyLessonOfflineVideoFallback(
+              offlineLesson.sections.map(section => this.mapSectionContent(section)),
+              offlineLesson.videoOfflineUri,
+            )
           : (offlineLesson.contentHtml ? [{
               id: `${offlineLesson.id}-text`,
               title: offlineLesson.title,
@@ -530,6 +579,13 @@ export class LearningService {
         error: null
       });
       this.updateLastAccessedLesson(lessonId);
+      return;
+    }
+
+    // 1.5. When device is offline, always prefer the IndexedDB package over
+    // any stale API response that may still be served from NGSW data cache.
+    if (!this.network.online()) {
+      void this.loadLessonOffline(lessonId);
       return;
     }
 
@@ -648,6 +704,7 @@ export class LearningService {
       orderIndex: 0,
       content: data.content || '',
       videoUrl: data.videoUrl,
+      videoOfflineUri: data.videoOfflineUri,
       thumbnail: '',
       attachments: (data.attachments || []) as any,
       sectionId: data.sectionId,
@@ -712,11 +769,14 @@ export class LearningService {
         lastAccessedLessonId: state.lastAccessedLessonId
       };
 
-      // Save to localStorage
-      this.saveProgressToStorage();
-
       return newState;
     });
+
+    this.saveProgressToStorage();
+    const courseId = this.course()?.id;
+    if (courseId && this.courseDownload.isDownloadedSync(courseId)) {
+      void this.courseDownload.markLessonCompletedOffline(courseId, lessonId);
+    }
 
     // Update sections to reflect completion
     this.courseState.update(state => ({
@@ -916,6 +976,37 @@ export class LearningService {
 
   private getStorageKey(courseId: string): string {
     return `learning_progress_${courseId}`;
+  }
+
+  private async loadOfflineProgressState(courseId: string): Promise<void> {
+    try {
+      const progress = await this.courseDownload.getOfflineProgressState(courseId);
+      const completedLessons = new Set(progress.completedLessons || []);
+      const total = this.totalLessons();
+      const progressPercentage = total > 0
+        ? Math.round((completedLessons.size / total) * 100)
+        : 0;
+
+      this.progressState.update(state => ({
+        ...state,
+        completedLessons,
+        lastAccessedLessonId: progress.lastAccessedLessonId,
+        progressPercentage
+      }));
+
+      this.courseState.update(state => ({
+        ...state,
+        sections: state.sections.map(section => ({
+          ...section,
+          lessons: section.lessons.map(lesson => ({
+            ...lesson,
+            isCompleted: completedLessons.has(lesson.id)
+          }))
+        }))
+      }));
+    } catch {
+      // Best-effort only.
+    }
   }
 
   private loadProgressFromStorage(courseId: string): void {

@@ -1,117 +1,108 @@
 # PWA / Offline Runbook
 
-## Khi nào dùng
+## Khi nao dung
 
-- sau deploy liên quan tới service worker, IndexedDB, offline sync, course download
-- khi learner báo “đã tải course nhưng offline sai nội dung”
-- khi team cần kiểm tra stale package, refresh package, hoặc sync queue
+- sau deploy lien quan toi service worker, IndexedDB, offline sync, course download
+- khi learner bao "da tai course nhung offline sai noi dung"
+- khi team can kiem tra stale package, refresh package, hoac sync queue
 
-## Quy tắc trước khi test
+## Quy tac truoc khi test
 
-- dùng đúng production origin `https://holilihu.online`
-- nếu vừa deploy frontend/PWA, luôn reset service worker trước
-- nếu package đang là legacy hoặc stale, không lấy package cũ làm kết luận cuối
+- dung dung production origin `https://holilihu.online`
+- neu vua deploy frontend/PWA, luon reset service worker truoc
+- neu package dang la legacy hoac stale, khong lay package cu lam ket luan cuoi
 
 ## Reset service worker
 
-1. mở `/reset-sw`
-2. hard refresh
-3. đăng nhập lại nếu cần
-4. mở lại trang cần test
+1. mo `/reset-sw` hoac `/pwa-repair`
+2. bam `Bat dau khoi phuc`
+3. tai lai app theo nut tren man hinh
+4. dang nhap lai neu can
+5. mo lai trang can test
 
-## Smoke cơ bản cho offline
+## Khi reset trong app khong du
 
-1. đăng nhập learner
-2. tải một khóa học self-paced
-3. xác nhận course xuất hiện trong library/offline list
-4. tắt mạng
-5. mở lại lesson text đã tải
-6. nếu course có internal video offline:
-   - mở video
-   - xác nhận player dùng nguồn local, không crash
-7. nếu course có `PRACTICE` quiz:
-   - mở quiz
-   - làm bài
-   - xác nhận queue sync tăng khi đang offline
+1. mo `/clear-site-data`
+2. lam theo huong dan xoa site data cua `holilihu.online` bang browser
+3. mo lai LMS
+4. dang nhap va tai lai khoa hoc neu can
 
-## Smoke policy bắt buộc
+## Smoke co ban cho offline
+
+1. dang nhap learner
+2. tai mot khoa hoc self-paced
+3. xac nhan course xuat hien trong library/offline list
+4. tat mang
+5. mo lai lesson text da tai
+6. neu course co internal video offline:
+   - mo video
+   - xac nhan player dung nguon local, khong crash
+7. neu course co `PRACTICE` quiz:
+   - mo quiz
+   - lam bai
+   - xac nhan queue sync tang khi dang offline
+
+## Smoke policy bat buoc
 
 ### Quiz
 
-- `PRACTICE`: được tải offline
-- `ASSESSMENT`: không được tải offline
-- `EXAM`: không được tải offline
+- `PRACTICE`: duoc tai offline
+- `ASSESSMENT`: khong duoc tai offline
+- `EXAM`: khong duoc tai offline
 
-Nếu learner offline mà gặp `ASSESSMENT` hoặc `EXAM`, UI phải báo online-only rõ ràng. Không chấp nhận trạng thái trắng hoặc im lặng.
+Neu learner offline ma gap `ASSESSMENT` hoac `EXAM`, UI phai bao online-only ro rang.
 
 ### Video
 
-- internal LMS video: có thể offline nếu package hợp lệ
+- internal LMS video: co the offline neu package hop le
 - YouTube/external: online-only
 
-## Kiểm tra package version
+## Kiem tra package version
 
-Khi rollout publication model, cần kiểm tra các điểm sau:
+- package co `publicationId`
+- package co `publicationNumber`
+- package co `versionModeSnapshot`
+- package co `staleReason` dung khi stale
 
-- package có `publicationId`
-- package có `publicationNumber`
-- package có `versionModeSnapshot`
-- package có `staleReason` đúng khi stale
-
-Nếu package không có `publicationId`, coi là `LEGACY_PACKAGE` và yêu cầu tải lại.
+Neu package khong co `publicationId`, coi la `LEGACY_PACKAGE` va yeu cau tai lai.
 
 ## Self-paced vs instructor-led
 
 ### Self-paced
 
-- nếu course có publication mới:
-  - learner online thấy content mới
-  - package cũ phải được mark `UPDATE_AVAILABLE`
+- neu course co publication moi:
+  - learner online thay content moi
+  - package cu phai duoc mark `UPDATE_AVAILABLE`
 
 ### Instructor-led
 
-- class dùng `PINNED`
-- course có publication mới nhưng class chưa adopt:
-  - learner vẫn thấy content publication cũ
-  - package không bị stale sai
+- class dung `PINNED`
+- course co publication moi nhung class chua adopt:
+  - learner van thay content publication cu
+  - package khong bi stale sai
 
-## Khi course đã update
+## Khi sync bi loi
 
-### Trường hợp self-paced
+1. mo console, tim loi IndexedDB / service worker
+2. kiem tra `/api/v3/sync/push`
+3. kiem tra `/api/v3/sync/pull`
+4. kiem tra `/api/v3/courses/versions`
+5. doi chieu `publicationId` cua package voi publication hien tai
 
-1. learner mở app online
-2. kiểm tra có badge hoặc trạng thái cập nhật
-3. learner vẫn được đọc package cũ trong lúc chưa refresh
-4. learner refresh package
-5. progress cũ phải còn nếu lesson/section vẫn tồn tại
+## Khi IndexedDB hoac bo nho offline bi hong
 
-### Trường hợp instructor-led pinned class
+Neu learner gap log kieu:
 
-1. publish course mới
-2. chưa adopt publication cho class
-3. learner class đó vẫn học content cũ
-4. sau khi adopt:
-   - learner thấy package cũ stale
-   - learner refresh package
+- `UnknownError`
+- `backing store for indexedDB.open`
+- `Falling back to online-only mode`
 
-## Khi sync bị lỗi
+thi dung runbook rieng:
 
-### Dấu hiệu
+- `OFFLINE_STORAGE_CORRUPTION_RUNBOOK.md`
 
-- queue không giảm sau khi online lại
-- lesson/video progress không lên server
-- package báo stale nhưng learner không được hướng dẫn refresh
+## Khong duoc ket luan sai
 
-### Kiểm tra nhanh
-
-1. mở console, tìm lỗi IndexedDB / service worker
-2. kiểm tra `/api/v3/sync/push`
-3. kiểm tra `/api/v3/sync/pull`
-4. kiểm tra `/api/v3/courses/versions`
-5. đối chiếu `publicationId` của package với publication hiện tại
-
-## Không được kết luận sai
-
-- không kết luận “offline sync hỏng” chỉ vì package đang là `LEGACY_PACKAGE`
-- không kết luận “course update không vào app” khi class đang `PINNED`
-- không coi `ASSESSMENT`/`EXAM` không tải offline là bug; đó là policy
+- khong ket luan "offline sync hong" chi vi package dang la `LEGACY_PACKAGE`
+- khong ket luan "course update khong vao app" khi class dang `PINNED`
+- khong coi `ASSESSMENT`/`EXAM` khong tai offline la bug; do la policy

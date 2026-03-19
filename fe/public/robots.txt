@@ -8,5 +8,6 @@ Disallow: /auth/
 Disallow: /payment/
 Disallow: /offline
 Disallow: /reset-sw
+Disallow: /clear-site-data
 
 Sitemap: https://holilihu.online/sitemap.xml

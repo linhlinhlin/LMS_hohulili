@@ -1,0 +1,115 @@
+[
+  {
+    "name": "student-storage",
+    "url": "https://holilihu.online/student/storage",
+    "title": "Lưu trữ ngoại tuyến",
+    "console": [
+      {
+        "type": "info",
+        "text": "[Storage] Persistent storage DENIED",
+        "location": {
+          "url": "https://holilihu.online/chunk-R2TAIKZG.js",
+          "lineNumber": 0,
+          "columnNumber": 702
+        }
+      }
+    ],
+    "page_errors": [],
+    "failed_requests": [
+      {
+        "url": "https://holilihu.online/icons/icon-192x192.png",
+        "method": "HEAD",
+        "failure": "net::ERR_ABORTED"
+      }
+    ],
+    "api_responses": [
+      {
+        "url": "https://holilihu.online/api/v3/messages/conversations?includeArchived=false",
+        "status": 200
+      },
+      {
+        "url": "https://holilihu.online/api/v3/gamification/notifications?page=0&size=20",
+        "status": 200
+      }
+    ]
+  },
+  {
+    "name": "admin-offline-storage",
+    "url": "https://holilihu.online/admin/offline-storage",
+    "title": "Giám sát bộ nhớ ngoại tuyến",
+    "console": [
+      {
+        "type": "info",
+        "text": "[Storage] Persistent storage DENIED",
+        "location": {
+          "url": "https://holilihu.online/chunk-R2TAIKZG.js",
+          "lineNumber": 0,
+          "columnNumber": 702
+        }
+      },
+      {
+        "type": "warning",
+        "text": "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.",
+        "location": {
+          "url": "https://holilihu.online/chunk-IZFGLGXG.js",
+          "lineNumber": 0,
+          "columnNumber": 0
+        }
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 ()",
+        "location": {
+          "url": "https://wiii.holilihu.online/api/v1/organizations",
+          "lineNumber": 0,
+          "columnNumber": 0
+        }
+      },
+      {
+        "type": "warning",
+        "text": "[OrgStore] Failed to fetch organizations: Error: Multi-tenant is not enabled\n    at QT._throwApiError (https://wiii.holilihu.online/embed/assets/embed-CxDNS-kV.js:319:7670)\n    at async QT.get (https://wiii.holilihu.online/embed/assets/embed-CxDNS-kV.js:319:8018)\n    at async fetchOrganizations (https://wiii.holilihu.online/embed/assets/embed-CxDNS-kV.js:325:16329)",
+        "location": {
+          "url": "https://wiii.holilihu.online/embed/assets/embed-CxDNS-kV.js",
+          "lineNumber": 324,
+          "columnNumber": 16559
+        }
+      },
+      {
+        "type": "warning",
+        "text": "[org-store] Attempted switch to unknown org: maritime-lms — ignored",
+        "location": {
+          "url": "https://wiii.holilihu.online/embed/assets/embed-CxDNS-kV.js",
+          "lineNumber": 324,
+          "columnNumber": 16795
+        }
+      }
+    ],
+    "page_errors": [],
+    "failed_requests": [
+      {
+        "url": "https://holilihu.online/icons/icon-192x192.png",
+        "method": "HEAD",
+        "failure": "net::ERR_ABORTED"
+      },
+      {
+        "url": "https://holilihu.online/api/v3/ai/token",
+        "method": "POST",
+        "failure": "net::ERR_ABORTED"
+      }
+    ],
+    "api_responses": [
+      {
+        "url": "https://holilihu.online/api/v3/admin/client-telemetry/offline-storage?page=0&size=20",
+        "status": 200
+      },
+      {
+        "url": "https://holilihu.online/api/v3/admin/client-telemetry/offline-storage/analytics?days=7",
+        "status": 200
+      },
+      {
+        "url": "https://holilihu.online/api/v3/ai/token",
+        "status": 200
+      }
+    ]
+  }
+]

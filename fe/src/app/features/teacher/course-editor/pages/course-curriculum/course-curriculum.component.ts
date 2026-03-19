@@ -12,6 +12,7 @@ import { CONTENT_TYPE_CONFIG } from '../../../../../core/constants/content-type.
 import { LessonApi } from '../../../../../api/client/lesson.api';
 import { ChapterApi } from '../../../../../api/client/chapter.api';
 import { SectionApi } from '../../../../../api/client/section.api';
+import { VideoAssetApi, type VideoAssetResponse } from '../../../../../api/client/video-asset.api';
 import { AssignmentApi } from '../../../../../api/client/assignment.api';
 import { QuizApi } from '../../../../../api/endpoints/quiz.api';
 import { PackageApi } from '../../../../../api/endpoints/package.api';
@@ -38,6 +39,7 @@ import {
 import viTranslations from 'ckeditor5/translations/vi.js';
 import { createServerUploadPlugin } from '../../../../../core/utils/server-upload-adapter';
 import { environment } from '../../../../../../environments/environment';
+import { PresignedUploadService, type UploadEvent } from '../../../../../core/services/presigned-upload.service';
 import { PdfViewerService } from '../../../../../shared/services/pdf-viewer.service';
 import {
   LucideAngularModule
@@ -45,6 +47,7 @@ import {
 import { ToastService } from '../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
+import { isOfflineVideoProfileId, type OfflineVideoProfileDescriptor } from '../../../../../core/models/video-quality';
 import { LectureSectionsPanelComponent } from './components/lecture-sections-panel/lecture-sections-panel.component';
 import { CurriculumAssessmentSummaryComponent } from './components/curriculum-assessment-summary/curriculum-assessment-summary.component';
 import { CurriculumAssignmentDetailsComponent } from './components/curriculum-assignment-details/curriculum-assignment-details.component';
@@ -79,9 +82,11 @@ export class CourseCurriculumComponent implements OnDestroy {
   private pdfService = inject(PdfViewerService);
   private chapterApi = inject(ChapterApi);
   private sectionApi = inject(SectionApi);
+  private videoAssetApi = inject(VideoAssetApi);
   private assignmentApi = inject(AssignmentApi);
   private quizApi = inject(QuizApi);
   private packageApi = inject(PackageApi);
+  private presignedUpload = inject(PresignedUploadService);
   private sanitizer = inject(DomSanitizer);
   private toast = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
@@ -242,6 +247,9 @@ export class CourseCurriculumComponent implements OnDestroy {
   // Section Form
   sectionTitle = '';
   sectionContent = '';
+  sectionVideoAssetId: string | null = null;
+  sectionVideoProcessingStatus: string | null = null;
+  sectionVideoAvailableOfflineProfiles: VideoAssetResponse['availableOfflineProfiles'] = [];
   sectionVideoUrl = '';
   sectionIsRequired = false;
   sectionFileUrl = signal<string | null>(null); // [NEW] For FILE type sections
@@ -279,6 +287,7 @@ export class CourseCurriculumComponent implements OnDestroy {
   private activeLessonQuizLessonId = signal<string | null>(null);
   private lastHydratedLessonKey: string | null = null;
   private inFlightLessonDetailId: string | null = null;
+  private sectionVideoPollTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Quiz packages
   quizPackages = signal<any[]>([]);
@@ -313,6 +322,48 @@ export class CourseCurriculumComponent implements OnDestroy {
     const chapter = this.store.chapters().find(c => c.id === chapterId);
     return chapter?.lessons || [];
   });
+
+  hasLegacyLessonLevelVideo(): boolean {
+    const lesson = this.selectedLesson();
+    return !!lesson && !!(lesson.videoUrl || lesson.streamVideoUid);
+  }
+
+  hasVideoSections(lesson?: LessonDraftDTO | null): boolean {
+    const targetLesson = lesson ?? this.selectedLesson();
+    return !!targetLesson?.sections?.some(section => section.type === 'VIDEO');
+  }
+
+  getLegacyLessonVideoPolicyCopy(): string {
+    const lesson = this.selectedLesson();
+    if (!lesson) {
+      return '';
+    }
+
+    if (lesson.streamVideoUid) {
+      return this.hasVideoSections(lesson)
+        ? 'Bài học này vẫn đang giữ một video legacy ở cấp bài để tương thích dữ liệu cũ. Luồng tạo mới chuẩn production nên đi qua mục video riêng ở bên dưới.'
+        : 'Bài học này vẫn đang dùng video legacy ở cấp bài. Để chuẩn hóa playback online/offline theo kiến trúc mới, hãy tạo một mục video riêng trong lesson.';
+    }
+
+    if (this.isYouTubeUrl(lesson.videoUrl || '')) {
+      return 'Bài học này vẫn đang dùng YouTube hoặc nguồn ngoài ở cấp bài. Learner chỉ xem trực tuyến được và không thể tải offline theo pipeline video mới.';
+    }
+
+    return 'Bài học này vẫn đang dùng URL video legacy ở cấp bài. Nên chuyển sang mục video tải lên nội bộ để hệ thống tạo video asset, playback online, và profile offline đúng chuẩn.';
+  }
+
+  getLegacyLessonVideoReference(): string | null {
+    const lesson = this.selectedLesson();
+    if (!lesson) {
+      return null;
+    }
+
+    if (lesson.videoUrl) {
+      return lesson.videoUrl;
+    }
+
+    return lesson.streamVideoUid ? `UID: ${lesson.streamVideoUid}` : null;
+  }
 
   constructor() {
     this.loadQuizPackages();
@@ -686,6 +737,24 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.markEditorUnsaved();
   }
 
+  onSectionVideoAssetIdChange(value: string | null) {
+    this.sectionVideoAssetId = value;
+    if (!value) {
+      this.sectionVideoProcessingStatus = null;
+      this.sectionVideoAvailableOfflineProfiles = [];
+    }
+    this.syncSectionVideoMetadata(this.sectionVideoUrl);
+    this.markEditorUnsaved();
+  }
+
+  onSectionVideoProcessingStatusChange(value: string | null) {
+    this.sectionVideoProcessingStatus = value;
+    if (this.sectionVideoAssetId && value && !['READY', 'FAILED'].includes(value.toUpperCase())) {
+      this.scheduleSectionVideoPoll(this.sectionVideoAssetId);
+    }
+    this.markEditorUnsaved();
+  }
+
   onSectionStreamVideoUidChange(value: string | null) {
     this.sectionStreamVideoUid = value;
     if (value) {
@@ -697,6 +766,9 @@ export class CourseCurriculumComponent implements OnDestroy {
   onSectionVideoFileSelected(file: File | null) {
     this.selectedSectionVideoFile = file;
     if (file) {
+      this.sectionVideoAssetId = null;
+      this.sectionVideoProcessingStatus = null;
+      this.sectionVideoAvailableOfflineProfiles = [];
       this.sectionVideoType = 'CLOUDFLARE';
     }
     this.markEditorUnsaved();
@@ -704,7 +776,7 @@ export class CourseCurriculumComponent implements OnDestroy {
 
   onClearSelectedSectionVideoFile() {
     this.selectedSectionVideoFile = null;
-    if (!this.sectionStreamVideoUid && !this.sectionVideoUrl) {
+    if (!this.sectionStreamVideoUid && !this.sectionVideoUrl && !this.sectionVideoAssetId) {
       this.sectionVideoType = null;
     }
     this.markEditorUnsaved();
@@ -953,7 +1025,11 @@ export class CourseCurriculumComponent implements OnDestroy {
   }
 
   private resetSectionModalTransientState() {
+    this.clearSectionVideoPollTimer();
     this.sectionContent = '';
+    this.sectionVideoAssetId = null;
+    this.sectionVideoProcessingStatus = null;
+    this.sectionVideoAvailableOfflineProfiles = [];
     this.sectionVideoUrl = '';
     this.sectionVideoType = null;
     this.sectionStreamVideoUid = null;
@@ -985,6 +1061,11 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.sectionTitle = section.title;
     this.newSectionType = (section.type as any) || 'TEXT';
     this.sectionContent = section.content || '';
+    this.sectionVideoAssetId = (section as any).videoAssetId || null;
+    this.sectionVideoProcessingStatus = (section as any).videoProcessingStatus || null;
+    this.sectionVideoAvailableOfflineProfiles = this.normalizeSectionVideoProfiles(
+      (section as any).availableOfflineProfiles,
+    );
     this.sectionVideoUrl = section.videoUrl || '';
     this.sectionVideoType = (section as any).videoType || null;
     this.sectionStreamVideoUid = (section as any).streamVideoUid || null;
@@ -992,6 +1073,12 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.sectionFileUrl.set(section.fileUrl || null);
     this.sectionIsRequired = (section as any).isRequired || false;
     this.syncSectionVideoMetadata(this.sectionVideoUrl);
+    if (
+      this.sectionVideoAssetId
+      && !['READY', 'FAILED'].includes((this.sectionVideoProcessingStatus || '').toUpperCase())
+    ) {
+      this.scheduleSectionVideoPoll(this.sectionVideoAssetId);
+    }
 
     if (this.newSectionType === 'QUIZ') {
       const quizData = (section as any).quizData;
@@ -1174,6 +1261,8 @@ export class CourseCurriculumComponent implements OnDestroy {
       this.sectionTitle.trim(),
       String(this.sectionIsRequired),
       this.sectionContent.trim(),
+      this.sectionVideoAssetId ?? '',
+      this.sectionVideoProcessingStatus ?? '',
       this.sectionVideoUrl.trim(),
       this.sectionVideoType ?? '',
       this.sectionStreamVideoUid ?? '',
@@ -1362,6 +1451,7 @@ export class CourseCurriculumComponent implements OnDestroy {
 
   private closeSectionSurface() {
     this.closeSectionQuizChildSurfaces();
+    this.clearSectionVideoPollTimer();
     this.resetSectionSurfaceController();
     this.showSectionModal.set(false);
     this.editingSectionId.set(null);
@@ -1797,12 +1887,13 @@ export class CourseCurriculumComponent implements OnDestroy {
     if (typeof window !== 'undefined') {
       window.removeEventListener('keydown', this.handleWindowKeydown, true);
     }
+    this.clearSectionVideoPollTimer();
     this.pdfService.cleanup();
   }
 
   // Video Preview Logic [NEW]
   private syncSectionVideoMetadata(url: string) {
-    if (this.sectionStreamVideoUid || this.selectedSectionVideoFile) {
+    if (this.sectionVideoAssetId || this.sectionStreamVideoUid || this.selectedSectionVideoFile) {
       this.sectionVideoType = 'CLOUDFLARE';
       return;
     }
@@ -1837,6 +1928,17 @@ export class CourseCurriculumComponent implements OnDestroy {
     const lesson = this.selectedLesson();
     if (!lesson || !this.sectionTitle.trim()) return;
 
+    if (
+      this.newSectionType === 'VIDEO'
+      && !this.sectionVideoAssetId
+      && !this.sectionStreamVideoUid
+      && !this.selectedSectionVideoFile
+      && !this.sectionVideoUrl.trim()
+    ) {
+      this.toast.error('Mục video mới cần một video tải lên nội bộ trước khi lưu');
+      return;
+    }
+
     if (this.newSectionType === 'QUIZ' && this.sectionQuizSelectedQuestions().length === 0) {
       this.toast.error('Mục trắc nghiệm phải có ít nhất 1 câu hỏi trước khi lưu');
       return;
@@ -1845,7 +1947,11 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.isSaving.set(true);
     this.store.markSaving();
     try {
-      const isCreatingSection = !this.editingSectionId();
+      if (this.newSectionType === 'VIDEO' && this.selectedSectionVideoFile) {
+        const asset = await this.uploadSectionVideoAsset(this.selectedSectionVideoFile);
+        this.applySectionVideoAssetResponse(asset);
+        this.scheduleSectionVideoPoll(asset.id);
+      }
 
       // Construction of DTO Payload
       const payload: any = {
@@ -1858,10 +1964,14 @@ export class CourseCurriculumComponent implements OnDestroy {
       if (this.newSectionType === 'TEXT') {
         payload.content = this.sectionContent;
       } else if (this.newSectionType === 'VIDEO') {
-        payload.videoUrl = this.sectionVideoUrl;
-        payload.videoType = this.sectionVideoType;
-        payload.streamVideoUid = this.sectionStreamVideoUid;
-        payload.cfObjectKey = this.sectionCfObjectKey;
+        if (this.sectionVideoAssetId) {
+          payload.videoAssetId = this.sectionVideoAssetId;
+        } else {
+          payload.videoUrl = this.sectionVideoUrl;
+          payload.videoType = this.sectionVideoType;
+          payload.streamVideoUid = this.sectionStreamVideoUid;
+          payload.cfObjectKey = this.sectionCfObjectKey;
+        }
       } else if (this.newSectionType === 'QUIZ') {
         payload.quizData = {
           // Mapping variables to DTO fields
@@ -1902,26 +2012,6 @@ export class CourseCurriculumComponent implements OnDestroy {
         this.editingSectionId.set(createdSection?.id ?? null);
       }
 
-      if (this.newSectionType === 'VIDEO' && isCreatingSection && this.selectedSectionVideoFile && this.editingSectionId()) {
-        try {
-          const uploadResponse: any = await firstValueFrom(
-            this.sectionApi.uploadStreamVideo(this.editingSectionId()!, this.selectedSectionVideoFile)
-          );
-          const uploadData = uploadResponse?.data || uploadResponse;
-          if (uploadData?.playbackUrl) {
-            this.sectionVideoUrl = uploadData.playbackUrl;
-          }
-          if (uploadData?.streamVideoUid) {
-            this.sectionStreamVideoUid = uploadData.streamVideoUid;
-            this.sectionVideoType = 'CLOUDFLARE';
-          }
-        } catch (uploadError: any) {
-          await this.safeRollbackCreatedSection(lesson.id, this.editingSectionId()!);
-          this.editingSectionId.set(null);
-          throw new Error(uploadError?.message || 'Tải video nội bộ thất bại sau khi tạo mục mới');
-        }
-      }
-
       // Clear staged file after successful save
       this.selectedFile = null;
       this.selectedSectionVideoFile = null;
@@ -1937,6 +2027,102 @@ export class CourseCurriculumComponent implements OnDestroy {
     } finally {
       this.isSaving.set(false);
     }
+  }
+
+  private async uploadSectionVideoAsset(file: File): Promise<VideoAssetResponse> {
+    const uploadResult = await firstValueFrom(
+      this.presignedUpload.upload(file, 'videos').pipe(
+        filter((event: UploadEvent): event is Extract<UploadEvent, { type: 'complete' }> => event.type === 'complete'),
+      ),
+    );
+
+    const response: any = await firstValueFrom(
+      this.videoAssetApi.createFromUpload(uploadResult.id, file.name),
+    );
+    return response?.data || response;
+  }
+
+  async retrySectionVideoAsset() {
+    const assetId = this.sectionVideoAssetId;
+    if (!assetId) {
+      return;
+    }
+
+    try {
+      const response = await firstValueFrom(this.videoAssetApi.retry(assetId));
+      this.applySectionVideoAssetResponse(response.data);
+      this.scheduleSectionVideoPoll(response.data.id);
+      this.toast.success('Đã đưa video mục bài giảng vào hàng đợi xử lý lại');
+    } catch (error: any) {
+      const message = error?.error?.message || error?.message || 'Không thể xử lý lại video mục bài giảng.';
+      this.toast.error(message);
+    }
+  }
+
+  private applySectionVideoAssetResponse(asset: VideoAssetResponse | null | undefined) {
+    if (!asset) {
+      return;
+    }
+
+    this.sectionVideoAssetId = asset.id;
+    this.sectionVideoProcessingStatus = asset.status;
+    this.sectionStreamVideoUid = asset.streamVideoUid ?? null;
+    this.sectionVideoUrl = asset.playbackUrl ?? '';
+    this.sectionCfObjectKey = null;
+    this.sectionVideoAvailableOfflineProfiles = this.normalizeSectionVideoProfiles(
+      asset.availableOfflineProfiles,
+    );
+    this.sectionVideoType = asset.streamVideoUid ? 'CLOUDFLARE' : this.sectionVideoType;
+  }
+
+  private scheduleSectionVideoPoll(assetId: string | null, delayMs = 5000) {
+    this.clearSectionVideoPollTimer();
+
+    if (!assetId) {
+      return;
+    }
+
+    const status = (this.sectionVideoProcessingStatus || '').toUpperCase();
+    if (status === 'READY' || status === 'FAILED') {
+      return;
+    }
+
+    this.sectionVideoPollTimer = setTimeout(async () => {
+      try {
+        const response = await firstValueFrom(this.videoAssetApi.getById(assetId));
+        this.applySectionVideoAssetResponse(response.data);
+        this.scheduleSectionVideoPoll(assetId);
+      } catch {
+        this.scheduleSectionVideoPoll(assetId, 10000);
+      }
+    }, delayMs);
+  }
+
+  private clearSectionVideoPollTimer() {
+    if (!this.sectionVideoPollTimer) {
+      return;
+    }
+
+    clearTimeout(this.sectionVideoPollTimer);
+    this.sectionVideoPollTimer = null;
+  }
+
+  private normalizeSectionVideoProfiles(
+    profiles: Array<{
+      id: string;
+      label: string;
+      actualResolution?: string | null;
+      sizeBytes?: number | null;
+      downloadUrl?: string | null;
+    }> | null | undefined,
+  ): Array<OfflineVideoProfileDescriptor & { downloadUrl?: string | null }> {
+    return (profiles ?? [])
+      .filter((profile): profile is VideoAssetResponse['availableOfflineProfiles'][number] =>
+        isOfflineVideoProfileId(profile.id))
+      .map((profile) => ({
+        ...profile,
+        id: profile.id,
+      }));
   }
 
   private async safeRollbackCreatedSection(lessonId: string, sectionId: string): Promise<void> {

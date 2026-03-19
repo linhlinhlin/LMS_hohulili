@@ -36,7 +36,7 @@ public class LocalStorageService {
             Files.createDirectories(dir);
             log.info("[LocalStorage] Created base directory: {}", dir.toAbsolutePath());
         }
-        log.info("[LocalStorage] Active — base-path={}, base-url={}", basePath, baseUrl);
+        log.info("[LocalStorage] Active - base-path={}, base-url={}", basePath, baseUrl);
     }
 
     public R2StorageService.UploadResult upload(MultipartFile file, String folder) throws IOException {
@@ -50,10 +50,23 @@ public class LocalStorageService {
         Path targetFile = Path.of(basePath, key);
         Files.copy(file.getInputStream(), targetFile, StandardCopyOption.REPLACE_EXISTING);
 
-        String publicUrl = baseUrl + "/" + key;
-
-        log.info("[LocalStorage] Uploaded {} ({} bytes) → {}", key, file.getSize(), publicUrl);
+        String publicUrl = resolvePublicUrl(key);
+        log.info("[LocalStorage] Uploaded {} ({} bytes) -> {}", key, file.getSize(), publicUrl);
         return new R2StorageService.UploadResult(fileId, publicUrl, key, file.getSize());
+    }
+
+    public R2StorageService.UploadResult upload(Path file, String storageKey, String contentType) throws IOException {
+        Path targetFile = Path.of(basePath, storageKey);
+        if (targetFile.getParent() != null) {
+            Files.createDirectories(targetFile.getParent());
+        }
+
+        Files.copy(file, targetFile, StandardCopyOption.REPLACE_EXISTING);
+        long fileSize = Files.size(targetFile);
+        String publicUrl = resolvePublicUrl(storageKey);
+
+        log.info("[LocalStorage] Uploaded generated file {} ({} bytes) -> {}", storageKey, fileSize, publicUrl);
+        return new R2StorageService.UploadResult(storageKey, publicUrl, storageKey, fileSize);
     }
 
     public void delete(String key) {
@@ -71,6 +84,17 @@ public class LocalStorageService {
 
     public boolean exists(String key) {
         return Files.exists(Path.of(basePath, key));
+    }
+
+    public void downloadToFile(String key, Path destination) throws IOException {
+        if (destination.getParent() != null) {
+            Files.createDirectories(destination.getParent());
+        }
+        Files.copy(Path.of(basePath, key), destination, StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    public String resolvePublicUrl(String key) {
+        return baseUrl + "/" + key;
     }
 
     private String buildKey(String folder, String fileId, String extension) {

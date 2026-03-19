@@ -11,10 +11,17 @@ import {
   untracked
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Subscription } from 'rxjs';
+import { Subscription, firstValueFrom } from 'rxjs';
+import { VideoAssetApi, type VideoAssetResponse } from '../../../../../api/client/video-asset.api';
 import { CourseCategoryDTO, CourseTagDTO } from '../../../../../api/types/course.types';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
+import { PresignedUploadService } from '../../../../../core/services/presigned-upload.service';
 import { ToastService } from '../../../../../core/services/toast.service';
+import {
+  formatOfflineVideoProfileLabel,
+  isOfflineVideoProfileId,
+  type OfflineVideoProfileDescriptor,
+} from '../../../../../core/models/video-quality';
 import { RichTextEditorComponent } from '../../../../../shared/components/rich-text-editor/rich-text-editor.component';
 import { CourseAuthoringService, CourseDraftDTO, DeliveryMode } from '../../services/course-authoring.service';
 import { CourseEditorStore } from '../../store/course-editor.store';
@@ -36,6 +43,8 @@ export class CourseInfoComponent implements OnInit, OnDestroy {
   private readonly store = inject(CourseEditorStore);
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(CourseAuthoringService);
+  private readonly presignedUpload = inject(PresignedUploadService);
+  private readonly videoAssetApi = inject(VideoAssetApi);
   private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly toast = inject(ToastService);
   private readonly document = inject(DOCUMENT);
@@ -53,9 +62,20 @@ export class CourseInfoComponent implements OnInit, OnDestroy {
   readonly isDragOver = signal(false);
   readonly isUploading = signal(false);
   readonly uploadProgress = signal(0);
+  readonly introVideoAssetId = signal<string | null>(null);
+  readonly introVideoProcessingStatus = signal<string | null>(null);
+  readonly introVideoSourceKind = signal<'ADAPTIVE_R2' | 'STREAM' | 'EXTERNAL' | 'LEGACY_DIRECT' | null>(null);
+  readonly introVideoPlaybackUrl = signal<string | null>(null);
+  readonly introVideoStreamVideoUid = signal<string | null>(null);
+  readonly introVideoAvailableOfflineProfiles = signal<VideoAssetResponse['availableOfflineProfiles']>([]);
+  readonly introVideoErrorMessage = signal<string | null>(null);
+  readonly introVideoUploadState = signal<'idle' | 'staged' | 'uploading' | 'done' | 'error'>('idle');
+  readonly introVideoUploadProgress = signal(0);
+  readonly selectedIntroVideoFile = signal<File | null>(null);
   readonly showValidationSummary = signal(false);
 
   private uploadSub: Subscription | null = null;
+  private introVideoPollTimer: ReturnType<typeof setTimeout> | null = null;
   private formChangesSub: Subscription | null = null;
   private formStatusSub: Subscription | null = null;
   private pendingTagNames: string[] = [];
@@ -93,7 +113,7 @@ export class CourseInfoComponent implements OnInit, OnDestroy {
       : 'Học theo nhịp độ cá nhân, nội dung dùng chung toàn khóa học.'
   );
   readonly introVideoPreviewUrl = computed(() =>
-    this.parseHttpUrl(this.formValue().introVideoUrl)
+    this.parseHttpUrl(this.introVideoPlaybackUrl() || this.formValue().introVideoUrl)
   );
   readonly introVideoHost = computed(() => {
     const url = this.introVideoPreviewUrl();
@@ -105,6 +125,26 @@ export class CourseInfoComponent implements OnInit, OnDestroy {
       return new URL(url).host.replace(/^www\./, '');
     } catch {
       return '';
+    }
+  });
+  readonly hasIntroVideoAsset = computed(() => !!this.introVideoAssetId());
+  readonly hasLegacyIntroVideoLink = computed(() =>
+    !this.hasIntroVideoAsset() && !!this.parseHttpUrl(this.formValue().introVideoUrl)
+  );
+  readonly introVideoStatusCopy = computed(() => {
+    switch ((this.introVideoProcessingStatus() || '').toUpperCase()) {
+      case 'READY':
+        return 'Video giới thiệu đã sẵn sàng phát trực tuyến bằng pipeline video asset.';
+      case 'FAILED':
+        return this.introVideoErrorMessage() || 'Pipeline xử lý video giới thiệu bị lỗi. Bạn có thể chọn lại tệp để tạo asset mới.';
+      case 'PROCESSING':
+        return 'Video giới thiệu đang được xử lý để tạo playback online và các profile tải xuống nội bộ.';
+      case 'PENDING':
+        return 'Video giới thiệu đã vào hàng đợi xử lý.';
+      default:
+        return this.selectedIntroVideoFile()
+          ? 'Tệp video đã được chọn và sẽ được tải lên khi bạn lưu.'
+          : '';
     }
   });
   readonly pricePreviewText = computed(() => {
@@ -233,6 +273,10 @@ export class CourseInfoComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.uploadSub?.unsubscribe();
+    if (this.introVideoPollTimer) {
+      clearTimeout(this.introVideoPollTimer);
+      this.introVideoPollTimer = null;
+    }
     this.formChangesSub?.unsubscribe();
     this.formStatusSub?.unsubscribe();
   }
@@ -301,6 +345,74 @@ export class CourseInfoComponent implements OnInit, OnDestroy {
     return this.parseHttpUrl(value)
       ? ''
       : 'Nhập liên kết hợp lệ bắt đầu bằng http:// hoặc https://.';
+  }
+
+  onIntroVideoSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    input.value = '';
+
+    if (!file.type.startsWith('video/')) {
+      this.toast.error('Tệp được chọn không phải video hợp lệ.');
+      return;
+    }
+
+    this.selectedIntroVideoFile.set(file);
+    this.introVideoUploadState.set('staged');
+    this.introVideoUploadProgress.set(0);
+    this.introVideoErrorMessage.set(null);
+    this.introVideoAssetId.set(null);
+    this.introVideoProcessingStatus.set(null);
+    this.introVideoSourceKind.set(null);
+    this.introVideoPlaybackUrl.set(null);
+    this.introVideoStreamVideoUid.set(null);
+    this.introVideoAvailableOfflineProfiles.set([]);
+    this.form.patchValue({ introVideoUrl: '' }, { emitEvent: false });
+    this.markUnsavedState();
+  }
+
+  clearIntroVideoSelection() {
+    this.selectedIntroVideoFile.set(null);
+    this.introVideoUploadState.set(this.introVideoAssetId() ? 'done' : 'idle');
+    this.introVideoUploadProgress.set(0);
+    this.introVideoErrorMessage.set(null);
+    this.markUnsavedState();
+  }
+
+  async retryIntroVideoAsset() {
+    const assetId = this.introVideoAssetId();
+    if (!assetId) {
+      return;
+    }
+
+    this.introVideoErrorMessage.set(null);
+    this.introVideoUploadState.set('done');
+
+    try {
+      const response = await firstValueFrom(this.videoAssetApi.retry(assetId));
+      this.applyIntroVideoAssetResponse(response.data);
+      this.scheduleIntroVideoPoll(response.data.id);
+      this.toast.success('Da dua video gioi thieu vao hang doi xu ly lai');
+    } catch (error: any) {
+      const message = error?.error?.message || error?.message || 'Khong the xu ly lai video gioi thieu.';
+      this.introVideoErrorMessage.set(message);
+      this.toast.error(message);
+    }
+  }
+
+  removeLegacyIntroVideoLink() {
+    this.form.patchValue({ introVideoUrl: '' });
+    this.markUnsavedState();
+  }
+
+  getIntroVideoProfileLabel(
+    profile: Pick<OfflineVideoProfileDescriptor, 'id' | 'actualResolution'>,
+  ): string {
+    return formatOfflineVideoProfileLabel(profile);
   }
 
   addTagById(tagId: string) {
@@ -426,7 +538,7 @@ export class CourseInfoComponent implements OnInit, OnDestroy {
     return 'Chọn danh mục phù hợp cho khóa học.';
   }
 
-  save() {
+  async save() {
     this.showValidationSummary.set(true);
 
     if (this.form.invalid) {
@@ -471,13 +583,23 @@ export class CourseInfoComponent implements OnInit, OnDestroy {
     this.store.markSaving();
 
     const value = this.form.getRawValue();
+    let introVideoAssetId: string | null;
+    try {
+      introVideoAssetId = await this.ensureIntroVideoAssetUploaded();
+    } catch (error) {
+      this.isSaving.set(false);
+      this.store.markError();
+      this.toast.error(error instanceof Error ? error.message : 'Tải video giới thiệu thất bại.');
+      return;
+    }
     const payload = {
       title: value.title || '',
       description: value.description || '',
       thumbnailUrl: this.thumbnailUrl(),
       categoryId: value.categoryId || null,
       tags: this.selectedTags().map((tag) => tag.name),
-      introVideoUrl: this.normalizeOptionalText(value.introVideoUrl),
+      introVideoUrl: introVideoAssetId ? null : this.normalizeOptionalText(value.introVideoUrl),
+      introVideoAssetId,
       courseInformation: this.normalizeOptionalText(value.courseInformation),
       welcomeMessage: this.normalizeOptionalText(value.welcomeMessage),
       benefits: this.normalizeOptionalText(value.benefits),
@@ -554,7 +676,7 @@ export class CourseInfoComponent implements OnInit, OnDestroy {
         description: tree.description,
         categoryId: tree.categoryId || '',
         tags: this.selectedTags().map((tag) => tag.name).join(','),
-        introVideoUrl: tree.introVideoUrl || '',
+        introVideoUrl: tree.introVideoPlaybackUrl || tree.introVideoUrl || '',
         courseInformation: tree.courseInformation || '',
         welcomeMessage: tree.welcomeMessage || '',
         benefits: tree.benefits || '',
@@ -569,6 +691,18 @@ export class CourseInfoComponent implements OnInit, OnDestroy {
 
     this.thumbnailUrl.set(tree.thumbnailUrl || null);
     this.thumbnailPreview.set(null);
+    this.selectedIntroVideoFile.set(null);
+    this.introVideoAssetId.set(tree.introVideoAssetId || null);
+    this.introVideoProcessingStatus.set(tree.introVideoProcessingStatus || null);
+    this.introVideoSourceKind.set(tree.introVideoSourceKind || null);
+    this.introVideoPlaybackUrl.set(tree.introVideoPlaybackUrl || tree.introVideoUrl || null);
+    this.introVideoStreamVideoUid.set(tree.introVideoStreamVideoUid || null);
+    this.introVideoAvailableOfflineProfiles.set(
+      this.normalizeIntroVideoProfiles(tree.introVideoAvailableOfflineProfiles),
+    );
+    this.introVideoErrorMessage.set(null);
+    this.introVideoUploadState.set(tree.introVideoAssetId ? 'done' : 'idle');
+    this.introVideoUploadProgress.set(0);
     this.currentDeliveryMode.set((tree.deliveryMode as DeliveryMode) || 'SELF_PACED');
     this.isModeLocked.set(!!tree.hasEnrollments);
     this.selectedRootId.set('');
@@ -582,6 +716,10 @@ export class CourseInfoComponent implements OnInit, OnDestroy {
     this.showValidationSummary.set(false);
     this.form.markAsPristine();
     this.store.markSaved();
+
+    if (tree.introVideoAssetId && tree.introVideoProcessingStatus !== 'READY' && tree.introVideoProcessingStatus !== 'FAILED') {
+      this.scheduleIntroVideoPoll(tree.introVideoAssetId);
+    }
   }
 
   private hydrateTagsFromNames(names: string[]) {
@@ -637,6 +775,105 @@ export class CourseInfoComponent implements OnInit, OnDestroy {
     });
   }
 
+  private async ensureIntroVideoAssetUploaded(): Promise<string | null> {
+    if (this.introVideoAssetId()) {
+      return this.introVideoAssetId();
+    }
+
+    const file = this.selectedIntroVideoFile();
+    if (!file) {
+      return null;
+    }
+
+    this.introVideoUploadState.set('uploading');
+    this.introVideoUploadProgress.set(0);
+    this.introVideoErrorMessage.set(null);
+
+    try {
+      const uploadEvent = await firstValueFrom(this.presignedUpload.upload(file, 'videos'));
+      if (uploadEvent.type !== 'complete') {
+        throw new Error('Không nhận được kết quả upload video giới thiệu.');
+      }
+
+      this.introVideoUploadProgress.set(100);
+      const assetResponse = await firstValueFrom(
+        this.videoAssetApi.createFromUpload(uploadEvent.id, file.name)
+      );
+
+      this.applyIntroVideoAssetResponse(assetResponse.data);
+      this.selectedIntroVideoFile.set(null);
+      this.introVideoUploadState.set('done');
+      this.scheduleIntroVideoPoll(assetResponse.data.id);
+      return assetResponse.data.id;
+    } catch (error) {
+      this.introVideoUploadState.set('error');
+      this.introVideoErrorMessage.set(error instanceof Error ? error.message : 'Tạo video asset thất bại.');
+      throw error;
+    }
+  }
+
+  private applyIntroVideoAssetResponse(asset: VideoAssetResponse | null | undefined) {
+    if (!asset) {
+      return;
+    }
+
+    this.introVideoAssetId.set(asset.id);
+    this.introVideoProcessingStatus.set(asset.status);
+    this.introVideoSourceKind.set(asset.videoSourceKind);
+    this.introVideoPlaybackUrl.set(asset.playbackUrl ?? null);
+    this.introVideoStreamVideoUid.set(asset.streamVideoUid ?? null);
+    this.introVideoAvailableOfflineProfiles.set(
+      this.normalizeIntroVideoProfiles(asset.availableOfflineProfiles),
+    );
+    this.introVideoErrorMessage.set(asset.errorMessage ?? null);
+    if (!this.selectedIntroVideoFile()) {
+      this.introVideoUploadState.set(asset.status === 'FAILED' ? 'error' : 'done');
+    }
+  }
+
+  private scheduleIntroVideoPoll(assetId: string | null, delayMs = 5000) {
+    if (this.introVideoPollTimer) {
+      clearTimeout(this.introVideoPollTimer);
+      this.introVideoPollTimer = null;
+    }
+
+    if (!assetId) {
+      return;
+    }
+
+    const status = (this.introVideoProcessingStatus() || '').toUpperCase();
+    if (status === 'READY' || status === 'FAILED') {
+      return;
+    }
+
+    this.introVideoPollTimer = setTimeout(async () => {
+      try {
+        const response = await firstValueFrom(this.videoAssetApi.getById(assetId));
+        this.applyIntroVideoAssetResponse(response.data);
+        this.scheduleIntroVideoPoll(assetId);
+      } catch {
+        this.scheduleIntroVideoPoll(assetId, 10000);
+      }
+    }, delayMs);
+  }
+
+  private normalizeIntroVideoProfiles(
+    profiles: Array<{
+      id: string;
+      label: string;
+      actualResolution?: string | null;
+      sizeBytes?: number | null;
+      downloadUrl?: string | null;
+    }> | null | undefined,
+  ): VideoAssetResponse['availableOfflineProfiles'] {
+    return (profiles ?? [])
+      .filter((profile): profile is VideoAssetResponse['availableOfflineProfiles'][number] => isOfflineVideoProfileId(profile.id))
+      .map((profile) => ({
+        ...profile,
+        id: profile.id,
+      }));
+  }
+
   private handleSaveSuccess(message: string, tone: 'success' | 'warning' = 'success') {
     if (tone === 'warning') {
       this.toast.warning(message);
@@ -662,7 +899,7 @@ export class CourseInfoComponent implements OnInit, OnDestroy {
   }
 
   private hasUnsavedChanges(): boolean {
-    return this.form.dirty || this.isUploading();
+    return this.form.dirty || this.isUploading() || this.introVideoUploadState() === 'staged' || this.introVideoUploadState() === 'uploading';
   }
 
   private normalizeOptionalText(value: string | null | undefined): string | null {
@@ -690,7 +927,7 @@ export class CourseInfoComponent implements OnInit, OnDestroy {
     }
 
     try {
-      const url = new URL(normalized);
+      const url = new URL(normalized, this.document.location?.origin ?? window.location.origin);
       if (url.protocol !== 'http:' && url.protocol !== 'https:') {
         return null;
       }

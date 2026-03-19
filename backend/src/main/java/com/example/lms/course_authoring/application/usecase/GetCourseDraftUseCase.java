@@ -68,6 +68,7 @@ public class GetCourseDraftUseCase {
                 .courseInformation(course.getCourseInformation())
                 .benefits(course.getBenefits())
                 .introVideoUrl(course.getIntroVideoUrl())
+                .introVideoAssetId(course.getIntroVideoAssetId())
                 .credits(course.getCredits())
                 .chapters(chapters)
                 .hasEnrollments(enrollmentRepository.existsByCourseId(course.getId()))
