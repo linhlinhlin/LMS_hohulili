@@ -14,6 +14,7 @@ import { filter, take, map } from 'rxjs/operators';
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-course-editor-layout',
   imports: [RouterOutlet, RouterModule, CourseEditorSidebarComponent, CourseEditorHeaderComponent],
+  styleUrl: './course-editor-layout.component.scss',
   template: `
     <div class="relative flex h-screen w-full flex-col overflow-hidden font-sans bg-white text-slate-900">
       <!-- Admin View-Only Mode Banner -->
@@ -49,7 +50,8 @@ import { filter, take, map } from 'rxjs/operators';
         <div class="flex flex-col min-w-0 h-full overflow-hidden bg-slate-50 relative">
             <!-- Navigation Tabs (Underline style - Coursera/Material Design 3) -->
             <nav aria-label="Điều hướng trình biên tập khóa học"
-                 class="flex items-center gap-0 border-b border-slate-200 px-6 flex-shrink-0 bg-white z-10 w-full overflow-x-auto scrollbar-hide">
+                 class="editor-layout-tabs flex items-center gap-0 border-b border-slate-200 flex-shrink-0 bg-white z-10 w-full overflow-x-auto scrollbar-hide"
+                 [class.editor-layout-tabs--aligned]="sidebarCollapsed()">
                <a routerLink="info"
                   routerLinkActive="text-[#0056D2] border-b-2 border-[#0056D2]"
                   class="px-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors border-b-2 border-transparent">

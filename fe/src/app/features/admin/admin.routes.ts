@@ -59,7 +59,13 @@ export const adminRoutes: Routes = [
             path: 'students',
             loadComponent: () => import('./presentation/components/student-management.component').then(m => m.StudentManagementComponent),
             title: 'Quản lý Học viên'
+          },
+          {
+            path: 'by-course',
+            loadComponent: () => import('./presentation/components/course-users.component').then(m => m.CourseUsersComponent),
+            title: 'Người dùng theo Khóa học'
           }
+
         ]
       },
 

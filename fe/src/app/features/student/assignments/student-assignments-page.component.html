@@ -1,200 +1,279 @@
-<div class="min-h-screen bg-slate-50/50">
-  <!-- Compact Toolbar -->
-  <div class="sticky top-0 z-30 border-b border-slate-200 bg-white">
-    <div class="mx-auto flex h-11 max-w-screen-xl items-center justify-between gap-3 px-4 sm:px-6">
-      <div class="flex items-center gap-2 min-w-0">
-        <a routerLink="/student/courses"
-           class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-[#0056D2] transition-colors"
-           aria-label="Quay lại khóa học">
-          <lucide-icon name="arrow-left" [size]="16"></lucide-icon>
-        </a>
-        <h1 class="text-sm font-semibold text-slate-900 truncate">Bài cần làm</h1>
-      </div>
-
-      <!-- Inline Stats -->
-      <div class="hidden sm:flex items-center gap-1.5 text-xs text-slate-500 shrink-0">
-        <span>{{ stats().toDo }} cần làm</span>
-        @if (stats().overdue > 0) {
-          <span class="text-slate-300">&middot;</span>
-          <span class="text-red-600 font-medium">{{ stats().overdue }} quá hạn</span>
-        }
-        <span class="text-slate-300">&middot;</span>
-        <span>{{ stats().submitted }} chờ chấm</span>
-        <span class="text-slate-300">&middot;</span>
-        <span>{{ stats().graded }} đã chấm</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Content -->
-  <div class="mx-auto max-w-screen-xl px-4 sm:px-6 py-4">
-
-    <!-- Error State -->
+<!-- Student Tasks Page - Course-First Layout (Coursera Style) -->
+<div class="tasks-container">
+  <!-- Main Content Area -->
+  <div class="main-content">
     @if (error()) {
-      <div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3">
-        <div class="flex items-center gap-2">
-          <lucide-icon name="alert-triangle" [size]="16" class="shrink-0 text-red-500"></lucide-icon>
-          <span class="text-sm text-red-700 flex-1">{{ error() }}</span>
-          <button (click)="loadAssignments()"
-                  class="shrink-0 rounded-md px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-100 transition-colors">
-            Thử lại
-          </button>
-        </div>
+      <div class="error-banner">
+        <span>{{ error() }}</span>
+        <button (click)="loadAssignments()" class="error-retry-btn" type="button">Thử lại</button>
       </div>
     }
 
+    <!-- Page Header -->
+    <div class="page-header">
+      <h1 class="page-title">Bài cần làm</h1>
+      <p class="page-subtitle">Theo dõi và quản lý bài tập từ các khóa học của bạn</p>
+    </div>
+
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+      <a
+        routerLink="/student/courses"
+        class="breadcrumb-link"
+        aria-label="Quay lại danh sách khóa học">
+        <lucide-icon name="arrow-left" [size]="14" aria-hidden="true"></lucide-icon>
+        Quay lại khóa học
+      </a>
+    </div>
+
+    <!-- Tabs Section - Sticky -->
+    <div class="tabs-section">
+      <div class="tabs-container" role="tablist">
+        <button
+          class="tab-chip"
+          [class.active]="activeTab() === 'todo'"
+          (click)="setTab('todo')"
+          role="tab"
+          [attr.aria-selected]="activeTab() === 'todo'"
+          type="button">
+          <span class="tab-label">Cần làm ({{ tabCounts().todo }})</span>
+        </button>
+        <button
+          class="tab-chip"
+          [class.active]="activeTab() === 'submitted'"
+          (click)="setTab('submitted')"
+          role="tab"
+          [attr.aria-selected]="activeTab() === 'submitted'"
+          type="button">
+          <span class="tab-label">Chờ chấm ({{ tabCounts().submitted }})</span>
+        </button>
+        <button
+          class="tab-chip"
+          [class.active]="activeTab() === 'graded'"
+          (click)="setTab('graded')"
+          role="tab"
+          [attr.aria-selected]="activeTab() === 'graded'"
+          type="button">
+          <span class="tab-label">Đã chấm ({{ tabCounts().graded }})</span>
+        </button>
+      </div>
+    </div>
+
     <!-- Loading State -->
     @if (loading()) {
-      <div class="rounded-lg border border-slate-200 bg-white p-16 text-center">
-        <div class="mx-auto h-8 w-8 animate-spin rounded-full border-[3px] border-slate-200 border-t-[#0056D2] mb-3"></div>
-        <p class="text-xs text-slate-400 font-medium">Đang tải bài tập...</p>
+      <div class="loading-state">
+        <div class="loading-spinner"></div>
+        <p>Đang tải bài tập...</p>
       </div>
     }
 
     @if (!loading()) {
-      <!-- Tabs + Filters Row -->
-      <div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <!-- Status Tabs -->
-        <div class="flex items-center gap-1">
-          <button (click)="setTab('todo')" type="button"
-                  class="h-8 rounded-md px-3 text-[13px] font-medium transition-colors"
-                  [class.bg-[#0056D2]]="activeTab() === 'todo'"
-                  [class.text-white]="activeTab() === 'todo'"
-                  [class.text-slate-600]="activeTab() !== 'todo'"
-                  [class.hover:bg-slate-100]="activeTab() !== 'todo'">
-            Cần làm ({{ tabCounts().todo }})
-          </button>
-          <button (click)="setTab('submitted')" type="button"
-                  class="h-8 rounded-md px-3 text-[13px] font-medium transition-colors"
-                  [class.bg-amber-500]="activeTab() === 'submitted'"
-                  [class.text-white]="activeTab() === 'submitted'"
-                  [class.text-slate-600]="activeTab() !== 'submitted'"
-                  [class.hover:bg-slate-100]="activeTab() !== 'submitted'">
-            Chờ chấm ({{ tabCounts().submitted }})
-          </button>
-          <button (click)="setTab('graded')" type="button"
-                  class="h-8 rounded-md px-3 text-[13px] font-medium transition-colors"
-                  [class.bg-emerald-600]="activeTab() === 'graded'"
-                  [class.text-white]="activeTab() === 'graded'"
-                  [class.text-slate-600]="activeTab() !== 'graded'"
-                  [class.hover:bg-slate-100]="activeTab() !== 'graded'">
-            Đã chấm ({{ tabCounts().graded }})
-          </button>
-        </div>
-
-        <!-- Inline Filters -->
-        <div class="flex items-center gap-2">
-          @if (courses().length > 1) {
-            <select [ngModel]="selectedCourse()" (ngModelChange)="selectedCourse.set($event)"
-                    class="h-8 rounded-md border border-slate-200 bg-white px-2.5 text-[13px] text-slate-700 focus:border-[#0056D2] focus:ring-1 focus:ring-[#0056D2]/10 outline-none">
-              <option value="">Tất cả khóa học</option>
-              @for (course of courses(); track course.id) {
-                <option [value]="course.id">{{ course.title }}</option>
-              }
-            </select>
-          }
-          <div class="relative">
-            <lucide-icon name="search" [size]="14" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></lucide-icon>
-            <input type="text"
-                   [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)"
-                   placeholder="Tìm bài tập..."
-                   class="h-8 w-48 rounded-md border border-slate-200 bg-white pl-8 pr-2.5 text-[13px] text-slate-700 placeholder:text-slate-400 focus:border-[#0056D2] focus:ring-1 focus:ring-[#0056D2]/10 outline-none" />
-          </div>
-          @if (hasActiveFilters()) {
-            <button (click)="resetFilters()"
-                    class="h-8 rounded-md px-2.5 text-[13px] text-slate-500 hover:bg-slate-100 transition-colors">
-              Xóa lọc
-            </button>
-          }
-        </div>
-      </div>
-
       <!-- Empty State -->
-      @if (filteredAssignments().length === 0) {
-        <div class="rounded-lg border border-slate-200 bg-white p-12 text-center">
-          <lucide-icon name="clipboard-list" [size]="40" class="mx-auto mb-3 text-slate-300"></lucide-icon>
+      @if (courseGroups().length === 0) {
+        <div class="empty-state">
+          <lucide-icon name="clipboard-list" [size]="48" class="empty-icon"></lucide-icon>
           @if (hasActiveFilters()) {
-            <h3 class="text-sm font-semibold text-slate-700 mb-1">Không tìm thấy bài tập</h3>
-            <p class="text-xs text-slate-500 mb-3">Không có bài tập nào phù hợp với bộ lọc.</p>
-            <button (click)="resetFilters()"
-                    class="h-8 rounded-md bg-[#0056D2] px-4 text-xs font-medium text-white hover:bg-[#004BB5] transition-colors">
-              Xóa bộ lọc
-            </button>
+            <h3>Không tìm thấy bài tập</h3>
+            <p>Không có bài tập nào phù hợp với bộ lọc.</p>
+            <button (click)="resetFilters()" class="btn-primary" type="button">Xóa bộ lọc</button>
           } @else {
             @switch (activeTab()) {
               @case ('todo') {
-                <h3 class="text-sm font-semibold text-slate-700 mb-1">Không có bài cần làm</h3>
-                <p class="text-xs text-slate-500">Tất cả bài tập đã được hoàn thành. Hãy kiểm tra tab "Chờ chấm" hoặc "Đã chấm".</p>
+                <h3>Không có bài cần làm</h3>
+                <p>Tất cả bài tập đã được hoàn thành. Hãy kiểm tra tab "Chờ chấm" hoặc "Đã chấm".</p>
               }
               @case ('submitted') {
-                <h3 class="text-sm font-semibold text-slate-700 mb-1">Không có bài chờ chấm</h3>
-                <p class="text-xs text-slate-500">Chưa có bài nào đã nộp đang chờ giảng viên chấm điểm.</p>
+                <h3>Không có bài chờ chấm</h3>
+                <p>Chưa có bài nào đã nộp đang chờ giảng viên chấm điểm.</p>
               }
               @case ('graded') {
-                <h3 class="text-sm font-semibold text-slate-700 mb-1">Chưa có bài được chấm</h3>
-                <p class="text-xs text-slate-500">Khi giảng viên chấm điểm bài tập của bạn, kết quả sẽ hiển thị ở đây.</p>
+                <h3>Chưa có bài được chấm</h3>
+                <p>Khi giảng viên chấm điểm bài tập của bạn, kết quả sẽ hiển thị ở đây.</p>
               }
             }
           }
         </div>
       }
 
-      <!-- Assignment List -->
-      @if (filteredAssignments().length > 0) {
-        <div class="space-y-2">
-          @for (assignment of filteredAssignments(); track assignment.assignmentId) {
-            <a [routerLink]="['/student/tasks', assignment.assignmentId, 'work']"
-               class="block rounded-lg border bg-white p-4 transition-colors hover:border-slate-300"
-               [class.border-slate-200]="!isOverdue(assignment)"
-               [class.border-l-2]="isOverdue(assignment)"
-               [class.border-l-red-500]="isOverdue(assignment)"
-               [class.border-red-200]="isOverdue(assignment)">
+      <!-- Course Groups - Accordion Style -->
+      @if (courseGroups().length > 0) {
+        <div class="course-groups-list">
+          @for (group of courseGroups(); track group.courseId) {
+            <div class="course-group-card"
+                 [class.has-overdue]="group.overdueCount > 0"
+                 [class.expanded]="isCourseExpanded(group.courseId)">
+              <!-- Course Group Header -->
+              <button
+                class="course-group-header"
+                (click)="toggleCourse(group.courseId)"
+                [attr.aria-controls]="'course-group-panel-' + group.courseId"
+                [attr.aria-expanded]="isCourseExpanded(group.courseId)"
+                type="button">
+                <div class="course-info">
+                  <div class="course-thumbnail">
+                    <lucide-icon name="book-open" [size]="20" aria-hidden="true"></lucide-icon>
+                  </div>
+                  <div class="course-details">
+                    <h3 class="course-name" [attr.id]="'course-group-title-' + group.courseId">{{ group.courseTitle }}</h3>
+                    <div class="course-badges">
+                      @if (group.todoCount > 0) {
+                        <span class="badge badge-todo">{{ group.todoCount }} cần làm</span>
+                      }
+                      @if (group.overdueCount > 0) {
+                        <span class="badge badge-overdue">{{ group.overdueCount }} quá hạn</span>
+                      }
+                      @if (group.submittedCount > 0) {
+                        <span class="badge badge-submitted">{{ group.submittedCount }} chờ chấm</span>
+                      }
+                      @if (group.gradedCount > 0) {
+                        <span class="badge badge-graded">{{ group.gradedCount }} đã chấm</span>
+                      }
+                    </div>
+                  </div>
+                </div>
+                <lucide-icon
+                  [name]="isCourseExpanded(group.courseId) ? 'chevron-up' : 'chevron-down'"
+                  [size]="20"
+                  aria-hidden="true"
+                  class="expand-icon">
+                </lucide-icon>
+              </button>
 
-              <!-- Row 1: Title + Status badge -->
-              <div class="flex items-start justify-between gap-3 mb-1.5">
-                <h3 class="text-sm font-medium text-slate-900 leading-snug">{{ assignment.assignmentTitle }}</h3>
-                <span [class]="getStatusClassForAssignment(assignment.status)" class="shrink-0">
-                  {{ getStatusLabel(assignment.status) }}
-                </span>
-              </div>
+              <!-- Assignments List (when expanded) -->
+              @if (isCourseExpanded(group.courseId)) {
+                <div
+                  class="assignments-list"
+                  [attr.aria-labelledby]="'course-group-title-' + group.courseId"
+                  [attr.id]="'course-group-panel-' + group.courseId"
+                  role="region">
+                  @for (assignment of group.assignments; track assignment.assignmentId) {
+                    <a [routerLink]="['/student/tasks', assignment.assignmentId, 'work']"
+                       [attr.aria-label]="'Mở bài tập ' + assignment.assignmentTitle"
+                       class="assignment-item"
+                       [class.overdue]="isOverdue(assignment)">
+                      <!-- Status Icon -->
+                      <div class="assignment-status-icon">
+                        @switch (assignment.status) {
+                          @case ('NOT_STARTED') {
+                            <lucide-icon name="circle" [size]="18" class="status-not-started"></lucide-icon>
+                          }
+                          @case ('IN_PROGRESS') {
+                            <lucide-icon name="play-circle" [size]="18" class="status-in-progress"></lucide-icon>
+                          }
+                          @case ('SUBMITTED') {
+                            <lucide-icon name="clock" [size]="18" class="status-submitted"></lucide-icon>
+                          }
+                          @case ('GRADED') {
+                            <lucide-icon name="check-circle" [size]="18" class="status-graded"></lucide-icon>
+                          }
+                          @case ('OVERDUE') {
+                            <lucide-icon name="alert-circle" [size]="18" class="status-overdue"></lucide-icon>
+                          }
+                        }
+                      </div>
 
-              <!-- Row 2: Context (course + audience) -->
-              <div class="flex flex-wrap items-center gap-1.5 mb-2 text-[13px] text-slate-500">
-                <span>{{ assignment.courseTitle }}</span>
-                <span class="rounded-full px-2 py-0.5 text-[11px] font-medium" [class]="getAudienceBadgeClass(assignment)">
-                  {{ getAudienceLabel(assignment) }}
-                </span>
-              </div>
+                      <!-- Assignment Details -->
+                      <div class="assignment-details">
+                        <h4 class="assignment-title">{{ assignment.assignmentTitle }}</h4>
+                        <div class="assignment-meta">
+                          <span class="audience-badge" [class]="getAudienceBadgeClass(assignment)">
+                            {{ getAudienceLabel(assignment) }}
+                          </span>
+                          <span class="deadline" [class]="getDeadlineClass(assignment)">
+                            {{ formatRelativeDeadline(assignment) }} · {{ formatDeadlineDisplay(assignment) }}
+                          </span>
+                        </div>
+                      </div>
 
-              <!-- Row 3: Deadline + Grade (if graded tab) + Action -->
-              <div class="flex items-center justify-between gap-3">
-                <div class="flex items-center gap-3 text-[13px]">
-                  <!-- Relative deadline -->
-                  <span [class]="getDeadlineClass(assignment)">
-                    {{ formatRelativeDeadline(assignment) }}
-                  </span>
-                  <!-- Absolute deadline -->
-                  <span class="text-slate-400">
-                    {{ formatDeadlineDisplay(assignment) }}
-                  </span>
-
-                  <!-- Grade (if available) -->
-                  @if (assignment.grade !== undefined) {
-                    <span class="font-medium text-emerald-600">
-                      {{ assignment.grade }}/{{ assignment.maxScore }}
-                    </span>
+                      <!-- Grade & Action -->
+                      <div class="assignment-action">
+                        @if (assignment.grade !== undefined) {
+                          <span class="grade">{{ assignment.grade }}/{{ assignment.maxScore }}</span>
+                        }
+                        <span class="action-label">{{ getActionLabel(assignment.status) }}</span>
+                        <lucide-icon name="chevron-right" [size]="16" aria-hidden="true"></lucide-icon>
+                      </div>
+                    </a>
                   }
                 </div>
-
-                <span class="inline-flex items-center gap-1 text-xs font-medium text-[#0056D2]">
-                  {{ getActionLabel(assignment.status) }}
-                  <lucide-icon name="chevron-right" [size]="14"></lucide-icon>
-                </span>
-              </div>
-            </a>
+              }
+            </div>
           }
         </div>
       }
     }
   </div>
+
+  <!-- Sidebar (30%) - Filters & Stats -->
+  <aside class="filter-sidebar">
+    <div class="sidebar-section">
+      <h3 class="sidebar-title">Bộ lọc</h3>
+
+      <!-- Filter by Course -->
+      <div class="filter-group">
+        <label class="filter-label" for="student-assignment-course-filter">Khóa học</label>
+        <select
+          id="student-assignment-course-filter"
+          class="filter-select"
+          [value]="selectedCourse()"
+          (change)="selectedCourse.set($any($event.target).value)">
+          <option value="">Tất cả khóa học</option>
+          @for (course of courses(); track course.id) {
+            <option [value]="course.id">{{ course.title }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Search -->
+      <div class="filter-group">
+        <label class="filter-label" for="student-assignment-search">Tìm kiếm</label>
+        <div class="search-input-wrapper">
+          <lucide-icon name="search" [size]="16" class="search-icon" aria-hidden="true"></lucide-icon>
+          <input
+            id="student-assignment-search"
+            type="text"
+            name="assignmentSearch"
+            autocomplete="off"
+            class="search-input"
+            [value]="searchQuery()"
+            (input)="searchQuery.set($any($event.target).value)"
+            placeholder="Tìm bài tập...">
+        </div>
+      </div>
+
+      @if (hasActiveFilters()) {
+        <button (click)="resetFilters()" class="reset-filter-btn" type="button">
+          <lucide-icon name="x" [size]="14" aria-hidden="true"></lucide-icon>
+          Xóa bộ lọc
+        </button>
+      }
+    </div>
+
+    <!-- Statistics -->
+    <div class="sidebar-section stats-section">
+      <h3 class="sidebar-title">Thống kê</h3>
+      <div class="stat-item">
+        <span class="stat-label">Tổng bài tập</span>
+        <span class="stat-value">{{ stats().total }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Cần làm</span>
+        <span class="stat-value stat-todo">{{ stats().toDo }}</span>
+      </div>
+      @if (stats().overdue > 0) {
+        <div class="stat-item">
+          <span class="stat-label">Quá hạn</span>
+          <span class="stat-value stat-overdue">{{ stats().overdue }}</span>
+        </div>
+      }
+      <div class="stat-item">
+        <span class="stat-label">Chờ chấm</span>
+        <span class="stat-value stat-submitted">{{ stats().submitted }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Đã chấm</span>
+        <span class="stat-value stat-graded">{{ stats().graded }}</span>
+      </div>
+    </div>
+  </aside>
 </div>

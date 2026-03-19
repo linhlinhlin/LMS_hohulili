@@ -1,18 +1,22 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, of } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 import { ApiClient } from '../../../api/client/api-client';
-import { AssignmentApi, AssignmentDetail, SubmissionDetail } from '../../../api/client/assignment.api';
+import {
+  AssignmentApi,
+  AssignmentDetail,
+  SubmissionDetail,
+  StudentAssignmentResponse as StudentAssignmentApiResponse,
+} from '../../../api/client/assignment.api';
 import { STUDENT_ENDPOINTS } from '../../../api/endpoints/student.endpoints';
 
-/**
- * Student Assignment - Trạng thái bài tập của học viên
- */
-export type StudentTaskStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'SUBMITTED' | 'GRADED' | 'OVERDUE';
+export type StudentTaskStatus =
+  | 'NOT_STARTED'
+  | 'IN_PROGRESS'
+  | 'SUBMITTED'
+  | 'GRADED'
+  | 'OVERDUE';
 
-/**
- * Student Assignment - Bài tập được giao cho học viên
- */
 export interface StudentAssignment {
   assignmentId: string;
   assignmentTitle: string;
@@ -24,130 +28,121 @@ export interface StudentAssignment {
   classId?: string;
   className?: string;
   instructorName?: string;
-
-  // Deadline
-  dueDate: string;           // ISO date string
-  personalDeadline?: string; // Deadline riêng nếu được gia hạn
-
-  // Status
+  dueDate: string;
+  personalDeadline?: string;
   status: StudentTaskStatus;
   isOverdue: boolean;
   daysUntilDue: number;
-
-  // Submission
   submissionId?: string;
   submittedAt?: string;
-
-  // Grading
   grade?: number;
   maxScore: number;
   feedback?: string;
-
-  // Flags
-  isIndividual: boolean;     // Bài tập giao riêng
+  isIndividual: boolean;
 }
 
-/**
- * Service để lấy bài tập được giao cho học viên.
- *
- * Flow hiện tại:
- * 1. Gọi GET /api/v3/student/assignments
- * 2. Backend chỉ trả về các assignment student thực sự được phép truy cập
- *    theo enrollment + allocation/distribution hiện hành
- * 3. Transform và trả về StudentAssignment[]
- */
 @Injectable({ providedIn: 'root' })
 export class StudentAssignmentService {
   private api = inject(ApiClient);
   private assignmentApi = inject(AssignmentApi);
 
-  /**
-   * Lấy tất cả bài tập được giao cho học viên
-   */
   getStudentAssignments(_studentId?: string, _courseId?: string): Observable<StudentAssignment[]> {
-    return this.api.getWithResponse<any[]>(STUDENT_ENDPOINTS.MY_ASSIGNMENTS).pipe(
-      map(response => {
-        const data: any[] = response?.data || [];
-        return data.map(item => this.transformToStudentAssignment(item));
+    return this.assignmentApi.getStudentAssignments().pipe(
+      map((response) => {
+        const data = response?.data ?? [];
+        return data.map((item) => this.transformToStudentAssignment(item));
       }),
       catchError(() => of([]))
     );
   }
 
-  /**
-   * Lấy chi tiết một bài tập (student-scoped, with enrollment check)
-   */
   getAssignmentDetail(assignmentId: string): Observable<AssignmentDetail | null> {
     return this.api.getWithResponse<any>(STUDENT_ENDPOINTS.ASSIGNMENT_DETAIL(assignmentId)).pipe(
-      map(res => res.data || null),
+      map((res) => res.data || null),
       catchError(() => of(null))
     );
   }
 
-  /**
-   * Lấy submission của học viên cho một bài tập
-   */
   getMySubmission(assignmentId: string): Observable<SubmissionDetail | null> {
     return this.assignmentApi.getStudentSubmission(assignmentId).pipe(
-      map(res => res.data || null),
+      map((res) => res.data || null),
       catchError(() => of(null))
     );
   }
 
-  /**
-   * Transform API response thành StudentAssignment
-   */
-  private transformToStudentAssignment(item: any): StudentAssignment {
-    const now = new Date();
+  private transformToStudentAssignment(item: StudentAssignmentApiResponse): StudentAssignment {
     const dueDate = item.dueDate ? new Date(item.dueDate) : null;
-
-    // Tính số ngày còn lại
-    const daysUntilDue = dueDate
-      ? Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-      : 999;
-
-    // Xác định trạng thái
-    const submissionStatus = item.submissionStatus || 'NOT_STARTED';
-    const status = this.determineStatus(submissionStatus, dueDate, now, item.grade);
-    const isOverdue = status === 'OVERDUE';
+    const distributionType = this.readStringField(item, 'distributionType') as StudentAssignment['distributionType'];
+    const deliveryMode = this.readStringField(item, 'deliveryMode') as StudentAssignment['deliveryMode'];
+    const status = this.mapApiStatus(item.status, dueDate, item.score);
 
     return {
-      assignmentId: item.id,
+      assignmentId: String(item.id),
       assignmentTitle: item.title || '',
       description: item.description || '',
-      courseId: item.courseId || '',
-      courseTitle: item.courseTitle || item.courseName || '',
-      deliveryMode: item.deliveryMode || 'SELF_PACED',
-      distributionType: item.distributionType || 'ALL_STUDENTS',
-      classId: item.classId || undefined,
-      className: item.className || undefined,
+      courseId: String(item.courseId || ''),
+      courseTitle: item.courseName || '',
+      deliveryMode: deliveryMode || 'SELF_PACED',
+      distributionType: distributionType || 'ALL_STUDENTS',
+      classId: this.readStringField(item, 'classId'),
+      className: this.readStringField(item, 'className'),
       dueDate: item.dueDate || '',
+      personalDeadline: undefined,
       status,
-      isOverdue,
-      daysUntilDue,
-      submissionId: item.submissionId,
+      isOverdue: status === 'OVERDUE',
+      daysUntilDue: this.calculateDaysUntilDue(dueDate),
+      submissionId: item.submissionId ? String(item.submissionId) : undefined,
       submittedAt: item.submittedAt,
-      grade: item.grade,
+      grade: item.score ?? undefined,
       maxScore: item.maxScore || 100,
       feedback: item.feedback,
-      isIndividual: false
+      isIndividual: distributionType === 'SPECIFIC_STUDENTS',
     };
   }
 
-  /**
-   * Xác định trạng thái bài tập
-   */
-  private determineStatus(
-    submissionStatus: string,
+  private mapApiStatus(
+    apiStatus: string | undefined,
     deadline: Date | null,
-    now: Date,
-    grade?: number
+    score?: number
   ): StudentTaskStatus {
-    if (grade !== undefined && grade !== null) return 'GRADED';
-    if (submissionStatus === 'GRADED') return 'GRADED';
-    if (submissionStatus === 'SUBMITTED' || submissionStatus === 'RESUBMITTED') return 'SUBMITTED';
-    if (deadline && now > deadline) return 'OVERDUE';
-    if (submissionStatus === 'IN_PROGRESS') return 'IN_PROGRESS';
-    return 'NOT_STARTED';
+    if (score !== undefined && score !== null) {
+      return 'GRADED';
+    }
+
+    switch ((apiStatus || '').toUpperCase()) {
+      case 'GRADED':
+        return 'GRADED';
+      case 'SUBMITTED':
+      case 'RESUBMITTED':
+      case 'LATE':
+        return 'SUBMITTED';
+      case 'RETURNED':
+      case 'DRAFT':
+      case 'IN_PROGRESS':
+        return 'IN_PROGRESS';
+      case 'OVERDUE':
+        return 'OVERDUE';
+      case 'NOT_SUBMITTED':
+      case 'NOT_STARTED':
+      case '':
+      default:
+        return deadline && deadline.getTime() < Date.now() ? 'OVERDUE' : 'NOT_STARTED';
+    }
+  }
+
+  private calculateDaysUntilDue(dueDate: Date | null): number {
+    if (!dueDate) {
+      return 999;
+    }
+
+    return Math.ceil((dueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  }
+
+  private readStringField(
+    item: StudentAssignmentApiResponse,
+    key: 'classId' | 'className' | 'deliveryMode' | 'distributionType'
+  ): string | undefined {
+    const value = (item as unknown as Record<string, unknown>)[key];
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
   }
 }

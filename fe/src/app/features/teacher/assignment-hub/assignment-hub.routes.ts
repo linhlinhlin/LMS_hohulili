@@ -13,18 +13,13 @@ export const assignmentHubRoutes: Routes = [
 
       {
         path: 'courses',
-        children: [
-          {
-            path: '',
-            redirectTo: 'overview',
-            pathMatch: 'full'
-          },
-          {
-            path: 'overview',
-            loadComponent: () => import('./components/assessments-course-overview.component').then(m => m.AssessmentsCourseOverviewComponent),
-            title: 'Assessment theo khóa học'
-          }
-        ]
+        redirectTo: '/teacher/assessments/classes/assignments',
+        pathMatch: 'full'
+      },
+      {
+        path: 'courses/overview',
+        redirectTo: '/teacher/assessments/classes/assignments',
+        pathMatch: 'full'
       },
 
       {

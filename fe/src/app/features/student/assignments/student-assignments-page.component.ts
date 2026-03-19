@@ -19,7 +19,6 @@ import {
   countByTab,
   filterAssignments,
   calculateStats,
-  formatDeadline,
   formatDeadlineWithExtension,
   formatDeadlineRelative,
   getStatusBadge,
@@ -29,15 +28,30 @@ import {
   getUniqueCourses,
 } from './utils/assignment-utils';
 
+/**
+ * Course group with assignments - for course-first layout
+ */
+interface CourseGroup {
+  courseId: string;
+  courseTitle: string;
+  assignments: StudentAssignment[];
+  expanded: boolean;
+  todoCount: number;
+  submittedCount: number;
+  gradedCount: number;
+  overdueCount: number;
+}
+
 @Component({
   selector: 'app-student-assignments-page',
   imports: [FormsModule, RouterLink, LucideAngularModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './student-assignments-page.component.html',
+  styleUrl: './student-assignments-page.component.scss',
 })
 export class StudentAssignmentsPageComponent implements OnInit {
-  private authService = inject(AuthService);
-  private assignmentService = inject(StudentAssignmentService);
+  protected authService = inject(AuthService);
+  protected assignmentService = inject(StudentAssignmentService);
 
   // State
   allAssignments = signal<StudentAssignment[]>([]);
@@ -49,6 +63,9 @@ export class StudentAssignmentsPageComponent implements OnInit {
   activeTab = signal<TaskTab>('todo');
   selectedCourse = signal('');
   searchQuery = signal('');
+
+  // Track expanded courses
+  private expandedCourses = signal<Set<string>>(new Set());
 
   // Computed: tab counts (always from full list, not filtered)
   tabCounts = computed(() => countByTab(this.allAssignments()));
@@ -70,6 +87,59 @@ export class StudentAssignmentsPageComponent implements OnInit {
 
     result = filterAssignments(result, filters);
     return sortByDueDate(result);
+  });
+
+  // Computed: group assignments by course (course-first layout)
+  courseGroups = computed(() => {
+    const assignments = this.filteredAssignments();
+    const expanded = this.expandedCourses();
+    const courseMap = new Map<string, CourseGroup>();
+
+    for (const assignment of assignments) {
+      const courseId = assignment.courseId;
+      if (!courseMap.has(courseId)) {
+        courseMap.set(courseId, {
+          courseId,
+          courseTitle: assignment.courseTitle,
+          assignments: [],
+          expanded: expanded.has(courseId),
+          todoCount: 0,
+          submittedCount: 0,
+          gradedCount: 0,
+          overdueCount: 0
+        });
+      }
+
+      const group = courseMap.get(courseId)!;
+      group.assignments.push(assignment);
+
+      // Count by status
+      switch (assignment.status) {
+        case 'NOT_STARTED':
+        case 'IN_PROGRESS':
+          group.todoCount++;
+          if (assignment.status === 'IN_PROGRESS') break;
+          if (assignment.isOverdue) group.overdueCount++;
+          break;
+        case 'OVERDUE':
+          group.todoCount++;
+          group.overdueCount++;
+          break;
+        case 'SUBMITTED':
+          group.submittedCount++;
+          break;
+        case 'GRADED':
+          group.gradedCount++;
+          break;
+      }
+    }
+
+    // Sort groups by has overdue (desc), then by todo count (desc)
+    return Array.from(courseMap.values()).sort((a, b) => {
+      if (a.overdueCount > 0 && b.overdueCount === 0) return -1;
+      if (b.overdueCount > 0 && a.overdueCount === 0) return 1;
+      return b.todoCount - a.todoCount;
+    });
   });
 
   // Stats for toolbar
@@ -113,6 +183,23 @@ export class StudentAssignmentsPageComponent implements OnInit {
   resetFilters(): void {
     this.selectedCourse.set('');
     this.searchQuery.set('');
+  }
+
+  // Toggle course expansion
+  toggleCourse(courseId: string): void {
+    this.expandedCourses.update(expanded => {
+      const newSet = new Set(expanded);
+      if (newSet.has(courseId)) {
+        newSet.delete(courseId);
+      } else {
+        newSet.add(courseId);
+      }
+      return newSet;
+    });
+  }
+
+  isCourseExpanded(courseId: string): boolean {
+    return this.expandedCourses().has(courseId);
   }
 
   // Template helpers

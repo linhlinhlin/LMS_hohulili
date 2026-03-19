@@ -1,8 +1,8 @@
 
-<div class="min-h-full flex flex-col pb-20">
+<div class="course-curriculum-shell min-h-full flex flex-col pb-20">
   <!-- Empty State - Maritime Theme -->
   @if (!selectedChapterId() && !selectedLessonId()) {
-    <div class="bg-white shadow-sm border border-gray-200 flex-grow flex items-center justify-center">
+    <div class="editor-workspace-card editor-workspace-card--empty bg-white shadow-sm border border-gray-200 flex-grow flex items-center justify-center">
       <div class="text-center p-8 max-w-md">
         <div class="w-20 h-20 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center mx-auto mb-6 rounded-2xl shadow-inner">
           <lucide-icon name="layout" [size]="40" class="text-slate-400"></lucide-icon>
@@ -33,8 +33,8 @@
 
   <!-- Chapter Editor -->
   @if (selectedChapterId() && !selectedLessonId()) {
-    <div class="bg-white shadow-sm border border-gray-200 flex-grow overflow-hidden">
-      <div class="px-6 py-4 border-b border-gray-200 flex items-center gap-3">
+    <div class="editor-workspace-card bg-white shadow-sm border border-gray-200 flex-grow overflow-hidden">
+      <div class="editor-workspace-card__header px-6 py-4 border-b border-gray-200 flex items-center gap-3">
         <div class="w-10 h-10 bg-[#0056D2]/10 rounded-lg flex items-center justify-center">
           <svg class="w-5 h-5 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
@@ -45,7 +45,7 @@
           <p class="text-sm text-gray-500">Cập nhật thông tin chương</p>
         </div>
       </div>
-      <div class="p-6 space-y-4">
+      <div class="editor-workspace-card__body p-6 space-y-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Tên chương <span class="text-red-500">*</span></label>
           <input type="text" [ngModel]="chapterTitle" (ngModelChange)="onChapterTitleChange($event)" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
@@ -73,7 +73,7 @@
           }
         </div>
       </div>
-      <div class="px-6 py-4 border-t border-gray-200 flex justify-end flex-shrink-0">
+      <div class="editor-workspace-card__footer px-6 py-4 border-t border-gray-200 flex justify-end flex-shrink-0">
         <button (click)="saveChapter()" [disabled]="isSaving()" class="px-5 py-2.5 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] disabled:opacity-50 flex items-center gap-2">
           @if (isSaving()) {
             <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -89,8 +89,8 @@
 
                   <!-- Lesson Editor -->
                   @if (selectedLessonId()) {
-                    <div class="bg-white shadow-sm border border-gray-200 flex-grow overflow-hidden">
-                      <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                    <div class="editor-workspace-card bg-white shadow-sm border border-gray-200 flex-grow overflow-hidden">
+                      <div class="editor-workspace-card__header px-6 py-4 border-b border-gray-200 flex items-center justify-between">
                         <div class="flex items-center gap-3">
                           <div class="w-10 h-10 rounded-lg flex items-center justify-center" [class.bg-[#0056D2]/10]="getLessonType(selectedLesson()) === 'LECTURE'" [class.bg-purple-100]="getLessonType(selectedLesson()) === 'QUIZ'" [class.bg-green-100]="getLessonType(selectedLesson()) === 'ASSIGNMENT'">
                             <svg class="w-5 h-5" [class.text-[#0056D2]]="getLessonType(selectedLesson()) === 'LECTURE'" [class.text-purple-600]="getLessonType(selectedLesson()) === 'QUIZ'" [class.text-green-600]="getLessonType(selectedLesson()) === 'ASSIGNMENT'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,7 +104,7 @@
                         </div>
                       </div>
 
-                      <div class="p-6 space-y-4">
+                      <div class="editor-workspace-card__body p-6 space-y-4">
                         <div>
                           <label class="block text-sm font-medium text-gray-700 mb-2">Tiêu đề <span class="text-red-500">*</span></label>
                           <input type="text" [value]="lessonTitle" (input)="onLessonTitleChange($any($event.target).value)" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
@@ -203,7 +203,7 @@
                             </div>
                           }
 
-                            <div class="px-6 py-4 border-t border-gray-200 flex justify-between items-center flex-shrink-0">
+                            <div class="editor-workspace-card__footer px-6 py-4 border-t border-gray-200 flex justify-between items-center flex-shrink-0">
                               <button (click)="clearSelection()" class="text-gray-600 hover:text-gray-800 text-sm">Quay lại</button>
                               <button (click)="saveLesson()" [disabled]="isSaving()" class="px-5 py-2.5 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] disabled:opacity-50">
                                 @if (isSaving()) {

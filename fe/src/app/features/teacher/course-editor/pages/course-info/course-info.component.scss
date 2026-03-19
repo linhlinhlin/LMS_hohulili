@@ -1,6 +1,15 @@
 :host {
   display: block;
   min-height: 100%;
+  --editor-card-radius: 0.625rem;
+  --editor-control-radius: 0.5rem;
+  --editor-card-border: rgb(217 226 236);
+  --editor-card-header-bg: rgb(238 243 248);
+  --editor-card-header-border: rgb(214 223 236);
+  --editor-card-body-bg: rgb(245 248 251);
+  --editor-control-border: rgb(193 204 218);
+  --editor-control-bg: rgb(255 255 255);
+  --editor-control-bg-hover: rgb(255 255 255);
 }
 
 .course-info-page {
@@ -33,25 +42,41 @@
 
 .editor-card {
   background: #fff;
-  border: 1px solid rgb(226 232 240);
-  border-radius: 1rem;
+  border: 1px solid var(--editor-card-border);
+  border-radius: var(--editor-card-radius);
   overflow: hidden;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 14px 30px rgba(15, 23, 42, 0.035);
 }
 
 .editor-card__header {
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid rgb(241 245 249);
-  background: linear-gradient(180deg, rgba(248, 250, 252, 0.95), rgba(248, 250, 252, 0.65));
+  border-bottom: 1px solid var(--editor-card-header-border);
+  background: linear-gradient(180deg, rgb(243 246 249), rgb(235 240 246));
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.55);
 }
 
 .editor-card__body {
+  position: relative;
   padding: 1.25rem;
+  background: linear-gradient(180deg, rgba(247, 250, 252, 0.98), rgba(242, 246, 250, 0.94));
+}
+
+.editor-card__body::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0) 42%);
+  pointer-events: none;
+}
+
+.editor-card__body > * {
+  position: relative;
+  z-index: 1;
 }
 
 .editor-card__title {
   font-size: 0.95rem;
-  font-weight: 600;
+  font-weight: 700;
   color: rgb(15 23 42);
 }
 
@@ -72,10 +97,10 @@
   display: grid;
   gap: 0.9rem;
   padding: 0.9rem 1rem;
-  border: 1px solid rgb(226 232 240);
-  border-radius: 0.95rem;
+  border: 1px solid var(--editor-card-border);
+  border-radius: var(--editor-card-radius);
   background: #fff;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.035), 0 10px 24px rgba(15, 23, 42, 0.028);
 }
 
 .editor-context-strip__eyebrow {
@@ -97,16 +122,22 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.55rem;
+  align-items: stretch;
 }
 
 .editor-context-pill {
   display: inline-flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  padding: 0.45rem 0.7rem;
-  border-radius: 999px;
-  border: 1px solid rgb(226 232 240);
-  background: rgb(248 250 252);
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.2rem;
+  min-width: 8.75rem;
+  max-width: 100%;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--editor-control-radius);
+  border: 1px solid var(--editor-control-border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
 }
 
 .editor-context-pill dt {
@@ -118,6 +149,7 @@
 }
 
 .editor-context-pill dd {
+  margin: 0;
   font-size: 0.8rem;
   line-height: 1.4;
   font-weight: 600;
@@ -166,11 +198,12 @@
 .editor-select,
 .editor-textarea {
   width: 100%;
-  border: 1px solid rgb(203 213 225);
-  border-radius: 0.85rem;
-  background: #fff;
+  border: 1px solid var(--editor-control-border);
+  border-radius: var(--editor-control-radius);
+  background: var(--editor-control-bg);
   color: rgb(15 23 42);
-  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.035), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease, transform 160ms ease;
 }
 
 .editor-input,
@@ -197,12 +230,20 @@
   color: rgb(148 163 184);
 }
 
+.editor-input:hover,
+.editor-select:hover,
+.editor-textarea:hover {
+  background: var(--editor-control-bg-hover);
+  border-color: rgb(160 174 192);
+}
+
 .editor-input:focus,
 .editor-select:focus,
 .editor-textarea:focus {
   outline: none;
   border-color: rgb(0 86 210);
-  box-shadow: 0 0 0 4px rgba(0, 86, 210, 0.12);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.1);
 }
 
 .editor-input--error {
@@ -240,21 +281,22 @@
   gap: 0.75rem;
   align-items: flex-start;
   padding: 0.85rem 0.9rem;
-  border: 1px solid rgb(203 213 225);
-  border-radius: 0.9rem;
-  background: #fff;
+  border: 1px solid var(--editor-control-border);
+  border-radius: var(--editor-control-radius);
+  background: rgba(255, 255, 255, 0.96);
   cursor: pointer;
   transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
 .choice-card:hover {
   border-color: rgb(148 163 184);
+  background: #fff;
 }
 
 .choice-card--selected {
   border-color: rgb(0 86 210);
-  background: rgba(0, 86, 210, 0.05);
-  box-shadow: 0 0 0 1px rgba(0, 86, 210, 0.08);
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(0, 86, 210, 0.12), 0 8px 20px rgba(0, 86, 210, 0.08);
 }
 
 .choice-card--compact {
@@ -272,7 +314,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.7rem;
+  border-radius: calc(var(--editor-control-radius) - 2px);
   flex-shrink: 0;
 }
 
@@ -305,7 +347,7 @@
 
 .editor-callout {
   padding: 0.85rem 1rem;
-  border-radius: 0.9rem;
+  border-radius: var(--editor-control-radius);
   font-size: 0.82rem;
   line-height: 1.55;
 }
@@ -331,7 +373,7 @@
 .editor-error-summary {
   padding: 1rem 1.15rem;
   border: 1px solid rgba(239, 68, 68, 0.24);
-  border-radius: 1rem;
+  border-radius: var(--editor-card-radius);
   background: rgb(254 242 242);
 }
 
@@ -397,7 +439,7 @@
   padding: 0.35rem 0.7rem;
   border-radius: 999px;
   border: 1px solid rgb(226 232 240);
-  background: #fff;
+  background: rgba(255, 255, 255, 0.96);
   font-size: 0.78rem;
   font-weight: 500;
   color: rgb(71 85 105);
@@ -444,9 +486,9 @@
   position: relative;
   min-height: 11.25rem;
   border: 1.5px dashed rgb(148 163 184);
-  border-radius: 1rem;
+  border-radius: var(--editor-card-radius);
   overflow: hidden;
-  background: rgb(248 250 252);
+  background: rgb(241 245 249);
   transition: border-color 160ms ease, background-color 160ms ease;
 }
 
@@ -527,9 +569,9 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.85rem 1rem;
-  border: 1px solid rgb(226 232 240);
-  border-radius: 0.9rem;
-  background: rgb(248 250 252);
+  border: 1px solid var(--editor-control-border);
+  border-radius: var(--editor-control-radius);
+  background: #fff;
 }
 
 .editor-link-preview__label {
@@ -604,7 +646,7 @@
 .editor-primary-button {
   min-height: 2.5rem;
   padding: 0.65rem 1rem;
-  border-radius: 0.85rem;
+  border-radius: var(--editor-control-radius);
   font-size: 0.88rem;
   font-weight: 600;
   transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease, opacity 160ms ease;

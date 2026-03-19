@@ -13,68 +13,86 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
   selector: 'app-course-management',
   imports: [RouterModule, FormsModule, IconComponent],
   template: `
-    <div class="min-h-screen bg-slate-50 p-6">
-      <div class="max-w-[1400px] mx-auto">
-        <!-- Header -->
-        <div class="flex items-center justify-between mb-6">
-          <div>
-            <h1 class="text-2xl font-bold text-gray-900">Khóa học của tôi</h1>
-            <p class="text-sm text-gray-500 mt-1">Quản lý và theo dõi các khóa học bạn đang giảng dạy</p>
+    <div class="courses-page">
+      <div class="page-inner">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-title-group">
+            <h1 class="page-title">Khóa học của tôi</h1>
+            <p class="page-subtitle">Quản lý và theo dõi các khóa học đang giảng dạy</p>
           </div>
-          <a routerLink="/teacher/course-creation"
-            class="px-5 py-2.5 bg-[#0056D2] text-white hover:bg-[#004BB5] rounded-lg transition-colors font-medium text-sm flex items-center gap-2 whitespace-nowrap shadow-sm">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+          <a routerLink="/teacher/course-creation" class="cta-button">
+            <svg class="cta-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
             </svg>
             Tạo khóa học
           </a>
         </div>
 
-        <!-- Filter Bar -->
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm mb-5">
-          <div class="px-5 py-3 flex flex-wrap gap-3 items-center">
-            <!-- Delivery mode filter pills -->
-            <div class="flex gap-0.5 bg-gray-100 rounded-lg p-0.5">
-              <button (click)="setModeFilter('')"
-                class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
-                [class]="modeFilter() === '' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'">
-                Tất cả
-              </button>
-              <button (click)="setModeFilter('SELF_PACED')"
-                class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
-                [class]="modeFilter() === 'SELF_PACED' ? 'bg-white text-[#0056D2] shadow-sm' : 'text-gray-500 hover:text-gray-700'">
-                Khóa học
-              </button>
-              <button (click)="setModeFilter('INSTRUCTOR_LED')"
-                class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
-                [class]="modeFilter() === 'INSTRUCTOR_LED' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'">
-                Lớp học
-              </button>
-            </div>
+        <!-- Section Header: Tabs + Search -->
+        <div class="section-header">
+          <div class="tabs-container" role="tablist">
+            <!-- Mode tabs -->
+            <button type="button" role="tab" class="tab-chip"
+              [class.active]="modeFilter() === ''"
+              [attr.aria-selected]="modeFilter() === ''"
+              (click)="setModeFilter('')">
+              <span class="tab-label">Tất cả</span>
+              <span class="tab-count">({{ total() }})</span>
+            </button>
+            <button type="button" role="tab" class="tab-chip"
+              [class.active]="modeFilter() === 'SELF_PACED'"
+              [attr.aria-selected]="modeFilter() === 'SELF_PACED'"
+              (click)="setModeFilter('SELF_PACED')">
+              <span class="tab-label">Khóa học</span>
+            </button>
+            <button type="button" role="tab" class="tab-chip"
+              [class.active]="modeFilter() === 'INSTRUCTOR_LED'"
+              [attr.aria-selected]="modeFilter() === 'INSTRUCTOR_LED'"
+              (click)="setModeFilter('INSTRUCTOR_LED')">
+              <span class="tab-label">Lớp học</span>
+            </button>
 
-            <!-- Search -->
-            <div class="flex-1 relative min-w-[220px]">
-              <svg class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-              </svg>
-              <input class="w-full border border-gray-200 rounded-lg pl-9 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent text-sm"
-                placeholder="Tìm kiếm theo mã hoặc tên khóa học..."
-                [(ngModel)]="keyword"
-                (keyup.enter)="applyFilters()" />
-            </div>
+            <!-- Divider -->
+            <span class="tab-divider"></span>
 
-            <!-- Status filter -->
-            <select class="border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent text-sm min-w-[150px]"
-              [(ngModel)]="status"
-              (ngModelChange)="applyFilters()">
-              <option value="">Tất cả trạng thái</option>
-              <option value="DRAFT">Nháp</option>
-              <option value="PENDING">Chờ duyệt</option>
-              <option value="APPROVED">Đã duyệt</option>
-              <option value="REJECTED">Bị từ chối</option>
-            </select>
+            <!-- Status tabs -->
+            <button type="button" role="tab" class="tab-chip"
+              [class.active]="status === ''"
+              [attr.aria-selected]="status === ''"
+              (click)="setStatus('')">
+              <span class="tab-label">Mọi trạng thái</span>
+            </button>
+            <button type="button" role="tab" class="tab-chip"
+              [class.active]="status === 'DRAFT'"
+              [attr.aria-selected]="status === 'DRAFT'"
+              (click)="setStatus('DRAFT')">
+              <span class="tab-label">Nháp</span>
+            </button>
+            <button type="button" role="tab" class="tab-chip"
+              [class.active]="status === 'PENDING'"
+              [attr.aria-selected]="status === 'PENDING'"
+              (click)="setStatus('PENDING')">
+              <span class="tab-label">Chờ duyệt</span>
+            </button>
+            <button type="button" role="tab" class="tab-chip"
+              [class.active]="status === 'APPROVED'"
+              [attr.aria-selected]="status === 'APPROVED'"
+              (click)="setStatus('APPROVED')">
+              <span class="tab-label">Đã duyệt</span>
+            </button>
+          </div>
 
-            <span class="text-xs text-gray-400">{{ total() }} khóa học</span>
+          <!-- Search -->
+          <div class="search-box">
+            <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input class="search-input"
+              placeholder="Tìm khóa học..."
+              [(ngModel)]="keyword"
+              (input)="applyFilters()"
+              (keyup.enter)="applyFilters()" />
           </div>
         </div>
 
@@ -277,6 +295,176 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
     }
   `,
   styles: [`
+    /* ===== PAGE LAYOUT ===== */
+    .courses-page {
+      min-height: 100vh;
+      background: #FAFAFA;
+    }
+
+    .page-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 32px;
+    }
+
+    /* ===== PAGE HEADER ===== */
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .page-title-group {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .page-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1F1F1F;
+      margin: 0 0 4px 0;
+      line-height: 1.2;
+    }
+
+    .page-subtitle {
+      font-size: 14px;
+      color: #636363;
+      margin: 0;
+    }
+
+    .cta-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: #0056D2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      text-decoration: none;
+      transition: background 0.2s ease;
+      flex-shrink: 0;
+
+      &:hover { background: #004BB5; }
+    }
+
+    .cta-icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* ===== SECTION HEADER (Tabs + Search) ===== */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #E5E7EB;
+      flex-wrap: wrap;
+    }
+
+    .tabs-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tab-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 16px;
+      border: 1px solid #D1D5DB;
+      border-radius: 20px;
+      background: white;
+      color: #374151;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      outline: none;
+      white-space: nowrap;
+
+      &:hover {
+        background: #F9FAFB;
+        border-color: #9CA3AF;
+      }
+
+      &.active {
+        background: #0056D2;
+        color: white;
+        border-color: #0056D2;
+
+        &:hover {
+          background: #004BB5;
+          border-color: #004BB5;
+        }
+
+        .tab-count { color: rgba(255,255,255,0.8); }
+      }
+    }
+
+    .tab-label { line-height: 1; }
+    .tab-count { font-size: 12px; color: #9CA3AF; line-height: 1; }
+
+    .tab-divider {
+      display: inline-block;
+      width: 1px;
+      height: 20px;
+      background: #E5E7EB;
+      margin: 0 4px;
+      flex-shrink: 0;
+    }
+
+    /* ===== SEARCH BOX ===== */
+    .search-box {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      color: #9CA3AF;
+      pointer-events: none;
+    }
+
+    .search-input {
+      height: 36px;
+      width: 220px;
+      padding-left: 34px;
+      padding-right: 12px;
+      border: 1px solid #E5E7EB;
+      border-radius: 8px;
+      background: white;
+      font-size: 14px;
+      color: #111827;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+
+      &:focus {
+        border-color: #0056D2;
+        box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.1);
+      }
+
+      &::placeholder { color: #9CA3AF; }
+    }
+
+    /* ===== COURSE LIST ===== */
     .courses-list {
       display: flex;
       flex-direction: column;
@@ -296,9 +484,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         border-color: #D1D5DB;
 
-        .course-title {
-          color: #0056D2;
-        }
+        .course-title { color: #0056D2; }
       }
     }
 
@@ -335,8 +521,8 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #94A3B8;
-      background: #F1F5F9;
+      color: rgba(0, 86, 210, 0.35);
+      background: #E3F2FD;
     }
 
     .course-metadata {
@@ -349,9 +535,9 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
 
     .course-title {
       margin: 0;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
-      color: #111827;
+      color: #1F1F1F;
       line-height: 1.4;
       transition: color 0.2s ease;
       overflow: hidden;
@@ -363,19 +549,17 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
       display: flex;
       align-items: center;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 4px;
       font-size: 12px;
       color: #6B7280;
     }
 
     .meta-code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       color: #9CA3AF;
     }
 
-    .separator {
-      color: #D1D5DB;
-    }
+    .separator { color: #D1D5DB; }
 
     .course-badges {
       display: flex;
@@ -422,27 +606,21 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
         background: #ECFDF5;
         color: #059669;
       }
-
       &.badge-pending {
         background: #FFFBEB;
         color: #D97706;
       }
-
       &.badge-draft {
         background: #F3F4F6;
         color: #6B7280;
       }
-
       &.badge-rejected {
         background: #FEF2F2;
         color: #DC2626;
       }
     }
 
-    .course-date {
-      font-size: 11px;
-      color: #9CA3AF;
-    }
+    .course-date { font-size: 11px; color: #9CA3AF; }
 
     .edit-button {
       padding: 6px 16px;
@@ -455,13 +633,10 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
       cursor: pointer;
       transition: all 0.2s ease;
 
-      &:hover {
-        background: #0056D2;
-        color: white;
-      }
+      &:hover { background: #0056D2; color: white; }
     }
 
-    /* Footer / Pagination Styles */
+    /* ===== FOOTER / PAGINATION ===== */
     .courses-footer {
       display: flex;
       align-items: center;
@@ -470,15 +645,12 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
       background: white;
       border: 1px solid #E5E7EB;
       border-radius: 12px;
-      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
     }
 
-    .footer-summary {
-      font-size: 13px;
-      color: #6B7280;
-    }
+    .footer-summary { font-size: 13px; color: #6B7280; }
 
-    /* Empty State Styles */
+    /* ===== EMPTY STATE ===== */
     .empty-state {
       display: flex;
       flex-direction: column;
@@ -491,44 +663,30 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
       text-align: center;
     }
 
-    .empty-state-icon {
-      color: #D1D5DB;
-      margin-bottom: 12px;
-    }
-
-    .empty-state-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: #111827;
-      margin-bottom: 4px;
-    }
-
-    .empty-state-text {
-      font-size: 14px;
-      color: #6B7280;
-      margin-bottom: 16px;
-      max-width: 320px;
-    }
+    .empty-state-icon { color: #D1D5DB; margin-bottom: 12px; }
+    .empty-state-title { font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 4px; }
+    .empty-state-text { font-size: 14px; color: #6B7280; margin-bottom: 16px; max-width: 320px; }
 
     .retry-link {
       font-size: 14px;
       font-weight: 600;
       color: #0056D2;
       text-decoration: none;
-      &:hover {
-        text-decoration: underline;
-      }
+      background: none;
+      border: none;
+      cursor: pointer;
+      &:hover { text-decoration: underline; }
     }
 
+    /* ===== RESPONSIVE ===== */
     @media (max-width: 768px) {
-      .course-card-body {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-      .course-thumbnail {
-        width: 100%;
-        height: 160px;
-      }
+      .page-inner { padding: 20px 16px; }
+      .page-title { font-size: 22px; }
+      .section-header { flex-direction: column; align-items: flex-start; }
+      .search-input { width: 100%; }
+      .search-box { width: 100%; }
+      .course-card-body { flex-direction: column; align-items: flex-start; }
+      .course-thumbnail { width: 100%; height: 160px; }
       .course-actions {
         width: 100%;
         flex-direction: row;
@@ -539,6 +697,11 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
         border-left: none;
         border-top: 1px solid #F3F4F6;
       }
+    }
+
+    @media (max-width: 480px) {
+      .tab-chip { padding: 6px 12px; font-size: 13px; }
+      .cta-button .cta-icon { display: none; }
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -595,6 +758,11 @@ export class CourseManagementComponent {
     this.applyFilters();
   }
 
+  setStatus(s: '' | 'APPROVED' | 'PENDING' | 'DRAFT' | 'REJECTED') {
+    this.status = s;
+    this.applyFilters();
+  }
+
   applyFilters() {
     const kw = this.keyword.trim().toLowerCase();
     const mode = this.modeFilter();
@@ -639,7 +807,7 @@ export class CourseManagementComponent {
       const now = new Date();
       const diffMs = now.getTime() - d.getTime();
       const diffDays = Math.floor(diffMs / 86400000);
-      
+
       if (diffDays === 0) return 'Hôm nay';
       if (diffDays === 1) return 'Hôm qua';
       if (diffDays < 7) return `${diffDays} ngày trước`;

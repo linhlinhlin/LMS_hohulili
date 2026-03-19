@@ -20,6 +20,7 @@ import { CourseEditorStore } from '../../store/course-editor.store';
     selector: 'app-course-classes',
     imports: [CommonModule, ReactiveFormsModule, MatDialogModule, AddStudentDrawerComponent],
     templateUrl: './course-classes.component.html',
+    styleUrl: './course-classes.component.scss',
 })
 export class CourseClassesComponent implements OnInit {
     private classService = inject(ClassService);

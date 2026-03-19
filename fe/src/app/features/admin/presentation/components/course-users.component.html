@@ -1,0 +1,314 @@
+<div class="cu-page">
+    <div class="cu-inner">
+
+        <!-- ===== PAGE HEADER ===== -->
+        <div class="cu-page-header">
+            <div class="cu-title-group">
+                @if (selectedCourse()) {
+                <button class="cu-back-btn" (click)="backToCourses()">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Quay lại danh sách khóa học
+                </button>
+                }
+                <h1 class="cu-page-title">
+                    {{ selectedCourse() ? selectedCourse()!.title : 'Người dùng theo Khóa học' }}
+                </h1>
+                <p class="cu-page-subtitle">
+                    @if (selectedCourse()) {
+                    Quản lý giảng viên và học viên trong khóa học này
+                    } @else {
+                    Xem danh sách người dùng (giảng viên &amp; học viên) theo từng khóa học
+                    }
+                </p>
+            </div>
+        </div>
+
+        <!-- ===== VIEW 1: Danh sách khóa học ===== -->
+        @if (!selectedCourse()) {
+
+        <!-- Section header: search -->
+        <div class="cu-section-header">
+            <div class="cu-tabs" role="tablist">
+                <button type="button" class="cu-tab" role="tab" [class.active]="statusFilter() === ''"
+                    (click)="statusFilter.set('')">
+                    <span class="cu-tab-label">Tất cả</span>
+                    <span class="cu-tab-count">({{ courses().length }})</span>
+                </button>
+                <button type="button" class="cu-tab" role="tab" [class.active]="statusFilter() === 'APPROVED'"
+                    (click)="statusFilter.set('APPROVED')">
+                    <span class="cu-tab-label">Đã duyệt</span>
+                </button>
+                <button type="button" class="cu-tab" role="tab" [class.active]="statusFilter() === 'PENDING'"
+                    (click)="statusFilter.set('PENDING')">
+                    <span class="cu-tab-label">Chờ duyệt</span>
+                </button>
+                <button type="button" class="cu-tab" role="tab" [class.active]="statusFilter() === 'DRAFT'"
+                    (click)="statusFilter.set('DRAFT')">
+                    <span class="cu-tab-label">Nháp</span>
+                </button>
+            </div>
+
+            <div class="cu-search-box">
+                <svg class="cu-search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input class="cu-search-input" placeholder="Tìm theo tên hoặc mã khóa học..." [ngModel]="searchKw()"
+                    (input)="searchKw.set($any($event.target).value)" />
+                @if (searchKw()) {
+                <button class="cu-search-clear" (click)="searchKw.set('')" aria-label="Xóa">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+                }
+            </div>
+        </div>
+
+        <!-- Loading -->
+        @if (loading()) {
+        <div class="cu-grid">
+            @for (i of [1,2,3,4,5,6]; track i) {
+            <div class="cu-course-card cu-skeleton">
+                <div class="ske-thumb"></div>
+                <div class="ske-body">
+                    <div class="ske-line w-3/4"></div>
+                    <div class="ske-line w-1/2" style="margin-top:8px"></div>
+                    <div class="ske-badges" style="margin-top:12px">
+                        <div class="ske-badge"></div>
+                        <div class="ske-badge"></div>
+                    </div>
+                </div>
+            </div>
+            }
+        </div>
+        }
+
+        <!-- Error -->
+        @if (!loading() && error()) {
+        <div class="cu-empty">
+            <svg width="48" height="48" fill="none" stroke="#FCA5A5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            <p class="cu-empty-text" style="color:#EF4444">{{ error() }}</p>
+            <button class="cu-btn-primary" (click)="loadCourses()" style="margin-top:16px">Thử lại</button>
+        </div>
+        }
+
+        <!-- Empty after filter -->
+        @if (!loading() && !error() && filteredCourses().length === 0 && courses().length > 0) {
+        <div class="cu-empty">
+            <svg width="44" height="44" fill="none" stroke="#D1D5DB" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <p class="cu-empty-text">Không tìm thấy khóa học phù hợp</p>
+            <button class="cu-tab active" style="margin-top:12px" (click)="clearFilters()">Xóa bộ lọc</button>
+        </div>
+        }
+
+        <!-- No courses -->
+        @if (!loading() && !error() && courses().length === 0) {
+        <div class="cu-empty">
+            <svg width="48" height="48" fill="none" stroke="#D1D5DB" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+            <p class="cu-empty-text">Chưa có khóa học nào trong hệ thống</p>
+        </div>
+        }
+
+        <!-- Course grid -->
+        @if (!loading() && !error() && filteredCourses().length > 0) {
+        <div class="cu-grid">
+            @for (course of filteredCourses(); track course.id) {
+            <div class="cu-course-card" (click)="selectCourse(course)">
+
+                <!-- Top: thumbnail -->
+                <div class="cu-card-thumb">
+                    @if (course.thumbnailUrl) {
+                    <img [src]="course.thumbnailUrl" [alt]="course.title" class="cu-thumb-img"
+                        (error)="onThumbError($event)">
+                    } @else {
+                    <div class="cu-thumb-placeholder">
+                        <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                    </div>
+                    }
+                    <!-- Status badge over thumb -->
+                    <span class="cu-status-pill" [class]="'status-' + (course.status || 'DRAFT').toLowerCase()">
+                        {{ getStatusLabel(course.status) }}
+                    </span>
+                </div>
+
+                <!-- Body -->
+                <div class="cu-card-body">
+                    <h3 class="cu-card-title">{{ course.title }}</h3>
+                    @if (course.code) {
+                    <p class="cu-card-code">{{ course.code }}</p>
+                    }
+
+                    <!-- Stats row -->
+                    <div class="cu-stat-row">
+                        <div class="cu-stat-item cu-stat-teacher">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            <span>{{ course.teacherCount ?? '—' }} GV</span>
+                        </div>
+                        <div class="cu-stat-divider"></div>
+                        <div class="cu-stat-item cu-stat-student">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span>{{ course.enrolledCount ?? 0 }} HV</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="cu-card-footer">
+                    <button class="cu-view-btn" (click)="selectCourse(course); $event.stopPropagation()">
+                        Xem người dùng →
+                    </button>
+                </div>
+            </div>
+            }
+        </div>
+        }
+        }
+
+        <!-- ===== VIEW 2: Users in selected course ===== -->
+        @if (selectedCourse()) {
+        <div class="cu-detail-panel">
+
+            <!-- Tab bar: GV / HV -->
+            <div class="cu-section-header" style="margin-bottom:0; padding-bottom:0; border-bottom:none;">
+                <div class="cu-tabs" role="tablist">
+                    <button type="button" class="cu-tab" role="tab" [class.active]="activeTab() === 'teachers'"
+                        (click)="activeTab.set('teachers')">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            style="margin-right:6px">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <span class="cu-tab-label">Giảng viên</span>
+                        <span class="cu-tab-count">({{ teachers().length }})</span>
+                    </button>
+                    <button type="button" class="cu-tab" role="tab" [class.active]="activeTab() === 'students'"
+                        (click)="activeTab.set('students')">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            style="margin-right:6px">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span class="cu-tab-label">Học viên</span>
+                        <span class="cu-tab-count">({{ students().length }})</span>
+                    </button>
+                </div>
+
+                <!-- Search in current tab -->
+                <div class="cu-search-box">
+                    <svg class="cu-search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input class="cu-search-input"
+                        [placeholder]="activeTab() === 'teachers' ? 'Tìm giảng viên...' : 'Tìm học viên...'"
+                        [ngModel]="userSearchKw()" (input)="userSearchKw.set($any($event.target).value)" />
+                    @if (userSearchKw()) {
+                    <button class="cu-search-clear" (click)="userSearchKw.set('')" aria-label="Xóa">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                    }
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="cu-table-wrap">
+                @if (detailLoading()) {
+                <div class="cu-loading-row">
+                    <svg class="cu-spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                        </circle>
+                        <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
+                    </svg>
+                    Đang tải dữ liệu...
+                </div>
+                } @else {
+                <table class="cu-table">
+                    <thead>
+                        <tr>
+                            <th class="cu-th" style="width:48px">#</th>
+                            <th class="cu-th">Họ và Tên</th>
+                            <th class="cu-th">Email</th>
+                            @if (activeTab() === 'students') {
+                            <th class="cu-th" style="text-align:center">Tiến độ</th>
+                            <th class="cu-th" style="text-align:center">Trạng thái</th>
+                            } @else {
+                            <th class="cu-th">Vai trò</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (filteredUsers().length === 0) {
+                        <tr>
+                            <td colspan="5" class="cu-td cu-empty-cell">
+                                Không tìm thấy {{ activeTab() === 'teachers' ? 'giảng viên' : 'học viên' }} nào.
+                            </td>
+                        </tr>
+                        }
+                        @for (u of filteredUsers(); track u.id; let idx = $index) {
+                        <tr class="cu-tr">
+                            <td class="cu-td cu-td-idx">{{ idx + 1 }}</td>
+                            <td class="cu-td">
+                                <div class="cu-user-cell">
+                                    <div class="cu-avatar">{{ getInitial(u.fullName) }}</div>
+                                    <span class="cu-user-name">{{ u.fullName }}</span>
+                                </div>
+                            </td>
+                            <td class="cu-td cu-td-email">{{ u.email }}</td>
+                            @if (activeTab() === 'students') {
+                            <td class="cu-td" style="text-align:center">
+                                <div class="cu-progress-wrap">
+                                    <div class="cu-progress-bar">
+                                        <div class="cu-progress-fill" [style.width.%]="u.progressPercentage ?? 0"></div>
+                                    </div>
+                                    <span class="cu-progress-pct">{{ u.progressPercentage ?? 0 }}%</span>
+                                </div>
+                            </td>
+                            <td class="cu-td" style="text-align:center">
+                                <span class="cu-status-badge" [class]="'badge-' + (u.status || 'active')">
+                                    {{ getEnrollLabel(u.status) }}
+                                </span>
+                            </td>
+                            } @else {
+                            <td class="cu-td">
+                                <span class="cu-role-badge">Giảng viên</span>
+                            </td>
+                            }
+                        </tr>
+                        }
+                    </tbody>
+                </table>
+                }
+            </div>
+
+        </div>
+        }
+
+    </div>
+</div>

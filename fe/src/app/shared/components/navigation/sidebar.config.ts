@@ -84,25 +84,44 @@ export const teacherSidebarConfig: SidebarConfig = {
       group: 'Giảng dạy'
     },
     {
-      label: 'Đánh giá',
+      label: 'Bài tập & Ngân hàng câu hỏi',
       route: '/teacher/assessments',
       icon: 'blog',
       group: 'Giảng dạy',
       children: [
         {
-          label: 'Khóa học',
-          route: '/teacher/assessments/courses/overview',
-          icon: 'courses'
+          label: 'Giao bài tập',
+          route: '/teacher/assessments/classes',
+          icon: 'users',
+          children: [
+            {
+              label: 'Danh sách bài tập',
+              route: '/teacher/assessments/classes/assignments',
+              icon: 'blog'
+            },
+            {
+              label: 'Bài kiểm tra',
+              route: '/teacher/assessments/classes/quizzes',
+              icon: 'check'
+            }
+          ]
         },
         {
-          label: 'Lớp học',
-          route: '/teacher/assessments/classes/assignments',
-          icon: 'users'
-        },
-        {
-          label: 'Dùng chung',
-          route: '/teacher/assessments/shared/question-bank',
-          icon: 'info'
+          label: 'Ngân hàng câu hỏi',
+          route: '/teacher/assessments/shared',
+          icon: 'file-text',
+          children: [
+            {
+              label: 'Ngân hàng câu hỏi',
+              route: '/teacher/assessments/shared/question-bank',
+              icon: 'file-text'
+            },
+            {
+              label: 'Thư viện rubric',
+              route: '/teacher/assessments/shared/rubrics',
+              icon: 'tag'
+            }
+          ]
         }
       ]
     },

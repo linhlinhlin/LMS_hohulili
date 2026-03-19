@@ -1,0 +1,36 @@
+.assessments-shell {
+  background: #fafafa;
+}
+
+.assessments-header {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px 32px 8px;
+}
+
+.assessments-label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #94a3b8;
+}
+
+.assessments-title {
+  margin: 8px 0 0;
+  font-size: 28px;
+  line-height: 1.15;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+@media (max-width: 768px) {
+  .assessments-header {
+    padding: 18px 16px 6px;
+  }
+
+  .assessments-title {
+    font-size: 23px;
+  }
+}

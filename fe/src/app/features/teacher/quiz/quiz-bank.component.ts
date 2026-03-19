@@ -46,6 +46,7 @@ export class QuizBankComponent implements OnInit {
   banks = signal<QuestionBankDTO[]>([]);
   selectedBankId = signal<string>('ALL');
   selectedBank = signal<QuestionBankDTO | null>(null);
+  bankSearchQuery = signal('');
 
   // Category state
   categoryTree = signal<QuestionBankCategoryDTO[]>([]);
@@ -139,6 +140,23 @@ export class QuizBankComponent implements OnInit {
     });
   });
 
+  filteredBankStats = computed(() => {
+    const query = this.bankSearchQuery().trim().toLowerCase();
+    if (!query) {
+      return this.bankStats();
+    }
+
+    return this.bankStats().filter(bank =>
+      bank.name.toLowerCase().includes(query) ||
+      (bank.subject || '').toLowerCase().includes(query) ||
+      (bank.description || '').toLowerCase().includes(query)
+    );
+  });
+
+  totalBankQuestionCount = computed(() =>
+    this.bankStats().reduce((sum, bank) => sum + bank.realCount, 0)
+  );
+
   // Expose for template - the bank id to use as packageId for import
   get selectedPackageId(): string {
     return this.selectedBankId() === 'ALL' ? '' : this.selectedBankId();
@@ -172,6 +190,7 @@ export class QuizBankComponent implements OnInit {
 
   async onBankChange() {
     this.showManageBankMenu.set(false);
+    this.clearQuestionFilters();
 
     if (this.selectedBankId() === 'ALL') {
       this.selectedBank.set(null);
@@ -273,6 +292,27 @@ export class QuizBankComponent implements OnInit {
     }
 
     this.filteredQuestions.set(filtered);
+  }
+
+  clearQuestionFilters() {
+    this.filters.search = '';
+    this.filters.difficulty = '';
+    this.filters.categoryId = '';
+    this.filters.tag = '';
+  }
+
+  getActiveQuestionFilterCount(): number {
+    let count = 0;
+    if (this.filters.search.trim()) count++;
+    if (this.filters.difficulty) count++;
+    if (this.filters.categoryId) count++;
+    if (this.filters.tag) count++;
+    return count;
+  }
+
+  async viewAllBanks() {
+    this.selectedBankId.set('ALL');
+    await this.onBankChange();
   }
 
   // ==================== Bank CRUD ====================

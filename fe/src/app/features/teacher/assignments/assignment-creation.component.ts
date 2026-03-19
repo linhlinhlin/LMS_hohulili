@@ -1,7 +1,7 @@
 import { Component, ChangeDetectionStrategy, computed, inject, signal, OnInit, viewChild } from '@angular/core';
 
 import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { CreateAssignmentRequest } from '../../../api/client/assignment.api';
 import { CourseApi } from '../../../api/client/course.api';
 import { CourseSummary } from '../../../api/types/course.types';
@@ -285,6 +285,7 @@ export class AssignmentCreationComponent implements OnInit {
   private courseApi = inject(CourseApi);
   private fb = inject(FormBuilder);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   readonly distributionSelector = viewChild<DistributionSelectorComponent>('distributionSelector');
 
@@ -355,9 +356,6 @@ export class AssignmentCreationComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.loadCourses();
-
-    // Watch for course selection changes
     this.form.controls.courseId.valueChanges.subscribe((courseId: string | null) => {
       this.selectedCourseId.set(courseId ?? '');
 
@@ -374,19 +372,29 @@ export class AssignmentCreationComponent implements OnInit {
       });
     });
 
-    this.selectedCourseId.set(this.form.controls.courseId.value ?? '');
+    const preselectedCourseId = this.route.snapshot.queryParamMap.get('courseId');
+    this.loadCourses(preselectedCourseId);
+    this.selectedCourseId.set(this.form.controls.courseId.value ?? preselectedCourseId ?? '');
   }
 
   /**
    * Loads available courses for the teacher
    */
-  private loadCourses(): void {
+  private loadCourses(preselectedCourseId?: string | null): void {
     this.loadingCourses.set(true);
 
     this.courseApi.myCourses().subscribe({
       next: (response: { data?: CourseSummary[] }) => {
         if (response.data) {
           this.courses.set(response.data);
+
+          if (
+            preselectedCourseId &&
+            !this.form.controls.courseId.value &&
+            response.data.some(course => course.id === preselectedCourseId)
+          ) {
+            this.form.controls.courseId.setValue(preselectedCourseId);
+          }
         }
       },
       error: (err: unknown) => {

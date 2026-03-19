@@ -11,7 +11,8 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-course-settings',
   imports: [CourseInstructorsComponent],
-  templateUrl: './course-settings.component.html'
+  templateUrl: './course-settings.component.html',
+  styleUrl: './course-settings.component.scss'
 })
 export class CourseSettingsComponent {
   readonly store = inject(CourseEditorStore);

@@ -1,6 +1,7 @@
-<div class="bg-white rounded-lg shadow-sm border border-gray-200">
+<div class="course-classes-page">
+<div class="editor-classes-panel bg-white rounded-lg shadow-sm border border-gray-200">
     <!-- Header -->
-    <div class="px-6 py-3 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+    <div class="editor-classes-panel__header px-6 py-3 border-b border-gray-200 flex justify-between items-center bg-gray-50">
         <div>
             <h2 class="text-xl font-bold text-gray-900">Quản lý Lớp học</h2>
             <p class="text-sm text-gray-500 mt-1">Danh sách các lớp đang hoạt động</p>
@@ -15,7 +16,7 @@
     </div>
 
     <!-- FILTER BAR -->
-    <div class="p-4 border-b border-gray-200 bg-white flex flex-wrap gap-3 items-center justify-between">
+    <div class="editor-classes-panel__filters p-4 border-b border-gray-200 bg-white flex flex-wrap gap-3 items-center justify-between">
         <!-- Search -->
         <div class="relative flex-1 min-w-[200px] max-w-md">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -23,7 +24,8 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-            </div>
+</div>
+</div>
             <input type="text" [formControl]="searchControl"
                 class="block w-full pl-10 pr-3 py-1.5 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#0056D2] focus:border-[#0056D2] sm:text-sm"
                 placeholder="Tìm theo tên lớp hoặc mã lớp...">

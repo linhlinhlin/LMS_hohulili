@@ -1,38 +1,8 @@
-<header class="sticky top-0 z-20 border-b border-slate-200 bg-white">
-  <div class="mx-auto flex h-11 max-w-screen-2xl items-center gap-3 overflow-x-auto px-4 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-    <div class="flex shrink-0 items-center gap-2 border-r border-slate-200 pr-3">
-      <p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Assessments</p>
-      <h1 class="whitespace-nowrap text-sm font-semibold text-slate-900">{{ pageTitle() }}</h1>
-    </div>
-
-    <nav class="flex items-center h-full -mb-px" aria-label="Chuyển ngữ cảnh đánh giá">
-      @for (tab of contextTabs; track tab.id) {
-        <a [routerLink]="tab.href"
-           [attr.aria-current]="currentContext() === tab.id ? 'page' : null"
-           class="relative h-full px-2 sm:px-3 flex items-center text-[12px] sm:text-[13px] font-semibold transition-colors whitespace-nowrap"
-           [ngClass]="currentContext() === tab.id
-             ? 'text-[#0056D2]'
-             : 'text-slate-500 hover:text-slate-800'">
-          {{ tab.label }}
-          @if (currentContext() === tab.id) {
-            <span class="absolute bottom-0 inset-x-1 h-0.5 rounded-full bg-[#0056D2]" aria-hidden="true"></span>
-          }
-        </a>
-      }
-    </nav>
-
-    <div class="mx-3 h-4 w-px bg-slate-200"></div>
-
-    <nav class="flex items-center gap-1" aria-label="Điều hướng trong ngữ cảnh hiện tại">
-      @for (item of subnavItems(); track item.href) {
-        <a [routerLink]="item.href"
-           routerLinkActive="!bg-slate-800 !text-white"
-           class="px-2 sm:px-2.5 py-1 text-xs font-medium rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors whitespace-nowrap">
-          {{ item.label }}
-        </a>
-      }
-    </nav>
-  </div>
-</header>
+<div class="assessments-shell">
+  <header class="assessments-header">
+    <p class="assessments-label">{{ sectionLabel }}</p>
+    <h1 class="assessments-title">{{ pageTitle() }}</h1>
+  </header>
+</div>
 
 <router-outlet></router-outlet>

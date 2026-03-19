@@ -1,7 +1,7 @@
-<div class="mx-auto max-w-screen-2xl px-5 py-5 sm:px-8">
+<div class="course-settings-page mx-auto max-w-screen-2xl px-5 py-5 sm:px-8">
   <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
     <div class="min-w-0 space-y-5">
-      <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <section class="editor-settings-panel overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <div class="border-b border-slate-100 bg-slate-50/60 px-5 py-3.5">
           <h2 class="text-sm font-semibold text-slate-900">Hiển thị & đăng ký</h2>
           <p class="mt-0.5 text-xs text-slate-500">
@@ -106,7 +106,7 @@
         </div>
       </section>
 
-      <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <section class="editor-settings-panel overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <div class="border-b border-slate-100 bg-slate-50/60 px-5 py-3.5">
           <h2 class="text-sm font-semibold text-slate-900">Tải xuống ngoại tuyến</h2>
           <p class="mt-0.5 text-xs text-slate-500">
@@ -141,7 +141,7 @@
         </div>
       </section>
 
-      <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <section class="editor-settings-panel overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/60 px-5 py-3.5">
           <div>
             <h2 class="text-sm font-semibold text-slate-900">Thiết lập nâng cao</h2>
@@ -196,7 +196,7 @@
           type="button"
           (click)="saveSettings()"
           [disabled]="isLoading() || !hasPersistableChanges()"
-          class="inline-flex h-10 items-center gap-2 rounded-lg bg-[#0056D2] px-6 text-sm font-medium text-white transition-colors hover:bg-[#004BB5] disabled:cursor-not-allowed disabled:opacity-50"
+          class="editor-settings-save-button inline-flex h-10 items-center gap-2 rounded-lg bg-[#0056D2] px-6 text-sm font-medium text-white transition-colors hover:bg-[#004BB5] disabled:cursor-not-allowed disabled:opacity-50"
         >
           @if (isLoading()) {
             <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -210,7 +210,7 @@
     </div>
 
     <div class="space-y-5 lg:sticky lg:top-5">
-      <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <section class="editor-settings-panel overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <div class="border-b border-slate-100 bg-slate-50/60 px-5 py-3.5">
           <h2 class="text-sm font-semibold text-slate-900">Giảng viên</h2>
         </div>
@@ -219,7 +219,7 @@
         </div>
       </section>
 
-      <section class="overflow-hidden rounded-xl border border-red-200 bg-red-50">
+      <section class="editor-settings-panel editor-settings-panel--danger overflow-hidden rounded-xl border border-red-200 bg-red-50">
         <div class="border-b border-red-100 px-5 py-3.5">
           <h2 class="text-sm font-semibold text-red-700">Vùng nguy hiểm</h2>
         </div>

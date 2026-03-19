@@ -1,304 +1,370 @@
 <div class="min-h-screen bg-slate-50/50">
-  <!-- Add to Quiz Mode Banner -->
   @if (addToQuizLessonId) {
-  <div class="bg-emerald-600 text-white px-4 py-3 shadow-lg">
-    <div class="max-w-screen-2xl mx-auto flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <lucide-icon name="plus-circle" [size]="20"></lucide-icon>
-        <span class="font-bold">Chế độ thêm câu hỏi vào bài kiểm tra</span>
-        <span class="text-emerald-100 text-sm font-medium opacity-90">- Chọn câu hỏi dùng chung và nhấn "Thêm vào Quiz"</span>
-      </div>
-      @if (returnUrl) {
-      <button (click)="goBack()"
-        class="px-3.5 py-1.5 bg-white text-emerald-600 rounded-lg text-xs font-semibold hover:bg-emerald-50 transition-colors">
-        Quay lại
-      </button>
-      }
-    </div>
-  </div>
-  }
-
-  <main class="max-w-screen-2xl mx-auto px-4 sm:px-6 py-3 pb-32">
-    <!-- Toolbar -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
-      <div class="flex items-center gap-2 flex-grow max-w-2xl">
-        <div class="flex items-center gap-2">
-          <div class="relative flex-grow">
-            <div class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-              <lucide-icon name="layers" [size]="14"></lucide-icon>
-            </div>
-            <select [ngModel]="selectedBankId()" (ngModelChange)="selectedBankId.set($event); onBankChange()"
-              class="w-full h-8 pl-8 pr-8 rounded-lg border border-slate-200 bg-white text-slate-900 text-sm font-medium focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10 outline-none transition-colors cursor-pointer appearance-none">
-              <option value="ALL">Tất cả ngân hàng</option>
-              @for (bank of banks(); track bank.id) {
-                <option [value]="bank.id">{{ bank.name }}</option>
-              }
-            </select>
-            <div class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-              <lucide-icon name="chevron-down" [size]="14"></lucide-icon>
-            </div>
-          </div>
-          
-          @if (selectedBank()) {
-            <div class="relative">
-              <button (click)="showManageBankMenu.set(!showManageBankMenu())"
-                class="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:border-slate-300 transition-colors">
-                <lucide-icon name="settings" [size]="14"></lucide-icon>
-              </button>
-              @if (showManageBankMenu()) {
-                <div class="absolute top-full right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 z-40 py-1 overflow-hidden"
-                  (click)="$event.stopPropagation()">
-                  <div class="px-3 py-1.5 border-b border-slate-100">
-                    <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Thao tác ngân hàng</p>
-                  </div>
-                  <button (click)="archiveCurrentBank(); showManageBankMenu.set(false)"
-                    class="w-full text-left px-3 py-2 text-sm text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-medium transition-colors">
-                    <lucide-icon name="archive" [size]="14"></lucide-icon>
-                    Lưu trữ ngân hàng
-                  </button>
-                </div>
-              }
-            </div>
-          }
+    <div class="bg-emerald-600 px-4 py-3 text-white shadow-lg">
+      <div class="mx-auto flex max-w-screen-2xl items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <lucide-icon name="plus-circle" [size]="20"></lucide-icon>
+          <span class="font-bold">Chế độ thêm câu hỏi vào bài kiểm tra</span>
+          <span class="text-sm font-medium text-emerald-100 opacity-90">Chọn câu hỏi dùng chung rồi nhấn "Thêm vào Quiz".</span>
         </div>
-      </div>
-
-      <div class="flex items-center gap-2">
-        <div class="relative">
-          <lucide-icon name="search" [size]="14" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"></lucide-icon>
-          <input type="text" [(ngModel)]="filters.search" (ngModelChange)="filterQuestions()"
-            aria-label="Tìm câu hỏi"
-            class="h-8 w-48 pl-8 pr-3 rounded-lg border border-slate-200 bg-white text-sm focus:ring-2 focus:ring-[#0056D2]/10 focus:border-[#0056D2] outline-none"
-            placeholder="Tìm câu hỏi..."/>
-          @if (filters.search) {
-            <button (click)="filters.search = ''; filterQuestions()" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500">
-              <lucide-icon name="x" [size]="12"></lucide-icon>
-            </button>
-          }
-        </div>
-        <button (click)="showCreateBankModal.set(true)"
-          class="h-8 px-3 border border-slate-200 rounded-lg bg-white text-slate-600 text-xs font-medium hover:bg-slate-50 transition-colors flex items-center gap-1.5">
-          <lucide-icon name="plus-circle" [size]="14"></lucide-icon>
-          Tạo ngân hàng
-        </button>
-        <button (click)="openImportModal()" [disabled]="!selectedBankId() || selectedBankId() === 'ALL'"
-          class="h-8 px-3 border border-slate-200 rounded-lg bg-white text-slate-600 text-xs font-medium hover:bg-slate-50 transition-colors flex items-center gap-1.5 disabled:opacity-50">
-          <lucide-icon name="upload" [size]="14"></lucide-icon>
-          Tải file
-        </button>
-        <button (click)="createNewQuestion()" [disabled]="!selectedBankId() || selectedBankId() === 'ALL'"
-          class="h-8 px-3.5 bg-[#0056D2] text-white rounded-lg text-xs font-semibold hover:bg-[#004BB5] transition-colors flex items-center gap-1.5">
-          <lucide-icon name="plus" [size]="14"></lucide-icon>
-          Thêm câu hỏi
-        </button>
-      </div>
-    </div>
-
-    @if (selectedBankId() === 'ALL') {
-      <!-- Bank Catalog View (Slender Rows) -->
-      <div class="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        @for (stat of bankStats(); track stat.id) {
-          <div (click)="selectedBankId.set(stat.id); onBankChange()"
-            class="group bg-white rounded-lg border border-slate-200 hover:bg-slate-50/50 transition-all cursor-pointer flex flex-col sm:flex-row items-center overflow-hidden">
-            
-            <!-- Cluster 1: Identity -->
-            <div class="px-5 py-4 flex-grow min-w-0 flex items-center gap-4">
-              <div class="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#0056D2] group-hover:text-white transition-all shrink-0">
-                <lucide-icon [name]="stat.bankType === 'PERSONAL' ? 'user' : 'building'" [size]="16"></lucide-icon>
-              </div>
-              <div class="min-w-0 flex flex-col gap-1.5">
-                <h3 class="text-sm font-semibold text-slate-900 truncate leading-tight group-hover:text-[#0056D2] transition-colors">{{ stat.name }}</h3>
-                <div class="flex items-center gap-2.5">
-                  <span class="px-2 py-0.5 rounded bg-slate-100 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{{ getBankTypeLabel(stat.bankType) }}</span>
-                  <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <lucide-icon name="book-open" [size]="12"></lucide-icon>
-                    {{ stat.subject || 'Chưa rõ môn' }}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Cluster 2: Metrics -->
-            <div class="px-5 py-2 sm:py-0 flex items-center gap-3 shrink-0">
-              <div class="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 text-[10px] font-semibold text-[#0056D2] rounded-md border border-blue-100">
-                <lucide-icon name="clipboard-list" [size]="14"></lucide-icon>
-                {{ stat.realCount }}
-              </div>
-              <div class="flex items-center gap-1.5 px-2 py-0.5 bg-slate-50 text-[10px] font-semibold text-slate-400 rounded-md border border-slate-100">
-                <lucide-icon name="calendar" [size]="14"></lucide-icon>
-                {{ stat.updatedAt ? (stat.updatedAt | date:'dd/MM') : 'N/A' }}
-              </div>
-            </div>
-
-            <!-- Cluster 3: Visualization -->
-            <div class="px-5 py-2 sm:py-0 w-full sm:w-56 shrink-0">
-              <div class="space-y-2">
-                <div class="h-1.5 w-full bg-slate-100 rounded-full flex overflow-hidden">
-                  <div [style.width.%]="stat.dist.easy" class="bg-emerald-400 transition-all duration-1000"></div>
-                  <div [style.width.%]="stat.dist.medium" class="bg-amber-400 transition-all duration-1000"></div>
-                  <div [style.width.%]="stat.dist.hard" class="bg-rose-400 transition-all duration-1000"></div>
-                </div>
-                <div class="flex items-center justify-between text-[10px] font-semibold text-slate-400">
-                  <div class="flex items-center gap-1">Dễ <span class="text-emerald-500">{{ stat.dist.easy | number:'1.0-0' }}%</span></div>
-                  <div class="flex items-center gap-1">TB <span class="text-amber-500">{{ stat.dist.medium | number:'1.0-0' }}%</span></div>
-                  <div class="flex items-center gap-1">Khó <span class="text-rose-500">{{ stat.dist.hard | number:'1.0-0' }}%</span></div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Cluster 4: Actions -->
-            <div class="px-5 py-3 flex items-center gap-1.5 sm:border-l border-slate-100 shrink-0">
-              <button (click)="$event.stopPropagation(); deleteBank(stat.id, stat.name)"
-                class="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors">
-                <lucide-icon name="trash-2" [size]="14"></lucide-icon>
-              </button>
-              <button (click)="$event.stopPropagation(); editBank(stat)"
-                class="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-[#0056D2] hover:bg-blue-50 transition-colors">
-                <lucide-icon name="edit-3" [size]="14"></lucide-icon>
-              </button>
-              <button class="h-7 px-3 bg-[#0056D2] text-white rounded-lg text-xs font-semibold hover:bg-[#004BB5] transition-colors flex items-center gap-1">
-                Mở
-                <lucide-icon name="chevron-right" [size]="12"></lucide-icon>
-              </button>
-            </div>
-          </div>
+        @if (returnUrl) {
+          <button type="button" (click)="goBack()" class="rounded-lg bg-white px-3.5 py-1.5 text-xs font-semibold text-emerald-600 transition-colors hover:bg-emerald-50">
+            Quay lại
+          </button>
         }
       </div>
-    } @else {
-      <!-- Bank info badges -->
-      @if (selectedBank()) {
-        <div class="mb-6 flex flex-wrap items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-          <div class="flex items-center gap-2 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg border border-purple-100 text-[10px] font-semibold uppercase tracking-wider">
-            <lucide-icon name="layers" [size]="14"></lucide-icon>
-            {{ getBankTypeLabel(selectedBank()!.bankType) }}
+    </div>
+  }
+
+  <main class="mx-auto max-w-screen-2xl space-y-4 px-4 py-4 pb-32 sm:px-6">
+    @if (selectedBankId() === 'ALL') {
+      <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div class="max-w-3xl">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0056D2]">Ngân hàng câu hỏi</p>
+            <h2 class="mt-2 text-lg font-semibold text-slate-900 sm:text-[1.35rem]">Quản lý thư viện câu hỏi dùng chung</h2>
+            <p class="mt-2 text-sm leading-6 text-slate-500">Tạo ngân hàng theo môn học, mở từng thư viện để thêm câu hỏi, import từ file hoặc dùng lại cho bài kiểm tra.</p>
           </div>
-          @if (selectedBank()!.subject) {
-            <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg border border-slate-200 text-[10px] font-semibold uppercase tracking-wider">
-              <lucide-icon name="book" [size]="14"></lucide-icon>
-              {{ selectedBank()!.subject }}
+
+          <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <button type="button" (click)="showCreateBankModal.set(true)" class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0056D2] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#004BB5]">
+              <lucide-icon name="plus-circle" [size]="16"></lucide-icon>
+              Tạo ngân hàng
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Ngân hàng đang có</p>
+            <div class="mt-2 flex items-end justify-between gap-3">
+              <span class="text-2xl font-semibold text-slate-900">{{ banks().length }}</span>
+              <span class="text-[11px] font-medium text-slate-500">Sẵn sàng để mở và quản lý</span>
             </div>
-          }
-          <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[10px] font-semibold uppercase tracking-wider"
-            [class]="selectedBank()!.visibility === 'PUBLIC' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-slate-100 text-slate-500 border-slate-200'">
-            <lucide-icon [name]="selectedBank()!.visibility === 'PUBLIC' ? 'globe' : 'lock'" [size]="14"></lucide-icon>
-            {{ selectedBank()!.visibility === 'PUBLIC' ? 'Công khai' : 'Riêng tư' }}
           </div>
-          @if (selectedBank()!.description) {
-            <p class="text-[11px] text-slate-400 font-medium italic border-l-2 border-slate-100 pl-3 leading-relaxed hidden md:block">
-              {{ selectedBank()!.description }}
-            </p>
+
+          <div class="rounded-xl border border-blue-200 bg-blue-50/70 px-4 py-3">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0056D2]">Tổng số câu hỏi</p>
+            <div class="mt-2 flex items-end justify-between gap-3">
+              <span class="text-2xl font-semibold text-slate-900">{{ totalBankQuestionCount() }}</span>
+              <span class="text-[11px] font-medium text-[#0056D2]">Tính trên toàn bộ thư viện</span>
+            </div>
+          </div>
+
+          <div class="rounded-xl border border-emerald-200 bg-emerald-50/80 px-4 py-3">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700">Dành cho tái sử dụng</p>
+            <div class="mt-2 flex items-end justify-between gap-3">
+              <span class="text-sm font-semibold text-emerald-900">Tách theo từng thư viện</span>
+              <span class="text-[11px] font-medium text-emerald-700">Chọn một bank để thao tác sâu</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div class="relative min-w-0 lg:w-80">
+            <lucide-icon name="search" [size]="14" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></lucide-icon>
+            <input type="text" [value]="bankSearchQuery()" (input)="bankSearchQuery.set($any($event.target).value)" aria-label="Tìm ngân hàng câu hỏi" placeholder="Tìm theo tên ngân hàng hoặc môn học..." class="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-10 text-sm text-slate-900 outline-none transition focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10" />
+            @if (bankSearchQuery()) {
+              <button type="button" (click)="bankSearchQuery.set('')" class="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" aria-label="Xóa tìm kiếm ngân hàng">
+                <lucide-icon name="x" [size]="12"></lucide-icon>
+              </button>
+            }
+          </div>
+
+          @if (addToQuizLessonId) {
+            <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">Chế độ thêm vào quiz đang bật. Hãy mở một ngân hàng để chọn câu hỏi dùng chung.</div>
           }
         </div>
+      </section>
+
+      @if (filteredBankStats().length > 0) {
+        <div class="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          @for (stat of filteredBankStats(); track stat.id) {
+            <div (click)="selectedBankId.set(stat.id); onBankChange()" class="group flex cursor-pointer flex-col overflow-hidden rounded-xl border border-slate-200 bg-white transition-all hover:border-slate-300 hover:bg-slate-50/50 sm:flex-row sm:items-center">
+              <div class="flex min-w-0 flex-grow items-start gap-4 px-5 py-4">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-400 transition-all group-hover:bg-[#0056D2] group-hover:text-white">
+                  <lucide-icon [name]="stat.bankType === 'PERSONAL' ? 'user' : 'building-2'" [size]="16"></lucide-icon>
+                </div>
+                <div class="min-w-0 space-y-1.5">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h3 class="truncate text-sm font-semibold leading-tight text-slate-900 transition-colors group-hover:text-[#0056D2]">{{ stat.name }}</h3>
+                    <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">{{ getBankTypeLabel(stat.bankType) }}</span>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium text-slate-500">
+                    <span class="flex items-center gap-1.5"><lucide-icon name="book-open" [size]="12"></lucide-icon>{{ stat.subject || 'Chưa rõ môn' }}</span>
+                    <span class="text-slate-300">·</span>
+                    <span>Cập nhật {{ stat.updatedAt ? (stat.updatedAt | date:'dd/MM/yyyy') : 'chưa rõ' }}</span>
+                  </div>
+                  @if (stat.description) {
+                    <p class="line-clamp-2 max-w-2xl text-sm leading-6 text-slate-500">{{ stat.description }}</p>
+                  } @else {
+                    <p class="text-sm text-slate-400">Mở ngân hàng này để thêm câu hỏi, import file hoặc dùng lại trong bài kiểm tra.</p>
+                  }
+                </div>
+              </div>
+
+              <div class="flex items-center gap-3 px-5 py-2 sm:py-0">
+                <div class="rounded-md border border-blue-100 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-[#0056D2]">{{ stat.realCount }} câu hỏi</div>
+              </div>
+
+              <div class="w-full px-5 py-2 sm:w-56 sm:py-0">
+                <div class="space-y-2">
+                  <div class="flex h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                    <div [style.width.%]="stat.dist.easy" class="bg-emerald-400 transition-all duration-1000"></div>
+                    <div [style.width.%]="stat.dist.medium" class="bg-amber-400 transition-all duration-1000"></div>
+                    <div [style.width.%]="stat.dist.hard" class="bg-rose-400 transition-all duration-1000"></div>
+                  </div>
+                  <div class="flex items-center justify-between text-[10px] font-semibold text-slate-400">
+                    <div class="flex items-center gap-1">Dễ <span class="text-emerald-500">{{ stat.dist.easy | number:'1.0-0' }}%</span></div>
+                    <div class="flex items-center gap-1">TB <span class="text-amber-500">{{ stat.dist.medium | number:'1.0-0' }}%</span></div>
+                    <div class="flex items-center gap-1">Khó <span class="text-rose-500">{{ stat.dist.hard | number:'1.0-0' }}%</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex shrink-0 items-center gap-1.5 border-slate-100 px-5 py-3 sm:border-l">
+                <button type="button" (click)="$event.stopPropagation(); deleteBank(stat.id, stat.name)" class="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600">
+                  <lucide-icon name="trash-2" [size]="14"></lucide-icon>
+                </button>
+                <button type="button" (click)="$event.stopPropagation(); editBank(stat)" class="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-blue-50 hover:text-[#0056D2]">
+                  <lucide-icon name="edit-3" [size]="14"></lucide-icon>
+                </button>
+                <button type="button" class="flex h-8 items-center gap-1 rounded-lg bg-[#0056D2] px-3 text-xs font-semibold text-white transition-colors hover:bg-[#004BB5]">
+                  Mở
+                  <lucide-icon name="chevron-right" [size]="12"></lucide-icon>
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <section class="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center">
+          <lucide-icon name="search-x" [size]="34" class="mx-auto mb-4 text-slate-300"></lucide-icon>
+          @if (banks().length === 0) {
+            <h3 class="text-base font-semibold text-slate-900">Chưa có ngân hàng câu hỏi nào</h3>
+            <p class="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-500">Hãy tạo ngân hàng đầu tiên để bắt đầu lưu trữ và tái sử dụng câu hỏi cho bài kiểm tra.</p>
+            <button type="button" (click)="showCreateBankModal.set(true)" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#0056D2] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#004BB5]">
+              <lucide-icon name="plus-circle" [size]="14"></lucide-icon>
+              Tạo ngân hàng
+            </button>
+          } @else {
+            <h3 class="text-base font-semibold text-slate-900">Không tìm thấy ngân hàng phù hợp</h3>
+            <p class="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-500">Thử đổi từ khóa tìm kiếm hoặc mở lại toàn bộ thư viện để chọn ngân hàng cần quản lý.</p>
+            <button type="button" (click)="bankSearchQuery.set('')" class="mt-5 inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
+              <lucide-icon name="rotate-ccw" [size]="14"></lucide-icon>
+              Xóa tìm kiếm
+            </button>
+          }
+        </section>
+      }
+    } @else {
+      @if (selectedBank()) {
+        <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div class="max-w-3xl">
+              <button type="button" (click)="viewAllBanks()" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900">
+                <lucide-icon name="arrow-left" [size]="14"></lucide-icon>
+                Tất cả ngân hàng
+              </button>
+              <p class="mt-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0056D2]">Ngân hàng câu hỏi</p>
+              <h2 class="mt-2 text-lg font-semibold text-slate-900 sm:text-[1.35rem]">{{ selectedBank()!.name }}</h2>
+              <p class="mt-2 text-sm leading-6 text-slate-500">{{ selectedBank()!.description || 'Quản lý câu hỏi, lọc theo danh mục và chuẩn bị nội dung dùng lại cho các bài kiểm tra.' }}</p>
+            </div>
+
+            <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+              <div class="relative min-w-0 sm:w-64">
+                <div class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <lucide-icon name="layers" [size]="14"></lucide-icon>
+                </div>
+                <select [ngModel]="selectedBankId()" (ngModelChange)="selectedBankId.set($event); onBankChange()" class="h-10 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-9 pr-9 text-sm font-medium text-slate-900 outline-none transition-colors focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10">
+                  <option value="ALL">Tất cả ngân hàng</option>
+                  @for (bank of banks(); track bank.id) {
+                    <option [value]="bank.id">{{ bank.name }}</option>
+                  }
+                </select>
+                <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <lucide-icon name="chevron-down" [size]="14"></lucide-icon>
+                </div>
+              </div>
+
+              <button type="button" (click)="openImportModal()" class="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">
+                <lucide-icon name="upload" [size]="14"></lucide-icon>
+                Tải file
+              </button>
+
+              <button type="button" (click)="createNewQuestion()" class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#0056D2] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#004BB5]">
+                <lucide-icon name="plus" [size]="14"></lucide-icon>
+                Thêm câu hỏi
+              </button>
+
+              <div class="relative">
+                <button type="button" (click)="showManageBankMenu.set(!showManageBankMenu())" class="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 transition-colors hover:border-slate-300 hover:text-slate-600">
+                  <lucide-icon name="settings" [size]="14"></lucide-icon>
+                </button>
+                @if (showManageBankMenu()) {
+                  <div class="absolute right-0 top-full z-40 mt-2 w-48 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg" (click)="$event.stopPropagation()">
+                    <div class="border-b border-slate-100 px-3 py-1.5">
+                      <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Thao tác ngân hàng</p>
+                    </div>
+                    <button type="button" (click)="archiveCurrentBank(); showManageBankMenu.set(false)" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50">
+                      <lucide-icon name="archive" [size]="14"></lucide-icon>
+                      Lưu trữ ngân hàng
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 flex flex-wrap items-center gap-2">
+            <div class="rounded-lg border border-purple-100 bg-purple-50 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-purple-700">
+              <span class="inline-flex items-center gap-2">
+                <lucide-icon name="layers" [size]="14"></lucide-icon>
+                {{ getBankTypeLabel(selectedBank()!.bankType) }}
+              </span>
+            </div>
+            @if (selectedBank()!.subject) {
+              <div class="rounded-lg border border-slate-200 bg-slate-100 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                <span class="inline-flex items-center gap-2">
+                  <lucide-icon name="book" [size]="14"></lucide-icon>
+                  {{ selectedBank()!.subject }}
+                </span>
+              </div>
+            }
+            <div class="rounded-lg border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider" [class]="selectedBank()!.visibility === 'PUBLIC' ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-100 text-slate-500'">
+              <span class="inline-flex items-center gap-2">
+                <lucide-icon [name]="selectedBank()!.visibility === 'PUBLIC' ? 'globe' : 'lock'" [size]="14"></lucide-icon>
+                {{ selectedBank()!.visibility === 'PUBLIC' ? 'Công khai' : 'Riêng tư' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Tổng câu hỏi</p>
+              <div class="mt-2 flex items-end justify-between gap-3">
+                <span class="text-2xl font-semibold text-slate-900">{{ questions().length }}</span>
+                <span class="text-[11px] font-medium text-slate-500">Có trong ngân hàng này</span>
+              </div>
+            </div>
+            <div class="rounded-xl border border-blue-200 bg-blue-50/70 px-4 py-3">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0056D2]">Đang hiển thị</p>
+              <div class="mt-2 flex items-end justify-between gap-3">
+                <span class="text-2xl font-semibold text-slate-900">{{ filteredQuestions().length }}</span>
+                <span class="text-[11px] font-medium text-[#0056D2]">Sau khi áp dụng bộ lọc</span>
+              </div>
+            </div>
+            <div class="rounded-xl border border-purple-200 bg-purple-50/70 px-4 py-3">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-purple-700">Danh mục</p>
+              <div class="mt-2 flex items-end justify-between gap-3">
+                <span class="text-2xl font-semibold text-slate-900">{{ flatCategories().length }}</span>
+                <span class="text-[11px] font-medium text-purple-700">Cây phân loại hiện có</span>
+              </div>
+            </div>
+            <div class="rounded-xl border border-emerald-200 bg-emerald-50/80 px-4 py-3">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700">Đang chọn</p>
+              <div class="mt-2 flex items-end justify-between gap-3">
+                <span class="text-2xl font-semibold text-slate-900">{{ selectedQuestions().length }}</span>
+                <span class="text-[11px] font-medium text-emerald-700">Sẵn sàng di chuyển hoặc thêm vào quiz</span>
+              </div>
+            </div>
+          </div>
+        </section>
       }
 
-      <!-- Main Content: Full-width Table -->
-      <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div class="relative min-w-0 xl:w-80">
+            <lucide-icon name="search" [size]="14" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></lucide-icon>
+            <input type="text" [(ngModel)]="filters.search" (ngModelChange)="filterQuestions()" aria-label="Tìm câu hỏi" class="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-10 text-sm text-slate-900 outline-none transition focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10" placeholder="Tìm theo nội dung câu hỏi..." />
+            @if (filters.search) {
+              <button type="button" (click)="filters.search = ''; filterQuestions()" class="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" aria-label="Xóa tìm kiếm câu hỏi">
+                <lucide-icon name="x" [size]="12"></lucide-icon>
+              </button>
+            }
+          </div>
+
+          <div class="grid gap-2 sm:grid-cols-2 xl:flex xl:flex-wrap">
+            <select [(ngModel)]="filters.categoryId" (ngModelChange)="filterQuestions()" aria-label="Lọc theo danh mục" class="h-10 min-w-[11rem] rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10">
+              <option value="">Tất cả danh mục</option>
+              @for (item of availableCategories(); track item.cat.id) {
+                <option [value]="item.cat.id">{{ item.cat.name }}</option>
+              }
+            </select>
+            <select [(ngModel)]="filters.tag" (ngModelChange)="filterQuestions()" aria-label="Lọc theo phân loại" class="h-10 min-w-[11rem] rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10">
+              <option value="">Tất cả phân loại</option>
+              @for (tag of availableTags(); track tag) {
+                <option [value]="tag">{{ tag }}</option>
+              }
+            </select>
+            <select [(ngModel)]="filters.difficulty" (ngModelChange)="filterQuestions()" aria-label="Lọc theo độ khó" class="h-10 min-w-[10rem] rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10">
+              <option value="">Tất cả độ khó</option>
+              @for (diff of availableDifficulties(); track diff) {
+                <option [value]="diff">{{ getDifficultyLabel(diff) }}</option>
+              }
+            </select>
+            @if (getActiveQuestionFilterCount() > 0) {
+              <button type="button" (click)="clearQuestionFilters(); filterQuestions()" class="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900">
+                <lucide-icon name="rotate-ccw" [size]="14"></lucide-icon>
+                Xóa bộ lọc
+              </button>
+            }
+          </div>
+        </div>
+      </section>
+
+      <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
         <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
+          <table class="w-full border-collapse text-left">
             <thead>
-              <tr class="bg-slate-50 border-b border-slate-100">
-                <th scope="col" class="px-4 py-2 w-10 text-center">
-                  <input type="checkbox" [checked]="isAllSelected()" (change)="toggleSelectAll()"
-                    aria-label="Chọn tất cả câu hỏi"
-                    class="w-4 h-4 rounded border-slate-300 text-[#0056D2] focus:ring-[#0056D2]/20 transition-all cursor-pointer" />
+              <tr class="border-b border-slate-100 bg-slate-50">
+                <th scope="col" class="w-10 px-4 py-2 text-center">
+                  <input type="checkbox" [checked]="isAllSelected()" (change)="toggleSelectAll()" aria-label="Chọn tất cả câu hỏi" class="h-4 w-4 cursor-pointer rounded border-slate-300 text-[#0056D2] transition-all focus:ring-[#0056D2]/20" />
                 </th>
-                <th scope="col" class="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Nội dung</th>
-
-                <!-- Danh mục Filter -->
-                <th scope="col" class="px-4 py-2 w-48 hidden lg:table-cell">
-                  <div class="flex items-center gap-1.5 group cursor-pointer relative">
-                    <lucide-icon name="filter" [size]="12" class="text-[#0056D2]"></lucide-icon>
-                    <select [(ngModel)]="filters.categoryId" (ngModelChange)="filterQuestions()"
-                      aria-label="Lọc theo danh mục"
-                      class="w-full bg-transparent border-none text-[11px] font-semibold text-slate-900 uppercase tracking-wider focus:ring-0 outline-none cursor-pointer appearance-none pr-6">
-                      <option value="">Danh mục</option>
-                      @for (item of availableCategories(); track item.cat.id) {
-                        <option [value]="item.cat.id">{{ item.cat.name }}</option>
-                      }
-                    </select>
-                  </div>
-                </th>
-
-                <!-- Phân loại Filter -->
-                <th scope="col" class="px-4 py-2 w-48 hidden lg:table-cell">
-                  <div class="flex items-center gap-1.5 group cursor-pointer relative">
-                    <lucide-icon name="filter" [size]="12" class="text-[#0056D2]"></lucide-icon>
-                    <select [(ngModel)]="filters.tag" (ngModelChange)="filterQuestions()"
-                      aria-label="Lọc theo phân loại"
-                      class="w-full bg-transparent border-none text-[11px] font-semibold text-slate-900 uppercase tracking-wider focus:ring-0 outline-none cursor-pointer appearance-none pr-6">
-                      <option value="">Phân loại</option>
-                      @for (tag of availableTags(); track tag) {
-                        <option [value]="tag">{{ tag }}</option>
-                      }
-                    </select>
-                  </div>
-                </th>
-
-                <!-- Độ khó Filter -->
-                <th scope="col" class="px-4 py-2 w-36 text-center hidden md:table-cell">
-                  <div class="flex items-center justify-center gap-1.5 group cursor-pointer relative">
-                    <lucide-icon name="filter" [size]="12" class="text-[#0056D2]"></lucide-icon>
-                    <select [(ngModel)]="filters.difficulty" (ngModelChange)="filterQuestions()"
-                      aria-label="Lọc theo độ khó"
-                      class="bg-transparent border-none text-[11px] font-semibold text-slate-900 uppercase tracking-wider focus:ring-0 outline-none cursor-pointer appearance-none text-center pr-4">
-                      <option value="">Độ khó</option>
-                      @for (diff of availableDifficulties(); track diff) {
-                        <option [value]="diff">{{ getDifficultyLabel(diff) }}</option>
-                      }
-                    </select>
-                  </div>
-                </th>
-
-                <th scope="col" class="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase tracking-wider text-right">Thao tác</th>
+                <th scope="col" class="px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Nội dung</th>
+                <th scope="col" class="hidden px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500 lg:table-cell">Danh mục</th>
+                <th scope="col" class="hidden px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500 lg:table-cell">Phân loại</th>
+                <th scope="col" class="hidden px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-500 md:table-cell">Độ khó</th>
+                <th scope="col" class="px-4 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-slate-500">Thao tác</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
               @if (filteredQuestions().length > 0) {
                 @for (question of filteredQuestions(); track question.id) {
-                  <tr class="hover:bg-[#0056D2]/[0.02] transition-colors group">
+                  <tr class="group transition-colors hover:bg-[#0056D2]/[0.02]">
                     <td class="px-4 py-1.5 text-center">
-                      <input type="checkbox" [checked]="isQuestionSelected(question.id)"
-                        (change)="toggleQuestionSelection(question.id)"
-                        [attr.aria-label]="getQuestionCheckboxLabel(question)"
-                        class="w-4 h-4 rounded border-slate-300 text-[#0056D2] focus:ring-[#0056D2]/20 transition-all cursor-pointer" />
+                      <input type="checkbox" [checked]="isQuestionSelected(question.id)" (change)="toggleQuestionSelection(question.id)" [attr.aria-label]="getQuestionCheckboxLabel(question)" class="h-4 w-4 cursor-pointer rounded border-slate-300 text-[#0056D2] transition-all focus:ring-[#0056D2]/20" />
                     </td>
                     <td class="px-4 py-1.5">
-                      <div class="text-sm font-bold text-slate-800 line-clamp-1 leading-tight group-hover:text-slate-900 transition-colors">{{ $any(question).content }}</div>
+                      <div class="line-clamp-2 text-sm font-bold leading-tight text-slate-800 transition-colors group-hover:text-slate-900">{{ $any(question).content }}</div>
                     </td>
-                    <td class="px-4 py-1.5 hidden lg:table-cell">
-                      <span class="inline-flex px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded bg-blue-50/50 text-[#0056D2] border border-blue-100/50">
-                        {{ getCategoryName($any(question).categoryId) }}
-                      </span>
+                    <td class="hidden px-4 py-1.5 lg:table-cell">
+                      <span class="inline-flex rounded border border-blue-100/50 bg-blue-50/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#0056D2]">{{ getCategoryName($any(question).categoryId) }}</span>
                     </td>
-                    <td class="px-4 py-1.5 font-medium hidden lg:table-cell">
+                    <td class="hidden px-4 py-1.5 font-medium lg:table-cell">
                       <div class="flex flex-wrap gap-1">
                         @for (tag of ($any(question).tags || '').split(','); track tag) {
-                          <span class="px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider rounded bg-slate-100 text-slate-500">
-                            {{ tag.trim() }}
-                          </span>
+                          <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-slate-500">{{ tag.trim() }}</span>
                         } @empty {
-                          <span class="text-[9px] font-bold text-slate-300 uppercase tracking-widest italic">Mặc định</span>
+                          <span class="text-[9px] font-bold uppercase tracking-widest text-slate-300 italic">Mặc định</span>
                         }
                       </div>
                     </td>
-                    <td class="px-4 py-1.5 text-center hidden md:table-cell">
-                      <span class="inline-flex px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded"
-                        [ngClass]="{
-                          'bg-emerald-50 text-emerald-600 border border-emerald-100': question.difficulty === 'EASY',
-                          'bg-amber-50 text-amber-600 border border-amber-100': question.difficulty === 'MEDIUM',
-                          'bg-rose-50 text-rose-600 border border-rose-100': question.difficulty === 'HARD'
-                        }">
+                    <td class="hidden px-4 py-1.5 text-center md:table-cell">
+                      <span class="inline-flex rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider" [ngClass]="{
+                        'bg-emerald-50 text-emerald-600 border border-emerald-100': question.difficulty === 'EASY',
+                        'bg-amber-50 text-amber-600 border border-amber-100': question.difficulty === 'MEDIUM',
+                        'bg-rose-50 text-rose-600 border border-rose-100': question.difficulty === 'HARD'
+                      }">
                         {{ getDifficultyLabel(question.difficulty) }}
                       </span>
                     </td>
                     <td class="px-4 py-1.5 text-right">
-                      <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                        <button (click)="editQuestion(question)"
-                          class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-[#0056D2] hover:bg-white hover:shadow transition-all">
+                      <div class="flex items-center justify-end gap-1 opacity-0 transition-all group-hover:opacity-100">
+                        <button type="button" (click)="editQuestion(question)" class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-all hover:bg-white hover:text-[#0056D2] hover:shadow">
                           <lucide-icon name="edit-2" [size]="16"></lucide-icon>
                         </button>
-                        <button (click)="deleteQuestion(question)"
-                          class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-white hover:shadow transition-all">
+                        <button type="button" (click)="deleteQuestion(question)" class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-all hover:bg-white hover:text-rose-500 hover:shadow">
                           <lucide-icon name="trash-2" [size]="16"></lucide-icon>
                         </button>
                       </div>
@@ -309,10 +375,11 @@
                 <tr class="animate-in fade-in duration-300">
                   <td colspan="6" class="py-12 text-center">
                     <lucide-icon name="search-x" [size]="32" class="mx-auto mb-3 text-slate-300"></lucide-icon>
-                    <p class="text-sm font-medium text-slate-500 mb-1">Không tìm thấy câu hỏi</p>
-                    <p class="text-xs text-slate-400 mb-4">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
-                    <button (click)="filters.search = ''; filters.difficulty = ''; filters.categoryId = ''; filters.tag = ''; filterQuestions()"
-                      class="text-[#0056D2] text-xs font-semibold hover:underline">Xóa bộ lọc</button>
+                    <p class="mb-1 text-sm font-medium text-slate-500">Không tìm thấy câu hỏi</p>
+                    <p class="mb-4 text-xs text-slate-400">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
+                    <button type="button" (click)="clearQuestionFilters(); filterQuestions()" class="text-xs font-semibold text-[#0056D2] hover:underline">
+                      Xóa bộ lọc
+                    </button>
                   </td>
                 </tr>
               }
@@ -322,26 +389,22 @@
       </div>
     }
 
-    <!-- Bulk actions bar -->
     @if (selectedQuestions().length > 0) {
-      <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900 text-white rounded-lg px-4 py-2.5 shadow-lg flex items-center gap-3 text-sm">
+      <div class="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-lg bg-slate-900 px-4 py-2.5 text-sm text-white shadow-lg">
         <span class="font-semibold">{{ selectedQuestions().length }} câu hỏi</span>
-        <div class="w-px h-4 bg-white/20"></div>
+        <div class="h-4 w-px bg-white/20"></div>
         <div class="flex items-center gap-2">
           @if (addToQuizLessonId) {
-            <button (click)="addSelectedToQuiz()" [disabled]="addingToQuiz()"
-              class="h-7 px-3 bg-emerald-500 text-white rounded-md text-xs font-semibold hover:bg-emerald-600 transition-colors flex items-center gap-1.5 disabled:opacity-50">
+            <button type="button" (click)="addSelectedToQuiz()" [disabled]="addingToQuiz()" class="flex h-7 items-center gap-1.5 rounded-md bg-emerald-500 px-3 text-xs font-semibold text-white transition-colors hover:bg-emerald-600 disabled:opacity-50">
               <lucide-icon name="plus-circle" [size]="14"></lucide-icon>
               {{ addingToQuiz() ? 'Đang thêm...' : 'Thêm vào Quiz' }}
             </button>
           }
-          <button (click)="openMoveModal()"
-            class="h-7 px-3 bg-white/10 text-white rounded-md text-xs font-medium hover:bg-white/20 transition-colors flex items-center gap-1.5">
+          <button type="button" (click)="openMoveModal()" class="flex h-7 items-center gap-1.5 rounded-md bg-white/10 px-3 text-xs font-medium text-white transition-colors hover:bg-white/20">
             <lucide-icon name="folder-sync" [size]="14"></lucide-icon>
             Di chuyển
           </button>
-          <button (click)="clearSelection()"
-            class="text-slate-400 hover:text-white text-xs font-medium transition-colors ml-1">
+          <button type="button" (click)="clearSelection()" class="ml-1 text-xs font-medium text-slate-400 transition-colors hover:text-white">
             Hủy
           </button>
         </div>
@@ -350,225 +413,161 @@
   </main>
 </div>
 
-<!-- Modal: Create Bank -->
 @if (showCreateBankModal()) {
-<div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity flex items-center justify-center z-50 p-4"
-  (click)="showCreateBankModal.set(false)">
-  <div
-    role="dialog" aria-modal="true" aria-labelledby="create-bank-title"
-    class="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl border border-slate-200"
-    (click)="$event.stopPropagation()">
-    <div class="flex items-center justify-between mb-8">
-      <div>
-        <h3 id="create-bank-title" class="text-base font-semibold text-slate-900">Tạo ngân hàng câu hỏi</h3>
-        <p class="text-sm text-slate-500 font-medium">Khởi tạo thư viện lưu trữ câu hỏi trắc nghiệm</p>
-      </div>
-      <button (click)="showCreateBankModal.set(false)"
-        class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate-100 text-slate-400 transition-all">
-        <lucide-icon name="x" [size]="20"></lucide-icon>
-      </button>
-    </div>
-
-    <form (ngSubmit)="createBank()" class="space-y-5">
-      <div>
-        <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Tên ngân hàng <span
-            class="text-rose-500">*</span></label>
-        <input type="text" [(ngModel)]="newBank.name" name="name" required
-          class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 text-sm focus:ring-2 focus:ring-[#0056D2]/10 focus:border-[#0056D2] outline-none transition-colors placeholder:text-slate-400"
-          placeholder="VD: Luật Hàng hải - Chương 1" />
-      </div>
-
-      <div>
-        <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Mô tả</label>
-        <textarea [(ngModel)]="newBank.description" name="description" rows="3"
-          class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 text-sm focus:ring-2 focus:ring-[#0056D2]/10 focus:border-[#0056D2] outline-none transition-colors placeholder:text-slate-400 resize-none"
-          placeholder="Mô tả ngắn về nội dung ngân hàng câu hỏi..."></textarea>
-      </div>
-
-      <div class="grid grid-cols-2 gap-4">
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm transition-opacity" (click)="showCreateBankModal.set(false)">
+    <div role="dialog" aria-modal="true" aria-labelledby="create-bank-title" class="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-xl" (click)="$event.stopPropagation()">
+      <div class="mb-8 flex items-center justify-between">
         <div>
-          <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Môn học</label>
-          <input type="text" [(ngModel)]="newBank.subject" name="subject"
-            class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 text-sm focus:ring-2 focus:ring-[#0056D2]/10 focus:border-[#0056D2] outline-none transition-colors placeholder:text-slate-400"
-            placeholder="VD: Luật Hàng hải" />
+          <h3 id="create-bank-title" class="text-base font-semibold text-slate-900">Tạo ngân hàng câu hỏi</h3>
+          <p class="text-sm font-medium text-slate-500">Khởi tạo thư viện lưu trữ câu hỏi trắc nghiệm</p>
         </div>
+        <button type="button" (click)="showCreateBankModal.set(false)" class="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition-all hover:bg-slate-100">
+          <lucide-icon name="x" [size]="20"></lucide-icon>
+        </button>
+      </div>
+
+      <form (ngSubmit)="createBank()" class="space-y-5">
         <div>
-          <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Loại ngân
-            hàng</label>
-          <select [(ngModel)]="newBank.bankType" name="bankType"
-            class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 text-sm focus:ring-2 focus:ring-[#0056D2]/10 focus:border-[#0056D2] outline-none transition-colors cursor-pointer">
-            <option value="PERSONAL">Cá nhân</option>
-            <option value="DEPARTMENT">Khoa</option>
-            <option value="INSTITUTIONAL">Trường</option>
+          <label class="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-slate-400">Tên ngân hàng <span class="text-rose-500">*</span></label>
+          <input type="text" [(ngModel)]="newBank.name" name="name" required class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10" placeholder="VD: Luật Hàng hải - Chương 1" />
+        </div>
+
+        <div>
+          <label class="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-slate-400">Mô tả</label>
+          <textarea [(ngModel)]="newBank.description" name="description" rows="3" class="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10" placeholder="Mô tả ngắn về nội dung ngân hàng câu hỏi..."></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-slate-400">Môn học</label>
+            <input type="text" [(ngModel)]="newBank.subject" name="subject" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10" placeholder="VD: Luật Hàng hải" />
+          </div>
+          <div>
+            <label class="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-slate-400">Loại ngân hàng</label>
+            <select [(ngModel)]="newBank.bankType" name="bankType" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition-colors focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10">
+              <option value="PERSONAL">Cá nhân</option>
+              <option value="DEPARTMENT">Khoa</option>
+              <option value="INSTITUTIONAL">Trường</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-slate-400">Quyền hiển thị</label>
+          <select [(ngModel)]="newBank.visibility" name="visibility" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition-colors focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10">
+            <option value="PRIVATE">Chế độ riêng tư</option>
+            <option value="PUBLIC">Chế độ công khai</option>
           </select>
         </div>
-      </div>
 
-      <div>
-        <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Quyền hiển thị</label>
-        <select [(ngModel)]="newBank.visibility" name="visibility"
-          class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 text-sm focus:ring-2 focus:ring-[#0056D2]/10 focus:border-[#0056D2] outline-none transition-colors cursor-pointer">
-          <option value="PRIVATE">Chế độ Riêng tư</option>
-          <option value="PUBLIC">Chế độ Công khai</option>
-        </select>
-      </div>
-
-      <div class="flex gap-3 pt-6">
-        <button type="button" (click)="showCreateBankModal.set(false)"
-          class="flex-1 h-9 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 font-medium text-sm transition-colors">
-          Hủy
-        </button>
-        <button type="submit"
-          class="flex-1 h-9 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] font-semibold text-sm transition-colors">
-          Tạo ngân hàng
-        </button>
-      </div>
-    </form>
+        <div class="flex gap-3 pt-6">
+          <button type="button" (click)="showCreateBankModal.set(false)" class="h-9 flex-1 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50">Hủy</button>
+          <button type="submit" class="h-9 flex-1 rounded-lg bg-[#0056D2] text-sm font-semibold text-white transition-colors hover:bg-[#004BB5]">Tạo ngân hàng</button>
+        </div>
+      </form>
+    </div>
   </div>
-</div>
 }
 
-<!-- Modal: Add Category -->
 @if (showAddCategoryModal()) {
-<div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-  (click)="showAddCategoryModal.set(false)">
-  <div
-    role="dialog" aria-modal="true" aria-labelledby="add-category-title"
-    class="bg-white rounded-xl p-6 w-full max-w-md shadow-xl border border-slate-200"
-    (click)="$event.stopPropagation()">
-    <div class="flex items-center justify-between mb-8">
-      <div>
-        <h3 id="add-category-title" class="text-base font-semibold text-slate-900">Thêm danh mục</h3>
-        <p class="text-sm text-slate-500 font-medium">Phân loại câu hỏi theo chủ đề</p>
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm" (click)="showAddCategoryModal.set(false)">
+    <div role="dialog" aria-modal="true" aria-labelledby="add-category-title" class="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-xl" (click)="$event.stopPropagation()">
+      <div class="mb-8 flex items-center justify-between">
+        <div>
+          <h3 id="add-category-title" class="text-base font-semibold text-slate-900">Thêm danh mục</h3>
+          <p class="text-sm font-medium text-slate-500">Phân loại câu hỏi theo chủ đề</p>
+        </div>
+        <button type="button" (click)="showAddCategoryModal.set(false)" class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-all hover:bg-slate-100">
+          <lucide-icon name="x" [size]="18"></lucide-icon>
+        </button>
       </div>
-      <button (click)="showAddCategoryModal.set(false)"
-        class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 transition-all">
-        <lucide-icon name="x" [size]="18"></lucide-icon>
-      </button>
+
+      <form (ngSubmit)="addCategory()" class="space-y-6">
+        <div>
+          <label class="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-slate-400">Tên danh mục <span class="text-rose-500">*</span></label>
+          <input type="text" [(ngModel)]="newCategoryName" name="catName" required class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10" placeholder="VD: Chương 1 - Khái niệm" />
+        </div>
+
+        <div>
+          <label class="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-slate-400">Danh mục cha</label>
+          <select [(ngModel)]="newCategoryParentId" name="parentId" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition-colors focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10">
+            <option [ngValue]="null">-- Gốc (không có cha) --</option>
+            @for (item of flatCategories(); track item.cat.id) {
+              <option [ngValue]="item.cat.id">{{ '&nbsp;'.repeat(item.depth * 2) }}{{ item.depth > 0 ? '└ ' : '' }}{{ item.cat.name }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="flex gap-3 pt-4">
+          <button type="button" (click)="showAddCategoryModal.set(false)" class="flex-1 rounded-xl border border-slate-200 px-6 py-3 text-xs font-bold uppercase tracking-widest text-slate-600 transition-all hover:bg-slate-50">Hủy</button>
+          <button type="submit" class="h-9 flex-1 rounded-lg bg-[#0056D2] text-sm font-semibold text-white transition-colors hover:bg-[#004BB5]">Thêm danh mục</button>
+        </div>
+      </form>
     </div>
-
-    <form (ngSubmit)="addCategory()" class="space-y-6">
-      <div>
-        <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Tên danh mục <span
-            class="text-rose-500">*</span></label>
-        <input type="text" [(ngModel)]="newCategoryName" name="catName" required
-          class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 text-sm focus:ring-2 focus:ring-[#0056D2]/10 focus:border-[#0056D2] outline-none transition-colors placeholder:text-slate-400"
-          placeholder="VD: Chương 1 - Khái niệm" />
-      </div>
-
-      <div>
-        <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Danh mục cha</label>
-        <select [(ngModel)]="newCategoryParentId" name="parentId"
-          class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 text-sm focus:ring-2 focus:ring-[#0056D2]/10 focus:border-[#0056D2] outline-none transition-colors cursor-pointer">
-          <option [ngValue]="null">-- Gốc (không có cha) --</option>
-          @for (item of flatCategories(); track item.cat.id) {
-          <option [ngValue]="item.cat.id">
-            {{ '&nbsp;'.repeat(item.depth * 2) }}{{ item.depth > 0 ? '└ ' : '' }}{{ item.cat.name }}
-          </option>
-          }
-        </select>
-      </div>
-
-      <div class="flex gap-3 pt-4">
-        <button type="button" (click)="showAddCategoryModal.set(false)"
-          class="flex-1 px-6 py-3 rounded-xl border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 font-bold text-xs transition-all uppercase tracking-widest">
-          Hủy
-        </button>
-        <button type="submit"
-          class="flex-1 h-9 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] font-semibold text-sm transition-colors">
-          Thêm danh mục
-        </button>
-      </div>
-    </form>
   </div>
-</div>
 }
 
-<!-- Modal: Move Questions -->
 @if (showMoveModal()) {
-<div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-  (click)="showMoveModal.set(false)">
-  <div role="dialog" aria-modal="true" aria-labelledby="move-questions-title"
-    class="bg-white rounded-xl p-6 w-full max-w-md shadow-xl border border-slate-200"
-    (click)="$event.stopPropagation()">
-    <div class="flex items-center justify-between mb-8">
-      <div>
-        <h3 id="move-questions-title" class="text-base font-semibold text-slate-900">Di chuyển câu hỏi</h3>
-        <p class="text-sm text-slate-500 font-medium mt-1">Sắp xếp lại hệ thống câu hỏi của bạn</p>
-      </div>
-      <button (click)="showMoveModal.set(false)"
-        class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate-100 text-slate-400 transition-all">
-        <lucide-icon name="x" [size]="20"></lucide-icon>
-      </button>
-    </div>
-
-    <div class="bg-blue-50/50 rounded-2xl p-5 mb-8 border border-blue-100">
-      <div class="flex items-center gap-3">
-        <div
-          class="w-8 h-8 rounded-lg bg-[#0056D2] flex items-center justify-center text-white text-sm font-semibold">
-          {{ selectedQuestions().length }}
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm" (click)="showMoveModal.set(false)">
+    <div role="dialog" aria-modal="true" aria-labelledby="move-questions-title" class="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-xl" (click)="$event.stopPropagation()">
+      <div class="mb-8 flex items-center justify-between">
+        <div>
+          <h3 id="move-questions-title" class="text-base font-semibold text-slate-900">Di chuyển câu hỏi</h3>
+          <p class="mt-1 text-sm font-medium text-slate-500">Sắp xếp lại hệ thống câu hỏi của bạn</p>
         </div>
-        <div class="text-xs font-bold text-slate-600 uppercase tracking-wider leading-relaxed">
-          câu hỏi đã chọn<br /><span class="text-[#0056D2] font-semibold">đang được di chuyển</span>
-        </div>
-      </div>
-    </div>
-
-    <form class="space-y-6">
-      <div>
-        <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Ngân hàng đích</label>
-        <div class="relative">
-          <select [(ngModel)]="moveBankId" (ngModelChange)="onMoveBankSelect($event)" name="moveBankId"
-            class="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-sm font-bold focus:bg-white focus:ring-4 focus:ring-[#0056D2]/5 focus:border-[#0056D2] outline-none transition-all appearance-none cursor-pointer">
-            <option value="">-- Chọn ngân hàng --</option>
-            @for (bank of banks(); track bank.id) {
-            <option [value]="bank.id" [disabled]="bank.id === selectedBank()?.id">
-              {{ bank.name }} ({{ bank.questionCount }} câu)
-            </option>
-            }
-          </select>
-          <div class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-            <lucide-icon name="chevron-down" [size]="16"></lucide-icon>
-          </div>
-        </div>
-      </div>
-
-      @if (moveBankId && moveBankCategories().length > 0) {
-      <div class="animate-in slide-in-from-top-2 duration-200">
-        <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Danh mục đích</label>
-        <div class="relative">
-          <select [(ngModel)]="moveCategoryId" name="moveCategoryId"
-            class="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-sm font-bold focus:bg-white focus:ring-4 focus:ring-[#0056D2]/5 focus:border-[#0056D2] outline-none transition-all appearance-none cursor-pointer">
-            <option [ngValue]="null">-- Gốc (Mặc định) --</option>
-            @for (item of moveBankCategories(); track item.cat.id) {
-            <option [ngValue]="item.cat.id">
-              {{ item.depth > 0 ? '└ ' : '' }}{{ item.cat.name }} ({{ item.cat.questionCount }})
-            </option>
-            }
-          </select>
-          <div class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-            <lucide-icon name="chevron-down" [size]="16"></lucide-icon>
-          </div>
-        </div>
-      </div>
-      }
-
-      <div class="flex gap-3 pt-4">
-        <button type="button" (click)="showMoveModal.set(false)"
-          class="flex-1 h-9 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 font-medium text-sm transition-colors">
-          Hủy
-        </button>
-        <button (click)="moveQuestionsToBank()" [disabled]="!moveBankId"
-          class="flex-1 h-9 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] font-semibold text-sm transition-colors disabled:opacity-50">
-          Xác nhận
+        <button type="button" (click)="showMoveModal.set(false)" class="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition-all hover:bg-slate-100">
+          <lucide-icon name="x" [size]="20"></lucide-icon>
         </button>
       </div>
-    </form>
+
+      <div class="mb-8 rounded-2xl border border-blue-100 bg-blue-50/50 p-5">
+        <div class="flex items-center gap-3">
+          <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0056D2] text-sm font-semibold text-white">{{ selectedQuestions().length }}</div>
+          <div class="text-xs font-bold uppercase tracking-wider leading-relaxed text-slate-600">câu hỏi đã chọn<br /><span class="font-semibold text-[#0056D2]">đang được di chuyển</span></div>
+        </div>
+      </div>
+
+      <form class="space-y-6">
+        <div>
+          <label class="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-slate-400">Ngân hàng đích</label>
+          <div class="relative">
+            <select [(ngModel)]="moveBankId" (ngModelChange)="onMoveBankSelect($event)" name="moveBankId" class="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-bold text-slate-900 outline-none transition-all focus:border-[#0056D2] focus:bg-white focus:ring-4 focus:ring-[#0056D2]/5">
+              <option value="">-- Chọn ngân hàng --</option>
+              @for (bank of banks(); track bank.id) {
+                <option [value]="bank.id" [disabled]="bank.id === selectedBank()?.id">{{ bank.name }} ({{ bank.questionCount }} câu)</option>
+              }
+            </select>
+            <div class="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+              <lucide-icon name="chevron-down" [size]="16"></lucide-icon>
+            </div>
+          </div>
+        </div>
+
+        @if (moveBankId && moveBankCategories().length > 0) {
+          <div class="animate-in slide-in-from-top-2 duration-200">
+            <label class="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-slate-400">Danh mục đích</label>
+            <div class="relative">
+              <select [(ngModel)]="moveCategoryId" name="moveCategoryId" class="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-bold text-slate-900 outline-none transition-all focus:border-[#0056D2] focus:bg-white focus:ring-4 focus:ring-[#0056D2]/5">
+                <option [ngValue]="null">-- Gốc (Mặc định) --</option>
+                @for (item of moveBankCategories(); track item.cat.id) {
+                  <option [ngValue]="item.cat.id">{{ item.depth > 0 ? '└ ' : '' }}{{ item.cat.name }} ({{ item.cat.questionCount }})</option>
+                }
+              </select>
+              <div class="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                <lucide-icon name="chevron-down" [size]="16"></lucide-icon>
+              </div>
+            </div>
+          </div>
+        }
+
+        <div class="flex gap-3 pt-4">
+          <button type="button" (click)="showMoveModal.set(false)" class="h-9 flex-1 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50">Hủy</button>
+          <button type="button" (click)="moveQuestionsToBank()" [disabled]="!moveBankId" class="h-9 flex-1 rounded-lg bg-[#0056D2] text-sm font-semibold text-white transition-colors hover:bg-[#004BB5] disabled:opacity-50">Xác nhận</button>
+        </div>
+      </form>
+    </div>
   </div>
-</div>
 }
 
-<!-- Import Modal -->
-<app-question-import-modal [packageId]="selectedPackageId" (imported)="onQuestionsImported($event)"
-  (closed)="onImportModalClosed()">
+<app-question-import-modal [packageId]="selectedPackageId" (imported)="onQuestionsImported($event)" (closed)="onImportModalClosed()">
 </app-question-import-modal>

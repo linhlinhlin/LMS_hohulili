@@ -128,7 +128,8 @@
                       <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Nội dung bài làm</label>
                         <textarea 
-                          [(ngModel)]="submissionContent"
+                          [ngModel]="submissionContent()"
+                          (ngModelChange)="submissionContent.set($event)"
                           name="content"
                           rows="12"
                           placeholder="Nhập nội dung bài tập của bạn..."

@@ -1,20 +1,26 @@
-import { Component, signal, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
-
-import { RouterModule, Router, ActivatedRoute } from '@angular/router';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { AuthService } from '../../core/services/auth.service';
-import { AssignmentApi, AssignmentDetail, SubmissionDetail } from '../../api/client/assignment.api';
-import { ApiClient } from '../../api/client/api-client';
-import { STUDENT_ENDPOINTS } from '../../api/endpoints/student.endpoints';
-import { FileApi } from '../../api/client/file.api';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import {
+  AssignmentApi,
+  AssignmentDetail,
+  SubmissionDetail,
+  StudentAssignmentResponse,
+} from '../../api/client/assignment.api';
+import { ApiClient } from '../../api/client/api-client';
+import { FileApi } from '../../api/client/file.api';
+import { STUDENT_ENDPOINTS } from '../../api/endpoints/student.endpoints';
+import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
+
+type StudentAssignmentDetail = AssignmentDetail & Partial<StudentAssignmentResponse>;
 
 @Component({
   selector: 'app-assignment-work',
   imports: [RouterModule, FormsModule],
   templateUrl: './assignment-work.component.html',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AssignmentWorkComponent implements OnInit {
   protected authService = inject(AuthService);
@@ -25,63 +31,72 @@ export class AssignmentWorkComponent implements OnInit {
   private fileApi = inject(FileApi);
   private toast = inject(ToastService);
 
-  // Component state
-  assignment = signal<AssignmentDetail | null>(null);
+  assignment = signal<StudentAssignmentDetail | null>(null);
   mySubmission = signal<SubmissionDetail | null>(null);
-  submissionContent = signal<string>('');
+  submissionContent = signal('');
   uploadedFiles = signal<File[]>([]);
-  isLoading = signal<boolean>(true);
-  isSubmitting = signal<boolean>(false);
+  isLoading = signal(true);
+  isSubmitting = signal(false);
   error = signal<string | null>(null);
 
   ngOnInit(): void {
     const assignmentId = this.route.snapshot.paramMap.get('id');
-    if (assignmentId) {
-      this.loadAssignment(assignmentId);
-    } else {
+    if (!assignmentId) {
       this.error.set('Không tìm thấy ID bài tập');
       this.isLoading.set(false);
+      return;
     }
+
+    this.loadAssignment(assignmentId);
   }
 
   private loadAssignment(assignmentId: string): void {
     this.isLoading.set(true);
     this.error.set(null);
 
-    // Load assignment details via student-scoped endpoint (enrollment check)
-    this.apiClient.getWithResponse<any>(STUDENT_ENDPOINTS.ASSIGNMENT_DETAIL(assignmentId)).subscribe({
+    this.apiClient.getWithResponse<StudentAssignmentDetail>(STUDENT_ENDPOINTS.ASSIGNMENT_DETAIL(assignmentId)).subscribe({
       next: (response) => {
-        if (response.data) {
-          this.assignment.set(response.data as AssignmentDetail);
-          // Load my submission after assignment is loaded
-          this.loadMySubmission(assignmentId);
-        } else {
+        if (!response.data) {
           this.error.set('Không tìm thấy bài tập');
           this.isLoading.set(false);
+          return;
         }
+
+        this.assignment.set(this.normalizeAssignmentDetail(response.data));
+        this.loadMySubmission(assignmentId);
       },
       error: () => {
         this.error.set('Không thể tải bài tập. Vui lòng thử lại.');
         this.isLoading.set(false);
-      }
+      },
     });
   }
 
   private loadMySubmission(assignmentId: string): void {
     this.assignmentApi.getStudentSubmission(assignmentId).subscribe({
       next: (response) => {
-        if (response.data) {
-          this.mySubmission.set(response.data);
+        const submission = response.data ?? null;
+        this.mySubmission.set(submission);
+
+        if (submission?.content && !this.submissionContent().trim()) {
+          this.submissionContent.set(submission.content);
         }
+
         this.isLoading.set(false);
       },
-      error: (err) => {
-        // 404 means no submission yet - that's OK
-        if (err.status !== 404) {
-        }
+      error: () => {
         this.isLoading.set(false);
-      }
+      },
     });
+  }
+
+  private normalizeAssignmentDetail(detail: StudentAssignmentDetail): StudentAssignmentDetail {
+    const courseTitle = detail.courseTitle || detail.courseName || '';
+    return {
+      ...detail,
+      courseTitle,
+      courseName: detail.courseName || courseTitle,
+    };
   }
 
   goBack(): void {
@@ -90,18 +105,20 @@ export class AssignmentWorkComponent implements OnInit {
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    if (input.files) {
-      const files = Array.from(input.files);
-      this.uploadedFiles.update(current => [...current, ...files]);
+    if (!input.files) {
+      return;
     }
+
+    const files = Array.from(input.files);
+    this.uploadedFiles.update((current) => [...current, ...files]);
   }
 
   removeFile(file: File): void {
-    this.uploadedFiles.update(current => current.filter(f => f !== file));
+    this.uploadedFiles.update((current) => current.filter((currentFile) => currentFile !== file));
   }
 
   getWordCount(text: string): number {
-    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+    return text.trim().split(/\s+/).filter((word) => word.length > 0).length;
   }
 
   formatFileSize(bytes: number): string {
@@ -142,48 +159,60 @@ export class AssignmentWorkComponent implements OnInit {
     return 'Chưa nộp';
   }
 
-  getGradeScore(grade: any): number {
-    // First check direct score on submission
+  getGradeScore(grade: unknown): number {
     const submission = this.mySubmission();
-    if (submission?.score !== undefined && submission?.score !== null) {
+    if (submission?.score !== undefined && submission.score !== null) {
       return submission.score;
     }
-    // Then check grade object
-    if (!grade) return 0;
-    if (typeof grade === 'number') return grade;
-    if (typeof grade === 'object' && grade.score !== undefined) return grade.score;
+
+    if (typeof grade === 'number') {
+      return grade;
+    }
+
+    if (grade && typeof grade === 'object' && 'score' in grade) {
+      const score = (grade as { score?: unknown }).score;
+      return typeof score === 'number' ? score : 0;
+    }
+
     return 0;
   }
 
-  getGradeFeedback(grade: any): string {
-    // First check direct feedback on submission
+  getGradeFeedback(grade: unknown): string {
     const submission = this.mySubmission();
     if (submission?.feedback) {
       return submission.feedback;
     }
-    // Then check grade object
-    if (!grade) return '';
-    if (typeof grade === 'object' && grade.feedback) return grade.feedback;
+
+    if (grade && typeof grade === 'object' && 'feedback' in grade) {
+      const feedback = (grade as { feedback?: unknown }).feedback;
+      return typeof feedback === 'string' ? feedback : '';
+    }
+
     return '';
   }
 
   hasGrade(): boolean {
     const submission = this.mySubmission();
-    if (!submission) return false;
-    // Check direct score or grade object
-    return (submission.score !== undefined && submission.score !== null) ||
-      (submission.grade !== undefined && submission.grade !== null);
+    if (!submission) {
+      return false;
+    }
+
+    return (
+      (submission.score !== undefined && submission.score !== null) ||
+      (submission.grade !== undefined && submission.grade !== null)
+    );
   }
 
   canSubmit(): boolean {
-    const hasContent = this.submissionContent().trim().length > 0;
-    return hasContent;
+    return this.submissionContent().trim().length > 0 || this.uploadedFiles().length > 0;
   }
 
   canResubmit(): boolean {
-    // Allow resubmit if not graded yet
     const submission = this.mySubmission();
-    if (!submission) return true;
+    if (!submission) {
+      return true;
+    }
+
     return !this.hasGrade();
   }
 
@@ -197,33 +226,31 @@ export class AssignmentWorkComponent implements OnInit {
     this.error.set(null);
 
     try {
-      // Upload files first if any
-      const fileUrls: string[] = [];
       let firstFileUrl = '';
       let firstFileName = '';
+
       for (const file of this.uploadedFiles()) {
         try {
           const uploaded = await firstValueFrom(this.fileApi.uploadFile(file, 'assignment'));
-          fileUrls.push(uploaded.url);
           if (!firstFileUrl) {
             firstFileUrl = uploaded.url;
             firstFileName = uploaded.originalName || file.name;
           }
         } catch {
-          // Continue with other files
+          // Keep trying remaining files.
         }
       }
 
-      // BE expects { content, fileUrl, fileName } - include file info
-      const payload: any = {
-        content: this.submissionContent(),
-        fileUrl: firstFileUrl || null,
-        fileName: firstFileName || null
+      const payload = {
+        content: this.submissionContent().trim() || undefined,
+        fileUrl: firstFileUrl || undefined,
+        fileName: firstFileName || undefined,
       };
 
       const response = await firstValueFrom(
         this.assignmentApi.submitStudentAssignment(assignmentId.toString(), payload)
       );
+
       if (response.data) {
         const submissionResponse = await firstValueFrom(
           this.assignmentApi.getStudentSubmission(assignmentId.toString())

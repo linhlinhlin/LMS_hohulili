@@ -97,6 +97,10 @@
   position: relative;
 }
 
+.nav-item.has-children {
+  align-items: flex-start;
+}
+
 .nav-item:hover {
   background-color: #f9fafb;
 }
@@ -124,6 +128,10 @@
   font-weight: 500;
   font-size: 0.875rem;
   flex: 1;
+}
+
+.nav-item.has-children .nav-label {
+  line-height: 1.25rem;
 }
 
 .nav-badge {
@@ -157,8 +165,14 @@
 }
 
 .sub-menu {
-  margin-left: 2rem;
-  margin-top: 0.5rem;
+  margin-left: 1rem;
+  margin-top: 0.4rem;
+  padding-left: 0.75rem;
+  border-left: 1px solid #e2e8f0;
+}
+
+.sub-menu-block + .sub-menu-block {
+  margin-top: 0.25rem;
 }
 
 .sub-menu-item {
@@ -169,6 +183,34 @@
   color: #6b7280;
   border-radius: 0.5rem;
   transition: all 0.2s;
+}
+
+.sub-menu-item.has-children {
+  font-weight: 600;
+  color: #334155;
+}
+
+.sub-menu-item.active {
+  background-color: #eff6ff;
+  color: #0056D2;
+  font-weight: 600;
+}
+
+.sub-menu--nested {
+  margin-left: 0.5rem;
+  margin-top: 0.3rem;
+  border-left-color: #dbeafe;
+}
+
+.sub-menu-item--nested {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.8125rem;
+}
+
+.sub-menu-label {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.25rem;
 }
 
 .sub-menu-item:hover {
@@ -269,6 +311,10 @@
 .sidebar-collapsed .nav-item {
   justify-content: center;
   padding: 0.625rem;
+}
+
+.sidebar-collapsed .nav-item.has-children {
+  align-items: center;
 }
 
 .sidebar-collapsed .nav-icon {

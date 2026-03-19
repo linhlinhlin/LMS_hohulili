@@ -1,0 +1,55 @@
+:host {
+  display: block;
+  min-height: 100%;
+  --editor-card-radius: 0.625rem;
+  --editor-control-radius: 0.5rem;
+  --editor-card-border: rgb(217 226 236);
+  --editor-card-header-border: rgb(214 223 236);
+  --editor-control-border: rgb(193 204 218);
+}
+
+.course-classes-page {
+  min-height: 100%;
+}
+
+.course-classes-page .editor-classes-panel {
+  border-color: var(--editor-card-border) !important;
+  border-radius: var(--editor-card-radius) !important;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 14px 30px rgba(15, 23, 42, 0.035);
+}
+
+.course-classes-page .editor-classes-panel__header {
+  border-bottom-color: var(--editor-card-header-border) !important;
+  background: linear-gradient(180deg, rgb(243 246 249), rgb(235 240 246));
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.course-classes-page .editor-classes-panel__filters {
+  border-bottom-color: var(--editor-card-header-border) !important;
+  background: linear-gradient(180deg, rgba(247, 250, 252, 0.96), rgba(242, 246, 250, 0.92));
+}
+
+.course-classes-page .rounded-lg,
+.course-classes-page .rounded-md {
+  border-radius: var(--editor-control-radius) !important;
+}
+
+.course-classes-page input,
+.course-classes-page select {
+  border-color: var(--editor-control-border) !important;
+  border-radius: var(--editor-control-radius) !important;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.035), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.course-classes-page input:focus,
+.course-classes-page select:focus {
+  outline: none;
+  border-color: rgb(0 86 210) !important;
+  box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.1);
+}
+
+.course-classes-page thead {
+  background: rgb(248 250 252) !important;
+}

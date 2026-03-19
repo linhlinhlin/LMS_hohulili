@@ -1,0 +1,75 @@
+:host {
+  display: block;
+  min-height: 100%;
+  --editor-card-radius: 0.625rem;
+  --editor-control-radius: 0.5rem;
+  --editor-card-border: rgb(217 226 236);
+  --editor-card-header-border: rgb(214 223 236);
+  --editor-control-border: rgb(193 204 218);
+}
+
+.course-settings-page {
+  min-height: 100%;
+}
+
+.course-settings-page .editor-settings-panel {
+  border-color: var(--editor-card-border) !important;
+  border-radius: var(--editor-card-radius) !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 14px 30px rgba(15, 23, 42, 0.035);
+}
+
+.course-settings-page .editor-settings-panel > div:first-child {
+  border-bottom-color: var(--editor-card-header-border) !important;
+  background: linear-gradient(180deg, rgb(243 246 249), rgb(235 240 246));
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.course-settings-page .editor-settings-panel > div:last-child {
+  background: linear-gradient(180deg, rgba(247, 250, 252, 0.98), rgba(242, 246, 250, 0.94));
+}
+
+.course-settings-page .editor-settings-panel--danger > div:first-child {
+  background: linear-gradient(180deg, rgb(254 242 242), rgb(254 226 226));
+}
+
+.course-settings-page .rounded-xl {
+  border-radius: var(--editor-card-radius) !important;
+}
+
+.course-settings-page .rounded-lg {
+  border-radius: var(--editor-control-radius) !important;
+}
+
+.course-settings-page button.rounded-lg,
+.course-settings-page button.rounded-xl,
+.course-settings-page input,
+.course-settings-page select,
+.course-settings-page textarea {
+  border-radius: var(--editor-control-radius) !important;
+}
+
+.course-settings-page button.border,
+.course-settings-page input,
+.course-settings-page select,
+.course-settings-page textarea {
+  border-color: var(--editor-control-border);
+}
+
+.course-settings-page input,
+.course-settings-page select,
+.course-settings-page textarea {
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.035), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.course-settings-page input:focus,
+.course-settings-page select:focus,
+.course-settings-page textarea:focus {
+  outline: none;
+  border-color: rgb(0 86 210) !important;
+  box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.1);
+}
+
+.course-settings-page .editor-settings-save-button {
+  border-radius: var(--editor-control-radius) !important;
+}

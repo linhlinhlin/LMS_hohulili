@@ -1,26 +1,14 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
 
-type AssessmentContext = 'courses' | 'classes' | 'shared';
-
-interface ContextTab {
-  id: AssessmentContext;
-  label: string;
-  href: string;
-}
-
-interface SubnavItem {
-  label: string;
-  href: string;
-}
-
 @Component({
   selector: 'app-assessments-shell',
-  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [CommonModule, RouterOutlet],
   templateUrl: './assessments-shell.component.html',
+  styleUrl: './assessments-shell.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AssessmentsShellComponent {
@@ -35,22 +23,7 @@ export class AssessmentsShellComponent {
     { initialValue: this.router.url }
   );
 
-  readonly contextTabs: ContextTab[] = [
-    { id: 'courses', label: 'Khóa học', href: '/teacher/assessments/courses/overview' },
-    { id: 'classes', label: 'Lớp học', href: '/teacher/assessments/classes/assignments' },
-    { id: 'shared', label: 'Dùng chung', href: '/teacher/assessments/shared/question-bank' },
-  ];
-
-  readonly currentContext = computed<AssessmentContext>(() => {
-    const url = this.currentUrl();
-    if (url.includes('/teacher/assessments/shared')) {
-      return 'shared';
-    }
-    if (url.includes('/teacher/assessments/courses')) {
-      return 'courses';
-    }
-    return 'classes';
-  });
+  readonly sectionLabel = 'Bài tập & Ngân hàng câu hỏi';
 
   readonly pageTitle = computed(() => {
     const url = this.currentUrl();
@@ -59,12 +32,16 @@ export class AssessmentsShellComponent {
       return 'Ngân hàng câu hỏi';
     }
 
-    if (url.includes('/teacher/assessments/shared/rubrics')) {
-      return 'Thư viện rubric';
+    if (url.includes('/teacher/assessments/shared/rubrics/create')) {
+      return 'Tạo rubric';
     }
 
-    if (url.includes('/teacher/assessments/courses/overview')) {
-      return 'Đánh giá ở cấp khóa học';
+    if (url.includes('/teacher/assessments/shared/rubrics/edit')) {
+      return 'Chỉnh sửa rubric';
+    }
+
+    if (url.includes('/teacher/assessments/shared/rubrics')) {
+      return 'Thư viện rubric';
     }
 
     if (url.includes('/teacher/assessments/classes/assignments/create')) {
@@ -80,7 +57,7 @@ export class AssessmentsShellComponent {
     }
 
     if (url.includes('/teacher/assessments/classes/assignments')) {
-      return 'Vận hành bài tập';
+      return 'Giao bài tập';
     }
 
     if (/\/teacher\/assessments\/classes\/quizzes\/[^/]+\/essay-grading/.test(url)) {
@@ -96,28 +73,9 @@ export class AssessmentsShellComponent {
     }
 
     if (url.includes('/teacher/assessments/classes/quizzes')) {
-      return 'Vận hành bài kiểm tra';
+      return 'Bài kiểm tra';
     }
 
-    return 'Đánh giá';
-  });
-
-  readonly subnavItems = computed<SubnavItem[]>(() => {
-    switch (this.currentContext()) {
-      case 'courses':
-        return [
-          { label: 'Tổng quan', href: '/teacher/assessments/courses/overview' },
-        ];
-      case 'shared':
-        return [
-          { label: 'Ngân hàng câu hỏi', href: '/teacher/assessments/shared/question-bank' },
-          { label: 'Thư viện Rubric', href: '/teacher/assessments/shared/rubrics' },
-        ];
-      default:
-        return [
-          { label: 'Bài tập', href: '/teacher/assessments/classes/assignments' },
-          { label: 'Bài kiểm tra', href: '/teacher/assessments/classes/quizzes' },
-        ];
-    }
+    return this.sectionLabel;
   });
 }
