@@ -75,6 +75,10 @@ app:
       enabled: ${VIDEO_INGEST_ENABLED:true}
     playback-token-expiry-seconds: ${VIDEO_PLAYBACK_TOKEN_EXPIRY_SECONDS:14400}
     segment-presign-ttl-seconds: ${VIDEO_SEGMENT_PRESIGN_TTL_SECONDS:120}
+    media-domain: ${VIDEO_MEDIA_DOMAIN:}
+    edge-auth-mode: ${VIDEO_EDGE_AUTH_MODE:disabled}
+    edge-hmac-secret: ${VIDEO_EDGE_HMAC_SECRET:}
+    edge-token-expiry-seconds: ${VIDEO_EDGE_TOKEN_EXPIRY_SECONDS:300}
     manifest-cache-seconds: ${VIDEO_MANIFEST_CACHE_SECONDS:60}
     object-redirect-cache-seconds: ${VIDEO_OBJECT_REDIRECT_CACHE_SECONDS:30}
     package-upload-concurrency: ${VIDEO_PACKAGE_UPLOAD_CONCURRENCY:6}

@@ -71,6 +71,8 @@ SERVER_PORT=8088 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 - Production compose can run a dedicated `video-worker` service so ingest can be isolated from the web-serving backend
 - `video-worker` needs a network with outbound internet access in production; attaching it only to Docker `internal` networks will break R2 fetch/upload operations during ingest
 - Learner playback path: backend-signed adaptive manifest (`HLS` default, `DASH` supported) + short-lived presigned R2 segment/object redirects
+- Production playback scale path now supports `media.holilihu.online` on Cloudflare Free via Worker custom domain + HMAC query validation, so segment/init requests can bypass the backend `/object` hot path
+- Dedicated ingest worker is the current production truth; do not re-enable local `video-worker` on the app VM unless the worker VM is down or you are intentionally rolling back
 - Offline path: LMS-managed MP4 profiles `SAVER`, `STANDARD`, `HIGH`, `ORIGINAL`
 - Published learner content comes from `course_publications` snapshots. If a teacher adds or changes `videoAssetId` on an already `APPROVED` course, the draft must be submitted and approved again before learner smoke will see the new internal video.
 - Observed production baseline on the current VM: a sample `~156 MB` `1080p` upload took a little over `20 minutes` to reach `READY/READY`. That impacts teacher upload-to-ready latency and ingest queue throughput, not playback quality/performance for assets already `READY`.
@@ -81,9 +83,15 @@ SERVER_PORT=8088 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 - The worker now uses a one-pass multi-rendition ffmpeg path for adaptive transcodes so `SAVER` and `STANDARD` no longer re-decode the same source in separate ffmpeg runs.
 - Latest production measurement on the current VM: after switching to `VIDEO_FFMPEG_PRESET=superfast` and one-pass transcode, the sample `~156 MB / 1080p` asset reached `READY/READY` in about `14m19s` instead of `21m22s`; the trade-off is higher `SAVER` / `STANDARD` output size and average bandwidth than the older `veryfast` baseline.
 - Reusable production smoke helper now lives at `../scripts/prod-video-smoke.ps1` for `upload -> confirm -> asset -> READY -> manifest preview` verification.
+- Reusable distributed playback helper now lives at `../scripts/run-distributed-scenario.ps1` for two-origin `autocannon` bursts against a ready signed URL.
 - Playback now uses short-lived backend caches for raw manifests and presigned object redirects, which lowers repeat R2 reads/signing work when multiple learners are pulling the same asset around the same time.
 - `../docker-compose.prod.yml` now exposes resource tuning knobs such as `VIDEO_WORKER_CPU_LIMIT`, `VIDEO_WORKER_MEMORY_LIMIT`, `BACKEND_CPU_LIMIT`, and `BACKEND_MEMORY_LIMIT` so production can rebalance worker vs web capacity without editing the compose file itself.
 - Cloudflare Stream is no longer the target runtime dependency for new internal video. Keep `CLOUDFLARE_STREAM_ENABLED=false` unless doing legacy investigation.
+- Current distributed playback baseline from two origins (`local + worker VM`) with fresh signed URLs:
+  - `media-domain HLS object`: `100 + 100` conns about `1441 req/s` combined, health stayed `UP`
+  - `media-domain HLS object`: `200 + 200` conns about `2826 req/s` combined, health stayed `UP`
+  - `HLS master manifest`: `50 + 50` conns about `491 req/s` combined, health stayed `UP`
+- Read these numbers as controlled synthetic baselines, not final many-region viewer capacity.
 - Setup/cutover runbooks:
   - `../docs/runbooks/CLOUDFLARE_R2_VIDEO_SETUP.md`
   - `../docs/runbooks/VIDEO_R2_SHAKA_CUTOVER_CHECKLIST.md`

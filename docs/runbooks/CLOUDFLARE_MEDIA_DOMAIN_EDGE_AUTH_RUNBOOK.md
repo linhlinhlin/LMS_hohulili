@@ -1,8 +1,28 @@
 # Cloudflare Media Domain + Edge Auth Runbook
 
-Last updated: 2026-03-19
+Last updated: 2026-03-20
 
 Runbook này dành cho phase scale playback tiếp theo, khi muốn để nhiều learner cùng xem một asset mà backend không còn đứng trong hot path của segment delivery.
+
+## 0. Bạn cần làm gì
+
+Nếu muốn bật phase này thật, phần Cloudflare vẫn cần thao tác ngoài repo:
+
+1. tạo hostname `media.holilihu.online`
+2. quyết định dùng:
+   - `WAF timed HMAC` nếu zone là `Pro+`
+   - hoặc `Worker fallback` nếu zone là `Free`
+3. tạo shared secret cho edge auth
+4. sau đó điền trên server:
+   - `VIDEO_MEDIA_DOMAIN=https://media.holilihu.online`
+   - `VIDEO_EDGE_AUTH_MODE=media_hmac_query`
+   - `VIDEO_EDGE_HMAC_SECRET=<shared-secret>`
+   - `VIDEO_EDGE_TOKEN_EXPIRY_SECONDS=300`
+
+Repo đã có sẵn worker fallback template ở:
+
+- [cloudflare/workers/media-edge-auth-worker.js](/E:/Sach/Sua/LMS_hohulili/cloudflare/workers/media-edge-auth-worker.js)
+- [cloudflare/workers/wrangler.media-edge-auth.example.toml](/E:/Sach/Sua/LMS_hohulili/cloudflare/workers/wrangler.media-edge-auth.example.toml)
 
 ## 1. Mục tiêu
 
@@ -110,6 +130,11 @@ Trade-off:
 - linh hoạt hơn
 - nhưng custom code nhiều hơn
 
+File template trong repo:
+
+- [cloudflare/workers/media-edge-auth-worker.js](/E:/Sach/Sua/LMS_hohulili/cloudflare/workers/media-edge-auth-worker.js)
+- [cloudflare/workers/wrangler.media-edge-auth.example.toml](/E:/Sach/Sua/LMS_hohulili/cloudflare/workers/wrangler.media-edge-auth.example.toml)
+
 ## 8. Thay đổi backend cần triển khai sau khi Cloudflare sẵn sàng
 
 Backend sẽ cần:
@@ -135,6 +160,82 @@ Trong repo hiện tại, điểm sửa chính sẽ nằm ở:
 6. xác nhận segment requests đi vào `media.holilihu.online`
 7. xác nhận backend không còn thấy volume `/object` tương ứng
 
+### Baseline da xac nhan tren production
+
+Tinh den 2026-03-20, rollout `media.holilihu.online` da duoc xac nhan tren production:
+
+- request khong token tra `403`
+- HLS signed media segment tra `200`
+- DASH signed media object tra `200`
+
+Batch synthetic co kiem soat tu mot client:
+
+- `HLS master manifest`
+  - `50` ket noi trong `10s`: khoang `102 req/s`, avg latency `435 ms`
+  - `100` ket noi trong `10s`: khoang `147 req/s`, avg latency `664 ms`
+- `backend /object redirect`
+  - `100` ket noi trong `10s`: khoang `473 req/s`, `302` as expected
+  - `200` ket noi trong `10s`: khoang `491 req/s`, `302` as expected
+- `media-domain HLS segment`
+  - `100` ket noi trong `10s`: khoang `342 req/s`, avg latency `290 ms`
+  - `200` ket noi trong `10s`: khoang `293 req/s`, avg latency `671 ms`
+  - `300` ket noi trong `10s`: khoang `412 req/s`, avg latency `732 ms`, co `1` client-side error trong ca burst
+- `media-domain DASH object`
+  - `100` ket noi trong `10s`: khoang `615 req/s`, avg latency `161 ms`
+  - `200` ket noi trong `10s`: khoang `1171 req/s`, avg latency `170 ms`
+
+Sau ca batch lon nay, `https://holilihu.online/actuator/health` van tra `UP`.
+
+Khong duoc doc baseline nay nhu load-test cuoi cung cho nhieu learner that; day la moc xac nhan production da on dinh hon va cho thay data plane qua media domain khoe hon ro ret so voi control-plane manifest path.
+
+### Baseline distributed da xac nhan tu hai origin
+
+Batch nay dung hai origin cung luc:
+
+- local machine
+- dedicated `lms-video-worker` VM
+
+Tat ca URL media deu duoc mint moi ngay truoc khi chay vi token `verify` hien co TTL ngan.
+
+- `media-domain HLS object`, `100 + 100` ket noi, `15s`
+  - local: khoang `597 req/s`, avg latency `168 ms`, `100% 2xx`
+  - worker VM: khoang `844 req/s`, avg latency `118 ms`, `100% 2xx`
+  - tong hop: khoang `1441 req/s`, health sau batch van `UP`
+- `media-domain HLS object`, `200 + 200` ket noi, `15s`
+  - local: khoang `1176 req/s`, avg latency `171 ms`, `100% 2xx`
+  - worker VM: khoang `1650 req/s`, avg latency `121 ms`, `100% 2xx`
+  - tong hop: khoang `2826 req/s`, health sau batch van `UP`
+- `HLS master manifest`, `50 + 50` ket noi, `15s`
+  - local: khoang `215 req/s`, avg latency `232 ms`, `100% 2xx`
+  - worker VM: khoang `277 req/s`, avg latency `180 ms`, `100% 2xx`
+  - tong hop: khoang `491 req/s`, health sau batch van `UP`
+
+Doc ket qua dung muc:
+
+- batch nay da gan hon mot so viewer that so voi single-origin burst
+- nhung day van la synthetic distributed test, khong phai many-region real-user benchmark
+- manifest/control plane van cham hon data plane qua `media.holilihu.online`, nen phase tiep theo neu can scale nua se tiep tuc toi uu manifest path
+
+### Package-path nuance quan trong
+
+Shaka Packager trong repo nay ghi media references theo package root:
+
+- `hls/saver.m3u8` chua `segments/saver/init.mp4`
+- `dash/manifest.mpd` chua `segments/audio/init.mp4`, `segments/standard/$Number$.m4s`
+
+Vi vay backend khong duoc resolve `segments/...` theo thu muc manifest (`hls/` hoac `dash/`), neu khong se sinh sai key nhu:
+
+- `video-packages/{assetId}/hls/segments/...`
+- `video-packages/{assetId}/dash/segments/...`
+
+Key dung phai la:
+
+- `video-packages/{assetId}/segments/...`
+
+Neu smoke media domain tra `404` nhung Worker/token van dung, day la diem can kiem tra dau tien.
+
+Script helper da duoc xac nhan cho batch distributed nay la `scripts/run-distributed-scenario.ps1`; hay dung script nay thay cho cac helper thu nghiem cu.
+
 ## 10. Rollback
 
 Nếu phase này lỗi:
@@ -149,3 +250,4 @@ Nếu phase này lỗi:
 - Worker VM riêng giúp `upload -> READY`.
 - Media domain + edge auth giúp concurrent playback.
 - Chỉ tắt backend `/object` path sau khi load-test và smoke pass ổn định.
+- Worker fallback trong repo validate đúng token dạng `verify=<timestamp>-<base64mac>` mà backend hiện đang sinh, nên có thể triển khai trên Cloudflare Free mà không cần đổi backend contract lần nữa.

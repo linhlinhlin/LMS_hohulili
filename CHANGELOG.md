@@ -34,9 +34,17 @@ Mọi thay đổi đáng chú ý của dự án này sẽ được ghi ở đây
 - Thêm topology worker riêng vận hành được thật: `docker-compose.video-worker.yml`, `.env.video-worker.example`, `deploy-video-worker.sh`, và profile `video-worker` trong production compose để app VM có thể tắt local worker bằng `ENABLE_LOCAL_VIDEO_WORKER=false` khi đã chuyển ingest sang VM riêng.
 - Thêm architecture note `docs/architecture/2026-03-19-media-domain-edge-auth-plan.md` để chốt hướng scale playback tiếp theo: media custom domain trên R2, edge auth, cache key không phân mảnh theo token, và backend ra khỏi hot path segment delivery.
 - Thêm spec `docs/superpowers/specs/2026-03-19-media-domain-edge-auth-design.md` và runbook `docs/runbooks/CLOUDFLARE_MEDIA_DOMAIN_EDGE_AUTH_RUNBOOK.md` để phase `custom media domain + edge auth` có thể handoff trực tiếp cho team Cloudflare/backend.
+- Backend adaptive playback giờ đã có feature flag cho phase media domain: khi đặt `VIDEO_MEDIA_DOMAIN` + `VIDEO_EDGE_AUTH_MODE=media_hmac_query` + `VIDEO_EDGE_HMAC_SECRET`, manifest object URLs có thể được rewrite sang media domain trực tiếp với token dạng `verify=<timestamp>-<base64mac>` tương thích Cloudflare timed HMAC; nếu thiếu hoặc sai config thì playback tự fallback về backend `/object` path hiện tại.
+- Thêm Worker fallback template cho Cloudflare Free ở `cloudflare/workers/media-edge-auth-worker.js` cùng `wrangler.media-edge-auth.example.toml`, để validate cùng token `verify` mà backend đang sinh và đọc object trực tiếp từ bucket `lms-storage`.
 - Bổ sung runbook setup/cutover cho production:
   - `docs/runbooks/CLOUDFLARE_R2_VIDEO_SETUP.md`
   - `docs/runbooks/VIDEO_R2_SHAKA_CUTOVER_CHECKLIST.md`
+
+ - Production edge-auth rollout da duoc xac nhan end-to-end tren `media.holilihu.online`: request khong token tra `403`, con HLS/DASH signed media object request tra `200` qua Worker custom domain.
+ - Va root cause media-domain rewrite: Shaka ghi media references theo package-root `segments/...`, khong nam duoi `hls/` hay `dash/`, nen backend da chuyen sang resolve `segments/...` ve `video-packages/{assetId}/segments/...` de tranh `404 Object not found`.
+ - Da chay controlled production playback load batch sau cutover edge auth: health van `UP`, manifest/backend-control-plane va media-domain data-plane deu co baseline moi de team dung cho tuning va load-test phase sau.
+ - Da bo sung them batch distributed playback tu hai origin (`local + dedicated worker VM`) voi fresh signed URLs; media-domain HLS object da giu duoc khoang `1441 req/s` o muc `100 + 100` conns va khoang `2826 req/s` o muc `200 + 200` conns trong khi app health van `UP`.
+ - Giu lai `scripts/run-distributed-scenario.ps1` lam helper chinh thuc cho burst playback distributed, va loai bo helper thu nghiem khong on dinh de repo de van hanh hon.
 
 ### Video / Authoring
 

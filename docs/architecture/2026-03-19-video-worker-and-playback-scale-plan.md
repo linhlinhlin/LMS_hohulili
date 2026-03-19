@@ -1,6 +1,6 @@
 # Video Worker And Playback Scale Plan
 
-Last updated: 2026-03-19
+Last updated: 2026-03-20
 
 ## Executive summary
 
@@ -64,15 +64,16 @@ Official references align with splitting media processing from user-facing servi
 
 - keep web/API and reverse proxy on the current app VM
 - keep `video-worker` as a separate runtime role
-- move the `video-worker` role onto a dedicated VM when budget allows
+- dedicated `video-worker` VM is now live on GCP and is the current production truth
+- current production topology is:
+  - app VM: `e2-medium`
+  - worker VM: `e2-standard-4`
 
-Important current blocker:
+Current compromise / debt:
 
-- the production PostgreSQL instance still lives inside the app VM Docker topology and is not exposed outside that host by default
-- a separate worker VM therefore needs an explicit database connectivity path before rollout
-- the safe near-term choices are:
-  - expose PostgreSQL only on the app VM private IP and restrict ingress to the worker VM
-  - or move PostgreSQL to Cloud SQL / another private DB endpoint first
+- the production PostgreSQL instance still lives inside the app VM Docker topology
+- worker VM connectivity is currently provided through a private-IP host binding / forwarding path on the app VM
+- this is acceptable for the current stage, but Cloud SQL or another private managed DB endpoint is still the cleaner long-term direction
 
 ### Later
 
@@ -229,6 +230,16 @@ But it should be treated as:
 not as:
 
 - the final answer for large concurrent playback
+
+## Production note as of 2026-03-20
+
+- the dedicated `video-worker` VM has now been rolled out and is the current production truth
+- current machine split is:
+  - app VM: `e2-medium`
+  - worker VM: `e2-standard-4`
+- the current DB connectivity path is a private-IP host binding / forwarding path on the app VM
+- that compromise is acceptable for the current phase, but Cloud SQL or another private managed DB endpoint is still the cleaner long-term move
+- the next infrastructure upgrade, if ingest latency still matters, should be a more compute-heavy worker machine rather than moving media work back onto the web VM
 
 ## References
 

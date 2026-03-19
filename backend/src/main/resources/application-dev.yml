@@ -108,6 +108,10 @@ app:
   video:
     playback-token-expiry-seconds: 14400
     segment-presign-ttl-seconds: 120
+    media-domain: ${VIDEO_MEDIA_DOMAIN:}
+    edge-auth-mode: ${VIDEO_EDGE_AUTH_MODE:disabled}
+    edge-hmac-secret: ${VIDEO_EDGE_HMAC_SECRET:}
+    edge-token-expiry-seconds: ${VIDEO_EDGE_TOKEN_EXPIRY_SECONDS:300}
 
 # Cloudflare services in dev:
 # - R2 would store master/offline files if enabled

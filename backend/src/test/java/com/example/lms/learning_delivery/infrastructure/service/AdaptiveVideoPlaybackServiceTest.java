@@ -58,7 +58,118 @@ class AdaptiveVideoPlaybackServiceTest {
 
         assertThat(rewritten)
                 .contains("/api/v3/video-assets/" + assetId + "/adaptive/" + token + "/hls/playlist?key=")
+                .doesNotContain("https://media.holilihu.online/")
                 .contains("audio.m3u8");
+    }
+
+    @Test
+    @DisplayName("renderHlsManifest rewrites media objects to media domain when edge auth is enabled")
+    void renderHlsManifestUsesMediaDomainForObjectsWhenEnabled() throws Exception {
+        UUID assetId = UUID.randomUUID();
+        String token = "play-token";
+        String manifestKey = "video-packages/" + assetId + "/hls/standard.m3u8";
+
+        VideoAssetJpaEntity asset = VideoAssetJpaEntity.builder()
+                .id(assetId)
+                .status("READY")
+                .adaptivePackagingStatus("READY")
+                .hlsManifestStorageKey("video-packages/" + assetId + "/hls/master.m3u8")
+                .build();
+
+        ReflectionTestUtils.setField(service, "mediaDomain", "media.holilihu.online/");
+        when(videoAssetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(videoPlaybackTokenService.parseAndValidate(token)).thenReturn(
+                new VideoPlaybackTokenService.PlaybackClaims(assetId, UUID.randomUUID(), "hls")
+        );
+        when(videoPlaybackTokenService.isMediaDomainEdgeAuthEnabled()).thenReturn(true);
+        when(videoPlaybackTokenService.mintEdgeObjectToken("/video-packages/" + assetId + "/segments/standard/init.mp4"))
+                .thenReturn("1700000000-signature=");
+        when(videoPlaybackTokenService.mintEdgeObjectToken("/video-packages/" + assetId + "/segments/standard/segment1.m4s"))
+                .thenReturn("1700000000-signature=");
+        when(adaptiveVideoPlaybackCacheService.readManifest(manifestKey)).thenReturn("""
+                #EXTM3U
+                #EXT-X-MAP:URI="segments/standard/init.mp4"
+                #EXTINF:6.0,
+                segments/standard/segment1.m4s
+                """);
+
+        String rewritten = service.renderHlsManifest(assetId, token, manifestKey);
+
+        assertThat(rewritten)
+                .contains("https://media.holilihu.online/video-packages/" + assetId + "/segments/standard/init.mp4?verify=")
+                .contains("https://media.holilihu.online/video-packages/" + assetId + "/segments/standard/segment1.m4s?verify=")
+                .doesNotContain("/object?key=");
+    }
+
+    @Test
+    @DisplayName("renderHlsManifest keeps playlist URLs on backend even when media domain is enabled")
+    void renderHlsManifestKeepsPlaylistsOnBackendWhenEnabled() throws Exception {
+        UUID assetId = UUID.randomUUID();
+        String token = "play-token";
+        String manifestKey = "video-packages/" + assetId + "/hls/master.m3u8";
+
+        VideoAssetJpaEntity asset = VideoAssetJpaEntity.builder()
+                .id(assetId)
+                .status("READY")
+                .adaptivePackagingStatus("READY")
+                .hlsManifestStorageKey(manifestKey)
+                .build();
+
+        ReflectionTestUtils.setField(service, "mediaDomain", "https://media.holilihu.online");
+        when(videoAssetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(videoPlaybackTokenService.parseAndValidate(token)).thenReturn(
+                new VideoPlaybackTokenService.PlaybackClaims(assetId, UUID.randomUUID(), "hls")
+        );
+        when(adaptiveVideoPlaybackCacheService.readManifest(manifestKey)).thenReturn("""
+                #EXTM3U
+                #EXT-X-STREAM-INF:BANDWIDTH=1200000
+                saver.m3u8
+                #EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="Default",URI="audio.m3u8"
+                """);
+
+        String rewritten = service.renderHlsManifest(assetId, token, null);
+
+        assertThat(rewritten)
+                .contains("/api/v3/video-assets/" + assetId + "/adaptive/" + token + "/hls/playlist?key=")
+                .doesNotContain("https://media.holilihu.online/");
+    }
+
+    @Test
+    @DisplayName("renderDashManifest rewrites object URLs to media domain when edge auth is enabled")
+    void renderDashManifestUsesMediaDomainForObjectsWhenEnabled() throws Exception {
+        UUID assetId = UUID.randomUUID();
+        String token = "play-token";
+        String manifestKey = "video-packages/" + assetId + "/dash/manifest.mpd";
+
+        VideoAssetJpaEntity asset = VideoAssetJpaEntity.builder()
+                .id(assetId)
+                .status("READY")
+                .adaptivePackagingStatus("READY")
+                .dashManifestStorageKey(manifestKey)
+                .build();
+
+        ReflectionTestUtils.setField(service, "mediaDomain", "https://media.holilihu.online");
+        when(videoAssetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(videoPlaybackTokenService.parseAndValidate(token)).thenReturn(
+                new VideoPlaybackTokenService.PlaybackClaims(assetId, UUID.randomUUID(), "dash")
+        );
+        when(videoPlaybackTokenService.isMediaDomainEdgeAuthEnabled()).thenReturn(true);
+        when(videoPlaybackTokenService.mintEdgeObjectToken("/video-packages/" + assetId + "/segments/audio/init.mp4"))
+                .thenReturn("1700000000-signature=");
+        when(videoPlaybackTokenService.mintEdgeObjectToken("/video-packages/" + assetId + "/segments/audio/$Number$.m4s"))
+                .thenReturn("1700000000-signature=");
+        when(adaptiveVideoPlaybackCacheService.readManifest(manifestKey)).thenReturn("""
+                <MPD>
+                  <Representation initialization="segments/audio/init.mp4" media="segments/audio/$Number$.m4s" />
+                </MPD>
+                """);
+
+        String rewritten = service.renderDashManifest(assetId, token);
+
+        assertThat(rewritten)
+                .contains("https://media.holilihu.online/video-packages/" + assetId + "/segments/audio/init.mp4?verify=")
+                .contains("https://media.holilihu.online/video-packages/" + assetId + "/segments/audio/$Number$.m4s?verify=")
+                .doesNotContain("/object?key=");
     }
 
     @Test

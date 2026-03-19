@@ -1,6 +1,6 @@
 # Media Domain And Edge Auth Plan
 
-Last updated: 2026-03-19
+Last updated: 2026-03-20
 
 ## Executive summary
 
@@ -245,6 +245,13 @@ After Phase 2A is stable:
 - optionally serve child playlists/manifests more directly from edge
 
 This is the phase where the system starts to look more like a managed CDN delivery model.
+
+## Production note as of 2026-03-20
+
+- the first edge-auth rollout is now live on production through `media.holilihu.online`
+- Cloudflare zone plan is `Free`, so the current production path uses a Worker custom domain rather than WAF timed HMAC
+- signed media object requests now bypass the backend `/object` hot path
+- manifest and playlist surfaces still stay on the LMS backend, which is why the next playback-scale step is manifest/control-plane optimization rather than another rewrite of segment delivery
 
 ## Worker VM and playback scale are separate concerns
 

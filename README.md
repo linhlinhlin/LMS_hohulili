@@ -111,6 +111,7 @@ Bắt đầu từ các tài liệu này:
 | [docs/reference/RUNTIME_CONVENTIONS.md](docs/reference/RUNTIME_CONVENTIONS.md) | Quy ước runtime chuẩn của repo |
 | [docs/runbooks/CLOUDFLARE_R2_VIDEO_SETUP.md](docs/runbooks/CLOUDFLARE_R2_VIDEO_SETUP.md) | Lấy Account ID, R2 keys, bucket, public URL, và CORS cho video pipeline |
 | [docs/runbooks/CLOUDFLARE_MEDIA_DOMAIN_EDGE_AUTH_RUNBOOK.md](docs/runbooks/CLOUDFLARE_MEDIA_DOMAIN_EDGE_AUTH_RUNBOOK.md) | Cấu hình `media.holilihu.online`, edge auth, và cache rules cho phase scale playback |
+| [cloudflare/workers/media-edge-auth-worker.js](cloudflare/workers/media-edge-auth-worker.js) | Worker fallback cho Cloudflare Free để validate `verify` token và đọc object trực tiếp từ `lms-storage` |
 | [docs/runbooks/VIDEO_R2_SHAKA_CUTOVER_CHECKLIST.md](docs/runbooks/VIDEO_R2_SHAKA_CUTOVER_CHECKLIST.md) | Checklist cutover video production sang `R2 + Shaka` |
 | [docs/runbooks/DEDICATED_VIDEO_WORKER_RUNBOOK.md](docs/runbooks/DEDICATED_VIDEO_WORKER_RUNBOOK.md) | Tách `video-worker` sang VM riêng để tăng ingest throughput mà không chèn CPU của web app |
 | [docs/runbooks/PRODUCTION_SMOKE_TEST.md](docs/runbooks/PRODUCTION_SMOKE_TEST.md) | Smoke test sau deploy |
@@ -209,6 +210,19 @@ mvn test -B
 - Video setup: [docs/runbooks/CLOUDFLARE_R2_VIDEO_SETUP.md](docs/runbooks/CLOUDFLARE_R2_VIDEO_SETUP.md)
 - Media domain + edge auth: [docs/runbooks/CLOUDFLARE_MEDIA_DOMAIN_EDGE_AUTH_RUNBOOK.md](docs/runbooks/CLOUDFLARE_MEDIA_DOMAIN_EDGE_AUTH_RUNBOOK.md)
 - Current production bucket split: public `lms-cdn` via `https://cdn.holilihu.online` + private `lms-storage` for presigned learner video/storage
+- Backend now supports manifest rewrite to direct `media.holilihu.online` object URLs via `VIDEO_MEDIA_DOMAIN`, `VIDEO_EDGE_AUTH_MODE=media_hmac_query`, and `VIDEO_EDGE_HMAC_SECRET`
+- Production edge auth is now live on Cloudflare Free via Worker custom domain: invalid/no-token media requests return `403`, while signed HLS/DASH object requests return `200`
+- Current production topology: app VM runs `backend/db/frontend/caddy`, local `video-worker` is disabled, and ingest runs on the dedicated worker VM
+- Current production playback baseline from a controlled synthetic batch:
+  - `HLS master manifest`: `50` conns about `102 req/s` avg latency `435 ms`; `100` conns about `147 req/s` avg latency `664 ms`
+  - `backend /object redirect`: `100` conns about `473 req/s` and `200` conns about `491 req/s`, both returning `302` as expected
+  - `media-domain HLS segment`: `100` conns about `342 req/s`, `200` conns about `293 req/s`, `300` conns about `412 req/s` with one client-side error across the whole burst
+  - `media-domain DASH object`: `100` conns about `615 req/s`, `200` conns about `1171 req/s`
+- Controlled distributed playback baseline from two origins (`local machine + dedicated worker VM`) with fresh signed URLs:
+  - `media-domain HLS object`: `100 + 100` conns sustained about `1441 req/s` combined with app health still `UP`
+  - `media-domain HLS object`: `200 + 200` conns sustained about `2826 req/s` combined with app health still `UP`
+  - `HLS master manifest`: `50 + 50` conns sustained about `491 req/s` combined with app health still `UP`
+- Interpret the baselines carefully: the first batch is a one-client synthetic test and the second is a two-origin distributed synthetic test. Both are useful for operational confidence and relative tuning, but neither replaces a many-region load test with real viewer behavior.
 - Video cutover/smoke: [docs/runbooks/VIDEO_R2_SHAKA_CUTOVER_CHECKLIST.md](docs/runbooks/VIDEO_R2_SHAKA_CUTOVER_CHECKLIST.md)
 - Runbook deploy: [docs/deployment/GITHUB_ACTIONS_DEPLOY.md](docs/deployment/GITHUB_ACTIONS_DEPLOY.md)
 - Nếu teacher thêm hoặc đổi `videoAssetId` trên course đã `APPROVED`, phải `submit-for-approval` lại và để admin duyệt lại trước khi learner thấy thay đổi, vì learner đọc từ `course_publications` snapshot chứ không đọc draft trực tiếp

@@ -32,6 +32,9 @@ public class AdaptiveVideoPlaybackService {
     @Value("${app.video.segment-presign-ttl-seconds:120}")
     private long segmentPresignTtlSeconds;
 
+    @Value("${app.video.media-domain:}")
+    private String mediaDomain;
+
     public Optional<PlaybackSession> createPlaybackSession(UUID assetId, UUID userId, String requestedFormat) {
         VideoAssetJpaEntity asset = videoAssetRepository.findById(assetId).orElse(null);
         if (asset == null) {
@@ -211,9 +214,40 @@ public class AdaptiveVideoPlaybackService {
     }
 
     private String buildObjectUrl(UUID assetId, String token, String storageKey) {
+        if (isMediaDomainObjectDeliveryEnabled()) {
+            return buildMediaObjectUrl(storageKey);
+        }
         return "/api/v3/video-assets/" + assetId
                 + "/adaptive/" + token
                 + "/object?key=" + urlEncode(storageKey);
+    }
+
+    private boolean isMediaDomainObjectDeliveryEnabled() {
+        return normalizedMediaDomain() != null && videoPlaybackTokenService.isMediaDomainEdgeAuthEnabled();
+    }
+
+    private String buildMediaObjectUrl(String storageKey) {
+        String requestPath = "/" + storageKey;
+        String verifyToken = videoPlaybackTokenService.mintEdgeObjectToken(requestPath);
+        return normalizedMediaDomain() + requestPath + "?verify=" + urlEncode(verifyToken);
+    }
+
+    private String normalizedMediaDomain() {
+        if (mediaDomain == null) {
+            return null;
+        }
+
+        String value = mediaDomain.trim();
+        if (value.isBlank()) {
+            return null;
+        }
+        if (!value.startsWith("http://") && !value.startsWith("https://")) {
+            value = "https://" + value;
+        }
+        while (value.endsWith("/")) {
+            value = value.substring(0, value.length() - 1);
+        }
+        return value;
     }
 
     private void ensureStorageKeyAllowed(UUID assetId, String storageKey) {
@@ -238,10 +272,25 @@ public class AdaptiveVideoPlaybackService {
         if (normalizedReference.startsWith("/")) {
             return normalizeKey(normalizedReference.substring(1));
         }
+        if (normalizedReference.startsWith("segments/")) {
+            return normalizeKey(resolvePackageRoot(manifestStorageKey) + normalizedReference);
+        }
 
         int lastSlashIndex = manifestStorageKey.lastIndexOf('/');
         String basePath = lastSlashIndex >= 0 ? manifestStorageKey.substring(0, lastSlashIndex + 1) : "";
         return normalizeKey(basePath + normalizedReference);
+    }
+
+    private String resolvePackageRoot(String manifestStorageKey) {
+        if (manifestStorageKey == null || manifestStorageKey.isBlank()) {
+            return "";
+        }
+
+        String[] segments = manifestStorageKey.split("/");
+        if (segments.length < 2) {
+            return "";
+        }
+        return segments[0] + "/" + segments[1] + "/";
     }
 
     private String normalizeKey(String key) {

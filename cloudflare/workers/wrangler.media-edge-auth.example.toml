@@ -1,0 +1,19 @@
+name = "lms-media-edge-auth"
+main = "media-edge-auth-worker.js"
+compatibility_date = "2026-03-20"
+workers_dev = false
+
+routes = [
+  { pattern = "media.holilihu.online/video-packages/*", zone_name = "holilihu.online" }
+]
+
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "lms-storage"
+
+[vars]
+MEDIA_ALLOWED_ORIGIN = "https://holilihu.online"
+MEDIA_EDGE_TOKEN_EXPIRY_SECONDS = "300"
+
+# Secrets:
+# wrangler secret put MEDIA_EDGE_HMAC_SECRET

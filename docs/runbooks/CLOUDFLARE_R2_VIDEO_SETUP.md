@@ -32,6 +32,7 @@ Notes:
 - Large teacher video uploads should use the presigned upload flow. The current stack now switches larger videos to multipart direct-to-R2 upload, instead of relying on a single-object PUT for every size.
 - Keep the legacy direct backend upload path as a smaller fallback only. It is not the primary path for large learner-facing video.
 - The legacy direct `POST /api/v3/files/upload/video` path remains a smaller fallback and should not be treated as the primary path for multi-gigabyte videos.
+- Current production playback scale path also uses `media.holilihu.online` for signed media delivery. See `docs/runbooks/CLOUDFLARE_MEDIA_DOMAIN_EDGE_AUTH_RUNBOOK.md` for that layer.
 
 ## 2. Where to get each value
 

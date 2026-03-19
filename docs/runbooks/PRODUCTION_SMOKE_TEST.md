@@ -60,6 +60,15 @@ Kỳ vọng: `{"status":"UP"}`
   - `GET /api/v3/sections/{sectionId}/video/download?profile=STANDARD`
 - verify learner không đủ entitlement bị `403`
 
+Current production note:
+
+- dedicated-worker ingest baseline for the sample `~156 MB / 1080p` file is about `7m33s`
+- media object delivery truth is `media.holilihu.online`
+- invalid or missing media tokens should return `403`
+- signed HLS/DASH object requests should return `200`
+- `scripts/prod-video-smoke.ps1` is the upload-to-ready helper
+- `scripts/run-distributed-scenario.ps1` is the two-origin playback helper
+
 ## 8. PWA
 
 - nếu batch đụng SW/offline, mở `/reset-sw` rồi kiểm tra lại

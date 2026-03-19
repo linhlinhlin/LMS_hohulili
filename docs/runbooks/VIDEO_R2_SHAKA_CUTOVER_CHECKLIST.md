@@ -63,6 +63,10 @@ Notes:
 
 - Production compose now supports a dedicated `video-worker` service. Keep ingest enabled on the worker and disabled on the web backend if you want API traffic isolated from heavy packaging jobs.
 - Larger teacher video uploads may initialize as multipart uploads instead of returning a single presigned PUT URL. The teacher-facing flow should still complete as `init -> upload -> confirm`.
+- Current production truth is stronger than the original cutover target:
+  - ingest runs on the dedicated worker VM
+  - media object delivery runs through `media.holilihu.online`
+  - backend keeps entitlement + manifest control plane
 
 ## 5. Smoke flow
 
@@ -74,9 +78,10 @@ Notes:
 6. If the course is already `APPROVED`, call `POST /api/v3/teacher/courses/{courseId}/submit-for-approval`
 7. Approve the new publication via `PATCH /api/v3/admin/courses/{courseId}/approve`
 8. Wait until `status=READY` and `adaptivePackagingStatus=READY`
-   - On the current production VM, a sample `~156 MB` `1080p` file took a little over `20 minutes`. This affects authoring/upload-to-ready latency and ingest throughput, not playback quality for assets that are already `READY`.
+   - On the current dedicated-worker production topology, the sample `~156 MB` `1080p` file reached `READY/READY` in about `7m33s`. This affects authoring/upload-to-ready latency and ingest throughput, not playback quality for assets that are already `READY`.
 9. Verify learner `/api/v3/courses/{courseId}/content` exposes the section as `videoSourceKind=ADAPTIVE_R2`
 10. `GET /api/v3/sections/{sectionId}/video/play?format=hls`
 11. `GET /api/v3/sections/{sectionId}/video/play?format=dash`
 12. `GET /api/v3/sections/{sectionId}/video/download?profile=STANDARD`
 13. Verify unpaid learner gets `403`
+14. If `VIDEO_MEDIA_DOMAIN` is enabled, confirm media object URLs resolve through `media.holilihu.online` and no-token requests are blocked with `403`
