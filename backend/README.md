@@ -70,6 +70,8 @@ SERVER_PORT=8088 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 - Processing path: `ffprobe` + `ffmpeg` + `Shaka Packager`
 - Production compose can run a dedicated `video-worker` service so ingest can be isolated from the web-serving backend
 - `video-worker` needs a network with outbound internet access in production; attaching it only to Docker `internal` networks will break R2 fetch/upload operations during ingest
+- Remote worker-to-DB private forwarding is now expected to use `sslmode=disable` unless the forwarder itself terminates PostgreSQL SSL
+- If PostgreSQL is forwarded from the app VM to the worker VM through `socat`, the forwarder should resolve the current `lms-db-1` container IP dynamically instead of pinning a stale Docker IP
 - Learner playback path: backend-signed adaptive manifest (`HLS` default, `DASH` supported) + short-lived presigned R2 segment/object redirects
 - Production playback scale path now supports `media.holilihu.online` on Cloudflare Free via Worker custom domain + HMAC query validation, so segment/init requests can bypass the backend `/object` hot path
 - Dedicated ingest worker is the current production truth; do not re-enable local `video-worker` on the app VM unless the worker VM is down or you are intentionally rolling back

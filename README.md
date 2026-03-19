@@ -207,6 +207,8 @@ mvn test -B
 - `video-worker` trong `docker-compose.prod.yml` giờ nằm sau profile `video-worker`; giữ `ENABLE_LOCAL_VIDEO_WORKER=true` nếu muốn worker chạy cùng app VM, hoặc đặt `false` khi đã có worker VM riêng
 - `video-worker` must have outbound network access to R2; do not attach it only to an `internal` Docker network or ingest will fail on source/object fetches
 - Repo có thêm `docker-compose.video-worker.yml`, `.env.video-worker.example`, và `deploy-video-worker.sh` để deploy worker-only lên VM riêng
+- Nếu worker VM nối DB qua private forwarder trên app VM, `SPRING_DATASOURCE_URL` nên thêm `?sslmode=disable`
+- Nếu app VM dùng `socat` để expose PostgreSQL cho worker VM, forwarder phải resolve động IP hiện tại của `lms-db-1` thay vì hardcode Docker IP
 - Video setup: [docs/runbooks/CLOUDFLARE_R2_VIDEO_SETUP.md](docs/runbooks/CLOUDFLARE_R2_VIDEO_SETUP.md)
 - Media domain + edge auth: [docs/runbooks/CLOUDFLARE_MEDIA_DOMAIN_EDGE_AUTH_RUNBOOK.md](docs/runbooks/CLOUDFLARE_MEDIA_DOMAIN_EDGE_AUTH_RUNBOOK.md)
 - Current production bucket split: public `lms-cdn` via `https://cdn.holilihu.online` + private `lms-storage` for presigned learner video/storage

@@ -43,8 +43,9 @@ Mọi thay đổi đáng chú ý của dự án này sẽ được ghi ở đây
  - Production edge-auth rollout da duoc xac nhan end-to-end tren `media.holilihu.online`: request khong token tra `403`, con HLS/DASH signed media object request tra `200` qua Worker custom domain.
  - Va root cause media-domain rewrite: Shaka ghi media references theo package-root `segments/...`, khong nam duoi `hls/` hay `dash/`, nen backend da chuyen sang resolve `segments/...` ve `video-packages/{assetId}/segments/...` de tranh `404 Object not found`.
  - Da chay controlled production playback load batch sau cutover edge auth: health van `UP`, manifest/backend-control-plane va media-domain data-plane deu co baseline moi de team dung cho tuning va load-test phase sau.
- - Da bo sung them batch distributed playback tu hai origin (`local + dedicated worker VM`) voi fresh signed URLs; media-domain HLS object da giu duoc khoang `1441 req/s` o muc `100 + 100` conns va khoang `2826 req/s` o muc `200 + 200` conns trong khi app health van `UP`.
- - Giu lai `scripts/run-distributed-scenario.ps1` lam helper chinh thuc cho burst playback distributed, va loai bo helper thu nghiem khong on dinh de repo de van hanh hon.
+- Da bo sung them batch distributed playback tu hai origin (`local + dedicated worker VM`) voi fresh signed URLs; media-domain HLS object da giu duoc khoang `1441 req/s` o muc `100 + 100` conns va khoang `2826 req/s` o muc `200 + 200` conns trong khi app health van `UP`.
+- Giu lai `scripts/run-distributed-scenario.ps1` lam helper chinh thuc cho burst playback distributed, va loai bo helper thu nghiem khong on dinh de repo de van hanh hon.
+- Da harden private DB path cho dedicated worker VM sau rollout that: worker env example/runbook gio mac dinh `sslmode=disable` cho hop private-forward, va app VM da doi `socat` PostgreSQL forwarder sang kieu resolve dong IP cua `lms-db-1` thay vi hardcode Docker IP de tranh vo worker sau moi lan DB container doi IP.
 
 ### Video / Authoring
 

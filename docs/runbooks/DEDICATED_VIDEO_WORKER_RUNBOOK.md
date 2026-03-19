@@ -67,7 +67,7 @@ cp .env.video-worker.example .env.video-worker
 3. Điền các giá trị tối thiểu:
 
 ```env
-SPRING_DATASOURCE_URL=jdbc:postgresql://<private-db-host>:5432/lms
+SPRING_DATASOURCE_URL=jdbc:postgresql://<private-db-host>:5432/lms?sslmode=disable
 SPRING_DATASOURCE_USERNAME=lms
 SPRING_DATASOURCE_PASSWORD=<same production password>
 
@@ -92,6 +92,8 @@ VIDEO_WORKER_CPU_LIMIT=3.0
 VIDEO_WORKER_MEMORY_LIMIT=3072M
 VIDEO_WORKER_MEMORY_RESERVATION=2048M
 ```
+
+Nếu worker VM đi qua private DB forwarder trên app VM, `sslmode=disable` là bắt buộc trừ khi chính hop đó terminate PostgreSQL SSL.
 
 ## Deploy worker VM
 
@@ -157,6 +159,7 @@ ENABLE_LOCAL_VIDEO_WORKER=true
 
 - Worker phải có egress ra internet/R2; không nhốt nó vào network chỉ `internal`.
 - `SPRING_DATASOURCE_URL` nên đi qua private IP/VPN nếu hạ tầng cho phép.
+- Nếu app VM dùng `socat` để forward PostgreSQL cho worker VM, đừng hardcode Docker IP như `172.19.x.x` vào systemd service. Hãy dùng một wrapper script hoặc `docker inspect` động để resolve IP hiện tại của `lms-db-1`, nếu không worker sẽ gãy ngay sau khi DB container đổi IP.
 - Nếu DB vẫn nằm trong app VM hiện tại, rollout worker riêng chỉ nên bắt đầu sau khi đã có private DB path cho VM mới.
 - Dùng cùng DB và cùng R2 buckets với app chính.
 - Tách worker riêng giúp `upload -> READY` và throughput ingest tốt hơn, nhưng không phải lời giải cuối cho bài toán nhiều learner cùng xem một video. Phase đó vẫn cần custom media domain + edge auth.
