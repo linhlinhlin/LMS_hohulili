@@ -1,7 +1,10 @@
 # Adaptive Video V1 Implementation Plan
 
+> **Historical note**: superseded by the current `R2 + Shaka + dedicated video-worker + media domain edge auth` runtime.
+> Read this file only as transition context from the earlier Stream-era plan.
+>
 > **Date**: 2026-03-15  
-> **Status**: Team implementation plan  
+> **Status**: Historical implementation plan  
 > **Scope**: Teacher internal video authoring -> learner playback -> offline/PWA for section-based lessons  
 > **Audience**: FE team, BE team, QA, release owners
 
@@ -578,4 +581,3 @@ When the team reports implementation complete, the review pass should check:
 - Shaka service worker caching guidance: [https://shaka-player-demo.appspot.com/docs/api/tutorial-service-worker.html](https://shaka-player-demo.appspot.com/docs/api/tutorial-service-worker.html)
 - MDN offline and background operation: [https://developer.mozilla.org/docs/Web/Progressive_web_apps/Guides/Offline_and_background_operation](https://developer.mozilla.org/docs/Web/Progressive_web_apps/Guides/Offline_and_background_operation)
 - MDN Background Sync API: [https://developer.mozilla.org/en-US/docs/Web/API/Background_Synchronization_API](https://developer.mozilla.org/en-US/docs/Web/API/Background_Synchronization_API)
-

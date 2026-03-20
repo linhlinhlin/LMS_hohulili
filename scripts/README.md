@@ -16,3 +16,6 @@ This folder contains operational helpers that are useful locally but are not par
 - `dev/coord-watch.ps1` is a local coordination utility for watcher-style mailbox workflows under `coord/`.
 - `prod-video-smoke.ps1` exercises the production upload -> asset -> manifest path with a real file.
 - `run-distributed-scenario.ps1` is the current helper for two-origin playback bursts (`local + worker VM`) against a ready URL.
+- `debug/pwa-repair-smoke.py` captures the production PWA repair flow into `.tmp-playwright-storage-smoke/`.
+- `debug/student-storage-actions-smoke.py` and `debug/student-storage-recovery-cta-smoke.py` are reusable Playwright helpers for learner storage/offline smoke runs.
+- `.tmp-playwright-storage-smoke/` is now treated as generated output only; keep the scripts under `scripts/debug/` and keep the artifacts out of Git.

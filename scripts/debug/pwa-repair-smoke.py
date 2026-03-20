@@ -33,13 +33,14 @@ def main() -> None:
         body_after = page.locator("body").inner_text()[:4000]
 
         payload = {
-          "url": page.url,
-          "console": console_logs,
-          "page_errors": page_errors,
-          "failed_requests": failed_requests,
-          "body_before": body_before,
-          "body_after": body_after,
+            "url": page.url,
+            "console": console_logs,
+            "page_errors": page_errors,
+            "failed_requests": failed_requests,
+            "body_before": body_before,
+            "body_after": body_after,
         }
+        OUT.parent.mkdir(parents=True, exist_ok=True)
         OUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
         page.screenshot(path=str(OUT.with_suffix(".png")), full_page=True)
         browser.close()

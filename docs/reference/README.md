@@ -22,3 +22,5 @@ Doc nhom nay khi can cau tra loi ngan, chinh xac, va on dinh cho cac cau hoi kie
 - `PRODUCTION_SURFACES.md`
 
 Neu mot reference doc lech voi code thuc te, phai cap nhat lai ngay sau khi xac minh.
+
+`PRODUCTION_SURFACES.md` la noi tom tat topology production hien hanh tren GCP + Cloudflare, bao gom app VM, dedicated video-worker VM, media domain, va cac bucket R2 dang la source of truth.

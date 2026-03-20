@@ -124,5 +124,8 @@ coord/visuals/runtime/
 !coord/REPORTS/TEMPLATE.md
 !coord/REVIEW/TEMPLATE.md
 .tmp-cdp-profile/
+.tmp-playwright-storage-smoke/
 lms-deploy-sync-*.tgz
 .wrangler/
+__pycache__/
+*.pyc

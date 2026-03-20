@@ -46,6 +46,8 @@ Mọi thay đổi đáng chú ý của dự án này sẽ được ghi ở đây
 - Da bo sung them batch distributed playback tu hai origin (`local + dedicated worker VM`) voi fresh signed URLs; media-domain HLS object da giu duoc khoang `1441 req/s` o muc `100 + 100` conns va khoang `2826 req/s` o muc `200 + 200` conns trong khi app health van `UP`.
 - Giu lai `scripts/run-distributed-scenario.ps1` lam helper chinh thuc cho burst playback distributed, va loai bo helper thu nghiem khong on dinh de repo de van hanh hon.
 - Da harden private DB path cho dedicated worker VM sau rollout that: worker env example/runbook gio mac dinh `sslmode=disable` cho hop private-forward, va app VM da doi `socat` PostgreSQL forwarder sang kieu resolve dong IP cua `lms-db-1` thay vi hardcode Docker IP de tranh vo worker sau moi lan DB container doi IP.
+- Da don repo hygiene cho batch production nay: chuyen Playwright smoke helper ra `scripts/debug/`, ngung track artifact trong `.tmp-playwright-storage-smoke/`, va cap nhat docs tham chieu de dong nghiep doc dung runtime truth hien tai.
+- `docs/reference/PRODUCTION_SURFACES.md` gio da ghi ro topology production hien hanh tren GCP + Cloudflare, bao gom app VM, dedicated worker VM, media domain, bucket split, va cac operational warnings quan trong nhat.
 
 ### Video / Authoring
 

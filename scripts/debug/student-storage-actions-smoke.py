@@ -71,11 +71,9 @@ def main() -> None:
             "api_responses": api_responses[-40:],
             "body_text_excerpt": page.locator("body").inner_text()[:2000],
         }
+        OUT.parent.mkdir(parents=True, exist_ok=True)
         OUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-        page.screenshot(
-            path=str(OUT.with_suffix(".png")),
-            full_page=True,
-        )
+        page.screenshot(path=str(OUT.with_suffix(".png")), full_page=True)
         browser.close()
 
     print(OUT)

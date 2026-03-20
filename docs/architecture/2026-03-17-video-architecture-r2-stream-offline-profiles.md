@@ -4,7 +4,7 @@
 > Keep this file only as historical context for the Stream-based transition discussion.
 
 Date: 2026-03-17
-Status: Active architecture decision
+Status: Historical architecture note
 
 ## Purpose
 

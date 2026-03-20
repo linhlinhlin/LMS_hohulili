@@ -72,7 +72,6 @@ Nếu có mâu thuẫn giữa tài liệu và runtime thực tế, ưu tiên:
 
 ## 3. Tài liệu đang triển khai
 
-- `architecture/2026-03-15-adaptive-video-v1-implementation-plan.md`
 - `bugs/README.md`
 - `bugs/*.md`
 - `plans/README.md`
@@ -87,6 +86,13 @@ Nhóm này có thể mô tả công việc đang làm dở hoặc chưa ship xon
 - `research/README.md`
 
 Các file trong đây vẫn hữu ích, nhưng không phải nơi đọc đầu tiên khi ra quyết định hiện tại.
+
+Ví dụ hiện tại:
+
+- `architecture/2026-03-15-adaptive-video-v1-implementation-plan.md`
+- `architecture/2026-03-17-video-architecture-r2-stream-offline-profiles.md`
+
+đều chỉ nên đọc như bối cảnh lịch sử trước khi runtime chuyển hẳn sang `R2 + Shaka + dedicated video-worker + media domain edge auth`.
 
 ## 5. Specs và handoff từ quá trình design
 

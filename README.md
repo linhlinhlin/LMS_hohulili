@@ -109,6 +109,7 @@ Bắt đầu từ các tài liệu này:
 | [docs/reference/BACKEND_OVERVIEW.md](docs/reference/BACKEND_OVERVIEW.md) | Tổng quan backend bằng tiếng Việt |
 | [docs/reference/FRONTEND_OVERVIEW.md](docs/reference/FRONTEND_OVERVIEW.md) | Tổng quan frontend bằng tiếng Việt |
 | [docs/reference/RUNTIME_CONVENTIONS.md](docs/reference/RUNTIME_CONVENTIONS.md) | Quy ước runtime chuẩn của repo |
+| [docs/reference/PRODUCTION_SURFACES.md](docs/reference/PRODUCTION_SURFACES.md) | Topology production hiện hành trên GCP + Cloudflare |
 | [docs/runbooks/CLOUDFLARE_R2_VIDEO_SETUP.md](docs/runbooks/CLOUDFLARE_R2_VIDEO_SETUP.md) | Lấy Account ID, R2 keys, bucket, public URL, và CORS cho video pipeline |
 | [docs/runbooks/CLOUDFLARE_MEDIA_DOMAIN_EDGE_AUTH_RUNBOOK.md](docs/runbooks/CLOUDFLARE_MEDIA_DOMAIN_EDGE_AUTH_RUNBOOK.md) | Cấu hình `media.holilihu.online`, edge auth, và cache rules cho phase scale playback |
 | [cloudflare/workers/media-edge-auth-worker.js](cloudflare/workers/media-edge-auth-worker.js) | Worker fallback cho Cloudflare Free để validate `verify` token và đọc object trực tiếp từ `lms-storage` |
