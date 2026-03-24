@@ -1,4 +1,4 @@
-import { Injectable, inject, signal, OnDestroy } from '@angular/core';
+import { Injectable, OnDestroy, inject, signal } from '@angular/core';
 import { ApiClient } from '../../../api/client/api-client';
 
 interface TrackConfig {
@@ -24,6 +24,7 @@ export class WatchedSegmentsTracker implements OnDestroy {
   private syncInterval: ReturnType<typeof setInterval> | null = null;
   private currentConfig: TrackConfig | null = null;
   private lastSyncedSegments = new Set<number>();
+  private pendingSegments = new Set<number>();
 
   /** Server-confirmed progress percent (updated after each sync) */
   readonly serverProgress = signal(0);
@@ -35,6 +36,7 @@ export class WatchedSegmentsTracker implements OnDestroy {
     this.currentConfig = { lessonId, sectionId, duration: Math.ceil(duration) };
     this.segments.clear();
     this.lastSyncedSegments.clear();
+    this.pendingSegments.clear();
     this.serverProgress.set(0);
     this.serverCompleted.set(false);
 
@@ -42,7 +44,10 @@ export class WatchedSegmentsTracker implements OnDestroy {
   }
 
   recordSecond(currentTime: number): void {
-    if (!this.currentConfig) return;
+    if (!this.currentConfig) {
+      return;
+    }
+
     const second = Math.floor(currentTime);
     if (second >= 0 && second < this.currentConfig.duration) {
       this.segments.add(second);
@@ -50,77 +55,82 @@ export class WatchedSegmentsTracker implements OnDestroy {
   }
 
   syncToServer(): void {
-    if (!this.currentConfig || this.segments.size === 0) return;
+    if (!this.currentConfig || this.segments.size === 0) {
+      return;
+    }
 
     const newSegments: number[] = [];
-    for (const s of this.segments) {
-      if (!this.lastSyncedSegments.has(s)) {
-        newSegments.push(s);
+    for (const second of this.segments) {
+      if (!this.lastSyncedSegments.has(second) && !this.pendingSegments.has(second)) {
+        newSegments.push(second);
       }
     }
 
-    if (newSegments.length === 0) return;
+    if (newSegments.length === 0) {
+      return;
+    }
 
-    // Find contiguous ranges from new segments
     newSegments.sort((a, b) => a - b);
-    const ranges: { from: number; to: number }[] = [];
+    const ranges: Array<{ from: number; to: number }> = [];
     let rangeStart = newSegments[0];
     let rangeEnd = newSegments[0];
 
-    for (let i = 1; i < newSegments.length; i++) {
-      if (newSegments[i] === rangeEnd + 1) {
-        rangeEnd = newSegments[i];
+    for (let index = 1; index < newSegments.length; index++) {
+      if (newSegments[index] === rangeEnd + 1) {
+        rangeEnd = newSegments[index];
       } else {
         ranges.push({ from: rangeStart, to: rangeEnd + 1 });
-        rangeStart = newSegments[i];
-        rangeEnd = newSegments[i];
+        rangeStart = newSegments[index];
+        rangeEnd = newSegments[index];
       }
     }
     ranges.push({ from: rangeStart, to: rangeEnd + 1 });
 
     const lastPosition = Math.max(...Array.from(this.segments));
 
-    // Send each range (BE accumulates via BitSet, order doesn't matter)
     for (const range of ranges) {
+      this.markRangePending(range.from, range.to);
+
       this.apiClient.post<TrackResponse>('/api/v3/video-progress/track', {
         lessonId: this.currentConfig.lessonId,
         sectionId: this.currentConfig.sectionId,
         durationSeconds: this.currentConfig.duration,
         fromSecond: range.from,
         toSecond: range.to,
-        lastPosition
+        lastPosition,
       }).subscribe({
-        next: (res: any) => {
-          if (res?.success && res.data) {
-            this.serverProgress.set(res.data.progressPercent || 0);
-            this.serverCompleted.set(res.data.completed || false);
+        next: (response: TrackResponse | any) => {
+          if (response?.success && response.data) {
+            this.serverProgress.set(response.data.progressPercent || 0);
+            this.serverCompleted.set(response.data.completed || false);
           }
+          this.markRangeSynced(range.from, range.to);
         },
         error: () => {
-          // Silent fail — segments stay in local Set, will retry next sync
-        }
+          this.unmarkRangePending(range.from, range.to);
+        },
       });
-    }
-
-    // Mark synced
-    for (const s of newSegments) {
-      this.lastSyncedSegments.add(s);
     }
   }
 
   stopTracking(): void {
     if (this.syncInterval) {
-      this.syncToServer(); // Final sync
+      this.syncToServer();
       clearInterval(this.syncInterval);
       this.syncInterval = null;
     }
+
     this.currentConfig = null;
     this.segments.clear();
     this.lastSyncedSegments.clear();
+    this.pendingSegments.clear();
   }
 
   getLocalProgress(): number {
-    if (!this.currentConfig || this.currentConfig.duration === 0) return 0;
+    if (!this.currentConfig || this.currentConfig.duration === 0) {
+      return 0;
+    }
+
     return (this.segments.size / this.currentConfig.duration) * 100;
   }
 
@@ -130,5 +140,24 @@ export class WatchedSegmentsTracker implements OnDestroy {
 
   ngOnDestroy(): void {
     this.stopTracking();
+  }
+
+  private markRangePending(from: number, toExclusive: number): void {
+    for (let second = from; second < toExclusive; second++) {
+      this.pendingSegments.add(second);
+    }
+  }
+
+  private unmarkRangePending(from: number, toExclusive: number): void {
+    for (let second = from; second < toExclusive; second++) {
+      this.pendingSegments.delete(second);
+    }
+  }
+
+  private markRangeSynced(from: number, toExclusive: number): void {
+    for (let second = from; second < toExclusive; second++) {
+      this.pendingSegments.delete(second);
+      this.lastSyncedSegments.add(second);
+    }
   }
 }

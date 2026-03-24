@@ -1,13 +1,23 @@
 # Specs Guide
 
-Thư mục này chứa các spec được sinh ra từ quá trình design/brainstorming.
+This folder contains design and handoff specs created before implementation.
 
-## Vai trò
+## Purpose
 
-- ghi lại thiết kế đã được chốt trước khi triển khai
-- hữu ích để review reasoning hoặc handoff cho team khác
+- capture decisions before code changes start
+- preserve reasoning for review and cross-team handoff
+- keep proposal-stage work separate from runtime truth
 
-## Lưu ý
+## Important rule
 
-- spec không tự động trở thành source of truth
-- khi tính năng đã ship và ổn định, nên promote phần còn sống sang `docs/architecture/`, `docs/reference/`, hoặc `docs/runbooks/`
+Specs do **not** automatically become source of truth.
+
+Once a feature ships and is verified, the living parts should be promoted into:
+
+- `docs/architecture/`
+- `docs/reference/`
+- `docs/runbooks/`
+
+## Recent specs
+
+- `2026-03-23-messaging-recipient-discovery-design.md` - scoped people picker, send authorization policy, API contract, and query strategy for LMS messaging

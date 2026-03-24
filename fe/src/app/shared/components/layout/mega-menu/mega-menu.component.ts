@@ -90,7 +90,7 @@ import { RouterModule } from '@angular/router';
               </p>
               <a href="https://wiii.holilihu.online" target="_blank" rel="noopener noreferrer"
                  (click)="hideMenu()"
-                 class="inline-flex items-center rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-cyan-400">
+                 class="inline-flex items-center rounded-lg bg-[#0056D2] px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-[#004BB5]">
                 Hỏi Wiii AI
                 <svg class="ml-1.5 h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
               </a>

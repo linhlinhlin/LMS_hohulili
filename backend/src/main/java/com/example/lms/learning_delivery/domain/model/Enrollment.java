@@ -65,6 +65,9 @@ public class Enrollment {
     }
 
     public void updateProgress(String lessonId, LessonProgress newProgress) {
+        if (!(this.progress instanceof HashMap)) {
+            this.progress = this.progress != null ? new HashMap<>(this.progress) : new HashMap<>();
+        }
         this.progress.put(lessonId, newProgress);
         this.lastAccessedAt = Instant.now();
     }
@@ -114,7 +117,7 @@ public class Enrollment {
             this.watchSeconds = watchSeconds;
             this.grade = grade;
             this.lastActivity = lastActivity;
-            this.completedSections = completedSections;
+            this.completedSections = completedSections != null ? new ArrayList<>(completedSections) : null;
         }
 
         public static LessonProgressBuilder builder() { return new LessonProgressBuilder(); }
@@ -140,7 +143,10 @@ public class Enrollment {
             public LessonProgressBuilder watchSeconds(Integer watchSeconds) { this.watchSeconds = watchSeconds; return this; }
             public LessonProgressBuilder grade(Double grade) { this.grade = grade; return this; }
             public LessonProgressBuilder lastActivity(Instant lastActivity) { this.lastActivity = lastActivity; return this; }
-            public LessonProgressBuilder completedSections(List<String> completedSections) { this.completedSections = completedSections; return this; }
+            public LessonProgressBuilder completedSections(List<String> completedSections) {
+                this.completedSections = completedSections != null ? new ArrayList<>(completedSections) : null;
+                return this;
+            }
 
             public LessonProgress build() {
                 return new LessonProgress(status, watchSeconds, grade, lastActivity, completedSections);
@@ -175,7 +181,10 @@ public class Enrollment {
         public Builder learningClass(LearningClass learningClass) { this.learningClass = learningClass; return this; }
         public Builder studentId(UUID studentId) { this.studentId = studentId; return this; }
         public Builder status(EnrollmentStatus status) { this.status = status; return this; }
-        public Builder progress(Map<String, LessonProgress> progress) { this.progress = progress; return this; }
+        public Builder progress(Map<String, LessonProgress> progress) {
+            this.progress = progress != null ? new HashMap<>(progress) : new HashMap<>();
+            return this;
+        }
         public Builder completionPercent(Integer completionPercent) { this.completionPercent = completionPercent; return this; }
         public Builder completedAt(Instant completedAt) { this.completedAt = completedAt; return this; }
         public Builder enrolledAt(Instant enrolledAt) { this.enrolledAt = enrolledAt; return this; }
@@ -189,7 +198,7 @@ public class Enrollment {
             e.learningClass = this.learningClass;
             e.studentId = this.studentId;
             e.status = this.status;
-            e.progress = this.progress;
+            e.progress = this.progress != null ? new HashMap<>(this.progress) : new HashMap<>();
             e.completionPercent = this.completionPercent;
             e.completedAt = this.completedAt;
             e.enrolledAt = this.enrolledAt;

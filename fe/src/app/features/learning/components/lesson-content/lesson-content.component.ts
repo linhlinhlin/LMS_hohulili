@@ -46,6 +46,8 @@ export class LessonContentComponent implements AfterViewInit {
   private toast = inject(ToastService);
   private network = inject(NetworkStatusService);
   private pdfViewer = inject(PdfViewerService);
+  private readingTrackerInitTimer: ReturnType<typeof setTimeout> | null = null;
+  private emittedReadCompletionKeys = new Set<string>();
 
   // --- Notes state ---
   readonly lessonNotes = signal<NoteResponse[]>([]);
@@ -382,6 +384,12 @@ export class LessonContentComponent implements AfterViewInit {
   private sectionChangeEffect = effect(() => {
     const section = this.currentSection();
     const lesson = this.lesson();
+
+    if (this.readingTrackerInitTimer) {
+      clearTimeout(this.readingTrackerInitTimer);
+      this.readingTrackerInitTimer = null;
+    }
+
     if (!section || !lesson) return;
 
     if (section.type === 'VIDEO') {
@@ -395,7 +403,10 @@ export class LessonContentComponent implements AfterViewInit {
 
     // Start reading tracker for TEXT sections (after view renders)
     if (section.type === 'TEXT') {
-      setTimeout(() => this.initReadingTracker(), 100);
+      this.readingTrackerInitTimer = setTimeout(() => {
+        this.readingTrackerInitTimer = null;
+        this.initReadingTracker();
+      }, 100);
     } else {
       this.readingTracker.stopTracking();
     }
@@ -411,7 +422,14 @@ export class LessonContentComponent implements AfterViewInit {
     const lesson = this.lesson();
     if (!el || !section || !lesson) return;
 
+    const completionKey = this.buildReadCompletionKey(lesson.id, section.id);
+
     this.readingTracker.startTracking(el, lesson.id, section.id, () => {
+      if (this.emittedReadCompletionKeys.has(completionKey)) {
+        return;
+      }
+
+      this.emittedReadCompletionKeys.add(completionKey);
       // Auto-mark section complete when 80% scrolled
       this.sectionReadComplete.emit(section.id);
     });
@@ -462,6 +480,10 @@ export class LessonContentComponent implements AfterViewInit {
   // Mark lesson as complete
   onMarkComplete(): void {
     this.markComplete.emit();
+  }
+
+  private buildReadCompletionKey(lessonId: string, sectionId: string): string {
+    return `${lessonId}:${sectionId}`;
   }
 
   async onGoToQuiz(): Promise<void> {

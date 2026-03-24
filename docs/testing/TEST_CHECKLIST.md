@@ -1,250 +1,208 @@
-# Checklist Test — Hệ thống LMS Hàng hải
+# Test Checklist
 
-> **Ngày tạo**: 2026-02-26 | **Phiên bản**: Production-ready (806 BE tests, 0 failures)
+> Last updated: 2026-03-24
 
----
+Current runtime truth:
 
-## 1. Truy cập hệ thống
+- local validation is **smoke-first**, not "run every browser flow on every change"
+- video runtime = `R2 + Shaka + dedicated video-worker + media-domain edge auth`
+- offline runtime = `IndexedDB/Dexie + queued sync + stale package detection + device-local settings`
+- payment runtime = backend-truth access activation with gateway availability controlled by backend/admin settings
 
-| Môi trường | URL |
-|------------|-----|
-| Frontend | http://localhost:4200 |
-| Backend API | http://localhost:8088/api/v3 |
-| Swagger UI | http://localhost:8088/swagger-ui |
-| Production | https://holilihu.online |
+## 1. URLs and local surfaces
 
----
+| Surface | URL |
+|---|---|
+| Frontend app | `http://localhost:4200` |
+| Smoke static app | `http://127.0.0.1:4300` |
+| Backend API | `http://localhost:8088/api/v3` |
+| Swagger UI | `http://localhost:8088/swagger-ui` |
+| Health | `http://localhost:8088/actuator/health` |
+| Production | `https://holilihu.online` |
 
-## 2. Tài khoản test
+## 2. Core local accounts
 
-### Tài khoản gốc (mật khẩu đơn giản)
-| Vai trò | Email | Mật khẩu | Ghi chú |
-|---------|-------|-----------|---------|
-| **ADMIN** | `admin@maritime.edu` | `admin123` | Quản trị toàn hệ thống |
-| **ORG_ADMIN** | `orgadmin@maritime.edu` | `orgadmin123` | Chuyên viên quản lý |
-| **TEACHER** | `teacher@maritime.edu` | `teacher123` | Giảng viên |
-| **STUDENT** | `student@maritime.edu` | `student123` | Học viên |
+| Role | Email | Password |
+|---|---|---|
+| ADMIN | `admin@maritime.edu` | `admin123` |
+| ORG_ADMIN | `orgadmin@maritime.edu` | `orgadmin123` |
+| TEACHER | `teacher@maritime.edu` | `teacher123` |
+| STUDENT | `student@maritime.edu` | `student123` |
 
-### Tài khoản seed (dữ liệu mẫu STCW)
+Seed datasets from V54/V55 are still available for broader manual regression when needed.
 
-**Giảng viên** (mật khẩu chung: `Maritime@2026`)
-| Email | Họ tên | Khóa học phụ trách |
-|-------|--------|-------------------|
-| `tranngocdai@maritime.edu` | PGS.TS Trần Ngọc Đại | NAV-101 Hàng hải Địa văn |
-| `levanhung@maritime.edu` | TS. Lê Văn Hùng | NAV-201 ECDIS & Radar/ARPA |
-| `nguyenminhquan@maritime.edu` | PGS.TS Nguyễn Minh Quân | ENG-101 Máy Diesel |
-| `phamthihanh@maritime.edu` | TS. Phạm Thị Hạnh | ENG-201 Điện tàu biển |
-| `vudinhthang@maritime.edu` | PGS.TS Vũ Đình Thắng | SAF-101 An toàn STCW |
-| `doanvannam@maritime.edu` | TS. Đoàn Văn Nam | SAF-201 Chữa cháy nâng cao |
-| `hoangthimai@maritime.edu` | PGS.TS Hoàng Thị Mai | LOG-101 Logistics vận tải |
-| `buithanhson@maritime.edu` | TS. Bùi Thanh Sơn | LAW-101 Luật hàng hải |
-| `nguyenducanh@maritime.edu` | TS. Nguyễn Đức Anh | NAV-301 Khí tượng & Điều động |
-| `lethimylinh@maritime.edu` | ThS. Lê Thị Mỹ Linh | NAV-102 Tiếng Anh hàng hải |
+## 3. Local green baseline
 
-**Học viên** (mật khẩu chung: `Student@2026`)
-| Email | Họ tên |
-|-------|--------|
-| `nguyenvanan@sv.maritime.edu` | Nguyễn Văn An |
-| `tranthibinh@sv.maritime.edu` | Trần Thị Bình |
-| `lehoangcuong@sv.maritime.edu` | Lê Hoàng Cường |
-| ... *(tổng 25 học viên, email theo mẫu `ten@sv.maritime.edu`)* |
-
-**Admin seed** (mật khẩu: `Maritime@2026`)
-| Email | Vai trò |
-|-------|---------|
-| `phamvanhai@maritime.edu` | ADMIN |
-| `nguyenlanhuong@maritime.edu` | ORG_ADMIN |
-
----
-
-## 3. Các flow cần test
-
-### A. Đăng nhập & Phân quyền
-- [ ] Đăng nhập ADMIN → thấy dashboard admin, menu đầy đủ (Users, Courses, Analytics, Settings, Logs)
-- [ ] Đăng nhập ORG_ADMIN → thấy dashboard chuyên viên, **không** có Settings/Logs
-- [ ] Đăng nhập TEACHER → thấy dashboard giảng viên, quản lý khóa học
-- [ ] Đăng nhập STUDENT → thấy trang học viên, khóa học đã ghi danh
-- [ ] Đăng xuất → redirect về trang login
-
-### B. Quản lý khóa học (TEACHER)
-- [ ] Login `tranngocdai@maritime.edu` → thấy khóa NAV-101 trong danh sách
-- [ ] Mở khóa NAV-101 → thấy 7 chương, ~40 bài học
-- [ ] Xem nội dung bài giảng → hiển thị text HTML hàng hải
-- [ ] Tạo khóa học mới → nhập tiêu đề, mô tả, chọn category
-- [ ] Upload thumbnail → file hiển thị đúng
-- [ ] Thêm chapter → thêm lesson (LECTURE, VIDEO, QUIZ, ASSIGNMENT)
-- [ ] Submit khóa học để duyệt → status chuyển PENDING
-
-### C. Duyệt khóa học (ADMIN / ORG_ADMIN)
-- [ ] Login admin → Quản lý khóa học → thấy khóa PENDING
-- [ ] Approve khóa học → status = APPROVED
-- [ ] Reject khóa học → nhập lý do → status = REJECTED
-- [ ] Revoke khóa APPROVED → status = DRAFT
-
-### D. Ghi danh & Học (STUDENT)
-- [ ] Login `nguyenvanan@sv.maritime.edu` → thấy khóa đã ghi danh
-- [ ] Duyệt danh sách khóa học → thấy 10+ khóa (FREE + PAID)
-- [ ] Ghi danh khóa FREE → enrollment thành công
-- [ ] Mở khóa học → xem danh sách chương/bài
-- [ ] Xem bài giảng LECTURE → đọc nội dung
-- [ ] Hoàn thành bài học → progress tăng
-
-### E. Quiz / Kiểm tra
-- [ ] Student mở bài QUIZ → thấy câu hỏi trắc nghiệm
-- [ ] Làm bài quiz → chọn đáp án → nộp bài
-- [ ] Xem kết quả → điểm, đúng/sai
-- [ ] Teacher xem thống kê quiz → số lượt thi, điểm TB
-
-### F. Bài tập (Assignment)
-- [ ] Student xem danh sách bài tập
-- [ ] Nộp bài tập (upload file / viết essay)
-- [ ] Teacher xem submission → chấm điểm → nhập nhận xét
-
-### G. Admin Operations
-- [ ] ADMIN: Quản lý users → tạo/sửa/vô hiệu hóa tài khoản
-- [ ] ADMIN: Xem audit logs
-- [ ] ADMIN: Settings hệ thống
-- [ ] ORG_ADMIN: Quản lý users (chỉ teacher/student, **không thể** tạo admin)
-- [ ] ORG_ADMIN: Duyệt khóa học
-- [ ] ORG_ADMIN: Xem analytics
-
-### H. Tính năng khác
-- [ ] Đánh giá khóa học (1-5 sao + nhận xét)
-- [ ] Tin nhắn giữa users
-- [ ] Thông báo (notifications)
-- [ ] Hồ sơ cá nhân → sửa thông tin
-- [ ] Đăng ký tài khoản mới (tự động role STUDENT)
-- [ ] Quên mật khẩu → email reset
-
----
-
-## 4. Dữ liệu mẫu có sẵn
-
-### 10 Khóa học STCW
-| Mã | Tên | Loại | Giá | Chế độ |
-|----|------|------|-----|--------|
-| NAV-101 | Hàng hải Địa văn và La bàn Từ | FREE | 0 | SELF_PACED |
-| NAV-201 | ECDIS và Radar/ARPA | PAID | 2.500.000đ | INSTRUCTOR_LED |
-| ENG-101 | Máy Diesel Tàu biển | FREE | 0 | SELF_PACED |
-| ENG-201 | Điện và Tự động hóa Tàu | PAID | 2.000.000đ | INSTRUCTOR_LED |
-| SAF-101 | Huấn luyện An toàn Cơ bản STCW | FREE | 0 | SELF_PACED |
-| SAF-201 | Chữa cháy Nâng cao và Cứu hộ | PAID | 1.800.000đ | INSTRUCTOR_LED |
-| LOG-101 | Quản lý Chuỗi cung ứng Vận tải biển | FREE | 0 | SELF_PACED |
-| LAW-101 | Luật Hàng hải Quốc tế và Việt Nam | PAID | 1.500.000đ | SELF_PACED |
-| NAV-301 | Khí tượng Hải dương và Điều động | PAID | 2.200.000đ | INSTRUCTOR_LED |
-| NAV-102 | Tiếng Anh Hàng hải Chuyên ngành | PAID | 800.000đ | SELF_PACED |
-
-### Dữ liệu tương tác
-- 88 enrollments (đa dạng: 10-100% progress, ACTIVE/COMPLETED/DROPPED)
-- 16 quizzes (PUBLISHED, có câu hỏi 4 đáp án)
-- 32 bài tập (linked to ASSIGNMENT lessons)
-- 18 đánh giá (4-5 sao trung bình)
-
----
-
-## 5. API nhanh để verify
+Run this before browser smoke if you need a clean local validation pass:
 
 ```bash
-# Health check
-curl http://localhost:8088/actuator/health
-
-# Danh sách khóa học
-curl http://localhost:8088/api/v3/courses?page=0&size=20
-
-# Đăng nhập
-curl -X POST http://localhost:8088/api/v3/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@maritime.edu","password":"admin123"}'
+cd fe && npm run build
+cd ../backend && mvn -DskipTests compile -B
+cd .. && docker compose -f docker-compose.yml -f docker-compose.dev.yml config -q
+docker compose -f docker-compose.yml -f docker-compose.dev.yml build backend frontend
+curl -s http://localhost:8088/actuator/health
 ```
 
----
+Expected result:
 
-## 6. Giao diện học viên (Student Lesson Viewer)
+- frontend production build passes
+- backend compile passes
+- compose config validates
+- backend/frontend Docker images build
+- health returns `{"status":"UP"}`
 
-### Sidebar bài học
-- [ ] Hiển thị header "CẤU TRÚC KHÓA HỌC" + "N Chương · M Bài học"
-- [ ] Chapter có icon folder (mở/đóng khi expand/collapse)
-- [ ] Lesson có icon loại nội dung: play (VIDEO), description (TEXT), attach_file (FILE), quiz (QUIZ)
-- [ ] Bài đang học: nền xanh nhạt, chữ xanh
-- [ ] Bài đã hoàn thành: checkmark xanh lá, chữ mờ
-- [ ] Đánh số "Bài 1.1: Tên bài" đúng thứ tự
+If the local stack is not already running:
 
-### Nội dung bài học
-- [ ] VIDEO: hiển thị trong container bo tròn, có shadow, nền xám nhạt
-- [ ] TEXT: hiển thị trong card trắng, có border + shadow nhẹ
-- [ ] Tiêu đề bài: dạng "Bài 1.1: Tên bài học" (có đánh số)
-- [ ] Previous/Next navigation hoạt động đúng
-
-### Responsive
-- [ ] Mobile: sidebar ẩn, có nút mở overlay
-- [ ] Desktop: sidebar + content cạnh nhau
-
----
-
-## 7. PWA & Offline
-
-### Test cơ bản (Chrome DevTools)
-- [ ] Mở Chrome → DevTools → Application → Service Workers → thấy ngsw-worker.js active
-- [ ] Network → Offline → F5 → app vẫn load được (app shell từ cache)
-- [ ] Tắt offline → duyệt vài trang → bật offline → các trang đã xem vẫn hiển thị
-
-### Test trên thiết bị thật
-- [ ] iPad/iPhone: Add to Home Screen → mở app → tắt WiFi → app vẫn chạy
-- [ ] Android: Install PWA → tắt WiFi → app vẫn chạy
-- [ ] Tắt WiFi 5+ phút → quay lại → app không crash (iOS đã fix)
-- [ ] Tắt WiFi 24h → F5 → app vẫn load (cache 7 ngày)
-
-### PWA Recovery (khi SW bị hỏng)
-- [ ] Truy cập `holilihu.online/reset-sw` → thấy "Resetting PWA..." → redirect về trang chủ
-- [ ] Truy cập `holilihu.online/?reset-sw` → SW + cache bị xóa → reload clean
-- [ ] DevTools → Application → Service Workers → thấy `navigationRequestStrategy: freshness`
-- [ ] Tắt mạng 3 lần reload liên tiếp → auto-recovery kích hoạt (xóa SW + reload)
-
-### Download khóa học offline
-- [ ] Student → khóa đã ghi danh → nút Download → tải về thành công
-- [ ] Tắt mạng → mở khóa đã download → xem được nội dung bài học
-- [ ] Progress vẫn được lưu offline (IndexedDB)
-
----
-
-## 8. Lưu ý khi test
-
-- **Khóa PAID**: Cần tích hợp VNPay sandbox để test thanh toán (hiện chưa có merchant credentials thật)
-- **Email**: Dev environment dùng SMTP mock, prod dùng Resend API
-- **Video**: Cần upload video thật để test player (Shaka Player adaptive streaming)
-- **PWA Offline**: Test trên Chrome → DevTools → Network → Offline
-- **Swagger UI**: http://localhost:8088/swagger-ui → thử API trực tiếp với JWT token
-
----
-
-## 9. Deploy Production
-
-### Lệnh deploy chuẩn
 ```bash
-cd /home/Admin/lms
-./deploy.sh
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db backend frontend
 ```
 
-### Lưu ý quan trọng
-- **LUÔN** dùng `deploy.sh` hoặc lệnh đầy đủ với `--env-file .env.prod`
-- **KHÔNG** chạy `docker compose up` thiếu `--env-file .env.prod` — backend sẽ crash do sai password DB và JWT secret
-- Nếu postgres password bị lệch:
-  ```bash
-  docker exec lms-postgres psql -U lms -d lms -c "ALTER USER lms WITH PASSWORD '<pass-from-env-prod>';"
-  docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod restart backend
-  ```
+## 4. Smoke-first E2E gate
 
-### Kiểm tra sau deploy
+### Local / PR mandatory smoke
+
 ```bash
-# Tất cả 4 containers phải Healthy
-docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod ps
-
-# API health (qua Caddy reverse proxy)
-curl -s https://holilihu.online/actuator/health
-# Expected: {"status":"UP"}
-
-# Test login
-curl -s -X POST http://localhost:8088/api/v3/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@maritime.edu","password":"admin123"}'
+cd fe && npm run test:e2e:smoke
 ```
+
+Current Tier 0 set:
+
+- `fe/e2e/pwa-recovery-smoke.spec.ts`
+- `fe/e2e/student-learning-video-smoke.spec.ts`
+- `fe/e2e/offline-learning-smoke.spec.ts`
+- `fe/e2e/student-learning-progress-smoke.spec.ts`
+
+### Release / nightly browser regression
+
+```bash
+cd fe && npm run test:e2e:release
+```
+
+This runs smoke plus release-tagged browser checks such as:
+
+- payment gating + deterministic simulated checkout
+- broader offline learning path
+- certificate edge checks as coverage grows
+
+See [docs/testing/E2E_MATRIX.md](E:/Sach/Sua/LMS_hohulili/docs/testing/E2E_MATRIX.md) for the tier map.
+
+## 5. Offline-first acceptance criteria
+
+Offline is a primary product surface. Treat these as non-negotiable:
+
+- downloaded lesson content remains readable while offline
+- offline queue accepts learning mutations instead of pretending success
+- `completedSections` survive offline work and merge back online
+- progress convergence is additive and forward-only
+- quiz offline is allowed only when metadata explicitly allows it
+- stale publication/package mismatch surfaces as stale/conflict UI, not silent failure
+- retry/backoff/conflict state is distinguishable from generic "all synced"
+
+Important product truth:
+
+- offline downloads are **device-local**
+- offline settings are **device-local**
+- offline settings do **not** roam across devices or accounts
+
+Current device-local settings:
+
+- `defaultVideoQuality`
+- `downloadOnWifiOnly`
+- `autoSyncWhenOnline`
+- persistent storage status
+
+Do not write tests that assume these settings roam across browsers or devices.
+
+## 6. Release / nightly checklist
+
+### A. Rebuild and runtime
+
+- [ ] `cd fe && npm run build`
+- [ ] `cd backend && mvn -DskipTests compile -B`
+- [ ] `docker compose -f docker-compose.yml -f docker-compose.dev.yml config -q`
+- [ ] `docker compose -f docker-compose.yml -f docker-compose.dev.yml build backend frontend`
+- [ ] local stack health is `UP`
+
+### B. Offline core learning
+
+- [ ] download a course package
+- [ ] go offline
+- [ ] open downloaded lesson content
+- [ ] record video progress offline
+- [ ] complete sections offline
+- [ ] complete a lesson offline
+- [ ] if quiz metadata allows offline, complete the offline-allowed quiz path
+- [ ] restore connectivity
+- [ ] verify queue clears or surfaces conflict/stale state correctly
+
+### C. Online learning baseline
+
+- [ ] complete a lesson online
+- [ ] verify completed lesson IDs update
+- [ ] verify lesson progress becomes `COMPLETED`
+- [ ] verify next-lesson navigation stays aligned
+
+### D. Payment boundary checks
+
+- [ ] free course shows free enrollment CTA
+- [ ] paid course shows locked/payment CTA
+- [ ] simulated checkout succeeds locally without live VNPay dependency
+- [ ] learner lands in learning flow after successful unlock
+- [ ] instructor-led paid course records payment without falsely showing direct access as ready
+- [ ] completed payment is treated as one of three backend-truth states:
+  - `READY`
+  - `MANUAL_ACTIVATION_REQUIRED`
+  - `ACCESS_PENDING`
+- [ ] payment history/load errors never fabricate an empty "no transactions" state
+
+Local runtime note:
+
+- smoke/release browser tests serve the production FE build from `fe/dist`
+- visible gateway choices come from backend availability, not hardcoded UI assumptions
+- deterministic local unlock uses the existing dev-only `SIMULATED` checkout path where appropriate
+
+### E. Certificate edge
+
+- [ ] course progress reaches completion
+- [ ] certificate becomes visible to learner
+- [ ] verification route still works with public token
+
+## 7. Manual runtime notes
+
+### Video / playback
+
+- adaptive playback is signed and served through the media domain
+- dedicated ingest is isolated from the web backend
+- local browser smoke should prove player boot and HLS session creation, not production-scale throughput
+
+### PWA recovery
+
+- `fe/e2e/pwa-recovery-smoke.spec.ts` remains Tier 0 because broken recovery makes the entire offline app unreliable
+- manual fallback surfaces remain:
+  - `/reset-sw`
+  - `/clear-site-data`
+
+### Payment
+
+- live VNPay is not part of the default local smoke gate
+- local/release smoke should stay on simulated checkout unless a dedicated staging gateway exists
+- for `INSTRUCTOR_LED` courses, payment completion and learner activation are related but not identical concerns
+
+## 8. Quick API probes
+
+```bash
+curl -s http://localhost:8088/actuator/health
+
+curl -s http://localhost:8088/api/v3/courses?page=0&size=20
+
+curl -s -X POST http://localhost:8088/api/v3/auth/login ^
+  -H "Content-Type: application/json" ^
+  -d "{\"email\":\"student@maritime.edu\",\"password\":\"student123\"}"
+```
+
+## 9. Notes for teammates
+
+- Prefer seeded discovery helpers for payment/offline smoke instead of pinning every browser test to one learner account
+- Keep stateful offline/browser specs on a single worker
+- Reset browser/app origin state at the start of smoke specs
+- If smoke fails after a runtime or infra change, treat it as a release blocker until explained

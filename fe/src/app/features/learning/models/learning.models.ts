@@ -67,6 +67,7 @@ export interface SectionContent {
   title: string;
   type: 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT';
   content?: string;
+  structuredContent?: Record<string, unknown> | null;
   videoAssetId?: string;
   videoProcessingStatus?: string;
   videoSourceKind?: 'ADAPTIVE_R2' | 'STREAM' | 'EXTERNAL' | 'LEGACY_DIRECT';

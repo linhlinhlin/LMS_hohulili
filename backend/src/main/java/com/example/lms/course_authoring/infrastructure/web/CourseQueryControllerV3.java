@@ -920,6 +920,7 @@ public class CourseQueryControllerV3 {
                     .title((String) data.getOrDefault("title", "Untitled"))
                     .type(block.getType() != null ? block.getType().toUpperCase(Locale.ROOT) : "TEXT")
                     .content(showContent ? (String) data.get("content") : null)
+                    .structuredContent(showContent ? new LinkedHashMap<>(data) : null)
                     .videoUrl(showContent ? (String) data.get("videoUrl") : null)
                     .videoType(showContent ? videoType : null)
                     .streamVideoUid(showContent ? streamVideoUid : null)
@@ -1377,6 +1378,7 @@ public class CourseQueryControllerV3 {
         private String title;
         private String type;
         private String content;
+        private Map<String, Object> structuredContent;
         private String videoAssetId;
         private String videoProcessingStatus;
         private String videoSourceKind;

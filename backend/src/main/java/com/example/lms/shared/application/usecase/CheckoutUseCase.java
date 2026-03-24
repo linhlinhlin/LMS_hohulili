@@ -7,6 +7,7 @@ import com.example.lms.shared.domain.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -23,6 +24,7 @@ public class CheckoutUseCase {
     private final PaymentRepository   paymentRepository;
     private final DomainEventPublisher eventPublisher;
 
+    @Transactional
     public PaymentTransaction execute(UUID studentId, UUID courseId, BigDecimal serverPrice, String paymentMethod) {
         // Check for existing completed payment
         var existing = paymentRepository.findLatestByStudentAndCourse(studentId, courseId);

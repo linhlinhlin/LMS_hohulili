@@ -40,6 +40,7 @@ interface SyncLessonProgressItem {
   status?: string | null;
   watchSeconds?: number | null;
   lastActivity?: string | null;
+  completedSections?: string[] | null;
 }
 
 interface SyncVideoProgressItem {
@@ -69,6 +70,7 @@ export class OfflineSyncService {
   readonly isSyncing = signal(false);
   readonly pendingCount = signal(0);
   readonly failedCount = signal(0);
+  readonly conflictCount = signal(0);
   readonly lastSyncResult = signal<SyncResult | null>(null);
   /**
    * Earliest nextRetryAt across all pending items still in backoff.
@@ -78,6 +80,7 @@ export class OfflineSyncService {
 
   /** True if there are failed items that can be retried */
   readonly hasFailedItems = computed(() => this.failedCount() > 0);
+  readonly hasConflictItems = computed(() => this.conflictCount() > 0);
 
   private syncInProgress = false;
 
@@ -368,14 +371,20 @@ export class OfflineSyncService {
       .where('userId').equals(getCurrentUserId())
       .filter(item => item.syncStatus === 'failed')
       .toArray();
+    const retryableItems = failedItems.filter(item => !this.isConflictQueueItem(item));
+    const conflictItems = failedItems.length - retryableItems.length;
 
-    if (failedItems.length === 0) {
+    if (retryableItems.length === 0) {
+      if (conflictItems > 0) {
+        this.toast.info('Co xung dot dong bo can xu ly truoc khi thu lai.');
+        return { synced: 0, failed: conflictItems, pending: await this.getPendingCount() };
+      }
       this.toast.info('Không có mục thất bại cần thử lại');
       return { synced: 0, failed: 0, pending: 0 };
     }
 
     // Reset failed items fully (retryCount resets so backoff restarts from scratch)
-    for (const item of failedItems) {
+    for (const item of retryableItems) {
       await offlineDb.syncQueue.update(item.id!, {
         syncStatus: 'pending',
         retryCount: 0,
@@ -385,7 +394,7 @@ export class OfflineSyncService {
     }
 
     await this.refreshCounts();
-    this.toast.info(`Đang thử lại ${failedItems.length} mục...`);
+    this.toast.info(`Đang thử lại ${retryableItems.length} mục đồng bộ lỗi...`);
 
     return this.syncAll(true);
   }
@@ -404,7 +413,7 @@ export class OfflineSyncService {
     }
     return offlineDb.syncQueue
       .where('userId').equals(getCurrentUserId())
-      .filter(item => item.syncStatus === 'failed')
+      .filter(item => item.syncStatus === 'failed' && !this.isConflictQueueItem(item))
       .count();
   }
 
@@ -416,10 +425,19 @@ export class OfflineSyncService {
       this.failedCount.set(0);
       return;
     }
-    await offlineDb.syncQueue
+    const failedItems = await offlineDb.syncQueue
       .where('userId').equals(getCurrentUserId())
       .filter(item => item.syncStatus === 'failed')
-      .delete();
+      .toArray();
+
+    const retryableIds = failedItems
+      .filter(item => !this.isConflictQueueItem(item))
+      .map(item => item.id)
+      .filter((id): id is number => typeof id === 'number');
+
+    if (retryableIds.length > 0) {
+      await offlineDb.syncQueue.bulkDelete(retryableIds);
+    }
     await this.refreshCounts();
   }
 
@@ -503,6 +521,8 @@ export class OfflineSyncService {
             });
             conflictedItemIds.add(matchingItem.id);
           }
+
+          await this.markProgressConflictFromQueueItem(userId, matchingItem);
 
           if (this.isStalePublicationConflict(conflict.message)) {
             await this.markCourseStaleFromQueueItem(userId, matchingItem);
@@ -753,16 +773,19 @@ export class OfflineSyncService {
     if (!(await this.ensureOfflineReady(true))) {
       this.pendingCount.set(0);
       this.failedCount.set(0);
+      this.conflictCount.set(0);
       this.earliestRetryAt.set(null);
       return;
     }
     const userId = getCurrentUserId();
-    const [pending, failed] = await Promise.all([
+    const [pending, failed, conflicts] = await Promise.all([
       this.getPendingCount(),
       this.getFailedCount(),
+      this.getConflictCount(userId),
     ]);
     this.pendingCount.set(pending);
     this.failedCount.set(failed);
+    this.conflictCount.set(conflicts);
 
     // Find earliest nextRetryAt for display ("Thử lại sau X phút")
     const now = new Date();
@@ -917,6 +940,13 @@ export class OfflineSyncService {
       const watchSeconds = typeof item.watchSeconds === 'number'
         ? Math.max(0, Math.trunc(item.watchSeconds))
         : 0;
+      const completedSections = Array.isArray(item.completedSections)
+        ? item.completedSections.filter((sectionId): sectionId is string => typeof sectionId === 'string' && sectionId.length > 0)
+        : [];
+      const mergedCompletedSections = Array.from(new Set([
+        ...(existing?.completedSectionIds ?? []),
+        ...completedSections,
+      ]));
       const progressPercent = status === 'COMPLETED'
         ? 100
         : Math.max(existing?.progressPercent ?? 0, watchSeconds > 0 ? 1 : 0);
@@ -929,6 +959,7 @@ export class OfflineSyncService {
         await offlineDb.progress.update(existing.id, {
           progressPercent,
           videoPosition,
+          completedSectionIds: mergedCompletedSections,
           completedAt,
           syncStatus: 'synced',
           updatedAt: lastActivity ?? new Date(),
@@ -940,6 +971,7 @@ export class OfflineSyncService {
           userId,
           progressPercent,
           videoPosition,
+          completedSectionIds: mergedCompletedSections,
           completedAt,
           syncStatus: 'synced',
           updatedAt: lastActivity ?? new Date(),
@@ -1024,6 +1056,8 @@ export class OfflineSyncService {
         lastError: conflict.message || 'Sync conflict',
       });
 
+      await this.markProgressConflictFromQueueItem(userId, matchingItem);
+
       if (this.isStalePublicationConflict(conflict.message)) {
         await this.markCourseStaleFromQueueItem(userId, matchingItem);
       }
@@ -1064,6 +1098,88 @@ export class OfflineSyncService {
     } as any);
   }
 
+  private async markProgressConflictFromQueueItem(
+    userId: string,
+    item: SyncQueueItem | undefined,
+  ): Promise<void> {
+    if (!item || (item.entityType !== 'progress' && item.entityType !== 'videoProgress')) {
+      return;
+    }
+
+    const payload = item.payload as Record<string, unknown> | null;
+    const lessonId = typeof payload?.['lessonId'] === 'string'
+      ? payload['lessonId']
+      : null;
+    if (!lessonId) {
+      return;
+    }
+
+    let courseId = item.courseId ?? null;
+    if (!courseId) {
+      const offlineLesson = await offlineDb.lessons.get([userId, lessonId]);
+      courseId = offlineLesson?.courseId ?? null;
+    }
+    if (!courseId) {
+      return;
+    }
+
+    const existing = await offlineDb.progress
+      .where('lessonId')
+      .equals(lessonId)
+      .filter(record => record.userId === userId && record.courseId === courseId)
+      .first();
+    if (existing?.id == null) {
+      return;
+    }
+
+    await offlineDb.progress.update(existing.id, {
+      syncStatus: 'conflict',
+      updatedAt: new Date(),
+    });
+  }
+
+  private async getConflictCount(userId: string): Promise<number> {
+    const [progressConflicts, otherQueueConflicts] = await Promise.all([
+      offlineDb.progress
+        .where('userId').equals(userId)
+        .filter(record => record.syncStatus === 'conflict')
+        .count(),
+      offlineDb.syncQueue
+        .where('userId').equals(userId)
+        .filter(item =>
+          item.syncStatus === 'failed'
+          && this.isConflictQueueItem(item)
+          && item.entityType !== 'progress'
+          && item.entityType !== 'videoProgress'
+        )
+        .count(),
+    ]);
+
+    return progressConflicts + otherQueueConflicts;
+  }
+
+  private isConflictQueueItem(item: SyncQueueItem): boolean {
+    return this.isConflictMessage(item.lastError);
+  }
+
+  private isConflictMessage(message?: string | null): boolean {
+    if (!message) {
+      return false;
+    }
+
+    const normalized = this.normalizeText(message);
+    return normalized.includes('xung dot')
+      || normalized.includes('conflict')
+      || this.isStalePublicationConflict(message);
+  }
+
+  private normalizeText(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/\p{M}/gu, '')
+      .toLowerCase();
+  }
+
   private async syncLearningProgressStorage(
     userId: string,
     courseIds: Iterable<string>,
@@ -1081,6 +1197,9 @@ export class OfflineSyncService {
       const completedLessons = progressRecords
         .filter(record => record.completedAt != null || record.progressPercent >= 100)
         .map(record => record.lessonId);
+      const completedSectionIds = Array.from(new Set(
+        progressRecords.flatMap(record => record.completedSectionIds ?? []),
+      ));
 
       const existing = this.readLearningProgressSnapshot(courseId);
       const offlineCourse = await offlineDb.courses.get([userId, courseId]);
@@ -1095,6 +1214,13 @@ export class OfflineSyncService {
         progressPercentage,
         lastUpdated: new Date().toISOString(),
       }));
+
+      const completedSectionsStorageKey = `learning_completed_sections_${courseId}`;
+      if (completedSectionIds.length > 0) {
+        localStorage.setItem(completedSectionsStorageKey, JSON.stringify(completedSectionIds));
+      } else {
+        localStorage.removeItem(completedSectionsStorageKey);
+      }
     }
   }
 

@@ -1,29 +1,22 @@
 /**
  * Messaging Service
  *
- * Service quản lý nhắn tin giữa giảng viên và học viên.
- * Hỗ trợ real-time updates thông qua polling hoặc WebSocket.
- *
- * @requirements 1.2, 1.3, 1.5, 2.2, 2.3, 3.4, 4.1, 6.2
+ * Service quan ly nhan tin giua giang vien va hoc vien.
+ * Realtime hien tai dung polling co kiem soat, khong nuot state local cua component.
  */
-import { Injectable, signal, computed, inject } from '@angular/core';
+import { inject, Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, interval, Subject, BehaviorSubject } from 'rxjs';
-import { map, catchError, switchMap, takeUntil, tap } from 'rxjs/operators';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { Observable, Subject, interval, of, throwError } from 'rxjs';
+import { catchError, map, switchMap, takeUntil, tap } from 'rxjs/operators';
 import {
-  Message,
   Conversation,
-  ConversationListItem,
-  sortMessagesByDate,
-  sortConversationsByRecent,
+  Message,
   filterEmptyConversations,
-  filterConversationsBySearch,
-  calculateUnreadCount,
+  sortConversationsByRecent,
+  sortMessagesByDate,
   toConversationListItem,
 } from '../../features/student/messages/utils/message-utils';
 
-// API DTOs
 export interface SendMessageRequest {
   recipientId: string;
   content: string;
@@ -39,378 +32,302 @@ export interface MarkAsReadRequest {
   messageIds: string[];
 }
 
+export interface MessageRecipientCandidate {
+  userId: string;
+  displayName: string;
+  email: string;
+  role: 'ADMIN' | 'ORG_ADMIN' | 'TEACHER' | 'STUDENT';
+  avatarUrl?: string | null;
+  conversationId?: string | null;
+  relationshipType: string;
+  contextType: string;
+  contextId?: string | null;
+  contextLabel?: string | null;
+  canMessage: boolean;
+}
+
+interface RawConversation {
+  id?: string;
+  otherUserId?: string;
+  otherUserName?: string;
+  otherUserRole?: string;
+  participants?: Array<{
+    id?: string;
+    name?: string;
+    role?: string;
+    avatar?: string | null;
+  }>;
+  lastMessage?: {
+    content?: string;
+    senderId?: string;
+    createdAt?: string;
+  } | null;
+  lastMessagePreview?: string | null;
+  lastMessageAt?: string | null;
+  unreadCount?: number;
+  isArchived?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface RawMessage {
+  id?: string;
+  conversationId?: string;
+  senderId?: string;
+  senderName?: string;
+  senderRole?: string;
+  content?: string;
+  isRead?: boolean;
+  createdAt?: string;
+  readAt?: string | null;
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class MessagingService {
-  private http = inject(HttpClient);
-  private apiUrl = '/api/v3/messages';
+  private readonly http = inject(HttpClient);
+  private readonly apiUrl = '/api/v3/messages';
 
-  // State signals
-  private _conversations = signal<Conversation[]>([]);
-  private _currentConversation = signal<Conversation | null>(null);
-  private _messages = signal<Message[]>([]);
-  private _loading = signal(false);
-  private _error = signal<string | null>(null);
-  private _currentUserId = signal<string>('');
+  private readonly _conversations = signal<Conversation[]>([]);
+  private readonly _currentConversation = signal<Conversation | null>(null);
+  private readonly _messages = signal<Message[]>([]);
+  private readonly _loading = signal(false);
+  private readonly _error = signal<string | null>(null);
+  private readonly _currentUserId = signal<string>('');
 
-  // Polling control
-  private pollingInterval = 5000; // 5 seconds
-  private stopPolling$ = new Subject<void>();
+  private readonly pollingInterval = 5000;
+  private readonly stopPolling$ = new Subject<void>();
   private isPolling = false;
+  private pollingKey: string | null = null;
 
-
-  // Public readonly signals
   readonly conversations = this._conversations.asReadonly();
   readonly currentConversation = this._currentConversation.asReadonly();
   readonly messages = this._messages.asReadonly();
   readonly loading = this._loading.asReadonly();
   readonly error = this._error.asReadonly();
 
-  // Computed signals
   readonly sortedConversations = computed(() => {
-    const convs = this._conversations();
-    const filtered = filterEmptyConversations(convs);
-    return sortConversationsByRecent(filtered);
+    return sortConversationsByRecent(filterEmptyConversations(this._conversations()));
   });
 
-  readonly sortedMessages = computed(() => {
-    return sortMessagesByDate(this._messages());
-  });
+  readonly sortedMessages = computed(() => sortMessagesByDate(this._messages()));
 
   readonly totalUnreadCount = computed(() => {
-    return this._conversations().reduce((total, conv) => total + conv.unreadCount, 0);
+    return this._conversations().reduce((total, conversation) => total + conversation.unreadCount, 0);
   });
 
   readonly conversationListItems = computed(() => {
     const userId = this._currentUserId();
-    return this.sortedConversations().map((conv) =>
-      toConversationListItem(conv, userId)
-    );
+    return this.sortedConversations().map((conversation) => toConversationListItem(conversation, userId));
   });
 
-  /**
-   * Set current user ID for filtering
-   */
   setCurrentUserId(userId: string): void {
     this._currentUserId.set(userId);
   }
 
-  /**
-   * Get all conversations for the current user
-   *
-   * @param includeArchived - Whether to include archived conversations
-   * @returns Observable of conversations
-   */
   getConversations(includeArchived: boolean = false): Observable<Conversation[]> {
     this._loading.set(true);
     this._error.set(null);
 
-    return this.http
-      .get<{ data: Conversation[] }>(`${this.apiUrl}/conversations`, {
-        params: { includeArchived: includeArchived.toString() },
+    return this.fetchConversationsSilently(includeArchived).pipe(
+      tap(() => this._loading.set(false)),
+      catchError((error) => {
+        this._error.set('Khong the tai danh sach hoi thoai');
+        this._loading.set(false);
+        return throwError(() => error);
       })
-      .pipe(
-        map((response) => response.data || []),
-        tap((conversations) => {
-          this._conversations.set(conversations);
-          this._loading.set(false);
-        }),
-        catchError((error) => {
-          this._error.set('Không thể tải danh sách hội thoại');
-          this._loading.set(false);
-          return of([]);
-        })
-      );
+    );
   }
 
-  /**
-   * Get a specific conversation between two users
-   *
-   * @param userId1 - First user ID
-   * @param userId2 - Second user ID
-   * @returns Observable of conversation
-   */
   getConversation(userId1: string, userId2: string): Observable<Conversation | null> {
     this._loading.set(true);
+    this._error.set(null);
 
     return this.http
-      .get<{ data: Conversation | null }>(`${this.apiUrl}/conversations/between`, {
+      .get<{ data: RawConversation | null }>(`${this.apiUrl}/conversations/between`, {
         params: { userId1, userId2 },
       })
       .pipe(
-        map((response) => response.data),
+        map((response) => response.data ? this.normalizeConversation(response.data) : null),
         tap((conversation) => {
           this._currentConversation.set(conversation);
           this._loading.set(false);
         }),
         catchError((error) => {
+          this._error.set('Khong the tai cuoc hoi thoai');
           this._loading.set(false);
-          return of(null);
+          return throwError(() => error);
         })
       );
   }
 
-  /**
-   * Get messages for a conversation
-   *
-   * @param conversationId - The conversation ID
-   * @returns Observable of messages
-   */
   getMessages(conversationId: string): Observable<Message[]> {
     this._loading.set(true);
     this._error.set(null);
 
-    return this.http
-      .get<{ data: Message[] }>(`${this.apiUrl}/conversations/${conversationId}/messages`)
-      .pipe(
-        map((response) => response.data || []),
-        tap((messages) => {
-          this._messages.set(messages);
-          this._loading.set(false);
-        }),
-        catchError((error) => {
-          this._error.set('Không thể tải tin nhắn');
-          this._loading.set(false);
-          return of([]);
-        })
-      );
-  }
-
-
-  /**
-   * Send a new message
-   *
-   * @param request - Send message request
-   * @returns Observable of send response
-   *
-   * **Feature: teacher-student-messaging, Property 1: Message Delivery Guarantee**
-   */
-  sendMessage(request: SendMessageRequest): Observable<SendMessageResponse> {
-    this._loading.set(true);
-
-    return this.http
-      .post<{ data: SendMessageResponse }>(`${this.apiUrl}/send`, request)
-      .pipe(
-        map((response) => response.data),
-        tap((response) => {
-          // Add message to local state
-          this._messages.update((msgs) => [...msgs, response.message]);
-
-          // Update conversation's last message
-          this._conversations.update((convs) =>
-            convs.map((conv) =>
-              conv.id === response.conversationId
-                ? {
-                  ...conv,
-                  lastMessage: {
-                    content: response.message.content,
-                    senderId: response.message.senderId,
-                    createdAt: response.message.createdAt,
-                  },
-                  updatedAt: response.message.createdAt,
-                }
-                : conv
-            )
-          );
-
-          this._loading.set(false);
-        }),
-        catchError((error) => {
-          this._error.set('Không thể gửi tin nhắn');
-          this._loading.set(false);
-          throw error;
-        })
-      );
-  }
-
-  /**
-   * Mark messages as read
-   *
-   * @param messageIds - Array of message IDs to mark as read
-   * @returns Observable of success
-   *
-   * **Feature: teacher-student-messaging, Property 5: Read Status Update**
-   */
-  markAsRead(messageIds: string[]): Observable<void> {
-    if (messageIds.length === 0) return of(undefined);
-
-    return this.http
-      .post<void>(`${this.apiUrl}/mark-read`, { messageIds })
-      .pipe(
-        tap(() => {
-          // Update local message state
-          this._messages.update((msgs) =>
-            msgs.map((msg) =>
-              messageIds.includes(msg.id) ? { ...msg, isRead: true } : msg
-            )
-          );
-
-          // Update unread count in conversations
-          const readCount = messageIds.length;
-          const currentConvId = this._currentConversation()?.id;
-          if (currentConvId) {
-            this._conversations.update((convs) =>
-              convs.map((conv) =>
-                conv.id === currentConvId
-                  ? { ...conv, unreadCount: Math.max(0, conv.unreadCount - readCount) }
-                  : conv
-              )
-            );
-          }
-        }),
-        catchError((error) => {
-          return of(undefined);
-        })
-      );
-  }
-
-  /**
-   * Archive a conversation
-   *
-   * @param conversationId - The conversation ID to archive
-   * @returns Observable of success
-   *
-   * **Feature: teacher-student-messaging, Property 9: Archive Round-Trip**
-   */
-  archiveConversation(conversationId: string): Observable<void> {
-    return this.http
-      .post<void>(`${this.apiUrl}/conversations/${conversationId}/archive`, {})
-      .pipe(
-        tap(() => {
-          this._conversations.update((convs) =>
-            convs.map((conv) =>
-              conv.id === conversationId ? { ...conv, isArchived: true } : conv
-            )
-          );
-        }),
-        catchError((error) => {
-          this._error.set('Không thể lưu trữ hội thoại');
-          throw error;
-        })
-      );
-  }
-
-  /**
-   * Restore an archived conversation
-   *
-   * @param conversationId - The conversation ID to restore
-   * @returns Observable of success
-   */
-  restoreConversation(conversationId: string): Observable<void> {
-    return this.http
-      .post<void>(`${this.apiUrl}/conversations/${conversationId}/restore`, {})
-      .pipe(
-        tap(() => {
-          this._conversations.update((convs) =>
-            convs.map((conv) =>
-              conv.id === conversationId ? { ...conv, isArchived: false } : conv
-            )
-          );
-        }),
-        catchError((error) => {
-          this._error.set('Không thể khôi phục hội thoại');
-          throw error;
-        })
-      );
-  }
-
-
-  /**
-   * Search messages across all conversations
-   *
-   * @param query - Search query string
-   * @returns Observable of matching conversations
-   *
-   * **Feature: teacher-student-messaging, Property 6: Search Results Relevance**
-   */
-  searchMessages(query: string): Observable<Conversation[]> {
-    if (!query || query.trim() === '') {
-      return of(this._conversations());
-    }
-
-    return this.http
-      .get<Conversation[]>(`${this.apiUrl}/search`, {
-        params: { q: query },
-      })
-      .pipe(
-        catchError((error) => {
-          // Fallback to local search
-          const filtered = filterConversationsBySearch(
-            this._conversations(),
-            query,
-            this._currentUserId()
-          );
-          return of(filtered);
-        })
-      );
-  }
-
-  /**
-   * Get total unread count for the current user
-   *
-   * @returns Observable of unread count
-   */
-  getUnreadCount(): Observable<number> {
-    return this.http.get<{ count: number }>(`${this.apiUrl}/unread-count`).pipe(
-      map((response) => response.count),
+    return this.fetchMessagesSilently(conversationId).pipe(
+      tap(() => this._loading.set(false)),
       catchError((error) => {
-        return of(this.totalUnreadCount());
+        this._error.set('Khong the tai tin nhan');
+        this._loading.set(false);
+        return throwError(() => error);
       })
     );
   }
 
-  /**
-   * Start polling for new messages
-   * Uses interval-based polling for real-time updates
-   *
-   * @param conversationId - Optional conversation ID to poll for specific conversation
-   */
-  startPolling(conversationId?: string): void {
-    if (this.isPolling) return;
-    this.isPolling = true;
+  getRecipients(options: {
+    query?: string;
+    contextType?: string;
+    contextId?: string;
+    limit?: number;
+  } = {}): Observable<MessageRecipientCandidate[]> {
+    const params: Record<string, string> = {};
+    if (options.query?.trim()) {
+      params['q'] = options.query.trim();
+    }
+    if (options.contextType?.trim()) {
+      params['contextType'] = options.contextType.trim();
+    }
+    if (options.contextId?.trim()) {
+      params['contextId'] = options.contextId.trim();
+    }
+    if (options.limit) {
+      params['limit'] = String(options.limit);
+    }
 
-    interval(this.pollingInterval)
+    return this.http
+      .get<{ data?: { items?: MessageRecipientCandidate[] } }>(`${this.apiUrl}/recipients`, { params })
       .pipe(
-        takeUntil(this.stopPolling$),
-        switchMap(() => {
-          if (conversationId) {
-            return this.getMessages(conversationId);
-          }
-          return this.getConversations();
-        })
-      )
-      .subscribe({ error: () => {} }); // polling — silent failure ok
+        map((response) => (response?.data?.items ?? []).map((item) => ({
+          ...item,
+          conversationId: item.conversationId ?? null,
+          contextId: item.contextId ?? null,
+          contextLabel: item.contextLabel ?? null,
+          avatarUrl: item.avatarUrl ?? null,
+        })))
+      );
   }
 
-  /**
-   * Stop polling for messages
-   */
+  sendMessage(request: SendMessageRequest): Observable<SendMessageResponse> {
+    this._loading.set(true);
+
+    return this.http
+      .post<{ data: { message: RawMessage; conversationId: string } }>(`${this.apiUrl}/send`, request)
+      .pipe(
+        map((response) => ({
+          conversationId: response.data.conversationId,
+          message: this.normalizeMessage(response.data.message),
+        })),
+        tap((response) => {
+          this._messages.update((messages) => [...messages, response.message]);
+          this._conversations.update((conversations) =>
+            conversations.map((conversation) =>
+              conversation.id === response.conversationId
+                ? {
+                    ...conversation,
+                    lastMessage: {
+                      content: response.message.content,
+                      senderId: response.message.senderId,
+                      createdAt: response.message.createdAt,
+                    },
+                    updatedAt: response.message.createdAt,
+                  }
+                : conversation
+            )
+          );
+          this._loading.set(false);
+        }),
+        catchError((error) => {
+          this._error.set(error?.error?.message ?? error?.error?.error?.message ?? 'Khong the gui tin nhan');
+          this._loading.set(false);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  markAsRead(messageIds: string[]): Observable<void> {
+    if (messageIds.length === 0) {
+      return of(undefined);
+    }
+
+    const previousMessages = this._messages();
+    const previousConversations = this._conversations();
+
+    return this.http.post<void>(`${this.apiUrl}/mark-read`, { messageIds }).pipe(
+      tap(() => {
+        this._messages.update((messages) =>
+          messages.map((message) =>
+            messageIds.includes(message.id) ? { ...message, isRead: true } : message
+          )
+        );
+
+        const currentConversationId = this._currentConversation()?.id;
+        if (currentConversationId) {
+          this._conversations.update((conversations) =>
+            conversations.map((conversation) =>
+              conversation.id === currentConversationId
+                ? {
+                    ...conversation,
+                    unreadCount: Math.max(
+                      0,
+                      conversation.unreadCount - messageIds.length
+                    ),
+                  }
+                : conversation
+            )
+          );
+        }
+      }),
+      catchError((error) => {
+        this._messages.set(previousMessages);
+        this._conversations.set(previousConversations);
+        this._error.set('Khong the cap nhat trang thai da doc');
+        return throwError(() => error);
+      })
+    );
+  }
+
+  getUnreadCount(): Observable<number> {
+    return this.http
+      .get<{ data?: { unreadCount?: number }; unreadCount?: number }>(`${this.apiUrl}/unread-count`)
+      .pipe(
+        map((response) => response?.data?.unreadCount ?? response?.unreadCount ?? this.totalUnreadCount()),
+        catchError(() => of(this.totalUnreadCount()))
+      );
+  }
+
+  startConversationPolling(conversationId: string, onMessages: (messages: Message[]) => void): void {
+    this.startPollingLoop(
+      `conversation:${conversationId}`,
+      () => this.fetchMessagesSilently(conversationId).pipe(catchError(() => of(this._messages()))),
+      onMessages
+    );
+  }
+
+  startConversationListPolling(onConversations: (conversations: Conversation[]) => void): void {
+    this.startPollingLoop(
+      'conversations',
+      () => this.fetchConversationsSilently().pipe(catchError(() => of(this._conversations()))),
+      onConversations
+    );
+  }
+
   stopPolling(): void {
     this.stopPolling$.next();
     this.isPolling = false;
+    this.pollingKey = null;
   }
 
-  /**
-   * Poll messages once (manual refresh)
-   *
-   * @param conversationId - The conversation ID to refresh
-   */
   pollMessages(conversationId: string): Observable<Message[]> {
-    return this.getMessages(conversationId);
+    return this.fetchMessagesSilently(conversationId);
   }
 
-  /**
-   * Clear current conversation state
-   */
   clearCurrentConversation(): void {
     this._currentConversation.set(null);
     this._messages.set([]);
   }
 
-  /**
-   * Clear all state
-   */
   clearAll(): void {
     this._conversations.set([]);
     this._currentConversation.set(null);
@@ -419,4 +336,126 @@ export class MessagingService {
     this.stopPolling();
   }
 
+  private fetchConversationsSilently(includeArchived: boolean = false): Observable<Conversation[]> {
+    return this.http
+      .get<{ data: RawConversation[] }>(`${this.apiUrl}/conversations`, {
+        params: { includeArchived: includeArchived.toString() },
+      })
+      .pipe(
+        map((response) => (response.data ?? []).map((conversation) => this.normalizeConversation(conversation))),
+        tap((conversations) => this._conversations.set(conversations))
+      );
+  }
+
+  private fetchMessagesSilently(conversationId: string): Observable<Message[]> {
+    return this.http
+      .get<{ data: RawMessage[] }>(`${this.apiUrl}/conversations/${conversationId}/messages`)
+      .pipe(
+        map((response) => (response.data ?? []).map((message) => this.normalizeMessage(message))),
+        tap((messages) => this._messages.set(messages))
+      );
+  }
+
+  private startPollingLoop<T>(key: string, fetcher: () => Observable<T>, onNext: (value: T) => void): void {
+    if (this.isPolling && this.pollingKey === key) {
+      return;
+    }
+
+    this.stopPolling();
+    this.isPolling = true;
+    this.pollingKey = key;
+
+    interval(this.pollingInterval)
+      .pipe(
+        takeUntil(this.stopPolling$),
+        switchMap(() => fetcher())
+      )
+      .subscribe({
+        next: onNext,
+        error: () => {
+          // polling is best-effort; keep UI stable
+        },
+      });
+  }
+
+  private normalizeConversation(raw: RawConversation): Conversation {
+    const currentUserId = this._currentUserId();
+    const participants = raw.participants?.length
+      ? raw.participants.map((participant) => ({
+          id: participant.id ?? '',
+          name: participant.name ?? 'Unknown',
+          role: this.normalizeRole(participant.role),
+          avatar: participant.avatar ?? undefined,
+        }))
+      : this.buildLegacyParticipants(raw, currentUserId);
+
+    const lastMessage = raw.lastMessage
+      ? {
+          content: raw.lastMessage.content ?? raw.lastMessagePreview ?? '',
+          senderId: raw.lastMessage.senderId ?? raw.otherUserId ?? '',
+          createdAt: raw.lastMessage.createdAt ?? raw.lastMessageAt ?? raw.updatedAt ?? raw.createdAt ?? new Date().toISOString(),
+        }
+      : raw.lastMessagePreview
+        ? {
+            content: raw.lastMessagePreview,
+            senderId: raw.otherUserId ?? '',
+            createdAt: raw.lastMessageAt ?? raw.updatedAt ?? raw.createdAt ?? new Date().toISOString(),
+          }
+        : undefined;
+
+    return {
+      id: raw.id ?? '',
+      participants,
+      lastMessage,
+      unreadCount: Number(raw.unreadCount ?? 0),
+      isArchived: Boolean(raw.isArchived),
+      createdAt: raw.createdAt ?? raw.updatedAt ?? new Date().toISOString(),
+      updatedAt: raw.updatedAt ?? raw.lastMessageAt ?? raw.createdAt ?? new Date().toISOString(),
+    };
+  }
+
+  private normalizeMessage(raw: RawMessage): Message {
+    return {
+      id: raw.id ?? '',
+      conversationId: raw.conversationId ?? '',
+      senderId: raw.senderId ?? '',
+      senderName: raw.senderName ?? 'Unknown',
+      senderRole: this.normalizeRole(raw.senderRole),
+      content: raw.content ?? '',
+      isRead: Boolean(raw.isRead),
+      createdAt: raw.createdAt ?? new Date().toISOString(),
+      readAt: raw.readAt ?? undefined,
+    };
+  }
+
+  private buildLegacyParticipants(raw: RawConversation, currentUserId: string): Conversation['participants'] {
+    const otherUserId = raw.otherUserId ?? '';
+    return [
+      {
+        id: currentUserId || 'current-user',
+        name: 'Ban',
+        role: 'STUDENT',
+        avatar: undefined,
+      },
+      {
+        id: otherUserId,
+        name: raw.otherUserName ?? 'Unknown',
+        role: this.normalizeRole(raw.otherUserRole),
+        avatar: undefined,
+      },
+    ];
+  }
+
+  private normalizeRole(role: string | undefined): 'ADMIN' | 'ORG_ADMIN' | 'TEACHER' | 'STUDENT' {
+    switch ((role ?? '').toUpperCase()) {
+      case 'ADMIN':
+        return 'ADMIN';
+      case 'ORG_ADMIN':
+        return 'ORG_ADMIN';
+      case 'TEACHER':
+        return 'TEACHER';
+      default:
+        return 'STUDENT';
+    }
+  }
 }

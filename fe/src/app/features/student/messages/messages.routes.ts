@@ -1,10 +1,3 @@
-/**
- * Student Messages Routes
- *
- * Routes cho module tin nhắn của học viên.
- *
- * @requirements 2.1
- */
 import { Routes } from '@angular/router';
 
 export const MESSAGES_ROUTES: Routes = [
@@ -13,6 +6,12 @@ export const MESSAGES_ROUTES: Routes = [
     loadComponent: () =>
       import('./student-inbox.component').then((m) => m.StudentInboxComponent),
     title: 'Tin nhắn - LMS Maritime',
+  },
+  {
+    path: 'new',
+    loadComponent: () =>
+      import('./conversation-view.component').then((m) => m.ConversationViewComponent),
+    title: 'Tin nhắn mới - LMS Maritime',
   },
   {
     path: ':conversationId',

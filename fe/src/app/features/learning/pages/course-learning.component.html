@@ -54,6 +54,26 @@
       <span class="flex-1 font-medium">Mở khóa toàn bộ khóa học</span>
       <span class="material-symbols-outlined text-sm">chevron_right</span>
     </div>
+    } @else if (awaitingManualActivation()) {
+    <div class="mx-4 mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+      <div class="flex items-start gap-2">
+        <span class="material-symbols-outlined mt-0.5 text-base">pending_actions</span>
+        <div class="min-w-0">
+          <p class="font-medium">Thanh toan da duoc ghi nhan</p>
+          <p class="mt-0.5 text-xs text-amber-700">Khoa hoc dang lop hoc se mo khi ban duoc xep lop hoac kich hoat.</p>
+        </div>
+      </div>
+    </div>
+    } @else if (accessPending()) {
+    <div class="mx-4 mt-3 rounded-lg border border-[#0056D2]/20 bg-[#0056D2]/5 px-3 py-2 text-sm text-slate-700">
+      <div class="flex items-start gap-2">
+        <span class="material-symbols-outlined mt-0.5 text-base text-[#0056D2]">sync</span>
+        <div class="min-w-0">
+          <p class="font-medium">Da ghi nhan thanh toan</p>
+          <p class="mt-0.5 text-xs text-slate-600">Quyen hoc cua ban van dang duoc kich hoat. Hay kiem tra lai trong it phut toi tai lich su thanh toan.</p>
+        </div>
+      </div>
+    </div>
     }
 
     <!-- Course Navigation -->
@@ -298,7 +318,7 @@
   <app-payment-modal
     [courseInfo]="getPaymentInfo()"
     (close)="onPaymentModalClose($event)"
-    (paymentComplete)="onPaymentComplete()">
+    (paymentComplete)="onPaymentComplete($event)">
   </app-payment-modal>
   }
 </div>

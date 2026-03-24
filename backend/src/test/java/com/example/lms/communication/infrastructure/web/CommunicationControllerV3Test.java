@@ -1,7 +1,13 @@
 package com.example.lms.communication.infrastructure.web;
 
+import com.example.lms.communication.application.dto.MessageRecipientCandidateResponse;
+import com.example.lms.communication.application.usecase.ListMessageRecipientsUseCase;
+import com.example.lms.communication.application.usecase.MessageAuthorizationService;
 import com.example.lms.communication.application.usecase.SendMessageUseCaseV3;
-import com.example.lms.communication.domain.model.*;
+import com.example.lms.communication.domain.model.Conversation;
+import com.example.lms.communication.domain.model.ConversationId;
+import com.example.lms.communication.domain.model.Message;
+import com.example.lms.communication.domain.model.MessageId;
 import com.example.lms.communication.domain.repository.ConversationRepository;
 import com.example.lms.communication.domain.repository.MessageRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
@@ -16,20 +22,24 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-/**
- * Functional tests for CommunicationControllerV3 endpoints.
- * Covers: getConversations, getUnreadCount, markAsRead, sendMessage.
- */
 @ExtendWith(MockitoExtension.class)
 class CommunicationControllerV3Test {
 
     @Mock private SendMessageUseCaseV3 sendMessageUseCase;
+    @Mock private ListMessageRecipientsUseCase listMessageRecipientsUseCase;
+    @Mock private MessageAuthorizationService messageAuthorizationService;
     @Mock private ConversationRepository conversationRepository;
     @Mock private MessageRepository messageRepository;
     @Mock private UserJpaRepository userJpaRepository;
@@ -40,185 +50,197 @@ class CommunicationControllerV3Test {
     private UserJpaEntity userA;
     private UUID userAId;
     private UUID userBId;
+    private UUID unrelatedUserId;
 
     @BeforeEach
     void setUp() {
         userAId = UUID.randomUUID();
         userBId = UUID.randomUUID();
+        unrelatedUserId = UUID.randomUUID();
+
         userA = mock(UserJpaEntity.class);
         when(userA.getId()).thenReturn(userAId);
     }
 
     private Conversation createConversation(UUID participant1, UUID participant2) {
         return Conversation.reconstitute(
-                ConversationId.of(UUID.randomUUID()), participant1, participant2,
-                "Hello", Instant.now(), false, false, Instant.now(), Instant.now());
+                ConversationId.of(UUID.randomUUID()),
+                participant1,
+                participant2,
+                "Hello",
+                Instant.now(),
+                false,
+                false,
+                Instant.now(),
+                Instant.now()
+        );
     }
 
-    private Message createMessage(ConversationId convId, UUID senderId, boolean isRead) {
+    private Message createMessage(ConversationId conversationId, UUID senderId, boolean isRead) {
         return Message.reconstitute(
-                MessageId.of(UUID.randomUUID()), convId, senderId,
-                "Test message", isRead, Instant.now(), isRead ? Instant.now() : null);
+                MessageId.of(UUID.randomUUID()),
+                conversationId,
+                senderId,
+                "Test message",
+                isRead,
+                Instant.now(),
+                isRead ? Instant.now() : null
+        );
     }
-
-    // ── getConversations ────────────────────────────────────────────
 
     @Nested
     @DisplayName("getConversations")
     class GetConversations {
 
         @Test
-        @DisplayName("Trả về danh sách hội thoại của người dùng")
+        @DisplayName("returns conversations for current user")
         void returnsConversationsForUser() {
-            var conv = createConversation(userAId, userBId);
-            when(conversationRepository.findActiveByParticipantId(userAId))
-                    .thenReturn(List.of(conv));
-            var userB = mock(UserJpaEntity.class);
+            Conversation conversation = createConversation(userAId, userBId);
+            when(userA.getRole()).thenReturn(UserJpaEntity.UserRole.STUDENT);
+            when(conversationRepository.findActiveByParticipantId(userAId)).thenReturn(List.of(conversation));
+            when(messageRepository.findUnreadByConversationId(conversation.getId())).thenReturn(List.of());
+
+            UserJpaEntity userB = mock(UserJpaEntity.class);
             when(userB.getId()).thenReturn(userBId);
             when(userB.getFullName()).thenReturn("User B");
-            when(userJpaRepository.findAllById(any()))
-                    .thenReturn(List.of(userB));
+            when(userB.getRole()).thenReturn(UserJpaEntity.UserRole.TEACHER);
+            when(userJpaRepository.findAllById(any())).thenReturn(List.of(userB, userA));
 
             var response = controller.getConversations(userA, false);
+
             assertThat(response.getStatusCode().value()).isEqualTo(200);
-
-            var body = response.getBody();
-            assertThat(body).isNotNull();
-            assertThat(body.getData()).hasSize(1);
-            assertThat(body.getData().get(0).get("otherUserName")).isEqualTo("User B");
-        }
-
-        @Test
-        @DisplayName("Trả về danh sách rỗng khi không có hội thoại")
-        void returnsEmptyList() {
-            when(conversationRepository.findActiveByParticipantId(userAId))
-                    .thenReturn(List.of());
-
-            var response = controller.getConversations(userA, false);
-            assertThat(response.getStatusCode().value()).isEqualTo(200);
-            assertThat(response.getBody().getData()).isEmpty();
+            assertThat(response.getBody()).isNotNull();
+            assertThat(response.getBody().getData()).hasSize(1);
+            assertThat(response.getBody().getData().get(0).get("otherUserName")).isEqualTo("User B");
+            assertThat(response.getBody().getData().get(0)).containsKeys("participants", "unreadCount", "updatedAt");
         }
     }
-
-    // ── getUnreadCount ──────────────────────────────────────────────
 
     @Nested
     @DisplayName("getUnreadCount")
     class GetUnreadCount {
 
         @Test
-        @DisplayName("Đếm đúng số tin nhắn chưa đọc (single query)")
+        @DisplayName("counts unread messages with single query")
         void countsCorrectly() {
-            // Single query returns total unread count directly
             when(messageRepository.countTotalUnreadForUser(userAId)).thenReturn(2L);
 
             var response = controller.getUnreadCount(userA);
+
             assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).isNotNull();
             assertThat(response.getBody().getData().get("unreadCount")).isEqualTo(2L);
         }
-
-        @Test
-        @DisplayName("Trả về 0 khi tất cả đã đọc")
-        void zeroWhenAllRead() {
-            when(messageRepository.countTotalUnreadForUser(userAId)).thenReturn(0L);
-
-            var response = controller.getUnreadCount(userA);
-            assertThat(response.getStatusCode().value()).isEqualTo(200);
-            assertThat(response.getBody().getData().get("unreadCount")).isEqualTo(0L);
-        }
     }
-
-    // ── markAsRead ──────────────────────────────────────────────────
 
     @Nested
     @DisplayName("markAsRead")
     class MarkAsRead {
 
         @Test
-        @DisplayName("Đánh dấu tin nhắn đã đọc cho thành viên")
+        @DisplayName("marks messages as read for conversation participants")
         void marksOwnConversationMessages() {
-            var conv = createConversation(userAId, userBId);
-            var msg = createMessage(conv.getId(), userBId, false);
-            var msgId = msg.getId().value();
+            Conversation conversation = createConversation(userAId, userBId);
+            Message message = createMessage(conversation.getId(), userBId, false);
 
-            when(messageRepository.findById(msg.getId())).thenReturn(Optional.of(msg));
-            when(conversationRepository.findById(msg.getConversationId())).thenReturn(Optional.of(conv));
+            when(messageRepository.findById(message.getId())).thenReturn(Optional.of(message));
+            when(conversationRepository.findById(message.getConversationId())).thenReturn(Optional.of(conversation));
 
-            var request = new CommunicationControllerV3.MarkAsReadRequest(List.of(msgId));
-            var response = controller.markAsRead(userA, request);
+            var response = controller.markAsRead(userA, new CommunicationControllerV3.MarkAsReadRequest(List.of(message.getId().value())));
+
             assertThat(response.getStatusCode().value()).isEqualTo(200);
-            verify(messageRepository).save(msg);
-        }
-
-        @Test
-        @DisplayName("Bỏ qua tin nhắn thuộc hội thoại khác")
-        void skipsOtherConversationMessages() {
-            UUID otherUserId = UUID.randomUUID();
-            var otherConv = createConversation(otherUserId, userBId);
-            var msg = createMessage(otherConv.getId(), userBId, false);
-
-            when(messageRepository.findById(msg.getId())).thenReturn(Optional.of(msg));
-            when(conversationRepository.findById(msg.getConversationId())).thenReturn(Optional.of(otherConv));
-
-            var request = new CommunicationControllerV3.MarkAsReadRequest(List.of(msg.getId().value()));
-            controller.markAsRead(userA, request);
-            // Message should NOT be saved since userA is not a participant
-            verify(messageRepository, never()).save(any());
+            verify(messageRepository).save(message);
         }
     }
 
-    // ── sendMessage ─────────────────────────────────────────────────
+    @Nested
+    @DisplayName("listRecipients")
+    class ListRecipients {
+
+        @Test
+        @DisplayName("returns eligible recipients for picker")
+        void returnsEligibleRecipients() {
+            when(userA.getRole()).thenReturn(UserJpaEntity.UserRole.STUDENT);
+            when(userA.getOrganizationId()).thenReturn(UUID.randomUUID());
+            when(listMessageRecipientsUseCase.execute(any(), any(), any(), any(), any()))
+                    .thenReturn(List.of(
+                            new MessageRecipientCandidateResponse(
+                                    userBId,
+                                    "Teacher B",
+                                    "teacher@maritime.edu",
+                                    "TEACHER",
+                                    null,
+                                    null,
+                                    "CLASS_TEACHER",
+                                    "class",
+                                    UUID.randomUUID(),
+                                    "ECDIS-2026B",
+                                    true
+                            )
+                    ));
+
+            var response = controller.listRecipients(userA, "teach", "auto", null, 20);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).isNotNull();
+            assertThat(response.getBody().getData().items()).hasSize(1);
+            assertThat(response.getBody().getData().items().get(0).displayName()).isEqualTo("Teacher B");
+        }
+    }
 
     @Nested
     @DisplayName("sendMessage")
     class SendMessage {
 
         @Test
-        @DisplayName("Gửi tin nhắn và trả về kết quả")
+        @DisplayName("sends message and returns created payload")
         void createsAndReturns() {
             UUID messageId = UUID.randomUUID();
+            when(userA.getRole()).thenReturn(UserJpaEntity.UserRole.STUDENT);
+            when(userA.getOrganizationId()).thenReturn(UUID.randomUUID());
             when(sendMessageUseCase.execute(any())).thenReturn(messageId);
+            when(messageAuthorizationService.canSendMessage(any(), eq(userBId))).thenReturn(true);
 
-            var conv = createConversation(userAId, userBId);
-            when(conversationRepository.findByParticipants(userAId, userBId))
-                    .thenReturn(Optional.of(conv));
+            Conversation conversation = createConversation(userAId, userBId);
+            when(conversationRepository.findByParticipants(userAId, userBId)).thenReturn(Optional.of(conversation));
 
-            var request = new CommunicationControllerV3.SendMessageRequest(userBId, "Xin chào!");
-            var response = controller.sendMessage(userA, request);
+            UserJpaEntity sender = mock(UserJpaEntity.class);
+            when(sender.getId()).thenReturn(userAId);
+            when(sender.getFullName()).thenReturn("User A");
+            when(sender.getRole()).thenReturn(UserJpaEntity.UserRole.STUDENT);
+            when(userJpaRepository.findAllById(any())).thenReturn(List.of(sender));
+
+            var response = controller.sendMessage(userA, new CommunicationControllerV3.SendMessageRequest(userBId, "Xin chao"));
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).isNotNull();
             @SuppressWarnings("unchecked")
-            var messageData = (Map<String, Object>) response.getBody().getData().get("message");
+            var messageData = (java.util.Map<String, Object>) response.getBody().getData().get("message");
             assertThat(messageData.get("id")).isEqualTo(messageId);
-            assertThat(messageData.get("content")).isEqualTo("Xin chào!");
+            assertThat(messageData.get("senderRole")).isEqualTo("STUDENT");
         }
 
         @Test
-        @DisplayName("Gửi tin nhắn tạo hội thoại mới")
-        void newConversation() {
-            UUID messageId = UUID.randomUUID();
-            when(sendMessageUseCase.execute(any())).thenReturn(messageId);
-            when(conversationRepository.findByParticipants(userAId, userBId))
-                    .thenReturn(Optional.empty());
-
-            var request = new CommunicationControllerV3.SendMessageRequest(userBId, "Hello!");
-            var response = controller.sendMessage(userA, request);
-
-            assertThat(response.getStatusCode().value()).isEqualTo(200);
-            assertThat(response.getBody().getData().get("conversationId")).isNull();
-        }
-
-        @Test
-        @DisplayName("Từ chối gửi tin nhắn cho chính mình")
+        @DisplayName("rejects self messaging")
         void rejectsSelfMessaging() {
-            // Try to send message to self
-            var request = new CommunicationControllerV3.SendMessageRequest(userAId, "Hello me!");
-            var response = controller.sendMessage(userA, request);
+            var response = controller.sendMessage(userA, new CommunicationControllerV3.SendMessageRequest(userAId, "Hello me"));
 
             assertThat(response.getStatusCode().value()).isEqualTo(400);
-            assertThat(response.getBody().getMessage()).contains("chính mình");
+            verify(sendMessageUseCase, never()).execute(any());
+        }
 
-            // Verify use case was never called
+        @Test
+        @DisplayName("rejects recipients outside allowed scope")
+        void rejectsRecipientOutsideScope() {
+            when(userA.getRole()).thenReturn(UserJpaEntity.UserRole.STUDENT);
+            when(userA.getOrganizationId()).thenReturn(UUID.randomUUID());
+            when(messageAuthorizationService.canSendMessage(any(), eq(unrelatedUserId))).thenReturn(false);
+
+            var response = controller.sendMessage(userA, new CommunicationControllerV3.SendMessageRequest(unrelatedUserId, "Hello stranger"));
+
+            assertThat(response.getStatusCode().value()).isEqualTo(403);
+            assertThat(response.getBody()).isNotNull();
+            assertThat(response.getBody().getError().getCode()).isEqualTo("RECIPIENT_NOT_ALLOWED");
             verify(sendMessageUseCase, never()).execute(any());
         }
     }

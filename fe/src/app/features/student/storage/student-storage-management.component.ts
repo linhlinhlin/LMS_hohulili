@@ -156,7 +156,8 @@ export class StudentStorageManagementComponent implements OnInit {
     this.downloadService.downloadedCount() > 0
       || this.videoService.downloads().length > 0
       || this.syncService.pendingCount() > 0
-      || this.syncService.failedCount() > 0,
+      || this.syncService.failedCount() > 0
+      || this.syncService.conflictCount() > 0,
   );
 
   readonly persistenceStatusLabel = computed(() =>
@@ -167,9 +168,35 @@ export class StudentStorageManagementComponent implements OnInit {
 
   readonly syncStatusLabel = computed(() => {
     if (this.syncService.isSyncing()) return 'Đang đồng bộ dữ liệu học tập...';
+    if (this.syncService.hasConflictItems()) return 'Có xung đột đồng bộ cần xử lý trước khi tiếp tục retry hàng đợi.';
     if (this.syncService.failedCount() > 0) return 'Có mục đồng bộ cần xử lý.';
     if (this.syncService.pendingCount() > 0) return 'Có dữ liệu đang chờ đồng bộ.';
     return 'Mọi dữ liệu hiện đã đồng bộ hoặc chưa có thay đổi mới.';
+  });
+
+  readonly syncConflictSummary = computed(() => {
+    const conflictCount = this.syncService.conflictCount();
+    if (conflictCount === 0) {
+      return null;
+    }
+
+    if (this.staleCourseCount() > 0) {
+      return `${conflictCount} xung dot dong bo dang lien quan den noi dung offline cu. Hay cap nhat khoa hoc truoc khi dong bo lai.`;
+    }
+
+    return `${conflictCount} xung dot dong bo can duoc kiem tra. Tien do local dang duoc giu lai de ban quyet dinh cach tiep tuc.`;
+  });
+
+  readonly syncConflictActionLabel = computed(() => {
+    if (this.staleCourseCount() > 0) {
+      return 'Cap nhat khoa hoc cu';
+    }
+
+    if (!this.network.online()) {
+      return 'Can ket noi mang de xu ly';
+    }
+
+    return 'Dong bo lai sau khi kiem tra';
   });
 
   readonly currentConnectionLabel = computed(() => {
@@ -460,6 +487,20 @@ export class StudentStorageManagementComponent implements OnInit {
 
   async onRetryFailed(): Promise<void> {
     await this.syncService.retryFailed();
+  }
+
+  async onResolveConflicts(): Promise<void> {
+    if (this.staleCourseCount() > 0) {
+      await this.onBulkUpdateStale();
+      return;
+    }
+
+    if (!this.network.online()) {
+      this.toast.info('Can ket noi mang truoc khi thu xu ly xung dot dong bo.');
+      return;
+    }
+
+    await this.syncService.syncNow();
   }
 
   async onClearFailed(): Promise<void> {

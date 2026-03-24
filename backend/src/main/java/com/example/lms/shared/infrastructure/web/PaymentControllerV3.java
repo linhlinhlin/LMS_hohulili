@@ -20,6 +20,7 @@ import com.example.lms.learning_delivery.application.usecase.SelfEnrollUseCase;
 import com.example.lms.shared.infrastructure.persistence.entity.PaymentTransactionJpaEntity;
 import com.example.lms.shared.infrastructure.persistence.repository.PaymentTransactionJpaRepository;
 import com.example.lms.shared.infrastructure.vnpay.VnPayUtil;
+import com.example.lms.course_authoring.infrastructure.service.CoursePublicationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -35,6 +36,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -84,13 +86,13 @@ public class PaymentControllerV3 {
     private final com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository enrollmentJpaRepository;
     private final EmailServicePort emailService;
     private final Environment environment;
+    private final CoursePublicationService coursePublicationService;
 
     // ==================== Student Endpoints ====================
 
     @Operation(summary = "Checkout - simulate course payment (dev-only)")
     @PostMapping("/checkout")
     @PreAuthorize("isAuthenticated()")
-    @Transactional
     public ResponseEntity<ApiResponse<Map<String, Object>>> checkout(
             @AuthenticationPrincipal UserJpaEntity currentUser,
             @Valid @RequestBody CheckoutRequest request
@@ -122,8 +124,17 @@ public class PaymentControllerV3 {
         autoEnrollStudent(payment.getStudentId(), payment.getCourseId());
 
         String courseTitle = courseRepository.findById(courseId).map(CourseJpaEntity::getTitle).orElse(null);
+        PaymentAccessActivationSnapshot activation = resolvePaymentAccessActivation(
+                currentUser.getId(),
+                courseId
+        );
         return ResponseEntity.ok(ApiResponse.success(
-                PaymentResponse.from(payment, courseTitle).toMap(), "Thanh toán thành công"));
+                PaymentResponse.from(
+                        payment,
+                        courseTitle,
+                        activation.state(),
+                        activation.message()
+                ).toMap(), "Thanh toán thành công"));
     }
 
     @Operation(summary = "Get payment status for a course")
@@ -147,27 +158,33 @@ public class PaymentControllerV3 {
 
         if (paymentOpt.isPresent() && paymentOpt.get().isCompleted()) {
             var payment = paymentOpt.get();
+            PaymentAccessActivationSnapshot activation = resolvePaymentAccessActivation(
+                    currentUser.getId(),
+                    payment.getCourseId()
+            );
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("courseId", courseId);
+            payload.put("hasPaid", true);
+            payload.put("status", "COMPLETED");
+            payload.put("freeLessonsCount", 0);
+            payload.put("transactionId", payment.getTransactionId());
+            payload.put("paidAt", payment.getPaidAt().toString());
+            payload.put("accessActivationState", activation.state());
+            payload.put("accessActivationMessage", activation.message());
             return ResponseEntity.ok(ApiResponse.success(
-                    Map.of(
-                            "courseId", courseId,
-                            "hasPaid", true,
-                            "status", "COMPLETED",
-                            "transactionId", payment.getTransactionId(),
-                            "paidAt", payment.getPaidAt().toString()
-                    ),
+                    payload,
                     "Trạng thái thanh toán"
             ));
         }
 
-        return ResponseEntity.ok(ApiResponse.success(
-                Map.of(
-                        "courseId", courseId,
-                        "hasPaid", false,
-                        "status", "UNPAID",
-                        "freeLessonsCount", 2
-                ),
-                "Khóa học chưa được mua"
-        ));
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("courseId", courseId);
+        payload.put("hasPaid", false);
+        payload.put("status", "UNPAID");
+        payload.put("freeLessonsCount", resolvePublishedPreviewLessonCount(courseUuid, currentUser.getId()));
+        payload.put("accessActivationState", null);
+        payload.put("accessActivationMessage", null);
+        return ResponseEntity.ok(ApiResponse.success(payload, "Khóa học chưa được mua"));
     }
 
     @Operation(summary = "Get payment history")
@@ -189,7 +206,17 @@ public class PaymentControllerV3 {
         }
 
         List<Map<String, Object>> result = payments.stream()
-                .map(p -> PaymentResponse.from(p, courseTitleMap.get(p.getCourseId())).toMap())
+                .map(p -> {
+                    PaymentAccessActivationSnapshot activation = p.isCompleted()
+                            ? resolvePaymentAccessActivation(currentUser.getId(), p.getCourseId())
+                            : new PaymentAccessActivationSnapshot(null, null);
+                    return PaymentResponse.from(
+                            p,
+                            courseTitleMap.get(p.getCourseId()),
+                            activation.state(),
+                            activation.message()
+                    ).toMap();
+                })
                 .toList();
         return ResponseEntity.ok(ApiResponse.success(result, "Lịch sử thanh toán"));
     }
@@ -213,7 +240,7 @@ public class PaymentControllerV3 {
             return ResponseEntity.badRequest().body(ApiResponse.error("Mã khóa học không hợp lệ"));
         }
         boolean hasPaid = paymentRepository.hasCompletedPayment(currentUser.getId(), courseUuid);
-        boolean canAccess = hasPaid || lessonIndex < 2;
+        boolean canAccess = hasPaid || isPublishedPreviewLessonAccessible(courseUuid, currentUser.getId(), lessonIndex);
 
         return ResponseEntity.ok(ApiResponse.success(
                 Map.of(
@@ -257,8 +284,16 @@ public class PaymentControllerV3 {
 
         String courseTitle = courseRepository.findById(payment.getCourseId())
                 .map(CourseJpaEntity::getTitle).orElse(null);
+        PaymentAccessActivationSnapshot activation = payment.isCompleted()
+                ? resolvePaymentAccessActivation(currentUser.getId(), payment.getCourseId())
+                : new PaymentAccessActivationSnapshot(null, null);
         return ResponseEntity.ok(ApiResponse.success(
-                PaymentResponse.from(payment, courseTitle).toMap(), "Thông tin giao dịch"));
+                PaymentResponse.from(
+                        payment,
+                        courseTitle,
+                        activation.state(),
+                        activation.message()
+                ).toMap(), "Thông tin giao dịch"));
     }
 
     // ==================== VNPay Endpoints ====================
@@ -294,8 +329,19 @@ public class PaymentControllerV3 {
         // Already paid — return existing payment
         if (result.paymentUrl() == null) {
             String courseTitle = course.getTitle();
+            PaymentAccessActivationSnapshot activation = resolvePaymentAccessActivation(
+                    currentUser.getId(),
+                    courseId
+            );
             return ResponseEntity.ok(ApiResponse.success(
-                    PaymentResponse.from(result.payment(), courseTitle).toMap(), "Đã thanh toán trước đó"));
+                    PaymentResponse.from(
+                            result.payment(),
+                            courseTitle,
+                            activation.state(),
+                            activation.message()
+                    ).toMap(),
+                    "Đã thanh toán trước đó"
+            ));
         }
 
         Map<String, Object> responseMap = new LinkedHashMap<>();
@@ -388,13 +434,27 @@ public class PaymentControllerV3 {
     ) {
         var result = processSepayWebhookUseCase.execute(payload, authorization);
 
-        if (result.success() && result.payment() != null) {
+        if (!result.success()) {
+            HttpStatus status = "Unauthorized".equalsIgnoreCase(result.message())
+                    ? HttpStatus.UNAUTHORIZED
+                    : HttpStatus.BAD_REQUEST;
+            return ResponseEntity.status(status).body(Map.of(
+                    "success", false,
+                    "message", result.message()
+            ));
+        }
+
+        if (result.payment() != null) {
             autoEnrollStudent(result.payment().getStudentId(), result.payment().getCourseId());
             sendPaymentEmails(result.payment());
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                    "success", true,
+                    "message", result.message()
+            ));
         }
 
         return ResponseEntity.ok(Map.of(
-                "success", result.success(),
+                "success", true,
                 "message", result.message()
         ));
     }
@@ -428,6 +488,24 @@ public class PaymentControllerV3 {
                 ),
                 "Trạng thái giao dịch"
         ));
+    }
+
+    @Operation(summary = "Learner: available payment methods for current runtime")
+    @GetMapping("/available-methods")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getAvailablePaymentMethods() {
+        List<String> methods = resolveAvailablePaymentMethods();
+        String defaultMethod = resolveDefaultPaymentMethod(methods);
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("availableMethods", methods);
+        payload.put("defaultMethod", defaultMethod);
+        payload.put("production", isProductionProfile());
+        payload.put("hasAvailableMethod", !methods.isEmpty());
+        payload.put("message", methods.isEmpty()
+                ? "Hiện không có cổng thanh toán nào đang được bật."
+                : null);
+        return ResponseEntity.ok(ApiResponse.success(payload, "Danh sách phương thức thanh toán khả dụng"));
     }
 
     // ==================== Admin Endpoints ====================
@@ -570,11 +648,125 @@ public class PaymentControllerV3 {
         return resolvePrice(course);
     }
 
+    private int resolvePublishedPreviewLessonCount(UUID courseId, UUID studentId) {
+        return resolveEffectivePreviewLessons(courseId, studentId).stream()
+                .mapToInt(lesson -> Boolean.TRUE.equals(asBooleanObject(lesson.get("isFree"))) ? 1 : 0)
+                .sum();
+    }
+
+    private boolean isPublishedPreviewLessonAccessible(UUID courseId, UUID studentId, int lessonIndex) {
+        if (lessonIndex < 0) {
+            return false;
+        }
+
+        List<Map<String, Object>> lessons = resolveEffectivePreviewLessons(courseId, studentId);
+        if (lessonIndex >= lessons.size()) {
+            return false;
+        }
+
+        return Boolean.TRUE.equals(asBooleanObject(lessons.get(lessonIndex).get("isFree")));
+    }
+
+    private List<Map<String, Object>> resolveEffectivePreviewLessons(UUID courseId, UUID studentId) {
+        List<Map<String, Object>> publishedContent = coursePublicationService.getPublishedContent(courseId, studentId);
+        if (publishedContent != null) {
+            return flattenPublishedLessons(publishedContent);
+        }
+        return flattenPublishedLessons(coursePublicationService.getDraftContent(courseId));
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> flattenPublishedLessons(List<Map<String, Object>> chapters) {
+        if (chapters == null || chapters.isEmpty()) {
+            return List.of();
+        }
+
+        List<Map<String, Object>> lessons = new ArrayList<>();
+        for (Map<String, Object> chapter : chapters) {
+            Object rawLessons = chapter.get("lessons");
+            if (!(rawLessons instanceof List<?> lessonList)) {
+                continue;
+            }
+
+            for (Object rawLesson : lessonList) {
+                if (rawLesson instanceof Map<?, ?> lessonMap) {
+                    lessons.add((Map<String, Object>) lessonMap);
+                }
+            }
+        }
+        return lessons;
+    }
+
+    private Boolean asBooleanObject(Object value) {
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        if (value == null) {
+            return null;
+        }
+        return Boolean.parseBoolean(String.valueOf(value));
+    }
+
     private BigDecimal resolvePrice(CourseJpaEntity course) {
         if (course.getSalePrice() != null && course.getSalePrice().compareTo(BigDecimal.ZERO) > 0) {
             return course.getSalePrice();
         }
         return course.getPrice() != null ? course.getPrice() : BigDecimal.ZERO;
+    }
+
+    private List<String> resolveAvailablePaymentMethods() {
+        var paymentSettings = adminSettingsUseCase.getSettings().payment();
+        boolean isProd = isProductionProfile();
+
+        List<String> methods = new ArrayList<>();
+        if (!isProd) {
+            methods.add("SIMULATED");
+        }
+        if (paymentSettings.vnpayEnabled()) {
+            methods.add("VNPAY");
+        }
+        if (paymentSettings.sepayEnabled() && sepayPaymentPort.isEnabled()) {
+            methods.add("SEPAY");
+        }
+        return methods;
+    }
+
+    private String resolveDefaultPaymentMethod(List<String> methods) {
+        if (methods.contains("SIMULATED")) {
+            return "SIMULATED";
+        }
+        if (methods.contains("VNPAY")) {
+            return "VNPAY";
+        }
+        if (methods.contains("SEPAY")) {
+            return "SEPAY";
+        }
+        return null;
+    }
+
+    private PaymentAccessActivationSnapshot resolvePaymentAccessActivation(UUID studentId, UUID courseId) {
+        var enrollmentOpt = enrollmentJpaRepository.findByStudentIdAndCourseId(studentId, courseId);
+        if (enrollmentOpt.isPresent()) {
+            var status = enrollmentOpt.get().getStatus();
+            if (status == com.example.lms.learning_delivery.infrastructure.persistence.entity.EnrollmentJpaEntity.EnrollmentStatus.ACTIVE
+                    || status == com.example.lms.learning_delivery.infrastructure.persistence.entity.EnrollmentJpaEntity.EnrollmentStatus.COMPLETED) {
+                return new PaymentAccessActivationSnapshot("READY", null);
+            }
+        }
+
+        var courseOpt = courseRepository.findById(courseId);
+        if (courseOpt.isPresent()
+                && courseOpt.get().getDeliveryMode() == CourseJpaEntity.DeliveryMode.INSTRUCTOR_LED) {
+            return new PaymentAccessActivationSnapshot(
+                    "MANUAL_ACTIVATION_REQUIRED",
+                    "Thanh toán đã được ghi nhận. Đây là khóa học dạng lớp học, nên bạn sẽ vào học sau khi được xếp lớp hoặc kích hoạt."
+            );
+        }
+
+        return new PaymentAccessActivationSnapshot(
+                "ACCESS_PENDING",
+                "Thanh toán đã được ghi nhận, nhưng quyền học vẫn đang được kích hoạt. Vui lòng kiểm tra lại trong ít phút tới tại lịch sử thanh toán."
+        );
     }
 
     private void autoEnrollStudent(UUID studentId, UUID courseId) {
@@ -743,4 +935,6 @@ public class PaymentControllerV3 {
             @NotNull(message = "Mã khóa học không được để trống")
             UUID courseId
     ) {}
+
+    private record PaymentAccessActivationSnapshot(String state, String message) {}
 }

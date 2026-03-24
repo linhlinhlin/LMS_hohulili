@@ -1,11 +1,20 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, OnDestroy, signal } from '@angular/core';
 
 @Injectable({
     providedIn: 'root'
 })
-export class PwaService {
+export class PwaService implements OnDestroy {
     private promptEvent: any;
     showInstallButton = signal(false);
+    private readonly beforeInstallPromptHandler = (e: any) => {
+        e.preventDefault();
+        this.promptEvent = e;
+        this.showInstallButton.set(true);
+    };
+    private readonly appInstalledHandler = () => {
+        this.promptEvent = null;
+        this.showInstallButton.set(false);
+    };
 
     constructor() {
         this.initPwaPrompt();
@@ -13,20 +22,8 @@ export class PwaService {
 
     private initPwaPrompt() {
         if (typeof window !== 'undefined') {
-            window.addEventListener('beforeinstallprompt', (e: any) => {
-                // Prevent the mini-infobar from appearing on mobile
-                e.preventDefault();
-                // Stash the event so it can be triggered later.
-                this.promptEvent = e;
-                // Update UI notify the user they can install the PWA
-                this.showInstallButton.set(true);
-            });
-
-            window.addEventListener('appinstalled', () => {
-                // Clear the deferred prompt so it can't be used again
-                this.promptEvent = null;
-                this.showInstallButton.set(false);
-            });
+            window.addEventListener('beforeinstallprompt', this.beforeInstallPromptHandler);
+            window.addEventListener('appinstalled', this.appInstalledHandler);
         }
     }
 
@@ -37,5 +34,14 @@ export class PwaService {
             this.promptEvent = null;
             this.showInstallButton.set(false);
         }
+    }
+
+    ngOnDestroy(): void {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        window.removeEventListener('beforeinstallprompt', this.beforeInstallPromptHandler);
+        window.removeEventListener('appinstalled', this.appInstalledHandler);
     }
 }

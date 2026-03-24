@@ -1,0 +1,115 @@
+<div class="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-4 sm:items-center">
+  <div
+    role="dialog"
+    aria-modal="true"
+    aria-label="Chọn người để nhắn tin"
+    class="max-h-[85vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+    <div class="border-b border-slate-200 px-5 py-4">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-semibold text-slate-900">Tin nhắn mới</h2>
+          <p class="mt-1 text-sm text-slate-500">
+            Chỉ hiển thị những người mà bạn thực sự được phép nhắn theo quan hệ học tập hiện có.
+          </p>
+        </div>
+        <button
+          type="button"
+          (click)="dismiss()"
+          class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+          aria-label="Đóng hộp thoại chọn người nhận">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="relative mt-4">
+        <svg
+          class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+        <input
+          type="text"
+          [ngModel]="searchQuery"
+          (ngModelChange)="onSearchChange($event)"
+          placeholder="Tìm theo tên hoặc email..."
+          class="w-full rounded-xl border border-slate-200 py-3 pl-10 pr-4 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]" />
+      </div>
+    </div>
+
+    <div class="max-h-[60vh] overflow-y-auto px-3 py-3">
+      @if (loading()) {
+        <div class="flex items-center justify-center gap-3 py-10 text-slate-600">
+          <div class="h-6 w-6 animate-spin rounded-full border-b-2 border-[#0056D2]"></div>
+          <span>Đang tải người nhận...</span>
+        </div>
+      } @else if (error()) {
+        <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
+          <p>{{ error() }}</p>
+          <button
+            type="button"
+            (click)="retry()"
+            class="mt-3 rounded-lg bg-white px-3 py-2 font-medium text-red-700 transition hover:bg-red-100">
+            Thử lại
+          </button>
+        </div>
+      } @else if (!hasResults()) {
+        <div class="flex flex-col items-center justify-center py-12 text-center">
+          <svg class="mb-4 h-14 w-14 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M17 20h5V4H2v16h5m10 0v-2a4 4 0 00-4-4H11a4 4 0 00-4 4v2m10 0H7m5-10a4 4 0 100-8 4 4 0 000 8z"></path>
+          </svg>
+          <h3 class="text-base font-semibold text-slate-900">Không tìm thấy người nhận phù hợp</h3>
+          <p class="mt-1 max-w-md text-sm text-slate-500">
+            Hãy thử từ khóa khác hoặc quay lại sau khi bạn đã có quan hệ học tập phù hợp với người nhận.
+          </p>
+        </div>
+      } @else {
+        <div class="space-y-2">
+          @for (recipient of recipients(); track recipient.userId) {
+            <button
+              type="button"
+              (click)="chooseRecipient(recipient)"
+              class="flex w-full items-start gap-3 rounded-xl border border-slate-200 px-4 py-3 text-left transition hover:border-[#0056D2] hover:bg-[#0056D2]/5">
+              <div class="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-[#0056D2]/10 font-semibold text-[#0056D2]">
+                {{ recipient.displayName.slice(0, 1).toUpperCase() }}
+              </div>
+
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="truncate font-medium text-slate-900">{{ recipient.displayName }}</span>
+                  <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                    {{ roleLabel(recipient.role) }}
+                  </span>
+                  @if (recipient.conversationId) {
+                    <span class="rounded-full bg-[#0056D2]/10 px-2.5 py-1 text-xs font-medium text-[#0056D2]">
+                      Hội thoại hiện có
+                    </span>
+                  }
+                </div>
+
+                <p class="mt-1 truncate text-sm text-slate-500">{{ recipient.email }}</p>
+
+                @if (recipient.contextLabel) {
+                  <p class="mt-2 text-xs font-medium text-slate-500">
+                    {{ recipient.contextLabel }}
+                  </p>
+                }
+              </div>
+            </button>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</div>

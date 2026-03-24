@@ -107,7 +107,7 @@ import { RouterLink } from '@angular/router';
             <h2 class="text-xl font-semibold text-gray-900 mb-3">5. Số tiền hoàn trả</h2>
             <p class="text-gray-600 leading-relaxed">
               Số tiền hoàn trả là toàn bộ số tiền đã thanh toán, trừ phí cổng thanh toán (nếu có).
-              Hoàn tiền được xử lý về phương thức thanh toán gốc (VNPay).
+        Hoàn tiền được xử lý về phương thức thanh toán gốc.
             </p>
           </section>
 

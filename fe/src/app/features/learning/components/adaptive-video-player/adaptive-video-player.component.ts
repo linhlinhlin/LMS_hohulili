@@ -32,6 +32,7 @@ type ResolvedVideoSource =
       <video
         #videoElement
         data-testid="adaptive-video-element"
+        aria-label="Trinh phat video bai hoc"
         [poster]="posterUrl() || null"
         controls
         controlsList="nodownload"
@@ -69,6 +70,7 @@ type ResolvedVideoSource =
             <button
               type="button"
               (click)="retry()"
+              aria-label="Thu tai lai video"
               class="mt-4 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100">
               Thử lại
             </button>

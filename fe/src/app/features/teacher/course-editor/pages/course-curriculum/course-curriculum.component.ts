@@ -1,4 +1,5 @@
-﻿import { Component, inject, signal, computed, effect, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+﻿import { Component, DestroyRef, inject, signal, computed, effect, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
 import { untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -45,6 +46,7 @@ import {
   LucideAngularModule
 } from 'lucide-angular';
 import { ToastService } from '../../../../../core/services/toast.service';
+import { WiiiContextService } from '../../../../ai-chat/infrastructure/api/wiii-context.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { isOfflineVideoProfileId, type OfflineVideoProfileDescriptor } from '../../../../../core/models/video-quality';
@@ -90,6 +92,7 @@ export class CourseCurriculumComponent implements OnDestroy {
   private sanitizer = inject(DomSanitizer);
   private toast = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
+  private destroyRef = inject(DestroyRef);
   private currentUrl = toSignal(this.router.events.pipe(
     filter((event): event is NavigationEnd => event instanceof NavigationEnd),
     map(() => this.router.url)
@@ -129,8 +132,9 @@ export class CourseCurriculumComponent implements OnDestroy {
 
     event.preventDefault();
     event.stopPropagation();
-    void this.closeSectionModal();
+      void this.closeSectionModal();
   };
+  private resizeCleanup: (() => void) | null = null;
 
   // CKEditor
   public Editor = ClassicEditor;
@@ -208,6 +212,7 @@ export class CourseCurriculumComponent implements OnDestroy {
 
   startResize(event: MouseEvent) {
     event.preventDefault();
+    this.resizeCleanup?.();
     const startY = event.clientY;
     const startHeight = this.editorHeight();
 
@@ -221,10 +226,16 @@ export class CourseCurriculumComponent implements OnDestroy {
     const onMouseUp = () => {
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
+      this.resizeCleanup = null;
     };
 
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
+    this.resizeCleanup = () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      this.resizeCleanup = null;
+    };
   }
 
 
@@ -1883,10 +1894,40 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.hydrateSectionState(section);
   }
 
+  // AI Course Generation: subscribe to progress events
+  private wiiiContextService = inject(WiiiContextService);
+  private courseProgressSub = this.wiiiContextService.courseProgress$
+    .pipe(takeUntilDestroyed(this.destroyRef))
+    .subscribe(progress => {
+      const courseId = this.store.courseTree()?.id;
+      if (!courseId || progress.courseId !== courseId) return;
+
+      if (progress.phase === 'CHAPTER_GENERATED') {
+        this.store.loadCourse(courseId, true); // Force refresh
+        this.toast.info(
+          `Đã tạo chương ${(progress.chapterIndex ?? 0) + 1}/${progress.totalChapters ?? '?'}`
+        );
+      }
+      if (progress.phase === 'COMPLETED') {
+        this.store.loadCourse(courseId, true);
+        this.toast.success('Tạo khóa học bằng AI hoàn tất!');
+      }
+    });
+
+  /** Open Wiii AI sidebar for course generation from document */
+  openAiCourseGeneration(): void {
+    // Dispatch custom event that the ChatWidgetComponent listens for
+    // to open the Wiii sidebar with course generation context
+    window.dispatchEvent(new CustomEvent('wiii:open-sidebar', {
+      detail: { action: 'generate_lesson', courseId: this.store.courseTree()?.id }
+    }));
+  }
+
   ngOnDestroy() {
     if (typeof window !== 'undefined') {
       window.removeEventListener('keydown', this.handleWindowKeydown, true);
     }
+    this.resizeCleanup?.();
     this.clearSectionVideoPollTimer();
     this.pdfService.cleanup();
   }

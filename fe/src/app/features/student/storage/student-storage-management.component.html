@@ -287,6 +287,11 @@
             <div>
               <h2 class="text-base font-semibold text-gray-900">Trạng thái đồng bộ</h2>
               <p class="mt-1 text-sm text-gray-500">{{ syncStatusLabel() }}</p>
+              @if (syncConflictSummary()) {
+                <p class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                  {{ syncConflictSummary() }}
+                </p>
+              }
               @if (lastManualSyncDate()) {
                 <p class="mt-2 text-xs text-gray-400">
                   Đồng bộ thủ công gần nhất: {{ lastManualSyncDate() | date:'dd/MM/yyyy HH:mm' }}
@@ -323,10 +328,18 @@
                   Xóa mục lỗi
                 </button>
               }
+              @if (syncService.hasConflictItems()) {
+                <button
+                  type="button"
+                  (click)="onResolveConflicts()"
+                  class="rounded-lg bg-amber-100 px-4 py-2 text-sm font-medium text-amber-800 transition-colors hover:bg-amber-200">
+                  {{ syncConflictActionLabel() }}
+                </button>
+              }
             </div>
           </div>
 
-          <div class="mt-4 grid gap-3 sm:grid-cols-3">
+          <div class="mt-4 grid gap-3 sm:grid-cols-4">
             <div class="rounded-xl bg-slate-50 px-3 py-3">
               <p class="text-xs font-medium uppercase tracking-wide text-gray-400">Đang chờ</p>
               <p class="mt-2 text-xl font-semibold text-gray-900">{{ syncService.pendingCount() }}</p>
@@ -334,6 +347,10 @@
             <div class="rounded-xl bg-slate-50 px-3 py-3">
               <p class="text-xs font-medium uppercase tracking-wide text-gray-400">Thất bại</p>
               <p class="mt-2 text-xl font-semibold text-gray-900">{{ syncService.failedCount() }}</p>
+            </div>
+            <div class="rounded-xl bg-amber-50 px-3 py-3">
+              <p class="text-xs font-medium uppercase tracking-wide text-amber-700">Xung dot</p>
+              <p class="mt-2 text-xl font-semibold text-amber-900">{{ syncService.conflictCount() }}</p>
             </div>
             <div class="rounded-xl bg-slate-50 px-3 py-3">
               <p class="text-xs font-medium uppercase tracking-wide text-gray-400">Tự đồng bộ</p>

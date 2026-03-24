@@ -142,6 +142,28 @@ Backend chỉ coi item là đồng bộ thành công khi ack trả về `clientO
 
 Ở giai đoạn hiện tại, đây là **contract nền**; conflict UX đầy đủ vẫn còn ở phase sau.
 
+### 6.3 Conflict policy for learning progress
+
+Không phải mọi khác biệt giữa local progress và server progress đều là "conflict".
+
+Quy tắc hiện hành:
+
+- `videoProgress`: merge cộng dồn theo watched range / max progress
+- `lessonProgress.status`: forward-only, `COMPLETED` không bị hạ xuống
+- `lessonProgress.completedSections`: set-union theo `lessonId`
+- `quizAttempts`: server authoritative
+
+Điều này có nghĩa:
+
+- người học có thể hoàn thành nhiều lesson liên tiếp khi offline
+- người học có thể hoàn thành section trên thiết bị A và tiếp tục lesson trên thiết bị B
+- khi hai thiết bị cùng sync lại, server hợp nhất tiến độ học theo bản chất domain thay vì last-write-wins
+
+Hard conflict chỉ nên dùng cho các trường hợp như:
+
+- package offline đã stale do publication đổi
+- class pinned đã adopt publication mới và local package cũ không còn an toàn để replay
+
 ## 7. Policy content update
 
 ### 7.1 Khi course self-paced có publication mới

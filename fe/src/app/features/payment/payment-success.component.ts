@@ -1,14 +1,19 @@
-import { Component, OnInit, OnDestroy, signal, inject, ChangeDetectionStrategy } from '@angular/core';
-
+import { ChangeDetectionStrategy, Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { take } from 'rxjs';
+import { PaymentResponse } from '../../api/client/payment.api';
 import { IconComponent } from '../../shared/components/icon/icon.component';
-import { PaymentService } from './payment.service';
+import {
+    PaymentAccessActivationResult,
+    PaymentService
+} from './payment.service';
 
 /**
  * Payment Success Component
- * 
- * Shown after successful payment completion
+ *
+ * Handles the post-payment state using server truth:
+ * - payment completion
+ * - enrollment/access activation
  */
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -17,7 +22,6 @@ import { PaymentService } from './payment.service';
     template: `
         <div class="payment-result-container">
             <div class="result-card success">
-                <!-- Success Animation -->
                 <div class="icon-container">
                     <div class="success-checkmark">
                         <div class="check-icon">
@@ -29,11 +33,9 @@ import { PaymentService } from './payment.service';
                     </div>
                 </div>
 
-                <h1 class="title"><app-icon name="party" size="lg" class="text-emerald-500"/> Thanh toán thành công!</h1>
-                
-                <p class="message">
-                    Cảm ơn bạn đã đăng ký khóa học. Bạn đã có thể truy cập đầy đủ nội dung khóa học.
-                </p>
+                <h1 class="title"><app-icon name="party" size="lg" class="text-emerald-500"/> {{ title() }}</h1>
+
+                <p class="message">{{ summaryMessage() }}</p>
 
                 @if (transactionId()) {
                     <div class="transaction-info">
@@ -49,22 +51,28 @@ import { PaymentService } from './payment.service';
                     </div>
                 }
 
-                @if (isPending()) {
-                    <div class="pending-notice">
-                        <p>Thanh toán đang được xác nhận. Vui lòng chờ hoặc kiểm tra lại sau.</p>
+                @if (detailMessage()) {
+                    <div class="pending-notice"
+                         [class.info-notice]="activation().state === 'ACCESS_PENDING' && !isPending()">
+                        <p>{{ detailMessage() }}</p>
                     </div>
                 }
 
                 <div class="actions">
-                    @if (courseId() && !isPending()) {
+                    @if (showStartLearningCta()) {
                         <button (click)="goToLearning()" class="btn btn-primary">
                             <app-icon name="courses" size="sm" class="mr-1"/> Bắt đầu học ngay ({{ countdown() }}s)
                         </button>
+                    } @else if (showCourseDetailCta()) {
+                        <button (click)="goToCourseDetail()" class="btn btn-primary">
+                            <app-icon name="courses" size="sm" class="mr-1"/> Về trang khóa học
+                        </button>
                     } @else {
-                        <a routerLink="/student/courses/library" class="btn btn-primary">
-                            <app-icon name="courses" size="sm" class="mr-1"/> Xem khóa học của tôi
+                        <a routerLink="/student/payments" class="btn btn-primary">
+                            <app-icon name="briefcase" size="sm" class="mr-1"/> Xem lịch sử thanh toán
                         </a>
                     }
+
                     <a routerLink="/courses" class="btn btn-secondary">
                         <app-icon name="search" size="sm" class="mr-1"/> Khám phá thêm khóa học
                     </a>
@@ -246,6 +254,8 @@ import { PaymentService } from './payment.service';
             font-weight: 600;
             text-decoration: none;
             transition: all 0.2s;
+            border: none;
+            cursor: pointer;
         }
 
         .btn-primary {
@@ -276,6 +286,12 @@ import { PaymentService } from './payment.service';
             color: #92400E;
             font-size: 0.875rem;
         }
+
+        .info-notice {
+            background: rgba(0, 86, 210, 0.08);
+            border-color: rgba(0, 86, 210, 0.18);
+            color: #0F172A;
+        }
     `]
 })
 export class PaymentSuccessComponent implements OnInit, OnDestroy {
@@ -288,8 +304,56 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
     courseId = signal<string | null>(null);
     isPending = signal(false);
     countdown = signal(5);
-    private countdownInterval: any;
-    private accessReady: Promise<boolean> | null = null;
+    activation = signal<PaymentAccessActivationResult>({
+        state: 'READY',
+        message: null
+    });
+
+    title = computed(() => {
+        if (this.isPending()) {
+            return 'Đang xác nhận thanh toán';
+        }
+        switch (this.activation().state) {
+            case 'MANUAL_ACTIVATION_REQUIRED':
+                return 'Thanh toán đã được ghi nhận';
+            case 'ACCESS_PENDING':
+                return 'Đã ghi nhận thanh toán';
+            default:
+                return 'Thanh toán thành công!';
+        }
+    });
+
+    summaryMessage = computed(() => {
+        if (this.isPending()) {
+            return 'Giao dịch đang được xác nhận từ cổng thanh toán. Chúng tôi sẽ cập nhật quyền học ngay khi nhận được xác nhận cuối cùng.';
+        }
+        switch (this.activation().state) {
+            case 'MANUAL_ACTIVATION_REQUIRED':
+                return 'Bạn đã thanh toán thành công, nhưng khóa học này cần được xếp lớp trước khi bắt đầu học.';
+            case 'ACCESS_PENDING':
+                return 'Thanh toán đã hoàn tất. Hệ thống đang kích hoạt quyền học cho bạn.';
+            default:
+                return 'Cảm ơn bạn đã đăng ký khóa học. Bạn đã có thể truy cập đầy đủ nội dung khóa học.';
+        }
+    });
+
+    detailMessage = computed(() => {
+        if (this.isPending()) {
+            return 'Nếu trạng thái này kéo dài, bạn vẫn có thể kiểm tra lịch sử thanh toán hoặc quay lại trang khóa học sau ít phút.';
+        }
+        return this.activation().message;
+    });
+
+    showStartLearningCta = computed(() =>
+        !this.isPending() && this.activation().state === 'READY' && !!this.courseId()
+    );
+
+    showCourseDetailCta = computed(() =>
+        !this.isPending() && this.activation().state === 'MANUAL_ACTIVATION_REQUIRED' && !!this.courseId()
+    );
+
+    private countdownInterval: ReturnType<typeof setInterval> | null = null;
+    private destroyed = false;
 
     ngOnInit() {
         this.route.queryParams.pipe(take(1)).subscribe(params => {
@@ -298,53 +362,173 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
             this.courseId.set(params['courseId'] || null);
             this.isPending.set(params['pending'] === 'true');
 
-            // Auto-redirect to learning page after 5s (only if we have courseId and not pending)
-            if (this.courseId() && !this.isPending()) {
-                this.paymentService.markCourseAsPaid(this.courseId()!);
-                this.accessReady = this.prepareLearningAccess(this.courseId()!);
-                this.startCountdown();
+            if (this.isPending()) {
+                void this.monitorPendingPayment();
+                return;
+            }
+
+            if (this.orderId()) {
+                void this.loadConfirmedPayment(this.orderId()!);
+                return;
+            }
+
+            if (this.courseId()) {
+                void this.finalizeLearningAccess(this.courseId()!);
             }
         });
     }
 
+    async goToLearning(): Promise<void> {
+        const cid = this.courseId();
+        if (!cid) {
+            this.router.navigate(['/student/courses/library']);
+            return;
+        }
+
+        if (this.activation().state === 'READY') {
+            this.router.navigate(['/student/learn/course', cid]);
+            return;
+        }
+
+        this.goToCourseDetail();
+    }
+
+    goToCourseDetail(): void {
+        const cid = this.courseId();
+        if (cid) {
+            this.router.navigate(['/student/courses', cid]);
+            return;
+        }
+        this.router.navigate(['/student/courses/library']);
+    }
+
+    ngOnDestroy(): void {
+        this.destroyed = true;
+        if (this.countdownInterval) {
+            clearInterval(this.countdownInterval);
+        }
+    }
+
+    private async monitorPendingPayment(): Promise<void> {
+        const orderId = this.orderId();
+        if (!orderId) {
+            return;
+        }
+
+        for (let attempt = 0; attempt < 10; attempt++) {
+            if (this.destroyed) {
+                return;
+            }
+
+            try {
+                const payment = await this.paymentService.getPaymentByTxnRef(orderId);
+                if (payment.status === 'COMPLETED') {
+                    await this.applyPaymentRecord(payment);
+                    return;
+                }
+
+                if (payment.status && payment.status !== 'PENDING') {
+                    this.isPending.set(false);
+                    this.activation.set({
+                        state: 'ACCESS_PENDING',
+                        message: 'Giao dịch chưa được xác nhận hoàn tất. Vui lòng kiểm tra lại lịch sử thanh toán hoặc liên hệ hỗ trợ nếu tiền đã bị trừ.'
+                    });
+                    return;
+                }
+            } catch {
+                // Best-effort polling: keep waiting until retries are exhausted.
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+
+        this.activation.set({
+            state: 'ACCESS_PENDING',
+            message: 'Hệ thống vẫn chưa nhận được xác nhận cuối cùng từ cổng thanh toán. Vui lòng kiểm tra lại tại lịch sử thanh toán trong ít phút tới.'
+        });
+    }
+
+    private async finalizeLearningAccess(courseId: string): Promise<void> {
+        try {
+            const status = await this.paymentService.loadPaymentStatus(courseId);
+            if (!status.hasPaid) {
+                this.activation.set({
+                    state: 'ACCESS_PENDING',
+                    message: 'Hệ thống chưa xác nhận hoàn tất giao dịch. Vui lòng kiểm tra lại tại lịch sử thanh toán sau ít phút.'
+                });
+                return;
+            }
+
+            if (status.accessActivationState) {
+                this.activation.set({
+                    state: status.accessActivationState,
+                    message: status.accessActivationMessage ?? null
+                });
+                if (status.accessActivationState === 'READY') {
+                    this.startCountdown();
+                }
+                return;
+            }
+        } catch {
+            // Fall back to the best-effort activation path below.
+        }
+
+        const activation = await this.paymentService.ensureEnrollment(courseId);
+        this.activation.set(activation);
+        if (activation.state === 'READY') {
+            this.startCountdown();
+        }
+    }
+
+    private async loadConfirmedPayment(txnRef: string): Promise<void> {
+        try {
+            const payment = await this.paymentService.getPaymentByTxnRef(txnRef);
+            await this.applyPaymentRecord(payment);
+        } catch {
+            const courseId = this.courseId();
+            if (courseId) {
+                await this.finalizeLearningAccess(courseId);
+            }
+        }
+    }
+
+    private async applyPaymentRecord(payment: PaymentResponse): Promise<void> {
+        this.transactionId.set(payment.transactionId || this.transactionId());
+        this.courseId.set(payment.courseId || this.courseId());
+        this.isPending.set(false);
+
+        if (payment.accessActivationState) {
+            this.activation.set({
+                state: payment.accessActivationState,
+                message: payment.accessActivationMessage ?? null,
+            });
+            if (payment.accessActivationState === 'READY') {
+                this.startCountdown();
+            }
+            return;
+        }
+
+        if (payment.courseId) {
+            await this.finalizeLearningAccess(payment.courseId);
+        }
+    }
+
     private startCountdown(): void {
+        if (this.countdownInterval) {
+            clearInterval(this.countdownInterval);
+        }
+        this.countdown.set(5);
         this.countdownInterval = setInterval(() => {
             const current = this.countdown();
             if (current <= 1) {
-                clearInterval(this.countdownInterval);
-                this.goToLearning();
+                if (this.countdownInterval) {
+                    clearInterval(this.countdownInterval);
+                    this.countdownInterval = null;
+                }
+                void this.goToLearning();
             } else {
                 this.countdown.set(current - 1);
             }
         }, 1000);
-    }
-
-    async goToLearning(): Promise<void> {
-        const cid = this.courseId();
-        if (cid) {
-            const accessReady = await (this.accessReady ?? this.prepareLearningAccess(cid));
-            if (accessReady) {
-                this.router.navigate(['/student/learn/course', cid]);
-            } else {
-                this.router.navigate(['/student/courses', cid]);
-            }
-        } else {
-            this.router.navigate(['/student/courses/library']);
-        }
-    }
-
-    private async prepareLearningAccess(courseId: string): Promise<boolean> {
-        try {
-            await this.paymentService.ensureEnrollment(courseId);
-            return true;
-        } catch {
-            return false;
-        }
-    }
-
-    ngOnDestroy(): void {
-        if (this.countdownInterval) {
-            clearInterval(this.countdownInterval);
-        }
     }
 }

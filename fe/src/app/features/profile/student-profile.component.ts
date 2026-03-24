@@ -55,7 +55,9 @@ interface Certificate {
   courseId: string;
   courseName: string;
   issuedAt: Date;
-  certificateUrl: string;
+  verificationToken: string;
+  viewUrl: string;
+  downloadUrl: string;
   isValid: boolean;
   expiryDate?: Date;
 }
@@ -78,7 +80,7 @@ interface SocialLink {
       variant="overlay"
       color="blue">
     </app-loading>
-    <div class="bg-gradient-to-br from-slate-50 via-[#0056D2]/5 to-indigo-100">
+    <div class="bg-gradient-to-br from-slate-50 via-[#0056D2]/5 to-[#0056D2]/10">
       <!-- Profile Header -->
       <div class="bg-white shadow-xl border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-6 py-8">
@@ -354,7 +356,9 @@ export class StudentProfileComponent implements OnInit {
           courseId: c.courseId,
           courseName: c.courseName || '',
           issuedAt: new Date(c.issuedAt),
-          certificateUrl: `/api/v3/student/certificates/${c.verificationToken}/verify`,
+          verificationToken: c.verificationToken,
+          viewUrl: `/student/certificate/${c.verificationToken}`,
+          downloadUrl: `/api/v3/certificates/${c.id}/download`,
           isValid: true
         }));
       } catch {
@@ -429,8 +433,17 @@ export class StudentProfileComponent implements OnInit {
   }
 
   viewCertificate(certificateId: string): void {
-    // Open certificate in new tab
-    window.open(`/certificates/${certificateId}`, '_blank');
+    const certificate = this.profile().certificates.find(cert => cert.id === certificateId);
+    if (!certificate) {
+      this.errorService.addError({
+        message: 'Không tìm thấy chứng chỉ để mở',
+        type: 'error',
+        context: 'certificate',
+      });
+      return;
+    }
+
+    window.open(certificate.viewUrl, '_blank');
     this.errorService.showSuccess('Chứng chỉ đang được mở trong tab mới', 'certificate');
   }
 
@@ -438,7 +451,7 @@ export class StudentProfileComponent implements OnInit {
     const certificate = this.profile().certificates.find(cert => cert.id === certificateId);
     if (certificate) {
       const link = document.createElement('a');
-      link.href = certificate.certificateUrl;
+      link.href = certificate.downloadUrl;
       link.download = `certificate-${certificate.courseName}.pdf`;
       link.click();
       this.errorService.showSuccess('Chứng chỉ đang được tải xuống', 'certificate');

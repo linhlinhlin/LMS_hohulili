@@ -4,7 +4,8 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { EMPTY } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 import { ClassService } from '../../../../../state/class.service';
 import { ClassSummary } from '../../../../../shared/types/course.types';
@@ -221,7 +222,12 @@ export class CourseClassesComponent implements OnInit {
         });
         if (!confirmed) return;
 
-        this.classService.deleteClass(classId).subscribe(() => {
+        this.classService.deleteClass(classId).pipe(
+            catchError(() => {
+                this.toast.error('Khong the xoa lop hoc. Vui long thu lai.');
+                return EMPTY;
+            })
+        ).subscribe(() => {
             this.loadClasses();
         });
     }

@@ -167,6 +167,7 @@ export interface OfflineProgress {
   userId: string;
   progressPercent: number;
   videoPosition: number;
+  completedSectionIds?: string[];
   completedAt?: Date;
   syncStatus: 'pending' | 'synced' | 'conflict';
   updatedAt: Date;

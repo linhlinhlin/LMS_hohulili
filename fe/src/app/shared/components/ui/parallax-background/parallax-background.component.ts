@@ -8,7 +8,7 @@ import { RouterModule, Router } from '@angular/router';
   encapsulation: ViewEncapsulation.None,
   template: `
     <!-- Clean Professional Hero Section - Full viewport height -->
-    <div class="scrollDist relative min-h-screen h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-[#0056D2]/5 to-indigo-100" style="height: 100vh;">
+    <div class="scrollDist relative min-h-screen h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-[#0056D2]/5 to-[#0056D2]/10" style="height: 100vh;">
 
       <!-- Background geometric pattern -->
       <div class="absolute inset-0 opacity-5" style="width: 100vw; height: 100vh;">
@@ -24,8 +24,8 @@ import { RouterModule, Router } from '@angular/router';
 
       <!-- Floating geometric shapes for visual interest -->
       <div class="absolute top-20 left-10 w-20 h-20 bg-[#0056D2]/20 rounded-full opacity-20 animate-pulse"></div>
-      <div class="absolute top-40 right-20 w-16 h-16 bg-indigo-300 rounded-lg opacity-15 animate-pulse" style="animation-delay: 1s;"></div>
-      <div class="absolute bottom-32 left-1/4 w-12 h-12 bg-cyan-200 rounded-full opacity-25 animate-pulse" style="animation-delay: 2s;"></div>
+      <div class="absolute top-40 right-20 w-16 h-16 bg-[#0056D2]/30 rounded-lg opacity-15 animate-pulse" style="animation-delay: 1s;"></div>
+      <div class="absolute bottom-32 left-1/4 w-12 h-12 bg-[#0056D2]/20 rounded-full opacity-25 animate-pulse" style="animation-delay: 2s;"></div>
       <div class="absolute top-1/3 right-1/3 w-8 h-8 bg-[#0056D2]/30 rounded-lg opacity-20 animate-pulse" style="animation-delay: 0.5s;"></div>
 
       <!-- Foreground overlay - clean professional design -->

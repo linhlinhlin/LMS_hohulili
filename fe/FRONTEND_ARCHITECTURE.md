@@ -616,7 +616,7 @@ items = toSignal(this.service.data$, { initialValue: [] });
 
 | Layer | Technology | Size | Content |
 |-------|-----------|------|---------|
-| IndexedDB | Dexie.js 4 (`lms-maritime-offline`) | ~50-500MB | 8 tables: courses, chapters, lessons, progress, submissions, quizAttempts, syncQueue, checkpoints |
+| IndexedDB | Dexie.js 4 (`lms-maritime-offline`) | ~50-500MB | 8 tables: courses, chapters, lessons, progress (including `completedSectionIds`), submissions, quizAttempts, syncQueue, checkpoints |
 | Cache API | Service Worker (`offline-videos`) | ~50-500MB | Video blobs (zero-RAM streaming) |
 | NGSW Cache | Angular SW | ~20-50MB | App shell, lazy chunks, API responses (9 dataGroups) |
 | LocalStorage | Browser | ~5-10KB | JWT tokens, user data, session state |
@@ -635,8 +635,14 @@ Sync:     NetworkStatus online → 2s delay → POST /api/v3/sync/push → confl
 |--------|----------|-----------|
 | Video progress | Additive merge | Segments accumulate |
 | Lesson completion | Forward-only | COMPLETED never reverts |
+| Section completion | Set union | Completed section IDs accumulate across devices |
 | Quiz attempts | Server-wins | Grading authoritative |
 | Submissions | Deferred | Replay to endpoint |
+
+The frontend treats offline learning progress as an **optimistic local overlay**:
+- local state is allowed to move ahead while offline
+- sync back to the server uses domain-aware merge rules instead of naive last-write-wins
+- true conflicts are reserved for stale publication/content mismatches, not for normal multi-device progress divergence
 
 ### Known Issues (from deep research S110)
 

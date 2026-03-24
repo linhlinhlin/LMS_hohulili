@@ -5,6 +5,7 @@ import com.example.lms.course_authoring.infrastructure.persistence.entity.Chapte
 import com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -29,6 +30,13 @@ public class ChapterRepositoryAdapter implements ChapterRepositoryPort {
                 .build();
         ChapterJpaEntity saved = jpaRepository.save(entity);
         return saved.getId();
+    }
+
+    @Override
+    public Optional<UUID> findIdByCourseIdAndOrderIndex(UUID courseId, Integer orderIndex) {
+        int normalizedOrderIndex = orderIndex != null ? orderIndex : 0;
+        return jpaRepository.findByCourseIdAndOrderIndex(courseId, normalizedOrderIndex)
+                .map(ChapterJpaEntity::getId);
     }
 
     @Override

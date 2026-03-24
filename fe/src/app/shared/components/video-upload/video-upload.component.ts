@@ -28,7 +28,13 @@ export interface VideoUploadResult {
         <div class="upload-zone"
              [class.drag-over]="isDragOver()"
              [class.compact]="compact()"
+             [attr.aria-disabled]="disabled()"
+             aria-label="Tai video len"
+             role="button"
+             tabindex="0"
              (click)="triggerFileInput()"
+             (keydown.enter)="triggerFileInput()"
+             (keydown.space)="onUploadZoneKeydown($event)"
              (dragover)="onDragOver($event)"
              (dragleave)="onDragLeave($event)"
              (drop)="onDrop($event)">
@@ -471,6 +477,11 @@ export class VideoUploadComponent {
   triggerFileInput(): void {
     if (this.disabled()) return;
     this.fileInputRef()?.nativeElement.click();
+  }
+
+  onUploadZoneKeydown(event: Event): void {
+    event.preventDefault();
+    this.triggerFileInput();
   }
 
   onFileSelected(event: Event): void {

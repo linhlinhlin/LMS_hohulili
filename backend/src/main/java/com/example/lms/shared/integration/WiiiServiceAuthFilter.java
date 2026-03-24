@@ -50,10 +50,13 @@ public class WiiiServiceAuthFilter extends OncePerRequestFilter {
 
         String serviceToken = config.getServiceToken();
 
-        // If no service token configured, allow (dev mode)
+        // Fail closed: integration endpoints are permitAll() and rely on this filter
+        // for service-to-service authentication.
         if (serviceToken == null || serviceToken.isBlank()) {
-            log.warn("Integration auth: no service-token configured, allowing request");
-            filterChain.doFilter(request, response);
+            log.error("Integration auth: no service-token configured, rejecting request");
+            response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"success\":false,\"message\":\"Integration service token is not configured\"}");
             return;
         }
 

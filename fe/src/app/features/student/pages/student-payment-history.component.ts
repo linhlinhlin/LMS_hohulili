@@ -25,8 +25,23 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
         </div>
       }
 
+      @if (!isLoading() && loadError()) {
+        <div class="bg-white rounded-xl border border-red-200 shadow-sm p-8 text-center">
+          <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <app-icon name="warning" size="lg" class="text-red-500"/>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Không thể tải lịch sử thanh toán</h3>
+          <p class="text-gray-500 mb-6">{{ loadError() }}</p>
+          <button type="button"
+                  (click)="loadPayments()"
+                  class="inline-flex items-center px-4 py-2 bg-[#0056D2] text-white rounded-lg font-medium hover:bg-[#004BB5] transition-colors">
+            <app-icon name="refresh" size="sm" class="mr-2"/> Thử lại
+          </button>
+        </div>
+      }
+
       <!-- Empty State -->
-      @if (!isLoading() && payments().length === 0) {
+      @if (!isLoading() && !loadError() && payments().length === 0) {
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center">
           <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <app-icon name="briefcase" size="lg" class="text-gray-400"/>
@@ -40,7 +55,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
       }
 
       <!-- Payment List -->
-      @if (!isLoading() && payments().length > 0) {
+      @if (!isLoading() && !loadError() && payments().length > 0) {
         <!-- Summary Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
@@ -79,6 +94,11 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
                         <a [routerLink]="['/student/courses', payment.courseId]" class="text-sm font-medium text-[#0056D2] hover:underline">
                           {{ payment.courseTitle }}
                         </a>
+                        @if (payment.status === 'COMPLETED' && payment.accessActivationState === 'MANUAL_ACTIVATION_REQUIRED') {
+                          <p class="mt-1 text-xs text-amber-700">Đã thanh toán, đang chờ xếp lớp hoặc kích hoạt.</p>
+                        } @else if (payment.status === 'COMPLETED' && payment.accessActivationState === 'ACCESS_PENDING') {
+                          <p class="mt-1 text-xs text-[#0056D2]">Đã thanh toán, quyền học vẫn đang được kích hoạt.</p>
+                        }
                       } @else {
                         <span class="text-sm text-gray-500">Khóa học</span>
                       }
@@ -88,8 +108,8 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
                     </td>
                     <td class="px-6 py-4">
                       <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                            [ngClass]="getStatusClass(payment.status)">
-                        {{ getStatusLabel(payment.status) }}
+                            [ngClass]="getStatusClass(payment)">
+                        {{ getStatusLabel(payment) }}
                       </span>
                     </td>
                     <td class="px-6 py-4">
@@ -116,12 +136,18 @@ export class StudentPaymentHistoryComponent implements OnInit {
 
   payments = signal<PaymentResponse[]>([]);
   isLoading = signal(true);
+  loadError = signal<string | null>(null);
 
   completedCount = signal(0);
   totalSpent = signal(0);
 
   async ngOnInit(): Promise<void> {
+    await this.loadPayments();
+  }
+
+  async loadPayments(): Promise<void> {
     this.isLoading.set(true);
+    this.loadError.set(null);
     try {
       const history = await this.paymentService.getPaymentHistory();
       this.payments.set(history);
@@ -131,12 +157,22 @@ export class StudentPaymentHistoryComponent implements OnInit {
           .filter(p => p.status === 'COMPLETED')
           .reduce((sum, p) => sum + (p.amount || 0), 0)
       );
+    } catch (error: any) {
+      this.loadError.set(error?.message || 'Không thể tải lịch sử thanh toán.');
     } finally {
       this.isLoading.set(false);
     }
   }
 
-  getStatusClass(status: PaymentStatus | string): string {
+  getStatusClass(payment: PaymentResponse): string {
+    if (payment.status === 'COMPLETED' && payment.accessActivationState === 'MANUAL_ACTIVATION_REQUIRED') {
+      return 'bg-amber-100 text-amber-800';
+    }
+    if (payment.status === 'COMPLETED' && payment.accessActivationState === 'ACCESS_PENDING') {
+      return 'bg-[#0056D2]/10 text-[#0056D2]';
+    }
+
+    const status = payment.status;
     const map: Record<string, string> = {
       'COMPLETED': 'bg-emerald-100 text-emerald-800',
       'PENDING': 'bg-amber-100 text-amber-800',
@@ -147,7 +183,15 @@ export class StudentPaymentHistoryComponent implements OnInit {
     return map[status] || 'bg-gray-100 text-gray-600';
   }
 
-  getStatusLabel(status: PaymentStatus | string): string {
+  getStatusLabel(payment: PaymentResponse): string {
+    if (payment.status === 'COMPLETED' && payment.accessActivationState === 'MANUAL_ACTIVATION_REQUIRED') {
+      return 'Chờ kích hoạt';
+    }
+    if (payment.status === 'COMPLETED' && payment.accessActivationState === 'ACCESS_PENDING') {
+      return 'Đang kích hoạt';
+    }
+
+    const status = payment.status;
     const map: Record<string, string> = {
       'COMPLETED': 'Thành công',
       'PENDING': 'Đang xử lý',

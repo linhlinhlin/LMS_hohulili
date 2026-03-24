@@ -87,7 +87,8 @@ public class WiiiChatAdapter implements AiChatService {
                     .header("X-API-Key", config.getServiceToken())
                     .header("X-User-ID", userId)
                     .header("X-Session-ID", sessionId != null ? sessionId : "default")
-                    .header("X-Role", mapRoleForWiii(role))
+                    .header("X-Role", mapCompatibilityRole(role))
+                    .header("X-Host-Role", mapHostRole(role))
                     .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                     .build();
 
@@ -159,7 +160,8 @@ public class WiiiChatAdapter implements AiChatService {
                         .header("X-API-Key", config.getServiceToken())
                         .header("X-User-ID", userId)
                         .header("X-Session-ID", sessionId != null ? sessionId : "default")
-                        .header("X-Role", mapRoleForWiii(role))
+                        .header("X-Role", mapCompatibilityRole(role))
+                        .header("X-Host-Role", mapHostRole(role))
                         .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                         .build();
 
@@ -180,7 +182,8 @@ public class WiiiChatAdapter implements AiChatService {
                                 .header("X-API-Key", config.getServiceToken())
                                 .header("X-User-ID", userId)
                                 .header("X-Session-ID", sessionId != null ? sessionId : "default")
-                                .header("X-Role", mapRoleForWiii(role))
+                                .header("X-Role", mapCompatibilityRole(role))
+                                .header("X-Host-Role", mapHostRole(role))
                                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                                 .build();
                         response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
@@ -311,18 +314,26 @@ public class WiiiChatAdapter implements AiChatService {
         bodyBuilder.put("message", message);
         bodyBuilder.put("user_id", userId);
         bodyBuilder.put("domain_id", domainId != null ? domainId : "maritime");
-        bodyBuilder.put("role", mapRoleForWiii(role));
+        bodyBuilder.put("role", mapCompatibilityRole(role));
         if (sessionId != null) {
             bodyBuilder.put("session_id", sessionId);
         }
         return bodyBuilder;
     }
 
-    private String mapRoleForWiii(String lmsRole) {
+    private String mapHostRole(String lmsRole) {
         if (lmsRole == null) return "student";
         return switch (lmsRole.toUpperCase()) {
             case "TEACHER" -> "teacher";
-            case "ADMIN", "ORG_ADMIN" -> "admin";
+            case "ADMIN" -> "admin";
+            case "ORG_ADMIN" -> "org_admin";
+            default -> "student";
+        };
+    }
+
+    private String mapCompatibilityRole(String lmsRole) {
+        return switch (mapHostRole(lmsRole)) {
+            case "teacher", "admin", "org_admin" -> "teacher";
             default -> "student";
         };
     }

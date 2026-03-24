@@ -162,6 +162,8 @@ export interface LessonSummary {
   title: string;
   description: string;
   orderIndex: number;
+  isFree?: boolean;
+  locked?: boolean;
   quizType?: string;
   countsTowardCertificate?: boolean;
   quizAllowOffline?: boolean;

@@ -23,7 +23,6 @@ export class WebMcpService {
     const nav = navigator as any;
     if (!nav.modelContext?.registerTool) return;
 
-    console.log('[WebMCP] Browser supports WebMCP — registering LMS Maritime tools');
     this.registerSearchCourses(nav);
     this.registerGetCourseDetail(nav);
     this.registerGetCourseCurriculum(nav);

@@ -824,6 +824,7 @@ export class CourseDownloadService {
       await offlineDb.progress.update(existing.id, {
         progressPercent: 100,
         completedAt,
+        completedSectionIds: existing.completedSectionIds,
         syncStatus: existing.syncStatus === 'conflict' ? 'conflict' : 'synced',
         updatedAt: new Date(),
       });
@@ -836,10 +837,83 @@ export class CourseDownloadService {
       userId,
       progressPercent: 100,
       videoPosition: 0,
+      completedSectionIds: existing?.completedSectionIds ?? [],
       completedAt,
       syncStatus: 'synced',
       updatedAt: new Date(),
     });
+  }
+
+  async mergeCompletedSectionsOffline(
+    courseId: string,
+    lessonId: string,
+    sectionIds: Iterable<string>,
+  ): Promise<void> {
+    if (!(await this.ensureOfflineReady(true))) {
+      return;
+    }
+
+    const normalizedSectionIds = Array.from(new Set(
+      Array.from(sectionIds).filter((sectionId): sectionId is string => typeof sectionId === 'string' && sectionId.length > 0),
+    ));
+
+    if (normalizedSectionIds.length === 0) {
+      return;
+    }
+
+    const userId = getCurrentUserId();
+    const existing = await offlineDb.progress
+      .where('lessonId').equals(lessonId)
+      .filter(record => record.userId === userId && record.courseId === courseId)
+      .first();
+
+    const nextCompletedSectionIds = Array.from(new Set([
+      ...(existing?.completedSectionIds ?? []),
+      ...normalizedSectionIds,
+    ]));
+
+    if (existing?.id != null) {
+      await offlineDb.progress.update(existing.id, {
+        completedSectionIds: nextCompletedSectionIds,
+        progressPercent: Math.max(existing.progressPercent, 1),
+        syncStatus: existing.syncStatus === 'conflict' ? 'conflict' : 'synced',
+        updatedAt: new Date(),
+      });
+      return;
+    }
+
+    await offlineDb.progress.add({
+      lessonId,
+      courseId,
+      userId,
+      progressPercent: 1,
+      videoPosition: 0,
+      completedSectionIds: nextCompletedSectionIds,
+      syncStatus: 'synced',
+      updatedAt: new Date(),
+    });
+  }
+
+  async getOfflineCompletedSectionIds(courseId: string): Promise<string[]> {
+    const snapshot = this.readOfflineCompletedSections(courseId);
+
+    if (!(await this.ensureOfflineReady(true))) {
+      return snapshot;
+    }
+
+    const userId = getCurrentUserId();
+    const progressRecords = await offlineDb.progress
+      .where('courseId').equals(courseId)
+      .filter(record => record.userId === userId)
+      .toArray();
+
+    const sectionIds = Array.from(new Set([
+      ...snapshot,
+      ...progressRecords.flatMap(record => record.completedSectionIds ?? []),
+    ]));
+
+    this.writeOfflineCompletedSections(courseId, sectionIds);
+    return sectionIds;
   }
 
   /**
@@ -1285,7 +1359,7 @@ export class CourseDownloadService {
     await this.pruneAndRebindQuizAttempts(userId, validLessonIds, validSectionIds, validLessonQuizIds);
     await this.rebindCourseQueueItems(userId, courseId, latestPublicationId, validLessonIds, validSectionIds, validLessonQuizIds);
     this.rewriteOfflineLearningProgress(courseId, validLessonIds);
-    this.rewriteCompletedSections(previousSectionIds, validSectionIds);
+    await this.rewriteOfflineCompletedSections(courseId, previousSectionIds, validSectionIds);
   }
 
   private async captureCourseSnapshot(
@@ -1567,35 +1641,53 @@ export class CourseDownloadService {
     }
   }
 
-  private rewriteCompletedSections(
+  private async rewriteOfflineCompletedSections(
+    courseId: string,
     previousSectionIds: Set<string>,
     validSectionIds: Set<string>,
-  ): void {
+  ): Promise<void> {
+    const next = (await this.getOfflineCompletedSectionIds(courseId)).filter(sectionId =>
+      !previousSectionIds.has(sectionId) || validSectionIds.has(sectionId),
+    );
+
+    this.writeOfflineCompletedSections(courseId, next);
+  }
+
+  private getOfflineCompletedSectionsStorageKey(courseId: string): string {
+    return `learning_completed_sections_${courseId}`;
+  }
+
+  private readOfflineCompletedSections(courseId: string): string[] {
     try {
-      const raw = localStorage.getItem('completed_sections');
+      const raw = localStorage.getItem(this.getOfflineCompletedSectionsStorageKey(courseId));
       if (!raw) {
-        return;
+        return [];
       }
 
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) {
+        return [];
+      }
+
+      return parsed.filter((value): value is string => typeof value === 'string' && value.length > 0);
+    } catch {
+      return [];
+    }
+  }
+
+  private writeOfflineCompletedSections(courseId: string, sectionIds: Iterable<string>): void {
+    try {
+      const uniqueSectionIds = Array.from(new Set(
+        Array.from(sectionIds).filter((sectionId): sectionId is string => typeof sectionId === 'string' && sectionId.length > 0),
+      ));
+
+      const key = this.getOfflineCompletedSectionsStorageKey(courseId);
+      if (uniqueSectionIds.length === 0) {
+        localStorage.removeItem(key);
         return;
       }
 
-      const next = parsed.filter((value): value is string => {
-        if (typeof value !== 'string') {
-          return false;
-        }
-
-        return !previousSectionIds.has(value) || validSectionIds.has(value);
-      });
-
-      if (next.length === 0) {
-        localStorage.removeItem('completed_sections');
-        return;
-      }
-
-      localStorage.setItem('completed_sections', JSON.stringify(next));
+      localStorage.setItem(key, JSON.stringify(uniqueSectionIds));
     } catch {
       // localStorage rewrite is best-effort only.
     }

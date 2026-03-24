@@ -34,6 +34,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -229,6 +230,7 @@ public class StudentEnrollmentControllerV3 {
                 new SelfEnrollCommand(courseId, currentUser.getId())
         );
 
+        
         return ResponseEntity.ok(ApiResponse.success(
                 Map.of("enrollmentId", enrollmentId.toString(), "courseId", courseId.toString()),
                 "Đăng ký khóa học thành công"
@@ -355,41 +357,36 @@ public class StudentEnrollmentControllerV3 {
         }
 
         Enrollment enrollment = enrollmentOpt.get();
-        Enrollment.LessonProgress lessonProgress = Enrollment.LessonProgress.builder()
-                .status("COMPLETED")
-                .lastActivity(Instant.now())
-                .build();
-        enrollment.updateProgress(lessonId.toString(), lessonProgress);
-
-        // Recalculate completion percent — only count COMPLETED status entries
-        long totalLessons = countTotalLessonsForCourse(courseId);
-        if (totalLessons > 0 && enrollment.getProgress() != null) {
-            long completedCount = enrollment.getProgress().values().stream()
-                .filter(p -> "COMPLETED".equals(p.getStatus()))
-                .count();
-            int percent = (int) Math.min(100, Math.round((double) completedCount / totalLessons * 100));
-            enrollment.updateCompletionPercent(percent);
+        Enrollment savedEnrollment;
+        try {
+            applyLessonCompletion(enrollment, lessonId, courseId);
+            savedEnrollment = saveLessonCompletionWithRetry(studentId, courseId, lessonId, enrollment);
+        } catch (ObjectOptimisticLockingFailureException ex) {
+            return ResponseEntity.status(409).body(ApiResponse.error(
+                "Tiến độ bài học vừa được cập nhật ở phiên khác. Vui lòng thử lại để đồng bộ dữ liệu mới nhất."
+            ));
         }
-
-        // Auto-complete enrollment when all lessons done (SOTA: Canvas/Coursera pattern)
-        if (enrollment.getCompletionPercent() != null && enrollment.getCompletionPercent() == 100
-                && enrollment.getStatus() == Enrollment.EnrollmentStatus.ACTIVE) {
-            enrollment.complete();
-        }
-
-        enrollmentRepository.save(enrollment);
 
         // Auto-issue certificate when course reaches 100% completion
-        if (enrollment.getCompletionPercent() != null && enrollment.getCompletionPercent() == 100) {
+        if (savedEnrollment.getCompletionPercent() != null && savedEnrollment.getCompletionPercent() == 100) {
             try {
-                certificateUseCase.issueIfNotExists(enrollment.getId(), studentId, courseId);
+                certificateUseCase.issueIfNotExists(savedEnrollment.getId(), studentId, courseId);
             } catch (org.springframework.dao.DataAccessException | IllegalStateException e) {
                 // Non-blocking: certificate issuance failure should not break lesson completion
             }
         }
 
         return ResponseEntity.ok(ApiResponse.success(
-            Map.of("lessonId", lessonId.toString(), "status", "COMPLETED", "completedAt", Instant.now().toString()),
+            Map.of(
+                "lessonId", lessonId.toString(),
+                "status", "COMPLETED",
+                "completedAt", Instant.now().toString(),
+                "completedSections", savedEnrollment.getProgress() != null
+                    && savedEnrollment.getProgress().get(lessonId.toString()) != null
+                    && savedEnrollment.getProgress().get(lessonId.toString()).getCompletedSections() != null
+                    ? savedEnrollment.getProgress().get(lessonId.toString()).getCompletedSections()
+                    : List.of()
+            ),
             "Đã hoàn thành bài học"
         ));
     }
@@ -429,25 +426,43 @@ public class StudentEnrollmentControllerV3 {
         }
 
         Enrollment enrollment = enrollmentOpt.get();
-        Map<String, Enrollment.LessonProgress> progress = enrollment.getProgress();
+        Enrollment.LessonProgress existingProgress = enrollment.getProgress() != null
+                ? enrollment.getProgress().get(lessonId.toString())
+                : null;
         String lessonIdStr = lessonId.toString();
 
-        // Get or create lesson progress
-        Enrollment.LessonProgress lessonProgress = progress != null ? progress.get(lessonIdStr) : null;
-        if (lessonProgress == null) {
-            lessonProgress = Enrollment.LessonProgress.builder()
-                    .status("IN_PROGRESS")
-                    .lastActivity(Instant.now())
-                    .completedSections(new ArrayList<>())
-                    .build();
+        if (existingProgress != null
+                && existingProgress.getCompletedSections() != null
+                && existingProgress.getCompletedSections().contains(sectionId)) {
+            return ResponseEntity.ok(ApiResponse.success(
+                buildSectionCompletionResponse(lessonIdStr, sectionId, existingProgress),
+                "ÄÃ£ hoÃ n thÃ nh pháº§n há»c"
+            ));
         }
 
-        // Add section to completed list
-        lessonProgress.addCompletedSection(sectionId);
-        enrollment.updateProgress(lessonIdStr, lessonProgress);
-        enrollmentRepository.save(enrollment);
+        final Enrollment savedEnrollment;
+        try {
+            applySectionCompletion(enrollment, lessonIdStr, sectionId);
+            savedEnrollment = saveSectionCompletionWithRetry(studentId, courseId, lessonIdStr, sectionId, enrollment);
+        } catch (ObjectOptimisticLockingFailureException ex) {
+            return ResponseEntity.status(409).body(ApiResponse.error(
+                "Tiáº¿n Ä‘á»™ pháº§n há»c vá»«a Ä‘Æ°á»£c cáº­p nháº­t á»Ÿ phiÃªn khÃ¡c. Vui lÃ²ng thá»­ láº¡i Ä‘á»ƒ Ä‘á»“ng bá»™ dá»¯ liá»‡u má»›i nháº¥t."
+            ));
+        }
+
+        Enrollment.LessonProgress savedProgress = savedEnrollment.getProgress() != null
+                ? savedEnrollment.getProgress().get(lessonIdStr)
+                : null;
 
         return ResponseEntity.ok(ApiResponse.success(
+            buildSectionCompletionResponse(lessonIdStr, sectionId, savedProgress),
+            "ÄÃ£ hoÃ n thÃ nh pháº§n há»c"
+        ));
+        
+
+        
+
+        /* return ResponseEntity.ok(ApiResponse.success(
             Map.of(
                 "lessonId", lessonIdStr,
                 "sectionId", sectionId,
@@ -456,7 +471,7 @@ public class StudentEnrollmentControllerV3 {
                 "status", "SECTION_COMPLETED"
             ),
             "Đã hoàn thành phần học"
-        ));
+        )); */
     }
 
     @Operation(summary = "Get lesson progress for student")
@@ -483,7 +498,8 @@ public class StudentEnrollmentControllerV3 {
                         "lessonId", lessonId.toString(),
                         "status", lp.getStatus() != null ? lp.getStatus() : "IN_PROGRESS",
                         "watchTimeSeconds", lp.getWatchSeconds() != null ? lp.getWatchSeconds() : 0,
-                        "completionPercent", "COMPLETED".equals(lp.getStatus()) ? 100 : 0
+                        "completionPercent", "COMPLETED".equals(lp.getStatus()) ? 100 : 0,
+                        "completedSections", lp.getCompletedSections() != null ? lp.getCompletedSections() : List.of()
                     ),
                     "Tiến độ bài học"
                 ));
@@ -492,7 +508,13 @@ public class StudentEnrollmentControllerV3 {
 
         // No progress found - lesson not started
         return ResponseEntity.ok(ApiResponse.success(
-            Map.of("lessonId", lessonId.toString(), "status", "NOT_STARTED", "watchTimeSeconds", 0, "completionPercent", 0),
+            Map.of(
+                "lessonId", lessonId.toString(),
+                "status", "NOT_STARTED",
+                "watchTimeSeconds", 0,
+                "completionPercent", 0,
+                "completedSections", List.of()
+            ),
             "Bài học chưa bắt đầu"
         ));
     }
@@ -876,6 +898,151 @@ public class StudentEnrollmentControllerV3 {
      * Count total lessons for a course in 2 queries (chapters + lessons batch).
      * Replaces N*C pattern: chapters.stream().mapToLong(ch -> countByChapterId(ch.getId())).
      */
+private void applyLessonCompletion(Enrollment enrollment, UUID lessonId, UUID courseId) {
+    enrollment.updateProgress(lessonId.toString(), buildCompletedLessonProgress(enrollment, lessonId));
+    recalculateEnrollmentCompletionPercent(enrollment, courseId);
+}
+
+private void applySectionCompletion(Enrollment enrollment, String lessonId, String sectionId) {
+    Enrollment.LessonProgress existingProgress = enrollment.getProgress() != null
+            ? enrollment.getProgress().get(lessonId)
+            : null;
+
+    Set<String> completedSections = new LinkedHashSet<>();
+    if (existingProgress != null && existingProgress.getCompletedSections() != null) {
+        completedSections.addAll(existingProgress.getCompletedSections());
+    }
+    completedSections.add(sectionId);
+
+    enrollment.updateProgress(lessonId, Enrollment.LessonProgress.builder()
+            .status(existingProgress != null && existingProgress.getStatus() != null
+                    ? existingProgress.getStatus()
+                    : "IN_PROGRESS")
+            .watchSeconds(existingProgress != null ? existingProgress.getWatchSeconds() : null)
+            .grade(existingProgress != null ? existingProgress.getGrade() : null)
+            .lastActivity(Instant.now())
+            .completedSections(new ArrayList<>(completedSections))
+            .build());
+}
+
+private Enrollment saveLessonCompletionWithRetry(UUID studentId, UUID courseId, UUID lessonId, Enrollment enrollment) {
+    try {
+        return enrollmentRepository.save(enrollment);
+        } catch (ObjectOptimisticLockingFailureException ex) {
+            Optional<Enrollment> latestEnrollment = findAccessibleEnrollment(studentId, courseId);
+            if (latestEnrollment.isEmpty()) {
+                throw ex;
+            }
+
+            Enrollment retryEnrollment = latestEnrollment.get();
+        applyLessonCompletion(retryEnrollment, lessonId, courseId);
+        return enrollmentRepository.save(retryEnrollment);
+    }
+}
+
+private Enrollment saveSectionCompletionWithRetry(
+        UUID studentId,
+        UUID courseId,
+        String lessonId,
+        String sectionId,
+        Enrollment enrollment
+) {
+    try {
+        return enrollmentRepository.save(enrollment);
+    } catch (ObjectOptimisticLockingFailureException ex) {
+        Optional<Enrollment> latestEnrollment = findAccessibleEnrollment(studentId, courseId);
+        if (latestEnrollment.isEmpty()) {
+            throw ex;
+        }
+
+        Enrollment retryEnrollment = latestEnrollment.get();
+        Enrollment.LessonProgress latestProgress = retryEnrollment.getProgress() != null
+                ? retryEnrollment.getProgress().get(lessonId)
+                : null;
+        if (latestProgress != null
+                && latestProgress.getCompletedSections() != null
+                && latestProgress.getCompletedSections().contains(sectionId)) {
+            return retryEnrollment;
+        }
+
+        applySectionCompletion(retryEnrollment, lessonId, sectionId);
+        try {
+            return enrollmentRepository.save(retryEnrollment);
+        } catch (ObjectOptimisticLockingFailureException retryEx) {
+            Optional<Enrollment> convergedEnrollment = findAccessibleEnrollment(studentId, courseId);
+            if (convergedEnrollment.isPresent()) {
+                Enrollment latestConverged = convergedEnrollment.get();
+                Enrollment.LessonProgress convergedProgress = latestConverged.getProgress() != null
+                        ? latestConverged.getProgress().get(lessonId)
+                        : null;
+                if (convergedProgress != null
+                        && convergedProgress.getCompletedSections() != null
+                        && convergedProgress.getCompletedSections().contains(sectionId)) {
+                    return latestConverged;
+                }
+            }
+            throw retryEx;
+        }
+    }
+}
+
+private Enrollment.LessonProgress buildCompletedLessonProgress(Enrollment enrollment, UUID lessonId) {
+        Enrollment.LessonProgress existingProgress = enrollment.getProgress() != null
+                ? enrollment.getProgress().get(lessonId.toString())
+                : null;
+        Set<String> completedSections = new LinkedHashSet<>();
+        if (existingProgress != null && existingProgress.getCompletedSections() != null) {
+            completedSections.addAll(existingProgress.getCompletedSections());
+        }
+        completedSections.addAll(resolveLessonSectionIds(lessonId));
+
+        return Enrollment.LessonProgress.builder()
+                .status("COMPLETED")
+                .watchSeconds(existingProgress != null ? existingProgress.getWatchSeconds() : null)
+                .grade(existingProgress != null ? existingProgress.getGrade() : null)
+                .lastActivity(Instant.now())
+            .completedSections(new ArrayList<>(completedSections))
+            .build();
+}
+
+private Map<String, Object> buildSectionCompletionResponse(
+        String lessonId,
+        String sectionId,
+        Enrollment.LessonProgress lessonProgress
+) {
+    return Map.of(
+            "lessonId", lessonId,
+            "sectionId", sectionId,
+            "completedSections", lessonProgress != null && lessonProgress.getCompletedSections() != null
+                    ? lessonProgress.getCompletedSections()
+                    : List.of(),
+            "status", "SECTION_COMPLETED"
+    );
+}
+
+    private List<String> resolveLessonSectionIds(UUID lessonId) {
+        return lessonJpaRepository.findById(lessonId)
+                .map(lesson -> lesson.getContentBlocks() == null ? List.<String>of() : lesson.getContentBlocks().stream()
+                        .map(com.example.lms.shared.domain.model.ContentBlock::getId)
+                        .filter(Objects::nonNull)
+                        .filter(sectionId -> !sectionId.isBlank())
+                        .toList())
+                .orElse(List.of());
+    }
+
+    private void recalculateEnrollmentCompletionPercent(Enrollment enrollment, UUID courseId) {
+        long totalLessons = countTotalLessonsForCourse(courseId);
+        if (totalLessons <= 0 || enrollment.getProgress() == null) {
+            return;
+        }
+
+        long completedCount = enrollment.getProgress().values().stream()
+                .filter(progress -> "COMPLETED".equals(progress.getStatus()))
+                .count();
+        int percent = (int) Math.min(100, Math.round((double) completedCount / totalLessons * 100));
+        enrollment.updateCompletionPercent(percent);
+    }
+
     private long countTotalLessonsForCourse(UUID courseId) {
         List<ChapterJpaEntity> chapters = chapterJpaRepository.findByCourseIdOrderByOrderIndex(courseId);
         if (chapters.isEmpty()) return 0;

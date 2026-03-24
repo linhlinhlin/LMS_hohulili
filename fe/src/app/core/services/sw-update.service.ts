@@ -12,8 +12,44 @@ export class SwUpdateService {
   private readonly toast = inject(ToastService);
   private readonly storage = inject(StorageManagerService);
   private readonly confirmDialog = inject(ConfirmDialogService);
+  private initialized = false;
+  private readonly visibilityChangeHandler = async () => {
+    if (document.visibilityState !== 'visible') return;
+
+    this.storage.requestPersistence();
+
+    if (this.swUpdate?.isEnabled) {
+      this.swUpdate.checkForUpdate().catch(() => {});
+      return;
+    }
+
+    if (!('serviceWorker' in navigator)) return;
+
+    try {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (!reg?.active && navigator.onLine) {
+        console.warn('[PWA] Service worker evicted by iOS, re-registering...');
+        document.location.reload();
+      }
+    } catch {
+      // Ignore errors (e.g., SW API not available)
+    }
+  };
+  private readonly windowErrorHandler = (event: ErrorEvent) => {
+    const msg = event.message || '';
+    if (msg.includes('ChunkLoadError') || msg.includes('Loading chunk')) {
+      console.warn('[PWA] ChunkLoadError detected, reloading...');
+      if (navigator.onLine) {
+        document.location.reload();
+      }
+    }
+  };
 
   initialize(): void {
+    if (this.initialized) {
+      return;
+    }
+    this.initialized = true;
     this.setupChunkErrorHandler();
     this.setupVisibilityHandler();
 
@@ -133,32 +169,7 @@ export class SwUpdateService {
   private setupVisibilityHandler(): void {
     if (typeof document === 'undefined') return;
 
-    document.addEventListener('visibilitychange', async () => {
-      if (document.visibilityState !== 'visible') return;
-
-      // Re-request persistence on every foreground (may have been revoked)
-      this.storage.requestPersistence();
-
-      // Check for SW updates on resume (re-validates SW if alive)
-      if (this.swUpdate?.isEnabled) {
-        this.swUpdate.checkForUpdate().catch(() => {});
-        return; // SW is alive, no need to check further
-      }
-
-      // If SW is not enabled, check if it was evicted
-      if (!('serviceWorker' in navigator)) return;
-
-      try {
-        const reg = await navigator.serviceWorker.getRegistration();
-        if (!reg?.active && navigator.onLine) {
-          // SW was evicted by iOS, reload to re-register
-          console.warn('[PWA] Service worker evicted by iOS, re-registering...');
-          document.location.reload();
-        }
-      } catch {
-        // Ignore errors (e.g., SW API not available)
-      }
-    });
+    document.addEventListener('visibilitychange', this.visibilityChangeHandler);
   }
 
   /**
@@ -169,15 +180,7 @@ export class SwUpdateService {
   private setupChunkErrorHandler(): void {
     if (typeof window === 'undefined') return;
 
-    window.addEventListener('error', (event) => {
-      const msg = event.message || '';
-      if (msg.includes('ChunkLoadError') || msg.includes('Loading chunk')) {
-        console.warn('[PWA] ChunkLoadError detected, reloading...');
-        if (navigator.onLine) {
-          document.location.reload();
-        }
-      }
-    });
+    window.addEventListener('error', this.windowErrorHandler);
   }
 
   /**

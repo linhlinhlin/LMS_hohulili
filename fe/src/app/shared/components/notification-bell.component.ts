@@ -1,35 +1,20 @@
-/**
- * Notification Bell Component
- *
- * Hiển thị icon chuông với badge số thông báo chưa đọc.
- * Features:
- * - Badge hiển thị số thông báo chưa đọc
- * - Dropdown danh sách thông báo gần đây
- * - Click để navigate đến trang liên quan
- * - Mark as read khi click
- * - Mark all as read
- *
- * @requirements 7.4, 7.5
- */
 import {
+  ChangeDetectionStrategy,
   Component,
+  ElementRef,
+  HostListener,
+  OnDestroy,
+  OnInit,
+  computed,
   inject,
   signal,
-  computed,
-  ChangeDetectionStrategy,
-  OnInit,
-  OnDestroy,
-  HostListener,
-  ElementRef,
 } from '@angular/core';
-
 import { Router } from '@angular/router';
-import {
-  NotificationService,
-  Notification,
-  NotificationType,
-} from '../../core/services/notification.service';
 import { Subscription } from 'rxjs';
+import {
+  Notification,
+  NotificationService,
+} from '../../core/services/notification.service';
 
 @Component({
   selector: 'app-notification-bell',
@@ -46,25 +31,37 @@ import { Subscription } from 'rxjs';
   `],
 })
 export class NotificationBellComponent implements OnInit, OnDestroy {
-  private notificationService = inject(NotificationService);
-  private router = inject(Router);
-  private elementRef = inject(ElementRef);
-  private subscription = new Subscription();
+  private readonly notificationService = inject(NotificationService);
+  private readonly router = inject(Router);
+  private readonly elementRef = inject(ElementRef);
+  private readonly subscription = new Subscription();
 
-  // State
-  isOpen = signal(false);
+  readonly isOpen = signal(false);
 
-  // Computed from service
-  unreadCount = this.notificationService.unreadCount;
-  recentNotifications = computed(() =>
+  readonly unreadCount = this.notificationService.unreadCount;
+  readonly isLoading = this.notificationService.isLoading;
+  readonly hasError = this.notificationService.hasError;
+  readonly errorMessage = this.notificationService.errorMessage;
+  readonly recentNotifications = computed(() =>
     this.notificationService.getRecentNotifications(10)
   );
+  readonly staleErrorMessage = computed(() => {
+    const errorMessage = this.errorMessage();
+    if (!errorMessage) {
+      return null;
+    }
+
+    if (this.recentNotifications().length > 0) {
+      return 'Khong the lam moi thong bao. Dang hien thi du lieu gan nhat.';
+    }
+
+    return errorMessage;
+  });
 
   ngOnInit(): void {
-    // Subscribe to new notifications for real-time updates
     this.subscription.add(
-      this.notificationService.onNewNotification.subscribe((notification) => {
-        // Could show a toast or play a sound here
+      this.notificationService.onNewNotification.subscribe(() => {
+        // Future enhancement: toast or subtle sound cue.
       })
     );
   }
@@ -73,7 +70,6 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
     this.subscription.unsubscribe();
   }
 
-  // Close dropdown when clicking outside
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     if (!this.elementRef.nativeElement.contains(event.target)) {
@@ -82,34 +78,38 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   }
 
   toggleDropdown(): void {
-    this.isOpen.update((v) => !v);
+    this.isOpen.update((value) => !value);
   }
 
   onNotificationClick(notification: Notification): void {
-    // Mark as read
     if (!notification.isRead) {
       this.notificationService.markAsRead(notification.id).subscribe({
-        error: () => {} // Non-blocking — UI already updated
+        error: () => {
+          // Service rollback + error state already handled centrally.
+        },
       });
     }
 
-    // Navigate to action URL
     if (notification.actionUrl) {
       this.router.navigateByUrl(notification.actionUrl);
     }
 
-    // Close dropdown
     this.isOpen.set(false);
   }
 
   markAllAsRead(): void {
     this.notificationService.markAllAsRead().subscribe({
-      error: () => {} // Non-blocking — UI already updated
+      error: () => {
+        // Service rollback + error state already handled centrally.
+      },
     });
   }
 
+  refreshNotifications(): void {
+    this.notificationService.loadNotifications().subscribe();
+  }
+
   viewAllNotifications(): void {
-    // No dedicated notifications page yet — just close dropdown
     this.isOpen.set(false);
   }
 
@@ -122,19 +122,22 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
     if (diffMins < 1) {
-      return 'Vừa xong';
-    } else if (diffMins < 60) {
-      return `${diffMins} phút trước`;
-    } else if (diffHours < 24) {
-      return `${diffHours} giờ trước`;
-    } else if (diffDays < 7) {
-      return `${diffDays} ngày trước`;
-    } else {
-      return date.toLocaleDateString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      });
+      return 'Vua xong';
     }
+    if (diffMins < 60) {
+      return `${diffMins} phut truoc`;
+    }
+    if (diffHours < 24) {
+      return `${diffHours} gio truoc`;
+    }
+    if (diffDays < 7) {
+      return `${diffDays} ngay truoc`;
+    }
+
+    return date.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
   }
 }

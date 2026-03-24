@@ -4,7 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { CourseApi } from '../../../api/client/course.api';
 import { CourseContentChapter, LessonSummary } from '../../../api/types/course.types';
-import { PaymentService } from '../../payment/payment.service';
+import {
+  PaymentAccessActivationState,
+  PaymentService
+} from '../../payment/payment.service';
 import { CourseReviewApi, ReviewDTO, ReviewSummary, SubmitReviewRequest } from '../../../api/endpoints/course-review.api';
 import { firstValueFrom } from 'rxjs';
 import { ToastService } from '../../../core/services/toast.service';
@@ -48,6 +51,8 @@ interface Lesson {
   title: string;
   description: string;
   orderIndex: number;
+  isFree?: boolean;
+  locked?: boolean;
   durationMinutes?: number;
   hasQuiz?: boolean;
   quizType?: string;
@@ -72,8 +77,6 @@ export class CourseDetailComponent implements OnInit {
   private toast = inject(ToastService);
   private quizApi = inject(QuizApi);
 
-  readonly FREE_LESSONS_COUNT = 2;
-
   // State
   isLoading = signal(false);
   loadError = signal<string | null>(null);
@@ -88,6 +91,7 @@ export class CourseDetailComponent implements OnInit {
   paymentLoading = signal(false);
   isEnrolled = signal(false);
   isEnrolling = signal(false);
+  paymentAccessState = signal<PaymentAccessActivationState | null>(null);
 
   // Real progress from enrollment API
   private _realProgress = signal<{ percentage: number; completed: number; total: number } | null>(null);
@@ -137,8 +141,11 @@ export class CourseDetailComponent implements OnInit {
   });
 
   accessibleLessonsCount = computed(() => {
-    if (this.hasPaid()) return this.totalLessons();
-    return Math.min(this.FREE_LESSONS_COUNT, this.totalLessons());
+    if (this.hasReadyPaidAccess()) return this.totalLessons();
+    return this.sections()
+      .flatMap(section => section.lessons)
+      .filter(lesson => this.isLessonPreviewAvailable(lesson))
+      .length;
   });
 
   // Per-chapter completion counts
@@ -231,6 +238,8 @@ export class CourseDetailComponent implements OnInit {
                   title: lesson.title,
                   description: lesson.description || '',
                   orderIndex: lesson.orderIndex ?? 0,
+                  isFree: lessonAny.isFree === true,
+                  locked: lessonAny.locked === true,
                   durationMinutes: lessonAny.durationMinutes || sections.reduce((sum, s) => sum + (s.duration || 0), 0) || 0,
                   hasQuiz: sections.some(s => s.type === 'QUIZ') || false,
                   quizType: lessonAny.quizType,
@@ -437,12 +446,14 @@ export class CourseDetailComponent implements OnInit {
       }
       const state = await this.paymentService.loadPaymentStatus(courseId);
       this.hasPaid.set(state.hasPaid);
+      this.paymentAccessState.set(state.accessActivationState);
     } catch {
       const course = courseDetail ?? this.course();
       if (course && (!course.price || course.price === 0 || course.priceType === 'FREE')) {
         this.hasPaid.set(true);
+        this.paymentAccessState.set('READY');
       } else {
-        this.hasPaid.set(false);
+        this.paymentAccessState.set(null);
       }
     } finally {
       this.paymentLoading.set(false);
@@ -477,17 +488,27 @@ export class CourseDetailComponent implements OnInit {
     });
   }
 
-  canAccessLesson(lessonIndex: number): boolean {
-    if (this.hasPaid()) return true;
-    return lessonIndex < this.FREE_LESSONS_COUNT;
+  isLessonPreviewAvailable(lesson: Lesson): boolean {
+    return lesson.isFree === true || lesson.locked === false;
   }
 
-  getLessonGlobalIndex(sectionIndex: number, lessonIndexInSection: number): number {
-    let globalIndex = 0;
-    for (let i = 0; i < sectionIndex; i++) {
-      globalIndex += this.sections()[i]?.lessons.length || 0;
-    }
-    return globalIndex + lessonIndexInSection;
+  canAccessLesson(lesson: Lesson): boolean {
+    if (this.hasReadyPaidAccess()) return true;
+    return this.isLessonPreviewAvailable(lesson);
+  }
+
+  isAwaitingManualActivation(): boolean {
+    return this.paymentAccessState() === 'MANUAL_ACTIVATION_REQUIRED';
+  }
+
+  isAccessPending(): boolean {
+    return this.paymentAccessState() === 'ACCESS_PENDING';
+  }
+
+  hasReadyPaidAccess(): boolean {
+    return this.hasPaid()
+      && this.paymentAccessState() !== 'MANUAL_ACTIVATION_REQUIRED'
+      && this.paymentAccessState() !== 'ACCESS_PENDING';
   }
 
   goToCheckout(): void {
@@ -499,6 +520,18 @@ export class CourseDetailComponent implements OnInit {
   async handleEnroll(): Promise<void> {
     const courseId = this.course()?.id;
     if (!courseId) return;
+
+    if (this.isAwaitingManualActivation()) {
+      this.toast.info('Thanh toán đã được ghi nhận. Khóa học dạng lớp học sẽ mở khi bạn được xếp lớp hoặc kích hoạt.');
+      this.router.navigate(['/student/payments']);
+      return;
+    }
+
+    if (this.isAccessPending()) {
+      this.toast.info('Thanh toán đã được ghi nhận, nhưng quyền học vẫn đang được kích hoạt. Vui lòng kiểm tra lại tại lịch sử thanh toán.');
+      this.router.navigate(['/student/payments']);
+      return;
+    }
 
     this.isEnrolling.set(true);
     try {

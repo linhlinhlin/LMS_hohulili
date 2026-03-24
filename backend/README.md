@@ -1,1389 +1,156 @@
-﻿# Maritime LMS Backend
+# Maritime LMS Backend
 
-> Spring Boot 3.2.6 + Java 21 + PostgreSQL 16 with a modular Clean Architecture / DDD layout.
+Spring Boot 3.2 + Java 21 + PostgreSQL 16 with modular Clean Architecture / DDD.
 
 ## Quick Start
 
 ### Runtime Conventions
 
-- Public dev API URL: `http://localhost:8088`
-- Spring Boot process/container port: `8080`
+- Host machine API URL: `http://localhost:8088`
+- Internal Spring/container port: `8080`
 - Production API URL: same-origin `/api/*` behind Caddy
-- Root `docker-compose*.yml` files are the only supported Docker runtime topology
+- Supported Docker topology: root `docker-compose*.yml`
 
-Use `8088` when calling the backend from the host machine. Use `8080` only for in-container and reverse-proxy wiring.
+### Local Backend Run
 
 ```bash
-# Prepare local env once
 cp ../.env.dev.example ../.env
+cd ../
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db backend
 
-# Start everything needed for backend-local work (DB + API)
-cd ../ && docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db backend
-
-# Return to backend folder for backend-local commands
-cd backend
-
-# Verify
-curl -s http://localhost:8088/api/v3/courses | head -50
-
-# Logs
-cd ../ && docker compose -f docker-compose.yml -f docker-compose.dev.yml logs backend --tail=100
+curl -s http://localhost:8088/actuator/health
+curl -s http://localhost:8088/api/v3/courses?page=0&size=1
 ```
 
+### Host-Native Backend Run
+
 ```bash
-# Host-native backend run (matches the standard dev URL)
 cd backend
 SERVER_PORT=8088 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-| Service | URL | Credentials |
-|---------|-----|-------------|
-| API | http://localhost:8088/api/v3 | JWT Bearer |
-| **Swagger UI** | **http://localhost:8088/swagger-ui** | Interactive API docs |
-| OpenAPI Spec | http://localhost:8088/v3/api-docs | - |
-| pgAdmin (optional `devtools` profile) | http://localhost:8081 | `admin@lms.vn` / `admin123` (env: PGADMIN_PASSWORD) |
-| PostgreSQL | localhost:5432/lms | `lms` / `lms` |
+## Core Backend Truths
 
-**Test Accounts** (auto-created on first startup):
+### Video Runtime
 
-| Role | Email | Password | Full Name |
-|------|-------|----------|-----------|
-| ADMIN (System) | `admin@maritime.edu` | `admin123` | Admin User |
-| ORG_ADMIN (Operations) | `orgadmin@maritime.edu` | `orgadmin123` | OrgAdmin User |
-| TEACHER | `teacher@maritime.edu` | `teacher123` | Teacher User |
-| STUDENT | `student@maritime.edu` | `student123` | Student User |
+- Upload path: `upload/init -> upload/confirm -> POST /api/v3/video-assets/from-upload`
+- Storage split:
+  - public/general assets: `lms-cdn`
+  - private learner-facing media/storage: `lms-storage`
+- Adaptive processing uses `ffprobe + ffmpeg + Shaka Packager`
+- Production ingest runs on a dedicated `video-worker` VM
+- Production playback uses backend-signed manifests plus `media.holilihu.online` for HLS/DASH media objects
 
-**Seed Accounts** (V54/V55 migration â€” 10 STCW courses with full content):
-- 10 Teachers: `tranngocdai@maritime.edu`, `levanhung@maritime.edu`, etc. / `Maritime@2026`
-- 25 Students: `nguyenvanan@sv.maritime.edu`, `tranthibinh@sv.maritime.edu`, etc. / `Student@2026`
-- See `docs/testing/TEST_CHECKLIST.md` for the full list.
+### Offline Sync
 
----
+- Backend must remain the canonical source of truth
+- Offline progress convergence is additive and forward-only
+- `completedSections` should merge by union, not last-write-wins
+- Offline/package conflicts should surface as stale or conflict states, not silently overwrite valid server progress
 
-## Current Video Runtime
+### Payment
 
-- Teacher upload path: `upload/init -> presigned PUT -> upload/confirm -> POST /api/v3/video-assets/from-upload`
-- Storage layout:
-  - `CLOUDFLARE_R2_BUCKET`: public/general LMS assets such as files and covers (`lms-cdn`)
-  - `CLOUDFLARE_R2_VIDEO_BUCKET`: private learner-facing video/storage objects (`lms-storage`)
-- Upload path now supports multipart direct-to-R2 for larger video files instead of relying only on a single PUT request
-- Processing path: `ffprobe` + `ffmpeg` + `Shaka Packager`
-- Production compose can run a dedicated `video-worker` service so ingest can be isolated from the web-serving backend
-- `video-worker` needs a network with outbound internet access in production; attaching it only to Docker `internal` networks will break R2 fetch/upload operations during ingest
-- Remote worker-to-DB private forwarding is now expected to use `sslmode=disable` unless the forwarder itself terminates PostgreSQL SSL
-- If PostgreSQL is forwarded from the app VM to the worker VM through `socat`, the forwarder should resolve the current `lms-db-1` container IP dynamically instead of pinning a stale Docker IP
-- Learner playback path: backend-signed adaptive manifest (`HLS` default, `DASH` supported) + short-lived presigned R2 segment/object redirects
-- Production playback scale path now supports `media.holilihu.online` on Cloudflare Free via Worker custom domain + HMAC query validation, so segment/init requests can bypass the backend `/object` hot path
-- Dedicated ingest worker is the current production truth; do not re-enable local `video-worker` on the app VM unless the worker VM is down or you are intentionally rolling back
-- Offline path: LMS-managed MP4 profiles `SAVER`, `STANDARD`, `HIGH`, `ORIGINAL`
-- Published learner content comes from `course_publications` snapshots. If a teacher adds or changes `videoAssetId` on an already `APPROVED` course, the draft must be submitted and approved again before learner smoke will see the new internal video.
-- Observed production baseline on the current VM: a sample `~156 MB` `1080p` upload took a little over `20 minutes` to reach `READY/READY`. That impacts teacher upload-to-ready latency and ingest queue throughput, not playback quality/performance for assets already `READY`.
-- `upload -> READY` latency is not primarily the learner/teacher network upload speed. After upload finishes, the worker still has to `download source -> ffprobe -> ffmpeg renditions -> Shaka package -> upload adaptive package`, so bottlenecks usually sit in worker CPU/IO.
-- Ingest now exposes three safe tuning knobs for production experiments without code changes: `VIDEO_PACKAGE_UPLOAD_CONCURRENCY`, `VIDEO_ADAPTIVE_SEGMENT_DURATION_SECONDS`, and `VIDEO_FFMPEG_PRESET`.
-- The repository now claims ingest jobs with `SKIP LOCKED` semantics before processing so future worker scale-out has a safer foundation than the old plain polling approach.
-- Multipart upload smoke on production confirmed that real R2 `multipart_upload_id` values can exceed `255` characters, so `upload_sessions.multipart_upload_id` must stay on a wide type such as `text`.
-- The worker now uses a one-pass multi-rendition ffmpeg path for adaptive transcodes so `SAVER` and `STANDARD` no longer re-decode the same source in separate ffmpeg runs.
-- Latest production measurement on the current VM: after switching to `VIDEO_FFMPEG_PRESET=superfast` and one-pass transcode, the sample `~156 MB / 1080p` asset reached `READY/READY` in about `14m19s` instead of `21m22s`; the trade-off is higher `SAVER` / `STANDARD` output size and average bandwidth than the older `veryfast` baseline.
-- Reusable production smoke helper now lives at `../scripts/prod-video-smoke.ps1` for `upload -> confirm -> asset -> READY -> manifest preview` verification.
-- Reusable distributed playback helper now lives at `../scripts/run-distributed-scenario.ps1` for two-origin `autocannon` bursts against a ready signed URL.
-- Playback now uses short-lived backend caches for raw manifests and presigned object redirects, which lowers repeat R2 reads/signing work when multiple learners are pulling the same asset around the same time.
-- `../docker-compose.prod.yml` now exposes resource tuning knobs such as `VIDEO_WORKER_CPU_LIMIT`, `VIDEO_WORKER_MEMORY_LIMIT`, `BACKEND_CPU_LIMIT`, and `BACKEND_MEMORY_LIMIT` so production can rebalance worker vs web capacity without editing the compose file itself.
-- Cloudflare Stream is no longer the target runtime dependency for new internal video. Keep `CLOUDFLARE_STREAM_ENABLED=false` unless doing legacy investigation.
-- Current distributed playback baseline from two origins (`local + worker VM`) with fresh signed URLs:
-  - `media-domain HLS object`: `100 + 100` conns about `1441 req/s` combined, health stayed `UP`
-  - `media-domain HLS object`: `200 + 200` conns about `2826 req/s` combined, health stayed `UP`
-  - `HLS master manifest`: `50 + 50` conns about `491 req/s` combined, health stayed `UP`
-- Read these numbers as controlled synthetic baselines, not final many-region viewer capacity.
-- Setup/cutover runbooks:
-  - `../docs/runbooks/CLOUDFLARE_R2_VIDEO_SETUP.md`
-  - `../docs/runbooks/VIDEO_R2_SHAKA_CUTOVER_CHECKLIST.md`
-
----
+- Payment status and post-payment access are backend-truth driven
+- Existing paid access should not be interpreted as “unpaid” just because a gateway callback view is stale
+- Instructor-led courses may complete payment without direct learner access being immediately ready
 
 ## Architecture
 
-### Clean Architecture + DDD (Modular Monolith)
-
-```
+```text
 com.example.lms/
-â”œâ”€â”€ identity/              # Users, Authentication, Roles (JWT), Multi-tier Admin
-â”œâ”€â”€ course_authoring/      # Course, Chapter, Lesson, ContentBlock, Package, CourseCategory (2-level hierarchy), CourseTag, Review, Admin ops
-â”œâ”€â”€ learning_delivery/     # LearningClass, Enrollment, Progress, Gamification, Analytics, Video, Certificate
-â”œâ”€â”€ assessment/            # Assignment, Quiz, Question, Submission, Rubric, QuestionBank
-â”œâ”€â”€ communication/         # Messages, Conversations
-â”œâ”€â”€ ai_assistant/          # AI Chat integration (streaming SSE)
-â”œâ”€â”€ shared/                # Value objects, domain events, exceptions, file service, payment, email, VNPay, admin settings
-â””â”€â”€ config/                # Security, CORS, JWT filter, rate limiting, R2 storage
+├── identity/
+├── course_authoring/
+├── learning_delivery/
+├── assessment/
+├── communication/
+├── ai_assistant/
+├── shared/
+└── config/
 ```
 
-### Layer Structure (Per Module)
+### Layer Rule
 
-```
-{module}/
-â”œâ”€â”€ domain/
-â”‚   â”œâ”€â”€ model/            # Pure domain entities (NO framework annotations)
-â”‚   â”œâ”€â”€ repository/       # Repository INTERFACES (ports)
-â”‚   â”œâ”€â”€ valueobject/      # Value objects (CourseCode, Email, UserId)
-â”‚   â””â”€â”€ event/            # Domain events
-â”œâ”€â”€ application/
-â”‚   â”œâ”€â”€ usecase/          # Single-responsibility use cases
-â”‚   â”œâ”€â”€ dto/              # Commands, responses
-â”‚   â””â”€â”€ port/             # Application-level port interfaces (TokenService)
-â””â”€â”€ infrastructure/
-    â”œâ”€â”€ persistence/
-    â”‚   â”œâ”€â”€ entity/       # JPA entities (*JpaEntity) - annotated with @Entity
-    â”‚   â”œâ”€â”€ repository/   # Spring Data JPA repositories (use JpaEntity!)
-    â”‚   â”œâ”€â”€ mapper/       # Entity <-> Domain mappers
-    â”‚   â””â”€â”€ *Adapter.java # Repository port implementations
-    â””â”€â”€ web/              # REST controllers (@RestController)
+```text
+Domain <- Application <- Infrastructure
 ```
 
-### Dependency Rule
+- Domain: pure business model, no framework annotations
+- Application: use cases and DTOs, depends on ports
+- Infrastructure: JPA, controllers, adapters, external integrations
 
+### Critical JPA Rule
+
+Never point a Spring Data repository at a domain model.
+
+Correct:
+
+```java
+public interface CourseJpaRepository extends JpaRepository<CourseJpaEntity, UUID> {}
 ```
-Domain â† Application â† Infrastructure
-(inner)   (middle)      (outer)
+
+Wrong:
+
+```java
+public interface BadRepository extends JpaRepository<Course, UUID> {}
 ```
 
-- **Domain layer**: Zero framework imports. Pure Java business logic.
-- **Application layer**: Depends on domain ports only. NO JPA, NO Spring annotations.
-- **Infrastructure layer**: Implements domain/application ports. Contains Spring, JPA, HTTP.
+## Local Checks
 
----
-
-## Database Schema
-
-### PostgreSQL 16 Schema Files
-
-| File | Purpose | Tables | Status |
-|------|---------|--------|--------|
-| **V1__lms_complete_schema.sql** | **Comprehensive reference schema** | 34 | âœ… Production-ready |
-| V26__normalize_enums.sql | Normalize enums to UPPERCASE | - | âœ… Applied |
-| V27__add_performance_indexes.sql | 26 performance indexes | - | âœ… Applied |
-| V28__add_foreign_key_constraints.sql | 13 FK constraints | - | âœ… Applied |
-| V29__complete_assignment_entities.sql | Assignment entity columns | - | âœ… Applied |
-| V30__add_missing_indexes.sql | 11 additional indexes | - | âœ… Applied |
-
-**V1__lms_complete_schema.sql** (New - 1,241 lines):
-- ðŸŽ¯ **Single source of truth** for database architecture
-- 34 tables (31 entities + 1 collection + 2 security tables)
-- 94 indexes (B-tree, BRIN, GIN, partial)
-- 24 triggers (auto `updated_at` + audit logging)
-- 2 materialized views (analytics dashboards)
-- PostgreSQL 16+ features: BRIN for time-series, GIN for JSONB/full-text search
-- Seed data: 5 categories + admin user
-- Can be used as Flyway baseline for fresh deployments
-
-**Schema Stats:**
-- **39 tables**: identity (1+2 org/invites), course_authoring (8+1 review+3 category/tag), learning_delivery (8 incl. gamification/video/certificate), assessment (12+2 question_bank), communication (2), ai_assistant (2), shared (3+1 payment), security (2)
-- **94 indexes**: 60+ B-tree, 9 partial, 6 BRIN, 12 GIN, 7 unique
-- **54 foreign keys**: CASCADE on children, SET NULL on soft dependencies
-- **All enums validated** at DB level with CHECK constraints
-
-### Key Schema Features
-
-| Feature | Implementation | Benefit |
-|---------|----------------|---------|
-| Full-text search | `pg_trgm` + GIN trigram indexes | 10-50x faster course search |
-| Analytics | Materialized views (refresh concurrently) | 100-9000x faster dashboard queries |
-| Time-series queries | BRIN indexes on `created_at` | 100x smaller index, fast range scans |
-| JSONB queries | GIN indexes on `content_blocks`, `progress` | JSONB containment queries indexed |
-| Status filters | Partial indexes (e.g., `status = 'PUBLISHED'`) | 50-80% smaller indexes |
-| Auto timestamps | `fn_set_updated_at()` trigger on 18 tables | Consistent across all tables |
-| Audit trail | Generic `fn_audit_trigger()` on 4 critical tables | Compliance-grade change tracking |
-| Security logging | `login_attempts` table with INET type | Brute force detection |
-
----
-
-## Health & Monitoring
-
-### Container Status
+### Compile and tests
 
 ```bash
-docker compose ps
-# Expected: All containers "healthy"
-```
-
-| Container | Status | Port | Health Check |
-|-----------|--------|------|--------------|
-| Compose service `backend` | Healthy | 8088 | `/actuator/health` returns `{"status":"UP"}` |
-| Compose service `db` | Healthy | 5432 | `pg_isready` |
-| Compose service `pgadmin` | Optional | 8081 | Start with `--profile devtools` |
-
-### Health Endpoints
-
-| Endpoint | Access | Purpose |
-|----------|--------|---------|
-| `/actuator/health` | Public | Docker HEALTHCHECK + monitoring |
-| `/actuator/info` | Public | Build info, version |
-| `/swagger-ui` | Public | API documentation |
-
-**Note**: `/actuator/health` is **whitelisted** in SecurityConfig (no JWT required) for Docker health checks.
-
-### Test Suite
-
-```bash
+cd backend
+mvn -DskipTests compile -B
 mvn test -B
 ```
 
-Use the command above as the current source of truth instead of relying on hardcoded historical counts in docs.
-
----
-
-## API Documentation
-
-### Swagger UI (Interactive API Docs)
-
-**Access**: http://localhost:8088/swagger-ui
-
-**Features:**
-- Request and response schemas generated from the current codebase
-- API tags grouped by backend module
-- Browser-based "Try it out" support
-- JWT authorization testing from Swagger UI
-- OpenAPI-based export through `/v3/api-docs`
-
-### API Modules (31 controllers)
-
-| Module | Endpoints | Description |
-|--------|-----------|-------------|
-| **Authentication V3** | 9 | Login, register, JWT refresh, profile, forgot-password, reset-password |
-| **User Management V3** | 13 | User CRUD, role change, enable/disable (ADMIN/ORG_ADMIN) |
-| **Organizations V3** | 12 | Org CRUD, members, invites, per-member token config (ADMIN/ORG_ADMIN) |
-| **Invites V3** | 3 | Validate invite code/token (public), accept invite (authenticated) |
-| **Course Authoring V3** | 14 | Create/update courses, chapters, lessons, content blocks |
-| **Course Query V3** | 9 | Public course browsing, search, categories |
-| **Admin - Courses** | 7 | Approve/reject courses, dashboard stats (ADMIN/ORG_ADMIN) |
-| **Teacher - Courses** | 9 | Teacher course management, drafts, students |
-| **Course Review V3** | 5 | Student course reviews/ratings |
-| **Packages V3** | 9 | Question package organization |
-| **Student Enrollment V3** | 13 | Enrollment, progress, certificates, lesson completion |
-| **Classes V3** | 9 | Learning class management, students |
-| **Teacher - Students** | 7 | Student management, assignments, analytics, status |
-| **Gamification V3** | 6 | Achievements, streaks, leaderboard |
-| **Learning Activity V3** | 6 | Learning events, progress tracking |
-| **Video Progress V3** | 5 | Heartbeat, resume position, completion |
-| **Teacher Analytics V3** | 1 | Teacher analytics dashboard |
-| **Student Analytics V3** | 1 | Student analytics dashboard |
-| **Teacher Revenue V3** | 5 | Revenue dashboard, payout history |
-| **Teacher Invitation V3** | 3 | Course co-instructor invitations |
-| **Assignment V3** | 6 | Assignment CRUD, publish, close |
-| **Assignment Submission V3** | 9 | Student submissions + teacher grading |
-| **Quiz V3** | 16 | Quiz CRUD, attempts, grading, timeout |
-| **Question V3** | 6 | Question CRUD |
-| **Question Bank V3** | 15 | Question bank, categories, import/export |
-| **Rubric V3** | 7 | Rubric CRUD, library mode, assign-to-assignment |
-| **Communication V3** | 6 | Messaging between users |
-| **AI Assistant V3** | 11 | AI chatbot, sessions, knowledge management |
-| **File Upload V3** | 3 | File upload/download (R2/local) |
-| **Payment V3** | 7 | VNPay redirect flow (create-url, IPN, return), payment callbacks, checkout |
-| **Admin Settings V3** | 2 | System settings (ADMIN-only) |
-
-### OpenAPI Specification
-
-**Raw JSON**: http://localhost:8088/v3/api-docs
-
-**Metadata:**
-```json
-{
-  "title": "LMS Backend API",
-  "version": "v1.0.0",
-  "description": "Learning Management System Backend REST API vá»›i Spring Boot, PostgreSQL vÃ  JWT Authentication",
-  "servers": [
-    {"url": "http://localhost:8088", "description": "Development"},
-    {"url": "https://api.lms.com", "description": "Production"}
-  ]
-}
-```
-
-### Sample Endpoints
-
-#### Authentication
-```bash
-# Register
-POST /api/v3/auth/register
-Body: {"username": "...", "email": "...", "password": "...", "fullName": "...", "role": "STUDENT"}
-
-# Login (returns JWT)
-POST /api/v3/auth/login
-Body: {"email": "admin@maritime.edu", "password": "admin123"}
-
-# Get current user
-GET /api/v3/auth/me
-Headers: Authorization: Bearer {token}
-```
-
-#### Courses
-```bash
-# Browse public courses (paginated)
-GET /api/v3/courses?page=0&size=20&sort=createdAt,desc
-
-# Get course detail
-GET /api/v3/courses/{courseId}
-
-# Create course (TEACHER only)
-POST /api/v3/teacher/courses
-Headers: Authorization: Bearer {token}
-```
-
-#### AI Assistant
-```bash
-# Send message to AI
-POST /api/v3/ai/chat
-Headers: Authorization: Bearer {token}
-Body: {"sessionId": "...", "message": "Explain maritime navigation"}
-
-# Get chat sessions
-GET /api/v3/ai/sessions
-Headers: Authorization: Bearer {token}
-```
-
-### Testing with curl
+### Docker build
 
 ```bash
-# 1. Login and get token
-TOKEN=$(curl -s -X POST http://localhost:8088/api/v3/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@maritime.edu","password":"admin123"}' \
-  | grep -o '"accessToken":"[^"]*"' \
-  | cut -d'"' -f4)
-
-# 2. Call protected endpoint
-curl -H "Authorization: Bearer $TOKEN" \
-  http://localhost:8088/api/v3/admin/users
-
-# 3. Create a course
-curl -X POST http://localhost:8088/api/v3/teacher/courses \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Test Course","description":"..."}'
-```
-
----
-
-## Module Inventory
-
-### Codebase Snapshot
-
-| Metric | Count |
-|--------|-------|
-| Bounded contexts (modules) | 8 |
-| Layering | `domain` / `application` / `infrastructure` per module |
-| Database migrations | `V1` reference schema plus incremental migrations in `src/main/resources/db/migration/` |
-| API documentation | SpringDoc / Swagger UI at `/swagger-ui` |
-| Tests | Run `mvn test -B` for the current backend suite status |
-
-### Module Breakdown
-
-| Module | Domain Models | Use Cases | Controllers | Endpoints |
-|--------|--------------|-----------|-------------|-----------|
-| identity | 4 (User, Role, Organization, OrganizationInvite) | 15 | 4 (Auth, User, Organization, Invite) | 37 |
-| course_authoring | 8 (Course, Chapter, Lesson, ContentBlock, Category, CourseReview, CourseCategory, CourseTag) | 26 | 8 (Authoring, Query, Package, AdminCourses, TeacherCourses, CourseReview, CourseCategory, CourseTag) | 68 |
-| learning_delivery | 9 (LearningClass, Enrollment, Certificate, VideoProgress, LearningStreak, Achievement, etc.) | 17 | 10 (Class, Enrollment, TeacherStudent, Gamification, Activity, Video, Analytics x2, Revenue, Invitation) | 51 |
-| assessment | 11 (Assignment, Quiz, Question, Submission, Rubric, QuestionBank, etc.) | 14 | 6 (Assignment, Submission, Quiz, Question, QuestionBank, Rubric) | 59 |
-| communication | 4 (Conversation, Message, etc.) | 1 | 1 | 6 |
-| ai_assistant | 3 (ChatSession, KnowledgeDocument, etc.) | 1 | 1 | 11 |
-| shared | 4 (ContentBlock, FileMetadata, PaymentTransaction, PaymentCommands) | 5 (Checkout, CreateVnPayUrl, ProcessVnPayIpn, Refund, Expiry) | 3 (FileUpload, Payment, AdminSettings) | 15 |
-| config | - | - | - | - |
-| **TOTAL** | **40** | **72** | **31** | **234** |
-
----
-
-## API Reference
-
-### Identity Module
-
-#### AuthControllerV3 (`/api/v3/auth`)
-```
-POST   /api/v3/auth/register           # User registration (+ welcome email)
-POST   /api/v3/auth/login              # Login â†’ JWT tokens
-POST   /api/v3/auth/logout             # Logout
-POST   /api/v3/auth/refresh            # Refresh JWT token
-GET    /api/v3/auth/me                 # Get current user
-PUT    /api/v3/auth/profile            # Update profile
-PUT    /api/v3/auth/password           # Change password
-POST   /api/v3/auth/forgot-password    # Request password reset (anti-enumeration)
-POST   /api/v3/auth/reset-password     # Reset password with token (OWASP)
-```
-
-#### UserControllerV3 (`/api/v3/users`)
-```
-GET    /api/v3/users                   # List users (ADMIN)
-GET    /api/v3/users/{id}              # Get user by ID
-PUT    /api/v3/users/{id}              # Update user (ADMIN)
-DELETE /api/v3/users/{id}              # Delete user (ADMIN)
-PUT    /api/v3/users/{id}/role         # Change role (ADMIN)
-PUT    /api/v3/users/{id}/enable       # Enable account (ADMIN)
-PUT    /api/v3/users/{id}/disable      # Disable account (ADMIN)
-```
-
-#### OrganizationControllerV3 (`/api/v3/organizations`)
-```
-GET    /api/v3/organizations                                        # List organizations (ADMIN/ORG_ADMIN)
-GET    /api/v3/organizations/{id}                                   # Get organization detail
-POST   /api/v3/organizations                                        # Create organization
-PUT    /api/v3/organizations/{id}                                   # Update organization
-GET    /api/v3/organizations/{id}/members                           # List members
-POST   /api/v3/organizations/{id}/members                           # Add member
-DELETE /api/v3/organizations/{id}/members/{userId}                   # Remove member
-PUT    /api/v3/organizations/{id}/members/{userId}/token-config      # Set per-member token expiry (ADMIN/ORG_ADMIN)
-POST   /api/v3/organizations/{id}/invites/code                      # Create invite code
-POST   /api/v3/organizations/{id}/invites/email                     # Send email invite
-GET    /api/v3/organizations/{id}/invites                           # List invites
-DELETE /api/v3/organizations/{id}/invites/{inviteId}                 # Revoke invite
-```
-
-#### InviteControllerV3 (`/api/v3/invites`)
-```
-GET    /api/v3/invites/validate                                     # Validate invite code (public, rate-limited)
-GET    /api/v3/invites/validate-token                               # Validate email invite token (public, rate-limited)
-POST   /api/v3/invites/accept                                       # Accept invite (authenticated)
-```
-
-### Course Authoring Module
-
-#### CourseAuthoringControllerV3 (`/api/v3/authoring`)
-```
-POST   /api/v3/authoring/courses                                  # Create course
-PUT    /api/v3/authoring/courses/{id}                              # Update course info
-PUT    /api/v3/authoring/courses/{id}/thumbnail                    # Update thumbnail
-POST   /api/v3/authoring/courses/{courseId}/chapters               # Add chapter
-PUT    /api/v3/authoring/courses/{courseId}/chapters/reorder        # Reorder chapters
-POST   /api/v3/authoring/courses/{courseId}/chapters/{chId}/lessons # Add lesson
-PUT    /api/v3/authoring/courses/{courseId}/lessons/reorder         # Reorder lessons
-PUT    /api/v3/authoring/lessons/{lessonId}                        # Update lesson
-POST   /api/v3/authoring/lessons/{lessonId}/content-blocks         # Add content block
-PUT    /api/v3/authoring/content-blocks/{blockId}                  # Update content block
-DELETE /api/v3/authoring/content-blocks/{blockId}                  # Delete content block
-POST   /api/v3/authoring/courses/{id}/submit                      # Submit for approval
-```
-
-#### CourseQueryControllerV3 (`/api/v3/courses`)
-```
-GET    /api/v3/courses                                             # List courses (paginated)
-GET    /api/v3/courses/{id}                                        # Course detail
-GET    /api/v3/courses/{id}/full                                   # Full course with chapters/lessons
-GET    /api/v3/courses/search                                      # Search courses
-GET    /api/v3/courses/categories                                  # List categories
-GET    /api/v3/courses/{id}/reviews                                # Course reviews (public)
-GET    /api/v3/courses/{id}/reviews/summary                         # Review summary (avg, count)
-GET    /api/v3/courses/{id}/enrolled                                # Check enrollment status
-GET    /api/v3/courses/{id}/instructor                              # Course instructor info
-```
-
-#### PackageControllerV3 (`/api/v3/packages`)
-```
-GET    /api/v3/packages                                            # List packages
-POST   /api/v3/packages                                            # Create package
-PUT    /api/v3/packages/{id}                                       # Update package
-DELETE /api/v3/packages/{id}                                       # Delete package
-```
-
-#### AdminCoursesControllerV3 (`/api/v3/admin/courses`) â€” merged from course_management in S50
-```
-GET    /api/v3/admin/courses                                       # All courses (ADMIN/ORG_ADMIN)
-GET    /api/v3/admin/courses/pending                                # Pending approval
-POST   /api/v3/admin/courses/{id}/approve                          # Approve course
-POST   /api/v3/admin/courses/{id}/reject                           # Reject course
-POST   /api/v3/admin/courses/{id}/revoke                           # Revoke approval
-GET    /api/v3/admin/stats                                         # Dashboard stats
-GET    /api/v3/admin/courses/{id}                                  # Course detail (admin view)
-```
-
-#### TeacherCoursesControllerV3 (`/api/v3/teacher/courses`) â€” merged from course_management in S50
-```
-GET    /api/v3/teacher/courses                                     # My courses (TEACHER)
-GET    /api/v3/teacher/courses/{id}                                 # Course detail
-GET    /api/v3/teacher/courses/{id}/draft                           # Get draft
-GET    /api/v3/teacher/courses/{id}/students                        # Course students
-GET    /api/v3/teacher/courses/{id}/stats                           # Course statistics
-GET    /api/v3/teacher/courses/stats/overview                       # Teacher overview stats
-GET    /api/v3/teacher/courses/{id}/enrollments                     # Course enrollments
-GET    /api/v3/teacher/courses/{id}/reviews                         # Course reviews
-GET    /api/v3/teacher/dashboard/stats                              # Dashboard stats
-```
-
-#### CourseReviewControllerV3 (`/api/v3/reviews`)
-```
-POST   /api/v3/reviews                                             # Create review (STUDENT)
-PUT    /api/v3/reviews/{id}                                        # Update review
-DELETE /api/v3/reviews/{id}                                        # Delete review
-GET    /api/v3/reviews/my                                          # My reviews
-GET    /api/v3/reviews/course/{courseId}                             # Reviews by course
-```
-
-### Learning Delivery Module
-
-#### ClassControllerV3 (`/api/v3/classes`)
-```
-GET    /api/v3/classes                                              # List classes
-POST   /api/v3/classes                                              # Create class
-GET    /api/v3/classes/{id}                                         # Class detail
-PUT    /api/v3/classes/{id}                                         # Update class
-DELETE /api/v3/classes/{id}                                         # Delete class
-POST   /api/v3/classes/{id}/close                                   # Close class
-GET    /api/v3/classes/{id}/students                                 # Class students
-POST   /api/v3/classes/{id}/students                                 # Add student to class
-DELETE /api/v3/classes/{id}/students/{studentId}                     # Remove student
-```
-
-#### StudentEnrollmentControllerV3 (`/api/v3/enrollments`)
-```
-GET    /api/v3/enrollments/my                                       # My enrollments (STUDENT)
-POST   /api/v3/enrollments                                          # Enroll in class
-DELETE /api/v3/enrollments/{id}                                     # Drop enrollment
-GET    /api/v3/enrollments/{id}/progress                            # Get progress
-PUT    /api/v3/enrollments/{id}/progress                            # Update progress
-POST   /api/v3/enrollments/lessons/{lessonId}/complete               # Mark lesson complete
-GET    /api/v3/enrollments/continue                                  # Continue learning (last position)
-GET    /api/v3/enrollments/certificates                              # My certificates
-POST   /api/v3/enrollments/certificates/issue                        # Issue certificate
-GET    /api/v3/enrollments/certificates/{id}/verify                  # Verify certificate
-GET    /api/v3/enrollments/course/{courseId}                          # Enrollment by course
-GET    /api/v3/enrollments/courses/{courseId}/progress                # Progress by course
-GET    /api/v3/enrollments/check/{courseId}                           # Check if enrolled
-```
-
-#### TeacherStudentControllerV3 (`/api/v3/teacher/students`)
-```
-GET    /api/v3/teacher/students                                     # My students (TEACHER)
-GET    /api/v3/teacher/students/{id}                                # Student detail
-GET    /api/v3/teacher/students/{id}/assignments                    # Student assignments (real DB)
-GET    /api/v3/teacher/students/{id}/analytics                      # Student analytics (real DB)
-PUT    /api/v3/teacher/students/{id}/status                         # Update student status
-POST   /api/v3/teacher/students/{id}/message                        # Message student (stub)
-GET    /api/v3/teacher/students/{id}/export                         # Export report (stub)
-```
-
-#### GamificationControllerV3 (`/api/v3/gamification`)
-```
-GET    /api/v3/gamification/achievements                            # All achievements
-GET    /api/v3/gamification/my-achievements                         # My achievements
-GET    /api/v3/gamification/streak                                  # Current streak
-GET    /api/v3/gamification/leaderboard                             # Leaderboard
-POST   /api/v3/gamification/check-in                                # Daily check-in
-GET    /api/v3/gamification/stats                                   # Gamification stats
-```
-
-#### LearningActivityControllerV3 (`/api/v3/learning-activity`)
-```
-POST   /api/v3/learning-activity/events                             # Record learning event
-GET    /api/v3/learning-activity/events                             # My learning events
-GET    /api/v3/learning-activity/progress                           # Overall progress
-GET    /api/v3/learning-activity/recent                             # Recent activity
-GET    /api/v3/learning-activity/stats                              # Activity statistics
-GET    /api/v3/learning-activity/daily                              # Daily activity
-```
-
-#### VideoProgressControllerV3 (`/api/v3/video-progress`)
-```
-POST   /api/v3/video-progress/heartbeat                             # Video heartbeat (position update)
-GET    /api/v3/video-progress/{lessonId}                             # Get progress for lesson
-GET    /api/v3/video-progress/course/{courseId}                      # All video progress for course
-PUT    /api/v3/video-progress/{lessonId}/complete                    # Mark video complete
-GET    /api/v3/video-progress/resume/{lessonId}                      # Get resume position
-```
-
-#### TeacherAnalyticsControllerV3 (`/api/v3/teacher/analytics`)
-```
-GET    /api/v3/teacher/analytics/dashboard                          # Teacher analytics dashboard
-```
-
-#### StudentAnalyticsControllerV3 (`/api/v3/student/analytics`)
-```
-GET    /api/v3/student/analytics/dashboard                          # Student analytics dashboard
-```
-
-#### TeacherRevenueControllerV3 (`/api/v3/teacher/revenue`)
-```
-GET    /api/v3/teacher/revenue/dashboard                            # Revenue dashboard
-GET    /api/v3/teacher/revenue/transactions                         # Transaction history
-GET    /api/v3/teacher/revenue/payout-history                       # Payout history
-GET    /api/v3/teacher/revenue/stats                                # Revenue statistics
-POST   /api/v3/teacher/revenue/request-payout                       # Request payout (stub)
-```
-
-#### TeacherInvitationControllerV3 (`/api/v3/teacher/invitations`)
-```
-GET    /api/v3/teacher/invitations                                  # My invitations
-POST   /api/v3/teacher/invitations/{id}/accept                      # Accept invitation
-POST   /api/v3/teacher/invitations/{id}/reject                      # Reject invitation
-```
-
-### Assessment Module
-
-#### AssignmentControllerV3 (`/api/v3/assignments`)
-```
-GET    /api/v3/assignments                                          # List assignments
-POST   /api/v3/assignments                                          # Create assignment
-GET    /api/v3/assignments/{id}                                     # Assignment detail
-PUT    /api/v3/assignments/{id}                                     # Update assignment
-DELETE /api/v3/assignments/{id}                                     # Delete assignment
-POST   /api/v3/assignments/{id}/publish                             # Publish assignment
-POST   /api/v3/assignments/{id}/close                               # Close assignment
-GET    /api/v3/assignments/course/{courseId}                         # By course
-GET    /api/v3/assignments/teacher/summary                           # Teacher summary
-POST   /api/v3/assignments/{id}/submissions                         # Submit work
-GET    /api/v3/assignments/{id}/submissions                         # List submissions
-PUT    /api/v3/assignments/submissions/{subId}/grade                 # Grade submission
-```
-
-#### QuizControllerV3 (`/api/v3/quizzes`)
-```
-GET    /api/v3/quizzes                                              # List quizzes
-POST   /api/v3/quizzes                                              # Create quiz
-GET    /api/v3/quizzes/{id}                                         # Quiz detail
-PUT    /api/v3/quizzes/{id}                                         # Update quiz
-DELETE /api/v3/quizzes/{id}                                         # Delete quiz
-POST   /api/v3/quizzes/{id}/publish                                 # Publish quiz
-POST   /api/v3/quizzes/{id}/attempts                                # Start attempt
-PUT    /api/v3/quizzes/attempts/{attemptId}/submit                   # Submit attempt
-GET    /api/v3/quizzes/attempts/{attemptId}/result                   # Get result
-```
-
-#### QuestionControllerV3 (`/api/v3/questions`)
-```
-GET    /api/v3/questions                                            # Question bank
-POST   /api/v3/questions                                            # Create question
-GET    /api/v3/questions/{id}                                       # Question detail
-PUT    /api/v3/questions/{id}                                       # Update question
-DELETE /api/v3/questions/{id}                                       # Delete question
-POST   /api/v3/questions/import                                     # Import from file (Excel/CSV)
-```
-
-#### QuestionBankControllerV3 (`/api/v3/question-banks`)
-```
-GET    /api/v3/question-banks                                       # List question banks
-POST   /api/v3/question-banks                                       # Create question bank
-GET    /api/v3/question-banks/{id}                                  # Bank detail
-PUT    /api/v3/question-banks/{id}                                  # Update bank
-DELETE /api/v3/question-banks/{id}                                  # Delete bank
-GET    /api/v3/question-banks/{id}/questions                         # Questions in bank
-POST   /api/v3/question-banks/{id}/questions                         # Add question to bank
-DELETE /api/v3/question-banks/{id}/questions/{qId}                   # Remove from bank
-GET    /api/v3/question-banks/categories                             # List categories
-POST   /api/v3/question-banks/categories                             # Create category
-PUT    /api/v3/question-banks/categories/{id}                        # Update category
-DELETE /api/v3/question-banks/categories/{id}                        # Delete category
-POST   /api/v3/question-banks/{id}/import                            # Import questions
-GET    /api/v3/question-banks/{id}/export                            # Export questions
-GET    /api/v3/question-banks/search                                 # Search across banks
-```
-
-#### AssignmentSubmissionControllerV3 (`/api/v3/submissions`)
-```
-POST   /api/v3/submissions                                          # Submit assignment work
-GET    /api/v3/submissions/my                                        # My submissions
-GET    /api/v3/submissions/{id}                                     # Submission detail
-GET    /api/v3/submissions/assignment/{assignmentId}                 # Submissions for assignment
-PUT    /api/v3/submissions/{id}/grade                                # Grade submission (TEACHER)
-PUT    /api/v3/submissions/{id}/feedback                             # Add feedback (TEACHER)
-GET    /api/v3/submissions/student/{studentId}                       # Student submissions (TEACHER)
-POST   /api/v3/submissions/{id}/resubmit                             # Resubmit (STUDENT)
-GET    /api/v3/submissions/stats/{assignmentId}                      # Submission statistics
-```
-
-#### RubricControllerV3 (`/api/v3/rubrics`)
+cd ..
+docker compose -f docker-compose.yml -f docker-compose.dev.yml build backend
 ```
-GET    /api/v3/rubrics                                               # My rubrics (TEACHER)
-POST   /api/v3/rubrics                                               # Create rubric
-GET    /api/v3/rubrics/{id}                                         # Rubric detail
-PUT    /api/v3/rubrics/{id}                                         # Update rubric
-DELETE /api/v3/rubrics/{id}                                         # Delete rubric
-POST   /api/v3/rubrics/{id}/assign/{assignmentId}                    # Assign to assignment
-GET    /api/v3/rubrics/assignment/{assignmentId}                     # Get by assignment
-```
-
-### Communication Module
-
-#### CommunicationControllerV3 (`/api/v3/communication`)
-```
-GET    /api/v3/communication/conversations                          # My conversations
-POST   /api/v3/communication/conversations                          # Start conversation
-GET    /api/v3/communication/conversations/{id}/messages             # Get messages
-POST   /api/v3/communication/conversations/{id}/messages             # Send message
-GET    /api/v3/communication/unread-count                            # Unread message count
-PUT    /api/v3/communication/conversations/{id}/read                 # Mark as read
-```
-
-### AI Assistant Module
-
-#### AiAssistantControllerV3 (`/api/v3/ai`)
-```
-POST   /api/v3/ai/chat                                             # Send message (SSE streaming)
-GET    /api/v3/ai/sessions                                          # List sessions
-POST   /api/v3/ai/sessions                                          # Create session
-DELETE /api/v3/ai/sessions/{id}                                     # Delete session
-GET    /api/v3/ai/sessions/{id}/messages                            # Session messages
-POST   /api/v3/ai/knowledge/upload                                  # Upload knowledge doc
-GET    /api/v3/ai/knowledge                                         # List knowledge docs
-DELETE /api/v3/ai/knowledge/{id}                                    # Delete knowledge doc
-GET    /api/v3/ai/knowledge/stats                                   # Knowledge stats
-POST   /api/v3/ai/knowledge/search                                  # Search knowledge
-```
-
-### Shared Module
-
-#### FileUploadControllerV3 (`/api/v3/files`)
-```
-POST   /api/v3/files/upload                                         # Upload file (R2/local)
-GET    /api/v3/files/{filename}                                     # Download file
-POST   /api/v3/files/upload-multiple                                 # Upload multiple files
-```
-
-#### PaymentControllerV3 (`/api/v3/payments`) â€” Clean Architecture / DDD
-```
-POST   /api/v3/payments/checkout                                     # Checkout (simulated, dev-only)
-GET    /api/v3/payments/status/{courseId}                             # Payment status for course
-GET    /api/v3/payments/my-payments                                  # Payment history
-GET    /api/v3/payments/can-access/{courseId}/lesson/{lessonIndex}    # Lesson access check
-GET    /api/v3/payments/by-ref/{txnRef}                              # Payment by transaction ref
-POST   /api/v3/payments/vnpay/create-url                             # Create VNPay redirect URL
-GET    /api/v3/payments/vnpay-ipn                                    # VNPay IPN callback (public)
-GET    /api/v3/payments/vnpay-return                                 # VNPay browser return (public)
-GET    /api/v3/payments/admin/all                                    # Admin: list all payments (paginated)
-POST   /api/v3/payments/admin/{paymentId}/refund                     # Admin: process refund
-```
-
-**Payment DDD Architecture** (refactored S100):
-```
-shared/
-â”œâ”€â”€ domain/
-â”‚   â”œâ”€â”€ model/PaymentTransaction.java        # Pure domain model, state machine
-â”‚   â””â”€â”€ repository/PaymentRepository.java    # Domain port (no Spring imports)
-â”œâ”€â”€ application/
-â”‚   â”œâ”€â”€ usecase/
-â”‚   â”‚   â”œâ”€â”€ CheckoutUseCase.java             # Simulated payment (dev-only)
-â”‚   â”‚   â”œâ”€â”€ CreateVnPayUrlUseCase.java       # VNPay URL generation
-â”‚   â”‚   â”œâ”€â”€ ProcessVnPayIpnUseCase.java      # IPN verification + state transition
-â”‚   â”‚   â””â”€â”€ RefundPaymentUseCase.java        # Admin refund processing
-â”‚   â””â”€â”€ dto/
-â”‚       â”œâ”€â”€ PaymentCommands.java             # Command records
-â”‚       â””â”€â”€ PaymentResponse.java             # Response DTO
-â””â”€â”€ infrastructure/
-    â”œâ”€â”€ persistence/
-    â”‚   â”œâ”€â”€ entity/PaymentTransactionJpaEntity.java
-    â”‚   â”œâ”€â”€ mapper/PaymentEntityMapper.java
-    â”‚   â”œâ”€â”€ repository/PaymentTransactionJpaRepository.java
-    â”‚   â””â”€â”€ PaymentRepositoryAdapter.java
-    â”œâ”€â”€ service/PaymentExpiryScheduler.java  # @Scheduled PENDING cleanup
-    â””â”€â”€ web/PaymentControllerV3.java         # Thin controller â†’ use cases
-```
-
-**Payment State Machine**: `PENDING â†’ COMPLETED | FAILED | EXPIRED`, `COMPLETED â†’ REFUNDED`
-
-#### AdminSettingsControllerV3 (`/api/v3/admin/settings`) â€” ADMIN-only
-```
-GET    /api/v3/admin/settings                                       # Get system settings
-PUT    /api/v3/admin/settings                                       # Update system settings
-```
-
----
-
-## Domain Models
-
-### Core Aggregates
-
-#### Course (course_authoring)
-```
-Course â”€â”€â”¬â”€â”€ chapters: List<Chapter>
-         â”‚       â””â”€â”€ lessons: List<Lesson>
-         â”‚               â””â”€â”€ contentBlocks: List<ContentBlock>
-         â”œâ”€â”€ code: CourseCode (value object)
-         â”œâ”€â”€ status: DRAFT â†’ PENDING â†’ APPROVED/REJECTED
-         â”œâ”€â”€ pricing: FREE/PAID + price/salePrice
-         â””â”€â”€ visibility: PUBLIC/PRIVATE/UNLISTED
-```
-
-**Status Lifecycle**:
-```
-DRAFT â”€â”€submit()â”€â”€> PENDING â”€â”€approve()â”€â”€> APPROVED
-                        â”‚
-                        â””â”€â”€reject(reason)â”€â”€> REJECTED â”€â”€resubmit()â”€â”€> PENDING
-```
-
-**Note**: APPROVED courses are immediately visible. No separate PUBLISHED/ARCHIVED states.
-
-#### Assignment (assessment)
-```
-Assignment â”€â”€â”¬â”€â”€ rubrics: List<Rubric>
-             â”œâ”€â”€ attachments: List<Attachment>
-             â”œâ”€â”€ submissions: List<Submission>
-             â”œâ”€â”€ type: ESSAY/QUIZ/PROJECT/LAB
-             â””â”€â”€ status: DRAFT â†’ PUBLISHED â†’ CLOSED
-```
-
-#### LearningClass (learning_delivery)
-```
-LearningClass â”€â”€â”¬â”€â”€ enrollments: List<Enrollment>
-                â”œâ”€â”€ courseId: UUID
-                â”œâ”€â”€ teacherId: UUID
-                â””â”€â”€ status: OPEN â†’ CLOSED â†’ ARCHIVED â†’ CANCELLED
-```
-
-#### Enrollment (learning_delivery)
-```
-Enrollment â”€â”€â”¬â”€â”€ status: ACTIVE â†’ COMPLETED/DROPPED/SUSPENDED
-             â”œâ”€â”€ completionPercent: 0-100 (auto-completes at 100%)
-             â””â”€â”€ lessonProgress: Map<lessonId, Boolean>
-```
-
-### Value Objects (shared/domain/valueobject)
-
-| Value Object | Usage |
-|-------------|-------|
-| `UserId` | Wraps UUID for user identity |
-| `Email` | Validated email with normalization (lowercase, trim) |
-| `CourseCode` | Unique course identifier code |
-| `ContentBlock` | Rich content: TEXT, IMAGE, VIDEO, FORMULA, CODE |
-
-### Domain Events (11 total)
-
-| Event | Published By | Consumed By |
-|-------|-------------|-------------|
-| `CourseCreatedEvent` | CreateCourseUseCase | (logged) |
-| `CourseApprovedEvent` | ApproveCourseUseCase | (notification) |
-| `CourseRejectedEvent` | RejectCourseUseCase | (notification) |
-| `CoursePublishedEvent` | PublishCourseUseCase | (indexing) |
-| `UserRegisteredEvent` | RegisterUserUseCaseV2 | (welcome email) |
-| `StudentEnrolledEvent` | EnrollStudentUseCaseV3 | (progress init) |
-| `StudentDroppedEvent` | DropStudentUseCase | (cleanup) |
-| `AssignmentCreatedEvent` | CreateAssignmentUseCaseV3 | (notification) |
-| `AssignmentSubmittedEvent` | SubmitAssignmentUseCase | (grading queue) |
-| `QuizAttemptCompletedEvent` | QuizAttemptUseCase | (scoring) |
-| `ClassClosedEvent` | CloseClassUseCase | (enrollment freeze) |
-
----
-
-## Security
-
-### Authentication
-- **JWT Bearer tokens** (JJWT 0.12.3)
-- Access token + Refresh token pattern
-- Token generation via `TokenService` port (application layer)
-  - `generateRefreshToken(UUID, String, String, long)` â€” dynamic expiry for per-user/per-org token config
-  - `generateAccessToken(UUID, String, String, UUID)` â€” includes `organizationId` claim in JWT
-
-### Authorization (Multi-Tier Admin â€” S43)
-- **163 @PreAuthorize annotations** across controllers
-- Roles: `ADMIN` (system), `ORG_ADMIN` (operations), `TEACHER`, `STUDENT`
-- **Escalation prevention**: ORG_ADMIN cannot create/modify ADMIN/ORG_ADMIN users
-- **ADMIN-only (3 endpoints)**: DELETE user, DELETE course, admin settings
-- Method-level security with SpEL expressions
-- `@AuthenticationPrincipal UserJpaEntity` pattern (not SecurityContextHolder)
-
-### Security Hardening
-| Feature | Implementation |
-|---------|---------------|
-| CORS | Specific origins via `CORS_ALLOWED_ORIGINS` env var |
-| Security Headers | X-Frame-Options: DENY, HSTS, X-Content-Type-Options: nosniff |
-| Rate Limiting | Auth endpoints (`RateLimitingFilter`) |
-| File Upload | MIME type validation + filename sanitization |
-| Password | BCrypt hashing |
-| User Enumeration | `hideUserNotFoundExceptions=true` |
-
-### SecurityConfig Key Paths
-```java
-// Public (no auth required)
-/api/v3/auth/login, /api/v3/auth/register, /api/v3/auth/refresh
-/api/v3/auth/forgot-password, /api/v3/auth/reset-password
-/api/v3/courses (GET), /api/v3/courses/{id} (GET)
-/api/v3/payments/vnpay-ipn, /api/v3/payments/vnpay-return
-/swagger-ui/**, /v3/api-docs/**
-
-// Authenticated (any role)
-/api/v3/auth/profile, /api/v3/auth/logout
-
-// Role-specific
-/api/v3/admin/**        â†’ ADMIN, ORG_ADMIN (except settings: ADMIN only)
-/api/v3/teacher/**      â†’ TEACHER, ADMIN, ORG_ADMIN
-/api/v3/assignments/**  â†’ TEACHER, STUDENT (varies by endpoint)
-```
-
----
-
-## Database
-
-### PostgreSQL 16 Configuration
-```yaml
-Database: lms
-User: lms
-Password: lms
-Port: 5432 (Docker) / 5432 (local)
-```
-
-### Flyway Migrations
-
-| Version | Description |
-|---------|-------------|
-| V26 | Normalize enums across all tables |
-| V27 | Add performance indexes (conversations, enrollments) |
-| V28 | Add foreign key constraints |
-| V29 | Complete assignment entities (rubrics, attachments) |
-| V30 | Add 13 missing indexes (chat, assignments, files) |
-| V34 | Question bank categories + question types |
-| V35 | Learning delivery tables (video progress, achievements, streaks, events) |
-| V36 | Certificates, notifications, gamification |
-| V37 | Course review tables |
-| V38 | Payment transactions |
-| V39 | Admin settings |
-| V40 | Multi-tier admin (ORG_ADMIN role + user metadata) |
-| V41 | Rubric library mode (teacher_id + nullable assignment_id) |
-| V42 | Teacher revenue + payout tables |
-| V43 | Teacher invitations |
-| V44 | Seed TEACHER + STUDENT test accounts |
-| V46 | Password reset tokens table (SHA-256 hash, expiry, single-use) |
-| V47 | VNPay payment fields (vnp_transaction_no, bank_code, response_code, card_type) |
-| V54 | Seed users + 10 STCW courses with full content (1188 lines) |
-| V55 | Seed classes, enrollments, questions, quizzes, assignments, reviews (2743 lines) |
-| V58 | enrollments.updated_at column fix |
-| V61 | Payment indexes (status, course_id, paid_at) |
-| V62 | @Version optimistic locking on enrollments + assignment submissions |
-| V64 | Organizations + organization_invites tables (CODE/EMAIL types, constraints, indexes) |
-| V65 | users.token_expiry_days column â€” per-user refresh token expiry override |
-| V70 | course_categories (2-level hierarchy) + course_tags + course_tag_assignments. Migrates old flat categories, seeds 14 subcategories + 10 tags |
-
-**Note**: Migrations V1-V25 exist in production database history but SQL files are managed externally. V26+ are in `src/main/resources/db/migration/`.
-
-### Key Tables
-
-| Table | Module | Indexes |
-|-------|--------|---------|
-| users | identity | email (unique), username (unique) |
-| courses | course_authoring | code (unique), teacher_id, category_id, status |
-| chapters | course_authoring | course_id, sort_order |
-| lessons | course_authoring | chapter_id, sort_order |
-| content_blocks | course_authoring | lesson_id, sort_order |
-| learning_classes | learning_delivery | course_id, teacher_id, status |
-| enrollments | learning_delivery | class_id + student_id (unique), student_id |
-| assignments | assessment | course_id, class_id, teacher_id, status |
-| assignment_submissions | assessment | assignment_id, student_id |
-| quizzes | assessment | lesson_id, course_id |
-| questions | assessment | package_id, difficulty |
-| conversations | communication | participant IDs |
-| chat_sessions | ai_assistant | user_id |
-| password_reset_tokens | identity | user_id, token_hash (unique), expires_at |
-| payment_transactions | shared | transaction_id, student_id, course_id, vnp_* fields |
-
----
-
-## Tech Stack
-
-| Component | Version | Purpose |
-|-----------|---------|---------|
-| Java | 21 | Language (virtual threads capable) |
-| Spring Boot | 3.2.6 | Application framework |
-| Spring Security | 6.x | Authentication & authorization |
-| Spring Data JPA | 3.2.x | Data access (Hibernate 6.4) |
-| Spring Validation | 3.2.x | Jakarta Bean Validation |
-| Spring Actuator | 3.2.x | Health checks & metrics |
-| Spring WebFlux | 3.2.x | SSE streaming (AI chat) |
-| Spring Kafka | 3.2.x | Event messaging (optional) |
-| PostgreSQL | 16 | Database |
-| Flyway | 10.x | Database migrations |
-| JJWT | 0.12.3 | JWT token handling |
-| SpringDoc OpenAPI | 2.5.0 | API documentation (Swagger UI) |
-| Caffeine | (managed) | In-memory caching |
-| Hypersistence Utils | 3.7.0 | JSONB column support |
-| AWS SDK S3 | 2.25.0 | Cloudflare R2 file storage |
-| Apache POI | 5.2.4 | Document parsing (Word, Excel, PPT) |
-| Spring Boot Mail | 3.2.x | SMTP email (dev profile) |
-| Resend Java SDK | 3.1.0 | Transactional email API (prod profile) |
-| Lombok | 1.18.32 | Code generation |
-| ArchUnit | 1.2.1 | Architecture testing |
-
-### Test Dependencies
-- JUnit 5 (Jupiter)
-- Mockito
-- AssertJ
-- Spring Security Test
-- ArchUnit
-
----
-
-## Docker Setup
-
-### docker-compose.yml Services
-
-```
-db (postgres:16-alpine)     â†’ Port 5432
-pgadmin (dpage/pgadmin4)    â†’ Port 8081
-api (custom Dockerfile)     â†’ Port 8088 â†’ 8080 internal
-```
-
-### Resource Limits
-```yaml
-api:
-  limits:   2 CPU / 2GB RAM
-  reserved: 0.5 CPU / 512MB RAM
-```
-
-### Commands
-```bash
-# Start all services
-docker compose up -d
-
-# Rebuild after code changes
-docker compose -f docker-compose.yml -f docker-compose.dev.yml build backend --no-cache && docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d backend
-
-# View logs
-docker compose -f docker-compose.yml -f docker-compose.dev.yml logs backend --tail=100 -f
-
-# Stop
-docker compose down
-
-# Reset database
-docker compose down -v && docker compose up -d
-```
-
----
-
-## Configuration
-
-### Profiles
-
-| Profile | Port | SQL Logging | Flyway | Purpose |
-|---------|------|-------------|--------|---------|
-| dev | 8080 (Docker: 8088) | true | true | Development |
-| prod | 8080 | false | true | Production |
-
-### Environment Variables
-
-For production env names, use the repo-root `.env.prod.example` as the source of truth.
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SPRING_PROFILES_ACTIVE` | dev | Active profile |
-| `SPRING_DATASOURCE_URL` | jdbc:postgresql://db:5432/lms | Database URL |
-| `SPRING_DATASOURCE_USERNAME` | lms | DB username |
-| `SPRING_DATASOURCE_PASSWORD` | lms | DB password |
-| `CORS_ALLOWED_ORIGINS` | http://localhost:4200 | CORS origins (comma-separated) |
-| `SPRING_AI_SERVICE_URL` | (Render URL) | AI chatbot backend |
-| `CLOUDFLARE_R2_ENABLED` | false | Enable Cloudflare R2 storage |
-| `CLOUDFLARE_R2_ACCOUNT_ID` | - | Cloudflare account ID used for R2 endpoint construction |
-| `CLOUDFLARE_R2_ACCESS_KEY` | - | Cloudflare R2 S3 access key |
-| `CLOUDFLARE_R2_SECRET_KEY` | - | Cloudflare R2 S3 secret key |
-| `CLOUDFLARE_R2_BUCKET` | lms-cdn | Public/general LMS asset bucket |
-| `CLOUDFLARE_R2_VIDEO_BUCKET` | lms-storage | Private adaptive video bucket |
-| `CLOUDFLARE_R2_PUBLIC_URL` | - | Public URL / custom domain for `CLOUDFLARE_R2_BUCKET` |
-| `VIDEO_PLAYBACK_TOKEN_EXPIRY_SECONDS` | 14400 | Backend-signed adaptive playback session TTL |
-| `VIDEO_SEGMENT_PRESIGN_TTL_SECONDS` | 120 | TTL for redirected segment/object presigned URLs |
-| `CLOUDFLARE_STREAM_ENABLED` | false | Legacy-only switch; keep disabled for current video stack |
-| `MAIL_USERNAME` | - | SMTP username (Gmail email) |
-| `MAIL_PASSWORD` | - | SMTP password (Gmail App Password) |
-| `MAIL_FROM` | LMS Maritime | Email sender display name |
-| `RESEND_API_KEY` | - | Resend API key (prod profile) |
-| `VNPAY_TMN_CODE` | DEMOV210 | VNPay merchant code |
-| `VNPAY_HASH_SECRET` | DEMOSECRET | VNPay HMAC-SHA512 secret |
-
----
-
-## Testing
-
-### Current Coverage
 
-Run the backend suite locally to get the current test count and pass/fail state:
+### Logs
 
 ```bash
-mvn test -B
+docker compose -f docker-compose.yml -f docker-compose.dev.yml logs backend --tail=100
 ```
 
-### Test Structure
-```
-src/test/java/com/example/lms/
-â”œâ”€â”€ course_authoring/
-â”‚   â”œâ”€â”€ domain/model/CourseTest.java                    # 18 tests - lifecycle, pricing, chapters
-â”‚   â””â”€â”€ application/usecase/
-â”‚       â”œâ”€â”€ CreateCourseUseCaseTest.java                 # 6 tests
-â”‚       â”œâ”€â”€ ApproveCourseUseCaseTest.java                # 5 tests
-â”‚       â”œâ”€â”€ CreateChapterUseCaseV3Test.java              # 3 tests (incl. ownership)
-â”‚       â”œâ”€â”€ CreateLessonUseCaseV3Test.java               # 2 tests
-â”‚       â””â”€â”€ ManageContentBlockUseCaseV3Test.java         # 7 tests
-â”œâ”€â”€ assessment/
-â”‚   â”œâ”€â”€ domain/model/
-â”‚   â”‚   â”œâ”€â”€ AssignmentTest.java                         # 12 tests
-â”‚   â”‚   â”œâ”€â”€ QuizTest.java                               # 10 tests
-â”‚   â”‚   â”œâ”€â”€ QuestionTest.java                            # 3 tests
-â”‚   â”‚   â”œâ”€â”€ QuestionBankTest.java                        # tests
-â”‚   â”‚   â””â”€â”€ QuestionBankCategoryTest.java                # tests
-â”‚   â””â”€â”€ application/usecase/
-â”‚       â”œâ”€â”€ CreateAssignmentUseCaseV3Test.java           # 3 tests
-â”‚       â”œâ”€â”€ UpdateAssignmentUseCaseV3Test.java           # 5 tests
-â”‚       â”œâ”€â”€ UpdateQuestionUseCaseV3Test.java             # 4 tests
-â”‚       â”œâ”€â”€ CreateQuestionUseCaseV3Test.java              # tests
-â”‚       â”œâ”€â”€ QuestionBankManagementUseCaseTest.java        # tests
-â”‚       â”œâ”€â”€ QuestionImportExportUseCaseTest.java          # tests
-â”‚       â”œâ”€â”€ QuizAttemptUseCaseTest.java                   # tests (incl. timeout)
-â”‚       â””â”€â”€ RubricCrudUseCaseTest.java                    # 8 tests
-â”œâ”€â”€ identity/
-â”‚   â”œâ”€â”€ domain/model/UserTest.java                       # 5 tests (incl. ORG_ADMIN)
-â”‚   â””â”€â”€ application/usecase/
-â”‚       â”œâ”€â”€ AuthenticateUserUseCaseV2Test.java           # 7 tests
-â”‚       â”œâ”€â”€ RegisterUserUseCaseV2Test.java               # 10 tests
-â”‚       â””â”€â”€ UpdateUserUseCaseV3Test.java                  # 4 tests
-â”œâ”€â”€ learning_delivery/
-â”‚   â”œâ”€â”€ domain/model/
-â”‚   â”‚   â”œâ”€â”€ EnrollmentTest.java                          # 10 tests
-â”‚   â”‚   â”œâ”€â”€ LearningClassTest.java                       # 10 tests
-â”‚   â”‚   â”œâ”€â”€ VideoProgressTest.java                        # tests (90% threshold)
-â”‚   â”‚   â””â”€â”€ CertificateTest.java                          # tests
-â”‚   â””â”€â”€ application/usecase/
-â”‚       â”œâ”€â”€ CreateLearningClassUseCaseV3Test.java         # 6 tests
-â”‚       â”œâ”€â”€ EnrollStudentUseCaseV3Test.java               # 6 tests
-â”‚       â”œâ”€â”€ TrackVideoProgressUseCaseTest.java            # tests
-â”‚       â”œâ”€â”€ CertificateUseCaseTest.java                   # 3 tests
-â”‚       â”œâ”€â”€ GamificationUseCaseTest.java                  # tests
-â”‚       â”œâ”€â”€ LearningActivityUseCaseTest.java              # tests
-â”‚       â””â”€â”€ StudentAnalyticsUseCaseTest.java              # tests
-â”œâ”€â”€ shared/domain/valueobject/
-â”‚   â””â”€â”€ EmailTest.java                                    # 7 tests
-â””â”€â”€ ArchitectureTest.java                                 # Architecture rules
-```
+## Common Failure Modes
 
-### Test Patterns
-```java
-// Domain model tests: NO mocks, test state + exceptions
-@Test
-void shouldTransitionFromDraftToPending() {
-    Course course = Course.create(code, "Title", "Desc", teacherId);
-    course.addChapter("Ch1", "Desc");
-    course.submitForApproval();
-    assertThat(course.getStatus()).isEqualTo(CourseStatus.PENDING);
-}
+### “Not a managed type”
 
-// Use case tests: @Mock repos, @InjectMocks use case
-@ExtendWith(MockitoExtension.class)
-class CreateCourseUseCaseTest {
-    @Mock private CourseRepository courseRepository;
-    @InjectMocks private CreateCourseUseCase useCase;
-    // Given/When/Then pattern with AssertJ + Mockito
-}
-```
+Cause:
+- a JPA repository is targeting a domain model instead of a `*JpaEntity`
 
-### Running Tests
-```bash
-# Inside Docker
-docker compose -f docker-compose.yml -f docker-compose.dev.yml exec backend mvn test -B
+Fix:
+- move the repository to the JPA entity and convert through an adapter/mapper
 
-# Local (requires Java 21 + Maven)
-cd backend && mvn test -B
+### Production worker loses DB connectivity
 
-# Specific test class
-mvn test -Dtest=CourseTest -B
+Cause:
+- a private PostgreSQL forwarder on the app VM is pinned to a stale Docker IP
+- or the remote worker is trying to use SSL over a plain private forward
 
-# Specific module tests
-mvn test -Dtest="com.example.lms.assessment.**" -B
-```
+Fix:
+- resolve the DB container IP dynamically in the forwarder
+- use `sslmode=disable` on the worker JDBC URL unless the private hop terminates PostgreSQL SSL
 
----
+### Learner cannot see new internal video on an approved course
 
-## Patterns & Conventions
+Cause:
+- learner content is served from `course_publications`, not the teacher draft
 
-### JPA Repository Rule (CRITICAL)
+Fix:
+- resubmit and approve the course after changing `videoAssetId`
 
-```java
-// CORRECT - JPA repos use JpaEntity classes
-@Repository
-public interface AssignmentJpaRepository extends JpaRepository<AssignmentJpaEntity, UUID> {}
+## Backend Docs to Read Next
 
-// WRONG - causes "Not a managed type" startup error
-public interface BadRepo extends JpaRepository<Assignment, UUID> {} // Domain model!
-```
-
-### Repository Adapter Pattern
-
-```java
-// Domain port (interface)
-public interface AssignmentRepository {
-    Assignment findById(UUID id);
-    Assignment save(Assignment assignment);
-    void deleteById(UUID id);
-}
-
-// Infrastructure adapter (implementation)
-@Component
-public class AssignmentRepositoryAdapter implements AssignmentRepository {
-    private final AssignmentJpaRepository jpaRepo;
-    private final AssignmentEntityMapper mapper;
-
-    @Override
-    public Assignment findById(UUID id) {
-        return jpaRepo.findById(id).map(mapper::toDomain).orElse(null);
-    }
-
-    @Override
-    public Assignment save(Assignment assignment) {
-        var entity = mapper.toEntity(assignment);
-        return mapper.toDomain(jpaRepo.save(entity));
-    }
-}
-```
-
-### Use Case Pattern
-
-```java
-@Component
-@RequiredArgsConstructor
-public class CreateAssignmentUseCaseV3 {
-    private final AssignmentRepository assignmentRepository;  // Domain port only!
-
-    public UUID execute(CreateAssignmentCommand cmd) {
-        var assignment = Assignment.create(cmd.title(), cmd.courseId(), cmd.teacherId());
-        assignment = assignmentRepository.save(assignment);
-        return assignment.getId();
-    }
-}
-```
-
-### Rich Domain Model
-
-```java
-// Domain model with business logic (NO anemic model)
-public class Course extends BaseEntity<UUID> {
-    private CourseCode code;
-    private String title;
-    private CourseStatus status;
-    private List<Chapter> chapters;
-
-    // Factory method
-    public static Course create(CourseCode code, String title, String desc, UUID teacherId) {
-        // Validation logic here
-        return new Course(...);
-    }
-
-    // Business methods (NOT setters)
-    public void submitForApproval() {
-        ensureEditable();
-        if (chapters.isEmpty()) throw new BusinessRuleException("Must have chapters");
-        this.status = CourseStatus.PENDING;
-    }
-
-    public void approve(UUID reviewerId, String comment) {
-        if (status != CourseStatus.PENDING) throw new BusinessRuleException("Must be pending");
-        this.status = CourseStatus.APPROVED;
-    }
-}
-```
-
-### Unified API Response
-
-```java
-// All endpoints return ApiResponse wrapper
-public record ApiResponse<T>(boolean success, String message, T data) {
-    public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>(true, "Success", data);
-    }
-    public static <T> ApiResponse<T> success(String message, T data) {
-        return new ApiResponse<>(true, message, data);
-    }
-}
-```
-
-### Domain Exceptions
-
-```java
-// Use specific exceptions, NOT RuntimeException
-throw new EntityNotFoundException("Course", courseId);      // 404
-throw new BusinessRuleException("Course must be pending");  // 400
-throw new ValidationException("Title cannot be blank");     // 400
-throw new UnauthorizedException("Invalid credentials");     // 401
-```
-
-### DTO Validation
-
-```java
-// All request DTOs use Jakarta Bean Validation
-public record CreateCourseCommand(
-    @NotBlank String code,
-    @NotBlank @Size(max = 255) String title,
-    @Size(max = 5000) String description,
-    @NotNull UUID teacherId
-) {}
-
-// Controllers use @Valid
-@PostMapping("/courses")
-public ResponseEntity<?> create(@Valid @RequestBody CreateCourseCommand cmd) {
-    // Validation errors â†’ 400 automatically
-}
-```
-
----
-
-## Adding a New Feature (Guide for Agents)
-
-### Step 1: Domain First
-1. Create domain model in `{module}/domain/model/`
-2. Add repository port interface in `{module}/domain/repository/`
-3. Add domain events if needed in `{module}/domain/event/`
-
-### Step 2: Application Layer
-1. Create use case in `{module}/application/usecase/`
-2. Create command/response DTOs in `{module}/application/dto/`
-3. Use case depends on domain ports only - NO infrastructure imports
-
-### Step 3: Infrastructure
-1. Create JPA entity in `{module}/infrastructure/persistence/entity/` (suffix: `*JpaEntity`)
-2. Create JPA repository in `{module}/infrastructure/persistence/` (use JpaEntity!)
-3. Create mapper in `{module}/infrastructure/persistence/mapper/`
-4. Create adapter implementing domain port
-5. Create controller in `{module}/infrastructure/web/`
-
-### Step 4: Database
-1. Create Flyway migration in `src/main/resources/db/migration/V{N}__description.sql`
-2. Version must be the next sequential migration number in `src/main/resources/db/migration/`
-
-### Step 5: Testing
-1. Domain model tests (pure logic, no mocks)
-2. Use case tests (@Mock repos, @InjectMocks use case)
-3. Run `mvn test -B` to verify the backend suite passes
-
-### Checklist
-- [ ] Domain model has NO framework annotations
-- [ ] JPA repository uses `*JpaEntity` class
-- [ ] Use case has ZERO infrastructure imports
-- [ ] Controller has `@Valid` on request bodies
-- [ ] Controller has `@PreAuthorize` for authorization
-- [ ] New endpoint added to this README
-- [ ] Flyway migration for any schema changes
-- [ ] Tests added and passing
-
----
-
-## Troubleshooting
-
-### "Not a managed type: class X"
-JPA repository using domain model. Check `infrastructure/persistence/` for repos extending `JpaRepository<DomainModel, UUID>` and change to `JpaRepository<XJpaEntity, UUID>`.
-
-### "Access key cannot be blank"
-R2 storage not configured. Set `CLOUDFLARE_R2_ACCOUNT_ID`, `CLOUDFLARE_R2_ACCESS_KEY`, `CLOUDFLARE_R2_SECRET_KEY`, and the required bucket vars in `.env.prod` / `.env`, or disable R2 in `application-dev.yml`.
-
-### Bean name collision
-Two `@Component` classes with same bean name across modules. Add explicit `@Component("moduleName_BeanName")`.
-
-### Port 8088 not accessible
-```bash
-docker compose ps          # Check container status
-docker compose -f docker-compose.yml -f docker-compose.dev.yml logs backend    # Check for startup errors
-```
-
-### Database connection refused
-```bash
-docker compose ps          # Is 'db' container healthy?
-docker compose logs db     # Check postgres logs
-```
-
-### Container shows "unhealthy"
-```bash
-# Check health endpoint directly
-curl http://localhost:8088/actuator/health
-
-# If 403 Forbidden: /actuator/health not whitelisted in SecurityConfig
-# Fix: Add "/actuator/health" to permitAll() list (already fixed in current version)
-
-# Check Docker health check logs
-docker inspect "$(docker compose -f docker-compose.yml -f docker-compose.dev.yml ps -q backend)" --format='{{.State.Health.Status}}'
-```
-
----
-
-*Last updated: 2026-03-19*
+| File | Purpose |
+|---|---|
+| [AGENTS.md](E:/Sach/Sua/LMS_hohulili/AGENTS.md) | Repo-wide runtime truth snapshot |
+| [docs/reference/PRODUCTION_SURFACES.md](E:/Sach/Sua/LMS_hohulili/docs/reference/PRODUCTION_SURFACES.md) | Production topology |
+| [docs/runbooks/DEDICATED_VIDEO_WORKER_RUNBOOK.md](E:/Sach/Sua/LMS_hohulili/docs/runbooks/DEDICATED_VIDEO_WORKER_RUNBOOK.md) | Video ingest operations |
+| [docs/runbooks/CLOUDFLARE_MEDIA_DOMAIN_EDGE_AUTH_RUNBOOK.md](E:/Sach/Sua/LMS_hohulili/docs/runbooks/CLOUDFLARE_MEDIA_DOMAIN_EDGE_AUTH_RUNBOOK.md) | Playback edge-auth operations |
+| [docs/testing/TEST_CHECKLIST.md](E:/Sach/Sua/LMS_hohulili/docs/testing/TEST_CHECKLIST.md) | Local and release validation |

@@ -20,9 +20,20 @@ public record PaymentResponse(
     String transactionId,
     String paymentMethod,
     String paidAt,
-    String createdAt
+    String createdAt,
+    String accessActivationState,
+    String accessActivationMessage
 ) {
     public static PaymentResponse from(PaymentTransaction payment, String courseTitle) {
+        return from(payment, courseTitle, null, null);
+    }
+
+    public static PaymentResponse from(
+        PaymentTransaction payment,
+        String courseTitle,
+        String accessActivationState,
+        String accessActivationMessage
+    ) {
         return new PaymentResponse(
             payment.getId().toString(),
             payment.getCourseId().toString(),
@@ -33,7 +44,9 @@ public record PaymentResponse(
             payment.getTransactionId(),
             payment.getPaymentMethod(),
             payment.getPaidAt() != null ? payment.getPaidAt().toString() : null,
-            payment.getCreatedAt() != null ? payment.getCreatedAt().toString() : null
+            payment.getCreatedAt() != null ? payment.getCreatedAt().toString() : null,
+            accessActivationState,
+            accessActivationMessage
         );
     }
 
@@ -52,6 +65,8 @@ public record PaymentResponse(
         map.put("paymentMethod", paymentMethod);
         map.put("paidAt", paidAt);
         map.put("createdAt", createdAt);
+        map.put("accessActivationState", accessActivationState);
+        map.put("accessActivationMessage", accessActivationMessage);
         return map;
     }
 }

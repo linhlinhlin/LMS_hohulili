@@ -74,8 +74,8 @@ public class WiiiTokenExchangeAdapter {
         }
 
         try {
-            // Map LMS role to Wiii role
-            String wiiiRole = mapRole(role);
+            String hostRole = mapHostRole(role);
+            String compatibilityRole = mapCompatibilityRole(hostRole);
 
             // Wiii resolves organization from connector_id config (SSOT)
             // No need to hardcode organization_id here
@@ -84,7 +84,9 @@ public class WiiiTokenExchangeAdapter {
                     "lms_user_id", lmsUserId,
                     "email", email,
                     "name", fullName,
-                    "role", wiiiRole,
+                    "role", compatibilityRole,
+                    "host_role", hostRole,
+                    "role_source", "lms_host",
                     "timestamp", Instant.now().getEpochSecond()
             );
 
@@ -127,11 +129,19 @@ public class WiiiTokenExchangeAdapter {
     /**
      * Map LMS Role enum name to Wiii role string.
      */
-    private String mapRole(String lmsRole) {
+    private String mapHostRole(String lmsRole) {
         if (lmsRole == null) return "student";
         return switch (lmsRole.toUpperCase()) {
             case "TEACHER" -> "teacher";
-            case "ADMIN", "ORG_ADMIN" -> "admin";
+            case "ADMIN" -> "admin";
+            case "ORG_ADMIN" -> "org_admin";
+            default -> "student";
+        };
+    }
+
+    private String mapCompatibilityRole(String hostRole) {
+        return switch (hostRole) {
+            case "teacher", "admin", "org_admin" -> "teacher";
             default -> "student";
         };
     }

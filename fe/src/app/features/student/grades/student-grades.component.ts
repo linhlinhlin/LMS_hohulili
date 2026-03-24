@@ -705,11 +705,12 @@ export class StudentGradesComponent implements OnInit {
   async loadCertificates(): Promise<void> {
     if (this.certificates().length > 0) return; // already loaded
     this.certsLoading.set(true);
+    this.error.set(null);
     try {
       const response: any = await firstValueFrom(this.certificateApi.getMyCertificates());
       this.certificates.set(response?.data || []);
-    } catch {
-      // silently fail
+    } catch (err: any) {
+      this.error.set(err?.message || 'Không thể tải danh sách chứng chỉ lúc này.');
     } finally {
       this.certsLoading.set(false);
     }

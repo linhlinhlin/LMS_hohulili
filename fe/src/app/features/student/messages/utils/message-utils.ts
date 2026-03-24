@@ -26,7 +26,7 @@ export interface Message {
   conversationId: string;
   senderId: string;
   senderName: string;
-  senderRole: 'TEACHER' | 'STUDENT';
+  senderRole: 'ADMIN' | 'ORG_ADMIN' | 'TEACHER' | 'STUDENT';
   content: string;
   assignmentReference?: {
     assignmentId: string;
@@ -41,6 +41,7 @@ export interface Message {
   attachments?: MessageAttachment[];
   isRead: boolean;
   createdAt: string;
+  readAt?: string;
 }
 
 export interface Conversation {
@@ -48,7 +49,7 @@ export interface Conversation {
   participants: {
     id: string;
     name: string;
-    role: 'TEACHER' | 'STUDENT';
+    role: 'ADMIN' | 'ORG_ADMIN' | 'TEACHER' | 'STUDENT';
     avatar?: string;
   }[];
   lastMessage?: {

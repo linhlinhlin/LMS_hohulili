@@ -31,6 +31,8 @@ export interface PaymentResponse {
     paymentMethod: string | null;
     paidAt: string | null;
     createdAt: string | null;
+    accessActivationState: PaymentAccessActivationState | null;
+    accessActivationMessage: string | null;
 }
 
 export interface PaymentStatusResponse {
@@ -40,6 +42,8 @@ export interface PaymentStatusResponse {
     freeLessonsCount: number | null;
     transactionId: string | null;
     paidAt: string | null;
+    accessActivationState: PaymentAccessActivationState | null;
+    accessActivationMessage: string | null;
 }
 
 export interface LessonAccessResponse {
@@ -58,6 +62,7 @@ export interface ApiResponse<T> {
 }
 
 export type PaymentStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'EXPIRED' | 'REFUNDED' | 'UNPAID';
+export type PaymentAccessActivationState = 'READY' | 'MANUAL_ACTIVATION_REQUIRED' | 'ACCESS_PENDING';
 
 export type PaymentMethod = 'VNPAY' | 'SEPAY' | 'ZALOPAY' | 'MOMO' | 'BANK_TRANSFER' | 'SIMULATED';
 
@@ -76,6 +81,14 @@ export interface SepayPollResponse {
     txnId: string;
     status: string;
     hasPaid: boolean;
+}
+
+export interface PaymentGatewayAvailabilityResponse {
+    availableMethods: PaymentMethod[];
+    defaultMethod: PaymentMethod | null;
+    production: boolean;
+    hasAvailableMethod: boolean;
+    message: string | null;
 }
 
 import { IconName } from '../../shared/components/icon/icon.component';
@@ -155,6 +168,13 @@ export class PaymentApi {
      */
     pollSepayStatus(txnId: string): Observable<ApiResponse<SepayPollResponse>> {
         return this.http.get<ApiResponse<SepayPollResponse>>(`${this.baseUrl}/sepay/poll/${txnId}`);
+    }
+
+    /**
+     * Get payment methods currently available to learners.
+     */
+    getAvailablePaymentMethods(): Observable<ApiResponse<PaymentGatewayAvailabilityResponse>> {
+        return this.http.get<ApiResponse<PaymentGatewayAvailabilityResponse>>(`${this.baseUrl}/available-methods`);
     }
 }
 

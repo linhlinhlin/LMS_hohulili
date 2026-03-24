@@ -8,8 +8,15 @@ import { ExtendedCourse } from '../../shared/types/course.types';
 import { AuthService } from '../../core/services/auth.service';
 import { CourseApi } from '../../api/client/course.api';
 import { StudentEnrollmentService } from '../student/services/enrollment.service';
-import { PaymentModalComponent, CoursePaymentInfo } from '../payment/payment-modal.component';
-import { PaymentService } from '../payment/payment.service';
+import {
+  CoursePaymentInfo,
+  PaymentCompletionOutcome,
+  PaymentModalComponent
+} from '../payment/payment-modal.component';
+import {
+  PaymentAccessActivationState,
+  PaymentService
+} from '../payment/payment.service';
 import { ToastService } from '../../core/services/toast.service';
 import { CourseDownloadService } from '../../core/services/course-download.service';
 
@@ -43,6 +50,7 @@ export class CourseDetailComponent implements OnInit {
   expandedChapters = signal<Set<string>>(new Set());
   isEnrolled = signal(false);
   isPaid = signal(false);
+  paymentAccessState = signal<PaymentAccessActivationState | null>(null);
   showPaymentModal = signal(false);
   courseContent = signal<any[]>([]);
 
@@ -110,14 +118,18 @@ export class CourseDetailComponent implements OnInit {
     this.showPaymentModal.set(false);
     if (startLearning === true) {
       this.isPaid.set(true);
-      this.isEnrolled.set(true);
+      this.paymentAccessState.set('READY');
       this.continueLearning();
     }
   }
 
-  onPaymentComplete() {
+  onPaymentComplete(outcome: PaymentCompletionOutcome) {
     this.isPaid.set(true);
-    this.isEnrolled.set(true);
+    this.paymentAccessState.set(outcome.accessActivation.state);
+    this.isEnrolled.set(outcome.accessActivation.state === 'READY');
+    if (outcome.accessActivation.message) {
+      this.toast.info(outcome.accessActivation.message);
+    }
   }
 
   handleFreeTrial(): void {
@@ -131,6 +143,18 @@ export class CourseDetailComponent implements OnInit {
 
     const courseId = this.course()?.id;
     if (!courseId) return;
+
+    if (this.isAwaitingManualActivation()) {
+      this.toast.info('Thanh toán đã được ghi nhận. Khóa học dạng lớp học sẽ mở khi bạn được xếp lớp hoặc kích hoạt.');
+      this.router.navigate(['/student/payments']);
+      return;
+    }
+
+    if (this.isAccessPending()) {
+      this.toast.info('Thanh toán đã được ghi nhận, nhưng quyền học vẫn đang được kích hoạt. Vui lòng kiểm tra lại tại lịch sử thanh toán.');
+      this.router.navigate(['/student/payments']);
+      return;
+    }
 
     if (this.getEffectivePrice() > 0) {
       this.openPaymentModal();
@@ -190,14 +214,13 @@ export class CourseDetailComponent implements OnInit {
         try {
           const state = await this.paymentService.loadPaymentStatus(id);
           this.isPaid.set(state.hasPaid);
-          if (state.hasPaid) {
-            this.isEnrolled.set(true);
-          }
+          this.paymentAccessState.set(state.accessActivationState);
         } catch {
-          // Default unpaid
+          this.paymentAccessState.set(null);
         }
       } else if (this.getEffectivePrice(course) === 0) {
         this.isPaid.set(true);
+        this.paymentAccessState.set('READY');
       }
     } catch {
       this.toast.error('Không thể tải thông tin khóa học');
@@ -218,6 +241,24 @@ export class CourseDetailComponent implements OnInit {
         // Silently fail - course detail still shows
       }
     });
+  }
+
+  isAwaitingManualActivation(): boolean {
+    return this.paymentAccessState() === 'MANUAL_ACTIVATION_REQUIRED';
+  }
+
+  isAccessPending(): boolean {
+    return this.paymentAccessState() === 'ACCESS_PENDING';
+  }
+
+  hasReadyPaidAccess(): boolean {
+    return this.isPaid()
+      && this.paymentAccessState() !== 'MANUAL_ACTIVATION_REQUIRED'
+      && this.paymentAccessState() !== 'ACCESS_PENDING';
+  }
+
+  hasLearningAccess(): boolean {
+    return this.isEnrolled() || this.hasReadyPaidAccess() || !this.isCoursePaid();
   }
 
   toggleChapter(chapterId: string): void {

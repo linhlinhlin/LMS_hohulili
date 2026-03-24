@@ -11,6 +11,7 @@ import { NetworkStatusService } from '../../../core/services/network-status.serv
 import { OfflineQuizService } from '../../../core/services/offline-quiz.service';
 import { CourseDownloadService } from '../../../core/services/course-download.service';
 import { getOfflineCourseStaleCopy } from '../../../core/utils/offline-course-staleness';
+import { ToastService } from '../../../core/services/toast.service';
 
 type QuestionType = 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'FILL_IN_BLANK' | 'SHORT_ANSWER' | 'ESSAY';
 
@@ -64,6 +65,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
   private network = inject(NetworkStatusService);
   private offlineQuizService = inject(OfflineQuizService);
   private courseDownloadService = inject(CourseDownloadService);
+  private toast = inject(ToastService);
 
   Math = Math;
 
@@ -702,9 +704,7 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
         const data = result?.data || result;
         this.applySubmissionResult(data);
       } catch {
-        this.error.set('Không thể nộp bài kiểm tra này. Vui lòng thử lại.');
-        this.submitting.set(false);
-        this.startTimer();
+        this.handleSubmitFailure('Không thể nộp bài kiểm tra này. Vui lòng thử lại.');
         return;
       }
 
@@ -716,15 +716,19 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (this.attemptId && this.quizId) {
-      try {
-        const answersArray = this.buildAnswersForSubmission();
-        const result: any = await firstValueFrom(this.quizApi.submitAttempt(this.attemptId, answersArray));
-        const data = result?.data || result;
-        this.applySubmissionResult(data);
-      } catch {
-        // Non-blocking: show local results if server fails
-      }
+    if (!this.attemptId || !this.quizId) {
+      this.handleSubmitFailure('Phiên làm bài chưa sẵn sàng để nộp. Vui lòng thử lại.');
+      return;
+    }
+
+    try {
+      const answersArray = this.buildAnswersForSubmission();
+      const result: any = await firstValueFrom(this.quizApi.submitAttempt(this.attemptId, answersArray));
+      const data = result?.data || result;
+      this.applySubmissionResult(data);
+    } catch {
+      this.handleSubmitFailure('Không thể nộp bài kiểm tra này. Vui lòng thử lại.');
+      return;
     }
 
     this.showResults.set(true);
@@ -732,6 +736,19 @@ export class StudentQuizTakingComponent implements OnInit, OnDestroy {
       this.showResultsModal.set(true);
     }
     this.submitting.set(false);
+  }
+
+  private handleSubmitFailure(message: string): void {
+    this.submitting.set(false);
+    this.toast.error(message);
+
+    if (this.timeRemaining() > 0) {
+      this.startTimer();
+    }
+
+    if (!this.isSectionQuizMode()) {
+      this.startAutoSave();
+    }
   }
 
   private buildAnswersForSubmission(): any[] {

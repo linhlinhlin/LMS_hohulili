@@ -116,7 +116,7 @@ export class AssignmentAuditLogComponent {
       'GRADE_UPDATED': 'bg-amber-100',
       'FEEDBACK_ADDED': 'bg-blue-100',
       'RUBRIC_CHANGED': 'bg-purple-100',
-      'DEADLINE_EXTENDED': 'bg-indigo-100',
+      'DEADLINE_EXTENDED': 'bg-[#0056D2]/10',
       'ASSIGNMENT_DISTRIBUTED': 'bg-slate-100'
     };
     return classes[action] || 'bg-slate-100';
@@ -140,7 +140,7 @@ export class AssignmentAuditLogComponent {
       'GRADE_UPDATED': 'text-amber-600',
       'FEEDBACK_ADDED': 'text-blue-600',
       'RUBRIC_CHANGED': 'text-purple-600',
-      'DEADLINE_EXTENDED': 'text-indigo-600',
+      'DEADLINE_EXTENDED': 'text-[#0056D2]',
       'ASSIGNMENT_DISTRIBUTED': 'text-slate-600'
     };
     return classes[action] || 'text-slate-600';

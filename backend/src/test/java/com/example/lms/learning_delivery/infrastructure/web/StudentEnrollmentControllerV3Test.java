@@ -5,6 +5,8 @@ import com.example.lms.assessment.infrastructure.persistence.repository.Assignme
 import com.example.lms.assessment.infrastructure.persistence.repository.QuizAttemptJpaRepository;
 import com.example.lms.assessment.infrastructure.persistence.repository.QuizJpaRepositoryV3;
 import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
+import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity;
+import com.example.lms.course_authoring.infrastructure.persistence.entity.LessonJpaEntity;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
@@ -16,6 +18,7 @@ import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.EnrollmentRepositoryImpl;
 import com.example.lms.learning_delivery.infrastructure.persistence.CertificateJpaRepository;
+import com.example.lms.shared.domain.model.ContentBlock;
 import com.example.lms.shared.infrastructure.persistence.repository.PaymentTransactionJpaRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,9 +27,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -137,6 +142,224 @@ class StudentEnrollmentControllerV3Test {
         assertThat(response.getBody().isSuccess()).isFalse();
         assertThat(response.getBody().getMessage()).isEqualTo("Bạn cần vượt qua bài thi chứng chỉ");
         verify(certificateRepository, never()).findByEnrollmentId(enrollmentId);
+    }
+
+    @Test
+    @DisplayName("mark lesson complete should preserve progress details and hydrate completed sections")
+    void markLessonCompletePreservesProgressAndCompletedSections() {
+        UUID studentId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
+        UUID lessonId = UUID.randomUUID();
+        UserJpaEntity student = student(studentId);
+        CourseJpaEntity course = CourseJpaEntity.builder().id(courseId).title("Course").build();
+
+        Enrollment enrollment = Enrollment.builder()
+                .id(UUID.randomUUID())
+                .studentId(studentId)
+                .status(Enrollment.EnrollmentStatus.ACTIVE)
+                .learningClass(LearningClass.builder()
+                        .id(UUID.randomUUID())
+                        .courseId(courseId)
+                        .name("Class")
+                        .build())
+                .progress(Map.of(
+                        lessonId.toString(),
+                        Enrollment.LessonProgress.builder()
+                                .status("IN_PROGRESS")
+                                .watchSeconds(123)
+                                .completedSections(List.of("section-a"))
+                                .lastActivity(Instant.now())
+                                .build()
+                ))
+                .build();
+
+        LessonJpaEntity lesson = LessonJpaEntity.builder()
+                .id(lessonId)
+                .chapterId(UUID.randomUUID())
+                .title("Lesson")
+                .contentBlocks(List.of(
+                        ContentBlock.of("section-a", "VIDEO", Map.of()),
+                        ContentBlock.of("section-b", "TEXT", Map.of())
+                ))
+                .build();
+
+        when(courseJpaRepository.findByLessonId(lessonId)).thenReturn(Optional.of(course));
+        when(enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId)).thenReturn(Optional.of(enrollment));
+        when(lessonJpaRepository.findById(lessonId)).thenReturn(Optional.of(lesson));
+        when(chapterJpaRepository.findByCourseIdOrderByOrderIndex(courseId)).thenReturn(List.of());
+        when(enrollmentRepository.save(enrollment)).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = controller.markLessonComplete(student, lessonId);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().isSuccess()).isTrue();
+        var savedProgress = enrollment.getProgress().get(lessonId.toString());
+        assertThat(savedProgress.getStatus()).isEqualTo("COMPLETED");
+        assertThat(savedProgress.getWatchSeconds()).isEqualTo(123);
+        assertThat(savedProgress.getCompletedSections()).containsExactly("section-a", "section-b");
+    }
+
+    @Test
+    @DisplayName("mark lesson complete should retry once after optimistic lock with fresh enrollment")
+    void markLessonCompleteRetriesOnOptimisticLock() {
+        UUID studentId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
+        UUID lessonId = UUID.randomUUID();
+        UserJpaEntity student = student(studentId);
+        CourseJpaEntity course = CourseJpaEntity.builder().id(courseId).title("Course").build();
+
+        Enrollment staleEnrollment = Enrollment.builder()
+                .id(UUID.randomUUID())
+                .studentId(studentId)
+                .status(Enrollment.EnrollmentStatus.ACTIVE)
+                .learningClass(LearningClass.builder()
+                        .id(UUID.randomUUID())
+                        .courseId(courseId)
+                        .name("Class")
+                        .build())
+                .build();
+        Enrollment freshEnrollment = Enrollment.builder()
+                .id(UUID.randomUUID())
+                .studentId(studentId)
+                .status(Enrollment.EnrollmentStatus.ACTIVE)
+                .learningClass(LearningClass.builder()
+                        .id(UUID.randomUUID())
+                        .courseId(courseId)
+                        .name("Class")
+                        .build())
+                .progress(Map.of(
+                        lessonId.toString(),
+                        Enrollment.LessonProgress.builder()
+                                .status("IN_PROGRESS")
+                                .completedSections(List.of("section-a"))
+                                .build()
+                ))
+                .build();
+
+        LessonJpaEntity lesson = LessonJpaEntity.builder()
+                .id(lessonId)
+                .chapterId(UUID.randomUUID())
+                .title("Lesson")
+                .contentBlocks(List.of(
+                        ContentBlock.of("section-a", "VIDEO", Map.of()),
+                        ContentBlock.of("section-b", "TEXT", Map.of())
+                ))
+                .build();
+
+        when(courseJpaRepository.findByLessonId(lessonId)).thenReturn(Optional.of(course));
+        when(enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId))
+                .thenReturn(Optional.of(staleEnrollment))
+                .thenReturn(Optional.of(freshEnrollment));
+        when(lessonJpaRepository.findById(lessonId)).thenReturn(Optional.of(lesson));
+        when(chapterJpaRepository.findByCourseIdOrderByOrderIndex(courseId)).thenReturn(List.of());
+        when(enrollmentRepository.save(staleEnrollment))
+                .thenThrow(new ObjectOptimisticLockingFailureException("Enrollment", staleEnrollment.getId()));
+        when(enrollmentRepository.save(freshEnrollment)).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = controller.markLessonComplete(student, lessonId);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().isSuccess()).isTrue();
+        assertThat(freshEnrollment.getProgress().get(lessonId.toString()).getCompletedSections())
+                .containsExactly("section-a", "section-b");
+        verify(enrollmentRepository).save(staleEnrollment);
+        verify(enrollmentRepository).save(freshEnrollment);
+    }
+
+    @Test
+    @DisplayName("mark section complete should be idempotent when section is already completed")
+    void markSectionCompleteReturnsSuccessWhenAlreadyCompleted() {
+        UUID studentId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
+        UUID lessonId = UUID.randomUUID();
+        UserJpaEntity student = student(studentId);
+        CourseJpaEntity course = CourseJpaEntity.builder().id(courseId).title("Course").build();
+
+        Enrollment enrollment = Enrollment.builder()
+                .id(UUID.randomUUID())
+                .studentId(studentId)
+                .status(Enrollment.EnrollmentStatus.ACTIVE)
+                .learningClass(LearningClass.builder()
+                        .id(UUID.randomUUID())
+                        .courseId(courseId)
+                        .name("Class")
+                        .build())
+                .progress(Map.of(
+                        lessonId.toString(),
+                        Enrollment.LessonProgress.builder()
+                                .status("IN_PROGRESS")
+                                .completedSections(List.of("section-a"))
+                                .lastActivity(Instant.now())
+                                .build()
+                ))
+                .build();
+
+        when(courseJpaRepository.findByLessonId(lessonId)).thenReturn(Optional.of(course));
+        when(enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId)).thenReturn(Optional.of(enrollment));
+
+        var response = controller.markSectionComplete(student, lessonId, "section-a");
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().isSuccess()).isTrue();
+        assertThat(response.getBody().getData().get("completedSections")).isEqualTo(List.of("section-a"));
+        verify(enrollmentRepository, never()).save(enrollment);
+    }
+
+    @Test
+    @DisplayName("mark section complete should retry once after optimistic lock and converge")
+    void markSectionCompleteRetriesOnOptimisticLock() {
+        UUID studentId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
+        UUID lessonId = UUID.randomUUID();
+        UserJpaEntity student = student(studentId);
+        CourseJpaEntity course = CourseJpaEntity.builder().id(courseId).title("Course").build();
+
+        Enrollment staleEnrollment = Enrollment.builder()
+                .id(UUID.randomUUID())
+                .studentId(studentId)
+                .status(Enrollment.EnrollmentStatus.ACTIVE)
+                .learningClass(LearningClass.builder()
+                        .id(UUID.randomUUID())
+                        .courseId(courseId)
+                        .name("Class")
+                        .build())
+                .build();
+        Enrollment freshEnrollment = Enrollment.builder()
+                .id(UUID.randomUUID())
+                .studentId(studentId)
+                .status(Enrollment.EnrollmentStatus.ACTIVE)
+                .learningClass(LearningClass.builder()
+                        .id(UUID.randomUUID())
+                        .courseId(courseId)
+                        .name("Class")
+                        .build())
+                .progress(Map.of(
+                        lessonId.toString(),
+                        Enrollment.LessonProgress.builder()
+                                .status("IN_PROGRESS")
+                                .completedSections(List.of("section-a"))
+                                .build()
+                ))
+                .build();
+
+        when(courseJpaRepository.findByLessonId(lessonId)).thenReturn(Optional.of(course));
+        when(enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId))
+                .thenReturn(Optional.of(staleEnrollment))
+                .thenReturn(Optional.of(freshEnrollment));
+        when(enrollmentRepository.save(staleEnrollment))
+                .thenThrow(new ObjectOptimisticLockingFailureException("Enrollment", staleEnrollment.getId()));
+        var response = controller.markSectionComplete(student, lessonId, "section-a");
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().isSuccess()).isTrue();
+        assertThat(freshEnrollment.getProgress().get(lessonId.toString()).getCompletedSections())
+                .containsExactly("section-a");
+        verify(enrollmentRepository).save(staleEnrollment);
+        verify(enrollmentRepository, never()).save(freshEnrollment);
     }
 
     private UserJpaEntity student(UUID id) {

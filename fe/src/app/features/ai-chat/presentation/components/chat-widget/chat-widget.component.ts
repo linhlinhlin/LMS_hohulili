@@ -17,6 +17,7 @@ import { FloatingChatBubbleComponent } from '../floating-chat-bubble/floating-ch
 import { ChatPanelComponent } from '../chat-panel/chat-panel.component';
 import { SessionManagementService } from '../../../application/services/session-management.service';
 import { AuthService } from '../../../../../core/services/auth.service';
+import { WiiiContextService, type WiiiSidebarOpenDetail } from '../../../infrastructure/api/wiii-context.service';
 
 @Component({
   selector: 'app-chat-widget',
@@ -42,10 +43,14 @@ import { AuthService } from '../../../../../core/services/auth.service';
 export class ChatWidgetComponent implements OnInit, OnDestroy {
   private readonly sessionService = inject(SessionManagementService);
   private readonly authService = inject(AuthService);
+  private readonly contextService = inject(WiiiContextService);
 
   // State
   isPanelOpen = signal(false);
   isEnabled = signal(true);
+
+  // Listener for sidebar open requests (from Course Editor AI button)
+  private sidebarOpenListener: ((event: Event) => void) | null = null;
 
   ngOnInit(): void {
     // Set user info from auth service
@@ -58,10 +63,22 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
 
     // Update context from current route
     this.sessionService.updateContextFromRoute();
+
+    // Listen for sidebar open requests (e.g., from Course Editor "AI Generate" button)
+    this.sidebarOpenListener = (event: Event) => {
+      if (event instanceof CustomEvent) {
+        this.contextService.applySidebarIntent((event as CustomEvent<WiiiSidebarOpenDetail>).detail);
+      }
+      this.isPanelOpen.set(true);
+    };
+    window.addEventListener('wiii:open-sidebar', this.sidebarOpenListener);
   }
 
   ngOnDestroy(): void {
-    // No-op — iframe handles its own state
+    if (this.sidebarOpenListener) {
+      window.removeEventListener('wiii:open-sidebar', this.sidebarOpenListener);
+      this.sidebarOpenListener = null;
+    }
   }
 
   togglePanel(): void {

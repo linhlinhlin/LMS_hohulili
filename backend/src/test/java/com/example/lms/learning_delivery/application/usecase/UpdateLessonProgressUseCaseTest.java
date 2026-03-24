@@ -18,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -172,6 +173,43 @@ class UpdateLessonProgressUseCaseTest {
             verify(enrollmentRepository).save(captor.capture());
             Enrollment saved = captor.getValue();
             assertThat(saved.getProgress()).containsKey(lessonId.toString());
+        }
+
+        @Test
+        @DisplayName("Should preserve completed sections when sync marks lesson completed")
+        void shouldPreserveCompletedSectionsWhenCompletingLesson() {
+            Map<String, Enrollment.LessonProgress> existingProgress = new HashMap<>();
+            existingProgress.put(lessonId.toString(), Enrollment.LessonProgress.builder()
+                .status("IN_PROGRESS")
+                .watchSeconds(120)
+                .completedSections(new ArrayList<>(java.util.List.of("section-1", "section-2")))
+                .build());
+
+            Enrollment enrollment = Enrollment.builder()
+                .id(enrollmentId)
+                .learningClass(learningClass)
+                .studentId(studentId)
+                .status(Enrollment.EnrollmentStatus.ACTIVE)
+                .progress(existingProgress)
+                .completionPercent(0)
+                .enrolledAt(Instant.now())
+                .build();
+
+            UpdateLessonProgressCommand command = new UpdateLessonProgressCommand(
+                enrollmentId, lessonId, "COMPLETED", 300, null
+            );
+
+            when(lessonCountPort.countLessonsInCourse(courseId)).thenReturn(1);
+            when(enrollmentRepository.findById(enrollmentId)).thenReturn(Optional.of(enrollment));
+            when(enrollmentRepository.save(any(Enrollment.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            EnrollmentResponse response = useCase.execute(command);
+
+            assertThat(response.completionPercent()).isEqualTo(100);
+            Enrollment.LessonProgress savedProgress = enrollment.getProgress().get(lessonId.toString());
+            assertThat(savedProgress.getCompletedSections()).containsExactly("section-1", "section-2");
+            assertThat(savedProgress.getWatchSeconds()).isEqualTo(300);
+            assertThat(savedProgress.getStatus()).isEqualTo("COMPLETED");
         }
     }
 

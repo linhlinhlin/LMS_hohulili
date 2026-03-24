@@ -26,6 +26,7 @@ interface Certificate {
   skills: string[];
   verificationCode: string;
   qrCode: string;
+  downloadableCertificateId?: string | null;
 }
 
 interface CertificateVerification {
@@ -39,7 +40,7 @@ interface CertificateVerification {
   selector: 'app-certificate-view',
   imports: [RouterModule, IconComponent],
   template: `
-    <div class="bg-gradient-to-br from-slate-50 via-[#0056D2]/5 to-indigo-100 min-h-screen">
+    <div class="bg-gradient-to-br from-slate-50 via-[#0056D2]/5 to-[#0056D2]/10 min-h-screen">
       <!-- Header -->
       <div class="bg-white shadow-xl border-b border-gray-200">
         <div class="max-w-6xl mx-auto px-6 py-6">
@@ -315,8 +316,9 @@ export class CertificateViewComponent implements OnInit {
         const res: any = await firstValueFrom(this.certificateApi.verifyCertificate(token));
         if (res?.data?.valid) {
           const d = res.data;
+          const downloadableCertificateId = await this.resolveDownloadableCertificateId(token);
           this.certificate.set({
-            id: token,
+            id: downloadableCertificateId || '',
             courseId: d.courseId || '',
             courseName: d.courseName || '',
             studentName: d.studentName || '',
@@ -333,7 +335,8 @@ export class CertificateViewComponent implements OnInit {
             description: '',
             skills: [],
             verificationCode: token,
-            qrCode: ''
+            qrCode: '',
+            downloadableCertificateId
           });
           return;
         }
@@ -349,9 +352,16 @@ export class CertificateViewComponent implements OnInit {
 
   downloadCertificate(): void {
     const cert = this.certificate();
-    if (cert?.id) {
-      window.open(`/api/v3/student/certificates/${cert.id}/download`, '_blank');
+    if (!cert) {
+      return;
     }
+
+    if (cert.downloadableCertificateId) {
+      window.open(`/api/v3/certificates/${cert.downloadableCertificateId}/download`, '_blank');
+      return;
+    }
+
+    this.toast.info('Chứng chỉ này chỉ tải PDF được khi bạn đăng nhập bằng đúng tài khoản sở hữu.');
   }
 
   shareCertificate(): void {
@@ -374,9 +384,30 @@ export class CertificateViewComponent implements OnInit {
     window.print();
   }
 
-  verifyCertificate(): void {
-    // Mock verification
-    this.toast.success('Chứng chỉ đã được xác thực thành công!');
+  async verifyCertificate(): Promise<void> {
+    const token = this.certificate()?.verificationCode;
+    if (!token) {
+      return;
+    }
+
+    try {
+      const response: any = await firstValueFrom(this.certificateApi.verifyCertificate(token));
+      const valid = response?.data?.valid === true;
+      this.verification.set({
+        isValid: valid,
+        certificate: this.certificate(),
+        verificationDate: new Date(),
+        verifiedBy: 'LMS verification service',
+      });
+
+      if (valid) {
+        this.toast.success('Chứng chỉ hợp lệ và đã được xác thực lại.');
+      } else {
+        this.toast.error('Không tìm thấy chứng chỉ hợp lệ với mã xác thực này.');
+      }
+    } catch {
+      this.toast.error('Không thể xác thực chứng chỉ lúc này.');
+    }
   }
 
   viewCourse(): void {
@@ -388,5 +419,20 @@ export class CertificateViewComponent implements OnInit {
 
   goBack(): void {
     this.router.navigate(['/student/profile']);
+  }
+
+  private async resolveDownloadableCertificateId(token: string): Promise<string | null> {
+    if (!this.authService.currentUser()) {
+      return null;
+    }
+
+    try {
+      const response: any = await firstValueFrom(this.certificateApi.getMyCertificates());
+      const certificates = Array.isArray(response?.data) ? response.data : [];
+      const matchedCertificate = certificates.find((certificate: any) => certificate?.verificationToken === token);
+      return typeof matchedCertificate?.id === 'string' ? matchedCertificate.id : null;
+    } catch {
+      return null;
+    }
   }
 }

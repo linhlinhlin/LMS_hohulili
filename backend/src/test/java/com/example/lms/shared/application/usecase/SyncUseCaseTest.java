@@ -361,6 +361,90 @@ class SyncUseCaseTest {
         }
 
         @Test
+        @DisplayName("Should sync section completion without auto-completing lesson")
+        void shouldSyncSectionCompletionWithoutAutoCompletingLesson() {
+            UUID courseId = UUID.randomUUID();
+            String sectionId = "section-1";
+            Enrollment enrollment = buildEnrollment(
+                    ENROLLMENT_ID,
+                    courseId,
+                    UUID.randomUUID(),
+                    LearningClass.VersionMode.PINNED
+            );
+            when(enrollmentRepository.findByStudentIdAndCourseId(STUDENT_ID, courseId))
+                    .thenReturn(Optional.of(enrollment));
+            when(enrollmentRepository.save(any(Enrollment.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("lessonId", LESSON_ID.toString());
+            payload.put("courseId", courseId.toString());
+            payload.put("sectionId", sectionId);
+
+            SyncOperation op = new SyncOperation(
+                    "progress",
+                    "UPDATE",
+                    "/api/v3/student/progress/lessons/" + LESSON_ID + "/sections/" + sectionId + "/complete",
+                    payload
+            );
+
+            SyncResponse.PushResult result = useCase.pushChanges(USER_ID, new SyncPushRequest(List.of(op)));
+
+            assertThat(result.accepted()).isEqualTo(1);
+            assertThat(result.rejected()).isZero();
+            verify(lessonProgressUseCase, never()).execute(any(UpdateLessonProgressCommand.class));
+            verify(enrollmentRepository).save(any(Enrollment.class));
+
+            Enrollment.LessonProgress savedProgress = enrollment.getProgress().get(LESSON_ID.toString());
+            assertThat(savedProgress).isNotNull();
+            assertThat(savedProgress.getStatus()).isEqualTo("IN_PROGRESS");
+            assertThat(savedProgress.getCompletedSections()).containsExactly(sectionId);
+        }
+
+        @Test
+        @DisplayName("Should accept completedSectionIds alias when syncing offline lesson completion")
+        void shouldAcceptCompletedSectionIdsAlias() {
+            UUID courseId = UUID.randomUUID();
+            String sectionId = "section-final";
+            Enrollment enrollment = buildEnrollment(
+                    ENROLLMENT_ID,
+                    courseId,
+                    UUID.randomUUID(),
+                    LearningClass.VersionMode.FOLLOW_LATEST
+            );
+            when(enrollmentRepository.findByStudentIdAndCourseId(STUDENT_ID, courseId))
+                    .thenReturn(Optional.of(enrollment));
+            when(enrollmentRepository.save(any(Enrollment.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("lessonId", LESSON_ID.toString());
+            payload.put("courseId", courseId.toString());
+            payload.put("status", "COMPLETED");
+            payload.put("completedSectionIds", List.of(sectionId));
+
+            SyncOperation op = new SyncOperation(
+                    "progress",
+                    "UPDATE",
+                    "/api/v3/student/progress/lessons/" + LESSON_ID + "/complete",
+                    payload
+            );
+
+            SyncResponse.PushResult result = useCase.pushChanges(USER_ID, new SyncPushRequest(List.of(op)));
+
+            assertThat(result.accepted()).isEqualTo(1);
+            assertThat(result.rejected()).isZero();
+            verify(enrollmentRepository).save(any(Enrollment.class));
+
+            Enrollment.LessonProgress savedProgress = enrollment.getProgress().get(LESSON_ID.toString());
+            assertThat(savedProgress).isNotNull();
+            assertThat(savedProgress.getCompletedSections()).containsExactly(sectionId);
+
+            ArgumentCaptor<UpdateLessonProgressCommand> captor =
+                    ArgumentCaptor.forClass(UpdateLessonProgressCommand.class);
+            verify(lessonProgressUseCase).execute(captor.capture());
+            assertThat(captor.getValue().status()).isEqualTo("COMPLETED");
+        }
+
+        @Test
         @DisplayName("Should reject stale lesson progress when pinned publication mismatches")
         void shouldRejectPinnedPublicationMismatch() {
             UUID courseId = UUID.randomUUID();

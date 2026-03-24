@@ -217,7 +217,7 @@ import { RubricApi } from '../../../api/endpoints/rubric.api';
 
                 <!-- Action Group (Inside) -->
                 <div class="space-y-4 pt-6 border-t border-white/10">
-                  <div class="bg-indigo-600 rounded-xl p-4 text-white relative overflow-hidden">
+                  <div class="bg-[#0056D2] rounded-xl p-4 text-white relative overflow-hidden">
                     <p class="text-[10px] font-bold leading-relaxed mb-2 opacity-80 uppercase tracking-widest">Gợi ý thiết kế</p>
                     <p class="text-[11px] font-medium leading-relaxed mb-0">Việc thay đổi trọng số sẽ ảnh hưởng trực tiếp đến kết quả chấm điểm các bài tập cũ.</p>
                   </div>

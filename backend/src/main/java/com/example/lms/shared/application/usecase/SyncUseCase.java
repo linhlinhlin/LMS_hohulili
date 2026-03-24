@@ -274,29 +274,17 @@ public class SyncUseCase {
                 return false;
             }
 
-            // Find enrollment: by enrollmentId directly, or by courseId + studentId
-            UUID enrollmentId = parseUUID(payload, "enrollmentId");
-            if (enrollmentId == null) {
-                UUID courseId = parseUUID(payload, "courseId");
-                if (courseId != null) {
-                    Optional<Enrollment> enrollment = enrollmentRepository
-                            .findByStudentIdAndCourseId(studentId, courseId);
-                    if (enrollment.isPresent()) {
-                        enrollmentId = enrollment.get().getId();
-                    }
-                }
-            }
+            UUID directEnrollmentId = parseUUID(payload, "enrollmentId");
+            String status = getString(payload, "status");
+            String sectionId = getString(payload, "sectionId");
+            List<String> completedSections = mergeStringLists(
+                    getStringList(payload, "completedSections"),
+                    getStringList(payload, "completedSectionIds")
+            );
+            boolean sectionOnlyProgress = sectionId != null || !completedSections.isEmpty();
 
-            if (enrollmentId == null) {
-                // Try finding any active enrollment for this student
-                List<Enrollment> active = enrollmentRepository.findActiveByStudentId(studentId);
-                for (Enrollment e : active) {
-                    if (e.getProgress() != null && e.getProgress().containsKey(lessonId.toString())) {
-                        enrollmentId = e.getId();
-                        break;
-                    }
-                }
-            }
+            Optional<Enrollment> enrollmentOpt = resolveEnrollmentForLessonProgress(studentId, payload, lessonId);
+            UUID enrollmentId = enrollmentOpt.map(Enrollment::getId).orElse(directEnrollmentId);
 
             if (enrollmentId == null) {
                 conflicts.add(new SyncResponse.Conflict("progress",
@@ -304,7 +292,27 @@ public class SyncUseCase {
                 return false;
             }
 
-            String status = getString(payload, "status");
+            if (sectionOnlyProgress) {
+                Enrollment enrollment = enrollmentOpt.orElse(null);
+                if (enrollment == null && directEnrollmentId != null) {
+                    enrollment = enrollmentRepository.findById(directEnrollmentId).orElse(null);
+                }
+                if (enrollment == null) {
+                    conflicts.add(new SyncResponse.Conflict("progress",
+                            lessonId.toString(), "KhÃ´ng tÃ¬m tháº¥y Ä‘Äƒng kÃ½ há»c Ä‘á»ƒ gá»™p tiáº¿n trÃ¬nh pháº§n há»c"));
+                    return false;
+                }
+
+                mergeSectionProgress(enrollment, lessonId, sectionId, completedSections);
+                enrollmentRepository.save(enrollment);
+
+                if (status == null) {
+                    log.debug("Section progress synced without auto-completing lesson: student={}, lesson={}, section={}",
+                            studentId, lessonId, sectionId);
+                    return true;
+                }
+            }
+
             if (status == null) status = "COMPLETED";
 
             UpdateLessonProgressCommand command = new UpdateLessonProgressCommand(
@@ -333,6 +341,95 @@ public class SyncUseCase {
                     "Lỗi đồng bộ tiến trình bài học: " + e.getMessage()));
             return false;
         }
+    }
+
+    private Optional<Enrollment> resolveEnrollmentForLessonProgress(
+            UUID studentId,
+            Map<String, Object> payload,
+            UUID lessonId
+    ) {
+        UUID enrollmentId = parseUUID(payload, "enrollmentId");
+        if (enrollmentId != null) {
+            Optional<Enrollment> enrollment = enrollmentRepository.findById(enrollmentId);
+            if (enrollment.isPresent()) {
+                return enrollment;
+            }
+        }
+
+        UUID courseId = parseUUID(payload, "courseId");
+        if (courseId != null) {
+            Optional<Enrollment> enrollment = enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId);
+            if (enrollment.isPresent()) {
+                return enrollment;
+            }
+        }
+
+        return enrollmentRepository.findActiveByStudentId(studentId).stream()
+                .filter(enrollment -> enrollment.getProgress() != null
+                        && enrollment.getProgress().containsKey(lessonId.toString()))
+                .findFirst();
+    }
+
+    private void mergeSectionProgress(
+            Enrollment enrollment,
+            UUID lessonId,
+            String sectionId,
+            List<String> completedSections
+    ) {
+        Enrollment.LessonProgress existing = enrollment.getProgress() != null
+                ? enrollment.getProgress().get(lessonId.toString())
+                : null;
+
+        Enrollment.LessonProgress merged = Enrollment.LessonProgress.builder()
+                .status(existing != null && existing.getStatus() != null && !existing.getStatus().isBlank()
+                        ? existing.getStatus()
+                        : "IN_PROGRESS")
+                .watchSeconds(existing != null ? existing.getWatchSeconds() : null)
+                .grade(existing != null ? existing.getGrade() : null)
+                .lastActivity(Instant.now())
+                .completedSections(existing != null && existing.getCompletedSections() != null
+                        ? new ArrayList<>(existing.getCompletedSections())
+                        : new ArrayList<>())
+                .build();
+
+        if (sectionId != null && !sectionId.isBlank()) {
+            merged.addCompletedSection(sectionId);
+        }
+
+        for (String completedSection : completedSections) {
+            if (completedSection != null && !completedSection.isBlank()) {
+                merged.addCompletedSection(completedSection);
+            }
+        }
+
+        enrollment.updateProgress(lessonId.toString(), merged);
+    }
+
+    private List<String> getStringList(Map<String, Object> payload, String key) {
+        Object raw = payload.get(key);
+        if (!(raw instanceof List<?> rawList)) {
+            return List.of();
+        }
+
+        return rawList.stream()
+                .filter(String.class::isInstance)
+                .map(String.class::cast)
+                .filter(value -> !value.isBlank())
+                .toList();
+    }
+
+    private List<String> mergeStringLists(List<String> primary, List<String> secondary) {
+        if (primary.isEmpty()) {
+            return secondary;
+        }
+        if (secondary.isEmpty()) {
+            return primary;
+        }
+
+        return java.util.stream.Stream.concat(primary.stream(), secondary.stream())
+                .filter(value -> value != null && !value.isBlank())
+                .distinct()
+                .toList();
     }
 
     /**

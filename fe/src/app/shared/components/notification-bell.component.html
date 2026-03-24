@@ -1,132 +1,183 @@
 <div class="relative">
-    <!-- Bell Button -->
-    <button (click)="toggleDropdown()"
-        class="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
-        [class.text-[#0056D2]]="isOpen()" aria-label="Thông báo">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
-            </path>
-        </svg>
+  <button
+    type="button"
+    (click)="toggleDropdown()"
+    class="relative rounded-full p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+    [class.text-[#0056D2]]="isOpen()"
+    aria-label="Thong bao">
+    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
+      </path>
+    </svg>
 
-        <!-- Badge -->
-        @if (unreadCount() > 0) {
-        <span
-            class="absolute -top-1 -right-1 flex items-center justify-center min-w-[20px] h-5 px-1 text-xs font-bold text-white bg-red-500 rounded-full">
-            {{ unreadCount() > 99 ? '99+' : unreadCount() }}
-        </span>
-        }
-    </button>
-
-    <!-- Dropdown -->
-    @if (isOpen()) {
-    <div class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border z-50 overflow-hidden">
-        <!-- Header -->
-        <div class="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
-            <h3 class="font-semibold text-gray-900">Thông báo</h3>
-            @if (unreadCount() > 0) {
-            <button (click)="markAllAsRead()" class="text-sm text-[#0056D2] hover:text-[#004BB5]">
-                Đánh dấu tất cả đã đọc
-            </button>
-            }
-        </div>
-
-        <!-- Notification List -->
-        <div class="max-h-96 overflow-y-auto">
-            @if (recentNotifications().length === 0) {
-            <div class="px-4 py-8 text-center text-gray-500">
-                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4">
-                    </path>
-                </svg>
-                <p class="mt-2">Không có thông báo mới</p>
-            </div>
-            } @else {
-            @for (notification of recentNotifications(); track notification.id) {
-            <div (click)="onNotificationClick(notification)"
-                class="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 transition-colors"
-                [class.bg-[#0056D2]/5]="!notification.isRead">
-                <div class="flex items-start gap-3">
-                    <!-- Icon -->
-                    <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
-                        [class.bg-[#0056D2]/10]="notification.type === 'ASSIGNMENT_NEW'"
-                        [class.bg-orange-100]="notification.type === 'ASSIGNMENT_REMINDER'"
-                        [class.bg-green-100]="notification.type === 'GRADE_PUBLISHED'"
-                        [class.bg-purple-100]="notification.type === 'DEADLINE_EXTENDED'"
-                        [class.bg-gray-100]="notification.type === 'SUBMISSION_RECEIVED'"
-                        [class.bg-indigo-100]="notification.type === 'MESSAGE_RECEIVED'">
-                        <svg class="w-5 h-5" [class.text-[#0056D2]]="notification.type === 'ASSIGNMENT_NEW'"
-                            [class.text-orange-600]="notification.type === 'ASSIGNMENT_REMINDER'"
-                            [class.text-green-600]="notification.type === 'GRADE_PUBLISHED'"
-                            [class.text-purple-600]="notification.type === 'DEADLINE_EXTENDED'"
-                            [class.text-gray-600]="notification.type === 'SUBMISSION_RECEIVED'"
-                            [class.text-indigo-600]="notification.type === 'MESSAGE_RECEIVED'" fill="none"
-                            stroke="currentColor" viewBox="0 0 24 24">
-                            @switch (notification.type) {
-                            @case ('ASSIGNMENT_NEW') {
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                            </path>
-                            }
-                            @case ('ASSIGNMENT_REMINDER') {
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            }
-                            @case ('GRADE_PUBLISHED') {
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            }
-                            @case ('DEADLINE_EXTENDED') {
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
-                            </path>
-                            }
-                            @case ('MESSAGE_RECEIVED') {
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z">
-                            </path>
-                            }
-                            @default {
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
-                            </path>
-                            }
-                            }
-                        </svg>
-                    </div>
-
-                    <!-- Content -->
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
-                            <p class="text-sm font-medium text-gray-900 truncate">
-                                {{ notification.title }}
-                            </p>
-                            @if (!notification.isRead) {
-                            <span class="w-2 h-2 bg-[#0056D2] rounded-full flex-shrink-0"></span>
-                            }
-                        </div>
-                        <p class="text-sm text-gray-600 line-clamp-2">
-                            {{ notification.message }}
-                        </p>
-                        <p class="text-xs text-gray-400 mt-1">
-                            {{ formatTime(notification.createdAt) }}
-                        </p>
-                    </div>
-                </div>
-            </div>
-            }
-            }
-        </div>
-
-        <!-- Footer -->
-        @if (recentNotifications().length > 0) {
-        <div class="px-4 py-3 border-t bg-gray-50 text-center">
-            <button (click)="viewAllNotifications()" class="text-sm text-[#0056D2] hover:text-[#004BB5] font-medium">
-                Xem tất cả thông báo
-            </button>
-        </div>
-        }
-    </div>
+    @if (unreadCount() > 0) {
+      <span
+        class="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
+        {{ unreadCount() > 99 ? '99+' : unreadCount() }}
+      </span>
     }
+  </button>
+
+  @if (isOpen()) {
+    <div class="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-lg border bg-white shadow-lg">
+      <div class="flex items-center justify-between border-b bg-gray-50 px-4 py-3">
+        <div>
+          <h3 class="font-semibold text-gray-900">Thong bao</h3>
+          @if (isLoading()) {
+            <p class="mt-1 text-xs text-gray-500">Dang lam moi...</p>
+          }
+        </div>
+
+        <div class="flex items-center gap-3">
+          @if (unreadCount() > 0) {
+            <button
+              type="button"
+              (click)="markAllAsRead()"
+              class="text-sm text-[#0056D2] hover:text-[#004BB5]">
+              Danh dau tat ca da doc
+            </button>
+          }
+        </div>
+      </div>
+
+      @if (staleErrorMessage()) {
+        <div class="border-b border-amber-200 bg-amber-50 px-4 py-3">
+          <p class="text-sm text-amber-800">{{ staleErrorMessage() }}</p>
+          <button
+            type="button"
+            (click)="refreshNotifications()"
+            class="mt-2 text-sm font-medium text-amber-900 hover:text-amber-950">
+            Thu lai
+          </button>
+        </div>
+      }
+
+      <div class="max-h-96 overflow-y-auto">
+        @if (recentNotifications().length === 0) {
+          <div class="px-4 py-8 text-center text-gray-500">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4">
+              </path>
+            </svg>
+            <p class="mt-2">Khong co thong bao moi</p>
+          </div>
+        } @else {
+          @for (notification of recentNotifications(); track notification.id) {
+            <div
+              (click)="onNotificationClick(notification)"
+              class="cursor-pointer border-b px-4 py-3 transition-colors last:border-b-0 hover:bg-gray-50"
+              [class.bg-[#0056D2]/5]="!notification.isRead">
+              <div class="flex items-start gap-3">
+                <div
+                  class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full"
+                  [class.bg-[#0056D2]/10]="notification.type === 'ASSIGNMENT_NEW' || notification.type === 'MESSAGE_RECEIVED'"
+                  [class.bg-orange-100]="notification.type === 'ASSIGNMENT_REMINDER'"
+                  [class.bg-green-100]="notification.type === 'GRADE_PUBLISHED'"
+                  [class.bg-purple-100]="notification.type === 'DEADLINE_EXTENDED'"
+                  [class.bg-gray-100]="notification.type === 'SUBMISSION_RECEIVED'">
+                  <svg
+                    class="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    [class.text-[#0056D2]]="notification.type === 'ASSIGNMENT_NEW' || notification.type === 'MESSAGE_RECEIVED'"
+                    [class.text-orange-600]="notification.type === 'ASSIGNMENT_REMINDER'"
+                    [class.text-green-600]="notification.type === 'GRADE_PUBLISHED'"
+                    [class.text-purple-600]="notification.type === 'DEADLINE_EXTENDED'"
+                    [class.text-gray-600]="notification.type === 'SUBMISSION_RECEIVED'">
+                    @switch (notification.type) {
+                      @case ('ASSIGNMENT_NEW') {
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                        </path>
+                      }
+                      @case ('ASSIGNMENT_REMINDER') {
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z">
+                        </path>
+                      }
+                      @case ('GRADE_PUBLISHED') {
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z">
+                        </path>
+                      }
+                      @case ('DEADLINE_EXTENDED') {
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                        </path>
+                      }
+                      @case ('MESSAGE_RECEIVED') {
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z">
+                        </path>
+                      }
+                      @default {
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
+                        </path>
+                      }
+                    }
+                  </svg>
+                </div>
+
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2">
+                    <p class="truncate text-sm font-medium text-gray-900">
+                      {{ notification.title }}
+                    </p>
+                    @if (!notification.isRead) {
+                      <span class="h-2 w-2 flex-shrink-0 rounded-full bg-[#0056D2]"></span>
+                    }
+                  </div>
+                  <p class="line-clamp-2 text-sm text-gray-600">
+                    {{ notification.message }}
+                  </p>
+                  <p class="mt-1 text-xs text-gray-400">
+                    {{ formatTime(notification.createdAt) }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          }
+        }
+      </div>
+
+      @if (recentNotifications().length > 0) {
+        <div class="border-t bg-gray-50 px-4 py-3 text-center">
+          <button
+            type="button"
+            (click)="viewAllNotifications()"
+            class="text-sm font-medium text-[#0056D2] hover:text-[#004BB5]">
+            Xem tat ca thong bao
+          </button>
+        </div>
+      }
+    </div>
+  }
 </div>

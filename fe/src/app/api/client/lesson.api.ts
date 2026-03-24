@@ -68,8 +68,12 @@ export class LessonApi {
   // PROGRESS TRACKING
   // ========================================
 
-  markLessonComplete(lessonId: string) {
-    return this.api.postWithResponse<any>(ASSIGNMENT_ENDPOINTS.MARK_COMPLETE(lessonId), {});
+  markLessonComplete(lessonId: string, payload: Record<string, unknown> = {}) {
+    return this.api.postWithResponse<any>(ASSIGNMENT_ENDPOINTS.MARK_COMPLETE(lessonId), payload);
+  }
+
+  getLessonProgress(lessonId: string) {
+    return this.api.getWithResponse<any>(`/api/v3/student/lessons/${lessonId}/progress`);
   }
 
   // ========================================

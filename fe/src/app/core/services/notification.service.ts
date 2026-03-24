@@ -12,7 +12,7 @@
  * @requirements 7.1, 7.2, 7.3
  */
 import { Injectable, signal, computed, inject } from '@angular/core';
-import { Observable, of, delay, tap, interval, Subject, map, catchError, Subscription } from 'rxjs';
+import { Observable, of, delay, tap, interval, Subject, map, catchError, Subscription, throwError } from 'rxjs';
 import { ApiClient } from '../../api/client/api-client';
 
 export type NotificationType =
@@ -89,6 +89,7 @@ export class NotificationService {
   readonly unreadCount = computed(() => this.unreadNotifications().length);
   readonly isLoading = computed(() => this.loading());
   readonly hasError = computed(() => this.error() !== null);
+  readonly errorMessage = computed(() => this.error());
 
   // Observable for new notifications (for real-time updates)
   readonly onNewNotification = this.newNotification$.asObservable();
@@ -109,6 +110,7 @@ export class NotificationService {
    */
   loadNotifications(): Observable<Notification[]> {
     this.loading.set(true);
+    this.error.set(null);
 
     return this.apiClient.get<any>('/api/v3/gamification/notifications?page=0&size=20').pipe(
       map((response: any) => {
@@ -136,6 +138,7 @@ export class NotificationService {
         this.loading.set(false);
       }),
       catchError(() => {
+        this.error.set('Khong the tai thong bao');
         this.loading.set(false);
         return of([]);
       })
@@ -355,6 +358,9 @@ export class NotificationService {
    * Mark notification as read
    */
   markAsRead(notificationId: string): Observable<void> {
+    const previousNotifications = this.notifications();
+    this.error.set(null);
+
     // Optimistic local update
     this.notifications.update((current) =>
       current.map((n) =>
@@ -365,7 +371,11 @@ export class NotificationService {
     );
 
     return this.apiClient.patch<void>(`/api/v3/gamification/notifications/${notificationId}/read`, {}).pipe(
-      catchError(() => of(undefined as unknown as void))
+      catchError((error) => {
+        this.notifications.set(previousNotifications);
+        this.error.set('Khong the cap nhat thong bao');
+        return throwError(() => error);
+      })
     );
   }
 
@@ -373,6 +383,9 @@ export class NotificationService {
    * Mark all notifications as read
    */
   markAllAsRead(): Observable<void> {
+    const previousNotifications = this.notifications();
+    this.error.set(null);
+
     // Optimistic local update
     const now = new Date().toISOString();
     this.notifications.update((current) =>
@@ -380,7 +393,11 @@ export class NotificationService {
     );
 
     return this.apiClient.patch<void>('/api/v3/gamification/notifications/read-all', {}).pipe(
-      catchError(() => of(undefined as unknown as void))
+      catchError((error) => {
+        this.notifications.set(previousNotifications);
+        this.error.set('Khong the danh dau tat ca thong bao da doc');
+        return throwError(() => error);
+      })
     );
   }
 
@@ -388,13 +405,20 @@ export class NotificationService {
    * Delete notification
    */
   deleteNotification(notificationId: string): Observable<void> {
+    const previousNotifications = this.notifications();
+    this.error.set(null);
+
     // Optimistic local remove
     this.notifications.update((current) =>
       current.filter((n) => n.id !== notificationId)
     );
 
     return this.apiClient.delete<void>(`/api/v3/gamification/notifications/${notificationId}`).pipe(
-      catchError(() => of(undefined as unknown as void))
+      catchError((error) => {
+        this.notifications.set(previousNotifications);
+        this.error.set('Khong the xoa thong bao');
+        return throwError(() => error);
+      })
     );
   }
 
@@ -438,10 +462,10 @@ export class NotificationService {
   }
 
   private checkForNewNotifications(): void {
-    this.apiClient.get<{ data: { unreadCount: number } }>('/api/v3/messages/unread-count')
+    this.apiClient.get<{ data?: { count?: number }; count?: number }>('/api/v3/gamification/notifications/unread-count')
       .subscribe({
         next: (response: any) => {
-          const count = response?.data?.unreadCount ?? response?.unreadCount ?? 0;
+          const count = response?.data?.count ?? response?.count ?? 0;
           if (count > this.unreadCount()) {
             this.loadNotifications().subscribe();
           }

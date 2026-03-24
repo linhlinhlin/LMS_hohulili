@@ -36,16 +36,21 @@ export class NetworkStatusService implements OnDestroy {
 
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private probeInterval: ReturnType<typeof setInterval> | null = null;
+  private readonly onlineHandler = () => this.debouncedUpdate();
+  private readonly offlineHandler = () => this.debouncedUpdate();
+  private readonly connectionChangeHandler = () => this.debouncedUpdate();
+  private connectionRef: { removeEventListener?: (type: string, listener: EventListenerOrEventListenerObject) => void } | null = null;
 
   constructor() {
     if (typeof window === 'undefined') return;
 
-    window.addEventListener('online', () => this.debouncedUpdate());
-    window.addEventListener('offline', () => this.debouncedUpdate());
+    window.addEventListener('online', this.onlineHandler);
+    window.addEventListener('offline', this.offlineHandler);
 
     const conn = (navigator as any).connection;
     if (conn) {
-      conn.addEventListener('change', () => this.debouncedUpdate());
+      conn.addEventListener('change', this.connectionChangeHandler);
+      this.connectionRef = conn;
     }
 
     this.updateStatus();
@@ -62,6 +67,12 @@ export class NetworkStatusService implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('online', this.onlineHandler);
+      window.removeEventListener('offline', this.offlineHandler);
+    }
+    this.connectionRef?.removeEventListener?.('change', this.connectionChangeHandler);
+    this.connectionRef = null;
     if (this.probeInterval) {
       clearInterval(this.probeInterval);
     }

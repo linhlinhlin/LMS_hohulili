@@ -25,7 +25,9 @@ import { ToastService } from '../../../../core/services/toast.service';
       <!-- Premium Header -->
       <header class="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between flex-shrink-0 z-30 shadow-sm">
         <div class="flex items-center gap-6">
-          <button (click)="goBack()" 
+          <button (click)="goBack()"
+                  type="button"
+                  aria-label="Quay lai danh sach bai nop"
                   class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-all group">
             <lucide-icon name="arrow-left" [size]="18" class="group-hover:-translate-x-0.5 transition-transform"></lucide-icon>
           </button>
@@ -48,6 +50,8 @@ import { ToastService } from '../../../../core/services/toast.service';
         <!-- Navigation Controls -->
         <div class="flex items-center gap-4 bg-slate-50 p-1 rounded-2xl border border-slate-100">
           <button (click)="previousSubmission()" [disabled]="!hasPrevious()"
+                  type="button"
+                  aria-label="Xem bai nop truoc"
                   class="w-9 h-9 flex items-center justify-center rounded-xl bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm">
             <lucide-icon name="chevron-left" [size]="18"></lucide-icon>
           </button>
@@ -59,6 +63,8 @@ import { ToastService } from '../../../../core/services/toast.service';
           </div>
           
           <button (click)="nextSubmission()" [disabled]="!hasNext()"
+                  type="button"
+                  aria-label="Xem bai nop tiep theo"
                   class="w-9 h-9 flex items-center justify-center rounded-xl bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm">
             <lucide-icon name="chevron-right" [size]="18"></lucide-icon>
           </button>
@@ -69,7 +75,10 @@ import { ToastService } from '../../../../core/services/toast.service';
             <span class="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">Trạng thái</span>
             <span class="text-[10px] font-black text-emerald-600 uppercase">Auto-save On</span>
           </div>
-          <button (click)="goBack()" class="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition-all">
+          <button (click)="goBack()"
+                  type="button"
+                  aria-label="Dong SpeedGrader va quay lai"
+                  class="w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition-all">
             <lucide-icon name="x" [size]="20"></lucide-icon>
           </button>
         </div>

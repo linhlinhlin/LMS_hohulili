@@ -1,4 +1,4 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
+import { Injectable, OnDestroy, signal, computed, inject } from '@angular/core';
 import { AuthService } from '../core/services/auth.service';
 import { CourseService } from './course.service';
 import { CommunicationService } from '../shared/services/communication.service';
@@ -13,7 +13,7 @@ import { CommunicationService } from '../shared/services/communication.service';
 @Injectable({
   providedIn: 'root'
 })
-export class GlobalState {
+export class GlobalState implements OnDestroy {
   private authService = inject(AuthService);
   private courseService = inject(CourseService);
   private communicationService = inject(CommunicationService);
@@ -38,6 +38,9 @@ export class GlobalState {
     hasErrors: false, // Would be computed from error service
     isLoading: this.courseService.isLoading() || this.communicationService.isLoading()
   }));
+  private networkMonitoringStarted = false;
+  private readonly onlineHandler = () => this.setNetworkStatus('online');
+  private readonly offlineHandler = () => this.setNetworkStatus('offline');
 
 
   updateLastActivity(): void {
@@ -101,9 +104,22 @@ export class GlobalState {
 
   // Network status monitoring
   startNetworkMonitoring(): void {
-    if (typeof window !== 'undefined') {
-      window.addEventListener('online', () => this.setNetworkStatus('online'));
-      window.addEventListener('offline', () => this.setNetworkStatus('offline'));
+    if (typeof window === 'undefined' || this.networkMonitoringStarted) {
+      return;
     }
+
+    window.addEventListener('online', this.onlineHandler);
+    window.addEventListener('offline', this.offlineHandler);
+    this.networkMonitoringStarted = true;
+  }
+
+  ngOnDestroy(): void {
+    if (typeof window === 'undefined' || !this.networkMonitoringStarted) {
+      return;
+    }
+
+    window.removeEventListener('online', this.onlineHandler);
+    window.removeEventListener('offline', this.offlineHandler);
+    this.networkMonitoringStarted = false;
   }
 }

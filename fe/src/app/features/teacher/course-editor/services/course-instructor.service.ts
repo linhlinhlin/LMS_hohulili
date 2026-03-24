@@ -1,7 +1,8 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { Observable, throwError, BehaviorSubject } from 'rxjs';
+import { Observable, throwError, BehaviorSubject, EMPTY } from 'rxjs';
 import { map, catchError, finalize, tap } from 'rxjs/operators';
 import { ApiClient } from '../../../../api/client/api-client';
+import { ToastService } from '../../../../core/services/toast.service';
 
 // ============================================
 // INTERFACES
@@ -65,6 +66,7 @@ export const DEFAULT_PERMISSIONS: InstructorPermissions = {
 })
 export class CourseInstructorService {
     private apiClient = inject(ApiClient);
+    private toast = inject(ToastService);
 
     // Loading state
     private _isLoading = new BehaviorSubject<boolean>(false);
@@ -130,8 +132,7 @@ export class CourseInstructorService {
                 this.isLoading.set(false);
             }),
             tap(() => {
-                // Refresh instructors list
-                this.getInstructors(courseId).subscribe({ error: () => {} }); // best-effort refresh
+                this.refreshInstructorsCache(courseId, 'Da gui loi moi, nhung khong the lam moi danh sach giang vien.');
             }),
             map(response => {
                 return {
@@ -157,8 +158,7 @@ export class CourseInstructorService {
                 this.isLoading.set(false);
             }),
             tap(() => {
-                // Refresh instructors list
-                this.getInstructors(courseId).subscribe({ error: () => {} }); // best-effort refresh
+                this.refreshInstructorsCache(courseId, 'Da cap nhat quyen, nhung khong the lam moi danh sach giang vien.');
             }),
             map(response => {
                 return {
@@ -292,7 +292,7 @@ export class CourseInstructorService {
     getRoleBadgeClass(role: string): string {
         return role === 'OWNER'
             ? 'bg-blue-50 text-blue-700 border-blue-100'
-            : 'bg-indigo-50 text-indigo-700 border-indigo-100';
+            : 'bg-[#0056D2]/5 text-[#0056D2] border-[#0056D2]/10';
     }
 
     getStatusLabel(status: string): string {
@@ -325,5 +325,16 @@ export class CourseInstructorService {
             month: '2-digit',
             year: 'numeric'
         });
+    }
+
+    private refreshInstructorsCache(courseId: string, warningMessage: string): void {
+        this.apiClient.getWithResponse<CourseInstructor[]>(`/api/v3/courses/${courseId}/instructors`).pipe(
+            map(response => response.data ?? []),
+            tap(instructors => this._instructors.set(instructors)),
+            catchError(() => {
+                this.toast.warning(warningMessage);
+                return EMPTY;
+            })
+        ).subscribe();
     }
 }

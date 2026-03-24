@@ -74,12 +74,12 @@ export const CONTENT_TYPE_CONFIG = {
     },
     // SCORM - Công nghệ / Thiết bị điện tử
     SCORM: {
-        color: 'bg-indigo-500',
+        color: 'bg-[#0056D2]',
         label: 'Bài học tương tác',
         icon: 'cpu',
-        indicatorColor: 'bg-indigo-500',
-        hoverBg: 'hover:bg-indigo-50',
-        borderColor: 'border-indigo-200'
+        indicatorColor: 'bg-[#0056D2]',
+        hoverBg: 'hover:bg-[#0056D2]/5',
+        borderColor: 'border-[#0056D2]/20'
     }
 } as const;
 

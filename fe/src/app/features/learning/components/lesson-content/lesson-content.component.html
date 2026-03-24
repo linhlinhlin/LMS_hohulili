@@ -120,9 +120,9 @@
       }
 
       @if (section.type === 'ASSIGNMENT' && section.content) {
-      <div class="p-4 border border-indigo-200 bg-indigo-50 rounded-xl">
+      <div class="p-4 border border-[#0056D2]/20 bg-[#0056D2]/5 rounded-xl">
         <div class="flex items-center gap-2 mb-3">
-          <span class="material-symbols-outlined text-indigo-600">edit_note</span>
+          <span class="material-symbols-outlined text-[#0056D2]">edit_note</span>
           <h3 class="text-base font-bold text-slate-800">Bài tập: {{ section.title }}</h3>
         </div>
         <div class="prose prose-slate max-w-none text-sm" [innerHTML]="getSanitizedHtml(section.content)"></div>

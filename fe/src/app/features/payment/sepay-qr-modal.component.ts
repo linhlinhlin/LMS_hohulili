@@ -16,7 +16,7 @@ import { SepayQrData } from '../../api/client/payment.api';
  *  1. Parent passes qrData (qrUrl, transferContent, bank info, amount)
  *  2. This component shows QR + payment details
  *  3. Every 5 s: polls /api/v3/payments/sepay/poll/{txnId}
- *  4. When hasPaid=true → shows success → emits paymentComplete
+ *  4. When hasPaid=true → closes and lets parent re-read backend truth
  */
 @Component({
   selector: 'app-sepay-qr-modal',
@@ -54,21 +54,6 @@ import { SepayQrData } from '../../api/client/payment.api';
             <button (click)="cancel()"
                     class="w-full py-3 px-6 rounded-xl bg-[#0056D2] hover:bg-[#004BB5] text-white font-semibold transition-all">
               Tạo QR mới
-            </button>
-          </div>
-        } @else if (paymentConfirmed()) {
-          <!-- Success State -->
-          <div class="p-8 text-center">
-            <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
-              <svg class="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-              </svg>
-            </div>
-            <h3 class="text-2xl font-bold text-gray-900 mb-2">Thanh toán thành công!</h3>
-            <p class="text-gray-600 mb-6">Hệ thống đã nhận được chuyển khoản của bạn. Chúc bạn học tập vui vẻ!</p>
-            <button (click)="onSuccess()"
-                    class="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold hover:shadow-lg transition-all">
-              Bắt đầu học ngay →
             </button>
           </div>
         } @else {
@@ -171,12 +156,11 @@ export class SepayQrModalComponent implements OnInit, OnDestroy {
   paymentComplete = output<void>();
   close = output<void>();
 
-  paymentConfirmed = signal(false);
   qrLoadError = signal(false);
   copyFeedback = signal(false);
   secondsLeft = signal(15 * 60); // 15 minutes
 
-  isExpired = computed(() => !this.paymentConfirmed() && this.secondsLeft() <= 0);
+  isExpired = computed(() => this.secondsLeft() <= 0);
 
   countdown = computed(() => {
     const s = this.secondsLeft();
@@ -206,9 +190,11 @@ export class SepayQrModalComponent implements OnInit, OnDestroy {
       }
       const result = await this.paymentService.pollSepayStatus(this.qrData().txnId);
       if (result.hasPaid) {
-        this.paymentConfirmed.set(true);
         this.stopPolling();
         this.stopCountdown();
+        this.paymentComplete.emit();
+        this.close.emit();
+        return;
       }
     }, 5000);
   }
@@ -237,11 +223,6 @@ export class SepayQrModalComponent implements OnInit, OnDestroy {
       clearInterval(this.countdownInterval);
       this.countdownInterval = null;
     }
-  }
-
-  onSuccess(): void {
-    this.paymentComplete.emit();
-    this.close.emit();
   }
 
   cancel(): void {

@@ -154,7 +154,7 @@
                       @for (lesson of chapter.lessons; track lesson.id; let lIdx = $index) {
                         <div class="flex items-center justify-between p-4 hover:bg-gray-50">
                           <div class="flex items-center gap-3">
-                            @if (lesson.isFree || isPaid()) {
+                            @if (lesson.isFree || hasLearningAccess()) {
                               <svg class="h-5 w-5 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -167,7 +167,7 @@
 
                             <span class="text-gray-700">Bài {{ chIdx + 1 }}.{{ lIdx + 1 }}: {{ lesson.title }}</span>
 
-                            @if (lesson.isFree && !isPaid()) {
+                            @if (lesson.isFree && !hasLearningAccess()) {
                               <span class="rounded bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700">
                                 Xem trước
                               </span>
@@ -191,7 +191,27 @@
               }
             </div>
 
-            @if (!isPaid() && isCoursePaid()) {
+            @if (isAwaitingManualActivation()) {
+              <div class="mt-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                <svg class="h-5 w-5 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M5.09 19h13.82a1 1 0 00.87-1.49L13.87 5.5a1 1 0 00-1.74 0L4.22 17.51A1 1 0 005.09 19z"></path>
+                </svg>
+                <p class="text-sm text-amber-800">
+                  <strong>Thanh toán đã được ghi nhận:</strong>
+                  Khóa học dạng lớp học sẽ mở khi bạn được xếp lớp hoặc kích hoạt. Trong lúc chờ, bạn vẫn có thể xem lại phần nội dung xem trước.
+                </p>
+              </div>
+            } @else if (isAccessPending()) {
+              <div class="mt-4 flex items-start gap-3 rounded-lg border border-[#0056D2]/20 bg-[#0056D2]/5 p-4">
+                <svg class="h-5 w-5 flex-shrink-0 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M4.93 19h14.14c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.2 16c-.77 1.33.19 3 1.73 3z"></path>
+                </svg>
+                <p class="text-sm text-slate-700">
+                  <strong>Đã ghi nhận thanh toán:</strong>
+                  Quyền học của bạn vẫn đang được kích hoạt. Vui lòng kiểm tra lại trong ít phút tới tại lịch sử thanh toán.
+                </p>
+              </div>
+            } @else if (!isPaid() && isCoursePaid()) {
               <div class="mt-4 flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
                 <svg class="h-5 w-5 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
@@ -269,7 +289,7 @@
                 }
               </div>
 
-              @if (isEnrolled() && (isPaid() || !isCoursePaid())) {
+              @if (hasLearningAccess()) {
                 <button
                   (click)="continueLearning()"
                   class="mb-3 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-3.5 font-semibold text-white transition-all hover:from-green-600 hover:to-emerald-700">
@@ -280,18 +300,25 @@
                   <span>Tiếp tục học</span>
                 </button>
 
-              } @else if (isEnrolled() && !isPaid() && isCoursePaid()) {
-                <button
-                  (click)="openPaymentModal()"
-                  class="mb-3 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-orange-500 to-amber-600 px-6 py-3.5 font-semibold text-white transition-all hover:from-orange-600 hover:to-amber-700">
+              } @else if (isAwaitingManualActivation() || isAccessPending()) {
+                <div class="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-left">
+                  <p class="text-sm font-semibold text-amber-900">Thanh toán đã được ghi nhận</p>
+                  <p class="mt-1 text-sm text-amber-800">
+                    @if (isAwaitingManualActivation()) {
+                      Đây là khóa học dạng lớp học. Bạn sẽ vào học khi được xếp lớp hoặc kích hoạt chính thức.
+                    } @else {
+                      Quyền học của bạn vẫn đang được kích hoạt. Vui lòng kiểm tra lại trong ít phút tới tại lịch sử thanh toán.
+                    }
+                  </p>
+                </div>
+                <a
+                  routerLink="/student/payments"
+                  class="mb-3 flex w-full items-center justify-center gap-2 rounded-lg border border-[#0056D2]/20 bg-[#0056D2]/5 px-6 py-3.5 font-semibold text-[#0056D2] transition-all hover:bg-[#0056D2]/10">
                   <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 014-4h6m0 0l-3-3m3 3l-3 3"></path>
                   </svg>
-                  <span>Mở khóa khóa học ({{ (course()!.salePrice ?? course()!.price) | number:'1.0-0' }}₫)</span>
-                </button>
-                <p class="mb-3 text-center text-sm text-amber-600">
-                  Bạn chỉ xem được các bài có nhãn "Xem trước". Thanh toán để truy cập đầy đủ nội dung.
-                </p>
+                  <span>Xem lịch sử thanh toán</span>
+                </a>
               } @else {
                 <button
                   (click)="handleEnrollClick()"
@@ -311,7 +338,7 @@
                 </button>
               }
 
-              @if (!isEnrolled() && isCoursePaid()) {
+              @if (!isEnrolled() && isCoursePaid() && !isAwaitingManualActivation() && !isAccessPending()) {
                 <button
                   (click)="handleFreeTrial()"
                   [disabled]="isEnrolling()"
@@ -322,7 +349,7 @@
 
               <p class="mb-6 text-center text-sm text-gray-500">
                 @if (isCoursePaid()) {
-                  Thanh toán an toàn qua VNPay
+                  Thanh toán an toàn qua phương thức đang được hệ thống hỗ trợ
                 } @else {
                   Đăng ký ngay để bắt đầu học
                 }
@@ -369,7 +396,7 @@
     <app-payment-modal
       [courseInfo]="getPaymentInfo()"
       (close)="onPaymentModalClose($event)"
-      (paymentComplete)="onPaymentComplete()">
+      (paymentComplete)="onPaymentComplete($event)">
     </app-payment-modal>
   }
 </div>

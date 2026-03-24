@@ -1,5 +1,8 @@
 package com.example.lms.communication.infrastructure.web;
 
+import com.example.lms.communication.application.dto.MessageRecipientSearchResponse;
+import com.example.lms.communication.application.usecase.ListMessageRecipientsUseCase;
+import com.example.lms.communication.application.usecase.MessageAuthorizationService;
 import com.example.lms.communication.application.usecase.SendMessageUseCaseV3;
 import com.example.lms.communication.domain.model.Conversation;
 import com.example.lms.communication.domain.model.ConversationId;
@@ -7,25 +10,40 @@ import com.example.lms.communication.domain.model.Message;
 import com.example.lms.communication.domain.model.MessageId;
 import com.example.lms.communication.domain.repository.ConversationRepository;
 import com.example.lms.communication.domain.repository.MessageRepository;
+import com.example.lms.identity.domain.model.Role;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * V3 Controller for Communication.
@@ -39,11 +57,11 @@ import java.util.stream.Collectors;
 public class CommunicationControllerV3 {
 
     private final SendMessageUseCaseV3 sendMessageUseCase;
+    private final ListMessageRecipientsUseCase listMessageRecipientsUseCase;
+    private final MessageAuthorizationService messageAuthorizationService;
     private final ConversationRepository conversationRepository;
     private final MessageRepository messageRepository;
     private final UserJpaRepository userJpaRepository;
-
-    // ============== Conversation Endpoints ==============
 
     @Operation(summary = "Get all conversations for current user")
     @GetMapping("/conversations")
@@ -56,18 +74,17 @@ public class CommunicationControllerV3 {
                 ? conversationRepository.findByParticipantId(userId)
                 : conversationRepository.findActiveByParticipantId(userId);
 
-        // Batch-fetch other participant names (avoid N+1)
-        Set<UUID> otherUserIds = conversations.stream()
-                .map(c -> c.getOtherParticipant(userId))
+        Set<UUID> participantIds = conversations.stream()
+                .flatMap(conversation -> Stream.of(conversation.getParticipant1Id(), conversation.getParticipant2Id()))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-        Map<UUID, String> userNameMap = batchFetchUserNames(otherUserIds);
+        Map<UUID, UserSummary> userSummaryMap = batchFetchUsers(participantIds);
 
         List<Map<String, Object>> result = conversations.stream()
-                .map(conv -> mapConversation(conv, userId, userNameMap))
+                .map(conversation -> mapConversation(conversation, userId, userSummaryMap))
                 .toList();
 
-        return ResponseEntity.ok(ApiResponse.success(result, "Danh sách hội thoại"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Danh sach hoi thoai"));
     }
 
     @Operation(summary = "Get conversation between two users")
@@ -77,20 +94,25 @@ public class CommunicationControllerV3 {
             @RequestParam UUID userId1,
             @RequestParam UUID userId2
     ) {
-        // P0-5: Verify current user is one of the participants
         UUID currentUserId = currentUser.getId();
         if (!currentUserId.equals(userId1) && !currentUserId.equals(userId2)) {
-            return ResponseEntity.status(403).body(ApiResponse.error("Bạn không phải thành viên của cuộc hội thoại này"));
+            return ResponseEntity.status(403).body(ApiResponse.error("Ban khong phai thanh vien cua cuoc hoi thoai nay"));
         }
 
-        Optional<Conversation> conv = conversationRepository.findByParticipants(userId1, userId2);
-        if (conv.isEmpty()) {
-            return ResponseEntity.ok(ApiResponse.success(null, "Không tìm thấy cuộc hội thoại"));
+        Optional<Conversation> conversation = conversationRepository.findByParticipants(userId1, userId2);
+        if (conversation.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.success(null, "Khong tim thay cuoc hoi thoai"));
         }
-        UUID otherUserId = conv.get().getOtherParticipant(currentUserId);
-        Map<UUID, String> userNameMap = batchFetchUserNames(Set.of(otherUserId));
+
+        Map<UUID, UserSummary> userSummaryMap = batchFetchUsers(Set.of(
+                conversation.get().getParticipant1Id(),
+                conversation.get().getParticipant2Id()
+        ));
+
         return ResponseEntity.ok(ApiResponse.success(
-                mapConversation(conv.get(), currentUserId, userNameMap), "Thông tin cuộc hội thoại"));
+                mapConversation(conversation.get(), currentUserId, userSummaryMap),
+                "Thong tin cuoc hoi thoai"
+        ));
     }
 
     @Operation(summary = "Get messages in a conversation")
@@ -99,29 +121,41 @@ public class CommunicationControllerV3 {
             @PathVariable UUID conversationId,
             @AuthenticationPrincipal UserJpaEntity user
     ) {
-        // P0-3: Verify user is participant of this conversation
-        Conversation conv = conversationRepository.findById(ConversationId.of(conversationId))
-                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Cuộc hội thoại", conversationId));
-        if (!conv.hasParticipant(user.getId())) {
-            throw new org.springframework.security.access.AccessDeniedException("Bạn không phải thành viên của cuộc hội thoại này");
+        Conversation conversation = conversationRepository.findById(ConversationId.of(conversationId))
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Cuoc hoi thoai", conversationId));
+        if (!conversation.hasParticipant(user.getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Ban khong phai thanh vien cua cuoc hoi thoai nay");
         }
 
         List<Message> messages = messageRepository.findByConversationId(ConversationId.of(conversationId));
-
-        // Batch-fetch sender names (avoid N+1)
         Set<UUID> senderIds = messages.stream()
                 .map(Message::getSenderId)
                 .collect(Collectors.toSet());
-        Map<UUID, String> senderNameMap = batchFetchUserNames(senderIds);
+        Map<UUID, UserSummary> senderSummaryMap = batchFetchUsers(senderIds);
 
         List<Map<String, Object>> result = messages.stream()
-                .map(msg -> mapMessage(msg, senderNameMap))
+                .map(message -> mapMessage(message, senderSummaryMap))
                 .toList();
 
-        return ResponseEntity.ok(ApiResponse.success(result, "Danh sách tin nhắn"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Danh sach tin nhan"));
     }
 
-    // ============== Message Endpoints ==============
+    @Operation(summary = "List recipients the current user is allowed to message")
+    @GetMapping("/recipients")
+    public ResponseEntity<ApiResponse<MessageRecipientSearchResponse>> listRecipients(
+            @AuthenticationPrincipal UserJpaEntity user,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false, defaultValue = "auto") String contextType,
+            @RequestParam(required = false) UUID contextId,
+            @RequestParam(required = false, defaultValue = "20") Integer limit
+    ) {
+        MessageAuthorizationService.ActorContext actor = actorContext(user);
+        var items = listMessageRecipientsUseCase.execute(actor, q, contextType, contextId, limit);
+        return ResponseEntity.ok(ApiResponse.success(
+                new MessageRecipientSearchResponse(items, null),
+                "Danh sach nguoi nhan hop le"
+        ));
+    }
 
     @Operation(summary = "Send a message to another user")
     @PostMapping("/send")
@@ -131,34 +165,40 @@ public class CommunicationControllerV3 {
     ) {
         UUID senderId = user.getId();
 
-        // Prevent self-messaging
         if (senderId.equals(request.recipientId())) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("400", "Không thể gửi tin nhắn cho chính mình"));
+            return ResponseEntity.badRequest().body(ApiResponse.error("400", "Khong the gui tin nhan cho chinh minh"));
         }
 
-        var command = new SendMessageUseCaseV3.SendMessageCommand(
-            senderId,
-            request.recipientId(),
-            request.content()
-        );
-        UUID messageId = sendMessageUseCase.execute(command);
+        MessageAuthorizationService.ActorContext actor = actorContext(user);
+        if (!messageAuthorizationService.canSendMessage(actor, request.recipientId())) {
+            return ResponseEntity.status(403)
+                    .body(ApiResponse.error("RECIPIENT_NOT_ALLOWED", "Ban khong the nhan tin cho nguoi nay"));
+        }
 
-        // Get real conversation ID (sendMessageUseCase always creates/finds conversation)
-        UUID conversationId = conversationRepository
-                .findByParticipants(senderId, request.recipientId())
-                .map(c -> c.getId().value())
+        UUID messageId = sendMessageUseCase.execute(new SendMessageUseCaseV3.SendMessageCommand(
+                senderId,
+                request.recipientId(),
+                request.content()
+        ));
+
+        UUID conversationId = conversationRepository.findByParticipants(senderId, request.recipientId())
+                .map(conversation -> conversation.getId().value())
                 .orElse(null);
 
-        var response = new LinkedHashMap<String, Object>();
+        UserSummary senderSummary = batchFetchUsers(Set.of(senderId)).getOrDefault(senderId, UserSummary.unknown(senderId));
+
+        Map<String, Object> response = new LinkedHashMap<>();
         response.put("message", Map.of(
-            "id", messageId,
-            "content", request.content(),
-            "senderId", senderId,
-            "createdAt", Instant.now()
+                "id", messageId,
+                "content", request.content(),
+                "senderId", senderId,
+                "senderName", senderSummary.displayName(),
+                "senderRole", senderSummary.role(),
+                "createdAt", Instant.now()
         ));
         response.put("conversationId", conversationId);
 
-        return ResponseEntity.ok(ApiResponse.success(response, "Gửi tin nhắn thành công"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Gui tin nhan thanh cong"));
     }
 
     @Operation(summary = "Mark messages as read")
@@ -169,20 +209,20 @@ public class CommunicationControllerV3 {
             @Valid @RequestBody MarkAsReadRequest request
     ) {
         int count = 0;
-        for (UUID msgId : request.messageIds()) {
-            Optional<Message> msgOpt = messageRepository.findById(MessageId.of(msgId));
-            if (msgOpt.isPresent()) {
-                Message msg = msgOpt.get();
-                // Verify user is participant of this message's conversation
-                var convOpt = conversationRepository.findById(msg.getConversationId());
-                if (convOpt.isPresent() && convOpt.get().hasParticipant(user.getId())) {
-                    msg.markAsRead();
-                    messageRepository.save(msg);
+        for (UUID messageId : request.messageIds()) {
+            Optional<Message> messageOpt = messageRepository.findById(MessageId.of(messageId));
+            if (messageOpt.isPresent()) {
+                Message message = messageOpt.get();
+                Optional<Conversation> conversationOpt = conversationRepository.findById(message.getConversationId());
+                if (conversationOpt.isPresent() && conversationOpt.get().hasParticipant(user.getId())) {
+                    message.markAsRead();
+                    messageRepository.save(message);
                     count++;
                 }
             }
         }
-        return ResponseEntity.ok(ApiResponse.success(null, count + " tin nhắn đã được đánh dấu đã đọc"));
+
+        return ResponseEntity.ok(ApiResponse.success(null, count + " tin nhan da duoc danh dau da doc"));
     }
 
     @Operation(summary = "Get unread message count")
@@ -190,62 +230,111 @@ public class CommunicationControllerV3 {
     public ResponseEntity<ApiResponse<Map<String, Object>>> getUnreadCount(
             @AuthenticationPrincipal UserJpaEntity user
     ) {
-        // Single query — replaces N+1 (conversations loop + per-conversation message fetch)
         long totalUnread = messageRepository.countTotalUnreadForUser(user.getId());
-
-        Map<String, Object> result = Map.of("unreadCount", totalUnread);
-        return ResponseEntity.ok(ApiResponse.success(result, "Số tin nhắn chưa đọc"));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("unreadCount", totalUnread), "So tin nhan chua doc"));
     }
 
-    // ============== Helpers ==============
-
-    private Map<String, Object> mapConversation(Conversation conv, UUID currentUserId, Map<UUID, String> userNameMap) {
-        UUID otherUserId = conv.getOtherParticipant(currentUserId);
-        String otherUserName = userNameMap.getOrDefault(otherUserId, "Unknown");
+    private Map<String, Object> mapConversation(
+            Conversation conversation,
+            UUID currentUserId,
+            Map<UUID, UserSummary> userSummaryMap
+    ) {
+        UUID otherUserId = conversation.getOtherParticipant(currentUserId);
+        UserSummary otherUser = userSummaryMap.getOrDefault(otherUserId, UserSummary.unknown(otherUserId));
+        UserSummary participant1 = userSummaryMap.getOrDefault(conversation.getParticipant1Id(), UserSummary.unknown(conversation.getParticipant1Id()));
+        UserSummary participant2 = userSummaryMap.getOrDefault(conversation.getParticipant2Id(), UserSummary.unknown(conversation.getParticipant2Id()));
+        long unreadCount = messageRepository.findUnreadByConversationId(conversation.getId()).stream()
+                .filter(message -> !message.isFrom(currentUserId))
+                .count();
 
         Map<String, Object> map = new LinkedHashMap<>();
-        map.put("id", conv.getId().value());
+        map.put("id", conversation.getId().value());
         map.put("otherUserId", otherUserId);
-        map.put("otherUserName", otherUserName);
-        map.put("lastMessagePreview", conv.getLastMessagePreview());
-        map.put("lastMessageAt", conv.getLastMessageAt());
-        map.put("isArchived", conv.isArchivedFor(currentUserId));
-        map.put("createdAt", conv.getCreatedAt());
+        map.put("otherUserName", otherUser.displayName());
+        map.put("otherUserRole", otherUser.role());
+        map.put("lastMessagePreview", conversation.getLastMessagePreview());
+        map.put("lastMessageAt", conversation.getLastMessageAt());
+        map.put("lastMessage", conversation.getLastMessagePreview() != null && conversation.getLastMessageAt() != null
+                ? Map.of(
+                        "content", conversation.getLastMessagePreview(),
+                        "senderId", otherUserId,
+                        "createdAt", conversation.getLastMessageAt()
+                )
+                : null);
+        map.put("participants", List.of(
+                participantMap(participant1),
+                participantMap(participant2)
+        ));
+        map.put("unreadCount", unreadCount);
+        map.put("isArchived", conversation.isArchivedFor(currentUserId));
+        map.put("createdAt", conversation.getCreatedAt());
+        map.put("updatedAt", conversation.getUpdatedAt());
         return map;
     }
 
-    private Map<String, Object> mapMessage(Message msg, Map<UUID, String> senderNameMap) {
-        String senderName = senderNameMap.getOrDefault(msg.getSenderId(), "Unknown");
+    private Map<String, Object> mapMessage(Message message, Map<UUID, UserSummary> senderSummaryMap) {
+        UserSummary sender = senderSummaryMap.getOrDefault(message.getSenderId(), UserSummary.unknown(message.getSenderId()));
 
         Map<String, Object> map = new LinkedHashMap<>();
-        map.put("id", msg.getId().value());
-        map.put("conversationId", msg.getConversationId().value());
-        map.put("senderId", msg.getSenderId());
-        map.put("senderName", senderName);
-        map.put("content", msg.getContent());
-        map.put("isRead", msg.isRead());
-        map.put("createdAt", msg.getCreatedAt());
-        map.put("readAt", msg.getReadAt());
+        map.put("id", message.getId().value());
+        map.put("conversationId", message.getConversationId().value());
+        map.put("senderId", message.getSenderId());
+        map.put("senderName", sender.displayName());
+        map.put("senderRole", sender.role());
+        map.put("content", message.getContent());
+        map.put("isRead", message.isRead());
+        map.put("createdAt", message.getCreatedAt());
+        map.put("readAt", message.getReadAt());
         return map;
     }
 
-    private Map<UUID, String> batchFetchUserNames(Set<UUID> userIds) {
-        if (userIds.isEmpty()) return Map.of();
-        return userJpaRepository.findAllById(userIds).stream()
-                .collect(Collectors.toMap(UserJpaEntity::getId, UserJpaEntity::getFullName));
+    private Map<String, Object> participantMap(UserSummary userSummary) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", userSummary.userId());
+        map.put("name", userSummary.displayName());
+        map.put("role", userSummary.role());
+        map.put("avatar", null);
+        return map;
     }
 
-    // ============== Request DTOs ==============
+    private Map<UUID, UserSummary> batchFetchUsers(Set<UUID> userIds) {
+        if (userIds.isEmpty()) {
+            return Map.of();
+        }
+        return userJpaRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(
+                        UserJpaEntity::getId,
+                        user -> new UserSummary(user.getId(), user.getFullName(), user.getRole().name())
+                ));
+    }
+
+    private MessageAuthorizationService.ActorContext actorContext(UserJpaEntity user) {
+        return new MessageAuthorizationService.ActorContext(
+                user.getId(),
+                Role.valueOf(user.getRole().name()),
+                user.getOrganizationId()
+        );
+    }
 
     public record SendMessageRequest(
-        @NotNull(message = "Mã người nhận không được để trống")
-        UUID recipientId,
-        @NotBlank(message = "Nội dung không được để trống")
-        String content
+            @NotNull(message = "Ma nguoi nhan khong duoc de trong")
+            UUID recipientId,
+            @NotBlank(message = "Noi dung khong duoc de trong")
+            String content
     ) {}
 
     public record MarkAsReadRequest(
-        @NotEmpty(message = "Danh sách tin nhắn không được để trống")
-        List<UUID> messageIds
+            @NotEmpty(message = "Danh sach tin nhan khong duoc de trong")
+            List<UUID> messageIds
     ) {}
+
+    private record UserSummary(
+            UUID userId,
+            String displayName,
+            String role
+    ) {
+        private static UserSummary unknown(UUID userId) {
+            return new UserSummary(userId, "Unknown", "STUDENT");
+        }
+    }
 }

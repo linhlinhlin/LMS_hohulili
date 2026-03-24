@@ -1,4 +1,4 @@
-import { Component, signal, computed, inject, OnInit, DestroyRef, ChangeDetectionStrategy, HostListener, effect, untracked } from '@angular/core';
+﻿import { Component, signal, computed, inject, OnInit, DestroyRef, ChangeDetectionStrategy, HostListener, effect, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
@@ -10,10 +10,19 @@ import { QuizApi } from '../../../api/endpoints/quiz.api';
 import { VideoProgressApi } from '../../../api/client/video-progress.api';
 import { ApiClient } from '../../../api/client/api-client';
 import { ToastService } from '../../../core/services/toast.service';
-import { PaymentService } from '../../payment/payment.service';
-import { PaymentModalComponent, CoursePaymentInfo } from '../../payment/payment-modal.component';
+import {
+  PaymentAccessActivationState,
+  PaymentService
+} from '../../payment/payment.service';
+import {
+  PaymentModalComponent,
+  CoursePaymentInfo,
+  PaymentCompletionOutcome,
+} from '../../payment/payment-modal.component';
 import { AuthService } from '../../../core/services/auth.service';
 import { StudentEnrollmentService } from '../../student/services/enrollment.service';
+import { CourseDownloadService } from '../../../core/services/course-download.service';
+import { NetworkStatusService } from '../../../core/services/network-status.service';
 import { getOfflineCourseStaleCopy } from '../../../core/utils/offline-course-staleness';
 
 /**
@@ -41,12 +50,17 @@ export class CourseLearningComponent implements OnInit {
   private paymentService = inject(PaymentService);
   private authService = inject(AuthService);
   private enrollmentService = inject(StudentEnrollmentService);
+  private courseDownload = inject(CourseDownloadService);
+  private network = inject(NetworkStatusService);
   private destroyRef = inject(DestroyRef);
 
   // Payment state
   showPaymentModal = signal(false);
   hasPaid = signal(false);
   coursePaid = signal(false); // true if course.price > 0
+  paymentAccessState = signal<PaymentAccessActivationState | null>(null);
+  awaitingManualActivation = computed(() => this.paymentAccessState() === 'MANUAL_ACTIVATION_REQUIRED');
+  accessPending = computed(() => this.paymentAccessState() === 'ACCESS_PENDING');
 
   // Local UI state
   isMobileView = signal(false);
@@ -81,6 +95,9 @@ export class CourseLearningComponent implements OnInit {
   private handledReturnKeys = new Set<string>();
   private pendingReturnedQuizAttemptId = signal<string | null>(null);
   private pendingReturnedSectionQuiz = signal<{ sectionId: string; passed: boolean } | null>(null);
+  private lastCompletedSectionsHydrationKey: string | null = null;
+  private pendingSectionCompletionSyncs = new Map<string, Promise<void>>();
+  private confirmedSectionCompletionSyncs = new Set<string>();
 
   // Detect if course has locked lessons (paid course, user hasn't paid)
   private paymentDetectEffect = effect(() => {
@@ -101,6 +118,9 @@ export class CourseLearningComponent implements OnInit {
   // Fixes: dashboard shows 5/5 sections green but lesson view only shows 3/5.
   // Root cause: onVideoEnded/quizComplete mark lesson complete WITHOUT marking each section.
   private syncSectionCompletionEffect = effect(() => {
+    const course = this.course();
+    const courseId = course?.id;
+    const shouldPersistOffline = course?.isOfflinePackage === true || !this.network.online();
     const sections = this.sections();
     const completedLessons = this.learningService.completedLessons();
 
@@ -108,12 +128,15 @@ export class CourseLearningComponent implements OnInit {
 
     // Collect all section IDs from completed lessons
     const sectionIdsToAdd: string[] = [];
+    const lessonSectionMerges: Array<{ lessonId: string; sectionIds: string[] }> = [];
     for (const section of sections) {
       for (const lesson of section.lessons) {
         if (completedLessons.has(lesson.id) && (lesson as any).sections?.length > 0) {
-          for (const sec of (lesson as any).sections) {
-            sectionIdsToAdd.push(sec.id);
-          }
+          const sectionIds = (lesson as any).sections
+            .map((sec: any) => sec.id)
+            .filter((sectionId: unknown): sectionId is string => typeof sectionId === 'string' && sectionId.length > 0);
+          sectionIdsToAdd.push(...sectionIds);
+          lessonSectionMerges.push({ lessonId: lesson.id, sectionIds });
         }
       }
     }
@@ -129,13 +152,36 @@ export class CourseLearningComponent implements OnInit {
               changed = true;
             }
           }
-          if (changed) {
-            localStorage.setItem('completed_sections', JSON.stringify(Array.from(newSet)));
-          }
           return changed ? newSet : completed;
         });
       });
+
+      if (courseId && shouldPersistOffline) {
+        for (const merge of lessonSectionMerges) {
+          void this.courseDownload.mergeCompletedSectionsOffline(courseId, merge.lessonId, merge.sectionIds);
+        }
+      }
     }
+  });
+
+  private hydrateCompletedSectionsEffect = effect(() => {
+    const courseId = this.course()?.id;
+    const lessonId = this.currentLesson()?.id ?? null;
+    const online = this.network.online();
+
+    if (!courseId) {
+      return;
+    }
+
+    const hydrationKey = `${courseId}:${lessonId ?? 'course'}:${online ? 'online' : 'offline'}`;
+    if (this.lastCompletedSectionsHydrationKey === hydrationKey) {
+      return;
+    }
+
+    this.lastCompletedSectionsHydrationKey = hydrationKey;
+    untracked(() => {
+      void this.hydrateCompletedSections(courseId, lessonId, online);
+    });
   });
 
   private autoExpandEffect = effect(() => {
@@ -311,7 +357,7 @@ export class CourseLearningComponent implements OnInit {
   ngOnInit(): void {
     this.checkMobileView();
     this.loadCourseFromRoute();
-    this.loadCompletedSections();
+    void this.loadCompletedSections();
     this.loadPaymentStatus();
 
     // Set pending lesson ID — the autoExpandEffect will handle expansion reactively when sections load
@@ -517,17 +563,8 @@ export class CourseLearningComponent implements OnInit {
         const currentSection = currentLesson.sections[this.currentSectionIndex()];
         
         if (currentSection.type === 'VIDEO' && (currentSection.videoUrl || currentSection.streamVideoUid)) {
-          try {
-            const progressCheck: any = await firstValueFrom(
-              this.videoProgressApi.canProceedToNext(currentSection.id)
-            );
-
-            if (progressCheck.success && progressCheck.data && !progressCheck.data.canProceed) {
-              this.toast.warning('Bạn cần xem ít nhất 50% video để chuyển sang phần tiếp theo.');
-              return;
-            }
-          } catch (error) {
-            this.toast.error('Không thể kiểm tra tiến độ video. Vui lòng thử lại.');
+          const canProceed = await this.ensureVideoProgressThreshold(currentSection.id, 'next-section');
+          if (!canProceed) {
             return;
           }
         }
@@ -555,124 +592,118 @@ export class CourseLearningComponent implements OnInit {
     }
   }
 
-  // Progress
-  async onMarkComplete(): Promise<void> {
-    // Lấy lesson và section hiện tại
-    const lesson = this.currentLesson();
-    if (!lesson) {
-      return;
-    }
-
-    // Nếu lesson có sections, đánh dấu hoàn thành section hiện tại
-    if (lesson.sections && lesson.sections.length > 0) {
-      const currentSection = lesson.sections[this.currentSectionIndex()];
-      if (!currentSection) {
-        return;
-      }
-
-      // 🔒 CHECK 50% RULE for VIDEO sections
-      if (currentSection.type === 'VIDEO' && (currentSection.videoUrl || currentSection.streamVideoUid)) {
-        try {
-          const progressCheck: any = await firstValueFrom(
-            this.videoProgressApi.canProceedToNext(currentSection.id)
-          );
-
-          if (progressCheck.success && progressCheck.data && !progressCheck.data.canProceed) {
-            this.toast.warning('Bạn cần xem ít nhất 50% video để hoàn thành phần này.');
-            return;
-          }
-        } catch (error) {
-          this.toast.error('Không thể kiểm tra tiến độ video. Vui lòng thử lại.');
-          return;
-        }
-      }
-
-      // Mark section as completed
-      this.markSectionAsCompleted(currentSection.id);
-
-      // Check if ALL sections are now completed
-      const allSectionsCompleted = lesson.sections.every(s =>
-        this.isSectionCompleted(s.id) || s.id === currentSection.id
+  private async ensureVideoProgressThreshold(
+    sectionId: string,
+    action: 'next-section' | 'complete-section' | 'complete-lesson'
+  ): Promise<boolean> {
+    try {
+      const progressCheck: any = await firstValueFrom(
+        this.videoProgressApi.canProceedToNext(sectionId)
       );
 
-      if (allSectionsCompleted) {
-        // All sections done → mark lesson as complete on backend
-        try {
-          await firstValueFrom(this.lessonApi.markLessonComplete(lesson.id));
-          
-          // Refresh enrollment service before moving on
-          await this.enrollmentService.refreshCourseProgress(lesson.courseId);
-
-          this.learningService.markCurrentLessonComplete();
-          this.toast.success(`Đã hoàn thành bài: ${lesson.title}`);
-        } catch {
-          this.toast.success(`Đã hoàn thành phần: ${currentSection.title}`);
-        }
-      } else {
-        this.toast.success(`Đã hoàn thành phần: ${currentSection.title}`);
+      if (progressCheck.success && progressCheck.data && !progressCheck.data.canProceed) {
+        const messageByAction = {
+          'next-section': 'Bạn cần xem ít nhất 90% video để chuyển sang phần tiếp theo.',
+          'complete-section': 'Bạn cần xem ít nhất 90% video để hoàn thành phần này.',
+          'complete-lesson': 'Bạn cần xem ít nhất 90% video để hoàn thành bài học.',
+        } as const;
+        this.toast.warning(messageByAction[action]);
+        return false;
       }
 
-      // Auto advance to next section if available
-      if (this.currentSectionIndex() < lesson.sections.length - 1) {
-        this.currentSectionIndex.update(v => v + 1);
-      }
+      return true;
+    } catch {
+      this.toast.error('Không thể kiểm tra tiến độ video. Vui lòng thử lại.');
+      return false;
+    }
+  }
 
-      return;
+  // Progress
+  async onMarkComplete(): Promise<boolean> {
+    const currentLessonForCompletion = this.currentLesson();
+    if (!currentLessonForCompletion) {
+      return false;
     }
 
-    // No sections - mark lesson as complete (original logic)
+    if (currentLessonForCompletion.sections && currentLessonForCompletion.sections.length > 0) {
+      return this.completeCurrentSection(currentLessonForCompletion);
+    }
 
-    // Nếu đã completed rồi thì không gọi API nữa
+    return this.completeCurrentLesson(currentLessonForCompletion);
+  }
+
+  private async completeCurrentSection(lesson: any): Promise<boolean> {
+    const currentSection = lesson.sections?.[this.currentSectionIndex()];
+    if (!currentSection) {
+      return false;
+    }
+
+    if (currentSection.type === 'VIDEO' && (currentSection.videoUrl || currentSection.streamVideoUid)) {
+      const canProceed = await this.ensureVideoProgressThreshold(currentSection.id, 'complete-section');
+      if (!canProceed) {
+        return false;
+      }
+    }
+
+    const nextCompletedSections = new Set(this.completedSections());
+    nextCompletedSections.add(currentSection.id);
+    const allSectionsCompleted = lesson.sections.every((section: any) => nextCompletedSections.has(section.id));
+    await this.markSectionAsCompleted(currentSection.id, { persistBackend: !allSectionsCompleted });
+
+    if (allSectionsCompleted) {
+      try {
+        await this.waitForSectionCompletionSync(lesson.id, currentSection.id);
+        await firstValueFrom(this.lessonApi.markLessonComplete(lesson.id, this.buildLessonCompletionPayload(lesson)));
+        await this.enrollmentService.refreshCourseProgress(lesson.courseId);
+        this.learningService.markCurrentLessonComplete();
+        this.toast.success(`Đã hoàn thành bài: ${lesson.title}`);
+      } catch {
+        this.toast.error('Đã hoàn thành phần cuối nhưng chưa thể cập nhật tiến độ bài học. Vui lòng thử lại.');
+        return false;
+      }
+    } else {
+      this.toast.success(`Đã hoàn thành phần: ${currentSection.title}`);
+    }
+
+    if (this.currentSectionIndex() < lesson.sections.length - 1) {
+      this.currentSectionIndex.update((value) => value + 1);
+    }
+
+    return true;
+  }
+
+  private async completeCurrentLesson(lesson: any): Promise<boolean> {
     try {
-      const alreadyCompleted = this.learningService
-        .isLessonCompleted(lesson.id)();
+      const alreadyCompleted = this.learningService.isLessonCompleted(lesson.id)();
       if (alreadyCompleted) {
-        return;
+        return true;
       }
     } catch {
-      // Nếu lỡ isLessonCompleted lỗi / chưa có thì bỏ qua check này
+      // Ignore best-effort completion lookup and continue with backend sync.
     }
 
-    // 🔒 CHECK 75% RULE for VIDEO lessons
     if (this.hasVideoContent(lesson)) {
-      // Get section ID from lesson's first video section
       const videoSection = this.getFirstVideoSection(lesson);
       if (!videoSection) {
         this.toast.error('Không tìm thấy video trong bài học này.');
-        return;
+        return false;
       }
 
-      try {
-        const progressCheck: any = await firstValueFrom(
-          this.videoProgressApi.canProceedToNext(videoSection.id)
-        );
-
-        if (progressCheck.success && progressCheck.data && !progressCheck.data.canProceed) {
-          this.toast.warning('Bạn cần xem ít nhất 50% video để hoàn thành bài học.');
-          return;
-        }
-      } catch (error) {
-        this.toast.error('Không thể kiểm tra tiến độ video. Vui lòng thử lại.');
-        return;
+      const canProceed = await this.ensureVideoProgressThreshold(videoSection.id, 'complete-lesson');
+      if (!canProceed) {
+        return false;
       }
     }
 
     try {
-      const apiResult = await firstValueFrom(
-        this.lessonApi.markLessonComplete(lesson.id)
-      );
-
-      // Refresh enrollment service
+      await firstValueFrom(this.lessonApi.markLessonComplete(lesson.id, this.buildLessonCompletionPayload(lesson)));
       await this.enrollmentService.refreshCourseProgress(lesson.courseId);
-
-      // Cập nhật state phía FE qua service chung
       this.learningService.markCurrentLessonComplete();
-
-      // (tuỳ bạn) có thể expand section hiện tại để user thấy rõ
       this.expandCurrentLessonSection();
-
-    } catch (error: any) {
+      return true;
+    } catch {
       this.toast.error('Không thể cập nhật trạng thái hoàn thành. Vui lòng thử lại.');
+      return false;
     }
   }
 
@@ -702,43 +733,123 @@ export class CourseLearningComponent implements OnInit {
     return this.completedSections().has(sectionId);
   }
 
-  private markSectionAsCompleted(sectionId: string): void {
+  private async markSectionAsCompleted(
+    sectionId: string,
+    options: { persistBackend?: boolean } = {},
+  ): Promise<void> {
     this.completedSections.update(completed => {
       const newSet = new Set(completed);
       newSet.add(sectionId);
-      // Save to localStorage as fallback
-      localStorage.setItem('completed_sections', JSON.stringify(Array.from(newSet)));
       return newSet;
     });
 
-    // Persist to backend
-    const lessonId = this.currentLesson()?.id;
-    if (lessonId) {
-      this.apiClient.post<any>(`/api/v3/student/progress/lessons/${lessonId}/sections/${sectionId}/complete`, {})
-        .subscribe({ error: () => {} }); // Non-blocking
+    const lesson = this.currentLesson();
+    const lessonId = lesson?.id;
+    const courseId = lesson?.courseId ?? this.course()?.id;
+    const shouldPersistOffline = this.course()?.isOfflinePackage === true || !this.network.online();
+
+    if (courseId && lessonId && shouldPersistOffline) {
+      await this.courseDownload.mergeCompletedSectionsOffline(courseId, lessonId, [sectionId]);
+    }
+
+    if (options.persistBackend !== false && lessonId) {
+      const syncKey = this.buildSectionSyncKey(lessonId, sectionId);
+      if (this.confirmedSectionCompletionSyncs.has(syncKey)) {
+        return;
+      }
+
+      const inFlightSync = this.pendingSectionCompletionSyncs.get(syncKey);
+      if (inFlightSync) {
+        await inFlightSync;
+      } else {
+        const syncPromise = firstValueFrom(
+          this.apiClient.post<any>(`/api/v3/student/progress/lessons/${lessonId}/sections/${sectionId}/complete`, {})
+        )
+          .then(() => {
+            this.confirmedSectionCompletionSyncs.add(syncKey);
+          })
+          .catch(() => undefined)
+          .finally(() => {
+            this.pendingSectionCompletionSyncs.delete(syncKey);
+          });
+        this.pendingSectionCompletionSyncs.set(syncKey, syncPromise);
+        await syncPromise;
+      }
     }
   }
 
-  private loadCompletedSections(): void {
+  private buildLessonCompletionPayload(lesson: any): Record<string, unknown> {
+    const completedSectionIds = Array.isArray(lesson?.sections)
+      ? lesson.sections
+        .map((section: any) => section?.id)
+        .filter((sectionId: unknown): sectionId is string => typeof sectionId === 'string' && sectionId.length > 0)
+      : [];
+
+    return {
+      courseId: lesson?.courseId ?? this.course()?.id ?? null,
+      completedSectionIds,
+    };
+  }
+
+  private async loadCompletedSections(): Promise<void> {
     try {
-      const saved = localStorage.getItem('completed_sections');
-      if (saved) {
-        const sections = JSON.parse(saved);
-        this.completedSections.set(new Set(sections));
+      const courseId = this.course()?.id
+        ?? this.route.snapshot.paramMap.get('courseId')
+        ?? this.route.snapshot.paramMap.get('id');
+      if (!courseId) {
+        return;
       }
-    } catch (error) {
-      // localStorage parse — silent, start from scratch
+
+      const sections = await this.courseDownload.getOfflineCompletedSectionIds(courseId);
+      this.completedSections.set(new Set(sections));
+    } catch {
+      // Best-effort only.
     }
+  }
+
+  private async hydrateCompletedSections(
+    courseId: string,
+    lessonId: string | null,
+    online: boolean,
+  ): Promise<void> {
+    const offlineSections = await this.courseDownload.getOfflineCompletedSectionIds(courseId);
+    const merged = new Set(offlineSections);
+
+    if (online && lessonId) {
+      try {
+        const response: any = await firstValueFrom(
+          this.lessonApi.getLessonProgress(lessonId).pipe(catchError(() => of(null)))
+        );
+        const completedSections = Array.isArray(response?.data?.completedSections)
+          ? response.data.completedSections.filter(
+            (sectionId: unknown): sectionId is string => typeof sectionId === 'string' && sectionId.length > 0,
+          )
+          : [];
+        for (const sectionId of completedSections) {
+          merged.add(sectionId);
+        }
+      } catch {
+        // Best-effort hydration only.
+      }
+    }
+
+    this.completedSections.set(merged);
   }
 
   // Video events
-  onVideoEnded(): void {
-    this.learningService.markCurrentLessonComplete();
+  async onVideoEnded(): Promise<void> {
+    const lesson = this.currentLesson();
+    const currentSectionIndex = this.currentSectionIndex();
+    const isLastSection = !lesson?.sections?.length || currentSectionIndex >= lesson.sections.length - 1;
+    const completed = await this.onMarkComplete();
+    if (!completed) {
+      return;
+    }
 
     // Auto-advance to next lesson after 2s (Netflix pattern)
-    if (this.canGoNext()) {
+    if (isLastSection && this.canGoNext()) {
       setTimeout(() => {
-        this.nextLesson();
+        void this.nextLesson();
       }, 2000);
     }
   }
@@ -748,7 +859,11 @@ export class CourseLearningComponent implements OnInit {
    * Auto-marks the section as complete.
    */
   onSectionReadComplete(sectionId: string): void {
-    this.markSectionAsCompleted(sectionId);
+    if (this.completedSections().has(sectionId)) {
+      return;
+    }
+
+    void this.markSectionAsCompleted(sectionId);
   }
 
   // Section accordion
@@ -857,19 +972,18 @@ export class CourseLearningComponent implements OnInit {
     try {
       const state = await this.paymentService.loadPaymentStatus(courseId);
       this.hasPaid.set(state.hasPaid);
+      this.paymentAccessState.set(state.accessActivationState);
     } catch {
-      // Default to unpaid — content gating is enforced server-side anyway
+      this.paymentAccessState.set(null);
     }
   }
 
   /** Check if a lesson is locked (paid course + not paid + not free lesson) */
   isLessonLocked(lesson: any): boolean {
     if (!this.coursePaid()) return false;
-    if (this.hasPaid()) return false;
-    if (lesson.isFree) return false;
-    // Also check server-side locked flag
     if (lesson.locked === true) return true;
-    return true;
+    if (lesson.isFree) return false;
+    return !this.hasPaid() || this.paymentAccessState() === 'MANUAL_ACTIVATION_REQUIRED' || this.paymentAccessState() === 'ACCESS_PENDING';
   }
 
   /** Get payment info for the payment modal */
@@ -889,14 +1003,24 @@ export class CourseLearningComponent implements OnInit {
     this.showPaymentModal.set(false);
     if (startLearning === true) {
       this.hasPaid.set(true);
+      this.paymentAccessState.set('READY');
       this.coursePaid.set(false); // No longer locked
       // Reload course content to get unlocked content from server
       this.loadCourseFromRoute();
     }
   }
 
-  onPaymentComplete(): void {
+  onPaymentComplete(outcome: PaymentCompletionOutcome): void {
     this.hasPaid.set(true);
+    this.paymentAccessState.set(outcome.accessActivation.state);
+    if (outcome.accessActivation.state === 'READY') {
+      this.coursePaid.set(false);
+      this.loadCourseFromRoute();
+      return;
+    }
+    if (outcome.accessActivation.message) {
+      this.toast.info(outcome.accessActivation.message);
+    }
   }
 
   // Navigation
@@ -951,7 +1075,7 @@ export class CourseLearningComponent implements OnInit {
       if (result && (result as any)?.data?.isPassed !== false) {
         const lessonId = this.currentLesson()?.id;
         if (lessonId) {
-          await firstValueFrom(this.lessonApi.markLessonComplete(lessonId));
+          await firstValueFrom(this.lessonApi.markLessonComplete(lessonId, this.buildLessonCompletionPayload(this.currentLesson())));
           this.learningService.markCurrentLessonComplete();
         }
       }
@@ -975,14 +1099,13 @@ export class CourseLearningComponent implements OnInit {
       return;
     }
 
+    const nextCompletedSections = new Set(this.completedSections());
+    nextCompletedSections.add(sectionId);
+    const allSectionsCompleted = lesson.sections.every(section => nextCompletedSections.has(section.id));
     const alreadyCompleted = this.isSectionCompleted(sectionId);
     if (!alreadyCompleted) {
-      this.markSectionAsCompleted(sectionId);
+      await this.markSectionAsCompleted(sectionId, { persistBackend: !allSectionsCompleted });
     }
-
-    const allSectionsCompleted = lesson.sections.every(section =>
-      this.isSectionCompleted(section.id) || section.id === sectionId
-    );
 
     if (!allSectionsCompleted) {
       if (!alreadyCompleted) {
@@ -994,7 +1117,8 @@ export class CourseLearningComponent implements OnInit {
     try {
       const lessonAlreadyCompleted = this.learningService.isLessonCompleted(lesson.id)();
       if (!lessonAlreadyCompleted) {
-        await firstValueFrom(this.lessonApi.markLessonComplete(lesson.id));
+        await this.waitForSectionCompletionSync(lesson.id, sectionId);
+        await firstValueFrom(this.lessonApi.markLessonComplete(lesson.id, this.buildLessonCompletionPayload(lesson)));
         await this.enrollmentService.refreshCourseProgress(lesson.courseId);
         this.learningService.markCurrentLessonComplete();
       }
@@ -1096,5 +1220,16 @@ export class CourseLearningComponent implements OnInit {
       }
     }
     return title;
+  }
+
+  private buildSectionSyncKey(lessonId: string, sectionId: string): string {
+    return `${lessonId}:${sectionId}`;
+  }
+
+  private async waitForSectionCompletionSync(lessonId: string, sectionId: string): Promise<void> {
+    const syncPromise = this.pendingSectionCompletionSyncs.get(this.buildSectionSyncKey(lessonId, sectionId));
+    if (syncPromise) {
+      await syncPromise;
+    }
   }
 }

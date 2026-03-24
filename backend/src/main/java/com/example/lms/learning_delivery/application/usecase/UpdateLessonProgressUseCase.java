@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -35,12 +36,19 @@ public class UpdateLessonProgressUseCase {
         Enrollment enrollment = enrollmentRepository.findById(command.enrollmentId())
             .orElseThrow(() -> new EntityNotFoundException("Enrollment", command.enrollmentId()));
 
+        Enrollment.LessonProgress existingProgress = enrollment.getProgress() != null
+                ? enrollment.getProgress().get(command.lessonId().toString())
+                : null;
+
         // Build progress object
         Enrollment.LessonProgress progress = Enrollment.LessonProgress.builder()
-            .status(command.status() != null ? command.status() : "UNLOCKED")
-            .watchSeconds(command.watchSeconds())
-            .grade(command.grade())
+            .status(resolveNextStatus(existingProgress, command.status()))
+            .watchSeconds(resolveNextWatchSeconds(existingProgress, command.watchSeconds()))
+            .grade(command.grade() != null ? command.grade() : (existingProgress != null ? existingProgress.getGrade() : null))
             .lastActivity(Instant.now())
+            .completedSections(existingProgress != null && existingProgress.getCompletedSections() != null
+                    ? new ArrayList<>(existingProgress.getCompletedSections())
+                    : null)
             .build();
 
         // Update progress using domain method
@@ -101,5 +109,50 @@ public class UpdateLessonProgressUseCase {
 
         int percent = (int) ((completedCount * 100) / totalLessons);
         enrollment.updateCompletionPercent(percent);
+    }
+
+    private String resolveNextStatus(Enrollment.LessonProgress existingProgress, String requestedStatus) {
+        String currentStatus = normalizeStatus(existingProgress != null ? existingProgress.getStatus() : null);
+        String nextStatus = normalizeStatus(requestedStatus);
+
+        if ("COMPLETED".equals(currentStatus) || "COMPLETED".equals(nextStatus)) {
+            return "COMPLETED";
+        }
+
+        if ("IN_PROGRESS".equals(currentStatus) || "IN_PROGRESS".equals(nextStatus)) {
+            return "IN_PROGRESS";
+        }
+
+        if ("UNLOCKED".equals(currentStatus) || "UNLOCKED".equals(nextStatus)) {
+            return "UNLOCKED";
+        }
+
+        return nextStatus;
+    }
+
+    private String normalizeStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return "UNLOCKED";
+        }
+
+        String normalized = status.trim().toUpperCase();
+        return switch (normalized) {
+            case "COMPLETED", "IN_PROGRESS", "UNLOCKED", "LOCKED" -> normalized;
+            default -> "UNLOCKED";
+        };
+    }
+
+    private Integer resolveNextWatchSeconds(Enrollment.LessonProgress existingProgress, Integer requestedWatchSeconds) {
+        Integer existingWatchSeconds = existingProgress != null ? existingProgress.getWatchSeconds() : null;
+
+        if (requestedWatchSeconds == null) {
+            return existingWatchSeconds;
+        }
+
+        if (existingWatchSeconds == null) {
+            return requestedWatchSeconds;
+        }
+
+        return Math.max(existingWatchSeconds, requestedWatchSeconds);
     }
 }

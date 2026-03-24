@@ -114,7 +114,7 @@ Phase 4: SYNC (when connectivity returns)
 | `courses` | `id` | `downloadedAt` | id, title, description, thumbnailUrl, totalLessons, downloadedAt, version, sizeBytes | **NO** |
 | `chapters` | `id` | `courseId, [courseId+sortOrder]` | id, courseId, title, sortOrder | **NO** |
 | `lessons` | `id` | `courseId, chapterId, [courseId+sortOrder]` | id, courseId, chapterId, title, contentHtml, videoManifestUrl, videoOfflineUri, sortOrder, downloadedAt | **NO** |
-| `progress` | `++id` (auto) | `lessonId, courseId, userId, syncStatus, updatedAt` | lessonId, courseId, **userId**, progressPercent, videoPosition, completedAt, syncStatus, updatedAt | **YES** |
+| `progress` | `++id` (auto) | `lessonId, courseId, userId, syncStatus, updatedAt` | lessonId, courseId, **userId**, progressPercent, videoPosition, completedAt, completedSectionIds, syncStatus, updatedAt | **YES** |
 | `submissions` | `++id` (auto) | `assignmentId, userId, syncStatus, submittedAt` | assignmentId, **userId**, content, submittedAt, syncStatus, retryCount | **YES** |
 | `quizAttempts` | `++id` (auto) | `quizId, userId, syncStatus, submittedAt` | quizId, **userId**, answers, score, passed, submittedAt, syncStatus, retryCount | **YES** |
 | `syncQueue` | `++id` (auto) | `entityType, [syncStatus+createdAt], createdAt` | entityType, operationType, endpoint, payload, createdAt, syncStatus, retryCount, lastError, nextRetryAt | Via payload |
@@ -249,6 +249,7 @@ Phase 4: SYNC (when connectivity returns)
 |-------------|----------|-----------|
 | Video progress (watched segments) | **Additive merge** | Segments accumulate, union of all watched ranges |
 | Lesson completion | **Forward-only** | COMPLETED never reverts to IN_PROGRESS |
+| Section completion | **Set union** | Completed section IDs accumulate across devices without duplication |
 | Quiz attempts | **Server-wins** | Server grading is authoritative |
 | Assignment submissions | **Deferred** | Replay to individual endpoint, server decides |
 
@@ -260,6 +261,12 @@ Both sync → Server: Lessons 1, 2, 3, 4 all COMPLETED ✓
 ```
 
 **Assessment**: Appropriate for LMS domain. CRDT would be over-engineered for single-writer data. The forward-only strategy for lesson completion prevents accidental regression.
+
+**2026-03-23 clarification**:
+- The browser copy is an **optimistic local overlay**, not the system of record.
+- The server remains canonical for enrollment status, certificate issuance, and quiz grading.
+- Divergence between device A and device B learning progress is **not** treated as a hard conflict by default.
+- A real sync conflict is reserved for cases such as **stale publication/package mismatch** where replaying local progress against old content would be unsafe.
 
 ### 4.6 Concurrent Downloads
 
@@ -457,6 +464,11 @@ Entity: lesson_completion
   Strategy: FORWARD-ONLY
   Merge: MAX(status) where COMPLETED > IN_PROGRESS > NOT_STARTED
   Example: A=COMPLETED + B=IN_PROGRESS → COMPLETED
+
+Entity: section_completion
+  Strategy: SET-UNION
+  Merge: Union of completed section IDs for the same lesson
+  Example: A=[s1,s2] + B=[s2,s3] → [s1,s2,s3]
 
 Entity: quiz_attempt
   Strategy: SERVER-WINS

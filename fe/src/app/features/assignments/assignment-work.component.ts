@@ -226,10 +226,13 @@ export class AssignmentWorkComponent implements OnInit {
     this.error.set(null);
 
     try {
+      const selectedFiles = this.uploadedFiles();
+      const trimmedContent = this.submissionContent().trim();
       let firstFileUrl = '';
       let firstFileName = '';
+      let failedUploadCount = 0;
 
-      for (const file of this.uploadedFiles()) {
+      for (const file of selectedFiles) {
         try {
           const uploaded = await firstValueFrom(this.fileApi.uploadFile(file, 'assignment'));
           if (!firstFileUrl) {
@@ -237,12 +240,21 @@ export class AssignmentWorkComponent implements OnInit {
             firstFileName = uploaded.originalName || file.name;
           }
         } catch {
-          // Keep trying remaining files.
+          failedUploadCount++;
         }
       }
 
+      if (!trimmedContent && !firstFileUrl) {
+        const message = selectedFiles.length > 0
+          ? 'Không thể tải lên tệp đính kèm. Vui lòng thử lại trước khi nộp bài.'
+          : 'Vui lòng nhập nội dung hoặc đính kèm ít nhất một tệp trước khi nộp bài.';
+        this.error.set(message);
+        this.toast.error(message);
+        return;
+      }
+
       const payload = {
-        content: this.submissionContent().trim() || undefined,
+        content: trimmedContent || undefined,
         fileUrl: firstFileUrl || undefined,
         fileName: firstFileName || undefined,
       };
@@ -258,7 +270,14 @@ export class AssignmentWorkComponent implements OnInit {
         this.mySubmission.set(submissionResponse.data ?? null);
         this.submissionContent.set('');
         this.uploadedFiles.set([]);
-        this.toast.success('Nộp bài thành công!');
+
+        if (failedUploadCount > 0) {
+          this.toast.warning(
+            `Đã nộp bài thành công nhưng ${failedUploadCount}/${selectedFiles.length} tệp đính kèm không tải lên được.`
+          );
+        } else {
+          this.toast.success('Nộp bài thành công!');
+        }
       }
     } catch {
       this.error.set('Không thể nộp bài. Vui lòng thử lại.');

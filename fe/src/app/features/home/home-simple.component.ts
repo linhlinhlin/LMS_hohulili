@@ -59,7 +59,7 @@ interface FeaturedCourse {
           </p>
           <h1 class="hero-enter hero-enter-2 text-4xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-6xl">
             Học Hàng hải mọi lúc
-            <span class="mt-1 block bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">
+            <span class="mt-1 block bg-gradient-to-r from-blue-300 to-blue-300 bg-clip-text text-transparent">
               kể cả trên biển.
             </span>
           </h1>
@@ -243,7 +243,7 @@ interface FeaturedCourse {
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
           <div>
-            <div class="mb-4 inline-flex items-center gap-2 rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-300">
+            <div class="mb-4 inline-flex items-center gap-2 rounded-full bg-[#0056D2]/10 px-3 py-1 text-xs font-medium text-blue-300">
               <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
               Powered by AI
             </div>
@@ -255,14 +255,14 @@ interface FeaturedCourse {
             <ul class="mt-8 space-y-4">
               @for (item of aiFeatures; track item) {
                 <li class="flex items-start gap-3">
-                  <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                  <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                   <span class="text-blue-100/70">{{ item }}</span>
                 </li>
               }
             </ul>
             <div class="mt-10">
               <a href="https://wiii.holilihu.online" target="_blank" rel="noopener noreferrer"
-                 class="inline-flex items-center rounded-lg bg-cyan-500 px-6 py-3 text-[15px] font-semibold text-white shadow-lg shadow-cyan-500/20 transition-all hover:bg-cyan-400 hover:shadow-xl">
+                 class="inline-flex items-center rounded-lg bg-[#0056D2] px-6 py-3 text-[15px] font-semibold text-white shadow-lg shadow-[#0056D2]/20 transition-all hover:bg-[#004BB5] hover:shadow-xl">
                 Trò chuyện với Wiii
                 <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
               </a>
@@ -295,7 +295,7 @@ interface FeaturedCourse {
                     <img src="/images/wiii-avatar.png" alt="" class="mt-0.5 h-6 w-6 rounded-full">
                     <div class="max-w-[85%] rounded-2xl rounded-tl-md bg-white/10 px-4 py-2.5 text-sm leading-relaxed text-blue-100/80">
                       Theo Quy tắc 14 (COLREGS), khi hai tàu máy đối hướng, mỗi tàu phải
-                      <span class="text-cyan-300">chuyển hướng sang mạn phải</span>
+                      <span class="text-blue-300">chuyển hướng sang mạn phải</span>
                       để đi qua mạn trái của tàu kia...
                     </div>
                   </div>
@@ -462,9 +462,9 @@ export class HomeSimpleComponent implements OnInit, AfterViewInit {
     {
       svgId: 'sparkles', title: 'Wiii AI trợ giảng 24/7',
       desc: 'Trợ lý AI hiểu chuyên sâu về hàng hải \u2014 giải đáp thắc mắc, gợi ý lộ trình, hỗ trợ ôn thi bằng tiếng Việt ngay trong lúc học.',
-      iconBg: 'bg-cyan-500/10', iconColor: 'text-cyan-600',
+      iconBg: 'bg-[#0056D2]/10', iconColor: 'text-[#0056D2]',
       tag: '', tagColor: '',
-      link: 'https://wiii.holilihu.online', linkText: 'Trải nghiệm Wiii AI', linkColor: 'text-cyan-600 hover:text-cyan-700'
+      link: 'https://wiii.holilihu.online', linkText: 'Trải nghiệm Wiii AI', linkColor: 'text-[#0056D2] hover:text-[#004BB5]'
     },
     {
       svgId: 'shield-check', title: 'Chứng chỉ STCW / IMO',
