@@ -14,6 +14,7 @@ Thu muc nay chua cac bao cao dieu tra, audit, handoff, va runtime snapshot.
 - `2026-03-16-production-telemetry-normalization-and-vm-recovery.md`
 - `2026-03-17-console-noise-cleanup-and-offline-reset-hardening.md`
 - `2026-03-17-production-showcase-seed-and-assignment-fixes.md`
+- `2026-03-25-main-landing-summary.md`
 - `2026-03-16-phase-a-final-verification.md`
 - `2026-03-16-claude-code-handoff-platform-status.md`
 - `2026-03-07-authoring-and-runtime-status.md`
@@ -32,6 +33,7 @@ Trong do:
 - `2026-03-16-production-telemetry-normalization-and-vm-recovery.md` la bao cao incident + recovery khi deploy pass chuan hoa telemetry, ghi ro VM timeout, reset instance, redeploy tuan tu, Playwright smoke, va residual Wiii console noise.
 - `2026-03-17-console-noise-cleanup-and-offline-reset-hardening.md` la bao cao follow-up cho batch don console noise, lazy-mount Wiii iframe, suppress AI tren man admin van hanh, va hardening `resetOfflineStorage()` bang nhanh rotate DB name moi.
 - `2026-03-17-production-showcase-seed-and-assignment-fixes.md` la bao cao seed du lieu showcase production tu dau den cuoi, gom 2 khoa hoc, 1 lop hoc, assignment thuc te, certificate PDF, va cac fix phat sinh trong qua trinh tao du lieu.
+- `2026-03-25-main-landing-summary.md` la handoff ngan cho team sau khi snapshot cross-team duoc day len `main`, ghi ro commit landing, pham vi thay doi, muc validation da co, va cach tiep can docs canonicals.
 - `PHASE_B_EXECUTION_REPORT_TEMPLATE.md` la template bao cao de Claude Code dien ket qua moi sub-phase cua Phase B.
 - `2026-03-16-phase-a-final-verification.md` la ket luan cuoi cung sau deploy + smoke Phase A-E tren production.
 - `2026-03-16-claude-code-handoff-platform-status.md` la bao cao handoff cho team Claude Code, tap trung vao local vs production, publication/PWA/offline, video, quiz/exam, certificate, va checklist deploy-smoke tiep theo.
