@@ -193,7 +193,7 @@ export class AssignmentListComponent implements OnInit {
   }
 
   navigateToAssignment(id: string): void {
-    this.router.navigate(['/teacher/assessments/classes/assignments', id, 'overview']);
+    this.router.navigate(['/teacher/assessments/classes/assignments', id, 'submissions']);
   }
 
   onAssignmentRowSpace(event: Event, id: string): void {
@@ -375,7 +375,7 @@ export class AssignmentListComponent implements OnInit {
     return assignments.reduce((sum, assignment) => sum + (assignment.pendingCount || 0), 0);
   }
 
-  private sortAssignments(assignments: AssignmentWithStats[]): AssignmentWithStats[] {
+  sortAssignments(assignments: AssignmentWithStats[]): AssignmentWithStats[] {
     return [...assignments].sort((left, right) => {
       const rightTime = Date.parse(right.updatedAt || right.dueDate || right.createdAt || '') || 0;
       const leftTime = Date.parse(left.updatedAt || left.dueDate || left.createdAt || '') || 0;

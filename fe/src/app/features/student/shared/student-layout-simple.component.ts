@@ -381,7 +381,9 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
 })
 export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
   protected authService = inject(AuthService);
-  protected readonly enableAssistant = false;
+  // Students should get the same embedded Wiii assistant surface as teachers.
+  // Role-specific behavior is handled by host context and backend policies, not by hiding the entrypoint.
+  protected readonly enableAssistant = true;
   private router = inject(Router);
   private notificationService = inject(NotificationService);
   private messagingService = inject(MessagingService);
@@ -466,8 +468,8 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
   private handleRouteChange(url: string) {
     const isInLearningInterface = url.includes('/student/learn/course/');
     const isInQuiz = url.includes('/student/quiz/take/'); // Hide sidebar when taking quiz
-    const isInTaskWork = /\/student\/tasks\/[^/]+\/work(?:[/?#].*)?$/.test(url);
-    const shouldHide = isInLearningInterface || isInQuiz || isInTaskWork || url.includes('/ai-chat');
+    // Assignment work page now shows sidebar (redesigned as normal page, not full-page takeover)
+    const shouldHide = isInLearningInterface || isInQuiz || url.includes('/ai-chat');
     const isCurrentlyHidden = this.sidebarHidden();
 
     // Auto-hide sidebar when entering learning interface or quiz

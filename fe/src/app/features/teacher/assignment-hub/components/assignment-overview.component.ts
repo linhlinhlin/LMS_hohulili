@@ -22,121 +22,76 @@ import { ClassService } from '../../../../state/class.service';
   imports: [CommonModule, RouterLink, DistributionSelectorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="space-y-8 animate-in fade-in duration-500">
-      <!-- Stats Cards (SOTA 2025: High-density, subtle markers) -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 transition-all hover:shadow-md">
-          <div class="flex items-start justify-between">
-            <div>
-              <p class="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Đã nộp bài</p>
-              <div class="flex items-baseline gap-1 mt-2">
-                <p class="text-3xl font-black text-slate-900 tracking-tight">{{ stats().submittedCount }}</p>
-                <p class="text-xs font-bold text-slate-400">/{{ getAllocatedCount() }}</p>
-              </div>
-            </div>
-            <div class="w-10 h-10 bg-[#0056D2]/5 text-[#0056D2] rounded-xl flex items-center justify-center shadow-inner">
-               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-              </svg>
-            </div>
-          </div>
-        </div>
-        
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 transition-all hover:shadow-md">
-          <div class="flex items-start justify-between">
-            <div>
-              <p class="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Đã chấm điểm</p>
-              <p class="text-3xl font-black text-slate-900 mt-2 tracking-tight">{{ stats().gradedCount }}</p>
-            </div>
-            <div class="w-10 h-10 bg-green-50 text-green-600 rounded-xl flex items-center justify-center shadow-inner">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-            </div>
-          </div>
-        </div>
+    <div class="space-y-6">
 
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 transition-all hover:shadow-md">
-          <div class="flex items-start justify-between">
-            <div>
-              <p class="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Chờ phê duyệt</p>
-              <p class="text-3xl font-black text-slate-900 mt-2 tracking-tight">{{ stats().pendingCount }}</p>
-            </div>
-            <div class="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center shadow-inner">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-            </div>
+      @if (stats().submittedCount > 0) {
+        <!-- Stats (ONLY when there are submissions — no zero-noise) -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="rounded-lg border border-gray-200 bg-white p-4">
+            <p class="text-xs text-gray-500 mb-1">Đã nộp</p>
+            <p class="text-2xl font-bold text-gray-900">{{ stats().submittedCount }}<span class="text-sm font-normal text-gray-500">/{{ getAllocatedCount() }}</span></p>
+          </div>
+          <div class="rounded-lg border border-gray-200 bg-white p-4">
+            <p class="text-xs text-gray-500 mb-1">Đã chấm</p>
+            <p class="text-2xl font-bold text-emerald-600">{{ stats().gradedCount }}</p>
+          </div>
+          <div class="rounded-lg border border-gray-200 bg-white p-4">
+            <p class="text-xs text-gray-500 mb-1">Chờ chấm</p>
+            <p class="text-2xl font-bold" [class.text-amber-600]="stats().pendingCount > 0" [class.text-gray-900]="stats().pendingCount === 0">{{ stats().pendingCount }}</p>
+          </div>
+          <div class="rounded-lg border border-gray-200 bg-white p-4">
+            <p class="text-xs text-gray-500 mb-1">Điểm TB</p>
+            <p class="text-2xl font-bold text-gray-900">{{ stats().averageScore | number:'1.0-0' }}%</p>
           </div>
         </div>
-
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 transition-all hover:shadow-md">
-          <div class="flex items-start justify-between">
-            <div>
-              <p class="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Điểm trung bình</p>
-              <p class="text-3xl font-black text-slate-900 mt-2 tracking-tight">{{ stats().averageScore | number:'1.1-1' }}%</p>
-            </div>
-            <div class="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center shadow-inner">
-              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Allocation Statistics -->
-      @if (allocationStats()) {
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div class="bg-slate-50 border-b border-slate-100 px-6 py-4">
-            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-widest">Cấu hình phân phối hiện tại</h3>
-          </div>
-          <div class="p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div class="flex flex-col items-center justify-center p-4 bg-slate-50/50 rounded-xl border border-slate-100">
-              <p class="text-2xl font-black text-slate-900">{{ allocationStats()!.totalAllocated }}</p>
-              <p class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter mt-1">Đã giao bài</p>
-            </div>
-            <div class="flex flex-col items-center justify-center p-4 bg-slate-50/50 rounded-xl border border-slate-100">
-              <p class="text-2xl font-black text-slate-900">{{ stats().submittedCount }}</p>
-              <p class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter mt-1">Đã hoàn thành</p>
-            </div>
-            <div class="flex flex-col items-center justify-center p-4 bg-slate-50/50 rounded-xl border border-slate-100">
-              <p class="text-2xl font-black text-slate-900">{{ allocationStats()!.totalAllocated - stats().submittedCount }}</p>
-              <p class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter mt-1">Chưa hoàn thành</p>
-            </div>
-            <div class="flex flex-col items-center justify-center p-4 bg-slate-900 text-white rounded-xl shadow-lg">
-              <p class="text-sm font-black uppercase">
-                {{ getDistributionModeLabel() }}
-              </p>
-              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-1">Chế độ phân phối</p>
-            </div>
-          </div>
+      } @else {
+        <!-- Empty state when no submissions yet -->
+        <div class="rounded-lg border border-gray-200 bg-white p-8 text-center">
+          <svg class="mx-auto h-10 w-10 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/>
+          </svg>
+          <p class="text-sm font-medium text-gray-600">Chưa có học viên nộp bài</p>
+          <p class="text-xs text-gray-500 mt-1">{{ getAllocatedCount() }} học viên đã được giao bài tập này</p>
         </div>
       }
 
-      <!-- Score Distribution Card -->
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="bg-slate-50 border-b border-slate-100 px-6 py-4">
-           <h3 class="text-xs font-bold text-slate-900 uppercase tracking-widest">Phân bố phổ điểm</h3>
-        </div>
-        <div class="p-8 space-y-6">
-          @for (item of stats().scoreDistribution; track item.range) {
-            <div class="flex items-center gap-6">
-              <div class="w-24 text-[10px] font-extrabold text-slate-400 uppercase tracking-tight">{{ item.range }}</div>
-              <div class="flex-1 bg-slate-100 rounded-full h-8 overflow-hidden relative shadow-inner">
-                <div class="h-full bg-slate-900 rounded-full transition-all duration-700 ease-out shadow-lg"
-                     [style.width.%]="getBarWidth(item.count)"></div>
-                @if (item.count > 0) {
-                   <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white">{{ item.count }}</span>
-                }
-              </div>
-              <div class="w-20 text-[10px] font-bold text-slate-500 text-right uppercase">{{ item.count }} Học viên</div>
+      <!-- Assignment Content -->
+      <div class="rounded-lg border border-gray-200 bg-white shadow-sm p-6">
+        <div class="max-w-2xl space-y-5">
+          <div>
+            <h3 class="text-sm font-semibold text-gray-900 mb-2">Mô tả bài tập</h3>
+            <p class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{{ assignment()?.description || 'Không có mô tả' }}</p>
+          </div>
+
+          @if (assignment()?.instructions && assignment()?.instructions !== assignment()?.description) {
+            <div class="pt-4 border-t border-gray-100">
+              <h3 class="text-sm font-semibold text-gray-900 mb-2">Hướng dẫn thực hiện</h3>
+              <p class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{{ assignment()?.instructions }}</p>
             </div>
           }
         </div>
       </div>
 
-      <!-- Distribution Settings -->
+      <!-- Score Distribution (only when scores exist) -->
+      @if (hasAnyScores()) {
+        <div class="rounded-lg border border-gray-200 bg-white shadow-sm p-6">
+          <h3 class="text-sm font-semibold text-gray-900 mb-4">Phân bố điểm</h3>
+          <div class="max-w-lg space-y-2.5">
+            @for (item of stats().scoreDistribution; track item.range) {
+              <div class="flex items-center gap-3">
+                <span class="w-12 text-xs text-gray-500 text-right tabular-nums">{{ item.range }}</span>
+                <div class="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div class="h-full bg-[#0056D2] rounded-full transition-all duration-500"
+                       [style.width.%]="getBarWidth(item.count)"></div>
+                </div>
+                <span class="w-8 text-xs text-gray-500 tabular-nums">{{ item.count }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Distribution Settings (only for instructor-led) -->
       @if (assignment()?.deliveryMode === 'INSTRUCTOR_LED') {
         <app-distribution-selector
           [courseId]="assignment()?.courseId || null"
@@ -146,52 +101,6 @@ import { ClassService } from '../../../../state/class.service';
           [initialClassId]="currentClassId()"
           (distributionChange)="onDistributionChange($event)"
         ></app-distribution-selector>
-      } @else {
-        <div class="bg-blue-50 border border-blue-100 rounded-2xl p-6 text-sm text-blue-900">
-          Khóa học tự học dùng một phạm vi duy nhất cho toàn bộ khóa học. Phân phối theo lớp và theo từng học viên chỉ áp dụng cho lớp học có giảng viên.
-        </div>
-      }
-
-      <!-- Assignment Info Card -->
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-         <div class="bg-slate-50 border-b border-slate-100 px-6 py-4">
-           <h3 class="text-xs font-bold text-slate-900 uppercase tracking-widest">Nội dung chi tiết</h3>
-        </div>
-        <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div class="col-span-1 md:col-span-2">
-            <label class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 block">Mô tả bài tập</label>
-            <p class="text-sm font-medium text-slate-700 leading-relaxed">{{ assignment()?.description || 'Không có mô tả' }}</p>
-          </div>
-          <div class="col-span-1 md:col-span-2">
-            <label class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 block">Hướng dẫn thực hiện</label>
-            <p class="text-sm font-medium text-slate-700 leading-relaxed">{{ assignment()?.instructions || 'Không có hướng dẫn chi tiết' }}</p>
-          </div>
-          <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
-            <label class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1 block">Thời hạn nộp bài</label>
-            <p class="text-sm font-bold text-slate-900">{{ formatDate(assignment()?.dueDate) }}</p>
-          </div>
-          <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
-            <label class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1 block">Thang điểm tối đa</label>
-            <p class="text-sm font-bold text-slate-900">{{ assignment()?.maxScore || 100 }} Điểm chuyên cần</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Quick Actions (SOTA 2025: Gradient primary) -->
-      @if (stats().pendingCount > 0) {
-        <div class="bg-slate-900 rounded-2xl p-8 shadow-2xl relative overflow-hidden group">
-          <div class="absolute inset-0 bg-gradient-to-br from-[#0056D2]/20 to-transparent opacity-50 transition-opacity group-hover:opacity-70"></div>
-          <div class="relative flex flex-col md:flex-row items-center justify-between gap-6">
-            <div class="text-center md:text-left">
-              <h3 class="text-xl font-black text-white tracking-tight">{{ stats().pendingCount }} bài đang chờ đánh giá!</h3>
-              <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2">{{ getPendingReviewPrompt() }}</p>
-            </div>
-            <a routerLink="../submissions" [queryParams]="{filter: 'PENDING'}"
-               class="px-8 py-4 bg-white text-slate-900 text-xs font-black rounded-xl hover:bg-slate-100 transition-all shadow-xl active:scale-95 uppercase tracking-widest">
-              Chấm bài ngay →
-            </a>
-          </div>
-        </div>
       }
     </div>
   `
@@ -373,6 +282,10 @@ export class AssignmentOverviewComponent implements OnInit {
     return new Date(dateString).toLocaleDateString('vi-VN', {
       day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
     });
+  }
+
+  hasAnyScores(): boolean {
+    return this.stats().scoreDistribution.some((d: any) => d.count > 0);
   }
 
   getBarWidth(count: number): number {

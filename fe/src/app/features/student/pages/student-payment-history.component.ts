@@ -10,7 +10,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
   imports: [CommonModule, RouterLink, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-[1400px] mx-auto px-4 sm:px-6 py-6">
       <!-- Header -->
       <div class="mb-8">
         <h1 class="text-2xl font-bold text-gray-900">Lịch sử thanh toán</h1>
@@ -19,14 +19,14 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
 
       <!-- Loading -->
       @if (isLoading()) {
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center">
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-12 text-center">
           <div class="animate-spin w-10 h-10 border-4 border-[#0056D2] border-t-transparent rounded-full mx-auto mb-4"></div>
           <p class="text-gray-500">Đang tải lịch sử thanh toán...</p>
         </div>
       }
 
       @if (!isLoading() && loadError()) {
-        <div class="bg-white rounded-xl border border-red-200 shadow-sm p-8 text-center">
+        <div class="bg-white rounded-lg border border-red-200 shadow-sm p-8 text-center">
           <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
             <app-icon name="warning" size="lg" class="text-red-500"/>
           </div>
@@ -42,7 +42,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
 
       <!-- Empty State -->
       @if (!isLoading() && !loadError() && payments().length === 0) {
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center">
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-12 text-center">
           <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <app-icon name="briefcase" size="lg" class="text-gray-400"/>
           </div>
@@ -58,22 +58,22 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
       @if (!isLoading() && !loadError() && payments().length > 0) {
         <!-- Summary Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+          <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
             <p class="text-sm text-gray-500">Tổng giao dịch</p>
             <p class="text-2xl font-bold text-gray-900 mt-1">{{ payments().length }}</p>
           </div>
-          <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+          <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
             <p class="text-sm text-gray-500">Thành công</p>
             <p class="text-2xl font-bold text-emerald-600 mt-1">{{ completedCount() }}</p>
           </div>
-          <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+          <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
             <p class="text-sm text-gray-500">Tổng chi tiêu</p>
             <p class="text-2xl font-bold text-[#0056D2] mt-1">{{ totalSpent() | number:'1.0-0' }}₫</p>
           </div>
         </div>
 
         <!-- Table -->
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full">
               <thead>

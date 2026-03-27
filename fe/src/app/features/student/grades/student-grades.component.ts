@@ -38,632 +38,233 @@ interface CourseGrade {
   imports: [CommonModule, RouterModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="grades-container">
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">Kết quả học tập</h1>
-          <p class="page-subtitle">
-            Xem tiến độ toàn khóa học, kết quả bài tập và chứng chỉ của bạn.
-          </p>
+    <div class="min-h-screen bg-slate-50">
+      <div class="max-w-[1400px] mx-auto px-4 sm:px-6 py-6">
+
+        <!-- Page Header -->
+        <div class="mb-6">
+          <h1 class="text-2xl font-bold text-gray-900">Kết quả học tập</h1>
+          <p class="mt-1 text-sm text-gray-500">Xem tiến độ, điểm số và chứng chỉ của bạn</p>
         </div>
-        <div class="page-actions">
-          <a routerLink="/student/courses/library" class="header-link header-link-primary">Khóa học của tôi</a>
-          <a routerLink="/student/tasks" class="header-link">Bài cần làm</a>
+
+        <!-- Tab Chips -->
+        <div class="flex gap-2 mb-6 pb-4 border-b border-gray-200" role="tablist">
+          <button
+            class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border transition-all"
+            [class.bg-[#0056D2]]="activeTab() === 'grades'"
+            [class.text-white]="activeTab() === 'grades'"
+            [class.border-[#0056D2]]="activeTab() === 'grades'"
+            [class.bg-white]="activeTab() !== 'grades'"
+            [class.text-gray-700]="activeTab() !== 'grades'"
+            [class.border-gray-200]="activeTab() !== 'grades'"
+            [class.hover:border-gray-300]="activeTab() !== 'grades'"
+            (click)="activeTab.set('grades')"
+            role="tab" [attr.aria-selected]="activeTab() === 'grades'" type="button">
+            Bảng điểm ({{ grades().length }})
+          </button>
+          <button
+            class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border transition-all"
+            [class.bg-[#0056D2]]="activeTab() === 'certificates'"
+            [class.text-white]="activeTab() === 'certificates'"
+            [class.border-[#0056D2]]="activeTab() === 'certificates'"
+            [class.bg-white]="activeTab() !== 'certificates'"
+            [class.text-gray-700]="activeTab() !== 'certificates'"
+            [class.border-gray-200]="activeTab() !== 'certificates'"
+            [class.hover:border-gray-300]="activeTab() !== 'certificates'"
+            (click)="activeTab.set('certificates'); loadCertificates()"
+            role="tab" [attr.aria-selected]="activeTab() === 'certificates'" type="button">
+            Chứng chỉ ({{ certificates().length }})
+          </button>
         </div>
-      </div>
 
-      <!-- Tab Navigation -->
-      <div class="tab-nav">
-        <button class="tab-btn" [class.active]="activeTab() === 'grades'" (click)="activeTab.set('grades')">
-          Bảng điểm
-        </button>
-        <button class="tab-btn" [class.active]="activeTab() === 'certificates'" (click)="activeTab.set('certificates'); loadCertificates()">
-          Chứng chỉ
-        </button>
-      </div>
+        @if (error()) {
+          <div class="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-3 mb-4">
+            <span class="text-sm text-red-700">{{ error() }}</span>
+            <button class="text-red-400 hover:text-red-600" (click)="error.set(null)" type="button">&times;</button>
+          </div>
+        }
 
-      @if (error()) {
-        <div class="error-banner">
-          <span>{{ error() }}</span>
-          <button class="error-dismiss" (click)="error.set(null)">&times;</button>
-        </div>
-      }
-
-      @if (activeTab() === 'grades') {
-        <!-- GRADES TAB -->
-        @if (isLoading()) {
-          <div class="skeleton-summary">
-            <div class="skeleton-card"><div class="skeleton-pulse skeleton-value"></div><div class="skeleton-pulse skeleton-label"></div></div>
-            <div class="skeleton-card"><div class="skeleton-pulse skeleton-value"></div><div class="skeleton-pulse skeleton-label"></div></div>
-            <div class="skeleton-card"><div class="skeleton-pulse skeleton-value"></div><div class="skeleton-pulse skeleton-label"></div></div>
-          </div>
-          <div class="skeleton-table">
-            @for (i of [1,2,3,4]; track i) {
-              <div class="skeleton-row"><div class="skeleton-pulse skeleton-cell-sm"></div><div class="skeleton-pulse skeleton-cell-lg"></div><div class="skeleton-pulse skeleton-cell-md"></div><div class="skeleton-pulse skeleton-cell-sm"></div></div>
-            }
-          </div>
-        } @else if (grades().length === 0) {
-          <div class="empty-state">
-            <p class="empty-title">Chưa có dữ liệu điểm</p>
-            <p class="empty-text">Hãy đăng ký và hoàn thành các khóa học để xem điểm</p>
-            <a routerLink="/student/courses/library" class="empty-cta">Xem khóa học</a>
-          </div>
-        } @else {
-          <!-- Summary -->
-          <div class="summary-grid">
-            <div class="summary-card">
-              <div class="summary-value text-blue">{{ grades().length }}</div>
-              <div class="summary-label">Khóa học</div>
-            </div>
-            <div class="summary-card">
-              <div class="summary-value text-green">{{ completedCount() }}</div>
-              <div class="summary-label">Hoàn thành</div>
-            </div>
-            <div class="summary-card">
-              <div class="summary-value text-amber">{{ averageProgress() }}%</div>
-              <div class="summary-label">Tiến độ TB</div>
-            </div>
-          </div>
-
-          <!-- Grades Table -->
-          <div class="table-wrapper">
-            <table class="grades-table">
-              <thead>
-                <tr>
-                  <th class="th-left">Mã KH</th>
-                  <th class="th-left">Tên khóa học</th>
-                  <th class="th-center">Tiến độ</th>
-                  <th class="th-center">Trạng thái</th>
-                  <th class="th-center">Chứng chỉ</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (grade of grades(); track grade.courseId) {
-                  <tr>
-                    <td class="td-code">{{ grade.courseCode || '-' }}</td>
-                    <td>
-                      <a [routerLink]="['/student/courses', grade.courseId]" class="course-link">
-                        {{ grade.courseTitle }}
-                      </a>
-                      @if (grade.quizScores.length > 0 || grade.assignmentScores.length > 0) {
-                        <div class="score-details">
-                          @for (qs of grade.quizScores; track qs.quizId) {
-                            <span class="score-tag quiz-tag">Quiz: {{ qs.bestScore | number:'1.0-0' }}pts</span>
-                          }
-                          @for (ascore of grade.assignmentScores; track ascore.assignmentId) {
-                            @if (ascore.grade !== null) {
-                              <span class="score-tag assignment-tag">BT: {{ ascore.grade }}/{{ ascore.maxScore }}</span>
-                            }
-                          }
-                        </div>
-                      }
-                    </td>
-                    <td class="td-center">
-                      <div class="progress-cell">
-                        <div class="progress-track">
-                          <div class="progress-fill"
-                               [class.completed]="grade.progress >= 100"
-                               [style.width.%]="grade.progress"></div>
-                        </div>
-                        <span class="progress-text">{{ grade.progress }}%</span>
-                      </div>
-                    </td>
-                    <td class="td-center">
-                      <span class="status-badge" [class.status-completed]="grade.status === 'COMPLETED'" [class.status-active]="grade.status !== 'COMPLETED'">
-                        {{ grade.status === 'COMPLETED' ? 'Hoàn thành' : 'Đang học' }}
-                      </span>
-                    </td>
-                    <td class="td-center">
-                      @if (grade.hasCertificate) {
-                        <span class="cert-badge">Đã cấp</span>
-                      } @else {
-                        <span class="no-cert">-</span>
-                      }
-                    </td>
-                  </tr>
+        <!-- ═══ GRADES TAB ═══ -->
+        @if (activeTab() === 'grades') {
+          @if (isLoading()) {
+            <div class="space-y-4">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                @for (i of [1,2,3]; track i) {
+                  <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+                    <div class="animate-pulse space-y-3">
+                      <div class="h-3 w-16 rounded bg-gray-200"></div>
+                      <div class="h-7 w-12 rounded bg-gray-200"></div>
+                    </div>
+                  </div>
                 }
-              </tbody>
-            </table>
-          </div>
-        }
-      } @else {
-        <!-- CERTIFICATES TAB -->
-        @if (certsLoading()) {
-          <div class="skeleton-table">
-            @for (i of [1,2,3]; track i) {
-              <div class="skeleton-row"><div class="skeleton-pulse skeleton-cell-lg"></div><div class="skeleton-pulse skeleton-cell-md"></div></div>
-            }
-          </div>
-        } @else if (certificates().length === 0) {
-          <div class="empty-state">
-            <p class="empty-title">Chưa có chứng chỉ</p>
-            <p class="empty-text">Hoàn thành khóa học để nhận chứng chỉ</p>
-          </div>
-        } @else {
-          <div class="certs-grid">
-            @for (cert of certificates(); track cert.id) {
-              <div class="cert-card">
-                <div class="cert-icon">
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0056D2" stroke-width="2">
-                    <path d="M12 15l-3 3m0 0l-3-3m3 3V9m12 3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  </svg>
-                </div>
-                <div class="cert-info">
-                  <h3 class="cert-course">{{ cert.courseName }}</h3>
-                  <p class="cert-date">Cấp ngày: {{ cert.issuedAt }}</p>
-                  <p class="cert-token">Mã xác thực: {{ cert.verificationToken.substring(0, 8) }}...</p>
-                </div>
-                <a [routerLink]="['/student/certificate', cert.verificationToken]" class="cert-view-btn">
-                  Xem
-                </a>
               </div>
-            }
-          </div>
+              <div class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+                @for (i of [1,2,3,4]; track i) {
+                  <div class="flex items-center gap-4 px-5 py-4 border-b border-gray-100">
+                    <div class="animate-pulse h-4 w-16 rounded bg-gray-200"></div>
+                    <div class="animate-pulse h-4 flex-1 rounded bg-gray-200"></div>
+                    <div class="animate-pulse h-4 w-20 rounded bg-gray-200"></div>
+                  </div>
+                }
+              </div>
+            </div>
+          } @else if (grades().length === 0) {
+            <div class="rounded-lg border border-gray-200 bg-white p-12 text-center shadow-sm">
+              <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
+              </svg>
+              <p class="mt-3 text-sm font-medium text-gray-600">Chưa có dữ liệu điểm</p>
+              <p class="mt-1 text-xs text-gray-400">Hãy đăng ký và hoàn thành các khóa học để xem điểm</p>
+              <a routerLink="/student/courses/library"
+                 class="mt-4 inline-flex rounded-md bg-[#0056D2] px-4 py-2 text-sm font-medium text-white hover:bg-[#004BB5] transition-colors">
+                Xem khóa học
+              </a>
+            </div>
+          } @else {
+            <!-- Summary Stats -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+              <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+                <p class="text-xs font-medium uppercase tracking-wide text-gray-400">Khóa học</p>
+                <p class="mt-2 text-2xl font-bold text-[#0056D2]">{{ grades().length }}</p>
+              </div>
+              <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+                <p class="text-xs font-medium uppercase tracking-wide text-gray-400">Hoàn thành</p>
+                <p class="mt-2 text-2xl font-bold text-emerald-600">{{ completedCount() }}</p>
+              </div>
+              <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+                <p class="text-xs font-medium uppercase tracking-wide text-gray-400">Tiến độ TB</p>
+                <p class="mt-2 text-2xl font-bold text-gray-900">{{ averageProgress() }}%</p>
+              </div>
+            </div>
+
+            <!-- Grades Table -->
+            <div class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+              <div class="overflow-x-auto">
+                <table class="w-full">
+                  <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200">
+                      <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Mã KH</th>
+                      <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Tên khóa học</th>
+                      <th class="px-5 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">Tiến độ</th>
+                      <th class="px-5 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">Trạng thái</th>
+                      <th class="px-5 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">Chứng chỉ</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-100">
+                    @for (grade of grades(); track grade.courseId) {
+                      <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-5 py-4 text-sm text-gray-500 whitespace-nowrap">{{ grade.courseCode || '-' }}</td>
+                        <td class="px-5 py-4">
+                          <a [routerLink]="['/student/courses', grade.courseId]"
+                             class="text-sm font-medium text-[#0056D2] hover:underline">
+                            {{ grade.courseTitle }}
+                          </a>
+                          @if (grade.quizScores.length > 0 || grade.assignmentScores.length > 0) {
+                            <div class="flex flex-wrap gap-1.5 mt-1.5">
+                              @for (qs of grade.quizScores; track qs.quizId) {
+                                <span class="inline-flex rounded-full bg-[#0056D2]/8 px-2 py-0.5 text-[11px] font-medium text-[#0056D2]">
+                                  Quiz: {{ qs.bestScore | number:'1.0-0' }}pts
+                                </span>
+                              }
+                              @for (ascore of grade.assignmentScores; track ascore.assignmentId) {
+                                @if (ascore.grade !== null) {
+                                  <span class="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                                    BT: {{ ascore.grade }}/{{ ascore.maxScore }}
+                                  </span>
+                                }
+                              }
+                            </div>
+                          }
+                        </td>
+                        <td class="px-5 py-4">
+                          <div class="flex items-center justify-center gap-2">
+                            <div class="w-20 h-1.5 rounded-full bg-gray-200 overflow-hidden">
+                              <div class="h-full rounded-full transition-all duration-300"
+                                   [class.bg-emerald-500]="grade.progress >= 100"
+                                   [class.bg-[#0056D2]]="grade.progress < 100"
+                                   [style.width.%]="grade.progress"></div>
+                            </div>
+                            <span class="text-xs font-medium text-gray-600 w-8 text-right">{{ grade.progress }}%</span>
+                          </div>
+                        </td>
+                        <td class="px-5 py-4 text-center">
+                          <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
+                                [class.bg-emerald-50]="grade.status === 'COMPLETED'"
+                                [class.text-emerald-700]="grade.status === 'COMPLETED'"
+                                [class.bg-[#0056D2]/10]="grade.status !== 'COMPLETED'"
+                                [class.text-[#0056D2]]="grade.status !== 'COMPLETED'">
+                            {{ grade.status === 'COMPLETED' ? 'Hoàn thành' : 'Đang học' }}
+                          </span>
+                        </td>
+                        <td class="px-5 py-4 text-center">
+                          @if (grade.hasCertificate) {
+                            <span class="inline-flex rounded-full bg-[#0056D2]/10 px-2.5 py-0.5 text-xs font-medium text-[#0056D2]">
+                              Đã cấp
+                            </span>
+                          } @else {
+                            <span class="text-gray-300">-</span>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          }
         }
-      }
+
+        <!-- ═══ CERTIFICATES TAB ═══ -->
+        @if (activeTab() === 'certificates') {
+          @if (certsLoading()) {
+            <div class="space-y-3">
+              @for (i of [1,2,3]; track i) {
+                <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+                  <div class="animate-pulse flex items-center gap-4">
+                    <div class="h-12 w-12 rounded-lg bg-gray-200"></div>
+                    <div class="flex-1 space-y-2">
+                      <div class="h-4 w-48 rounded bg-gray-200"></div>
+                      <div class="h-3 w-32 rounded bg-gray-200"></div>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          } @else if (certificates().length === 0) {
+            <div class="rounded-lg border border-gray-200 bg-white p-12 text-center shadow-sm">
+              <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 0 1-.982-3.172M9.497 14.25a7.454 7.454 0 0 0 .982-3.172M8.25 8.25a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0Z" />
+              </svg>
+              <p class="mt-3 text-sm font-medium text-gray-600">Chưa có chứng chỉ</p>
+              <p class="mt-1 text-xs text-gray-400">Hoàn thành khóa học để nhận chứng chỉ</p>
+            </div>
+          } @else {
+            <div class="space-y-3">
+              @for (cert of certificates(); track cert.id) {
+                <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+                  <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-[#0056D2]/10 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-[#0056D2]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 0 1-.982-3.172M9.497 14.25a7.454 7.454 0 0 0 .982-3.172M8.25 8.25a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0Z" />
+                    </svg>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <h3 class="text-sm font-semibold text-gray-900 truncate">{{ cert.courseName }}</h3>
+                    <p class="text-xs text-gray-500 mt-0.5">Cấp ngày: {{ cert.issuedAt }}</p>
+                    <p class="text-xs text-gray-400 mt-0.5">Mã: {{ cert.verificationToken.substring(0, 8) }}...</p>
+                  </div>
+                  <a [routerLink]="['/student/certificate', cert.verificationToken]"
+                     class="flex-shrink-0 rounded-md bg-[#0056D2] px-4 py-2 text-sm font-medium text-white hover:bg-[#004BB5] transition-colors">
+                    Xem
+                  </a>
+                </div>
+              }
+            </div>
+          }
+        }
+
+      </div>
     </div>
-  `,
-  styles: [`
-    .grades-container {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 24px;
-    }
-
-    .page-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-
-    .page-title {
-      margin: 0;
-      font-size: 28px;
-      font-weight: 700;
-      color: #111827;
-    }
-
-    .page-subtitle {
-      margin: 8px 0 0;
-      color: #6b7280;
-      font-size: 14px;
-      line-height: 1.5;
-      max-width: 560px;
-    }
-
-    .page-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      justify-content: flex-end;
-    }
-
-    .header-link {
-      display: inline-flex;
-      align-items: center;
-      padding: 8px 14px;
-      border: 1px solid #e5e7eb;
-      border-radius: 999px;
-      color: #374151;
-      background: #fff;
-      text-decoration: none;
-      font-size: 13px;
-      font-weight: 600;
-      transition: background 0.2s ease, border-color 0.2s ease;
-    }
-
-    .header-link:hover {
-      background: #f9fafb;
-    }
-
-    .header-link-primary {
-      border-color: #bfdbfe;
-      background: #eff6ff;
-      color: #1d4ed8;
-    }
-
-    /* Tab Navigation */
-    .tab-nav {
-      display: flex;
-      gap: 4px;
-      margin-bottom: 24px;
-      background: #f3f4f6;
-      border-radius: 10px;
-      padding: 4px;
-    }
-
-    .tab-btn {
-      flex: 1;
-      padding: 10px 16px;
-      border: none;
-      background: transparent;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 14px;
-      color: #6b7280;
-      cursor: pointer;
-      transition: all 0.2s;
-
-      &.active {
-        background: #fff;
-        color: #1f2937;
-        box-shadow: 0 1px 3px rgba(0,0,0,.1);
-      }
-
-      &:hover:not(.active) { color: #374151; }
-    }
-
-    /* Error Banner */
-    .error-banner {
-      background: #fef2f2;
-      border: 1px solid #fecaca;
-      color: #991b1b;
-      padding: 12px 16px;
-      border-radius: 8px;
-      margin-bottom: 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .error-dismiss {
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-size: 18px;
-      color: #991b1b;
-    }
-
-    /* Loading Skeleton */
-    .skeleton-summary {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    .skeleton-card {
-      background: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,.1);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .skeleton-pulse {
-      background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
-      background-size: 200% 100%;
-      animation: pulse 1.5s infinite;
-      border-radius: 4px;
-    }
-
-    .skeleton-value { width: 60px; height: 28px; }
-    .skeleton-label { width: 80px; height: 14px; }
-
-    .skeleton-table {
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,.1);
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .skeleton-row {
-      display: flex;
-      gap: 16px;
-      align-items: center;
-    }
-
-    .skeleton-cell-sm { width: 60px; height: 16px; }
-    .skeleton-cell-md { width: 100px; height: 16px; }
-    .skeleton-cell-lg { flex: 1; height: 16px; }
-
-    @keyframes pulse {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
-
-    /* Empty State */
-    .empty-state {
-      text-align: center;
-      padding: 48px;
-      background: #f9fafb;
-      border-radius: 12px;
-      border: 1px dashed #d1d5db;
-    }
-
-    .empty-title {
-      font-size: 18px;
-      color: #6b7280;
-      margin: 0;
-    }
-
-    .empty-text {
-      color: #9ca3af;
-      margin: 8px 0 0;
-    }
-
-    .empty-cta {
-      display: inline-block;
-      margin-top: 16px;
-      padding: 8px 24px;
-      background: #0056D2;
-      color: #fff;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: 500;
-      transition: background 0.2s;
-
-      &:hover { background: #004BB5; }
-    }
-
-    /* Summary Grid */
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    @media (max-width: 640px) {
-      .summary-grid { grid-template-columns: 1fr; }
-      .skeleton-summary { grid-template-columns: 1fr; }
-    }
-
-    .summary-card {
-      background: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,.1);
-      text-align: center;
-    }
-
-    .summary-value {
-      font-size: 28px;
-      font-weight: 700;
-    }
-
-    .summary-label {
-      color: #6b7280;
-      font-size: 14px;
-      margin-top: 4px;
-    }
-
-    .text-blue { color: #0056D2; }
-    .text-green { color: #10b981; }
-    .text-amber { color: #f59e0b; }
-
-    /* Table */
-    .table-wrapper {
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,.1);
-      overflow: hidden;
-    }
-
-    .grades-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    thead tr {
-      background: #f9fafb;
-    }
-
-    th {
-      padding: 12px 16px;
-      font-weight: 600;
-      color: #374151;
-      font-size: 14px;
-    }
-
-    .th-left { text-align: left; }
-    .th-center { text-align: center; }
-
-    tbody tr {
-      border-top: 1px solid #e5e7eb;
-      transition: background 0.15s;
-
-      &:hover { background: #f9fafb; }
-    }
-
-    td {
-      padding: 12px 16px;
-    }
-
-    .td-code {
-      font-size: 14px;
-      color: #6b7280;
-    }
-
-    .td-center {
-      text-align: center;
-    }
-
-    .course-link {
-      color: #0056D2;
-      text-decoration: none;
-      font-weight: 500;
-
-      &:hover { text-decoration: underline; }
-    }
-
-    /* Score Details */
-    .score-details {
-      display: flex;
-      gap: 4px;
-      flex-wrap: wrap;
-      margin-top: 4px;
-    }
-
-    .score-tag {
-      font-size: 11px;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-weight: 500;
-    }
-
-    .quiz-tag {
-      background: #ede9fe;
-      color: #6d28d9;
-    }
-
-    .assignment-tag {
-      background: #fef3c7;
-      color: #92400e;
-    }
-
-    /* Progress Cell */
-    .progress-cell {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .progress-track {
-      width: 80px;
-      height: 6px;
-      background: #e5e7eb;
-      border-radius: 3px;
-      overflow: hidden;
-    }
-
-    .progress-fill {
-      height: 100%;
-      border-radius: 3px;
-      background: #0056D2;
-      transition: width 0.3s;
-
-      &.completed { background: #10b981; }
-    }
-
-    .progress-text {
-      font-size: 13px;
-      font-weight: 500;
-      color: #374151;
-    }
-
-    /* Status Badge */
-    .status-badge {
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 500;
-    }
-
-    .status-completed {
-      background: #d1fae5;
-      color: #065f46;
-    }
-
-    .status-active {
-      background: #dbeafe;
-      color: #1e40af;
-    }
-
-    .cert-badge {
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 500;
-      background: #dbeafe;
-      color: #1e40af;
-    }
-
-    .no-cert {
-      color: #9ca3af;
-    }
-
-    /* Certificates Grid */
-    .certs-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .cert-card {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      background: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,.1);
-      transition: box-shadow 0.2s;
-
-      &:hover { box-shadow: 0 4px 12px rgba(0,0,0,.1); }
-    }
-
-    .cert-icon {
-      flex-shrink: 0;
-      width: 56px;
-      height: 56px;
-      background: #eff6ff;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .cert-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .cert-course {
-      font-size: 16px;
-      font-weight: 600;
-      color: #1f2937;
-      margin: 0 0 4px;
-    }
-
-    .cert-date, .cert-token {
-      font-size: 13px;
-      color: #6b7280;
-      margin: 0;
-    }
-
-    .cert-view-btn {
-      flex-shrink: 0;
-      padding: 8px 20px;
-      background: #0056D2;
-      color: #fff;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: 500;
-      font-size: 14px;
-      transition: background 0.2s;
-
-      &:hover { background: #004BB5; }
-    }
-
-    /* Responsive table */
-    @media (max-width: 640px) {
-      .grades-container { padding: 16px; }
-
-      .page-header {
-        flex-direction: column;
-      }
-
-      .page-actions {
-        justify-content: flex-start;
-      }
-
-      .table-wrapper { overflow-x: auto; }
-
-      .grades-table { min-width: 600px; }
-
-      .cert-card { flex-wrap: wrap; }
-    }
-  `]
+  `
 })
 export class StudentGradesComponent implements OnInit {
   private apiClient = inject(ApiClient);
@@ -703,7 +304,7 @@ export class StudentGradesComponent implements OnInit {
   }
 
   async loadCertificates(): Promise<void> {
-    if (this.certificates().length > 0) return; // already loaded
+    if (this.certificates().length > 0) return;
     this.certsLoading.set(true);
     this.error.set(null);
     try {

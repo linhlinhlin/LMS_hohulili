@@ -3,7 +3,7 @@ import { StudentAssignment, StudentTaskStatus } from '../../services/student-ass
 /**
  * Tab-based grouping for the task list (Coursera/Canvas pattern)
  */
-export type TaskTab = 'todo' | 'submitted' | 'graded';
+export type TaskTab = 'todo' | 'overdue' | 'submitted' | 'graded';
 
 export interface AssignmentStats {
   total: number;
@@ -30,8 +30,9 @@ export type DeadlineUrgency = 'normal' | 'warning' | 'danger';
 // ============================================
 
 /**
- * Filter assignments by active tab.
- * - todo: NOT_STARTED + IN_PROGRESS + OVERDUE (things student needs to act on)
+ * Filter assignments by active tab (Google Classroom pattern).
+ * - todo: NOT_STARTED + IN_PROGRESS (things student can still act on)
+ * - overdue: OVERDUE or (NOT_STARTED/IN_PROGRESS with isOverdue) — past due, may not accept submission
  * - submitted: SUBMITTED (waiting for grading)
  * - graded: GRADED (has score)
  */
@@ -39,7 +40,11 @@ export function filterByTab(assignments: StudentAssignment[], tab: TaskTab): Stu
   switch (tab) {
     case 'todo':
       return assignments.filter(a =>
-        a.status === 'NOT_STARTED' || a.status === 'IN_PROGRESS' || a.status === 'OVERDUE'
+        (a.status === 'NOT_STARTED' || a.status === 'IN_PROGRESS') && !a.isOverdue
+      );
+    case 'overdue':
+      return assignments.filter(a =>
+        a.status === 'OVERDUE' || ((a.status === 'NOT_STARTED' || a.status === 'IN_PROGRESS') && a.isOverdue)
       );
     case 'submitted':
       return assignments.filter(a => a.status === 'SUBMITTED');
@@ -52,13 +57,15 @@ export function filterByTab(assignments: StudentAssignment[], tab: TaskTab): Stu
  * Count assignments per tab
  */
 export function countByTab(assignments: StudentAssignment[]): Record<TaskTab, number> {
-  let todo = 0, submitted = 0, graded = 0;
+  let todo = 0, overdue = 0, submitted = 0, graded = 0;
   for (const a of assignments) {
     switch (a.status) {
       case 'NOT_STARTED':
       case 'IN_PROGRESS':
+        if (a.isOverdue) { overdue++; } else { todo++; }
+        break;
       case 'OVERDUE':
-        todo++;
+        overdue++;
         break;
       case 'SUBMITTED':
         submitted++;
@@ -68,7 +75,7 @@ export function countByTab(assignments: StudentAssignment[]): Record<TaskTab, nu
         break;
     }
   }
-  return { todo, submitted, graded };
+  return { todo, overdue, submitted, graded };
 }
 
 // ============================================

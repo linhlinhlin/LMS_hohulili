@@ -1,11 +1,10 @@
 import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
-import { LucideAngularModule } from 'lucide-angular';
 
 /**
  * Assignment Audit Log Component
- * 
+ *
  * Displays history of grading actions for STCW compliance.
- * 
+ *
  * @requirements Expert feedback - Audit Log for STCW compliance
  */
 
@@ -23,83 +22,83 @@ interface AuditLogEntry {
 
 @Component({
   selector: 'app-assignment-audit-log',
-  standalone: true,
-  imports: [LucideAngularModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in duration-500">
-      
-      <!-- Header Area -->
-      <div class="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
-        <div>
-          <h3 class="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-            <lucide-icon name="history" [size]="16" class="text-[#0056D2]"></lucide-icon>
-            Lịch sử thao tác (Audit Log)
-          </h3>
-          <p class="text-[10px] text-slate-500 font-bold uppercase tracking-tight mt-1">
-            Ghi lại mọi thay đổi phục vụ chuẩn đào đạo STCW và minh bạch điểm số
-          </p>
+    <div class="space-y-6">
+      <!-- Header -->
+      <div class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <div class="px-5 py-3 border-b border-gray-200">
+          <h3 class="text-sm font-semibold text-gray-900">Lịch sử thao tác</h3>
+          <p class="text-xs text-gray-500 mt-0.5">Ghi lại mọi thay đổi phục vụ chuẩn đào tạo STCW và minh bạch điểm số</p>
         </div>
-      </div>
-      
-      <!-- Timeline Content -->
-      <div class="p-8">
-        <div class="relative space-y-8 before:absolute before:left-[19px] before:top-2 before:bottom-0 before:w-[2px] before:bg-slate-100">
-          
-          @for (entry of auditLog(); track entry.id) {
-            <div class="relative pl-14 group">
-              <!-- Timeline Marker -->
-              <div class="absolute left-0 top-0 w-10 h-10 rounded-2xl flex items-center justify-center z-10 border-4 border-white shadow-sm transition-transform group-hover:scale-110" 
-                   [class]="getActionBgClass(entry.action)">
-                <lucide-icon [name]="getActionIconName(entry.action)" [size]="16" [class]="getActionIconClass(entry.action)"></lucide-icon>
-              </div>
 
-              <!-- Content Card -->
-              <div class="p-5 rounded-2xl border border-slate-100 bg-white group-hover:border-[#0056D2]/30 group-hover:shadow-md transition-all duration-300">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs font-black text-slate-900">{{ entry.userName }}</span>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ getActionText(entry.action) }}</span>
-                    <span class="text-xs font-black text-[#0056D2]">{{ entry.studentName }}</span>
+        <!-- Timeline -->
+        <div class="p-5">
+          @if (auditLog().length > 0) {
+            <div class="relative space-y-6 before:absolute before:left-[15px] before:top-2 before:bottom-0 before:w-px before:bg-gray-200">
+              @for (entry of auditLog(); track entry.id) {
+                <div class="relative pl-10">
+                  <!-- Timeline marker -->
+                  <div class="absolute left-0 top-0 w-8 h-8 rounded-full flex items-center justify-center z-10 border-2 border-white"
+                       [class]="getActionBgClass(entry.action)">
+                    <svg class="w-3.5 h-3.5" [class]="getActionIconClass(entry.action)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      @switch (entry.action) {
+                        @case ('GRADE_CREATED') { <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/> }
+                        @case ('GRADE_UPDATED') { <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z"/> }
+                        @case ('FEEDBACK_ADDED') { <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 0 1 1.037-.443 48.282 48.282 0 0 0 5.862-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"/> }
+                        @case ('RUBRIC_CHANGED') { <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182"/> }
+                        @case ('DEADLINE_EXTENDED') { <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/> }
+                        @default { <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"/> }
+                      }
+                    </svg>
                   </div>
-                  <span class="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded">{{ formatDate(entry.timestamp) }}</span>
+
+                  <!-- Content -->
+                  <div class="rounded-lg border border-gray-100 bg-white p-4 hover:border-gray-200 transition-colors">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
+                      <div class="flex items-center gap-1.5 text-sm">
+                        <span class="font-medium text-gray-900">{{ entry.userName }}</span>
+                        <span class="text-gray-500">{{ getActionText(entry.action) }}</span>
+                        <span class="font-medium text-[#0056D2]">{{ entry.studentName }}</span>
+                      </div>
+                      <span class="text-xs text-gray-400">{{ formatDate(entry.timestamp) }}</span>
+                    </div>
+
+                    @if (entry.oldValue && entry.newValue) {
+                      <div class="flex items-center gap-3 py-2 px-3 bg-gray-50 rounded-md mt-2">
+                        <div>
+                          <p class="text-xs text-gray-500">Điểm cũ</p>
+                          <p class="text-sm text-gray-400 line-through">{{ entry.oldValue }}</p>
+                        </div>
+                        <svg class="w-3.5 h-3.5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
+                        </svg>
+                        <div>
+                          <p class="text-xs text-gray-500">Điểm mới</p>
+                          <p class="text-sm font-semibold text-emerald-600">{{ entry.newValue }}</p>
+                        </div>
+                      </div>
+                    }
+
+                    @if (entry.reason) {
+                      <div class="mt-2 p-2.5 bg-amber-50 border-l-2 border-amber-200 rounded-r-md">
+                        <p class="text-xs text-amber-700">
+                          <span class="font-medium mr-1">Lý do:</span>{{ entry.reason }}
+                        </p>
+                      </div>
+                    }
+                  </div>
                 </div>
-
-                @if (entry.oldValue && entry.newValue) {
-                  <div class="flex items-center gap-4 py-3 px-4 bg-slate-50/50 rounded-xl border border-slate-50 mb-3">
-                    <div class="flex flex-col gap-1">
-                      <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Điểm cũ</span>
-                      <span class="text-xs font-black text-slate-400 line-through">{{ entry.oldValue }}</span>
-                    </div>
-                    <lucide-icon name="arrow-right" [size]="14" class="text-slate-300"></lucide-icon>
-                    <div class="flex flex-col gap-1">
-                      <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Điểm mới</span>
-                      <span class="text-xs font-black text-emerald-600">{{ entry.newValue }}</span>
-                    </div>
-                  </div>
-                }
-
-                @if (entry.reason) {
-                  <div class="p-3 bg-amber-50/50 border-l-2 border-amber-200 rounded-r-lg">
-                    <p class="text-[11px] text-amber-700 font-medium leading-relaxed italic">
-                      <span class="font-black text-[9px] uppercase tracking-widest mr-1 opacity-70">Lý do:</span>
-                      {{ entry.reason }}
-                    </p>
-                  </div>
-                }
-              </div>
+              }
             </div>
-          }
-          
-          @if (auditLog().length === 0) {
-            <div class="py-20 flex flex-col items-center text-center">
-              <div class="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mb-6 border border-slate-100 text-slate-300">
-                <lucide-icon name="activity" [size]="32"></lucide-icon>
-              </div>
-              <h4 class="text-base font-black text-slate-800 uppercase tracking-widest mb-2">Chưa có ghi nhận hoạt động</h4>
-              <p class="text-sm text-slate-500 font-medium max-w-[280px]">
-                Các thao tác chấm điểm, chỉnh sửa rubric hoặc thay đổi thời hạn sẽ được hiển thị tại đây.
-              </p>
+          } @else {
+            <!-- Empty state -->
+            <div class="py-12 text-center">
+              <svg class="mx-auto h-10 w-10 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+              </svg>
+              <p class="text-sm font-medium text-gray-600">Chưa có ghi nhận hoạt động</p>
+              <p class="text-xs text-gray-500 mt-1">Các thao tác chấm điểm, rubric hoặc thay đổi thời hạn sẽ hiển thị tại đây.</p>
             </div>
           }
         </div>
@@ -114,36 +113,24 @@ export class AssignmentAuditLogComponent {
     const classes: Record<string, string> = {
       'GRADE_CREATED': 'bg-emerald-100',
       'GRADE_UPDATED': 'bg-amber-100',
-      'FEEDBACK_ADDED': 'bg-blue-100',
-      'RUBRIC_CHANGED': 'bg-purple-100',
+      'FEEDBACK_ADDED': 'bg-[#0056D2]/10',
+      'RUBRIC_CHANGED': 'bg-[#0056D2]/10',
       'DEADLINE_EXTENDED': 'bg-[#0056D2]/10',
-      'ASSIGNMENT_DISTRIBUTED': 'bg-slate-100'
+      'ASSIGNMENT_DISTRIBUTED': 'bg-gray-100'
     };
-    return classes[action] || 'bg-slate-100';
-  }
-
-  getActionIconName(action: string): string {
-    const icons: Record<string, string> = {
-      'GRADE_CREATED': 'plus-circle',
-      'GRADE_UPDATED': 'edit-3',
-      'FEEDBACK_ADDED': 'message-square',
-      'RUBRIC_CHANGED': 'layout',
-      'DEADLINE_EXTENDED': 'calendar',
-      'ASSIGNMENT_DISTRIBUTED': 'users'
-    };
-    return icons[action] || 'check-circle';
+    return classes[action] || 'bg-gray-100';
   }
 
   getActionIconClass(action: string): string {
     const classes: Record<string, string> = {
       'GRADE_CREATED': 'text-emerald-600',
       'GRADE_UPDATED': 'text-amber-600',
-      'FEEDBACK_ADDED': 'text-blue-600',
-      'RUBRIC_CHANGED': 'text-purple-600',
+      'FEEDBACK_ADDED': 'text-[#0056D2]',
+      'RUBRIC_CHANGED': 'text-[#0056D2]',
       'DEADLINE_EXTENDED': 'text-[#0056D2]',
-      'ASSIGNMENT_DISTRIBUTED': 'text-slate-600'
+      'ASSIGNMENT_DISTRIBUTED': 'text-gray-600'
     };
-    return classes[action] || 'text-slate-600';
+    return classes[action] || 'text-gray-600';
   }
 
   getActionText(action: string): string {
@@ -153,7 +140,7 @@ export class AssignmentAuditLogComponent {
       'FEEDBACK_ADDED': 'đã thêm nhận xét cho',
       'RUBRIC_CHANGED': 'đã điều chỉnh rubric của',
       'DEADLINE_EXTENDED': 'đã gia hạn thời gian cho',
-      'ASSIGNMENT_DISTRIBUTED': 'đã thực hiện phân phối tới'
+      'ASSIGNMENT_DISTRIBUTED': 'đã phân phối tới'
     };
     return texts[action] || action;
   }
@@ -161,5 +148,4 @@ export class AssignmentAuditLogComponent {
   formatDate(dateString: string): string {
     return new Date(dateString).toLocaleString('vi-VN');
   }
-
 }

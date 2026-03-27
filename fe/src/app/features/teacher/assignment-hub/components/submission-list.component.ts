@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, OnInit, signal, effect, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -21,74 +21,94 @@ import { LucideAngularModule } from 'lucide-angular';
   imports: [RouterLink, FormsModule, LucideAngularModule, CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="space-y-6 animate-in fade-in duration-500">
-      
-      <!-- Toolbar & Filters -->
-      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl w-fit">
-          <button (click)="setFilter('ALL')" 
-                  [class]="filter() === 'ALL' ? 'bg-white text-[#0056D2] shadow-sm' : 'text-slate-500 hover:text-slate-700'"
-                  class="h-9 px-4 rounded-xl text-xs font-bold transition-all">
+    <div class="space-y-6">
+
+      <!-- Compact Stats Row (moved from Overview — only when submissions exist) -->
+      @if (stats().submittedCount > 0) {
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border border-gray-200 bg-white shadow-sm px-5 py-3">
+          <div class="flex items-center gap-1.5 text-sm">
+            <span class="text-gray-500">Đã nộp</span>
+            <span class="font-semibold text-gray-900">{{ stats().submittedCount }}<span class="text-gray-400 font-normal">/{{ stats().totalStudents || '-' }}</span></span>
+          </div>
+          <div class="w-px h-4 bg-gray-200"></div>
+          <div class="flex items-center gap-1.5 text-sm">
+            <span class="text-gray-500">Đã chấm</span>
+            <span class="font-semibold text-emerald-600">{{ stats().gradedCount }}</span>
+          </div>
+          <div class="w-px h-4 bg-gray-200"></div>
+          <div class="flex items-center gap-1.5 text-sm">
+            <span class="text-gray-500">Chờ chấm</span>
+            <span class="font-semibold" [class.text-amber-600]="stats().pendingCount > 0" [class.text-gray-900]="stats().pendingCount === 0">{{ stats().pendingCount }}</span>
+          </div>
+          <div class="w-px h-4 bg-gray-200"></div>
+          <div class="flex items-center gap-1.5 text-sm">
+            <span class="text-gray-500">Điểm TB</span>
+            <span class="font-semibold text-gray-900">{{ stats().averageScore | number:'1.0-0' }}%</span>
+          </div>
+        </div>
+      }
+
+      <!-- Filter Tabs (pill pattern — matches overview/list pages) -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div class="flex flex-wrap gap-2" role="tablist">
+          <button (click)="setFilter('ALL')" role="tab"
+                  [class]="filter() === 'ALL' ? 'bg-[#0056D2] text-white border-[#0056D2]' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'"
+                  class="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors">
             Tất cả
           </button>
-          <button (click)="setFilter('PENDING')"
-                  [class]="filter() === 'PENDING' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
-                  class="h-9 px-4 rounded-xl text-xs font-bold transition-all flex items-center gap-2">
-            Chờ chấm
-            <span class="px-1.5 py-0.5 text-[10px] bg-orange-500 text-white rounded-lg">{{ store.pendingCount() }}</span>
+          <button (click)="setFilter('PENDING')" role="tab"
+                  [class]="filter() === 'PENDING' ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'"
+                  class="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors">
+            Chờ chấm ({{ store.pendingCount() }})
           </button>
-          <button (click)="setFilter('GRADED')"
-                  [class]="filter() === 'GRADED' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
-                  class="h-9 px-4 rounded-xl text-xs font-bold transition-all flex items-center gap-2">
-            Đã chấm
-            <span class="px-1.5 py-0.5 text-[10px] bg-emerald-500 text-white rounded-lg">{{ store.gradedCount() }}</span>
+          <button (click)="setFilter('GRADED')" role="tab"
+                  [class]="filter() === 'GRADED' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'"
+                  class="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors">
+            Đã chấm ({{ store.gradedCount() }})
           </button>
-          <button (click)="setFilter('LATE')"
-                  [class]="filter() === 'LATE' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
-                  class="h-9 px-4 rounded-xl text-xs font-bold transition-all flex items-center gap-2">
-            Nộp muộn
-            <span class="px-1.5 py-0.5 text-[10px] bg-rose-500 text-white rounded-lg">{{ store.lateCount() }}</span>
+          <button (click)="setFilter('LATE')" role="tab"
+                  [class]="filter() === 'LATE' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'"
+                  class="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors">
+            Nộp muộn ({{ store.lateCount() }})
           </button>
         </div>
-        
-        <!-- Batch Actions Bar -->
-        <div class="h-11 flex items-center gap-3">
+
+        <div class="flex items-center gap-2">
           @if (selectedIds().length > 0) {
-            <div class="flex items-center gap-4 px-4 h-full bg-slate-900 border border-slate-800 text-white rounded-xl shadow-xl animate-in slide-in-from-right-4 duration-300">
-              <span class="text-[10px] font-black uppercase tracking-[0.1em]">{{ selectedIds().length }} đã chọn</span>
-              <div class="w-px h-4 bg-slate-700"></div>
-              <button (click)="openBatchGrade()" 
-                      class="text-[10px] font-black uppercase tracking-[0.1em] text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-2">
-                <lucide-icon name="check-square" [size]="14"></lucide-icon>
+            <div class="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm">
+              <span class="text-gray-600">{{ selectedIds().length }} đã chọn</span>
+              <button (click)="openBatchGrade()" class="font-medium text-[#0056D2] hover:text-[#004BB5] transition-colors">
                 Chấm hàng loạt
               </button>
             </div>
           }
-          <button (click)="reload()" 
-                  class="w-11 h-11 flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-[#0056D2] hover:border-blue-200 hover:shadow-md transition-all">
-            <lucide-icon name="rotate-cw" [size]="18" [class.animate-spin]="store.loading()"></lucide-icon>
+          <button (click)="reload()" title="Tải lại"
+                  class="p-2 rounded-md border border-gray-200 bg-white text-gray-500 hover:text-[#0056D2] hover:border-gray-300 transition-colors">
+            <lucide-icon name="rotate-cw" [size]="16" [class.animate-spin]="store.loading()"></lucide-icon>
           </button>
         </div>
       </div>
 
-      <!-- Loading State -->
+      <!-- Loading -->
       @if (store.loading() && store.filteredSubmissions().length === 0) {
-        <div class="space-y-4">
+        <div class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
           @for (i of [1,2,3,4,5]; track i) {
-            <div class="h-16 bg-white rounded-xl border border-slate-100 animate-pulse"></div>
+            <div class="flex items-center gap-4 px-5 py-4 border-b border-gray-100 animate-pulse">
+              <div class="h-4 w-4 rounded bg-gray-200"></div>
+              <div class="h-8 w-8 rounded-full bg-gray-200"></div>
+              <div class="h-4 flex-1 rounded bg-gray-200"></div>
+              <div class="h-4 w-16 rounded bg-gray-100"></div>
+            </div>
           }
         </div>
       }
 
-      <!-- Error State -->
+      <!-- Error -->
       @if (store.error()) {
-        <div class="bg-rose-50 border border-rose-100 rounded-2xl p-8 text-center">
-          <div class="w-16 h-16 bg-rose-100 text-rose-600 rounded-3xl flex items-center justify-center mx-auto mb-4">
-            <lucide-icon name="alert-circle" [size]="32"></lucide-icon>
-          </div>
-          <h3 class="text-lg font-black text-slate-900 mb-1">Đã xảy ra lỗi</h3>
-          <p class="text-sm text-slate-500 mb-6">{{ store.error() }}</p>
-          <button (click)="reload()" class="h-10 px-6 bg-[#0056D2] text-white rounded-xl font-bold text-sm hover:bg-[#004BB5] transition-all shadow-md shadow-blue-100">
+        <div class="rounded-lg border border-red-200 bg-red-50 p-8 text-center">
+          <p class="text-sm font-medium text-red-700 mb-2">Đã xảy ra lỗi</p>
+          <p class="text-xs text-red-500 mb-4">{{ store.error() }}</p>
+          <button (click)="reload()" class="rounded-md bg-[#0056D2] px-4 py-2 text-sm font-medium text-white hover:bg-[#004BB5] transition-colors">
             Thử lại
           </button>
         </div>
@@ -96,75 +116,65 @@ import { LucideAngularModule } from 'lucide-angular';
 
       <!-- Submissions Table -->
       @if (!store.error()) {
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
           <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
+            <table class="w-full text-left">
               <thead>
-                <tr class="bg-slate-50/50 border-b border-slate-100">
-                  <th class="px-6 py-4 w-12">
-                    <div class="flex items-center">
-                      <input type="checkbox" (change)="toggleSelectAll($event)" 
-                             [checked]="isAllSelected()" 
-                             class="w-4 h-4 rounded border-slate-300 text-[#0056D2] focus:ring-[#0056D2]/20 transition-all cursor-pointer"/>
-                    </div>
+                <tr class="bg-gray-50 border-b border-gray-200">
+                  <th class="px-5 py-3 w-10">
+                    <input type="checkbox" (change)="toggleSelectAll($event)"
+                           [checked]="isAllSelected()"
+                           class="h-4 w-4 rounded border-gray-300 text-[#0056D2] focus:ring-[#0056D2]/20 cursor-pointer"/>
                   </th>
-                  <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.12em]">Học viên</th>
-                  <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.12em]">Thời gian nộp</th>
-                  <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.12em]">Trạng thái</th>
-                  <th class="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.12em] w-48">Điểm số</th>
-                  <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.12em] text-right">Thao tác</th>
+                  <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Học viên</th>
+                  <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Thời gian nộp</th>
+                  <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                  <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-44">Điểm số</th>
+                  <th class="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Thao tác</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-slate-100">
+              <tbody class="divide-y divide-gray-100">
                 @for (sub of store.filteredSubmissions(); track sub.id) {
-                  <tr class="hover:bg-blue-50/30 transition-colors group">
-                    <td class="px-6 py-4">
-                      <input type="checkbox" [checked]="isSelected(sub.id)" 
-                             (change)="toggleSelect(sub.id)" 
-                             class="w-4 h-4 rounded border-slate-300 text-[#0056D2] focus:ring-[#0056D2]/20 transition-all cursor-pointer"/>
+                  <tr class="hover:bg-gray-50 transition-colors group">
+                    <td class="px-5 py-3">
+                      <input type="checkbox" [checked]="isSelected(sub.id)"
+                             (change)="toggleSelect(sub.id)"
+                             class="h-4 w-4 rounded border-gray-300 text-[#0056D2] focus:ring-[#0056D2]/20 cursor-pointer"/>
                     </td>
-                    <td class="px-4 py-4">
+                    <td class="px-4 py-3">
                       <div class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 text-xs font-black group-hover:bg-white group-hover:shadow-sm transition-all">
+                        <div class="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-medium text-gray-600">
                           {{ getInitials(sub.studentName) }}
                         </div>
                         <div class="min-w-0">
-                          <div class="text-sm font-black text-slate-800 truncate">{{ sub.studentName }}</div>
-                          <div class="text-[10px] font-bold text-slate-400 truncate">{{ sub.studentEmail }}</div>
+                          <p class="text-sm font-medium text-gray-900 truncate">{{ sub.studentName }}</p>
+                          <p class="text-xs text-gray-500 truncate">{{ sub.studentEmail }}</p>
                         </div>
                       </div>
                     </td>
-                    <td class="px-4 py-4">
-                      <div class="flex flex-col">
-                        <span class="text-xs font-black text-slate-900 tracking-tight">{{ formatDate(sub.submittedAt).split(' ')[0] }}</span>
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{{ formatDate(sub.submittedAt).split(' ')[1] }}</span>
-                      </div>
+                    <td class="px-4 py-3 text-sm text-gray-600">
+                      {{ formatDate(sub.submittedAt) }}
                     </td>
-                    <td class="px-4 py-4">
-                      <span class="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border shadow-sm" 
+                    <td class="px-4 py-3">
+                      <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
                             [class]="getStatusClass(sub.status, sub.isLate)">
                         {{ getStatusText(sub.status, sub.isLate) }}
                       </span>
                     </td>
-                    <td class="px-4 py-4">
+                    <td class="px-4 py-3">
                       @if (getGradeScore(sub.grade) !== undefined) {
-                        <div class="flex items-center gap-2">
-                          <span class="text-sm font-black text-[#0056D2] bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100 shadow-inner">{{ getGradeScore(sub.grade) }}</span>
-                          <span class="text-[10px] font-black text-slate-400 tracking-widest">/ {{ sub.maxScore || 100 }}</span>
-                        </div>
+                        <span class="text-sm font-semibold text-[#0056D2]">{{ getGradeScore(sub.grade) }}<span class="text-gray-400 font-normal">/{{ sub.maxScore || 100 }}</span></span>
                       } @else {
                         <div class="flex items-center gap-2">
-                          <div class="relative group/input max-w-[80px]">
-                            <input type="number" [value]="inlineGrades()[sub.id] || ''" 
-                                   (input)="setInlineGrade(sub.id, $event)"
-                                   placeholder="--"
-                                   [min]="0" [max]="sub.maxScore || 100"
-                                   class="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-black focus:bg-white focus:ring-4 focus:ring-[#0056D2]/5 focus:border-[#0056D2] outline-none transition-all shadow-inner placeholder:text-slate-300"/>
-                          </div>
+                          <input type="number" [value]="inlineGrades()[sub.id] || ''"
+                                 (input)="setInlineGrade(sub.id, $event)"
+                                 placeholder="--"
+                                 [min]="0" [max]="sub.maxScore || 100"
+                                 class="w-16 h-8 px-2 border border-gray-300 rounded-md text-sm text-gray-900 placeholder:text-gray-300 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 outline-none"/>
                           @if (inlineGrades()[sub.id] !== undefined) {
-                            <button (click)="saveInlineGrade(sub.id, sub.maxScore || 100)" 
+                            <button (click)="saveInlineGrade(sub.id, sub.maxScore || 100)"
                                     [disabled]="store.savingGrade() === sub.id"
-                                    class="w-9 h-9 flex items-center justify-center rounded-xl bg-[#0056D2] text-white hover:bg-[#004BB5] transition-all disabled:opacity-50 shadow-md shadow-blue-100">
+                                    class="h-8 w-8 flex items-center justify-center rounded-md bg-[#0056D2] text-white hover:bg-[#004BB5] transition-colors disabled:opacity-50">
                               @if (store.savingGrade() === sub.id) {
                                 <lucide-icon name="loader-2" [size]="14" class="animate-spin"></lucide-icon>
                               } @else {
@@ -175,11 +185,10 @@ import { LucideAngularModule } from 'lucide-angular';
                         </div>
                       }
                     </td>
-                    <td class="px-6 py-4 text-right">
-                      <a [routerLink]="['..', 'grade', sub.id]" 
-                         class="inline-flex items-center gap-2 h-9 px-4 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-xs hover:border-[#0056D2] hover:text-[#0056D2] transition-all shadow-sm">
-                        <span>{{ getGradeScore(sub.grade) !== undefined ? 'Chi tiết' : 'Chấm bài' }}</span>
-                        <lucide-icon name="chevron-right" [size]="14"></lucide-icon>
+                    <td class="px-5 py-3 text-right">
+                      <a [routerLink]="['..', 'grade', sub.id]"
+                         class="text-sm font-medium text-[#0056D2] hover:text-[#004BB5] transition-colors">
+                        {{ getGradeScore(sub.grade) !== undefined ? 'Chi tiết' : 'Chấm bài' }}
                       </a>
                     </td>
                   </tr>
@@ -187,14 +196,14 @@ import { LucideAngularModule } from 'lucide-angular';
               </tbody>
             </table>
           </div>
-          
+
           @if (store.filteredSubmissions().length === 0 && !store.loading()) {
-            <div class="py-20 text-center border-t border-slate-100">
-              <div class="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-300">
-                <lucide-icon name="clipboard-list" [size]="32"></lucide-icon>
-              </div>
-              <h4 class="text-sm font-black text-slate-900">Không có bài nộp nào</h4>
-              <p class="text-xs text-slate-400 mt-1 max-w-xs mx-auto font-medium">Thay đổi bộ lọc hoặc tìm kiếm để xem kết quả khác.</p>
+            <div class="py-16 text-center">
+              <svg class="mx-auto h-10 w-10 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z"/>
+              </svg>
+              <p class="text-sm font-medium text-gray-600">Không có bài nộp nào</p>
+              <p class="text-xs text-gray-500 mt-1">Thay đổi bộ lọc để xem kết quả khác.</p>
             </div>
           }
         </div>
@@ -202,52 +211,43 @@ import { LucideAngularModule } from 'lucide-angular';
 
       <!-- Batch Grade Modal -->
       @if (showBatchModal()) {
-        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
-             [@modalAnimation]>
-          <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                <lucide-icon name="check-square" [size]="16" class="text-[#0056D2]"></lucide-icon>
-                Chấm điểm hàng loạt
-              </h3>
-              <button (click)="closeBatchModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
-                <lucide-icon name="x" [size]="18"></lucide-icon>
+        <div class="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+          <div class="bg-white rounded-lg border border-gray-200 shadow-lg max-w-md w-full overflow-hidden">
+            <div class="px-5 py-3 border-b border-gray-200 flex items-center justify-between">
+              <h3 class="text-sm font-semibold text-gray-900">Chấm điểm hàng loạt</h3>
+              <button (click)="closeBatchModal()" class="text-gray-400 hover:text-gray-600 transition-colors p-1">
+                <lucide-icon name="x" [size]="16"></lucide-icon>
               </button>
             </div>
-            
-            <div class="p-6 space-y-6">
-              <div class="p-4 bg-blue-50 rounded-xl border border-blue-100">
-                <p class="text-xs font-bold text-blue-700 flex items-center gap-2">
-                  <lucide-icon name="users" [size]="14"></lucide-icon>
-                  Đang chấm cho {{ selectedIds().length }} học viên đã chọn
-                </p>
-              </div>
+
+            <div class="p-5 space-y-4">
+              <p class="text-sm text-gray-600">Áp dụng cho <span class="font-semibold text-gray-900">{{ selectedIds().length }}</span> bài nộp đã chọn</p>
 
               <div>
-                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Điểm số áp dụng</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Điểm số</label>
                 <div class="relative">
-                  <input type="number" [(ngModel)]="batchScore" 
+                  <input type="number" [(ngModel)]="batchScore"
                          [max]="assignmentStore.assignment()?.maxScore || 100"
-                         class="w-full h-12 pl-4 pr-12 bg-slate-50 border border-slate-200 rounded-xl text-lg font-black focus:bg-white focus:ring-4 focus:ring-[#0056D2]/5 focus:border-[#0056D2] outline-none transition-all"/>
-                  <span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">/ {{ assignmentStore.assignment()?.maxScore || 100 }}</span>
+                         class="w-full h-10 pl-4 pr-14 border border-gray-300 rounded-md text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 outline-none"/>
+                  <span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">/ {{ assignmentStore.assignment()?.maxScore || 100 }}</span>
                 </div>
               </div>
 
               <div>
-                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nhận xét chung (tùy chọn)</label>
-                <textarea [(ngModel)]="batchFeedback" rows="3" 
-                          placeholder="Chia sẻ nhận xét cho tất cả bài nộp này..."
-                          class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-4 focus:ring-[#0056D2]/5 focus:border-[#0056D2] outline-none transition-all resize-none"></textarea>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nhận xét (tùy chọn)</label>
+                <textarea [(ngModel)]="batchFeedback" rows="3"
+                          placeholder="Nhận xét chung cho các bài nộp..."
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm placeholder:text-gray-400 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 outline-none resize-none"></textarea>
               </div>
             </div>
 
-            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-3">
-              <button (click)="closeBatchModal()" 
-                      class="flex-1 h-11 px-6 rounded-xl border border-slate-200 text-slate-600 font-black text-xs hover:bg-slate-100 transition-all uppercase tracking-widest">
+            <div class="px-5 py-3 bg-gray-50 border-t border-gray-200 flex gap-3">
+              <button (click)="closeBatchModal()"
+                      class="flex-1 rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
                 Hủy
               </button>
-              <button (click)="submitBatchGrade()" 
-                      class="flex-1 h-11 px-6 bg-[#0056D2] text-white rounded-xl font-black text-xs hover:bg-[#004BB5] transition-all shadow-md shadow-blue-100 uppercase tracking-widest">
+              <button (click)="submitBatchGrade()"
+                      class="flex-1 rounded-md bg-[#0056D2] px-4 py-2 text-sm font-medium text-white hover:bg-[#004BB5] transition-colors">
                 Áp dụng
               </button>
             </div>
@@ -264,6 +264,7 @@ export class SubmissionListComponent implements OnInit {
   private toast = inject(ToastService);
 
   filter = this.store.filter;
+  stats = this.assignmentStore.stats;
   selectedIds = signal<string[]>([]);
   inlineGrades = signal<Record<string, number>>({});
   showBatchModal = signal(false);
@@ -274,6 +275,10 @@ export class SubmissionListComponent implements OnInit {
     const assignmentId = this.assignmentStore.assignmentId();
     if (assignmentId) {
       this.store.loadSubmissions(assignmentId).subscribe({
+        next: () => {
+          // Update stats from submissions (previously done by Overview tab)
+          this.assignmentStore.updateStatsFromSubmissions(this.store.submissions());
+        },
         error: () => this.toast.error('Không thể tải danh sách bài nộp')
       });
     }
@@ -308,9 +313,9 @@ export class SubmissionListComponent implements OnInit {
 
   getStatusClass(status: string, isLate?: boolean): string {
     const normalizedStatus = status?.toLowerCase();
-    if (isLate || normalizedStatus === 'late' || normalizedStatus === 'late_submission') return 'bg-rose-50 text-rose-700 border-rose-100 shadow-sm shadow-rose-50';
-    if (normalizedStatus === 'graded') return 'bg-blue-50 text-blue-700 border-blue-100 shadow-sm shadow-blue-50';
-    return 'bg-orange-50 text-orange-700 border-orange-100 shadow-sm shadow-orange-50';
+    if (isLate || normalizedStatus === 'late' || normalizedStatus === 'late_submission') return 'bg-red-50 text-red-700';
+    if (normalizedStatus === 'graded') return 'bg-emerald-50 text-emerald-700';
+    return 'bg-amber-50 text-amber-700';
   }
 
   getStatusText(status: string, isLate?: boolean): string {

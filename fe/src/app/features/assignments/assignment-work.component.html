@@ -1,281 +1,276 @@
 
-    <div class="bg-gradient-to-br from-slate-50 via-[#0056D2]/5 to-[#0056D2]/10 min-h-screen">
-      <!-- Loading State -->
-      @if (isLoading()) {
-        <div class="flex items-center justify-center min-h-screen">
-          <div class="text-center">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0056D2] mx-auto mb-4"></div>
-            <p class="text-gray-600">Đang tải bài tập...</p>
+    <!-- Loading -->
+    @if (isLoading()) {
+      <div class="flex items-center justify-center py-32">
+        <div class="text-center">
+          <div class="animate-spin rounded-full h-8 w-8 border-2 border-gray-200 border-t-[#0056D2] mx-auto mb-3"></div>
+          <p class="text-sm text-gray-500">Đang tải bài tập...</p>
+        </div>
+      </div>
+    }
+
+    <!-- Error (no data) -->
+    @if (error() && !assignment()) {
+      <div class="flex items-center justify-center py-32">
+        <div class="text-center max-w-sm mx-auto px-4">
+          <svg class="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+          </svg>
+          <p class="text-sm font-medium text-gray-600 mb-1">Không thể tải bài tập</p>
+          <p class="text-xs text-gray-400 mb-4">{{ error() }}</p>
+          <button (click)="goBack()" class="rounded-md bg-[#0056D2] px-4 py-2 text-sm font-medium text-white hover:bg-[#004BB5] transition-colors">
+            Quay lại
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- Main Content -->
+    @if (!isLoading() && assignment()) {
+      <div class="px-4 sm:px-6 py-6 max-w-[1400px] mx-auto">
+
+        <!-- Breadcrumb (Coursera style — replaces ← icon) -->
+        <nav class="flex items-center gap-1.5 text-sm mb-5">
+          <a routerLink="/student/tasks" class="text-gray-400 hover:text-gray-600 transition-colors">Bài cần làm</a>
+          <svg class="w-3.5 h-3.5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+          </svg>
+          <span class="text-gray-700 font-medium truncate">{{ assignment()?.title }}</span>
+        </nav>
+
+        <!-- Page Header -->
+        <div class="mb-6">
+          <h1 class="text-2xl font-bold text-gray-900">{{ assignment()?.title }}</h1>
+          @if (assignment()?.courseTitle || assignment()?.courseName) {
+            <p class="text-sm text-gray-500 mt-1">{{ assignment()?.courseTitle || assignment()?.courseName }}</p>
+          }
+
+          <!-- Status bar — context-aware -->
+          <div class="flex flex-wrap items-center gap-2 mt-3">
+            @if (isOverdue()) {
+              <!-- Overdue: show deadline prominently in red -->
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-red-50 border border-red-200 px-3 py-1 text-xs font-medium text-red-700">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                </svg>
+                Quá hạn · {{ formatDate(assignment()?.dueDate) }}
+              </span>
+            } @else {
+              <!-- Not overdue: show deadline normally -->
+              <span class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600">
+                <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                </svg>
+                Hạn: {{ formatDate(assignment()?.dueDate) }}
+              </span>
+            }
+            @if (assignment()?.maxScore && !isOverdue()) {
+              <span class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600">
+                Tối đa {{ assignment()?.maxScore }} điểm
+              </span>
+            }
+            @if (hasGrade()) {
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700">
+                Điểm: {{ getGradeScore(mySubmission()?.grade) }}/{{ assignment()?.maxScore || 100 }}
+              </span>
+            }
+            @if (mySubmission() && !hasGrade()) {
+              <span class="inline-flex rounded-full bg-[#0056D2]/10 px-3 py-1 text-xs font-medium text-[#0056D2]">
+                Đã nộp
+              </span>
+            }
           </div>
         </div>
-      }
 
-      <!-- Error State -->
-      @if (error()) {
-        <div class="flex items-center justify-center min-h-screen">
-          <div class="text-center max-w-md mx-auto p-6">
-            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg class="w-8 h-8 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-              </svg>
+        @if (error()) {
+          <div class="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-3 mb-6">
+            <span class="text-sm text-red-700">{{ error() }}</span>
+            <button (click)="error.set(null)" class="text-red-400 hover:text-red-600 text-lg leading-none" type="button">&times;</button>
+          </div>
+        }
+
+        <!-- Two-Panel Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 items-start">
+
+          <!-- LEFT: Instructions + Previous Submission -->
+          <div class="space-y-6 min-w-0">
+            <!-- Instructions Card -->
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
+              <div class="px-5 py-3 border-b border-gray-100">
+                <h2 class="text-sm font-semibold text-gray-900">Hướng dẫn bài tập</h2>
+              </div>
+              <div class="px-5 py-4">
+                <div class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{{ assignment()?.instructions || assignment()?.description || 'Không có hướng dẫn cho bài tập này.' }}</div>
+              </div>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">Không thể tải bài tập</h3>
-            <p class="text-gray-600 mb-4">{{ error() }}</p>
-            <button (click)="goBack()" class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5]">
-              Quay lại
-            </button>
-          </div>
-        </div>
-      }
 
-      <!-- Main Content -->
-      @if (!isLoading() && !error() && assignment()) {
-        <!-- Header -->
-        <div class="bg-white shadow-xl border-b border-gray-200">
-          <div class="max-w-7xl mx-auto px-6 py-6">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center space-x-4">
-                <button (click)="goBack()"
-                        class="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path>
-                  </svg>
-                  <span>Quay lại</span>
-                </button>
-                <div>
-                  <h1 class="text-3xl font-bold text-gray-900">{{ assignment()?.title }}</h1>
-                  <p class="text-gray-600">{{ assignment()?.courseTitle }}</p>
+            <!-- Previous Submission + Grade + Feedback -->
+            @if (mySubmission()) {
+              <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
+                <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+                  <h2 class="text-sm font-semibold text-gray-900">Bài nộp trước</h2>
+                  <span class="text-xs text-gray-400">{{ formatDateTime(mySubmission()?.submittedAt) }}</span>
                 </div>
-              </div>
-              
-              <div class="flex items-center space-x-4">
-                <div class="text-right">
-                  <p class="text-sm text-gray-600">Hạn nộp</p>
-                  <p class="text-lg font-semibold" [class]="isOverdue() ? 'text-red-600' : 'text-gray-900'">
-                    {{ formatDate(assignment()?.dueDate) }}
-                  </p>
-                </div>
-                @if (assignment()?.maxScore) {
-                  <div class="text-right">
-                    <p class="text-sm text-gray-600">Điểm tối đa</p>
-                    <p class="text-lg font-semibold text-gray-900">{{ assignment()?.maxScore }} điểm</p>
-                  </div>
-                }
-              </div>
-            </div>
-          </div>
-        </div>
+                <div class="px-5 py-4">
+                  <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ mySubmission()?.content || 'Không có nội dung' }}</p>
 
-        <div class="max-w-7xl mx-auto px-6 py-8">
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Main Content -->
-            <div class="lg:col-span-2 space-y-6">
-              <!-- Assignment Instructions -->
-              <div class="bg-white rounded-2xl shadow-lg p-6">
-                <h3 class="text-xl font-bold text-gray-900 mb-4">Hướng dẫn bài tập</h3>
-                <div class="prose max-w-none">
-                  <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">{{ assignment()?.instructions || assignment()?.description || 'Không có hướng dẫn' }}</p>
-                </div>
-              </div>
-
-              <!-- Previous Submission (if exists) -->
-              @if (mySubmission()) {
-                <div class="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-green-500">
-                  <h3 class="text-xl font-bold text-gray-900 mb-4">Bài nộp của bạn</h3>
-                  <div class="space-y-4">
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Nội dung đã nộp</label>
-                      <div class="p-4 bg-gray-50 rounded-xl">
-                        <p class="text-gray-700 whitespace-pre-wrap">{{ mySubmission()?.content || 'Không có nội dung' }}</p>
-                      </div>
-                    </div>
-                    
-                    <div class="flex items-center justify-between">
-                      <div>
-                        <span class="text-sm text-gray-600">Thời gian nộp:</span>
-                        <span class="ml-2 font-medium">{{ formatDateTime(mySubmission()?.submittedAt) }}</span>
-                      </div>
-                      @if (hasGrade()) {
-                        <div class="text-right">
-                          <span class="text-sm text-gray-600">Điểm:</span>
-                          <span class="ml-2 text-2xl font-bold text-green-600">
-                            {{ getGradeScore(mySubmission()?.grade) }}/{{ assignment()?.maxScore || 100 }}
-                          </span>
-                        </div>
+                  <!-- Attachments list -->
+                  @if (mySubmission()?.attachments?.length) {
+                    <div class="mt-4 space-y-1.5">
+                      <p class="text-xs font-medium text-gray-500 mb-2">Tệp đính kèm ({{ mySubmission()!.attachments!.length }})</p>
+                      @for (att of mySubmission()!.attachments!; track att.id || att.fileUrl) {
+                        <a [href]="att.fileUrl" target="_blank" rel="noopener noreferrer"
+                           class="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-md text-sm hover:bg-gray-100 transition-colors group">
+                          <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                          </svg>
+                          <span class="flex-1 truncate text-gray-700 group-hover:text-[#0056D2]">{{ att.fileName }}</span>
+                          @if (att.fileSize) {
+                            <span class="text-xs text-gray-400">{{ formatFileSize(att.fileSize) }}</span>
+                          }
+                        </a>
                       }
                     </div>
+                  }
+                </div>
 
+                @if (hasGrade() || mySubmission()?.feedback || getGradeFeedback(mySubmission()?.grade)) {
+                  <div class="px-5 py-4 border-t border-gray-100 space-y-3">
+                    @if (hasGrade()) {
+                      <div class="flex items-center gap-3">
+                        <svg class="w-5 h-5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd" />
+                        </svg>
+                        <span class="text-lg font-bold text-emerald-700">
+                          {{ getGradeScore(mySubmission()?.grade) }}/{{ assignment()?.maxScore || 100 }}
+                        </span>
+                      </div>
+                    }
                     @if (mySubmission()?.feedback || getGradeFeedback(mySubmission()?.grade)) {
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Phản hồi từ giảng viên</label>
-                        <div class="p-4 bg-[#0056D2]/5 rounded-xl">
-                          <p class="text-gray-700">{{ mySubmission()?.feedback || getGradeFeedback(mySubmission()?.grade) }}</p>
-                        </div>
+                      <div class="bg-[#0056D2]/5 border border-[#0056D2]/10 rounded-lg px-4 py-3">
+                        <p class="text-xs font-medium text-[#0056D2] mb-1">Phản hồi giảng viên</p>
+                        <p class="text-sm text-gray-700">{{ mySubmission()?.feedback || getGradeFeedback(mySubmission()?.grade) }}</p>
                       </div>
                     }
                   </div>
-                </div>
-              }
+                }
+              </div>
+            }
+          </div>
 
-              <!-- Submission Form (only if not submitted or can resubmit) -->
-              @if (!mySubmission() || canResubmit()) {
-                <div class="bg-white rounded-2xl shadow-lg p-6">
-                  <h3 class="text-xl font-bold text-gray-900 mb-4">{{ mySubmission() ? 'Nộp lại bài tập' : 'Nộp bài tập' }}</h3>
-                  
-                  <form (ngSubmit)="submitAssignment()" #assignmentForm="ngForm">
-                    <div class="space-y-6">
-                      <!-- Text Content -->
+          <!-- RIGHT: "Your Work" panel (sticky) -->
+          <div class="lg:sticky lg:top-4">
+            <!-- Overdue + no late submission → show closed message instead of form -->
+            @if (isLocked()) {
+              <div class="bg-white rounded-lg border border-red-200 shadow-sm overflow-hidden">
+                <div class="px-5 py-3 border-b border-red-100 bg-red-50">
+                  <h2 class="text-sm font-semibold text-red-700">Không thể nộp bài</h2>
+                </div>
+                <div class="p-5 text-center">
+                  <svg class="mx-auto w-10 h-10 text-red-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                  </svg>
+                  <p class="text-sm font-medium text-gray-700">Bài tập đã quá hạn</p>
+                  <p class="text-xs text-gray-400 mt-1">Hạn nộp: {{ formatDate(assignment()?.dueDate) }}</p>
+                  <p class="text-xs text-gray-400 mt-0.5">Bài tập này không chấp nhận nộp muộn.</p>
+                </div>
+              </div>
+            } @else {
+              <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                <!-- Panel Header -->
+                <div class="px-5 py-3 border-b border-gray-200 bg-gray-50/80">
+                  <h2 class="text-sm font-semibold text-gray-900">Bài làm của bạn</h2>
+                </div>
+
+                @if (!mySubmission() || canResubmit()) {
+                  <form (ngSubmit)="submitAssignment()" #assignmentForm="ngForm" class="p-5">
+                    <div class="space-y-4">
+                      <!-- Textarea -->
                       <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nội dung bài làm</label>
-                        <textarea 
+                        <textarea
                           [ngModel]="submissionContent()"
                           (ngModelChange)="submissionContent.set($event)"
                           name="content"
-                          rows="12"
-                          placeholder="Nhập nội dung bài tập của bạn..."
-                          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-transparent resize-none"
+                          rows="10"
+                          placeholder="Nhập nội dung bài tập..."
+                          class="w-full px-3 py-2.5 border border-gray-300 rounded-md text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2] resize-y"
                           required></textarea>
-                        <div class="mt-2 flex justify-between text-sm text-gray-600">
-                          <span>Từ: {{ getWordCount(submissionContent()) }}</span>
-                        </div>
+                        <p class="mt-1 text-xs text-gray-400 text-right">{{ getWordCount(submissionContent()) }} từ</p>
                       </div>
 
-                      <!-- File Upload -->
+                      <!-- File Attach -->
                       <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Tệp đính kèm (tùy chọn)</label>
-                        <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-[#0056D2] transition-colors">
-                          <input type="file" 
-                                 multiple
-                                 (change)="onFileSelected($event)"
-                                 class="hidden"
-                                 #fileInput>
-                          <button type="button" 
-                                  (click)="fileInput.click()"
-                                  class="flex flex-col items-center space-y-2 text-gray-600 hover:text-[#0056D2] transition-colors mx-auto">
-                            <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20">
-                              <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                            </svg>
-                            <span class="font-medium">Chọn tệp hoặc kéo thả vào đây</span>
-                            <span class="text-sm">PDF, DOC, DOCX, JPG, PNG (tối đa 10MB)</span>
-                          </button>
-                        </div>
-                        
-                        <!-- Uploaded Files -->
-                        @if (uploadedFiles().length > 0) {
-                          <div class="mt-4 space-y-2">
-                            @for (file of uploadedFiles(); track file.name) {
-                              <div class="flex items-center space-x-3 p-3 bg-green-50 rounded-xl">
-                                <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                </svg>
-                                <div class="flex-1">
-                                  <p class="font-medium text-gray-900">{{ file.name }}</p>
-                                  <p class="text-sm text-gray-600">{{ formatFileSize(file.size) }}</p>
-                                </div>
-                                <button type="button" 
-                                        (click)="removeFile(file)"
-                                        class="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors">
-                                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                                  </svg>
-                                </button>
-                              </div>
-                            }
-                          </div>
-                        }
+                        <input type="file" multiple (change)="onFileSelected($event)" class="hidden" #fileInput
+                               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                        <button type="button" (click)="fileInput.click()"
+                          class="w-full flex items-center justify-center gap-2 px-3 py-2.5 border border-dashed border-gray-300 rounded-md text-sm text-gray-500 hover:border-[#0056D2] hover:text-[#0056D2] transition-colors">
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" />
+                          </svg>
+                          Đính kèm tệp
+                        </button>
                       </div>
 
-                      <!-- Submit Button -->
-                      <div class="flex items-center justify-between pt-6 border-t border-gray-200">
-                        <div class="text-sm text-gray-600">
-                          @if (isOverdue()) {
-                            <p class="text-red-600 font-medium">Bài tập đã quá hạn</p>
+                      <!-- Attached Files -->
+                      @if (uploadedFiles().length > 0) {
+                        <div class="space-y-1.5">
+                          @for (file of uploadedFiles(); track file.name) {
+                            <div class="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-md text-sm">
+                              <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                              </svg>
+                              <span class="flex-1 truncate text-gray-700">{{ file.name }}</span>
+                              <span class="text-xs text-gray-400">{{ formatFileSize(file.size) }}</span>
+                              <button type="button" (click)="removeFile(file)" class="text-gray-400 hover:text-red-500 transition-colors">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
                           }
                         </div>
-                        <div class="flex space-x-3">
-                          <button type="submit" 
-                                  [disabled]="!canSubmit() || isSubmitting()"
-                                  class="px-6 py-3 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center space-x-2">
-                            @if (isSubmitting()) {
-                              <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                              <span>Đang nộp...</span>
-                            } @else {
-                              <span>Nộp bài</span>
-                            }
-                          </button>
+                      }
+
+                      <!-- Overdue Warning (late submission allowed) -->
+                      @if (isOverdue()) {
+                        <div class="rounded-md bg-amber-50 border border-amber-200 px-3 py-2">
+                          <p class="text-xs text-amber-700 font-medium">Bài tập đã quá hạn — nộp muộn có thể bị trừ điểm</p>
                         </div>
-                      </div>
+                      }
+
+                      <!-- Submit -->
+                      <button type="submit"
+                        [disabled]="!canSubmit() || isSubmitting()"
+                        class="w-full rounded-full bg-[#0056D2] px-4 py-3 text-sm font-medium text-white hover:bg-[#004BB5] disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
+                        @if (isSubmitting()) {
+                          <div class="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white"></div>
+                          <span>Đang nộp...</span>
+                        } @else {
+                          <span>{{ mySubmission() ? 'Nộp lại' : 'Nộp bài' }}</span>
+                        }
+                      </button>
                     </div>
                   </form>
-                </div>
-              }
-            </div>
-
-            <!-- Sidebar -->
-            <div class="space-y-6">
-              <!-- Assignment Info -->
-              <div class="bg-white rounded-2xl shadow-lg p-6">
-                <h3 class="text-xl font-bold text-gray-900 mb-4">Thông tin bài tập</h3>
-                <div class="space-y-4">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Khóa học</label>
-                    <span class="text-gray-900">{{ assignment()?.courseTitle }}</span>
-                  </div>
-                  
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Điểm tối đa</label>
-                    <span class="text-lg font-semibold text-gray-900">{{ assignment()?.maxScore || 100 }} điểm</span>
-                  </div>
-                  
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
-                    <span class="px-3 py-1 rounded-full text-sm font-medium"
-                          [class]="getStatusClass()">
-                      {{ getStatusText() }}
-                    </span>
-                  </div>
-
-                  @if (hasGrade()) {
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Điểm của bạn</label>
-                      <span class="text-2xl font-bold text-green-600">
+                } @else {
+                  <!-- Already submitted + graded — read-only panel -->
+                  <div class="p-5 text-center">
+                    <svg class="mx-auto w-10 h-10 text-emerald-500 mb-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd" />
+                    </svg>
+                    <p class="text-sm font-medium text-gray-900">Đã nộp bài</p>
+                    <p class="text-xs text-gray-500 mt-1">{{ formatDateTime(mySubmission()?.submittedAt) }}</p>
+                    @if (hasGrade()) {
+                      <p class="mt-3 text-2xl font-bold text-emerald-600">
                         {{ getGradeScore(mySubmission()?.grade) }}/{{ assignment()?.maxScore || 100 }}
-                      </span>
-                    </div>
-                  }
-                </div>
+                      </p>
+                    }
+                  </div>
+                }
               </div>
-
-              <!-- Submission Status -->
-              <div class="bg-white rounded-2xl shadow-lg p-6">
-                <h3 class="text-xl font-bold text-gray-900 mb-4">Trạng thái nộp bài</h3>
-                <div class="space-y-3">
-                  @if (mySubmission()) {
-                    <div class="flex items-center space-x-3 p-3 bg-green-50 rounded-xl">
-                      <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                      </svg>
-                      <div>
-                        <p class="font-medium text-green-800">Đã nộp bài</p>
-                        <p class="text-sm text-green-600">{{ formatDateTime(mySubmission()?.submittedAt) }}</p>
-                      </div>
-                    </div>
-                  } @else {
-                    <div class="flex items-center space-x-3 p-3 bg-yellow-50 rounded-xl">
-                      <svg class="w-6 h-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                      </svg>
-                      <div>
-                        <p class="font-medium text-yellow-800">Chưa nộp bài</p>
-                        <p class="text-sm text-yellow-600">Hạn: {{ formatDate(assignment()?.dueDate) }}</p>
-                      </div>
-                    </div>
-                  }
-                </div>
-              </div>
-            </div>
+            }
           </div>
+
         </div>
-      }
-    </div>
-  
+      </div>
+    }
+

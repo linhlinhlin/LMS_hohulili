@@ -17,82 +17,65 @@ import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-assignment-detail-layout',
-  imports: [RouterModule, RouterOutlet, LucideAngularModule],
+  imports: [RouterModule, RouterOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-slate-50/50">
-      <!-- Header -->
-      <div class="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
-        <div class="max-w-screen-2xl mx-auto px-4 sm:px-6">
-          <div class="flex items-center justify-between py-4">
-            <div class="flex items-center gap-4">
-              <button (click)="goBack()" 
-                      class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-all">
-                <lucide-icon name="chevron-right" [size]="20" class="rotate-180"></lucide-icon>
-              </button>
-              
+    <div class="min-h-screen">
+      <!-- Header (expert feedback #1 — assignment name is H1, not "Chi tiết bài tập") -->
+      <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div class="max-w-[1400px] mx-auto px-4 sm:px-6">
+          <div class="py-4">
+            <!-- Breadcrumb (single, clean — a11y: focus-visible) -->
+            <nav class="flex items-center gap-1.5 text-sm mb-2" aria-label="Breadcrumb">
+              <a (click)="goBack()" class="text-gray-500 hover:text-[#0056D2] cursor-pointer transition-colors rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#0056D2] focus-visible:outline-offset-2" tabindex="0" (keydown.enter)="goBack()">Giao bài tập</a>
+              <svg class="w-3.5 h-3.5 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+              </svg>
+              <span class="text-gray-600 truncate">{{ assignmentStore.assignmentTitle() || '...' }}</span>
+            </nav>
+
+            <div class="flex items-center justify-between">
               <div class="min-w-0">
-                <!-- Merged Breadcrumb Pattern -->
-                <div class="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 mb-1">
-                  <span class="hover:text-[#0056D2] cursor-pointer transition-colors flex items-center gap-1" (click)="goBack()">
-                    <lucide-icon name="arrow-left" [size]="10"></lucide-icon>
-                    Quay lại
-                  </span>
-                  <span class="w-1 h-1 rounded-full bg-slate-300"></span>
-                  <span class="text-slate-900">{{ operationalContextLabel() }}</span>
-                </div>
-                
                 @if (assignmentStore.loading()) {
-                  <div class="h-6 w-48 bg-slate-100 rounded-lg animate-pulse"></div>
+                  <div class="h-7 w-64 bg-gray-100 rounded animate-pulse"></div>
                 } @else {
-                  <h1 class="text-xl font-black text-slate-900 truncate tracking-tight">
-                    {{ assignmentStore.assignmentTitle() }}
-                  </h1>
+                  <h1 class="text-xl font-bold text-gray-900 truncate">{{ assignmentStore.assignmentTitle() }}</h1>
                 }
               </div>
-            </div>
-            
-            <!-- Quick Stats Badge -->
+
             @if (submissionsStore.pendingCount() > 0) {
-              <div class="flex items-center gap-2 px-3 py-1.5 bg-orange-50 text-orange-700 border border-orange-100 rounded-xl text-xs font-black shadow-sm">
-                <span class="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse"></span>
-                {{ submissionsStore.pendingCount() }} CHỜ CHẤM
-              </div>
+              <span class="rounded-full bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs font-medium text-amber-700 flex-shrink-0">
+                {{ submissionsStore.pendingCount() }} chờ chấm
+              </span>
             }
           </div>
-          
-          <!-- Slender Tabs Navigation -->
-          <nav class="flex gap-2 -mb-px">
+
+          <!-- Tabs (a11y: focus-visible, role=tablist) -->
+          <nav class="flex gap-0 -mb-px overflow-x-auto" role="tablist" aria-label="Chi tiết bài tập">
             @let tabs = [
-              { path: 'overview', label: 'Tổng quan', icon: 'layout' },
-              { path: 'submissions', label: 'Bài nộp', icon: 'clipboard-list', count: submissionsStore.totalCount() },
-              { path: 'settings', label: 'Cài đặt', icon: 'settings' },
-              { path: 'rubric', label: 'Rubric', icon: 'clipboard-check' },
-              { path: 'audit-log', label: 'Lịch sử', icon: 'clock' }
+              { path: 'submissions', label: 'Bài nộp', count: submissionsStore.totalCount() },
+              { path: 'details', label: 'Chi tiết' },
+              { path: 'audit-log', label: 'Lịch sử' }
             ];
 
             @for (tab of tabs; track tab.path) {
-              <a [routerLink]="tab.path" 
-                 routerLinkActive="!border-[#0056D2] !text-[#0056D2] bg-blue-50/50"
-                 class="h-12 px-6 text-[11px] font-black uppercase tracking-wider border-b-2 border-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-all flex items-center gap-2.5 group relative">
-                <lucide-icon [name]="tab.icon" [size]="14" class="opacity-50 group-hover:opacity-100 group-[.active]:opacity-100 transition-opacity"></lucide-icon>
+              <a [routerLink]="tab.path"
+                 routerLinkActive="!border-[#0056D2] !text-[#0056D2]"
+                 role="tab"
+                 class="px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-900 transition-colors whitespace-nowrap flex items-center gap-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#0056D2] focus-visible:outline-offset-[-2px]">
                 {{ tab.label }}
                 @if (tab.count !== undefined && tab.count > 0) {
-                  <span class="px-2 py-0.5 text-[9px] bg-slate-100 text-slate-500 rounded-lg group-hover:bg-[#0056D2]/10 group-hover:text-[#0056D2] transition-colors font-black">
-                    {{ tab.count }}
-                  </span>
+                  <span class="text-xs text-gray-500">({{ tab.count }})</span>
                 }
               </a>
             }
           </nav>
         </div>
       </div>
-      
+
       <!-- Tab Content -->
-      <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 py-8">
-        <div class="animate-in fade-in slide-in-from-bottom-2 duration-500">
-          <router-outlet></router-outlet>
-        </div>
+      <div class="max-w-[1400px] mx-auto px-4 sm:px-6 py-6">
+        <router-outlet></router-outlet>
       </div>
     </div>
   `

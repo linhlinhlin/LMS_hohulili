@@ -44,7 +44,7 @@ interface CourseGroup {
 
 @Component({
   selector: 'app-student-assignments-page',
-  imports: [FormsModule, RouterLink, LucideAngularModule],
+  imports: [FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './student-assignments-page.component.html',
   styleUrl: './student-assignments-page.component.scss',
@@ -118,7 +118,6 @@ export class StudentAssignmentsPageComponent implements OnInit {
         case 'NOT_STARTED':
         case 'IN_PROGRESS':
           group.todoCount++;
-          if (assignment.status === 'IN_PROGRESS') break;
           if (assignment.isOverdue) group.overdueCount++;
           break;
         case 'OVERDUE':

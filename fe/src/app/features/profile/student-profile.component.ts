@@ -80,15 +80,15 @@ interface SocialLink {
       variant="overlay"
       color="blue">
     </app-loading>
-    <div class="bg-gradient-to-br from-slate-50 via-[#0056D2]/5 to-[#0056D2]/10">
+    <div class="min-h-screen bg-slate-50">
       <!-- Profile Header -->
       <div class="bg-white shadow-xl border-b border-gray-200">
-        <div class="max-w-7xl mx-auto px-6 py-8">
+        <div class="max-w-[1400px] mx-auto px-4 sm:px-6 py-8">
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-6">
               <div class="relative">
                 <img [src]="profile().avatar" [alt]="profile().fullName" 
-                     class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg">
+                     class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-sm">
                 <button (click)="editAvatar()"
                         class="absolute bottom-0 right-0 w-8 h-8 bg-[#0056D2] text-white rounded-full flex items-center justify-center hover:bg-[#004BB5] transition-colors">
                   <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -97,7 +97,7 @@ interface SocialLink {
                 </button>
               </div>
               <div>
-                <h1 class="text-3xl font-bold text-gray-900">{{ profile().fullName }}</h1>
+                <h1 class="text-2xl font-bold text-gray-900">{{ profile().fullName }}</h1>
                 <p class="text-gray-600 text-lg">{{ profile().studentId }}</p>
                 <p class="text-gray-500">{{ profile().email }}</p>
                 <div class="flex items-center space-x-4 mt-3">
@@ -107,7 +107,7 @@ interface SocialLink {
                   <span class="text-sm bg-green-100 text-green-800 px-3 py-1 rounded-full inline-flex items-center gap-1">
                     <app-icon name="trophy" size="md"/> {{ profile().achievements.length }} thành tích
                   </span>
-                  <span class="text-sm bg-purple-100 text-purple-800 px-3 py-1 rounded-full inline-flex items-center gap-1">
+                  <span class="text-sm bg-[#0056D2]/10 text-[#0056D2] px-3 py-1 rounded-full inline-flex items-center gap-1">
                     <app-icon name="courses" size="md"/> {{ profile().interests.length }} lĩnh vực quan tâm
                   </span>
                 </div>
@@ -135,12 +135,12 @@ interface SocialLink {
         </div>
       </div>
 
-      <div class="max-w-7xl mx-auto px-6 py-8">
+      <div class="max-w-[1400px] mx-auto px-4 sm:px-6 py-8">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <!-- Main Content -->
           <div class="lg:col-span-2 space-y-8">
             <!-- Personal Information -->
-            <div class="bg-white rounded-2xl shadow-lg p-6">
+            <div class="bg-white rounded-lg shadow-sm p-6">
               <h3 class="text-xl font-bold text-gray-900 mb-6">Thông tin cá nhân</h3>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -178,11 +178,11 @@ interface SocialLink {
             </div>
 
             <!-- Learning Goals -->
-            <div class="bg-white rounded-2xl shadow-lg p-6">
+            <div class="bg-white rounded-lg shadow-sm p-6">
               <h3 class="text-xl font-bold text-gray-900 mb-6">Mục tiêu học tập</h3>
               <div class="space-y-4">
                 @for (goal of profile().learningGoals; track goal) {
-                  <div class="flex items-center space-x-3 p-4 bg-[#0056D2]/5 rounded-xl">
+                  <div class="flex items-center space-x-3 p-4 bg-[#0056D2]/5 rounded-lg">
                     <div class="w-8 h-8 bg-[#0056D2]/10 rounded-full flex items-center justify-center">
                       <svg class="w-4 h-4 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
@@ -195,7 +195,7 @@ interface SocialLink {
             </div>
 
             <!-- Interests -->
-            <div class="bg-white rounded-2xl shadow-lg p-6">
+            <div class="bg-white rounded-lg shadow-sm p-6">
               <h3 class="text-xl font-bold text-gray-900 mb-6">Lĩnh vực quan tâm</h3>
               <div class="flex flex-wrap gap-3">
                 @for (interest of profile().interests; track interest) {
@@ -207,7 +207,7 @@ interface SocialLink {
             </div>
 
             <!-- Study Schedule -->
-            <div class="bg-white rounded-2xl shadow-lg p-6">
+            <div class="bg-white rounded-lg shadow-sm p-6">
               <h3 class="text-xl font-bold text-gray-900 mb-6">Lịch học tập</h3>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -233,12 +233,12 @@ interface SocialLink {
           <!-- Sidebar -->
           <div class="space-y-8">
             <!-- Achievements -->
-            <div class="bg-white rounded-2xl shadow-lg p-6">
+            <div class="bg-white rounded-lg shadow-sm p-6">
               <h3 class="text-xl font-bold text-gray-900 mb-6">Thành tích gần đây</h3>
               <div class="space-y-4">
                 @for (achievement of profile().achievements.slice(0, 5); track achievement.id) {
-                  <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl">
-                    <div class="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center">
+                  <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
                       <app-icon [name]="$any(achievement.icon)" size="md"/>
                     </div>
                     <div class="flex-1">
@@ -256,11 +256,11 @@ interface SocialLink {
             </div>
 
             <!-- Certificates -->
-            <div class="bg-white rounded-2xl shadow-lg p-6">
+            <div class="bg-white rounded-lg shadow-sm p-6">
               <h3 class="text-xl font-bold text-gray-900 mb-6">Chứng chỉ</h3>
               <div class="space-y-4">
                 @for (certificate of profile().certificates.slice(0, 3); track certificate.id) {
-                  <div class="p-4 bg-gray-50 rounded-xl">
+                  <div class="p-4 bg-gray-50 rounded-lg">
                     <h4 class="font-medium text-gray-900">{{ certificate.courseName }}</h4>
                     <p class="text-sm text-gray-600">Cấp ngày: {{ formatDate(certificate.issuedAt) }}</p>
                     <div class="flex items-center justify-between mt-2">
@@ -284,7 +284,7 @@ interface SocialLink {
 
             <!-- Social Links -->
             @if (profile().socialLinks.length > 0) {
-              <div class="bg-white rounded-2xl shadow-lg p-6">
+              <div class="bg-white rounded-lg shadow-sm p-6">
                 <h3 class="text-xl font-bold text-gray-900 mb-6">Liên kết xã hội</h3>
                 <div class="space-y-3">
                   @for (link of profile().socialLinks; track link.platform) {

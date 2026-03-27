@@ -46,13 +46,8 @@ export const assignmentHubRoutes: Routes = [
             children: [
               {
                 path: '',
-                redirectTo: 'overview',
+                redirectTo: 'submissions',
                 pathMatch: 'full'
-              },
-              {
-                path: 'overview',
-                loadComponent: () => import('./components/assignment-overview.component').then(m => m.AssignmentOverviewComponent),
-                title: 'Tổng quan bài tập'
               },
               {
                 path: 'submissions',
@@ -60,21 +55,20 @@ export const assignmentHubRoutes: Routes = [
                 title: 'Bài nộp'
               },
               {
-                path: 'settings',
-                loadComponent: () => import('../assignments/assignment-editor.component').then(m => m.AssignmentEditorComponent),
+                path: 'details',
+                loadComponent: () => import('./components/assignment-details-tab.component').then(m => m.AssignmentDetailsTabComponent),
                 canDeactivate: [(component: any) => component.canDeactivate?.() ?? true],
-                title: 'Cài đặt bài tập'
-              },
-              {
-                path: 'rubric',
-                loadComponent: () => import('./components/assignment-rubric.component').then(m => m.AssignmentRubricComponent),
-                title: 'Rubric bài tập'
+                title: 'Chi tiết bài tập'
               },
               {
                 path: 'audit-log',
                 loadComponent: () => import('./components/assignment-audit-log.component').then(m => m.AssignmentAuditLogComponent),
                 title: 'Lịch sử thao tác'
-              }
+              },
+              // Legacy redirects for old tab paths
+              { path: 'overview', redirectTo: 'submissions', pathMatch: 'full' },
+              { path: 'settings', redirectTo: 'details', pathMatch: 'full' },
+              { path: 'rubric', redirectTo: 'details', pathMatch: 'full' }
             ]
           },
           {
@@ -160,7 +154,7 @@ export const assignmentHubRoutes: Routes = [
       },
       {
         path: 'assignments/:id/overview',
-        redirectTo: 'classes/assignments/:id/overview',
+        redirectTo: 'classes/assignments/:id/submissions',
         pathMatch: 'full'
       },
       {
@@ -170,12 +164,12 @@ export const assignmentHubRoutes: Routes = [
       },
       {
         path: 'assignments/:id/settings',
-        redirectTo: 'classes/assignments/:id/settings',
+        redirectTo: 'classes/assignments/:id/details',
         pathMatch: 'full'
       },
       {
         path: 'assignments/:id/rubric',
-        redirectTo: 'classes/assignments/:id/rubric',
+        redirectTo: 'classes/assignments/:id/details',
         pathMatch: 'full'
       },
       {
@@ -240,7 +234,7 @@ export const assignmentHubRoutes: Routes = [
       },
       {
         path: ':id/edit',
-        redirectTo: 'classes/assignments/:id/settings',
+        redirectTo: 'classes/assignments/:id/details',
         pathMatch: 'full'
       }
     ]

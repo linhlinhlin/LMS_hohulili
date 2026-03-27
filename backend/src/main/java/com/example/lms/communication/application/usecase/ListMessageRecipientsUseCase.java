@@ -1,6 +1,7 @@
 package com.example.lms.communication.application.usecase;
 
 import com.example.lms.communication.application.dto.MessageRecipientCandidateResponse;
+import com.example.lms.communication.application.service.MessageAuthorizationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import {
@@ -35,6 +35,9 @@ import {
   templateUrl: './student-storage-management.component.html',
 })
 export class StudentStorageManagementComponent implements OnInit {
+  /** Tab state for progressive disclosure layout */
+  activeTab = signal<'overview' | 'courses' | 'settings'>('overview');
+
   readonly storageManager = inject(StorageManagerService);
   readonly downloadService = inject(CourseDownloadService);
   readonly videoService = inject(OfflineVideoService);

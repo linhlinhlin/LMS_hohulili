@@ -121,6 +121,46 @@ public class FileUploadControllerV3 {
         }
     }
 
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Upload file (any authenticated user — for assignment submissions, profile, etc.)")
+    public ResponseEntity<Map<String, Object>> uploadGeneral(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "category", defaultValue = "document") String category,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        try {
+            if (!isStorageAvailable()) {
+                return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Storage not configured"));
+            }
+            String validationError = validateFile(file);
+            if (validationError != null) {
+                return ResponseEntity.badRequest().body(Map.of("success", false, "message", validationError));
+            }
+            if (user == null) {
+                return ResponseEntity.status(401).body(Map.of("success", false, "message", "Unauthorized"));
+            }
+            String folder = "assignments".equals(category) ? "assignment-files"
+                    : "profile".equals(category) ? "profile-files"
+                    : "general-uploads";
+            var attachment = fileManagementService.uploadFile(file, folder, user.getId());
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "data", Map.of(
+                            "id", attachment.getId().toString(),
+                            "url", attachment.getFileUrl(),
+                            "originalName", file.getOriginalFilename() != null ? file.getOriginalFilename() : "",
+                            "fileName", attachment.getFileName(),
+                            "size", file.getSize(),
+                            "mimeType", file.getContentType() != null ? file.getContentType() : "application/octet-stream"
+                    )
+            ));
+        } catch (IOException | RuntimeException e) {
+            log.error("General file upload failed for user {}: {}", user != null ? user.getId() : "?", e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of("success", false, "message", "Upload failed: " + e.getMessage()));
+        }
+    }
+
     @PostMapping(value = "/upload/video", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Upload video file (R2 or local storage)")

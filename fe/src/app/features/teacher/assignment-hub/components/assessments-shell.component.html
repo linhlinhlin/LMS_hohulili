@@ -1,8 +1,13 @@
 <div class="assessments-shell">
-  <header class="assessments-header">
-    <p class="assessments-label">{{ sectionLabel }}</p>
-    <h1 class="assessments-title">{{ pageTitle() }}</h1>
-  </header>
+  @if (!hideHeader()) {
+    <header class="assessments-header">
+      <nav class="assessments-breadcrumb">
+        <span class="assessments-label">{{ sectionLabel }}</span>
+        <span class="assessments-separator">›</span>
+        <span class="assessments-current">{{ pageTitle() }}</span>
+      </nav>
+    </header>
+  }
 </div>
 
 <router-outlet></router-outlet>

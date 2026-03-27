@@ -279,8 +279,8 @@ export class AssignmentApi {
     return this.api.getWithResponse<StudentAssignmentResponse>(`/api/v3/student/assignments/${assignmentId}`);
   }
 
-  // Submit assignment (student)
-  submitStudentAssignment(assignmentId: string, payload: { content?: string; fileUrl?: string; fileName?: string }) {
+  // Submit assignment (student) — supports multi-file via attachments array
+  submitStudentAssignment(assignmentId: string, payload: Record<string, unknown>) {
     return this.api.postWithResponse<{ submissionId: string; status: string }>(
       `/api/v3/student/assignments/${assignmentId}/submit`,
       payload

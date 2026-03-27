@@ -1,4 +1,4 @@
-package com.example.lms.communication.application.usecase;
+package com.example.lms.communication.application.service;
 
 import com.example.lms.communication.application.dto.MessageRecipientCandidateResponse;
 import com.example.lms.communication.application.port.MessageRecipientDirectoryPort;

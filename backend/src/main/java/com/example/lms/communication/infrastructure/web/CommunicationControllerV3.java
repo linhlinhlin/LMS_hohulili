@@ -2,7 +2,7 @@ package com.example.lms.communication.infrastructure.web;
 
 import com.example.lms.communication.application.dto.MessageRecipientSearchResponse;
 import com.example.lms.communication.application.usecase.ListMessageRecipientsUseCase;
-import com.example.lms.communication.application.usecase.MessageAuthorizationService;
+import com.example.lms.communication.application.service.MessageAuthorizationService;
 import com.example.lms.communication.application.usecase.SendMessageUseCaseV3;
 import com.example.lms.communication.domain.model.Conversation;
 import com.example.lms.communication.domain.model.ConversationId;

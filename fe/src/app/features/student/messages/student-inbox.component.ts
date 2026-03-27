@@ -35,7 +35,7 @@ import {
   template: `
     <div class="min-h-screen bg-slate-50">
       <div class="sticky top-0 z-10 border-b border-slate-200 bg-white">
-        <div class="mx-auto max-w-4xl px-4 py-4">
+        <div class="mx-auto max-w-[1400px] px-4 sm:px-6 py-4">
           <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h1 class="text-2xl font-bold text-slate-900">Tin nhắn</h1>
@@ -100,9 +100,9 @@ import {
         </div>
       </div>
 
-      <div class="mx-auto max-w-4xl px-4 py-4">
+      <div class="mx-auto max-w-[1400px] px-4 sm:px-6 py-4">
         @if (error() && filteredConversations().length > 0) {
-          <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
             {{ error() }}
           </div>
         }
@@ -113,7 +113,7 @@ import {
             <span class="ml-3 text-slate-600">Đang tải hội thoại...</span>
           </div>
         } @else if (error() && allConversations().length === 0) {
-          <div class="rounded-2xl border border-red-200 bg-white px-6 py-12 text-center">
+          <div class="rounded-lg border border-red-200 bg-white px-6 py-12 text-center">
             <svg class="mx-auto mb-3 h-12 w-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
@@ -130,7 +130,7 @@ import {
             </button>
           </div>
         } @else if (filteredConversations().length === 0) {
-          <div class="rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center">
+          <div class="rounded-lg border border-slate-200 bg-white px-6 py-12 text-center">
             <svg class="mx-auto mb-4 h-16 w-16 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
@@ -147,7 +147,7 @@ import {
             }
           </div>
         } @else {
-          <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
             @for (conversation of filteredConversations(); track conversation.conversationId) {
               <app-conversation-list-item
                 [conversation]="conversation"

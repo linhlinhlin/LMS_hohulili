@@ -103,14 +103,47 @@ export class AssignmentWorkComponent implements OnInit {
     this.router.navigate(['/student/tasks']);
   }
 
+  private readonly MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  private readonly ALLOWED_EXTENSIONS = new Set(['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png']);
+
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    if (!input.files) {
-      return;
+    if (!input.files) return;
+
+    const newFiles = Array.from(input.files);
+    const existingNames = new Set(this.uploadedFiles().map(f => f.name));
+    const errors: string[] = [];
+
+    const validFiles = newFiles.filter(file => {
+      // Duplicate check
+      if (existingNames.has(file.name)) {
+        errors.push(`${file.name}: đã thêm rồi`);
+        return false;
+      }
+      // Size check
+      if (file.size > this.MAX_FILE_SIZE) {
+        errors.push(`${file.name}: vượt quá 10MB (${this.formatFileSize(file.size)})`);
+        return false;
+      }
+      // Type check
+      const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+      if (!this.ALLOWED_EXTENSIONS.has(ext)) {
+        errors.push(`${file.name}: định dạng không hỗ trợ (chỉ PDF, DOC, DOCX, JPG, PNG)`);
+        return false;
+      }
+      return true;
+    });
+
+    if (errors.length > 0) {
+      this.toast.error(errors.join('. '));
     }
 
-    const files = Array.from(input.files);
-    this.uploadedFiles.update((current) => [...current, ...files]);
+    if (validFiles.length > 0) {
+      this.uploadedFiles.update(current => [...current, ...validFiles]);
+    }
+
+    // Reset input so same file can be selected again
+    input.value = '';
   }
 
   removeFile(file: File): void {
@@ -143,6 +176,13 @@ export class AssignmentWorkComponent implements OnInit {
     const assignment = this.assignment();
     if (!assignment?.dueDate) return false;
     return new Date() > new Date(assignment.dueDate);
+  }
+
+  /** Whether student can still submit (overdue + no late submission = locked) */
+  isLocked(): boolean {
+    const assignment = this.assignment() as Record<string, unknown> | null;
+    if (!assignment) return false;
+    return this.isOverdue() && !assignment['allowLateSubmission'] && !this.mySubmission();
   }
 
   getStatusClass(): string {
@@ -228,35 +268,37 @@ export class AssignmentWorkComponent implements OnInit {
     try {
       const selectedFiles = this.uploadedFiles();
       const trimmedContent = this.submissionContent().trim();
-      let firstFileUrl = '';
-      let firstFileName = '';
-      let failedUploadCount = 0;
+
+      // Upload ALL files and collect URLs
+      const uploadedAttachments: { fileUrl: string; fileName: string; fileSize: number; mimeType: string }[] = [];
+      const failedFiles: string[] = [];
 
       for (const file of selectedFiles) {
         try {
           const uploaded = await firstValueFrom(this.fileApi.uploadFile(file, 'assignment'));
-          if (!firstFileUrl) {
-            firstFileUrl = uploaded.url;
-            firstFileName = uploaded.originalName || file.name;
-          }
+          uploadedAttachments.push({
+            fileUrl: uploaded.url,
+            fileName: uploaded.originalName || file.name,
+            fileSize: file.size,
+            mimeType: file.type || 'application/octet-stream',
+          });
         } catch {
-          failedUploadCount++;
+          failedFiles.push(file.name);
         }
       }
 
-      if (!trimmedContent && !firstFileUrl) {
+      if (!trimmedContent && uploadedAttachments.length === 0) {
         const message = selectedFiles.length > 0
-          ? 'Không thể tải lên tệp đính kèm. Vui lòng thử lại trước khi nộp bài.'
+          ? `Không thể tải lên tệp: ${failedFiles.join(', ')}. Vui lòng thử lại.`
           : 'Vui lòng nhập nội dung hoặc đính kèm ít nhất một tệp trước khi nộp bài.';
         this.error.set(message);
         this.toast.error(message);
         return;
       }
 
-      const payload = {
+      const payload: Record<string, unknown> = {
         content: trimmedContent || undefined,
-        fileUrl: firstFileUrl || undefined,
-        fileName: firstFileName || undefined,
+        attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
       };
 
       const response = await firstValueFrom(
@@ -271,16 +313,19 @@ export class AssignmentWorkComponent implements OnInit {
         this.submissionContent.set('');
         this.uploadedFiles.set([]);
 
-        if (failedUploadCount > 0) {
+        if (failedFiles.length > 0) {
           this.toast.warning(
-            `Đã nộp bài thành công nhưng ${failedUploadCount}/${selectedFiles.length} tệp đính kèm không tải lên được.`
+            `Nộp bài thành công nhưng ${failedFiles.length} tệp không tải lên được: ${failedFiles.join(', ')}`
           );
         } else {
           this.toast.success('Nộp bài thành công!');
         }
       }
-    } catch {
-      this.error.set('Không thể nộp bài. Vui lòng thử lại.');
+    } catch (err: unknown) {
+      const httpErr = err as { error?: { message?: string } };
+      const msg = httpErr?.error?.message || 'Không thể nộp bài. Vui lòng thử lại.';
+      this.error.set(msg);
+      this.toast.error(msg);
     } finally {
       this.isSubmitting.set(false);
     }

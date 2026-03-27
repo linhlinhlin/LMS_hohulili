@@ -25,6 +25,15 @@ export class AssessmentsShellComponent {
 
   readonly sectionLabel = 'Bài tập & Ngân hàng câu hỏi';
 
+  /** Hide shell header when inside detail view (detail has its own breadcrumb) */
+  readonly hideHeader = computed(() => {
+    const url = this.currentUrl();
+    // Hide when viewing a specific assignment or quiz detail
+    return /\/assignments\/[^/]+\/(submissions|details|audit-log)/.test(url)
+        || /\/assignments\/[^/]+\/grade\//.test(url)
+        || /\/quizzes\/[^/]+\/(editor|essay-grading)/.test(url);
+  });
+
   readonly pageTitle = computed(() => {
     const url = this.currentUrl();
 
@@ -48,12 +57,8 @@ export class AssessmentsShellComponent {
       return 'Tạo bài tập';
     }
 
-    if (/\/teacher\/assessments\/classes\/assignments\/[^/]+\/overview/.test(url)) {
+    if (/\/teacher\/assessments\/classes\/assignments\/[^/]+\/(submissions|details|audit-log)/.test(url)) {
       return 'Chi tiết bài tập';
-    }
-
-    if (/\/teacher\/assessments\/classes\/assignments\/[^/]+\/settings/.test(url)) {
-      return 'Thiết lập bài tập';
     }
 
     if (url.includes('/teacher/assessments/classes/assignments')) {
