@@ -12,6 +12,8 @@ import Table from '@editorjs/table';
 import Warning from '@editorjs/warning';
 // Custom Math Tool with KaTeX preview
 import MathBlockTool from './math-block-tool';
+// Custom Video Tool for quiz questions
+import VideoBlockTool from './video-block-tool';
 import { environment } from '../../../../environments/environment';
 
 /**
@@ -184,15 +186,18 @@ export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlVa
                             title: 'Công thức',
                             icon: '<svg width="17" height="17" viewBox="0 0 17 17" xmlns="http://www.w3.org/2000/svg"><text x="2" y="14" font-family="serif" font-size="14" font-style="italic">∑</text></svg>'
                         }
-                    }
+                    },
 
                     // ============================================
-                    // REMOVED TOOLS (SOTA 2025 - Less is More):
-                    // - header: Không cần trong câu hỏi trắc nghiệm
-                    // - quote: Không phù hợp với bài thi kỹ thuật  
-                    // - checklist: Gây nhầm lẫn với đáp án
-                    // - link: Tránh xao nhãng khi làm bài
+                    // 6. VIDEO - Video minh họa cho câu hỏi
                     // ============================================
+                    video: {
+                        class: VideoBlockTool as any,
+                        toolbox: {
+                            title: 'Video',
+                            icon: '<svg width="17" height="15" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"/></svg>'
+                        }
+                    }
 
                 } as any,
 
@@ -251,7 +256,8 @@ export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlVa
                             'Image': 'Hình ảnh',
                             'Table': 'Bảng',
                             'Warning': 'Tình huống',
-                            'Math': 'Công thức'
+                            'Math': 'Công thức',
+                            'Video': 'Video'
                         },
                         tools: {
                             list: {

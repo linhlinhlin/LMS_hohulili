@@ -49,8 +49,8 @@ import katex from 'katex';
       }
 
       <!-- Main Input Container -->
-      <div class="relative border rounded-xl bg-white transition-all overflow-hidden"
-           [class.border-slate-200]="!isInvalid() && !isFocused()"
+      <div class="relative border rounded-lg bg-white transition-all overflow-hidden"
+           [class.border-gray-200]="!isInvalid() && !isFocused()"
            [class.border-[#0056D2]]="isFocused()"
            [class.ring-4]="isFocused()"
            [class.ring-[#0056D2]/5]="isFocused()"
@@ -61,16 +61,16 @@ import katex from 'katex';
           
           <!-- Image Chips (Optional, keeping for better UX with files) -->
           @for (img of imageChips(); track img.uuid; let i = $index) {
-            <div class="inline-flex items-center gap-1.5 px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg group/chip hover:shadow-sm transition-all cursor-pointer"
+            <div class="inline-flex items-center gap-1.5 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg group/chip hover:shadow-sm transition-all cursor-pointer"
                  (click)="expandImage(img)">
               <img [src]="img.url" 
                    class="w-6 h-6 rounded object-cover border border-white shadow-sm" 
                    [alt]="'Image ' + (i + 1)"
                    (error)="onImageError($event)">
-              <span class="text-[10px] text-slate-500 font-black uppercase tracking-wider">Ảnh {{i + 1}}</span>
+              <span class="text-[10px] text-gray-500 font-black uppercase tracking-wider">Ảnh {{i + 1}}</span>
               <button type="button" 
                       (click)="removeImage(img.uuid); $event.stopPropagation()" 
-                      class="w-4 h-4 flex items-center justify-center rounded-full bg-slate-200 text-slate-500 hover:bg-rose-500 hover:text-white opacity-0 group-hover/chip:opacity-100 transition-all text-[10px]"
+                      class="w-4 h-4 flex items-center justify-center rounded-full bg-gray-200 text-gray-500 hover:bg-rose-500 hover:text-white opacity-0 group-hover/chip:opacity-100 transition-all text-[10px]"
                       title="Xóa ảnh">
                 ×
               </button>
@@ -88,19 +88,19 @@ import katex from 'katex';
               (blur)="onBlur()"
               (keydown)="onKeyDown($event)"
               rows="1"
-              class="flex-1 w-full px-3 py-1.5 border-none focus:ring-0 focus:outline-none bg-transparent text-sm text-slate-900 font-medium placeholder-slate-400 resize-none min-h-[32px] overflow-hidden"
+              class="flex-1 w-full px-3 py-1.5 border-none focus:ring-0 focus:outline-none bg-transparent text-sm text-gray-900 font-medium placeholder-gray-400 resize-none min-h-[32px] overflow-hidden"
               style="line-height: 1.5;"
             ></textarea>
         </div>
 
         <!-- Action Buttons -->
-        <div class="absolute right-1 bottom-1 flex items-center space-x-1 text-slate-400 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 transition-opacity">
+        <div class="absolute right-1 bottom-1 flex items-center space-x-1 text-gray-400 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 transition-opacity">
            <button type="button" (click)="fileInput.click()" 
                    class="w-7 h-7 flex items-center justify-center hover:text-[#0056D2] rounded-lg hover:bg-[#0056D2]/5 transition-colors relative group/btn"
                    aria-label="Chèn ảnh vào đáp án"
                    title="Chèn ảnh">
              <lucide-icon name="image" size="16"></lucide-icon>
-             <div class="hidden group-hover/btn:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg whitespace-nowrap z-50">Chèn ảnh</div>
+             <div class="hidden group-hover/btn:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-[10px] font-bold rounded-lg whitespace-nowrap z-50">Chèn ảnh</div>
            </button>
            
            <button type="button" (click)="insertMath()" 
@@ -108,7 +108,7 @@ import katex from 'katex';
                    aria-label="Chèn công thức vào đáp án"
                    title="Chèn công thức">
              <span class="font-serif italic font-bold text-base leading-none">Σ</span>
-             <div class="hidden group-hover/btn:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg whitespace-nowrap z-50">Công thức</div>
+             <div class="hidden group-hover/btn:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-[10px] font-bold rounded-lg whitespace-nowrap z-50">Công thức</div>
            </button>
         </div>
       </div>
@@ -136,10 +136,10 @@ import katex from 'katex';
           <div class="relative max-w-4xl max-h-[90vh] bg-white rounded-xl shadow-2xl overflow-hidden animate-fade-in"
                (click)="$event.stopPropagation()">
             <!-- Modal Header -->
-            <div class="bg-gray-800 px-4 py-2 flex justify-between items-center">
-              <span class="text-white text-sm font-medium">Xem ảnh</span>
-              <button (click)="closeExpandedImage()" 
-                      class="text-white hover:text-red-400 transition-colors">
+            <div class="border-b border-gray-200 px-4 py-2.5 flex justify-between items-center bg-white">
+              <span class="text-gray-900 text-sm font-semibold">Xem ảnh</span>
+              <button (click)="closeExpandedImage()"
+                      class="text-gray-400 hover:text-gray-600 transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
@@ -222,7 +222,7 @@ export class EnrichedInputFieldComponent {
 
     hasRichContent = computed(() => {
         const val = this.rawValue();
-        return val.includes('[IMG:') || val.includes('$') || val.includes('\\');
+        return val.includes('[IMG:') || val.includes('[VID:') || val.includes('$') || val.includes('\\');
     });
 
     isFormula = computed(() => {
@@ -237,14 +237,16 @@ export class EnrichedInputFieldComponent {
     // Computed: Visual feedback parts for the backdrop layer
     highlightedParts = computed(() => {
         const val = this.rawValue();
-        const parts: { text: string; type: 'text' | 'latex' | 'image' }[] = [];
-        const regex = /(\[IMG:[^\]]+\]|\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g;
-        
+        const parts: { text: string; type: 'text' | 'latex' | 'image' | 'video' }[] = [];
+        const regex = /(\[IMG:[^\]]+\]|\[VID:[^\]]+\]|\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g;
+
         const splitParts = val.split(regex);
         splitParts.forEach(part => {
             if (!part) return;
             if (part.startsWith('[IMG:')) {
                 parts.push({ text: part, type: 'image' });
+            } else if (part.startsWith('[VID:')) {
+                parts.push({ text: part, type: 'video' });
             } else if (part.startsWith('$')) {
                 parts.push({ text: part, type: 'latex' });
             } else {
@@ -297,14 +299,15 @@ export class EnrichedInputFieldComponent {
         const start = el.selectionStart ?? 0;
         const end = el.selectionEnd ?? 0;
 
-        // --- Math Shortcuts ---
-        if (event.key === '/') {
+        // --- Math Shortcuts (only active inside $...$ math context) ---
+        const insideMath = this.isCursorInsideMath(val, start);
+        if (insideMath && event.key === '/') {
             event.preventDefault();
             this.insertAtCursor('\\frac{tử số}{mẫu số}');
-        } else if (event.key === '^') {
+        } else if (insideMath && event.key === '^') {
             event.preventDefault();
             this.insertAtCursor('^{số mũ}');
-        } else if (event.key === '_') {
+        } else if (insideMath && event.key === '_') {
             event.preventDefault();
             this.insertAtCursor('_{chỉ số}');
         }
@@ -467,6 +470,11 @@ export class EnrichedInputFieldComponent {
             return `<img src="${url}" class="h-12 w-auto object-cover rounded border border-gray-200 inline-block align-middle mx-1" />`;
         });
 
+        // Parse Videos: [VID:url] -> video icon chip
+        text = text.replace(/\[VID:([^\]]+)\]/g, () => {
+            return `<span class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700 align-middle mx-1">&#9654; Video</span>`;
+        });
+
         // Parse Math using KaTeX
         try {
             text = text.replace(/(\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g, (match) => {
@@ -543,7 +551,7 @@ export class EnrichedInputFieldComponent {
         this.valueChange.emit(val);
 
         const blocks: ContentBlock[] = [];
-        const regex = /(\[IMG:[^\]]+\]|\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g;
+        const regex = /(\[IMG:[^\]]+\]|\[VID:[^\]]+\]|\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g;
         const parts = val.split(regex);
 
         parts.forEach(part => {
@@ -556,6 +564,13 @@ export class EnrichedInputFieldComponent {
                     id: crypto.randomUUID(),
                     type: 'image',
                     url: resolvedUrl || uuid
+                });
+            } else if (part.startsWith('[VID:') && part.endsWith(']')) {
+                const url = part.slice(5, -1);
+                blocks.push({
+                    id: crypto.randomUUID(),
+                    type: 'video',
+                    url: url
                 });
             } else if (part.startsWith('$')) {
                 const isDisplay = part.startsWith('$$');

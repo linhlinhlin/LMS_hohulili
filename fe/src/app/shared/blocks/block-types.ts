@@ -1,4 +1,4 @@
-export type BlockType = 'text' | 'image' | 'formula' | 'table';
+export type BlockType = 'text' | 'paragraph' | 'image' | 'formula' | 'table' | 'video';
 
 export interface ContentBlock {
     type: BlockType;
@@ -21,5 +21,16 @@ export interface ImageBlockData {
 }
 
 export interface FormulaBlockData {
-    expression: string; // LaTeX expression
+    expression?: string; // LaTeX expression (EditorJS format)
+    latex?: string;      // LaTeX expression (API/DB format)
+    format?: string;     // 'inline' | 'display'
+}
+
+export interface VideoBlockData {
+    url?: string;            // Direct video URL fallback (uploaded file or R2 CDN)
+    file?: { url: string };  // EditorJS-style file reference
+    videoAssetId?: string;   // Primary: VideoAsset ID for adaptive streaming (Shaka Player)
+    assetId?: string;        // Legacy alias for videoAssetId
+    caption?: string;
+    mimeType?: string;       // e.g. 'video/mp4'
 }

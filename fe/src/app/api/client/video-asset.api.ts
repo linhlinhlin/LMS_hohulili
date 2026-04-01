@@ -21,6 +21,13 @@ export interface VideoAssetResponse {
   availableOfflineProfiles: OfflineVideoProfileDescriptor[];
 }
 
+export interface PlaybackResponse {
+  playUrl: string;
+  videoAssetId: string;
+  videoSourceKind: string;
+  format: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class VideoAssetApi {
   private readonly api = inject(ApiClient);
@@ -38,5 +45,11 @@ export class VideoAssetApi {
 
   retry(assetId: string) {
     return this.api.postWithResponse<VideoAssetResponse>(`/api/v3/video-assets/${assetId}/retry`, {});
+  }
+
+  getPlayUrl(assetId: string, format: 'hls' | 'dash' = 'hls') {
+    return this.api.getWithResponse<PlaybackResponse>(`/api/v3/video-assets/${assetId}/play`, {
+      params: { format }
+    });
   }
 }

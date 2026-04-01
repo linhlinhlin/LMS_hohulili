@@ -4,13 +4,15 @@ import { ContentBlock } from '../block-types';
 import { TextBlockComponent } from '../text-block/text-block.component';
 import { FormulaBlockComponent } from '../formula-block/formula-block.component';
 import { ImageBlockComponent } from '../image-block/image-block.component';
+import { VideoBlockComponent } from '../video-block/video-block.component';
 
 @Component({
   selector: 'app-block-renderer',
   imports: [
     TextBlockComponent,
     FormulaBlockComponent,
-    ImageBlockComponent
+    ImageBlockComponent,
+    VideoBlockComponent
 ],
   template: `
     <div class="block-container space-y-4">
@@ -19,11 +21,17 @@ import { ImageBlockComponent } from '../image-block/image-block.component';
           @case ('text') {
             <app-text-block [data]="block.data"></app-text-block>
           }
+          @case ('paragraph') {
+            <app-text-block [data]="block.data"></app-text-block>
+          }
           @case ('formula') {
             <app-formula-block [data]="block.data"></app-formula-block>
           }
           @case ('image') {
             <app-image-block [data]="block.data"></app-image-block>
+          }
+          @case ('video') {
+            <app-video-block [data]="block.data"></app-video-block>
           }
         }
       }

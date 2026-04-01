@@ -53,6 +53,22 @@ public class VideoAssetControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(toResponse(asset, user), "Trang thai video asset"));
     }
 
+    @GetMapping("/{assetId}/play")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get adaptive playback URL for a video asset (accessible to all authenticated users)")
+    public ResponseEntity<ApiResponse<PlaybackResponse>> getPlayUrl(
+            @PathVariable UUID assetId,
+            @RequestParam(defaultValue = "hls") String format,
+            @AuthenticationPrincipal UserJpaEntity user
+    ) {
+        return adaptiveVideoPlaybackService.createPlaybackSession(assetId, user.getId(), format)
+                .map(session -> ResponseEntity.ok(ApiResponse.success(
+                        new PlaybackResponse(session.playUrl(), session.videoAssetId(), session.videoSourceKind(), session.format()),
+                        "Playback URL"
+                )))
+                .orElse(ResponseEntity.ok(ApiResponse.success(null, "Video chua san sang de phat")));
+    }
+
     @PostMapping("/{assetId}/retry")
     @PreAuthorize("hasAnyRole('TEACHER','ADMIN','ORG_ADMIN')")
     @Operation(summary = "Retry processing a failed or pending video asset")
@@ -117,6 +133,13 @@ public class VideoAssetControllerV3 {
                 profiles
         );
     }
+
+    public record PlaybackResponse(
+            String playUrl,
+            UUID videoAssetId,
+            String videoSourceKind,
+            String format
+    ) {}
 
     public record CreateVideoAssetFromUploadRequest(UUID attachmentId, String displayName) {}
 

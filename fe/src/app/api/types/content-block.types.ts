@@ -1,4 +1,4 @@
-export type BlockType = 'text' | 'formula' | 'image';
+export type BlockType = 'text' | 'formula' | 'image' | 'video';
 
 export interface BaseBlock {
     id: string; // Unique ID for tracking
@@ -25,4 +25,13 @@ export interface ImageBlock extends BaseBlock {
     blob?: Blob; // For offline display if stored in IDB
 }
 
-export type ContentBlock = TextBlock | FormulaBlock | ImageBlock;
+export interface VideoBlock extends BaseBlock {
+    type: 'video';
+    url: string;
+    caption?: string;
+    mimeType?: string;
+    videoAssetId?: string;
+    assetId?: string;
+}
+
+export type ContentBlock = TextBlock | FormulaBlock | ImageBlock | VideoBlock;
