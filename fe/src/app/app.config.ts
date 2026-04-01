@@ -61,6 +61,8 @@ import {
   Activity,
   ArrowLeft,
   ArrowRight,
+  ArrowUp,
+  ArrowDown,
   Eye,
   EyeOff,
   AlertOctagon,
@@ -97,7 +99,14 @@ import {
   MousePointer2,
   List,
   SearchX,
-  Type
+  Type,
+  Tag,
+  ShieldCheck,
+  ArrowUpDown,
+  Building2,
+  RotateCcw,
+  CircleCheck,
+  CircleX
 } from 'lucide-angular';
 
 function isLocalBrowserRuntime(): boolean {
@@ -213,6 +222,8 @@ export const appConfig: ApplicationConfig = {
       Activity,
       ArrowLeft,
       ArrowRight,
+      ArrowUp,
+      ArrowDown,
       Eye,
       EyeOff,
       AlertOctagon,
@@ -249,7 +260,14 @@ export const appConfig: ApplicationConfig = {
       MousePointer2,
       List,
       SearchX,
-      Type
+      Type,
+      Tag,
+      ShieldCheck,
+      ArrowUpDown,
+      Building2,
+      RotateCcw,
+      CircleCheck,
+      CircleX
     }))
   ]
 };

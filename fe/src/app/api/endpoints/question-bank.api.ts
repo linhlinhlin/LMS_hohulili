@@ -99,4 +99,34 @@ export class QuestionBankApi {
       map(() => void 0)
     );
   }
+
+  copyQuestionsToBank(questionIds: string[], targetBankId: string, targetCategoryId?: string): Observable<{ copiedCount: number; targetBankId: string }> {
+    return this.apiClient.post<any>('/api/v3/question-banks/copy-questions', {
+      questionIds,
+      targetBankId,
+      targetCategoryId: targetCategoryId || undefined
+    }).pipe(map((r: any) => r?.data ?? r));
+  }
+
+  getPublicBanks(): Observable<QuestionBankDTO[]> {
+    return this.apiClient.get<any>('/api/v3/question-banks/public').pipe(
+      map((response: any) => (response?.data ?? response) || [])
+    );
+  }
+
+  searchPublicBanks(query: string): Observable<QuestionBankDTO[]> {
+    return this.apiClient.get<any>('/api/v3/question-banks/search', {
+      params: { query: query || '' }
+    }).pipe(
+      map((response: any) => (response?.data ?? response) || [])
+    );
+  }
+
+  assignQuestionCategory(questionId: string, bankId: string, categoryId: string | null): Observable<void> {
+    return this.apiClient.post<any>('/api/v3/question-banks/move-questions', {
+      questionIds: [questionId],
+      targetBankId: bankId,
+      targetCategoryId: categoryId || undefined
+    }).pipe(map(() => void 0));
+  }
 }

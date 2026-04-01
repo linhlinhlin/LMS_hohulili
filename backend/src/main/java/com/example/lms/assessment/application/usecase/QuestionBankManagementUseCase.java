@@ -12,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -93,6 +95,11 @@ public class QuestionBankManagementUseCase {
     @Transactional(readOnly = true)
     public List<QuestionBank> searchBanks(String query) {
         return bankRepository.searchByName(query);
+    }
+
+    @Transactional(readOnly = true)
+    public List<QuestionBank> getBanksByVisibility(QuestionBank.Visibility visibility) {
+        return bankRepository.findByVisibility(visibility);
     }
 
     // ============ Category CRUD ============
@@ -204,6 +211,15 @@ public class QuestionBankManagementUseCase {
                 .filter(id -> id != null && !id.equals(command.targetBankId()))
                 .collect(Collectors.toSet());
 
+        // Collect old category IDs before moving (to refresh their counts after)
+        Set<UUID> affectedCategoryIds = questions.stream()
+                .map(Question::getCategoryId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (command.targetCategoryId() != null) {
+            affectedCategoryIds.add(command.targetCategoryId());
+        }
+
         for (Question question : questions) {
             question.moveToBank(command.targetBankId(), command.targetCategoryId());
         }
@@ -221,7 +237,91 @@ public class QuestionBankManagementUseCase {
         targetBank.setQuestionCount((int) questionRepository.countByBankId(command.targetBankId()));
         bankRepository.save(targetBank);
 
+        // Update questionCount on all affected categories
+        for (UUID catId : affectedCategoryIds) {
+            categoryRepository.findById(catId).ifPresent(cat -> {
+                cat.setQuestionCount((int) questionRepository.countByCategoryId(catId));
+                categoryRepository.save(cat);
+            });
+        }
+
         log.info("Moved {} questions to bank: {}", questions.size(), command.targetBankId());
+    }
+
+    @Transactional
+    public List<Question> copyQuestionsToBank(CopyQuestionsCommand command, UUID userId) {
+        QuestionBank targetBank = bankRepository.findById(command.targetBankId())
+                .orElseThrow(() -> new EntityNotFoundException("QuestionBank", command.targetBankId()));
+        if (!targetBank.isOwnedBy(userId)) {
+            throw new BusinessRuleException("Bạn không sở hữu ngân hàng câu hỏi đích");
+        }
+
+        List<Question> sourceQuestions = questionRepository.findAllByIds(command.questionIds());
+        if (sourceQuestions.isEmpty()) {
+            throw new BusinessRuleException("Không tìm thấy câu hỏi với các ID cung cấp");
+        }
+
+        // Verify each source question is accessible (own bank or PUBLIC bank)
+        for (Question q : sourceQuestions) {
+            if (q.getPackageId() == null) continue;
+            QuestionBank sourceBank = bankRepository.findById(q.getPackageId())
+                    .orElseThrow(() -> new EntityNotFoundException("QuestionBank", q.getPackageId()));
+            if (!sourceBank.isOwnedBy(userId) && sourceBank.getVisibility() != QuestionBank.Visibility.PUBLIC) {
+                throw new BusinessRuleException("Câu hỏi không thuộc ngân hàng có thể truy cập");
+            }
+        }
+
+        // Deep-copy each question: new UUID, same content, options with new UUIDs
+        List<Question> copies = new ArrayList<>();
+        for (Question source : sourceQuestions) {
+            List<Question.QuestionOption> copiedOptions = null;
+            if (source.getOptions() != null) {
+                copiedOptions = source.getOptions().stream()
+                        .map(o -> Question.QuestionOption.builder()
+                                .id(UUID.randomUUID())
+                                .key(o.getKey())
+                                .contentBlocks(o.getContentBlocks())
+                                .orderIndex(o.getOrderIndex())
+                                .build())
+                        .collect(Collectors.toList());
+            }
+            Question copy = Question.builder()
+                    .id(UUID.randomUUID())
+                    .contentBlocks(source.getContentBlocks())
+                    .difficulty(source.getDifficulty())
+                    .tags(source.getTags())
+                    .status(source.getStatus())
+                    .questionType(source.getQuestionType())
+                    .correctOption(source.getCorrectOption())
+                    .answerKey(source.getAnswerKey())
+                    .createdBy(userId)
+                    .courseId(null)
+                    .packageId(command.targetBankId())
+                    .categoryId(command.targetCategoryId())
+                    .usageCount(0)
+                    .correctRate(BigDecimal.ZERO)
+                    .options(copiedOptions)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            copies.add(copy);
+        }
+        questionRepository.saveAll(copies);
+
+        // Update target bank question count
+        targetBank.setQuestionCount((int) questionRepository.countByBankId(command.targetBankId()));
+        bankRepository.save(targetBank);
+
+        // Update target category count if specified
+        if (command.targetCategoryId() != null) {
+            categoryRepository.findById(command.targetCategoryId()).ifPresent(cat -> {
+                cat.setQuestionCount((int) questionRepository.countByCategoryId(command.targetCategoryId()));
+                categoryRepository.save(cat);
+            });
+        }
+
+        log.info("Copied {} questions to bank: {} by user: {}", copies.size(), command.targetBankId(), userId);
+        return copies;
     }
 
     @Transactional
@@ -288,6 +388,12 @@ public class QuestionBankManagementUseCase {
     ) {}
 
     public record MoveQuestionsCommand(
+            List<UUID> questionIds,
+            UUID targetBankId,
+            UUID targetCategoryId
+    ) {}
+
+    public record CopyQuestionsCommand(
             List<UUID> questionIds,
             UUID targetBankId,
             UUID targetCategoryId

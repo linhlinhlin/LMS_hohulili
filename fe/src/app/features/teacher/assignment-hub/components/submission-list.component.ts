@@ -1,6 +1,6 @@
 import { Component, inject, OnInit, signal, effect, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink, ActivatedRoute } from '@angular/router';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AssignmentDetailStore } from '../stores/assignment-detail.store';
 import { SubmissionsStore, SubmissionFilter } from '../stores/submissions.store';
@@ -21,70 +21,49 @@ import { LucideAngularModule } from 'lucide-angular';
   imports: [RouterLink, FormsModule, LucideAngularModule, CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="space-y-6">
+    <div class="space-y-4">
 
-      <!-- Compact Stats Row (moved from Overview — only when submissions exist) -->
-      @if (stats().submittedCount > 0) {
-        <div class="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border border-gray-200 bg-white shadow-sm px-5 py-3">
-          <div class="flex items-center gap-1.5 text-sm">
-            <span class="text-gray-500">Đã nộp</span>
-            <span class="font-semibold text-gray-900">{{ stats().submittedCount }}<span class="text-gray-400 font-normal">/{{ stats().totalStudents || '-' }}</span></span>
-          </div>
-          <div class="w-px h-4 bg-gray-200"></div>
-          <div class="flex items-center gap-1.5 text-sm">
-            <span class="text-gray-500">Đã chấm</span>
-            <span class="font-semibold text-emerald-600">{{ stats().gradedCount }}</span>
-          </div>
-          <div class="w-px h-4 bg-gray-200"></div>
-          <div class="flex items-center gap-1.5 text-sm">
-            <span class="text-gray-500">Chờ chấm</span>
-            <span class="font-semibold" [class.text-amber-600]="stats().pendingCount > 0" [class.text-gray-900]="stats().pendingCount === 0">{{ stats().pendingCount }}</span>
-          </div>
-          <div class="w-px h-4 bg-gray-200"></div>
-          <div class="flex items-center gap-1.5 text-sm">
-            <span class="text-gray-500">Điểm TB</span>
-            <span class="font-semibold text-gray-900">{{ stats().averageScore | number:'1.0-0' }}%</span>
-          </div>
-        </div>
-      }
-
-      <!-- Filter Tabs (pill pattern — matches overview/list pages) -->
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div class="flex flex-wrap gap-2" role="tablist">
+      <!-- Unified Stats + Filter Bar (Canvas pattern: click stat = filter toggle) -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-gray-200 bg-white shadow-sm px-4 py-3">
+        <div class="flex flex-wrap items-center gap-1" role="tablist">
           <button (click)="setFilter('ALL')" role="tab"
-                  [class]="filter() === 'ALL' ? 'bg-[#0056D2] text-white border-[#0056D2]' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'"
-                  class="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors">
-            Tất cả
+                  [class]="filter() === 'ALL' ? 'bg-[#0056D2]/10 text-[#0056D2] border-[#0056D2]/20' : 'text-gray-600 border-transparent hover:bg-gray-50'"
+                  class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors">
+            <span class="font-bold">{{ store.totalCount() }}</span> Tất cả
           </button>
           <button (click)="setFilter('PENDING')" role="tab"
-                  [class]="filter() === 'PENDING' ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'"
-                  class="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors">
-            Chờ chấm ({{ store.pendingCount() }})
+                  [class]="filter() === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'text-gray-600 border-transparent hover:bg-gray-50'"
+                  class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors">
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+            <span class="font-bold">{{ store.pendingCount() }}</span> Chờ chấm
           </button>
           <button (click)="setFilter('GRADED')" role="tab"
-                  [class]="filter() === 'GRADED' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'"
-                  class="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors">
-            Đã chấm ({{ store.gradedCount() }})
+                  [class]="filter() === 'GRADED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'text-gray-600 border-transparent hover:bg-gray-50'"
+                  class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span class="font-bold">{{ store.gradedCount() }}</span> Đã chấm
           </button>
           <button (click)="setFilter('LATE')" role="tab"
-                  [class]="filter() === 'LATE' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'"
-                  class="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors">
-            Nộp muộn ({{ store.lateCount() }})
+                  [class]="filter() === 'LATE' ? 'bg-red-50 text-red-700 border-red-200' : 'text-gray-600 border-transparent hover:bg-gray-50'"
+                  class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors">
+            <span class="w-2 h-2 rounded-full bg-red-400"></span>
+            <span class="font-bold">{{ store.lateCount() }}</span> Muộn
           </button>
         </div>
 
         <div class="flex items-center gap-2">
+          @if (stats().averageScore > 0) {
+            <span class="text-xs text-gray-500">TB <span class="font-semibold text-gray-900">{{ stats().averageScore | number:'1.0-0' }}%</span></span>
+          }
           @if (selectedIds().length > 0) {
-            <div class="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm">
-              <span class="text-gray-600">{{ selectedIds().length }} đã chọn</span>
-              <button (click)="openBatchGrade()" class="font-medium text-[#0056D2] hover:text-[#004BB5] transition-colors">
-                Chấm hàng loạt
-              </button>
-            </div>
+            <button (click)="openBatchGrade()"
+                    class="inline-flex items-center gap-1.5 rounded-lg border border-[#0056D2]/20 bg-[#0056D2]/5 px-3 py-1.5 text-sm font-medium text-[#0056D2] hover:bg-[#0056D2]/10 transition-colors">
+              {{ selectedIds().length }} chọn — Chấm hàng loạt
+            </button>
           }
           <button (click)="reload()" title="Tải lại"
-                  class="p-2 rounded-md border border-gray-200 bg-white text-gray-500 hover:text-[#0056D2] hover:border-gray-300 transition-colors">
-            <lucide-icon name="rotate-cw" [size]="16" [class.animate-spin]="store.loading()"></lucide-icon>
+                  class="p-2 rounded-md text-gray-400 hover:text-[#0056D2] transition-colors">
+            <lucide-icon name="rotate-cw" [size]="15" [class.animate-spin]="store.loading()"></lucide-icon>
           </button>
         </div>
       </div>
@@ -135,7 +114,7 @@ import { LucideAngularModule } from 'lucide-angular';
               </thead>
               <tbody class="divide-y divide-gray-100">
                 @for (sub of store.filteredSubmissions(); track sub.id) {
-                  <tr class="hover:bg-gray-50 transition-colors group">
+                  <tr class="hover:bg-gray-50 transition-colors group cursor-pointer" (click)="openSpeedGrader(sub.id, $event)">
                     <td class="px-5 py-3">
                       <input type="checkbox" [checked]="isSelected(sub.id)"
                              (change)="toggleSelect(sub.id)"
@@ -165,30 +144,18 @@ import { LucideAngularModule } from 'lucide-angular';
                       @if (getGradeScore(sub.grade) !== undefined) {
                         <span class="text-sm font-semibold text-[#0056D2]">{{ getGradeScore(sub.grade) }}<span class="text-gray-400 font-normal">/{{ sub.maxScore || 100 }}</span></span>
                       } @else {
-                        <div class="flex items-center gap-2">
-                          <input type="number" [value]="inlineGrades()[sub.id] || ''"
-                                 (input)="setInlineGrade(sub.id, $event)"
-                                 placeholder="--"
-                                 [min]="0" [max]="sub.maxScore || 100"
-                                 class="w-16 h-8 px-2 border border-gray-300 rounded-md text-sm text-gray-900 placeholder:text-gray-300 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 outline-none"/>
-                          @if (inlineGrades()[sub.id] !== undefined) {
-                            <button (click)="saveInlineGrade(sub.id, sub.maxScore || 100)"
-                                    [disabled]="store.savingGrade() === sub.id"
-                                    class="h-8 w-8 flex items-center justify-center rounded-md bg-[#0056D2] text-white hover:bg-[#004BB5] transition-colors disabled:opacity-50">
-                              @if (store.savingGrade() === sub.id) {
-                                <lucide-icon name="loader-2" [size]="14" class="animate-spin"></lucide-icon>
-                              } @else {
-                                <lucide-icon name="check" [size]="14"></lucide-icon>
-                              }
-                            </button>
-                          }
-                        </div>
+                        <span class="text-sm text-gray-400">—</span>
                       }
                     </td>
                     <td class="px-5 py-3 text-right">
                       <a [routerLink]="['..', 'grade', sub.id]"
-                         class="text-sm font-medium text-[#0056D2] hover:text-[#004BB5] transition-colors">
-                        {{ getGradeScore(sub.grade) !== undefined ? 'Chi tiết' : 'Chấm bài' }}
+                         class="inline-flex items-center gap-1.5 text-sm font-medium text-[#0056D2] hover:text-[#004BB5] transition-colors">
+                        @if (getGradeScore(sub.grade) !== undefined) {
+                          Xem
+                        } @else {
+                          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z"/></svg>
+                          Chấm
+                        }
                       </a>
                     </td>
                   </tr>
@@ -202,8 +169,15 @@ import { LucideAngularModule } from 'lucide-angular';
               <svg class="mx-auto h-10 w-10 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z"/>
               </svg>
-              <p class="text-sm font-medium text-gray-600">Không có bài nộp nào</p>
-              <p class="text-xs text-gray-500 mt-1">Thay đổi bộ lọc để xem kết quả khác.</p>
+              @if (filter() !== 'ALL' && store.totalCount() > 0) {
+                <p class="text-sm font-medium text-gray-600">Không có bài nộp phù hợp bộ lọc</p>
+                <p class="text-xs text-gray-500 mt-1">
+                  <button (click)="setFilter('ALL')" class="text-[#0056D2] hover:underline">Xem tất cả {{ store.totalCount() }} bài nộp</button>
+                </p>
+              } @else {
+                <p class="text-sm font-medium text-gray-600">Chưa có học viên nào nộp bài</p>
+                <p class="text-xs text-gray-500 mt-1">Bài nộp sẽ hiển thị tại đây khi học viên nộp bài.</p>
+              }
             </div>
           }
         </div>
@@ -259,6 +233,7 @@ import { LucideAngularModule } from 'lucide-angular';
 })
 export class SubmissionListComponent implements OnInit {
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   store = inject(SubmissionsStore);
   assignmentStore = inject(AssignmentDetailStore);
   private toast = inject(ToastService);
@@ -272,11 +247,12 @@ export class SubmissionListComponent implements OnInit {
   batchFeedback = '';
 
   ngOnInit(): void {
-    const assignmentId = this.assignmentStore.assignmentId();
+    // Read ID from route (not store — store may be cleared by parent layout)
+    const assignmentId = this.route.parent?.snapshot.paramMap.get('id')
+                      || this.assignmentStore.assignmentId();
     if (assignmentId) {
-      this.store.loadSubmissions(assignmentId).subscribe({
+      this.store.loadSubmissions(assignmentId, true).subscribe({
         next: () => {
-          // Update stats from submissions (previously done by Overview tab)
           this.assignmentStore.updateStatsFromSubmissions(this.store.submissions());
         },
         error: () => this.toast.error('Không thể tải danh sách bài nộp')
@@ -294,9 +270,13 @@ export class SubmissionListComponent implements OnInit {
   }
 
   reload(): void {
-    const assignmentId = this.assignmentStore.assignmentId();
+    const assignmentId = this.route.parent?.snapshot.paramMap.get('id')
+                      || this.assignmentStore.assignmentId();
     if (assignmentId) {
       this.store.loadSubmissions(assignmentId, true).subscribe({
+        next: () => {
+          this.assignmentStore.updateStatsFromSubmissions(this.store.submissions());
+        },
         error: () => this.toast.error('Không thể tải lại danh sách bài nộp')
       });
     }
@@ -327,6 +307,16 @@ export class SubmissionListComponent implements OnInit {
 
   getGradeScore(grade: number | SubmissionGrade | undefined): number | undefined {
     return this.store.getGradeScore(grade);
+  }
+
+  openSpeedGrader(submissionId: string, event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (target.closest('input[type="checkbox"]') || target.closest('a')) return;
+    const assignmentId = this.route.parent?.snapshot.paramMap.get('id')
+                      || this.assignmentStore.assignmentId();
+    if (assignmentId) {
+      this.router.navigate(['/teacher/assessments/classes/assignments', assignmentId, 'grade', submissionId]);
+    }
   }
 
   // Selection

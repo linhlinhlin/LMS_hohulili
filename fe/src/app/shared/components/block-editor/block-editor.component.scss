@@ -1,14 +1,14 @@
 :host {
     display: block;
-    width: 50%;
+    width: 100%;
 }
 
 .block-editor-container {
     border: 1px solid #e5e7eb;
-    border-radius: 0.75rem; /* rounded-xl */
+    border-radius: 0.5rem; /* rounded-lg — match parent card */
     padding: 0.5rem; /* p-3 horizontal, p-4 total */
     background: white;
-    min-height: 180px; 
+    min-height: 100px;
     display: flex;
     flex-direction: column;
 
@@ -21,48 +21,8 @@
     }
 }
 
-/* SOTA 2025: EditorJS Alignment Overrides */
-::ng-deep {
-    .codex-editor__redactor {
-        padding-bottom: 50% !important;
-        margin-right: 0 !important;
-        padding-left: 35px !important;
-    }
-    .codex-editor {
-        width: 50%;
-        text-align: left;
-    }
-
-    .ce-block {
-        width: 100%;
-    }
-
-    .ce-paragraph {
-        padding-left: 0 !important;
-        margin-left: 0 !important;
-        line-height: 1.5;
-        text-align: left;
-    }
-    
-    .ce-block__content,
-    .ce-toolbar__content {
-        max-width: 100% !important;
-        margin-left: 0 !important;
-    }
-
-    .ce-toolbar__actions {
-        left: -5px !important; /* Move settings icon out to the left */
-        background: white;
-        border-radius: 4px;
-        transform: none !important;
-    }
-
-    .codex-editor--empty .codex-editor__redactor {
-        padding-bottom: 10px !important;
-    }
-}
 
 .editorjs {
-    min-height: 150px;
+    min-height: 80px;
     width: 100%;
 }

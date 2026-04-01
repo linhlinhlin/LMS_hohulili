@@ -50,4 +50,21 @@ public interface QuizAttemptJpaRepository extends JpaRepository<QuizAttemptJpaEn
 
     @Query("SELECT qa FROM QuizAttemptJpaEntity qa WHERE qa.quizId IN :quizIds AND qa.studentId = :studentId")
     List<QuizAttemptJpaEntity> findByQuizIdInAndStudentId(@Param("quizIds") List<UUID> quizIds, @Param("studentId") UUID studentId);
+
+    // === Teacher quiz list batch stats (avoid N+1) ===
+
+    @Query(value = "SELECT qa.quiz_id, " +
+           "COUNT(DISTINCT qa.student_id) as attempt_count, " +
+           "COUNT(CASE WHEN qa.status = 'GRADED' OR qa.status = 'SUBMITTED' THEN 1 END) as completed_count, " +
+           "AVG(CASE WHEN qa.score IS NOT NULL AND qa.max_score > 0 THEN qa.score / qa.max_score * 100 END) as avg_score, " +
+           "COUNT(CASE WHEN qa.score IS NOT NULL AND qa.max_score > 0 AND qa.score / qa.max_score * 100 >= q.passing_score THEN 1 END) as passed_count, " +
+           "COUNT(*) as total_attempts " +
+           "FROM quiz_attempts qa " +
+           "JOIN quizzes q ON qa.quiz_id = q.id " +
+           "WHERE qa.quiz_id IN :quizIds " +
+           "GROUP BY qa.quiz_id", nativeQuery = true)
+    List<Object[]> batchQuizStats(@Param("quizIds") List<UUID> quizIds);
+
+    @Query("SELECT COUNT(qa) FROM QuizAttemptJpaEntity qa WHERE qa.quizId = :quizId AND qa.status = 'SUBMITTED'")
+    long countSubmittedByQuizId(@Param("quizId") UUID quizId);
 }

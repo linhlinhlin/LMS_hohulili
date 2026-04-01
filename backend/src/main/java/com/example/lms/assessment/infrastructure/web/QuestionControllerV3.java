@@ -180,11 +180,19 @@ public class QuestionControllerV3 {
         List<CreateQuestionUseCaseV3.OptionCommand> optionCommands = new java.util.ArrayList<>();
         String[] keys = {"A", "B", "C", "D", "E", "F"};
 
+        // Support MULTIPLE_CHOICE: correctOption may be comma-separated (e.g. "A,C")
+        java.util.Set<String> correctKeys = new java.util.HashSet<>();
+        if (request.correctOption() != null) {
+            for (String k : request.correctOption().split(",")) {
+                correctKeys.add(k.trim());
+            }
+        }
+
         if (request.optionBlocks() != null && !request.optionBlocks().isEmpty()) {
             int index = 0;
             for (List<ContentBlock> blocks : request.optionBlocks()) {
                 String key = (index < keys.length) ? keys[index] : "?";
-                boolean isCorrect = key.equals(request.correctOption());
+                boolean isCorrect = correctKeys.contains(key);
 
                 optionCommands.add(CreateQuestionUseCaseV3.OptionCommand.builder()
                         .contentBlocks(blocks)
@@ -198,7 +206,7 @@ public class QuestionControllerV3 {
              int index = 0;
              for (String optText : request.options()) {
                 String key = (index < keys.length) ? keys[index] : "?";
-                boolean isCorrect = key.equals(request.correctOption());
+                boolean isCorrect = correctKeys.contains(key);
 
                 java.util.Map<String, Object> data = new java.util.HashMap<>();
                 data.put("text", optText);
@@ -227,7 +235,12 @@ public class QuestionControllerV3 {
 
         java.util.Map<String, Object> answerKey = request.answerKey();
         if (answerKey == null && request.correctOption() != null) {
-            answerKey = java.util.Map.of("correctOption", request.correctOption());
+            if (correctKeys.size() > 1) {
+                // MULTIPLE_CHOICE: {"correctOptions": ["A", "C"]}
+                answerKey = java.util.Map.of("correctOptions", new java.util.ArrayList<>(correctKeys));
+            } else {
+                answerKey = java.util.Map.of("correctOption", request.correctOption());
+            }
         }
 
         // Auto-convert content string to contentBlocks if blocks not provided
@@ -272,10 +285,24 @@ public class QuestionControllerV3 {
             }
         }
 
+        // Auto-build answerKey if not provided (same logic as create)
+        java.util.Map<String, Object> answerKey = request.answerKey();
+        if (answerKey == null && request.correctOption() != null) {
+            java.util.Set<String> correctKeys = new java.util.HashSet<>();
+            for (String k : request.correctOption().split(",")) {
+                correctKeys.add(k.trim());
+            }
+            if (correctKeys.size() > 1) {
+                answerKey = java.util.Map.of("correctOptions", new java.util.ArrayList<>(correctKeys));
+            } else {
+                answerKey = java.util.Map.of("correctOption", request.correctOption());
+            }
+        }
+
         return new UpdateQuestionUseCaseV3.Command(
                 request.blocks(),
                 request.correctOption(),
-                request.answerKey(),
+                answerKey,
                 questionType,
                 request.options(),
                 optionCommands,

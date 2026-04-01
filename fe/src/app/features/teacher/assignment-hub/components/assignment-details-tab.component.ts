@@ -16,6 +16,17 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { DistributionSelectorComponent, DistributionSettings } from './distribution-selector.component';
 import { EnrolledStudent, DistributionType } from '../utils/allocation-utils';
+import { HttpClient } from '@angular/common/http';
+import { CKEditorModule } from '@ckeditor/ckeditor5-angular';
+import {
+  ClassicEditor, Essentials, Paragraph,
+  Bold, Italic, Underline, Strikethrough, RemoveFormat,
+  Font, FontFamily, FontSize, FontColor, FontBackgroundColor,
+  Alignment, List, Indent, IndentBlock, BlockQuote, Heading,
+  Link, Image, ImageUpload, ImageToolbar, ImageStyle, ImageResize, ImageCaption,
+  Table, TableToolbar, Autoformat
+} from 'ckeditor5';
+import viTranslations from 'ckeditor5/translations/vi.js';
 import { ClassService } from '../../../../state/class.service';
 import { validateMaxScore } from '../../assignments/utils/assignment-validators';
 
@@ -36,306 +47,281 @@ type AssignmentStatus = 'pending' | 'published' | 'closed';
  */
 @Component({
   selector: 'app-assignment-details-tab',
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, DistributionSelectorComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, DistributionSelectorComponent, CKEditorModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="space-y-6">
+    <div class="bg-slate-50 -mx-4 sm:-mx-6 -my-6 px-4 sm:px-6 py-6 min-h-[60vh]">
 
       <!-- Loading -->
       @if (assignmentStore.loading()) {
-        <div class="rounded-lg border border-gray-200 bg-white shadow-sm p-8 text-center">
+        <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-8 text-center">
           <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-[#0056D2] border-t-transparent"></div>
-          <p class="mt-3 text-sm text-gray-500">Đang tải thông tin bài tập...</p>
+          <p class="mt-3 text-sm text-gray-600">Đang tải thông tin bài tập...</p>
         </div>
       }
 
       @if (!assignmentStore.loading() && assignment()) {
-      <form [formGroup]="form">
 
-        <!-- ═══ Section 1: Mô tả & Hướng dẫn ═══ -->
-        <section class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <div class="px-5 py-3 border-b border-gray-200 flex items-center justify-between">
-            <h3 class="text-sm font-semibold text-gray-900">Mô tả & Hướng dẫn</h3>
-            <button (click)="editingContent.set(!editingContent())"
-                    class="text-sm font-medium text-[#0056D2] hover:text-[#004BB5] transition-colors">
-              {{ editingContent() ? 'Đóng' : 'Chỉnh sửa' }}
+        <!-- Sub-tabs within Details -->
+        <div class="flex items-center gap-1 mb-6 bg-white rounded-xl border border-gray-200 shadow-sm p-1.5">
+          @for (tab of subTabs; track tab.key) {
+            <button (click)="activeSubTab.set(tab.key)" type="button"
+                    [class]="activeSubTab() === tab.key ? 'bg-[#0056D2] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'"
+                    class="flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-all">
+              {{ tab.label }}
             </button>
-          </div>
-          <div class="p-5">
-            @if (!editingContent()) {
-              <div class="space-y-4 max-w-2xl">
-                <div>
-                  <p class="text-xs font-medium text-gray-500 mb-1">Mô tả</p>
-                  <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{{ assignment()?.description || 'Không có mô tả' }}</p>
-                </div>
-                @if (assignment()?.instructions && assignment()?.instructions !== assignment()?.description) {
-                  <div class="pt-3 border-t border-gray-100">
-                    <p class="text-xs font-medium text-gray-500 mb-1">Hướng dẫn thực hiện</p>
-                    <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{{ assignment()?.instructions }}</p>
-                  </div>
-                }
-              </div>
-            } @else {
-              <div class="space-y-4 max-w-2xl">
-                <div>
-                  <label class="block text-xs font-medium text-gray-500 mb-1">Mô tả</label>
-                  <textarea formControlName="description" rows="3"
-                            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 outline-none resize-y"
-                            placeholder="Mô tả ngắn gọn về bài tập..."></textarea>
-                </div>
-                <div>
-                  <label class="block text-xs font-medium text-gray-500 mb-1">Hướng dẫn thực hiện</label>
-                  <textarea formControlName="instructions" rows="5"
-                            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 outline-none resize-y"
-                            placeholder="Hướng dẫn chi tiết cách làm bài tập..."></textarea>
-                </div>
-              </div>
-            }
-          </div>
-        </section>
-
-        <!-- ═══ Section 2: Cài đặt ═══ -->
-        <section class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <div class="px-5 py-3 border-b border-gray-200">
-            <h3 class="text-sm font-semibold text-gray-900">Cài đặt</h3>
-          </div>
-          <div class="p-5 space-y-5">
-            <!-- Status -->
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span class="text-sm text-gray-600">Trạng thái:</span>
-                <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium" [class]="getStatusBadgeClass()">
-                  {{ getStatusLabel() }}
-                </span>
-              </div>
-              <select [formControl]="form.controls.status"
-                      class="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 outline-none">
-                <option value="pending">Nháp</option>
-                <option value="published">Xuất bản</option>
-                <option value="closed">Đóng</option>
-              </select>
-            </div>
-
-            <!-- Title -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                Tiêu đề <span class="text-red-500">*</span>
-              </label>
-              <input formControlName="title" type="text"
-                     class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 outline-none"/>
-              @if (form.controls.title.invalid && form.controls.title.touched) {
-                <p class="text-xs text-red-600 mt-1">Tiêu đề bài tập là bắt buộc</p>
-              }
-            </div>
-
-            <!-- Due Date & Max Score -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Hạn nộp</label>
-                <input formControlName="dueDate" type="datetime-local"
-                       class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 outline-none"/>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Điểm tối đa</label>
-                <input formControlName="maxScore" type="number" min="1" max="1000"
-                       class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 outline-none"/>
-                @if (form.controls.maxScore.invalid && form.controls.maxScore.touched) {
-                  <p class="text-xs text-red-600 mt-1">Điểm tối đa phải từ 1 đến 1000</p>
-                }
-              </div>
-            </div>
-
-            <!-- Metadata (read-only) -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-3 border-t border-gray-100">
-              <div>
-                <p class="text-xs text-gray-500">Bài nộp</p>
-                <p class="text-sm font-medium text-gray-900">{{ assignment()?.submissionsCount || 0 }}</p>
-              </div>
-              <div>
-                <p class="text-xs text-gray-500">Học viên</p>
-                <p class="text-sm font-medium text-gray-900">{{ assignment()?.totalStudents || 0 }}</p>
-              </div>
-              <div>
-                <p class="text-xs text-gray-500">Ngày tạo</p>
-                <p class="text-sm font-medium text-gray-900">{{ formatDate(assignment()?.createdAt) }}</p>
-              </div>
-              <div>
-                <p class="text-xs text-gray-500">Cập nhật</p>
-                <p class="text-sm font-medium text-gray-900">{{ formatDate(assignment()?.updatedAt) }}</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ═══ Section 3: Phân phối ═══ -->
-        @if (assignment()?.deliveryMode === 'INSTRUCTOR_LED') {
-          <section class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
-            <div class="px-5 py-3 border-b border-gray-200">
-              <h3 class="text-sm font-semibold text-gray-900">Phân phối</h3>
-              <p class="text-xs text-gray-500 mt-0.5">Chọn lớp học hoặc nhóm học viên sẽ nhận bài tập này</p>
-            </div>
-            <div class="p-5">
-              @if (loadingStudents()) {
-                <div class="py-6 text-center">
-                  <div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-[#0056D2] border-t-transparent"></div>
-                  <p class="text-xs text-gray-500 mt-2">Đang tải danh sách học viên...</p>
-                </div>
-              } @else {
-                <app-distribution-selector
-                  [courseId]="assignment()?.courseId || ''"
-                  [enrolledStudents]="enrolledStudents()"
-                  [initialDistributionType]="distributionSettings()?.distributionType || 'ALL_STUDENTS'"
-                  [initialStudentIds]="distributionSettings()?.studentIds || []"
-                  [initialClassId]="distributionSettings()?.classId ?? null"
-                  (distributionChange)="onDistributionChange($event)">
-                </app-distribution-selector>
-              }
-            </div>
-          </section>
-        }
-
-        <!-- ═══ Section 4: Rubric (collapsible) ═══ -->
-        <section class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <div class="px-5 py-3 border-b border-gray-200 flex items-center justify-between">
-            <div>
-              <h3 class="text-sm font-semibold text-gray-900">Rubric</h3>
-              @if (rubric()) {
-                <p class="text-xs text-gray-500 mt-0.5">{{ rubric()?.title }} — {{ rubric()?.maxPoints }} điểm</p>
-              }
-            </div>
-            <div class="flex items-center gap-2">
-              @if (!rubric() && !loadingRubric()) {
-                <a routerLink="/teacher/assessments/shared/rubrics"
-                   class="text-sm font-medium text-[#0056D2] hover:text-[#004BB5] transition-colors">
-                  Chọn từ thư viện
-                </a>
-              }
-              @if (rubric()) {
-                <button (click)="removeRubric()"
-                        class="text-sm font-medium text-red-600 hover:text-red-700 transition-colors">
-                  Gỡ rubric
-                </button>
-              }
-              @if (rubric()) {
-                <button (click)="rubricExpanded.set(!rubricExpanded())"
-                        class="p-1 text-gray-400 hover:text-gray-600 transition-colors">
-                  <svg class="w-4 h-4 transition-transform" [class.rotate-180]="rubricExpanded()" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/>
-                  </svg>
-                </button>
-              }
-            </div>
-          </div>
-
-          @if (loadingRubric()) {
-            <div class="p-8 text-center">
-              <div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-[#0056D2] border-t-transparent"></div>
-            </div>
-          } @else if (!rubric()) {
-            <div class="px-5 py-8 text-center">
-              <svg class="mx-auto h-8 w-8 text-gray-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z"/>
-              </svg>
-              <p class="text-sm text-gray-600">Chưa gắn rubric</p>
-              <a routerLink="/teacher/assessments/shared/rubrics"
-                 class="text-sm font-medium text-[#0056D2] hover:text-[#004BB5] transition-colors mt-1 inline-block">
-                Duyệt thư viện Rubric
-              </a>
-            </div>
-          } @else if (rubricExpanded()) {
-            <!-- Rubric criteria table -->
-            <div class="overflow-x-auto">
-              <table class="w-full text-left">
-                <thead>
-                  <tr class="bg-gray-50 border-b border-gray-200">
-                    <th class="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Tiêu chí</th>
-                    @for (level of getLevelHeaders(); track level) {
-                      <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center min-w-[100px]">{{ level }}</th>
-                    }
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                  @for (criterion of rubric()?.criteria; track criterion.name) {
-                    <tr class="hover:bg-gray-50 transition-colors">
-                      <td class="px-5 py-4">
-                        <p class="text-sm font-medium text-gray-900">{{ criterion.name }}</p>
-                        @if (criterion.maxPoints) {
-                          <span class="text-xs text-[#0056D2]">Max {{ criterion.maxPoints }}đ</span>
-                        }
-                      </td>
-                      @for (level of criterion.levels; track level.label) {
-                        <td class="px-4 py-4 text-center">
-                          <p class="text-sm font-semibold text-gray-900">{{ level.points ?? '-' }}đ</p>
-                          @if (level.description) {
-                            <p class="text-xs text-gray-500 mt-1">{{ level.description }}</p>
-                          }
-                        </td>
-                      }
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
           }
-        </section>
+        </div>
 
-        <!-- ═══ Section 5: Phân bố điểm ═══ -->
-        @if (hasAnyScores()) {
-          <section class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
-            <div class="px-5 py-3 border-b border-gray-200">
-              <h3 class="text-sm font-semibold text-gray-900">Phân bố điểm</h3>
-            </div>
-            <div class="p-5">
-              <div class="max-w-lg space-y-2.5">
-                @for (item of stats().scoreDistribution; track item.range) {
-                  <div class="flex items-center gap-3">
-                    <span class="w-12 text-xs text-gray-500 text-right tabular-nums">{{ item.range }}</span>
-                    <div class="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div class="h-full bg-[#0056D2] rounded-full transition-all duration-500"
-                           [style.width.%]="getBarWidth(item.count)"></div>
-                    </div>
-                    <span class="w-8 text-xs text-gray-500 tabular-nums">{{ item.count }}</span>
+        <!-- ═══ Sub-tab: Tổng quan ═══ -->
+        @if (activeSubTab() === 'overview') {
+          <div class="space-y-5">
+            <!-- Overview Card -->
+            <section class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+              <div class="p-5">
+                <div class="flex items-start justify-between gap-4 mb-4">
+                  <div class="min-w-0 flex-1">
+                    <div class="prose prose-sm prose-slate max-w-none" [innerHTML]="assignment()?.description || 'Không có mô tả'"></div>
+                    @if (assignment()?.instructions && assignment()?.instructions !== assignment()?.description) {
+                      <div class="mt-3 pt-3 border-t border-gray-100">
+                        <p class="text-xs font-medium text-gray-600 mb-1">Hướng dẫn thực hiện</p>
+                        <div class="prose prose-sm prose-slate max-w-none text-gray-600" [innerHTML]="assignment()?.instructions"></div>
+                      </div>
+                    }
                   </div>
-                }
+                  <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium flex-shrink-0" [class]="getStatusBadgeClass()">
+                    {{ getStatusLabel() }}
+                  </span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-3 border-t border-gray-100">
+                  <div>
+                    <p class="text-xs text-gray-600">Hạn nộp</p>
+                    <p class="text-sm font-medium text-gray-900">{{ formatDate(assignment()?.dueDate) || 'Không giới hạn' }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-600">Điểm tối đa</p>
+                    <p class="text-sm font-medium text-gray-900">{{ assignment()?.maxScore || 100 }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-600">Bài nộp</p>
+                    <p class="text-sm font-medium text-gray-900">{{ assignment()?.submissionsCount || 0 }}/{{ getEffectiveTotalStudents() }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-600">Cập nhật</p>
+                    <p class="text-sm font-medium text-gray-900">{{ formatDate(assignment()?.updatedAt) }}</p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+
+            <!-- Score Distribution -->
+            @if (hasAnyScores()) {
+              <section class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                <div class="px-5 py-3 border-b border-gray-200">
+                  <h3 class="text-sm font-semibold text-gray-900">Phân bố điểm</h3>
+                </div>
+                <div class="p-5">
+                  <div class="max-w-lg">
+                    <div class="flex items-end gap-2 h-32">
+                      @for (item of stats().scoreDistribution; track item.range) {
+                        <div class="flex-1 flex flex-col items-center gap-1">
+                          <span class="text-[10px] font-semibold text-gray-900 tabular-nums">{{ item.count || '' }}</span>
+                          <div class="w-full bg-gray-100 rounded-t-md overflow-hidden relative" style="min-height: 4px"
+                               [style.height.%]="getBarWidth(item.count)">
+                            <div class="absolute inset-0 rounded-t-md transition-all duration-500"
+                                 [class.bg-[#0056D2]]="item.count > 0"
+                                 [class.bg-gray-200]="item.count === 0"></div>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                    <div class="flex gap-2 mt-2 border-t border-gray-100 pt-2">
+                      @for (item of stats().scoreDistribution; track item.range) {
+                        <div class="flex-1 text-center">
+                          <span class="text-[10px] text-gray-600 tabular-nums">{{ item.range }}</span>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </section>
+            }
+
+            <!-- Rubric -->
+            <section class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+              <div class="px-5 py-3 border-b border-gray-200 flex items-center justify-between">
+                <div>
+                  <h3 class="text-sm font-semibold text-gray-900">Tiêu chí đánh giá</h3>
+                  @if (rubric()) {
+                    <p class="text-xs text-gray-600 mt-0.5">{{ rubric()?.title }} — {{ rubric()?.maxPoints }} điểm</p>
+                  }
+                </div>
+                <div class="flex items-center gap-2">
+                  @if (!rubric() && !loadingRubric()) {
+                    <a routerLink="/teacher/assessments/shared/rubrics"
+                       class="text-sm font-medium text-[#0056D2] hover:text-[#004BB5] transition-colors">Chọn từ thư viện</a>
+                  }
+                  @if (rubric()) {
+                    <button (click)="removeRubric()" class="text-sm font-medium text-red-600 hover:text-red-700 transition-colors">Gỡ</button>
+                    <button (click)="rubricExpanded.set(!rubricExpanded())" class="p-1 text-gray-400 hover:text-gray-600 transition-colors">
+                      <svg class="w-4 h-4 transition-transform" [class.rotate-180]="rubricExpanded()" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/>
+                      </svg>
+                    </button>
+                  }
+                </div>
+              </div>
+              @if (loadingRubric()) {
+                <div class="p-8 text-center"><div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-[#0056D2] border-t-transparent"></div></div>
+              } @else if (!rubric()) {
+                <div class="px-5 py-8 text-center">
+                  <p class="text-sm text-gray-600">Chưa gắn tiêu chí đánh giá</p>
+                </div>
+              } @else if (rubricExpanded()) {
+                <div class="overflow-x-auto">
+                  <table class="w-full text-left">
+                    <thead><tr class="bg-gray-50 border-b border-gray-200">
+                      <th class="px-5 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Tiêu chí</th>
+                      @for (level of getLevelHeaders(); track level) {
+                        <th class="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider text-center min-w-[100px]">{{ level }}</th>
+                      }
+                    </tr></thead>
+                    <tbody class="divide-y divide-gray-100">
+                      @for (criterion of rubric()?.criteria; track criterion.name) {
+                        <tr>
+                          <td class="px-5 py-3"><p class="text-sm font-medium text-gray-900">{{ criterion.name }}</p>
+                            @if (criterion.maxPoints) { <span class="text-xs text-[#0056D2]">Tối đa {{ criterion.maxPoints }}đ</span> }
+                          </td>
+                          @for (level of criterion.levels; track level.label) {
+                            <td class="px-4 py-3 text-center">
+                              <p class="text-sm font-semibold text-gray-900">{{ level.points ?? '-' }}đ</p>
+                              @if (level.description) { <p class="text-xs text-gray-600 mt-1">{{ level.description }}</p> }
+                            </td>
+                          }
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </section>
+          </div>
         }
 
-      </form>
+        <!-- ═══ Sub-tab: Chỉnh sửa ═══ -->
+        @if (activeSubTab() === 'edit') {
+          <form [formGroup]="form" class="space-y-5">
+            <!-- Content (Rich Text — same editor as lesson editor) -->
+            <section class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+              <div class="px-5 py-3 border-b border-gray-200">
+                <h3 class="text-sm font-semibold text-gray-900">Nội dung bài tập</h3>
+              </div>
+              <div class="p-5 space-y-4">
+                <div>
+                  <label class="block text-xs font-medium text-gray-600 mb-2">Mô tả</label>
+                  <ckeditor [editor]="ckEditorClass" [config]="ckEditorConfig" formControlName="description"></ckeditor>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-600 mb-2">Hướng dẫn thực hiện</label>
+                  <ckeditor [editor]="ckEditorClass" [config]="ckEditorConfig" formControlName="instructions"></ckeditor>
+                </div>
+              </div>
+            </section>
 
-        <!-- ═══ Sticky Save Bar ═══ -->
-        @if (hasChanges()) {
-          <div class="sticky bottom-0 z-10 rounded-lg border border-gray-200 bg-white shadow-lg px-5 py-3 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <button type="button" (click)="onDelete()"
-                      class="text-sm font-medium text-red-600 hover:text-red-700 transition-colors">
+            <!-- Settings -->
+            <section class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+              <div class="px-5 py-3 border-b border-gray-200">
+                <h3 class="text-sm font-semibold text-gray-900">Cài đặt</h3>
+              </div>
+              <div class="p-5 space-y-5">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Tiêu đề <span class="text-red-500">*</span></label>
+                  <input formControlName="title" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 outline-none"/>
+                  @if (form.controls.title.invalid && form.controls.title.touched) {
+                    <p class="text-xs text-red-600 mt-1">Tiêu đề bài tập là bắt buộc</p>
+                  }
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-gray-600">Trạng thái</span>
+                  <select [formControl]="form.controls.status" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 outline-none">
+                    <option value="pending">Nháp</option>
+                    <option value="published">Xuất bản</option>
+                    <option value="closed">Đóng</option>
+                  </select>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Hạn nộp</label>
+                    <input formControlName="dueDate" type="datetime-local" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 outline-none"/>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Điểm tối đa</label>
+                    <input formControlName="maxScore" type="number" min="1" max="1000" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 outline-none"/>
+                  </div>
+                </div>
+              </div>
+              <!-- Save/Cancel -->
+              <div class="px-5 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  @if (formError()) { <span class="text-xs text-red-600">{{ formError() }}</span> }
+                  @if (success()) { <span class="text-xs text-emerald-600">{{ success() }}</span> }
+                </div>
+                <div class="flex items-center gap-3">
+                  <button type="button" (click)="resetForm()" class="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">Hủy</button>
+                  <button type="button" (click)="onSubmit()" [disabled]="form.invalid || saving()"
+                          class="rounded-lg bg-[#0056D2] px-5 py-2 text-sm font-medium text-white hover:bg-[#004BB5] disabled:opacity-50 transition-colors">
+                    @if (saving()) { Đang lưu... } @else { Lưu thay đổi }
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <!-- Danger Zone -->
+            <section class="rounded-xl border border-red-100 bg-red-50/30 shadow-sm overflow-hidden px-5 py-4 flex items-center justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-900">Xóa bài tập</p>
+                <p class="text-xs text-gray-600 mt-0.5">Hành động này không thể hoàn tác.</p>
+              </div>
+              <button type="button" (click)="onDelete()" [disabled]="deleting()"
+                      class="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">
                 Xóa bài tập
               </button>
-            </div>
-            <div class="flex items-center gap-3">
-              @if (formError()) {
-                <span class="text-xs text-red-600">{{ formError() }}</span>
-              }
-              @if (success()) {
-                <span class="text-xs text-emerald-600">{{ success() }}</span>
-              }
-              <button type="button" (click)="resetForm()"
-                      class="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                Hoàn tác
-              </button>
-              <button type="button" (click)="onSubmit()" [disabled]="form.invalid || saving()"
-                      class="rounded-md bg-[#0056D2] px-5 py-2 text-sm font-medium text-white hover:bg-[#004BB5] disabled:opacity-50 transition-colors">
-                @if (saving()) {
-                  <span class="flex items-center gap-1.5">
-                    <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                    Đang lưu...
-                  </span>
-                } @else {
-                  Lưu thay đổi
-                }
-              </button>
-            </div>
+            </section>
+          </form>
+        }
+
+        <!-- ═══ Sub-tab: Phân phối ═══ -->
+        @if (activeSubTab() === 'distribution') {
+          <div class="space-y-5">
+            @if (assignment()?.deliveryMode !== 'INSTRUCTOR_LED') {
+              <section class="rounded-xl border border-gray-200 bg-white shadow-sm p-8 text-center">
+                <p class="text-sm text-gray-600">Bài tập tự học (Self-paced) — phân phối tự động cho toàn bộ học viên đăng ký khóa học.</p>
+              </section>
+            } @else {
+              <section class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                <div class="px-5 py-3 border-b border-gray-200">
+                  <h3 class="text-sm font-semibold text-gray-900">Phân phối bài tập</h3>
+                  <p class="text-xs text-gray-600 mt-0.5">Chọn lớp học hoặc nhóm học viên nhận bài tập</p>
+                </div>
+                <div class="p-5">
+                  @if (loadingStudents()) {
+                    <div class="py-6 text-center">
+                      <div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-[#0056D2] border-t-transparent"></div>
+                      <p class="text-xs text-gray-600 mt-2">Đang tải danh sách học viên...</p>
+                    </div>
+                  } @else {
+                    <app-distribution-selector
+                      [courseId]="assignment()?.courseId || ''"
+                      [enrolledStudents]="enrolledStudents()"
+                      [initialDistributionType]="distributionSettings()?.distributionType || 'ALL_STUDENTS'"
+                      [initialStudentIds]="distributionSettings()?.studentIds || []"
+                      [initialClassId]="distributionSettings()?.classId ?? null"
+                      (distributionChange)="onDistributionChange($event)">
+                    </app-distribution-selector>
+                  }
+                </div>
+              </section>
+            }
           </div>
         }
 
@@ -387,6 +373,40 @@ export class AssignmentDetailsTabComponent implements OnInit {
   // UI state
   editingContent = signal(false);
   rubricExpanded = signal(false);
+  distributionExpanded = signal(false);
+
+  // Sub-tabs within Details
+  activeSubTab = signal<'overview' | 'edit' | 'distribution'>('overview');
+  subTabs = [
+    { key: 'overview' as const, label: 'Tổng quan' },
+    { key: 'edit' as const, label: 'Chỉnh sửa' },
+    { key: 'distribution' as const, label: 'Phân phối' }
+  ];
+
+  // Full CKEditor config — same as lesson editor for UI consistency
+  ckEditorClass = ClassicEditor;
+  ckEditorConfig = {
+    licenseKey: 'GPL' as const,
+    language: 'vi',
+    translations: [viTranslations],
+    plugins: [
+      Essentials, Paragraph, Heading,
+      Bold, Italic, Underline, Strikethrough, RemoveFormat,
+      Font, FontFamily, FontSize, FontColor, FontBackgroundColor,
+      Alignment, List, Indent, IndentBlock, BlockQuote,
+      Link, Image, ImageUpload, ImageToolbar, ImageStyle, ImageResize, ImageCaption,
+      Table, TableToolbar, Autoformat
+    ],
+    toolbar: {
+      items: [
+        'heading', '|',
+        'bold', 'italic', 'underline', 'strikethrough', 'removeFormat', '|',
+        'alignment', 'bulletedList', 'numberedList', 'outdent', 'indent', '|',
+        'link', 'uploadImage', 'insertTable', 'blockQuote'
+      ]
+    },
+    placeholder: 'Nhập nội dung...'
+  };
   saving = signal(false);
   deleting = signal(false);
   formError = signal('');
@@ -405,6 +425,7 @@ export class AssignmentDetailsTabComponent implements OnInit {
 
   // Submissions loaded flag
   private loadedSubmissionsFor = signal<string | null>(null);
+  private loadedStudentsForCourse = signal<string | null>(null);
 
   // Form
   form = this.fb.group({
@@ -457,8 +478,9 @@ export class AssignmentDetailsTabComponent implements OnInit {
         });
       }
 
-      // Load enrolled students for distribution
-      if (a.courseId && a.deliveryMode === 'INSTRUCTOR_LED') {
+      // Load enrolled students for distribution (dedup by courseId)
+      if (a.courseId && a.deliveryMode === 'INSTRUCTOR_LED' && this.loadedStudentsForCourse() !== a.courseId) {
+        this.loadedStudentsForCourse.set(a.courseId);
         this.loadEnrolledStudents(a.courseId);
       }
     }, { allowSignalWrites: true });
@@ -598,7 +620,7 @@ export class AssignmentDetailsTabComponent implements OnInit {
 
         setTimeout(() => this.success.set(''), 3000);
       },
-      error: () => this.formError.set('Cập nhật thất bại'),
+      error: () => { this.formError.set('Cập nhật thất bại'); this.saving.set(false); },
       complete: () => this.saving.set(false)
     });
   }
@@ -630,6 +652,7 @@ export class AssignmentDetailsTabComponent implements OnInit {
       error: () => {
         this.formError.set('Xóa bài tập thất bại');
         this.showDeleteConfirm.set(false);
+        this.deleting.set(false);
       },
       complete: () => this.deleting.set(false)
     });
@@ -668,7 +691,7 @@ export class AssignmentDetailsTabComponent implements OnInit {
       next: (response: any) => {
         this.rubric.set(response?.data ?? response ?? null);
       },
-      error: () => this.rubric.set(null), // 404 = no rubric
+      error: () => { this.rubric.set(null); this.loadingRubric.set(false); },
       complete: () => this.loadingRubric.set(false)
     });
   }
@@ -697,6 +720,12 @@ export class AssignmentDetailsTabComponent implements OnInit {
   getBarWidth(count: number): number {
     const max = Math.max(...this.stats().scoreDistribution.map((d: any) => d.count), 1);
     return (count / max) * 100;
+  }
+
+  getEffectiveTotalStudents(): number {
+    const submissions = this.assignment()?.submissionsCount || 0;
+    const enrolled = this.assignment()?.totalStudents || 0;
+    return Math.max(submissions, enrolled);
   }
 
   // ──── UI Helpers ────

@@ -1,6 +1,8 @@
-import { Component, computed, inject, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, OnInit, OnDestroy, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 
 import { RouterModule, RouterOutlet, ActivatedRoute, Router } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { distinctUntilChanged, filter, map } from 'rxjs/operators';
 import { AssignmentDetailStore } from '../stores/assignment-detail.store';
 import { SubmissionsStore } from '../stores/submissions.store';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -34,7 +36,7 @@ import { LucideAngularModule } from 'lucide-angular';
               <span class="text-gray-600 truncate">{{ assignmentStore.assignmentTitle() || '...' }}</span>
             </nav>
 
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between gap-4">
               <div class="min-w-0">
                 @if (assignmentStore.loading()) {
                   <div class="h-7 w-64 bg-gray-100 rounded animate-pulse"></div>
@@ -43,11 +45,20 @@ import { LucideAngularModule } from 'lucide-angular';
                 }
               </div>
 
-            @if (submissionsStore.pendingCount() > 0) {
-              <span class="rounded-full bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs font-medium text-amber-700 flex-shrink-0">
-                {{ submissionsStore.pendingCount() }} chờ chấm
-              </span>
-            }
+              <div class="flex items-center gap-3 flex-shrink-0">
+                @if (submissionsStore.pendingCount() > 0) {
+                  <span class="rounded-full bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs font-medium text-amber-700">
+                    {{ submissionsStore.pendingCount() }} chờ chấm
+                  </span>
+                }
+                <a [routerLink]="getSpeedGraderLink()"
+                   class="inline-flex items-center gap-2 rounded-lg bg-[#0056D2] px-4 py-2 text-sm font-medium text-white hover:bg-[#004BB5] shadow-sm transition-colors">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z"/>
+                  </svg>
+                  Chấm điểm nhanh
+                </a>
+              </div>
           </div>
 
           <!-- Tabs (a11y: focus-visible, role=tablist) -->
@@ -83,7 +94,8 @@ import { LucideAngularModule } from 'lucide-angular';
 export class AssignmentDetailLayoutComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  
+  private destroyRef = inject(DestroyRef);
+
   assignmentStore = inject(AssignmentDetailStore);
   submissionsStore = inject(SubmissionsStore);
   private toast = inject(ToastService);
@@ -111,19 +123,38 @@ export class AssignmentDetailLayoutComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
-    const assignmentId = this.route.snapshot.paramMap.get('id');
-    if (assignmentId) {
+    // React to route param changes (handles both initial load AND navigation between assignments)
+    this.route.paramMap.pipe(
+      map(params => params.get('id')),
+      filter((id): id is string => !!id),
+      distinctUntilChanged(),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(assignmentId => {
+      // Clear stale data from previous assignment BEFORE loading new
+      this.assignmentStore.clearAssignment();
+      this.submissionsStore.clearSubmissions();
+
       this.assignmentStore.loadAssignment(assignmentId).subscribe({
         error: () => this.toast.error('Không thể tải bài tập')
       });
-      // Lazy load submissions only when needed (will be triggered by submissions tab)
-    }
+    });
   }
 
   ngOnDestroy(): void {
-    // Optionally clear state when leaving
-    // this.assignmentStore.clearAssignment();
-    // this.submissionsStore.clearSubmissions();
+    this.assignmentStore.clearAssignment();
+    this.submissionsStore.clearSubmissions();
+  }
+
+  getSpeedGraderLink(): string[] {
+    // Navigate to first ungraded submission, or first submission
+    const submissions = this.submissionsStore.submissions();
+    const ungraded = submissions.find(s => s.status?.toLowerCase() !== 'graded');
+    const target = ungraded || submissions[0];
+    const assignmentId = this.assignmentStore.assignmentId() || '';
+    if (target) {
+      return ['/teacher/assessments/classes/assignments', assignmentId, 'grade', target.id];
+    }
+    return ['/teacher/assessments/classes/assignments', assignmentId, 'submissions'];
   }
 
   goBack(): void {

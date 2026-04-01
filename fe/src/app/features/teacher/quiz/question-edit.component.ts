@@ -39,10 +39,15 @@ export class QuestionEditComponent implements OnInit {
   question: Question | null = null;
   questionId: string | null = null;
 
+  // Question type state
+  selectedType = signal<'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'TRUE_FALSE'>('SINGLE_CHOICE');
+  correctKeys = signal<Set<string>>(new Set());
+
   // Signals for Content Blocks
   questionBlocks = signal<ContentBlock[]>([]);
   rawQuestionContent = signal<string>('');
   showPreview = signal(false);
+  showHelpCard = signal(false);
 
   // SOTA 2025: Cached options for preview
   _previewOptions = signal<{ key: string; content: string }[]>([]);
@@ -86,6 +91,18 @@ export class QuestionEditComponent implements OnInit {
   }
 
   private populateFormWithQuestion(question: Question) {
+    // 0. Question type
+    const qType = (question.questionType || 'SINGLE_CHOICE') as 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'TRUE_FALSE';
+    this.selectedType.set(qType);
+
+    // Parse correctKeys from correctOption (supports comma-separated for MULTIPLE_CHOICE)
+    const correctOpt = question.correctOption || '';
+    if (qType === 'MULTIPLE_CHOICE' && correctOpt.includes(',')) {
+      this.correctKeys.set(new Set(correctOpt.split(',').map(k => k.trim())));
+    } else if (correctOpt) {
+      this.correctKeys.set(new Set([correctOpt]));
+    }
+
     // 1. Basic Info
     this.questionForm.patchValue({
       difficulty: question.difficulty,
@@ -142,14 +159,22 @@ export class QuestionEditComponent implements OnInit {
   private updateRawQuestionContent(blocks: ContentBlock[]) {
     const rawContent = blocks.map((block: any) => {
       if (block.type === 'paragraph' || block.type === 'text') {
-        const text = block.data?.text || block.content || '';
-        return text;
+        return block.data?.text || block.content || '';
       } else if (block.type === 'image') {
         const url = block.data?.file?.url || block.data?.url || block.url || '';
         return url ? `[IMG:${url}]` : '';
       } else if (block.type === 'math' || block.type === 'formula') {
-        const content = block.data?.text || block.content || '';
+        const content = block.data?.text || block.data?.latex || block.content || '';
         return `$$${content}$$`;
+      } else if (block.type === 'table') {
+        const data = block.data || {};
+        return `[TABLE:${JSON.stringify({ content: data.content || [], withHeadings: !!data.withHeadings })}]`;
+      } else if (block.type === 'list') {
+        const data = block.data || {};
+        return `[LIST:${JSON.stringify({ style: data.style || 'unordered', items: data.items || [] })}]`;
+      } else if (block.type === 'warning') {
+        const data = block.data || {};
+        return `[WARNING:${JSON.stringify({ title: data.title || '', message: data.message || '' })}]`;
       }
       return '';
     }).filter(s => s.trim()).join(' ');
@@ -192,8 +217,37 @@ export class QuestionEditComponent implements OnInit {
   }
 
   setCorrectOption(optionKey: string): void {
+    this.correctKeys.set(new Set([optionKey]));
     this.questionForm.patchValue({ correctOption: optionKey });
     this.updatePreviewOptions();
+  }
+
+  /** MULTIPLE_CHOICE: toggle a key in/out of the correct set */
+  toggleCorrectKey(optionKey: string): void {
+    const keys = new Set(this.correctKeys());
+    if (keys.has(optionKey)) {
+      keys.delete(optionKey);
+    } else {
+      keys.add(optionKey);
+    }
+    this.correctKeys.set(keys);
+    this.questionForm.patchValue({ correctOption: [...keys].sort().join(',') });
+    this.updatePreviewOptions();
+  }
+
+  isOptionCorrect(index: number): boolean {
+    const key = this.getOptionKey(index);
+    if (this.selectedType() === 'MULTIPLE_CHOICE') {
+      return this.correctKeys().has(key);
+    }
+    return this.getCorrectOptionKey() === key;
+  }
+
+  hasValidCorrectAnswer(): boolean {
+    if (this.selectedType() === 'MULTIPLE_CHOICE') {
+      return this.correctKeys().size > 0;
+    }
+    return !!this.getCorrectOptionKey();
   }
 
   addOption(): void {
@@ -220,6 +274,44 @@ export class QuestionEditComponent implements OnInit {
 
   // --- Helpers ---
 
+  /** Truncated question text for breadcrumb (matches quiz-edit title pattern) */
+  getQuestionPreviewTitle(): string {
+    if (!this.question) return 'Đang tải...';
+    const content = this.question.content || '';
+    const text = content.replace(/<[^>]*>/g, '').trim();
+    if (!text) return `Câu hỏi #${this.question.id.substring(0, 8)}`;
+    return text.length > 50 ? text.substring(0, 50) + '…' : text;
+  }
+
+  getQuestionTypeLabel(): string {
+    switch (this.question?.questionType) {
+      case 'SINGLE_CHOICE': return 'Trắc nghiệm';
+      case 'MULTIPLE_CHOICE': return 'Nhiều đáp án';
+      case 'TRUE_FALSE': return 'Đúng/Sai';
+      case 'FILL_IN_BLANK': return 'Điền từ';
+      case 'SHORT_ANSWER': return 'Trả lời ngắn';
+      case 'ESSAY': return 'Tự luận';
+      default: return 'Câu hỏi';
+    }
+  }
+
+  getDifficultyLabel(): string {
+    switch (this.question?.difficulty) {
+      case 'EASY': return 'Dễ';
+      case 'MEDIUM': return 'Trung bình';
+      case 'HARD': return 'Khó';
+      default: return '';
+    }
+  }
+
+  getStatusBadgeClass(): string {
+    switch (this.question?.status) {
+      case 'ACTIVE': return 'bg-emerald-50 text-emerald-700';
+      case 'INACTIVE': return 'bg-red-50 text-red-600';
+      default: return 'bg-gray-100 text-gray-600';
+    }
+  }
+
   getStatusText(status?: string): string {
     switch (status) {
       case 'DRAFT': return 'Bản nháp';
@@ -240,7 +332,7 @@ export class QuestionEditComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.questionForm.invalid || !this.getCorrectOptionKey() || this.options.length < 2 || this.isLoading()) {
+    if (this.questionForm.invalid || !this.hasValidCorrectAnswer() || this.options.length < 2 || this.isLoading()) {
       return;
     }
 
@@ -262,10 +354,23 @@ export class QuestionEditComponent implements OnInit {
       optionBlocksList.push(this.transformToBackendBlocks(blocks));
     }
 
+    // Build type-specific answerKey
+    const qType = this.selectedType();
+    let answerKey: Record<string, unknown>;
+    if (qType === 'MULTIPLE_CHOICE') {
+      answerKey = { correctOptions: [...this.correctKeys()].sort() };
+    } else if (qType === 'TRUE_FALSE') {
+      answerKey = { correctOption: formValue.correctOption === 'A' ? 'TRUE' : 'FALSE' };
+    } else {
+      answerKey = { correctOption: formValue.correctOption };
+    }
+
     const request: any = {
       content: this.extractTextFromBlocks(this.questionBlocks()),
       blocks: this.transformToBackendBlocks(this.questionBlocks()),
+      questionType: qType,
       correctOption: formValue.correctOption,
+      answerKey,
       options: optionsList,
       optionBlocks: optionBlocksList,
       difficulty: formValue.difficulty,
@@ -276,7 +381,7 @@ export class QuestionEditComponent implements OnInit {
     this.questionApi.updateQuestion(this.questionId!, request).subscribe({
       next: () => {
         this.toast.success('Đã cập nhật câu hỏi thành công!');
-        this.router.navigate(['/teacher/quiz/quiz-bank'], {
+        this.router.navigate(['/teacher/assessments/shared/question-bank'], {
           queryParams: { packageId: (this.question as any).packageId || (this.question as any).bankId }
         });
       },
@@ -288,7 +393,7 @@ export class QuestionEditComponent implements OnInit {
   }
 
   onCancel(): void {
-    this.router.navigate(['/teacher/quiz/quiz-bank']);
+    this.router.navigate(['/teacher/assessments/shared/question-bank']);
   }
 
   // --- Data Transformation ---
@@ -438,8 +543,4 @@ export class QuestionEditComponent implements OnInit {
     this.optionBlocksMap = next;
   }
 
-  // --- Preview Helpers ---
-  getQuestionContentForPreview(): string {
-    return this.rawQuestionContent();
-  }
 }

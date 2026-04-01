@@ -2,20 +2,24 @@
 
 import { ActivatedRoute, Router } from '@angular/router';
 import { QuizApi } from '../../../api/endpoints/quiz.api';
+import { BlockRendererComponent } from '../../../shared/blocks/block-renderer/block-renderer.component';
 import { firstValueFrom } from 'rxjs';
 
 interface QuizQuestion {
   id: string;
   content: string;
+  contentBlocks: any[];
   difficulty: string;
-  options: { key: string; content: string }[];
+  questionType: string;
+  options: { key: string; content: string; contentBlocks: any[] }[];
   correctOption: string;
+  answerKey: Record<string, any> | null;
 }
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-quiz-preview',
-  imports: [],
+  imports: [BlockRendererComponent],
   templateUrl: './quiz-preview.component.html',
   styles: [`
     @keyframes scale-in {
@@ -43,7 +47,7 @@ export class QuizPreviewComponent implements OnInit, OnDestroy {
   loading = signal(true);
   error = signal<string | null>(null);
   questions = signal<QuizQuestion[]>([]);
-  answers = signal<Record<string, string>>({});
+  answers = signal<Record<string, string | string[]>>({});
   showResults = signal(false);
   showResultsModal = signal(true);
 
@@ -71,12 +75,12 @@ export class QuizPreviewComponent implements OnInit, OnDestroy {
   
   correctCount = computed(() => {
     const ans = this.answers();
-    return this.questions().filter(q => ans[q.id] === q.correctOption).length;
+    return this.questions().filter(q => this.isQuestionCorrect(q, ans[q.id])).length;
   });
 
   wrongCount = computed(() => {
     const ans = this.answers();
-    return this.questions().filter(q => ans[q.id] && ans[q.id] !== q.correctOption).length;
+    return this.questions().filter(q => ans[q.id] && !this.isQuestionCorrect(q, ans[q.id])).length;
   });
 
   unansweredCount = computed(() => {
@@ -122,12 +126,16 @@ export class QuizPreviewComponent implements OnInit, OnDestroy {
       }
       this.questions.set(questions.map((q: any) => ({
         id: q.id,
-        content: q.content,
+        content: q.content || '',
+        contentBlocks: q.contentBlocks || [],
         difficulty: q.difficulty,
+        questionType: q.questionType || 'SINGLE_CHOICE',
         correctOption: q.correctOption,
+        answerKey: q.answerKey || null,
         options: (q.options || []).map((opt: any) => ({
           key: opt.optionKey || opt.key,
-          content: opt.content
+          content: opt.content || '',
+          contentBlocks: opt.contentBlocks || []
         })).sort((a: any, b: any) => a.key.localeCompare(b.key))
       })));
       this.startTimer();
@@ -165,6 +173,67 @@ export class QuizPreviewComponent implements OnInit, OnDestroy {
   selectAnswer(questionId: string, optionKey: string) {
     if (this.showResults()) return;
     this.answers.update(ans => ({ ...ans, [questionId]: optionKey }));
+  }
+
+  toggleMultipleChoice(questionId: string, optionKey: string) {
+    if (this.showResults()) return;
+    this.answers.update(ans => {
+      const current = ans[questionId];
+      const selected = Array.isArray(current) ? [...current] : [];
+      const idx = selected.indexOf(optionKey);
+      if (idx >= 0) {
+        selected.splice(idx, 1);
+      } else {
+        selected.push(optionKey);
+      }
+      if (selected.length === 0) {
+        const { [questionId]: _, ...rest } = ans;
+        return rest;
+      }
+      return { ...ans, [questionId]: selected };
+    });
+  }
+
+  isMultipleChoiceSelected(questionId: string, optionKey: string): boolean {
+    const current = this.answers()[questionId];
+    return Array.isArray(current) && current.includes(optionKey);
+  }
+
+  isQuestionCorrectById(q: QuizQuestion): boolean {
+    return this.isQuestionCorrect(q, this.answers()[q.id]);
+  }
+
+  private isQuestionCorrect(q: QuizQuestion, answer: string | string[] | undefined): boolean {
+    if (!answer) return false;
+    if (q.questionType === 'MULTIPLE_CHOICE') {
+      const correctKeys = q.answerKey?.['correctOptions'] as string[]
+        || q.correctOption?.split(',').map((k: string) => k.trim()) || [];
+      const selected = Array.isArray(answer) ? [...answer].sort() : [answer].sort();
+      return JSON.stringify(selected) === JSON.stringify([...correctKeys].sort());
+    }
+    return answer === q.correctOption;
+  }
+
+  isOptionCorrectInReview(q: QuizQuestion, optionKey: string): boolean {
+    if (!this.showResults()) return false;
+    if (q.questionType === 'MULTIPLE_CHOICE') {
+      const correctKeys = q.answerKey?.['correctOptions'] as string[]
+        || q.correctOption?.split(',').map((k: string) => k.trim()) || [];
+      return correctKeys.includes(optionKey);
+    }
+    return optionKey === q.correctOption;
+  }
+
+  isOptionWrongInReview(q: QuizQuestion, optionKey: string): boolean {
+    if (!this.showResults()) return false;
+    const answer = this.answers()[q.id];
+    if (q.questionType === 'MULTIPLE_CHOICE') {
+      const selected = Array.isArray(answer) ? answer : [];
+      const correctKeys = q.answerKey?.['correctOptions'] as string[]
+        || q.correctOption?.split(',').map((k: string) => k.trim()) || [];
+      return selected.includes(optionKey) && !correctKeys.includes(optionKey);
+    }
+    return answer === optionKey && optionKey !== q.correctOption;
   }
 
   prevPage() {
@@ -221,5 +290,16 @@ export class QuizPreviewComponent implements OnInit, OnDestroy {
     } else {
       this.router.navigate(['/teacher/courses']);
     }
+  }
+
+  private extractText(content: string | null | undefined, contentBlocks: any[] | null | undefined): string {
+    if (content) return content;
+    if (contentBlocks != null && contentBlocks.length > 0) {
+      return contentBlocks
+        .map((b: any) => b.data?.html || b.data?.text || (b.data?.latex ? `[${b.data.latex}]` : ''))
+        .filter(Boolean)
+        .join(' ');
+    }
+    return '(Chưa có nội dung)';
   }
 }

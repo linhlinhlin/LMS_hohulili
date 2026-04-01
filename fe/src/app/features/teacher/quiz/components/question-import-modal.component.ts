@@ -35,96 +35,70 @@ import { IconComponent } from '../../../../shared/components/icon/icon.component
               </button>
             </div>
             <!-- Body -->
-            <div class="p-6 space-y-6">
-              <!-- File Type Selection -->
+            <div class="p-6 space-y-5">
+              <!-- Template Download — shown first so users see format before picking file -->
+              <div class="bg-[#0056D2]/5 border border-[#0056D2]/20 rounded-lg p-4">
+                <div class="flex items-start gap-3">
+                  <svg class="w-5 h-5 text-[#0056D2] mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                  </svg>
+                  <div class="flex-1 min-w-0">
+                    <h4 class="font-medium text-[#004BB5] mb-1">Định dạng file Excel (.xlsx)</h4>
+                    <p class="text-sm text-[#004BB5] mb-2">File cần có các cột theo thứ tự:</p>
+                    <div class="bg-white rounded p-2 text-xs font-mono text-slate-600 overflow-x-auto whitespace-nowrap">
+                      Câu hỏi | Đáp án A | Đáp án B | Đáp án C | Đáp án D | Đáp án đúng
+                    </div>
+                    <p class="text-xs text-[#0056D2] mt-2">* Đáp án đúng ghi: A, B, C hoặc D</p>
+                  </div>
+                </div>
+              </div>
+              <!-- Difficulty Selection -->
               <div>
-                <label class="block text-sm font-medium text-slate-600 mb-3">Loại file</label>
-                <div class="flex gap-4">
-                  <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="fileType" value="excel" [(ngModel)]="fileType"
-                      class="w-4 h-4 text-[#0056D2]">
-                      <span class="flex items-center gap-2">
-                        <svg class="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="currentColor">
+                <label class="block text-sm font-medium text-slate-600 mb-2">Độ khó mặc định</label>
+                <select [(ngModel)]="difficulty"
+                  class="w-full border-2 border-slate-200 rounded-lg px-4 py-2.5 focus:border-[#0056D2] focus:outline-none">
+                  <option value="EASY">Dễ</option>
+                  <option value="MEDIUM">Trung bình</option>
+                  <option value="HARD">Khó</option>
+                </select>
+                <p class="mt-1 text-sm text-slate-400">Tất cả câu hỏi import sẽ có độ khó này</p>
+              </div>
+              <!-- File Upload -->
+              <div>
+                <label class="block text-sm font-medium text-slate-600 mb-2">Chọn file Excel</label>
+                <div class="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center hover:border-[#0056D2] transition-colors"
+                  [class.border-[#0056D2]]="selectedFile"
+                  [class.bg-[#0056D2]/5]="selectedFile">
+                  <input type="file" #fileInput (change)="onFileSelected($event)"
+                    accept=".xlsx,.xls" class="hidden">
+                    @if (!selectedFile) {
+                      <div (click)="fileInput.click()" class="cursor-pointer">
+                        <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                        <p class="text-slate-500 mb-1">Click để chọn file hoặc kéo thả vào đây</p>
+                        <p class="text-sm text-slate-300">Hỗ trợ: .xlsx, .xls</p>
+                      </div>
+                    }
+                    @if (selectedFile) {
+                      <div class="flex items-center justify-center gap-3">
+                        <svg class="w-8 h-8 text-green-600" viewBox="0 0 24 24" fill="currentColor">
                           <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M12.9,14.5L15.8,19H14L12,15.6L10,19H8.2L11.1,14.5L8.2,10H10L12,13.4L14,10H15.8L12.9,14.5Z"/>
                         </svg>
-                        Excel (.xlsx)
-                      </span>
-                    </label>
-                    <label class="flex items-center gap-2 cursor-pointer opacity-50">
-                      <input type="radio" name="fileType" value="word" [(ngModel)]="fileType" disabled
-                        class="w-4 h-4 text-[#0056D2]">
-                        <span class="flex items-center gap-2">
-                          <svg class="w-5 h-5 text-[#0056D2]" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M9.5,11.5L11,17H12L13.5,11.5H15L12.75,19H11.25L9,11.5H9.5Z"/>
-                          </svg>
-                          Word (.docx) - Sắp có
-                        </span>
-                      </label>
-                    </div>
-                  </div>
-                  <!-- Difficulty Selection -->
-                  <div>
-                    <label class="block text-sm font-medium text-slate-600 mb-2">Độ khó mặc định</label>
-                    <select [(ngModel)]="difficulty"
-                      class="w-full border-2 border-slate-200 rounded-lg px-4 py-2.5 focus:border-[#0056D2] focus:outline-none">
-                      <option value="EASY">Dễ</option>
-                      <option value="MEDIUM">Trung bình</option>
-                      <option value="HARD">Khó</option>
-                    </select>
-                    <p class="mt-1 text-sm text-slate-400">Tất cả câu hỏi import sẽ có độ khó này</p>
-                  </div>
-                  <!-- File Upload -->
-                  <div>
-                    <label class="block text-sm font-medium text-slate-600 mb-2">Chọn file</label>
-                    <div class="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center hover:border-[#0056D2] transition-colors"
-                      [class.border-[#0056D2]]="selectedFile"
-                      [class.bg-[#0056D2]/5]="selectedFile">
-                      <input type="file" #fileInput (change)="onFileSelected($event)"
-                        accept=".xlsx,.xls" class="hidden">
-                        @if (!selectedFile) {
-                          <div (click)="fileInput.click()" class="cursor-pointer">
-                            <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                            </svg>
-                            <p class="text-slate-500 mb-1">Click để chọn file hoặc kéo thả vào đây</p>
-                            <p class="text-sm text-slate-300">Hỗ trợ: .xlsx, .xls</p>
-                          </div>
-                        }
-                        @if (selectedFile) {
-                          <div class="flex items-center justify-center gap-3">
-                            <svg class="w-8 h-8 text-green-600" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M12.9,14.5L15.8,19H14L12,15.6L10,19H8.2L11.1,14.5L8.2,10H10L12,13.4L14,10H15.8L12.9,14.5Z"/>
-                            </svg>
-                            <div class="text-left">
-                              <p class="font-medium text-slate-900">{{ selectedFile.name }}</p>
-                              <p class="text-sm text-slate-400">{{ formatFileSize(selectedFile.size) }}</p>
-                            </div>
-                            <button (click)="clearFile(); $event.stopPropagation()"
-                              class="ml-2 p-1 text-slate-300 hover:text-red-500">
-                              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                              </svg>
-                            </button>
-                          </div>
-                        }
-                      </div>
-                    </div>
-                    <!-- Template Download -->
-                    <div class="bg-[#0056D2]/5 border border-[#0056D2]/20 rounded-lg p-4">
-                      <div class="flex items-start gap-3">
-                        <svg class="w-5 h-5 text-[#0056D2] mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                        </svg>
-                        <div class="flex-1">
-                          <h4 class="font-medium text-[#004BB5] mb-1">Định dạng file Excel</h4>
-                          <p class="text-sm text-[#004BB5] mb-2">File cần có các cột theo thứ tự:</p>
-                          <div class="bg-white rounded p-2 text-xs font-mono text-slate-600 overflow-x-auto">
-                            Câu hỏi | Đáp án A | Đáp án B | Đáp án C | Đáp án D | Đáp án đúng
-                          </div>
-                          <p class="text-xs text-[#0056D2] mt-2">* Đáp án đúng: A, B, C hoặc D</p>
+                        <div class="text-left">
+                          <p class="font-medium text-slate-900">{{ selectedFile.name }}</p>
+                          <p class="text-sm text-slate-400">{{ formatFileSize(selectedFile.size) }}</p>
                         </div>
+                        <button (click)="clearFile(); $event.stopPropagation()"
+                          class="ml-2 p-1 text-slate-300 hover:text-red-500">
+                          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                          </svg>
+                        </button>
                       </div>
-                    </div>
+                    }
+                  </div>
+                </div>
                     <!-- Import Result -->
                     @if (importResult()) {
                       <div class="rounded-lg p-4"
@@ -220,7 +194,6 @@ export class QuestionImportModalComponent {
   errorMessage = signal<string | null>(null);
   importResult = signal<QuestionImportResult | null>(null);
 
-  fileType = 'excel';
   difficulty: 'EASY' | 'MEDIUM' | 'HARD' = 'MEDIUM';
   selectedFile: File | null = null;
 

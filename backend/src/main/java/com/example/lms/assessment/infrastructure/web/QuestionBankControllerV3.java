@@ -208,6 +208,25 @@ public class QuestionBankControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(result, "Danh sách câu hỏi"));
     }
 
+    @PostMapping("/copy-questions")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @Operation(summary = "Deep-copy questions from accessible banks into a bank owned by the caller")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> copyQuestions(
+            @Valid @RequestBody CopyQuestionsRequest request,
+            @AuthenticationPrincipal UserJpaEntity user) {
+
+        var command = new QuestionBankManagementUseCase.CopyQuestionsCommand(
+                request.questionIds(), request.targetBankId(), request.targetCategoryId()
+        );
+
+        List<Question> copies = useCase.copyQuestionsToBank(command, user.getId());
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("copiedCount", copies.size());
+        result.put("targetBankId", request.targetBankId().toString());
+        return ResponseEntity.ok(ApiResponse.success(result, "Đã sao chép " + copies.size() + " câu hỏi vào ngân hàng của bạn"));
+    }
+
     @PostMapping("/move-questions")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Move questions to a target bank/category")
@@ -221,6 +240,20 @@ public class QuestionBankControllerV3 {
 
         useCase.moveQuestionsToBank(command, user.getId());
         return ResponseEntity.ok(ApiResponse.success("Đã di chuyển câu hỏi thành công"));
+    }
+
+    @GetMapping("/public")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @Operation(summary = "Get all PUBLIC question banks from other teachers")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getPublicBanks(
+            @AuthenticationPrincipal UserJpaEntity user) {
+        List<QuestionBank> banks = useCase.getBanksByVisibility(QuestionBank.Visibility.PUBLIC);
+        // Return all PUBLIC + ACTIVE banks — including caller's own (FE shows "Của bạn" badge)
+        banks = banks.stream()
+                .filter(b -> b.getStatus() == QuestionBank.Status.ACTIVE)
+                .toList();
+        List<Map<String, Object>> result = banks.stream().map(this::toBankMap).toList();
+        return ResponseEntity.ok(ApiResponse.success(result, "Ngân hàng câu hỏi công khai"));
     }
 
     @GetMapping("/search")
@@ -272,6 +305,12 @@ public class QuestionBankControllerV3 {
     ) {}
 
     public record MoveQuestionsRequest(
+            @NotEmpty(message = "Danh sách câu hỏi không được để trống") List<UUID> questionIds,
+            @NotNull(message = "Mã ngân hàng đích không được để trống") UUID targetBankId,
+            UUID targetCategoryId
+    ) {}
+
+    public record CopyQuestionsRequest(
             @NotEmpty(message = "Danh sách câu hỏi không được để trống") List<UUID> questionIds,
             @NotNull(message = "Mã ngân hàng đích không được để trống") UUID targetBankId,
             UUID targetCategoryId

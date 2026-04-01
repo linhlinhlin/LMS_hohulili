@@ -21,6 +21,9 @@ public interface AssignmentSubmissionJpaRepository extends JpaRepository<Assignm
 
     java.util.List<AssignmentSubmissionJpaEntity> findByStatus(AssignmentSubmissionJpaEntity.SubmissionStatus status);
 
+    java.util.List<AssignmentSubmissionJpaEntity> findByStatusAndAssignmentIdIn(
+            AssignmentSubmissionJpaEntity.SubmissionStatus status, java.util.List<UUID> assignmentIds);
+
     java.util.List<AssignmentSubmissionJpaEntity> findByAssignmentIdIn(java.util.List<UUID> assignmentIds);
 
     // === Analytics queries ===

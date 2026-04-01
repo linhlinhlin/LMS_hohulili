@@ -65,8 +65,8 @@ export const assignmentHubRoutes: Routes = [
                 loadComponent: () => import('./components/assignment-audit-log.component').then(m => m.AssignmentAuditLogComponent),
                 title: 'Lịch sử thao tác'
               },
-              // Legacy redirects for old tab paths
-              { path: 'overview', redirectTo: 'submissions', pathMatch: 'full' },
+              // Legacy redirects
+              { path: 'overview', redirectTo: 'details', pathMatch: 'full' },
               { path: 'settings', redirectTo: 'details', pathMatch: 'full' },
               { path: 'rubric', redirectTo: 'details', pathMatch: 'full' }
             ]
@@ -101,6 +101,32 @@ export const assignmentHubRoutes: Routes = [
             path: 'quizzes/:quizId/essay-grading',
             loadComponent: () => import('../quiz/quiz-essay-grading.component').then(m => m.QuizEssayGradingComponent),
             title: 'Chấm tự luận'
+          },
+          {
+            path: 'quizzes/:quizId',
+            loadComponent: () => import('./components/quiz-detail-layout.component').then(m => m.QuizDetailLayoutComponent),
+            children: [
+              {
+                path: '',
+                redirectTo: 'results',
+                pathMatch: 'full'
+              },
+              {
+                path: 'results',
+                loadComponent: () => import('./components/quiz-results-tab.component').then(m => m.QuizResultsTabComponent),
+                title: 'Kết quả bài kiểm tra'
+              },
+              {
+                path: 'details',
+                loadComponent: () => import('./components/quiz-details-tab.component').then(m => m.QuizDetailsTabComponent),
+                title: 'Chi tiết bài kiểm tra'
+              },
+              {
+                path: 'history',
+                loadComponent: () => import('./components/quiz-audit-log.component').then(m => m.QuizAuditLogComponent),
+                title: 'Lịch sử bài kiểm tra'
+              }
+            ]
           }
         ]
       },
@@ -194,12 +220,12 @@ export const assignmentHubRoutes: Routes = [
       },
       {
         path: 'quizzes/:quizId',
-        redirectTo: 'classes/quizzes/:quizId/editor',
+        redirectTo: 'classes/quizzes/:quizId',
         pathMatch: 'full'
       },
       {
         path: 'quizzes/:quizId/overview',
-        redirectTo: 'classes/quizzes/:quizId/editor',
+        redirectTo: 'classes/quizzes/:quizId/results',
         pathMatch: 'full'
       },
       {

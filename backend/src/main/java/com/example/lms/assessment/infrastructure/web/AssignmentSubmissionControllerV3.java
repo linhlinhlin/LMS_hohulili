@@ -1,12 +1,14 @@
 package com.example.lms.assessment.infrastructure.web;
 
 import com.example.lms.assessment.application.port.StudentAssessmentAccessPort;
+import com.example.lms.assessment.application.usecase.GradeSubmissionUseCase;
 import com.example.lms.assessment.infrastructure.persistence.entity.AssignmentJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.entity.AssignmentSubmissionJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentJpaRepository;
 import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentSubmissionJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
+import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,7 +27,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +48,9 @@ public class AssignmentSubmissionControllerV3 {
     private final AssignmentJpaRepository assignmentRepository;
     private final JpaCourseRepository courseJpaRepository;
     private final StudentAssessmentAccessPort studentAssessmentAccessPort;
+    private final GradeSubmissionUseCase gradeSubmissionUseCase;
+    private final UserJpaRepository userJpaRepository;
+    private final com.example.lms.assessment.infrastructure.persistence.repository.GradingAuditLogJpaRepository gradingAuditLogRepository;
 
     // =============================================
     // Teacher endpoints
@@ -61,8 +65,9 @@ public class AssignmentSubmissionControllerV3 {
             @AuthenticationPrincipal UserJpaEntity user) {
         verifyAssignmentOwnership(assignmentId, user);
         var submissions = submissionRepository.findByAssignmentId(assignmentId);
+        var studentMap = resolveStudents(submissions);
         List<Map<String, Object>> result = submissions.stream()
-                .map(this::toSubmissionMap)
+                .map(s -> toSubmissionMap(s, studentMap))
                 .toList();
         return ResponseEntity.ok(ApiResponse.success(result, "Danh sach bai nop"));
     }
@@ -76,8 +81,10 @@ public class AssignmentSubmissionControllerV3 {
             @AuthenticationPrincipal UserJpaEntity user) {
         verifyAssignmentOwnership(assignmentId, user);
         var submissions = submissionRepository.findByAssignmentId(assignmentId);
+        var studentMap = resolveStudents(submissions);
+        var graderMap = resolveGraders(submissions);
         List<Map<String, Object>> result = submissions.stream()
-                .map(this::toSubmissionDetailMap)
+                .map(s -> toSubmissionDetailMap(s, studentMap, graderMap))
                 .toList();
         return ResponseEntity.ok(ApiResponse.success(result, "Chi tiet bai nop"));
     }
@@ -89,25 +96,30 @@ public class AssignmentSubmissionControllerV3 {
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getPendingSubmissions(
             @AuthenticationPrincipal UserJpaEntity user) {
 
-        var allSubmitted = submissionRepository.findByStatus(
-                AssignmentSubmissionJpaEntity.SubmissionStatus.SUBMITTED);
+        List<AssignmentSubmissionJpaEntity> allSubmitted;
 
-        if (!isAdminRole(user)) {
-            var teacherCourseIds = courseJpaRepository.findByTeacherId(user.getId()).stream()
+        if (isAdminRole(user)) {
+            allSubmitted = submissionRepository.findByStatus(
+                    AssignmentSubmissionJpaEntity.SubmissionStatus.SUBMITTED);
+        } else {
+            // Optimized: query only teacher's assignments instead of loading ALL then filtering
+            var teacherAssignmentIds = courseJpaRepository.findByTeacherId(user.getId()).stream()
                     .map(course -> course.getId())
-                    .collect(java.util.stream.Collectors.toSet());
+                    .collect(java.util.stream.Collectors.toList());
 
-            var teacherAssignmentIds = assignmentRepository.findByCourseIdIn(new ArrayList<>(teacherCourseIds)).stream()
+            var assignmentIds = assignmentRepository.findByCourseIdIn(teacherAssignmentIds).stream()
                     .map(AssignmentJpaEntity::getId)
-                    .collect(java.util.stream.Collectors.toSet());
+                    .collect(java.util.stream.Collectors.toList());
 
-            allSubmitted = allSubmitted.stream()
-                    .filter(submission -> teacherAssignmentIds.contains(submission.getAssignmentId()))
-                    .toList();
+            allSubmitted = assignmentIds.isEmpty()
+                    ? List.of()
+                    : submissionRepository.findByStatusAndAssignmentIdIn(
+                            AssignmentSubmissionJpaEntity.SubmissionStatus.SUBMITTED, assignmentIds);
         }
 
+        var studentMap = resolveStudents(allSubmitted);
         List<Map<String, Object>> result = allSubmitted.stream()
-                .map(this::toSubmissionMap)
+                .map(s -> toSubmissionMap(s, studentMap))
                 .toList();
         return ResponseEntity.ok(ApiResponse.success(result, "Danh sach bai nop cho cham diem"));
     }
@@ -127,19 +139,9 @@ public class AssignmentSubmissionControllerV3 {
         verifyAssignmentOwnership(submission.getAssignmentId(), user);
 
         Double gradeValue = request.score() != null ? request.score() : request.grade();
-        if (gradeValue != null) {
-            submission.setGrade(gradeValue);
-        }
-        if (request.feedback() != null) {
-            submission.setFeedback(request.feedback());
-        }
-        submission.setGradedBy(user.getId());
-        submission.setGradedAt(Instant.now());
-        submission.setStatus(AssignmentSubmissionJpaEntity.SubmissionStatus.GRADED);
-
-        submissionRepository.save(submission);
+        var graded = gradeSubmissionUseCase.gradeSubmission(submissionId, gradeValue, request.feedback(), user.getId());
         return ResponseEntity.ok(ApiResponse.success(
-                toSubmissionDetailMap(submission), "Da cham diem bai nop"));
+                toSubmissionDetailMapWithStudent(graded), "Da cham diem bai nop"));
     }
 
     @Operation(summary = "Batch grade multiple submissions")
@@ -152,30 +154,10 @@ public class AssignmentSubmissionControllerV3 {
             @AuthenticationPrincipal UserJpaEntity user) {
         verifyAssignmentOwnership(assignmentId, user);
 
-        int gradedCount = 0;
-        for (BatchGradeItem item : items) {
-            var opt = submissionRepository.findById(item.submissionId());
-            if (opt.isEmpty()) {
-                continue;
-            }
-
-            var submission = opt.get();
-            if (!submission.getAssignmentId().equals(assignmentId)) {
-                continue;
-            }
-
-            if (item.grade() != null) {
-                submission.setGrade(item.grade());
-            }
-            if (item.feedback() != null) {
-                submission.setFeedback(item.feedback());
-            }
-            submission.setGradedBy(user.getId());
-            submission.setGradedAt(Instant.now());
-            submission.setStatus(AssignmentSubmissionJpaEntity.SubmissionStatus.GRADED);
-            submissionRepository.save(submission);
-            gradedCount++;
-        }
+        var useCaseItems = items.stream()
+                .map(item -> new GradeSubmissionUseCase.BatchGradeItem(item.submissionId(), item.grade(), item.feedback()))
+                .toList();
+        int gradedCount = gradeSubmissionUseCase.batchGrade(assignmentId, useCaseItems, user.getId());
 
         return ResponseEntity.ok(ApiResponse.success(
                 Map.of("gradedCount", gradedCount),
@@ -202,7 +184,7 @@ public class AssignmentSubmissionControllerV3 {
             verifyAssignmentOwnership(submission.getAssignmentId(), user);
         }
 
-        return ResponseEntity.ok(ApiResponse.success(toSubmissionDetailMap(submission)));
+        return ResponseEntity.ok(ApiResponse.success(toSubmissionDetailMapWithStudent(submission)));
     }
 
     @Operation(summary = "Export submissions for an assignment")
@@ -279,7 +261,7 @@ public class AssignmentSubmissionControllerV3 {
             submission.setSubmittedAt(Instant.now());
             submissionRepository.save(submission);
             return ResponseEntity.ok(ApiResponse.success(
-                    toSubmissionDetailMap(submission), "Da nop lai bai tap"));
+                    toSubmissionDetailMapWithStudent(submission), "Da nop lai bai tap"));
         }
 
         var submission = AssignmentSubmissionJpaEntity.builder()
@@ -298,7 +280,7 @@ public class AssignmentSubmissionControllerV3 {
 
         submission = submissionRepository.save(submission);
         return ResponseEntity.ok(ApiResponse.success(
-                toSubmissionDetailMap(submission), "Da nop bai tap"));
+                toSubmissionDetailMapWithStudent(submission), "Da nop bai tap"));
     }
 
     @Operation(summary = "Get my submission for an assignment (Student compatibility route)")
@@ -314,13 +296,47 @@ public class AssignmentSubmissionControllerV3 {
         }
 
         return submissionRepository.findByAssignmentIdAndStudentId(assignmentId, user.getId())
-                .map(submission -> ResponseEntity.ok(ApiResponse.success(toSubmissionDetailMap(submission))))
+                .map(submission -> ResponseEntity.ok(ApiResponse.success(toSubmissionDetailMapWithStudent(submission))))
                 .orElse(ResponseEntity.ok(ApiResponse.success(null, "Khong tim thay bai nop")));
     }
 
     // =============================================
     // Assignment publish
     // =============================================
+
+    @Operation(summary = "Get grading audit log for an assignment (STCW compliance)")
+    @GetMapping("/api/v3/assignments/{assignmentId}/audit-log")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getAuditLog(
+            @PathVariable UUID assignmentId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        verifyAssignmentOwnership(assignmentId, user);
+
+        var entries = gradingAuditLogRepository.findByAssignmentIdOrderByOccurredAtDesc(assignmentId);
+        // Batch resolve student names
+        var studentIds = entries.stream()
+                .map(e -> e.getStudentId()).distinct().toList();
+        var studentMap = studentIds.isEmpty() ? Map.<UUID, String>of() :
+                userJpaRepository.findAllById(studentIds).stream()
+                        .collect(java.util.stream.Collectors.toMap(u -> u.getId(), u -> u.getFullName()));
+
+        List<Map<String, Object>> result = entries.stream().map(e -> {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("id", e.getId().toString());
+            map.put("action", e.getEventType());
+            map.put("userId", e.getGradedBy().toString());
+            map.put("userName", e.getGradedByName());
+            map.put("studentName", studentMap.getOrDefault(e.getStudentId(), e.getStudentId().toString()));
+            map.put("oldValue", e.getOldGrade() != null ? e.getOldGrade().toString() : null);
+            map.put("newValue", e.getNewGrade() != null ? e.getNewGrade().toString() : null);
+            map.put("reason", e.getNewFeedback());
+            map.put("timestamp", e.getOccurredAt().toString());
+            return map;
+        }).toList();
+
+        return ResponseEntity.ok(ApiResponse.success(result, "Lich su cham diem"));
+    }
 
     @Operation(summary = "Publish an assignment")
     @PutMapping("/api/v3/assignments/{assignmentId}/publish")
@@ -342,11 +358,48 @@ public class AssignmentSubmissionControllerV3 {
     // Helpers
     // =============================================
 
-    private Map<String, Object> toSubmissionMap(AssignmentSubmissionJpaEntity submission) {
+    /** Single-submission convenience — resolves one student. */
+    private Map<String, Object> toSubmissionDetailMapWithStudent(AssignmentSubmissionJpaEntity submission) {
+        var student = userJpaRepository.findById(submission.getStudentId()).orElse(null);
+        var studentMap = new java.util.HashMap<UUID, UserJpaEntity>();
+        if (student != null) studentMap.put(student.getId(), student);
+        return toSubmissionDetailMap(submission, studentMap);
+    }
+
+    /** Batch-resolve student IDs → {id: {fullName, email}} to avoid N+1 lookups. */
+    private Map<UUID, UserJpaEntity> resolveStudents(List<AssignmentSubmissionJpaEntity> submissions) {
+        var studentIds = submissions.stream()
+                .map(AssignmentSubmissionJpaEntity::getStudentId)
+                .distinct().toList();
+        if (studentIds.isEmpty()) return Map.of();
+        var users = userJpaRepository.findAllById(studentIds);
+        var map = new java.util.HashMap<UUID, UserJpaEntity>();
+        users.forEach(u -> map.put(u.getId(), u));
+        return map;
+    }
+
+    /** Batch-resolve grader (teacher) IDs for gradedByName. */
+    private Map<UUID, UserJpaEntity> resolveGraders(List<AssignmentSubmissionJpaEntity> submissions) {
+        var graderIds = submissions.stream()
+                .map(AssignmentSubmissionJpaEntity::getGradedBy)
+                .filter(java.util.Objects::nonNull)
+                .distinct().toList();
+        if (graderIds.isEmpty()) return Map.of();
+        var users = userJpaRepository.findAllById(graderIds);
+        var map = new java.util.HashMap<UUID, UserJpaEntity>();
+        users.forEach(u -> map.put(u.getId(), u));
+        return map;
+    }
+
+    private Map<String, Object> toSubmissionMap(AssignmentSubmissionJpaEntity submission,
+                                                 Map<UUID, UserJpaEntity> studentMap) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("id", submission.getId().toString());
         map.put("assignmentId", submission.getAssignmentId().toString());
         map.put("studentId", submission.getStudentId().toString());
+        var student = studentMap.get(submission.getStudentId());
+        map.put("studentName", student != null ? student.getFullName() : null);
+        map.put("studentEmail", student != null ? student.getEmail() : null);
         map.put("status", submission.getStatus().name());
         map.put("grade", submission.getGrade());
         map.put("submittedAt", submission.getSubmittedAt() != null ? submission.getSubmittedAt().toString() : null);
@@ -354,14 +407,25 @@ public class AssignmentSubmissionControllerV3 {
         return map;
     }
 
-    private Map<String, Object> toSubmissionDetailMap(AssignmentSubmissionJpaEntity submission) {
-        Map<String, Object> map = toSubmissionMap(submission);
+    private Map<String, Object> toSubmissionDetailMap(AssignmentSubmissionJpaEntity submission,
+                                                       Map<UUID, UserJpaEntity> studentMap) {
+        return toSubmissionDetailMap(submission, studentMap, Map.of());
+    }
+
+    private Map<String, Object> toSubmissionDetailMap(AssignmentSubmissionJpaEntity submission,
+                                                       Map<UUID, UserJpaEntity> studentMap,
+                                                       Map<UUID, UserJpaEntity> graderMap) {
+        Map<String, Object> map = toSubmissionMap(submission, studentMap);
         map.put("content", submission.getContent());
         map.put("fileUrl", submission.getFileUrl());
         map.put("fileName", submission.getFileName());
         map.put("feedback", submission.getFeedback());
         map.put("maxGrade", submission.getMaxGrade());
         map.put("gradedBy", submission.getGradedBy() != null ? submission.getGradedBy().toString() : null);
+        if (submission.getGradedBy() != null) {
+            var grader = graderMap.get(submission.getGradedBy());
+            map.put("gradedByName", grader != null ? grader.getFullName() : null);
+        }
         map.put("createdAt", submission.getCreatedAt() != null ? submission.getCreatedAt().toString() : null);
         map.put("updatedAt", submission.getUpdatedAt() != null ? submission.getUpdatedAt().toString() : null);
         return map;
@@ -373,15 +437,19 @@ public class AssignmentSubmissionControllerV3 {
 
     public record GradeRequest(
             @jakarta.validation.constraints.DecimalMin(value = "0", message = "Diem phai >= 0")
-            @jakarta.validation.constraints.DecimalMax(value = "100", message = "Diem phai <= 100")
             Double grade,
             @jakarta.validation.constraints.DecimalMin(value = "0", message = "Diem phai >= 0")
-            @jakarta.validation.constraints.DecimalMax(value = "100", message = "Diem phai <= 100")
             Double score,
             String feedback
     ) {}
 
-    public record BatchGradeItem(UUID submissionId, Double grade, String feedback) {}
+    public record BatchGradeItem(
+            @jakarta.validation.constraints.NotNull(message = "submissionId khong duoc de trong")
+            UUID submissionId,
+            @jakarta.validation.constraints.DecimalMin(value = "0", message = "Diem phai >= 0")
+            Double grade,
+            String feedback
+    ) {}
 
     public record SubmitRequest(String content, String fileUrl, String fileName) {}
 

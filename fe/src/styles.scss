@@ -264,155 +264,48 @@ body {
 }
 
 
-/* ===== QUILL EDITOR CUSTOM STYLES ===== */
-.ql-toolbar.ql-snow {
-  border: none !important;
-  border-bottom: 1px solid #e5e7eb !important;
-  background: #f9fafb;
-  padding: 8px !important;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
-}
-
-.ql-container.ql-snow {
-  border: none !important;
-  font-family: inherit;
-  font-size: 14px;
-}
-
-.ql-editor {
-  padding: 16px !important;
-  min-height: 200px;
-}
-
-.ql-editor.ql-blank::before {
-  color: #9ca3af;
-  font-style: normal;
-}
-
-/* Toolbar button styles */
-.ql-snow .ql-toolbar button,
-.ql-snow.ql-toolbar button {
-  width: 28px !important;
-  height: 28px !important;
-  padding: 4px !important;
-  border-radius: 4px;
-  transition: all 0.15s ease;
-}
-
-.ql-snow .ql-toolbar button:hover,
-.ql-snow.ql-toolbar button:hover {
-  background: #e5e7eb;
-}
-
-.ql-snow .ql-toolbar button.ql-active,
-.ql-snow.ql-toolbar button.ql-active {
-  background: #dbeafe;
-  color: #2563eb;
-}
-
-.ql-snow .ql-toolbar .ql-picker,
-.ql-snow.ql-toolbar .ql-picker {
-  height: 28px;
-}
-
-.ql-snow .ql-toolbar .ql-picker-label,
-.ql-snow.ql-toolbar .ql-picker-label {
-  border-radius: 4px;
-  padding: 2px 8px;
-  transition: all 0.15s ease;
-}
-
-.ql-snow .ql-toolbar .ql-picker-label:hover,
-.ql-snow.ql-toolbar .ql-picker-label:hover {
-  background: #e5e7eb;
-}
-
-/* Separator between toolbar groups */
-.ql-toolbar.ql-snow .ql-formats {
-  margin-right: 8px !important;
-  padding-right: 8px;
-  border-right: 1px solid #e5e7eb;
-}
-
-.ql-toolbar.ql-snow .ql-formats:last-child {
-  border-right: none;
-  margin-right: 0 !important;
-  padding-right: 0;
-}
-
-/* Editor content styles */
-.ql-editor h1 {
-  font-size: 2em;
-  font-weight: 700;
-  margin-bottom: 0.5em;
-}
-
-.ql-editor h2 {
-  font-size: 1.5em;
-  font-weight: 600;
-  margin-bottom: 0.5em;
-}
-
-.ql-editor h3 {
-  font-size: 1.25em;
-  font-weight: 600;
-  margin-bottom: 0.5em;
-}
-
-.ql-editor blockquote {
-  border-left: 4px solid #3b82f6;
-  padding-left: 16px;
-  margin: 16px 0;
-  color: #4b5563;
-  font-style: italic;
-}
-
-.ql-editor pre.ql-syntax {
-  background: #1f2937;
-  color: #e5e7eb;
-  border-radius: 8px;
-  padding: 16px;
-  overflow-x: auto;
-}
-
-.ql-editor ul,
-.ql-editor ol {
-  padding-left: 24px;
-}
-
-.ql-editor img {
-  max-width: 100%;
-  border-radius: 8px;
-}
-
-.ql-editor a {
-  color: #2563eb;
-  text-decoration: underline;
-}
-
-.ql-editor a:hover {
-  color: #1d4ed8;
-}
-
-.ck.ck-editor__main > .ck-editor__editable {
-  padding: 12px !important;
-  border-radius: 0 !important;
-}
-
-.ck.ck-editor__editable {
-  border: none !important;
-  box-shadow: none !important;
-}
-
-.ck.ck-toolbar {
-  padding: 4px 6px !important;
-  border-bottom: 1px solid #ddd !important;
-  background: #fafafa !important;
-}
-
 /* Loại bỏ margin đầu của P mặc định */
 .ck-content p:first-child {
   margin-top: 0 !important;
+}
+
+/* ===== EDITORJS GLOBAL OVERRIDES =====
+   Must be global — component ::ng-deep is silently dropped in Angular 20 + ViewEncapsulation.None */
+.codex-editor__redactor {
+  padding-bottom: 20px !important;
+  margin-right: 0 !important;
+  padding-left: 35px !important;
+}
+
+.codex-editor {
+  width: 100%;
+  text-align: left;
+}
+
+.ce-block {
+  width: 100%;
+}
+
+.ce-paragraph {
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.ce-block__content,
+.ce-toolbar__content {
+  max-width: 100% !important;
+  margin-left: 0 !important;
+}
+
+.ce-toolbar__actions {
+  left: -5px !important;
+  background: white;
+  border-radius: 4px;
+  transform: none !important;
+}
+
+.codex-editor--empty .codex-editor__redactor {
+  padding-bottom: 10px !important;
 }

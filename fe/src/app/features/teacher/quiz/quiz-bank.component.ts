@@ -9,18 +9,22 @@ import {
   QuestionBankDTO,
   QuestionBankCategoryDTO,
   CreateBankRequest,
+  UpdateBankRequest,
   BankQuestionDTO
 } from '../../../api/types/question-bank.types';
+import { StripHtmlPipe } from '../../../shared/pipes/strip-html.pipe';
 import { QuizApi } from '../../../api/endpoints/quiz.api';
 import { firstValueFrom, take } from 'rxjs';
 import { QuestionImportModalComponent } from './components/question-import-modal.component';
+import { QuizBankCategorySidebarComponent } from './components/quiz-bank-category-sidebar.component';
 import { ToastService } from '../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-quiz-bank',
-  imports: [CommonModule, FormsModule, QuestionImportModalComponent, LucideAngularModule],
+  imports: [CommonModule, FormsModule, QuestionImportModalComponent, QuizBankCategorySidebarComponent, LucideAngularModule, StripHtmlPipe],
   templateUrl: './quiz-bank.component.html',
   styles: [`
     .line-clamp-2 {
@@ -41,6 +45,15 @@ export class QuizBankComponent implements OnInit {
   private quizApi = inject(QuizApi);
   private toast = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
+  private authService = inject(AuthService);
+
+  // Ownership: true when the selected bank belongs to the current user (or no bank selected yet)
+  isOwner = computed(() => {
+    const bank = this.selectedBank();
+    const user = this.authService.currentUserSignal();
+    if (!bank || !user) return true;
+    return (bank as any).ownerId === user.id;
+  });
 
   // Bank state
   banks = signal<QuestionBankDTO[]>([]);
@@ -63,12 +76,20 @@ export class QuizBankComponent implements OnInit {
   showMoveModal = signal(false);
   showAddCategoryModal = signal(false);
   showManageBankMenu = signal(false);
+  bankFormMode = signal<'create' | 'edit'>('create');
+  editingBankId = signal<string | null>(null);
+
+  // Sidebar state
+  sidebarCollapsed = signal(false);
+  savingCategoryId = signal<string | null>(null);
+  showBulkCategoryMenu = signal(false);
 
   // Add to Quiz mode
   addToQuizLessonId: string | null = null;
   returnUrl: string | null = null;
   pendingSelectedQuestionId: string | null = null;
   addingToQuiz = signal<boolean>(false);
+  loadingBank = signal(false);
 
   // Create bank form
   newBank: CreateBankRequest = {
@@ -95,6 +116,19 @@ export class QuizBankComponent implements OnInit {
     tag: ''
   };
 
+  sortColumn = signal<string>('');
+  sortDir = signal<'asc' | 'desc'>('asc');
+
+  sortBy(col: string) {
+    if (this.sortColumn() === col) {
+      this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortColumn.set(col);
+      this.sortDir.set('asc');
+    }
+    this.filterQuestions();
+  }
+
   // Dynamic filter options based on current dataset
   availableCategories = computed(() => {
     const ids = new Set(this.questions().map(q => (q as any).categoryId).filter(id => !!id));
@@ -116,41 +150,65 @@ export class QuizBankComponent implements OnInit {
     return Array.from(diffs).sort();
   });
 
+  // Bank list filters
+  bankTypeFilter = signal<string>('');
+  visibilityFilter = signal<string>('');
+
+  // Public banks (Browse Community tab)
+  bankTab = signal<'my' | 'public'>('my');
+  publicBanks = signal<QuestionBankDTO[]>([]);
+  publicBankSearch = signal('');
+  loadingPublicBanks = signal(false);
+  showCopyModal = signal(false);
+  copyTargetBankId = signal('');
+  copyingQuestions = signal(false);
+
+  filteredPublicBanks = computed(() => {
+    const query = this.publicBankSearch().trim().toLowerCase();
+    return this.publicBanks().filter(b =>
+      !query ||
+      b.name.toLowerCase().includes(query) ||
+      (b.subject || '').toLowerCase().includes(query)
+    );
+  });
+
+  clearBankFilters() {
+    this.bankTypeFilter.set('');
+    this.visibilityFilter.set('');
+    this.bankSearchQuery.set('');
+  }
+
+  getActiveBankFilterCount = computed(() => {
+    let count = 0;
+    if (this.bankSearchQuery().trim()) count++;
+    if (this.bankTypeFilter()) count++;
+    if (this.visibilityFilter()) count++;
+    return count;
+  });
+
   // Catalog view data
   bankStats = computed(() => {
-    return this.banks().map(bank => {
-      const bankQuestions = this.questions().filter(q => (q as any).packageId === bank.id);
-      const total = bankQuestions.length || bank.questionCount || 0;
-      
-      const counts = {
-        EASY: bankQuestions.filter(q => q.difficulty === 'EASY').length,
-        MEDIUM: bankQuestions.filter(q => q.difficulty === 'MEDIUM').length,
-        HARD: bankQuestions.filter(q => q.difficulty === 'HARD').length
-      };
-
-      return {
-        ...bank,
-        realCount: total,
-        dist: {
-          easy: total ? (counts.EASY / total) * 100 : 0,
-          medium: total ? (counts.MEDIUM / total) * 100 : 0,
-          hard: total ? (counts.HARD / total) * 100 : 0
-        }
-      };
-    });
+    return this.banks().map(bank => ({
+      ...bank,
+      realCount: bank.questionCount || 0
+    }));
   });
 
   filteredBankStats = computed(() => {
     const query = this.bankSearchQuery().trim().toLowerCase();
-    if (!query) {
-      return this.bankStats();
-    }
+    const typeFilter = this.bankTypeFilter();
+    const visFilter = this.visibilityFilter();
 
-    return this.bankStats().filter(bank =>
-      bank.name.toLowerCase().includes(query) ||
-      (bank.subject || '').toLowerCase().includes(query) ||
-      (bank.description || '').toLowerCase().includes(query)
-    );
+    return this.bankStats().filter(bank => {
+      if (query && !(
+        bank.name.toLowerCase().includes(query) ||
+        (bank.subject || '').toLowerCase().includes(query) ||
+        (bank.description || '').toLowerCase().includes(query)
+      )) return false;
+      if (typeFilter && bank.bankType !== typeFilter) return false;
+      if (visFilter && bank.visibility !== visFilter) return false;
+      return true;
+    });
   });
 
   totalBankQuestionCount = computed(() =>
@@ -188,6 +246,83 @@ export class QuizBankComponent implements OnInit {
     }
   }
 
+  async switchToPublicTab() {
+    this.bankTab.set('public');
+    if (this.publicBanks().length === 0 && !this.loadingPublicBanks()) {
+      await this.loadPublicBanks();
+    }
+  }
+
+  async loadPublicBanks() {
+    this.loadingPublicBanks.set(true);
+    try {
+      // Backend returns ALL PUBLIC+ACTIVE banks — including caller's own (shown with badge)
+      const banks = await firstValueFrom(this.questionBankApi.getPublicBanks());
+      this.publicBanks.set(banks);
+    } catch {
+      this.publicBanks.set([]);
+    } finally {
+      this.loadingPublicBanks.set(false);
+    }
+  }
+
+  isMyPublicBank(bank: QuestionBankDTO): boolean {
+    return (bank as any).ownerId === this.authService.currentUserSignal()?.id;
+  }
+
+  async openPublicBank(bank: QuestionBankDTO) {
+    this.bankTab.set('my');
+    this.selectedBankId.set(bank.id);
+    // Clear stale data synchronously BEFORE any await — prevents flash of old content
+    this.selectedBank.set(null);
+    this.questions.set([]);
+    this.filteredQuestions.set([]);
+    this.categoryTree.set([]);
+    this.flatCategories.set([]);
+    this.selectedCategoryId.set(null);
+    this.clearSelection();
+    // If it's the user's own bank, add it to their banks list so isOwner() resolves correctly
+    if (this.isMyPublicBank(bank) && !this.banks().find(b => b.id === bank.id)) {
+      this.banks.update(list => [...list, bank]);
+    }
+    this.loadingBank.set(true);
+    try {
+      const fullBank = await firstValueFrom(this.questionBankApi.getBankById(bank.id));
+      this.selectedBank.set(fullBank);
+      const cats = (fullBank as any).categories || [];
+      this.categoryTree.set(cats);
+      this.flatCategories.set(this.flattenTree(cats));
+      await this.loadBankQuestions(bank.id);
+    } catch {
+      this.toast.error('Không thể tải ngân hàng câu hỏi.');
+    } finally {
+      this.loadingBank.set(false);
+    }
+  }
+
+  async confirmCopyToMyBank() {
+    const targetBankId = this.copyTargetBankId();
+    if (!targetBankId) { this.toast.error('Vui lòng chọn ngân hàng đích'); return; }
+    const ids = this.selectedQuestions();
+    if (!ids.length) return;
+
+    this.copyingQuestions.set(true);
+    try {
+      const result = await firstValueFrom(
+        this.questionBankApi.copyQuestionsToBank(ids, targetBankId)
+      );
+      this.toast.success(`Đã sao chép ${result.copiedCount} câu hỏi vào ngân hàng của bạn!`);
+      this.showCopyModal.set(false);
+      this.copyTargetBankId.set('');
+      this.clearSelection();
+      await this.loadBanks();
+    } catch {
+      this.toast.error('Sao chép thất bại. Vui lòng thử lại.');
+    } finally {
+      this.copyingQuestions.set(false);
+    }
+  }
+
   async onBankChange() {
     this.showManageBankMenu.set(false);
     this.clearQuestionFilters();
@@ -209,9 +344,18 @@ export class QuizBankComponent implements OnInit {
         this.filteredQuestions.set([]);
       }
     } else {
+      // Clear stale data synchronously BEFORE any await — prevents 100ms flash of old bank content
+      this.selectedBank.set(null);
+      this.questions.set([]);
+      this.filteredQuestions.set([]);
+      this.categoryTree.set([]);
+      this.flatCategories.set([]);
+      this.selectedCategoryId.set(null);
+      this.clearSelection();
+
       const bank = this.banks().find(b => b.id === this.selectedBankId());
       if (bank) {
-        // Load bank with categories
+        this.loadingBank.set(true);
         try {
           const fullBank = await firstValueFrom(this.questionBankApi.getBankById(bank.id));
           this.selectedBank.set(fullBank);
@@ -221,17 +365,10 @@ export class QuizBankComponent implements OnInit {
           this.selectedBank.set(bank);
           this.categoryTree.set([]);
           this.flatCategories.set([]);
+        } finally {
+          this.loadingBank.set(false);
         }
-
-        this.selectedCategoryId.set(null);
-        this.clearSelection();
         await this.loadBankQuestions(bank.id);
-      } else {
-        this.selectedBank.set(null);
-        this.categoryTree.set([]);
-        this.flatCategories.set([]);
-        this.questions.set([]);
-        this.filteredQuestions.set([]);
       }
     }
   }
@@ -291,6 +428,29 @@ export class QuizBankComponent implements OnInit {
       });
     }
 
+    // Apply column sort
+    const col = this.sortColumn();
+    const dir = this.sortDir();
+    if (col) {
+      const diffOrder: Record<string, number> = { EASY: 0, MEDIUM: 1, HARD: 2 };
+      filtered.sort((a, b) => {
+        if (col === 'difficulty') {
+          const diff = (diffOrder[a.difficulty] ?? 1) - (diffOrder[b.difficulty] ?? 1);
+          return dir === 'asc' ? diff : -diff;
+        }
+        let aVal = '', bVal = '';
+        if (col === 'type') {
+          aVal = this.getQuestionTypeBadge((a as any).questionType).label;
+          bVal = this.getQuestionTypeBadge((b as any).questionType).label;
+        } else if (col === 'category') {
+          aVal = this.getCategoryName((a as any).categoryId);
+          bVal = this.getCategoryName((b as any).categoryId);
+        }
+        const cmp = aVal.localeCompare(bVal, 'vi');
+        return dir === 'asc' ? cmp : -cmp;
+      });
+    }
+
     this.filteredQuestions.set(filtered);
   }
 
@@ -315,33 +475,57 @@ export class QuizBankComponent implements OnInit {
     await this.onBankChange();
   }
 
+  async switchBank(bankId: string) {
+    this.selectedBankId.set(bankId);
+    await this.onBankChange();
+  }
+
   // ==================== Bank CRUD ====================
 
-  async createBank() {
+  closeBankModal() {
+    this.showCreateBankModal.set(false);
+    this.resetBankForm();
+  }
+
+  resetBankForm() {
+    this.newBank = { name: '', description: '', subject: '', bankType: 'PERSONAL', visibility: 'PRIVATE' };
+    this.bankFormMode.set('create');
+    this.editingBankId.set(null);
+  }
+
+  async saveBankForm() {
     if (!this.newBank.name.trim()) {
       this.toast.warning('Vui lòng nhập tên ngân hàng!');
       return;
     }
 
     try {
-      const created = await firstValueFrom(this.questionBankApi.createBank(this.newBank));
-      this.toast.success('Đã tạo ngân hàng câu hỏi thành công!');
-      this.showCreateBankModal.set(false);
-      this.newBank = {
-        name: '',
-        description: '',
-        subject: '',
-        bankType: 'PERSONAL',
-        visibility: 'PRIVATE'
-      };
-      await this.loadBanks();
-
-      if (created?.id) {
-        this.selectedBankId.set(created.id);
-        await this.onBankChange();
+      if (this.bankFormMode() === 'edit' && this.editingBankId()) {
+        const updateReq: UpdateBankRequest = {
+          name: this.newBank.name,
+          description: this.newBank.description,
+          subject: this.newBank.subject,
+          visibility: this.newBank.visibility
+        };
+        await firstValueFrom(this.questionBankApi.updateBank(this.editingBankId()!, updateReq));
+        this.toast.success('Đã cập nhật ngân hàng câu hỏi thành công!');
+        this.closeBankModal();
+        await this.loadBanks();
+        if (this.editingBankId() === this.selectedBankId()) {
+          await this.onBankChange();
+        }
+      } else {
+        const created = await firstValueFrom(this.questionBankApi.createBank(this.newBank));
+        this.toast.success('Đã tạo ngân hàng câu hỏi thành công!');
+        this.closeBankModal();
+        await this.loadBanks();
+        if (created?.id) {
+          this.selectedBankId.set(created.id);
+          await this.onBankChange();
+        }
       }
     } catch (error: any) {
-      this.toast.error('Lỗi khi tạo ngân hàng: ' + (error?.message || 'Lỗi không xác định'));
+      this.toast.error('Lỗi: ' + (error?.message || 'Lỗi không xác định'));
     }
   }
 
@@ -378,10 +562,17 @@ export class QuizBankComponent implements OnInit {
     }
   }
 
-  editBank(bank: any) {
-    // For now, this could open the create modal in "edit" mode if we had that, 
-    // or just show a toast that this feature is coming.
-    this.toast.info('Tính năng chỉnh sửa thông tin ngân hàng đang được cập nhật.');
+  editBank(bank: QuestionBankDTO | any) {
+    this.newBank = {
+      name: bank.name,
+      description: bank.description || '',
+      subject: bank.subject || '',
+      bankType: bank.bankType || 'PERSONAL',
+      visibility: bank.visibility || 'PRIVATE'
+    };
+    this.editingBankId.set(bank.id);
+    this.bankFormMode.set('edit');
+    this.showCreateBankModal.set(true);
   }
 
   // ==================== Category CRUD ====================
@@ -442,6 +633,96 @@ export class QuizBankComponent implements OnInit {
       }
     } catch (error: any) {
       this.toast.error('Lỗi khi xóa danh mục: ' + (error?.message || 'Lỗi không xác định'));
+    }
+  }
+
+  async onSidebarAddCategory(req: { name: string; parentId: string | null }) {
+    const bank = this.selectedBank();
+    if (!bank) return;
+
+    this.savingCategoryId.set('__adding__');
+    try {
+      await firstValueFrom(this.questionBankApi.addCategory(bank.id, {
+        name: req.name,
+        parentId: req.parentId || undefined
+      }));
+      const fullBank = await firstValueFrom(this.questionBankApi.getBankById(bank.id));
+      this.selectedBank.set(fullBank);
+      this.categoryTree.set(fullBank.categories || []);
+      this.flatCategories.set(this.flattenTree(fullBank.categories || []));
+    } catch (error: any) {
+      this.toast.error('Lỗi khi thêm danh mục: ' + (error?.message || 'Lỗi không xác định'));
+    } finally {
+      this.savingCategoryId.set(null);
+    }
+  }
+
+  async onSidebarRenameCategory(req: { id: string; name: string }) {
+    const bank = this.selectedBank();
+    if (!bank) return;
+
+    this.savingCategoryId.set(req.id);
+    try {
+      await firstValueFrom(this.questionBankApi.updateCategory(req.id, { name: req.name }));
+      const fullBank = await firstValueFrom(this.questionBankApi.getBankById(bank.id));
+      this.selectedBank.set(fullBank);
+      this.categoryTree.set(fullBank.categories || []);
+      this.flatCategories.set(this.flattenTree(fullBank.categories || []));
+    } catch (error: any) {
+      this.toast.error('Lỗi khi đổi tên: ' + (error?.message || 'Lỗi không xác định'));
+    } finally {
+      this.savingCategoryId.set(null);
+    }
+  }
+
+  async assignQuestionToCategory(questionId: string, event: Event) {
+    const bank = this.selectedBank();
+    if (!bank) return;
+
+    const categoryId = (event.target as HTMLSelectElement).value || null;
+
+    // Optimistic update
+    this.questions.update(qs => qs.map(q =>
+      q.id === questionId ? { ...q, categoryId } as any : q
+    ));
+    this.filterQuestions();
+
+    try {
+      await firstValueFrom(this.questionBankApi.assignQuestionCategory(questionId, bank.id, categoryId));
+      // Refresh counts in sidebar
+      const fullBank = await firstValueFrom(this.questionBankApi.getBankById(bank.id));
+      this.selectedBank.set(fullBank);
+      this.categoryTree.set(fullBank.categories || []);
+      this.flatCategories.set(this.flattenTree(fullBank.categories || []));
+    } catch (error: any) {
+      // Rollback: reload questions
+      await this.loadBankQuestions(bank.id, this.selectedCategoryId() || undefined);
+      this.toast.error('Lỗi khi gán danh mục: ' + (error?.message || 'Lỗi không xác định'));
+    }
+  }
+
+  async bulkAssignCategory(categoryId: string | null) {
+    const bank = this.selectedBank();
+    const selectedIds = this.selectedQuestions();
+    if (!bank || selectedIds.length === 0) return;
+
+    this.showBulkCategoryMenu.set(false);
+
+    try {
+      await firstValueFrom(this.questionBankApi.assignQuestionCategory(selectedIds[0], bank.id, categoryId));
+      // Sequential for remaining
+      for (let i = 1; i < selectedIds.length; i++) {
+        await firstValueFrom(this.questionBankApi.assignQuestionCategory(selectedIds[i], bank.id, categoryId));
+      }
+      this.toast.success(`Đã gán ${selectedIds.length} câu hỏi vào danh mục`);
+      this.clearSelection();
+      await this.loadBankQuestions(bank.id, this.selectedCategoryId() || undefined);
+      const fullBank = await firstValueFrom(this.questionBankApi.getBankById(bank.id));
+      this.selectedBank.set(fullBank);
+      this.categoryTree.set(fullBank.categories || []);
+      this.flatCategories.set(this.flattenTree(fullBank.categories || []));
+    } catch (error: any) {
+      this.toast.error('Lỗi khi gán danh mục: ' + (error?.message || 'Lỗi không xác định'));
     }
   }
 
@@ -735,6 +1016,18 @@ export class QuizBankComponent implements OnInit {
   }
 
   onImportModalClosed() {
+  }
+
+  getQuestionTypeBadge(type: string): { label: string; classes: string } {
+    switch (type) {
+      case 'SINGLE_CHOICE':
+      case 'MULTIPLE_CHOICE': return { label: 'Trắc nghiệm',    classes: 'bg-blue-50 text-blue-600 border-blue-100' };
+      case 'TRUE_FALSE':      return { label: 'Đúng / Sai',     classes: 'bg-orange-50 text-orange-600 border-orange-100' };
+      case 'SHORT_ANSWER':    return { label: 'Trả lời ngắn',   classes: 'bg-teal-50 text-teal-600 border-teal-100' };
+      case 'ESSAY':           return { label: 'Tự luận',        classes: 'bg-purple-50 text-purple-600 border-purple-100' };
+      case 'FILL_IN_BLANK':   return { label: 'Điền chỗ trống', classes: 'bg-amber-50 text-amber-600 border-amber-100' };
+      default: return { label: type || '—', classes: 'bg-slate-50 text-slate-500 border-slate-200' };
+    }
   }
 
   private normalizeInternalReturnUrl(returnUrl: string | null): string | null {

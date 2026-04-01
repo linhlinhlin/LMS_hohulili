@@ -99,6 +99,7 @@ export interface SubmissionSummary {
   status: 'pending' | 'submitted' | 'graded' | 'late' | 'PENDING' | 'SUBMITTED' | 'GRADED' | 'LATE_SUBMISSION';
   grade?: number | SubmissionGrade;
   score?: number; // Direct score from backend (BigDecimal)
+  maxGrade?: number; // Max grade from backend assignment
   feedback?: string;
 }
 
@@ -130,8 +131,22 @@ export interface SubmissionDetail extends Omit<SubmissionSummary, 'grade'> {
   dueDate?: string;
   isLate?: boolean;
   gradedAt?: string;
+  gradedByName?: string; // Teacher full name resolved by backend
   grade?: SubmissionGrade; // Override to only accept SubmissionGrade object
   score?: number; // Direct score from backend (BigDecimal)
+  attemptNumber?: number; // Submission attempt count
+}
+
+export interface AuditLogEntry {
+  id: string;
+  action: string;
+  userId: string;
+  userName: string;
+  studentName: string;
+  oldValue?: string;
+  newValue?: string;
+  reason?: string;
+  timestamp: string;
 }
 
 export interface CreateSubmissionRequest {
@@ -265,6 +280,11 @@ export class AssignmentApi {
       `/api/v3/assignments/${assignmentId}/submissions/batch-grade`,
       items
     );
+  }
+
+  // Get grading audit log for an assignment (STCW compliance)
+  getAuditLog(assignmentId: string) {
+    return this.api.getWithResponse<AuditLogEntry[]>(`/api/v3/assignments/${assignmentId}/audit-log`);
   }
 
   // ===================== Student Endpoints =====================

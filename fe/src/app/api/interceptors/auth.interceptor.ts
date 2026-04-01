@@ -24,7 +24,9 @@ export const authInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): Obs
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
-      if (error.status === 401 && !req.url.includes('/auth/login') && !req.url.includes('/auth/refresh')) {
+      const isAuthRoute = req.url.includes('/auth/login') || req.url.includes('/auth/refresh');
+      if ((error.status === 401 || error.status === 403) && !isAuthRoute) {
+        // 401 = expired token, 403 = token missing or insufficient — both warrant refresh attempt
         return handleTokenRefresh(req, next, authService);
       }
       return throwError(() => error);

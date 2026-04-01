@@ -149,6 +149,7 @@ export class QuestionPreviewComponent {
 
   // Signal inputs - Angular v20+
   correctOption = input<string>('');
+  questionType = input<string>('SINGLE_CHOICE');
   showCorrectAnswer = input<boolean>(true);
   questionContent = input<string>('');
   optionsList = input<{ key: string; content: string }[]>([]);
@@ -177,7 +178,13 @@ export class QuestionPreviewComponent {
   }
 
   isCorrect(optionKey: string): boolean {
-    return this.correctOption() === optionKey;
+    const correct = this.correctOption();
+    if (!correct) return false;
+    // Support comma-separated keys for MULTIPLE_CHOICE
+    if (correct.includes(',')) {
+      return correct.split(',').map(k => k.trim()).includes(optionKey);
+    }
+    return correct === optionKey;
   }
 
   private renderContent(text: string): SafeHtml {
@@ -185,14 +192,13 @@ export class QuestionPreviewComponent {
 
     let result = text;
 
-    // Parse Images: [IMG:uuid/url] -> <img src="..."> 
-    // Handled more robustly for both UUID and full URL
+    // Parse block markers [TYPE:{json}] with balanced bracket matching
+    result = this.parseBlockMarkers(result);
+
+    // Parse Images: [IMG:uuid/url] -> <img src="...">
     result = result.replace(/\[IMG:([^\]]+)\]/g, (match, idOrUrl) => {
-      // Determine if it's a UUID or URL. 
-      // If simple UUID, use resolveUrl. If http/https, use as is.
       const isUrl = idOrUrl.startsWith('http');
       const url = isUrl ? idOrUrl : this.identityService.resolveUrl(idOrUrl);
-
       return `<img src="${url}" class="max-h-32 rounded-lg shadow-sm inline-block" alt="Image" onerror="this.src='/icons/icon-192x192.png'" />`;
     });
 
@@ -211,4 +217,101 @@ export class QuestionPreviewComponent {
 
     return this.sanitizer.bypassSecurityTrustHtml(result);
   }
+
+  /** Extract balanced [TYPE:{...}] blocks and render them as HTML */
+  private parseBlockMarkers(text: string): string {
+    let result = '';
+    let i = 0;
+    while (i < text.length) {
+      // Look for [TABLE:, [LIST:, or [WARNING:
+      const tableIdx = text.indexOf('[TABLE:', i);
+      const listIdx = text.indexOf('[LIST:', i);
+      const warnIdx = text.indexOf('[WARNING:', i);
+      const candidates = [
+        { idx: tableIdx, type: 'TABLE', prefix: '[TABLE:' },
+        { idx: listIdx, type: 'LIST', prefix: '[LIST:' },
+        { idx: warnIdx, type: 'WARNING', prefix: '[WARNING:' }
+      ].filter(c => c.idx >= 0).sort((a, b) => a.idx - b.idx);
+
+      if (candidates.length === 0) {
+        result += text.substring(i);
+        break;
+      }
+
+      const nearest = candidates[0];
+      result += text.substring(i, nearest.idx);
+      const jsonStart = nearest.idx + nearest.prefix.length;
+      const jsonEnd = this.findBalancedEnd(text, jsonStart);
+      if (jsonEnd < 0) {
+        result += text.substring(nearest.idx);
+        break;
+      }
+      const json = text.substring(jsonStart, jsonEnd);
+      // Skip the closing ]
+      i = jsonEnd + 1;
+      try {
+        const data = JSON.parse(json);
+        result += this.renderBlock(nearest.type, data);
+      } catch {
+        result += text.substring(nearest.idx, jsonEnd + 1);
+      }
+    }
+    return result;
+  }
+
+  /** Find the index of the closing ] that balances brackets starting at pos */
+  private findBalancedEnd(text: string, pos: number): number {
+    let depth = 0;
+    for (let i = pos; i < text.length; i++) {
+      if (text[i] === '{' || text[i] === '[') depth++;
+      else if (text[i] === '}' || text[i] === ']') {
+        depth--;
+        if (depth < 0) return i; // This ] closes the outer [TYPE:
+      }
+    }
+    return -1;
+  }
+
+  private renderBlock(type: string, data: any): string {
+    if (type === 'TABLE') {
+      const rows: string[][] = data.content || [];
+      if (rows.length === 0) return '';
+      let html = '<table class="w-full text-sm border-collapse border border-gray-200 my-2 rounded">';
+      rows.forEach((row: string[], ri: number) => {
+        html += '<tr>';
+        const cell = (ri === 0 && data.withHeadings) ? 'th' : 'td';
+        const cls = cell === 'th'
+          ? 'border border-gray-200 px-2 py-1 bg-gray-100 font-semibold text-gray-700 text-left'
+          : 'border border-gray-200 px-2 py-1';
+        row.forEach((c: string) => { html += `<${cell} class="${cls}">${c || ''}</${cell}>`; });
+        html += '</tr>';
+      });
+      html += '</table>';
+      return html;
+    }
+    if (type === 'LIST') {
+      const rawItems: any[] = data.items || [];
+      const items: string[] = rawItems.map((item: any) =>
+        typeof item === 'string' ? item : (item.content || '')
+      ).filter((s: string) => s.length > 0);
+      if (items.length === 0) return '';
+      const tag = data.style === 'ordered' ? 'ol' : 'ul';
+      const cls = tag === 'ol' ? 'list-decimal' : 'list-disc';
+      let html = `<${tag} class="${cls} pl-5 my-2 space-y-0.5 text-sm text-gray-700">`;
+      items.forEach((item: string) => { html += `<li>${item}</li>`; });
+      html += `</${tag}>`;
+      return html;
+    }
+    if (type === 'WARNING') {
+      const title = data.title || '';
+      const message = data.message || '';
+      if (!title && !message) return '';
+      return `<div class="my-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">` +
+        (title ? `<div class="font-semibold text-amber-800 text-sm mb-1">${title}</div>` : '') +
+        (message ? `<div class="text-amber-700 text-sm">${message}</div>` : '') +
+        `</div>`;
+    }
+    return '';
+  }
 }
+

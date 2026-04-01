@@ -14,19 +14,22 @@ import { firstValueFrom } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QuizApi, QuizAssessmentType, QuizResponse } from '../../../api/endpoints/quiz.api';
 import { QuestionApi, Question } from '../../../api/endpoints/question.api';
+import { QuestionBankApi } from '../../../api/endpoints/question-bank.api';
+import { QuestionBankDTO, BankQuestionDTO } from '../../../api/types/question-bank.types';
+import { BlockRendererComponent } from '../../../shared/blocks/block-renderer/block-renderer.component';
 import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
 
 @Component({
   selector: 'app-quiz-edit',
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule, BlockRendererComponent],
   templateUrl: './quiz-edit.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QuizEditComponent implements OnInit {
   readonly quizTypeOptions: Array<{ value: QuizAssessmentType; label: string; hint: string }> = [
-    { value: 'PRACTICE', label: 'Luyện tập', hint: 'Phù hợp cho quiz ôn tập và có thể hỗ trợ ngoại tuyến.' },
-    { value: 'ASSESSMENT', label: 'Bài kiểm tra', hint: 'Dùng cho kiểm tra online trong lesson.' },
-    { value: 'EXAM', label: 'Bài thi', hint: 'Dùng cho đánh giá nghiêm túc hoặc điều kiện chứng chỉ.' },
+    { value: 'PRACTICE', label: 'Luyện tập', hint: 'Ôn tập, làm lại nhiều lần' },
+    { value: 'ASSESSMENT', label: 'Bài kiểm tra', hint: 'Kiểm tra online, ghi điểm' },
+    { value: 'EXAM', label: 'Bài thi', hint: 'Đánh giá chính thức, chứng chỉ' },
   ];
 
   private readonly fb = inject(FormBuilder);
@@ -34,12 +37,38 @@ export class QuizEditComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly quizApi = inject(QuizApi);
   private readonly questionApi = inject(QuestionApi);
+  private readonly questionBankApi = inject(QuestionBankApi);
   private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly error = signal('');
+  readonly activeTab = signal<'questions' | 'settings'>('questions');
+  readonly showBankDrawer = signal(false);
+
+  // Bank selection — drawer
+  readonly banks = signal<QuestionBankDTO[]>([]);
+  readonly selectedBankId = signal<string>('');
+  readonly bankQuestions = signal<BankQuestionDTO[]>([]);
+  readonly loadingBank = signal(false);
+  // Community banks (lazy-loaded on first tab switch)
+  readonly drawerBankSource = signal<'my' | 'public'>('my');
+  readonly publicBanks = signal<QuestionBankDTO[]>([]);
+  readonly loadingPublicBanks = signal(false);
+
+  readonly drawerBankSearch = signal('');
+
+  readonly activeBanks = computed(() => {
+    const all = this.drawerBankSource() === 'public' ? this.publicBanks() : this.banks();
+    const term = this.drawerBankSearch().trim().toLowerCase();
+    return term ? all.filter(b => b.name.toLowerCase().includes(term)) : all;
+  });
+
+  // Question preview (accordion — allow multiple open)
+  readonly expandedQuestionIds = signal<Set<string>>(new Set());
+  // Cache full question data loaded on demand (for preview with options)
+  readonly questionDetailCache = signal<Map<string, Question>>(new Map());
   readonly questionBankWarning = signal('');
   readonly quiz = signal<QuizResponse | null>(null);
   readonly quizQuestions = signal<Question[]>([]);
@@ -62,6 +91,24 @@ export class QuizEditComponent implements OnInit {
       || currentQuestionSnapshot !== this.originalQuestionSnapshot();
   });
   readonly selectedQuestionIdSet = computed(() => new Set(this.selectedQuestionIds()));
+
+  // All selected questions with data — merges from quizQuestions, availableQuestions, bankQuestions, and cache
+  readonly selectedQuestionsForDisplay = computed(() => {
+    const ids = this.selectedQuestionIds();
+    const lookup = new Map<string, any>();
+
+    // Priority 1: cached details (loaded on demand, full data)
+    for (const [id, q] of this.questionDetailCache()) lookup.set(id, q);
+    // Priority 2: quizQuestions (full Question with options)
+    for (const q of this.quizQuestions()) if (!lookup.has(q.id)) lookup.set(q.id, q);
+    // Priority 3: availableQuestions (full Question with options)
+    for (const q of this.availableQuestions()) if (!lookup.has(q.id)) lookup.set(q.id, q);
+    // Priority 4: bankQuestions (BankQuestionDTO, no options)
+    for (const q of this.bankQuestions()) if (!lookup.has(q.id)) lookup.set(q.id, q);
+
+    return ids.map(id => lookup.get(id)).filter(Boolean);
+  });
+
   readonly allSelectableQuestions = computed(() => {
     const deduped = new Map<string, Question>();
 
@@ -80,15 +127,18 @@ export class QuizEditComponent implements OnInit {
   readonly filteredQuestions = computed(() => {
     const term = this.questionSearchTerm().trim().toLowerCase();
     const selectedIds = this.selectedQuestionIdSet();
-    const questions = [...this.allSelectableQuestions()];
+
+    // Use bank questions if a bank is selected, otherwise all selectable
+    const source: Array<{ id: string; content: string; tags?: string | null; questionType?: string; difficulty?: string }> =
+      this.selectedBankId() ? this.bankQuestions() : this.allSelectableQuestions();
 
     const filtered = term
-      ? questions.filter((question) => {
+      ? source.filter((question) => {
           const content = question.content?.toLowerCase() ?? '';
-          const tags = question.tags?.toLowerCase() ?? '';
+          const tags = (question.tags ?? '').toLowerCase();
           return content.includes(term) || tags.includes(term);
         })
-      : questions;
+      : [...source];
 
     return filtered.sort((left, right) => {
       const leftSelected = selectedIds.has(left.id) ? 1 : 0;
@@ -197,11 +247,7 @@ export class QuizEditComponent implements OnInit {
       : 'Quay lại chương trình học'
   );
   readonly isLessonOwnedQuiz = computed(() => (this.quiz()?.assignmentScope ?? 'LESSON') === 'LESSON');
-  readonly availableQuizTypes = computed(() =>
-    this.isLessonOwnedQuiz()
-      ? this.quizTypeOptions
-      : this.quizTypeOptions.filter(option => option.value !== 'PRACTICE')
-  );
+  readonly availableQuizTypes = computed(() => this.quizTypeOptions);
   readonly canCountTowardCertificate = computed(() =>
     this.isLessonOwnedQuiz() && this.quizForm.get('quizType')?.value === 'EXAM'
   );
@@ -237,6 +283,13 @@ export class QuizEditComponent implements OnInit {
   ngOnInit(): void {
     this.quizId.set(this.resolveRouteParam('quizId'));
     this.lessonId.set(this.resolveRouteParam('lessonId'));
+
+    // Open settings tab if redirected from quiz creation
+    const tab = this.route.snapshot.queryParamMap.get('tab');
+    if (tab === 'settings') {
+      this.activeTab.set('settings');
+    }
+
     void this.initialize();
   }
 
@@ -343,8 +396,163 @@ export class QuizEditComponent implements OnInit {
     return difficultyMap[difficulty] || difficulty;
   }
 
+  getQuestionText(question: any): string {
+    if (question.content) return question.content;
+    if (question.contentBlocks?.length > 0) {
+      return question.contentBlocks
+        .map((b: any) => b.data?.html || b.data?.text || '')
+        .filter(Boolean)
+        .join(' ');
+    }
+    return '(Chưa có nội dung)';
+  }
+
+  getOptionText(option: any): string {
+    // Option content may be empty — fallback to contentBlocks
+    if (option.content) return option.content;
+    if (option.contentBlocks?.length > 0) {
+      return option.contentBlocks
+        .map((b: any) => b.data?.html || b.data?.text || b.data?.latex || '')
+        .filter(Boolean)
+        .join(' ');
+    }
+    return '(Không có nội dung)';
+  }
+
   getQuestionUsageCount(question: Question): number {
     return question.usageCount ?? 0;
+  }
+
+  getQuestionTypeLabel(type?: string): string {
+    const labels: Record<string, string> = {
+      SINGLE_CHOICE: 'Trắc nghiệm',
+      MULTIPLE_CHOICE: 'Nhiều đáp án',
+      TRUE_FALSE: 'Đúng/Sai',
+      ESSAY: 'Tự luận',
+      SHORT_ANSWER: 'Trả lời ngắn',
+      FILL_IN_BLANK: 'Điền khuyết',
+      MATCHING: 'Nối cặp'
+    };
+    return labels[type || ''] || type || 'Câu hỏi';
+  }
+
+  toggleQuestionPreview(questionId: string): void {
+    const isExpanding = !this.expandedQuestionIds().has(questionId);
+
+    this.expandedQuestionIds.update(set => {
+      const next = new Set(set);
+      if (next.has(questionId)) {
+        next.delete(questionId);
+      } else {
+        next.add(questionId);
+      }
+      return next;
+    });
+
+    // Load full question data if not cached (for preview with options)
+    if (isExpanding && !this.questionDetailCache().has(questionId)) {
+      this.questionApi.getQuestionById(questionId).subscribe({
+        next: (question) => {
+          if (question) {
+            this.questionDetailCache.update(cache => {
+              const next = new Map(cache);
+              next.set(questionId, question);
+              return next;
+            });
+          }
+        }
+      });
+    }
+  }
+
+  isQuestionExpanded(questionId: string): boolean {
+    return this.expandedQuestionIds().has(questionId);
+  }
+
+  getCorrectOptionKey(question: any): string | null {
+    return question?.correctOption || null;
+  }
+
+  selectBank(bankId: string): void {
+    this.selectedBankId.set(bankId);
+    this.questionSearchTerm.set('');
+    if (bankId) {
+      this.loadingBank.set(true);
+      this.questionBankApi.getBankQuestions(bankId).subscribe({
+        next: (questions) => this.bankQuestions.set(questions),
+        error: () => this.bankQuestions.set([]),
+        complete: () => this.loadingBank.set(false),
+      });
+    } else {
+      this.bankQuestions.set([]);
+    }
+  }
+
+  async switchDrawerSource(source: 'my' | 'public'): Promise<void> {
+    if (this.drawerBankSource() === source) return;
+    this.drawerBankSource.set(source);
+    // Reset bank selection when switching source
+    this.selectedBankId.set('');
+    this.bankQuestions.set([]);
+    this.questionSearchTerm.set('');
+    this.drawerBankSearch.set('');
+
+    // Lazy-load public banks on first visit
+    if (source === 'public' && this.publicBanks().length === 0) {
+      this.loadingPublicBanks.set(true);
+      try {
+        const banks = await firstValueFrom(this.questionBankApi.getPublicBanks());
+        this.publicBanks.set(banks);
+      } catch {
+        this.publicBanks.set([]);
+      } finally {
+        this.loadingPublicBanks.set(false);
+      }
+    }
+  }
+
+  removeQuestion(questionId: string): void {
+    const current = this.selectedQuestionIds();
+    this.selectedQuestionIds.set(current.filter(id => id !== questionId));
+  }
+
+  getStatusBadgeClass(): Record<string, boolean> {
+    const status = this.quiz()?.status?.toUpperCase();
+    return {
+      'bg-emerald-50 text-emerald-700 border border-emerald-200': status === 'PUBLISHED',
+      'bg-amber-50 text-amber-700 border border-amber-200': status === 'DRAFT',
+      'bg-gray-100 text-gray-600 border border-gray-200': status === 'CLOSED'
+    };
+  }
+
+  onPublish(): void {
+    const quizId = this.quizId();
+    if (!quizId) return;
+    this.saving.set(true);
+    this.quizApi.publishQuiz(quizId).subscribe({
+      next: () => {
+        this.quiz.update(q => q ? { ...q, status: 'PUBLISHED' } : q);
+        this.saving.set(false);
+      },
+      error: () => { this.error.set('Không thể xuất bản'); this.saving.set(false); }
+    });
+  }
+
+  onUnpublish(): void {
+    const quizId = this.quizId();
+    if (!quizId) return;
+    this.saving.set(true);
+    // Unpublish = update settings with current values (status managed server-side)
+    this.quizApi.updateQuizSettings(quizId, {
+      ...this.quizForm.getRawValue(),
+      status: 'DRAFT'
+    } as any).subscribe({
+      next: () => {
+        this.quiz.update(q => q ? { ...q, status: 'DRAFT' } : q);
+        this.saving.set(false);
+      },
+      error: () => { this.error.set('Không thể hủy xuất bản'); this.saving.set(false); }
+    });
   }
 
   private async initialize(): Promise<void> {
@@ -358,7 +566,7 @@ export class QuizEditComponent implements OnInit {
     this.error.set('');
     this.questionBankWarning.set('');
 
-    await Promise.allSettled([this.loadQuizData(), this.loadAvailableQuestions()]);
+    await Promise.allSettled([this.loadQuizData(), this.loadAvailableQuestions(), this.loadBanks()]);
     this.loading.set(false);
   }
 
@@ -393,6 +601,15 @@ export class QuizEditComponent implements OnInit {
       this.questionBankWarning.set(
         'Không thể tải ngân hàng câu hỏi của bạn. Bạn vẫn có thể chỉnh sửa thiết lập và danh sách câu hỏi hiện tại.'
       );
+    }
+  }
+
+  private async loadBanks(): Promise<void> {
+    try {
+      const banks = await firstValueFrom(this.questionBankApi.getMyBanks());
+      this.banks.set((banks ?? []).filter(b => b.status === 'ACTIVE'));
+    } catch {
+      this.banks.set([]);
     }
   }
 

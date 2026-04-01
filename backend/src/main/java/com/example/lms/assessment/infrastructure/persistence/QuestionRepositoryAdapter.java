@@ -110,12 +110,21 @@ public class QuestionRepositoryAdapter implements QuestionRepository {
                 .build();
         
         if (domain.getOptions() != null) {
+            // Derive isCorrect per option from correctOption (supports comma-separated for MULTIPLE_CHOICE)
+            java.util.Set<String> correctKeys = new java.util.HashSet<>();
+            if (domain.getCorrectOption() != null) {
+                for (String k : domain.getCorrectOption().split(",")) {
+                    correctKeys.add(k.trim());
+                }
+            }
+
             List<QuestionOptionJpaEntity> optionEntities = domain.getOptions().stream()
                     .map(o -> QuestionOptionJpaEntity.builder()
                             .id(o.getId())
                             .question(entity)
                             .key(o.getKey())
                             .contentBlocks(o.getContentBlocks())
+                            .isCorrect(correctKeys.contains(o.getKey()))
                             .orderIndex(o.getOrderIndex())
                             .build())
                     .collect(Collectors.toList());

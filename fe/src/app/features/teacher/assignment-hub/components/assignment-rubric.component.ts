@@ -13,7 +13,6 @@ import { RubricApi, RubricDTO, RubricCriterionDTO } from '../../../../api/endpoi
  */
 @Component({
   selector: 'app-assignment-rubric',
-  standalone: true,
   imports: [CommonModule, RouterLink, LucideAngularModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -174,6 +173,7 @@ export class AssignmentRubricComponent implements OnInit {
       error: () => {
         // 404 means no rubric assigned — not an error
         this.rubric.set(null);
+        this.loading.set(false);
       },
       complete: () => this.loading.set(false)
     });

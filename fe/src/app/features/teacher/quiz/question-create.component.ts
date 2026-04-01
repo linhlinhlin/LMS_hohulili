@@ -28,11 +28,12 @@ export class QuestionCreateComponent implements OnInit {
   readonly cancel = output<void>();
 
   questionForm: FormGroup;
-  isLoading = false;
+  isLoading = signal(false);
   courseId: string | null = null;
   packageId: string | null = null;
   categoryId: string | null = null;
-  showPreview = false;
+  showPreview = signal(false);
+  showHelpCard = signal(false);
 
   // Signals for Content Blocks
   questionBlocks = signal<ContentBlock[]>([]);
@@ -52,8 +53,13 @@ export class QuestionCreateComponent implements OnInit {
   private readonly questionApi = inject(QuestionApi);
   private readonly toast = inject(ToastService);
 
+  // Question type state
+  selectedType = signal<'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'TRUE_FALSE'>('SINGLE_CHOICE');
+  correctKeys = signal<Set<string>>(new Set(['A']));
+
   constructor() {
     this.questionForm = this.fb.group({
+      questionType: ['SINGLE_CHOICE', Validators.required],
       difficulty: ['MEDIUM', Validators.required],
       tags: [''],
       options: this.fb.array([
@@ -78,27 +84,33 @@ export class QuestionCreateComponent implements OnInit {
 
   onQuestionContentChange(blocks: ContentBlock[]) {
     this.questionBlocks.set(blocks);
-    // Parse EditorJS blocks to raw string for preview
-    const rawContent = blocks.map((block: any) => {
+    this.rawQuestionContent.set(this.serializeBlocksForPreview(blocks));
+    this.updatePreviewOptions();
+  }
+
+  /** Serialize EditorJS blocks to a raw string for preview rendering */
+  private serializeBlocksForPreview(blocks: ContentBlock[]): string {
+    return blocks.map((block: any) => {
       if (block.type === 'paragraph' || block.type === 'text') {
         return block.data?.text || block.content || '';
       } else if (block.type === 'image') {
-        // SOTA 2025: Use FULL URL for persistence to ensure images load across sessions.
-        // We do strictly prefer R2/S3 URLs, but we store what the backend returned.
         const url = block.data?.file?.url || block.data?.url || block.url || '';
-        if (url) {
-          return `[IMG:${url}]`;
-        }
-        return '';
+        return url ? `[IMG:${url}]` : '';
       } else if (block.type === 'math' || block.type === 'formula') {
-        const content = block.data?.text || block.content || '';
+        const content = block.data?.text || block.data?.latex || block.content || '';
         return `$$${content}$$`;
+      } else if (block.type === 'table') {
+        const data = block.data || {};
+        return `[TABLE:${JSON.stringify({ content: data.content || [], withHeadings: !!data.withHeadings })}]`;
+      } else if (block.type === 'list') {
+        const data = block.data || {};
+        return `[LIST:${JSON.stringify({ style: data.style || 'unordered', items: data.items || [] })}]`;
+      } else if (block.type === 'warning') {
+        const data = block.data || {};
+        return `[WARNING:${JSON.stringify({ title: data.title || '', message: data.message || '' })}]`;
       }
       return '';
     }).filter(s => s.trim()).join(' ');
-    this.rawQuestionContent.set(rawContent);
-    // SOTA 2025: Also update cached preview options
-    this.updatePreviewOptions();
   }
 
   updateOptionText(index: number, text: string) {
@@ -145,10 +157,10 @@ export class QuestionCreateComponent implements OnInit {
     return this.questionForm.get('options') as FormArray;
   }
 
-  createOptionGroup(optionKey: string): FormGroup {
+  createOptionGroup(optionKey: string, content = ''): FormGroup {
     return this.fb.group({
       optionKey: [optionKey],
-      content: [''] // Content is now optional in form validation if we check blocks, but EnrichedInput drives it
+      content: [content]
     });
   }
 
@@ -188,18 +200,100 @@ export class QuestionCreateComponent implements OnInit {
   }
 
   setCorrectOption(optionKey: string): void {
+    this.correctKeys.set(new Set([optionKey]));
     this.questionForm.patchValue({ correctOption: optionKey });
   }
 
+  /** MULTIPLE_CHOICE: toggle a key in/out of the correct set */
+  toggleCorrectKey(optionKey: string): void {
+    const keys = new Set(this.correctKeys());
+    if (keys.has(optionKey)) {
+      keys.delete(optionKey);
+    } else {
+      keys.add(optionKey);
+    }
+    this.correctKeys.set(keys);
+    this.questionForm.patchValue({ correctOption: [...keys].sort().join(',') });
+    this.updatePreviewOptions();
+  }
+
+  isOptionCorrect(index: number): boolean {
+    const key = this.getOptionKey(index);
+    if (this.selectedType() === 'MULTIPLE_CHOICE') {
+      return this.correctKeys().has(key);
+    }
+    return this.getCorrectOptionKey() === key;
+  }
+
+  /** Handle question type change from selector */
+  onTypeChange(newType: 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'TRUE_FALSE'): void {
+    const oldType = this.selectedType();
+    if (newType === oldType) return;
+
+    this.selectedType.set(newType);
+    this.questionForm.patchValue({ questionType: newType });
+
+    if (newType === 'TRUE_FALSE') {
+      // Replace options with fixed "Đúng"/"Sai"
+      this.options.clear();
+      this.optionBlocksMap.clear();
+      this.options.push(this.createOptionGroup('A', 'Đúng'));
+      this.options.push(this.createOptionGroup('B', 'Sai'));
+      this.correctKeys.set(new Set(['A']));
+      this.questionForm.patchValue({ correctOption: 'A' });
+    } else if (oldType === 'TRUE_FALSE') {
+      // Switching away from TRUE_FALSE: restore 4 empty options
+      this.options.clear();
+      this.optionBlocksMap.clear();
+      this.options.push(this.createOptionGroup('A'));
+      this.options.push(this.createOptionGroup('B'));
+      this.options.push(this.createOptionGroup('C'));
+      this.options.push(this.createOptionGroup('D'));
+      this.correctKeys.set(new Set());
+      this.questionForm.patchValue({ correctOption: '' });
+    }
+
+    if (newType === 'SINGLE_CHOICE' && oldType === 'MULTIPLE_CHOICE') {
+      // Keep only the first correct key
+      const keys = [...this.correctKeys()].sort();
+      const first = keys[0] || '';
+      this.correctKeys.set(first ? new Set([first]) : new Set());
+      this.questionForm.patchValue({ correctOption: first });
+    }
+
+    if (newType === 'MULTIPLE_CHOICE' && oldType === 'SINGLE_CHOICE') {
+      // Migrate single key to set
+      const current = this.getCorrectOptionKey();
+      this.correctKeys.set(current ? new Set([current]) : new Set());
+    }
+
+    this.updatePreviewOptions();
+  }
+
+  getTypeSubtitle(): string {
+    switch (this.selectedType()) {
+      case 'SINGLE_CHOICE': return 'Trắc nghiệm · 1 đáp án đúng';
+      case 'MULTIPLE_CHOICE': return 'Trắc nghiệm · nhiều đáp án đúng';
+      case 'TRUE_FALSE': return 'Đúng / Sai';
+    }
+  }
+
+  hasValidCorrectAnswer(): boolean {
+    if (this.selectedType() === 'MULTIPLE_CHOICE') {
+      return this.correctKeys().size > 0;
+    }
+    return !!this.getCorrectOptionKey();
+  }
+
   onSubmit(): void {
-    if (this.questionForm.invalid || !this.getCorrectOptionKey() || this.options.length < 2) {
+    if (this.questionForm.invalid || !this.hasValidCorrectAnswer() || this.options.length < 2) {
       return;
     }
 
     // SOTA 2025: Prevent duplicate submissions
-    if (this.isLoading) return;
+    if (this.isLoading()) return;
 
-    this.isLoading = true;
+    this.isLoading.set(true);
     const formValue = this.questionForm.value;
 
     const optionsList: string[] = [];
@@ -218,14 +312,24 @@ export class QuestionCreateComponent implements OnInit {
       optionBlocksList.push(blocks);
     }
 
-    const request: any = { // Cast to any to bypass interface strictness for now
-      content: this.extractTextFromBlocks(this.questionBlocks()), // Fallback text
-      blocks: this.transformToBackendBlocks(this.questionBlocks()), // NEW: Transform to backend format
+    // Build type-specific answerKey
+    const qType = this.selectedType();
+    let answerKey: Record<string, unknown> | undefined;
+    if (qType === 'MULTIPLE_CHOICE') {
+      const keys = [...this.correctKeys()].sort();
+      answerKey = { correctOptions: keys };
+    } else if (qType === 'TRUE_FALSE') {
+      answerKey = { correctOption: formValue.correctOption === 'A' ? 'TRUE' : 'FALSE' };
+    }
 
+    const request: any = {
+      content: this.extractTextFromBlocks(this.questionBlocks()),
+      blocks: this.transformToBackendBlocks(this.questionBlocks()),
+      questionType: qType,
       correctOption: formValue.correctOption,
+      answerKey,
       options: optionsList,
-      optionBlocks: optionBlocksList.map(bl => this.transformToBackendBlocks(bl)), // Sending transformed blocks
-
+      optionBlocks: optionBlocksList.map(bl => this.transformToBackendBlocks(bl)),
       difficulty: formValue.difficulty,
       tags: formValue.tags,
       courseId: this.courseId || undefined,
@@ -251,27 +355,27 @@ export class QuestionCreateComponent implements OnInit {
         );
 
         if (addToQuizLessonId) {
-          this.router.navigate(['/teacher/quiz/quiz-bank'], {
+          this.router.navigate(['/teacher/assessments/shared/question-bank'], {
             queryParams: this.buildQuestionBankReturnQueryParams(question.id)
           });
         } else if (returnUrl) {
           this.router.navigateByUrl(returnUrl);
         } else {
           // Navigate back to quiz-bank, preserving packageId selection
-          this.router.navigate(['/teacher/quiz/quiz-bank'], {
+          this.router.navigate(['/teacher/assessments/shared/question-bank'], {
             queryParams: this.packageId ? { packageId: this.packageId } : {}
           });
         }
       },
       error: (error) => {
         this.toast.error('Lỗi khi tạo câu hỏi: ' + (error?.error?.message || error?.message));
-        this.isLoading = false;
+        this.isLoading.set(false);
       },
       complete: () => {
         // Only set isLoading to false on ERROR. On success, we navigate away, so keep it true to prevent double clicks.
         // If isDialog is true, we might stay, so...
         if (this.isDialog()) {
-          this.isLoading = false;
+          this.isLoading.set(false);
         }
       }
     });
@@ -387,57 +491,14 @@ export class QuestionCreateComponent implements OnInit {
       this.route.snapshot.queryParamMap.get('returnUrl')
     );
     if (addToQuizLessonId) {
-      this.router.navigate(['/teacher/quiz/quiz-bank'], {
+      this.router.navigate(['/teacher/assessments/shared/question-bank'], {
         queryParams: this.buildQuestionBankReturnQueryParams()
       });
     } else if (returnUrl) {
       this.router.navigateByUrl(returnUrl);
     } else {
-      this.router.navigate(['/teacher/quiz/quiz-bank']);
+      this.router.navigate(['/teacher/assessments/shared/question-bank']);
     }
-  }
-
-  // ==========================================
-  // Preview Helper Methods (Kahoot-style)
-  // ==========================================
-
-  /**
-   * Get question content for preview component.
-   * Extracts text from blocks and returns as string.
-   */
-  getQuestionContentForPreview(): string {
-    const blocks = this.questionBlocks();
-    if (blocks.length === 0) return '';
-
-    return blocks.map(block => {
-      if (block.type === 'text') {
-        return (block as any).content || '';
-      } else if (block.type === 'formula') {
-        const content = (block as any).content || '';
-        const format = (block as any).format;
-        return format === 'display' ? `$$${content}$$` : `$${content}$`;
-      } else if (block.type === 'image') {
-        // SOTA 2025: Use URL
-        const url = (block as any).url || (block as any).data?.file?.url || (block as any).data?.url;
-        return `[IMG:${url}]`;
-      }
-      return '';
-    }).join(' ');
-  }
-
-  /**
-   * Get options for preview component.
-   * Returns array of {key, content} objects.
-   */
-  getOptionsForPreview(): { key: string; content: string }[] {
-    const result: { key: string; content: string }[] = [];
-    for (let i = 0; i < this.options.length; i++) {
-      result.push({
-        key: this.getOptionKey(i),
-        content: this.options.at(i).get('content')?.value || ''
-      });
-    }
-    return result;
   }
 
   private normalizeInternalReturnUrl(returnUrl: string | null): string | null {

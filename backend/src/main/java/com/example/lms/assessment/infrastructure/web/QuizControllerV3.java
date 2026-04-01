@@ -6,6 +6,7 @@ import com.example.lms.assessment.application.port.StudentAssessmentAccessPort;
 import com.example.lms.assessment.application.usecase.CreateQuizUseCaseV3;
 import com.example.lms.assessment.application.usecase.EvaluateSectionQuizUseCase;
 import com.example.lms.assessment.application.usecase.GetQuizStatisticsUseCase;
+import com.example.lms.assessment.application.dto.QuizAttemptResponse;
 import com.example.lms.assessment.application.usecase.QuizAttemptUseCase;
 import com.example.lms.assessment.application.usecase.QuizManagementUseCase;
 import com.example.lms.assessment.domain.model.Quiz;
@@ -456,14 +457,85 @@ public class QuizControllerV3 {
     @GetMapping("/teacher/quizzes")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Transactional(readOnly = true)
-    @Operation(summary = "Get teacher's quizzes")
+    @Operation(summary = "Get teacher's quizzes with attempt statistics")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getTeacherQuizzes(
             @AuthenticationPrincipal UserJpaEntity user) {
-        // Single native query — avoids N+1 and Hibernate 6.4 UUID batch loading bug
         var quizEntities = quizJpaRepository.findAllByTeacherId(user.getId());
-        List<Map<String, Object>> result = quizEntities.stream()
-                .map(this::toQuizEntityMap)
+
+        // Batch-load stats to avoid N+1
+        List<UUID> quizIds = quizEntities.stream()
+                .map(QuizJpaEntity::getId)
                 .collect(java.util.stream.Collectors.toList());
+
+        // Attempt stats
+        Map<UUID, Map<String, Object>> statsMap = new HashMap<>();
+        if (!quizIds.isEmpty()) {
+            List<Object[]> rawStats = attemptJpaRepository.batchQuizStats(quizIds);
+            for (Object[] row : rawStats) {
+                UUID quizId = (UUID) row[0];
+                Map<String, Object> stats = new HashMap<>();
+                stats.put("attemptStudentCount", ((Number) row[1]).intValue());
+                stats.put("completedAttempts", ((Number) row[2]).intValue());
+                stats.put("averageScore", row[3] != null ? Math.round(((Number) row[3]).doubleValue() * 10.0) / 10.0 : null);
+                stats.put("passedCount", ((Number) row[4]).intValue());
+                stats.put("totalAttempts", ((Number) row[5]).intValue());
+                statsMap.put(quizId, stats);
+            }
+        }
+
+        // Essay question counts
+        Map<UUID, Integer> essayCountMap = new HashMap<>();
+        if (!quizIds.isEmpty()) {
+            List<Object[]> essayRows = questionJpaRepository.batchEssayQuestionCount(quizIds);
+            for (Object[] row : essayRows) {
+                UUID quizId = (UUID) row[0];
+                essayCountMap.put(quizId, ((Number) row[1]).intValue());
+            }
+        }
+
+        // Pending essay grading: count SUBMITTED (not yet GRADED) attempts for quizzes with essay questions
+        Map<UUID, Integer> pendingEssayMap = new HashMap<>();
+        if (!quizIds.isEmpty()) {
+            List<UUID> essayQuizIds = essayCountMap.entrySet().stream()
+                    .filter(e -> e.getValue() > 0)
+                    .map(Map.Entry::getKey)
+                    .collect(java.util.stream.Collectors.toList());
+            for (UUID eqId : essayQuizIds) {
+                long pendingCount = attemptJpaRepository.countSubmittedByQuizId(eqId);
+                if (pendingCount > 0) {
+                    pendingEssayMap.put(eqId, (int) pendingCount);
+                }
+            }
+        }
+
+        List<Map<String, Object>> result = quizEntities.stream()
+                .map(entity -> {
+                    Map<String, Object> map = toQuizEntityMap(entity);
+                    UUID quizId = entity.getId();
+
+                    // Add stats
+                    Map<String, Object> stats = statsMap.getOrDefault(quizId, Map.of());
+                    map.put("attemptStudentCount", stats.getOrDefault("attemptStudentCount", 0));
+                    map.put("completedAttempts", stats.getOrDefault("completedAttempts", 0));
+                    map.put("averageScore", stats.getOrDefault("averageScore", null));
+                    map.put("passedCount", stats.getOrDefault("passedCount", 0));
+                    map.put("totalAttempts", stats.getOrDefault("totalAttempts", 0));
+
+                    // Calculate pass rate
+                    int totalAttempts = ((Number) map.get("totalAttempts")).intValue();
+                    int passedCount = ((Number) map.get("passedCount")).intValue();
+                    map.put("passRate", totalAttempts > 0
+                            ? Math.round((double) passedCount / totalAttempts * 1000.0) / 10.0
+                            : null);
+
+                    // Essay info
+                    map.put("essayQuestionCount", essayCountMap.getOrDefault(quizId, 0));
+                    map.put("pendingEssayCount", pendingEssayMap.getOrDefault(quizId, 0));
+
+                    return map;
+                })
+                .collect(java.util.stream.Collectors.toList());
+
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
@@ -472,18 +544,19 @@ public class QuizControllerV3 {
     @PostMapping("/{quizId}/attempts/start")
     @PreAuthorize("hasRole('STUDENT')")
     @Operation(summary = "Start a quiz attempt")
-    public ResponseEntity<ApiResponse<QuizAttempt>> startAttempt(
+    public ResponseEntity<ApiResponse<QuizAttemptResponse>> startAttempt(
             @PathVariable UUID quizId,
             @AuthenticationPrincipal UserJpaEntity user) {
         UUID studentId = user.getId();
         QuizAttempt attempt = quizAttemptUseCase.startAttempt(quizId, studentId);
-        return ResponseEntity.ok(ApiResponse.success(attempt));
+        return ResponseEntity.ok(ApiResponse.success(
+                QuizAttemptResponse.from(attempt)));
     }
 
     @PostMapping("/attempts/{attemptId}/submit")
     @PreAuthorize("hasRole('STUDENT')")
     @Operation(summary = "Submit a quiz attempt")
-    public ResponseEntity<ApiResponse<QuizAttempt>> submitAttempt(
+    public ResponseEntity<ApiResponse<QuizAttemptResponse>> submitAttempt(
             @PathVariable UUID attemptId,
             @Valid @RequestBody List<QuizAttempt.AttemptAnswer> answers,
             @AuthenticationPrincipal UserJpaEntity user) {
@@ -496,7 +569,8 @@ public class QuizControllerV3 {
         }
         try {
             QuizAttempt result = quizAttemptUseCase.submitAttempt(attemptId, answers);
-            return ResponseEntity.ok(ApiResponse.success(result));
+            return ResponseEntity.ok(ApiResponse.success(
+                    QuizAttemptResponse.from(result)));
         } catch (org.springframework.dao.OptimisticLockingFailureException e) {
             return ResponseEntity.status(409)
                     .body(ApiResponse.error("Bài thi đã được nộp. Vui lòng không nộp lại."));
@@ -1234,7 +1308,6 @@ public class QuizControllerV3 {
             UUID questionId,
             @NotNull(message = "Điểm không được để trống")
             @PositiveOrZero(message = "Điểm không được âm")
-            @DecimalMax(value = "100.0", message = "Điểm không được vượt quá 100")
             Double score,
             String feedback
     ) {}

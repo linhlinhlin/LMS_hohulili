@@ -48,22 +48,33 @@ export class SubmissionsStore {
     const all = this._submissions();
     const filter = this._filter();
 
+    let filtered: SubmissionDetail[];
     switch (filter) {
       case 'PENDING':
-        return all.filter(s => {
+        filtered = all.filter(s => {
           const status = this.normalizeStatus(s.status);
           return status === 'submitted' || status === 'pending';
         });
+        break;
       case 'GRADED':
-        return all.filter(s => this.normalizeStatus(s.status) === 'graded');
+        filtered = all.filter(s => this.normalizeStatus(s.status) === 'graded');
+        break;
       case 'LATE':
-        return all.filter(s => {
+        filtered = all.filter(s => {
           const status = this.normalizeStatus(s.status);
           return status === 'late' || status === 'late_submission' || s.isLate;
         });
+        break;
       default:
-        return all;
+        filtered = all;
     }
+    // Default sort: ungraded first, then by submittedAt newest
+    return [...filtered].sort((a, b) => {
+      const aGraded = this.normalizeStatus(a.status) === 'graded' ? 1 : 0;
+      const bGraded = this.normalizeStatus(b.status) === 'graded' ? 1 : 0;
+      if (aGraded !== bGraded) return aGraded - bGraded;
+      return (b.submittedAt || '').localeCompare(a.submittedAt || '');
+    });
   });
 
   // Computed - Stats
@@ -104,9 +115,16 @@ export class SubmissionsStore {
           this._submissions.set([]);
         }
       }),
-      catchError(() => {
-        this._error.set('Không thể tải danh sách bài nộp. Vui lòng thử lại.');
-        this._submissions.set([]);
+      catchError((error: any) => {
+        const status = error?.status;
+        if (status === 401 || status === 403) {
+          // Auth error — don't cache as empty, allow retry after token refresh
+          this._error.set('Phiên đăng nhập hết hạn. Đang thử lại...');
+          this._currentAssignmentId.set(null); // Clear cache key so next call retries
+        } else {
+          this._error.set('Không thể tải danh sách bài nộp. Vui lòng thử lại.');
+          this._submissions.set([]);
+        }
         return of({ data: [] });
       }),
       finalize(() => this._loading.set(false))
@@ -220,11 +238,24 @@ export class SubmissionsStore {
   // Load full submission detail from API (for SpeedGrader)
   loadSubmissionDetail(submissionId: string): Observable<SubmissionDetail | null> {
     return this.assignmentApi.getSubmissionById(submissionId).pipe(
-      tap((response: { data?: SubmissionDetail }) => {
+      tap((response: { data?: any }) => {
         if (response.data) {
-          // Update local state with full detail
+          const raw = response.data;
+          // Preserve normalized grade + build attachments from flat fields
           this._submissions.update(submissions =>
-            submissions.map(s => s.id === submissionId ? { ...s, ...response.data } : s)
+            submissions.map(s => {
+              if (s.id !== submissionId) return s;
+              // Build attachments from flat fileUrl/fileName if needed
+              let attachments = raw.attachments || s.attachments;
+              if (!attachments?.length && raw.fileUrl) {
+                attachments = [{ id: raw.fileUrl, fileName: raw.fileName || 'Tệp đính kèm', fileUrl: raw.fileUrl }];
+              }
+              // Merge feedback into existing grade object
+              const grade = s.grade && typeof s.grade === 'object'
+                ? { ...s.grade, feedback: raw.feedback || s.grade.feedback }
+                : s.grade;
+              return { ...s, content: raw.content, attachments, feedback: raw.feedback, grade };
+            })
           );
         }
       }),
@@ -249,11 +280,14 @@ export class SubmissionsStore {
     // First check direct score field (backend returns BigDecimal as score)
     const directScore = summary.score;
     
+    const effectiveMaxScore = summary.maxGrade || (summary as SubmissionDetail).maxScore || 100;
+
     if (directScore !== undefined && directScore !== null) {
       grade = {
         score: directScore,
-        maxScore: 100,
-        percentage: directScore,
+        maxScore: effectiveMaxScore,
+        percentage: (directScore / effectiveMaxScore) * 100,
+        feedback: summary.feedback || undefined,
         gradedAt: summary.gradedAt || '',
         gradedBy: ''
       };
@@ -261,8 +295,9 @@ export class SubmissionsStore {
       if (typeof summary.grade === 'number') {
         grade = {
           score: summary.grade,
-          maxScore: 100,
-          percentage: summary.grade,
+          maxScore: effectiveMaxScore,
+          percentage: (summary.grade / effectiveMaxScore) * 100,
+          feedback: summary.feedback || undefined,
           gradedAt: summary.gradedAt || '',
           gradedBy: ''
         };
@@ -282,12 +317,25 @@ export class SubmissionsStore {
       finalStatus = 'graded';
     }
     
+    // Convert flat fileUrl/fileName to attachments array for SpeedGrader
+    const detail = summary as any;
+    let attachments = (detail.attachments as SubmissionDetail['attachments']) || undefined;
+    if (!attachments?.length && detail.fileUrl) {
+      attachments = [{
+        id: detail.fileUrl,
+        fileName: detail.fileName || 'Tệp đính kèm',
+        fileUrl: detail.fileUrl
+      }];
+    }
+
     return {
       ...summary,
       status: finalStatus as SubmissionDetail['status'],
       grade,
       assignmentId,
-      maxScore: 100 // Default, should come from assignment
+      maxScore: effectiveMaxScore,
+      attachments,
+      content: detail.content
     };
   }
 

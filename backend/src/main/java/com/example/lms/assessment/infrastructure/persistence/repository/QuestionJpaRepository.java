@@ -22,4 +22,13 @@ public interface QuestionJpaRepository extends JpaRepository<QuestionJpaEntity, 
     java.util.List<QuestionJpaEntity> findRandomByBankId(@Param("bankId") UUID bankId, @Param("count") int count);
 
     java.util.List<QuestionJpaEntity> findByPackageIdAndDifficulty(UUID packageId, String difficulty);
+
+    // Count essay questions per quiz (batch for teacher quiz list)
+    @Query(value = "SELECT qq.quiz_id, " +
+           "COUNT(CASE WHEN q.question_type = 'ESSAY' THEN 1 END) as essay_count " +
+           "FROM quiz_questions qq " +
+           "JOIN questions q ON qq.question_id = q.id " +
+           "WHERE qq.quiz_id IN :quizIds " +
+           "GROUP BY qq.quiz_id", nativeQuery = true)
+    java.util.List<Object[]> batchEssayQuestionCount(@Param("quizIds") java.util.List<UUID> quizIds);
 }

@@ -35,6 +35,11 @@
         </div>
       </div>
 
+      <!-- Preview mode banner -->
+      <div class="bg-amber-50 border-b border-amber-200 px-4 py-2 text-center text-sm text-amber-800 font-medium">
+        Chế độ xem trước — kết quả sẽ không được ghi nhận
+      </div>
+
       @if (loading()) {
         <div class="flex items-center justify-center min-h-[60vh]">
           <div class="text-center">
@@ -90,10 +95,10 @@
                             class="w-10 h-10 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center"
                             [class.ring-2]="i >= currentPage() * QUESTIONS_PER_PAGE && i < (currentPage() + 1) * QUESTIONS_PER_PAGE"
                             [class.ring-[#0056D2]]="i >= currentPage() * QUESTIONS_PER_PAGE && i < (currentPage() + 1) * QUESTIONS_PER_PAGE"
-                            [class.bg-green-100]="showResults() && answers()[q.id] === q.correctOption"
-                            [class.text-green-700]="showResults() && answers()[q.id] === q.correctOption"
-                            [class.bg-red-100]="showResults() && answers()[q.id] && answers()[q.id] !== q.correctOption"
-                            [class.text-red-700]="showResults() && answers()[q.id] && answers()[q.id] !== q.correctOption"
+                            [class.bg-green-100]="showResults() && isQuestionCorrectById(q)"
+                            [class.text-green-700]="showResults() && isQuestionCorrectById(q)"
+                            [class.bg-red-100]="showResults() && answers()[q.id] && !isQuestionCorrectById(q)"
+                            [class.text-red-700]="showResults() && answers()[q.id] && !isQuestionCorrectById(q)"
                             [class.bg-[#0056D2]/10]="!showResults() && answers()[q.id]"
                             [class.text-[#004BB5]]="!showResults() && answers()[q.id]"
                             [class.bg-gray-100]="!showResults() && !answers()[q.id]"
@@ -157,45 +162,121 @@
                       </div>
                     </div>
                     <div class="p-6">
-                      <p class="text-lg text-gray-900 leading-relaxed mb-6">{{ question.content }}</p>
+                      <div class="text-lg text-gray-900 leading-relaxed mb-6">
+                        @if (question.contentBlocks && question.contentBlocks.length > 0) {
+                          <app-block-renderer [blocks]="question.contentBlocks"></app-block-renderer>
+                        } @else {
+                          <p>{{ question.content || '(Chưa có nội dung)' }}</p>
+                        }
+                      </div>
+                      <!-- MC hint -->
+                      @if (question.questionType === 'MULTIPLE_CHOICE') {
+                        <p class="text-sm text-[#0056D2] mb-3 italic">Chọn một hoặc nhiều đáp án đúng</p>
+                      }
+
                       <div class="space-y-3">
                         @for (opt of question.options; track opt.key) {
-                          <button (click)="selectAnswer(question.id, opt.key)"
-                                  [disabled]="showResults()"
-                                  class="w-full text-left p-4 rounded-xl border-2 transition-all duration-200 group"
-                                  [class.border-[#0056D2]]="answers()[question.id] === opt.key && !showResults()"
-                                  [class.bg-[#0056D2]/5]="answers()[question.id] === opt.key && !showResults()"
-                                  [class.border-gray-200]="answers()[question.id] !== opt.key && !showResults()"
-                                  [class.hover:border-[#0056D2]/30]="!showResults() && answers()[question.id] !== opt.key"
-                                  [class.hover:bg-gray-50]="!showResults() && answers()[question.id] !== opt.key"
-                                  [class.border-green-500]="showResults() && opt.key === question.correctOption"
-                                  [class.bg-green-50]="showResults() && opt.key === question.correctOption"
-                                  [class.border-red-400]="showResults() && answers()[question.id] === opt.key && opt.key !== question.correctOption"
-                                  [class.bg-red-50]="showResults() && answers()[question.id] === opt.key && opt.key !== question.correctOption">
-                            <div class="flex items-center gap-4">
-                              <span class="w-10 h-10 rounded-xl flex items-center justify-center font-semibold text-sm transition-colors"
-                                    [class.bg-[#0056D2]]="answers()[question.id] === opt.key && !showResults()"
-                                    [class.text-white]="(answers()[question.id] === opt.key && !showResults()) || (showResults() && opt.key === question.correctOption)"
-                                    [class.bg-gray-100]="answers()[question.id] !== opt.key && !showResults()"
-                                    [class.text-gray-600]="answers()[question.id] !== opt.key && !showResults()"
-                                    [class.group-hover:bg-[#0056D2]/10]="!showResults() && answers()[question.id] !== opt.key"
-                                    [class.bg-green-600]="showResults() && opt.key === question.correctOption"
-                                    [class.bg-red-500]="showResults() && answers()[question.id] === opt.key && opt.key !== question.correctOption">
-                                {{ opt.key }}
-                              </span>
-                              <span class="flex-1 text-gray-700">{{ opt.content }}</span>
-                              @if (showResults() && opt.key === question.correctOption) {
-                                <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                </svg>
-                              }
-                              @if (showResults() && answers()[question.id] === opt.key && opt.key !== question.correctOption) {
-                                <svg class="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                                </svg>
-                              }
-                            </div>
-                          </button>
+                          @if (question.questionType === 'MULTIPLE_CHOICE') {
+                            <!-- MC: Checkbox-style toggle -->
+                            @let mcSelected = isMultipleChoiceSelected(question.id, opt.key);
+                            <button (click)="toggleMultipleChoice(question.id, opt.key)"
+                                    [disabled]="showResults()"
+                                    class="w-full text-left p-4 rounded-xl border-2 transition-all duration-200 group"
+                                    [class.border-[#0056D2]]="mcSelected && !showResults()"
+                                    [class.bg-[#0056D2]/5]="mcSelected && !showResults()"
+                                    [class.border-gray-200]="!mcSelected && !showResults()"
+                                    [class.hover:border-[#0056D2]/30]="!showResults() && !mcSelected"
+                                    [class.hover:bg-gray-50]="!showResults() && !mcSelected"
+                                    [class.border-green-500]="isOptionCorrectInReview(question, opt.key)"
+                                    [class.bg-green-50]="isOptionCorrectInReview(question, opt.key)"
+                                    [class.border-red-400]="isOptionWrongInReview(question, opt.key)"
+                                    [class.bg-red-50]="isOptionWrongInReview(question, opt.key)">
+                              <div class="flex items-center gap-4">
+                                <span class="w-10 h-10 rounded-lg border-2 flex items-center justify-center font-semibold text-sm transition-colors"
+                                      [class.border-[#0056D2]]="mcSelected && !showResults()"
+                                      [class.bg-[#0056D2]]="mcSelected && !showResults()"
+                                      [class.text-white]="(mcSelected && !showResults()) || isOptionCorrectInReview(question, opt.key)"
+                                      [class.border-gray-300]="!mcSelected && !showResults()"
+                                      [class.text-gray-600]="!mcSelected && !showResults()"
+                                      [class.bg-green-600]="isOptionCorrectInReview(question, opt.key)"
+                                      [class.border-green-600]="isOptionCorrectInReview(question, opt.key)"
+                                      [class.bg-red-500]="isOptionWrongInReview(question, opt.key)"
+                                      [class.border-red-500]="isOptionWrongInReview(question, opt.key)">
+                                  @if (mcSelected && !showResults()) {
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                  } @else {
+                                    {{ opt.key }}
+                                  }
+                                </span>
+                                <span class="flex-1 text-gray-700">
+                                  @if (opt.contentBlocks && opt.contentBlocks.length > 0) {
+                                    <app-block-renderer [blocks]="opt.contentBlocks"></app-block-renderer>
+                                  } @else {
+                                    {{ opt.content || '(Không có nội dung)' }}
+                                  }
+                                </span>
+                                @if (isOptionCorrectInReview(question, opt.key)) {
+                                  <svg class="w-6 h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                  </svg>
+                                }
+                                @if (isOptionWrongInReview(question, opt.key)) {
+                                  <svg class="w-6 h-6 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                  </svg>
+                                }
+                              </div>
+                            </button>
+                          } @else {
+                            <!-- SC / TF: Radio-style select -->
+                            <button (click)="selectAnswer(question.id, opt.key)"
+                                    [disabled]="showResults()"
+                                    class="w-full text-left p-4 rounded-xl border-2 transition-all duration-200 group"
+                                    [class.border-[#0056D2]]="answers()[question.id] === opt.key && !showResults()"
+                                    [class.bg-[#0056D2]/5]="answers()[question.id] === opt.key && !showResults()"
+                                    [class.border-gray-200]="answers()[question.id] !== opt.key && !showResults()"
+                                    [class.hover:border-[#0056D2]/30]="!showResults() && answers()[question.id] !== opt.key"
+                                    [class.hover:bg-gray-50]="!showResults() && answers()[question.id] !== opt.key"
+                                    [class.border-green-500]="isOptionCorrectInReview(question, opt.key)"
+                                    [class.bg-green-50]="isOptionCorrectInReview(question, opt.key)"
+                                    [class.border-red-400]="isOptionWrongInReview(question, opt.key)"
+                                    [class.bg-red-50]="isOptionWrongInReview(question, opt.key)">
+                              <div class="flex items-center gap-4">
+                                <span class="w-10 h-10 rounded-full border-2 flex items-center justify-center font-semibold text-sm transition-colors"
+                                      [class.border-[#0056D2]]="answers()[question.id] === opt.key && !showResults()"
+                                      [class.bg-[#0056D2]]="answers()[question.id] === opt.key && !showResults()"
+                                      [class.text-white]="(answers()[question.id] === opt.key && !showResults()) || isOptionCorrectInReview(question, opt.key)"
+                                      [class.border-gray-300]="answers()[question.id] !== opt.key && !showResults()"
+                                      [class.text-gray-600]="answers()[question.id] !== opt.key && !showResults()"
+                                      [class.group-hover:border-[#0056D2]]="!showResults() && answers()[question.id] !== opt.key"
+                                      [class.bg-green-600]="isOptionCorrectInReview(question, opt.key)"
+                                      [class.border-green-600]="isOptionCorrectInReview(question, opt.key)"
+                                      [class.bg-red-500]="isOptionWrongInReview(question, opt.key)"
+                                      [class.border-red-500]="isOptionWrongInReview(question, opt.key)">
+                                  {{ opt.key }}
+                                </span>
+                                <span class="flex-1 text-gray-700">
+                                  @if (opt.contentBlocks && opt.contentBlocks.length > 0) {
+                                    <app-block-renderer [blocks]="opt.contentBlocks"></app-block-renderer>
+                                  } @else {
+                                    {{ opt.content || '(Không có nội dung)' }}
+                                  }
+                                </span>
+                                @if (isOptionCorrectInReview(question, opt.key)) {
+                                  <svg class="w-6 h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                  </svg>
+                                }
+                                @if (isOptionWrongInReview(question, opt.key)) {
+                                  <svg class="w-6 h-6 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                  </svg>
+                                }
+                              </div>
+                            </button>
+                          }
                         }
                       </div>
                     </div>

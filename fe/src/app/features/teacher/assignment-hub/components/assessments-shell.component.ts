@@ -31,7 +31,7 @@ export class AssessmentsShellComponent {
     // Hide when viewing a specific assignment or quiz detail
     return /\/assignments\/[^/]+\/(submissions|details|audit-log)/.test(url)
         || /\/assignments\/[^/]+\/grade\//.test(url)
-        || /\/quizzes\/[^/]+\/(editor|essay-grading)/.test(url);
+        || /\/quizzes\/[^/]+\/(editor|essay-grading|results|details|history)/.test(url);
   });
 
   readonly pageTitle = computed(() => {
