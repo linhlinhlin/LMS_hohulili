@@ -4,6 +4,7 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { distinctUntilChanged, map } from 'rxjs/operators';
+import { Router } from '@angular/router';
 import { QuizApi } from '../../../../api/endpoints/quiz.api';
 
 interface AttemptRow {
@@ -20,7 +21,7 @@ interface AttemptRow {
   timeSpentSeconds?: number;
 }
 
-type AttemptFilter = '' | 'GRADED' | 'SUBMITTED' | 'IN_PROGRESS';
+type AttemptFilter = '' | 'GRADED' | 'SUBMITTED' | 'IN_PROGRESS' | 'NOT_STARTED';
 
 @Component({
   selector: 'app-quiz-results-tab',
@@ -61,7 +62,7 @@ type AttemptFilter = '' | 'GRADED' | 'SUBMITTED' | 'IN_PROGRESS';
             <button (click)="setFilter('')"
                     [class]="!attemptFilter() ? 'bg-[#0056D2] text-white border-[#0056D2]' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'"
                     class="inline-flex items-center rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors">
-              Tất cả ({{ attempts().length }})
+              Tất cả ({{ attempts().length + notStartedStudents().length }})
             </button>
             @if (gradedCount() > 0) {
               <button (click)="setFilter('GRADED')"
@@ -84,6 +85,13 @@ type AttemptFilter = '' | 'GRADED' | 'SUBMITTED' | 'IN_PROGRESS';
                 Đang làm ({{ inProgressCount() }})
               </button>
             }
+            @if (notStartedCount() > 0) {
+              <button (click)="setFilter('NOT_STARTED')"
+                      [class]="attemptFilter() === 'NOT_STARTED' ? 'bg-gray-600 text-white border-gray-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'"
+                      class="inline-flex items-center rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors">
+                Chưa làm ({{ notStartedCount() }})
+              </button>
+            }
           </div>
         </div>
 
@@ -100,7 +108,7 @@ type AttemptFilter = '' | 'GRADED' | 'SUBMITTED' | 'IN_PROGRESS';
               }
             </div>
           </div>
-        } @else if (filteredAttempts().length === 0) {
+        } @else if (filteredAttempts().length === 0 && filteredNotStarted().length === 0) {
           <div class="rounded-xl border border-gray-200 bg-white shadow-sm px-6 py-10 text-center">
             <lucide-icon name="inbox" [size]="28" class="mx-auto mb-3 text-gray-300"></lucide-icon>
             <p class="text-sm text-gray-500">
@@ -157,17 +165,59 @@ type AttemptFilter = '' | 'GRADED' | 'SUBMITTED' | 'IN_PROGRESS';
                     <td class="text-center px-3 py-3 text-xs text-gray-500">
                       {{ formatDuration(attempt.timeSpentSeconds) }}
                     </td>
-                    <td class="text-right px-5 py-3">
-                      <a [routerLink]="['/teacher/assessments/classes/quizzes', quizId(), 'review', attempt.id]"
+                    <td class="text-right px-5 py-3 space-x-3">
+                      <button (click)="viewAttempt(attempt.id)"
                          class="text-sm font-medium text-[#0056D2] hover:underline">
                         Xem
-                      </a>
+                      </button>
+                      <button (click)="confirmDeleteAttempt(attempt)"
+                         class="text-sm font-medium text-red-500 hover:underline">
+                        Xóa
+                      </button>
                     </td>
                   </tr>
                 }
               </tbody>
             </table>
           </div>
+
+          <!-- NOT_STARTED students (enrolled but haven't taken quiz) -->
+          @if (filteredNotStarted().length > 0) {
+            @if (filteredAttempts().length > 0) {
+              <div class="border-t-2 border-dashed border-gray-200 my-3"></div>
+            }
+            <div class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+              <table class="w-full text-sm">
+                <tbody class="divide-y divide-gray-100">
+                  @for (student of filteredNotStarted(); track student.studentId) {
+                    <tr class="bg-gray-50/30">
+                      <td class="px-5 py-3">
+                        <div class="flex items-center gap-3">
+                          <div class="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-400">
+                            {{ getInitials(student.studentName || student.studentEmail || student.studentId) }}
+                          </div>
+                          <div class="min-w-0">
+                            <p class="text-sm text-gray-500 truncate">{{ student.studentName || student.studentEmail || 'Học viên' }}</p>
+                            @if (student.studentEmail) {
+                              <p class="text-xs text-gray-400 truncate">{{ student.studentEmail }}</p>
+                            }
+                          </div>
+                        </div>
+                      </td>
+                      <td class="text-center px-3 py-3"><span class="text-xs text-gray-300">—</span></td>
+                      <td class="text-center px-3 py-3">
+                        <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-gray-100 text-gray-500">
+                          Chưa làm
+                        </span>
+                      </td>
+                      <td class="text-center px-3 py-3 text-xs text-gray-300">—</td>
+                      <td class="text-right px-5 py-3"></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
         }
       </div>
     </div>
@@ -175,10 +225,13 @@ type AttemptFilter = '' | 'GRADED' | 'SUBMITTED' | 'IN_PROGRESS';
 })
 export class QuizResultsTabComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly quizApi = inject(QuizApi);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly attempts = signal<AttemptRow[]>([]);
+  readonly notStartedStudents = signal<AttemptRow[]>([]);
+  readonly enrolledCount = signal(0);
   readonly loading = signal(true);
   readonly quizId = signal('');
   readonly attemptFilter = signal<AttemptFilter>('');
@@ -216,12 +269,19 @@ export class QuizResultsTabComponent implements OnInit {
   readonly gradedCount = computed(() => this.attempts().filter(a => a.status === 'GRADED').length);
   readonly submittedCount = computed(() => this.attempts().filter(a => a.status === 'SUBMITTED').length);
   readonly inProgressCount = computed(() => this.attempts().filter(a => a.status === 'IN_PROGRESS').length);
+  readonly notStartedCount = computed(() => this.notStartedStudents().length);
 
-  // Filtered
+  // Filtered — includes NOT_STARTED students when that filter is active or "all"
   readonly filteredAttempts = computed(() => {
     const f = this.attemptFilter();
+    if (f === 'NOT_STARTED') return [];
     if (!f) return this.attempts();
     return this.attempts().filter(a => a.status === f);
+  });
+  readonly filteredNotStarted = computed(() => {
+    const f = this.attemptFilter();
+    if (f === '' || f === 'NOT_STARTED') return this.notStartedStudents();
+    return [];
   });
 
   ngOnInit(): void {
@@ -231,7 +291,10 @@ export class QuizResultsTabComponent implements OnInit {
       takeUntilDestroyed(this.destroyRef)
     ).subscribe(quizId => {
       this.quizId.set(quizId);
-      if (quizId) this.loadAttempts(quizId);
+      if (quizId) {
+        this.loadAttempts(quizId);
+        this.loadEnrolled(quizId);
+      }
     });
   }
 
@@ -279,8 +342,47 @@ export class QuizResultsTabComponent implements OnInit {
       case 'IN_PROGRESS': return 'Đang làm';
       case 'TIMEOUT': return 'Hết giờ';
       case 'EXPIRED': return 'Hết hạn';
+      case 'NOT_STARTED': return 'Chưa làm';
       default: return status;
     }
+  }
+
+  private loadEnrolled(quizId: string): void {
+    this.quizApi.getEnrolledStudents(quizId).subscribe({
+      next: (response: any) => {
+        const data = response?.data ?? response;
+        this.enrolledCount.set(data?.enrolledCount ?? 0);
+        const students: AttemptRow[] = (data?.enrolledStudents ?? []).map((s: any) => ({
+          id: '', studentId: s.studentId, studentName: s.studentName,
+          studentEmail: s.studentEmail, status: 'NOT_STARTED',
+          score: null, maxScore: null, isPassed: null
+        }));
+        this.notStartedStudents.set(students);
+      },
+      error: () => {}
+    });
+  }
+
+  confirmDeleteAttempt(attempt: AttemptRow): void {
+    const name = attempt.studentName || attempt.studentEmail || 'học viên';
+    if (!confirm(`Xóa lần làm bài của ${name}?\nHọc viên sẽ được làm lại bài kiểm tra này.`)) return;
+    this.quizApi.deleteAttempt(attempt.id).subscribe({
+      next: () => {
+        this.attempts.update(list => list.filter(a => a.id !== attempt.id));
+      },
+      error: (err: any) => {
+        alert(err?.error?.message || 'Không thể xóa lần làm bài. Vui lòng thử lại.');
+      }
+    });
+  }
+
+  viewAttempt(attemptId: string): void {
+    this.router.navigate(['/student/quiz/result'], {
+      queryParams: {
+        attemptId,
+        returnUrl: `/teacher/assessments/classes/quizzes/${this.quizId()}/results`
+      }
+    });
   }
 
   formatDuration(seconds?: number): string {

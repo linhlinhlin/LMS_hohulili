@@ -7,7 +7,9 @@
 
             <div class="sidebar-header-text flex-1 min-w-0">
                 <h2 class="sidebar-title">{{ config().title }}</h2>
-                <p class="sidebar-subtitle">{{ authService.currentUser()?.fullName }}</p>
+                @if (config().subtitle) {
+                    <p class="sidebar-subtitle">{{ config().subtitle }}</p>
+                }
             </div>
         </div>
 
@@ -73,11 +75,38 @@
         }
     </nav>
 
-    <!-- Footer -->
+    <!-- Footer: User Menu (Claude/GitHub/Linear pattern) -->
     <div class="sidebar-footer">
-        <button (click)="logout()" class="logout-btn">
-            <app-icon name="logout" size="sm"/>
-            <span>Đăng xuất</span>
-        </button>
+        <div class="user-menu-container">
+            @if (isUserMenuOpen()) {
+                <div class="user-menu-backdrop" (click)="closeUserMenu()"></div>
+                <div class="user-menu-popover" role="menu" (keydown.escape)="closeUserMenu()">
+                    <div class="user-menu-header">
+                        <span class="user-menu-header-name">{{ userName() }}</span>
+                        <span class="user-menu-header-email">{{ userEmail() }}</span>
+                    </div>
+                    <div class="user-menu-divider"></div>
+                    <a [routerLink]="profileRoute()" class="user-menu-item" role="menuitem" (click)="closeUserMenu()">
+                        <app-icon name="settings" size="sm"/>
+                        <span>Cài đặt tài khoản</span>
+                    </a>
+                    <div class="user-menu-divider"></div>
+                    <button class="user-menu-item user-menu-item--danger" role="menuitem" (click)="handleLogout()">
+                        <app-icon name="logout" size="sm"/>
+                        <span>Đăng xuất</span>
+                    </button>
+                </div>
+            }
+            <button class="user-menu-trigger" (click)="toggleUserMenu()">
+                <img [src]="userAvatarDisplay()" [alt]="userName()" class="user-avatar">
+                <div class="user-info">
+                    <span class="user-name">{{ userName() }}</span>
+                    <span class="user-email-label">{{ userEmail() }}</span>
+                </div>
+                <svg class="user-chevron" [class.user-chevron-open]="isUserMenuOpen()" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </button>
+        </div>
     </div>
 </div>

@@ -46,6 +46,7 @@ public class UserJpaEntity implements UserDetails {
         private Instant updatedAt;
         private UUID organizationId;
         private Integer tokenExpiryDays;
+        private String avatarUrl;
         public Builder id(UUID id) { this.id = id; return this; }
         public Builder username(String username) { this.username = username; return this; }
         public Builder email(String email) { this.email = email; return this; }
@@ -57,10 +58,12 @@ public class UserJpaEntity implements UserDetails {
         public Builder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
         public Builder organizationId(UUID organizationId) { this.organizationId = organizationId; return this; }
         public Builder tokenExpiryDays(Integer tokenExpiryDays) { this.tokenExpiryDays = tokenExpiryDays; return this; }
+        public Builder avatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; return this; }
         public UserJpaEntity build() {
             UserJpaEntity user = new UserJpaEntity(id, username, email, password, fullName, role, enabled, createdAt, updatedAt);
             user.setOrganizationId(organizationId);
             user.setTokenExpiryDays(tokenExpiryDays);
+            user.setAvatarUrl(avatarUrl);
             return user;
         }
     }
@@ -101,6 +104,9 @@ public class UserJpaEntity implements UserDetails {
     @Column(name = "token_expiry_days")
     private Integer tokenExpiryDays;
 
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
+
     // Manual Getters/Setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -134,6 +140,9 @@ public class UserJpaEntity implements UserDetails {
 
     public Integer getTokenExpiryDays() { return tokenExpiryDays; }
     public void setTokenExpiryDays(Integer tokenExpiryDays) { this.tokenExpiryDays = tokenExpiryDays; }
+
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 
     // ==================== UserDetails Implementation ====================
 

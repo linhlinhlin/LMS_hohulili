@@ -20,6 +20,8 @@ interface QuizDetail {
   timeLimitMinutes?: number;
   passingScore?: number;
   maxAttempts?: number;
+  showResultsImmediately?: boolean;
+  showCorrectAnswers?: boolean;
   essayQuestionCount?: number;
   pendingEssayCount?: number;
   attemptStudentCount?: number;
@@ -70,6 +72,26 @@ interface QuizDetail {
                     {{ quiz()?.pendingEssayCount }} cần chấm
                   </span>
                 }
+
+                <!-- Grade release toggle -->
+                @if (quiz() && !loading()) {
+                  @if (quiz()!.showResultsImmediately !== false) {
+                    <button (click)="toggleGradeVisibility()"
+                      [disabled]="toggling()"
+                      class="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs font-medium text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50">
+                      <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                      Đã công bố điểm
+                    </button>
+                  } @else {
+                    <button (click)="toggleGradeVisibility()"
+                      [disabled]="toggling()"
+                      class="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50">
+                      <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                      Đang ẩn điểm
+                    </button>
+                  }
+                }
+
                 <a [routerLink]="['/teacher/assessments/classes/quizzes', quizId(), 'editor']"
                    class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:border-[#0056D2] hover:text-[#0056D2] transition-colors">
                   <lucide-icon name="settings" [size]="15"></lucide-icon>
@@ -111,6 +133,7 @@ export class QuizDetailLayoutComponent implements OnInit {
 
   readonly quiz = signal<QuizDetail | null>(null);
   readonly loading = signal(true);
+  readonly toggling = signal(false);
   readonly quizId = signal('');
 
   readonly tabs = [
@@ -143,6 +166,20 @@ export class QuizDetailLayoutComponent implements OnInit {
       },
       error: () => this.loading.set(false),
       complete: () => this.loading.set(false),
+    });
+  }
+
+  toggleGradeVisibility(): void {
+    const q = this.quiz();
+    if (!q) return;
+    const newValue = q.showResultsImmediately === false;
+    this.toggling.set(true);
+    this.quizApi.updateQuizSettings(q.id, { showResultsImmediately: newValue }).subscribe({
+      next: () => {
+        this.quiz.set({ ...q, showResultsImmediately: newValue });
+        this.toggling.set(false);
+      },
+      error: () => this.toggling.set(false),
     });
   }
 

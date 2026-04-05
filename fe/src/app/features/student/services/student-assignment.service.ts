@@ -15,7 +15,9 @@ export type StudentTaskStatus =
   | 'IN_PROGRESS'
   | 'SUBMITTED'
   | 'GRADED'
-  | 'OVERDUE';
+  | 'OVERDUE'
+  | 'NOT_AVAILABLE'
+  | 'LOCKED';
 
 export interface StudentAssignment {
   assignmentId: string;

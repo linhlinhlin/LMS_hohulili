@@ -55,12 +55,6 @@ export const studentSidebarConfig: SidebarConfig = {
       route: '/student/payments',
       icon: 'briefcase',
       group: 'Tài khoản'
-    },
-    {
-      label: 'Hồ sơ',
-      route: '/student/profile',
-      icon: 'users',
-      group: 'Tài khoản'
     }
   ]
 };

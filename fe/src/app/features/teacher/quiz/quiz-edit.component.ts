@@ -8,7 +8,7 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
-import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, Validators, AbstractControl } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -258,13 +258,22 @@ export class QuizEditComponent implements OnInit {
     timeLimitMinutes: [30, [Validators.min(5), Validators.max(120)]],
     maxAttempts: [1, [Validators.min(1), Validators.max(10)]],
     passingScore: [70, [Validators.min(0), Validators.max(100)]],
+    maxScoreScale: [10, [Validators.required, Validators.min(1)]],
     shuffleQuestions: [false],
     shuffleOptions: [false],
-    showCorrectAnswers: [true],
+    showCorrectAnswers: [false],
     showResultsImmediately: [true],
+    accessPassword: [''],
+    /** datetime-local string (browser local time) — converted to/from ISO UTC on load/save */
+    availableFrom: [''],
+    dueAt: [''],
+    lockAt: [''],
   });
 
   constructor() {
+    // Cross-field availability date validator
+    this.quizForm.addValidators(this.availabilityDatesValidator.bind(this));
+
     this.quizForm.get('quizType')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((quizType) => {
@@ -278,6 +287,44 @@ export class QuizEditComponent implements OnInit {
       .subscribe(() => {
         this.formRevision.update(value => value + 1);
       });
+  }
+
+  /**
+   * Cross-field validator: enforces availableFrom ≤ dueAt ≤ lockAt (Canvas SOTA pattern).
+   * All fields are optional — only validated when two or more are set.
+   */
+  private availabilityDatesValidator(control: AbstractControl): Record<string, boolean> | null {
+    const af  = (control as any).get?.('availableFrom')?.value as string | null | undefined;
+    const due = (control as any).get?.('dueAt')?.value as string | null | undefined;
+    const lock = (control as any).get?.('lockAt')?.value as string | null | undefined;
+
+    const errors: Record<string, boolean> = {};
+    if (af && due && new Date(af) >= new Date(due))   errors['dueBeforeAvailable'] = true;
+    if (due && lock && new Date(due) >= new Date(lock)) errors['lockBeforeDue']      = true;
+    if (af && lock && new Date(af) >= new Date(lock))  errors['lockBeforeAvailable'] = true;
+    return Object.keys(errors).length ? errors : null;
+  }
+
+  /**
+   * Convert ISO UTC string → datetime-local value for <input type="datetime-local">.
+   * Adjusts to browser local timezone so what the teacher set in UTC+7 appears as UTC+7.
+   */
+  isoToLocalInput(iso: string | null | undefined): string {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const offsetMs = d.getTimezoneOffset() * 60000; // minutes → ms (negative for UTC+7)
+    return new Date(d.getTime() - offsetMs).toISOString().slice(0, 16);
+  }
+
+  /**
+   * Convert datetime-local input value → ISO UTC string for the API.
+   * JS Date constructor interprets bare datetime strings as local time.
+   */
+  localInputToIso(local: string | null | undefined): string | null {
+    if (!local) return null;
+    const d = new Date(local);
+    return isNaN(d.getTime()) ? null : d.toISOString();
   }
 
   ngOnInit(): void {
@@ -329,10 +376,15 @@ export class QuizEditComponent implements OnInit {
           timeLimitMinutes: formValue.timeLimitMinutes ?? 30,
           maxAttempts: formValue.maxAttempts ?? 1,
           passingScore: formValue.passingScore ?? 70,
+          maxScoreScale: formValue.maxScoreScale ?? 10,
           shuffleQuestions: formValue.shuffleQuestions ?? false,
           shuffleOptions: formValue.shuffleOptions ?? false,
-          showCorrectAnswers: formValue.showCorrectAnswers ?? true,
+          showCorrectAnswers: formValue.showCorrectAnswers ?? false,
           showResultsImmediately: formValue.showResultsImmediately ?? true,
+          accessPassword: formValue.accessPassword || null,
+          availableFrom: this.localInputToIso(formValue.availableFrom),
+          dueAt: this.localInputToIso(formValue.dueAt),
+          lockAt: this.localInputToIso(formValue.lockAt),
         })
       );
 
@@ -620,10 +672,15 @@ export class QuizEditComponent implements OnInit {
       timeLimitMinutes: quiz.timeLimitMinutes,
       maxAttempts: quiz.maxAttempts,
       passingScore: quiz.passingScore,
+      maxScoreScale: (quiz as any).maxScoreScale ?? 10,
       shuffleQuestions: quiz.shuffleQuestions,
       shuffleOptions: quiz.shuffleOptions,
       showCorrectAnswers: quiz.showCorrectAnswers,
       showResultsImmediately: quiz.showResultsImmediately,
+      accessPassword: (quiz as any).accessPassword || '',
+      availableFrom: this.isoToLocalInput(quiz.availableFrom),
+      dueAt: this.isoToLocalInput(quiz.dueAt),
+      lockAt: this.isoToLocalInput(quiz.lockAt),
     });
   }
 

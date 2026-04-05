@@ -57,7 +57,7 @@ export class AssignmentQuizCreateComponent implements OnInit {
       shuffleQuestions: true,
       shuffleOptions: false,
       showResultsImmediately: true,
-      showCorrectAnswers: true,
+      showCorrectAnswers: false,
       publishImmediately: true
     }
   };

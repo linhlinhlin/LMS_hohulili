@@ -27,10 +27,13 @@ export interface FormulaBlockData {
 }
 
 export interface VideoBlockData {
-    url?: string;            // Direct video URL fallback (uploaded file or R2 CDN)
+    url?: string;            // Direct video URL fallback (uploaded file or R2 CDN) — may be overwritten by HLS playbackUrl
+    rawUrl?: string;         // Original upload URL (R2 CDN or server relay) — never overwritten by polling
     file?: { url: string };  // EditorJS-style file reference
     videoAssetId?: string;   // Primary: VideoAsset ID for adaptive streaming (Shaka Player)
     assetId?: string;        // Legacy alias for videoAssetId
     caption?: string;
     mimeType?: string;       // e.g. 'video/mp4'
+    status?: string;         // VideoAsset processing status: PENDING, PROCESSING, READY, FAILED
+    isYouTube?: boolean;     // True if video is a YouTube URL embed
 }

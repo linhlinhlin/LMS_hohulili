@@ -120,6 +120,7 @@ public class FileManagementService implements FileManagementPort {
         return switch (folder) {
             case "course", "course-thumbnails" -> "COURSE_THUMBNAIL";
             case "editor-images", "question-images" -> "EDITOR_IMAGE";
+            case "avatars" -> "AVATAR";
             case "videos" -> "VIDEO";
             default -> "GENERAL";
         };

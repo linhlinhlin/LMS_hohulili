@@ -5,19 +5,50 @@
 
 .block-editor-container {
     border: 1px solid #e5e7eb;
-    border-radius: 0.5rem; /* rounded-lg — match parent card */
-    padding: 0.5rem; /* p-3 horizontal, p-4 total */
+    border-radius: 0.5rem;
+    padding: 0.5rem;
     background: white;
     min-height: 100px;
     display: flex;
     flex-direction: column;
+    position: relative;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    /* Google Forms pattern: blue left accent bar on focus */
+    &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        border-radius: 0.5rem 0 0 0.5rem;
+        background: transparent;
+        transition: background 0.2s ease;
+    }
+
+    &:focus-within {
+        border-color: #0056D2;
+        box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.08);
+
+        &::before {
+            background: #0056D2;
+        }
+    }
 
     &.readonly {
         background-color: #f9fafb;
-        /* bg-gray-50 */
         border-color: #d1d5db;
-        /* border-gray-300 */
         pointer-events: none;
+
+        &:focus-within {
+            border-color: #d1d5db;
+            box-shadow: none;
+
+            &::before {
+                background: transparent;
+            }
+        }
     }
 }
 

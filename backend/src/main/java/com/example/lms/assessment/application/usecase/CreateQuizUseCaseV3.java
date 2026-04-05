@@ -30,6 +30,7 @@ public class CreateQuizUseCaseV3 {
         String description,
         Integer timeLimitMinutes,
         Integer passingScore,
+        Double maxScoreScale,
         Boolean shuffleQuestions,
         Boolean showResultsImmediately,
         Quiz.AssessmentType assessmentType,
@@ -48,6 +49,7 @@ public class CreateQuizUseCaseV3 {
         Quiz.QuizSettings settings = Quiz.QuizSettings.builder()
             .timeLimitMinutes(command.timeLimitMinutes())
             .passingScore(command.passingScore())
+            .maxScoreScale(command.maxScoreScale())
             .shuffleQuestions(command.shuffleQuestions())
             .showResultsImmediately(command.showResultsImmediately())
             .build();

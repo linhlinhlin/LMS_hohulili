@@ -120,11 +120,15 @@ public class R2VideoStorageService {
     }
 
     public String readUtf8(String storageKey) {
-        ResponseBytes<GetObjectResponse> response = r2Client.getObjectAsBytes(GetObjectRequest.builder()
-                .bucket(videoBucket)
-                .key(storageKey)
-                .build());
-        return response.asString(StandardCharsets.UTF_8);
+        try {
+            ResponseBytes<GetObjectResponse> response = r2Client.getObjectAsBytes(GetObjectRequest.builder()
+                    .bucket(videoBucket)
+                    .key(storageKey)
+                    .build());
+            return response.asString(StandardCharsets.UTF_8);
+        } catch (NoSuchKeyException e) {
+            throw new com.example.lms.shared.exception.EntityNotFoundException("VideoManifest", storageKey);
+        }
     }
 
     public String presignGet(String storageKey, Duration ttl) {

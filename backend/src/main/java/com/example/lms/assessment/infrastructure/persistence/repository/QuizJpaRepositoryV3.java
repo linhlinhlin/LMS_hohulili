@@ -44,4 +44,30 @@ public interface QuizJpaRepositoryV3 extends JpaRepository<QuizJpaEntity, UUID> 
            "WHERE q.id = CAST(:quizId AS uuid) " +
            "AND c.teacher_id = CAST(:teacherId AS uuid)", nativeQuery = true)
     boolean isOwnedByTeacher(@Param("quizId") UUID quizId, @Param("teacherId") UUID teacherId);
+
+    /**
+     * Find PUBLISHED quizzes accessible through enrolled courses.
+     * Resolves via two paths: quiz_assignments (course-scoped) + quizzes→lessons→chapters (lesson-scoped).
+     * Returns Object[] rows: [quiz_id, title, description, quiz_type, time_limit_minutes,
+     *   max_attempts, passing_score, due_at, course_id, course_name, question_count,
+     *   access_password, available_from, lock_at]
+     */
+    @Query(value = "SELECT DISTINCT q.id, q.title, q.description, q.quiz_type, " +
+           "q.time_limit_minutes, q.max_attempts, q.passing_score, q.due_at, " +
+           "COALESCE(c_lesson.id, c_assign.id) as course_id, " +
+           "COALESCE(c_lesson.title, c_assign.title) as course_name, " +
+           "(SELECT COUNT(*) FROM quiz_questions qq WHERE qq.quiz_id = q.id) as question_count, " +
+           "q.access_password, q.available_from, q.lock_at " +
+           "FROM quizzes q " +
+           "LEFT JOIN lessons l ON q.lesson_id = l.id " +
+           "LEFT JOIN chapters ch ON l.chapter_id = ch.id " +
+           "LEFT JOIN courses c_lesson ON ch.course_id = c_lesson.id " +
+           "LEFT JOIN quiz_assignments qa ON qa.quiz_id = q.id AND qa.is_active = true " +
+           "LEFT JOIN courses c_assign ON qa.course_id = c_assign.id " +
+           "WHERE q.status = 'PUBLISHED' " +
+           "AND (ch.course_id IN :courseIds OR qa.course_id IN :courseIds)", nativeQuery = true)
+    List<Object[]> findPublishedQuizSummariesByCourseIds(@Param("courseIds") List<UUID> courseIds);
+
+    @Query(value = "SELECT COUNT(*) FROM quiz_questions WHERE quiz_id = :quizId", nativeQuery = true)
+    long countQuestionsByQuizId(@Param("quizId") UUID quizId);
 }

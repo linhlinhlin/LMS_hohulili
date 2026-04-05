@@ -15,5 +15,8 @@ public record UpdateProfileCommand(
     String fullName,
 
     @Email(message = "Email không đúng định dạng")
-    String email
+    String email,
+
+    @Size(max = 500, message = "URL avatar không được vượt quá 500 ký tự")
+    String avatarUrl
 ) {}

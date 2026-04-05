@@ -8,175 +8,160 @@ import {
 } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
-import { LucideAngularModule } from 'lucide-angular';
+import { Router, ActivatedRoute } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
-import { StudentAssignmentService, StudentAssignment, StudentTaskStatus } from '../services/student-assignment.service';
+import { QuizApi, QuizAttemptResponse } from '../../../api/endpoints/quiz.api';
+import { StudentTaskService, StudentWorkItem, WorkType } from '../services/student-task.service';
 import {
   TaskTab,
   AssignmentFilters,
   filterByTab,
   countByTab,
   filterAssignments,
-  calculateStats,
-  formatDeadlineWithExtension,
   formatDeadlineRelative,
-  getStatusBadge,
-  getStatusClass,
-  getDeadlineUrgencyClass,
   sortByDueDate,
   getUniqueCourses,
+  canRetryQuiz,
 } from './utils/assignment-utils';
 
-/**
- * Course group with assignments - for course-first layout
- */
 interface CourseGroup {
   courseId: string;
   courseTitle: string;
-  assignments: StudentAssignment[];
-  expanded: boolean;
-  todoCount: number;
-  submittedCount: number;
-  gradedCount: number;
-  overdueCount: number;
+  items: StudentWorkItem[];
 }
+
+const ITEMS_PER_GROUP = 5;
+
+type ContentTab = 'assignments' | 'quizzes';
 
 @Component({
   selector: 'app-student-assignments-page',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './student-assignments-page.component.html',
   styleUrl: './student-assignments-page.component.scss',
 })
 export class StudentAssignmentsPageComponent implements OnInit {
   protected authService = inject(AuthService);
-  protected assignmentService = inject(StudentAssignmentService);
+  private taskService = inject(StudentTaskService);
+  private quizApi = inject(QuizApi);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
-  // State
-  allAssignments = signal<StudentAssignment[]>([]);
+  // Data
+  allItems = signal<StudentWorkItem[]>([]);
   courses = signal<{ id: string; title: string }[]>([]);
   loading = signal(false);
   error = signal<string | null>(null);
 
-  // Filters as signals (OnPush-safe)
+  // Navigation: content type tab
+  contentTab = signal<ContentTab>('assignments');
+
+  // Filters
   activeTab = signal<TaskTab>('todo');
   selectedCourse = signal('');
   searchQuery = signal('');
 
-  // Track expanded courses
-  private expandedCourses = signal<Set<string>>(new Set());
+  // Content tab counts (from ALL items, not filtered)
+  assignmentCount = computed(() =>
+    this.allItems().filter((i) => i.workType === 'ASSIGNMENT').length
+  );
+  quizCount = computed(() =>
+    this.allItems().filter((i) => i.workType !== 'ASSIGNMENT').length
+  );
 
-  // Computed: tab counts (always from full list, not filtered)
-  tabCounts = computed(() => countByTab(this.allAssignments()));
+  // Items filtered by content tab
+  private contentItems = computed(() => {
+    const all = this.allItems();
+    return this.contentTab() === 'assignments'
+      ? all.filter((i) => i.workType === 'ASSIGNMENT')
+      : all.filter((i) => i.workType !== 'ASSIGNMENT');
+  });
 
-  // Computed: filtered list
-  filteredAssignments = computed(() => {
-    const all = this.allAssignments();
+  // Status tab counts (within current content tab)
+  tabCounts = computed(() => countByTab(this.contentItems()));
+
+  /** Quiz "Cần làm" count — only genuinely pending items */
+  quizTodoCount = computed(() => {
+    return this.tabCounts().todo;
+  });
+
+  // Final filtered + sorted items
+  filteredItems = computed(() => {
+    const items = this.contentItems();
     const tab = this.activeTab();
 
-    // First: tab filter
-    let result = filterByTab(all, tab);
+    let result: StudentWorkItem[];
+    result = filterByTab(items, tab);
 
-    // Then: course + search filters
     const filters: AssignmentFilters = {};
-    const course = this.selectedCourse();
-    const search = this.searchQuery();
-    if (course) filters.courseId = course;
-    if (search) filters.searchQuery = search;
+    if (this.selectedCourse()) filters.courseId = this.selectedCourse();
+    if (this.searchQuery()) filters.searchQuery = this.searchQuery();
 
     result = filterAssignments(result, filters);
     return sortByDueDate(result);
   });
 
-  // Computed: group assignments by course (course-first layout)
+  // Group by course (teacher quiz-list pattern: lightweight headers)
   courseGroups = computed(() => {
-    const assignments = this.filteredAssignments();
-    const expanded = this.expandedCourses();
-    const courseMap = new Map<string, CourseGroup>();
+    const items = this.filteredItems();
+    const map = new Map<string, CourseGroup>();
 
-    for (const assignment of assignments) {
-      const courseId = assignment.courseId;
-      if (!courseMap.has(courseId)) {
-        courseMap.set(courseId, {
-          courseId,
-          courseTitle: assignment.courseTitle,
-          assignments: [],
-          expanded: expanded.has(courseId),
-          todoCount: 0,
-          submittedCount: 0,
-          gradedCount: 0,
-          overdueCount: 0
+    for (const item of items) {
+      if (!map.has(item.courseId)) {
+        map.set(item.courseId, {
+          courseId: item.courseId,
+          courseTitle: item.courseTitle,
+          items: [],
         });
       }
-
-      const group = courseMap.get(courseId)!;
-      group.assignments.push(assignment);
-
-      // Count by status
-      switch (assignment.status) {
-        case 'NOT_STARTED':
-        case 'IN_PROGRESS':
-          group.todoCount++;
-          if (assignment.isOverdue) group.overdueCount++;
-          break;
-        case 'OVERDUE':
-          group.todoCount++;
-          group.overdueCount++;
-          break;
-        case 'SUBMITTED':
-          group.submittedCount++;
-          break;
-        case 'GRADED':
-          group.gradedCount++;
-          break;
-      }
+      map.get(item.courseId)!.items.push(item);
     }
 
-    // Sort groups by has overdue (desc), then by todo count (desc)
-    return Array.from(courseMap.values()).sort((a, b) => {
-      if (a.overdueCount > 0 && b.overdueCount === 0) return -1;
-      if (b.overdueCount > 0 && a.overdueCount === 0) return 1;
-      return b.todoCount - a.todoCount;
-    });
+    return Array.from(map.values());
   });
-
-  // Stats for toolbar
-  stats = computed(() => calculateStats(this.allAssignments()));
 
   hasActiveFilters = computed(() =>
     !!(this.selectedCourse() || this.searchQuery())
   );
 
+  // "Show more / Collapse" per course group
+  expandedGroups = signal<Set<string>>(new Set());
+
   ngOnInit(): void {
-    this.loadAssignments();
+    const tabParam = this.route.snapshot.queryParamMap.get('tab');
+    if (tabParam === 'quizzes') {
+      this.contentTab.set('quizzes');
+    }
+    this.loadTasks();
   }
 
-  loadAssignments(): void {
-    const user = this.authService.user();
-    if (!user?.id) {
-      this.error.set('Không thể xác định người dùng');
-      return;
-    }
-
+  loadTasks(): void {
     this.loading.set(true);
     this.error.set(null);
-
-    this.assignmentService.getStudentAssignments(user.id).subscribe({
-      next: (assignments) => {
-        this.allAssignments.set(assignments);
-        this.courses.set(getUniqueCourses(assignments));
+    this.taskService.getStudentTasks().subscribe({
+      next: (items) => {
+        this.allItems.set(items);
+        this.courses.set(getUniqueCourses(items));
         this.loading.set(false);
       },
       error: () => {
-        this.error.set('Không thể tải danh sách bài tập. Vui lòng thử lại.');
+        this.error.set('Không thể tải danh sách. Vui lòng thử lại.');
         this.loading.set(false);
-      }
+      },
     });
+  }
+
+  setContentTab(tab: ContentTab): void {
+    this.contentTab.set(tab);
+    this.activeTab.set('todo');
+    this.expandedGroups.set(new Set());
   }
 
   setTab(tab: TaskTab): void {
     this.activeTab.set(tab);
+    this.expandedGroups.set(new Set());
   }
 
   resetFilters(): void {
@@ -184,77 +169,177 @@ export class StudentAssignmentsPageComponent implements OnInit {
     this.searchQuery.set('');
   }
 
-  // Toggle course expansion
-  toggleCourse(courseId: string): void {
-    this.expandedCourses.update(expanded => {
-      const newSet = new Set(expanded);
-      if (newSet.has(courseId)) {
-        newSet.delete(courseId);
-      } else {
-        newSet.add(courseId);
-      }
-      return newSet;
-    });
-  }
-
-  isCourseExpanded(courseId: string): boolean {
-    return this.expandedCourses().has(courseId);
+  navigateToItem(item: StudentWorkItem): void {
+    if (item.status === 'NOT_AVAILABLE' || item.status === 'LOCKED') return;
+    if (item.workType === 'ASSIGNMENT') {
+      this.router.navigate(['/student/tasks', item.itemId, 'work']);
+    } else if (item.status === 'GRADED' && !canRetryQuiz(item) && item.attemptId) {
+      // Exhausted or final-graded quiz → view results directly
+      this.router.navigate(['/student/quiz/result'], {
+        queryParams: { attemptId: item.attemptId, returnUrl: '/student/tasks?tab=quizzes' },
+      });
+    } else {
+      this.router.navigate(['/student/quiz/take', item.itemId], {
+        queryParams: { returnUrl: '/student/tasks?tab=quizzes' },
+      });
+    }
   }
 
   // Template helpers
-  formatDeadlineDisplay(assignment: StudentAssignment): string {
-    return formatDeadlineWithExtension(assignment.dueDate, assignment.personalDeadline);
+  formatRelativeDeadline(item: StudentWorkItem): string {
+    return formatDeadlineRelative(item.daysUntilDue);
   }
 
-  formatRelativeDeadline(assignment: StudentAssignment): string {
-    return formatDeadlineRelative(assignment.daysUntilDue);
-  }
-
-  getDeadlineClass(assignment: StudentAssignment): string {
-    return getDeadlineUrgencyClass(assignment.daysUntilDue);
-  }
-
-  getStatusLabel(status: StudentTaskStatus): string {
-    return getStatusBadge(status).text;
-  }
-
-  getStatusClassForAssignment(status: StudentTaskStatus): string {
-    return getStatusClass(status);
-  }
-
-  getActionLabel(status: StudentTaskStatus): string {
-    switch (status) {
-      case 'NOT_STARTED': return 'Bắt đầu';
-      case 'IN_PROGRESS': return 'Tiếp tục';
-      case 'SUBMITTED':
-      case 'GRADED': return 'Xem';
-      case 'OVERDUE': return 'Nộp muộn';
+  getActionLabel(item: StudentWorkItem): string {
+    const isQuiz = item.workType !== 'ASSIGNMENT';
+    switch (item.status) {
+      case 'NOT_STARTED': return isQuiz ? 'Bắt đầu làm' : 'Bắt đầu';
+      case 'IN_PROGRESS': return isQuiz ? 'Tiếp tục làm' : 'Tiếp tục';
+      case 'SUBMITTED': return isQuiz ? 'Xem kết quả' : 'Xem bài nộp';
+      case 'GRADED':
+        if (isQuiz && canRetryQuiz(item)) return 'Làm lại';
+        return isQuiz ? 'Xem kết quả' : 'Xem điểm';
+      case 'OVERDUE': return isQuiz ? 'Làm bài' : 'Nộp muộn';
+      case 'NOT_AVAILABLE': return 'Chưa mở';
+      case 'LOCKED': return 'Đã đóng';
       default: return 'Xem';
     }
   }
 
-  getAudienceLabel(assignment: StudentAssignment): string {
-    if (assignment.deliveryMode === 'SELF_PACED') {
-      return 'Toàn khóa học';
-    }
-    switch (assignment.distributionType) {
-      case 'CLASS':
-        return assignment.className ? `Lớp: ${assignment.className}` : 'Theo lớp';
-      case 'SPECIFIC_STUDENTS':
-        return 'Giao riêng';
-      default:
-        return assignment.className ? `Lớp: ${assignment.className}` : 'Toàn bộ học viên';
+  formatDate(dateStr?: string): string {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+  }
+
+  getWorkTypeLabel(type: WorkType): string {
+    switch (type) {
+      case 'ASSIGNMENT': return 'Bài tập';
+      case 'QUIZ': return 'Kiểm tra';
+      case 'EXAM': return 'Bài thi';
+      case 'PRACTICE': return 'Luyện tập';
     }
   }
 
-  getAudienceBadgeClass(assignment: StudentAssignment): string {
-    if (assignment.deliveryMode === 'SELF_PACED') return 'bg-slate-100 text-slate-600';
-    if (assignment.distributionType === 'CLASS') return 'bg-[#0056D2]/10 text-[#004BB5]';
-    if (assignment.distributionType === 'SPECIFIC_STUDENTS') return 'bg-amber-50 text-amber-700';
-    return 'bg-slate-100 text-slate-600';
+  getVisibleItems(group: CourseGroup): StudentWorkItem[] {
+    if (this.expandedGroups().has(group.courseId)) return group.items;
+    return group.items.slice(0, ITEMS_PER_GROUP);
   }
 
-  isOverdue(assignment: StudentAssignment): boolean {
-    return assignment.status === 'OVERDUE' || assignment.isOverdue;
+  hasMoreItems(group: CourseGroup): boolean {
+    return group.items.length > ITEMS_PER_GROUP && !this.expandedGroups().has(group.courseId);
+  }
+
+  isGroupExpanded(group: CourseGroup): boolean {
+    return this.expandedGroups().has(group.courseId) && group.items.length > ITEMS_PER_GROUP;
+  }
+
+  toggleGroupExpand(courseId: string): void {
+    const current = new Set(this.expandedGroups());
+    if (current.has(courseId)) {
+      current.delete(courseId);
+    } else {
+      current.add(courseId);
+    }
+    this.expandedGroups.set(current);
+  }
+
+  isOverdue(item: StudentWorkItem): boolean {
+    return item.status === 'OVERDUE' || item.isOverdue;
+  }
+
+  isRetryable(item: StudentWorkItem): boolean {
+    return canRetryQuiz(item);
+  }
+
+  /** Quizzes are auto-graded → "Đã nộp" tab irrelevant for quizzes */
+  showSubmittedTab(): boolean {
+    return this.contentTab() === 'assignments';
+  }
+
+  /** Whether to show quiz-style 2-tab (Cần làm + Đã hoàn thành) */
+  isQuizTab(): boolean {
+    return this.contentTab() === 'quizzes';
+  }
+
+  // ============ Attempt History ============
+
+  /** Map of quizId → attempts (lazy-loaded on toggle) */
+  attemptHistoryMap = signal<Record<string, QuizAttemptResponse[]>>({});
+  /** Set of quizIds with history panel open */
+  expandedHistoryIds = signal<Set<string>>(new Set());
+  /** Set of quizIds currently loading */
+  loadingHistoryIds = signal<Set<string>>(new Set());
+
+  hasAttemptHistory(item: StudentWorkItem): boolean {
+    return item.workType !== 'ASSIGNMENT' && (item.attemptCount ?? 0) > 0;
+  }
+
+  isHistoryExpanded(itemId: string): boolean {
+    return this.expandedHistoryIds().has(itemId);
+  }
+
+  isHistoryLoading(itemId: string): boolean {
+    return this.loadingHistoryIds().has(itemId);
+  }
+
+  getAttemptHistory(itemId: string): QuizAttemptResponse[] {
+    return this.attemptHistoryMap()[itemId] || [];
+  }
+
+  async toggleAttemptHistory(item: StudentWorkItem, event: Event): Promise<void> {
+    event.stopPropagation();
+    const id = item.itemId;
+    const expanded = new Set(this.expandedHistoryIds());
+
+    if (expanded.has(id)) {
+      expanded.delete(id);
+      this.expandedHistoryIds.set(expanded);
+      return;
+    }
+
+    // If already loaded, just expand
+    if (this.attemptHistoryMap()[id]) {
+      expanded.add(id);
+      this.expandedHistoryIds.set(expanded);
+      return;
+    }
+
+    // Fetch from API
+    const loading = new Set(this.loadingHistoryIds());
+    loading.add(id);
+    this.loadingHistoryIds.set(loading);
+
+    try {
+      const response = await firstValueFrom(this.quizApi.getStudentAttempts(id));
+      const attempts = (response as any)?.content || (response as any)?.data?.content || [];
+      const map = { ...this.attemptHistoryMap() };
+      map[id] = attempts;
+      this.attemptHistoryMap.set(map);
+      expanded.add(id);
+      this.expandedHistoryIds.set(expanded);
+    } catch {
+      // Silently fail — button remains clickable
+    } finally {
+      const l = new Set(this.loadingHistoryIds());
+      l.delete(id);
+      this.loadingHistoryIds.set(l);
+    }
+  }
+
+  formatAttemptDate(dateStr?: string): string {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '—';
+    return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+  }
+
+  navigateToAttemptResult(attemptId: string, event: Event): void {
+    event.stopPropagation();
+    this.router.navigate(['/student/quiz/result'], {
+      queryParams: { attemptId, returnUrl: '/student/tasks?tab=quizzes' },
+    });
   }
 }
+

@@ -195,8 +195,22 @@ export class QuestionPreviewComponent {
     // Parse block markers [TYPE:{json}] with balanced bracket matching
     result = this.parseBlockMarkers(result);
 
+    // Parse YouTube Videos: [YTVID:url] -> <iframe>
+    result = result.replace(/\[YTVID:([^\]]+)\]/g, (_match, url) => {
+      const ytId = this.extractYouTubeId(url);
+      if (!ytId) return '';
+      return `<div class="my-2"><iframe src="https://www.youtube.com/embed/${ytId}" style="width:100%;aspect-ratio:16/9;border:none;border-radius:8px;" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>`;
+    });
+
+    // Parse Uploaded Videos: [VID:id_or_url] -> <video>
+    result = result.replace(/\[VID:([^\]]+)\]/g, (_match, idOrUrl) => {
+      const isUrl = idOrUrl.startsWith('http');
+      const src = isUrl ? idOrUrl : `${this.identityService.resolveUrl(idOrUrl)}`;
+      return `<div class="my-2"><video src="${src}" controls preload="metadata" style="width:100%;max-height:240px;border-radius:8px;background:#000;"></video></div>`;
+    });
+
     // Parse Images: [IMG:uuid/url] -> <img src="...">
-    result = result.replace(/\[IMG:([^\]]+)\]/g, (match, idOrUrl) => {
+    result = result.replace(/\[IMG:([^\]]+)\]/g, (_match, idOrUrl) => {
       const isUrl = idOrUrl.startsWith('http');
       const url = isUrl ? idOrUrl : this.identityService.resolveUrl(idOrUrl);
       return `<img src="${url}" class="max-h-32 rounded-lg shadow-sm inline-block" alt="Image" onerror="this.src='/icons/icon-192x192.png'" />`;
@@ -270,6 +284,19 @@ export class QuestionPreviewComponent {
       }
     }
     return -1;
+  }
+
+  private extractYouTubeId(url: string): string | null {
+    if (!url) return null;
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /youtube\.com\/v\/([^&\n?#]+)/
+    ];
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
   }
 
   private renderBlock(type: string, data: any): string {

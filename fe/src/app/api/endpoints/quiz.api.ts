@@ -18,6 +18,7 @@ export interface CreateQuizRequest {
   timeLimitMinutes?: number;
   maxAttempts?: number;
   passingScore?: number;
+  maxScoreScale?: number;
   shuffleQuestions?: boolean;
   shuffleOptions?: boolean;
   showResultsImmediately?: boolean;
@@ -50,6 +51,7 @@ export interface CreateLessonQuizRequest {
   timeLimitMinutes?: number;
   maxAttempts: number;
   passingScore: number;
+  maxScoreScale?: number;
   shuffleQuestions: boolean;
   shuffleOptions: boolean;
   showResultsImmediately: boolean;
@@ -66,6 +68,7 @@ export interface CreateAssignmentQuizRequest {
   timeLimitMinutes?: number;
   maxAttempts: number;
   passingScore: number;
+  maxScoreScale?: number;
   shuffleQuestions: boolean;
   shuffleOptions: boolean;
   showResultsImmediately: boolean;
@@ -101,6 +104,7 @@ export interface QuizResponse {
   timeLimitMinutes: number;
   maxAttempts: number;
   passingScore: number;
+  maxScoreScale?: number;
   shuffleQuestions: boolean;
   shuffleOptions: boolean;
   showResultsImmediately: boolean;
@@ -119,13 +123,16 @@ export interface QuizResponse {
 export interface QuizAttemptResponse {
   id: string;
   quizId: string;
-  status: 'IN_PROGRESS' | 'SUBMITTED' | 'EXPIRED';
+  studentId?: string;
+  status: 'IN_PROGRESS' | 'SUBMITTED' | 'GRADED' | 'TIMEOUT' | 'EXPIRED';
   startTime: string;
   endTime?: string;
+  createdAt?: string;
   timeSpentSeconds?: number;
   score?: number;
-  totalQuestions: number;
-  correctAnswers: number;
+  maxScore?: number;
+  totalQuestions?: number;
+  correctAnswers?: number;
   isPassed?: boolean;
 }
 
@@ -141,6 +148,7 @@ export interface SectionQuizResponse {
   timeLimitMinutes?: number | null;
   maxAttempts: number;
   passingScore: number;
+  maxScoreScale?: number;
   shuffleQuestions: boolean;
   shuffleOptions: boolean;
   showResultsImmediately: boolean;
@@ -235,6 +243,7 @@ interface BaseQuizResponse {
   timeLimitMinutes?: number;
   maxAttempts: number;
   passingScore: number;
+  maxScoreScale?: number;
   shuffleQuestions: boolean;
   shuffleOptions: boolean;
   showResultsImmediately: boolean;
@@ -412,10 +421,18 @@ export class QuizApi {
     timeLimitMinutes?: number | null;
     maxAttempts?: number;
     passingScore?: number;
+    maxScoreScale?: number;
     shuffleQuestions?: boolean;
     shuffleOptions?: boolean;
     showResultsImmediately?: boolean;
     showCorrectAnswers?: boolean;
+    accessPassword?: string | null;
+    /** ISO 8601 UTC — when students may first access the quiz */
+    availableFrom?: string | null;
+    /** ISO 8601 UTC — soft deadline shown to students */
+    dueAt?: string | null;
+    /** ISO 8601 UTC — hard cutoff; no new attempts accepted after this */
+    lockAt?: string | null;
   }) {
     return this.apiClient.put<QuizResponse>(
       QUIZ_ENDPOINTS.QUIZ_SETTINGS(quizId),
@@ -428,12 +445,23 @@ export class QuizApi {
   // ============================================
 
   /**
+   * Get quiz preflight info (confirmation screen + resume check)
+   */
+  getAttemptPreflight(quizId: string) {
+    return this.apiClient.get<any>(
+      QUIZ_ENDPOINTS.ATTEMPT_PREFLIGHT(quizId)
+    ).pipe(
+      map(response => this.unwrapApiData(response as any))
+    );
+  }
+
+  /**
    * Start quiz attempt
    */
-  startAttempt(quizId: string) {
+  startAttempt(quizId: string, accessPassword?: string) {
     return this.apiClient.post<QuizAttemptResponse>(
       QUIZ_ENDPOINTS.START_ATTEMPT(quizId),
-      {}
+      accessPassword ? { accessPassword } : {}
     );
   }
 
@@ -509,6 +537,24 @@ export class QuizApi {
     return this.apiClient.patch<QuizResult>(
       QUIZ_ENDPOINTS.MANUAL_GRADE(attemptId),
       { questionId, score, feedback }
+    );
+  }
+
+  /**
+   * Get enrolled students for a quiz (teacher — shows who hasn't taken it)
+   */
+  getEnrolledStudents(quizId: string) {
+    return this.apiClient.get<{ enrolledStudents: any[]; enrolledCount: number; attemptedCount: number }>(
+      QUIZ_ENDPOINTS.ENROLLED_STUDENTS(quizId)
+    );
+  }
+
+  /**
+   * Delete a student's quiz attempt (teacher moderation)
+   */
+  deleteAttempt(attemptId: string) {
+    return this.apiClient.delete<void>(
+      QUIZ_ENDPOINTS.ATTEMPT_RESULT(attemptId)
     );
   }
 

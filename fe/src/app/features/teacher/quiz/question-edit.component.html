@@ -11,7 +11,9 @@
           </button>
           <div class="min-w-0">
             <div class="flex items-center gap-2">
-              <a class="text-xs text-gray-400 hover:text-gray-600 cursor-pointer transition-colors whitespace-nowrap" (click)="onCancel()">Ngân hàng câu hỏi</a>
+              <a class="text-xs text-gray-400 hover:text-gray-600 cursor-pointer transition-colors truncate max-w-[200px]"
+                 [title]="bankName() || 'Ngân hàng câu hỏi'"
+                 (click)="onCancel()">{{ bankName() || 'Ngân hàng câu hỏi' }}</a>
               <svg class="w-3 h-3 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/>
               </svg>
@@ -121,10 +123,12 @@
                 @for (option of options.controls; track $index; let i = $index) {
                   @let correct = isOptionCorrect(i);
                   <div [formGroupName]="i"
-                       class="group flex items-center gap-2.5 py-1.5 px-3 rounded-lg border transition-colors"
+                       class="group flex items-center gap-2.5 py-1.5 px-3 rounded-lg border transition-colors cursor-pointer"
                        [class]="correct
                          ? 'border-emerald-300 bg-emerald-50/50'
-                         : 'border-gray-200 bg-white hover:border-gray-300'">
+                         : 'border-gray-200 bg-white hover:border-gray-300'"
+                       [style.animation]="lastAddedIndex() === i ? 'slideIn 0.25s ease-out' : 'none'"
+                       (click)="onOptionRowClick(i, $event)">
 
                     <!-- SINGLE_CHOICE / TRUE_FALSE: Radio -->
                     @if (selectedType() !== 'MULTIPLE_CHOICE') {
@@ -160,7 +164,8 @@
                         <app-enriched-input [placeholder]="'Nhập nội dung đáp án...'"
                           [initialValue]="option.get('content')?.value"
                           (valueChange)="updateOptionText(i, $event)"
-                          (blocksChange)="updateOptionBlocks(i, $event)"></app-enriched-input>
+                          (blocksChange)="updateOptionBlocks(i, $event)"
+                          (enterOnEmpty)="onEnterOnEmptyOption(i)"></app-enriched-input>
                         @if (hasImageTag(options.at(i).get('content')?.value)) {
                           <div class="absolute right-2 top-0.5 z-10">
                             <img [src]="extractFileId(options.at(i).get('content')?.value) | authImage"
@@ -173,7 +178,7 @@
 
                     <!-- Correct Label -->
                     @if (correct) {
-                      <span class="text-[11px] shrink-0 text-emerald-600 font-medium select-none">✓</span>
+                      <lucide-icon name="check-circle" [size]="15" class="shrink-0 text-emerald-500"></lucide-icon>
                     }
 
                     <!-- Remove (hidden for TRUE_FALSE) -->

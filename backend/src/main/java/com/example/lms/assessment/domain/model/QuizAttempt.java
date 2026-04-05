@@ -130,13 +130,18 @@ public class QuizAttempt {
         this.status = AttemptStatus.TIMEOUT;
     }
 
+    public void setMaxScore(Double maxScore) {
+        this.maxScore = maxScore != null ? maxScore : 10.0;
+    }
+
     // Simplification: Let UseCase grade it and update the Attempt
     public void finishGrading(Double score, Boolean isPassed) {
-        if (score != null && (score < 0 || score > 100)) {
-            throw new IllegalArgumentException("Điểm phải nằm trong khoảng 0-100");
+        if (score != null && score < 0) {
+            throw new IllegalArgumentException("Điểm không được âm");
         }
         this.score = score;
         this.isPassed = isPassed;
+        this.status = AttemptStatus.GRADED;
     }
     
     // Getters
@@ -159,6 +164,8 @@ public class QuizAttempt {
         private Boolean isCorrect;
         private Double pointsEarned;
         private String feedback; // Teacher feedback for manual grading (essays)
+        private String correctOption; // For SINGLE_CHOICE/TRUE_FALSE: the correct option key
+        private List<String> correctOptions; // For MULTIPLE_CHOICE: all correct option keys
 
         @JsonCreator
         public AttemptItem(
@@ -167,7 +174,9 @@ public class QuizAttempt {
                 @JsonProperty("studentAnswer") Map<String, Object> studentAnswer,
                 @JsonProperty("isCorrect") Boolean isCorrect,
                 @JsonProperty("pointsEarned") Double pointsEarned,
-                @JsonProperty("feedback") String feedback
+                @JsonProperty("feedback") String feedback,
+                @JsonProperty("correctOption") String correctOption,
+                @JsonProperty("correctOptions") List<String> correctOptions
         ) {
             this.questionId = questionId;
             this.selectedOption = selectedOption;
@@ -175,6 +184,8 @@ public class QuizAttempt {
             this.isCorrect = isCorrect;
             this.pointsEarned = pointsEarned;
             this.feedback = feedback;
+            this.correctOption = correctOption;
+            this.correctOptions = correctOptions;
         }
 
         public static Builder builder() {
@@ -188,6 +199,8 @@ public class QuizAttempt {
             private Boolean isCorrect;
             private Double pointsEarned;
             private String feedback;
+            private String correctOption;
+            private List<String> correctOptions;
 
             public Builder questionId(UUID questionId) { this.questionId = questionId; return this; }
             public Builder selectedOption(String selectedOption) { this.selectedOption = selectedOption; return this; }
@@ -195,9 +208,11 @@ public class QuizAttempt {
             public Builder isCorrect(Boolean isCorrect) { this.isCorrect = isCorrect; return this; }
             public Builder pointsEarned(Double pointsEarned) { this.pointsEarned = pointsEarned; return this; }
             public Builder feedback(String feedback) { this.feedback = feedback; return this; }
+            public Builder correctOption(String correctOption) { this.correctOption = correctOption; return this; }
+            public Builder correctOptions(List<String> correctOptions) { this.correctOptions = correctOptions; return this; }
 
             public AttemptItem build() {
-                return new AttemptItem(questionId, selectedOption, studentAnswer, isCorrect, pointsEarned, feedback);
+                return new AttemptItem(questionId, selectedOption, studentAnswer, isCorrect, pointsEarned, feedback, correctOption, correctOptions);
             }
         }
 
@@ -207,6 +222,8 @@ public class QuizAttempt {
         public Boolean getIsCorrect() { return isCorrect; }
         public Double getPointsEarned() { return pointsEarned; }
         public String getFeedback() { return feedback; }
+        public String getCorrectOption() { return correctOption; }
+        public List<String> getCorrectOptions() { return correctOptions; }
 
         // Mutable setters for manual grading
         public void setPointsEarned(Double pointsEarned) { this.pointsEarned = pointsEarned; }

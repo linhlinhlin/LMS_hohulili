@@ -1,9 +1,35 @@
 import { StudentAssignment, StudentTaskStatus } from '../../services/student-assignment.service';
+import { StudentWorkItem, WorkType } from '../../services/student-task.service';
 
 /**
- * Tab-based grouping for the task list (Coursera/Canvas pattern)
+ * Minimal interface satisfied by both StudentAssignment and StudentWorkItem.
+ * Used to make utility functions generic across both types.
  */
-export type TaskTab = 'todo' | 'overdue' | 'submitted' | 'graded';
+export interface TaskListItem {
+  status: StudentTaskStatus;
+  isOverdue: boolean;
+  courseId: string;
+  courseTitle: string;
+  dueDate: string;
+  daysUntilDue: number;
+  description?: string;
+  personalDeadline?: string;
+  // Title fields — different names across types
+  title?: string;            // StudentWorkItem
+  assignmentTitle?: string;  // StudentAssignment (legacy)
+  // Work type (only on StudentWorkItem)
+  workType?: WorkType;
+  // Quiz retry tracking
+  attemptCount?: number;
+  maxAttempts?: number;
+}
+
+/**
+ * Tab-based grouping for the task list.
+ * - Tự luận uses: todo | overdue | submitted | graded
+ * - Trắc nghiệm uses: todo | quiz-overdue | completed
+ */
+export type TaskTab = 'todo' | 'overdue' | 'submitted' | 'graded' | 'completed' | 'quiz-overdue';
 
 export interface AssignmentStats {
   total: number;
@@ -16,6 +42,7 @@ export interface AssignmentStats {
 export interface AssignmentFilters {
   courseId?: string;
   searchQuery?: string;
+  workType?: WorkType | '';
 }
 
 export interface StatusBadge {
@@ -30,42 +57,78 @@ export type DeadlineUrgency = 'normal' | 'warning' | 'danger';
 // ============================================
 
 /**
- * Filter assignments by active tab (Google Classroom pattern).
- * - todo: NOT_STARTED + IN_PROGRESS (things student can still act on)
- * - overdue: OVERDUE or (NOT_STARTED/IN_PROGRESS with isOverdue) — past due, may not accept submission
- * - submitted: SUBMITTED (waiting for grading)
- * - graded: GRADED (has score)
+ * Check if a quiz item can be retried (GRADED but attemptCount < maxAttempts).
  */
-export function filterByTab(assignments: StudentAssignment[], tab: TaskTab): StudentAssignment[] {
+export function canRetryQuiz(item: TaskListItem): boolean {
+  if (item.workType === 'ASSIGNMENT') return false;
+  return item.status === 'GRADED'
+    && item.maxAttempts != null && item.maxAttempts > 0
+    && (item.attemptCount ?? 0) < item.maxAttempts;
+}
+
+/**
+ * Quiz-specific: overdue/locked AND never attempted (0 attempts).
+ * This is "truly missed" — student had no interaction at all.
+ * LOCKED = hard deadline passed (Canvas lock_at).
+ */
+export function isQuizOverdueNeverAttempted(item: TaskListItem): boolean {
+  if (item.workType === 'ASSIGNMENT') return false;
+  const isOverdueStatus = item.status === 'OVERDUE'
+    || item.status === 'LOCKED'
+    || ((item.status === 'NOT_STARTED' || item.status === 'IN_PROGRESS') && item.isOverdue);
+  return isOverdueStatus && (item.attemptCount ?? 0) === 0;
+}
+
+/**
+ * Filter assignments by active tab.
+ * Tự luận tabs: todo, overdue, submitted, graded
+ * Trắc nghiệm tabs: todo, quiz-overdue, completed
+ */
+export function filterByTab<T extends TaskListItem>(assignments: T[], tab: TaskTab): T[] {
   switch (tab) {
     case 'todo':
       return assignments.filter(a =>
-        (a.status === 'NOT_STARTED' || a.status === 'IN_PROGRESS') && !a.isOverdue
+        (a.status === 'NOT_STARTED' || a.status === 'IN_PROGRESS' || a.status === 'NOT_AVAILABLE') && !a.isOverdue
       );
     case 'overdue':
       return assignments.filter(a =>
-        a.status === 'OVERDUE' || ((a.status === 'NOT_STARTED' || a.status === 'IN_PROGRESS') && a.isOverdue)
+        a.status === 'OVERDUE'
+        || a.status === 'LOCKED'
+        || ((a.status === 'NOT_STARTED' || a.status === 'IN_PROGRESS') && a.isOverdue)
       );
+    case 'quiz-overdue':
+      return assignments.filter(a => isQuizOverdueNeverAttempted(a));
     case 'submitted':
       return assignments.filter(a => a.status === 'SUBMITTED');
     case 'graded':
       return assignments.filter(a => a.status === 'GRADED');
+    case 'completed':
+      // Quizzes: GRADED (including retryable) + SUBMITTED all go to "Đã hoàn thành"
+      return assignments.filter(a =>
+        a.status === 'SUBMITTED' || a.status === 'GRADED'
+      );
   }
 }
 
 /**
- * Count assignments per tab
+ * Count assignments per tab.
  */
-export function countByTab(assignments: StudentAssignment[]): Record<TaskTab, number> {
-  let todo = 0, overdue = 0, submitted = 0, graded = 0;
+export function countByTab<T extends TaskListItem>(assignments: T[]): Record<TaskTab, number> {
+  let todo = 0, overdue = 0, submitted = 0, graded = 0, quizOverdue = 0;
   for (const a of assignments) {
     switch (a.status) {
       case 'NOT_STARTED':
       case 'IN_PROGRESS':
         if (a.isOverdue) { overdue++; } else { todo++; }
         break;
+      case 'NOT_AVAILABLE':
+        todo++; // upcoming quiz, not yet open — still "to do"
+        break;
       case 'OVERDUE':
         overdue++;
+        break;
+      case 'LOCKED':
+        overdue++; // hard deadline passed — counts as overdue
         break;
       case 'SUBMITTED':
         submitted++;
@@ -74,27 +137,38 @@ export function countByTab(assignments: StudentAssignment[]): Record<TaskTab, nu
         graded++;
         break;
     }
+    // Quiz-specific overdue: overdue/locked + never attempted
+    if (isQuizOverdueNeverAttempted(a)) {
+      quizOverdue++;
+    }
   }
-  return { todo, overdue, submitted, graded };
+  return {
+    todo, overdue, submitted, graded,
+    completed: submitted + graded,
+    'quiz-overdue': quizOverdue,
+  };
 }
 
 // ============================================
 // FILTER & SEARCH
 // ============================================
 
-export function filterAssignments(
-  assignments: StudentAssignment[],
+export function filterAssignments<T extends TaskListItem>(
+  assignments: T[],
   filters: AssignmentFilters
-): StudentAssignment[] {
+): T[] {
   return assignments.filter(assignment => {
     if (filters.courseId && assignment.courseId !== filters.courseId) {
       return false;
     }
+    if (filters.workType && assignment.workType !== filters.workType) {
+      return false;
+    }
     if (filters.searchQuery) {
       const query = filters.searchQuery.toLowerCase();
-      const matchesTitle = assignment.assignmentTitle.toLowerCase().includes(query);
-      const matchesDescription = assignment.description.toLowerCase().includes(query);
-      if (!matchesTitle && !matchesDescription) {
+      const title = (assignment.title || assignment.assignmentTitle || '').toLowerCase();
+      const description = (assignment.description || '').toLowerCase();
+      if (!title.includes(query) && !description.includes(query)) {
         return false;
       }
     }
@@ -106,7 +180,7 @@ export function filterAssignments(
 // STATS
 // ============================================
 
-export function calculateStats(assignments: StudentAssignment[]): AssignmentStats {
+export function calculateStats<T extends TaskListItem>(assignments: T[]): AssignmentStats {
   let toDo = 0;
   let submitted = 0;
   let graded = 0;
@@ -129,7 +203,6 @@ export function calculateStats(assignments: StudentAssignment[]): AssignmentStat
         graded++;
         break;
     }
-    // Also count overdue from non-OVERDUE statuses
     if (a.isOverdue && a.status !== 'SUBMITTED' && a.status !== 'GRADED' && a.status !== 'OVERDUE') {
       overdue++;
     }
@@ -184,11 +257,13 @@ export function formatDeadlineRelative(daysUntilDue: number): string {
 
 export function getStatusBadge(status: StudentTaskStatus): StatusBadge {
   const mapping: Record<StudentTaskStatus, StatusBadge> = {
-    'NOT_STARTED': { text: 'Ch\u01B0a b\u1EAFt \u0111\u1EA7u', cssClass: 'bg-slate-100 text-slate-600' },
-    'IN_PROGRESS': { text: '\u0110ang l\u00E0m', cssClass: 'bg-[#0056D2]/10 text-[#004BB5]' },
-    'SUBMITTED':   { text: '\u0110\u00E3 n\u1ED9p', cssClass: 'bg-amber-50 text-amber-700' },
-    'GRADED':      { text: '\u0110\u00E3 ch\u1EA5m', cssClass: 'bg-emerald-50 text-emerald-700' },
-    'OVERDUE':     { text: 'Qu\u00E1 h\u1EA1n', cssClass: 'bg-red-50 text-red-700' },
+    'NOT_STARTED':   { text: 'Chưa bắt đầu', cssClass: 'bg-slate-100 text-slate-600' },
+    'IN_PROGRESS':   { text: 'Đang làm', cssClass: 'bg-[#0056D2]/10 text-[#004BB5]' },
+    'SUBMITTED':     { text: 'Đã nộp', cssClass: 'bg-amber-50 text-amber-700' },
+    'GRADED':        { text: 'Đã chấm', cssClass: 'bg-emerald-50 text-emerald-700' },
+    'OVERDUE':       { text: 'Quá hạn', cssClass: 'bg-red-50 text-red-700' },
+    'NOT_AVAILABLE': { text: 'Chưa mở', cssClass: 'bg-gray-100 text-gray-500' },
+    'LOCKED':        { text: 'Đã đóng', cssClass: 'bg-gray-100 text-gray-500' },
   };
   return mapping[status] || mapping['NOT_STARTED'];
 }
@@ -223,14 +298,24 @@ export function getDeadlineUrgencyClass(daysUntilDue: number): string {
 // SORTING
 // ============================================
 
-export function sortByDueDate(assignments: StudentAssignment[]): StudentAssignment[] {
+export function sortByDueDate<T extends TaskListItem>(assignments: T[]): T[] {
   return [...assignments].sort((a, b) => {
     const dateA = a.personalDeadline || a.dueDate;
     const dateB = b.personalDeadline || b.dueDate;
-    if (!dateA && !dateB) return 0;
+    if (!dateA && !dateB) {
+      // Secondary sort: by title when both have no due date
+      const titleA = (a.title || a.assignmentTitle || '').toLowerCase();
+      const titleB = (b.title || b.assignmentTitle || '').toLowerCase();
+      return titleA.localeCompare(titleB);
+    }
     if (!dateA) return 1;
     if (!dateB) return -1;
-    return new Date(dateA).getTime() - new Date(dateB).getTime();
+    const diff = new Date(dateA).getTime() - new Date(dateB).getTime();
+    if (diff !== 0) return diff;
+    // Same due date: secondary sort by title
+    const titleA = (a.title || a.assignmentTitle || '').toLowerCase();
+    const titleB = (b.title || b.assignmentTitle || '').toLowerCase();
+    return titleA.localeCompare(titleB);
   });
 }
 
@@ -238,7 +323,7 @@ export function sortByDueDate(assignments: StudentAssignment[]): StudentAssignme
 // HELPERS
 // ============================================
 
-export function getUniqueCourses(assignments: StudentAssignment[]): { id: string; title: string }[] {
+export function getUniqueCourses<T extends TaskListItem>(assignments: T[]): { id: string; title: string }[] {
   const courseMap = new Map<string, string>();
   for (const assignment of assignments) {
     if (!courseMap.has(assignment.courseId)) {

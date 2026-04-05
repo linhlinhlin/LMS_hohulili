@@ -17,6 +17,18 @@ import VideoBlockTool from './video-block-tool';
 import { environment } from '../../../../environments/environment';
 
 /**
+ * Wrapper: Override @editorjs/image validate() to accept empty blocks.
+ * The original rejects blocks where file.url is falsy, which happens
+ * when a user adds an image block but hasn't uploaded yet.
+ */
+class PermissiveImageTool extends (ImageTool as any) {
+    validate(savedData: any): boolean {
+        if (!savedData || typeof savedData !== 'object') return false;
+        return true;
+    }
+}
+
+/**
  * SOTA 2025 Maritime-Optimized Block Editor
  * 
  * Tools included (5 essential):
@@ -53,8 +65,9 @@ export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlVa
     placeholder = input<string>('Nhập nội dung câu hỏi...');
     initialBlocks = input<any[]>([]);
 
-    // Signal output - Angular v20+
+    // Signal outputs - Angular v20+
     blocksChange = output<any[]>();
+    editorReady = output<void>();
 
     // ViewChild signal - Angular v20+
     editorContainer = viewChild<ElementRef>('editorContainer');
@@ -69,12 +82,18 @@ export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlVa
     // Local signal for disabled state (ControlValueAccessor)
     private isDisabled = signal(false);
 
+    // Guard: only apply initialBlocks once (prevents onChange → render loop)
+    private initialBlocksApplied = false;
+
     constructor() {
-        // Effect to handle initialBlocks changes
+        // Effect: apply initialBlocks ONCE when editor is ready and data arrives.
+        // After the first application, ignore further changes to prevent
+        // the feedback loop: onChange → blocksChange → parent signal → initialBlocks → render → onChange.
         effect(() => {
             const blocks = this.initialBlocks();
-            if (blocks && blocks.length > 0) {
+            if (blocks && blocks.length > 0 && !this.initialBlocksApplied) {
                 this.value = { blocks } as any;
+                this.initialBlocksApplied = true;
                 if (this.editor && this.editor.render) {
                     this.editor.render(this.value as OutputData);
                 }
@@ -106,6 +125,14 @@ export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlVa
 
                 // SOTA 2025: Maritime-optimized toolset
                 tools: {
+                    // Default paragraph: preserve empty blocks to prevent
+                    // "Block «paragraph» skipped because saved data is invalid"
+                    paragraph: {
+                        config: {
+                            preserveBlank: true
+                        }
+                    },
+
                     // ============================================
                     // 1. LIST - Quy trình, danh sách thiết bị
                     // ============================================
@@ -125,7 +152,7 @@ export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlVa
                     // 2. IMAGE - Sơ đồ, hải đồ, hình ảnh kỹ thuật
                     // ============================================
                     image: {
-                        class: ImageTool as any,
+                        class: PermissiveImageTool as any,
                         config: {
                             endpoints: {
                                 byFile: `${environment.apiUrl}/api/v3/files/upload/editor`,
@@ -202,6 +229,10 @@ export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlVa
                 } as any,
 
                 data: this.value || undefined,
+
+                onReady: () => {
+                    this.editorReady.emit();
+                },
 
                 onChange: async () => {
                     const activeEditor = this.editor;
@@ -294,6 +325,16 @@ export class BlockEditorComponent implements AfterViewInit, OnDestroy, ControlVa
                 }
             });
         } catch (e) {
+        }
+    }
+
+    /** Focus the first paragraph in the editor */
+    focusEditor(): void {
+        const container = this.editorContainer()?.nativeElement;
+        if (!container) return;
+        const paragraph = container.querySelector('.ce-paragraph') as HTMLElement;
+        if (paragraph) {
+            paragraph.focus();
         }
     }
 

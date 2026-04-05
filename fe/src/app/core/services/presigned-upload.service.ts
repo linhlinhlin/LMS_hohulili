@@ -277,13 +277,20 @@ export class PresignedUploadService {
 
   /**
    * Fallback: POST file to server relay endpoint with progress tracking.
+   * Routes video files to /upload/video (500MB, video MIME types)
+   * and other files to /upload/editor (50MB, image/doc types).
    */
   private serverRelayUpload(file: File, folder: string): Observable<UploadEvent> {
+    const isVideo = folder === 'videos' || file.type.startsWith('video/');
+    const endpoint = isVideo ? `${this.baseUrl}/upload/video` : `${this.baseUrl}/upload/editor`;
+
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('folder', folder);
+    if (!isVideo) {
+      formData.append('folder', folder);
+    }
 
-    return this.http.post<any>(`${this.baseUrl}/upload/editor`, formData, {
+    return this.http.post<any>(endpoint, formData, {
       reportProgress: true,
       observe: 'events'
     }).pipe(

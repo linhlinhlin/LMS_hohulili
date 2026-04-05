@@ -32,6 +32,7 @@ public class PresignedUploadUseCase {
     private static final Map<String, Set<String>> ALLOWED_TYPES = Map.of(
             "course-thumbnails", Set.of("image/jpeg", "image/png", "image/webp"),
             "editor-images", Set.of("image/jpeg", "image/png", "image/gif", "image/webp"),
+            "avatars", Set.of("image/jpeg", "image/png", "image/webp"),
             "videos", Set.of(
                     "video/mp4",
                     "video/webm",
@@ -45,6 +46,7 @@ public class PresignedUploadUseCase {
     private static final Map<String, Long> MAX_SIZES = Map.of(
             "course-thumbnails", 5L * 1024 * 1024,
             "editor-images", 50L * 1024 * 1024,
+            "avatars", 5L * 1024 * 1024,
             "videos", MAX_VIDEO_UPLOAD_BYTES
     );
 
@@ -301,6 +303,7 @@ public class PresignedUploadUseCase {
         return switch (folder) {
             case "course", "course-thumbnails" -> "COURSE_THUMBNAIL";
             case "editor-images", "question-images" -> "EDITOR_IMAGE";
+            case "avatars" -> "AVATAR";
             case "videos" -> "VIDEO";
             default -> "GENERAL";
         };

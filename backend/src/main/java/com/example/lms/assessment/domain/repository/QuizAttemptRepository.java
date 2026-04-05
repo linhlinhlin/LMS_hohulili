@@ -10,4 +10,7 @@ public interface QuizAttemptRepository {
     Optional<QuizAttempt> findById(UUID id);
     List<QuizAttempt> findByQuizIdAndStudentId(UUID quizId, UUID studentId);
     List<QuizAttempt> findByQuizId(UUID quizId);
+    Optional<QuizAttempt> findInProgressByQuizIdAndStudentId(UUID quizId, UUID studentId);
+    long countCompletedByQuizIdAndStudentId(UUID quizId, UUID studentId);
+    void deleteById(UUID id);
 }

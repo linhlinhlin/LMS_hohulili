@@ -95,13 +95,15 @@ public class Quiz {
         Integer timeLimitMinutes,
         Integer maxAttempts,
         Integer passingScore,
+        Double maxScoreScale,
         Boolean shuffleQuestions,
         Boolean shuffleOptions,
         Boolean showResultsImmediately,
         Boolean showCorrectAnswers,
         Instant availableFrom,
         Instant dueAt,
-        Instant lockAt
+        Instant lockAt,
+        String accessPassword
     ) {
         public QuizSettings {
             if (timeLimitMinutes != null && timeLimitMinutes <= 0) {
@@ -112,6 +114,9 @@ public class Quiz {
             }
             if (passingScore != null && (passingScore < 0 || passingScore > 100)) {
                 throw new IllegalArgumentException("Điểm đậu phải nằm trong khoảng 0-100");
+            }
+            if (maxScoreScale != null && maxScoreScale < 1.0) {
+                throw new IllegalArgumentException("Thang điểm tối đa phải từ 1 trở lên");
             }
             if (availableFrom != null && lockAt != null && !availableFrom.isBefore(lockAt)) {
                 throw new IllegalArgumentException("Thời gian mở phải trước thời gian khóa");
@@ -132,6 +137,7 @@ public class Quiz {
             private Integer timeLimitMinutes;
             private Integer maxAttempts;
             private Integer passingScore;
+            private Double maxScoreScale;
             private Boolean shuffleQuestions;
             private Boolean shuffleOptions;
             private Boolean showResultsImmediately;
@@ -139,10 +145,12 @@ public class Quiz {
             private Instant availableFrom;
             private Instant dueAt;
             private Instant lockAt;
+            private String accessPassword;
 
             public Builder timeLimitMinutes(Integer timeLimitMinutes) { this.timeLimitMinutes = timeLimitMinutes; return this; }
             public Builder maxAttempts(Integer maxAttempts) { this.maxAttempts = maxAttempts; return this; }
             public Builder passingScore(Integer passingScore) { this.passingScore = passingScore; return this; }
+            public Builder maxScoreScale(Double maxScoreScale) { this.maxScoreScale = maxScoreScale; return this; }
             public Builder shuffleQuestions(Boolean shuffleQuestions) { this.shuffleQuestions = shuffleQuestions; return this; }
             public Builder shuffleOptions(Boolean shuffleOptions) { this.shuffleOptions = shuffleOptions; return this; }
             public Builder showResultsImmediately(Boolean showResultsImmediately) { this.showResultsImmediately = showResultsImmediately; return this; }
@@ -150,9 +158,10 @@ public class Quiz {
             public Builder availableFrom(Instant availableFrom) { this.availableFrom = availableFrom; return this; }
             public Builder dueAt(Instant dueAt) { this.dueAt = dueAt; return this; }
             public Builder lockAt(Instant lockAt) { this.lockAt = lockAt; return this; }
+            public Builder accessPassword(String accessPassword) { this.accessPassword = accessPassword; return this; }
 
             public QuizSettings build() {
-                return new QuizSettings(timeLimitMinutes, maxAttempts, passingScore, shuffleQuestions, shuffleOptions, showResultsImmediately, showCorrectAnswers, availableFrom, dueAt, lockAt);
+                return new QuizSettings(timeLimitMinutes, maxAttempts, passingScore, maxScoreScale, shuffleQuestions, shuffleOptions, showResultsImmediately, showCorrectAnswers, availableFrom, dueAt, lockAt, accessPassword);
             }
         }
 
@@ -161,6 +170,7 @@ public class Quiz {
                 .timeLimitMinutes(30)
                 .maxAttempts(3)
                 .passingScore(70)
+                .maxScoreScale(10.0)
                 .shuffleQuestions(false)
                 .shuffleOptions(false)
                 .showResultsImmediately(true)
@@ -300,6 +310,21 @@ public class Quiz {
      */
     public boolean isEditable() {
         return this.status == QuizStatus.DRAFT;
+    }
+
+    /**
+     * Check if this quiz requires an access password.
+     */
+    public boolean hasAccessPassword() {
+        return settings != null && settings.accessPassword() != null && !settings.accessPassword().isBlank();
+    }
+
+    /**
+     * Validate the access password (Canvas "access code" pattern).
+     */
+    public boolean validateAccessPassword(String password) {
+        if (!hasAccessPassword()) return true;
+        return settings.accessPassword().equals(password);
     }
 
     // ============ Question Management ============

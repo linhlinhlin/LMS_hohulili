@@ -82,6 +82,10 @@ export class QuizFormComponent implements OnInit {
                 cfg.defaults.passingScore,
                 [Validators.required, Validators.min(0), Validators.max(100)]
             ],
+            maxScoreScale: [
+                cfg.defaults.maxScoreScale ?? 10,
+                [Validators.required, Validators.min(1)]
+            ],
             shuffleQuestions: [cfg.defaults.shuffleQuestions],
             shuffleOptions: [cfg.defaults.shuffleOptions],
             showResultsImmediately: [cfg.defaults.showResultsImmediately],
@@ -252,6 +256,7 @@ export class QuizFormComponent implements OnInit {
     get timeLimitControl() { return this.quizForm.get('timeLimitMinutes'); }
     get maxAttemptsControl() { return this.quizForm.get('maxAttempts'); }
     get passingScoreControl() { return this.quizForm.get('passingScore'); }
+    get maxScoreScaleControl() { return this.quizForm.get('maxScoreScale'); }
     get startDateControl() { return this.quizForm.get('startDate'); }
     get endDateControl() { return this.quizForm.get('endDate'); }
 }
@@ -268,6 +273,7 @@ export interface QuizFormConfig {
         timeLimitMinutes?: number;
         maxAttempts: number;
         passingScore: number;
+        maxScoreScale?: number;
         shuffleQuestions: boolean;
         shuffleOptions: boolean;
         showResultsImmediately: boolean;
@@ -284,6 +290,7 @@ export interface QuizFormData {
     timeLimitMinutes?: number;
     maxAttempts: number;
     passingScore: number;
+    maxScoreScale?: number;
     shuffleQuestions: boolean;
     shuffleOptions: boolean;
     showResultsImmediately: boolean;

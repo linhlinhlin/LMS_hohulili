@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, viewChild, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, signal, viewChild, viewChildren, inject, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormArray, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -6,6 +6,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { firstValueFrom } from 'rxjs';
 
 import { QuestionApi, Question } from '../../../api/endpoints/question.api';
+import { QuestionBankApi } from '../../../api/endpoints/question-bank.api';
 import { BlockEditorComponent } from '../../../shared/components/block-editor/block-editor.component';
 import { EnrichedInputFieldComponent } from '../../../shared/components/enriched-input/enriched-input.component';
 import { QuestionPreviewComponent } from '../../../shared/components/question-preview/question-preview.component';
@@ -26,6 +27,7 @@ import { ToastService } from '../../../core/services/toast.service';
     AuthImagePipe
   ],
   templateUrl: './question-edit.component.html',
+  styles: [`@keyframes slideIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }`]
 })
 export class QuestionEditComponent implements OnInit {
   private fb = inject(FormBuilder);
@@ -33,11 +35,14 @@ export class QuestionEditComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private questionApi = inject(QuestionApi);
   private toast = inject(ToastService);
+  private questionBankApi = inject(QuestionBankApi);
 
   questionForm: FormGroup;
   isLoading = signal(false);
   question: Question | null = null;
   questionId: string | null = null;
+  packageId: string | null = null;
+  bankName = signal<string | null>(null);
 
   // Question type state
   selectedType = signal<'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'TRUE_FALSE'>('SINGLE_CHOICE');
@@ -56,6 +61,10 @@ export class QuestionEditComponent implements OnInit {
   optionBlocksMap = new Map<number, ContentBlock[]>();
 
   readonly blockEditor = viewChild(BlockEditorComponent);
+  readonly optionInputs = viewChildren(EnrichedInputFieldComponent);
+
+  // Entrance animation tracking
+  lastAddedIndex = signal<number | null>(null);
 
   constructor() {
     this.questionForm = this.fb.group({
@@ -69,6 +78,7 @@ export class QuestionEditComponent implements OnInit {
 
   ngOnInit(): void {
     this.questionId = this.route.snapshot.paramMap.get('questionId');
+    this.packageId = this.route.snapshot.queryParamMap.get('packageId');
     if (this.questionId) {
       this.loadQuestion();
     }
@@ -81,6 +91,15 @@ export class QuestionEditComponent implements OnInit {
       if (question) {
         this.question = question;
         this.populateFormWithQuestion(question);
+
+        const pkgId = this.packageId || (question as any).packageId || (question as any).bankId;
+        if (pkgId) {
+          this.packageId = pkgId;
+          this.questionBankApi.getBankById(pkgId).subscribe({
+            next: (bank) => this.bankName.set(bank?.name || null),
+            error: () => {}
+          });
+        }
       }
     } catch (error) {
       console.error('Error loading question:', error);
@@ -175,6 +194,15 @@ export class QuestionEditComponent implements OnInit {
       } else if (block.type === 'warning') {
         const data = block.data || {};
         return `[WARNING:${JSON.stringify({ title: data.title || '', message: data.message || '' })}]`;
+      } else if (block.type === 'video') {
+        const data = block.data || {};
+        if (data.isYouTube && data.url) {
+          return `[YTVID:${data.url}]`;
+        }
+        // Prefer rawUrl (original upload URL, not overwritten by HLS manifest)
+        const url = data.rawUrl || data.url || '';
+        const assetId = data.videoAssetId || '';
+        return url ? `[VID:${url}]` : (assetId ? `[VID:${assetId}]` : '');
       }
       return '';
     }).filter(s => s.trim()).join(' ');
@@ -235,6 +263,16 @@ export class QuestionEditComponent implements OnInit {
     this.updatePreviewOptions();
   }
 
+  onOptionRowClick(index: number, event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (target.closest('textarea, input[type="radio"], input[type="checkbox"], button, app-enriched-input')) return;
+    if (this.selectedType() === 'MULTIPLE_CHOICE') {
+      this.toggleCorrectKey(this.getOptionKey(index));
+    } else {
+      this.setCorrectOption(this.getOptionKey(index));
+    }
+  }
+
   isOptionCorrect(index: number): boolean {
     const key = this.getOptionKey(index);
     if (this.selectedType() === 'MULTIPLE_CHOICE') {
@@ -250,13 +288,26 @@ export class QuestionEditComponent implements OnInit {
     return !!this.getCorrectOptionKey();
   }
 
+  onEnterOnEmptyOption(index: number): void {
+    if (index === this.options.length - 1) {
+      this.addOption();
+    }
+  }
+
   addOption(): void {
     const nextKey = String.fromCharCode(65 + this.options.length);
+    const newIndex = this.options.length;
     this.options.push(this.fb.group({
       optionKey: [nextKey],
       content: ['']
     }));
     this.updatePreviewOptions();
+    this.lastAddedIndex.set(newIndex);
+    setTimeout(() => {
+      const inputs = this.optionInputs();
+      inputs[inputs.length - 1]?.focus();
+    });
+    setTimeout(() => this.lastAddedIndex.set(null), 300);
   }
 
   removeOption(index: number): void {
@@ -382,7 +433,7 @@ export class QuestionEditComponent implements OnInit {
       next: () => {
         this.toast.success('Đã cập nhật câu hỏi thành công!');
         this.router.navigate(['/teacher/assessments/shared/question-bank'], {
-          queryParams: { packageId: (this.question as any).packageId || (this.question as any).bankId }
+          queryParams: this.packageId ? { packageId: this.packageId } : {}
         });
       },
       error: (error) => {
@@ -393,7 +444,9 @@ export class QuestionEditComponent implements OnInit {
   }
 
   onCancel(): void {
-    this.router.navigate(['/teacher/assessments/shared/question-bank']);
+    this.router.navigate(['/teacher/assessments/shared/question-bank'], {
+      queryParams: this.packageId ? { packageId: this.packageId } : {}
+    });
   }
 
   // --- Data Transformation ---
@@ -420,6 +473,11 @@ export class QuestionEditComponent implements OnInit {
         data.caption = rest.caption || rest.data?.caption || '';
       } else if (type === 'paragraph') {
         data.text = rest.text || rest.data?.text || '';
+      } else if (type === 'video') {
+        data.videoAssetId = rest.data?.videoAssetId || rest.videoAssetId || '';
+        data.url = rest.data?.url || rest.url || '';
+        data.caption = rest.data?.caption || rest.caption || '';
+        data.mimeType = rest.data?.mimeType || rest.mimeType || 'video/mp4';
       } else {
         Object.assign(data, rest.data || rest);
       }
@@ -444,6 +502,13 @@ export class QuestionEditComponent implements OnInit {
       } else if (type === 'paragraph') {
         block.type = 'text';
         block.content = data.text || '';
+      } else if (type === 'video') {
+        block.data = {
+          videoAssetId: data.videoAssetId || '',
+          url: data.url || '',
+          caption: data.caption || '',
+          mimeType: data.mimeType || 'video/mp4'
+        };
       } else {
         block.data = data;
       }
@@ -496,6 +561,19 @@ export class QuestionEditComponent implements OnInit {
           data: {
             latex: data?.latex || data?.text || '',
             format: data?.format || 'inline'
+          }
+        } as any;
+      }
+
+      if (type === 'video') {
+        return {
+          id,
+          type: 'video',
+          data: {
+            videoAssetId: data?.videoAssetId || '',
+            url: data?.url || '',
+            caption: data?.caption || '',
+            mimeType: data?.mimeType || 'video/mp4'
           }
         } as any;
       }

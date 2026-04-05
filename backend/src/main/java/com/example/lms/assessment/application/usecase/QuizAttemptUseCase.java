@@ -43,6 +43,11 @@ public class QuizAttemptUseCase {
 
     @Transactional
     public QuizAttempt startAttempt(UUID quizId, UUID studentId) {
+        return startAttempt(quizId, studentId, null);
+    }
+
+    @Transactional
+    public QuizAttempt startAttempt(UUID quizId, UUID studentId, String accessPassword) {
         log.info("Student {} starting quiz {}", studentId, quizId);
 
         Quiz quiz = quizRepository.findById(QuizId.of(quizId))
@@ -61,15 +66,20 @@ public class QuizAttemptUseCase {
             throw new BusinessRuleException("QUIZ_LOCKED", "Bài kiểm tra đã đóng");
         }
 
-        if (!studentAssessmentAccessPort.canAccessQuiz(quizId, studentId)) {
-            throw new BusinessRuleException("QUIZ_ACCESS_DENIED", "Ban khong co quyen truy cap bai kiem tra nay");
+        // Access password validation (Canvas "access code" pattern)
+        if (quiz.hasAccessPassword() && !quiz.validateAccessPassword(accessPassword)) {
+            throw new BusinessRuleException("QUIZ_PASSWORD_REQUIRED", "Mật khẩu truy cập không đúng");
         }
 
-        // Check max attempts
+        if (!studentAssessmentAccessPort.canAccessQuiz(quizId, studentId)) {
+            throw new BusinessRuleException("QUIZ_ACCESS_DENIED", "Bạn không có quyền truy cập bài kiểm tra này");
+        }
+
+        // Check max attempts — only count completed (SUBMITTED/GRADED/TIMEOUT), not IN_PROGRESS
         Integer maxAttempts = quiz.getSettings().maxAttempts();
         if (maxAttempts != null && maxAttempts > 0) {
-            List<QuizAttempt> previousAttempts = attemptRepository.findByQuizIdAndStudentId(quizId, studentId);
-            if (previousAttempts.size() >= maxAttempts) {
+            long completedCount = attemptRepository.countCompletedByQuizIdAndStudentId(quizId, studentId);
+            if (completedCount >= maxAttempts) {
                 throw new BusinessRuleException("MAX_ATTEMPTS_REACHED",
                         "Bạn đã sử dụng hết " + maxAttempts + " lượt làm bài cho quiz này");
             }
@@ -127,21 +137,26 @@ public class QuizAttemptUseCase {
             quiz.getQuestions().forEach(qq -> pointsMap.put(qq.getQuestionId(), qq.getPoints()));
         }
 
-        // 3. Batch-fetch all questions (FIX N+1)
-        List<UUID> questionIds = studentAnswers.stream()
-                .map(QuizAttempt.AttemptAnswer::getQuestionId)
-                .toList();
-        Map<UUID, Question> questionMap = questionRepository.findAllByIds(questionIds).stream()
+        // 3. Batch-fetch ALL quiz questions (not just answered ones — unanswered count in denominator)
+        List<UUID> allQuestionIds = quiz.getQuestions() != null
+                ? quiz.getQuestions().stream().map(QuizQuestion::getQuestionId).collect(Collectors.toList())
+                : Collections.emptyList();
+        Map<UUID, Question> questionMap = questionRepository.findAllByIds(allQuestionIds).stream()
                 .collect(Collectors.toMap(Question::getId, Function.identity()));
 
-        // 4. Grade each answer using GradingStrategy dispatch
+        // Build lookup for student answers by questionId
+        Map<UUID, QuizAttempt.AttemptAnswer> answerMap = studentAnswers.stream()
+                .collect(Collectors.toMap(QuizAttempt.AttemptAnswer::getQuestionId, Function.identity(), (a, b) -> a));
+
+        // 4. Grade ALL questions — unanswered get 0 points but count in denominator
         double totalPoints = 0;
         double obtainedPoints = 0;
         boolean hasEssayQuestions = false;
         List<QuizAttempt.AttemptItem> gradedItems = new ArrayList<>();
 
-        for (QuizAttempt.AttemptAnswer ans : studentAnswers) {
-            UUID questionId = ans.getQuestionId();
+        List<QuizQuestion> quizQuestions = quiz.getQuestions() != null ? quiz.getQuestions() : Collections.emptyList();
+        for (QuizQuestion quizQuestion : quizQuestions) {
+            UUID questionId = quizQuestion.getQuestionId();
             Question question = questionMap.get(questionId);
 
             if (question == null) {
@@ -149,43 +164,89 @@ public class QuizAttemptUseCase {
                 continue;
             }
 
-            // Get points override from QuizQuestion
-            Integer pointsOverride = pointsMap.getOrDefault(questionId, 1);
-            Map<String, Object> effectiveAnswer = ans.getEffectiveAnswer();
+            int questionMaxPoints = pointsMap.getOrDefault(questionId, 1);
+            totalPoints += questionMaxPoints;
 
-            // Dispatch to correct grading strategy
-            GradingStrategy.GradeResult result = gradingService.grade(
-                    question, effectiveAnswer, pointsOverride.doubleValue());
+            QuizAttempt.AttemptAnswer ans = answerMap.get(questionId);
 
-            if (question.getQuestionType() == Question.QuestionType.ESSAY) {
-                hasEssayQuestions = true;
+            // Resolve effective correct option — mirrors SingleChoiceGradingStrategy.resolveCorrectOption():
+            // prefer answerKey.correctOption (new format) over legacy correctOption field.
+            String effectiveCorrectOption = (question.getAnswerKey() != null
+                    && question.getAnswerKey().containsKey("correctOption"))
+                    ? String.valueOf(question.getAnswerKey().get("correctOption"))
+                    : question.getCorrectOption();
+
+            // Resolve correct options for MULTIPLE_CHOICE — mirrors MultipleChoiceGradingStrategy.resolveCorrectOptions()
+            List<String> effectiveCorrectOptions = null;
+            if (question.getQuestionType() == Question.QuestionType.MULTIPLE_CHOICE) {
+                if (question.getAnswerKey() != null && question.getAnswerKey().containsKey("correctOptions")) {
+                    Object val = question.getAnswerKey().get("correctOptions");
+                    if (val instanceof List) {
+                        @SuppressWarnings("unchecked")
+                        List<Object> rawList = (List<Object>) val;
+                        effectiveCorrectOptions = rawList.stream()
+                                .map(o -> String.valueOf(o).toUpperCase())
+                                .collect(Collectors.toList());
+                    }
+                } else if (question.getCorrectOption() != null) {
+                    effectiveCorrectOptions = Arrays.stream(question.getCorrectOption().split(","))
+                            .map(s -> s.trim().toUpperCase())
+                            .collect(Collectors.toList());
+                }
             }
 
-            totalPoints += result.maxPoints();
-            obtainedPoints += result.pointsEarned();
+            if (ans != null) {
+                // Student answered — grade it
+                Map<String, Object> effectiveAnswer = ans.getEffectiveAnswer();
+                GradingStrategy.GradeResult result = gradingService.grade(
+                        question, effectiveAnswer, (double) questionMaxPoints);
 
-            // Build graded AttemptItem
-            gradedItems.add(QuizAttempt.AttemptItem.builder()
-                    .questionId(questionId)
-                    .selectedOption(ans.getSelectedOption()) // legacy compat
-                    .studentAnswer(effectiveAnswer)
-                    .isCorrect(result.correct())
-                    .pointsEarned(result.pointsEarned())
-                    .build());
+                if (question.getQuestionType() == Question.QuestionType.ESSAY) {
+                    hasEssayQuestions = true;
+                }
+
+                obtainedPoints += result.pointsEarned();
+
+                gradedItems.add(QuizAttempt.AttemptItem.builder()
+                        .questionId(questionId)
+                        .selectedOption(ans.getSelectedOption())
+                        .studentAnswer(effectiveAnswer)
+                        .isCorrect(result.correct())
+                        .pointsEarned(result.pointsEarned())
+                        .correctOption(effectiveCorrectOption)
+                        .correctOptions(effectiveCorrectOptions)
+                        .build());
+            } else {
+                // Unanswered — 0 points, marked incorrect
+                gradedItems.add(QuizAttempt.AttemptItem.builder()
+                        .questionId(questionId)
+                        .selectedOption(null)
+                        .studentAnswer(null)
+                        .isCorrect(false)
+                        .pointsEarned(0.0)
+                        .correctOption(effectiveCorrectOption)
+                        .correctOptions(effectiveCorrectOptions)
+                        .build());
+            }
         }
 
         // 5. Replace items with graded results
         attempt.getItems().clear();
         attempt.getItems().addAll(gradedItems);
 
-        // 6. Calculate final score and pass/fail
-        double finalScore = (totalPoints > 0) ? (obtainedPoints / totalPoints) * 100.0 : 0.0;
-        int passingScore = quiz.getSettings().passingScore() != null
+        // 6. Calculate score on configurable scale (Moodle "Maximum grade" pattern), rounded to 2 decimal places
+        double maxScale = quiz.getSettings().maxScoreScale() != null ? quiz.getSettings().maxScoreScale() : 10.0;
+        double scoreOnScale = (totalPoints > 0) ? (obtainedPoints / totalPoints) * maxScale : 0.0;
+        scoreOnScale = Math.round(scoreOnScale * 100.0) / 100.0;
+
+        int passingScorePercent = quiz.getSettings().passingScore() != null
                 ? quiz.getSettings().passingScore()
                 : 60;
-        boolean passed = finalScore >= passingScore;
+        double passingThreshold = (passingScorePercent / 100.0) * maxScale;
+        boolean passed = scoreOnScale >= passingThreshold;
 
-        attempt.finishGrading(finalScore, passed);
+        attempt.setMaxScore(maxScale);
+        attempt.finishGrading(scoreOnScale, passed);
 
         QuizAttempt saved = attemptRepository.save(attempt);
 
@@ -195,7 +256,7 @@ public class QuizAttemptUseCase {
                 saved.getQuizId(),
                 StudentId.of(saved.getStudentId()),
                 quiz.getLessonId(),
-                finalScore,
+                scoreOnScale,
                 passed
         ));
 
@@ -294,6 +355,27 @@ public class QuizAttemptUseCase {
         }
     }
 
+    // ============ Teacher Moderation: Delete Attempt (Canvas "Moderate This Quiz") ============
+
+    /**
+     * Teacher deletes a student's attempt — frees up the attempt slot so student can retake.
+     */
+    @Transactional
+    public void deleteAttempt(UUID attemptId, UUID teacherId, String teacherRole) {
+        QuizAttempt attempt = attemptRepository.findById(attemptId)
+                .orElseThrow(() -> new EntityNotFoundException("QuizAttempt", attemptId));
+
+        Quiz quiz = quizRepository.findById(QuizId.of(attempt.getQuizId()))
+                .orElseThrow(() -> new EntityNotFoundException("Quiz", attempt.getQuizId()));
+
+        validateGradingPermission(quiz, teacherId, teacherRole);
+
+        log.info("Teacher {} deleting attempt {} for student {} on quiz {}",
+                teacherId, attemptId, attempt.getStudentId(), attempt.getQuizId());
+
+        attemptRepository.deleteById(attemptId);
+    }
+
     // ============ Phase 4: Auto-Save (Moodle SOTA: process_actions per 60s) ============
 
     /**
@@ -354,5 +436,149 @@ public class QuizAttemptUseCase {
         attempt.getItems().addAll(existingMap.values());
 
         return attemptRepository.save(attempt);
+    }
+
+    // ============ Phase 5: Preflight (Canvas SOTA: confirmation + resume) ============
+
+    /**
+     * Get quiz preflight info for the confirmation screen.
+     * Returns quiz metadata, attempts remaining, and in-progress attempt for resume.
+     * Auto-expires stale IN_PROGRESS attempts that exceeded time limit.
+     */
+    @Transactional
+    public Map<String, Object> getQuizPreflight(UUID quizId, UUID studentId) {
+        Quiz quiz = quizRepository.findById(QuizId.of(quizId))
+                .orElseThrow(() -> new EntityNotFoundException("Quiz", quizId));
+
+        // Find in-progress attempt (for resume)
+        Optional<QuizAttempt> inProgress = attemptRepository
+                .findInProgressByQuizIdAndStudentId(quizId, studentId);
+
+        // Auto-expire if server time exceeded (cleanup stale IN_PROGRESS)
+        // Checks both timeLimitMinutes AND lockAt — whichever fires first
+        if (inProgress.isPresent()) {
+            QuizAttempt attempt = inProgress.get();
+            Instant now = Instant.now();
+            boolean expired = false;
+
+            // Hard deadline: lockAt passed — always force-expire regardless of time limit
+            Instant lockAt = quiz.getSettings().lockAt();
+            if (lockAt != null && now.isAfter(lockAt)) {
+                log.info("Auto-expiring attempt {} for quiz {} — lockAt {} passed",
+                        attempt.getId(), quizId, lockAt);
+                expired = true;
+            }
+
+            // Time limit expired (+ 60s grace for network latency)
+            if (!expired) {
+                Integer timeLimit = quiz.getSettings().timeLimitMinutes();
+                if (timeLimit != null && timeLimit > 0 && attempt.getStartTime() != null) {
+                    long elapsed = Duration.between(attempt.getStartTime(), now).getSeconds();
+                    long allowed = timeLimit * 60L + 60L;
+                    if (elapsed > allowed) {
+                        log.info("Auto-expiring stale attempt {} for quiz {} ({}s elapsed, {}s allowed)",
+                                attempt.getId(), quizId, elapsed, allowed);
+                        expired = true;
+                    }
+                }
+            }
+
+            if (expired) {
+                attempt.markTimeout();
+                attemptRepository.save(attempt);
+                inProgress = Optional.empty();
+            }
+        }
+
+        long completedCount = attemptRepository.countCompletedByQuizIdAndStudentId(quizId, studentId);
+        Integer maxAttempts = quiz.getSettings().maxAttempts();
+
+        Instant now = Instant.now();
+        Instant lockAt = quiz.getSettings().lockAt();
+        Instant availableFrom = quiz.getSettings().availableFrom();
+        Instant dueAt = quiz.getSettings().dueAt();
+        Integer timeLimitMinutes = quiz.getSettings().timeLimitMinutes();
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("quizId", quizId.toString());
+        result.put("quizTitle", quiz.getTitle());
+        result.put("description", quiz.getDescription());
+        result.put("timeLimitMinutes", timeLimitMinutes);
+        result.put("maxAttempts", maxAttempts);
+        result.put("passingScore", quiz.getSettings().passingScore());
+        result.put("maxScoreScale", quiz.getSettings().maxScoreScale() != null ? quiz.getSettings().maxScoreScale() : 10.0);
+        result.put("questionCount", quiz.getQuestions() != null ? quiz.getQuestions().size() : 0);
+        result.put("completedAttempts", completedCount);
+        result.put("attemptsRemaining", maxAttempts != null && maxAttempts > 0
+                ? Math.max(0, maxAttempts - completedCount) : null);
+        result.put("requiresPassword", quiz.hasAccessPassword());
+        result.put("shuffleQuestions", quiz.getSettings().shuffleQuestions());
+        result.put("shuffleOptions", quiz.getSettings().shuffleOptions());
+
+        // Canvas SOTA: expose schedule dates so client can show deadlines + enforce lockAt
+        result.put("availableFrom", availableFrom != null ? availableFrom.toString() : null);
+        result.put("dueAt", dueAt != null ? dueAt.toString() : null);
+        result.put("lockAt", lockAt != null ? lockAt.toString() : null);
+
+        // Effective time limit for a NEW attempt: min(timeLimitMinutes*60, secondsUntilLockAt)
+        // Client uses this to initialize the countdown for fresh starts
+        if (timeLimitMinutes != null && timeLimitMinutes > 0) {
+            long timeLimitSeconds = timeLimitMinutes * 60L;
+            if (lockAt != null) {
+                long secondsUntilLock = Math.max(0, Duration.between(now, lockAt).getSeconds());
+                result.put("effectiveTimeLimitSeconds", Math.min(timeLimitSeconds, secondsUntilLock));
+            } else {
+                result.put("effectiveTimeLimitSeconds", timeLimitSeconds);
+            }
+        } else if (lockAt != null) {
+            // No per-attempt time limit, but lockAt creates an effective deadline
+            long secondsUntilLock = Math.max(0, Duration.between(now, lockAt).getSeconds());
+            result.put("effectiveTimeLimitSeconds", secondsUntilLock);
+        } else {
+            result.put("effectiveTimeLimitSeconds", null);
+        }
+
+        // Resume info
+        if (inProgress.isPresent()) {
+            QuizAttempt attempt = inProgress.get();
+            Map<String, Object> resumeInfo = new HashMap<>();
+            resumeInfo.put("attemptId", attempt.getId().toString());
+            resumeInfo.put("startedAt", attempt.getStartTime() != null ? attempt.getStartTime().toString() : null);
+
+            // Server-calculated time remaining — min(timeLimitRemaining, secondsUntilLockAt)
+            if (timeLimitMinutes != null && timeLimitMinutes > 0 && attempt.getStartTime() != null) {
+                long elapsed = Duration.between(attempt.getStartTime(), now).getSeconds();
+                long timeLimitBasedRemaining = Math.max(0, timeLimitMinutes * 60L - elapsed);
+                if (lockAt != null) {
+                    long secondsUntilLock = Math.max(0, Duration.between(now, lockAt).getSeconds());
+                    resumeInfo.put("timeRemainingSeconds", Math.min(timeLimitBasedRemaining, secondsUntilLock));
+                } else {
+                    resumeInfo.put("timeRemainingSeconds", timeLimitBasedRemaining);
+                }
+            } else if (lockAt != null) {
+                // No per-attempt time limit — lockAt is the only deadline
+                long secondsUntilLock = Math.max(0, Duration.between(now, lockAt).getSeconds());
+                resumeInfo.put("timeRemainingSeconds", secondsUntilLock);
+            }
+
+            // Saved answers for restore
+            List<Map<String, Object>> savedAnswers = attempt.getItems().stream()
+                    .filter(item -> item.getSelectedOption() != null || item.getStudentAnswer() != null)
+                    .map(item -> {
+                        Map<String, Object> ans = new HashMap<>();
+                        ans.put("questionId", item.getQuestionId().toString());
+                        ans.put("selectedOption", item.getSelectedOption());
+                        ans.put("studentAnswer", item.getStudentAnswer());
+                        return ans;
+                    }).toList();
+            resumeInfo.put("savedAnswers", savedAnswers);
+            resumeInfo.put("answeredCount", savedAnswers.size());
+
+            result.put("inProgressAttempt", resumeInfo);
+        } else {
+            result.put("inProgressAttempt", null);
+        }
+
+        return result;
     }
 }

@@ -145,7 +145,8 @@ public class AuthControllerV3 {
         UpdateProfileCommand command = new UpdateProfileCommand(
             currentUser.getId(),
             request.fullName(),
-            request.email()
+            request.email(),
+            request.avatarUrl()
         );
 
         UserResponse response = updateProfileUseCase.execute(currentUser.getId(), command);
@@ -268,7 +269,9 @@ public class AuthControllerV3 {
         @Size(max = 255, message = "Họ tên không được vượt quá 255 ký tự")
         String fullName,
         @Email(message = "Email không hợp lệ")
-        String email
+        String email,
+        @Size(max = 500, message = "URL avatar không được vượt quá 500 ký tự")
+        String avatarUrl
     ) {}
 
     public record ChangePasswordRequest(

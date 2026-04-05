@@ -39,6 +39,50 @@ export class SidebarComponent {
   collapsed = input(false);
   toggleCollapse = output<void>();
 
+  // User menu state (Claude/GitHub/Linear pattern)
+  protected isUserMenuOpen = signal(false);
+
+  protected userName = computed(() => {
+    const user = this.authService.currentUserSignal();
+    return user?.fullName || user?.name || '';
+  });
+
+  protected userEmail = computed(() => this.authService.currentUserSignal()?.email || '');
+
+  protected userAvatarDisplay = computed(() => {
+    const user = this.authService.currentUserSignal();
+    const avatar = user?.avatar;
+    if (avatar) return avatar;
+    const name = encodeURIComponent(this.userName() || 'U');
+    return `https://ui-avatars.com/api/?name=${name}&background=0056D2&color=ffffff&size=80&bold=true`;
+  });
+
+  protected profileRoute = computed(() => {
+    switch (this.config().role) {
+      case 'student': return '/student/profile';
+      case 'teacher': return '/teacher/profile';
+      default: return '/student/profile';
+    }
+  });
+
+  protected getUserInitials(): string {
+    const name = this.userName();
+    return name.split(' ').map(n => n[0]).filter(Boolean).join('').toUpperCase().slice(0, 2) || 'U';
+  }
+
+  toggleUserMenu(): void {
+    this.isUserMenuOpen.update(v => !v);
+  }
+
+  closeUserMenu(): void {
+    this.isUserMenuOpen.set(false);
+  }
+
+  handleLogout(): void {
+    this.closeUserMenu();
+    this.authService.logout();
+  }
+
   getSidebarClasses(): string {
     return `sidebar-${this.config().role.toLowerCase()}`;
   }
@@ -59,7 +103,6 @@ export class SidebarComponent {
     const role = this.config().role.toLowerCase();
     const baseClasses = 'flex items-center justify-center';
 
-    // Role-specific icon colors
     switch (role) {
       case 'student':
         return `${baseClasses} text-[#0056D2]`;
@@ -74,9 +117,5 @@ export class SidebarComponent {
 
   isSubMenuOpen(item: SidebarMenuItem): boolean {
     return this.router.url.startsWith(item.route);
-  }
-
-  logout(): void {
-    this.authService.logout();
   }
 }

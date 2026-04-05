@@ -47,6 +47,10 @@ public class UpdateProfileUseCaseV2 {
         String newFullName = command.fullName() != null ? command.fullName() : user.getFullName();
         user.updateProfile(newFullName, newEmail);
 
+        if (command.avatarUrl() != null) {
+            user.updateAvatarUrl(command.avatarUrl());
+        }
+
         // Save updated user
         User updatedUser = userRepository.save(user);
 

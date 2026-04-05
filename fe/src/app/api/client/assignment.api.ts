@@ -289,6 +289,11 @@ export class AssignmentApi {
 
   // ===================== Student Endpoints =====================
 
+  // Get unified student tasks (assignments + quizzes + exams + practice)
+  getStudentTasks() {
+    return this.api.getWithResponse<StudentTaskApiResponse[]>('/api/v3/student/tasks');
+  }
+
   // Get student's assignments across enrolled courses
   getStudentAssignments() {
     return this.api.getWithResponse<StudentAssignmentResponse[]>('/api/v3/student/assignments');
@@ -311,6 +316,35 @@ export class AssignmentApi {
   getStudentSubmission(assignmentId: string) {
     return this.api.getWithResponse<any>(`/api/v3/student/assignments/${assignmentId}/submission`);
   }
+}
+
+export interface StudentTaskApiResponse {
+  id: string;
+  workType: 'ASSIGNMENT' | 'QUIZ' | 'EXAM' | 'PRACTICE';
+  title: string;
+  description?: string;
+  courseId: string;
+  courseName: string;
+  dueDate?: string;
+  availableFrom?: string;    // Canvas "Available from" — quiz opens at this time
+  lockAt?: string;           // Canvas "Until" — hard deadline, no access after
+  status: string;
+  isLate: boolean;
+  score?: number;
+  maxScore?: number;
+  feedback?: string;
+  submissionId?: string;
+  submittedAt?: string;
+  fileUrl?: string;
+  fileName?: string;
+  attemptId?: string;
+  timeLimitMinutes?: number;
+  maxAttempts?: number;
+  questionCount?: number;
+  passingScore?: number;
+  isPassed?: boolean;
+  attemptCount?: number;
+  requiresPassword?: boolean;
 }
 
 export interface StudentAssignmentResponse {

@@ -60,6 +60,23 @@ public class QuizAttemptRepositoryAdapter implements QuizAttemptRepository {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public Optional<QuizAttempt> findInProgressByQuizIdAndStudentId(UUID quizId, UUID studentId) {
+        List<QuizAttemptJpaEntity> results = jpaRepository.findByQuizIdAndStudentIdAndStatus(
+                quizId, studentId, QuizAttemptJpaEntity.AttemptStatus.IN_PROGRESS);
+        return results.isEmpty() ? Optional.empty() : Optional.of(toDomain(results.get(0)));
+    }
+
+    @Override
+    public long countCompletedByQuizIdAndStudentId(UUID quizId, UUID studentId) {
+        return jpaRepository.countCompletedAttempts(quizId, studentId);
+    }
+
+    @Override
+    public void deleteById(UUID id) {
+        jpaRepository.deleteById(id);
+    }
+
     // ============ Mapping Methods ============
 
     /**

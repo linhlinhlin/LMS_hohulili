@@ -1,4 +1,6 @@
 import { Component, input, computed, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { inject } from '@angular/core';
 
 import { VideoBlockData } from '../block-types';
 import { AuthImagePipe } from '../../pipes/auth-image.pipe';
@@ -9,7 +11,16 @@ import { QuizVideoPlayerComponent } from './quiz-video-player.component';
   imports: [AuthImagePipe, QuizVideoPlayerComponent],
   template: `
     <figure class="my-4">
-      @if (assetId()) {
+      @if (youtubeEmbedUrl()) {
+        <!-- YouTube embed -->
+        <iframe
+          [src]="youtubeEmbedUrl()"
+          class="w-full rounded-lg shadow-md"
+          style="aspect-ratio: 16/9; border: none;"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen>
+        </iframe>
+      } @else if (assetId()) {
         <!-- Adaptive streaming via Shaka Player -->
         <app-quiz-video-player
           [videoAssetId]="assetId()"
@@ -41,6 +52,8 @@ import { QuizVideoPlayerComponent } from './quiz-video-player.component';
   encapsulation: ViewEncapsulation.None
 })
 export class VideoBlockComponent {
+  private sanitizer = inject(DomSanitizer);
+
   data = input.required<VideoBlockData>();
 
   assetId = computed(() => {
@@ -50,8 +63,34 @@ export class VideoBlockComponent {
 
   videoUrl = computed(() => {
     const d = this.data();
-    return d.url || d.file?.url || null;
+    return d.rawUrl || d.url || d.file?.url || null;
   });
+
+  youtubeEmbedUrl = computed<SafeResourceUrl | null>(() => {
+    const d = this.data();
+    if (!d.isYouTube && !this.isYouTubeUrl(d.url)) return null;
+    const ytId = this.extractYouTubeId(d.url);
+    if (!ytId) return null;
+    return this.sanitizer.bypassSecurityTrustResourceUrl(`https://www.youtube.com/embed/${ytId}`);
+  });
+
+  private extractYouTubeId(url: string | undefined): string | null {
+    if (!url) return null;
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /youtube\.com\/v\/([^&\n?#]+)/
+    ];
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
+  }
+
+  private isYouTubeUrl(url: string | undefined): boolean {
+    if (!url) return false;
+    return url.includes('youtube.com') || url.includes('youtu.be');
+  }
 
   handleError(event: any) {
     const el = event.target as HTMLVideoElement;

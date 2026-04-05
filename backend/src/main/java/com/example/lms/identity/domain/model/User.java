@@ -22,6 +22,7 @@ public class User {
     private boolean enabled;
     private UUID organizationId;
     private Integer tokenExpiryDays;
+    private String avatarUrl;
     private Instant createdAt;
     private Instant updatedAt;
     
@@ -64,6 +65,11 @@ public class User {
     public void updateProfile(String fullName, Email email) {
         this.fullName = Objects.requireNonNull(fullName, "Họ tên không được null");
         this.email = Objects.requireNonNull(email, "Email không được null");
+        this.updatedAt = Instant.now();
+    }
+
+    public void updateAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
         this.updatedAt = Instant.now();
     }
     
@@ -122,6 +128,7 @@ public class User {
     public boolean isEnabled() { return enabled; }
     public UUID getOrganizationId() { return organizationId; }
     public Integer getTokenExpiryDays() { return tokenExpiryDays; }
+    public String getAvatarUrl() { return avatarUrl; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 
@@ -158,6 +165,7 @@ public class User {
         private boolean enabled = true;
         private UUID organizationId;
         private Integer tokenExpiryDays;
+        private String avatarUrl;
         private Instant createdAt;
         private Instant updatedAt;
 
@@ -170,12 +178,14 @@ public class User {
         public Builder enabled(boolean enabled) { this.enabled = enabled; return this; }
         public Builder organizationId(UUID organizationId) { this.organizationId = organizationId; return this; }
         public Builder tokenExpiryDays(Integer tokenExpiryDays) { this.tokenExpiryDays = tokenExpiryDays; return this; }
+        public Builder avatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; return this; }
         public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
         public Builder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
 
         public User build() {
             User user = new User(id, username, email, password, fullName, role, enabled, organizationId, createdAt, updatedAt);
             user.tokenExpiryDays = this.tokenExpiryDays;
+            user.avatarUrl = this.avatarUrl;
             return user;
         }
     }

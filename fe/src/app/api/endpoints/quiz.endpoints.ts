@@ -26,6 +26,7 @@ export const QUIZ_ENDPOINTS = {
 
   // === Quiz Attempts (Student) - matches QuizControllerV3 ===
   QUIZ_ATTEMPTS: (quizId: string) => `/api/v3/quizzes/${quizId}/attempts`,
+  ATTEMPT_PREFLIGHT: (quizId: string) => `/api/v3/quizzes/${quizId}/attempts/preflight`,
   START_ATTEMPT: (quizId: string) => `/api/v3/quizzes/${quizId}/attempts/start`,
   SUBMIT_ATTEMPT: (attemptId: string) => `/api/v3/quizzes/attempts/${attemptId}/submit`,
   SAVE_ATTEMPT: (attemptId: string) => `/api/v3/quizzes/attempts/${attemptId}/save`,
@@ -34,6 +35,7 @@ export const QUIZ_ENDPOINTS = {
 
   // === Manual Grading (Teacher) ===
   MANUAL_GRADE: (attemptId: string) => `/api/v3/quizzes/attempts/${attemptId}/grade`,
+  ENROLLED_STUDENTS: (quizId: string) => `/api/v3/quizzes/${quizId}/enrolled-students`,
 
   // === Quiz Statistics ===
   QUIZ_STATISTICS: (lessonId: string) => `/api/v3/quizzes/lessons/${lessonId}/statistics`,

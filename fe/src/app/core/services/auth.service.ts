@@ -68,7 +68,7 @@ export class AuthService {
       tap(data => {
         this.setTokens(data.accessToken, data.refreshToken);
         this.setUser(data.user);
-        const normalizedUser = { ...data.user, role: data.user.role?.toLowerCase() || '' };
+        const normalizedUser = this.normalizeUser(data.user);
         this.currentUserSubject.next(normalizedUser);
         this._currentUser.set(normalizedUser);
         this.sessionService.transitionToAuthenticated();
@@ -91,7 +91,7 @@ export class AuthService {
         if (data.accessToken) {
           this.setTokens(data.accessToken, data.refreshToken);
           this.setUser(data.user);
-          const normalizedUser = { ...data.user, role: data.user.role?.toLowerCase() || '' };
+          const normalizedUser = this.normalizeUser(data.user);
           this.currentUserSubject.next(normalizedUser);
           this._currentUser.set(normalizedUser);
         }
@@ -218,8 +218,16 @@ export class AuthService {
     return localStorage.getItem(this.tokenKey);
   }
 
+  private normalizeUser(user: User): User {
+    return {
+      ...user,
+      role: user.role?.toLowerCase() || '',
+      avatar: (user as any).avatarUrl || user.avatar || null
+    };
+  }
+
   private setUser(user: User): void {
-    const normalizedUser = { ...user, role: user.role?.toLowerCase() || '' };
+    const normalizedUser = this.normalizeUser(user);
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(this.userKey, JSON.stringify(normalizedUser));
     }
@@ -241,6 +249,16 @@ export class AuthService {
 
   getCurrentUser(): User | null {
     return this.currentUserSubject.value;
+  }
+
+  /** Update local user state after profile edit (no server call) */
+  updateLocalUser(partial: Partial<User>): void {
+    const current = this.getCurrentUser();
+    if (!current) return;
+    const updated = { ...current, ...partial };
+    this.setUser(updated);
+    this.currentUserSubject.next(updated);
+    this._currentUser.set(updated);
   }
 
   // Computed properties for template usage
@@ -279,7 +297,7 @@ export class AuthService {
       tap(data => {
         this.setTokens(data.accessToken, data.refreshToken);
         this.setUser(data.user);
-        const normalizedUser = { ...data.user, role: data.user.role?.toLowerCase() || '' };
+        const normalizedUser = this.normalizeUser(data.user);
         this.currentUserSubject.next(normalizedUser);
         this._currentUser.set(normalizedUser);
         this.sessionService.transitionToAuthenticated();

@@ -433,7 +433,7 @@ export class QuizCreationModalComponent {
           shuffleQuestions: false,
           shuffleOptions: false,
           showResultsImmediately: true,
-          showCorrectAnswers: true,
+          showCorrectAnswers: false,
           questionIds: Array.from(this.selectedQuestionIds()),
           publishImmediately: false
         })

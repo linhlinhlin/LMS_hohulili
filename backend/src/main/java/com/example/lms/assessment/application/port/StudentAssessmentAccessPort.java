@@ -13,4 +13,6 @@ public interface StudentAssessmentAccessPort {
     List<UUID> filterAccessibleAssignmentIds(List<UUID> assignmentIds, UUID studentId);
 
     boolean canAccessQuiz(UUID quizId, UUID studentId);
+
+    List<UUID> filterAccessibleQuizIds(List<UUID> quizIds, UUID studentId);
 }

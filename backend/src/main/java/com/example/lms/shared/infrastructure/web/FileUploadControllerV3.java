@@ -68,7 +68,7 @@ public class FileUploadControllerV3 {
     }
 
     @PostMapping(value = "/upload/editor", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Upload file for EditorJS (R2 or local storage)")
     public ResponseEntity<Map<String, Object>> uploadForEditor(
             @RequestParam("file") MultipartFile file,
@@ -275,7 +275,7 @@ public class FileUploadControllerV3 {
     // ============ Presigned Upload Flow ============
 
     @PostMapping("/upload/init")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Initialize presigned upload — returns presigned PUT URL")
     public ResponseEntity<Map<String, Object>> initUpload(
             @RequestBody Map<String, Object> body,
@@ -315,7 +315,7 @@ public class FileUploadControllerV3 {
     }
 
     @PostMapping("/upload/confirm")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Confirm presigned upload — verifies file in storage, creates attachment record")
     public ResponseEntity<Map<String, Object>> confirmUpload(
             @RequestBody Map<String, String> body,

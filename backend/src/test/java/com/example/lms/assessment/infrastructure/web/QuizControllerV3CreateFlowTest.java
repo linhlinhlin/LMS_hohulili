@@ -106,6 +106,7 @@ class QuizControllerV3CreateFlowTest {
                 "Quiz description",
                 30,
                 70,
+                10.0,
                 true,
                 true,
                 Quiz.AssessmentType.PRACTICE,
@@ -317,6 +318,7 @@ class QuizControllerV3CreateFlowTest {
                 30,
                 2,
                 70,
+                10.0,
                 true,
                 false,
                 true,
@@ -326,7 +328,8 @@ class QuizControllerV3CreateFlowTest {
                 selectedChapterId,
                 classId,
                 questionIds,
-                publishImmediately
+                publishImmediately,
+                null
         );
     }
 }

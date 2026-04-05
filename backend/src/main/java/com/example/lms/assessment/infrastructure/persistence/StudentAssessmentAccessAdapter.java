@@ -114,6 +114,50 @@ public class StudentAssessmentAccessAdapter implements StudentAssessmentAccessPo
                 .orElse(false);
     }
 
+    @Override
+    public List<UUID> filterAccessibleQuizIds(List<UUID> quizIds, UUID studentId) {
+        if (quizIds == null || quizIds.isEmpty()) {
+            return List.of();
+        }
+
+        StudentEnrollmentContext context = loadEnrollmentContext(studentId);
+        if (context.courseIds().isEmpty()) {
+            return List.of();
+        }
+
+        Map<UUID, QuizJpaEntity> quizzesById = quizJpaRepository.findAllById(quizIds).stream()
+                .collect(Collectors.toMap(QuizJpaEntity::getId, q -> q));
+
+        List<QuizAssignmentJpaEntity> allQuizAssignments = quizAssignmentJpaRepository.findByQuizIdIn(quizIds);
+        Map<UUID, List<QuizAssignmentJpaEntity>> assignmentsByQuizId = allQuizAssignments.stream()
+                .collect(Collectors.groupingBy(QuizAssignmentJpaEntity::getQuizId));
+
+        return quizIds.stream()
+                .filter(quizId -> {
+                    QuizJpaEntity quiz = quizzesById.get(quizId);
+                    if (quiz == null) return false;
+
+                    List<QuizAssignmentJpaEntity> assignments = assignmentsByQuizId.getOrDefault(quizId, List.of());
+                    List<QuizAssignmentJpaEntity> active = assignments.stream()
+                            .filter(a -> !Boolean.FALSE.equals(a.getIsActive()))
+                            .toList();
+
+                    if (!active.isEmpty()) {
+                        return active.stream().anyMatch(a -> {
+                            if (a.getClassId() != null) return context.isEnrolledInClass(a.getClassId());
+                            if (a.getCourseId() != null) return context.isEnrolledInCourse(a.getCourseId());
+                            return false;
+                        });
+                    }
+
+                    // Fallback: check lesson→chapter→course path
+                    return courseRepository.findByLessonId(quiz.getLessonId())
+                            .map(course -> context.isEnrolledInCourse(course.getId()))
+                            .orElse(false);
+                })
+                .toList();
+    }
+
     private boolean isAssignmentVisible(
             UUID assignmentId,
             StudentEnrollmentContext context,

@@ -25,7 +25,9 @@ public record QuizAttemptResponse(
             String selectedOption,
             Boolean isCorrect,
             Double pointsEarned,
-            String feedback
+            String feedback,
+            String correctOption, // For SINGLE_CHOICE/TRUE_FALSE; revealed when showCorrectAnswers=true
+            List<String> correctOptions // For MULTIPLE_CHOICE; revealed when showCorrectAnswers=true
     ) {
         public static AttemptItemResponse from(QuizAttempt.AttemptItem item) {
             return new AttemptItemResponse(
@@ -33,7 +35,9 @@ public record QuizAttemptResponse(
                     item.getSelectedOption(),
                     item.getIsCorrect(),
                     item.getPointsEarned(),
-                    item.getFeedback()
+                    item.getFeedback(),
+                    item.getCorrectOption(),
+                    item.getCorrectOptions()
             );
         }
     }

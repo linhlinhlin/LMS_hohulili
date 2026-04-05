@@ -82,9 +82,11 @@ function xhrFormData(url: string, file: File, onProgress: (pct: number) => void)
 interface ToolData {
   videoAssetId: string;
   url: string;
+  rawUrl: string;   // Original upload URL (R2 CDN or server relay) — not overwritten by polling
   caption: string;
   mimeType: string;
   status: string;
+  isYouTube: boolean;
 }
 
 export default class VideoBlockTool {
@@ -112,9 +114,11 @@ export default class VideoBlockTool {
     this.data = {
       videoAssetId: data.videoAssetId || '',
       url: data.url || '',
+      rawUrl: data.rawUrl || data.url || '',
       caption: data.caption || '',
       mimeType: data.mimeType || 'video/mp4',
-      status: data.status || ''
+      status: data.status || '',
+      isYouTube: data.isYouTube || false
     };
   }
 
@@ -128,7 +132,7 @@ export default class VideoBlockTool {
 
     if (this.data.videoAssetId || this.data.url) {
       this.renderVideoPreview();
-      if (this.data.videoAssetId && this.data.status !== 'READY') {
+      if (this.data.videoAssetId && !this.data.isYouTube && this.data.status !== 'READY' && this.data.status !== 'FAILED') {
         this.startPolling(this.data.videoAssetId);
       }
     } else {
@@ -144,6 +148,19 @@ export default class VideoBlockTool {
     if (!this.wrapper) return;
     this.wrapper.innerHTML = '';
 
+    // Tab bar: Upload | YouTube URL
+    const tabBar = document.createElement('div');
+    tabBar.style.cssText = 'display: flex; border-bottom: 1px solid #e5e7eb; margin: 0 8px;';
+    const tabUpload = document.createElement('button');
+    tabUpload.type = 'button';
+    tabUpload.textContent = 'Tải lên';
+    tabUpload.style.cssText = 'flex: 1; padding: 8px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; background: transparent; border-bottom: 2px solid #0056D2; color: #0056D2;';
+    const tabYoutube = document.createElement('button');
+    tabYoutube.type = 'button';
+    tabYoutube.textContent = 'YouTube URL';
+    tabYoutube.style.cssText = 'flex: 1; padding: 8px; font-size: 13px; font-weight: 500; border: none; cursor: pointer; background: transparent; border-bottom: 2px solid transparent; color: #6b7280;';
+
+    // Upload zone
     this.uploadZone = document.createElement('div');
     this.uploadZone.style.cssText = `
       padding: 2rem; text-align: center; cursor: pointer;
@@ -172,6 +189,74 @@ export default class VideoBlockTool {
       this.uploadZone!.style.borderColor = '#d1d5db';
       this.uploadZone!.style.background = '#f9fafb';
     });
+
+    // YouTube URL zone
+    const youtubeZone = document.createElement('div');
+    youtubeZone.style.cssText = 'display: none; padding: 1.5rem; margin: 8px;';
+    youtubeZone.innerHTML = `
+      <div style="margin-bottom: 12px; text-align: center;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="#ef4444" style="margin: 0 auto;">
+          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"/>
+          <path d="M9.545 15.568V8.432L15.818 12z" fill="white"/>
+        </svg>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <input type="text" class="yt-url-input" placeholder="Dán link YouTube (vd: https://youtube.com/watch?v=...)"
+               style="flex: 1; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;"
+               onfocus="this.style.borderColor='#0056D2'; this.style.boxShadow='0 0 0 3px rgba(0,86,210,0.08)'"
+               onblur="this.style.borderColor='#d1d5db'; this.style.boxShadow='none'" />
+        <button type="button" class="yt-add-btn"
+                style="padding: 8px 16px; background: #0056D2; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">
+          Thêm
+        </button>
+      </div>
+      <p style="font-size: 11px; color: #9ca3af; margin: 8px 0 0; text-align: center;">
+        Hỗ trợ: youtube.com/watch?v=..., youtu.be/..., youtube.com/embed/...
+      </p>
+    `;
+
+    // Tab switching
+    tabUpload.addEventListener('click', () => {
+      tabUpload.style.borderBottomColor = '#0056D2';
+      tabUpload.style.color = '#0056D2';
+      tabUpload.style.fontWeight = '600';
+      tabYoutube.style.borderBottomColor = 'transparent';
+      tabYoutube.style.color = '#6b7280';
+      tabYoutube.style.fontWeight = '500';
+      this.uploadZone!.style.display = '';
+      youtubeZone.style.display = 'none';
+    });
+    tabYoutube.addEventListener('click', () => {
+      tabYoutube.style.borderBottomColor = '#0056D2';
+      tabYoutube.style.color = '#0056D2';
+      tabYoutube.style.fontWeight = '600';
+      tabUpload.style.borderBottomColor = 'transparent';
+      tabUpload.style.color = '#6b7280';
+      tabUpload.style.fontWeight = '500';
+      this.uploadZone!.style.display = 'none';
+      youtubeZone.style.display = '';
+      const input = youtubeZone.querySelector('.yt-url-input') as HTMLInputElement;
+      if (input) setTimeout(() => input.focus(), 50);
+    });
+
+    // YouTube add handler
+    const ytAddBtn = youtubeZone.querySelector('.yt-add-btn')!;
+    const ytInput = youtubeZone.querySelector('.yt-url-input') as HTMLInputElement;
+    const addYouTube = () => {
+      const url = ytInput.value.trim();
+      const videoId = this.extractYouTubeId(url);
+      if (!videoId) {
+        ytInput.style.borderColor = '#ef4444';
+        return;
+      }
+      this.data.url = url;
+      this.data.isYouTube = true;
+      this.data.status = 'READY';
+      this.data.videoAssetId = '';
+      this.renderVideoPreview();
+    };
+    ytAddBtn.addEventListener('click', addYouTube);
+    ytInput.addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter') addYouTube(); });
 
     this.uploadInput = document.createElement('input');
     this.uploadInput.type = 'file';
@@ -205,7 +290,11 @@ export default class VideoBlockTool {
       <p class="video-progress-text" style="font-size: 13px; color: #0056D2; font-weight: 600; margin: 0;">Đang tải lên...</p>
     `;
 
+    tabBar.appendChild(tabUpload);
+    tabBar.appendChild(tabYoutube);
+    this.wrapper.appendChild(tabBar);
     this.wrapper.appendChild(this.uploadZone);
+    this.wrapper.appendChild(youtubeZone);
     this.wrapper.appendChild(this.uploadInput);
     this.wrapper.appendChild(this.progressBar);
   }
@@ -234,10 +323,11 @@ export default class VideoBlockTool {
       let rawUrl: string;
 
       if (initRes.isServerRelay || !initRes.uploadUrl) {
-        // Dev fallback: server relay
+        // Server relay fallback (dev / R2 not configured)
+        // Use /upload/video (500MB, video MIME types) instead of /upload/editor (50MB, image-oriented)
         this.updateProgress(0, 'Đang tải lên (server relay)...');
         const relayRes = await xhrFormData(
-          `${API_BASE}/files/upload/editor`,
+          `${API_BASE}/files/upload/video`,
           file,
           (pct) => this.updateProgress(pct, `Đang tải lên... ${pct}%`)
         );
@@ -271,6 +361,7 @@ export default class VideoBlockTool {
 
       this.data.videoAssetId = asset.id;
       this.data.url = rawUrl;
+      this.data.rawUrl = rawUrl;
       this.data.mimeType = file.type || 'video/mp4';
       this.data.status = asset.status || 'PENDING';
 
@@ -351,18 +442,28 @@ export default class VideoBlockTool {
     const videoContainer = document.createElement('div');
     videoContainer.style.cssText = 'background: #000; position: relative;';
 
-    const videoEl = document.createElement('video');
-    videoEl.src = this.data.url;
-    videoEl.controls = true;
-    videoEl.preload = 'metadata';
-    videoEl.style.cssText = 'width: 100%; max-height: 360px; display: block;';
-    videoContainer.appendChild(videoEl);
+    if (this.data.isYouTube) {
+      const ytId = this.extractYouTubeId(this.data.url);
+      const iframe = document.createElement('iframe');
+      iframe.src = `https://www.youtube.com/embed/${ytId}`;
+      iframe.style.cssText = 'width: 100%; aspect-ratio: 16/9; display: block; border: none;';
+      iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+      iframe.allowFullscreen = true;
+      videoContainer.appendChild(iframe);
+    } else {
+      const videoEl = document.createElement('video');
+      videoEl.src = this.data.rawUrl || this.data.url;
+      videoEl.controls = true;
+      videoEl.preload = 'metadata';
+      videoEl.style.cssText = 'width: 100%; max-height: 360px; display: block;';
+      videoContainer.appendChild(videoEl);
+    }
 
     // Status overlay (for PENDING/PROCESSING)
     const statusOverlay = document.createElement('div');
     statusOverlay.className = 'video-status-overlay';
     statusOverlay.style.cssText = 'position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.7); border-radius: 0;';
-    if (this.data.status === 'READY' || !this.data.videoAssetId) {
+    if (this.data.status === 'READY' || !this.data.videoAssetId || this.data.isYouTube) {
       statusOverlay.style.display = 'none';
     } else {
       this.updateStatusOverlayContent(statusOverlay, this.data.status);
@@ -373,9 +474,13 @@ export default class VideoBlockTool {
     const actionsBar = document.createElement('div');
     actionsBar.style.cssText = 'display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f8fafc; border-top: 1px solid #e5e7eb;';
 
-    if (this.data.videoAssetId) {
-      const badge = document.createElement('span');
-      badge.style.cssText = 'font-size: 11px; padding: 2px 8px; border-radius: 9999px; font-weight: 600;';
+    const badge = document.createElement('span');
+    badge.style.cssText = 'font-size: 11px; padding: 2px 8px; border-radius: 9999px; font-weight: 600;';
+    if (this.data.isYouTube) {
+      badge.style.cssText += 'background: #fef2f2; color: #dc2626;';
+      badge.textContent = 'YouTube';
+      actionsBar.appendChild(badge);
+    } else if (this.data.videoAssetId) {
       if (this.data.status === 'READY') {
         badge.style.cssText += 'background: #dcfce7; color: #166534;';
         badge.textContent = 'Adaptive Streaming';
@@ -399,7 +504,7 @@ export default class VideoBlockTool {
     replaceBtn.style.cssText = 'padding: 4px 12px; font-size: 12px; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; cursor: pointer;';
     replaceBtn.addEventListener('click', () => {
       this.stopPolling();
-      this.data = { videoAssetId: '', url: '', caption: '', mimeType: 'video/mp4', status: '' };
+      this.data = { videoAssetId: '', url: '', rawUrl: '', caption: '', mimeType: 'video/mp4', status: '', isYouTube: false };
       this.renderUploadZone();
     });
     actionsBar.appendChild(replaceBtn);
@@ -457,12 +562,30 @@ export default class VideoBlockTool {
     return {
       videoAssetId: this.data.videoAssetId,
       url: this.data.url,
+      rawUrl: this.data.rawUrl,
       caption: this.data.caption,
-      mimeType: this.data.mimeType
+      mimeType: this.data.mimeType,
+      status: this.data.status,
+      isYouTube: this.data.isYouTube
     };
   }
 
   validate(savedData: any): boolean {
-    return !!(savedData.videoAssetId || (savedData.url && savedData.url.trim().length > 0));
+    // Accept blocks even without upload — they render as upload zone in editor
+    if (!savedData || typeof savedData !== 'object') return false;
+    return true;
+  }
+
+  private extractYouTubeId(url: string): string | null {
+    if (!url) return null;
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /youtube\.com\/v\/([^&\n?#]+)/
+    ];
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
   }
 }

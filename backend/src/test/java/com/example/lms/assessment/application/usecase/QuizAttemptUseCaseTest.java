@@ -1124,4 +1124,290 @@ class QuizAttemptUseCaseTest {
             verify(quizRepository).delete(quiz);
         }
     }
+
+    // ============================================================
+    // getQuizPreflight Tests
+    // ============================================================
+    @Nested
+    @DisplayName("Get Quiz Preflight")
+    class GetQuizPreflightTests {
+
+        private Quiz buildQuizWithSettings(Quiz.QuizSettings settings) {
+            return Quiz.builder()
+                    .id(QuizId.of(quizId))
+                    .lessonId(UUID.randomUUID())
+                    .title("Preflight Quiz")
+                    .settings(settings)
+                    .status(Quiz.QuizStatus.PUBLISHED)
+                    .questions(List.of(QuizQuestion.create(quizId, q1Id, 0)))
+                    .build();
+        }
+
+        private void stubNoInProgressAttempt() {
+            when(attemptRepository.findInProgressByQuizIdAndStudentId(quizId, studentId))
+                    .thenReturn(Optional.empty());
+            when(attemptRepository.countCompletedByQuizIdAndStudentId(quizId, studentId))
+                    .thenReturn(0L);
+        }
+
+        @Test
+        @DisplayName("Should return null effectiveTimeLimitSeconds when no time limit and no lockAt")
+        void shouldReturnNullEffectiveLimitWhenUnlimited() {
+            Quiz quiz = buildQuizWithSettings(Quiz.QuizSettings.builder()
+                    .passingScore(70).maxAttempts(3).build());
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+            stubNoInProgressAttempt();
+
+            Map<String, Object> result = useCase.getQuizPreflight(quizId, studentId);
+
+            assertThat(result.get("effectiveTimeLimitSeconds")).isNull();
+            assertThat(result.get("lockAt")).isNull();
+            assertThat(result.get("dueAt")).isNull();
+            assertThat(result.get("availableFrom")).isNull();
+        }
+
+        @Test
+        @DisplayName("Should return effectiveTimeLimitSeconds = timeLimitMinutes*60 when no lockAt")
+        void shouldReturnFullTimeLimitWhenNoLockAt() {
+            Quiz quiz = buildQuizWithSettings(Quiz.QuizSettings.builder()
+                    .timeLimitMinutes(30).passingScore(70).maxAttempts(3).build());
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+            stubNoInProgressAttempt();
+
+            Map<String, Object> result = useCase.getQuizPreflight(quizId, studentId);
+
+            assertThat((Long) result.get("effectiveTimeLimitSeconds")).isEqualTo(1800L);
+        }
+
+        @Test
+        @DisplayName("Should return effectiveTimeLimitSeconds = secondsUntilLockAt when only lockAt set (no time limit)")
+        void shouldReturnSecondsUntilLockAtWhenOnlyLockAt() {
+            Instant lockAt = Instant.now().plusSeconds(600); // 10 min from now
+            Quiz quiz = buildQuizWithSettings(Quiz.QuizSettings.builder()
+                    .passingScore(70).maxAttempts(3).lockAt(lockAt).build());
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+            stubNoInProgressAttempt();
+
+            Map<String, Object> result = useCase.getQuizPreflight(quizId, studentId);
+
+            Long effective = (Long) result.get("effectiveTimeLimitSeconds");
+            // Allow ±2s tolerance for test execution time
+            assertThat(effective).isBetween(598L, 601L);
+        }
+
+        @Test
+        @DisplayName("Should cap effectiveTimeLimitSeconds at secondsUntilLockAt when lockAt is sooner than time limit")
+        void shouldCapEffectiveLimitAtLockAtWhenSooner() {
+            Instant lockAt = Instant.now().plusSeconds(300); // 5 min from now
+            // Quiz has 30 min limit, but lockAt is only 5 min away
+            Quiz quiz = buildQuizWithSettings(Quiz.QuizSettings.builder()
+                    .timeLimitMinutes(30).passingScore(70).maxAttempts(3).lockAt(lockAt).build());
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+            stubNoInProgressAttempt();
+
+            Map<String, Object> result = useCase.getQuizPreflight(quizId, studentId);
+
+            Long effective = (Long) result.get("effectiveTimeLimitSeconds");
+            // Should be ~300s (lockAt), NOT 1800s (time limit)
+            assertThat(effective).isBetween(298L, 301L);
+        }
+
+        @Test
+        @DisplayName("Should NOT cap effectiveTimeLimitSeconds when time limit is sooner than lockAt")
+        void shouldNotCapWhenTimeLimitSoonerThanLockAt() {
+            Instant lockAt = Instant.now().plusSeconds(3600); // 1h from now (far away)
+            // Quiz has 10 min limit — time limit is sooner than lockAt
+            Quiz quiz = buildQuizWithSettings(Quiz.QuizSettings.builder()
+                    .timeLimitMinutes(10).passingScore(70).maxAttempts(3).lockAt(lockAt).build());
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+            stubNoInProgressAttempt();
+
+            Map<String, Object> result = useCase.getQuizPreflight(quizId, studentId);
+
+            Long effective = (Long) result.get("effectiveTimeLimitSeconds");
+            // Should be 600s (10 min), NOT 3600s (lockAt)
+            assertThat(effective).isEqualTo(600L);
+        }
+
+        @Test
+        @DisplayName("Should return all 3 schedule dates in response as ISO strings")
+        void shouldReturnScheduleDatesInResponse() {
+            Instant availableFrom = Instant.now().minusSeconds(3600);
+            Instant dueAt = Instant.now().plusSeconds(1800);
+            Instant lockAt = Instant.now().plusSeconds(3600);
+            Quiz quiz = buildQuizWithSettings(Quiz.QuizSettings.builder()
+                    .timeLimitMinutes(30).passingScore(70).maxAttempts(3)
+                    .availableFrom(availableFrom).dueAt(dueAt).lockAt(lockAt)
+                    .build());
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+            stubNoInProgressAttempt();
+
+            Map<String, Object> result = useCase.getQuizPreflight(quizId, studentId);
+
+            assertThat(result.get("availableFrom")).isEqualTo(availableFrom.toString());
+            assertThat(result.get("dueAt")).isEqualTo(dueAt.toString());
+            assertThat(result.get("lockAt")).isEqualTo(lockAt.toString());
+        }
+
+        @Test
+        @DisplayName("Should auto-expire stale IN_PROGRESS attempt when lockAt has passed")
+        void shouldAutoExpireAttemptWhenLockAtPassed() {
+            // lockAt was 1 minute ago
+            Instant lockAt = Instant.now().minusSeconds(60);
+            Quiz quiz = buildQuizWithSettings(Quiz.QuizSettings.builder()
+                    .timeLimitMinutes(30).passingScore(70).maxAttempts(3).lockAt(lockAt).build());
+
+            QuizAttempt staleAttempt = QuizAttempt.builder()
+                    .id(attemptId).quizId(quizId).studentId(studentId)
+                    .status(QuizAttempt.AttemptStatus.IN_PROGRESS)
+                    .startTime(Instant.now().minusSeconds(120)) // started 2 min ago
+                    .items(new ArrayList<>())
+                    .build();
+
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+            when(attemptRepository.findInProgressByQuizIdAndStudentId(quizId, studentId))
+                    .thenReturn(Optional.of(staleAttempt));
+            when(attemptRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+            when(attemptRepository.countCompletedByQuizIdAndStudentId(quizId, studentId))
+                    .thenReturn(0L);
+
+            Map<String, Object> result = useCase.getQuizPreflight(quizId, studentId);
+
+            // Attempt should have been expired (markTimeout called → status changes)
+            verify(attemptRepository).save(argThat(a ->
+                    a.getStatus() == QuizAttempt.AttemptStatus.TIMEOUT));
+            // No in-progress attempt in response
+            assertThat(result.get("inProgressAttempt")).isNull();
+        }
+
+        @Test
+        @DisplayName("Should auto-expire stale IN_PROGRESS attempt when timeLimitMinutes exceeded (no lockAt)")
+        void shouldAutoExpireAttemptWhenTimeLimitExceeded() {
+            // 5-minute time limit, attempt started 10 minutes ago → stale
+            Quiz quiz = buildQuizWithSettings(Quiz.QuizSettings.builder()
+                    .timeLimitMinutes(5).passingScore(70).maxAttempts(3).build());
+
+            QuizAttempt staleAttempt = QuizAttempt.builder()
+                    .id(attemptId).quizId(quizId).studentId(studentId)
+                    .status(QuizAttempt.AttemptStatus.IN_PROGRESS)
+                    .startTime(Instant.now().minusSeconds(660)) // 11 min ago (> 5 min + 60s grace)
+                    .items(new ArrayList<>())
+                    .build();
+
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+            when(attemptRepository.findInProgressByQuizIdAndStudentId(quizId, studentId))
+                    .thenReturn(Optional.of(staleAttempt));
+            when(attemptRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+            when(attemptRepository.countCompletedByQuizIdAndStudentId(quizId, studentId))
+                    .thenReturn(0L);
+
+            Map<String, Object> result = useCase.getQuizPreflight(quizId, studentId);
+
+            verify(attemptRepository).save(argThat(a ->
+                    a.getStatus() == QuizAttempt.AttemptStatus.TIMEOUT));
+            assertThat(result.get("inProgressAttempt")).isNull();
+        }
+
+        @Test
+        @DisplayName("Should NOT expire active attempt still within time limit and before lockAt")
+        void shouldNotExpireActiveAttempt() {
+            Instant lockAt = Instant.now().plusSeconds(600); // lockAt still 10 min away
+            // 30 min limit, attempt started 5 min ago → still valid
+            Quiz quiz = buildQuizWithSettings(Quiz.QuizSettings.builder()
+                    .timeLimitMinutes(30).passingScore(70).maxAttempts(3).lockAt(lockAt).build());
+
+            QuizAttempt activeAttempt = QuizAttempt.builder()
+                    .id(attemptId).quizId(quizId).studentId(studentId)
+                    .status(QuizAttempt.AttemptStatus.IN_PROGRESS)
+                    .startTime(Instant.now().minusSeconds(300)) // started 5 min ago
+                    .items(new ArrayList<>())
+                    .build();
+
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+            when(attemptRepository.findInProgressByQuizIdAndStudentId(quizId, studentId))
+                    .thenReturn(Optional.of(activeAttempt));
+            when(attemptRepository.countCompletedByQuizIdAndStudentId(quizId, studentId))
+                    .thenReturn(0L);
+
+            Map<String, Object> result = useCase.getQuizPreflight(quizId, studentId);
+
+            verify(attemptRepository, never()).save(any());
+            assertThat(result.get("inProgressAttempt")).isNotNull();
+        }
+
+        @Test
+        @DisplayName("Should cap resume timeRemainingSeconds at lockAt when lockAt is sooner than time limit")
+        void shouldCapResumeTimeAtLockAt() {
+            Instant lockAt = Instant.now().plusSeconds(120); // lockAt only 2 min away
+            // 30-min limit, attempt started 1 min ago → 29 min limit-based remaining
+            // But lockAt is only 2 min away → effective remaining = 2 min
+            Quiz quiz = buildQuizWithSettings(Quiz.QuizSettings.builder()
+                    .timeLimitMinutes(30).passingScore(70).maxAttempts(3).lockAt(lockAt).build());
+
+            QuizAttempt activeAttempt = QuizAttempt.builder()
+                    .id(attemptId).quizId(quizId).studentId(studentId)
+                    .status(QuizAttempt.AttemptStatus.IN_PROGRESS)
+                    .startTime(Instant.now().minusSeconds(60)) // started 1 min ago
+                    .items(new ArrayList<>())
+                    .build();
+
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+            when(attemptRepository.findInProgressByQuizIdAndStudentId(quizId, studentId))
+                    .thenReturn(Optional.of(activeAttempt));
+            when(attemptRepository.countCompletedByQuizIdAndStudentId(quizId, studentId))
+                    .thenReturn(0L);
+
+            Map<String, Object> result = useCase.getQuizPreflight(quizId, studentId);
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> resumeInfo = (Map<String, Object>) result.get("inProgressAttempt");
+            Long timeRemaining = (Long) resumeInfo.get("timeRemainingSeconds");
+            // Should be ~120s (lockAt-based), NOT ~1740s (time-limit-based)
+            assertThat(timeRemaining).isBetween(118L, 121L);
+        }
+
+        @Test
+        @DisplayName("Should return full time limit remaining in resume when lockAt is far away")
+        void shouldReturnFullTimeLimitRemainingWhenLockAtFar() {
+            Instant lockAt = Instant.now().plusSeconds(7200); // lockAt 2h away
+            // 10-min limit, attempt started 2 min ago → 8 min remaining from limit
+            Quiz quiz = buildQuizWithSettings(Quiz.QuizSettings.builder()
+                    .timeLimitMinutes(10).passingScore(70).maxAttempts(3).lockAt(lockAt).build());
+
+            QuizAttempt activeAttempt = QuizAttempt.builder()
+                    .id(attemptId).quizId(quizId).studentId(studentId)
+                    .status(QuizAttempt.AttemptStatus.IN_PROGRESS)
+                    .startTime(Instant.now().minusSeconds(120)) // started 2 min ago
+                    .items(new ArrayList<>())
+                    .build();
+
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+            when(attemptRepository.findInProgressByQuizIdAndStudentId(quizId, studentId))
+                    .thenReturn(Optional.of(activeAttempt));
+            when(attemptRepository.countCompletedByQuizIdAndStudentId(quizId, studentId))
+                    .thenReturn(0L);
+
+            Map<String, Object> result = useCase.getQuizPreflight(quizId, studentId);
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> resumeInfo = (Map<String, Object>) result.get("inProgressAttempt");
+            Long timeRemaining = (Long) resumeInfo.get("timeRemainingSeconds");
+            // Should be ~480s (10min - 2min elapsed), NOT 7200s (lockAt-based)
+            assertThat(timeRemaining).isBetween(478L, 481L);
+        }
+
+        @Test
+        @DisplayName("Should return inProgressAttempt=null when no in-progress attempt")
+        void shouldReturnNullInProgressWhenNone() {
+            Quiz quiz = buildQuizWithSettings(Quiz.QuizSettings.builder()
+                    .timeLimitMinutes(30).passingScore(70).maxAttempts(3).build());
+            when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
+            stubNoInProgressAttempt();
+
+            Map<String, Object> result = useCase.getQuizPreflight(quizId, studentId);
+
+            assertThat(result.get("inProgressAttempt")).isNull();
+            assertThat(result.get("completedAttempts")).isEqualTo(0L);
+        }
+    }
 }

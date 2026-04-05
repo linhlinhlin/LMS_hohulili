@@ -262,7 +262,9 @@ export default class MathBlockTool {
     }
 
     validate(savedData: { latex: string }): boolean {
-        return !!(savedData.latex && savedData.latex.trim().length > 0);
+        // Accept empty blocks — they render as input zone in editor
+        if (!savedData || typeof savedData !== 'object') return false;
+        return true;
     }
 
     /**

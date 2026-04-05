@@ -52,6 +52,7 @@ class CreateQuizUseCaseV3Test {
             "Test your knowledge on maritime safety",
             30,  // 30 minutes
             70,  // 70% passing score
+            10.0, // thang điểm 10
             true,
             true,
             Quiz.AssessmentType.PRACTICE,
@@ -153,7 +154,7 @@ class CreateQuizUseCaseV3Test {
             // Given
             CreateQuizUseCaseV3.CreateQuizCommand minimalCommand = 
                 new CreateQuizUseCaseV3.CreateQuizCommand(
-                    lessonId, "Basic Quiz", null, null, null, null, null, null, null
+                    lessonId, "Basic Quiz", null, null, null, null, null, null, null, null
                 );
             Quiz savedQuiz = Quiz.create(lessonId, "Basic Quiz", null, null);
             when(quizRepository.findByLessonId(lessonId)).thenReturn(java.util.List.of());

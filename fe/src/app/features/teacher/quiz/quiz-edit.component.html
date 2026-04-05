@@ -275,6 +275,14 @@
                       </div>
                     </div>
                     <div class="flex items-center justify-between gap-4 py-2">
+                      <label for="maxScoreScale" class="text-sm text-gray-700">Thang điểm</label>
+                      <div class="flex items-center gap-1.5">
+                        <input id="maxScoreScale" type="number" min="1" formControlName="maxScoreScale"
+                               class="w-16 rounded-md border border-gray-200 px-2.5 py-1.5 text-sm text-right font-medium text-gray-900 focus:border-[#0056D2] focus:ring-1 focus:ring-[#0056D2]/20 outline-none" />
+                        <span class="text-xs text-gray-400 w-8">điểm</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center justify-between gap-4 py-2">
                       <label for="maxAttempts" class="text-sm text-gray-700">Số lần làm</label>
                       <div class="flex items-center gap-1.5">
                         <input id="maxAttempts" type="number" min="1" max="10" formControlName="maxAttempts"
@@ -306,23 +314,118 @@
                       </div>
                     </label>
                     <label class="flex items-center justify-between gap-4 py-2 cursor-pointer">
-                      <span class="text-sm text-gray-700">Hiện đáp án đúng sau nộp</span>
-                      <div class="relative flex-shrink-0">
-                        <input type="checkbox" formControlName="showCorrectAnswers" class="sr-only peer" />
-                        <div class="w-9 h-5 rounded-full bg-gray-200 peer-checked:bg-[#0056D2] transition-colors"></div>
-                        <div class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4"></div>
+                      <div>
+                        <span class="text-sm text-gray-700">Công bố điểm ngay sau nộp</span>
+                        <p class="text-[11px] text-gray-400 mt-0.5">Tắt để ẩn điểm cho đến khi bạn bật lại</p>
                       </div>
-                    </label>
-                    <label class="flex items-center justify-between gap-4 py-2 cursor-pointer">
-                      <span class="text-sm text-gray-700">Hiện kết quả ngay</span>
                       <div class="relative flex-shrink-0">
                         <input type="checkbox" formControlName="showResultsImmediately" class="sr-only peer" />
                         <div class="w-9 h-5 rounded-full bg-gray-200 peer-checked:bg-[#0056D2] transition-colors"></div>
                         <div class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4"></div>
                       </div>
                     </label>
+                    <label class="flex items-center justify-between gap-4 py-2 cursor-pointer">
+                      <div>
+                        <span class="text-sm text-gray-700">Cho xem đáp án đúng</span>
+                        <p class="text-[11px] text-gray-400 mt-0.5">Hiện đáp án đúng/sai sau khi nộp bài</p>
+                      </div>
+                      <div class="relative flex-shrink-0">
+                        <input type="checkbox" formControlName="showCorrectAnswers" class="sr-only peer" />
+                        <div class="w-9 h-5 rounded-full bg-gray-200 peer-checked:bg-[#0056D2] transition-colors"></div>
+                        <div class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4"></div>
+                      </div>
+                    </label>
                   </div>
                 </div>
+              </div>
+
+              <!-- Access Password (Canvas "access code" pattern) -->
+              <div class="rounded-xl border border-gray-200 bg-white">
+                <div class="px-5 py-4">
+                  <h3 class="text-sm font-semibold text-gray-900 mb-3">Mật khẩu truy cập</h3>
+                  <p class="text-xs text-gray-500 mb-3">Sinh viên phải nhập mật khẩu này trước khi bắt đầu làm bài. Để trống nếu không cần.</p>
+                  <input type="text" formControlName="accessPassword" autocomplete="off"
+                         placeholder="Nhập mật khẩu (tùy chọn)"
+                         class="w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20" />
+                </div>
+              </div>
+            </div>
+
+            <!-- ==================== QUIZ SCHEDULE (Canvas 3-date pattern) ==================== -->
+            <div class="px-5 py-5">
+              <div class="flex items-center justify-between gap-3 mb-1">
+                <h3 class="text-sm font-semibold text-gray-900">Lịch bài kiểm tra</h3>
+                @if (quizForm.get('availableFrom')?.value || quizForm.get('dueAt')?.value || quizForm.get('lockAt')?.value) {
+                <span class="shrink-0 rounded-full bg-[#0056D2]/10 px-2 py-0.5 text-[10px] font-semibold text-[#0056D2]">Có lịch</span>
+                } @else {
+                <span class="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-400">Luôn mở</span>
+                }
+              </div>
+              <p class="text-xs text-gray-500 mb-4">
+                Kiểm soát thời điểm sinh viên có thể truy cập và nộp bài. Để trống nếu không cần giới hạn.
+              </p>
+
+              <!-- 3-date grid (Canvas SOTA: Available From | Due Date | Lock At) -->
+              <div class="grid gap-4 sm:grid-cols-3">
+
+                <!-- 1. Mở bài từ (Available From) -->
+                <div>
+                  <label class="block text-xs font-semibold text-gray-700 mb-1.5">Mở bài từ</label>
+                  <input type="datetime-local" formControlName="availableFrom"
+                         class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-[#0056D2] focus:ring-1 focus:ring-[#0056D2]/20 outline-none transition-colors" />
+                  <p class="mt-1.5 text-[11px] leading-tight text-gray-400">Sinh viên có thể bắt đầu từ lúc này</p>
+                </div>
+
+                <!-- 2. Hạn nộp (Due Date — soft deadline) -->
+                <div>
+                  <label class="block text-xs font-semibold text-gray-700 mb-1.5">
+                    Hạn nộp <span class="font-normal text-gray-400">(mềm)</span>
+                  </label>
+                  <input type="datetime-local" formControlName="dueAt"
+                         class="w-full rounded-lg border px-3 py-2 text-sm text-gray-900 focus:ring-1 outline-none transition-colors"
+                         [class.border-red-400]="quizForm.errors?.['dueBeforeAvailable']"
+                         [class.border-gray-200]="!quizForm.errors?.['dueBeforeAvailable']"
+                         [class.focus:border-[#0056D2]]="!quizForm.errors?.['dueBeforeAvailable']"
+                         [class.focus:ring-[#0056D2]/20]="!quizForm.errors?.['dueBeforeAvailable']" />
+                  @if (quizForm.errors?.['dueBeforeAvailable']) {
+                    <p class="mt-1.5 text-[11px] text-red-600 font-medium">Phải sau "Mở bài từ"</p>
+                  } @else {
+                    <p class="mt-1.5 text-[11px] leading-tight text-gray-400">Deadline mềm hiển thị cho sinh viên</p>
+                  }
+                </div>
+
+                <!-- 3. Đóng bài (Lock At — hard cutoff) -->
+                <div>
+                  <label class="block text-xs font-semibold text-gray-700 mb-1.5">Đóng bài lúc</label>
+                  <input type="datetime-local" formControlName="lockAt"
+                         class="w-full rounded-lg border px-3 py-2 text-sm text-gray-900 focus:ring-1 outline-none transition-colors"
+                         [class.border-red-400]="quizForm.errors?.['lockBeforeDue'] || quizForm.errors?.['lockBeforeAvailable']"
+                         [class.border-gray-200]="!quizForm.errors?.['lockBeforeDue'] && !quizForm.errors?.['lockBeforeAvailable']"
+                         [class.focus:border-[#0056D2]]="!quizForm.errors?.['lockBeforeDue'] && !quizForm.errors?.['lockBeforeAvailable']"
+                         [class.focus:ring-[#0056D2]/20]="!quizForm.errors?.['lockBeforeDue'] && !quizForm.errors?.['lockBeforeAvailable']" />
+                  @if (quizForm.errors?.['lockBeforeDue']) {
+                    <p class="mt-1.5 text-[11px] text-red-600 font-medium">Phải sau "Hạn nộp"</p>
+                  } @else if (quizForm.errors?.['lockBeforeAvailable']) {
+                    <p class="mt-1.5 text-[11px] text-red-600 font-medium">Phải sau "Mở bài từ"</p>
+                  } @else {
+                    <p class="mt-1.5 text-[11px] leading-tight text-gray-400">Deadline cứng — không nhận nộp thêm</p>
+                  }
+                </div>
+
+              </div>
+
+              <!-- Info strip -->
+              <div class="mt-4 flex items-start gap-2 rounded-lg bg-slate-50 px-3 py-2.5">
+                <svg class="w-4 h-4 text-gray-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <p class="text-[11px] text-gray-500 leading-relaxed">
+                  <span class="font-medium text-gray-600">Mở bài</span> → sinh viên được vào làm &nbsp;·&nbsp;
+                  <span class="font-medium text-gray-600">Hạn nộp</span> → deadline nhắc nhở (mềm) &nbsp;·&nbsp;
+                  <span class="font-medium text-gray-600">Đóng bài</span> → khóa, không chấp nhận nộp thêm.
+                  Thời gian theo <span class="font-medium text-gray-600">múi giờ thiết bị của bạn</span>.
+                </p>
               </div>
             </div>
 

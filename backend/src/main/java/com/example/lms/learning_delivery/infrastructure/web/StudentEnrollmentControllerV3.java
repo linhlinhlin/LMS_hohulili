@@ -772,16 +772,18 @@ public class StudentEnrollmentControllerV3 {
             List<Map<String, Object>> quizScores = new ArrayList<>();
             for (QuizJpaEntity quiz : quizzesByCourse.getOrDefault(courseId, List.of())) {
                 List<QuizAttemptJpaEntity> attempts = attemptsByQuiz.getOrDefault(quiz.getId(), List.of());
-                Double bestScore = attempts.stream()
+                var bestAttempt = attempts.stream()
                         .filter(a -> a.getScore() != null)
-                        .mapToDouble(QuizAttemptJpaEntity::getScore)
-                        .max().orElse(-1);
-                if (bestScore >= 0) {
+                        .max(java.util.Comparator.comparingDouble(QuizAttemptJpaEntity::getScore))
+                        .orElse(null);
+                if (bestAttempt != null) {
                     Map<String, Object> qs = new LinkedHashMap<>();
                     qs.put("quizId", quiz.getId().toString());
                     qs.put("quizTitle", quiz.getTitle());
-                    qs.put("bestScore", bestScore);
-                    qs.put("maxScore", 100);
+                    qs.put("bestScore", bestAttempt.getScore());
+                    qs.put("maxScore", bestAttempt.getMaxScore() != null ? bestAttempt.getMaxScore() : 10);
+                    qs.put("isPassed", bestAttempt.getIsPassed());
+                    qs.put("bestAttemptId", bestAttempt.getId().toString());
                     qs.put("attempts", attempts.size());
                     quizScores.add(qs);
                 }

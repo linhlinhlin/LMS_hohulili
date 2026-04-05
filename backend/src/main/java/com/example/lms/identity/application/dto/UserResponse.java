@@ -14,7 +14,8 @@ public record UserResponse(
     String fullName,
     String role,
     boolean enabled,
-    UUID organizationId
+    UUID organizationId,
+    String avatarUrl
 ) {
     /**
      * Create from domain User model.
@@ -27,7 +28,8 @@ public record UserResponse(
             user.getFullName(),
             user.getRole().name(),
             user.isEnabled(),
-            user.getOrganizationId()
+            user.getOrganizationId(),
+            user.getAvatarUrl()
         );
     }
 }

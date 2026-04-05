@@ -306,6 +306,11 @@ body {
   transform: none !important;
 }
 
+/* Quiz-mode: hide AI FAB during focused quiz-taking (Canvas pattern) */
+body.quiz-taking-mode .floating-bubble-container {
+  display: none !important;
+}
+
 .codex-editor--empty .codex-editor__redactor {
   padding-bottom: 10px !important;
 }

@@ -1614,7 +1614,7 @@ export class CourseCurriculumComponent implements OnDestroy {
         shuffleQuestions: true,
         shuffleOptions: true,
         showResultsImmediately: true,
-        showCorrectAnswers: true,
+        showCorrectAnswers: false,
         questionIds: [],
         publishImmediately: false
       }));

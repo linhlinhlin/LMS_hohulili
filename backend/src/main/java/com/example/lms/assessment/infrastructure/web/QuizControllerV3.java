@@ -26,6 +26,7 @@ import com.example.lms.course_authoring.infrastructure.persistence.entity.Lesson
 import com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
+import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.JpaLearningClassRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.entity.EnrollmentJpaEntity;
@@ -53,15 +54,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -86,6 +80,7 @@ public class QuizControllerV3 {
     private final JpaLearningClassRepository classJpaRepository;
     private final JpaEnrollmentRepository enrollmentJpaRepository;
     private final StudentAssessmentAccessPort studentAssessmentAccessPort;
+    private final UserJpaRepository userJpaRepository;
     private final PaymentTransactionJpaRepository paymentTransactionJpaRepository;
 
     // ============ Teacher CRUD Operations ============
@@ -210,7 +205,12 @@ public class QuizControllerV3 {
         } else {
             verifyLessonOwnership(quiz.getLessonId(), user);
         }
-        return ResponseEntity.ok(ApiResponse.success(toQuizMap(quiz)));
+        Map<String, Object> result = toQuizMap(quiz);
+        // Security: never expose actual password to students
+        if (user.getRole() == UserJpaEntity.UserRole.STUDENT) {
+            result.remove("accessPassword");
+        }
+        return ResponseEntity.ok(ApiResponse.success(result));
     }
 
     @GetMapping("/lessons/{lessonId}")
@@ -379,6 +379,7 @@ public class QuizControllerV3 {
                 .timeLimitMinutes(request.timeLimitMinutes())
                 .maxAttempts(request.maxAttempts())
                 .passingScore(request.passingScore())
+                .maxScoreScale(request.maxScoreScale())
                 .shuffleQuestions(request.shuffleQuestions())
                 .shuffleOptions(request.shuffleOptions())
                 .showResultsImmediately(request.showResultsImmediately())
@@ -386,6 +387,7 @@ public class QuizControllerV3 {
                 .availableFrom(availableFrom)
                 .dueAt(dueAt)
                 .lockAt(lockAt)
+                .accessPassword(request.accessPassword())
                 .build();
         Quiz updated = quizManagementUseCase.updateQuizSettings(
                 quizId,
@@ -546,9 +548,11 @@ public class QuizControllerV3 {
     @Operation(summary = "Start a quiz attempt")
     public ResponseEntity<ApiResponse<QuizAttemptResponse>> startAttempt(
             @PathVariable UUID quizId,
+            @RequestBody(required = false) java.util.Map<String, String> body,
             @AuthenticationPrincipal UserJpaEntity user) {
         UUID studentId = user.getId();
-        QuizAttempt attempt = quizAttemptUseCase.startAttempt(quizId, studentId);
+        String accessPassword = body != null ? body.get("accessPassword") : null;
+        QuizAttempt attempt = quizAttemptUseCase.startAttempt(quizId, studentId, accessPassword);
         return ResponseEntity.ok(ApiResponse.success(
                 QuizAttemptResponse.from(attempt)));
     }
@@ -594,6 +598,17 @@ public class QuizControllerV3 {
         }
     }
 
+    // Phase 5: Preflight endpoint (Canvas SOTA: confirmation screen + resume check)
+    @GetMapping("/{quizId}/attempts/preflight")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Get quiz preflight info (confirmation screen + resume check)")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getQuizPreflight(
+            @PathVariable UUID quizId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        Map<String, Object> preflight = quizAttemptUseCase.getQuizPreflight(quizId, user.getId());
+        return ResponseEntity.ok(ApiResponse.success(preflight));
+    }
+
     // Phase 1: Answer visibility enforcement (Canvas SOTA: gated by quiz settings)
     @GetMapping("/attempts/{attemptId}")
     @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN', 'ORG_ADMIN')")
@@ -626,6 +641,81 @@ public class QuizControllerV3 {
                 attemptId, request.questionId(), request.score(), request.feedback(),
                 user.getId(), user.getRole().name());
         return ResponseEntity.ok(ApiResponse.success(toFullAttemptResultMap(graded), "Đã chấm điểm"));
+    }
+
+    // Teacher Moderation: Delete attempt (Canvas "Moderate This Quiz" pattern)
+    @DeleteMapping("/attempts/{attemptId}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @Operation(summary = "Delete a student's quiz attempt (frees up retake slot)")
+    public ResponseEntity<ApiResponse<Void>> deleteAttempt(
+            @PathVariable UUID attemptId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        quizAttemptUseCase.deleteAttempt(attemptId, user.getId(), user.getRole().name());
+        return ResponseEntity.ok(ApiResponse.success(null, "Đã xóa lần làm bài"));
+    }
+
+    // Canvas/Moodle SOTA: Enrolled students view — shows who has/hasn't taken the quiz
+    @GetMapping("/{quizId}/enrolled-students")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @Operation(summary = "Get enrolled students for a quiz (with attempt status)")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getEnrolledStudents(
+            @PathVariable UUID quizId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        // 1. Get courseId from quiz → lesson → chapter → course
+        var quizEntity = quizJpaRepository.findById(quizId).orElse(null);
+        if (quizEntity == null) return ResponseEntity.notFound().build();
+
+        UUID courseId = null;
+        if (quizEntity.getLessonId() != null) {
+            var lesson = lessonJpaRepository.findById(quizEntity.getLessonId()).orElse(null);
+            if (lesson != null) {
+                var chapter = chapterJpaRepository.findById(lesson.getChapterId()).orElse(null);
+                if (chapter != null) courseId = chapter.getCourseId();
+            }
+        }
+        // Fallback: check quiz_assignments
+        if (courseId == null) {
+            var assignment = quizAssignmentJpaRepository.findFirstByQuizIdOrderByAssignedAtDesc(quizId).orElse(null);
+            if (assignment != null) courseId = assignment.getCourseId();
+        }
+
+        if (courseId == null) {
+            return ResponseEntity.ok(ApiResponse.success(Map.of(
+                "enrolledStudents", List.of(), "enrolledCount", 0, "attemptedCount", 0)));
+        }
+
+        // 2. Get all enrolled students
+        var enrollments = enrollmentJpaRepository.findByLearningClass_CourseId(courseId);
+        Set<UUID> enrolledStudentIds = enrollments.stream()
+                .map(EnrollmentJpaEntity::getStudentId)
+                .collect(Collectors.toSet());
+
+        // 3. Get students who have attempted
+        Set<UUID> attemptedStudentIds = new HashSet<>(
+                attemptJpaRepository.findDistinctStudentIdsByQuizId(quizId));
+
+        // 4. Fetch user info for all enrolled
+        Map<UUID, UserJpaEntity> userMap = userJpaRepository.findAllById(enrolledStudentIds).stream()
+                .collect(Collectors.toMap(UserJpaEntity::getId, u -> u));
+
+        // 5. Build response — attempted first, then not started
+        List<Map<String, Object>> students = new ArrayList<>();
+        for (UUID studentId : enrolledStudentIds) {
+            if (attemptedStudentIds.contains(studentId)) continue; // Skip — shown in attempts tab
+            UserJpaEntity u = userMap.get(studentId);
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("studentId", studentId.toString());
+            row.put("studentName", u != null ? u.getFullName() : null);
+            row.put("studentEmail", u != null ? u.getEmail() : null);
+            row.put("status", "NOT_STARTED");
+            students.add(row);
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(Map.of(
+            "enrolledStudents", students,
+            "enrolledCount", enrolledStudentIds.size(),
+            "attemptedCount", attemptedStudentIds.size()
+        )));
     }
 
     // ============ Quiz Attempts & Statistics (Teacher View) ============
@@ -982,6 +1072,7 @@ public class QuizControllerV3 {
         map.put("timeLimitMinutes", quiz.getSettings().timeLimitMinutes());
         map.put("maxAttempts", quiz.getSettings().maxAttempts());
         map.put("passingScore", quiz.getSettings().passingScore());
+        map.put("maxScoreScale", quiz.getSettings().maxScoreScale() != null ? quiz.getSettings().maxScoreScale() : 10.0);
         map.put("shuffleQuestions", quiz.getSettings().shuffleQuestions());
         map.put("shuffleOptions", quiz.getSettings().shuffleOptions());
         map.put("showResultsImmediately", quiz.getSettings().showResultsImmediately());
@@ -991,6 +1082,8 @@ public class QuizControllerV3 {
         map.put("lockAt", quiz.getSettings().lockAt() != null ? quiz.getSettings().lockAt().toString() : null);
         map.put("status", quiz.getStatus().name());
         map.put("questionCount", quiz.getQuestions() != null ? quiz.getQuestions().size() : 0);
+        map.put("requiresPassword", quiz.hasAccessPassword());
+        map.put("accessPassword", quiz.getSettings().accessPassword()); // Teacher sees actual password
         map.put("createdAt", quiz.getCreatedAt() != null ? quiz.getCreatedAt().toString() : null);
         map.put("updatedAt", quiz.getUpdatedAt() != null ? quiz.getUpdatedAt().toString() : null);
         appendAssignmentContext(map, quiz.getId().value(), quiz.getLessonId());
@@ -1009,6 +1102,7 @@ public class QuizControllerV3 {
         map.put("timeLimitMinutes", entity.getTimeLimitMinutes());
         map.put("maxAttempts", entity.getMaxAttempts());
         map.put("passingScore", entity.getPassingScore());
+        map.put("maxScoreScale", entity.getMaxScoreScale() != null ? entity.getMaxScoreScale() : 10.0);
         map.put("shuffleQuestions", entity.getShuffleQuestions());
         map.put("shuffleOptions", entity.getShuffleOptions());
         map.put("showResultsImmediately", entity.getShowResultsImmediately());
@@ -1017,14 +1111,11 @@ public class QuizControllerV3 {
         map.put("dueAt", entity.getDueAt() != null ? entity.getDueAt().toString() : null);
         map.put("lockAt", entity.getLockAt() != null ? entity.getLockAt().toString() : null);
         map.put("status", entity.getStatus().name());
-        // Safety: catch Hibernate 6.4 UUID batch loading bug when accessing questions collection
-        int questionCount = 0;
-        try {
-            questionCount = entity.getQuestions() != null ? entity.getQuestions().size() : 0;
-        } catch (ClassCastException | org.hibernate.HibernateException e) {
-            log.debug("Could not fetch question count for quiz {}: {}", entity.getId(), e.getMessage());
-        }
-        map.put("questionCount", questionCount);
+        // Use COUNT query — avoids Hibernate 6.4 UUID batch loading bug on getQuestions()
+        long questionCount = quizJpaRepository.countQuestionsByQuizId(entity.getId());
+        map.put("questionCount", (int) questionCount);
+        map.put("requiresPassword", entity.getAccessPassword() != null && !entity.getAccessPassword().isBlank());
+        map.put("accessPassword", entity.getAccessPassword());
         map.put("createdAt", entity.getCreatedAt() != null ? entity.getCreatedAt().toString() : null);
         map.put("updatedAt", entity.getUpdatedAt() != null ? entity.getUpdatedAt().toString() : null);
         appendAssignmentContext(map, entity.getId(), entity.getLessonId());
@@ -1164,6 +1255,12 @@ public class QuizControllerV3 {
         map.put("id", attempt.getId().toString());
         map.put("quizId", attempt.getQuizId().toString());
         map.put("studentId", attempt.getStudentId().toString());
+        map.put("quizTitle", quiz.getTitle());
+        map.put("passingScore", quiz.getSettings().passingScore());
+        map.put("maxScore", attempt.getMaxScore());
+        map.put("maxScoreScale", quiz.getSettings().maxScoreScale());
+        map.put("showCorrectAnswers", Boolean.TRUE.equals(quiz.getSettings().showCorrectAnswers()));
+        map.put("totalQuestions", attempt.getItems() != null ? attempt.getItems().size() : 0);
         map.put("status", attempt.getStatus().name());
         map.put("startTime", attempt.getStartTime() != null ? attempt.getStartTime().toString() : null);
         map.put("endTime", attempt.getEndTime() != null ? attempt.getEndTime().toString() : null);
@@ -1172,19 +1269,21 @@ public class QuizControllerV3 {
         boolean showCorrect = Boolean.TRUE.equals(quiz.getSettings().showCorrectAnswers());
 
         if (!showResults) {
-            // Hide score and items entirely until teacher reviews
+            // Canvas/Google Forms pattern: hide score until teacher releases results
             map.put("score", null);
             map.put("isPassed", null);
             map.put("items", List.of());
-            map.put("message", "Kết quả sẽ được hiển thị sau khi giáo viên xem xét");
+            map.put("correctAnswers", null);
+            map.put("incorrectAnswers", null);
         } else {
             map.put("score", attempt.getScore());
             map.put("isPassed", attempt.getIsPassed());
+            long correct = attempt.getItems() != null ? attempt.getItems().stream().filter(i -> Boolean.TRUE.equals(i.getIsCorrect())).count() : 0;
+            map.put("correctAnswers", (int) correct);
+            map.put("incorrectAnswers", (int) (attempt.getItems() != null ? attempt.getItems().size() - correct : 0));
             if (showCorrect) {
-                // Full item details including isCorrect
                 map.put("items", attempt.getItems().stream().map(this::toFullItemMap).toList());
             } else {
-                // Items WITHOUT isCorrect and pointsEarned — student sees their answers but not correctness
                 map.put("items", attempt.getItems().stream().map(this::toStrippedItemMap).toList());
             }
         }
@@ -1199,19 +1298,24 @@ public class QuizControllerV3 {
         map.put("isCorrect", item.getIsCorrect());
         map.put("pointsEarned", item.getPointsEarned());
         map.put("feedback", item.getFeedback());
+        map.put("correctOption", item.getCorrectOption()); // SINGLE_CHOICE/TRUE_FALSE; revealed when showCorrectAnswers=true
+        map.put("correctOptions", item.getCorrectOptions()); // MULTIPLE_CHOICE; revealed when showCorrectAnswers=true
         return map;
     }
 
     /**
-     * Stripped item map — student sees their answer but NOT isCorrect/pointsEarned.
+     * Stripped item map — student sees their answer and correctness but NOT the correct answer text.
+     * Canvas SOTA: students see which questions they got right/wrong, just not the correct option.
      */
     private Map<String, Object> toStrippedItemMap(QuizAttempt.AttemptItem item) {
         Map<String, Object> map = new HashMap<>();
         map.put("questionId", item.getQuestionId().toString());
         map.put("selectedOption", item.getSelectedOption());
         map.put("studentAnswer", item.getStudentAnswer());
+        map.put("isCorrect", item.getIsCorrect());
+        map.put("pointsEarned", item.getPointsEarned());
         map.put("feedback", item.getFeedback());
-        // Intentionally omit isCorrect and pointsEarned
+        // Omit correctOption — student sees right/wrong but not the correct answer
         return map;
     }
 
@@ -1261,13 +1365,16 @@ public class QuizControllerV3 {
             @Min(value = 0, message = "Điểm đạt không được âm")
             @Max(value = 100, message = "Điểm đạt không được vượt quá 100")
             Integer passingScore,
+            @Min(value = 1, message = "Thang điểm tối đa phải từ 1 trở lên")
+            Double maxScoreScale,
             Boolean shuffleQuestions,
             Boolean shuffleOptions,
             Boolean showResultsImmediately,
             Boolean showCorrectAnswers,
             String availableFrom,
             String dueAt,
-            String lockAt
+            String lockAt,
+            String accessPassword
     ) {}
 
     public record UpdateQuizQuestionsRequest(
@@ -1288,6 +1395,8 @@ public class QuizControllerV3 {
             @Min(value = 0, message = "Passing score cannot be negative")
             @Max(value = 100, message = "Passing score cannot exceed 100")
             Integer passingScore,
+            @Min(value = 1, message = "Max score scale must be at least 1")
+            Double maxScoreScale,
             Boolean shuffleQuestions,
             Boolean shuffleOptions,
             Boolean showResultsImmediately,
@@ -1300,7 +1409,8 @@ public class QuizControllerV3 {
             UUID classId,
             @NotNull(message = "Question list is required")
             List<UUID> questionIds,
-            Boolean publishImmediately
+            Boolean publishImmediately,
+            String accessPassword
     ) {}
 
     public record ManualGradeRequest(
@@ -1436,6 +1546,7 @@ public class QuizControllerV3 {
                 request.description(),
                 request.timeLimitMinutes(),
                 request.passingScore(),
+                request.maxScoreScale(),
                 request.shuffleQuestions(),
                 request.showResultsImmediately(),
                 parseAssessmentType(request.quizType(), Quiz.AssessmentType.PRACTICE),
@@ -1456,6 +1567,7 @@ public class QuizControllerV3 {
                 .timeLimitMinutes(request.timeLimitMinutes())
                 .maxAttempts(request.maxAttempts())
                 .passingScore(request.passingScore())
+                .maxScoreScale(request.maxScoreScale())
                 .shuffleQuestions(request.shuffleQuestions())
                 .shuffleOptions(request.shuffleOptions())
                 .showResultsImmediately(request.showResultsImmediately())
@@ -1463,6 +1575,7 @@ public class QuizControllerV3 {
                 .availableFrom(schedule.availableFrom())
                 .dueAt(schedule.dueAt())
                 .lockAt(schedule.dueAt())
+                .accessPassword(request.accessPassword())
                 .build();
 
         quizManagementUseCase.updateQuizSettings(

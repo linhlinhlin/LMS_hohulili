@@ -11,6 +11,8 @@ const refreshTokenSubject = new BehaviorSubject<string | null>(null);
 
 export const authInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): Observable<HttpEvent<any>> => {
   const authService = inject(AuthService);
+  const networkService = inject(NetworkStatusService);
+  const sessionService = inject(SessionExpiredService);
 
   const token = authService.getToken();
 
@@ -25,9 +27,8 @@ export const authInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): Obs
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
       const isAuthRoute = req.url.includes('/auth/login') || req.url.includes('/auth/refresh');
-      if ((error.status === 401 || error.status === 403) && !isAuthRoute) {
-        // 401 = expired token, 403 = token missing or insufficient — both warrant refresh attempt
-        return handleTokenRefresh(req, next, authService);
+      if (error.status === 401 && !isAuthRoute) {
+        return handleTokenRefresh(req, next, authService, networkService, sessionService);
       }
       return throwError(() => error);
     })
@@ -37,11 +38,10 @@ export const authInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): Obs
 function handleTokenRefresh(
   req: HttpRequest<any>,
   next: HttpHandlerFn,
-  authService: AuthService
+  authService: AuthService,
+  networkService: NetworkStatusService,
+  sessionService: SessionExpiredService
 ): Observable<HttpEvent<any>> {
-  const networkService = inject(NetworkStatusService);
-  const sessionService = inject(SessionExpiredService);
-
   if (!isRefreshing) {
     isRefreshing = true;
     refreshTokenSubject.next(null);

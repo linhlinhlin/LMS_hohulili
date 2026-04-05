@@ -73,6 +73,7 @@ public class QuizRepositoryAdapter implements QuizRepository {
             .timeLimitMinutes(quiz.getSettings().timeLimitMinutes())
             .maxAttempts(quiz.getSettings().maxAttempts())
             .passingScore(quiz.getSettings().passingScore())
+            .maxScoreScale(quiz.getSettings().maxScoreScale())
             .shuffleQuestions(quiz.getSettings().shuffleQuestions())
             .shuffleOptions(quiz.getSettings().shuffleOptions())
             .showResultsImmediately(quiz.getSettings().showResultsImmediately())
@@ -82,6 +83,7 @@ public class QuizRepositoryAdapter implements QuizRepository {
             .availableFrom(quiz.getSettings().availableFrom())
             .dueAt(quiz.getSettings().dueAt())
             .lockAt(quiz.getSettings().lockAt())
+            .accessPassword(quiz.getSettings().accessPassword())
             .status(QuizJpaEntity.QuizStatus.valueOf(quiz.getStatus().name())) // Map Status
             .build();
 
@@ -108,6 +110,7 @@ public class QuizRepositoryAdapter implements QuizRepository {
             .timeLimitMinutes(entity.getTimeLimitMinutes())
             .maxAttempts(entity.getMaxAttempts())
             .passingScore(entity.getPassingScore())
+            .maxScoreScale(entity.getMaxScoreScale())
             .shuffleQuestions(entity.getShuffleQuestions())
             .shuffleOptions(entity.getShuffleOptions())
             .showResultsImmediately(entity.getShowResultsImmediately())
@@ -115,6 +118,7 @@ public class QuizRepositoryAdapter implements QuizRepository {
             .availableFrom(entity.getAvailableFrom())
             .dueAt(entity.getDueAt())
             .lockAt(entity.getLockAt())
+            .accessPassword(entity.getAccessPassword())
             .build();
 
         // Build questions list directly via builder (NOT addQuestion which validates isEditable)

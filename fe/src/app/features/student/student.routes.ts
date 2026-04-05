@@ -110,7 +110,8 @@ export const studentRoutes: Routes = [
           {
             path: 'take/:id',
             loadComponent: () => import('./quiz/student-quiz-taking.component').then(m => m.StudentQuizTakingComponent),
-            title: 'Làm bài kiểm tra'
+            title: 'Làm bài kiểm tra',
+            canDeactivate: [(component: any) => component.canDeactivate ? component.canDeactivate() : true]
           },
           {
             path: 'result',

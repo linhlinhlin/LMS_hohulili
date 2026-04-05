@@ -1,8 +1,9 @@
 
-import { Component, OnInit, signal, input, output, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, signal, input, output, inject, viewChild, viewChildren, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormArray, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { QuestionApi } from '../../../api/endpoints/question.api';
+import { QuestionBankApi } from '../../../api/endpoints/question-bank.api';
 import { BlockEditorComponent } from '../../../shared/components/block-editor/block-editor.component';
 import { EnrichedInputFieldComponent } from '../../../shared/components/enriched-input/enriched-input.component';
 import { QuestionPreviewComponent } from '../../../shared/components/question-preview/question-preview.component';
@@ -18,6 +19,7 @@ import { firstValueFrom } from 'rxjs';
   selector: 'app-question-create',
   imports: [ReactiveFormsModule, LucideAngularModule, BlockEditorComponent, EnrichedInputFieldComponent, AuthImagePipe, QuestionPreviewComponent],
   templateUrl: './question-create.component.html',
+  styles: [`@keyframes slideIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }`]
 })
 export class QuestionCreateComponent implements OnInit {
   // Signal inputs (Angular v20+)
@@ -34,6 +36,7 @@ export class QuestionCreateComponent implements OnInit {
   categoryId: string | null = null;
   showPreview = signal(false);
   showHelpCard = signal(false);
+  bankName = signal<string | null>(null);
 
   // Signals for Content Blocks
   questionBlocks = signal<ContentBlock[]>([]);
@@ -46,12 +49,22 @@ export class QuestionCreateComponent implements OnInit {
   // Map index -> ContentBlock[]
   optionBlocksMap = new Map<number, ContentBlock[]>();
 
+  // ViewChild for auto-focus editor on load
+  readonly blockEditor = viewChild(BlockEditorComponent);
+
+  // ViewChildren for auto-focus on new option
+  readonly optionInputs = viewChildren(EnrichedInputFieldComponent);
+
+  // Entrance animation tracking
+  lastAddedIndex = signal<number | null>(null);
+
   // Injected dependencies
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly questionApi = inject(QuestionApi);
   private readonly toast = inject(ToastService);
+  private readonly questionBankApi = inject(QuestionBankApi);
 
   // Question type state
   selectedType = signal<'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'TRUE_FALSE'>('SINGLE_CHOICE');
@@ -78,9 +91,23 @@ export class QuestionCreateComponent implements OnInit {
     this.courseId = this.route.snapshot.paramMap.get('courseId') ||
       this.route.snapshot.queryParamMap.get('courseId');
     this.setCorrectOption('A');
+
+    if (this.packageId) {
+      this.questionBankApi.getBankById(this.packageId).subscribe({
+        next: (bank) => this.bankName.set(bank?.name || null),
+        error: () => {}
+      });
+    }
   }
 
   // --- Block Handlers ---
+
+  onEditorReady() {
+    // Auto-focus the editor on page load (not in dialog mode)
+    if (!this.isDialog()) {
+      setTimeout(() => this.blockEditor()?.focusEditor(), 100);
+    }
+  }
 
   onQuestionContentChange(blocks: ContentBlock[]) {
     this.questionBlocks.set(blocks);
@@ -108,6 +135,15 @@ export class QuestionCreateComponent implements OnInit {
       } else if (block.type === 'warning') {
         const data = block.data || {};
         return `[WARNING:${JSON.stringify({ title: data.title || '', message: data.message || '' })}]`;
+      } else if (block.type === 'video') {
+        const data = block.data || {};
+        if (data.isYouTube && data.url) {
+          return `[YTVID:${data.url}]`;
+        }
+        // Prefer rawUrl (original upload URL, not overwritten by HLS manifest)
+        const url = data.rawUrl || data.url || '';
+        const assetId = data.videoAssetId || '';
+        return url ? `[VID:${url}]` : (assetId ? `[VID:${assetId}]` : '');
       }
       return '';
     }).filter(s => s.trim()).join(' ');
@@ -181,9 +217,22 @@ export class QuestionCreateComponent implements OnInit {
     return -1;
   }
 
+  onEnterOnEmptyOption(index: number): void {
+    if (index === this.options.length - 1) {
+      this.addOption();
+    }
+  }
+
   addOption(): void {
     const nextKey = String.fromCharCode(65 + this.options.length);
+    const newIndex = this.options.length;
     this.options.push(this.createOptionGroup(nextKey));
+    this.lastAddedIndex.set(newIndex);
+    setTimeout(() => {
+      const inputs = this.optionInputs();
+      inputs[inputs.length - 1]?.focus();
+    });
+    setTimeout(() => this.lastAddedIndex.set(null), 300);
   }
 
   removeOption(index: number): void {
@@ -215,6 +264,16 @@ export class QuestionCreateComponent implements OnInit {
     this.correctKeys.set(keys);
     this.questionForm.patchValue({ correctOption: [...keys].sort().join(',') });
     this.updatePreviewOptions();
+  }
+
+  onOptionRowClick(index: number, event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (target.closest('textarea, input[type="radio"], input[type="checkbox"], button, app-enriched-input')) return;
+    if (this.selectedType() === 'MULTIPLE_CHOICE') {
+      this.toggleCorrectKey(this.getOptionKey(index));
+    } else {
+      this.setCorrectOption(this.getOptionKey(index));
+    }
   }
 
   isOptionCorrect(index: number): boolean {
@@ -418,6 +477,11 @@ export class QuestionCreateComponent implements OnInit {
         data.level = rest.level || rest.data?.level || 2;
       } else if (type === 'paragraph') {
         data.text = rest.text || rest.data?.text || '';
+      } else if (type === 'video') {
+        data.videoAssetId = rest.data?.videoAssetId || rest.videoAssetId || '';
+        data.url = rest.data?.url || rest.url || '';
+        data.caption = rest.data?.caption || rest.caption || '';
+        data.mimeType = rest.data?.mimeType || rest.mimeType || 'video/mp4';
       } else {
         // For other types, preserve the data structure
         Object.assign(data, rest.data || rest);
@@ -497,7 +561,9 @@ export class QuestionCreateComponent implements OnInit {
     } else if (returnUrl) {
       this.router.navigateByUrl(returnUrl);
     } else {
-      this.router.navigate(['/teacher/assessments/shared/question-bank']);
+      this.router.navigate(['/teacher/assessments/shared/question-bank'], {
+        queryParams: this.packageId ? { packageId: this.packageId } : {}
+      });
     }
   }
 

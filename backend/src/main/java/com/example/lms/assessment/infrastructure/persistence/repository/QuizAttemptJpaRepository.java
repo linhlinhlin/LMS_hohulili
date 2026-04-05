@@ -67,4 +67,14 @@ public interface QuizAttemptJpaRepository extends JpaRepository<QuizAttemptJpaEn
 
     @Query("SELECT COUNT(qa) FROM QuizAttemptJpaEntity qa WHERE qa.quizId = :quizId AND qa.status = 'SUBMITTED'")
     long countSubmittedByQuizId(@Param("quizId") UUID quizId);
+
+    // === Resume + Preflight queries ===
+
+    List<QuizAttemptJpaEntity> findByQuizIdAndStudentIdAndStatus(UUID quizId, UUID studentId, QuizAttemptJpaEntity.AttemptStatus status);
+
+    @Query("SELECT COUNT(qa) FROM QuizAttemptJpaEntity qa WHERE qa.quizId = :quizId AND qa.studentId = :studentId AND (qa.status = 'SUBMITTED' OR qa.status = 'GRADED' OR qa.status = 'TIMEOUT' OR qa.status = 'EXPIRED')")
+    long countCompletedAttempts(@Param("quizId") UUID quizId, @Param("studentId") UUID studentId);
+
+    @Query("SELECT DISTINCT qa.studentId FROM QuizAttemptJpaEntity qa WHERE qa.quizId = :quizId")
+    List<UUID> findDistinctStudentIdsByQuizId(@Param("quizId") UUID quizId);
 }

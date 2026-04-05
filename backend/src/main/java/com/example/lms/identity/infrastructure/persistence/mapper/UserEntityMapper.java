@@ -39,6 +39,7 @@ public class UserEntityMapper {
                 .enabled(entity.getEnabled() != null && entity.getEnabled())
                 .organizationId(entity.getOrganizationId())
                 .tokenExpiryDays(entity.getTokenExpiryDays())
+                .avatarUrl(entity.getAvatarUrl())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();
@@ -65,6 +66,7 @@ public class UserEntityMapper {
         entity.setEnabled(domain.isEnabled());
         entity.setOrganizationId(domain.getOrganizationId());
         entity.setTokenExpiryDays(domain.getTokenExpiryDays());
+        entity.setAvatarUrl(domain.getAvatarUrl());
         entity.setCreatedAt(domain.getCreatedAt());
         entity.setUpdatedAt(domain.getUpdatedAt());
         return entity;

@@ -445,7 +445,7 @@ ApiClient.delete<T> / deleteWithResponse<T>
 | **`screen-wake-lock.service.ts`** | ~80 | **Screen Wake Lock API (video playback)** |
 | **`qoe-tracker.service.ts`** | ~100 | **QoE metrics (startup, rebuffer, bitrate)** |
 | **`offline-video.service.ts`** | ~150 | **Video download via Cache API** |
-| **`presigned-upload.service.ts`** | ~140 | **3-step presigned URL upload: init → XHR PUT to R2 → confirm. Cancellable, progress tracking, dev fallback** |
+| **`presigned-upload.service.ts`** | ~150 | **3-step presigned URL upload: init → XHR PUT to R2 → confirm. Cancellable, progress tracking. Server relay routes video → `/upload/video` (500MB), images → `/upload/editor` (50MB)** |
 | **`seo.service.ts`** | ~60 | **Centralized SEO: setPageMeta(), setCanonical(), setJsonLd(), setKeywords(). Used by courses, course-detail, categories** |
 | **`webmcp.service.ts`** | ~190 | **WebMCP (W3C Draft Feb 2026): 4 AI-agent tools via `navigator.modelContext.registerTool()`. Feature-detects — zero impact on unsupported browsers** |
 
@@ -531,7 +531,7 @@ ApiClient.delete<T> / deleteWithResponse<T>
 | Angular CDK Scrolling | Auto-scroll during drag (`cdkScrollable`) |
 | RxJS | Async operations |
 | HLS.js | Video streaming |
-| EditorJS | Block-based content editor |
+| EditorJS | Block-based content editor (7 tools: paragraph, list, image, table, warning, math, video) |
 | Tailwind CSS | Utility-first styling |
 | VNPay | Payment gateway (Vietnamese) |
 | WebSocket | Real-time chat/notifications |

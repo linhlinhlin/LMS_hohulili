@@ -1,7 +1,1 @@
-/* Student Tasks Page — Flat list pattern (Google Classroom To-Do style) */
-/* All layout now via Tailwind in template. SCSS only for edge cases. */
-
-/* Overdue left border — Tailwind border-l-3 doesn't exist, use custom */
-a[class*="border-l-3"] {
-  border-left-width: 3px;
-}
+/* Student Tasks — Compact density, minimal chrome */

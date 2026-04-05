@@ -35,65 +35,38 @@
       }
     </div>
 
-    <!-- Trạng thái -->
-    <div class="relative" (click)="$event.stopPropagation()">
-      <button type="button" (click)="toggleDropdown('status')"
-              [class]="statusFilter() ? 'border-[#0056D2] text-[#0056D2] bg-[#0056D2]/5' : 'border-gray-200 text-gray-700 bg-white hover:border-gray-300'"
-              class="inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2.5 text-sm font-medium transition-colors whitespace-nowrap">
-        <lucide-icon name="filter" [size]="14"></lucide-icon>
-        {{ statusFilterLabel() }}
-        <lucide-icon name="chevron-down" [size]="12" class="text-gray-400"></lucide-icon>
+    <!-- Status tabs (đồng bộ pattern với assignment list) -->
+    <div class="flex items-center gap-2 flex-wrap">
+      <button (click)="setStatusFilter('')" type="button"
+              [class]="!statusFilter() ? 'bg-[#0056D2] text-white border-[#0056D2]' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'"
+              class="inline-flex items-center rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors">
+        Tất cả ({{ quizzes().length }})
       </button>
-      @if (openDropdown() === 'status') {
-        <div class="absolute left-0 top-full z-30 mt-1.5 w-56 rounded-xl border border-gray-200 bg-white py-1.5 shadow-lg">
-          <button (click)="setStatusFilter('')"
-                  [class]="!statusFilter() ? 'bg-[#0056D2]/5 text-[#0056D2] font-semibold' : 'text-gray-700'"
-                  class="flex w-full items-center justify-between px-3.5 py-2 text-left text-sm hover:bg-gray-50 transition-colors">
-            Tất cả trạng thái
-            <span class="text-xs text-gray-400">{{ quizzes().length }}</span>
-          </button>
-          <div class="mx-3 my-1 border-t border-gray-100"></div>
-          @if (needsGradingCount() > 0) {
-            <button (click)="setStatusFilter('NEEDS_GRADING')"
-                    [class]="statusFilter() === 'NEEDS_GRADING' ? 'bg-[#0056D2]/5 text-[#0056D2] font-semibold' : 'text-gray-700'"
-                    class="flex w-full items-center justify-between px-3.5 py-2 text-left text-sm hover:bg-gray-50 transition-colors">
-              <span class="flex items-center gap-2">
-                <span class="h-2 w-2 rounded-full bg-amber-500"></span>
-                Cần chấm
-              </span>
-              <span class="text-xs text-gray-400">{{ needsGradingCount() }}</span>
-            </button>
-          }
-          <button (click)="setStatusFilter('OPEN')"
-                  [class]="statusFilter() === 'OPEN' ? 'bg-[#0056D2]/5 text-[#0056D2] font-semibold' : 'text-gray-700'"
-                  class="flex w-full items-center justify-between px-3.5 py-2 text-left text-sm hover:bg-gray-50 transition-colors">
-            <span class="flex items-center gap-2">
-              <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-              Đang mở
-            </span>
-            <span class="text-xs text-gray-400">{{ openCount() }}</span>
-          </button>
-          <button (click)="setStatusFilter('DRAFT')"
-                  [class]="statusFilter() === 'DRAFT' ? 'bg-[#0056D2]/5 text-[#0056D2] font-semibold' : 'text-gray-700'"
-                  class="flex w-full items-center justify-between px-3.5 py-2 text-left text-sm hover:bg-gray-50 transition-colors">
-            <span class="flex items-center gap-2">
-              <span class="h-2 w-2 rounded-full bg-slate-400"></span>
-              Bản nháp
-            </span>
-            <span class="text-xs text-gray-400">{{ draftCount() }}</span>
-          </button>
-          @if (closedCount() > 0) {
-            <button (click)="setStatusFilter('CLOSED')"
-                    [class]="statusFilter() === 'CLOSED' ? 'bg-[#0056D2]/5 text-[#0056D2] font-semibold' : 'text-gray-700'"
-                    class="flex w-full items-center justify-between px-3.5 py-2 text-left text-sm hover:bg-gray-50 transition-colors">
-              <span class="flex items-center gap-2">
-                <span class="h-2 w-2 rounded-full bg-gray-400"></span>
-                Kết thúc
-              </span>
-              <span class="text-xs text-gray-400">{{ closedCount() }}</span>
-            </button>
-          }
-        </div>
+      @if (needsGradingCount() > 0) {
+        <button (click)="setStatusFilter('NEEDS_GRADING')" type="button"
+                [class]="statusFilter() === 'NEEDS_GRADING' ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'"
+                class="inline-flex items-center rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors">
+          Cần chấm ({{ needsGradingCount() }})
+        </button>
+      }
+      <button (click)="setStatusFilter('OPEN')" type="button"
+              [class]="statusFilter() === 'OPEN' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'"
+              class="inline-flex items-center rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors">
+        Đang mở ({{ openCount() }})
+      </button>
+      @if (draftCount() > 0) {
+        <button (click)="setStatusFilter('DRAFT')" type="button"
+                [class]="statusFilter() === 'DRAFT' ? 'bg-slate-600 text-white border-slate-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'"
+                class="inline-flex items-center rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors">
+          Nháp ({{ draftCount() }})
+        </button>
+      }
+      @if (closedCount() > 0) {
+        <button (click)="setStatusFilter('CLOSED')" type="button"
+                [class]="statusFilter() === 'CLOSED' ? 'bg-gray-600 text-white border-gray-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'"
+                class="inline-flex items-center rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors">
+          Hết hạn ({{ closedCount() }})
+        </button>
       }
     </div>
 
