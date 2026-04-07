@@ -8,7 +8,7 @@ export class SeoService {
   private meta = inject(Meta);
   private title = inject(Title);
 
-  setPageMeta(title: string, description: string, ogImage?: string): void {
+  setPageMeta(title: string, description: string, ogImage?: string, pageUrl?: string): void {
     const pageTitle = `${title} - LMS Maritime`;
     this.title.setTitle(pageTitle);
 
@@ -16,6 +16,10 @@ export class SeoService {
     this.meta.updateTag({ property: 'og:title', content: pageTitle });
     this.meta.updateTag({ property: 'og:description', content: description });
     this.meta.updateTag({ property: 'og:type', content: 'website' });
+
+    if (pageUrl) {
+      this.meta.updateTag({ property: 'og:url', content: pageUrl });
+    }
 
     if (ogImage) {
       this.meta.updateTag({ property: 'og:image', content: ogImage });

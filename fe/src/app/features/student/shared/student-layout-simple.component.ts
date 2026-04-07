@@ -5,18 +5,16 @@ import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent, SidebarConfig } from '../../../shared/components/navigation/sidebar.component';
 import { studentSidebarConfig as baseStudentSidebarConfig } from '../../../shared/components/navigation/sidebar.config';
-import { NotificationBellComponent } from '../../../shared/components/notification-bell.component';
 import { NotificationService } from '../../../core/services/notification.service';
 import { MessagingService } from '../../../core/services/messaging.service';
 import { ChatPanelComponent } from '../../ai-chat/presentation/components/chat-panel/chat-panel.component';
-import { FloatingChatBubbleComponent } from '../../ai-chat/presentation/components/floating-chat-bubble/floating-chat-bubble.component';
 import { OfflineSyncService } from '../../../core/services/offline-sync.service';
 import { NetworkStatusService } from '../../../core/services/network-status.service';
 import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
 
 @Component({
   selector: 'app-student-layout-simple',
-  imports: [RouterModule, RouterOutlet, SidebarComponent, NotificationBellComponent, ChatPanelComponent, FloatingChatBubbleComponent],
+  imports: [RouterModule, RouterOutlet, SidebarComponent, ChatPanelComponent],
   template: `
     <!-- Modern gradient background -->
     <div class="min-h-screen flex flex-col">
@@ -30,13 +28,12 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
         </div>
       }
 
-      <!-- Mobile sidebar overlay with backdrop blur -->
-      @if (isMobileSidebarOpen() && !shouldHideSidebar()) {
-        <div
-          class="fixed inset-0 z-50 md:hidden"
-          (click)="toggleMobileSidebar()">
-          <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
-          <div class="fixed inset-y-0 left-0 w-72 bg-white/95 backdrop-blur-xl shadow-2xl border-r border-white/20">
+      <!-- Mobile sidebar overlay — always rendered, animated via CSS -->
+      @if (!shouldHideSidebar()) {
+        <div class="mobile-sidebar-overlay md:hidden"
+             [class.open]="isMobileSidebarOpen()">
+          <div class="mobile-sidebar-backdrop" (click)="toggleMobileSidebar()"></div>
+          <div class="mobile-sidebar-panel">
             <app-sidebar [config]="studentSidebarConfig()"
               [collapsed]="false"></app-sidebar>
           </div>
@@ -51,57 +48,32 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
 
         <!-- Main content column -->
         <div class="flex flex-col flex-1 min-w-0">
-          <!-- Modern top navigation bar - Mobile only -->
+          <!-- Mobile top bar — minimal: hamburger + logo + avatar (Coursera pattern) -->
           <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 md:hidden shadow-sm">
-            <div class="px-4 sm:px-6 lg:px-8">
-              <div class="flex justify-between items-center h-16">
+            <div class="px-4">
+              <div class="flex justify-between items-center h-14">
                 <div class="flex items-center space-x-3">
-                  <!-- Modern hamburger menu -->
                   <button (click)="toggleMobileSidebar()"
-                    class="p-2 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 transition-all duration-200">
+                    class="p-2 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 focus:outline-none transition-all duration-200">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
                   </button>
-
-                  <!-- Modern logo/brand -->
                   <div class="flex items-center space-x-2">
-                    <div class="w-8 h-8 bg-[#0056D2] rounded-lg flex items-center justify-center">
-                      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                      </svg>
-                    </div>
-                    <h1 class="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                      Cổng Học viên
-                    </h1>
+                    <img src="/icons/logo-master.png" alt="LMS Maritime" class="w-7 h-7 rounded-lg">
+                    <span class="text-base font-bold text-gray-900">Cổng Học viên</span>
                   </div>
                 </div>
-
-                <!-- Modern user menu -->
-                <div class="flex items-center space-x-3">
-                  <!-- Notification Bell -->
-                  <app-notification-bell></app-notification-bell>
-
-                  <!-- User avatar and info -->
-                  <div class="flex items-center space-x-2">
-                    <div class="w-8 h-8 bg-[#0056D2] rounded-full flex items-center justify-center text-white text-sm font-medium">
+                <button (click)="toggleMobileSidebar()" class="p-1 rounded-full hover:bg-gray-100 transition-colors">
+                  @if (userAvatarUrl()) {
+                    <img [src]="userAvatarUrl()" [alt]="authService.currentUser()?.fullName || ''"
+                         class="w-8 h-8 rounded-full object-cover">
+                  } @else {
+                    <div class="w-8 h-8 bg-[#0056D2] rounded-full flex items-center justify-center text-white text-xs font-semibold">
                       {{ getUserInitials() }}
                     </div>
-                    <div class="hidden sm:block">
-                      <p class="text-sm font-medium text-gray-900">{{ authService.currentUser()?.fullName }}</p>
-                      <p class="text-xs text-gray-500">Student</p>
-                    </div>
-                  </div>
-
-                  <!-- Logout button — soft logout when offline (Moodle "Change Site" pattern) -->
-                  <button (click)="logout()"
-                    class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500/20">
-                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-                    </svg>
-                    Logout
-                  </button>
-                </div>
+                  }
+                </button>
               </div>
             </div>
           </header>
@@ -111,76 +83,57 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
             <router-outlet></router-outlet>
           </main>
 
-          <!-- Mobile Bottom Navigation Bar - Like Udemy/Coursera -->
+          <!-- Mobile Bottom Navigation — 5 tabs with AI center (Google/Canvas pattern) -->
           @if (!shouldHideSidebar()) {
-            <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-gray-200/50 shadow-2xl">
-              <div class="flex items-center justify-around px-2 py-2">
-                <!-- Dashboard -->
+            <nav class="mobile-bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-lg">
+              <div class="flex items-center justify-around px-1 py-1.5">
                 <a routerLink="/student/courses"
-                  data-mobile-label="Khóa học"
                   aria-label="Khóa học"
-                  routerLinkActive="text-[#0056D2]"
-                  [routerLinkActiveOptions]="{exact: true}"
-                  class="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-0 flex-1">
-                  <div class="w-6 h-6 mb-1">
-                    <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z"></path>
-                    </svg>
-                  </div>
-                  <span class="text-xs font-medium">Trang chủ</span>
+                  routerLinkActive="tab-active"
+                  class="tab-item">
+                  <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                  </svg>
+                  <span class="tab-label">Khóa học</span>
                 </a>
-                <!-- My Courses -->
                 <a routerLink="/student/tasks"
-                  data-mobile-label="Cần làm"
-                  aria-label="Cần làm"
-                  routerLinkActive="text-emerald-600"
-                  class="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-0 flex-1">
-                  <div class="w-6 h-6 mb-1">
-                    <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                    </svg>
-                  </div>
-                  <span class="text-xs font-medium">Khóa học</span>
+                  aria-label="Bài cần làm"
+                  routerLinkActive="tab-active"
+                  class="tab-item">
+                  <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                  </svg>
+                  <span class="tab-label">Cần làm</span>
                 </a>
-                <!-- Assignments -->
-                <a routerLink="/student/results"
-                  data-mobile-label="Kết quả"
-                  aria-label="Kết quả"
-                  routerLinkActive="text-purple-600"
-                  class="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-0 flex-1 relative">
-                  <div class="w-6 h-6 mb-1">
-                    <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                @if (enableAssistant) {
+                  <button
+                    (click)="toggleMobilePanel()"
+                    aria-label="Trợ lý Wiii AI"
+                    class="tab-item"
+                    [class.tab-active]="isMobilePanelOpen()">
+                    <svg class="w-5 h-5 mb-0.5" fill="currentColor" viewBox="0 0 24 24">
+                      <path fill-rule="evenodd" d="M9 4.5a.75.75 0 01.721.544l.813 2.846a3.75 3.75 0 002.576 2.576l2.846.813a.75.75 0 010 1.442l-2.846.813a3.75 3.75 0 00-2.576 2.576l-.813 2.846a.75.75 0 01-1.442 0l-.813-2.846a3.75 3.75 0 00-2.576-2.576l-2.846-.813a.75.75 0 010-1.442l2.846-.813A3.75 3.75 0 007.466 7.89l.813-2.846A.75.75 0 019 4.5z" clip-rule="evenodd"/>
                     </svg>
-                  </div>
-                  <span class="text-xs font-medium">Bài tập</span>
-                </a>
-                <!-- Browse / Explore -->
+                    <span class="tab-label">Wiii AI</span>
+                  </button>
+                }
                 <a routerLink="/student/browse"
-                  data-mobile-label="Khám phá"
                   aria-label="Khám phá"
-                  routerLinkActive="text-orange-600"
-                  class="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-0 flex-1">
-                  <div class="w-6 h-6 mb-1">
-                    <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
-                  </div>
-                  <span class="text-xs font-medium">Khám phá</span>
+                  routerLinkActive="tab-active"
+                  class="tab-item">
+                  <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                  </svg>
+                  <span class="tab-label">Khám phá</span>
                 </a>
-                <!-- Profile -->
                 <a routerLink="/student/profile"
-                  data-mobile-label="Hồ sơ"
                   aria-label="Hồ sơ"
-                  routerLinkActive="text-slate-600"
-                  class="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-0 flex-1">
-                  <div class="w-6 h-6 mb-1">
-                    <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                    </svg>
-                  </div>
-                  <span class="text-xs font-medium">Hồ sơ</span>
+                  routerLinkActive="tab-active"
+                  class="tab-item">
+                  <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                  </svg>
+                  <span class="tab-label">Hồ sơ</span>
                 </a>
               </div>
             </nav>
@@ -188,7 +141,7 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
 
           <!-- Add bottom padding for mobile navigation -->
           @if (!shouldHideSidebar()) {
-            <div class="h-20 md:hidden"></div>
+            <div class="h-16 md:hidden"></div>
           }
         </div>
 
@@ -237,21 +190,21 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
       }
 
       <!-- ============================================================
-           MOBILE: Floating bubble + popup panel
+           MOBILE: Chat panel with slide-up animation
            ============================================================ -->
       @if (enableAssistant) {
-      <div class="md:hidden">
-        @if (isMobilePanelOpen()) {
-          <app-chat-panel
-            mode="widget"
-            (closePanel)="closeMobilePanel()"
-          />
-        }
-        <app-floating-chat-bubble
-          [isPanelOpen]="isMobilePanelOpen()"
-          (bubbleClick)="toggleMobilePanel()"
-        />
-      </div>
+        <div class="mobile-ai-overlay md:hidden"
+             [class.open]="isMobilePanelOpen()">
+          <div class="mobile-ai-backdrop" (click)="closeMobilePanel()"></div>
+          <div class="mobile-ai-panel">
+            @if (isMobilePanelOpen()) {
+              <app-chat-panel
+                mode="widget"
+                (closePanel)="closeMobilePanel()"
+              />
+            }
+          </div>
+        </div>
       }
     </div>
     `,
@@ -364,17 +317,108 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
       height: 18px;
     }
 
-    @media (max-width: 767px) {
-      nav a[data-mobile-label] span.text-xs {
-        display: none;
-      }
+    /* ── Mobile Sidebar — slide-in from left ── */
+    .mobile-sidebar-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      pointer-events: none;
+    }
+    .mobile-sidebar-overlay.open {
+      pointer-events: auto;
+    }
 
-      nav a[data-mobile-label]::after {
-        content: attr(data-mobile-label);
-        font-size: 0.75rem;
-        font-weight: 500;
-        line-height: 1rem;
-      }
+    .mobile-sidebar-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .mobile-sidebar-overlay.open .mobile-sidebar-backdrop {
+      opacity: 1;
+    }
+
+    .mobile-sidebar-panel {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 288px;
+      background: white;
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 51;
+    }
+    .mobile-sidebar-overlay.open .mobile-sidebar-panel {
+      transform: translateX(0);
+    }
+
+    /* ── Mobile AI Panel — slide-up from bottom ── */
+    .mobile-ai-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      pointer-events: none;
+    }
+    .mobile-ai-overlay.open {
+      pointer-events: auto;
+    }
+
+    .mobile-ai-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .mobile-ai-overlay.open .mobile-ai-backdrop {
+      opacity: 1;
+    }
+
+    .mobile-ai-panel {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 61;
+    }
+    .mobile-ai-overlay.open .mobile-ai-panel {
+      transform: translateY(0);
+    }
+
+    /* ── Bottom nav bar ── */
+    .mobile-bottom-nav { padding-bottom: env(safe-area-inset-bottom, 0); }
+
+    .tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 0;
+      min-width: 0;
+      flex: 1;
+      color: #9ca3af;
+      transition: color 0.15s ease;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+
+    .tab-item.tab-active {
+      color: #0056D2;
+    }
+
+    .tab-label {
+      font-size: 10px;
+      font-weight: 500;
+      line-height: 1;
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -392,6 +436,12 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
   private dialog = inject(ConfirmDialogService);
   protected isMobileSidebarOpen = signal(false);
   protected sidebarCollapsed = signal(false);
+
+  // User avatar — show real avatar if exists, fallback to initials circle
+  protected userAvatarUrl = computed(() => {
+    const user = this.authService.currentUser();
+    return user?.avatar || (user as any)?.avatarUrl || null;
+  });
 
   // AI Sidebar state (desktop)
   protected isAiSidebarOpen = signal(false);

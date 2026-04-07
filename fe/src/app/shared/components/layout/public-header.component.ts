@@ -57,6 +57,7 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
   // User info getters - only return value if user exists
   userName = () => this.currentUser()?.fullName || this.currentUser()?.name || '';
   userRole = () => this.currentUser()?.role || '';
+  userAvatar = () => this.currentUser()?.avatar || this.currentUser()?.avatarUrl || null;
 
   getUserInitials(): string {
     const name = this.userName();

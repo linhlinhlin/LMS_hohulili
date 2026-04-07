@@ -12,7 +12,14 @@ export const studentSidebarConfig: SidebarConfig = {
       route: '/student/courses',
       icon: 'courses',
       exact: true,
-      group: 'Học tập'
+      group: 'Học tập',
+      children: [
+        {
+          label: 'Tất cả khóa học',
+          route: '/student/courses/library',
+          icon: 'book'
+        }
+      ]
     },
     {
       label: 'Bài cần làm',

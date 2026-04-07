@@ -18,49 +18,21 @@
       </div>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="quick-actions" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-      <a routerLink="/student/tasks"
-         class="quick-action-link"
-         style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#0056D2;background:#0056D2/5;padding:6px 12px;border-radius:8px;text-decoration:none;border:1px solid #e5e7eb;transition:background 0.15s"
-         onmouseover="this.style.background='rgba(0,86,210,0.08)'"
-         onmouseout="this.style.background='transparent'">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h4a2 2 0 002-2" />
-        </svg>
-        Xem bài cần làm
-      </a>
-      <a routerLink="/student/results"
-         class="quick-action-link"
-         style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#0056D2;background:#0056D2/5;padding:6px 12px;border-radius:8px;text-decoration:none;border:1px solid #e5e7eb;transition:background 0.15s"
-         onmouseover="this.style.background='rgba(0,86,210,0.08)'"
-         onmouseout="this.style.background='transparent'">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-6m3 6V7m3 10v-3m3 3H6a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2z" />
-        </svg>
-        Xem kết quả
-      </a>
-      <a routerLink="/student/courses/library"
-         class="quick-action-link"
-         style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#0056D2;background:#0056D2/5;padding:6px 12px;border-radius:8px;text-decoration:none;border:1px solid #e5e7eb;transition:background 0.15s"
-         onmouseover="this.style.background='rgba(0,86,210,0.08)'"
-         onmouseout="this.style.background='transparent'">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-        </svg>
-        Xem tất cả khóa học
-      </a>
-      <a routerLink="/student/storage"
-         class="quick-action-link"
-         style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#0056D2;background:#0056D2/5;padding:6px 12px;border-radius:8px;text-decoration:none;border:1px solid #e5e7eb;transition:background 0.15s"
-         onmouseover="this.style.background='rgba(0,86,210,0.08)'"
-         onmouseout="this.style.background='transparent'">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-        </svg>
-        Quản lý bộ nhớ ngoại tuyến
-      </a>
-    </div>
+
+    <!-- Hero Card Skeleton -->
+    @if (isLoading() && !continueCardData()) {
+      <div class="hero-card animate-pulse" style="cursor:default">
+        <div class="hero-body">
+          <div style="width:48px;height:48px;border-radius:50%;background:#E5E7EB;flex-shrink:0"></div>
+          <div class="hero-info" style="gap:8px">
+            <div style="height:10px;width:80px;background:#E5E7EB;border-radius:4px"></div>
+            <div style="height:18px;width:60%;background:#E5E7EB;border-radius:4px"></div>
+            <div style="height:12px;width:40%;background:#E5E7EB;border-radius:4px"></div>
+          </div>
+          <div style="height:40px;width:140px;background:#E5E7EB;border-radius:6px;flex-shrink:0"></div>
+        </div>
+      </div>
+    }
 
     <!-- Hero Card -->
     @if (continueCardData(); as card) {
@@ -121,6 +93,28 @@
         }
       </div>
 
+      <!-- Loading Skeleton -->
+      @if (isLoading()) {
+        <div class="courses-list">
+          @for (i of [1,2,3]; track i) {
+            <div class="course-card">
+              <div class="course-card-body animate-pulse">
+                <div class="course-thumbnail" style="background:#E5E7EB"></div>
+                <div class="course-metadata" style="gap:10px">
+                  <div style="height:10px;width:80px;background:#E5E7EB;border-radius:4px"></div>
+                  <div style="height:16px;width:70%;background:#E5E7EB;border-radius:4px"></div>
+                  <div style="height:10px;width:50%;background:#E5E7EB;border-radius:4px"></div>
+                  <div style="height:6px;width:100%;background:#E5E7EB;border-radius:3px"></div>
+                </div>
+                <div class="action-buttons" style="min-width:120px">
+                  <div style="height:36px;width:100px;background:#E5E7EB;border-radius:8px"></div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
       <!-- In Progress - Empty State -->
       @if (activeTab() === 'in-progress' && recentInProgress().length === 0 && !isLoading()) {
         <div class="empty-state">
@@ -174,18 +168,18 @@
                   }
                 </div>
                 <div class="action-buttons">
-                  <app-button variant="primary" (clicked)="continueCourse(course.id)">
-                    {{ course.progress > 0 ? 'Tiếp tục học' : 'Bắt đầu ngay' }}
-                  </app-button>
+                  <button class="dropdown-button" (click)="toggleModules(course.id)" aria-label="Hiển thị bài học">
+                    <app-icon [name]="course.showModules ? 'chevron-up' : 'chevron-down'" size="sm" />
+                  </button>
                   @if (canDownload(course)) {
                     <app-course-download-button
                       [courseId]="course.id"
                       [courseTitle]="course.title"
                       [allowOfflineDownload]="true" />
                   }
-                  <button class="dropdown-button" (click)="toggleModules(course.id)" aria-label="Hiển thị bài học">
-                    <app-icon [name]="course.showModules ? 'chevron-up' : 'chevron-down'" size="sm" />
-                  </button>
+                  <app-button variant="primary" (clicked)="continueCourse(course.id)">
+                    {{ course.progress > 0 ? 'Tiếp tục học' : 'Bắt đầu ngay' }}
+                  </app-button>
                 </div>
               </div>
 
@@ -304,18 +298,18 @@
                   </div>
                 </div>
                 <div class="action-buttons">
-                  <app-button variant="primary" (clicked)="continueCourse(course.id)">
-                    Xem lại
-                  </app-button>
+                  <button class="dropdown-button" (click)="toggleModules(course.id)" aria-label="Hiển thị bài học">
+                    <app-icon [name]="course.showModules ? 'chevron-up' : 'chevron-down'" size="sm" />
+                  </button>
                   @if (canDownload(course)) {
                     <app-course-download-button
                       [courseId]="course.id"
                       [courseTitle]="course.title"
                       [allowOfflineDownload]="true" />
                   }
-                  <button class="dropdown-button" (click)="toggleModules(course.id)" aria-label="Hiển thị bài học">
-                    <app-icon [name]="course.showModules ? 'chevron-up' : 'chevron-down'" size="sm" />
-                  </button>
+                  <app-button variant="primary" (clicked)="continueCourse(course.id)">
+                    Xem lại
+                  </app-button>
                 </div>
               </div>
 

@@ -36,7 +36,7 @@ import { CourseLevel, ExtendedCourse, LEVEL_LABELS } from '../../../shared/types
           <span
             class="absolute right-3 top-3 rounded-md px-2 py-0.5 text-[11px] font-bold backdrop-blur-sm"
             [class]="course().price === 0 ? 'bg-green-500/90 text-white' : 'bg-white/90 text-gray-900'">
-            {{ course().price === 0 ? 'Miá»…n phÃ­' : formatPrice(course().price) }}
+            {{ course().price === 0 ? 'Miễn phí' : formatPrice(course().price) }}
           </span>
         </div>
       </a>
@@ -55,7 +55,7 @@ import { CourseLevel, ExtendedCourse, LEVEL_LABELS } from '../../../shared/types
           <div class="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-500">
             {{ (course().instructor.name || 'G')[0] }}
           </div>
-          <span class="text-xs text-gray-500">{{ course().instructor.name || 'Giáº£ng viÃªn' }}</span>
+          <span class="text-xs text-gray-500">{{ course().instructor.name || 'Giảng viên' }}</span>
         </div>
 
         <!-- Rating + Stats -->
@@ -67,7 +67,7 @@ import { CourseLevel, ExtendedCourse, LEVEL_LABELS } from '../../../shared/types
             <span class="text-xs font-semibold text-gray-900">{{ course().rating || 5 }}</span>
             <span class="text-[11px] text-gray-400">({{ course().studentsCount || 0 }})</span>
           </div>
-          <span class="text-[11px] text-gray-400">{{ course().lessonsCount || 0 }} bÃ i há»c</span>
+          <span class="text-[11px] text-gray-400">{{ course().lessonsCount || 0 }} bài học</span>
         </div>
       </div>
     </article>
@@ -93,12 +93,12 @@ export class CourseCardComponent {
 
   getCategoryName(category: string): string {
     const names: Record<string, string> = {
-      engineering: 'Ká»¹ thuáº­t tÃ u biá»ƒn',
-      logistics: 'Logistics hÃ ng háº£i',
-      safety: 'An toÃ n hÃ ng háº£i',
-      navigation: 'Äiá»u khiá»ƒn tÃ u',
-      law: 'Luáº­t hÃ ng háº£i',
-      cargo: 'Xáº¿p dá»¡ hÃ ng hÃ³a',
+      engineering: 'Kỹ thuật tàu biển',
+      logistics: 'Logistics hàng hải',
+      safety: 'An toàn hàng hải',
+      navigation: 'Điều khiển tàu',
+      law: 'Luật hàng hải',
+      cargo: 'Xếp dỡ hàng hóa',
     };
     return names[category] || category;
   }
@@ -116,7 +116,7 @@ export class CourseCardComponent {
   }
 
   formatPrice(price?: number): string {
-    if (!price) return 'LiÃªn há»‡';
+    if (!price) return 'Liên hệ';
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
   }
 

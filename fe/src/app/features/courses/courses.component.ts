@@ -236,7 +236,13 @@ export class CoursesComponent implements OnInit {
 
   ngOnInit(): void {
     // Static SEO for listing page
-    this.seo.setPageMeta('Khóa học', 'Danh sách khóa học hàng hải với bộ lọc nâng cao theo danh mục, cấp độ, giá, đánh giá.');
+    this.seo.setPageMeta(
+      'Khóa học',
+      'Danh sách khóa học hàng hải chuyên nghiệp — an toàn hàng hải, điều khiển tàu, kỹ thuật máy tàu, logistics, luật hàng hải.',
+      undefined,
+      'https://holilihu.online/courses'
+    );
+    this.seo.setCanonical('https://holilihu.online/courses');
 
     // Preload enrolled courses for logged-in students to enable isEnrolled check
     if (this.authService.isAuthenticated() && this.authService.userRole() === 'student') {

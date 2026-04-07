@@ -5,6 +5,7 @@ import {
 import { isPlatformBrowser } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ApiClient } from '../../api/client/api-client';
+import { SeoService } from '../../core/services/seo.service';
 
 interface FeaturedCourse {
   id: string;
@@ -447,6 +448,7 @@ interface FeaturedCourse {
 export class HomeSimpleComponent implements OnInit, AfterViewInit {
   private api = inject(ApiClient);
   private platformId = inject(PLATFORM_ID);
+  private seo = inject(SeoService);
 
   courses = signal<FeaturedCourse[]>([]);
   coursesLoading = signal(true);
@@ -468,7 +470,7 @@ export class HomeSimpleComponent implements OnInit, AfterViewInit {
     },
     {
       svgId: 'shield-check', title: 'Chứng chỉ STCW / IMO',
-      desc: 'Hoàn thành khóa học và nhận chứng chỉ theo chuẩn quốc tế STCW, được công nhận bởi Trường Đại học Hàng hải Việt Nam.',
+      desc: 'Hoàn thành khóa học và nhận chứng chỉ theo chuẩn quốc tế STCW — chương trình đào tạo bởi The Wiii Lab, Hải Phòng.',
       iconBg: 'bg-amber-500/10', iconColor: 'text-amber-600',
       tag: 'International Maritime Organization', tagColor: 'text-amber-600/80',
       link: null, linkText: '', linkColor: ''
@@ -476,11 +478,11 @@ export class HomeSimpleComponent implements OnInit, AfterViewInit {
   ];
 
   readonly categories = [
-    { name: 'An toàn Hàng hải', slug: 'safety', svgId: 'shield', desc: 'SOLAS, cứu sinh, phòng cháy', bgClass: 'bg-red-50', iconColor: 'text-red-500' },
+    { name: 'An toàn hàng hải', slug: 'safety', svgId: 'shield', desc: 'SOLAS, cứu sinh, phòng cháy', bgClass: 'bg-red-50', iconColor: 'text-red-500' },
     { name: 'Điều khiển tàu', slug: 'navigation', svgId: 'compass', desc: 'Hàng hải thiên văn, radar, ECDIS', bgClass: 'bg-blue-50', iconColor: 'text-blue-500' },
     { name: 'Kỹ thuật máy tàu', slug: 'engineering', svgId: 'cog', desc: 'Diesel, turbine, hệ thống điện', bgClass: 'bg-slate-100', iconColor: 'text-slate-600' },
-    { name: 'Logistics Hàng hải', slug: 'logistics', svgId: 'truck', desc: 'Vận tải container, cảng biển', bgClass: 'bg-amber-50', iconColor: 'text-amber-600' },
-    { name: 'Luật Hàng hải', slug: 'law', svgId: 'scale', desc: 'UNCLOS, bảo hiểm, hợp đồng', bgClass: 'bg-purple-50', iconColor: 'text-purple-500' },
+    { name: 'Logistics hàng hải', slug: 'logistics', svgId: 'truck', desc: 'Vận tải container, cảng biển', bgClass: 'bg-amber-50', iconColor: 'text-amber-600' },
+    { name: 'Luật hàng hải', slug: 'law', svgId: 'scale', desc: 'UNCLOS, bảo hiểm, hợp đồng', bgClass: 'bg-purple-50', iconColor: 'text-purple-500' },
     { name: 'Chứng chỉ STCW', slug: 'certificates', svgId: 'award', desc: 'GMDSS, Radar, ECDIS, GOC', bgClass: 'bg-green-50', iconColor: 'text-green-600' },
   ];
 
@@ -510,6 +512,17 @@ export class HomeSimpleComponent implements OnInit, AfterViewInit {
   ];
 
   ngOnInit(): void {
+    this.seo.setPageMeta(
+      'Trang chủ',
+      'Nền tảng đào tạo hàng hải Việt Nam — học mọi lúc, kể cả trên biển. Tích hợp AI và hoạt động ngoại tuyến.',
+      'https://holilihu.online/og-image.png',
+      'https://holilihu.online/'
+    );
+    this.seo.setCanonical('https://holilihu.online/');
+    this.seo.setKeywords([
+      'LMS hàng hải', 'đào tạo hàng hải', 'học hàng hải online',
+      'STCW', 'thủy thủ', 'maritime education', 'holilihu'
+    ]);
     this.loadFeaturedCourses();
   }
 

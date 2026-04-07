@@ -1,18 +1,18 @@
 import { Component, ChangeDetectionStrategy, signal, inject, OnInit, OnDestroy, HostListener, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { SeoService } from '../../core/services/seo.service';
 
 @Component({
   selector: 'app-terms-of-service',
-  imports: [RouterModule, FormsModule],
+  imports: [RouterModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './terms-of-service.component.html',
 })
 export class TermsOfServiceComponent implements OnInit, OnDestroy {
   private platformId = inject<Object>(PLATFORM_ID);
-
   private router = inject(Router);
+  private seo = inject(SeoService);
 
   // Signals
   isTocVisible = signal(true);
@@ -28,6 +28,14 @@ export class TermsOfServiceComponent implements OnInit, OnDestroy {
   ];
 
   ngOnInit(): void {
+    this.seo.setPageMeta(
+      'Điều khoản sử dụng',
+      'Điều khoản sử dụng dịch vụ LMS Maritime — hệ thống đào tạo hàng hải trực tuyến.',
+      undefined,
+      'https://holilihu.online/terms'
+    );
+    this.seo.setCanonical('https://holilihu.online/terms');
+
     if (isPlatformBrowser(this.platformId)) {
       this.updateActiveSection();
     }

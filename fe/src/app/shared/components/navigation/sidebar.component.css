@@ -385,7 +385,7 @@
   background-color: #fef2f2;
 }
 
-/* ===== Collapse toggle button ===== */
+/* ===== Collapse toggle button (desktop only — no collapse in mobile overlay) ===== */
 .collapse-toggle {
   position: absolute;
   right: -12px;
@@ -396,13 +396,19 @@
   border: 1px solid #e5e7eb;
   border-radius: 9999px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 50;
   color: #6b7280;
   transition: all 0.2s;
+}
+
+@media (min-width: 768px) {
+  .collapse-toggle {
+    display: flex;
+  }
 }
 
 .collapse-toggle:hover {

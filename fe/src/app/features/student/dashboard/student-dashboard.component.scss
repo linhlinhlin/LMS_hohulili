@@ -447,13 +447,15 @@
   font-weight: 500;
 }
 
-/* Action Buttons — matches my-courses */
+/* Action Buttons — [▼] [Download?] [CTA] — CTA always at right edge */
 .action-buttons {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
   align-self: center;
+  min-width: 200px;
+  justify-content: flex-end;
 
   app-button {
     white-space: nowrap;
@@ -742,7 +744,29 @@
 
   .action-buttons {
     align-self: stretch;
-    justify-content: flex-start;
+    min-width: unset;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+
+    /* CTA full width on mobile */
+    app-button {
+      order: 1;
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* Expand button: compact, right of CTA */
+    .dropdown-button {
+      order: 2;
+    }
+
+    /* Download: own row below CTA, full width */
+    app-course-download-button {
+      order: 3;
+      flex-basis: 100%;
+      display: flex;
+      justify-content: center;
+    }
   }
 
   .section-header {

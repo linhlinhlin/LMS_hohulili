@@ -31,11 +31,11 @@ import { SessionExpiredService } from '../../../core/services/session-expired.se
         </a>
       </div>
     } @else if (isSlow()) {
-      <!-- Corner pill for slow connection -->
-      <div class="fixed top-3 right-3 z-50 flex items-center gap-2 px-3 py-1.5 rounded-full shadow-md text-white bg-amber-600 transition-all duration-300"
+      <!-- Slim banner for slow connection — below content, not overlaying -->
+      <div class="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-center gap-2 px-3 py-1 bg-amber-50 border-t border-amber-200 text-amber-700 md:top-0 md:bottom-auto md:border-t-0 md:border-b transition-all duration-300"
            role="status"
            aria-live="polite">
-        <span class="inline-block w-2 h-2 rounded-full bg-amber-300 animate-pulse"></span>
+        <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
         <span class="text-xs font-medium">{{ network.connectionLabel() }}</span>
       </div>
     }

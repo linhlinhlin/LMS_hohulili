@@ -117,11 +117,11 @@ export class MegaMenuComponent {
   menuTop = computed(() => this.isScrolled() ? '64px' : '130px');
 
   readonly categories = [
-    { slug: 'safety', name: 'An toàn Hàng hải', icon: 'shield' },
+    { slug: 'safety', name: 'An toàn hàng hải', icon: 'shield' },
     { slug: 'navigation', name: 'Điều khiển tàu', icon: 'compass' },
     { slug: 'engineering', name: 'Kỹ thuật máy tàu', icon: 'cog' },
-    { slug: 'logistics', name: 'Logistics Hàng hải', icon: 'truck' },
-    { slug: 'law', name: 'Luật Hàng hải', icon: 'scale' },
+    { slug: 'logistics', name: 'Logistics hàng hải', icon: 'truck' },
+    { slug: 'law', name: 'Luật hàng hải', icon: 'scale' },
     { slug: 'certificates', name: 'Chứng chỉ STCW', icon: 'award' },
   ];
 

@@ -45,16 +45,7 @@
 
             <!-- Top Actions -->
             <div class="flex items-center space-x-4">
-              <!-- Language Switcher -->
-              <button class="flex items-center space-x-2 text-xs text-slate-300 hover:text-white transition-colors duration-200">
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M7 2a1 1 0 011 1v1h3a1 1 0 110 2H9.578a18.87 18.87 0 01-1.724 4.78c.29.354.596.696.914 1.026a1 1 0 11-1.44 1.389c-.188-.196-.373-.396-.554-.6a19.098 19.098 0 01-3.107 3.567 1 1 0 01-1.334-1.49 17.087 17.087 0 003.13-3.733 18.992 18.992 0 01-1.487-2.494 1 1 0 111.79-.89c.407.822.761 1.67 1.056 2.54H4a1 1 0 110-2h3V3a1 1 0 011-1zM6 12a1 1 0 100 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
-                </svg>
-                <span>VN</span>
-              </button>
-
-              <!-- Support -->
-              <a href="/support" class="text-xs text-slate-300 hover:text-white transition-colors duration-200">
+              <a href="/contact" class="text-xs text-slate-300 hover:text-white transition-colors duration-200">
                 Hỗ trợ
               </a>
             </div>
@@ -164,9 +155,13 @@
                   <button (click)="toggleUserMenu()" 
                           class="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors duration-200">
                     <!-- User Avatar -->
-                    <div class="w-9 h-9 rounded-full bg-[#0056D2] text-white flex items-center justify-center text-sm font-semibold shadow-sm">
-                      {{ getUserInitials() }}
-                    </div>
+                    @if (userAvatar()) {
+                      <img [src]="userAvatar()" [alt]="userName()" class="w-9 h-9 rounded-full object-cover shadow-sm">
+                    } @else {
+                      <div class="w-9 h-9 rounded-full bg-[#0056D2] text-white flex items-center justify-center text-sm font-semibold shadow-sm">
+                        {{ getUserInitials() }}
+                      </div>
+                    }
                     <!-- Username + Dropdown Arrow -->
                     <span class="hidden md:block text-sm font-medium text-gray-700 max-w-32 truncate">{{ userName() }}</span>
                     <svg class="w-4 h-4 text-gray-500 transition-transform duration-200" 
@@ -321,19 +316,19 @@
                        (click)="closeMobileMenu()"
                        [queryParams]="{ category: 'safety' }"
                        class="block px-6 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200">
-                      An toàn Hàng hải
+                      An toàn hàng hải
                     </a>
-                    <a routerLink="/courses" 
+                    <a routerLink="/courses"
                        (click)="closeMobileMenu()"
                        [queryParams]="{ category: 'navigation' }"
                        class="block px-6 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200">
-                      Điều khiển Tàu
+                      Điều khiển tàu
                     </a>
-                    <a routerLink="/courses" 
+                    <a routerLink="/courses"
                        (click)="closeMobileMenu()"
                        [queryParams]="{ category: 'engineering' }"
                        class="block px-6 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200">
-                      Kỹ thuật Máy tàu
+                      Kỹ thuật máy tàu
                     </a>
                   </div>
 
@@ -357,9 +352,13 @@
                 @if (isLoggedIn()) {
                   <!-- Authenticated User Info -->
                   <div class="flex items-center space-x-3 mb-4 pb-4 border-b border-gray-100">
-                    <div class="w-10 h-10 rounded-full bg-[#0056D2] text-white flex items-center justify-center text-sm font-semibold">
-                      {{ getUserInitials() }}
-                    </div>
+                    @if (userAvatar()) {
+                      <img [src]="userAvatar()" [alt]="userName()" class="w-10 h-10 rounded-full object-cover">
+                    } @else {
+                      <div class="w-10 h-10 rounded-full bg-[#0056D2] text-white flex items-center justify-center text-sm font-semibold">
+                        {{ getUserInitials() }}
+                      </div>
+                    }
                     <div>
                       <p class="text-sm font-semibold text-gray-900">{{ userName() }}</p>
                       <p class="text-xs text-gray-500 capitalize">{{ userRole() }}</p>
@@ -367,19 +366,22 @@
                   </div>
                   <!-- User Navigation -->
                   <div class="space-y-2">
-                    <a [routerLink]="getMyCoursesRoute()" 
+                    <a [routerLink]="getMyCoursesRoute()"
                        (click)="closeMobileMenu()"
-                       class="block w-full text-left px-4 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50">
-                      đŸ“ Khóa học của tôi
+                       class="flex items-center w-full text-left px-4 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50">
+                      <svg class="w-4 h-4 mr-3 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                      Khóa học của tôi
                     </a>
-                    <a [routerLink]="getDashboardRoute()" 
+                    <a [routerLink]="getDashboardRoute()"
                        (click)="closeMobileMenu()"
-                       class="block w-full text-left px-4 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50">
-                      đŸ  Bảng điều khiển
+                       class="flex items-center w-full text-left px-4 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50">
+                      <svg class="w-4 h-4 mr-3 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                      Bảng điều khiển
                     </a>
                     <button (click)="logout(); closeMobileMenu()"
-                            class="block w-full text-left px-4 py-2 rounded-md text-base font-medium text-red-600 hover:bg-red-50">
-                      đŸª Đăng xuất
+                            class="flex items-center w-full text-left px-4 py-2 rounded-md text-base font-medium text-red-600 hover:bg-red-50">
+                      <svg class="w-4 h-4 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                      Đăng xuất
                     </button>
                   </div>
                 } @else {

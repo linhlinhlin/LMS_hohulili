@@ -1,18 +1,18 @@
 import { Component, ChangeDetectionStrategy, signal, inject, OnInit, OnDestroy, HostListener, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { SeoService } from '../../core/services/seo.service';
 
 @Component({
   selector: 'app-privacy-policy',
-  imports: [RouterModule, FormsModule],
+  imports: [RouterModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './privacy-policy.component.html',
 })
 export class PrivacyPolicyComponent implements OnInit, OnDestroy {
   private platformId = inject<Object>(PLATFORM_ID);
-
   private router = inject(Router);
+  private seo = inject(SeoService);
 
   // Signals
   isTocVisible = signal(true);
@@ -27,6 +27,14 @@ export class PrivacyPolicyComponent implements OnInit, OnDestroy {
   ];
 
   ngOnInit(): void {
+    this.seo.setPageMeta(
+      'Chính sách bảo mật',
+      'Chính sách bảo mật và bảo vệ dữ liệu cá nhân của LMS Maritime — hệ thống đào tạo hàng hải.',
+      undefined,
+      'https://holilihu.online/privacy'
+    );
+    this.seo.setCanonical('https://holilihu.online/privacy');
+
     if (isPlatformBrowser(this.platformId)) {
       this.updateActiveSection();
     }

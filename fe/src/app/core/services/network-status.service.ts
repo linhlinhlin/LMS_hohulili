@@ -97,7 +97,10 @@ export class NetworkStatusService implements OnDestroy {
     if (!navigator.onLine) {
       this.effectiveBandwidthMbps.set(0);
     } else if (conn?.downlink != null) {
-      this.effectiveBandwidthMbps.set(conn.downlink);
+      // conn.downlink measures physical link, not app server speed.
+      // Use it as hint but floor at 1.5 to avoid false "slow" on fast localhost.
+      // probeLatency() will correct this with actual measured RTT.
+      this.effectiveBandwidthMbps.set(Math.max(conn.downlink, 1.5));
     } else {
       this.effectiveBandwidthMbps.set(2);
     }
@@ -127,10 +130,14 @@ export class NetworkStatusService implements OnDestroy {
         clearTimeout(timeoutId);
         const rtt = performance.now() - start;
         this.online.set(true);
+        // Probe result is the ground truth — always update bandwidth
         if (rtt > 500) {
-          this.effectiveBandwidthMbps.set(0.5);
+          this.effectiveBandwidthMbps.set(0.5);   // genuinely slow
         } else if (rtt > 200) {
-          this.effectiveBandwidthMbps.set(1.5);
+          this.effectiveBandwidthMbps.set(1.5);   // moderate
+        } else {
+          // Fast probe (< 200ms) — override any stale conn.downlink value
+          this.effectiveBandwidthMbps.set(10);
         }
       })
       .catch((err) => {
@@ -140,7 +147,10 @@ export class NetworkStatusService implements OnDestroy {
           this.online.set(false);
           this.effectiveBandwidthMbps.set(0);
         }
-        // AbortError (timeout) → keep existing state (might be slow, not offline)
+        // AbortError (timeout 5s) → mark as slow, not offline
+        if (err?.name === 'AbortError') {
+          this.effectiveBandwidthMbps.set(0.3);
+        }
       });
   }
 
