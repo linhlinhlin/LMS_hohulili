@@ -43,12 +43,27 @@ import { IconComponent } from '../../../../shared/components/icon/icon.component
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
                   </svg>
                   <div class="flex-1 min-w-0">
-                    <h4 class="font-medium text-[#004BB5] mb-1">Định dạng file Excel (.xlsx)</h4>
-                    <p class="text-sm text-[#004BB5] mb-2">File cần có các cột theo thứ tự:</p>
-                    <div class="bg-white rounded p-2 text-xs font-mono text-slate-600 overflow-x-auto whitespace-nowrap">
-                      Câu hỏi | Đáp án A | Đáp án B | Đáp án C | Đáp án D | Đáp án đúng
+                    <h4 class="font-medium text-[#004BB5] mb-1">Định dạng hỗ trợ</h4>
+                    <div class="space-y-2 text-sm text-[#004BB5]">
+                      <div>
+                        <p class="font-medium">Word (.docx) — hỗ trợ ảnh + nhiều loại câu</p>
+                        <div class="bg-white rounded p-2 text-xs font-mono text-slate-600 mt-1 whitespace-pre-line">1. Câu 1 đáp án (chèn ảnh thoải mái)
+A. Sai &nbsp; B. *Đúng &nbsp; C. Sai &nbsp; D. Sai
+
+2. Câu nhiều đáp án:
+A. *Đúng 1 &nbsp; B. Sai &nbsp; C. *Đúng 2 &nbsp; D. Sai
+
+3. Câu đúng/sai?
+Đ. *Đúng &nbsp; S. Sai</div>
+                        <p class="text-[11px] text-[#0056D2] mt-1">* = đáp án đúng · Nhiều * = chọn nhiều · Đ/S = đúng/sai</p>
+                      </div>
+                      <div>
+                        <p class="font-medium">Excel (.xlsx) — chỉ text</p>
+                        <div class="bg-white rounded p-2 text-xs font-mono text-slate-600 mt-1 overflow-x-auto whitespace-nowrap">
+                          Câu hỏi | Đáp án A | Đáp án B | Đáp án C | Đáp án D | Đáp án đúng (A/B/C/D)
+                        </div>
+                      </div>
                     </div>
-                    <p class="text-xs text-[#0056D2] mt-2">* Đáp án đúng ghi: A, B, C hoặc D</p>
                   </div>
                 </div>
               </div>
@@ -70,14 +85,14 @@ import { IconComponent } from '../../../../shared/components/icon/icon.component
                   [class.border-[#0056D2]]="selectedFile"
                   [class.bg-[#0056D2]/5]="selectedFile">
                   <input type="file" #fileInput (change)="onFileSelected($event)"
-                    accept=".xlsx,.xls" class="hidden">
+                    accept=".xlsx,.xls,.docx" class="hidden">
                     @if (!selectedFile) {
                       <div (click)="fileInput.click()" class="cursor-pointer">
                         <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                         </svg>
                         <p class="text-slate-500 mb-1">Click để chọn file hoặc kéo thả vào đây</p>
-                        <p class="text-sm text-slate-300">Hỗ trợ: .xlsx, .xls</p>
+                        <p class="text-sm text-slate-300">Hỗ trợ: .xlsx, .xls, .docx</p>
                       </div>
                     }
                     @if (selectedFile) {
@@ -156,20 +171,71 @@ import { IconComponent } from '../../../../shared/components/icon/icon.component
                       </div>
                     }
                   </div>
+                  <!-- Preview Section (DOCX step 2) -->
+                  @if (step() === 'preview' && previewData()) {
+                    <div class="border-t border-slate-200">
+                      <div class="px-4 py-2 bg-slate-50 flex items-center justify-between">
+                        <span class="text-xs font-medium text-slate-600">
+                          {{ previewData().validCount }}/{{ previewData().totalQuestions }} câu hợp lệ
+                        </span>
+                        @if (previewData().invalidCount > 0) {
+                          <span class="text-xs text-red-600">{{ previewData().invalidCount }} câu có lỗi</span>
+                        }
+                      </div>
+                      <div class="max-h-64 overflow-y-auto divide-y divide-slate-100">
+                        @for (q of previewData().questions; track q.index) {
+                          <div class="px-4 py-2.5 text-xs" [class.bg-red-50/50]="!q.valid">
+                            <div class="flex items-start gap-2">
+                              <span class="font-bold text-slate-500 w-5 text-right flex-shrink-0">{{ q.index + 1 }}</span>
+                              <div class="flex-1 min-w-0">
+                                <p class="text-slate-800 line-clamp-2">{{ q.questionText || '(không có nội dung)' }}
+                                  @if (q.hasImage) { <span class="text-[#0056D2]">📷</span> }
+                                </p>
+                                <div class="flex items-center gap-2 mt-1 text-[10px]">
+                                  <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">{{ getTypeLabel(q.questionType) }}</span>
+                                  @for (opt of q.options; track opt.key) {
+                                    <span [class.text-green-700]="opt.isCorrect" [class.font-bold]="opt.isCorrect"
+                                          [class.text-slate-400]="!opt.isCorrect">
+                                      {{ opt.key }}{{ opt.isCorrect ? '✓' : '' }}
+                                    </span>
+                                  }
+                                </div>
+                                @if (q.warnings.length > 0) {
+                                  <p class="text-red-500 mt-0.5">{{ q.warnings.join(', ') }}</p>
+                                }
+                              </div>
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+
                   <!-- Footer -->
                   <div class="border-t border-slate-200 px-4 py-3 flex items-center justify-end gap-2">
+                    @if (step() === 'preview') {
+                      <button (click)="backToUpload()" type="button"
+                        class="h-8 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors">
+                        ← Quay lại
+                      </button>
+                    }
                     <button (click)="close()" type="button"
                       class="h-8 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors">
-                      {{ importResult() ? 'Đóng' : 'Hủy' }}
+                      {{ step() === 'done' ? 'Đóng' : 'Hủy' }}
                     </button>
-                    @if (!importResult()) {
+                    @if (step() !== 'done') {
                       <button (click)="import()" type="button"
-                        [disabled]="isImporting() || !selectedFile"
+                        [disabled]="isImporting() || isPreviewing() || (!selectedFile && step() === 'upload')"
                         class="h-8 px-4 rounded-lg bg-[#0056D2] text-xs font-semibold text-white hover:bg-[#004BB5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5">
-                        @if (isImporting()) {
+                        @if (isImporting() || isPreviewing()) {
                           <div class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white"></div>
                         }
-                        <span>{{ isImporting() ? 'Đang import...' : 'Import' }}</span>
+                        <span>
+                          @if (isPreviewing()) { Đang phân tích... }
+                          @else if (step() === 'preview') { Xác nhận import {{ previewData()?.validCount }} câu }
+                          @else if (isImporting()) { Đang import... }
+                          @else { Xem trước }
+                        </span>
                       </button>
                     }
                   </div>
@@ -191,8 +257,11 @@ export class QuestionImportModalComponent {
 
   isOpen = signal(false);
   isImporting = signal(false);
+  isPreviewing = signal(false);
   errorMessage = signal<string | null>(null);
   importResult = signal<QuestionImportResult | null>(null);
+  previewData = signal<any>(null); // DocxPreviewResult
+  step = signal<'upload' | 'preview' | 'done'>('upload');
 
   difficulty: 'EASY' | 'MEDIUM' | 'HARD' = 'MEDIUM';
   selectedFile: File | null = null;
@@ -211,6 +280,8 @@ export class QuestionImportModalComponent {
     this.selectedFile = null;
     this.errorMessage.set(null);
     this.importResult.set(null);
+    this.previewData.set(null);
+    this.step.set('upload');
     this.difficulty = 'MEDIUM';
   }
 
@@ -238,23 +309,54 @@ export class QuestionImportModalComponent {
       return;
     }
 
+    const isDocx = this.selectedFile.name.toLowerCase().endsWith('.docx');
+
+    // DOCX: preview first
+    if (isDocx && this.step() === 'upload') {
+      this.isPreviewing.set(true);
+      this.errorMessage.set(null);
+      try {
+        const preview = await firstValueFrom(this.questionApi.previewDocx(this.selectedFile));
+        this.previewData.set(preview);
+        this.step.set('preview');
+      } catch (error: any) {
+        this.errorMessage.set(error?.error?.message || error?.message || 'Không thể đọc file Word.');
+      } finally {
+        this.isPreviewing.set(false);
+      }
+      return;
+    }
+
+    // Confirm (DOCX after preview) or direct (Excel)
     this.isImporting.set(true);
     this.errorMessage.set(null);
-
     try {
       const result = await firstValueFrom(
-        this.questionApi.importFromExcel(this.selectedFile, this.packageId()!, this.difficulty)
+        isDocx
+          ? this.questionApi.confirmDocxImport(this.selectedFile, this.packageId()!, this.difficulty)
+          : this.questionApi.importFromExcel(this.selectedFile, this.packageId()!, this.difficulty)
       );
-
       this.importResult.set(result);
-
-      if (result.successCount > 0) {
-        this.imported.emit(result);
-      }
+      this.step.set('done');
+      if (result.successCount > 0) this.imported.emit(result);
     } catch (error: any) {
-      this.errorMessage.set(error.message || 'Import thất bại. Vui lòng thử lại.');
+      this.errorMessage.set(error?.error?.message || error?.message || 'Import thất bại.');
     } finally {
       this.isImporting.set(false);
+    }
+  }
+
+  backToUpload() {
+    this.step.set('upload');
+    this.previewData.set(null);
+  }
+
+  getTypeLabel(type: string): string {
+    switch (type) {
+      case 'SINGLE_CHOICE': return 'Một đáp án';
+      case 'MULTIPLE_CHOICE': return 'Nhiều đáp án';
+      case 'TRUE_FALSE': return 'Đúng/Sai';
+      default: return type;
     }
   }
 }

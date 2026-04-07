@@ -170,13 +170,25 @@ export class QuestionApi {
       .pipe(
         map((response: any) => {
           const result = response?.data || response;
-          // Ensure errors array exists to prevent null pointer
-          return {
-            ...result,
-            errors: result.errors || []
-          } as QuestionImportResult;
+          return { ...result, errors: result.errors || [] } as QuestionImportResult;
         })
       );
+  }
+
+  previewDocx(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.apiClient.post<any>('/api/v3/questions/import/docx/preview', formData)
+      .pipe(map((r: any) => r?.data || r));
+  }
+
+  confirmDocxImport(file: File, packageId: string, difficulty: 'EASY' | 'MEDIUM' | 'HARD') {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('packageId', packageId);
+    formData.append('difficulty', difficulty);
+    return this.apiClient.post<QuestionImportResult>('/api/v3/questions/import/docx/confirm', formData)
+      .pipe(map((r: any) => ({ ...(r?.data || r), errors: (r?.data || r)?.errors || [] } as QuestionImportResult)));
   }
 }
 

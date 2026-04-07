@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,16 +24,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v3/questions")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "Question V3", description = "Question Management (V3)")
 public class QuestionControllerV3 {
 
@@ -42,6 +40,7 @@ public class QuestionControllerV3 {
     private final com.example.lms.assessment.domain.repository.QuestionBankRepository questionBankRepository;
     private final QuestionJpaRepository questionJpaRepository; // Only for Excel import (infra concern)
     private final FileAttachmentJpaRepository fileAttachmentJpaRepository;
+    private final com.example.lms.shared.infrastructure.service.FileManagementService fileManagementService;
 
     // ============== Response DTOs ==============
 
@@ -447,6 +446,317 @@ public class QuestionControllerV3 {
             java.util.List<String> errors,
             String message
     ) {}
+
+    // ============== DOCX Import (Moodle2Word SOTA pattern) ==============
+
+    // Step 1: Preview — parse DOCX, upload images, return parsed questions for teacher review
+    @PostMapping("/import/docx/preview")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @Operation(summary = "Preview questions from Word file before importing")
+    public ResponseEntity<ApiResponse<DocxPreviewResult>> previewDocx(
+            @AuthenticationPrincipal UserJpaEntity currentUser,
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+
+        UUID userId = currentUser.getId();
+        try (java.io.InputStream is = file.getInputStream()) {
+            org.apache.poi.xwpf.usermodel.XWPFDocument doc = new org.apache.poi.xwpf.usermodel.XWPFDocument(is);
+
+            // Upload images
+            Map<String, String> imageUrlMap = uploadDocxImages(doc, userId);
+
+            // Parse
+            List<ParsedDocxQuestion> parsed = parseDocxParagraphs(doc, imageUrlMap);
+            doc.close();
+
+            // Convert to preview DTOs
+            List<Map<String, Object>> previews = new java.util.ArrayList<>();
+            for (int i = 0; i < parsed.size(); i++) {
+                ParsedDocxQuestion pq = parsed.get(i);
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("index", i);
+
+                // Extract question text from blocks
+                String qText = pq.questionBlocks.stream()
+                        .filter(b -> "paragraph".equals(b.getType()) || "text".equals(b.getType()))
+                        .map(b -> {
+                            Object t = b.getData() != null ? b.getData().get("text") : null;
+                            return t != null ? t.toString() : "";
+                        })
+                        .filter(s -> !s.isEmpty())
+                        .collect(java.util.stream.Collectors.joining(" "));
+                item.put("questionText", qText);
+                item.put("questionBlocks", pq.questionBlocks);
+                item.put("hasImage", pq.questionBlocks.stream().anyMatch(b -> "image".equals(b.getType())));
+
+                // Options
+                List<Map<String, Object>> optPreviews = new java.util.ArrayList<>();
+                String[] fallbackKeys = {"A", "B", "C", "D", "E", "F"};
+                for (int j = 0; j < pq.options.size(); j++) {
+                    String key = j < pq.optionKeys.size() ? pq.optionKeys.get(j) : fallbackKeys[j];
+                    String optText = pq.options.get(j).stream()
+                            .filter(b -> "text".equals(b.getType()) || "paragraph".equals(b.getType()))
+                            .map(b -> b.getData() != null ? String.valueOf(b.getData().getOrDefault("text", "")) : "")
+                            .collect(java.util.stream.Collectors.joining(" "));
+                    boolean hasImg = pq.options.get(j).stream().anyMatch(b -> "image".equals(b.getType()));
+                    optPreviews.add(Map.of("key", key, "text", optText, "isCorrect", pq.correctKeys.contains(key), "hasImage", hasImg));
+                }
+                item.put("options", optPreviews);
+                item.put("correctKeys", pq.correctKeys);
+
+                // Detect type
+                boolean isTF = pq.optionKeys.size() == 2 && pq.optionKeys.stream()
+                        .allMatch(k -> "Đ".equals(k) || "S".equals(k) || "T".equals(k) || "F".equals(k));
+                item.put("questionType", isTF ? "TRUE_FALSE" : pq.correctKeys.size() > 1 ? "MULTIPLE_CHOICE" : "SINGLE_CHOICE");
+
+                // Validation
+                List<String> warnings = new java.util.ArrayList<>();
+                if (pq.options.size() < 2) warnings.add("Cần ít nhất 2 đáp án");
+                if (pq.correctKeys.isEmpty()) warnings.add("Chưa đánh dấu đáp án đúng");
+                item.put("warnings", warnings);
+                item.put("valid", warnings.isEmpty());
+
+                previews.add(item);
+            }
+
+            long validCount = previews.stream().filter(p -> (boolean) p.get("valid")).count();
+            return ResponseEntity.ok(ApiResponse.success(new DocxPreviewResult(
+                    previews, previews.size(), (int) validCount, previews.size() - (int) validCount)));
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("PARSE_ERROR", "Không thể đọc file: " + e.getMessage()));
+        }
+    }
+
+    public record DocxPreviewResult(
+            List<Map<String, Object>> questions,
+            int totalQuestions,
+            int validCount,
+            int invalidCount
+    ) {}
+
+    // Step 2: Confirm — save previewed questions to DB
+    @PostMapping("/import/docx/confirm")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @Operation(summary = "Confirm and save previewed DOCX questions")
+    public ResponseEntity<ApiResponse<ExcelImportResult>> confirmDocxImport(
+            @AuthenticationPrincipal UserJpaEntity currentUser,
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestParam("packageId") UUID packageId,
+            @RequestParam("difficulty") QuestionJpaEntity.Difficulty difficulty) {
+
+        verifyBankOwnership(packageId, currentUser);
+        UUID userId = currentUser.getId();
+
+        int successCount = 0;
+        int failedCount = 0;
+        java.util.List<String> errors = new java.util.ArrayList<>();
+
+        try (java.io.InputStream is = file.getInputStream()) {
+            org.apache.poi.xwpf.usermodel.XWPFDocument doc = new org.apache.poi.xwpf.usermodel.XWPFDocument(is);
+            Map<String, String> imageUrlMap = uploadDocxImages(doc, userId);
+            List<ParsedDocxQuestion> parsedQuestions = parseDocxParagraphs(doc, imageUrlMap);
+            doc.close();
+
+            for (int i = 0; i < parsedQuestions.size(); i++) {
+                try {
+                    ParsedDocxQuestion pq = parsedQuestions.get(i);
+                    if (pq.options.size() < 2 || pq.correctKeys.isEmpty()) {
+                        failedCount++;
+                        continue;
+                    }
+
+                    boolean isTF = pq.optionKeys.size() == 2 && pq.optionKeys.stream()
+                            .allMatch(k -> "Đ".equals(k) || "S".equals(k) || "T".equals(k) || "F".equals(k));
+                    boolean isMulti = pq.correctKeys.size() > 1;
+                    Question.QuestionType qType = isTF ? Question.QuestionType.TRUE_FALSE
+                            : isMulti ? Question.QuestionType.MULTIPLE_CHOICE : Question.QuestionType.SINGLE_CHOICE;
+
+                    List<Question.QuestionOption> options = new java.util.ArrayList<>();
+                    String[] fallbackKeys = {"A", "B", "C", "D", "E", "F"};
+                    for (int j = 0; j < pq.options.size(); j++) {
+                        String key = j < pq.optionKeys.size() ? pq.optionKeys.get(j) : fallbackKeys[j];
+                        options.add(Question.QuestionOption.create(key, pq.options.get(j), j));
+                    }
+
+                    String correctStr = String.join(",", pq.correctKeys);
+                    Map<String, Object> answerKey = isMulti
+                            ? Map.of("correctOptions", pq.correctKeys)
+                            : Map.of("correctOption", pq.correctKeys.get(0));
+
+                    questionRepository.save(Question.builder()
+                            .contentBlocks(pq.questionBlocks).questionType(qType)
+                            .correctOption(correctStr).answerKey(answerKey)
+                            .difficulty(Question.Difficulty.valueOf(difficulty.name()))
+                            .status(Question.Status.ACTIVE).createdBy(userId)
+                            .packageId(packageId).options(options).build());
+                    successCount++;
+                } catch (Exception e) {
+                    errors.add("Câu " + (i + 1) + ": " + e.getMessage());
+                    failedCount++;
+                }
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("IMPORT_ERROR", "Lỗi: " + e.getMessage()));
+        }
+
+        if (successCount > 0) {
+            var bank = questionBankRepository.findById(packageId)
+                    .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Ngân hàng câu hỏi", packageId));
+            bank.setQuestionCount(bank.getQuestionCount() + successCount);
+            questionBankRepository.save(bank);
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(new ExcelImportResult(successCount, failedCount,
+                successCount + failedCount, errors,
+                successCount > 0 ? "Đã nhập " + successCount + " câu hỏi" : "Không có câu hỏi nào được nhập")));
+    }
+
+    // Shared: upload DOCX images
+    private Map<String, String> uploadDocxImages(org.apache.poi.xwpf.usermodel.XWPFDocument doc, UUID userId) {
+        Map<String, String> imageUrlMap = new HashMap<>();
+        for (org.apache.poi.xwpf.usermodel.XWPFPictureData pic : doc.getAllPictures()) {
+            try {
+                String ext = pic.suggestFileExtension();
+                String contentType = "image/" + (ext.equals("jpg") ? "jpeg" : ext);
+                final byte[] picBytes = pic.getData();
+                final String picName = "import-" + pic.getChecksum() + "." + ext;
+                org.springframework.web.multipart.MultipartFile mockFile = new org.springframework.web.multipart.MultipartFile() {
+                    public String getName() { return "image"; }
+                    public String getOriginalFilename() { return picName; }
+                    public String getContentType() { return contentType; }
+                    public boolean isEmpty() { return picBytes.length == 0; }
+                    public long getSize() { return picBytes.length; }
+                    public byte[] getBytes() { return picBytes; }
+                    public java.io.InputStream getInputStream() { return new java.io.ByteArrayInputStream(picBytes); }
+                    public void transferTo(java.io.File dest) throws java.io.IOException { java.nio.file.Files.write(dest.toPath(), picBytes); }
+                };
+                var attachment = fileManagementService.uploadFile(mockFile, "editor-images", userId);
+                imageUrlMap.put(String.valueOf(pic.getChecksum()), attachment.getFileUrl());
+            } catch (Exception e) {
+                log.warn("Failed to upload image from DOCX: {}", e.getMessage());
+            }
+        }
+        return imageUrlMap;
+    }
+
+    // --- DOCX Parser helpers ---
+
+    private record ParsedDocxQuestion(
+            List<ContentBlock> questionBlocks,
+            List<List<ContentBlock>> options,
+            List<String> correctKeys,  // supports multiple correct answers
+            List<String> optionKeys    // actual keys used (A/B/C/D or Đ/S)
+    ) {}
+
+    private List<ParsedDocxQuestion> parseDocxParagraphs(
+            org.apache.poi.xwpf.usermodel.XWPFDocument doc,
+            Map<String, String> imageUrlMap) {
+
+        List<ParsedDocxQuestion> questions = new java.util.ArrayList<>();
+        List<ContentBlock> currentQuestionBlocks = new java.util.ArrayList<>();
+        List<List<ContentBlock>> currentOptions = new java.util.ArrayList<>();
+        List<String> currentCorrectKeys = new java.util.ArrayList<>();
+        List<String> currentOptKeys = new java.util.ArrayList<>();
+        boolean inQuestion = false;
+
+        for (org.apache.poi.xwpf.usermodel.XWPFParagraph para : doc.getParagraphs()) {
+            String text = para.getText().trim();
+
+            // Handle standalone image paragraphs (no text, only pictures)
+            boolean hasImages = para.getRuns().stream().anyMatch(r -> !r.getEmbeddedPictures().isEmpty());
+            if (text.isEmpty() && hasImages && inQuestion) {
+                // Standalone image paragraph → append to current question or last option
+                if (currentOptions.isEmpty()) {
+                    addParagraphImages(para, imageUrlMap, currentQuestionBlocks);
+                } else {
+                    addParagraphImages(para, imageUrlMap, currentOptions.get(currentOptions.size() - 1));
+                }
+                continue;
+            }
+            if (text.isEmpty()) continue;
+
+            // Check if this is a new question (starts with number + . or number + ))
+            java.util.regex.Matcher qMatcher = java.util.regex.Pattern.compile("^(\\d+)[.)\\s]\\s*(.*)").matcher(text);
+            // Check if this is an option: A. B. C. D. or Đ. S. (TRUE_FALSE) or T. F.
+            java.util.regex.Matcher optMatcher = java.util.regex.Pattern.compile("^\\*?\\s*([A-Fa-fĐđSsTtFf])[.)\\s]\\s*(.*)").matcher(text);
+
+            if (qMatcher.matches()) {
+                // Save previous question if exists
+                if (inQuestion && !currentQuestionBlocks.isEmpty()) {
+                    questions.add(new ParsedDocxQuestion(new java.util.ArrayList<>(currentQuestionBlocks),
+                            new java.util.ArrayList<>(currentOptions),
+                            new java.util.ArrayList<>(currentCorrectKeys),
+                            new java.util.ArrayList<>(currentOptKeys)));
+                }
+                // Start new question
+                currentQuestionBlocks = new java.util.ArrayList<>();
+                currentOptions = new java.util.ArrayList<>();
+                currentCorrectKeys = new java.util.ArrayList<>();
+                currentOptKeys = new java.util.ArrayList<>();
+                inQuestion = true;
+
+                String qText = qMatcher.group(2).trim();
+                if (!qText.isEmpty()) {
+                    currentQuestionBlocks.add(ContentBlock.create("paragraph", Map.of("text", qText)));
+                }
+
+                // Extract inline images from paragraph
+                addParagraphImages(para, imageUrlMap, currentQuestionBlocks);
+
+            } else if (optMatcher.matches() && inQuestion) {
+                String optKey = optMatcher.group(1).toUpperCase();
+                String optText = optMatcher.group(2).trim();
+                // Detect correct answer: * at line start OR * at option text start
+                boolean isCorrect = text.startsWith("*") || optText.startsWith("*");
+                if (optText.startsWith("*")) optText = optText.substring(1).trim();
+
+                List<ContentBlock> optBlocks = new java.util.ArrayList<>();
+                if (!optText.isEmpty()) {
+                    optBlocks.add(ContentBlock.create("text", Map.of("text", optText)));
+                }
+                addParagraphImages(para, imageUrlMap, optBlocks);
+
+                currentOptions.add(optBlocks);
+                currentOptKeys.add(optKey);
+                if (isCorrect) {
+                    currentCorrectKeys.add(optKey);
+                }
+
+            } else if (inQuestion) {
+                // Continuation of question text
+                currentQuestionBlocks.add(ContentBlock.create("paragraph", Map.of("text", text)));
+                addParagraphImages(para, imageUrlMap, currentQuestionBlocks);
+            }
+        }
+
+        // Don't forget last question
+        if (inQuestion && !currentQuestionBlocks.isEmpty()) {
+            questions.add(new ParsedDocxQuestion(currentQuestionBlocks, currentOptions, currentCorrectKeys, currentOptKeys));
+        }
+
+        return questions;
+    }
+
+    private void addParagraphImages(
+            org.apache.poi.xwpf.usermodel.XWPFParagraph para,
+            Map<String, String> imageUrlMap,
+            List<ContentBlock> blocks) {
+        for (org.apache.poi.xwpf.usermodel.XWPFRun run : para.getRuns()) {
+            for (org.apache.poi.xwpf.usermodel.XWPFPicture pic : run.getEmbeddedPictures()) {
+                String checksum = String.valueOf(pic.getPictureData().getChecksum());
+                String url = imageUrlMap.get(checksum);
+                if (url != null) {
+                    blocks.add(ContentBlock.create("image", Map.of(
+                            "file", Map.of("url", url),
+                            "caption", "",
+                            "withBorder", false,
+                            "stretched", false,
+                            "withBackground", false
+                    )));
+                }
+            }
+        }
+    }
 
     // ============== Helpers ==============
 

@@ -120,7 +120,6 @@ public class QuestionRepositoryAdapter implements QuestionRepository {
 
             List<QuestionOptionJpaEntity> optionEntities = domain.getOptions().stream()
                     .map(o -> QuestionOptionJpaEntity.builder()
-                            .id(o.getId())
                             .question(entity)
                             .key(o.getKey())
                             .contentBlocks(o.getContentBlocks())
