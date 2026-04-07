@@ -23,29 +23,7 @@
   margin-bottom: 24px;
 }
 
-.header-content {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.avatar-circle {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: $blue-primary;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  font-weight: 700;
-  flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0, 86, 210, 0.2);
-}
-
 .greeting-section {
-  flex: 1;
   min-width: 0;
 }
 
@@ -686,12 +664,6 @@
 @media (max-width: 640px) {
   .main-column {
     padding: 16px 12px;
-  }
-
-  .avatar-circle {
-    width: 48px;
-    height: 48px;
-    font-size: 18px;
   }
 
   .greeting {

@@ -105,6 +105,42 @@ Tablet:   641-768px — Smaller thumbnails, condensed spacing
 Mobile:   ≤ 640px   — Vertical card layout, stacked buttons
 ```
 
+### Pagination / Load More (SOTA Research — April 2026)
+
+**Quy tắc vàng từ NNGroup:**
+> "Pagination is a necessary evil. Under 40 items — show all, or use Load More."
+
+| Context | Pattern | Lý do |
+|---------|---------|-------|
+| Student "My Courses" (< 50 items) | **Load More** button | Coursera/Udemy/Canvas đều không dùng pagination cho My Courses |
+| Public course browse (server-side) | **Flanking pagination** `[<] [1][2][3] [>]` | Nhiều items, server-paginated |
+| Admin data tables | **Material Design table pagination** (same-side, right-aligned) | Power users cần density control |
+
+**Load More pattern (Udemy/Airbnb):**
+```
+[Course cards... initial 10]
+
+      [ Hiện thêm (còn 5 khóa học) ]
+
+        Đang hiện 10 / 15 khóa học
+```
+- Initial load: 10 items
+- Load more: +10 mỗi lần click
+- Button text cho biết **còn bao nhiêu** — giúp user quyết định
+- Count indicator: "Đang hiện X / Y"
+- Reset về initial khi đổi tab/filter
+- **KHÔNG dùng pagination cho < 50 items**
+- **KHÔNG dùng page size selector trên student view** — chỉ admin
+
+**Page size selector rules (NNGroup):**
+- Chỉ cho admin/teacher data tables
+- Cung cấp 2 options khác biệt (10 vs 50), không 10/20/30/40
+- Persist lựa chọn across sessions
+
+**Touch targets (WCAG 2.2 + Apple HIG):**
+- Minimum: **44x44px** cho iOS, **48x48dp** cho Android
+- WCAG 2.2 (2.5.8): **24x24px** minimum, hoặc 24px spacing
+
 ### Card Layout Pattern
 
 ```

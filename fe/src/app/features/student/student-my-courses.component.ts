@@ -9,9 +9,6 @@ import { CourseApi } from '../../api/client/course.api';
 import { EnrolledCourse } from '../../shared/types/course.types';
 import { IconComponent } from '../../shared/components/ui/icon/icon.component';
 import { ButtonComponent } from '../../shared/components/ui/button/button.component';
-import { CardComponent } from '../../shared/components/ui/card/card.component';
-import { ProgressBarComponent } from '../../shared/components/ui/progress-bar/progress-bar.component';
-import { TabsComponent, Tab } from '../../shared/components/ui/tabs/tabs.component';
 import { ToastService } from '../../core/services/toast.service';
 import { CourseDownloadButtonComponent } from '../../shared/components/course-download-button/course-download-button.component';
 import { CourseDownloadService } from '../../core/services/course-download.service';
@@ -78,16 +75,25 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
           <p class="page-subtitle">Quản lý và theo dõi tiến độ các khóa học đã đăng ký</p>
         </div>
 
-        <div style="margin:-4px 0 16px;display:flex;flex-wrap:wrap;gap:8px">
-          <a routerLink="/student/courses"
-             style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8;text-decoration:none;font-size:13px;font-weight:500">
-            Quay lại tổng quan
-          </a>
-          <a routerLink="/student/tasks"
-             style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:1px solid #e5e7eb;background:#fff;color:#374151;text-decoration:none;font-size:13px;font-weight:500">
-            Xem bài cần làm
-          </a>
-        </div>
+        <!-- Search — matching Khám Phá design -->
+        @if (enrolledCourses().length > 5) {
+          <div class="search-bar">
+            <div class="search-wrapper">
+              <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <input
+                type="text"
+                placeholder="Tìm kiếm khóa học, giảng viên..."
+                [ngModel]="searchQuery()"
+                (ngModelChange)="onSearchChange($event)"
+                class="search-input">
+              @if (searchQuery()) {
+                <button class="search-clear" (click)="onSearchChange('')">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+              }
+            </div>
+          </div>
+        }
 
         <!-- Tabs -->
         <div class="tabs-section">
@@ -113,8 +119,39 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
           </div>
         </div>
 
+        <!-- Mobile sort + count (sidebar hidden on mobile) -->
+        <div class="mobile-toolbar">
+          <span class="mobile-count">{{ filteredCourses().length }} khóa học</span>
+          <select class="mobile-sort" [value]="sortBy()" (change)="onSortChange($event)">
+            <option value="recent">Gần đây nhất</option>
+            <option value="name">Tên A-Z</option>
+            <option value="progress">Tiến độ</option>
+          </select>
+        </div>
+
+        <!-- Loading Skeleton -->
+        @if (isLoading()) {
+          <div class="courses-list">
+            @for (i of [1,2,3]; track i) {
+              <div class="course-card-outer">
+                <div class="course-card-wrapper" style="animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite">
+                  <div class="course-thumbnail" style="background:#E5E7EB"></div>
+                  <div class="course-metadata" style="gap:10px">
+                    <div style="height:10px;width:80px;background:#E5E7EB;border-radius:4px"></div>
+                    <div style="height:16px;width:70%;background:#E5E7EB;border-radius:4px"></div>
+                    <div style="height:10px;width:50%;background:#E5E7EB;border-radius:4px"></div>
+                  </div>
+                  <div class="action-buttons" style="min-width:120px">
+                    <div style="height:36px;width:100px;background:#E5E7EB;border-radius:8px"></div>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
         <!-- Empty State -->
-        @if (filteredCourses().length === 0) {
+        @else if (filteredCourses().length === 0) {
           <div class="empty-state">
             <app-icon name="book-open" size="xl" />
             <h3>{{ activeTab() === 'in-progress' ? 'Chưa có khóa học đang học' : 'Chưa hoàn thành khóa học nào' }}</h3>
@@ -125,7 +162,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
         <!-- Courses List - Horizontal Cards -->
         @else {
           <div class="courses-list">
-            @for (course of filteredCourses(); track course.id) {
+            @for (course of visibleCourses(); track course.id) {
               <div class="course-card-outer">
               <div class="course-card-wrapper">
                 <!-- Course Thumbnail -->
@@ -139,54 +176,47 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
                   }
                 </div>
 
-                <!-- Course Metadata -->
+                <!-- Course Metadata — synced with dashboard -->
                 <div class="course-metadata">
-                  <div class="partner-info">
-                    <span class="partner-name">{{ getInstructorName(course) }}</span>
-                  </div>
+                  <div class="partner-info">{{ getInstructorName(course) }}</div>
                   <h3 class="course-title">
-                    <a [routerLink]="['/student/courses', course.id]">
-                      {{ course.title }}
-                    </a>
+                    <a [routerLink]="['/student/courses', course.id]">{{ course.title }}</a>
                   </h3>
                   <div class="course-meta">
                     <span class="delivery-badge" [class.class-mode]="course.deliveryMode === 'INSTRUCTOR_LED'">
                       {{ course.deliveryMode === 'INSTRUCTOR_LED' ? 'Lớp học' : 'Khóa học' }}
                     </span>
                     <span class="separator">·</span>
-                    @if (course.progress >= 100) {
-                      <span class="progress-label-completed">Đã hoàn thành</span>
+                    @if (course.progress > 0) {
+                      <span>{{ course.progress }}% hoàn thành</span>
                     } @else {
-                      <span>{{ course.progress > 0 ? course.progress + '% hoàn thành' : 'Chưa bắt đầu' }}</span>
-                    }
-                    @if (course['estimatedCompletion']) {
-                      <span class="separator">·</span>
-                      <span class="estimated">Dự kiến: {{ course['estimatedCompletion'] }}</span>
+                      <span>Chưa bắt đầu</span>
                     }
                   </div>
+                  @if (course.progress > 0) {
+                    <div class="progress-bar-thin">
+                      <div class="progress-fill" [class.completed]="course.progress >= 100" [style.width.%]="course.progress"></div>
+                    </div>
+                  }
                 </div>
 
-                <!-- Action Buttons -->
+                <!-- Action Buttons — [▼] [Download?] [CTA] rightmost -->
                 <div class="action-buttons">
-                  <app-button
-                    variant="primary"
-                    (clicked)="resumeCourse(course.id)">
-                    {{ course.progress >= 100 ? 'Xem lại' : course.progress > 0 ? 'Tiếp tục học' : 'Bắt đầu ngay' }}
-                  </app-button>
+                  <button class="dropdown-button" (click)="toggleModules(course.id)" aria-label="Hiển thị bài học">
+                    <app-icon [name]="course.showModules ? 'chevron-up' : 'chevron-down'" size="sm" />
+                  </button>
                   @if (canDownload(course)) {
                     <app-course-download-button
                       [courseId]="course.id"
                       [courseTitle]="course.title"
                       [allowOfflineDownload]="true" />
                   }
-                  <button class="dropdown-button" (click)="toggleModules(course.id)" aria-label="Show lessons">
-                    <app-icon [name]="course.showModules ? 'chevron-up' : 'chevron-down'" size="sm" />
-                  </button>
+                  <app-button
+                    variant="primary"
+                    (clicked)="resumeCourse(course.id)">
+                    {{ course.progress >= 100 ? 'Xem lại' : course.progress > 0 ? 'Tiếp tục học' : 'Bắt đầu ngay' }}
+                  </app-button>
                 </div>
-              </div>
-              <!-- Progress Bar (full-width below card body) -->
-              <div class="progress-bar-thin" style="margin: 0 8px 4px 8px;">
-                <div class="progress-fill" [class.completed]="course.progress >= 100" [style.width.%]="course.progress"></div>
               </div>
 
               <!-- Modules Dropdown -->
@@ -246,6 +276,18 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
               </div>
             }
           </div>
+
+          <!-- Load More button (GitHub pattern — simple, no auto-scroll) -->
+          @if (hasMoreToShow()) {
+            <div class="load-more-section">
+              <button class="load-more-btn" (click)="loadMore()">
+                Xem thêm {{ remainingCount() }} khóa học
+              </button>
+              <p class="showing-count">Đang hiện {{ visibleCourses().length }} / {{ filteredCourses().length }}</p>
+            </div>
+          } @else if (filteredCourses().length > 0) {
+            <p class="showing-count">Đã hiện tất cả {{ filteredCourses().length }} khóa học</p>
+          }
         }
       </div>
 
@@ -283,32 +325,17 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
             </div>
           </div>
 
-          <!-- Statistics -->
-          <div class="stats-section">
-            <h4 class="stats-title">Thống kê</h4>
-            <div class="stat-item">
-              <span class="stat-label">Tổng khóa học</span>
-              <span class="stat-value">{{ enrolledCourses().length }}</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">Đang học</span>
-              <span class="stat-value">{{ inProgressCount() }}</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">Hoàn thành</span>
-              <span class="stat-value">{{ completedCount() }}</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">Tiến độ trung bình</span>
-              <span class="stat-value">{{ averageProgress() }}%</span>
-            </div>
-          </div>
         </div>
       </aside>
     </div>
   `,
   styles: [`
     @use '../../../styles/variables' as *;
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
 
     .my-courses-container {
       display: grid;
@@ -343,12 +370,46 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
 
       .action-buttons {
         align-self: stretch;
-        justify-content: flex-start;
+        min-width: unset;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+
+        app-button { order: 1; flex: 1; min-width: 0; }
+        .dropdown-button { order: 2; }
+        app-course-download-button { order: 3; flex-basis: 100%; display: flex; justify-content: center; }
       }
     }
 
     .main-content {
       min-width: 0;
+    }
+
+    /* Mobile sort toolbar — visible only on mobile (sidebar hidden) */
+    .mobile-toolbar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px 12px 16px;
+    }
+
+    .mobile-count {
+      font-size: 13px;
+      color: #6B7280;
+    }
+
+    .mobile-sort {
+      padding: 6px 10px;
+      border: 1px solid #D1D5DB;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #374151;
+      background: white;
+    }
+
+    @media (max-width: 768px) {
+      .mobile-toolbar {
+        display: flex;
+      }
     }
 
     /* Coursera-Style Header */
@@ -369,6 +430,65 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       font-size: $text-sm;
       color: $text-secondary;
       margin: 0;
+    }
+
+    /* Search Bar — synced with Khám Phá (student-course-browser) */
+    .search-bar {
+      padding: 0 16px 16px;
+    }
+
+    .search-wrapper {
+      position: relative;
+      max-width: 560px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #9CA3AF;
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 12px 16px 12px 44px;
+      border: 1px solid #D1D5DB;
+      border-radius: 24px;
+      font-size: 14px;
+      color: #1F1F1F;
+      background: white;
+      transition: box-shadow 0.2s, border-color 0.2s;
+
+      &::placeholder {
+        color: #9CA3AF;
+      }
+
+      &:focus {
+        outline: none;
+        border-color: #0056D2;
+        box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.08);
+      }
+    }
+
+    .search-clear {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      padding: 4px;
+      background: none;
+      border: none;
+      color: #9CA3AF;
+      cursor: pointer;
+      border-radius: 6px;
+      display: flex;
+
+      &:hover {
+        color: #374151;
+        background: #F3F4F6;
+      }
     }
 
     /* Tabs - Sticky */
@@ -598,20 +718,18 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       }
     }
 
-    /* Action Buttons - Compact Style */
+    /* Action Buttons — [▼] [Download?] [CTA] rightmost, consistent with dashboard */
     .action-buttons {
       display: flex;
       align-items: center;
       gap: 8px;
       flex-shrink: 0;
       align-self: center;
+      min-width: 200px;
+      justify-content: flex-end;
 
       app-button {
         white-space: nowrap;
-        font-size: 14px;
-        font-weight: 600;
-        padding: 8px 20px;
-        height: 36px;
       }
     }
 
@@ -887,38 +1005,54 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       }
     }
 
-    .stats-section {
-      margin-top: 24px;
-      padding-top: 20px;
-      border-top: 1px solid #E5E7EB;
-    }
 
-    .stats-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: #1F1F1F;
-      margin: 0 0 12px 0;
-    }
-
-    .stat-item {
+    /* ===== LOAD MORE — clean button (GitHub pattern) ===== */
+    .load-more-section {
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
       align-items: center;
-      padding: 8px 0;
-      font-size: 14px;
+      gap: 8px;
+      padding: 24px 0 8px;
+    }
 
-      &:not(:last-child) {
-        border-bottom: 1px solid #F3F4F6;
+    .load-more-btn {
+      padding: 10px 28px;
+      border: 1.5px solid #D1D5DB;
+      border-radius: 8px;
+      background: white;
+      color: #374151;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &:hover {
+        border-color: #0056D2;
+        color: #0056D2;
+        background: #F0F7FF;
+      }
+
+      &:active {
+        background: #DBEAFE;
+        transform: scale(0.98);
       }
     }
 
-    .stat-label {
-      color: #6B7280;
+    .showing-count {
+      text-align: center;
+      font-size: 12px;
+      color: #9CA3AF;
+      margin: 8px 0 0;
     }
 
-    .stat-value {
-      font-weight: 600;
-      color: #1F1F1F;
+    /* Fade-in for newly loaded courses */
+    .course-card-outer {
+      animation: cardFadeIn 0.25s ease-out;
+    }
+
+    @keyframes cardFadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   `]
 })
@@ -930,22 +1064,24 @@ export class StudentMyCoursesComponent implements OnInit {
   private router = inject(Router);
   private toast = inject(ToastService);
 
+
   // State
   enrolledCourses = signal<EnhancedEnrolledCourse[]>([]);
   activeTab = signal<string>('in-progress');
+  isLoading = this.enrollmentService.isLoading;
 
-  // Filter state
+  // Load More state — initial 5 (fast first paint), then +10 each scroll
+  private readonly INITIAL_COUNT = 5;
+  private readonly LOAD_MORE_COUNT = 10;
+  visibleCount = signal(5);
+
+  // Search + Filter state
+  searchQuery = signal('');
   sortBy = signal<string>('recent');
   filterNotStarted = signal<boolean>(false);
   filterInProgress = signal<boolean>(false);
   filterCompleted = signal<boolean>(false);
   error = signal<string | null>(null);
-
-  // Tabs
-  courseTabs: Tab[] = [
-    { id: 'in-progress', label: 'Đang học' },
-    { id: 'completed', label: 'Hoàn thành' }
-  ];
 
   // Computed
   readonly filteredCourses = computed(() => {
@@ -961,6 +1097,15 @@ export class StudentMyCoursesComponent implements OnInit {
     let result = tab === 'in-progress'
       ? courses.filter(c => c['status'] === 'in-progress' || c['status'] === 'enrolled')
       : courses.filter(c => c['status'] === 'completed');
+
+    // Search filter (by title, case-insensitive, diacritics-tolerant)
+    const query = this.searchQuery().trim().toLowerCase();
+    if (query) {
+      result = result.filter(c =>
+        c.title.toLowerCase().includes(query) ||
+        (c.instructor && String(c.instructor).toLowerCase().includes(query))
+      );
+    }
 
     // Progress filters (checkbox - OR logic)
     if (hasProgressFilter) {
@@ -989,6 +1134,11 @@ export class StudentMyCoursesComponent implements OnInit {
     return result;
   });
 
+  // Load More computed — MUST be after filteredCourses
+  readonly visibleCourses = computed(() => this.filteredCourses().slice(0, this.visibleCount()));
+  readonly hasMoreToShow = computed(() => this.visibleCount() < this.filteredCourses().length);
+  readonly remainingCount = computed(() => Math.max(0, this.filteredCourses().length - this.visibleCount()));
+
   readonly inProgressCount = computed(() =>
     this.enrolledCourses().filter(c => c['status'] === 'in-progress' || c['status'] === 'enrolled').length
   );
@@ -997,15 +1147,11 @@ export class StudentMyCoursesComponent implements OnInit {
     this.enrolledCourses().filter(c => c['status'] === 'completed').length
   );
 
-  readonly averageProgress = computed(() => {
-    const courses = this.enrolledCourses();
-    if (courses.length === 0) return 0;
-    return Math.round(courses.reduce((sum, c) => sum + c['progress'], 0) / courses.length);
-  });
 
   ngOnInit(): void {
     this.loadCourses();
   }
+
 
   private async loadCourses(): Promise<void> {
     try {
@@ -1122,37 +1268,24 @@ export class StudentMyCoursesComponent implements OnInit {
     return 'video';
   }
 
-  getGreeting(): string {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Chào buổi sáng';
-    if (hour < 18) return 'Chào buổi chiều';
-    return 'Chào buổi tối';
-  }
-
-  getUserFirstName(): string {
-    const user = this.authService.currentUser();
-    const fullName = user?.fullName || user?.name || 'Bạn';
-    return fullName.split(' ').pop() || fullName;
-  }
-
-  getUserInitials(): string {
-    const user = this.authService.currentUser();
-    const fullName = user?.fullName || user?.name || 'U';
-    const names = fullName.trim().split(' ');
-    if (names.length >= 2) {
-      return (names[0][0] + names[names.length - 1][0]).toUpperCase();
-    }
-    return fullName.substring(0, 2).toUpperCase();
-  }
-
   getInstructorName(course: EnhancedEnrolledCourse): string {
     if (!course.instructor) return 'LMS Maritime';
     if (typeof course.instructor === 'string') return course.instructor || 'LMS Maritime';
     return course.instructor.name || 'LMS Maritime';
   }
 
+  onSearchChange(query: string): void {
+    this.searchQuery.set(query);
+    this.visibleCount.set(this.INITIAL_COUNT);
+  }
+
   onTabChange(tabId: string): void {
     this.activeTab.set(tabId);
+    this.visibleCount.set(this.INITIAL_COUNT);
+  }
+
+  loadMore(): void {
+    this.visibleCount.update(c => c + this.LOAD_MORE_COUNT);
   }
 
   toggleModules(courseId: string): void {
