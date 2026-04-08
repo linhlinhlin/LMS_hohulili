@@ -210,7 +210,17 @@ export class OfflineVideoService {
         const response = await cache.match(request);
         if (!response) continue;
 
-        const sizeBytes = Number(response.headers.get('content-length')) || 0;
+        // Prefer Content-Length header; fallback to blob size when header is missing/0
+        let sizeBytes = Number(response.headers.get('content-length')) || 0;
+        if (sizeBytes === 0) {
+          try {
+            const clone = response.clone();
+            const blob = await clone.blob();
+            sizeBytes = blob.size;
+          } catch {
+            // Cache read failure — keep 0
+          }
+        }
         const lesson = lessonMap.get(cacheKey);
         if (lesson) {
           const hasDedicatedVideoSections = (lesson.sections ?? []).some(
@@ -358,10 +368,15 @@ export class OfflineVideoService {
       },
     });
 
-    await cache.put(cacheKey, new Response(progressStream, {
+    // Consume stream to get actual size, then re-cache with correct Content-Length
+    const streamResponse = new Response(progressStream);
+    const blob = await streamResponse.blob();
+    const actualSize = blob.size;
+
+    await cache.put(cacheKey, new Response(blob, {
       headers: {
         'Content-Type': contentType,
-        ...(contentLength > 0 ? { 'Content-Length': String(contentLength) } : {}),
+        'Content-Length': String(actualSize),
         'Accept-Ranges': 'bytes',
       },
     }));
