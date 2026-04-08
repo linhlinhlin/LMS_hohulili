@@ -1,8 +1,8 @@
 /**
  * Messaging Service
  *
- * Service quan ly nhan tin giua giang vien va hoc vien.
- * Realtime hien tai dung polling co kiem soat, khong nuot state local cua component.
+ * Service quản lý nhắn tin giữa giảng viên và học viên.
+ * Realtime hiện tại dùng polling có kiểm soát, không nuốt state local của component.
  */
 import { inject, Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
@@ -133,7 +133,7 @@ export class MessagingService {
     return this.fetchConversationsSilently(includeArchived).pipe(
       tap(() => this._loading.set(false)),
       catchError((error) => {
-        this._error.set('Khong the tai danh sach hoi thoai');
+        this._error.set('Không thể tải danh sách hội thoại');
         this._loading.set(false);
         return throwError(() => error);
       })
@@ -155,7 +155,7 @@ export class MessagingService {
           this._loading.set(false);
         }),
         catchError((error) => {
-          this._error.set('Khong the tai cuoc hoi thoai');
+          this._error.set('Không thể tải cuộc hội thoại');
           this._loading.set(false);
           return throwError(() => error);
         })
@@ -169,7 +169,7 @@ export class MessagingService {
     return this.fetchMessagesSilently(conversationId).pipe(
       tap(() => this._loading.set(false)),
       catchError((error) => {
-        this._error.set('Khong the tai tin nhan');
+        this._error.set('Không thể tải tin nhắn');
         this._loading.set(false);
         return throwError(() => error);
       })
@@ -239,7 +239,7 @@ export class MessagingService {
           this._loading.set(false);
         }),
         catchError((error) => {
-          this._error.set(error?.error?.message ?? error?.error?.error?.message ?? 'Khong the gui tin nhan');
+          this._error.set(error?.error?.message ?? error?.error?.error?.message ?? 'Không thể gửi tin nhắn');
           this._loading.set(false);
           return throwError(() => error);
         })
@@ -282,7 +282,7 @@ export class MessagingService {
       catchError((error) => {
         this._messages.set(previousMessages);
         this._conversations.set(previousConversations);
-        this._error.set('Khong the cap nhat trang thai da doc');
+        this._error.set('Không thể cập nhật trạng thái đã đọc');
         return throwError(() => error);
       })
     );

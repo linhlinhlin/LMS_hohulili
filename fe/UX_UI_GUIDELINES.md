@@ -12,12 +12,53 @@ Primary:        #0056D2
 Primary Hover:  #004BB5
 Primary Light:  bg-[#0056D2]/5, /10, /20
 Focus Ring:     focus:ring-[#0056D2] focus:border-[#0056D2]
-Cards:          bg-white rounded-xl border border-gray-200 shadow-sm
+Cards:          bg-white rounded-lg border border-gray-200 shadow-sm
 Page BG:        bg-slate-50
 Dark Section:   bg-[#0a1628] (hero, CTA, maritime dark)
 Red:            CHỈ cho semantic (errors, destructive actions)
 Green:          CHỈ cho semantic (success, completed, miễn phí)
 ```
+
+### Border Radius — Tiêu chuẩn 8px
+
+| Tailwind Class | px | Dùng cho |
+|---------------|-----|---------|
+| `rounded-lg` | **8px** | **Cards, panels, modals** — tiêu chuẩn chính |
+| `rounded-full` | pill | Search inputs, pills, badges, avatar |
+| `rounded-md` | 6px | Buttons, small elements |
+| `rounded` | 4px | Tags, tiny badges |
+
+**KHÔNG dùng `rounded-xl` (12px) hay `rounded-2xl` (16px) cho cards** — quá tròn, thiếu chuyên nghiệp.
+Dashboard dùng 8px làm chuẩn → tất cả trang khác phải match.
+
+### Sidebar Active State — Flat Design (NO 3D)
+
+```
+KHÔNG: border-left: 3px solid #color  ← 3D block effect
+CÓ:    background: #EFF6FF + color: #0056D2 + font-weight: 600  ← flat, clean
+```
+
+### Grades/Results Page — KHÔNG collapse items
+
+Grades page khác Tasks page:
+- **Tasks**: Collapse hợp lý (ẩn noise, focus vào "cần làm")
+- **Grades**: KHÔNG collapse (students cần thấy TẤT CẢ điểm — GPA, so sánh, screenshot)
+- SOTA: Canvas, Coursera, Moodle đều hiện ALL grades expanded
+- Chỉ dùng **page-level Load More** cho nhiều courses
+
+### Quiz Result — Question Details
+
+**Show ALL questions at once** — KHÔNG pagination, KHÔNG load more.
+- SOTA: Canvas, Coursera, Moodle, edX đều hiện tất cả
+- Quiz review = tài liệu tham khảo, student cần xem toàn bộ
+- Typical: 8-20 câu, max 50 — hiện hết OK
+
+### Quiz Result — Hết lượt xử lý inline
+
+**KHÔNG navigate sang trang error** khi quiz hết lượt. Xử lý **inline**:
+- Nút "Làm lại" chỉ hiện khi `canRetake = true`
+- Khi hết lượt: hiện message "Đã sử dụng hết X lượt" tại chỗ
+- SOTA: Coursera, Canvas, Moodle đều xử lý inline
 
 ---
 
@@ -130,6 +171,7 @@ Mobile:   ≤ 640px   — Vertical card layout, stacked buttons
 - Count indicator: "Đang hiện X / Y"
 - Reset về initial khi đổi tab/filter
 - **KHÔNG dùng pagination cho < 50 items**
+- **> 50 items**: Chuyển sang flanking pagination `[<] 1 2 3 ... [>]` (server-side)
 - **KHÔNG dùng page size selector trên student view** — chỉ admin
 
 **Page size selector rules (NNGroup):**

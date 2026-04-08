@@ -28,6 +28,7 @@
         <div class="nav-item-container">
             <a [routerLink]="item.route" routerLinkActive="active"
                 [routerLinkActiveOptions]="{exact: item.exact ?? false}"
+                [class.force-active]="isItemActive(item)"
                 class="nav-item"
                 [class.has-children]="!!item.children?.length">
                 <div class="nav-icon" [class]="getIconClasses(item)">

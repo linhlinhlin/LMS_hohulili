@@ -99,6 +99,7 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
                 <a routerLink="/student/tasks"
                   aria-label="Bài cần làm"
                   routerLinkActive="tab-active"
+                  [class.tab-active]="isTasksTabActive()"
                   class="tab-item">
                   <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
@@ -435,6 +436,15 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
   private network = inject(NetworkStatusService);
   private dialog = inject(ConfirmDialogService);
   protected isMobileSidebarOpen = signal(false);
+
+  // Reactive URL signal — updates on NavigationEnd for OnPush compatibility
+  private currentUrl = signal('');
+
+  // "Cần làm" tab active for /student/tasks AND /student/quiz/*
+  protected isTasksTabActive = computed(() => {
+    const url = this.currentUrl();
+    return url.startsWith('/student/tasks') || url.startsWith('/student/quiz');
+  });
   protected sidebarCollapsed = signal(false);
 
   // User avatar — show real avatar if exists, fallback to initials circle
@@ -516,6 +526,9 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
   }
 
   private handleRouteChange(url: string) {
+    // Update reactive URL signal for computed properties (OnPush safe)
+    this.currentUrl.set(url.split('?')[0]);
+
     const isInLearningInterface = url.includes('/student/learn/course/');
     const isInQuiz = url.includes('/student/quiz/take/'); // Hide sidebar when taking quiz
     // Assignment work page now shows sidebar (redesigned as normal page, not full-page takeover)

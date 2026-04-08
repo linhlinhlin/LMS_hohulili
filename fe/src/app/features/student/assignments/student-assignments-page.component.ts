@@ -11,6 +11,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { QuizApi, QuizAttemptResponse } from '../../../api/endpoints/quiz.api';
 import { StudentTaskService, StudentWorkItem, WorkType } from '../services/student-task.service';
 import {
@@ -48,6 +49,7 @@ export class StudentAssignmentsPageComponent implements OnInit {
   private quizApi = inject(QuizApi);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private toast = inject(ToastService);
 
   // Data
   allItems = signal<StudentWorkItem[]>([]);
@@ -126,6 +128,15 @@ export class StudentAssignmentsPageComponent implements OnInit {
     !!(this.selectedCourse() || this.searchQuery())
   );
 
+  // Page-level Load More — limit visible course groups (library pattern)
+  private readonly INITIAL_GROUPS = 3;
+  private readonly LOAD_MORE_GROUPS = 3;
+  visibleGroupCount = signal(3);
+
+  visibleGroups = computed(() => this.courseGroups().slice(0, this.visibleGroupCount()));
+  hasMoreGroups = computed(() => this.visibleGroupCount() < this.courseGroups().length);
+  remainingGroupCount = computed(() => Math.max(0, this.courseGroups().length - this.visibleGroupCount()));
+
   // "Show more / Collapse" per course group
   expandedGroups = signal<Set<string>>(new Set());
 
@@ -153,36 +164,76 @@ export class StudentAssignmentsPageComponent implements OnInit {
     });
   }
 
+  loadMoreGroups(): void {
+    this.visibleGroupCount.update(c => c + this.LOAD_MORE_GROUPS);
+  }
+
   setContentTab(tab: ContentTab): void {
     this.contentTab.set(tab);
     this.activeTab.set('todo');
     this.expandedGroups.set(new Set());
+    this.visibleGroupCount.set(this.INITIAL_GROUPS);
   }
 
   setTab(tab: TaskTab): void {
     this.activeTab.set(tab);
     this.expandedGroups.set(new Set());
+    this.visibleGroupCount.set(this.INITIAL_GROUPS);
   }
 
   resetFilters(): void {
     this.selectedCourse.set('');
     this.searchQuery.set('');
+    this.visibleGroupCount.set(this.INITIAL_GROUPS);
   }
 
   navigateToItem(item: StudentWorkItem): void {
     if (item.status === 'NOT_AVAILABLE' || item.status === 'LOCKED') return;
+
     if (item.workType === 'ASSIGNMENT') {
       this.router.navigate(['/student/tasks', item.itemId, 'work']);
-    } else if (item.status === 'GRADED' && !canRetryQuiz(item) && item.attemptId) {
-      // Exhausted or final-graded quiz → view results directly
+      return;
+    }
+
+    // Quiz/Exam/Practice — pre-check BEFORE navigating (Coursera/Canvas pattern: no blank error pages)
+    const isExhausted = item.maxAttempts != null
+      && item.maxAttempts > 0
+      && (item.attemptCount ?? 0) >= item.maxAttempts;
+
+    const isOverdueNoAttempt = item.status === 'OVERDUE' && (item.attemptCount ?? 0) === 0;
+
+    // Case 1: Exhausted + has result → view result
+    if (isExhausted && item.attemptId) {
       this.router.navigate(['/student/quiz/result'], {
         queryParams: { attemptId: item.attemptId, returnUrl: '/student/tasks?tab=quizzes' },
       });
-    } else {
-      this.router.navigate(['/student/quiz/take', item.itemId], {
-        queryParams: { returnUrl: '/student/tasks?tab=quizzes' },
-      });
+      return;
     }
+
+    // Case 2: Exhausted, no result → toast inline
+    if (isExhausted) {
+      this.toast.warning('Bạn đã sử dụng hết số lần làm bài cho phép.');
+      return;
+    }
+
+    // Case 3: Overdue, never attempted → toast inline (server will reject anyway)
+    if (isOverdueNoAttempt) {
+      this.toast.warning('Bài kiểm tra này đã quá hạn.');
+      return;
+    }
+
+    // Case 4: Graded, can't retry → view result
+    if (item.status === 'GRADED' && !canRetryQuiz(item) && item.attemptId) {
+      this.router.navigate(['/student/quiz/result'], {
+        queryParams: { attemptId: item.attemptId, returnUrl: '/student/tasks?tab=quizzes' },
+      });
+      return;
+    }
+
+    // Case 5: Can take/retake → navigate to quiz
+    this.router.navigate(['/student/quiz/take', item.itemId], {
+      queryParams: { returnUrl: '/student/tasks?tab=quizzes' },
+    });
   }
 
   // Template helpers

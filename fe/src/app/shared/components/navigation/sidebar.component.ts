@@ -1,6 +1,7 @@
-import { Component, input, output, signal, computed, inject, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
+import { Component, input, output, signal, computed, inject, ChangeDetectionStrategy, ViewEncapsulation, OnInit, OnDestroy } from '@angular/core';
 
-import { RouterModule, Router, RouterLinkActive } from '@angular/router';
+import { RouterModule, Router, RouterLinkActive, NavigationEnd } from '@angular/router';
+import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { UserRole } from '../../../shared/types/user.types';
 import { IconComponent, IconName } from '../icon/icon.component';
@@ -13,6 +14,7 @@ export interface SidebarMenuItem {
   children?: SidebarMenuItem[];
   exact?: boolean;
   group?: string;
+  alsoActiveFor?: string[]; // Extra URL prefixes that should highlight this item
 }
 
 export interface SidebarConfig {
@@ -31,13 +33,29 @@ export interface SidebarConfig {
   styleUrl: './sidebar.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class SidebarComponent {
+export class SidebarComponent implements OnInit, OnDestroy {
   protected authService = inject(AuthService);
   private router = inject(Router);
 
   config = input.required<SidebarConfig>();
   collapsed = input(false);
   toggleCollapse = output<void>();
+
+  // Reactive URL tracking — for alsoActiveFor matching (OnPush safe)
+  private currentUrl = signal(this.router.url.split('?')[0]);
+  private routerSub?: Subscription;
+
+  ngOnInit(): void {
+    this.routerSub = this.router.events.pipe(
+      filter(e => e instanceof NavigationEnd)
+    ).subscribe((e: NavigationEnd) => {
+      this.currentUrl.set(e.urlAfterRedirects.split('?')[0]);
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.routerSub?.unsubscribe();
+  }
 
   // User menu state (Claude/GitHub/Linear pattern)
   protected isUserMenuOpen = signal(false);
@@ -89,6 +107,13 @@ export class SidebarComponent {
 
   getLogoClasses(): string {
     return `sidebar-logo-${this.config().role.toLowerCase()}`;
+  }
+
+  // Check if item should be active based on alsoActiveFor paths (reactive via signal)
+  isItemActive(item: SidebarMenuItem): boolean {
+    if (!item.alsoActiveFor?.length) return false;
+    const url = this.currentUrl();
+    return item.alsoActiveFor.some(prefix => url.startsWith(prefix));
   }
 
   shouldShowGroupTitle(index: number): boolean {

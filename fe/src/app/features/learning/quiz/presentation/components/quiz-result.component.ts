@@ -32,6 +32,9 @@ interface QuizResultData {
   showCorrectAnswers: boolean;
   pendingReview: boolean;
   questionResults: QuizQuestionResult[];
+  maxAttempts: number | null;
+  attemptCount: number;
+  canRetake: boolean;
 }
 
 @Component({
@@ -39,10 +42,45 @@ interface QuizResultData {
   imports: [RouterModule],
   template: `
     <div class="mx-auto max-w-[1400px] px-4 sm:px-6 py-6">
+      <!-- Breadcrumb — navigation context -->
+      <nav class="mb-4 flex items-center gap-1.5 text-sm text-gray-500">
+        <a routerLink="/student/tasks" [queryParams]="{tab: 'quizzes'}" class="hover:text-[#0056D2] transition-colors">Bài cần làm</a>
+        <svg class="w-3.5 h-3.5 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
+        <span class="text-gray-900 font-medium truncate">{{ result()?.quizTitle || 'Kết quả bài kiểm tra' }}</span>
+      </nav>
+
       @if (isLoading()) {
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center">
-          <div class="animate-spin rounded-full h-10 w-10 border-2 border-gray-200 border-t-[#0056D2] mx-auto mb-3"></div>
-          <p class="text-sm text-gray-500">Đang tải kết quả...</p>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          <div class="lg:col-span-4 xl:col-span-3">
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-5 animate-pulse">
+              <div class="h-4 w-24 bg-gray-200 rounded mb-3"></div>
+              <div class="h-3 w-40 bg-gray-100 rounded mb-6"></div>
+              <div class="h-8 w-20 bg-gray-200 rounded mb-3"></div>
+              <div class="h-2 w-full bg-gray-100 rounded-full mb-4"></div>
+              <div class="flex justify-between">
+                <div class="h-3 w-12 bg-gray-100 rounded"></div>
+                <div class="h-3 w-12 bg-gray-100 rounded"></div>
+                <div class="h-3 w-12 bg-gray-100 rounded"></div>
+              </div>
+            </div>
+          </div>
+          <div class="lg:col-span-8 xl:col-span-9">
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm animate-pulse">
+              <div class="px-5 py-3 border-b border-gray-100 flex justify-between">
+                <div class="h-4 w-28 bg-gray-200 rounded"></div>
+                <div class="h-3 w-20 bg-gray-100 rounded"></div>
+              </div>
+              @for (i of [1,2,3,4]; track i) {
+                <div class="px-5 py-3 border-b border-gray-50 flex gap-3">
+                  <div class="h-4 w-5 bg-gray-100 rounded"></div>
+                  <div class="flex-1 space-y-1.5">
+                    <div class="h-3.5 w-4/5 bg-gray-200 rounded"></div>
+                    <div class="h-3 w-1/3 bg-gray-100 rounded"></div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
         </div>
       } @else if (result()) {
 
@@ -50,32 +88,35 @@ interface QuizResultData {
 
           <!-- LEFT: Score Summary (sticky) -->
           <div class="lg:col-span-4 xl:col-span-3 lg:sticky lg:top-6">
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm border-t-4"
-              [class.border-t-green-500]="result()!.passed && !result()!.pendingReview"
-              [class.border-t-red-400]="!result()!.passed && !result()!.pendingReview"
-              [class.border-t-gray-300]="result()!.pendingReview">
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
 
-              <!-- Status + Title -->
+              <!-- Status Badge + Title -->
               <div class="px-5 pt-5 pb-4">
-                <div class="flex items-center gap-2 mb-1">
+                <div class="mb-3">
                   @if (result()!.pendingReview) {
-                    <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
-                    </svg>
-                    <span class="text-sm font-semibold text-gray-600">Chưa công bố điểm</span>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
+                      <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                      </svg>
+                      Chưa công bố điểm
+                    </span>
                   } @else if (result()!.passed) {
-                    <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                    </svg>
-                    <span class="text-sm font-semibold text-green-700">Đạt yêu cầu</span>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700">
+                      <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                      </svg>
+                      Đạt yêu cầu
+                    </span>
                   } @else {
-                    <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v4a1 1 0 102 0V5zm-1 8a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd"/>
-                    </svg>
-                    <span class="text-sm font-semibold text-red-600">Chưa đạt</span>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-600">
+                      <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v4a1 1 0 102 0V5zm-1 8a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd"/>
+                      </svg>
+                      Chưa đạt
+                    </span>
                   }
                 </div>
-                <h1 class="text-sm text-gray-600 leading-snug">{{ result()!.quizTitle }}</h1>
+                <h1 class="text-sm font-medium text-gray-900 leading-snug">{{ result()!.quizTitle }}</h1>
               </div>
 
               <!-- Score -->
@@ -127,23 +168,26 @@ interface QuizResultData {
               </div>
               }
 
-              <!-- Actions -->
-              <div class="px-5 py-3 border-t border-gray-100 space-y-2">
-                @if (result()!.quizId) {
-                  <button (click)="retakeQuiz()"
-                    class="w-full px-4 py-2 bg-[#0056D2] text-white text-sm font-medium rounded-lg hover:bg-[#004BB5] transition-colors">
-                    Làm lại
-                  </button>
-                }
-                <button (click)="goToQuizList()"
-                  class="w-full px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors">
-                  ← Quay lại danh sách
-                </button>
+              <!-- Timestamp -->
+              <div class="px-5 pb-3">
+                <p class="text-xs text-gray-400">{{ result()!.completedAt }}</p>
               </div>
 
-              <!-- Timestamp -->
-              <div class="px-5 py-2 border-t border-gray-50">
-                <p class="text-[10px] text-gray-400 text-center">{{ result()!.completedAt }}</p>
+              <!-- Actions -->
+              <div class="px-5 py-3 border-t border-gray-100 space-y-2">
+                @if (result()!.quizId && result()!.canRetake) {
+                  <button (click)="retakeQuiz()"
+                    class="w-full px-4 py-2.5 bg-[#0056D2] text-white text-sm font-medium rounded-lg hover:bg-[#004BB5] transition-colors">
+                    Làm lại bài kiểm tra
+                  </button>
+                  @if (result()!.maxAttempts) {
+                    <p class="text-xs text-gray-400 text-center">Còn {{ result()!.maxAttempts! - result()!.attemptCount }} / {{ result()!.maxAttempts }} lượt</p>
+                  }
+                } @else if (result()!.quizId && !result()!.canRetake) {
+                  <div class="text-center py-1">
+                    <p class="text-xs text-gray-500">Đã sử dụng hết {{ result()!.maxAttempts }} lượt làm bài</p>
+                  </div>
+                }
               </div>
             </div>
           </div>
@@ -151,7 +195,7 @@ interface QuizResultData {
           <!-- RIGHT: Question Breakdown -->
           <div class="lg:col-span-8 xl:col-span-9">
             @if (result()!.showCorrectAnswers && result()!.questionResults.length > 0) {
-              <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
+              <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
                 <!-- Header -->
                 <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
                   <h2 class="text-sm font-semibold text-gray-900">Chi tiết từng câu</h2>
@@ -161,13 +205,8 @@ interface QuizResultData {
                 </div>
 
                 <!-- Question Rows -->
-                @for (q of visibleQuestions(); track q.questionId; let i = $index) {
-                  <div class="flex items-start gap-3 px-5 py-3 border-l-[3px] hover:bg-gray-50/40 transition-colors"
-                    [class.border-l-green-500]="q.isCorrect === true"
-                    [class.border-l-red-400]="q.isCorrect === false"
-                    [class.border-l-amber-400]="q.isCorrect === null || q.isCorrect === undefined"
-                    [class.border-b]="true"
-                    [class.border-b-gray-50]="true">
+                @for (q of result()!.questionResults; track q.questionId; let i = $index) {
+                  <div class="flex items-start gap-3 px-5 py-3 border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
 
                     <!-- Number -->
                     <span class="flex-shrink-0 w-5 text-right text-xs text-gray-400 pt-0.5 tabular-nums">{{ i + 1 }}</span>
@@ -201,24 +240,17 @@ interface QuizResultData {
                   </div>
                 }
 
-                <!-- Show More -->
-                @if (hasMoreQuestions()) {
-                  <button (click)="showMore()" type="button"
-                    class="w-full px-5 py-3 text-sm font-medium text-[#0056D2] hover:bg-[#0056D2]/5 transition-colors text-center">
-                    Hiển thị thêm {{ remainingCount() }} câu
-                  </button>
-                }
               </div>
             } @else if (!result()!.showCorrectAnswers) {
-              <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center">
-                <svg class="w-10 h-10 text-gray-300 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-8 text-center">
+                <svg class="w-10 h-10 text-gray-400 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"/>
                 </svg>
                 <p class="text-sm text-gray-500">Đáp án không được hiển thị cho bài kiểm tra này.</p>
                 <p class="text-xs text-gray-400 mt-1">Giáo viên đã tắt tính năng xem lại đáp án.</p>
               </div>
             } @else {
-              <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center">
+              <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-8 text-center">
                 <p class="text-sm text-gray-400">Không có dữ liệu chi tiết.</p>
               </div>
             }
@@ -226,7 +258,7 @@ interface QuizResultData {
         </div>
       } @else {
         <!-- Error -->
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-10 text-center max-w-md mx-auto">
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-10 text-center max-w-md mx-auto">
           <div class="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-3">
             <svg class="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v4a1 1 0 102 0V5zm-1 8a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd"/>
@@ -351,6 +383,12 @@ export class QuizResultComponent implements OnInit {
         hour: '2-digit', minute: '2-digit'
       });
 
+      const maxAttempts = data.maxAttempts ?? null;
+      const attemptCount = data.attemptCount ?? data.attemptNumber ?? 1;
+      // Only allow retake when we KNOW there are remaining attempts
+      // When maxAttempts is unknown (null), don't assume retakeable
+      const canRetake = maxAttempts != null && maxAttempts > 0 && attemptCount < maxAttempts;
+
       this.result.set({
         attemptId: data.attemptId || data.id || attemptId,
         quizId: data.quizId || '',
@@ -367,6 +405,9 @@ export class QuizResultComponent implements OnInit {
         timeSpent: `${minutes}:${String(seconds).padStart(2, '0')}`,
         completedAt,
         showCorrectAnswers: data.showCorrectAnswers ?? true,
+        maxAttempts,
+        attemptCount,
+        canRetake,
         questionResults: items.map((item: any) => ({
           questionId: item.questionId,
           questionText: item.questionContent || '',
@@ -386,14 +427,14 @@ export class QuizResultComponent implements OnInit {
   }
 
   retakeQuiz(): void {
-    const quizId = this.result()?.quizId;
-    if (quizId) {
-      this.router.navigate(['/student/quiz/take', quizId], {
-        queryParams: { returnUrl: this.returnUrl },
-      });
-    } else {
+    const r = this.result();
+    if (!r?.quizId || !r.canRetake) {
       this.goToQuizList();
+      return;
     }
+    this.router.navigate(['/student/quiz/take', r.quizId], {
+      queryParams: { returnUrl: this.returnUrl },
+    });
   }
 
   goToQuizList(): void {

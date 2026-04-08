@@ -84,7 +84,7 @@ public class CommunicationControllerV3 {
                 .map(conversation -> mapConversation(conversation, userId, userSummaryMap))
                 .toList();
 
-        return ResponseEntity.ok(ApiResponse.success(result, "Danh sach hoi thoai"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Danh sách hội thoại"));
     }
 
     @Operation(summary = "Get conversation between two users")
@@ -96,12 +96,12 @@ public class CommunicationControllerV3 {
     ) {
         UUID currentUserId = currentUser.getId();
         if (!currentUserId.equals(userId1) && !currentUserId.equals(userId2)) {
-            return ResponseEntity.status(403).body(ApiResponse.error("Ban khong phai thanh vien cua cuoc hoi thoai nay"));
+            return ResponseEntity.status(403).body(ApiResponse.error("Bạn không phải thành viên của cuộc hội thoại này"));
         }
 
         Optional<Conversation> conversation = conversationRepository.findByParticipants(userId1, userId2);
         if (conversation.isEmpty()) {
-            return ResponseEntity.ok(ApiResponse.success(null, "Khong tim thay cuoc hoi thoai"));
+            return ResponseEntity.ok(ApiResponse.success(null, "Không tìm thấy cuộc hội thoại"));
         }
 
         Map<UUID, UserSummary> userSummaryMap = batchFetchUsers(Set.of(
@@ -111,7 +111,7 @@ public class CommunicationControllerV3 {
 
         return ResponseEntity.ok(ApiResponse.success(
                 mapConversation(conversation.get(), currentUserId, userSummaryMap),
-                "Thong tin cuoc hoi thoai"
+                "Thông tin cuộc hội thoại"
         ));
     }
 
@@ -122,9 +122,9 @@ public class CommunicationControllerV3 {
             @AuthenticationPrincipal UserJpaEntity user
     ) {
         Conversation conversation = conversationRepository.findById(ConversationId.of(conversationId))
-                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Cuoc hoi thoai", conversationId));
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Cuộc hội thoại", conversationId));
         if (!conversation.hasParticipant(user.getId())) {
-            throw new org.springframework.security.access.AccessDeniedException("Ban khong phai thanh vien cua cuoc hoi thoai nay");
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không phải thành viên của cuộc hội thoại này");
         }
 
         List<Message> messages = messageRepository.findByConversationId(ConversationId.of(conversationId));
@@ -137,7 +137,7 @@ public class CommunicationControllerV3 {
                 .map(message -> mapMessage(message, senderSummaryMap))
                 .toList();
 
-        return ResponseEntity.ok(ApiResponse.success(result, "Danh sach tin nhan"));
+        return ResponseEntity.ok(ApiResponse.success(result, "Danh sách tin nhắn"));
     }
 
     @Operation(summary = "List recipients the current user is allowed to message")
@@ -153,12 +153,13 @@ public class CommunicationControllerV3 {
         var items = listMessageRecipientsUseCase.execute(actor, q, contextType, contextId, limit);
         return ResponseEntity.ok(ApiResponse.success(
                 new MessageRecipientSearchResponse(items, null),
-                "Danh sach nguoi nhan hop le"
+                "Danh sách người nhận hợp lệ"
         ));
     }
 
     @Operation(summary = "Send a message to another user")
     @PostMapping("/send")
+    @Transactional
     public ResponseEntity<ApiResponse<Map<String, Object>>> sendMessage(
             @AuthenticationPrincipal UserJpaEntity user,
             @Valid @RequestBody SendMessageRequest request
@@ -166,13 +167,13 @@ public class CommunicationControllerV3 {
         UUID senderId = user.getId();
 
         if (senderId.equals(request.recipientId())) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("400", "Khong the gui tin nhan cho chinh minh"));
+            return ResponseEntity.badRequest().body(ApiResponse.error("400", "Không thể gửi tin nhắn cho chính mình"));
         }
 
         MessageAuthorizationService.ActorContext actor = actorContext(user);
         if (!messageAuthorizationService.canSendMessage(actor, request.recipientId())) {
             return ResponseEntity.status(403)
-                    .body(ApiResponse.error("RECIPIENT_NOT_ALLOWED", "Ban khong the nhan tin cho nguoi nay"));
+                    .body(ApiResponse.error("RECIPIENT_NOT_ALLOWED", "Bạn không thể nhắn tin cho người này"));
         }
 
         UUID messageId = sendMessageUseCase.execute(new SendMessageUseCaseV3.SendMessageCommand(
@@ -198,7 +199,7 @@ public class CommunicationControllerV3 {
         ));
         response.put("conversationId", conversationId);
 
-        return ResponseEntity.ok(ApiResponse.success(response, "Gui tin nhan thanh cong"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Gửi tin nhắn thành công"));
     }
 
     @Operation(summary = "Mark messages as read")
@@ -222,7 +223,7 @@ public class CommunicationControllerV3 {
             }
         }
 
-        return ResponseEntity.ok(ApiResponse.success(null, count + " tin nhan da duoc danh dau da doc"));
+        return ResponseEntity.ok(ApiResponse.success(null, count + " tin nhắn đã được đánh dấu đã đọc"));
     }
 
     @Operation(summary = "Get unread message count")
@@ -231,7 +232,7 @@ public class CommunicationControllerV3 {
             @AuthenticationPrincipal UserJpaEntity user
     ) {
         long totalUnread = messageRepository.countTotalUnreadForUser(user.getId());
-        return ResponseEntity.ok(ApiResponse.success(Map.of("unreadCount", totalUnread), "So tin nhan chua doc"));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("unreadCount", totalUnread), "Số tin nhắn chưa đọc"));
     }
 
     private Map<String, Object> mapConversation(
@@ -301,7 +302,7 @@ public class CommunicationControllerV3 {
         if (userIds.isEmpty()) {
             return Map.of();
         }
-        return userJpaRepository.findAllById(userIds).stream()
+        return userJpaRepository.findByIdIn(userIds).stream()
                 .collect(Collectors.toMap(
                         UserJpaEntity::getId,
                         user -> new UserSummary(user.getId(), user.getFullName(), user.getRole().name())
@@ -317,14 +318,14 @@ public class CommunicationControllerV3 {
     }
 
     public record SendMessageRequest(
-            @NotNull(message = "Ma nguoi nhan khong duoc de trong")
+            @NotNull(message = "Mã người nhận không được để trống")
             UUID recipientId,
-            @NotBlank(message = "Noi dung khong duoc de trong")
+            @NotBlank(message = "Nội dung không được để trống")
             String content
     ) {}
 
     public record MarkAsReadRequest(
-            @NotEmpty(message = "Danh sach tin nhan khong duoc de trong")
+            @NotEmpty(message = "Danh sách tin nhắn khong duoc de trong")
             List<UUID> messageIds
     ) {}
 

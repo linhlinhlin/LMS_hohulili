@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, signal, inject, computed, ChangeDetectionStrategy, HostListener, effect } from '@angular/core';
 
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { QuizApi } from '../../../api/endpoints/quiz.api';
@@ -76,7 +76,7 @@ interface PreflightData {
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-student-quiz-taking',
-  imports: [IconComponent, BlockRendererComponent, FormsModule, CommonModule],
+  imports: [IconComponent, BlockRendererComponent, FormsModule, CommonModule, RouterModule],
   templateUrl: './student-quiz-taking.component.html',
   styles: [`
     @keyframes scale-in {

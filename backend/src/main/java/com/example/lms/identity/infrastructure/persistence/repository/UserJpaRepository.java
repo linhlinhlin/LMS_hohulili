@@ -21,6 +21,10 @@ import java.util.UUID;
 @Repository
 public interface UserJpaRepository extends JpaRepository<UserJpaEntity, UUID> {
 
+    // Custom JPQL — avoids Hibernate 6.x UUID[] ClassCastException with findAllById
+    @org.springframework.data.jpa.repository.Query("SELECT u FROM UserJpaEntity u WHERE u.id IN :ids")
+    List<UserJpaEntity> findByIdIn(@org.springframework.data.repository.query.Param("ids") java.util.Collection<UUID> ids);
+
     Optional<UserJpaEntity> findByUsername(String username);
 
     Optional<UserJpaEntity> findByEmail(String email);

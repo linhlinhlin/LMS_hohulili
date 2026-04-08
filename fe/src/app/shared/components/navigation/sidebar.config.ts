@@ -25,7 +25,8 @@ export const studentSidebarConfig: SidebarConfig = {
       label: 'Bài cần làm',
       route: '/student/tasks',
       icon: 'blog',
-      group: 'Học tập'
+      group: 'Học tập',
+      alsoActiveFor: ['/student/quiz', '/student/tasks']
     },
     {
       label: 'Kết quả',

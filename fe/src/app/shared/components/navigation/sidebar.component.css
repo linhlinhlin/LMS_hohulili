@@ -106,9 +106,9 @@
 }
 
 .nav-item.active {
-  background-color: #EAF2FF;
+  background-color: #EFF6FF;
   color: #0056D2;
-  border-left: 3px solid #0056D2;
+  font-weight: 600;
 }
 
 .nav-icon {
@@ -512,10 +512,9 @@
   opacity: 1;
 }
 
-/* Active state in collapsed mode — round highlight instead of border-left */
+/* Active state in collapsed mode */
 .sidebar-collapsed .nav-item.active {
-  border-left: none;
-  background-color: #EAF2FF;
+  background-color: #EFF6FF;
   border-radius: 0.75rem;
 }
 
@@ -530,9 +529,9 @@
 }
 
 .sidebar-student .nav-item.active {
-  background-color: #EAF2FF;
+  background-color: #EFF6FF;
   color: #0056D2;
-  border-left: 3px solid #0056D2;
+  font-weight: 600;
 }
 
 .sidebar-teacher .sidebar-logo {
@@ -540,9 +539,9 @@
 }
 
 .sidebar-teacher .nav-item.active {
-  background-color: #EAF2FF;
+  background-color: #EFF6FF;
   color: #0056D2;
-  border-left: 3px solid #0056D2;
+  font-weight: 600;
 }
 
 .sidebar-admin .sidebar-logo {
@@ -552,11 +551,23 @@
 .sidebar-admin .nav-item.active {
   background-color: #fef2f2;
   color: #b91c1c;
-  border-left: 3px solid #dc2626;
+  font-weight: 600;
 }
 
 /* Active nav label — bold text for visual emphasis */
-.nav-item.active .nav-label {
+.nav-item.active .nav-label,
+.nav-item.force-active .nav-label {
   color: inherit;
   font-weight: 600;
+}
+
+/* force-active — for alsoActiveFor URL matching (same style as .active) */
+.nav-item.force-active {
+  background-color: #EFF6FF;
+  color: #0056D2;
+  font-weight: 600;
+}
+
+.nav-item.force-active .nav-icon {
+  color: #0056D2;
 }

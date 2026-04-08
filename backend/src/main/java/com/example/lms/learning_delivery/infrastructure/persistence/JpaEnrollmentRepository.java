@@ -45,7 +45,7 @@ public interface JpaEnrollmentRepository extends JpaRepository<EnrollmentJpaEnti
             @Param("classId") UUID classId
     );
 
-    @Query("SELECT e FROM EnrollmentJpaEntity e WHERE e.studentId = :studentId")
+    @Query("SELECT e FROM EnrollmentJpaEntity e JOIN FETCH e.learningClass WHERE e.studentId = :studentId")
     List<EnrollmentJpaEntity> findByStudentId(@Param("studentId") UUID studentId);
 
     @Query("SELECT e FROM EnrollmentJpaEntity e JOIN FETCH e.learningClass WHERE e.studentId = :studentId AND e.status = 'ACTIVE'")

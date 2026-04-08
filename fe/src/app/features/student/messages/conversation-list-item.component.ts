@@ -22,8 +22,7 @@ import { ConversationListItem, formatMessageTime } from './utils/message-utils';
       (click)="onSelect()"
       class="w-full flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors text-left"
       [class.bg-[#0056D2]/5]="isSelected()"
-      [class.border-l-4]="isSelected()"
-      [class.border-l-[#0056D2]]="isSelected()"
+      [class.font-semibold]="isSelected()"
     >
       <!-- Avatar -->
       <div class="relative flex-shrink-0">

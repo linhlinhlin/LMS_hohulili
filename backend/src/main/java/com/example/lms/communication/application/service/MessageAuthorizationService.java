@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@org.springframework.transaction.annotation.Transactional(readOnly = true)
 public class MessageAuthorizationService {
 
     private static final int DEFAULT_LIMIT = 20;
@@ -223,7 +224,7 @@ public class MessageAuthorizationService {
                                     "ORG_ADMIN_SCOPE",
                                     "org",
                                     null,
-                                    "Quan tri to chuc",
+                                    "Quản trị tổ chức",
                                     3
                             )
                     ));
@@ -238,7 +239,7 @@ public class MessageAuthorizationService {
                                 "SYSTEM_ADMIN",
                                 "org",
                                 null,
-                                "Quan tri he thong",
+                                "Quản trị hệ thống",
                                 4
                         )
                 ));
@@ -265,7 +266,7 @@ public class MessageAuthorizationService {
                                     entry.role() == Role.TEACHER ? "ORG_TEACHER" : "ORG_STUDENT",
                                     "org",
                                     actor.organizationId(),
-                                    "Cung to chuc",
+                                    "Cùng tổ chức",
                                     2
                             )
                     ));
@@ -280,7 +281,7 @@ public class MessageAuthorizationService {
                                 "SYSTEM_ADMIN",
                                 "org",
                                 null,
-                                "Quan tri he thong",
+                                "Quản trị hệ thống",
                                 4
                         )
                 ));
@@ -301,7 +302,7 @@ public class MessageAuthorizationService {
                                 "SYSTEM_DIRECTORY",
                                 "org",
                                 null,
-                                "Nguoi dung hoat dong",
+                                "Người dùng hoạt động",
                                 5
                         )
                 ));
@@ -456,7 +457,7 @@ public class MessageAuthorizationService {
                     "EXISTING_CONVERSATION",
                     "recent",
                     null,
-                    "Hoi thoai gan day",
+                    "Hội thoại gần đây",
                     0
             );
         }

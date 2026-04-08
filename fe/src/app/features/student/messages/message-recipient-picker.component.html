@@ -40,7 +40,7 @@
           [ngModel]="searchQuery"
           (ngModelChange)="onSearchChange($event)"
           placeholder="Tìm theo tên hoặc email..."
-          class="w-full rounded-xl border border-slate-200 py-3 pl-10 pr-4 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]" />
+          class="w-full rounded-lg border border-slate-200 py-3 pl-10 pr-4 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]" />
       </div>
     </div>
 
@@ -51,7 +51,7 @@
           <span>Đang tải người nhận...</span>
         </div>
       } @else if (error()) {
-        <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
+        <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
           <p>{{ error() }}</p>
           <button
             type="button"
@@ -80,7 +80,7 @@
             <button
               type="button"
               (click)="chooseRecipient(recipient)"
-              class="flex w-full items-start gap-3 rounded-xl border border-slate-200 px-4 py-3 text-left transition hover:border-[#0056D2] hover:bg-[#0056D2]/5">
+              class="flex w-full items-start gap-3 rounded-lg border border-slate-200 px-4 py-3 text-left transition hover:border-[#0056D2] hover:bg-[#0056D2]/5">
               <div class="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-[#0056D2]/10 font-semibold text-[#0056D2]">
                 {{ recipient.displayName.slice(0, 1).toUpperCase() }}
               </div>

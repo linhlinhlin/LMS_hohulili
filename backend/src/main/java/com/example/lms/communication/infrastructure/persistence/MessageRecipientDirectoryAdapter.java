@@ -39,7 +39,7 @@ public class MessageRecipientDirectoryAdapter implements MessageRecipientDirecto
         if (userIds == null || userIds.isEmpty()) {
             return List.of();
         }
-        return userJpaRepository.findAllById(userIds).stream()
+        return userJpaRepository.findByIdIn(userIds).stream()
                 .filter(UserJpaEntity::isEnabled)
                 .filter(user -> matchesQuery(user, query))
                 .sorted(Comparator.comparing(UserJpaEntity::getFullName, String.CASE_INSENSITIVE_ORDER))

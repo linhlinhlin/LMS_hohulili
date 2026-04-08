@@ -85,7 +85,7 @@ interface CourseGrade {
       <!-- GRADES TAB -->
       @if (activeTab() === 'grades') {
         @if (isLoading()) {
-          <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
             @for (i of [1,2,3]; track i) {
               <div class="px-5 py-4 border-b border-gray-100 animate-pulse">
                 <div class="h-4 w-48 rounded bg-gray-200 mb-2"></div>
@@ -94,7 +94,7 @@ interface CourseGrade {
             }
           </div>
         } @else if (grades().length === 0) {
-          <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-10 text-center">
+          <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-10 text-center">
             <p class="text-sm font-medium text-gray-600">Chưa có dữ liệu điểm</p>
             <p class="text-xs text-gray-400 mt-1">Đăng ký và hoàn thành các khóa học để xem bảng điểm</p>
             <a routerLink="/student/courses/library"
@@ -110,8 +110,8 @@ interface CourseGrade {
 
           <!-- VMU-style: Course tables -->
           <div class="space-y-5">
-            @for (course of grades(); track course.courseId) {
-              <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            @for (course of visibleGrades(); track course.courseId) {
+              <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
                 <!-- Course Header -->
                 <div class="px-5 py-3 bg-gray-50/60 border-b border-gray-100 flex items-center justify-between">
                   <div class="min-w-0">
@@ -148,51 +148,44 @@ interface CourseGrade {
                         </tr>
                       </thead>
                       <tbody class="divide-y divide-gray-50">
-                        @for (qs of course.quizScores; track qs.quizId) {
+                        @for (item of getAllItems(course); track item.quizId || item.assignmentId) {
                           <tr class="hover:bg-gray-50/40 transition-colors group">
-                            <td class="px-5 py-2.5 text-sm text-gray-800">{{ qs.quizTitle }}</td>
-                            <td class="text-center px-3 py-2.5 text-xs text-gray-400">Trắc nghiệm</td>
+                            <td class="px-5 py-2.5 text-sm text-gray-800">{{ item.quizTitle || item.assignmentTitle }}</td>
+                            <td class="text-center px-3 py-2.5 text-xs text-gray-400">{{ item.type === 'quiz' ? 'Trắc nghiệm' : 'Bài tập' }}</td>
                             <td class="text-right px-3 py-2.5 text-sm font-medium tabular-nums text-gray-900">
-                              {{ formatScore(qs.bestScore) }}/{{ formatScore(qs.maxScore) }}
-                            </td>
-                            <td class="text-center px-3 py-2.5">
-                              <span class="text-xs font-medium"
-                                [class.text-green-600]="qs.isPassed === true"
-                                [class.text-red-500]="qs.isPassed === false"
-                                [class.text-gray-400]="qs.isPassed === null">
-                                {{ qs.isPassed === true ? 'Đạt' : qs.isPassed === false ? 'Chưa đạt' : '—' }}
-                              </span>
-                            </td>
-                            <td class="text-right px-5 py-2.5">
-                              @if (qs.bestAttemptId) {
-                                <button (click)="viewQuizResult(qs.bestAttemptId!)"
-                                  class="text-xs font-medium text-[#0056D2] opacity-0 group-hover:opacity-100 transition-opacity">
-                                  Xem
-                                </button>
-                              }
-                            </td>
-                          </tr>
-                        }
-                        @for (ascore of course.assignmentScores; track ascore.assignmentId) {
-                          <tr class="hover:bg-gray-50/40 transition-colors">
-                            <td class="px-5 py-2.5 text-sm text-gray-800">{{ ascore.assignmentTitle }}</td>
-                            <td class="text-center px-3 py-2.5 text-xs text-gray-400">Bài tập</td>
-                            <td class="text-right px-3 py-2.5 text-sm font-medium tabular-nums text-gray-900">
-                              @if (ascore.grade !== null) {
-                                {{ ascore.grade }}/{{ ascore.maxScore }}
+                              @if (item.type === 'quiz') {
+                                {{ formatScore(item.bestScore) }}/{{ formatScore(item.maxScore) }}
+                              } @else if (item.grade !== null && item.grade !== undefined) {
+                                {{ item.grade }}/{{ item.maxScore }}
                               } @else {
                                 <span class="text-gray-300">—</span>
                               }
                             </td>
                             <td class="text-center px-3 py-2.5">
-                              <span class="text-xs font-medium"
-                                [class.text-green-600]="ascore.status === 'GRADED'"
-                                [class.text-amber-600]="ascore.status === 'SUBMITTED'"
-                                [class.text-gray-400]="ascore.status !== 'GRADED' && ascore.status !== 'SUBMITTED'">
-                                {{ getAssignmentStatusLabel(ascore.status) }}
-                              </span>
+                              @if (item.type === 'quiz') {
+                                <span class="text-xs font-medium"
+                                  [class.text-green-600]="item.isPassed === true"
+                                  [class.text-red-500]="item.isPassed === false"
+                                  [class.text-gray-400]="item.isPassed === null">
+                                  {{ item.isPassed === true ? 'Đạt' : item.isPassed === false ? 'Chưa đạt' : '—' }}
+                                </span>
+                              } @else {
+                                <span class="text-xs font-medium"
+                                  [class.text-green-600]="item.status === 'GRADED'"
+                                  [class.text-amber-600]="item.status === 'SUBMITTED'"
+                                  [class.text-gray-400]="item.status !== 'GRADED' && item.status !== 'SUBMITTED'">
+                                  {{ getAssignmentStatusLabel(item.status) }}
+                                </span>
+                              }
                             </td>
-                            <td class="text-right px-5 py-2.5"></td>
+                            <td class="text-right px-5 py-2.5">
+                              @if (item.type === 'quiz' && item.bestAttemptId) {
+                                <button (click)="viewQuizResult(item.bestAttemptId); $event.stopPropagation()"
+                                  class="text-xs font-medium text-[#0056D2] opacity-0 group-hover:opacity-100 transition-opacity">
+                                  Xem
+                                </button>
+                              }
+                            </td>
                           </tr>
                         }
                       </tbody>
@@ -202,6 +195,19 @@ interface CourseGrade {
               </div>
             }
           </div>
+
+          <!-- Load More -->
+          @if (hasMoreGrades()) {
+            <div class="flex flex-col items-center gap-2 pt-4">
+              <button type="button" (click)="loadMoreGrades()"
+                      class="px-6 py-2.5 border border-gray-200 rounded-lg bg-white text-sm font-medium text-gray-700 hover:border-[#0056D2] hover:text-[#0056D2] hover:bg-[#0056D2]/5 transition-colors">
+                Xem thêm {{ remainingGrades() }} khóa học
+              </button>
+              <p class="text-xs text-gray-400">Đang hiện {{ visibleGrades().length }} / {{ grades().length }}</p>
+            </div>
+          } @else if (grades().length > 5) {
+            <p class="text-center text-xs text-gray-400 pt-4">Đã hiện tất cả {{ grades().length }} khóa học</p>
+          }
         }
       }
 
@@ -210,7 +216,7 @@ interface CourseGrade {
         @if (certsLoading()) {
           <div class="space-y-3">
             @for (i of [1,2]; track i) {
-              <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+              <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
                 <div class="animate-pulse flex items-center gap-4">
                   <div class="h-10 w-10 rounded-lg bg-gray-200"></div>
                   <div class="flex-1 space-y-2">
@@ -222,14 +228,14 @@ interface CourseGrade {
             }
           </div>
         } @else if (certificates().length === 0) {
-          <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-10 text-center">
+          <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-10 text-center">
             <p class="text-sm font-medium text-gray-600">Chưa có chứng chỉ</p>
             <p class="text-xs text-gray-400 mt-1">Hoàn thành khóa học để nhận chứng chỉ</p>
           </div>
         } @else {
           <div class="space-y-3">
             @for (cert of certificates(); track cert.id) {
-              <div class="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4 flex items-center gap-4 hover:border-gray-300 transition-colors">
+              <div class="bg-white rounded-lg border border-gray-200 shadow-sm px-5 py-4 flex items-center gap-4 hover:border-gray-300 transition-colors">
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-semibold text-gray-900 truncate">{{ cert.courseName }}</p>
                   <p class="text-xs text-gray-500 mt-0.5">Cấp ngày {{ cert.issuedAt }} · Mã: {{ cert.verificationToken.substring(0, 8) }}...</p>
@@ -263,6 +269,49 @@ export class StudentGradesComponent implements OnInit {
     const g = this.grades();
     return g.length > 0 ? Math.round(g.reduce((s, c) => s + c.progress, 0) / g.length) : 0;
   });
+
+  // Load More — show 5 courses initially, +5 each click
+  private readonly INITIAL_COUNT = 5;
+  private readonly LOAD_MORE_COUNT = 5;
+  visibleCount = signal(5);
+  visibleGrades = computed(() => this.grades().slice(0, this.visibleCount()));
+  hasMoreGrades = computed(() => this.visibleCount() < this.grades().length);
+  remainingGrades = computed(() => Math.max(0, this.grades().length - this.visibleCount()));
+
+  loadMoreGrades(): void {
+    this.visibleCount.update(c => c + this.LOAD_MORE_COUNT);
+  }
+
+  // Expand/collapse per course — show first 3 items, "Xem thêm" to expand
+  private readonly ITEMS_PER_COURSE = 3;
+  expandedCourses = signal<Set<string>>(new Set());
+
+  getVisibleItems(course: CourseGrade): any[] {
+    const all = [...course.quizScores.map(q => ({ ...q, type: 'quiz' })), ...course.assignmentScores.map(a => ({ ...a, type: 'assignment' }))];
+    if (this.expandedCourses().has(course.courseId)) return all;
+    return all.slice(0, this.ITEMS_PER_COURSE);
+  }
+
+  getAllItems(course: CourseGrade): any[] {
+    return [
+      ...course.quizScores.map(q => ({ ...q, type: 'quiz' })),
+      ...course.assignmentScores.map(a => ({ ...a, type: 'assignment' }))
+    ];
+  }
+
+  hasMoreItems(course: CourseGrade): boolean {
+    return this.getAllItems(course).length > this.ITEMS_PER_COURSE && !this.expandedCourses().has(course.courseId);
+  }
+
+  isExpanded(course: CourseGrade): boolean {
+    return this.expandedCourses().has(course.courseId) && this.getAllItems(course).length > this.ITEMS_PER_COURSE;
+  }
+
+  toggleCourseExpand(courseId: string): void {
+    const current = new Set(this.expandedCourses());
+    if (current.has(courseId)) { current.delete(courseId); } else { current.add(courseId); }
+    this.expandedCourses.set(current);
+  }
 
   async ngOnInit(): Promise<void> {
     try {

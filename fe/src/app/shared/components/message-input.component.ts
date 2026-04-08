@@ -28,11 +28,11 @@ export interface MessageSendEvent {
     <div class="border-t bg-white p-4">
       @if (showAssignmentSelector() && assignments().length > 0) {
         <div class="mb-3">
-          <label class="mb-1 block text-sm text-gray-600">Dinh kem bai tap (tuy chon)</label>
+          <label class="mb-1 block text-sm text-gray-600">Đính kèm bài tập (tùy chọn)</label>
           <select
             [(ngModel)]="selectedAssignmentId"
             class="w-full rounded-lg border px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]">
-            <option value="">-- Khong dinh kem --</option>
+            <option value="">-- Không đính kèm --</option>
             @for (assignment of assignments(); track assignment.id) {
               <option [value]="assignment.id">
                 {{ assignment.title }} ({{ assignment.courseName }})
@@ -47,7 +47,7 @@ export interface MessageSendEvent {
           type="button"
           disabled
           class="cursor-not-allowed p-2 text-gray-300"
-          title="Tinh nang dinh kem file se bo sung sau">
+          title="Tính năng đính kèm file sẽ bổ sung sau">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -87,7 +87,7 @@ export interface MessageSendEvent {
           type="button"
           (click)="send()"
           [disabled]="!canSend()"
-          [attr.aria-label]="externallyDisabled() ? 'Khong the gui tin nhan khi dang offline' : 'Gui tin nhan'"
+          [attr.aria-label]="externallyDisabled() ? 'Không thể gửi tin nhắn khi đang offline' : 'Gửi tin nhắn'"
           class="rounded-full p-3 transition-colors"
           [class.bg-[#0056D2]]="canSend()"
           [class.hover:bg-[#004BB5]]="canSend()"
@@ -127,14 +127,14 @@ export interface MessageSendEvent {
               type="button"
               (click)="retry()"
               class="text-xs font-medium text-red-600 hover:text-red-800">
-              Thu lai
+              Thử lại
             </button>
           }
         </div>
       }
 
       <p class="mt-2 text-xs text-gray-400">
-        Nhan Enter de gui, Shift+Enter de xuong dong
+        Nhấn Enter để gửi, Shift+Enter để xuống dòng
       </p>
     </div>
   `,
@@ -142,7 +142,7 @@ export interface MessageSendEvent {
 export class MessageInputComponent {
   readonly textareaRef = viewChild<ElementRef<HTMLTextAreaElement>>('textareaRef');
 
-  readonly placeholder = input<string>('Nhap tin nhan...');
+  readonly placeholder = input<string>('Nhập tin nhắn...');
   readonly showAssignmentSelector = input<boolean>(false);
   readonly assignments = input<AssignmentOption[]>([]);
   readonly maxLength = input<number>(5000);
@@ -226,7 +226,7 @@ export class MessageInputComponent {
     this.resetTextareaHeight();
   }
 
-  onSendError(message: string = 'Khong the gui tin nhan. Vui long thu lai.'): void {
+  onSendError(message: string = 'Không thể gửi tin nhắn. Vui lòng thử lại.'): void {
     this.loading.set(false);
     this.errorMessage.set(message);
   }
