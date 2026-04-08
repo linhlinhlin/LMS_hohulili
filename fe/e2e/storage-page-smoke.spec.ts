@@ -37,8 +37,8 @@ test.describe('@smoke Storage page logic', () => {
     await expect(page.getByText('Đồng bộ').first()).toBeVisible();
     await expect(page.getByText('Còn trống')).toBeVisible();
 
-    // 5. Verify "Bộ nhớ đệm" has sub-label
-    await expect(page.getByText('Service worker, cache')).toBeVisible();
+    // 5. Verify "Bộ nhớ đệm" card exists
+    await expect(page.getByText('Bộ nhớ đệm')).toBeVisible();
 
     // 6. "Nội dung học" should show 0 B (no downloads yet)
     const courseByteCard = page.locator('text=Nội dung học').locator('..');
@@ -54,7 +54,6 @@ test.describe('@smoke Storage page logic', () => {
 
     // 8. "Đồng bộ" overview card shows "Đã đồng bộ" when no pending items
     await expect(page.getByText('Đã đồng bộ').first()).toBeVisible();
-    await expect(page.getByText('Không có dữ liệu chờ gửi')).toBeVisible();
 
     // 9. Detail cards show context-aware empty text
     await expect(page.getByText('Không có mục chờ gửi')).toBeVisible();

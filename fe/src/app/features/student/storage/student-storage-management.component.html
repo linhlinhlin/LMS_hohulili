@@ -181,54 +181,33 @@
 
         <div class="mt-4 grid gap-3 grid-cols-2 xl:grid-cols-3">
           <div class="rounded-lg bg-slate-50 px-3 py-3 text-sm">
-            <p class="flex items-center gap-1.5 text-gray-500">
-              <span class="inline-block h-2.5 w-2.5 rounded-full bg-[#0056D2]"></span>
-              Nội dung học
-            </p>
+            <p class="text-gray-500">Nội dung học</p>
             <p class="mt-1 font-semibold text-gray-900">{{ storageManager.formatBytes(totalCourseBytes()) }}</p>
           </div>
           <div class="rounded-lg bg-slate-50 px-3 py-3 text-sm">
-            <p class="flex items-center gap-1.5 text-gray-500">
-              <span class="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
-              Video đã tải
-            </p>
+            <p class="text-gray-500">Video đã tải</p>
             <p class="mt-1 font-semibold text-gray-900">{{ storageManager.formatBytes(totalVideoBytes()) }}</p>
           </div>
           @if (totalFileBytes() > 0) {
             <div class="rounded-lg bg-slate-50 px-3 py-3 text-sm">
-              <p class="flex items-center gap-1.5 text-gray-500">
-                <span class="inline-block h-2.5 w-2.5 rounded-full bg-violet-500"></span>
-                Tệp đính kèm
-              </p>
+              <p class="text-gray-500">Tệp đính kèm</p>
               <p class="mt-1 font-semibold text-gray-900">{{ storageManager.formatBytes(totalFileBytes()) }}</p>
             </div>
           }
           <div class="rounded-lg bg-slate-50 px-3 py-3 text-sm">
-            <p class="flex items-center gap-1.5 text-gray-500">
-              <span class="inline-block h-2.5 w-2.5 rounded-full bg-gray-400"></span>
-              Bộ nhớ đệm
-            </p>
+            <p class="text-gray-500">Bộ nhớ đệm</p>
             <p class="mt-1 font-semibold text-gray-900">{{ storageManager.formatBytes(systemOverheadBytes()) }}</p>
-            <p class="mt-0.5 text-[10px] text-gray-400">Service worker, cache</p>
           </div>
           <div class="rounded-lg bg-slate-50 px-3 py-3 text-sm">
-            <p class="flex items-center gap-1.5 text-gray-500">
-              <span class="inline-block h-2.5 w-2.5 rounded-full bg-amber-500"></span>
-              Đồng bộ
-            </p>
+            <p class="text-gray-500">Đồng bộ</p>
             @if (syncService.pendingCount() + syncService.failedCount() > 0) {
               <p class="mt-1 font-semibold text-gray-900">{{ syncService.pendingCount() + syncService.failedCount() }} mục chờ</p>
-              <p class="mt-0.5 text-[10px] text-gray-400">Bài làm chưa gửi lên hệ thống</p>
             } @else {
               <p class="mt-1 font-semibold text-emerald-600">Đã đồng bộ</p>
-              <p class="mt-0.5 text-[10px] text-gray-400">Không có dữ liệu chờ gửi</p>
             }
           </div>
           <div class="rounded-lg bg-slate-50 px-3 py-3 text-sm">
-            <p class="flex items-center gap-1.5 text-gray-500">
-              <span class="inline-block h-2.5 w-2.5 rounded-full bg-gray-200"></span>
-              Còn trống
-            </p>
+            <p class="text-gray-500">Còn trống</p>
             <p class="mt-1 font-semibold text-gray-900">{{ storageManager.formatBytes(freeBytes()) }}</p>
           </div>
         </div>
@@ -658,12 +637,12 @@
         </div>
       }
 
-      <!-- Danger Zone -->
+      <!-- Clear Data -->
       @if (hasAnyData()) {
-        <div class="rounded-lg border border-red-200 bg-white p-5 shadow-sm">
-          <h2 class="text-base font-semibold text-red-700">Vùng thao tác nguy hiểm</h2>
+        <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+          <h2 class="text-base font-semibold text-gray-900">Xóa dữ liệu ngoại tuyến</h2>
           <p class="mt-1 text-sm text-gray-500">
-            Xóa toàn bộ dữ liệu ngoại tuyến trên thiết bị này.
+            Các thao tác dưới đây sẽ xóa dữ liệu đã tải trên thiết bị này. Tiến trình đã đồng bộ lên máy chủ không bị ảnh hưởng.
           </p>
           <div class="mt-4 flex flex-wrap gap-3">
             <button type="button" (click)="onDeleteAll()"
