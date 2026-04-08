@@ -124,8 +124,8 @@
               <div class="h-4 w-28 rounded bg-gray-100"></div>
             </div>
             <div class="mt-4 h-4 rounded-full bg-gray-100"></div>
-            <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              @for (_ of [1,2,3,4]; track $index) {
+            <div class="mt-4 grid gap-3 grid-cols-2 xl:grid-cols-5">
+              @for (_ of [1,2,3,4,5]; track $index) {
                 <div class="rounded-lg bg-slate-50 px-3 py-3">
                   <div class="h-3 w-20 rounded bg-gray-200"></div>
                   <div class="mt-2 h-5 w-16 rounded bg-gray-200"></div>
@@ -173,10 +173,13 @@
             @if (syncBarPercent() > 0) {
               <div class="h-full bg-amber-500 transition-all duration-300" [style.width.%]="syncBarPercent()"></div>
             }
+            @if (systemBarPercent() > 0) {
+              <div class="h-full bg-gray-400 transition-all duration-300" [style.width.%]="systemBarPercent()"></div>
+            }
           </div>
         </div>
 
-        <div class="mt-4 grid gap-3 grid-cols-2 xl:grid-cols-4">
+        <div class="mt-4 grid gap-3 grid-cols-2 xl:grid-cols-5">
           <div class="rounded-lg bg-slate-50 px-3 py-3 text-sm">
             <p class="flex items-center gap-1.5 text-gray-500">
               <span class="inline-block h-2.5 w-2.5 rounded-full bg-[#0056D2]"></span>
@@ -193,14 +196,28 @@
           </div>
           <div class="rounded-lg bg-slate-50 px-3 py-3 text-sm">
             <p class="flex items-center gap-1.5 text-gray-500">
-              <span class="inline-block h-2.5 w-2.5 rounded-full bg-amber-500"></span>
-              Chờ đồng bộ
+              <span class="inline-block h-2.5 w-2.5 rounded-full bg-gray-400"></span>
+              Bộ nhớ đệm
             </p>
-            <p class="mt-1 font-semibold text-gray-900">{{ syncService.pendingCount() + syncService.failedCount() }} mục</p>
+            <p class="mt-1 font-semibold text-gray-900">{{ storageManager.formatBytes(systemOverheadBytes()) }}</p>
+            <p class="mt-0.5 text-[10px] text-gray-400">Service worker, cache</p>
           </div>
           <div class="rounded-lg bg-slate-50 px-3 py-3 text-sm">
             <p class="flex items-center gap-1.5 text-gray-500">
-              <span class="inline-block h-2.5 w-2.5 rounded-full bg-gray-300"></span>
+              <span class="inline-block h-2.5 w-2.5 rounded-full bg-amber-500"></span>
+              Đồng bộ
+            </p>
+            @if (syncService.pendingCount() + syncService.failedCount() > 0) {
+              <p class="mt-1 font-semibold text-gray-900">{{ syncService.pendingCount() + syncService.failedCount() }} mục chờ</p>
+              <p class="mt-0.5 text-[10px] text-gray-400">Bài làm chưa gửi lên hệ thống</p>
+            } @else {
+              <p class="mt-1 font-semibold text-emerald-600">Đã đồng bộ</p>
+              <p class="mt-0.5 text-[10px] text-gray-400">Không có dữ liệu chờ gửi</p>
+            }
+          </div>
+          <div class="rounded-lg bg-slate-50 px-3 py-3 text-sm">
+            <p class="flex items-center gap-1.5 text-gray-500">
+              <span class="inline-block h-2.5 w-2.5 rounded-full bg-gray-200"></span>
               Còn trống
             </p>
             <p class="mt-1 font-semibold text-gray-900">{{ storageManager.formatBytes(freeBytes()) }}</p>
@@ -263,17 +280,35 @@
           <div class="rounded-lg bg-slate-50 px-3 py-3">
             <p class="text-xs font-medium uppercase tracking-wide text-gray-400">Đang chờ</p>
             <p class="mt-2 text-xl font-semibold text-gray-900">{{ syncService.pendingCount() }}</p>
-            <p class="mt-1 text-[10px] text-gray-400">Bài làm chưa gửi lên hệ thống</p>
+            @if (syncService.pendingCount() > 0) {
+              <p class="mt-1 text-[10px] text-gray-400">Bài làm chưa gửi lên hệ thống</p>
+            } @else {
+              <p class="mt-1 text-[10px] text-emerald-500">Không có mục chờ gửi</p>
+            }
           </div>
           <div class="rounded-lg bg-slate-50 px-3 py-3">
             <p class="text-xs font-medium uppercase tracking-wide text-gray-400">Thất bại</p>
             <p class="mt-2 text-xl font-semibold text-gray-900">{{ syncService.failedCount() }}</p>
-            <p class="mt-1 text-[10px] text-gray-400">Gửi lỗi, cần thử lại</p>
+            @if (syncService.failedCount() > 0) {
+              <p class="mt-1 text-[10px] text-red-400">Gửi lỗi, cần thử lại</p>
+            } @else {
+              <p class="mt-1 text-[10px] text-gray-400">Không có lỗi</p>
+            }
           </div>
-          <div class="rounded-lg bg-amber-50 px-3 py-3">
-            <p class="text-xs font-medium uppercase tracking-wide text-amber-700">Xung đột</p>
-            <p class="mt-2 text-xl font-semibold text-amber-900">{{ syncService.conflictCount() }}</p>
-            <p class="mt-1 text-[10px] text-amber-600">Cần kiểm tra trước khi đồng bộ</p>
+          <div class="rounded-lg px-3 py-3"
+               [class.bg-amber-50]="syncService.conflictCount() > 0"
+               [class.bg-slate-50]="syncService.conflictCount() === 0">
+            <p class="text-xs font-medium uppercase tracking-wide"
+               [class.text-amber-700]="syncService.conflictCount() > 0"
+               [class.text-gray-400]="syncService.conflictCount() === 0">Xung đột</p>
+            <p class="mt-2 text-xl font-semibold"
+               [class.text-amber-900]="syncService.conflictCount() > 0"
+               [class.text-gray-900]="syncService.conflictCount() === 0">{{ syncService.conflictCount() }}</p>
+            @if (syncService.conflictCount() > 0) {
+              <p class="mt-1 text-[10px] text-amber-600">Cần kiểm tra trước khi đồng bộ</p>
+            } @else {
+              <p class="mt-1 text-[10px] text-gray-400">Không có xung đột</p>
+            }
           </div>
           <div class="rounded-lg bg-slate-50 px-3 py-3">
             <p class="text-xs font-medium uppercase tracking-wide text-gray-400">Tự đồng bộ</p>

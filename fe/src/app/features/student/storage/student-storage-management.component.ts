@@ -80,6 +80,18 @@ export class StudentStorageManagementComponent implements OnInit {
     return Math.max(0, estimate.quotaBytes - estimate.usedBytes);
   });
 
+  readonly systemOverheadBytes = computed(() => {
+    const totalUsed = this.estimate().usedBytes;
+    const tracked = this.totalCourseBytes() + this.totalVideoBytes();
+    return Math.max(0, totalUsed - tracked);
+  });
+
+  readonly systemBarPercent = computed(() => {
+    const quota = this.estimate().quotaBytes;
+    if (quota <= 0) return 0;
+    return Math.min((this.systemOverheadBytes() / quota) * 100, 100);
+  });
+
   readonly courseBarPercent = computed(() => {
     const quota = this.estimate().quotaBytes;
     if (quota <= 0) return 0;

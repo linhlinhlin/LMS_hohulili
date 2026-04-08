@@ -513,7 +513,20 @@ export class CourseDownloadService {
       await this.snapshotInitialProgress(courseId, dbLessons);
       let totalSize = 0;
       for (const l of dbLessons) {
+        // Count lesson HTML content
         totalSize += new Blob([l.contentHtml || '']).size;
+        // Count embedded sections (including quiz questions, content blocks, etc.)
+        if (l.sections?.length) {
+          totalSize += new Blob([JSON.stringify(l.sections)]).size;
+        }
+      }
+      // Count chapters metadata
+      const dbChapters = await offlineDb.chapters.where('[userId+courseId]').equals([userId, courseId]).toArray();
+      totalSize += new Blob([JSON.stringify(dbChapters)]).size;
+      // Count quiz data stored separately
+      const dbQuizData = await offlineDb.quizData.where('[userId+courseId]').equals([userId, courseId]).toArray();
+      if (dbQuizData.length > 0) {
+        totalSize += new Blob([JSON.stringify(dbQuizData)]).size;
       }
 
       // 7. Write course metadata with DB-counted values
