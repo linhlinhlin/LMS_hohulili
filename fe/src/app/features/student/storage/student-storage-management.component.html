@@ -6,7 +6,7 @@
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Lưu trữ ngoại tuyến</h1>
         <p class="mt-1 text-sm text-gray-500">
-          Quản lý dung lượng, khóa học đã tải và đồng bộ dữ liệu trên thiết bị này.
+          Quản lý khóa học đã tải xuống thiết bị này. Dữ liệu được lưu trong bộ nhớ trình duyệt — bạn có thể học ngay cả khi không có mạng.
         </p>
       </div>
       <div class="inline-flex items-center gap-2 self-start rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 shadow-sm">
@@ -140,19 +140,19 @@
 
         <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <div class="rounded-lg bg-slate-50 px-3 py-3 text-sm">
-            <p class="text-gray-500">Khóa học</p>
+            <p class="text-gray-500">Nội dung học</p>
             <p class="mt-1 font-semibold text-gray-900">{{ storageManager.formatBytes(totalCourseBytes()) }}</p>
           </div>
           <div class="rounded-lg bg-slate-50 px-3 py-3 text-sm">
-            <p class="text-gray-500">Video</p>
+            <p class="text-gray-500">Video đã tải</p>
             <p class="mt-1 font-semibold text-gray-900">{{ storageManager.formatBytes(totalVideoBytes()) }}</p>
           </div>
           <div class="rounded-lg bg-slate-50 px-3 py-3 text-sm">
-            <p class="text-gray-500">Hàng đợi sync</p>
+            <p class="text-gray-500">Chờ đồng bộ</p>
             <p class="mt-1 font-semibold text-gray-900">{{ syncService.pendingCount() + syncService.failedCount() }} mục</p>
           </div>
           <div class="rounded-lg bg-slate-50 px-3 py-3 text-sm">
-            <p class="text-gray-500">Dung lượng trống</p>
+            <p class="text-gray-500">Còn trống</p>
             <p class="mt-1 font-semibold text-gray-900">{{ storageManager.formatBytes(freeBytes()) }}</p>
           </div>
         </div>
@@ -213,20 +213,24 @@
           <div class="rounded-lg bg-slate-50 px-3 py-3">
             <p class="text-xs font-medium uppercase tracking-wide text-gray-400">Đang chờ</p>
             <p class="mt-2 text-xl font-semibold text-gray-900">{{ syncService.pendingCount() }}</p>
+            <p class="mt-1 text-[10px] text-gray-400">Bài làm chưa gửi lên hệ thống</p>
           </div>
           <div class="rounded-lg bg-slate-50 px-3 py-3">
             <p class="text-xs font-medium uppercase tracking-wide text-gray-400">Thất bại</p>
             <p class="mt-2 text-xl font-semibold text-gray-900">{{ syncService.failedCount() }}</p>
+            <p class="mt-1 text-[10px] text-gray-400">Gửi lỗi, cần thử lại</p>
           </div>
           <div class="rounded-lg bg-amber-50 px-3 py-3">
             <p class="text-xs font-medium uppercase tracking-wide text-amber-700">Xung đột</p>
             <p class="mt-2 text-xl font-semibold text-amber-900">{{ syncService.conflictCount() }}</p>
+            <p class="mt-1 text-[10px] text-amber-600">Cần kiểm tra trước khi đồng bộ</p>
           </div>
           <div class="rounded-lg bg-slate-50 px-3 py-3">
             <p class="text-xs font-medium uppercase tracking-wide text-gray-400">Tự đồng bộ</p>
             <p class="mt-2 text-sm font-semibold text-gray-900">
               {{ offlineSettings.autoSyncWhenOnline() ? 'Đang bật' : 'Đã tắt' }}
             </p>
+            <p class="mt-1 text-[10px] text-gray-400">Tự gửi khi có mạng</p>
           </div>
         </div>
       </div>

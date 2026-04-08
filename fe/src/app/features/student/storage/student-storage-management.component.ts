@@ -184,22 +184,22 @@ export class StudentStorageManagementComponent implements OnInit {
     }
 
     if (this.staleCourseCount() > 0) {
-      return `${conflictCount} xung dot dong bo dang lien quan den noi dung offline cu. Hay cap nhat khoa hoc truoc khi dong bo lai.`;
+      return `${conflictCount} xung đột đồng bộ đang liên quan đến nội dung offline cũ. Hãy cập nhật khóa học trước khi đồng bộ lại.`;
     }
 
-    return `${conflictCount} xung dot dong bo can duoc kiem tra. Tien do local dang duoc giu lai de ban quyet dinh cach tiep tuc.`;
+    return `${conflictCount} xung đột đồng bộ cần được kiểm tra. Tiến độ local đang được giữ lại để bạn quyết định cách tiếp tục.`;
   });
 
   readonly syncConflictActionLabel = computed(() => {
     if (this.staleCourseCount() > 0) {
-      return 'Cap nhat khoa hoc cu';
+      return 'Cập nhật khóa học cũ';
     }
 
     if (!this.network.online()) {
-      return 'Can ket noi mang de xu ly';
+      return 'Cần kết nối mạng để xử lý';
     }
 
-    return 'Dong bo lai sau khi kiem tra';
+    return 'Đồng bộ lại sau khi kiểm tra';
   });
 
   readonly currentConnectionLabel = computed(() => {
@@ -499,7 +499,7 @@ export class StudentStorageManagementComponent implements OnInit {
     }
 
     if (!this.network.online()) {
-      this.toast.info('Can ket noi mang truoc khi thu xu ly xung dot dong bo.');
+      this.toast.info('Cần kết nối mạng trước khi thử xử lý xung đột đồng bộ.');
       return;
     }
 
