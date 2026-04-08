@@ -1,15 +1,3 @@
-/**
- * Student Assignments Tab Component
- *
- * Hiển thị danh sách bài tập của học viên và cho phép giao bài tập riêng.
- * Features:
- * - Hiển thị tất cả bài tập được giao cho học viên
- * - Phân biệt bài tập cá nhân vs bài tập chung
- * - Button "Giao bài tập" để mở modal
- * - Hiển thị trạng thái, điểm, deadline
- *
- * @requirements 2.1, 2.5
- */
 import {
   Component,
   input,
@@ -32,13 +20,13 @@ export interface StudentAssignment {
   courseId: string;
   courseTitle: string;
   dueDate: string | null;
-  personalDeadline?: string; // Override deadline
+  personalDeadline?: string;
   submittedAt?: string;
   status: 'pending' | 'submitted' | 'graded' | 'overdue';
   score?: number;
   maxScore: number;
   feedback?: string;
-  isIndividual: boolean; // True nếu là bài tập được giao riêng
+  isIndividual: boolean;
   assignedAt: string;
   assignedBy?: string;
 }
@@ -49,14 +37,13 @@ export interface StudentAssignment {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-4">
-      <!-- Header -->
       <div class="flex items-center justify-between">
         <div>
-          <h3 class="text-lg font-semibold text-gray-900">Bài tập của học viên</h3>
+          <h3 class="text-lg font-semibold text-gray-900">B\u00e0i t\u1eadp c\u1ee7a h\u1ecdc vi\u00ean</h3>
           <p class="text-sm text-gray-500">
-            Tổng: {{ assignments().length }} bài tập | 
-            Cá nhân: {{ individualCount() }} | 
-            Đã nộp: {{ submittedCount() }}
+            T\u1ed5ng: {{ assignments().length }} b\u00e0i t\u1eadp |
+            C\u00e1 nh\u00e2n: {{ individualCount() }} |
+            \u0110\u00e3 n\u1ed9p: {{ submittedCount() }}
           </p>
         </div>
         <button
@@ -66,11 +53,10 @@ export interface StudentAssignment {
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
           </svg>
-          Giao bài tập
+          Giao b\u00e0i t\u1eadp
         </button>
       </div>
 
-      <!-- Filter Tabs -->
       <div class="flex gap-2 border-b">
         <button
           (click)="filterType.set('all')"
@@ -80,7 +66,7 @@ export interface StudentAssignment {
           [class.border-transparent]="filterType() !== 'all'"
           [class.text-gray-500]="filterType() !== 'all'"
         >
-          Tất cả ({{ assignments().length }})
+          T\u1ea5t c\u1ea3 ({{ assignments().length }})
         </button>
         <button
           (click)="filterType.set('individual')"
@@ -90,7 +76,7 @@ export interface StudentAssignment {
           [class.border-transparent]="filterType() !== 'individual'"
           [class.text-gray-500]="filterType() !== 'individual'"
         >
-          Cá nhân ({{ individualCount() }})
+          C\u00e1 nh\u00e2n ({{ individualCount() }})
         </button>
         <button
           (click)="filterType.set('pending')"
@@ -100,7 +86,7 @@ export interface StudentAssignment {
           [class.border-transparent]="filterType() !== 'pending'"
           [class.text-gray-500]="filterType() !== 'pending'"
         >
-          Chưa nộp ({{ pendingCount() }})
+          Ch\u01b0a n\u1ed9p ({{ pendingCount() }})
         </button>
         <button
           (click)="filterType.set('graded')"
@@ -110,50 +96,47 @@ export interface StudentAssignment {
           [class.border-transparent]="filterType() !== 'graded'"
           [class.text-gray-500]="filterType() !== 'graded'"
         >
-          Đã chấm ({{ gradedCount() }})
+          \u0110\u00e3 ch\u1ea5m ({{ gradedCount() }})
         </button>
       </div>
 
-      <!-- Loading State -->
       @if (loading()) {
         <div class="flex items-center justify-center py-12">
           <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0056D2]"></div>
-          <span class="ml-3 text-gray-600">Đang tải...</span>
+          <span class="ml-3 text-gray-600">\u0110ang t\u1ea3i...</span>
         </div>
       }
 
-      <!-- Empty State -->
       @if (!loading() && filteredAssignments().length === 0) {
         <div class="text-center py-12 bg-gray-50 rounded-lg">
           <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
           </svg>
-          <h3 class="mt-2 text-sm font-medium text-gray-900">Chưa có bài tập</h3>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">Ch\u01b0a c\u00f3 b\u00e0i t\u1eadp</h3>
           <p class="mt-1 text-sm text-gray-500">
             @if (filterType() === 'individual') {
-              Học viên chưa được giao bài tập cá nhân nào.
+              H\u1ecdc vi\u00ean ch\u01b0a \u0111\u01b0\u1ee3c giao b\u00e0i t\u1eadp c\u00e1 nh\u00e2n n\u00e0o.
             } @else if (filterType() === 'pending') {
-              Không có bài tập nào đang chờ nộp.
+              Kh\u00f4ng c\u00f3 b\u00e0i t\u1eadp n\u00e0o \u0111ang ch\u1edd n\u1ed9p.
             } @else if (filterType() === 'graded') {
-              Chưa có bài tập nào được chấm điểm.
+              Ch\u01b0a c\u00f3 b\u00e0i t\u1eadp n\u00e0o \u0111\u01b0\u1ee3c ch\u1ea5m \u0111i\u1ec3m.
             } @else {
-              Học viên chưa có bài tập nào.
+              H\u1ecdc vi\u00ean ch\u01b0a c\u00f3 b\u00e0i t\u1eadp n\u00e0o.
             }
           </p>
           <button
             (click)="onAssignTask()"
             class="mt-4 px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] text-sm"
           >
-            Giao bài tập mới
+            Giao b\u00e0i t\u1eadp m\u1edbi
           </button>
         </div>
       }
 
-      <!-- Assignment List -->
       @if (!loading() && filteredAssignments().length > 0) {
         <div class="space-y-3">
           @for (assignment of filteredAssignments(); track assignment.id) {
-            <div 
+            <div
               class="border rounded-lg p-4 hover:shadow-md transition-shadow"
               [class.border-purple-200]="assignment.isIndividual"
               [class.bg-purple-50]="assignment.isIndividual"
@@ -164,30 +147,30 @@ export interface StudentAssignment {
                     <h4 class="font-medium text-gray-900">{{ assignment.assignmentTitle }}</h4>
                     @if (assignment.isIndividual) {
                       <span class="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 rounded-full">
-                        Cá nhân
+                        C\u00e1 nh\u00e2n
                       </span>
                     }
                     @if (assignment.personalDeadline) {
                       <span class="px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-700 rounded-full">
-                        Gia hạn
+                        Gia h\u1ea1n
                       </span>
                     }
                   </div>
                   <p class="text-sm text-gray-600 mt-1">{{ assignment.courseTitle }}</p>
-                  
+
                   <div class="flex items-center gap-4 mt-2 text-sm text-gray-500">
                     <span class="flex items-center gap-1">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                       </svg>
-                      Hạn: {{ formatDate(assignment.personalDeadline || assignment.dueDate) }}
+                      H\u1ea1n: {{ formatDate(assignment.personalDeadline || assignment.dueDate) }}
                     </span>
                     @if (assignment.submittedAt) {
                       <span class="flex items-center gap-1">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                         </svg>
-                        Nộp: {{ formatDate(assignment.submittedAt) }}
+                        N\u1ed9p: {{ formatDate(assignment.submittedAt) }}
                       </span>
                     }
                     <span class="flex items-center gap-1">
@@ -200,8 +183,7 @@ export interface StudentAssignment {
                 </div>
 
                 <div class="flex flex-col items-end gap-2">
-                  <!-- Status Badge -->
-                  <span 
+                  <span
                     class="px-2 py-1 text-xs font-semibold rounded-full"
                     [class.bg-yellow-100]="assignment.status === 'pending'"
                     [class.text-yellow-800]="assignment.status === 'pending'"
@@ -215,10 +197,9 @@ export interface StudentAssignment {
                     {{ getStatusText(assignment.status) }}
                   </span>
 
-                  <!-- Score -->
                   @if (assignment.score !== undefined) {
                     <div class="text-right">
-                      <span 
+                      <span
                         class="text-lg font-bold"
                         [class.text-green-600]="getScorePercentage(assignment) >= 80"
                         [class.text-yellow-600]="getScorePercentage(assignment) >= 50 && getScorePercentage(assignment) < 80"
@@ -230,14 +211,13 @@ export interface StudentAssignment {
                     </div>
                   }
 
-                  <!-- Actions -->
                   <div class="flex gap-2">
                     @if (assignment.status === 'submitted' || assignment.status === 'graded') {
                       <a
                         [routerLink]="['/teacher/assignment-hub', assignment.assignmentId, 'submissions']"
                         class="text-sm text-[#0056D2] hover:text-[#004BB5]"
                       >
-                        Xem bài nộp
+                        Xem b\u00e0i n\u1ed9p
                       </a>
                     }
                     @if (assignment.isIndividual && assignment.status === 'pending') {
@@ -245,18 +225,17 @@ export interface StudentAssignment {
                         (click)="onRemoveAssignment(assignment)"
                         class="text-sm text-red-600 hover:text-red-800"
                       >
-                        Hủy giao
+                        H\u1ee7y giao
                       </button>
                     }
                   </div>
                 </div>
               </div>
 
-              <!-- Feedback -->
               @if (assignment.feedback) {
                 <div class="mt-3 p-3 bg-gray-100 rounded-lg">
                   <p class="text-sm text-gray-700">
-                    <span class="font-medium">Nhận xét:</span> {{ assignment.feedback }}
+                    <span class="font-medium">Nh\u1eadn x\u00e9t:</span> {{ assignment.feedback }}
                   </p>
                 </div>
               }
@@ -268,24 +247,20 @@ export interface StudentAssignment {
   `,
 })
 export class StudentAssignmentsComponent implements OnInit {
-  // Signal inputs (Angular v20+)
   readonly studentId = input.required<string>();
   readonly studentName = input<string>('');
 
-  // Output functions (Angular v20+)
   readonly assignTask = output<void>();
   readonly removeAssignment = output<StudentAssignment>();
 
   private distributionService = inject(DistributionService);
   private confirmDialog = inject(ConfirmDialogService);
 
-  // State
   assignments = signal<StudentAssignment[]>([]);
   loading = signal(false);
   loadError = signal(false);
   filterType = signal<'all' | 'individual' | 'pending' | 'graded'>('all');
 
-  // Computed
   filteredAssignments = computed(() => {
     const type = this.filterType();
     const all = this.assignments();
@@ -316,13 +291,12 @@ export class StudentAssignmentsComponent implements OnInit {
 
     this.distributionService.getStudentTasks(this.studentId()).subscribe({
       next: (tasks) => {
-        // Convert tasks to StudentAssignment format
         const assignments: StudentAssignment[] = tasks.map(task => ({
           id: task.id || `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           assignmentId: task.assignmentId,
-          assignmentTitle: task.title || 'Untitled Assignment',
+          assignmentTitle: task.title || 'B\u00e0i t\u1eadp ch\u01b0a \u0111\u1eb7t t\u00ean',
           courseId: task.courseId,
-          courseTitle: task.courseName || 'Unknown Course',
+          courseTitle: task.courseName || 'Kh\u00f3a h\u1ecdc ch\u01b0a x\u00e1c \u0111\u1ecbnh',
           dueDate: task.dueDate,
           personalDeadline: task.personalDeadline,
           submittedAt: task.submittedAt,
@@ -352,16 +326,15 @@ export class StudentAssignmentsComponent implements OnInit {
 
   async onRemoveAssignment(assignment: StudentAssignment): Promise<void> {
     const confirmed = await this.confirmDialog.confirm({
-      title: 'Hủy giao bài tập',
-      message: `Bạn có chắc muốn hủy giao bài tập "${assignment.assignmentTitle}" cho học viên này?`,
+      title: 'H\u1ee7y giao b\u00e0i t\u1eadp',
+      message: `B\u1ea1n c\u00f3 ch\u1eafc mu\u1ed1n h\u1ee7y giao b\u00e0i t\u1eadp "${assignment.assignmentTitle}" cho h\u1ecdc vi\u00ean n\u00e0y?`,
       variant: 'danger',
-      confirmText: 'Hủy giao',
-      cancelText: 'Giữ lại'
+      confirmText: 'H\u1ee7y giao',
+      cancelText: 'Gi\u1eef l\u1ea1i'
     });
     if (!confirmed) return;
 
     this.removeAssignment.emit(assignment);
-    // Remove from local state
     this.assignments.update(current =>
       current.filter(a => a.id !== assignment.id)
     );
@@ -369,10 +342,10 @@ export class StudentAssignmentsComponent implements OnInit {
 
   getStatusText(status: string): string {
     const statusMap: Record<string, string> = {
-      'pending': 'Chưa nộp',
-      'submitted': 'Đã nộp',
-      'graded': 'Đã chấm',
-      'overdue': 'Quá hạn'
+      pending: 'Ch\u01b0a n\u1ed9p',
+      submitted: '\u0110\u00e3 n\u1ed9p',
+      graded: '\u0110\u00e3 ch\u1ea5m',
+      overdue: 'Qu\u00e1 h\u1ea1n'
     };
     return statusMap[status] || status;
   }
@@ -383,7 +356,7 @@ export class StudentAssignmentsComponent implements OnInit {
   }
 
   formatDate(dateString: string | null | undefined): string {
-    if (!dateString) return 'Không giới hạn';
+    if (!dateString) return 'Kh\u00f4ng gi\u1edbi h\u1ea1n';
     return new Date(dateString).toLocaleDateString('vi-VN', {
       day: '2-digit',
       month: '2-digit',

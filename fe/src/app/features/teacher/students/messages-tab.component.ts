@@ -38,8 +38,8 @@ import { Message, sortMessagesByDate } from '../../student/messages/utils/messag
             </span>
           </div>
           <div>
-            <h3 class="font-medium text-slate-900">{{ studentName() || 'Học viên' }}</h3>
-            <p class="text-sm text-slate-500">Tin nhắn trực tiếp</p>
+            <h3 class="font-medium text-slate-900">{{ studentName() || 'H\u1ecdc vi\u00ean' }}</h3>
+            <p class="text-sm text-slate-500">Tin nh\u1eafn tr\u1ef1c ti\u1ebfp</p>
           </div>
         </div>
 
@@ -47,7 +47,7 @@ import { Message, sortMessagesByDate } from '../../student/messages/utils/messag
           type="button"
           (click)="refreshMessages()"
           class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-          aria-label="Làm mới tin nhắn">
+          aria-label="L\u00e0m m\u1edbi tin nh\u1eafn">
           <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -60,7 +60,7 @@ import { Message, sortMessagesByDate } from '../../student/messages/utils/messag
 
       @if (!network.online()) {
         <div class="border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
-          Đang offline. Bạn vẫn có thể soạn nháp, nhưng cần kết nối lại để gửi tin nhắn cho học viên.
+          \u0110ang offline. B\u1ea1n v\u1eabn c\u00f3 th\u1ec3 so\u1ea1n nh\u00e1p, nh\u01b0ng c\u1ea7n k\u1ebft n\u1ed1i l\u1ea1i \u0111\u1ec3 g\u1eedi tin nh\u1eafn cho h\u1ecdc vi\u00ean.
         </div>
       }
 
@@ -68,7 +68,7 @@ import { Message, sortMessagesByDate } from '../../student/messages/utils/messag
         @if (loading()) {
           <div class="flex h-full items-center justify-center">
             <div class="h-8 w-8 animate-spin rounded-full border-b-2 border-[#0056D2]"></div>
-            <span class="ml-3 text-slate-600">Đang tải tin nhắn...</span>
+            <span class="ml-3 text-slate-600">\u0110ang t\u1ea3i tin nh\u1eafn...</span>
           </div>
         } @else if (error() && sortedMessages().length === 0) {
           <div class="flex h-full flex-col items-center justify-center text-center">
@@ -81,7 +81,7 @@ import { Message, sortMessagesByDate } from '../../student/messages/utils/messag
             </svg>
             <p class="mb-2 text-slate-600">{{ error() }}</p>
             <button type="button" (click)="refreshMessages()" class="text-[#0056D2] hover:text-[#004BB5]">
-              Thử lại
+              Th\u1eed l\u1ea1i
             </button>
           </div>
         } @else if (sortedMessages().length === 0) {
@@ -93,8 +93,8 @@ import { Message, sortMessagesByDate } from '../../student/messages/utils/messag
                 stroke-width="2"
                 d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
             </svg>
-            <h3 class="mb-1 text-lg font-medium text-slate-900">Chưa có tin nhắn</h3>
-            <p class="text-slate-500">Bắt đầu cuộc trò chuyện với học viên.</p>
+            <h3 class="mb-1 text-lg font-medium text-slate-900">Ch\u01b0a c\u00f3 tin nh\u1eafn</h3>
+            <p class="text-slate-500">B\u1eaft \u0111\u1ea7u cu\u1ed9c tr\u00f2 chuy\u1ec7n v\u1edbi h\u1ecdc vi\u00ean.</p>
           </div>
         } @else {
           @if (error()) {
@@ -113,11 +113,11 @@ import { Message, sortMessagesByDate } from '../../student/messages/utils/messag
 
       <app-message-input
         #messageInput
-        [placeholder]="'Nhập tin nhắn cho ' + (studentName() || 'học viên') + '...'"
+        [placeholder]="'Nh\u1eadp tin nh\u1eafn cho ' + (studentName() || 'h\u1ecdc vi\u00ean') + '...'"
         [showAssignmentSelector]="true"
         [assignments]="availableAssignments()"
         [externallyDisabled]="!network.online()"
-        [disabledReason]="'Đang offline. Bạn vẫn có thể soạn nháp, nhưng cần kết nối lại để gửi tin nhắn cho học viên.'"
+        [disabledReason]="'\u0110ang offline. B\u1ea1n v\u1eabn c\u00f3 th\u1ec3 so\u1ea1n nh\u00e1p, nh\u01b0ng c\u1ea7n k\u1ebft n\u1ed1i l\u1ea1i \u0111\u1ec3 g\u1eedi tin nh\u1eafn cho h\u1ecdc vi\u00ean.'"
         (messageSend)="onSendMessage($event)"></app-message-input>
     </div>
   `,
@@ -221,8 +221,8 @@ export class MessagesTabComponent implements OnInit, OnDestroy, AfterViewChecked
           error?.error?.message ??
           error?.error?.error?.code;
         const fallbackMessage = this.network.online()
-          ? apiMessage || 'Không thể gửi tin nhắn. Vui lòng thử lại.'
-          : 'Đang offline. Tin nhắn được giữ lại trong ô soạn để gửi sau khi kết nối lại.';
+          ? apiMessage || 'Kh\u00f4ng th\u1ec3 g\u1eedi tin nh\u1eafn. Vui l\u00f2ng th\u1eed l\u1ea1i.'
+          : '\u0110ang offline. Tin nh\u1eafn \u0111\u01b0\u1ee3c gi\u1eef l\u1ea1i trong \u00f4 so\u1ea1n \u0111\u1ec3 g\u1eedi sau khi k\u1ebft n\u1ed1i l\u1ea1i.';
         this.messageInput()?.onSendError(fallbackMessage);
       },
     });
@@ -257,7 +257,7 @@ export class MessagesTabComponent implements OnInit, OnDestroy, AfterViewChecked
         this.loadConversationMessages(conversation.id);
       },
       error: () => {
-        this.error.set('Không thể tải cuộc hội thoại.');
+        this.error.set('Kh\u00f4ng th\u1ec3 t\u1ea3i cu\u1ed9c h\u1ed9i tho\u1ea1i.');
         this.loading.set(false);
       },
     });
@@ -272,7 +272,7 @@ export class MessagesTabComponent implements OnInit, OnDestroy, AfterViewChecked
         this.startConversationPolling(conversationId);
       },
       error: () => {
-        this.error.set('Không thể tải tin nhắn.');
+        this.error.set('Kh\u00f4ng th\u1ec3 t\u1ea3i tin nh\u1eafn.');
         this.loading.set(false);
       },
     });

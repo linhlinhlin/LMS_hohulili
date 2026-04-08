@@ -1,7 +1,12 @@
 import { Component, ChangeDetectionStrategy, inject, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { StudentApi, StudentDetail, StudentCourseProgress, StudentAssignmentSummary } from '../../../api/client/student.api';
+import { ActivatedRoute, RouterModule } from '@angular/router';
+import {
+  StudentApi,
+  StudentDetail,
+  StudentCourseProgress,
+  StudentAssignmentSummary
+} from '../../../api/client/student.api';
 import { StudentAssignmentsComponent, StudentAssignment } from './student-assignments.component';
 import { AssignTaskModalComponent, AssignTaskRequest } from './assign-task-modal.component';
 import { MessagesTabComponent } from './messages-tab.component';
@@ -10,75 +15,97 @@ import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-student-detail',
-  imports: [CommonModule, RouterModule, StudentAssignmentsComponent, AssignTaskModalComponent, MessagesTabComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    StudentAssignmentsComponent,
+    AssignTaskModalComponent,
+    MessagesTabComponent
+  ],
   template: `
     <div class="p-6 space-y-6">
-      <!-- Header -->
-      <div class="flex items-center justify-between">
+      <div class="flex items-center justify-between gap-4">
         <h1 class="text-2xl font-bold text-gray-900">
-          {{ student()?.name ? 'Học viên: ' + student()!.name : 'Chi tiết học viên' }}
+          {{ student()?.name ? 'H\u1ecdc vi\u00ean: ' + student()!.name : 'Chi ti\u1ebft h\u1ecdc vi\u00ean' }}
         </h1>
-        <a routerLink="/teacher/students" class="text-sm text-gray-600 underline">Quay lại danh sách</a>
+        <a routerLink="/teacher/students" class="text-sm text-gray-600 underline">Quay l\u1ea1i danh s\u00e1ch</a>
       </div>
-    
-      <!-- Error State -->
+
       @if (error()) {
-        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div class="rounded-lg border border-red-200 bg-red-50 p-4">
           <p class="text-red-600">{{ error() }}</p>
-          <button (click)="onReload()" class="mt-2 text-[#0056D2] underline text-sm">Tải lại</button>
+          <button (click)="onReload()" class="mt-2 text-sm text-[#0056D2] underline">T\u1ea3i l\u1ea1i</button>
         </div>
       }
-    
-      <!-- Student Info -->
+
       @if (student()) {
-        <div class="bg-white rounded-lg shadow p-6">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="rounded-lg bg-white p-6 shadow">
+          <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
             <div class="col-span-1 flex items-center gap-4">
-              <div class="w-20 h-20 rounded-full bg-[#0056D2] text-white flex items-center justify-center text-xl font-bold">
+              <div class="flex h-20 w-20 items-center justify-center rounded-full bg-[#0056D2] text-xl font-bold text-white">
                 {{ getInitials(student()!.name) }}
               </div>
               <div>
                 <h2 class="text-xl font-semibold text-gray-900">{{ student()!.name }}</h2>
                 <p class="text-gray-600">{{ student()!.email }}</p>
-                <p class="text-sm text-gray-500">Tham gia: {{ student()!.enrolledAt | date:'dd/MM/yyyy' }}</p>
-                <p class="text-sm text-gray-500">Truy cập cuối: {{ student()!.lastAccessed ? (student()!.lastAccessed | date:'dd/MM/yyyy HH:mm') : 'Chưa có' }}</p>
+                <p class="text-sm text-gray-500">
+                  Tham gia:
+                  {{ student()!.enrolledAt ? (student()!.enrolledAt | date:'dd/MM/yyyy') : 'Ch\u01b0a c\u00f3' }}
+                </p>
+                <p class="text-sm text-gray-500">
+                  Truy c\u1eadp cu\u1ed1i:
+                  {{ student()!.lastAccessed ? (student()!.lastAccessed | date:'dd/MM/yyyy HH:mm') : 'Ch\u01b0a c\u00f3' }}
+                </p>
               </div>
             </div>
+
             <div class="col-span-2">
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
                 <div class="text-center">
                   <div class="text-2xl font-bold text-[#0056D2]">{{ student()!.progress }}%</div>
-                  <div class="text-sm text-gray-500">Tiến độ tổng</div>
+                  <div class="text-sm text-gray-500">Ti\u1ebfn \u0111\u1ed9 t\u1ed5ng</div>
                 </div>
                 <div class="text-center">
                   <div class="text-2xl font-bold text-green-600">{{ student()!.averageGrade.toFixed(1) }}</div>
-                  <div class="text-sm text-gray-500">Điểm TB</div>
+                  <div class="text-sm text-gray-500">\u0110i\u1ec3m TB</div>
                 </div>
                 <div class="text-center">
                   <div class="text-2xl font-bold text-purple-600">{{ student()!.completedCourses }}</div>
-                  <div class="text-sm text-gray-500">Hoàn thành</div>
+                  <div class="text-sm text-gray-500">Ho\u00e0n th\u00e0nh</div>
                 </div>
                 <div class="text-center">
                   <div class="text-2xl font-bold text-orange-600">{{ student()!.totalCourses }}</div>
-                  <div class="text-sm text-gray-500">Tổng khóa học</div>
+                  <div class="text-sm text-gray-500">T\u1ed5ng kh\u00f3a h\u1ecdc</div>
                 </div>
               </div>
-              <div class="mt-4 flex items-center justify-between">
-                <span class="px-3 py-1 inline-flex text-sm font-semibold rounded-full"
-                  [class.bg-green-100]="student()!.status === 'active'"
-                  [class.text-green-800]="student()!.status === 'active'"
-                  [class.bg-gray-100]="student()!.status === 'inactive'"
-                  [class.text-gray-800]="student()!.status === 'inactive'"
-                  [class.bg-red-100]="student()!.status === 'suspended'"
-                  [class.text-red-800]="student()!.status === 'suspended'">
+
+              <div class="mt-4 flex items-center justify-between gap-3">
+                <span
+                  class="inline-flex rounded-full px-3 py-1 text-sm font-semibold"
+                  [class.bg-green-100]="student()!.status === 'ACTIVE'"
+                  [class.text-green-800]="student()!.status === 'ACTIVE'"
+                  [class.bg-blue-100]="student()!.status === 'COMPLETED'"
+                  [class.text-blue-800]="student()!.status === 'COMPLETED'"
+                  [class.bg-gray-100]="student()!.status === 'DROPPED' || student()!.status === 'EXPIRED'"
+                  [class.text-gray-800]="student()!.status === 'DROPPED' || student()!.status === 'EXPIRED'"
+                  [class.bg-red-100]="student()!.status === 'SUSPENDED'"
+                  [class.text-red-800]="student()!.status === 'SUSPENDED'"
+                >
                   {{ getStatusText(student()!.status) }}
                 </span>
+
                 <div class="flex gap-2">
-                  <button (click)="sendMessage()" class="px-4 py-2 bg-[#0056D2] text-white rounded-lg text-sm hover:bg-[#004BB5]">
-                    Nhắn tin
+                  <button
+                    (click)="sendMessage()"
+                    class="rounded-lg bg-[#0056D2] px-4 py-2 text-sm text-white hover:bg-[#004BB5]"
+                  >
+                    Nh\u1eafn tin
                   </button>
-                  <button (click)="exportReport()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50">
-                    Xuất báo cáo
+                  <button
+                    (click)="exportReport()"
+                    class="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    Xu\u1ea5t b\u00e1o c\u00e1o
                   </button>
                 </div>
               </div>
@@ -86,37 +113,40 @@ import { ToastService } from '../../../core/services/toast.service';
           </div>
         </div>
       }
-    
-      <!-- Course Progress -->
+
       @if (student()) {
-        <div class="bg-white rounded-lg shadow p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">Tiến độ khóa học</h3>
+        <div class="rounded-lg bg-white p-6 shadow">
+          <h3 class="mb-4 text-lg font-semibold text-gray-900">Ti\u1ebfn \u0111\u1ed9 kh\u00f3a h\u1ecdc</h3>
+
           @if (courseProgress().length > 0) {
             <div class="space-y-4">
-              @for (course of courseProgress(); track course) {
-                <div class="border rounded-lg p-4">
-                  <div class="flex items-center justify-between mb-2">
+              @for (course of courseProgress(); track course.courseId) {
+                <div class="rounded-lg border p-4">
+                  <div class="mb-2 flex items-center justify-between gap-3">
                     <h4 class="font-medium text-gray-900">{{ course.courseTitle }}</h4>
-                    <span class="px-2 py-1 text-xs font-semibold rounded-full"
+                    <span
+                      class="rounded-full px-2 py-1 text-xs font-semibold"
                       [class.bg-[#0056D2]/10]="course.status === 'in-progress'"
                       [class.text-[#004BB5]]="course.status === 'in-progress'"
                       [class.bg-green-100]="course.status === 'completed'"
                       [class.text-green-800]="course.status === 'completed'"
                       [class.bg-gray-100]="course.status === 'dropped'"
-                      [class.text-gray-800]="course.status === 'dropped'">
+                      [class.text-gray-800]="course.status === 'dropped'"
+                    >
                       {{ getCourseStatusText(course.status) }}
                     </span>
                   </div>
-                  <div class="flex items-center gap-4 text-sm text-gray-600">
+
+                  <div class="flex flex-wrap items-center gap-4 text-sm text-gray-600">
                     <div class="flex items-center">
-                      <div class="w-24 bg-gray-200 rounded-full h-2 mr-2">
-                        <div class="bg-[#0056D2] h-2 rounded-full" [style.width.%]="course.progress"></div>
+                      <div class="mr-2 h-2 w-24 rounded-full bg-gray-200">
+                        <div class="h-2 rounded-full bg-[#0056D2]" [style.width.%]="course.progress"></div>
                       </div>
                       <span>{{ course.progress }}%</span>
                     </div>
-                    <span>{{ course.completedLessons }}/{{ course.totalLessons }} bài học</span>
-                    @if (course.grade) {
-                      <span>Điểm: {{ course.grade.toFixed(1) }}</span>
+                    <span>{{ course.completedLessons }}/{{ course.totalLessons }} b\u00e0i h\u1ecdc</span>
+                    @if (course.grade !== null && course.grade !== undefined) {
+                      <span>\u0110i\u1ec3m: {{ course.grade.toFixed(1) }}</span>
                     }
                     <span>Tham gia: {{ course.enrolledAt | date:'dd/MM/yyyy' }}</span>
                   </div>
@@ -124,52 +154,60 @@ import { ToastService } from '../../../core/services/toast.service';
               }
             </div>
           } @else {
-            <p class="text-gray-500 text-center py-8">Học viên chưa tham gia khóa học nào.</p>
+            <p class="py-8 text-center text-gray-500">H\u1ecdc vi\u00ean ch\u01b0a tham gia kh\u00f3a h\u1ecdc n\u00e0o.</p>
           }
         </div>
       }
-    
-      <!-- Tabs -->
+
       @if (student()) {
-        <div class="bg-white rounded-lg shadow">
-          <!-- Tab Headers -->
+        <div class="rounded-lg bg-white shadow">
           <div class="border-b">
-            <nav class="flex -mb-px">
+            <nav class="-mb-px flex">
               <button
                 (click)="activeTab.set('assignments')"
-                class="px-6 py-4 text-sm font-medium border-b-2 transition-colors"
+                class="border-b-2 px-6 py-4 text-sm font-medium transition-colors"
                 [class.border-[#0056D2]]="activeTab() === 'assignments'"
                 [class.text-[#0056D2]]="activeTab() === 'assignments'"
                 [class.border-transparent]="activeTab() !== 'assignments'"
                 [class.text-gray-500]="activeTab() !== 'assignments'"
                 [class.hover:text-gray-700]="activeTab() !== 'assignments'"
-                >
+              >
                 <span class="flex items-center gap-2">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    ></path>
                   </svg>
-                  Bài tập
+                  B\u00e0i t\u1eadp
                 </span>
               </button>
               <button
                 (click)="activeTab.set('messages')"
-                class="px-6 py-4 text-sm font-medium border-b-2 transition-colors"
+                class="border-b-2 px-6 py-4 text-sm font-medium transition-colors"
                 [class.border-[#0056D2]]="activeTab() === 'messages'"
                 [class.text-[#0056D2]]="activeTab() === 'messages'"
                 [class.border-transparent]="activeTab() !== 'messages'"
                 [class.text-gray-500]="activeTab() !== 'messages'"
                 [class.hover:text-gray-700]="activeTab() !== 'messages'"
-                >
+              >
                 <span class="flex items-center gap-2">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                    ></path>
                   </svg>
-                  Tin nhắn
+                  Tin nh\u1eafn
                 </span>
               </button>
             </nav>
           </div>
-          <!-- Tab Content -->
+
           <div class="p-6">
             @if (activeTab() === 'assignments') {
               <app-student-assignments
@@ -180,6 +218,7 @@ import { ToastService } from '../../../core/services/toast.service';
                 (removeAssignment)="onRemoveAssignment($event)"
               ></app-student-assignments>
             }
+
             @if (activeTab() === 'messages') {
               <app-messages-tab
                 [studentId]="studentId"
@@ -190,8 +229,7 @@ import { ToastService } from '../../../core/services/toast.service';
         </div>
       }
     </div>
-    
-    <!-- Assign Task Modal -->
+
     @if (showAssignTaskModal()) {
       <app-assign-task-modal
         [studentId]="studentId"
@@ -201,7 +239,7 @@ import { ToastService } from '../../../core/services/toast.service';
         (cancel)="closeAssignTaskModal()"
       ></app-assign-task-modal>
     }
-    `,
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class StudentDetailComponent {
@@ -213,7 +251,7 @@ export class StudentDetailComponent {
   readonly studentAssignmentsRef = viewChild.required<StudentAssignmentsComponent>('studentAssignments');
 
   studentId = this.route.snapshot.paramMap.get('id') || '';
-  
+
   student = signal<StudentDetail | null>(null);
   courseProgress = signal<StudentCourseProgress[]>([]);
   assignments = signal<StudentAssignmentSummary[]>([]);
@@ -222,18 +260,17 @@ export class StudentDetailComponent {
   activeTab = signal<'assignments' | 'messages'>('assignments');
 
   constructor() {
-    // Check for tab query param
     const tabParam = this.route.snapshot.queryParamMap.get('tab');
     if (tabParam === 'messages') {
       this.activeTab.set('messages');
     }
-    
+
     this.loadStudent();
   }
 
   private loadStudent() {
     if (!this.studentId) {
-      this.error.set('ID học viên không hợp lệ');
+      this.error.set('ID h\u1ecdc vi\u00ean kh\u00f4ng h\u1ee3p l\u1ec7.');
       return;
     }
 
@@ -246,11 +283,12 @@ export class StudentDetailComponent {
           this.courseProgress.set(response.data.courseProgress || []);
           this.assignments.set(response.data.assignmentSubmissions || []);
         } else {
-          this.toast.error('Không tìm thấy thông tin sinh viên');
+          this.error.set('Kh\u00f4ng t\u00ecm th\u1ea5y th\u00f4ng tin h\u1ecdc vi\u00ean.');
+          this.toast.error('Kh\u00f4ng t\u00ecm th\u1ea5y th\u00f4ng tin h\u1ecdc vi\u00ean.');
         }
       },
       error: () => {
-        this.error.set('Không thể tải thông tin học viên');
+        this.error.set('Kh\u00f4ng th\u1ec3 t\u1ea3i th\u00f4ng tin h\u1ecdc vi\u00ean.');
       }
     });
   }
@@ -268,41 +306,41 @@ export class StudentDetailComponent {
 
   getStatusText(status: string): string {
     const statusMap: Record<string, string> = {
-      'active': 'Đang học',
-      'inactive': 'Không hoạt động',
-      'suspended': 'Tạm khóa'
+      ACTIVE: '\u0110ang h\u1ecdc',
+      COMPLETED: 'Ho\u00e0n th\u00e0nh',
+      DROPPED: '\u0110\u00e3 d\u1eebng',
+      EXPIRED: 'H\u1ebft h\u1ea1n',
+      SUSPENDED: 'T\u1ea1m kh\u00f3a'
     };
     return statusMap[status] || status;
   }
 
   getCourseStatusText(status: string): string {
     const statusMap: Record<string, string> = {
-      'in-progress': 'Đang học',
-      'completed': 'Hoàn thành',
-      'dropped': 'Đã bỏ'
+      'in-progress': '\u0110ang h\u1ecdc',
+      completed: 'Ho\u00e0n th\u00e0nh',
+      dropped: '\u0110\u00e3 d\u1eebng'
     };
     return statusMap[status] || status;
   }
 
   getAssignmentStatusText(status: string): string {
     const statusMap: Record<string, string> = {
-      'pending': 'Chưa nộp',
-      'submitted': 'Đã nộp',
-      'graded': 'Đã chấm',
-      'overdue': 'Quá hạn'
+      pending: 'Ch\u01b0a n\u1ed9p',
+      submitted: '\u0110\u00e3 n\u1ed9p',
+      graded: '\u0110\u00e3 ch\u1ea5m',
+      overdue: 'Qu\u00e1 h\u1ea1n'
     };
     return statusMap[status] || status;
   }
 
   sendMessage() {
-    // Switch to messages tab
     this.activeTab.set('messages');
   }
 
   exportReport() {
     this.studentApi.exportStudentReport(this.studentId, 'pdf').subscribe({
       next: (blob) => {
-        // Handle file download
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -311,7 +349,7 @@ export class StudentDetailComponent {
         window.URL.revokeObjectURL(url);
       },
       error: () => {
-        this.toast.error('Không thể xuất báo cáo. Vui lòng thử lại.');
+        this.toast.error('Kh\u00f4ng th\u1ec3 xu\u1ea5t b\u00e1o c\u00e1o. Vui l\u00f2ng th\u1eed l\u1ea1i.');
       }
     });
   }
@@ -320,7 +358,6 @@ export class StudentDetailComponent {
     this.loadStudent();
   }
 
-  // Individual Assignment Methods
   openAssignTaskModal(): void {
     this.showAssignTaskModal.set(true);
   }
@@ -338,7 +375,7 @@ export class StudentDetailComponent {
     ).subscribe({
       next: () => {
         this.closeAssignTaskModal();
-        this.toast.success('Đã giao bài tập thành công.');
+        this.toast.success('\u0110\u00e3 giao b\u00e0i t\u1eadp th\u00e0nh c\u00f4ng.');
         const studentAssignmentsRef = this.studentAssignmentsRef();
         if (studentAssignmentsRef) {
           studentAssignmentsRef.refresh();
@@ -346,7 +383,7 @@ export class StudentDetailComponent {
       },
       error: () => {
         this.closeAssignTaskModal();
-        this.toast.error('Giao bài tập thất bại. Vui lòng thử lại.');
+        this.toast.error('Kh\u00f4ng th\u1ec3 giao b\u00e0i t\u1eadp. Vui l\u00f2ng th\u1eed l\u1ea1i.');
         const studentAssignmentsRef = this.studentAssignmentsRef();
         if (studentAssignmentsRef) {
           studentAssignmentsRef.refresh();
@@ -361,14 +398,14 @@ export class StudentDetailComponent {
       this.studentId
     ).subscribe({
       next: () => {
-        this.toast.success('Đã xóa bài tập khỏi học viên.');
+        this.toast.success('\u0110\u00e3 g\u1ee1 b\u00e0i t\u1eadp kh\u1ecfi h\u1ecdc vi\u00ean.');
         const studentAssignmentsRef = this.studentAssignmentsRef();
         if (studentAssignmentsRef) {
           studentAssignmentsRef.refresh();
         }
       },
       error: () => {
-        this.toast.error('Xóa bài tập thất bại. Vui lòng thử lại.');
+        this.toast.error('Kh\u00f4ng th\u1ec3 g\u1ee1 b\u00e0i t\u1eadp. Vui l\u00f2ng th\u1eed l\u1ea1i.');
       }
     });
   }

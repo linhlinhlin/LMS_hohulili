@@ -94,6 +94,13 @@ public interface JpaEnrollmentRepository extends JpaRepository<EnrollmentJpaEnti
     """)
     List<EnrollmentJpaEntity> findActiveAndCompletedWithClass(@Param("studentId") UUID studentId);
 
+    @Query("""
+        SELECT e FROM EnrollmentJpaEntity e
+        JOIN FETCH e.learningClass lc
+        WHERE e.studentId = :studentId
+    """)
+    List<EnrollmentJpaEntity> findByStudentIdWithClass(@Param("studentId") UUID studentId);
+
     // Find all enrollments for a course (via learning classes)
     @Query("SELECT e FROM EnrollmentJpaEntity e JOIN FETCH e.learningClass lc WHERE lc.courseId = :courseId")
     List<EnrollmentJpaEntity> findByLearningClass_CourseId(@Param("courseId") UUID courseId);
@@ -134,6 +141,29 @@ public interface JpaEnrollmentRepository extends JpaRepository<EnrollmentJpaEnti
             @Param("courseId") UUID courseId
     );
 
+    @Query("""
+        SELECT e FROM EnrollmentJpaEntity e
+        JOIN FETCH e.learningClass lc
+        WHERE e.studentId = :studentId
+        AND lc.courseId IN :courseIds
+        ORDER BY e.enrolledAt DESC NULLS LAST
+    """)
+    List<EnrollmentJpaEntity> findByStudentIdAndCourseIds(
+            @Param("studentId") UUID studentId,
+            @Param("courseIds") List<UUID> courseIds
+    );
+
+    @Query("""
+        SELECT COUNT(e) > 0 FROM EnrollmentJpaEntity e
+        JOIN e.learningClass lc
+        WHERE e.studentId = :studentId
+        AND lc.courseId IN :courseIds
+    """)
+    boolean existsByStudentIdAndCourseIds(
+            @Param("studentId") UUID studentId,
+            @Param("courseIds") List<UUID> courseIds
+    );
+
     // === Analytics queries ===
 
     @Query("SELECT COUNT(e) FROM EnrollmentJpaEntity e WHERE e.studentId = :studentId AND e.status = 'ACTIVE'")
@@ -147,6 +177,15 @@ public interface JpaEnrollmentRepository extends JpaRepository<EnrollmentJpaEnti
 
     @Query("SELECT COUNT(DISTINCT e.studentId) FROM EnrollmentJpaEntity e JOIN e.learningClass lc WHERE lc.courseId IN :courseIds")
     long countDistinctStudentsByCourseIds(@Param("courseIds") List<UUID> courseIds);
+
+    @Query("""
+        SELECT lc.courseId, COUNT(DISTINCT e.studentId)
+        FROM EnrollmentJpaEntity e
+        JOIN e.learningClass lc
+        WHERE lc.courseId IN :courseIds
+        GROUP BY lc.courseId
+    """)
+    List<Object[]> countDistinctStudentsGroupedByCourseIds(@Param("courseIds") List<UUID> courseIds);
 
     @Query("SELECT lc.courseId, COUNT(e) FROM EnrollmentJpaEntity e JOIN e.learningClass lc WHERE lc.courseId IN :courseIds GROUP BY lc.courseId")
     List<Object[]> countEnrollmentsByCourseIds(@Param("courseIds") List<UUID> courseIds);

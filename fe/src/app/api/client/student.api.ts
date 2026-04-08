@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
-import { ApiClient } from './api-client';
-import { ApiResponse } from '../types/common.types';
 import { map } from 'rxjs/operators';
+import { ApiClient } from './api-client';
+import { ApiResponse, Page as ApiPage, PaginationInfo } from '../types/common.types';
 
 /**
  * Student API Endpoints - V3
@@ -24,6 +24,13 @@ const STUDENT_ENDPOINTS = {
     `/api/v3/courses/${courseId}/students/${studentId}`
 } as const;
 
+export type StudentEnrollmentStatus =
+  | 'ACTIVE'
+  | 'COMPLETED'
+  | 'DROPPED'
+  | 'EXPIRED'
+  | 'SUSPENDED';
+
 export interface StudentSummary {
   id: string;
   name: string;
@@ -32,7 +39,7 @@ export interface StudentSummary {
   lastAccessed?: string;
   progress: number;
   averageGrade: number;
-  status: 'active' | 'inactive' | 'suspended';
+  status: StudentEnrollmentStatus;
   completedCourses: number;
   totalCourses: number;
 }
@@ -44,7 +51,7 @@ export interface StudentDetail extends StudentSummary {
   address?: string;
   courseProgress: StudentCourseProgress[];
   assignmentSubmissions: StudentAssignmentSummary[];
-  analytics: StudentAnalytics;
+  analytics?: StudentAnalytics;
 }
 
 export interface StudentCourseProgress {
@@ -89,10 +96,136 @@ export interface StudentAnalytics {
 
 export interface StudentFilters {
   courseId?: string;
-  status?: 'active' | 'inactive' | 'suspended';
+  status?: StudentEnrollmentStatus | 'INACTIVE';
   progressMin?: number;
   progressMax?: number;
   search?: string;
+}
+
+const DEFAULT_ANALYTICS: StudentAnalytics = {
+  totalStudyTime: 0,
+  averageSessionTime: 0,
+  streakDays: 0,
+  assignmentsCompleted: 0,
+  assignmentsOverdue: 0,
+  averageScore: 0,
+  strongSubjects: [],
+  improvementAreas: [],
+  learningActivity: []
+};
+
+function normalizeStudentStatus(status?: string): StudentEnrollmentStatus {
+  switch ((status ?? '').toUpperCase()) {
+    case 'COMPLETED':
+      return 'COMPLETED';
+    case 'DROPPED':
+      return 'DROPPED';
+    case 'EXPIRED':
+      return 'EXPIRED';
+    case 'SUSPENDED':
+      return 'SUSPENDED';
+    case 'ACTIVE':
+    default:
+      return 'ACTIVE';
+  }
+}
+
+function normalizeCourseProgressStatus(status?: string): StudentCourseProgress['status'] {
+  switch ((status ?? '').toLowerCase()) {
+    case 'completed':
+      return 'completed';
+    case 'dropped':
+    case 'expired':
+      return 'dropped';
+    case 'in-progress':
+    default:
+      return 'in-progress';
+  }
+}
+
+function normalizeAssignmentStatus(status?: string): StudentAssignmentSummary['status'] {
+  switch ((status ?? '').toUpperCase()) {
+    case 'GRADED':
+      return 'graded';
+    case 'SUBMITTED':
+      return 'submitted';
+    case 'OVERDUE':
+      return 'overdue';
+    case 'PENDING':
+    default:
+      return 'pending';
+  }
+}
+
+function buildPagination(page?: ApiPage<unknown>): PaginationInfo | undefined {
+  if (!page) {
+    return undefined;
+  }
+
+  return {
+    totalItems: page.totalElements ?? 0,
+    totalPages: Math.max(page.totalPages ?? 1, 1),
+    page: (page.number ?? 0) + 1,
+    limit: page.size ?? 0,
+    first: !!page.first,
+    last: !!page.last
+  };
+}
+
+function mapStudentSummary(student: any): StudentSummary {
+  return {
+    id: String(student?.id ?? ''),
+    name: student?.name ?? student?.fullName ?? '',
+    email: student?.email ?? '',
+    enrolledAt: student?.enrolledAt ?? '',
+    lastAccessed: student?.lastAccessed ?? undefined,
+    progress: Number(student?.progress ?? student?.progressPercentage ?? 0),
+    averageGrade: Number(student?.averageGrade ?? 0),
+    status: normalizeStudentStatus(student?.status),
+    completedCourses: Number(student?.completedCourses ?? 0),
+    totalCourses: Number(student?.totalCourses ?? 0)
+  };
+}
+
+function mapStudentAssignment(assignment: any): StudentAssignmentSummary {
+  return {
+    assignmentId: String(assignment?.assignmentId ?? assignment?.id ?? ''),
+    assignmentTitle: assignment?.assignmentTitle ?? assignment?.title ?? 'Assignment',
+    courseTitle: assignment?.courseTitle ?? '',
+    dueDate: assignment?.dueDate ?? undefined,
+    submittedAt: assignment?.submittedAt ?? undefined,
+    status: normalizeAssignmentStatus(assignment?.status),
+    score: assignment?.score ?? assignment?.grade ?? undefined,
+    maxScore: assignment?.maxScore ?? assignment?.maxGrade ?? undefined,
+    feedback: assignment?.feedback ?? undefined
+  };
+}
+
+function mapStudentCourseProgress(progress: any): StudentCourseProgress {
+  return {
+    courseId: String(progress?.courseId ?? ''),
+    courseTitle: progress?.courseTitle ?? 'Course',
+    enrolledAt: progress?.enrolledAt ?? '',
+    progress: Number(progress?.progress ?? 0),
+    completedLessons: Number(progress?.completedLessons ?? 0),
+    totalLessons: Number(progress?.totalLessons ?? 0),
+    lastAccessed: progress?.lastAccessed ?? undefined,
+    grade: progress?.grade ?? undefined,
+    status: normalizeCourseProgressStatus(progress?.status)
+  };
+}
+
+function mapStudentDetail(student: any): StudentDetail {
+  return {
+    ...mapStudentSummary(student),
+    phone: student?.phone ?? undefined,
+    avatar: student?.avatar ?? undefined,
+    dateOfBirth: student?.dateOfBirth ?? undefined,
+    address: student?.address ?? undefined,
+    courseProgress: (student?.courseProgress ?? []).map(mapStudentCourseProgress),
+    assignmentSubmissions: (student?.assignmentSubmissions ?? []).map(mapStudentAssignment),
+    analytics: student?.analytics ?? DEFAULT_ANALYTICS
+  };
 }
 
 @Injectable({ providedIn: 'root' })
@@ -105,53 +238,72 @@ export class StudentApi {
   getTeacherStudents(params?: {
     page?: number;
     limit?: number;
+    size?: number;
     courseId?: string;
     status?: string;
     search?: string;
   }) {
-    const cleanParams: any = {};
+    const cleanParams: Record<string, string | number> = {};
 
     if (params) {
-      if (params.page !== undefined) cleanParams.page = params.page;
-      if (params.limit !== undefined) cleanParams.size = params.limit;
-      if (params.courseId) cleanParams.courseId = params.courseId;
-      if (params.status) cleanParams.status = params.status;
-      if (params.search) cleanParams.search = params.search;
+      if (params.page !== undefined) cleanParams['page'] = params.page;
+      if (params.size !== undefined) cleanParams['size'] = params.size;
+      else if (params.limit !== undefined) cleanParams['size'] = params.limit;
+      if (params.courseId) cleanParams['courseId'] = params.courseId;
+      if (params.status) cleanParams['status'] = params.status;
+      if (params.search) cleanParams['search'] = params.search;
     }
 
-    return this.api.getWithResponse<any>(STUDENT_ENDPOINTS.TEACHER_STUDENTS, { params: cleanParams }).pipe(
-      map((res: ApiResponse<any>) => {
-        const content: StudentSummary[] = res?.data?.content ?? [];
-        return {
-          data: content,
-          pagination: res?.pagination,
-          message: res?.message
-        } as ApiResponse<StudentSummary[]>;
-      })
-    );
+    return this.api
+      .getWithResponse<ApiPage<any>>(STUDENT_ENDPOINTS.TEACHER_STUDENTS, { params: cleanParams })
+      .pipe(
+        map((res: ApiResponse<ApiPage<any>>) => {
+          const page = res?.data;
+          return {
+            ...res,
+            data: (page?.content ?? []).map(mapStudentSummary),
+            pagination: buildPagination(page)
+          } as ApiResponse<StudentSummary[]>;
+        })
+      );
   }
 
   /**
    * Get students by course
    */
-  getStudentsByCourse(courseId: string, params?: { page?: number; limit?: number }) {
-    return this.api.getWithResponse<any>(STUDENT_ENDPOINTS.COURSE_STUDENTS(courseId), { params }).pipe(
-      map((res: ApiResponse<any>) => {
-        const content: StudentSummary[] = res?.data?.content ?? [];
-        return {
-          data: content,
-          pagination: res?.pagination,
-          message: res?.message
-        } as ApiResponse<StudentSummary[]>;
-      })
-    );
+  getStudentsByCourse(courseId: string, params?: { page?: number; limit?: number; size?: number }) {
+    const cleanParams: Record<string, string | number> = {};
+
+    if (params) {
+      if (params.page !== undefined) cleanParams['page'] = params.page;
+      if (params.size !== undefined) cleanParams['size'] = params.size;
+      else if (params.limit !== undefined) cleanParams['size'] = params.limit;
+    }
+
+    return this.api
+      .getWithResponse<ApiPage<any>>(STUDENT_ENDPOINTS.COURSE_STUDENTS(courseId), { params: cleanParams })
+      .pipe(
+        map((res: ApiResponse<ApiPage<any>>) => {
+          const page = res?.data;
+          return {
+            ...res,
+            data: (page?.content ?? []).map(mapStudentSummary),
+            pagination: buildPagination(page)
+          } as ApiResponse<StudentSummary[]>;
+        })
+      );
   }
 
   /**
    * Get detailed student information
    */
   getStudentDetail(studentId: string) {
-    return this.api.getWithResponse<StudentDetail>(STUDENT_ENDPOINTS.STUDENT_DETAIL(studentId));
+    return this.api.getWithResponse<any>(STUDENT_ENDPOINTS.STUDENT_DETAIL(studentId)).pipe(
+      map((res: ApiResponse<any>) => ({
+        ...res,
+        data: res?.data ? mapStudentDetail(res.data) : res?.data
+      }) as ApiResponse<StudentDetail>)
+    );
   }
 
   /**
@@ -177,39 +329,32 @@ export class StudentApi {
    * Get student analytics
    */
   getStudentAnalytics(studentId: string, params?: { courseId?: string; timeRange?: string }) {
-    return this.api.getWithResponse<StudentAnalytics>(
-      STUDENT_ENDPOINTS.STUDENT_ANALYTICS(studentId),
-      { params }
-    );
+    return this.api.getWithResponse<StudentAnalytics>(STUDENT_ENDPOINTS.STUDENT_ANALYTICS(studentId), {
+      params
+    });
   }
 
   /**
-   * Update student status (activate/deactivate/suspend)
+   * Update student status
    */
-  updateStudentStatus(studentId: string, status: 'active' | 'inactive' | 'suspended') {
-    return this.api.patchWithResponse<StudentSummary>(
-      STUDENT_ENDPOINTS.STUDENT_STATUS(studentId),
-      { status }
-    );
+  updateStudentStatus(studentId: string, status: StudentEnrollmentStatus) {
+    return this.api.patchWithResponse<StudentSummary>(STUDENT_ENDPOINTS.STUDENT_STATUS(studentId), {
+      status
+    });
   }
 
   /**
    * Remove student from course
    */
   removeStudentFromCourse(courseId: string, studentId: string) {
-    return this.api.deleteWithResponse<string>(
-      STUDENT_ENDPOINTS.REMOVE_STUDENT(courseId, studentId)
-    );
+    return this.api.deleteWithResponse<string>(STUDENT_ENDPOINTS.REMOVE_STUDENT(courseId, studentId));
   }
 
   /**
    * Send message to student
    */
   sendMessageToStudent(studentId: string, message: { subject: string; content: string }) {
-    return this.api.postWithResponse<string>(
-      STUDENT_ENDPOINTS.STUDENT_MESSAGES(studentId),
-      message
-    );
+    return this.api.postWithResponse<string>(STUDENT_ENDPOINTS.STUDENT_MESSAGES(studentId), message);
   }
 
   /**

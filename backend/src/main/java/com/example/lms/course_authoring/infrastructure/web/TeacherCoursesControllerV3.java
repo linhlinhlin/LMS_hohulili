@@ -69,9 +69,9 @@ public class TeacherCoursesControllerV3 {
                 .toList();
 
         if (!courseIds.isEmpty()) {
-            Map<UUID, Long> enrollmentMap = new HashMap<>();
-            for (Object[] row : jpaEnrollmentRepository.countEnrollmentsByCourseIds(courseIds)) {
-                enrollmentMap.put((UUID) row[0], (Long) row[1]);
+            Map<UUID, Long> studentCountMap = new HashMap<>();
+            for (Object[] row : jpaEnrollmentRepository.countDistinctStudentsGroupedByCourseIds(courseIds)) {
+                studentCountMap.put((UUID) row[0], (Long) row[1]);
             }
 
             Map<UUID, Long> chapterMap = new HashMap<>();
@@ -90,7 +90,7 @@ public class TeacherCoursesControllerV3 {
             }
 
             response.getContent().forEach(c -> {
-                int enrolled = enrollmentMap.getOrDefault(c.getId(), 0L).intValue();
+                int enrolled = studentCountMap.getOrDefault(c.getId(), 0L).intValue();
                 c.setEnrolledCount(enrolled);
                 c.setStudentsCount(enrolled);
                 c.setSectionCount(chapterMap.getOrDefault(c.getId(), 0L).intValue());
