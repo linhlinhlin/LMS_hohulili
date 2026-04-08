@@ -42,6 +42,20 @@ export class StudentStorageManagementComponent implements OnInit {
   /** Loading state for initial data fetch */
   isLoading = signal(true);
 
+  /** Load More state for courses list */
+  readonly COURSES_PAGE_SIZE = 10;
+  coursesVisible = signal(10);
+
+  readonly visibleCourses = computed(() =>
+    this.downloadService.downloadedCourses().slice(0, this.coursesVisible()),
+  );
+  readonly hasMoreCourses = computed(() =>
+    this.downloadService.downloadedCourses().length > this.coursesVisible(),
+  );
+  readonly remainingCoursesCount = computed(() =>
+    Math.max(0, this.downloadService.downloadedCourses().length - this.coursesVisible()),
+  );
+
   readonly storageManager = inject(StorageManagerService);
   readonly downloadService = inject(CourseDownloadService);
   readonly videoService = inject(OfflineVideoService);
@@ -149,39 +163,62 @@ export class StudentStorageManagementComponent implements OnInit {
       .reduce((sum, course) => sum + (course.sizeBytes || 0), 0),
   );
 
-  readonly groupedOfflineVideos = computed(() => {
-    const groups = new Map<string, {
-      lessonId: string;
-      lessonTitle: string;
-      items: OfflineVideoEntry[];
+  /** Videos grouped by course → lessons for hierarchical display */
+  readonly groupedOfflineVideosByCourse = computed(() => {
+    // Build course title lookup from downloaded courses
+    const courseTitleMap = new Map(
+      this.downloadService.downloadedCourses().map(c => [c.id, c.title]),
+    );
+
+    // Group: courseId → lessonId → videos
+    const courseMap = new Map<string, {
+      courseId: string;
+      courseTitle: string;
+      lessons: Map<string, { lessonId: string; lessonTitle: string; items: OfflineVideoEntry[]; totalSizeBytes: number }>;
       totalSizeBytes: number;
+      totalVideoCount: number;
     }>();
 
     for (const video of this.videoService.downloads()) {
-      const existing = groups.get(video.lessonId);
-      if (existing) {
-        existing.items.push(video);
-        existing.totalSizeBytes += video.sizeBytes;
-        continue;
+      const courseId = video.courseId || '_unknown';
+      let courseGroup = courseMap.get(courseId);
+      if (!courseGroup) {
+        courseGroup = {
+          courseId,
+          courseTitle: courseTitleMap.get(courseId) || 'Khóa học khác',
+          lessons: new Map(),
+          totalSizeBytes: 0,
+          totalVideoCount: 0,
+        };
+        courseMap.set(courseId, courseGroup);
       }
 
-      groups.set(video.lessonId, {
-        lessonId: video.lessonId,
-        lessonTitle: video.lessonTitle,
-        items: [video],
-        totalSizeBytes: video.sizeBytes,
-      });
+      courseGroup.totalSizeBytes += video.sizeBytes;
+      courseGroup.totalVideoCount += 1;
+
+      let lessonGroup = courseGroup.lessons.get(video.lessonId);
+      if (!lessonGroup) {
+        lessonGroup = { lessonId: video.lessonId, lessonTitle: video.lessonTitle, items: [], totalSizeBytes: 0 };
+        courseGroup.lessons.set(video.lessonId, lessonGroup);
+      }
+      lessonGroup.items.push(video);
+      lessonGroup.totalSizeBytes += video.sizeBytes;
     }
 
-    return Array.from(groups.values()).map(group => ({
-      ...group,
-      items: [...group.items].sort((left, right) => {
-        if (!left.sectionTitle && right.sectionTitle) return -1;
-        if (left.sectionTitle && !right.sectionTitle) return 1;
-        return (left.sectionTitle || left.title).localeCompare(right.sectionTitle || right.title);
-      }),
+    return Array.from(courseMap.values()).map(courseGroup => ({
+      ...courseGroup,
+      lessons: Array.from(courseGroup.lessons.values()).map(lessonGroup => ({
+        ...lessonGroup,
+        items: [...lessonGroup.items].sort((a, b) =>
+          (a.sectionTitle || a.title).localeCompare(b.sectionTitle || b.title),
+        ),
+      })),
     }));
   });
+
+  readonly totalOfflineVideoCount = computed(() =>
+    this.videoService.downloads().length,
+  );
 
   readonly hasAnyData = computed(() =>
     this.downloadService.downloadedCount() > 0
@@ -318,6 +355,10 @@ export class StudentStorageManagementComponent implements OnInit {
   });
 
   readonly latestOfflineTelemetryEvent = computed(() => this.offlineTelemetryEvents()[0] ?? null);
+
+  showMoreCourses(): void {
+    this.coursesVisible.update(v => v + this.COURSES_PAGE_SIZE);
+  }
 
   async ngOnInit(): Promise<void> {
     await Promise.all([

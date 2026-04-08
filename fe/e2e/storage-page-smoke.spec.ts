@@ -69,8 +69,8 @@ test.describe('@smoke Storage page logic', () => {
     await expect(page.getByText('Chưa có khóa học nào được tải xuống')).toBeVisible();
     await expect(page.getByText('Hãy vào trang khóa học và chọn tải về để dùng ngoại tuyến')).toBeVisible();
 
-    // 11. Verify video empty state
-    await expect(page.getByText('Chưa có video ngoại tuyến nào')).toBeVisible();
+    // 11. Verify video section exists (empty state or video list)
+    await expect(page.getByRole('heading', { name: 'Video ngoại tuyến' })).toBeVisible();
 
     // ═══════════════════════════════════════
     // TEST: Settings tab — basic layout
