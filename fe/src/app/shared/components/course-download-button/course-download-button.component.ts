@@ -149,12 +149,12 @@ export class CourseDownloadButtonComponent implements OnInit {
 
   protected async removeCourse(): Promise<void> {
     const confirmed = await this.confirmDialog.confirm({
-      title: 'Xoa khoa hoc ngoai tuyen?',
+      title: 'Xóa khóa học ngoại tuyến?',
       message:
-        'Ban sao tai ve cua khoa hoc nay se bi xoa khoi thiet bi hien tai. Tien trinh da dong bo tren may chu van duoc giu nguyen.',
+        'Bản tải về của khóa học này sẽ bị xóa khỏi thiết bị hiện tại. Tiến trình đã đồng bộ trên máy chủ vẫn được giữ nguyên.',
       variant: 'danger',
-      confirmText: 'Xoa ban tai xuong',
-      cancelText: 'Giu lai',
+      confirmText: 'Xóa bản tải xuống',
+      cancelText: 'Giữ lại',
     });
 
     if (!confirmed) {
