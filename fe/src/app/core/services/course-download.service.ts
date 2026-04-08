@@ -512,19 +512,28 @@ export class CourseDownloadService {
       const dbLessons = await offlineDb.lessons.where('[userId+courseId]').equals([userId, courseId]).toArray();
       await this.snapshotInitialProgress(courseId, dbLessons);
       let totalSize = 0;
+
+      // Quiz IDs stored separately in quizData table — skip when counting sections to avoid double-counting
+      const dbQuizData = await offlineDb.quizData.where('[userId+courseId]').equals([userId, courseId]).toArray();
+      const separateQuizSectionIds = new Set(dbQuizData.filter(q => q.sectionId).map(q => q.sectionId));
+
       for (const l of dbLessons) {
         // Count lesson HTML content
         totalSize += new Blob([l.contentHtml || '']).size;
-        // Count embedded sections (including quiz questions, content blocks, etc.)
+        // Count sections — exclude QUIZ sections that are duplicated in quizData table
         if (l.sections?.length) {
-          totalSize += new Blob([JSON.stringify(l.sections)]).size;
+          const nonDuplicatedSections = l.sections.filter(
+            s => !(s.type === 'QUIZ' && s.quizData && separateQuizSectionIds.has(s.id))
+          );
+          if (nonDuplicatedSections.length > 0) {
+            totalSize += new Blob([JSON.stringify(nonDuplicatedSections)]).size;
+          }
         }
       }
       // Count chapters metadata
       const dbChapters = await offlineDb.chapters.where('[userId+courseId]').equals([userId, courseId]).toArray();
       totalSize += new Blob([JSON.stringify(dbChapters)]).size;
-      // Count quiz data stored separately
-      const dbQuizData = await offlineDb.quizData.where('[userId+courseId]').equals([userId, courseId]).toArray();
+      // Count quiz data (stored separately for offline quiz engine)
       if (dbQuizData.length > 0) {
         totalSize += new Blob([JSON.stringify(dbQuizData)]).size;
       }

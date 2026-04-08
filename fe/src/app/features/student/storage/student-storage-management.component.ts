@@ -10,6 +10,7 @@ import {
   type OfflineVideoEntry,
 } from '../../../core/services/offline-video.service';
 import { OfflineSyncService } from '../../../core/services/offline-sync.service';
+import { OfflineFileService } from '../../../core/services/offline-file.service';
 import { StorageManagerService } from '../../../core/services/storage-manager.service';
 import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
 import { ToastService } from '../../../core/services/toast.service';
@@ -48,6 +49,7 @@ export class StudentStorageManagementComponent implements OnInit {
   readonly offlineSettings = inject(OfflineDeviceSettingsService);
   readonly network = inject(NetworkStatusService);
   readonly offlineHealthService = inject(OfflineStorageHealthService);
+  readonly fileService = inject(OfflineFileService);
   readonly offlineTelemetryService = inject(OfflineStorageTelemetryService);
   private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly toast = inject(ToastService);
@@ -75,21 +77,32 @@ export class StudentStorageManagementComponent implements OnInit {
     this.videoService.downloads().reduce((sum, video) => sum + (video.sizeBytes || 0), 0),
   );
 
+  readonly totalFileBytes = computed(() => this.fileService.totalBytes());
+
   readonly freeBytes = computed(() => {
     const estimate = this.estimate();
     return Math.max(0, estimate.quotaBytes - estimate.usedBytes);
   });
 
+  readonly totalTrackedBytes = computed(() =>
+    this.totalCourseBytes() + this.totalVideoBytes() + this.totalFileBytes(),
+  );
+
   readonly systemOverheadBytes = computed(() => {
     const totalUsed = this.estimate().usedBytes;
-    const tracked = this.totalCourseBytes() + this.totalVideoBytes();
-    return Math.max(0, totalUsed - tracked);
+    return Math.max(0, totalUsed - this.totalTrackedBytes());
   });
 
   readonly systemBarPercent = computed(() => {
     const quota = this.estimate().quotaBytes;
     if (quota <= 0) return 0;
     return Math.min((this.systemOverheadBytes() / quota) * 100, 100);
+  });
+
+  readonly fileBarPercent = computed(() => {
+    const quota = this.estimate().quotaBytes;
+    if (quota <= 0) return 0;
+    return Math.min((this.totalFileBytes() / quota) * 100, 100);
   });
 
   readonly courseBarPercent = computed(() => {
@@ -311,6 +324,7 @@ export class StudentStorageManagementComponent implements OnInit {
       this.storageManager.refresh(),
       this.downloadService.refreshDownloadedCourses(),
       this.videoService.refreshList(),
+      this.fileService.refreshTotalBytes(),
       this.syncService.refreshState(),
     ]);
     this.isLoading.set(false);

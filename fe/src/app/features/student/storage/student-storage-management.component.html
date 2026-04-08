@@ -124,8 +124,8 @@
               <div class="h-4 w-28 rounded bg-gray-100"></div>
             </div>
             <div class="mt-4 h-4 rounded-full bg-gray-100"></div>
-            <div class="mt-4 grid gap-3 grid-cols-2 xl:grid-cols-5">
-              @for (_ of [1,2,3,4,5]; track $index) {
+            <div class="mt-4 grid gap-3 grid-cols-2 xl:grid-cols-3">
+              @for (_ of [1,2,3,4,5,6]; track $index) {
                 <div class="rounded-lg bg-slate-50 px-3 py-3">
                   <div class="h-3 w-20 rounded bg-gray-200"></div>
                   <div class="mt-2 h-5 w-16 rounded bg-gray-200"></div>
@@ -163,23 +163,23 @@
         </div>
 
         <div class="mt-4 h-4 overflow-hidden rounded-full bg-gray-100">
-          <div class="flex h-full w-full">
+          <div class="flex h-full w-full" [style.max-width.%]="storagePercent()">
             @if (courseBarPercent() > 0) {
-              <div class="h-full bg-[#0056D2] transition-all duration-300" [style.width.%]="courseBarPercent()"></div>
+              <div class="h-full bg-[#0056D2] transition-all duration-300" [style.flex-grow]="totalCourseBytes()"></div>
             }
             @if (videoBarPercent() > 0) {
-              <div class="h-full bg-emerald-500 transition-all duration-300" [style.width.%]="videoBarPercent()"></div>
+              <div class="h-full bg-emerald-500 transition-all duration-300" [style.flex-grow]="totalVideoBytes()"></div>
             }
-            @if (syncBarPercent() > 0) {
-              <div class="h-full bg-amber-500 transition-all duration-300" [style.width.%]="syncBarPercent()"></div>
+            @if (fileBarPercent() > 0) {
+              <div class="h-full bg-violet-500 transition-all duration-300" [style.flex-grow]="totalFileBytes()"></div>
             }
             @if (systemBarPercent() > 0) {
-              <div class="h-full bg-gray-400 transition-all duration-300" [style.width.%]="systemBarPercent()"></div>
+              <div class="h-full bg-gray-400 transition-all duration-300" [style.flex-grow]="systemOverheadBytes()"></div>
             }
           </div>
         </div>
 
-        <div class="mt-4 grid gap-3 grid-cols-2 xl:grid-cols-5">
+        <div class="mt-4 grid gap-3 grid-cols-2 xl:grid-cols-3">
           <div class="rounded-lg bg-slate-50 px-3 py-3 text-sm">
             <p class="flex items-center gap-1.5 text-gray-500">
               <span class="inline-block h-2.5 w-2.5 rounded-full bg-[#0056D2]"></span>
@@ -194,6 +194,15 @@
             </p>
             <p class="mt-1 font-semibold text-gray-900">{{ storageManager.formatBytes(totalVideoBytes()) }}</p>
           </div>
+          @if (totalFileBytes() > 0) {
+            <div class="rounded-lg bg-slate-50 px-3 py-3 text-sm">
+              <p class="flex items-center gap-1.5 text-gray-500">
+                <span class="inline-block h-2.5 w-2.5 rounded-full bg-violet-500"></span>
+                Tệp đính kèm
+              </p>
+              <p class="mt-1 font-semibold text-gray-900">{{ storageManager.formatBytes(totalFileBytes()) }}</p>
+            </div>
+          }
           <div class="rounded-lg bg-slate-50 px-3 py-3 text-sm">
             <p class="flex items-center gap-1.5 text-gray-500">
               <span class="inline-block h-2.5 w-2.5 rounded-full bg-gray-400"></span>
