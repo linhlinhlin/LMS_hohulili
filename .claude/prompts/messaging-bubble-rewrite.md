@@ -100,10 +100,13 @@ const prepared = prepareRichInline([
 
 Pretext là công nghệ rất tốt nhưng **không phải silver bullet** cho layout conflicts hiện tại. Nó giải quyết text measurement — mà root cause thực sự là component design phức tạp.
 
-### Recommendation:
-- **Bước 1 (BẮT BUỘC)**: Clean rewrite bubble + input + conversation-view — CSS đúng từ đầu, template đơn giản, KHÔNG patch thêm. Đây giải quyết 90% vấn đề.
-- **Bước 2 (TÙY CHỌN, sau khi Bước 1 xong)**: Integrate Pretext nếu cần scroll performance hoặc chuẩn bị cho AI chat streaming. LMS conversation thường 10-50 messages → chưa urgent.
-- **Bước 3 (TƯƠNG LAI)**: Nếu thêm AI chat hoặc conversation > 200 messages → Pretext + virtualized scroll là essential.
+### Recommendation — Tích hợp Pretext CÙNG LÚC clean rewrite:
+15KB zero-dep, không hại gì, chỉ thêm foundation tốt. Conversation có thể > 200 messages trong tương lai.
+- **`npm install pretext`** ngay đầu session
+- **Clean rewrite bubble**: CSS đúng từ đầu + Pretext cho height calculation
+- **prepare()** khi fetch messages, **layout()** khi render → exact bubble height
+- **Virtualized scroll**: dùng Pretext height → chỉ render visible messages
+- Kết quả: zero layout shift + instant resize + sẵn sàng cho scale
 
 ---
 
