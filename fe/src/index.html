@@ -110,6 +110,11 @@
 </head>
 <body>
   <script>
+    // Polyfill: sockjs-client requires 'global' (Node.js) — provide window as fallback
+    if (typeof globalThis !== 'undefined') { globalThis.global = globalThis.global || globalThis; }
+    else if (typeof window !== 'undefined') { window.global = window.global || window; }
+  </script>
+  <script>
     // PWA Recovery — fixes broken Service Worker on client devices
     // Usage: visit holilihu.online/?reset-sw to force-clear broken SW
     // Also auto-recovers: if SW exists but fails to serve the page, clears on next load
