@@ -93,10 +93,12 @@ const prepared = prepareRichInline([
 - [Markdown Chat Demo](https://chenglou.me/pretext/markdown-chat/) — full virtualized chat
 - Dùng absolute positioning, chỉ render visible messages, smooth scroll
 
-### Recommendation cho LMS:
-- **Bước 1**: Clean rewrite bubble component TRƯỚC (fix layout đúng chuẩn)
-- **Bước 2**: Nếu performance tốt (< 200 messages per conversation) → KHÔNG cần Pretext
-- **Bước 3**: Nếu cần virtualization (> 500 messages) → integrate Pretext cho height prediction
+### Recommendation cho LMS — DÙNG LUÔN:
+Không đợi 500+ messages mới integrate — nếu công nghệ tốt thì dùng ngay từ đầu.
+- **Install**: `npm install pretext`
+- **Integrate ngay** vào clean rewrite: prepare() khi fetch messages, layout() khi render
+- **Virtualized scroll**: chỉ render visible messages, Pretext cho exact height
+- **Lợi ích**: zero layout shift, instant resize, smooth scroll, foundation đúng từ đầu
 
 ---
 
