@@ -51,6 +51,8 @@ test.describe('@smoke Offline learning continuity', () => {
       .toBeTruthy();
 
     await page.goto('/student/storage');
+    // Switch to Courses tab to see downloaded course title
+    await page.getByRole('tab', { name: /Khóa học/i }).click();
     await expect(page.getByText(fixture.courseTitle).first()).toBeVisible({ timeout: 120_000 });
 
     await page.goto(`/student/learn/course/${fixture.courseId}/lesson/${fixture.videoLessonId}`);
