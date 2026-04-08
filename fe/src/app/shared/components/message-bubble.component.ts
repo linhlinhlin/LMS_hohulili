@@ -1,16 +1,4 @@
-/**
- * Message Bubble Component
- *
- * Hiển thị một tin nhắn trong cuộc hội thoại.
- * - Left alignment cho tin nhắn nhận
- * - Right alignment cho tin nhắn gửi
- * - Hỗ trợ assignment reference card
- * - XSS protection: sử dụng text interpolation thay vì innerHTML
- *
- * @requirements 1.4, 5.2, 5.4, Security
- */
 import { Component, ChangeDetectionStrategy, input } from '@angular/core';
-
 import { RouterLink } from '@angular/router';
 import {
   Message,
@@ -39,14 +27,12 @@ import {
         [class.rounded-br-md]="isOwnMessage"
         [class.rounded-bl-md]="!isOwnMessage"
       >
-        <!-- Sender name (only for received messages) -->
         @if (!isOwnMessage) {
           <p class="text-xs font-medium text-gray-500 mb-1">
             {{ message().senderName }}
           </p>
         }
 
-        <!-- Message content - XSS safe with auto-link detection -->
         <p class="text-sm whitespace-pre-wrap break-words">
           @for (segment of contentSegments; track $index) {
             @if (segment.type === 'link') {
@@ -64,7 +50,6 @@ import {
           }
         </p>
 
-        <!-- Assignment Reference Card -->
         @if (hasReference()) {
           <div
             class="mt-2 p-3 rounded-lg border"
@@ -94,7 +79,7 @@ import {
                 [class.text-white/60]="isOwnMessage"
                 [class.text-gray-500]="!isOwnMessage"
               >
-                Bài tập đính kèm
+                B\u00e0i t\u1eadp \u0111\u00ednh k\u00e8m
               </span>
             </div>
             <a
@@ -115,7 +100,6 @@ import {
           </div>
         }
 
-        <!-- Timestamp and read status -->
         <div
           class="flex items-center gap-2 mt-2"
           [class.justify-end]="isOwnMessage"
@@ -128,7 +112,6 @@ import {
             {{ formatTime() }}
           </span>
 
-          <!-- Read status (only for own messages) -->
           @if (isOwnMessage) {
             <span class="text-xs" [class.text-white/60]="!message().isRead" [class.text-white]="message().isRead">
               @if (message().isRead) {

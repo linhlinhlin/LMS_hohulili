@@ -29,6 +29,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -67,7 +68,8 @@ public class TeacherStudentControllerV3 {
             @RequestParam(required = false) String search
     ) {
         UUID teacherId = teacher.getId();
-        PageRequest pageable = PageRequest.of(page, size);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        PageRequest pageable = PageRequest.of(page, safeSize);
 
         // Find teacher's courses
         List<CourseJpaEntity> teacherCourses = courseRepository.findByTeacherId(teacherId);
@@ -76,28 +78,38 @@ public class TeacherStudentControllerV3 {
                     new PageImpl<>(Collections.emptyList(), pageable, 0), "Danh sách học viên"));
         }
 
+        List<UUID> teacherCourseIds = teacherCourses.stream()
+                .map(CourseJpaEntity::getId)
+                .toList();
         List<UUID> courseIds = courseId != null
-                ? List.of(courseId)
-                : teacherCourses.stream().map(CourseJpaEntity::getId).toList();
+                ? (teacherCourseIds.contains(courseId) ? List.of(courseId) : Collections.emptyList())
+                : teacherCourseIds;
+        if (courseIds.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.success(
+                    new PageImpl<>(Collections.emptyList(), pageable, 0), "Danh sĂ¡ch há»c viĂªn"));
+        }
 
         // Get enrollments via learningClass.courseId (1 batch query)
         List<EnrollmentJpaEntity> enrollments = enrollmentRepository.findByLearningClass_CourseIdIn(courseIds);
 
-        // Deduplicate by studentId
-        Map<UUID, EnrollmentJpaEntity> studentEnrollments = new LinkedHashMap<>();
-        for (EnrollmentJpaEntity e : enrollments) {
-            studentEnrollments.putIfAbsent(e.getStudentId(), e);
-        }
+        // Group by studentId so a learner enrolled in multiple classes/courses is summarized consistently.
+        Map<UUID, List<EnrollmentJpaEntity>> studentEnrollments = enrollments.stream()
+                .collect(Collectors.groupingBy(
+                        EnrollmentJpaEntity::getStudentId,
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
 
         // Batch-load all users (1 query instead of N)
         Map<UUID, UserJpaEntity> userMap = userJpaRepository.findAllById(studentEnrollments.keySet()).stream()
                 .collect(Collectors.toMap(UserJpaEntity::getId, u -> u));
 
         // Build student summary list
+        Set<EnrollmentJpaEntity.EnrollmentStatus> requestedStatuses = resolveRequestedStatuses(status);
         List<StudentSummaryResponse> students = new ArrayList<>();
         for (var entry : studentEnrollments.entrySet()) {
             UUID studentId = entry.getKey();
-            EnrollmentJpaEntity enrollment = entry.getValue();
+            List<EnrollmentJpaEntity> scopedEnrollments = entry.getValue();
 
             UserJpaEntity user = userMap.get(studentId);
             if (user == null) continue;
@@ -112,24 +124,35 @@ public class TeacherStudentControllerV3 {
             }
 
             // Apply status filter
-            if (status != null && !status.isBlank()) {
-                if (!enrollment.getStatus().name().equalsIgnoreCase(status)) {
+            if (status != null && !status.isBlank() && !requestedStatuses.isEmpty()) {
+                boolean matchesStatus = scopedEnrollments.stream()
+                        .map(EnrollmentJpaEntity::getStatus)
+                        .anyMatch(requestedStatuses::contains);
+                if (!matchesStatus) {
                     continue;
                 }
             }
 
-            int completionPct = enrollment.getCompletionPercent() != null
-                    ? enrollment.getCompletionPercent() : 0;
+            Instant enrolledAt = earliestEnrollmentAt(scopedEnrollments);
+            Instant lastAccessedAt = latestLastAccessedAt(scopedEnrollments);
+            long completedCourses = scopedEnrollments.stream()
+                    .filter(e -> e.getStatus() == EnrollmentJpaEntity.EnrollmentStatus.COMPLETED)
+                    .count();
 
             students.add(StudentSummaryResponse.builder()
                     .id(studentId.toString())
                     .name(user.getFullName())
                     .email(user.getEmail())
-                    .enrolledAt(enrollment.getEnrolledAt() != null ? enrollment.getEnrolledAt().toString() : null)
-                    .progress(completionPct)
-                    .status(enrollment.getStatus().name())
+                    .enrolledAt(formatInstant(enrolledAt))
+                    .lastAccessed(formatInstant(lastAccessedAt))
+                    .progress(averageCompletionPercent(scopedEnrollments))
+                    .averageGrade(0)
+                    .status(summarizeStudentStatus(scopedEnrollments))
+                    .completedCourses((int) completedCourses)
+                    .totalCourses(scopedEnrollments.size())
                     .build());
         }
+        students.sort(Comparator.comparing(StudentSummaryResponse::getName, String.CASE_INSENSITIVE_ORDER));
 
         // Paginate in-memory
         int start = (int) pageable.getOffset();
@@ -155,29 +178,55 @@ public class TeacherStudentControllerV3 {
         }
         UserJpaEntity user = userOpt.get();
 
-        // Get enrollments scoped to teacher's courses
-        Set<UUID> teacherCourseIds = getTeacherCourseIds(teacher.getId());
-        List<EnrollmentJpaEntity> enrollments = enrollmentRepository.findByStudentId(studentId).stream()
-                .filter(e -> e.getLearningClass() != null && teacherCourseIds.contains(e.getLearningClass().getCourseId()))
-                .toList();
+        List<EnrollmentJpaEntity> enrollments = getScopedEnrollments(studentId, teacher);
+        Map<UUID, CourseJpaEntity> courseMap = getCourseMapForEnrollments(enrollments);
         long completed = enrollments.stream()
-                .filter(e -> "COMPLETED".equals(e.getStatus().name()))
+                .filter(e -> e.getStatus() == EnrollmentJpaEntity.EnrollmentStatus.COMPLETED)
                 .count();
-        double avgGrade = enrollments.stream()
+        double avgProgress = enrollments.stream()
                 .filter(e -> e.getCompletionPercent() != null)
                 .mapToInt(EnrollmentJpaEntity::getCompletionPercent)
                 .average().orElse(0);
+        List<CourseProgressResponse> courseProgress = enrollments.stream()
+                .map(enrollment -> {
+                    CourseJpaEntity course = courseMap.get(enrollment.getLearningClass().getCourseId());
+                    int totalLessons = enrollment.getProgress() != null ? enrollment.getProgress().size() : 0;
+                    int completedLessons = enrollment.getProgress() != null
+                            ? (int) enrollment.getProgress().values().stream()
+                            .filter(progress -> progress != null
+                                    && "COMPLETED".equalsIgnoreCase(progress.getStatus()))
+                            .count()
+                            : 0;
+
+                    return new CourseProgressResponse(
+                            enrollment.getLearningClass().getCourseId().toString(),
+                            course != null ? course.getTitle() : "Course",
+                            formatInstant(enrollment.getEnrolledAt()),
+                            enrollment.getCompletionPercent() != null ? enrollment.getCompletionPercent() : 0,
+                            completedLessons,
+                            totalLessons,
+                            formatInstant(enrollment.getLastAccessedAt()),
+                            null,
+                            toCourseProgressStatus(enrollment.getStatus())
+                    );
+                })
+                .sorted(Comparator.comparing(CourseProgressResponse::courseTitle, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+        Instant enrolledAt = earliestEnrollmentAt(enrollments);
+        Instant lastAccessedAt = latestLastAccessedAt(enrollments);
 
         StudentDetailResponse detail = StudentDetailResponse.builder()
                 .id(studentId.toString())
                 .name(user.getFullName())
                 .email(user.getEmail())
-                .progress(enrollments.isEmpty() ? 0 : (int) avgGrade)
-                .averageGrade(avgGrade)
-                .status("active")
+                .enrolledAt(formatInstant(enrolledAt))
+                .lastAccessed(formatInstant(lastAccessedAt))
+                .progress(enrollments.isEmpty() ? 0 : (int) Math.round(avgProgress))
+                .averageGrade(0)
+                .status(summarizeStudentStatus(enrollments))
                 .completedCourses((int) completed)
                 .totalCourses(enrollments.size())
-                .courseProgress(Collections.emptyList())
+                .courseProgress(courseProgress)
                 .assignmentSubmissions(Collections.emptyList())
                 .build();
 
@@ -194,6 +243,12 @@ public class TeacherStudentControllerV3 {
     ) {
         verifyStudentInTeacherCourses(studentId, teacher);
         List<AssignmentSubmissionJpaEntity> submissions = submissionRepository.findByStudentId(studentId);
+        Set<UUID> visibleCourseIds = teacher.getRole() == UserJpaEntity.UserRole.ADMIN
+                || teacher.getRole() == UserJpaEntity.UserRole.ORG_ADMIN
+                ? submissions.stream()
+                .map(AssignmentSubmissionJpaEntity::getCourseId)
+                .collect(Collectors.toSet())
+                : getTeacherCourseIds(teacher.getId());
 
         // Build assignment ID → assignment map for titles
         List<UUID> assignmentIds = submissions.stream()
@@ -202,6 +257,7 @@ public class TeacherStudentControllerV3 {
                 .stream().collect(Collectors.toMap(AssignmentJpaEntity::getId, Function.identity()));
 
         List<StudentAssignmentResponse> result = submissions.stream()
+                .filter(s -> visibleCourseIds.contains(s.getCourseId()))
                 .filter(s -> courseId == null || courseId.isBlank() || courseId.equals(String.valueOf(s.getCourseId())))
                 .filter(s -> status == null || status.isBlank() || s.getStatus().name().equalsIgnoreCase(status))
                 .map(s -> {
@@ -277,12 +333,7 @@ public class TeacherStudentControllerV3 {
         UserJpaEntity user = userOpt.get();
 
         // Update enrollment status in teacher's courses only
-        List<CourseJpaEntity> teacherCourses = courseRepository.findByTeacherId(teacher.getId());
-        Set<UUID> courseIds = teacherCourses.stream().map(CourseJpaEntity::getId).collect(Collectors.toSet());
-
-        List<EnrollmentJpaEntity> enrollments = enrollmentRepository.findByStudentId(studentId).stream()
-                .filter(e -> e.getLearningClass() != null && courseIds.contains(e.getLearningClass().getCourseId()))
-                .toList();
+        List<EnrollmentJpaEntity> enrollments = getScopedEnrollments(studentId, teacher);
 
         for (EnrollmentJpaEntity enrollment : enrollments) {
             try {
@@ -329,18 +380,12 @@ public class TeacherStudentControllerV3 {
                 .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("User", studentId));
 
         // Gather course progress data
-        List<CourseJpaEntity> teacherCourses = courseRepository.findByTeacherId(teacher.getId());
-        Set<UUID> courseIds = teacherCourses.stream().map(CourseJpaEntity::getId).collect(Collectors.toSet());
-
-        var enrollments = enrollmentRepository.findByStudentId(studentId).stream()
-                .filter(e -> e.getLearningClass() != null && courseIds.contains(e.getLearningClass().getCourseId()))
-                .toList();
+        var enrollments = getScopedEnrollments(studentId, teacher);
+        Map<UUID, CourseJpaEntity> courseMap = getCourseMapForEnrollments(enrollments);
 
         List<Map<String, Object>> courseData = enrollments.stream().map(e -> {
             Map<String, Object> m = new HashMap<>();
-            var course = teacherCourses.stream()
-                    .filter(c -> c.getId().equals(e.getLearningClass().getCourseId()))
-                    .findFirst().orElse(null);
+            var course = courseMap.get(e.getLearningClass().getCourseId());
             m.put("courseName", course != null ? course.getTitle() : "N/A");
             m.put("progress", e.getProgress() != null ? e.getProgress().size() : 0);
             m.put("grade", 0.0);
@@ -384,14 +429,119 @@ public class TeacherStudentControllerV3 {
                 || teacher.getRole() == UserJpaEntity.UserRole.ORG_ADMIN) {
             return;
         }
-        Set<UUID> teacherCourseIds = getTeacherCourseIds(teacher.getId());
-        boolean enrolled = enrollmentRepository.findByStudentId(studentId).stream()
-                .anyMatch(e -> e.getLearningClass() != null
-                        && teacherCourseIds.contains(e.getLearningClass().getCourseId()));
+        List<UUID> teacherCourseIds = new ArrayList<>(getTeacherCourseIds(teacher.getId()));
+        boolean enrolled = !teacherCourseIds.isEmpty()
+                && enrollmentRepository.existsByStudentIdAndCourseIds(studentId, teacherCourseIds);
         if (!enrolled) {
             throw new com.example.lms.shared.exception.BusinessRuleException(
                     "Học viên này không thuộc khóa học của bạn");
         }
+    }
+
+    private List<EnrollmentJpaEntity> getScopedEnrollments(UUID studentId, UserJpaEntity teacher) {
+        if (teacher.getRole() == UserJpaEntity.UserRole.ADMIN
+                || teacher.getRole() == UserJpaEntity.UserRole.ORG_ADMIN) {
+            return enrollmentRepository.findByStudentIdWithClass(studentId);
+        }
+
+        List<UUID> teacherCourseIds = new ArrayList<>(getTeacherCourseIds(teacher.getId()));
+        if (teacherCourseIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return enrollmentRepository.findByStudentIdAndCourseIds(studentId, teacherCourseIds);
+    }
+
+    private Map<UUID, CourseJpaEntity> getCourseMapForEnrollments(List<EnrollmentJpaEntity> enrollments) {
+        if (enrollments.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        List<UUID> courseIds = enrollments.stream()
+                .map(e -> e.getLearningClass().getCourseId())
+                .distinct()
+                .toList();
+
+        return courseRepository.findAllById(courseIds).stream()
+                .collect(Collectors.toMap(CourseJpaEntity::getId, Function.identity()));
+    }
+
+    private Set<EnrollmentJpaEntity.EnrollmentStatus> resolveRequestedStatuses(String status) {
+        if (status == null || status.isBlank()) {
+            return EnumSet.noneOf(EnrollmentJpaEntity.EnrollmentStatus.class);
+        }
+
+        return switch (status.trim().toUpperCase(Locale.ROOT)) {
+            case "ACTIVE" -> EnumSet.of(EnrollmentJpaEntity.EnrollmentStatus.ACTIVE);
+            case "COMPLETED" -> EnumSet.of(EnrollmentJpaEntity.EnrollmentStatus.COMPLETED);
+            case "SUSPENDED" -> EnumSet.of(EnrollmentJpaEntity.EnrollmentStatus.SUSPENDED);
+            case "DROPPED" -> EnumSet.of(EnrollmentJpaEntity.EnrollmentStatus.DROPPED);
+            case "EXPIRED" -> EnumSet.of(EnrollmentJpaEntity.EnrollmentStatus.EXPIRED);
+            case "INACTIVE" -> EnumSet.of(
+                    EnrollmentJpaEntity.EnrollmentStatus.COMPLETED,
+                    EnrollmentJpaEntity.EnrollmentStatus.DROPPED,
+                    EnrollmentJpaEntity.EnrollmentStatus.EXPIRED
+            );
+            default -> EnumSet.noneOf(EnrollmentJpaEntity.EnrollmentStatus.class);
+        };
+    }
+
+    private String summarizeStudentStatus(List<EnrollmentJpaEntity> enrollments) {
+        if (enrollments.stream().anyMatch(e -> e.getStatus() == EnrollmentJpaEntity.EnrollmentStatus.ACTIVE)) {
+            return EnrollmentJpaEntity.EnrollmentStatus.ACTIVE.name();
+        }
+        if (enrollments.stream().anyMatch(e -> e.getStatus() == EnrollmentJpaEntity.EnrollmentStatus.SUSPENDED)) {
+            return EnrollmentJpaEntity.EnrollmentStatus.SUSPENDED.name();
+        }
+        if (enrollments.stream().anyMatch(e -> e.getStatus() == EnrollmentJpaEntity.EnrollmentStatus.COMPLETED)) {
+            return EnrollmentJpaEntity.EnrollmentStatus.COMPLETED.name();
+        }
+        if (enrollments.stream().anyMatch(e -> e.getStatus() == EnrollmentJpaEntity.EnrollmentStatus.EXPIRED)) {
+            return EnrollmentJpaEntity.EnrollmentStatus.EXPIRED.name();
+        }
+
+        return enrollments.stream()
+                .map(EnrollmentJpaEntity::getStatus)
+                .findFirst()
+                .orElse(EnrollmentJpaEntity.EnrollmentStatus.DROPPED)
+                .name();
+    }
+
+    private int averageCompletionPercent(List<EnrollmentJpaEntity> enrollments) {
+        return (int) Math.round(enrollments.stream()
+                .map(EnrollmentJpaEntity::getCompletionPercent)
+                .filter(Objects::nonNull)
+                .mapToInt(Integer::intValue)
+                .average()
+                .orElse(0));
+    }
+
+    private Instant earliestEnrollmentAt(List<EnrollmentJpaEntity> enrollments) {
+        return enrollments.stream()
+                .map(EnrollmentJpaEntity::getEnrolledAt)
+                .filter(Objects::nonNull)
+                .min(Instant::compareTo)
+                .orElse(null);
+    }
+
+    private Instant latestLastAccessedAt(List<EnrollmentJpaEntity> enrollments) {
+        return enrollments.stream()
+                .map(EnrollmentJpaEntity::getLastAccessedAt)
+                .filter(Objects::nonNull)
+                .max(Instant::compareTo)
+                .orElse(null);
+    }
+
+    private String formatInstant(Instant instant) {
+        return instant != null ? instant.toString() : null;
+    }
+
+    private String toCourseProgressStatus(EnrollmentJpaEntity.EnrollmentStatus status) {
+        return switch (status) {
+            case ACTIVE, SUSPENDED -> "in-progress";
+            case COMPLETED -> "completed";
+            case DROPPED, EXPIRED -> "dropped";
+        };
     }
 
     // === DTOs ===
@@ -419,29 +569,39 @@ public class TeacherStudentControllerV3 {
             public Builder name(String name) { this.name = name; return this; }
             public Builder email(String email) { this.email = email; return this; }
             public Builder enrolledAt(String enrolledAt) { this.enrolledAt = enrolledAt; return this; }
+            public Builder lastAccessed(String lastAccessed) { this.lastAccessed = lastAccessed; return this; }
             public Builder progress(int progress) { this.progress = progress; return this; }
+            public Builder averageGrade(double averageGrade) { this.averageGrade = averageGrade; return this; }
             public Builder status(String status) { this.status = status; return this; }
+            public Builder completedCourses(int completedCourses) { this.completedCourses = completedCourses; return this; }
+            public Builder totalCourses(int totalCourses) { this.totalCourses = totalCourses; return this; }
             public StudentSummaryResponse build() { return new StudentSummaryResponse(id, name, email, enrolledAt, lastAccessed, progress, averageGrade, status, completedCourses, totalCourses); }
         }
         public String getId() { return id; }
         public String getName() { return name; }
         public String getEmail() { return email; }
         public String getEnrolledAt() { return enrolledAt; }
+        public String getLastAccessed() { return lastAccessed; }
         public int getProgress() { return progress; }
+        public double getAverageGrade() { return averageGrade; }
         public String getStatus() { return status; }
+        public int getCompletedCourses() { return completedCourses; }
+        public int getTotalCourses() { return totalCourses; }
     }
 
     public static class StudentDetailResponse {
-        private String id; private String name; private String email; private int progress; double averageGrade; String status; int completedCourses; int totalCourses; List<CourseProgressResponse> courseProgress; List<StudentAssignmentResponse> assignmentSubmissions;
-        public StudentDetailResponse(String id, String name, String email, int progress, double averageGrade, String status, int completedCourses, int totalCourses, List<CourseProgressResponse> courseProgress, List<StudentAssignmentResponse> assignmentSubmissions) {
-            this.id = id; this.name = name; this.email = email; this.progress = progress; this.averageGrade = averageGrade; this.status = status; this.completedCourses = completedCourses; this.totalCourses = totalCourses; this.courseProgress = courseProgress; this.assignmentSubmissions = assignmentSubmissions;
+        private String id; private String name; private String email; private String enrolledAt; private String lastAccessed; private int progress; double averageGrade; String status; int completedCourses; int totalCourses; List<CourseProgressResponse> courseProgress; List<StudentAssignmentResponse> assignmentSubmissions;
+        public StudentDetailResponse(String id, String name, String email, String enrolledAt, String lastAccessed, int progress, double averageGrade, String status, int completedCourses, int totalCourses, List<CourseProgressResponse> courseProgress, List<StudentAssignmentResponse> assignmentSubmissions) {
+            this.id = id; this.name = name; this.email = email; this.enrolledAt = enrolledAt; this.lastAccessed = lastAccessed; this.progress = progress; this.averageGrade = averageGrade; this.status = status; this.completedCourses = completedCourses; this.totalCourses = totalCourses; this.courseProgress = courseProgress; this.assignmentSubmissions = assignmentSubmissions;
         }
         public static Builder builder() { return new Builder(); }
         public static class Builder {
-            private String id; private String name; private String email; private int progress; private double averageGrade; private String status; private int completedCourses; private int totalCourses; private List<CourseProgressResponse> courseProgress; private List<StudentAssignmentResponse> assignmentSubmissions;
+            private String id; private String name; private String email; private String enrolledAt; private String lastAccessed; private int progress; private double averageGrade; private String status; private int completedCourses; private int totalCourses; private List<CourseProgressResponse> courseProgress; private List<StudentAssignmentResponse> assignmentSubmissions;
             public Builder id(String id) { this.id = id; return this; }
             public Builder name(String name) { this.name = name; return this; }
             public Builder email(String email) { this.email = email; return this; }
+            public Builder enrolledAt(String enrolledAt) { this.enrolledAt = enrolledAt; return this; }
+            public Builder lastAccessed(String lastAccessed) { this.lastAccessed = lastAccessed; return this; }
             public Builder progress(int progress) { this.progress = progress; return this; }
             public Builder averageGrade(double averageGrade) { this.averageGrade = averageGrade; return this; }
             public Builder status(String status) { this.status = status; return this; }
@@ -449,9 +609,20 @@ public class TeacherStudentControllerV3 {
             public Builder totalCourses(int totalCourses) { this.totalCourses = totalCourses; return this; }
             public Builder courseProgress(List<CourseProgressResponse> courseProgress) { this.courseProgress = courseProgress; return this; }
             public Builder assignmentSubmissions(List<StudentAssignmentResponse> assignmentSubmissions) { this.assignmentSubmissions = assignmentSubmissions; return this; }
-            public StudentDetailResponse build() { return new StudentDetailResponse(id, name, email, progress, averageGrade, status, completedCourses, totalCourses, courseProgress, assignmentSubmissions); }
+            public StudentDetailResponse build() { return new StudentDetailResponse(id, name, email, enrolledAt, lastAccessed, progress, averageGrade, status, completedCourses, totalCourses, courseProgress, assignmentSubmissions); }
         }
         public String getId() { return id; }
+        public String getName() { return name; }
+        public String getEmail() { return email; }
+        public String getEnrolledAt() { return enrolledAt; }
+        public String getLastAccessed() { return lastAccessed; }
+        public int getProgress() { return progress; }
+        public double getAverageGrade() { return averageGrade; }
+        public String getStatus() { return status; }
+        public int getCompletedCourses() { return completedCourses; }
+        public int getTotalCourses() { return totalCourses; }
+        public List<CourseProgressResponse> getCourseProgress() { return courseProgress; }
+        public List<StudentAssignmentResponse> getAssignmentSubmissions() { return assignmentSubmissions; }
     }
 
     public static class StudentAnalyticsResponse {
@@ -476,7 +647,17 @@ public class TeacherStudentControllerV3 {
         public int getTotalStudyTime() { return totalStudyTime; }
     }
 
-    public record CourseProgressResponse() {}
+    public record CourseProgressResponse(
+            String courseId,
+            String courseTitle,
+            String enrolledAt,
+            int progress,
+            int completedLessons,
+            int totalLessons,
+            String lastAccessed,
+            Double grade,
+            String status
+    ) {}
     public record StudentAssignmentResponse(
             String id, String assignmentId, String title, String status,
             Double grade, Double maxGrade, String submittedAt, String gradedAt, String feedback
