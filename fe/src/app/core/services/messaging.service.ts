@@ -4,9 +4,9 @@
  * Service quản lý nhắn tin giữa giảng viên và học viên.
  * Realtime hiện tại dùng polling có kiểm soát, không nuốt state local của component.
  */
-import { inject, Injectable, signal, computed } from '@angular/core';
+import { inject, Injectable, signal, computed, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, Subject, interval, of, throwError } from 'rxjs';
+import { Observable, Subject, Subscription, interval, of, throwError } from 'rxjs';
 import { catchError, map, switchMap, takeUntil, tap } from 'rxjs/operators';
 import {
   Conversation,
@@ -16,6 +16,7 @@ import {
   sortMessagesByDate,
   toConversationListItem,
 } from '../../features/student/messages/utils/message-utils';
+import { WebSocketService, WsNewMessage, WsUnreadCount } from './websocket.service';
 
 export interface SendMessageRequest {
   recipientId: string;
@@ -85,8 +86,9 @@ interface RawMessage {
 @Injectable({
   providedIn: 'root',
 })
-export class MessagingService {
+export class MessagingService implements OnDestroy {
   private readonly http = inject(HttpClient);
+  private readonly ws = inject(WebSocketService);
   private readonly apiUrl = '/api/v3/messages';
 
   private readonly _conversations = signal<Conversation[]>([]);
@@ -95,11 +97,16 @@ export class MessagingService {
   private readonly _loading = signal(false);
   private readonly _error = signal<string | null>(null);
   private readonly _currentUserId = signal<string>('');
+  private readonly _unreadCount = signal(0);
 
   private readonly pollingInterval = 5000;
   private readonly stopPolling$ = new Subject<void>();
   private isPolling = false;
   private pollingKey: string | null = null;
+
+  /** WebSocket subscriptions */
+  private wsSubs: Subscription[] = [];
+  private wsConversationId: string | null = null;
 
   readonly conversations = this._conversations.asReadonly();
   readonly currentConversation = this._currentConversation.asReadonly();
@@ -114,6 +121,8 @@ export class MessagingService {
   readonly sortedMessages = computed(() => sortMessagesByDate(this._messages()));
 
   readonly totalUnreadCount = computed(() => {
+    const wsCount = this._unreadCount();
+    if (wsCount > 0) return wsCount;
     return this._conversations().reduce((total, conversation) => total + conversation.unreadCount, 0);
   });
 
@@ -124,6 +133,62 @@ export class MessagingService {
 
   setCurrentUserId(userId: string): void {
     this._currentUserId.set(userId);
+  }
+
+  /**
+   * Kết nối WebSocket và lắng nghe unread count notifications.
+   * Gọi 1 lần khi user đã đăng nhập (ví dụ từ AppComponent hoặc layout).
+   */
+  connectWebSocket(): void {
+    this.ws.connect();
+
+    // Listen for unread count updates pushed from server
+    const notifSub = this.ws.getNotifications().subscribe((event: WsUnreadCount) => {
+      this._unreadCount.set(event.unreadCount);
+    });
+    this.wsSubs.push(notifSub);
+  }
+
+  /**
+   * Subscribe to real-time messages for a specific conversation.
+   * Falls back to polling if WebSocket is not connected.
+   */
+  subscribeConversationRealtime(
+    conversationId: string,
+    onNewMessage: (msg: WsNewMessage) => void,
+  ): void {
+    this.wsConversationId = conversationId;
+
+    if (this.ws.connected()) {
+      // WebSocket path
+      const sub = this.ws.subscribeToConversation(conversationId).subscribe(onNewMessage);
+      this.wsSubs.push(sub);
+    }
+    // Always start polling as fallback (WebSocket will give faster updates when available)
+    this.startConversationPolling(conversationId, (messages) => {
+      this._messages.set(messages);
+    });
+  }
+
+  /**
+   * Unsubscribe from conversation real-time updates.
+   */
+  unsubscribeConversationRealtime(): void {
+    if (this.wsConversationId) {
+      this.ws.unsubscribeFromConversation(this.wsConversationId);
+      this.wsConversationId = null;
+    }
+    this.stopPolling();
+  }
+
+  disconnectWebSocket(): void {
+    this.wsSubs.forEach((s) => s.unsubscribe());
+    this.wsSubs = [];
+    this.ws.disconnect();
+  }
+
+  ngOnDestroy(): void {
+    this.disconnectWebSocket();
   }
 
   getConversations(includeArchived: boolean = false): Observable<Conversation[]> {

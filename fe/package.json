@@ -51,8 +51,10 @@
     "@editorjs/quote": "^2.7.6",
     "@editorjs/table": "^2.4.5",
     "@editorjs/warning": "^1.4.1",
+    "@stomp/stompjs": "^7.3.0",
     "@types/dompurify": "^3.0.5",
     "@types/katex": "^0.16.7",
+    "@types/sockjs-client": "^1.5.4",
     "@types/video.js": "^7.3.58",
     "chart.js": "^4.5.1",
     "ckeditor5": "^47.6.0",
@@ -68,6 +70,7 @@
     "ngx-image-cropper": "^9.1.6",
     "rxjs": "~7.8.0",
     "shaka-player": "^4.16.18",
+    "sockjs-client": "^1.6.1",
     "tslib": "^2.3.0",
     "video.js": "^8.23.4",
     "xlsx": "file:vendor/xlsx-0.20.3.tgz"

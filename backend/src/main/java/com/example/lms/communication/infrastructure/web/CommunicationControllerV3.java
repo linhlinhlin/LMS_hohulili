@@ -62,6 +62,8 @@ public class CommunicationControllerV3 {
     private final ConversationRepository conversationRepository;
     private final MessageRepository messageRepository;
     private final UserJpaRepository userJpaRepository;
+    private final com.example.lms.communication.application.service.WebSocketMessageService webSocketMessageService;
+    private final com.example.lms.config.WebSocketEventListener webSocketEventListener;
 
     @Operation(summary = "Get all conversations for current user")
     @GetMapping("/conversations")
@@ -176,28 +178,27 @@ public class CommunicationControllerV3 {
                     .body(ApiResponse.error("RECIPIENT_NOT_ALLOWED", "Bạn không thể nhắn tin cho người này"));
         }
 
-        UUID messageId = sendMessageUseCase.execute(new SendMessageUseCaseV3.SendMessageCommand(
-                senderId,
-                request.recipientId(),
-                request.content()
-        ));
-
-        UUID conversationId = conversationRepository.findByParticipants(senderId, request.recipientId())
-                .map(conversation -> conversation.getId().value())
-                .orElse(null);
-
         UserSummary senderSummary = batchFetchUsers(Set.of(senderId)).getOrDefault(senderId, UserSummary.unknown(senderId));
+
+        SendMessageUseCaseV3.SendMessageResult result = sendMessageUseCase.execute(
+                new SendMessageUseCaseV3.SendMessageCommand(
+                        senderId,
+                        request.recipientId(),
+                        request.content(),
+                        senderSummary.displayName(),
+                        senderSummary.role()
+                ));
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("message", Map.of(
-                "id", messageId,
+                "id", result.messageId(),
                 "content", request.content(),
                 "senderId", senderId,
                 "senderName", senderSummary.displayName(),
                 "senderRole", senderSummary.role(),
                 "createdAt", Instant.now()
         ));
-        response.put("conversationId", conversationId);
+        response.put("conversationId", result.conversationId());
 
         return ResponseEntity.ok(ApiResponse.success(response, "Gửi tin nhắn thành công"));
     }
@@ -210,6 +211,7 @@ public class CommunicationControllerV3 {
             @Valid @RequestBody MarkAsReadRequest request
     ) {
         int count = 0;
+        UUID lastConversationId = null;
         for (UUID messageId : request.messageIds()) {
             Optional<Message> messageOpt = messageRepository.findById(MessageId.of(messageId));
             if (messageOpt.isPresent()) {
@@ -218,8 +220,20 @@ public class CommunicationControllerV3 {
                 if (conversationOpt.isPresent() && conversationOpt.get().hasParticipant(user.getId())) {
                     message.markAsRead();
                     messageRepository.save(message);
+                    lastConversationId = message.getConversationId().value();
                     count++;
                 }
+            }
+        }
+
+        // Broadcast read status via WebSocket
+        if (count > 0 && lastConversationId != null) {
+            try {
+                webSocketMessageService.broadcastMessagesRead(lastConversationId, user.getId(), count);
+                long unread = messageRepository.countTotalUnreadForUser(user.getId());
+                webSocketMessageService.pushUnreadCount(user.getId(), unread);
+            } catch (Exception e) {
+                // Non-critical: WebSocket broadcast failure doesn't affect the read operation
             }
         }
 
@@ -233,6 +247,16 @@ public class CommunicationControllerV3 {
     ) {
         long totalUnread = messageRepository.countTotalUnreadForUser(user.getId());
         return ResponseEntity.ok(ApiResponse.success(Map.of("unreadCount", totalUnread), "Số tin nhắn chưa đọc"));
+    }
+
+    @Operation(summary = "Check online status of users")
+    @GetMapping("/online-status")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getOnlineStatus(
+            @RequestParam List<UUID> userIds
+    ) {
+        Map<UUID, Boolean> statuses = userIds.stream()
+                .collect(Collectors.toMap(id -> id, webSocketEventListener::isUserOnline));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("statuses", statuses), "Trạng thái trực tuyến"));
     }
 
     private Map<String, Object> mapConversation(

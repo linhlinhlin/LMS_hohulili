@@ -43,6 +43,8 @@ class CommunicationControllerV3Test {
     @Mock private ConversationRepository conversationRepository;
     @Mock private MessageRepository messageRepository;
     @Mock private UserJpaRepository userJpaRepository;
+    @Mock private com.example.lms.communication.application.service.WebSocketMessageService webSocketMessageService;
+    @Mock private com.example.lms.config.WebSocketEventListener webSocketEventListener;
 
     @InjectMocks
     private CommunicationControllerV3 controller;
@@ -104,7 +106,7 @@ class CommunicationControllerV3Test {
             when(userB.getId()).thenReturn(userBId);
             when(userB.getFullName()).thenReturn("User B");
             when(userB.getRole()).thenReturn(UserJpaEntity.UserRole.TEACHER);
-            when(userJpaRepository.findAllById(any())).thenReturn(List.of(userB, userA));
+            when(userJpaRepository.findByIdIn(any())).thenReturn(List.of(userB, userA));
 
             var response = controller.getConversations(userA, false);
 
@@ -196,19 +198,19 @@ class CommunicationControllerV3Test {
         @DisplayName("sends message and returns created payload")
         void createsAndReturns() {
             UUID messageId = UUID.randomUUID();
+            UUID conversationId = UUID.randomUUID();
             when(userA.getRole()).thenReturn(UserJpaEntity.UserRole.STUDENT);
             when(userA.getOrganizationId()).thenReturn(UUID.randomUUID());
-            when(sendMessageUseCase.execute(any())).thenReturn(messageId);
             when(messageAuthorizationService.canSendMessage(any(), eq(userBId))).thenReturn(true);
-
-            Conversation conversation = createConversation(userAId, userBId);
-            when(conversationRepository.findByParticipants(userAId, userBId)).thenReturn(Optional.of(conversation));
 
             UserJpaEntity sender = mock(UserJpaEntity.class);
             when(sender.getId()).thenReturn(userAId);
             when(sender.getFullName()).thenReturn("User A");
             when(sender.getRole()).thenReturn(UserJpaEntity.UserRole.STUDENT);
-            when(userJpaRepository.findAllById(any())).thenReturn(List.of(sender));
+            when(userJpaRepository.findByIdIn(any())).thenReturn(List.of(sender));
+
+            when(sendMessageUseCase.execute(any())).thenReturn(
+                    new SendMessageUseCaseV3.SendMessageResult(messageId, conversationId));
 
             var response = controller.sendMessage(userA, new CommunicationControllerV3.SendMessageRequest(userBId, "Xin chao"));
 

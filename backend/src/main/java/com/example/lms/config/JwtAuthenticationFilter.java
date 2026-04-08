@@ -105,6 +105,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                path.equals("/api/v3/categories") ||
                path.equals("/api/v3/payments/vnpay-ipn") ||
                path.equals("/api/v3/payments/vnpay-return") ||
-               path.startsWith("/uploads/");
+               path.startsWith("/uploads/") ||
+               path.startsWith("/ws");
     }
 }

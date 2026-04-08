@@ -18,6 +18,7 @@ import { combineLatest } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { MessagingService, SendMessageRequest } from '../../../core/services/messaging.service';
 import { NetworkStatusService } from '../../../core/services/network-status.service';
+import { WebSocketService, WsNewMessage } from '../../../core/services/websocket.service';
 import { MessageBubbleComponent } from '../../../shared/components/message-bubble.component';
 import {
   MessageInputComponent,
@@ -149,9 +150,11 @@ export class ConversationViewComponent implements OnInit, OnDestroy, AfterViewCh
   private readonly router = inject(Router);
   private readonly messagingService = inject(MessagingService);
   private readonly authService = inject(AuthService);
+  private readonly wsService = inject(WebSocketService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly network = inject(NetworkStatusService);
+  readonly wsConnected = this.wsService.connected;
 
   private readonly messagesState = signal<Message[]>([]);
   private readonly conversationState = signal<Conversation | null>(null);
@@ -194,7 +197,7 @@ export class ConversationViewComponent implements OnInit, OnDestroy, AfterViewCh
   }
 
   ngOnDestroy(): void {
-    this.messagingService.stopPolling();
+    this.messagingService.unsubscribeConversationRealtime();
   }
 
   ngAfterViewChecked(): void {
@@ -300,7 +303,7 @@ export class ConversationViewComponent implements OnInit, OnDestroy, AfterViewCh
     recipientName: string | null,
     recipientRole: string | null
   ): void {
-    this.messagingService.stopPolling();
+    this.messagingService.unsubscribeConversationRealtime();
     this.error.set(null);
     this.loading.set(false);
     this.messagesState.set([]);
@@ -360,8 +363,30 @@ export class ConversationViewComponent implements OnInit, OnDestroy, AfterViewCh
   }
 
   private startConversationPolling(conversationId: string): void {
-    this.messagingService.startConversationPolling(conversationId, (messages) => {
-      this.applyMessages(messages, false);
+    this.messagingService.subscribeConversationRealtime(conversationId, (wsMsg: WsNewMessage) => {
+      // Real-time message from WebSocket — append if not duplicate
+      if (wsMsg.senderId !== this.currentUserId) {
+        this.messagesState.update((messages) => {
+          if (messages.some((m) => m.id === wsMsg.messageId)) return messages;
+          return [
+            ...messages,
+            {
+              id: wsMsg.messageId,
+              conversationId: wsMsg.conversationId,
+              senderId: wsMsg.senderId,
+              senderName: wsMsg.senderName,
+              senderRole: (wsMsg.senderRole as any) || 'STUDENT',
+              content: wsMsg.content,
+              isRead: false,
+              createdAt: wsMsg.createdAt,
+            },
+          ];
+        });
+        this.shouldScrollToBottom = true;
+
+        // Auto-mark as read
+        this.messagingService.markAsRead([wsMsg.messageId]).subscribe();
+      }
     });
   }
 

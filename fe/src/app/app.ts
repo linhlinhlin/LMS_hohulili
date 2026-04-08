@@ -1,4 +1,4 @@
-import { Component, signal, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, inject, effect, ChangeDetectionStrategy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { SwUpdateService } from './core/services/sw-update.service';
 import { ToastContainerComponent } from './shared/components/toast-container/toast-container.component';
@@ -8,6 +8,8 @@ import { SessionExpiredBannerComponent } from './shared/components/session-expir
 import { SessionExpiredService } from './core/services/session-expired.service';
 import { WebMcpService } from './core/services/webmcp.service';
 import { OfflineStorageTelemetryIngestService } from './core/services/offline-storage-telemetry-ingest.service';
+import { AuthService } from './core/services/auth.service';
+import { MessagingService } from './core/services/messaging.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -26,11 +28,24 @@ export class App {
   private sessionService = inject(SessionExpiredService);
   private webMcp = inject(WebMcpService);
   private offlineStorageTelemetryIngest = inject(OfflineStorageTelemetryIngestService);
+  private authService = inject(AuthService);
+  private messagingService = inject(MessagingService);
   protected readonly title = signal('LMS Maritime - Hệ thống Quản lý Học tập Phân tán');
 
   constructor() {
     this.swUpdate.initialize();
     this.sessionService.evaluateState();
     this.webMcp.initialize();
+
+    // Connect WebSocket when user is authenticated
+    effect(() => {
+      const user = this.authService.currentUserSignal();
+      if (user) {
+        this.messagingService.setCurrentUserId(user.id);
+        this.messagingService.connectWebSocket();
+      } else {
+        this.messagingService.disconnectWebSocket();
+      }
+    });
   }
 }

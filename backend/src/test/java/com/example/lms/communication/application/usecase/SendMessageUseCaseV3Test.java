@@ -34,9 +34,12 @@ class SendMessageUseCaseV3Test {
 
     @Mock
     private MessageRepository messageRepository;
-    
+
     @Mock
     private ConversationRepository conversationRepository;
+
+    @Mock
+    private com.example.lms.communication.application.service.WebSocketMessageService webSocketMessageService;
 
     @InjectMocks
     private SendMessageUseCaseV3 useCase;
@@ -80,10 +83,10 @@ class SendMessageUseCaseV3Test {
             when(conversationRepository.save(any(Conversation.class))).thenReturn(existingConversation);
 
             // When
-            UUID resultId = useCase.execute(validCommand);
+            var result = useCase.execute(validCommand);
 
             // Then
-            assertThat(resultId).isNotNull();
+            assertThat(result.messageId()).isNotNull();
             verify(conversationRepository).findByParticipants(senderId, recipientId);
             verify(messageRepository).save(any(Message.class));
         }
@@ -128,10 +131,10 @@ class SendMessageUseCaseV3Test {
             when(messageRepository.save(any(Message.class))).thenReturn(savedMessage);
 
             // When
-            UUID resultId = useCase.execute(validCommand);
+            var result = useCase.execute(validCommand);
 
             // Then
-            assertThat(resultId).isNotNull();
+            assertThat(result.messageId()).isNotNull();
             // Verify conversation save was called (once for create, once for update)
             verify(conversationRepository, times(2)).save(any(Conversation.class));
         }

@@ -309,11 +309,12 @@ public class TeacherStudentControllerV3 {
             @PathVariable UUID studentId,
             @Valid @RequestBody MessageRequest request
     ) {
-        UUID messageId = sendMessageUseCase.execute(
-                new SendMessageUseCaseV3.SendMessageCommand(teacher.getId(), studentId, request.getContent())
+        var sendResult = sendMessageUseCase.execute(
+                new SendMessageUseCaseV3.SendMessageCommand(teacher.getId(), studentId, request.getContent(),
+                        teacher.getFullName(), teacher.getRole().name())
         );
         log.info("[Message] Giáo viên {} gửi tin nhắn đến học viên {}", teacher.getId(), studentId);
-        Map<String, Object> result = Map.of("messageId", messageId.toString());
+        Map<String, Object> result = Map.of("messageId", sendResult.messageId().toString());
         return ResponseEntity.ok(ApiResponse.success(result, "Gửi tin nhắn thành công"));
     }
 

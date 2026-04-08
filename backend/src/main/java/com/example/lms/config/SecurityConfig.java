@@ -105,7 +105,9 @@ public class SecurityConfig {
                     "/api/v3/invites/validate",
                     "/api/v3/invites/validate-token",
                     // Tokenized adaptive video playback validates access via playback token, not JWT auth
-                    "/api/v3/video-assets/*/adaptive/**"
+                    "/api/v3/video-assets/*/adaptive/**",
+                    // WebSocket handshake (JWT validated inside STOMP interceptor)
+                    "/ws/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

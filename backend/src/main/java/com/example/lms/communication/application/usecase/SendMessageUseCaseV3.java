@@ -1,5 +1,6 @@
 package com.example.lms.communication.application.usecase;
 
+import com.example.lms.communication.application.service.WebSocketMessageService;
 import com.example.lms.communication.domain.model.Conversation;
 import com.example.lms.communication.domain.model.Message;
 import com.example.lms.communication.domain.repository.ConversationRepository;
@@ -25,15 +26,22 @@ public class SendMessageUseCaseV3 {
 
     private final MessageRepository messageRepository;
     private final ConversationRepository conversationRepository;
+    private final WebSocketMessageService webSocketMessageService;
 
     public record SendMessageCommand(
         UUID senderId,
         UUID recipientId,
-        String content
-    ) {}
+        String content,
+        String senderName,
+        String senderRole
+    ) {
+        public SendMessageCommand(UUID senderId, UUID recipientId, String content) {
+            this(senderId, recipientId, content, null, null);
+        }
+    }
 
     @Transactional
-    public UUID execute(SendMessageCommand command) {
+    public SendMessageResult execute(SendMessageCommand command) {
         log.info("Sending message from {} to {} (V3)", command.senderId(), command.recipientId());
 
         // 1. Find or create conversation using domain model
@@ -62,9 +70,27 @@ public class SendMessageUseCaseV3 {
             Instant.now()
         );
         conversationRepository.save(conversation);
-        
-        log.info("Message sent with ID {} (V3)", saved.getId().value());
-        return saved.getId().value();
+
+        UUID conversationId = conversation.getId().value();
+        UUID messageId = saved.getId().value();
+
+        // 4. Broadcast via WebSocket (non-blocking, after commit)
+        try {
+            webSocketMessageService.broadcastNewMessage(
+                    conversationId, messageId, command.senderId(),
+                    command.senderName(), command.senderRole(), command.content());
+
+            // Push updated unread count to the recipient
+            long recipientUnread = messageRepository.countTotalUnreadForUser(command.recipientId());
+            webSocketMessageService.pushUnreadCount(command.recipientId(), recipientUnread);
+        } catch (Exception e) {
+            log.warn("WebSocket broadcast failed (message still saved): {}", e.getMessage());
+        }
+
+        log.info("Message sent with ID {} (V3)", messageId);
+        return new SendMessageResult(messageId, conversationId);
     }
+
+    public record SendMessageResult(UUID messageId, UUID conversationId) {}
 }
 
