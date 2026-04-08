@@ -16,9 +16,24 @@ import { AuthService } from '../../../core/services/auth.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (loading()) {
-      <div class="flex items-center justify-center py-12">
-        <div class="h-8 w-8 animate-spin rounded-full border-b-2 border-[#0056D2]"></div>
-        <span class="ml-3 text-slate-600">Đang tải thông báo...</span>
+      <div class="space-y-3">
+        <div class="h-4 w-24 animate-pulse rounded bg-slate-200"></div>
+        @for (i of [1, 2, 3]; track i) {
+          <div class="rounded-lg border border-slate-200 bg-white p-4">
+            <div class="mb-2 flex items-start justify-between">
+              <div class="h-4 w-48 animate-pulse rounded bg-slate-200"></div>
+              <div class="h-2 w-2 animate-pulse rounded-full bg-slate-200"></div>
+            </div>
+            <div class="mb-2 space-y-1">
+              <div class="h-3 w-full animate-pulse rounded bg-slate-100"></div>
+              <div class="h-3 w-3/4 animate-pulse rounded bg-slate-100"></div>
+            </div>
+            <div class="flex gap-3">
+              <div class="h-3 w-24 animate-pulse rounded bg-slate-100"></div>
+              <div class="h-3 w-20 animate-pulse rounded bg-slate-100"></div>
+            </div>
+          </div>
+        }
       </div>
     } @else if (announcements().length === 0) {
       <div class="rounded-lg border border-slate-200 bg-white px-6 py-12 text-center">

@@ -44,6 +44,7 @@
     "@angular/service-worker": "^20.3.17",
     "@angular/ssr": "^20.3.19",
     "@ckeditor/ckeditor5-angular": "^11.0.1",
+    "@ctrl/ngx-emoji-mart": "^9.3.0",
     "@editorjs/editorjs": "^2.31.0",
     "@editorjs/header": "^2.8.8",
     "@editorjs/image": "^2.10.3",

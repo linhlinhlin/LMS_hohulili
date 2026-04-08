@@ -176,6 +176,15 @@ html {
   background-color: var(--c-muted);
 }
 
+/* Chat textarea — hide scrollbar arrows on Windows */
+app-message-input textarea::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+app-message-input textarea {
+  scrollbar-width: none;
+}
+
 /* ===== COMPONENT STYLES ===== */
 /* Button base styles */
 .btn-base {

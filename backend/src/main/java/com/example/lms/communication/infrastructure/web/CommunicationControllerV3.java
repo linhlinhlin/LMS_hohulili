@@ -64,6 +64,8 @@ public class CommunicationControllerV3 {
     private final UserJpaRepository userJpaRepository;
     private final com.example.lms.communication.application.service.WebSocketMessageService webSocketMessageService;
     private final com.example.lms.config.WebSocketEventListener webSocketEventListener;
+    private final com.example.lms.communication.infrastructure.persistence.repository.MessageReactionJpaRepository reactionRepository;
+    private final com.example.lms.communication.infrastructure.persistence.repository.MessageJpaRepositoryV3 messageJpaRepository;
 
     @Operation(summary = "Get all conversations for current user")
     @GetMapping("/conversations")
@@ -135,8 +137,43 @@ public class CommunicationControllerV3 {
                 .collect(Collectors.toSet());
         Map<UUID, UserSummary> senderSummaryMap = batchFetchUsers(senderIds);
 
+        // Batch fetch reactions for all messages
+        List<UUID> msgIds = messages.stream().map(m -> m.getId().value()).toList();
+        var allReactions = reactionRepository.findByMessageIdIn(msgIds);
+        Map<UUID, List<Map<String, Object>>> reactionsByMsg = allReactions.stream()
+                .collect(Collectors.groupingBy(
+                        com.example.lms.communication.infrastructure.persistence.entity.MessageReactionJpaEntity::getMessageId,
+                        Collectors.mapping(r -> {
+                            Map<String, Object> rm = new LinkedHashMap<>();
+                            rm.put("userId", r.getUserId());
+                            rm.put("emoji", r.getEmoji());
+                            return rm;
+                        }, Collectors.toList())
+                ));
+
+        // Build replyTo lookup (Messenger quote-reply pattern)
+        Map<UUID, Message> msgById = messages.stream()
+                .collect(Collectors.toMap(m -> m.getId().value(), m -> m, (a, b) -> a));
+
         List<Map<String, Object>> result = messages.stream()
-                .map(message -> mapMessage(message, senderSummaryMap))
+                .map(message -> {
+                    Map<String, Object> mapped = mapMessage(message, senderSummaryMap);
+                    mapped.put("reactions", reactionsByMsg.getOrDefault(message.getId().value(), List.of()));
+
+                    // Resolve replyTo (Messenger pattern: quoted message above reply)
+                    if (message.getReplyToId() != null) {
+                        Message replyTarget = msgById.get(message.getReplyToId());
+                        if (replyTarget != null) {
+                            UserSummary replySender = senderSummaryMap.getOrDefault(replyTarget.getSenderId(), UserSummary.unknown(replyTarget.getSenderId()));
+                            mapped.put("replyTo", Map.of(
+                                    "id", replyTarget.getId().value(),
+                                    "senderName", replySender.displayName(),
+                                    "content", replyTarget.getDisplayContent() != null ? replyTarget.getDisplayContent() : ""
+                            ));
+                        }
+                    }
+                    return mapped;
+                })
                 .toList();
 
         return ResponseEntity.ok(ApiResponse.success(result, "Danh sách tin nhắn"));
@@ -188,6 +225,14 @@ public class CommunicationControllerV3 {
                         senderSummary.displayName(),
                         senderSummary.role()
                 ));
+
+        // Set replyToId on JPA entity (Messenger quote-reply pattern)
+        if (request.replyToId() != null) {
+            messageJpaRepository.findById(result.messageId()).ifPresent(entity -> {
+                entity.setReplyToId(request.replyToId());
+                messageJpaRepository.save(entity);
+            });
+        }
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("message", Map.of(
@@ -249,6 +294,100 @@ public class CommunicationControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(Map.of("unreadCount", totalUnread), "Số tin nhắn chưa đọc"));
     }
 
+    @Operation(summary = "Thu hồi tin nhắn (15 phút)")
+    @PostMapping("/recall")
+    @Transactional
+    public ResponseEntity<ApiResponse<Map<String, Object>>> recallMessage(
+            @AuthenticationPrincipal UserJpaEntity user,
+            @RequestBody Map<String, String> request
+    ) {
+        UUID messageId = UUID.fromString(request.get("messageId"));
+        Message message = messageRepository.findById(MessageId.of(messageId))
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Tin nhắn", messageId));
+
+        if (!message.canRecall(user.getId())) {
+            boolean isOwner = message.isFrom(user.getId());
+            String reason = !isOwner ? "Bạn chỉ có thể thu hồi tin nhắn của mình"
+                    : message.isRecalled() ? "Tin nhắn đã được thu hồi"
+                    : "Đã quá 15 phút, không thể thu hồi";
+            return ResponseEntity.badRequest().body(ApiResponse.error("RECALL_DENIED", reason));
+        }
+
+        message.recall();
+        messageRepository.save(message);
+
+        // Broadcast via WebSocket
+        UUID conversationId = message.getConversationId().value();
+        try {
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("type", "MESSAGE_RECALLED");
+            payload.put("messageId", messageId);
+            payload.put("conversationId", conversationId);
+            payload.put("timestamp", java.time.Instant.now());
+            webSocketMessageService.broadcastNewMessage(conversationId, messageId,
+                    user.getId(), user.getFullName(), user.getRole().name(), null);
+        } catch (Exception e) { /* non-critical */ }
+
+        return ResponseEntity.ok(ApiResponse.success(
+                Map.of("messageId", messageId, "recalled", true),
+                "Đã thu hồi tin nhắn"));
+    }
+
+    @Operation(summary = "Thả biểu cảm vào tin nhắn")
+    @PostMapping("/reactions")
+    @Transactional
+    public ResponseEntity<ApiResponse<Map<String, Object>>> addReaction(
+            @AuthenticationPrincipal UserJpaEntity user,
+            @RequestBody Map<String, String> request
+    ) {
+        UUID messageId = UUID.fromString(request.get("messageId"));
+        String emoji = request.get("emoji");
+
+        // Find conversationId for WebSocket broadcast
+        UUID conversationId = messageRepository.findById(com.example.lms.communication.domain.model.MessageId.of(messageId))
+                .map(msg -> msg.getConversationId().value())
+                .orElse(null);
+
+        var existing = reactionRepository.findByMessageIdAndUserIdAndEmoji(messageId, user.getId(), emoji);
+        String action;
+        if (existing.isPresent()) {
+            reactionRepository.delete(existing.get());
+            action = "removed";
+        } else {
+            reactionRepository.save(new com.example.lms.communication.infrastructure.persistence.entity.MessageReactionJpaEntity(
+                    messageId, user.getId(), emoji));
+            action = "added";
+        }
+
+        // Broadcast via WebSocket so the other user sees the reaction in real-time
+        if (conversationId != null) {
+            try {
+                webSocketMessageService.broadcastReaction(conversationId, messageId, user.getId(), emoji, action);
+            } catch (Exception e) {
+                // Non-critical
+            }
+        }
+
+        String message = action.equals("added") ? "Đã thả biểu cảm" : "Đã bỏ biểu cảm";
+        return ResponseEntity.ok(ApiResponse.success(Map.of("action", action, "emoji", emoji), message));
+    }
+
+    @Operation(summary = "Lấy biểu cảm của tin nhắn")
+    @GetMapping("/reactions")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getReactions(
+            @RequestParam List<UUID> messageIds
+    ) {
+        var reactions = reactionRepository.findByMessageIdIn(messageIds);
+        List<Map<String, Object>> result = reactions.stream().map(r -> {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("messageId", r.getMessageId());
+            map.put("userId", r.getUserId());
+            map.put("emoji", r.getEmoji());
+            return map;
+        }).toList();
+        return ResponseEntity.ok(ApiResponse.success(result, "Danh sách biểu cảm"));
+    }
+
     @Operation(summary = "Check online status of users")
     @GetMapping("/online-status")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getOnlineStatus(
@@ -306,8 +445,10 @@ public class CommunicationControllerV3 {
         map.put("senderId", message.getSenderId());
         map.put("senderName", sender.displayName());
         map.put("senderRole", sender.role());
-        map.put("content", message.getContent());
+        map.put("content", message.getDisplayContent());
         map.put("isRead", message.isRead());
+        map.put("recalled", message.isRecalled());
+        map.put("replyToId", message.getReplyToId());
         map.put("createdAt", message.getCreatedAt());
         map.put("readAt", message.getReadAt());
         return map;
@@ -318,7 +459,7 @@ public class CommunicationControllerV3 {
         map.put("id", userSummary.userId());
         map.put("name", userSummary.displayName());
         map.put("role", userSummary.role());
-        map.put("avatar", null);
+        map.put("avatar", userSummary.avatarUrl());
         return map;
     }
 
@@ -329,7 +470,7 @@ public class CommunicationControllerV3 {
         return userJpaRepository.findByIdIn(userIds).stream()
                 .collect(Collectors.toMap(
                         UserJpaEntity::getId,
-                        user -> new UserSummary(user.getId(), user.getFullName(), user.getRole().name())
+                        user -> new UserSummary(user.getId(), user.getFullName(), user.getRole().name(), user.getAvatarUrl())
                 ));
     }
 
@@ -345,7 +486,8 @@ public class CommunicationControllerV3 {
             @NotNull(message = "Mã người nhận không được để trống")
             UUID recipientId,
             @NotBlank(message = "Nội dung không được để trống")
-            String content
+            String content,
+            UUID replyToId
     ) {}
 
     public record MarkAsReadRequest(
@@ -356,10 +498,11 @@ public class CommunicationControllerV3 {
     private record UserSummary(
             UUID userId,
             String displayName,
-            String role
+            String role,
+            String avatarUrl
     ) {
         private static UserSummary unknown(UUID userId) {
-            return new UserSummary(userId, "Unknown", "STUDENT");
+            return new UserSummary(userId, "Unknown", "STUDENT", null);
         }
     }
 }

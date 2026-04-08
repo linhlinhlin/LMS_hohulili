@@ -157,6 +157,12 @@ export const teacherSidebarConfig: SidebarConfig = {
       group: 'Công cụ'
     },
     {
+      label: 'Thông báo',
+      route: '/teacher/announcements',
+      icon: 'bell',
+      group: 'Công cụ'
+    },
+    {
       label: 'Lời mời',
       route: '/teacher/invitations',
       icon: 'mail',

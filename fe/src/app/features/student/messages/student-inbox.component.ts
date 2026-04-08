@@ -148,9 +148,19 @@ import {
           }
 
           @if (loading() && allConversations().length === 0) {
-            <div class="flex items-center justify-center py-12">
-              <div class="h-8 w-8 animate-spin rounded-full border-b-2 border-[#0056D2]"></div>
-              <span class="ml-3 text-slate-600">Đang tải hội thoại...</span>
+            <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+              @for (i of [1, 2, 3, 4, 5]; track i) {
+                <div class="flex items-center gap-3 border-b border-slate-100 p-4 last:border-b-0">
+                  <div class="h-12 w-12 flex-shrink-0 animate-pulse rounded-full bg-slate-200"></div>
+                  <div class="flex-1 space-y-2">
+                    <div class="flex items-center justify-between">
+                      <div class="h-4 w-32 animate-pulse rounded bg-slate-200"></div>
+                      <div class="h-3 w-16 animate-pulse rounded bg-slate-100"></div>
+                    </div>
+                    <div class="h-3 w-48 animate-pulse rounded bg-slate-100"></div>
+                  </div>
+                </div>
+              }
             </div>
           } @else if (error() && allConversations().length === 0) {
             <div class="rounded-lg border border-red-200 bg-white px-6 py-12 text-center">
@@ -292,7 +302,7 @@ export class StudentInboxComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.router.navigate(['/student/messages/new'], {
+    this.router.navigate([this.messagesBasePath + '/new'], {
       queryParams: {
         recipientId: recipient.userId,
         recipientName: recipient.displayName,
@@ -303,7 +313,11 @@ export class StudentInboxComponent implements OnInit, OnDestroy {
 
   onSelectConversation(conversationId: string): void {
     this.selectedConversationId.set(conversationId);
-    this.router.navigate(['/student/messages', conversationId]);
+    this.router.navigate([this.messagesBasePath, conversationId]);
+  }
+
+  private get messagesBasePath(): string {
+    return this.router.url.includes('/teacher/') ? '/teacher/messages' : '/student/messages';
   }
 
   private loadConversations(): void {

@@ -36,7 +36,17 @@ export interface WsUnreadCount {
   timestamp: string;
 }
 
-export type WsEvent = WsNewMessage | WsMessagesRead | WsUnreadCount;
+export interface WsReaction {
+  type: 'REACTION';
+  conversationId: string;
+  messageId: string;
+  userId: string;
+  emoji: string;
+  action: 'added' | 'removed';
+  timestamp: string;
+}
+
+export type WsEvent = WsNewMessage | WsMessagesRead | WsUnreadCount | WsReaction;
 
 @Injectable({
   providedIn: 'root',
@@ -57,6 +67,7 @@ export class WebSocketService implements OnDestroy {
 
   /** Subjects for different event types */
   private readonly conversationMessages$ = new Map<string, Subject<WsNewMessage>>();
+  private readonly conversationReactions$ = new Map<string, Subject<WsReaction>>();
   private readonly notifications$ = new Subject<WsUnreadCount>();
   private readonly allEvents$ = new Subject<WsEvent>();
 
@@ -185,6 +196,16 @@ export class WebSocketService implements OnDestroy {
     }
   }
 
+  /**
+   * Subscribe to reaction events for a conversation.
+   */
+  subscribeToReactions(conversationId: string): Observable<WsReaction> {
+    if (!this.conversationReactions$.has(conversationId)) {
+      this.conversationReactions$.set(conversationId, new Subject<WsReaction>());
+    }
+    return this.conversationReactions$.get(conversationId)!.asObservable();
+  }
+
   private doSubscribe(destination: string, conversationId: string): void {
     if (!this.client?.active) return;
 
@@ -197,6 +218,11 @@ export class WebSocketService implements OnDestroy {
           const subject = this.conversationMessages$.get(conversationId);
           if (subject) {
             subject.next(payload as WsNewMessage);
+          }
+        } else if (payload.type === 'REACTION') {
+          const subject = this.conversationReactions$.get(conversationId);
+          if (subject) {
+            subject.next(payload as WsReaction);
           }
         }
       } catch (e) {

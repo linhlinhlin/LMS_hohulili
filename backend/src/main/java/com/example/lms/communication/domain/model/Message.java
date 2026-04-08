@@ -14,12 +14,12 @@ import java.util.UUID;
 public class Message {
 
     // Manual boilerplate
-    public Message(MessageId id, ConversationId conversationId, UUID senderId, String content, boolean isRead, Instant createdAt, Instant readAt) {
-        this.id = id; this.conversationId = conversationId; this.senderId = senderId; this.content = content; this.isRead = isRead; this.createdAt = createdAt; this.readAt = readAt;
+    public Message(MessageId id, ConversationId conversationId, UUID senderId, String content, boolean isRead, Instant createdAt, Instant readAt, boolean recalled, Instant recalledAt) {
+        this.id = id; this.conversationId = conversationId; this.senderId = senderId; this.content = content; this.isRead = isRead; this.createdAt = createdAt; this.readAt = readAt; this.recalled = recalled; this.recalledAt = recalledAt;
     }
     public static Builder builder() { return new Builder(); }
     public static class Builder {
-        private MessageId id; private ConversationId conversationId; private UUID senderId; private String content; private boolean isRead; private Instant createdAt; private Instant readAt;
+        private MessageId id; private ConversationId conversationId; private UUID senderId; private String content; private boolean isRead; private Instant createdAt; private Instant readAt; private boolean recalled; private Instant recalledAt;
         public Builder id(MessageId id) { this.id = id; return this; }
         public Builder conversationId(ConversationId conversationId) { this.conversationId = conversationId; return this; }
         public Builder senderId(UUID senderId) { this.senderId = senderId; return this; }
@@ -27,10 +27,14 @@ public class Message {
         public Builder isRead(boolean isRead) { this.isRead = isRead; return this; }
         public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
         public Builder readAt(Instant readAt) { this.readAt = readAt; return this; }
-        public Message build() { return new Message(id, conversationId, senderId, content, isRead, createdAt, readAt); }
+        public Builder recalled(boolean recalled) { this.recalled = recalled; return this; }
+        public Builder recalledAt(Instant recalledAt) { this.recalledAt = recalledAt; return this; }
+        public Message build() { return new Message(id, conversationId, senderId, content, isRead, createdAt, readAt, recalled, recalledAt); }
     }
 
     private static final int MAX_CONTENT_LENGTH = 5000;
+
+    private static final int RECALL_WINDOW_MINUTES = 15;
 
     private MessageId id;
     private ConversationId conversationId;
@@ -39,15 +43,24 @@ public class Message {
     private boolean isRead;
     private Instant createdAt;
     private Instant readAt;
-    
+    private boolean recalled;
+    private Instant recalledAt;
+    private java.util.UUID replyToId;
+
     // Getters
     public MessageId getId() { return id; }
     public ConversationId getConversationId() { return conversationId; }
     public UUID getSenderId() { return senderId; }
     public String getContent() { return content; }
+    /** Get content for display — returns null if recalled */
+    public String getDisplayContent() { return recalled ? null : content; }
     public boolean isRead() { return isRead; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getReadAt() { return readAt; }
+    public boolean isRecalled() { return recalled; }
+    public Instant getRecalledAt() { return recalledAt; }
+    public java.util.UUID getReplyToId() { return replyToId; }
+    public void setReplyToId(java.util.UUID replyToId) { this.replyToId = replyToId; }
 
     // ============ Factory Methods ============
 
@@ -77,7 +90,9 @@ public class Message {
             String content,
             boolean isRead,
             Instant createdAt,
-            Instant readAt
+            Instant readAt,
+            boolean recalled,
+            Instant recalledAt
     ) {
         return Message.builder()
             .id(id)
@@ -87,6 +102,8 @@ public class Message {
             .isRead(isRead)
             .createdAt(createdAt)
             .readAt(readAt)
+            .recalled(recalled)
+            .recalledAt(recalledAt)
             .build();
     }
 
@@ -116,6 +133,25 @@ public class Message {
      */
     public boolean isFrom(UUID userId) {
         return this.senderId.equals(userId);
+    }
+
+    /**
+     * Check if this message can be recalled (within 15-minute window).
+     */
+    public boolean canRecall(UUID requesterId) {
+        if (!this.senderId.equals(requesterId)) return false;
+        if (this.recalled) return false;
+        return Instant.now().isBefore(this.createdAt.plusSeconds(RECALL_WINDOW_MINUTES * 60L));
+    }
+
+    /**
+     * Recall (unsend) this message. Content becomes null, recalled=true.
+     */
+    public void recall() {
+        if (this.recalled) return;
+        this.recalled = true;
+        this.recalledAt = Instant.now();
+        this.content = null;
     }
 
     // ============ Validation ============

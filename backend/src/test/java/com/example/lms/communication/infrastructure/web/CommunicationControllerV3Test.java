@@ -86,7 +86,9 @@ class CommunicationControllerV3Test {
                 "Test message",
                 isRead,
                 Instant.now(),
-                isRead ? Instant.now() : null
+                isRead ? Instant.now() : null,
+                false,
+                null
         );
     }
 
@@ -212,7 +214,7 @@ class CommunicationControllerV3Test {
             when(sendMessageUseCase.execute(any())).thenReturn(
                     new SendMessageUseCaseV3.SendMessageResult(messageId, conversationId));
 
-            var response = controller.sendMessage(userA, new CommunicationControllerV3.SendMessageRequest(userBId, "Xin chao"));
+            var response = controller.sendMessage(userA, new CommunicationControllerV3.SendMessageRequest(userBId, "Xin chao", null));
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getBody()).isNotNull();
@@ -225,7 +227,7 @@ class CommunicationControllerV3Test {
         @Test
         @DisplayName("rejects self messaging")
         void rejectsSelfMessaging() {
-            var response = controller.sendMessage(userA, new CommunicationControllerV3.SendMessageRequest(userAId, "Hello me"));
+            var response = controller.sendMessage(userA, new CommunicationControllerV3.SendMessageRequest(userAId, "Hello me", null));
 
             assertThat(response.getStatusCode().value()).isEqualTo(400);
             verify(sendMessageUseCase, never()).execute(any());
@@ -238,7 +240,7 @@ class CommunicationControllerV3Test {
             when(userA.getOrganizationId()).thenReturn(UUID.randomUUID());
             when(messageAuthorizationService.canSendMessage(any(), eq(unrelatedUserId))).thenReturn(false);
 
-            var response = controller.sendMessage(userA, new CommunicationControllerV3.SendMessageRequest(unrelatedUserId, "Hello stranger"));
+            var response = controller.sendMessage(userA, new CommunicationControllerV3.SendMessageRequest(unrelatedUserId, "Hello stranger", null));
 
             assertThat(response.getStatusCode().value()).isEqualTo(403);
             assertThat(response.getBody()).isNotNull();

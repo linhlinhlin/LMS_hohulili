@@ -72,25 +72,33 @@ public class MessageRepositoryAdapter implements MessageRepository {
     // ============ Mapping Methods ============
 
     private MessageJpaEntity toEntity(Message message) {
-        return MessageJpaEntity.builder()
+        MessageJpaEntity e = MessageJpaEntity.builder()
             .id(message.getId().value())
             .conversationId(message.getConversationId().value())
             .senderId(message.getSenderId())
             .content(message.getContent())
             .isRead(message.isRead())
             .build();
+        e.setRecalled(message.isRecalled());
+        e.setRecalledAt(message.getRecalledAt());
+        e.setReplyToId(message.getReplyToId());
+        return e;
     }
 
     private Message toDomain(MessageJpaEntity entity) {
-        return Message.reconstitute(
+        Message msg = Message.reconstitute(
             MessageId.of(entity.getId()),
             ConversationId.of(entity.getConversationId()),
             entity.getSenderId(),
             entity.getContent(),
             entity.getIsRead() != null && entity.getIsRead(),
             entity.getSentAt(),
-            entity.getReadAt()
+            entity.getReadAt(),
+            entity.getRecalled() != null && entity.getRecalled(),
+            entity.getRecalledAt()
         );
+        msg.setReplyToId(entity.getReplyToId());
+        return msg;
     }
 }
 

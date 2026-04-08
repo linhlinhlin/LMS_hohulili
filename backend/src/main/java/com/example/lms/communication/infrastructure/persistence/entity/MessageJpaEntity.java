@@ -42,7 +42,7 @@ public class MessageJpaEntity {
     @Column(name = "sender_id", nullable = false)
     private UUID senderId;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
+    @Column(columnDefinition = "TEXT")
     private String content;
 
     @Column(name = "is_read")
@@ -54,6 +54,15 @@ public class MessageJpaEntity {
     @CreationTimestamp
     @Column(name = "sent_at", updatable = false)
     private Instant sentAt;
+
+    @Column(nullable = false)
+    private Boolean recalled = false;
+
+    @Column(name = "recalled_at")
+    private Instant recalledAt;
+
+    @Column(name = "reply_to_id")
+    private UUID replyToId;
 
     // Getters/Setters
     public UUID getId() { return id; }
@@ -70,4 +79,10 @@ public class MessageJpaEntity {
     public void setReadAt(Instant readAt) { this.readAt = readAt; }
     public Instant getSentAt() { return sentAt; }
     public void setSentAt(Instant sentAt) { this.sentAt = sentAt; }
+    public Boolean getRecalled() { return recalled; }
+    public void setRecalled(Boolean recalled) { this.recalled = recalled; }
+    public Instant getRecalledAt() { return recalledAt; }
+    public void setRecalledAt(Instant recalledAt) { this.recalledAt = recalledAt; }
+    public UUID getReplyToId() { return replyToId; }
+    public void setReplyToId(UUID replyToId) { this.replyToId = replyToId; }
 }

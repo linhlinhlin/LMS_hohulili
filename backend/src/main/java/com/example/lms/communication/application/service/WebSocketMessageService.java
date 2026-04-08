@@ -75,6 +75,26 @@ public class WebSocketMessageService {
     }
 
     /**
+     * Broadcast an emoji reaction event to all subscribers of a conversation.
+     */
+    public void broadcastReaction(UUID conversationId, UUID messageId, UUID userId,
+                                   String emoji, String action) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("type", "REACTION");
+        payload.put("conversationId", conversationId);
+        payload.put("messageId", messageId);
+        payload.put("userId", userId);
+        payload.put("emoji", emoji);
+        payload.put("action", action);
+        payload.put("timestamp", Instant.now());
+
+        messagingTemplate.convertAndSend(
+                "/topic/conversation/" + conversationId, payload);
+        log.debug("Broadcast REACTION {} {} on message {} in conversation {}",
+                action, emoji, messageId, conversationId);
+    }
+
+    /**
      * Broadcast a new announcement to all subscribers of a course.
      */
     public void broadcastAnnouncement(UUID courseId, Map<String, Object> announcementPayload) {

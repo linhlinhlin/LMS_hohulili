@@ -178,10 +178,10 @@ export const teacherRoutes: Routes = [
         title: 'Tin nhắn'
       },
 
-      // Announcements — teacher creates announcements for students
+      // Announcements — teacher manages course announcements
       {
         path: 'announcements',
-        loadComponent: () => import('./announcements/create-announcement.component').then(m => m.CreateAnnouncementComponent),
+        loadComponent: () => import('./announcements/teacher-announcements.component').then(m => m.TeacherAnnouncementsComponent),
         title: 'Thông báo'
       },
 

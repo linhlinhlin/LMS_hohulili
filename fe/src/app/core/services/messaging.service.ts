@@ -22,6 +22,7 @@ export interface SendMessageRequest {
   recipientId: string;
   content: string;
   assignmentId?: string;
+  replyToId?: string;
 }
 
 export interface SendMessageResponse {
@@ -79,6 +80,10 @@ interface RawMessage {
   senderRole?: string;
   content?: string;
   isRead?: boolean;
+  reactions?: Array<{ userId: string; emoji: string }>;
+  recalled?: boolean;
+  replyToId?: string;
+  replyTo?: { id: string; senderName: string; content: string };
   createdAt?: string;
   readAt?: string | null;
 }
@@ -319,28 +324,39 @@ export class MessagingService implements OnDestroy {
     const previousMessages = this._messages();
     const previousConversations = this._conversations();
 
+    // Determine which conversation(s) these messages belong to
+    const affectedConversationIds = new Set(
+      previousMessages
+        .filter((m) => messageIds.includes(m.id))
+        .map((m) => m.conversationId)
+    );
+    // Fallback: if messages aren't in local state, use currentConversation
+    if (affectedConversationIds.size === 0 && this._currentConversation()?.id) {
+      affectedConversationIds.add(this._currentConversation()!.id);
+    }
+
     return this.http.post<void>(`${this.apiUrl}/mark-read`, { messageIds }).pipe(
       tap(() => {
+        // Update messages as read
         this._messages.update((messages) =>
           messages.map((message) =>
             messageIds.includes(message.id) ? { ...message, isRead: true } : message
           )
         );
 
-        const currentConversationId = this._currentConversation()?.id;
-        if (currentConversationId) {
+        // Decrement unread count for ALL affected conversations (not just currentConversation)
+        if (affectedConversationIds.size > 0) {
           this._conversations.update((conversations) =>
-            conversations.map((conversation) =>
-              conversation.id === currentConversationId
-                ? {
-                    ...conversation,
-                    unreadCount: Math.max(
-                      0,
-                      conversation.unreadCount - messageIds.length
-                    ),
-                  }
-                : conversation
-            )
+            conversations.map((conversation) => {
+              if (!affectedConversationIds.has(conversation.id)) return conversation;
+              const countInThisConv = messageIds.filter((id) =>
+                previousMessages.some((m) => m.id === id && m.conversationId === conversation.id)
+              ).length || messageIds.length;
+              return {
+                ...conversation,
+                unreadCount: Math.max(0, conversation.unreadCount - countInThisConv),
+              };
+            })
           );
         }
       }),
@@ -488,6 +504,10 @@ export class MessagingService implements OnDestroy {
       senderRole: this.normalizeRole(raw.senderRole),
       content: raw.content ?? '',
       isRead: Boolean(raw.isRead),
+      reactions: raw.reactions ?? undefined,
+      recalled: Boolean(raw.recalled),
+      replyToId: raw.replyToId ?? undefined,
+      replyTo: raw.replyTo ?? undefined,
       createdAt: raw.createdAt ?? new Date().toISOString(),
       readAt: raw.readAt ?? undefined,
     };

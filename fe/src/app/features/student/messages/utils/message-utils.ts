@@ -21,6 +21,9 @@ export interface MessageAttachment {
   thumbnailUrl?: string;
 }
 
+/** Message delivery status — WhatsApp/Telegram pattern */
+export type MessageStatus = 'sending' | 'sent' | 'read' | 'failed';
+
 export interface Message {
   id: string;
   conversationId: string;
@@ -40,8 +43,22 @@ export interface Message {
    */
   attachments?: MessageAttachment[];
   isRead: boolean;
+  /** Delivery status for own messages: sending → sent → read */
+  status?: MessageStatus;
+  /** Emoji reactions on this message (Slack/Messenger pattern) */
+  reactions?: MessageReaction[];
+  /** Message has been recalled/unsent (Messenger pattern) */
+  recalled?: boolean;
+  /** Reply reference (Messenger quote-reply) */
+  replyToId?: string;
+  replyTo?: { id: string; senderName: string; content: string };
   createdAt: string;
   readAt?: string;
+}
+
+export interface MessageReaction {
+  userId: string;
+  emoji: string;
 }
 
 export interface Conversation {
@@ -68,12 +85,15 @@ export interface ConversationListItem {
   otherParticipant: {
     id: string;
     name: string;
+    role?: string;
     avatar?: string;
   };
   lastMessagePreview: string;
   lastMessageTime: string;
   unreadCount: number;
   isArchived: boolean;
+  /** True if the last message was sent by current user */
+  isOwnLastMessage?: boolean;
 }
 
 /**
@@ -242,12 +262,15 @@ export function toConversationListItem(
 ): ConversationListItem {
   const otherParticipant = getOtherParticipant(conversation, currentUserId);
 
+  const isOwnLastMessage = conversation.lastMessage?.senderId === currentUserId;
+
   return {
     conversationId: conversation.id,
     otherParticipant: otherParticipant
       ? {
           id: otherParticipant.id,
           name: otherParticipant.name,
+          role: otherParticipant.role,
           avatar: otherParticipant.avatar,
         }
       : { id: '', name: 'Unknown', avatar: undefined },
@@ -257,6 +280,7 @@ export function toConversationListItem(
     lastMessageTime: conversation.lastMessage?.createdAt || conversation.updatedAt,
     unreadCount: conversation.unreadCount,
     isArchived: conversation.isArchived,
+    isOwnLastMessage,
   };
 }
 
