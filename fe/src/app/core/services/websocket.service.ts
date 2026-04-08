@@ -8,7 +8,6 @@
 import { Injectable, inject, signal, computed, OnDestroy, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 import { Subject, Observable } from 'rxjs';
 import { AuthService } from './auth.service';
 
@@ -71,13 +70,13 @@ export class WebSocketService implements OnDestroy {
     const token = this.auth.getToken();
     if (!token) return;
 
-    // Determine WebSocket URL based on current location
-    const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+    // Native WebSocket URL — no SockJS needed (SOTA: Coursera/Slack pattern)
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
-    const wsUrl = `${protocol}//${host}/ws`;
+    const brokerURL = `${wsProtocol}//${host}/ws`;
 
     this.client = new Client({
-      webSocketFactory: () => new SockJS(wsUrl),
+      brokerURL,
       connectHeaders: {
         Authorization: `Bearer ${token}`,
       },

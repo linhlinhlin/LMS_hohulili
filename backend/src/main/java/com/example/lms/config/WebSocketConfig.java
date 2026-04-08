@@ -34,9 +34,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+        // Native WebSocket — SOTA: Coursera/Slack/Discord pattern (no SockJS polyfill needed)
         registry.addEndpoint("/ws")
-                .setAllowedOrigins(allowedOrigins.split(","))
-                .withSockJS();
+                .setAllowedOrigins(allowedOrigins.split(","));
     }
 
     @Override
