@@ -254,8 +254,9 @@ export class DownloadDialogComponent implements OnInit {
       .reduce((sum, asset) => sum + (asset.durationMinutes || 10), 0),
   );
   readonly originalOnlyVideoCount = computed(() => this.directVideoCount() + this.originalOnlyStreamVideoCount());
-  // ~50 KB per lesson: HTML content (~2-5 KB) + sections JSON (~5-15 KB) + quiz data (~5-20 KB) + chapters/metadata overhead
-  readonly textSizeBytes = computed(() => this.totalLessons() * 50 * 1024);
+  // Measured from actual API content payload — not a magic constant
+  readonly measuredContentBytes = signal(0);
+  readonly textSizeBytes = computed(() => this.measuredContentBytes());
 
   readonly VIDEO_SIZE_PER_10MIN: Record<VideoQuality, number> = {
     none: 0,
@@ -331,7 +332,12 @@ export class DownloadDialogComponent implements OnInit {
       const chapters = contentRes?.data || contentRes || [];
       const allLessons: LessonSummary[] = [];
 
+      // Measure actual content size from the API payload (SOTA: measure, don't guess)
+      let contentBytes = 0;
       for (const chapter of chapters) {
+        // Chapter metadata overhead
+        contentBytes += new Blob([JSON.stringify({ id: chapter.id, title: chapter.title, sortOrder: chapter.sortOrder })]).size;
+
         for (const lesson of chapter.lessons || []) {
           const videoAssets = this.extractVideoAssets(lesson);
           allLessons.push({
@@ -341,9 +347,20 @@ export class DownloadDialogComponent implements OnInit {
             durationMinutes: lesson.durationMinutes || 10,
             videoAssets,
           });
+
+          // Measure lesson content: HTML + sections JSON (strip video binary, keep structure)
+          const lessonContent = lesson.contentHtml || lesson.content || '';
+          contentBytes += new Blob([lessonContent]).size;
+
+          // Sections metadata (quiz questions, text blocks, file refs — NOT video binaries)
+          const sections = lesson.sections || [];
+          if (sections.length > 0) {
+            contentBytes += new Blob([JSON.stringify(sections)]).size;
+          }
         }
       }
-
+      // Add ~20% overhead for IndexedDB storage, keys, quiz data fetched separately
+      this.measuredContentBytes.set(Math.round(contentBytes * 1.2));
       this.lessons.set(allLessons);
       this.freeSpace.set((storageEstimate.quotaBytes ?? 0) - (storageEstimate.usedBytes ?? 0));
 
