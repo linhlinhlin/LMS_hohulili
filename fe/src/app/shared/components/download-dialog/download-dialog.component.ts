@@ -56,7 +56,7 @@ interface QualityOption {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" (click)="onBackdropClick($event)">
-      <div class="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-xl" (click)="$event.stopPropagation()">
+      <div class="w-full max-w-md overflow-hidden rounded-lg bg-white shadow-xl" (click)="$event.stopPropagation()">
         <div class="px-6 pb-4 pt-6">
           <h3 class="text-lg font-semibold leading-tight text-gray-900">
             Tải về: "{{ courseTitle() }}"
@@ -254,7 +254,8 @@ export class DownloadDialogComponent implements OnInit {
       .reduce((sum, asset) => sum + (asset.durationMinutes || 10), 0),
   );
   readonly originalOnlyVideoCount = computed(() => this.directVideoCount() + this.originalOnlyStreamVideoCount());
-  readonly textSizeBytes = computed(() => this.totalLessons() * 1.5 * 1024 * 1024);
+  // ~50 KB per lesson: HTML content (~2-5 KB) + sections JSON (~5-15 KB) + quiz data (~5-20 KB) + chapters/metadata overhead
+  readonly textSizeBytes = computed(() => this.totalLessons() * 50 * 1024);
 
   readonly VIDEO_SIZE_PER_10MIN: Record<VideoQuality, number> = {
     none: 0,
