@@ -9,26 +9,19 @@
     </app-loading>
     <div class="min-h-screen bg-slate-50">
       <!-- Analytics Header -->
-      <div class="bg-white shadow-xl border-b border-gray-200">
-        <div class="max-w-[1400px] mx-auto px-4 sm:px-6 py-6">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-4">
-              <div class="w-12 h-12 bg-[#0056D2] rounded-lg flex items-center justify-center shadow-sm">
-                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path>
-                </svg>
-              </div>
-              <div>
-                <h1 class="text-2xl font-bold text-gray-900">Phân tích Học tập</h1>
-                <p class="text-gray-600">Thống kê chi tiết về quá trình học tập của bạn</p>
-              </div>
+      <div class="bg-white border-b border-gray-200">
+        <div class="max-w-[1400px] mx-auto px-4 sm:px-6 py-5">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h1 class="text-2xl font-bold text-gray-900">Phân tích học tập</h1>
+              <p class="text-sm text-gray-500 mt-0.5">Thống kê chi tiết về quá trình học tập của bạn</p>
             </div>
 
             <!-- Time Period Selector -->
-            <div class="flex items-center space-x-4">
+            <div class="flex items-center gap-3">
               <select [(ngModel)]="selectedPeriod"
                       (ngModelChange)="updateAnalytics()"
-                      class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
+                      class="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2]">
                 <option value="7">7 ngày qua</option>
                 <option value="30">30 ngày qua</option>
                 <option value="90">3 tháng qua</option>
@@ -36,9 +29,9 @@
               </select>
 
               <button (click)="exportReport()"
-                      class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
-                <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                      class="px-4 py-2 text-sm font-medium bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
+                <svg class="w-4 h-4 inline mr-1.5 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                 </svg>
                 Xuất báo cáo
               </button>
@@ -51,7 +44,7 @@
         <!-- Key Metrics -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <!-- Total Study Time -->
-          <div class="bg-white rounded-lg shadow-sm p-6 hover:shadow-xl transition-shadow">
+          <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
             <div class="flex items-center justify-between">
               <div>
                 <p class="text-sm font-medium text-gray-600 mb-1">Tổng giờ học</p>
@@ -67,7 +60,7 @@
           </div>
 
           <!-- Courses Completed -->
-          <div class="bg-white rounded-lg shadow-sm p-6 hover:shadow-xl transition-shadow">
+          <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
             <div class="flex items-center justify-between">
               <div>
                 <p class="text-sm font-medium text-gray-600 mb-1">Khóa học hoàn thành</p>
@@ -83,7 +76,7 @@
           </div>
 
           <!-- Average Score -->
-          <div class="bg-white rounded-lg shadow-sm p-6 hover:shadow-xl transition-shadow">
+          <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
             <div class="flex items-center justify-between">
               <div>
                 <p class="text-sm font-medium text-gray-600 mb-1">Điểm trung bình</p>
@@ -99,7 +92,7 @@
           </div>
 
           <!-- Learning Streak -->
-          <div class="bg-white rounded-lg shadow-sm p-6 hover:shadow-xl transition-shadow">
+          <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
             <div class="flex items-center justify-between">
               <div>
                 <p class="text-sm font-medium text-gray-600 mb-1">Chuỗi học tập</p>
@@ -117,19 +110,19 @@
 
         <!-- Quick Stats Row -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div class="bg-white rounded-lg shadow p-4 text-center">
+          <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4 text-center">
             <p class="text-2xl font-bold text-[#0056D2]">{{ analytics().totalQuizAttempts }}</p>
             <p class="text-sm text-gray-500">Quiz đã làm</p>
           </div>
-          <div class="bg-white rounded-lg shadow p-4 text-center">
+          <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4 text-center">
             <p class="text-2xl font-bold text-emerald-600">{{ analytics().totalAssignmentsSubmitted }}</p>
             <p class="text-sm text-gray-500">Bài tập đã nộp</p>
           </div>
-          <div class="bg-white rounded-lg shadow p-4 text-center">
+          <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4 text-center">
             <p class="text-2xl font-bold text-amber-600">{{ analytics().certificatesEarned }}</p>
             <p class="text-sm text-gray-500">Chứng chỉ</p>
           </div>
-          <div class="bg-white rounded-lg shadow p-4 text-center">
+          <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4 text-center">
             <p class="text-2xl font-bold text-[#0056D2]">{{ analytics().averageCompletionPercent }}%</p>
             <p class="text-sm text-gray-500">Tiến độ TB</p>
           </div>
@@ -138,8 +131,8 @@
         <!-- Main Analytics Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <!-- Performance Trend -->
-          <div class="lg:col-span-2 bg-white rounded-lg shadow-sm p-6">
-            <h3 class="text-xl font-bold text-gray-900 mb-6">Xu hướng Hiệu suất</h3>
+          <div class="lg:col-span-2 bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+            <h3 class="text-base font-semibold text-gray-900 mb-4">Xu hướng hiệu suất</h3>
             @if (analytics().performanceTrend.length > 0) {
               <div class="space-y-3">
                 @for (item of analytics().performanceTrend; track item.date) {
@@ -168,8 +161,17 @@
           </div>
 
           <!-- Learning Goals -->
-          <div class="bg-white rounded-lg shadow-sm p-6">
-            <h3 class="text-xl font-bold text-gray-900 mb-6">Mục tiêu Học tập</h3>
+          <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+            <h3 class="text-base font-semibold text-gray-900 mb-4">Mục tiêu học tập</h3>
+            @if (learningGoals().length === 0) {
+              <div class="py-8 text-center">
+                <svg class="w-10 h-10 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5"/>
+                </svg>
+                <p class="text-sm text-gray-500">Chưa có mục tiêu học tập</p>
+                <p class="text-xs text-gray-400 mt-1">Tính năng đặt mục tiêu sắp ra mắt</p>
+              </div>
+            } @else {
             <div class="space-y-4">
               @for (goal of learningGoals(); track goal.id) {
                 <div class="p-4 bg-gray-50 rounded-lg">
@@ -189,6 +191,7 @@
                 </div>
               }
             </div>
+            }
           </div>
         </div>
       </div>

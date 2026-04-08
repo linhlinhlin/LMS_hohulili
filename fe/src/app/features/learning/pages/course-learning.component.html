@@ -27,7 +27,7 @@
     [class.w-[85vw]]="isMobileView()"
     [class.max-w-[320px]]="isMobileView()"
     [class.z-50]="isMobileView()"
-    [class.shadow-xl]="isMobileView()">
+    [class.shadow-lg]="isMobileView()">
 
     <!-- Sidebar Header -->
     <div class="px-4 py-4 border-b border-gray-200">
@@ -79,9 +79,17 @@
     <!-- Course Navigation -->
     <div class="flex-1 overflow-y-auto" style="scrollbar-width: thin;">
       @if (isLoadingCourse()) {
-      <div class="flex flex-col items-center justify-center py-12 text-slate-400">
-        <div class="w-8 h-8 border-[3px] border-slate-200 border-t-[#0056D2] rounded-full animate-spin mb-3"></div>
-        <p class="text-sm">Đang tải nội dung...</p>
+      <div class="px-4 py-4 space-y-4 animate-pulse">
+        @for (_ of [1,2,3]; track $index) {
+          <div>
+            <div class="h-4 w-3/4 rounded bg-gray-200 mb-3"></div>
+            <div class="space-y-2 pl-4">
+              <div class="h-3 w-5/6 rounded bg-gray-100"></div>
+              <div class="h-3 w-4/6 rounded bg-gray-100"></div>
+              <div class="h-3 w-3/6 rounded bg-gray-100"></div>
+            </div>
+          </div>
+        }
       </div>
       } @else if (courseError()) {
       <div class="flex flex-col items-center justify-center py-12 text-red-500 px-4">
@@ -223,7 +231,7 @@
       }
 
       @if (staleOfflineBanner(); as staleBanner) {
-      <div class="mx-4 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
+      <div class="mx-4 mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
             <p class="text-sm font-semibold">{{ staleBanner.title }}</p>
@@ -239,9 +247,14 @@
       }
 
       @if (isLoadingLesson()) {
-      <div class="flex flex-col items-center justify-center py-20 text-slate-400">
-        <div class="w-10 h-10 border-[3px] border-slate-200 border-t-[#0056D2] rounded-full animate-spin mb-4"></div>
-        <p class="text-sm">Đang tải bài học...</p>
+      <div class="p-6 space-y-6 animate-pulse">
+        <div class="h-6 w-2/3 rounded bg-gray-200"></div>
+        <div class="aspect-video w-full rounded-lg bg-gray-200"></div>
+        <div class="space-y-3">
+          <div class="h-4 w-full rounded bg-gray-100"></div>
+          <div class="h-4 w-5/6 rounded bg-gray-100"></div>
+          <div class="h-4 w-3/4 rounded bg-gray-100"></div>
+        </div>
       </div>
       } @else if (lessonError()) {
       <div class="flex flex-col items-center justify-center py-20 px-6 text-center">
@@ -289,7 +302,7 @@
           <span class="hidden sm:inline text-sm font-medium">Bài trước</span>
         </button>
 
-        <button class="px-6 py-2.5 rounded shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm font-bold tracking-wide text-white hover:brightness-110"
+        <button class="px-6 py-2.5 rounded-lg shadow-sm hover:shadow transition-all flex items-center gap-2 text-sm font-bold tracking-wide text-white hover:brightness-110"
           [class.bg-green-600]="learningService.isLessonCompleted(currentLesson()!.id)()"
           [class.bg-[#0056D2]]="!learningService.isLessonCompleted(currentLesson()!.id)()"
           (click)="onMarkComplete()">

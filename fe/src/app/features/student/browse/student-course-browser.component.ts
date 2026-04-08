@@ -15,7 +15,7 @@ import { environment } from '../../../../environments/environment';
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="px-4 sm:px-6 py-6 max-w-[1400px] mx-auto">
+    <div class="min-h-screen bg-slate-50 px-4 sm:px-6 py-6 max-w-[1400px] mx-auto">
       <!-- Header -->
       <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-900">Khám phá khóa học</h1>
@@ -33,7 +33,7 @@ import { environment } from '../../../../environments/environment';
             [value]="searchQuery()"
             (input)="onSearchInput($event)"
             placeholder="Tìm kiếm khóa học, giảng viên..."
-            class="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2] outline-none transition-shadow" />
+            class="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-full text-sm focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2] outline-none transition-shadow" />
         </div>
       </div>
 
@@ -89,7 +89,7 @@ import { environment } from '../../../../environments/environment';
           <button (click)="modeFilter.set('')"
             class="px-2.5 py-1 rounded-full text-xs font-medium border transition-colors"
             [class]="!modeFilter()
-              ? 'bg-slate-800 text-white border-slate-800'
+              ? 'bg-[#0056D2] text-white border-[#0056D2]'
               : 'bg-white text-slate-600 border-slate-300 hover:border-slate-400'">
             Tất cả
           </button>
@@ -151,7 +151,7 @@ import { environment } from '../../../../environments/environment';
       @if (isLoading()) {
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           @for (i of [1,2,3,4,5,6,7,8]; track i) {
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-pulse">
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden animate-pulse">
               <div class="h-40 bg-gray-200"></div>
               <div class="p-4 space-y-3">
                 <div class="h-4 bg-gray-200 rounded w-3/4"></div>
@@ -198,7 +198,7 @@ import { environment } from '../../../../environments/environment';
         } @else {
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             @for (course of filteredCourses(); track course.id) {
-              <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200 group cursor-pointer flex flex-col"
+              <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200 group cursor-pointer flex flex-col"
                    (click)="viewDetail(course.id)">
                 <!-- Thumbnail -->
                 <div class="relative h-40 overflow-hidden flex-shrink-0">
@@ -322,7 +322,7 @@ import { environment } from '../../../../environments/environment';
                   <span class="px-2 py-2 text-sm text-gray-400">...</span>
                 } @else {
                   <button (click)="goToPage(p)"
-                    class="w-9 h-9 text-sm rounded-lg border transition-colors"
+                    class="w-11 h-11 sm:w-9 sm:h-9 text-sm rounded-lg border transition-colors"
                     [class]="currentPage() === p
                       ? 'bg-[#0056D2] text-white border-[#0056D2]'
                       : 'border-gray-300 hover:bg-gray-50 text-gray-700'">

@@ -87,7 +87,7 @@
       }
 
       @if (section.type === 'QUIZ') {
-      <div class="p-6 border border-amber-200 bg-amber-50 rounded-xl text-center">
+      <div class="p-6 border border-amber-200 bg-amber-50 rounded-lg text-center">
         <span class="material-symbols-outlined text-4xl text-amber-600 mb-2">assignment</span>
         <h3 class="text-lg font-bold text-slate-800 mb-1">{{ section.title }}</h3>
         @if (quizPresentation(); as quizMeta) {
@@ -120,7 +120,7 @@
       }
 
       @if (section.type === 'ASSIGNMENT' && section.content) {
-      <div class="p-4 border border-[#0056D2]/20 bg-[#0056D2]/5 rounded-xl">
+      <div class="p-4 border border-[#0056D2]/20 bg-[#0056D2]/5 rounded-lg">
         <div class="flex items-center gap-2 mb-3">
           <span class="material-symbols-outlined text-[#0056D2]">edit_note</span>
           <h3 class="text-base font-bold text-slate-800">Bài tập: {{ section.title }}</h3>
@@ -137,7 +137,7 @@
 
     <!-- Quiz Button (non-section QUIZ lessons) -->
     @if ((hasQuiz() || lesson().lessonType === LessonType.QUIZ) && !hasSections()) {
-    <div class="p-6 border border-amber-200 bg-amber-50 rounded-xl text-center mt-6 mb-6">
+    <div class="p-6 border border-amber-200 bg-amber-50 rounded-lg text-center mt-6 mb-6">
       <span class="material-symbols-outlined text-4xl text-amber-600 mb-2">assignment</span>
       @if (quizPresentation(); as quizMeta) {
       <h3 class="text-lg font-bold text-slate-800 mb-1">{{ quizMeta.label }}</h3>
@@ -258,7 +258,7 @@
       @if (currentSection(); as section) {
       <!-- VIDEO SECTION -->
       @if (section.type === 'VIDEO') {
-      <div class="relative aspect-video w-full rounded-xl overflow-hidden shadow-lg bg-black border border-gray-100 mb-6">
+      <div class="relative aspect-video w-full rounded-lg overflow-hidden shadow-sm bg-black border border-gray-100 mb-6">
         @if (!section.streamVideoUid && isYouTubeUrl(section.videoUrl || lesson().videoUrl)) {
         <app-youtube-player [videoUrl]="(section.videoUrl || lesson().videoUrl)!" [lessonId]="lesson().id" [sectionId]="section.id"
           (videoEnded)="onVideoEnd()" />
@@ -287,7 +287,7 @@
       <div class="space-y-3">
         <!-- PDF Viewer - Resized (20% reduction from 600/800px) -->
         @if (safePdfUrl()) {
-        <div #pdfContainer class="relative w-full border border-gray-200 rounded-xl overflow-hidden bg-slate-100 shadow-sm group">
+        <div #pdfContainer class="relative w-full border border-gray-200 rounded-lg overflow-hidden bg-slate-100 shadow-sm group">
           
           <!-- PDF Toolbar (Floating/Sticky) -->
           <div class="absolute top-4 right-4 z-20 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -314,7 +314,7 @@
 
       <!-- Lesson-level video (legacy lessons may have text/file sections plus a single lesson video) -->
       @if (shouldShowLessonLevelVideo()) {
-      <div class="relative aspect-video w-full rounded-xl overflow-hidden shadow-lg bg-black border border-gray-100">
+      <div class="relative aspect-video w-full rounded-lg overflow-hidden shadow-sm bg-black border border-gray-100">
         @if (!lesson().streamVideoUid && isYouTubeUrl(lesson().videoUrl)) {
         <app-youtube-player [videoUrl]="lesson().videoUrl!" [lessonId]="lesson().id"
           [sectionId]="'lesson-' + lesson().id" (videoEnded)="onVideoEnd()" />

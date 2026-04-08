@@ -10,18 +10,38 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
   imports: [CommonModule, RouterLink, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <div class="min-h-screen bg-slate-50">
     <div class="max-w-[1400px] mx-auto px-4 sm:px-6 py-6">
       <!-- Header -->
-      <div class="mb-8">
+      <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-900">Lịch sử thanh toán</h1>
-        <p class="text-gray-500 mt-1">Quản lý và theo dõi các giao dịch của bạn</p>
+        <p class="text-sm text-gray-500 mt-1">Quản lý và theo dõi các giao dịch của bạn</p>
       </div>
 
-      <!-- Loading -->
+      <!-- Loading Skeleton -->
       @if (isLoading()) {
-        <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-12 text-center">
-          <div class="animate-spin w-10 h-10 border-4 border-[#0056D2] border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p class="text-gray-500">Đang tải lịch sử thanh toán...</p>
+        <div class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            @for (_ of [1,2,3]; track $index) {
+              <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-5 animate-pulse">
+                <div class="h-3 w-20 rounded bg-gray-200"></div>
+                <div class="mt-3 h-7 w-14 rounded bg-gray-200"></div>
+              </div>
+            }
+          </div>
+          <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden animate-pulse">
+            <div class="p-4 space-y-4">
+              @for (_ of [1,2,3,4]; track $index) {
+                <div class="flex gap-6">
+                  <div class="h-4 w-32 rounded bg-gray-200"></div>
+                  <div class="h-4 w-20 rounded bg-gray-200"></div>
+                  <div class="h-4 w-16 rounded bg-gray-100"></div>
+                  <div class="h-4 w-16 rounded bg-gray-100"></div>
+                  <div class="h-4 w-24 rounded bg-gray-100"></div>
+                </div>
+              }
+            </div>
+          </div>
         </div>
       }
 
@@ -128,6 +148,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
           </div>
         </div>
       }
+    </div>
     </div>
   `
 })

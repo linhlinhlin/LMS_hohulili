@@ -66,7 +66,7 @@ import { ImageCropperComponent, ImageCroppedEvent, ImageTransform, LoadedImage }
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
           <!-- Section 1: Thông tin cá nhân -->
-          <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
             <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 class="font-semibold text-gray-900">Thông tin cá nhân</h3>
               @if (!isEditing()) {
@@ -138,7 +138,7 @@ import { ImageCropperComponent, ImageCroppedEvent, ImageTransform, LoadedImage }
     @if (showCropModal()) {
       <div class="fixed inset-0 z-[9999] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Cắt ảnh đại diện" (keydown.escape)="cancelCrop()">
         <div class="absolute inset-0 bg-black/60" (click)="cancelCrop()"></div>
-        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-crop-modal-in">
+        <div class="relative bg-white rounded-lg shadow-2xl w-full max-w-lg overflow-hidden animate-crop-modal-in">
           <!-- Header -->
           <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <h3 class="font-semibold text-gray-900">Cắt ảnh đại diện</h3>
@@ -300,7 +300,7 @@ import { ImageCropperComponent, ImageCroppedEvent, ImageTransform, LoadedImage }
           </div>
 
           <!-- Section 2: Bảo mật -->
-          <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
             <div class="px-6 py-4 border-b border-gray-100">
               <h3 class="font-semibold text-gray-900">Bảo mật</h3>
             </div>

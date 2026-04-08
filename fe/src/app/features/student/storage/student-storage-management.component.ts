@@ -38,6 +38,9 @@ export class StudentStorageManagementComponent implements OnInit {
   /** Tab state for progressive disclosure layout */
   activeTab = signal<'overview' | 'courses' | 'settings'>('overview');
 
+  /** Loading state for initial data fetch */
+  isLoading = signal(true);
+
   readonly storageManager = inject(StorageManagerService);
   readonly downloadService = inject(CourseDownloadService);
   readonly videoService = inject(OfflineVideoService);
@@ -298,6 +301,7 @@ export class StudentStorageManagementComponent implements OnInit {
       this.videoService.refreshList(),
       this.syncService.refreshState(),
     ]);
+    this.isLoading.set(false);
   }
 
   async onRequestPersistence(): Promise<void> {
