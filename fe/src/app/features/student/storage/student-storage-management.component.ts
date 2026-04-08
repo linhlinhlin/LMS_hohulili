@@ -220,6 +220,9 @@ export class StudentStorageManagementComponent implements OnInit {
     this.videoService.downloads().length,
   );
 
+  /** @deprecated Alias — kept for cached templates referencing old name */
+  readonly groupedOfflineVideos = this.groupedOfflineVideosByCourse;
+
   readonly hasAnyData = computed(() =>
     this.downloadService.downloadedCount() > 0
       || this.videoService.downloads().length > 0
