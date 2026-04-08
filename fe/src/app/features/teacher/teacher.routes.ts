@@ -171,6 +171,20 @@ export const teacherRoutes: Routes = [
         pathMatch: 'full'
       },
 
+      // Messaging — reuse student messaging components (same MessagingService)
+      {
+        path: 'messages',
+        loadChildren: () => import('../student/messages/messages.routes').then(m => m.MESSAGES_ROUTES),
+        title: 'Tin nhắn'
+      },
+
+      // Announcements — teacher creates announcements for students
+      {
+        path: 'announcements',
+        loadComponent: () => import('./announcements/create-announcement.component').then(m => m.CreateAnnouncementComponent),
+        title: 'Thông báo'
+      },
+
       // Sprint 220b: ai-chat full-page route removed — AI chat is now an iframe widget
     ]
   }

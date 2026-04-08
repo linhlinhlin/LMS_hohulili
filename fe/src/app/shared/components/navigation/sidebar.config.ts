@@ -151,6 +151,12 @@ export const teacherSidebarConfig: SidebarConfig = {
       ]
     },
     {
+      label: 'Tin nhắn',
+      route: '/teacher/messages',
+      icon: 'mail',
+      group: 'Công cụ'
+    },
+    {
       label: 'Lời mời',
       route: '/teacher/invitations',
       icon: 'mail',

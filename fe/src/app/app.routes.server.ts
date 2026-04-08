@@ -78,6 +78,10 @@ export const serverRoutes: ServerRoute[] = [
     renderMode: RenderMode.Client
   },
   {
+    path: 'teacher/messages',
+    renderMode: RenderMode.Client
+  },
+  {
     path: 'student',
     renderMode: RenderMode.Client
   },
