@@ -2,12 +2,14 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  HostListener,
   input,
   output,
   signal,
   viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { PickerComponent } from '@ctrl/ngx-emoji-mart';
 
 export interface AssignmentOption {
   id: string;
@@ -22,13 +24,13 @@ export interface MessageSendEvent {
 
 @Component({
   selector: 'app-message-input',
-  imports: [FormsModule],
+  imports: [FormsModule, PickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="border-t bg-white p-4">
       @if (showAssignmentSelector() && assignments().length > 0) {
         <div class="mb-3">
-          <label class="mb-1 block text-sm text-gray-600">Đính kèm bài tập (tùy chọn)</label>
+          <label class="mb-1 block text-sm text-slate-600">Đính kèm bài tập (tùy chọn)</label>
           <select
             [(ngModel)]="selectedAssignmentId"
             class="w-full rounded-lg border px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]">
@@ -42,21 +44,40 @@ export interface MessageSendEvent {
         </div>
       }
 
-      <div class="flex items-end gap-3">
-        <button
-          type="button"
-          disabled
-          class="cursor-not-allowed p-2 text-gray-300"
-          title="Tính năng đính kèm file sẽ bổ sung sau">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13">
-            </path>
-          </svg>
-        </button>
+      <div class="flex items-end gap-2">
+        <!-- Emoji picker toggle -->
+        <div class="relative" (click)="$event.stopPropagation()">
+          <button
+            type="button"
+            (click)="toggleEmojiPicker()"
+            class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+            [class.bg-slate-100]="showEmojiPicker()"
+            [class.text-[#0056D2]]="showEmojiPicker()"
+            aria-label="Chọn biểu cảm">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </button>
+
+          <!-- ngx-emoji-mart picker (Slack-like, professional) -->
+          @if (showEmojiPicker()) {
+            <div class="absolute bottom-full left-0 mb-2 z-50">
+              <emoji-mart
+                [style]="{ width: '320px' }"
+                [perLine]="8"
+                [emojiSize]="22"
+                [showPreview]="false"
+                [autoFocus]="true"
+                [i18n]="i18n"
+                title="Chọn biểu cảm"
+                emoji=""
+                [set]="$any('native')"
+                (emojiClick)="onEmojiSelect($event)">
+              </emoji-mart>
+            </div>
+          }
+        </div>
 
         <div class="relative flex-1">
           <textarea
@@ -67,16 +88,16 @@ export interface MessageSendEvent {
             [placeholder]="placeholder()"
             [disabled]="loading()"
             rows="1"
-            class="w-full resize-none rounded-2xl border px-4 py-3 pr-12 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2] disabled:cursor-not-allowed disabled:bg-gray-100"
-            [class.border-gray-300]="!loading()"
-            [class.border-gray-200]="loading()"
+            class="w-full resize-none rounded-lg border px-4 py-3 pr-12 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2] disabled:cursor-not-allowed disabled:bg-slate-100"
+            [class.border-slate-300]="!loading()"
+            [class.border-slate-200]="loading()"
             style="max-height: 150px; min-height: 44px;">
           </textarea>
 
           @if (showCharCount() && messageContent.length > 0) {
             <span
               class="absolute bottom-2 right-14 text-xs"
-              [class.text-gray-400]="messageContent.length < maxLength()"
+              [class.text-slate-400]="messageContent.length < maxLength()"
               [class.text-red-500]="messageContent.length >= maxLength()">
               {{ messageContent.length }}/{{ maxLength() }}
             </span>
@@ -92,8 +113,8 @@ export interface MessageSendEvent {
           [class.bg-[#0056D2]]="canSend()"
           [class.hover:bg-[#004BB5]]="canSend()"
           [class.text-white]="canSend()"
-          [class.bg-gray-100]="!canSend()"
-          [class.text-gray-400]="!canSend()"
+          [class.bg-slate-100]="!canSend()"
+          [class.text-slate-400]="!canSend()"
           [class.cursor-not-allowed]="!canSend()">
           @if (loading()) {
             <svg class="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -133,7 +154,7 @@ export interface MessageSendEvent {
         </div>
       }
 
-      <p class="mt-2 text-xs text-gray-400">
+      <p class="mt-2 text-xs text-slate-400">
         Nhấn Enter để gửi, Shift+Enter để xuống dòng
       </p>
     </div>
@@ -157,6 +178,32 @@ export class MessageInputComponent {
   readonly loading = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly lastFailedMessage = signal<MessageSendEvent | null>(null);
+  readonly showEmojiPicker = signal(false);
+
+  /** Vietnamese i18n for emoji-mart */
+  readonly i18n = {
+    search: 'Tìm biểu cảm',
+    notfound: 'Không tìm thấy',
+    categories: {
+      search: 'Kết quả tìm kiếm',
+      recent: 'Thường dùng',
+      people: 'Mặt cười & Người',
+      nature: 'Động vật & Thiên nhiên',
+      foods: 'Đồ ăn & Thức uống',
+      activity: 'Hoạt động',
+      places: 'Du lịch & Địa điểm',
+      objects: 'Đồ vật',
+      symbols: 'Biểu tượng',
+      flags: 'Cờ',
+    },
+  };
+
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    if (this.showEmojiPicker()) {
+      this.showEmojiPicker.set(false);
+    }
+  }
 
   canSend(): boolean {
     const content = this.messageContent.trim();
@@ -185,6 +232,30 @@ export class MessageInputComponent {
     textarea.style.height = `${Math.min(textarea.scrollHeight, 150)}px`;
   }
 
+  toggleEmojiPicker(): void {
+    this.showEmojiPicker.update((v) => !v);
+  }
+
+  onEmojiSelect(event: any): void {
+    const emoji = event?.emoji?.native;
+    if (!emoji) return;
+
+    const textarea = this.textareaRef()?.nativeElement;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      this.messageContent =
+        this.messageContent.substring(0, start) + emoji + this.messageContent.substring(end);
+      setTimeout(() => {
+        textarea.focus();
+        const newPos = start + emoji.length;
+        textarea.setSelectionRange(newPos, newPos);
+      });
+    } else {
+      this.messageContent += emoji;
+    }
+  }
+
   send(): void {
     if (!this.canSend()) {
       return;
@@ -195,6 +266,7 @@ export class MessageInputComponent {
       return;
     }
 
+    this.showEmojiPicker.set(false);
     this.loading.set(true);
     this.errorMessage.set(null);
     this.lastFailedMessage.set(event);
