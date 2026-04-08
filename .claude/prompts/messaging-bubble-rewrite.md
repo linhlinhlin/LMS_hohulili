@@ -93,12 +93,17 @@ const prepared = prepareRichInline([
 - [Markdown Chat Demo](https://chenglou.me/pretext/markdown-chat/) — full virtualized chat
 - Dùng absolute positioning, chỉ render visible messages, smooth scroll
 
-### Recommendation cho LMS — DÙNG LUÔN:
-Không đợi 500+ messages mới integrate — nếu công nghệ tốt thì dùng ngay từ đầu.
-- **Install**: `npm install pretext`
-- **Integrate ngay** vào clean rewrite: prepare() khi fetch messages, layout() khi render
-- **Virtualized scroll**: chỉ render visible messages, Pretext cho exact height
-- **Lợi ích**: zero layout shift, instant resize, smooth scroll, foundation đúng từ đầu
+### Phân tích thành thật — Pretext vs vấn đề thực tế:
+
+**90% vấn đề hiện tại** = CSS/template complexity (quá nhiều incremental patch) → cần **clean rewrite component**.
+**10% vấn đề** = scroll performance, height prediction → Pretext giải quyết.
+
+Pretext là công nghệ rất tốt nhưng **không phải silver bullet** cho layout conflicts hiện tại. Nó giải quyết text measurement — mà root cause thực sự là component design phức tạp.
+
+### Recommendation:
+- **Bước 1 (BẮT BUỘC)**: Clean rewrite bubble + input + conversation-view — CSS đúng từ đầu, template đơn giản, KHÔNG patch thêm. Đây giải quyết 90% vấn đề.
+- **Bước 2 (TÙY CHỌN, sau khi Bước 1 xong)**: Integrate Pretext nếu cần scroll performance hoặc chuẩn bị cho AI chat streaming. LMS conversation thường 10-50 messages → chưa urgent.
+- **Bước 3 (TƯƠNG LAI)**: Nếu thêm AI chat hoặc conversation > 200 messages → Pretext + virtualized scroll là essential.
 
 ---
 
