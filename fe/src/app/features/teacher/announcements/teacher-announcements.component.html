@@ -1,0 +1,207 @@
+<div class="min-h-screen bg-slate-50">
+  <!-- Sticky header -->
+  <div class="sticky top-0 z-10 border-b border-slate-200 bg-white">
+    <div class="mx-auto max-w-[1400px] px-4 sm:px-6 py-4">
+      <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-900">Thông báo</h1>
+          <p class="mt-1 text-sm text-slate-500">Quản lý thông báo gửi tới sinh viên trong các khóa học</p>
+        </div>
+        <button type="button" (click)="openCreateForm()"
+          class="self-start rounded-lg bg-[#0056D2] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#004BB5]">
+          Tạo thông báo
+        </button>
+      </div>
+
+      <!-- Filter tabs — pill style matching tasks page -->
+      <div class="flex flex-wrap items-center gap-2" role="tablist">
+        @for (tab of filterTabs; track tab.key) {
+          <button type="button" (click)="setFilter(tab.key)"
+            role="tab" [attr.aria-selected]="activeFilter() === tab.key"
+            class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors"
+            [class.bg-[#0056D2]]="activeFilter() === tab.key"
+            [class.text-white]="activeFilter() === tab.key"
+            [class.border-[#0056D2]]="activeFilter() === tab.key"
+            [class.bg-white]="activeFilter() !== tab.key"
+            [class.text-gray-700]="activeFilter() !== tab.key"
+            [class.border-gray-200]="activeFilter() !== tab.key"
+            [class.hover:border-gray-300]="activeFilter() !== tab.key">
+            {{ tab.label }} ({{ tab.count() }})
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="mx-auto max-w-[1400px] px-4 sm:px-6 py-4">
+    @if (loading()) {
+      <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        @for (i of [1, 2, 3, 4, 5]; track i) {
+          <div class="flex items-start gap-3 border-b border-slate-100 p-4 last:border-b-0">
+            <div class="mt-0.5 h-9 w-9 flex-shrink-0 animate-pulse rounded-full bg-slate-200"></div>
+            <div class="flex-1 space-y-2">
+              <div class="flex items-center justify-between">
+                <div class="h-4 w-48 animate-pulse rounded bg-slate-200"></div>
+                <div class="h-3 w-16 animate-pulse rounded bg-slate-100"></div>
+              </div>
+              <div class="h-3 w-full animate-pulse rounded bg-slate-100"></div>
+              <div class="h-3 w-28 animate-pulse rounded bg-slate-100"></div>
+            </div>
+          </div>
+        }
+      </div>
+    } @else if (filteredAnnouncements().length === 0) {
+      <div class="rounded-lg border border-slate-200 bg-white px-6 py-12 text-center">
+        <svg class="mx-auto mb-4 h-16 w-16 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+        </svg>
+        <h3 class="mb-1 text-lg font-semibold text-slate-900">Chưa có thông báo nào</h3>
+        <p class="mb-4 text-slate-500">Tạo thông báo đầu tiên để gửi tới sinh viên.</p>
+        <button type="button" (click)="openCreateForm()"
+          class="rounded-lg bg-[#0056D2] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#004BB5]">
+          Tạo thông báo
+        </button>
+      </div>
+    } @else {
+      <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        @for (a of visibleAnnouncements(); track a.id; let last = $last) {
+          <div class="flex items-start gap-3 p-4 transition-colors hover:bg-slate-50"
+               [class.border-b]="!last" [class.border-slate-100]="!last">
+            <div class="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full"
+                 [class.bg-red-100]="a.priority === 'IMPORTANT'"
+                 [class.bg-[#0056D2]/10]="a.priority !== 'IMPORTANT'">
+              @if (a.priority === 'IMPORTANT') {
+                <svg class="h-[18px] w-[18px] text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+              } @else {
+                <svg class="h-[18px] w-[18px] text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                </svg>
+              }
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="mb-0.5 flex items-center justify-between gap-2">
+                <h3 class="truncate text-[15px] font-medium text-slate-900">{{ a.title }}</h3>
+                <div class="flex items-center gap-1 flex-shrink-0">
+                  <span class="text-xs text-slate-400">{{ a.publishedAt | date:'dd/MM' }}</span>
+                  <button type="button" (click)="deleteAnnouncement(a.id, $event)"
+                    class="ml-1 rounded-lg p-1 text-slate-300 transition hover:bg-red-50 hover:text-red-500"
+                    title="Xóa thông báo">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <p class="mb-1 line-clamp-1 text-sm text-slate-500">{{ a.content }}</p>
+              <span class="truncate text-xs font-medium text-slate-400">{{ courseNameMap().get(a.courseId) || 'Khóa học' }}</span>
+            </div>
+          </div>
+        }
+      </div>
+
+      @if (hasMoreToShow()) {
+        <div class="load-more-section">
+          <button class="load-more-btn" (click)="loadMore()">
+            Xem thêm {{ remainingCount() }} thông báo
+          </button>
+          <p class="showing-count">Đang hiện {{ visibleAnnouncements().length }} / {{ filteredAnnouncements().length }}</p>
+        </div>
+      } @else if (filteredAnnouncements().length > 0) {
+        <p class="showing-count">Đã hiện tất cả {{ filteredAnnouncements().length }} thông báo</p>
+      }
+    }
+  </div>
+</div>
+
+<!-- Create Modal -->
+@if (showCreateForm()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="showCreateForm.set(false)">
+    <div class="w-full max-w-lg overflow-hidden rounded-lg bg-white shadow-xl" (click)="$event.stopPropagation()">
+      <div class="border-b border-slate-200 px-6 py-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-bold text-slate-900">Tạo thông báo mới</h2>
+          <button type="button" (click)="showCreateForm.set(false)"
+            class="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="space-y-4 px-6 py-4">
+        <div>
+          <label class="mb-1 block text-sm font-medium text-slate-700">Khóa học <span class="text-red-500">*</span></label>
+          <select [(ngModel)]="selectedCourseId"
+            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]">
+            <option value="">-- Chọn khóa học --</option>
+            @for (course of courses(); track course.id) {
+              <option [value]="course.id">{{ course.title }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label class="mb-1 block text-sm font-medium text-slate-700">Tiêu đề <span class="text-red-500">*</span></label>
+          <input type="text" [(ngModel)]="formTitle" placeholder="Nhập tiêu đề..." maxlength="200"
+            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]" />
+          <p class="mt-1 text-xs text-slate-400">{{ formTitle.length }}/200</p>
+        </div>
+        <div>
+          <label class="mb-1 block text-sm font-medium text-slate-700">Nội dung <span class="text-red-500">*</span></label>
+          <textarea [(ngModel)]="formContent" placeholder="Nhập nội dung thông báo..." rows="5" maxlength="10000"
+            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]"></textarea>
+        </div>
+        <div>
+          <label class="mb-1 block text-sm font-medium text-slate-700">Mức độ</label>
+          <select [(ngModel)]="formPriority"
+            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]">
+            <option value="NORMAL">Bình thường</option>
+            <option value="IMPORTANT">Quan trọng</option>
+          </select>
+        </div>
+        @if (createError()) {
+          <div class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ createError() }}</div>
+        }
+      </div>
+
+      <div class="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
+        <button type="button" (click)="showCreateForm.set(false)"
+          class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
+          Hủy
+        </button>
+        <button type="button" (click)="submitAnnouncement()"
+          [disabled]="creating() || !canSubmit()"
+          class="rounded-lg bg-[#0056D2] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#004BB5] disabled:opacity-50 disabled:cursor-not-allowed">
+          @if (creating()) {
+            <span class="flex items-center gap-2">
+              <div class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+              Đang gửi...
+            </span>
+          } @else {
+            Gửi thông báo
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Delete confirm -->
+@if (deleteTarget()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="deleteTarget.set(null)">
+    <div class="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl" (click)="$event.stopPropagation()">
+      <h3 class="mb-2 text-lg font-bold text-slate-900">Xóa thông báo?</h3>
+      <p class="mb-4 text-sm text-slate-500">Thông báo sẽ bị xóa vĩnh viễn và sinh viên sẽ không thể xem lại.</p>
+      <div class="flex justify-end gap-3">
+        <button type="button" (click)="deleteTarget.set(null)"
+          class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Hủy</button>
+        <button type="button" (click)="confirmDelete()"
+          class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">Xóa</button>
+      </div>
+    </div>
+  </div>
+}

@@ -82,7 +82,7 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
     const role = this.userRole();
     switch (role) {
       case 'admin': return '/admin/dashboard';
-      case 'teacher': return '/teacher/dashboard';
+      case 'teacher': return '/teacher/courses';
       default: return '/student/courses';
     }
   }
@@ -90,7 +90,7 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
   getMyCoursesRoute(): string {
     const role = this.userRole();
     switch (role) {
-      case 'teacher': return '/teacher/courses';
+      case 'teacher': return '/teacher/courses/library';
       default: return '/student/courses/library';
     }
   }

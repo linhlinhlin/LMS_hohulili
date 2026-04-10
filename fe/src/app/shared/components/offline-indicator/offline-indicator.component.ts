@@ -31,8 +31,8 @@ import { SessionExpiredService } from '../../../core/services/session-expired.se
         </a>
       </div>
     } @else if (isSlow()) {
-      <!-- Slim banner for slow connection — below content, not overlaying -->
-      <div class="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-center gap-2 px-3 py-1 bg-amber-50 border-t border-amber-200 text-amber-700 md:top-0 md:bottom-auto md:border-t-0 md:border-b transition-all duration-300"
+      <!-- Slim inline banner for slow connection — not fixed, no overlay -->
+      <div class="flex items-center justify-center gap-2 px-3 py-1 bg-amber-50 border-b border-amber-200 text-amber-700"
            role="status"
            aria-live="polite">
         <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>

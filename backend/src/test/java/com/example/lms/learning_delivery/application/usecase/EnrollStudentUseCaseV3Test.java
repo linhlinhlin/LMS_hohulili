@@ -1,5 +1,7 @@
 package com.example.lms.learning_delivery.application.usecase;
 
+import com.example.lms.course_authoring.domain.model.Course;
+import com.example.lms.course_authoring.domain.repository.CourseRepository;
 import com.example.lms.identity.domain.model.Role;
 import com.example.lms.identity.domain.model.User;
 import com.example.lms.identity.domain.repository.UserRepository;
@@ -33,12 +35,15 @@ class EnrollStudentUseCaseV3Test {
 
     @Mock
     private UserRepository userRepository;
-    
+
     @Mock
     private EnrollmentRepositoryPort enrollmentRepository;
-    
+
     @Mock
     private LearningClassRepositoryPort learningClassRepository;
+
+    @Mock
+    private CourseRepository courseRepository;
 
     @InjectMocks
     private EnrollStudentUseCaseV3 useCase;
@@ -46,12 +51,15 @@ class EnrollStudentUseCaseV3Test {
     private User validStudent;
     private UUID studentId;
     private UUID classId;
+    private UUID courseId;
     private com.example.lms.learning_delivery.domain.model.LearningClass validClass;
+    private Course approvedCourse;
 
     @BeforeEach
     void setUp() {
         studentId = UUID.randomUUID();
         classId = UUID.randomUUID();
+        courseId = UUID.randomUUID();
 
         validStudent = User.builder()
             .id(UserId.of(studentId))
@@ -67,10 +75,14 @@ class EnrollStudentUseCaseV3Test {
             .id(classId)
             .name("Test Class")
             .code("CLASS-001")
-            .courseId(UUID.randomUUID())
+            .courseId(courseId)
             .teacherId(UUID.randomUUID())
             .maxStudents(30)
             .build();
+
+        // Default: APPROVED course (lenient — not all tests reach course check)
+        approvedCourse = mock(Course.class);
+        lenient().when(approvedCourse.getStatus()).thenReturn(Course.CourseStatus.APPROVED);
     }
 
     @Nested
@@ -91,6 +103,7 @@ class EnrollStudentUseCaseV3Test {
 
             when(userRepository.findById(any(UserId.class))).thenReturn(Optional.of(validStudent));
             when(learningClassRepository.findById(classId)).thenReturn(Optional.of(validClass));
+            when(courseRepository.findById(courseId)).thenReturn(Optional.of(approvedCourse));
             when(enrollmentRepository.existsByClassIdAndStudentId(classId, studentId)).thenReturn(false);
             when(enrollmentRepository.save(any(com.example.lms.learning_delivery.domain.model.Enrollment.class)))
                 .thenReturn(savedEnrollment);
@@ -100,9 +113,32 @@ class EnrollStudentUseCaseV3Test {
 
             // Then
             assertThat(enrollmentId).isEqualTo(expectedEnrollmentId);
-            verify(userRepository).findById(any(UserId.class));
-            verify(learningClassRepository).findById(classId);
+            verify(courseRepository).findById(courseId);
             verify(enrollmentRepository).existsByClassIdAndStudentId(classId, studentId);
+        }
+
+        @Test
+        @DisplayName("Should allow enrollment in DRAFT course (teacher roster setup)")
+        void shouldAllowEnrollmentInDraftCourse() {
+            // Given — DRAFT course is allowed for teacher-initiated enrollment
+            var draftCourse = mock(Course.class);
+            when(draftCourse.getStatus()).thenReturn(Course.CourseStatus.DRAFT);
+
+            var savedEnrollment = com.example.lms.learning_delivery.domain.model.Enrollment.builder()
+                .id(UUID.randomUUID())
+                .learningClass(validClass)
+                .studentId(studentId)
+                .status(com.example.lms.learning_delivery.domain.model.Enrollment.EnrollmentStatus.ACTIVE)
+                .build();
+
+            when(userRepository.findById(any(UserId.class))).thenReturn(Optional.of(validStudent));
+            when(learningClassRepository.findById(classId)).thenReturn(Optional.of(validClass));
+            when(courseRepository.findById(courseId)).thenReturn(Optional.of(draftCourse));
+            when(enrollmentRepository.existsByClassIdAndStudentId(classId, studentId)).thenReturn(false);
+            when(enrollmentRepository.save(any())).thenReturn(savedEnrollment);
+
+            // When/Then — should NOT throw
+            assertThatCode(() -> useCase.enroll(studentId, classId)).doesNotThrowAnyException();
         }
 
         @Test
@@ -118,6 +154,7 @@ class EnrollStudentUseCaseV3Test {
 
             when(userRepository.findById(any(UserId.class))).thenReturn(Optional.of(validStudent));
             when(learningClassRepository.findById(classId)).thenReturn(Optional.of(validClass));
+            when(courseRepository.findById(courseId)).thenReturn(Optional.of(approvedCourse));
             when(enrollmentRepository.existsByClassIdAndStudentId(classId, studentId)).thenReturn(false);
             when(enrollmentRepository.save(any(com.example.lms.learning_delivery.domain.model.Enrollment.class)))
                 .thenReturn(savedEnrollment);
@@ -154,12 +191,47 @@ class EnrollStudentUseCaseV3Test {
             // Given
             when(userRepository.findById(any(UserId.class))).thenReturn(Optional.of(validStudent));
             when(learningClassRepository.findById(classId)).thenReturn(Optional.of(validClass));
+            when(courseRepository.findById(courseId)).thenReturn(Optional.of(approvedCourse));
             when(enrollmentRepository.existsByClassIdAndStudentId(classId, studentId)).thenReturn(true);
 
             // When/Then
             assertThatThrownBy(() -> useCase.enroll(studentId, classId))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("already enrolled");
+        }
+
+        @Test
+        @DisplayName("Should throw when course is PENDING")
+        void shouldThrowWhenCoursePending() {
+            // Given
+            var pendingCourse = mock(Course.class);
+            when(pendingCourse.getStatus()).thenReturn(Course.CourseStatus.PENDING);
+
+            when(userRepository.findById(any(UserId.class))).thenReturn(Optional.of(validStudent));
+            when(learningClassRepository.findById(classId)).thenReturn(Optional.of(validClass));
+            when(courseRepository.findById(courseId)).thenReturn(Optional.of(pendingCourse));
+
+            // When/Then
+            assertThatThrownBy(() -> useCase.enroll(studentId, classId))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("chờ duyệt");
+        }
+
+        @Test
+        @DisplayName("Should throw when course is REJECTED")
+        void shouldThrowWhenCourseRejected() {
+            // Given
+            var rejectedCourse = mock(Course.class);
+            when(rejectedCourse.getStatus()).thenReturn(Course.CourseStatus.REJECTED);
+
+            when(userRepository.findById(any(UserId.class))).thenReturn(Optional.of(validStudent));
+            when(learningClassRepository.findById(classId)).thenReturn(Optional.of(validClass));
+            when(courseRepository.findById(courseId)).thenReturn(Optional.of(rejectedCourse));
+
+            // When/Then
+            assertThatThrownBy(() -> useCase.enroll(studentId, classId))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("bị từ chối");
         }
     }
 }

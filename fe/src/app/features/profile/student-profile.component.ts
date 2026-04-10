@@ -3,7 +3,6 @@ import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
-import { LoadingComponent } from '../../shared/components/loading/loading.component';
 import { PresignedUploadService } from '../../core/services/presigned-upload.service';
 import { AUTH_ENDPOINTS } from '../../api/endpoints/auth.endpoints';
 import { ApiResponse } from '../../api/types/common.types';
@@ -11,16 +10,9 @@ import { ImageCropperComponent, ImageCroppedEvent, ImageTransform, LoadedImage }
 
 @Component({
   selector: 'app-student-profile',
-  imports: [LoadingComponent, ImageCropperComponent],
+  imports: [ImageCropperComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <app-loading
-      [show]="isLoading()"
-      text="Đang tải thông tin tài khoản..."
-      variant="overlay"
-      color="blue">
-    </app-loading>
-
     <div class="min-h-screen bg-slate-50">
       <!-- Page Header -->
       <div class="bg-white border-b border-gray-200">
@@ -31,6 +23,43 @@ import { ImageCropperComponent, ImageCroppedEvent, ImageTransform, LoadedImage }
       </div>
 
       <div class="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 space-y-5">
+
+      <!-- Skeleton Loading (thay overlay spinner) -->
+      @if (isLoading()) {
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <!-- Skeleton: Thông tin cá nhân -->
+          <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100">
+              <div class="h-5 w-36 rounded bg-gray-200 animate-pulse"></div>
+            </div>
+            <div class="p-6 space-y-5">
+              <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-full bg-gray-200 animate-pulse flex-shrink-0"></div>
+                <div class="space-y-2 flex-1">
+                  <div class="h-4 w-40 rounded bg-gray-200 animate-pulse"></div>
+                  <div class="h-3 w-52 rounded bg-gray-100 animate-pulse"></div>
+                </div>
+              </div>
+              <div class="space-y-4 pt-2">
+                <div><div class="h-3 w-20 rounded bg-gray-100 animate-pulse mb-2"></div><div class="h-4 w-48 rounded bg-gray-200 animate-pulse"></div></div>
+                <div><div class="h-3 w-16 rounded bg-gray-100 animate-pulse mb-2"></div><div class="h-4 w-56 rounded bg-gray-200 animate-pulse"></div></div>
+                <div><div class="h-3 w-14 rounded bg-gray-100 animate-pulse mb-2"></div><div class="h-4 w-24 rounded bg-gray-200 animate-pulse"></div></div>
+              </div>
+            </div>
+          </div>
+          <!-- Skeleton: Bảo mật -->
+          <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100">
+              <div class="h-5 w-20 rounded bg-gray-200 animate-pulse"></div>
+            </div>
+            <div class="p-6 space-y-4">
+              <div class="h-3 w-64 rounded bg-gray-100 animate-pulse"></div>
+              <div class="h-3 w-48 rounded bg-gray-100 animate-pulse"></div>
+              <div class="h-9 w-32 rounded-md bg-gray-200 animate-pulse mt-3"></div>
+            </div>
+          </div>
+        </div>
+      }
 
         <!-- Toast notification (Google Account / GitHub Settings pattern) -->
         @if (toast()) {
@@ -62,6 +91,7 @@ import { ImageCropperComponent, ImageCroppedEvent, ImageTransform, LoadedImage }
           </div>
         }
 
+        @if (!isLoading()) {
         <!-- ========== 2-COLUMN GRID ========== -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
@@ -417,6 +447,7 @@ import { ImageCropperComponent, ImageCroppedEvent, ImageTransform, LoadedImage }
           </div>
 
         </div>
+        }
       </div>
     </div>
   `,

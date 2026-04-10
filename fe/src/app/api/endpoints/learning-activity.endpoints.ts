@@ -3,4 +3,6 @@ export const LEARNING_ACTIVITY_ENDPOINTS = {
   READING_PROGRESS: '/api/v3/learning-activity/reading-progress',
   CONTINUE: '/api/v3/learning-activity/continue',
   STUDY_TIME_TODAY: '/api/v3/learning-activity/study-time/today',
+  STUDY_TIME_TRENDS: '/api/v3/learning-activity/study-time/trends',
+  HEATMAP: '/api/v3/learning-activity/heatmap',
 } as const;

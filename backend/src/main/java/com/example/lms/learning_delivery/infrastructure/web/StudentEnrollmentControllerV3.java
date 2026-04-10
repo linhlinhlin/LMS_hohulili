@@ -691,8 +691,8 @@ public class StudentEnrollmentControllerV3 {
         UUID studentId = currentUser.getId();
         List<Map<String, Object>> grades = new ArrayList<>();
 
-        // Get all active enrollments
-        List<Enrollment> enrollments = enrollmentRepository.findActiveWithClass(studentId);
+        // Get all active + completed enrollments (enrollment-centric grades — Canvas pattern)
+        List<Enrollment> enrollments = enrollmentRepository.findActiveAndCompletedWithClass(studentId);
         List<Enrollment> validEnrollments = enrollments.stream()
                 .filter(e -> e.getLearningClass() != null)
                 .toList();
@@ -754,19 +754,39 @@ public class StudentEnrollmentControllerV3 {
                 : submissionJpaRepository.findByAssignmentIdInAndStudentId(allAssignmentIds, studentId).stream()
                         .collect(Collectors.toMap(AssignmentSubmissionJpaEntity::getAssignmentId, s -> s, (a, b) -> a));
 
-        // 5. Build per-course grade response (zero additional queries)
+        // 5. Batch certificate check (1 query instead of N)
+        List<UUID> enrollmentIds = validEnrollments.stream().map(Enrollment::getId).toList();
+        Set<UUID> enrollmentsWithCerts = enrollmentIds.isEmpty()
+                ? Set.of()
+                : certificateRepository.findEnrollmentIdsWithCertificates(enrollmentIds);
+
+        // 6. Build enrollment-centric grade response (Canvas pattern: 1 enrollment = 1 entry)
         for (Enrollment enrollment : validEnrollments) {
             UUID courseId = enrollment.getLearningClass().getCourseId();
             CourseJpaEntity course = courseMap.get(courseId);
             if (course == null) continue;
+            var lc = enrollment.getLearningClass();
 
-            Map<String, Object> courseGrade = new LinkedHashMap<>();
-            courseGrade.put("courseId", courseId.toString());
-            courseGrade.put("courseTitle", course.getTitle());
-            courseGrade.put("courseCode", course.getCode());
-            courseGrade.put("thumbnailUrl", course.getThumbnailUrl());
-            courseGrade.put("progress", enrollment.getCompletionPercent() != null ? enrollment.getCompletionPercent() : 0);
-            courseGrade.put("status", enrollment.getStatus().name());
+            Map<String, Object> gradeEntry = new LinkedHashMap<>();
+            // Enrollment fields
+            gradeEntry.put("enrollmentId", enrollment.getId().toString());
+            gradeEntry.put("enrollmentStatus", enrollment.getStatus().name());
+            gradeEntry.put("enrolledAt", enrollment.getEnrolledAt() != null ? enrollment.getEnrolledAt().toString() : null);
+            // Course fields
+            gradeEntry.put("courseId", courseId.toString());
+            gradeEntry.put("courseTitle", course.getTitle());
+            gradeEntry.put("courseCode", course.getCode());
+            gradeEntry.put("deliveryMode", course.getDeliveryMode().name());
+            gradeEntry.put("thumbnailUrl", course.getThumbnailUrl());
+            // Class fields
+            gradeEntry.put("classId", lc.getId().toString());
+            gradeEntry.put("className", lc.getName());
+            gradeEntry.put("classCode", lc.getCode());
+            gradeEntry.put("semester", lc.getSemester());
+            // Progress
+            gradeEntry.put("progress", enrollment.getCompletionPercent() != null ? enrollment.getCompletionPercent() : 0);
+            // Keep legacy "status" for backward compatibility
+            gradeEntry.put("status", enrollment.getStatus().name());
 
             // Quiz scores from pre-loaded data
             List<Map<String, Object>> quizScores = new ArrayList<>();
@@ -788,7 +808,7 @@ public class StudentEnrollmentControllerV3 {
                     quizScores.add(qs);
                 }
             }
-            courseGrade.put("quizScores", quizScores);
+            gradeEntry.put("quizScores", quizScores);
 
             // Assignment scores from pre-loaded data
             List<Map<String, Object>> assignmentScores = new ArrayList<>();
@@ -804,13 +824,12 @@ public class StudentEnrollmentControllerV3 {
                     assignmentScores.add(as);
                 }
             }
-            courseGrade.put("assignmentScores", assignmentScores);
+            gradeEntry.put("assignmentScores", assignmentScores);
 
-            // Certificate status
-            boolean hasCertificate = certificateRepository.existsByEnrollmentId(enrollment.getId());
-            courseGrade.put("hasCertificate", hasCertificate);
+            // Certificate status (batch pre-loaded — no N+1)
+            gradeEntry.put("hasCertificate", enrollmentsWithCerts.contains(enrollment.getId()));
 
-            grades.add(courseGrade);
+            grades.add(gradeEntry);
         }
 
         return ResponseEntity.ok(ApiResponse.success(grades, "Bảng điểm học viên"));

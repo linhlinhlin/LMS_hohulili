@@ -7,6 +7,7 @@
   flex-direction: column;
   border-right: 1px solid rgba(229, 231, 235, 0.5);
   transition: width 0.3s ease;
+  overflow: hidden;
 }
 
 .sidebar-header {
@@ -55,6 +56,7 @@
 .sidebar-nav {
   flex: 1;
   padding: 1rem 0.75rem;
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
@@ -128,6 +130,10 @@
   font-weight: 500;
   font-size: 0.875rem;
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .nav-item.has-children .nav-label {
@@ -147,6 +153,7 @@
 
 /* Tooltip - hidden by default */
 .nav-tooltip {
+  display: none;
   position: absolute;
   left: calc(100% + 8px);
   top: 50%;
@@ -211,6 +218,9 @@
   flex: 1;
   min-width: 0;
   line-height: 1.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sub-menu-item:hover {
@@ -509,6 +519,7 @@
 
 /* Show tooltip on hover in collapsed state */
 .sidebar-collapsed .nav-item:hover .nav-tooltip {
+  display: block;
   opacity: 1;
 }
 

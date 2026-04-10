@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -33,10 +34,17 @@ public class SendMessageUseCaseV3 {
         UUID recipientId,
         String content,
         String senderName,
-        String senderRole
+        String senderRole,
+        UUID replyToId,
+        Map<String, Object> replyToData
     ) {
         public SendMessageCommand(UUID senderId, UUID recipientId, String content) {
-            this(senderId, recipientId, content, null, null);
+            this(senderId, recipientId, content, null, null, null, null);
+        }
+
+        public SendMessageCommand(UUID senderId, UUID recipientId, String content,
+                                   String senderName, String senderRole) {
+            this(senderId, recipientId, content, senderName, senderRole, null, null);
         }
     }
 
@@ -74,11 +82,12 @@ public class SendMessageUseCaseV3 {
         UUID conversationId = conversation.getId().value();
         UUID messageId = saved.getId().value();
 
-        // 4. Broadcast via WebSocket (non-blocking, after commit)
+        // 4. Broadcast via WebSocket (non-blocking, with optional replyTo context)
         try {
             webSocketMessageService.broadcastNewMessage(
                     conversationId, messageId, command.senderId(),
-                    command.senderName(), command.senderRole(), command.content());
+                    command.senderName(), command.senderRole(), command.content(),
+                    command.replyToId(), command.replyToData());
 
             // Push updated unread count to the recipient
             long recipientUnread = messageRepository.countTotalUnreadForUser(command.recipientId());

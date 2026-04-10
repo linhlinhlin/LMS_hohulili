@@ -37,7 +37,7 @@ export class TeacherDashboardComponent implements OnInit {
   readonly tabItems: { key: TabKey; label: string }[] = [
     { key: 'all', label: 'Tất cả' },
     { key: 'approved', label: 'Đã duyệt' },
-    { key: 'draft', label: 'Nháp' },
+    { key: 'draft', label: 'Đang soạn' },
     { key: 'pending', label: 'Chờ duyệt' }
   ];
 
@@ -66,13 +66,6 @@ export class TeacherDashboardComponent implements OnInit {
     const suffix = this.getTabSuffix(tab);
     return `Hiển thị ${shown}/${total} khóa học ${suffix}`;
   });
-
-  kpiItems = computed(() => [
-    { label: 'Khóa học', value: this.analytics().totalCourses.toString(), icon: 'book' as const, iconClass: 'icon-blue' },
-    { label: 'Học viên', value: this.analytics().totalStudents.toString(), icon: 'users' as const, iconClass: 'icon-green' },
-    { label: 'Chờ chấm điểm', value: this.analytics().pendingGrading.toString(), icon: 'clipboard' as const, iconClass: 'icon-amber' },
-    { label: 'Đánh giá TB', value: this.formatRating(this.analytics().averageRating), icon: 'star' as const, iconClass: 'icon-yellow' }
-  ]);
 
   ngOnInit(): void {
     // Mark body as loaded to prevent FOUC (critical.scss hides .dashboard-container until loaded)
@@ -127,22 +120,9 @@ export class TeacherDashboardComponent implements OnInit {
   }
 
   getUserFirstName(): string {
-    const name = this.authService.currentUser()?.name || 'Giảng viên';
-    return name.split(' ').pop() || name;
-  }
-
-  getUserInitials(): string {
     const user = this.authService.currentUser();
-    const fullName = user?.name || 'GV';
-    const names = fullName.trim().split(' ');
-    if (names.length >= 2) {
-      return (names[0][0] + names[names.length - 1][0]).toUpperCase();
-    }
-    return fullName.substring(0, 2).toUpperCase();
-  }
-
-  formatRating(v: number): string {
-    return v > 0 ? v.toFixed(1) : '—';
+    const fullName = user?.fullName || user?.name || 'Giảng viên';
+    return fullName.split(' ').pop() || fullName;
   }
 
   formatDate(dateStr: string): string {
@@ -160,26 +140,12 @@ export class TeacherDashboardComponent implements OnInit {
     }
   }
 
-  getStatusClasses(status: string): string {
-    const m: Record<string, string> = {
-      'APPROVED': 'badge-approved',
-      'PUBLISHED': 'badge-published',
-      'PENDING': 'badge-pending',
-      'DRAFT': 'badge-draft',
-      'REJECTED': 'badge-rejected',
-      'ARCHIVED': 'badge-archived'
-    };
-    return 'status-badge ' + (m[status] || 'badge-draft');
-  }
-
   getStatusLabel(status: string): string {
     const m: Record<string, string> = {
       'APPROVED': 'Đã duyệt',
-      'PUBLISHED': 'Xuất bản',
       'PENDING': 'Chờ duyệt',
       'DRAFT': 'Nháp',
-      'REJECTED': 'Từ chối',
-      'ARCHIVED': 'Lưu trữ'
+      'REJECTED': 'Bị từ chối'
     };
     return m[status] || status;
   }
@@ -203,7 +169,7 @@ export class TeacherDashboardComponent implements OnInit {
   private getTabSuffix(tab: TabKey): string {
     switch (tab) {
       case 'approved': return 'đã duyệt';
-      case 'draft': return 'nháp';
+      case 'draft': return 'đang soạn';
       case 'pending': return 'chờ duyệt';
       default: return 'gần nhất';
     }
@@ -211,8 +177,8 @@ export class TeacherDashboardComponent implements OnInit {
 
   private matchTab(status: string, tab: TabKey): boolean {
     switch (tab) {
-      case 'approved': return status === 'APPROVED' || status === 'PUBLISHED';
-      case 'draft': return status === 'DRAFT';
+      case 'approved': return status === 'APPROVED';
+      case 'draft': return status === 'DRAFT' || status === 'REJECTED';
       case 'pending': return status === 'PENDING';
       default: return true;
     }

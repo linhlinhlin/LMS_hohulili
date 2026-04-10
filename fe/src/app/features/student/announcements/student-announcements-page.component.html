@@ -1,0 +1,171 @@
+<div class="min-h-screen bg-slate-50">
+  <!-- Sticky header -->
+  <div class="sticky top-0 z-10 border-b border-slate-200 bg-white">
+    <div class="mx-auto max-w-[1400px] px-4 sm:px-6 py-4">
+      <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-900">Thông báo</h1>
+          <p class="mt-1 text-sm text-slate-500">
+            {{ unreadCount() > 0 ? unreadCount() + ' thông báo chưa đọc' : 'Tất cả thông báo đã đọc' }}
+          </p>
+        </div>
+        @if (unreadCount() > 0) {
+          <button type="button" (click)="markAllAsRead()"
+            class="self-start rounded-lg px-4 py-2 text-sm font-medium text-[#0056D2] transition hover:bg-[#0056D2]/10">
+            Đánh dấu tất cả đã đọc
+          </button>
+        }
+      </div>
+
+      <!-- Filter tabs — pill style matching tasks page -->
+      <div class="flex flex-wrap items-center gap-2" role="tablist">
+        @for (tab of filterTabs; track tab.key) {
+          <button type="button" (click)="setFilter(tab.key)"
+            role="tab" [attr.aria-selected]="activeFilter() === tab.key"
+            class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors"
+            [class.bg-[#0056D2]]="activeFilter() === tab.key"
+            [class.text-white]="activeFilter() === tab.key"
+            [class.border-[#0056D2]]="activeFilter() === tab.key"
+            [class.bg-white]="activeFilter() !== tab.key"
+            [class.text-gray-700]="activeFilter() !== tab.key"
+            [class.border-gray-200]="activeFilter() !== tab.key"
+            [class.hover:border-gray-300]="activeFilter() !== tab.key">
+            {{ tab.label }} ({{ tab.count() }})
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="mx-auto max-w-[1400px] px-4 sm:px-6 py-4">
+    @if (loading()) {
+      <!-- Skeleton -->
+      <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        @for (i of [1, 2, 3, 4, 5]; track i) {
+          <div class="flex items-start gap-3 border-b border-slate-100 p-4 last:border-b-0">
+            <div class="mt-0.5 h-9 w-9 flex-shrink-0 animate-pulse rounded-full bg-slate-200"></div>
+            <div class="flex-1 space-y-2">
+              <div class="flex items-center justify-between">
+                <div class="h-4 w-48 animate-pulse rounded bg-slate-200"></div>
+                <div class="h-3 w-16 animate-pulse rounded bg-slate-100"></div>
+              </div>
+              <div class="h-3 w-full animate-pulse rounded bg-slate-100"></div>
+              <div class="h-3 w-28 animate-pulse rounded bg-slate-100"></div>
+            </div>
+          </div>
+        }
+      </div>
+    } @else if (filteredAnnouncements().length === 0) {
+      <!-- Empty state -->
+      <div class="rounded-lg border border-slate-200 bg-white px-6 py-12 text-center">
+        <svg class="mx-auto mb-4 h-16 w-16 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+        </svg>
+        @switch (activeFilter()) {
+          @case ('unread') {
+            <h3 class="mb-1 text-lg font-semibold text-slate-900">Không có thông báo chưa đọc</h3>
+            <p class="text-slate-500">Bạn đã đọc tất cả thông báo.</p>
+          }
+          @case ('important') {
+            <h3 class="mb-1 text-lg font-semibold text-slate-900">Không có thông báo quan trọng</h3>
+            <p class="text-slate-500">Chưa có thông báo nào được đánh dấu quan trọng.</p>
+          }
+          @default {
+            <h3 class="mb-1 text-lg font-semibold text-slate-900">Chưa có thông báo</h3>
+            <p class="text-slate-500">Thông báo từ giảng viên sẽ xuất hiện ở đây.</p>
+          }
+        }
+      </div>
+    } @else {
+      <!-- Announcement list -->
+      <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        @for (a of visibleAnnouncements(); track a.id; let last = $last) {
+          <button type="button" (click)="openDetail(a)"
+            class="flex w-full items-start gap-3 p-4 text-left transition-colors hover:bg-slate-50"
+            [class.border-b]="!last" [class.border-slate-100]="!last"
+            [class.bg-[#0056D2]/[0.03]]="!a.isRead">
+            <div class="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full"
+                 [class.bg-red-100]="a.priority === 'IMPORTANT'"
+                 [class.bg-[#0056D2]/10]="a.priority !== 'IMPORTANT'">
+              @if (a.priority === 'IMPORTANT') {
+                <svg class="h-[18px] w-[18px] text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+              } @else {
+                <svg class="h-[18px] w-[18px] text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                </svg>
+              }
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="mb-0.5 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                  @if (!a.isRead) {
+                    <span class="h-2 w-2 flex-shrink-0 rounded-full bg-[#0056D2]"></span>
+                  }
+                  <h3 class="truncate text-[15px] text-slate-900" [class.font-semibold]="!a.isRead">
+                    {{ a.title }}
+                  </h3>
+                </div>
+                <span class="flex-shrink-0 text-xs text-slate-400">{{ a.publishedAt | date:'dd/MM' }}</span>
+              </div>
+              <p class="mb-1 line-clamp-1 text-sm text-slate-500">{{ a.content }}</p>
+              <div class="flex items-center gap-2 text-xs text-slate-400">
+                <span class="truncate font-medium text-slate-500">{{ courseNameMap().get(a.courseId) || 'Khóa học' }}</span>
+                <span class="text-slate-300">&middot;</span>
+                <span>{{ a.authorName }}</span>
+              </div>
+            </div>
+          </button>
+        }
+      </div>
+
+      <!-- Load More -->
+      @if (hasMoreToShow()) {
+        <div class="load-more-section">
+          <button class="load-more-btn" (click)="loadMore()">
+            Xem thêm {{ remainingCount() }} thông báo
+          </button>
+          <p class="showing-count">Đang hiện {{ visibleAnnouncements().length }} / {{ filteredAnnouncements().length }}</p>
+        </div>
+      } @else if (filteredAnnouncements().length > 0) {
+        <p class="showing-count">Đã hiện tất cả {{ filteredAnnouncements().length }} thông báo</p>
+      }
+    }
+  </div>
+</div>
+
+<!-- Detail modal -->
+@if (selected()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="closeDetail()">
+    <div class="w-full max-w-2xl overflow-hidden rounded-lg bg-white shadow-xl" (click)="$event.stopPropagation()">
+      <div class="border-b border-slate-200 px-6 py-4">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="mb-1 flex items-center gap-2">
+              @if (selected()!.priority === 'IMPORTANT') {
+                <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">Quan trọng</span>
+              }
+              <span class="truncate text-sm font-medium text-[#0056D2]">{{ courseNameMap().get(selected()!.courseId) || 'Khóa học' }}</span>
+            </div>
+            <h2 class="text-lg font-bold text-slate-900">{{ selected()!.title }}</h2>
+            <p class="mt-1 text-sm text-slate-500">
+              {{ selected()!.authorName }} &middot; {{ selected()!.publishedAt | date:'dd/MM/yyyy HH:mm' }}
+            </p>
+          </div>
+          <button type="button" (click)="closeDetail()"
+            class="flex-shrink-0 rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="max-h-[60vh] overflow-y-auto px-6 py-5">
+        <div class="whitespace-pre-wrap text-[15px] leading-relaxed text-slate-700">{{ selected()!.content }}</div>
+      </div>
+    </div>
+  </div>
+}

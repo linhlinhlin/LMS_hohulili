@@ -1,5 +1,7 @@
 package com.example.lms.learning_delivery.application.usecase;
 
+import com.example.lms.course_authoring.domain.model.Course;
+import com.example.lms.course_authoring.domain.repository.CourseRepository;
 import com.example.lms.identity.domain.model.User;
 import com.example.lms.identity.domain.repository.UserRepository;
 import com.example.lms.learning_delivery.domain.model.Enrollment;
@@ -29,6 +31,7 @@ public class EnrollStudentUseCaseV3 {
     private final UserRepository userRepository;
     private final EnrollmentRepositoryPort enrollmentRepository;
     private final LearningClassRepositoryPort learningClassRepository;
+    private final CourseRepository courseRepository;
 
     @Transactional
     public UUID enroll(UUID studentId, UUID classId) {
@@ -40,14 +43,26 @@ public class EnrollStudentUseCaseV3 {
 
         // 2. Validate Class exists
         LearningClass learningClass = learningClassRepository.findById(classId)
-                .orElseThrow(() -> new BusinessRuleException("Learning class not found: " + classId));
+                .orElseThrow(() -> new BusinessRuleException("Không tìm thấy lớp học"));
 
-        // 3. Check Duplicate Enrollment
+        // 3. Verify course allows enrollment
+        // Teacher-initiated enrollment: allowed in DRAFT (roster setup) and APPROVED (active course)
+        // Blocked in PENDING (under review) and REJECTED (needs revision)
+        Course course = courseRepository.findById(learningClass.getCourseId())
+                .orElseThrow(() -> new BusinessRuleException("Không tìm thấy khóa học"));
+        if (course.getStatus() == Course.CourseStatus.PENDING) {
+            throw new BusinessRuleException("Khóa học đang chờ duyệt, không thể thay đổi danh sách lớp");
+        }
+        if (course.getStatus() == Course.CourseStatus.REJECTED) {
+            throw new BusinessRuleException("Khóa học đã bị từ chối, vui lòng chỉnh sửa và gửi duyệt lại trước");
+        }
+
+        // 4. Check Duplicate Enrollment
         if (enrollmentRepository.existsByClassIdAndStudentId(classId, studentId)) {
             throw new BusinessRuleException("Student already enrolled in this class");
         }
 
-        // 4. Create and Save Enrollment using domain model
+        // 5. Create and Save Enrollment using domain model
         Enrollment enrollment = Enrollment.builder()
                 .learningClass(learningClass)
                 .studentId(studentId)

@@ -1,0 +1,585 @@
+@use '../../../../styles/variables' as *;
+
+/* ===== PAGE ===== */
+.payment-page {
+  background: #FAFAFA;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ===== HEADER ===== */
+.header-bar {
+  background: white;
+  border-bottom: 1px solid $border-default;
+}
+
+.header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.header-text h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1F1F1F;
+  margin: 0;
+  line-height: 1.25;
+  @include truncate;
+}
+
+.header-sub {
+  font-size: 13px;
+  color: $gray-500;
+  margin: 2px 0 0 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.print-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: $gray-700;
+  background: white;
+  border: 1px solid $border-default;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all $transition-normal;
+  white-space: nowrap;
+
+  &:hover { background: $gray-50; border-color: $border-dark; }
+  &:disabled { opacity: 0.5; cursor: default; }
+  svg { width: 14px; height: 14px; flex-shrink: 0; }
+}
+
+/* ===== MAIN ===== */
+.payment-main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* ===== CARD ===== */
+.card {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid $border-default;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* ===== ① METRICS STRIP ===== */
+.metrics-strip {
+  @extend .card;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.metric-cell {
+  padding: 14px 20px;
+  border-right: 1px solid $border-light;
+
+  &:last-child { border-right: none; }
+}
+
+.metric-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1F1F1F;
+  line-height: 1.2;
+  margin: 0 0 2px 0;
+
+  &.success { color: $success; }
+  &.primary { color: $blue-primary; }
+}
+
+.metric-label {
+  font-size: 12px;
+  color: $gray-500;
+  margin: 0;
+}
+
+/* ===== ② FILTER TABS (match tasks page pill pattern) ===== */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap; // Wrap trên mobile, không scroll
+}
+
+.tab-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid $gray-200;
+  border-radius: $radius-full;
+  background: white;
+  color: $gray-700;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  white-space: nowrap;
+
+  &:hover {
+    border-color: $gray-300;
+    background: $gray-50;
+  }
+
+  &.active {
+    background: $blue-primary;
+    color: white;
+    border-color: $blue-primary;
+
+    &:hover { background: $blue-hover; border-color: $blue-hover; }
+  }
+
+  .tab-label { line-height: 1; }
+}
+
+/* ===== ③ TABLE (desktop) ===== */
+.table-card {
+  @extend .card;
+  overflow: hidden;
+}
+
+.payment-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.payment-table thead tr {
+  background: $gray-50;
+  border-bottom: 1px solid $border-default;
+}
+
+.payment-table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: $gray-500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 10px 20px;
+}
+
+.payment-table td {
+  padding: 14px 20px;
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.payment-table tbody tr {
+  border-bottom: 1px solid $border-light;
+  transition: background $transition-fast;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: $gray-50; }
+}
+
+.col-txid {
+  // Hiện trên desktop + tablet. Mobile: table ẩn, card layout có mã GD trong meta.
+}
+
+.course-link {
+  color: $blue-primary;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color $transition-normal;
+
+  &:hover { text-decoration: underline; }
+}
+
+.course-sub {
+  font-size: 12px;
+  color: $warning;
+  margin-top: 2px;
+}
+
+// Số tiền: right-align (Material Design, Stripe, Apple HIG — dễ so sánh khi thẳng hàng chữ số)
+.col-amount { text-align: right; }
+.amount { font-weight: 600; color: $gray-900; }
+
+.date-text { color: $gray-500; }
+
+.method-text { color: $gray-600; }
+
+.txid-text {
+  font-size: 12px;
+  font-family: $font-family-mono;
+  color: $gray-400;
+}
+
+/* Status badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-success { background: $success-light; color: $success; }
+.badge-warning { background: $warning-light; color: $warning; }
+.badge-error { background: $error-light; color: $error; }
+.badge-neutral { background: $gray-100; color: $gray-600; }
+.badge-info { background: $info-light; color: $blue-primary; }
+
+/* ===== ④ CARD LAYOUT (mobile) ===== */
+.payment-cards {
+  display: none; // Ẩn mặc định, hiện trên mobile
+  flex-direction: column;
+  gap: 10px;
+}
+
+.payment-card {
+  @extend .card;
+  padding: 14px 16px;
+}
+
+.payment-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.payment-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: $blue-primary;
+  flex: 1;
+  min-width: 0;
+  @include truncate;
+}
+
+.payment-card-amount {
+  font-size: 16px;
+  font-weight: 700;
+  color: $gray-900;
+}
+
+.payment-card-meta {
+  font-size: 12px;
+  color: $gray-500;
+  margin-top: 6px;
+}
+
+.payment-card-sub {
+  font-size: 11px;
+  color: $warning;
+  margin-top: 4px;
+}
+
+/* ===== ⑤ TABLE FOOTER ===== */
+.table-footer {
+  text-align: center;
+  padding: 12px 0 0 0;
+  font-size: 13px;
+  color: $gray-400;
+}
+
+/* ===== EMPTY STATE ===== */
+.empty-state {
+  @extend .card;
+  text-align: center;
+  padding: 48px 24px;
+}
+
+.empty-icon {
+  width: 64px;
+  height: 64px;
+  background: $gray-100;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+
+  app-icon { color: $gray-400; }
+}
+
+.empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: $gray-900;
+  margin: 0 0 6px 0;
+}
+
+.empty-text {
+  font-size: 14px;
+  color: $gray-500;
+  margin: 0 0 20px 0;
+}
+
+.empty-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  background: $blue-primary;
+  border: none;
+  border-radius: 6px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background $transition-normal;
+
+  &:hover { background: $blue-hover; }
+}
+
+/* ===== ERROR STATE ===== */
+.error-state {
+  @extend .card;
+  text-align: center;
+  padding: 48px 24px;
+  border-color: $error-light;
+}
+
+.error-icon {
+  width: 64px;
+  height: 64px;
+  background: $error-light;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+
+  app-icon { color: $error; }
+}
+
+/* ===== SKELETON ===== */
+.skeleton-strip {
+  @extend .card;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.skeleton-cell {
+  padding: 14px 20px;
+  border-right: 1px solid $border-light;
+  &:last-child { border-right: none; }
+}
+
+.skeleton-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.skeleton-table {
+  @extend .card;
+  padding: 16px 20px;
+}
+
+.skeleton-row {
+  display: flex;
+  gap: 20px;
+  padding: 12px 0;
+  border-bottom: 1px solid $border-light;
+
+  &:last-child { border-bottom: none; }
+}
+
+.sk { background: $gray-200; border-radius: 4px; }
+.sk-light { background: $gray-100; border-radius: 4px; }
+
+/* ===== RESPONSIVE ===== */
+
+// Tablet (screen only — không ảnh hưởng print)
+@media screen and (max-width: $breakpoint-md) {
+  .payment-main { padding: 20px 16px; }
+  .header-inner { padding: 14px 16px; }
+}
+
+// Mobile (screen only — print luôn hiện table, không hiện cards)
+@media screen and (max-width: $breakpoint-sm) {
+  .payment-main { padding: 14px 12px; }
+  .header-inner { padding: 12px; }
+  .header-text h1 { font-size: 18px; }
+
+  // Print: icon only
+  .print-btn {
+    padding: 6px 10px;
+    font-size: 13px;
+    .btn-text { display: none; }
+  }
+
+  // Metrics: 2 col trên mobile, cell 3 span full
+  .metrics-strip {
+    grid-template-columns: 1fr 1fr;
+  }
+  .metric-cell {
+    padding: 10px 12px;
+
+    &:nth-child(1) { border-right: 1px solid $border-light; border-bottom: 1px solid $border-light; }
+    &:nth-child(2) { border-right: none; border-bottom: 1px solid $border-light; }
+    &:nth-child(3) { grid-column: span 2; border-right: none; }
+  }
+  .metric-value { font-size: 17px; }
+  .metric-label { font-size: 11px; }
+
+  // Switch: table ẩn, cards hiện
+  .table-card { display: none !important; }
+  .payment-cards { display: flex !important; }
+
+  // Skeleton mobile
+  .skeleton-strip { grid-template-columns: 1fr 1fr; }
+  .skeleton-cell {
+    &:nth-child(1) { border-bottom: 1px solid $border-light; }
+    &:nth-child(2) { border-right: none; border-bottom: 1px solid $border-light; }
+    &:nth-child(3) { grid-column: span 2; border-right: none; }
+  }
+  .skeleton-table { display: none; }
+  .skeleton-cards { display: flex !important; }
+}
+
+// Ultra-small (<340px)
+@media screen and (max-width: 340px) {
+  .payment-main { padding: 12px 8px; }
+  .metric-cell { padding: 8px 10px; }
+  .metric-value { font-size: 15px; }
+  .metric-label { font-size: 10px; }
+  .payment-card { padding: 12px; }
+  .payment-card-title { font-size: 13px; }
+  .payment-card-amount { font-size: 14px; }
+  .payment-card-meta { font-size: 11px; }
+  .tab-chip { padding: 5px 10px; font-size: 12px; }
+}
+
+/* ===== PRINT (A4 portrait — Stripe invoice pattern) ===== */
+@media print {
+  :host { display: block; }
+
+  // ① Page container: KHÔNG min-height, KHÔNG overflow hidden
+  .payment-page {
+    background: white !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  // ② Header: đơn giản — title + border, không card
+  .header-bar {
+    background: white !important;
+    border-bottom: 2px solid #1F1F1F !important;
+    box-shadow: none !important;
+  }
+
+  .header-inner {
+    padding: 8px 0 6px 0 !important;
+    max-width: 100% !important;
+  }
+
+  .header-text h1 { font-size: 18px !important; }
+  .header-sub { display: none !important; } // Lãng phí space khi in
+  .header-actions { display: none !important; } // Ẩn nút In
+
+  // ③ Main: bỏ padding (browser tự thêm margins)
+  .payment-main {
+    padding: 10px 0 0 0 !important;
+    max-width: 100% !important;
+  }
+
+  // ④ Cards chung: bỏ shadow, border nhẹ
+  .card, .metrics-strip, .table-card, .empty-state, .error-state {
+    box-shadow: none !important;
+    border: 1px solid $gray-300 !important;
+    border-radius: 2px !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  // ⑤ Metrics strip: condensed, 3 col cố định
+  .metrics-strip {
+    margin-bottom: 10px !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+  .metric-cell {
+    padding: 8px 12px !important;
+    grid-column: auto !important;
+    border-bottom: none !important;
+    border-right: 1px solid $gray-300;
+    &:last-child { border-right: none; }
+  }
+  .metric-value { font-size: 16px !important; }
+  .metric-label { font-size: 11px !important; }
+
+  // ⑥ Ẩn: filter tabs, footer, skeleton, cards (mobile)
+  .filter-bar, .table-footer,
+  .skeleton-strip, .skeleton-filters, .skeleton-table, .skeleton-cards,
+  .payment-cards { display: none !important; }
+
+  // ⑦ Table: LUÔN hiện, condensed cho A4
+  .table-card {
+    display: block !important;
+    overflow: visible !important;
+    border: 1px solid $gray-300 !important;
+  }
+
+  .payment-table {
+    width: 100% !important;
+    font-size: 12px !important;
+  }
+
+  .payment-table th {
+    padding: 6px 8px !important;
+    font-size: 10px !important;
+    background: $gray-50 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .payment-table td {
+    padding: 6px 8px !important;
+    font-size: 12px !important;
+  }
+
+  .payment-table tbody tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  // ⑧ Cột Mã GD: hiện khi in
+  .col-txid { display: table-cell !important; }
+  .txid-text { font-size: 10px !important; }
+
+  // ⑨ Giữ màu khi in
+  .badge, .metric-value, .course-link, .amount {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  // ⑩ Course sub-text: condensed
+  .course-sub { font-size: 10px !important; margin-top: 1px !important; }
+  .course-link { font-size: 12px !important; }
+  .amount { font-size: 12px !important; }
+  .badge { font-size: 10px !important; padding: 2px 6px !important; }
+  .date-text { font-size: 11px !important; }
+  .method-text { font-size: 11px !important; }
+}

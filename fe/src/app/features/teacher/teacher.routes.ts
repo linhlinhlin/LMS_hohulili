@@ -42,25 +42,32 @@ export const teacherRoutes: Routes = [
     loadComponent: () => import('./shared/teacher-layout-simple.component').then(m => m.TeacherLayoutSimpleComponent),
     canActivate: [teacherOnlyGuard],
     children: [
-      // Default redirect to dashboard
+      // Default redirect to courses (matching student pattern)
       {
         path: '',
-        redirectTo: 'dashboard',
+        redirectTo: 'courses',
         pathMatch: 'full'
       },
 
-      // Dashboard - Trang chủ giảng viên
+      // Backward compat: /teacher/dashboard → /teacher/courses
       {
         path: 'dashboard',
-        loadComponent: () => import('./dashboard/teacher-dashboard.component').then(m => m.TeacherDashboardComponent),
-        title: 'Dashboard - Giảng viên'
+        redirectTo: 'courses',
+        pathMatch: 'full'
       },
 
-      // Course Management Routes
+      // Khóa học của tôi — Teacher home (matching student /student/courses)
       {
         path: 'courses',
+        loadComponent: () => import('./dashboard/teacher-dashboard.component').then(m => m.TeacherDashboardComponent),
+        title: 'Khóa học của tôi - Giảng viên'
+      },
+
+      // Tất cả khóa học — Full course management (matching student /student/courses/library)
+      {
+        path: 'courses/library',
         loadComponent: () => import('./courses/course-management.component').then(m => m.CourseManagementComponent),
-        title: 'Quản lý khóa học'
+        title: 'Tất cả khóa học'
       },
       {
         path: 'course-creation',

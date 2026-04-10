@@ -456,9 +456,9 @@ export class TeacherService {
   private mapCourseStatus(status: string | undefined): 'active' | 'draft' | 'archived' {
     if (!status) return 'draft';
     const s = status.toUpperCase();
-    if (s === 'APPROVED' || s === 'PUBLISHED') return 'active';
-    if (s === 'DRAFT' || s === 'PENDING') return 'draft';
-    if (s === 'ARCHIVED' || s === 'REJECTED' || s === 'REVOKED') return 'archived';
+    if (s === 'APPROVED') return 'active';
+    if (s === 'DRAFT' || s === 'PENDING' || s === 'REJECTED') return 'draft';
+    if (s === 'ARCHIVED') return 'archived';
     return 'draft';
   }
 

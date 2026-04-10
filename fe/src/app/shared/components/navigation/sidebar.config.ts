@@ -47,6 +47,12 @@ export const studentSidebarConfig: SidebarConfig = {
       group: 'Công cụ'
     },
     {
+      label: 'Thông báo',
+      route: '/student/announcements',
+      icon: 'bell',
+      group: 'Công cụ'
+    },
+    {
       label: 'Lưu trữ ngoại tuyến',
       route: '/student/storage',
       icon: 'download',
@@ -74,16 +80,18 @@ export const teacherSidebarConfig: SidebarConfig = {
   logoIcon: 'courses',
   menuItems: [
     {
-      label: 'Trang chủ',
-      route: '/teacher/dashboard',
-      icon: 'home',
-      group: 'Giảng dạy'
-    },
-    {
-      label: 'Khóa học',
+      label: 'Khóa học của tôi',
       route: '/teacher/courses',
       icon: 'courses',
-      group: 'Giảng dạy'
+      exact: true,
+      group: 'Giảng dạy',
+      children: [
+        {
+          label: 'Tất cả khóa học',
+          route: '/teacher/courses/library',
+          icon: 'book'
+        }
+      ]
     },
     {
       label: 'Bài tập & Ngân hàng câu hỏi',

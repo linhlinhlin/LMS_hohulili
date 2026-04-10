@@ -4,8 +4,12 @@ import com.example.lms.learning_delivery.infrastructure.persistence.entity.Certi
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Repository
@@ -20,4 +24,7 @@ public interface CertificateJpaRepository extends JpaRepository<CertificateJpaEn
     Optional<CertificateJpaEntity> findByEnrollmentId(UUID enrollmentId);
 
     boolean existsByEnrollmentId(UUID enrollmentId);
+
+    @Query("SELECT c.enrollmentId FROM CertificateJpaEntity c WHERE c.enrollmentId IN :enrollmentIds")
+    Set<UUID> findEnrollmentIdsWithCertificates(@Param("enrollmentIds") List<UUID> enrollmentIds);
 }

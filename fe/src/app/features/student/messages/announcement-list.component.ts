@@ -6,6 +6,7 @@ import {
   signal,
   computed,
 } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { AnnouncementService, Announcement } from '../../../core/services/announcement.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -54,9 +55,9 @@ import { AuthService } from '../../../core/services/auth.service';
             @for (announcement of group.items; track announcement.id) {
               <div
                 class="mb-2 rounded-lg border bg-white p-4 transition"
-                [class]="announcement.isRead
-                  ? 'border-slate-200'
-                  : 'border-[#0056D2]/30 bg-[#0056D2]/5'"
+                [class.border-slate-200]="announcement.isRead"
+                [class.border-[#0056D2]/30]="!announcement.isRead"
+                [class.bg-[#0056D2]/5]="!announcement.isRead"
                 (click)="onAnnouncementClick(announcement)">
                 <div class="mb-1 flex items-start justify-between gap-2">
                   <div class="flex items-center gap-2">
@@ -121,6 +122,7 @@ import { AuthService } from '../../../core/services/auth.service';
 export class AnnouncementListComponent implements OnInit {
   private readonly announcementService = inject(AnnouncementService);
   private readonly authService = inject(AuthService);
+  private readonly http = inject(HttpClient);
 
   readonly loading = this.announcementService.loading;
   readonly selectedAnnouncement = signal<Announcement | null>(null);
@@ -142,9 +144,22 @@ export class AnnouncementListComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    // Load announcements for enrolled courses
-    // For now, load all — in production, pass enrolled courseIds
-    this.announcementService.getAnnouncements().subscribe();
+    // Fetch enrolled courseIds, then load announcements for those courses
+    this.http
+      .get<{ data: { content: { id: string }[] } }>('/api/v3/student/courses/enrolled?page=0&size=100')
+      .subscribe({
+        next: (res) => {
+          const courseIds = (res?.data?.content ?? []).map((c) => c.id);
+          if (courseIds.length > 0) {
+            this.announcementService.getAnnouncements(undefined, courseIds).subscribe();
+            this.announcementService.getUnreadCount(courseIds).subscribe();
+          }
+        },
+        error: () => {
+          // Fallback: load without courseIds (may return empty)
+          this.announcementService.getAnnouncements().subscribe();
+        },
+      });
     this.announcementService.loadReadIds().subscribe();
   }
 

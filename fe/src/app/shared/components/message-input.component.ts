@@ -158,9 +158,6 @@ export interface MessageSendEvent {
         </div>
       }
 
-      <p class="mt-1.5 text-center text-[11px] text-slate-300">
-        Enter gửi · Shift+Enter xuống dòng
-      </p>
     </div>
   `,
 })

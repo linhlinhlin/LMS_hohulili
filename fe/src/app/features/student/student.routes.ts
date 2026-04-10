@@ -175,6 +175,11 @@ export const studentRoutes: Routes = [
         path: 'messages',
         loadChildren: () => import('./messages/messages.routes').then(m => m.MESSAGES_ROUTES),
         title: 'Tin nhắn'
+      },
+      {
+        path: 'announcements',
+        loadComponent: () => import('./announcements/student-announcements-page.component').then(m => m.StudentAnnouncementsPageComponent),
+        title: 'Thông báo - LMS Maritime'
       }
     ]
   }

@@ -14,10 +14,20 @@ describe('WiiiContextService - operator preview/apply flows', () => {
   let service: WiiiContextService;
   let lessonApi: jasmine.SpyObj<LessonApi>;
   let quizApi: jasmine.SpyObj<QuizApi>;
+  let pageDataExtractor: jasmine.SpyObj<PageDataExtractorService>;
+  let router: { url: string; events: Subject<unknown>; navigate: jasmine.Spy; navigateByUrl: jasmine.Spy };
   let routerEvents$: Subject<unknown>;
 
   beforeEach(() => {
     routerEvents$ = new Subject<unknown>();
+    router = {
+      url: '/teacher/courses/course-1/editor/curriculum',
+      events: routerEvents$,
+      navigate: jasmine.createSpy('navigate').and.resolveTo(true),
+      navigateByUrl: jasmine.createSpy('navigateByUrl').and.resolveTo(true),
+    };
+    pageDataExtractor = jasmine.createSpyObj<PageDataExtractorService>('PageDataExtractorService', ['extract']);
+    pageDataExtractor.extract.and.returnValue(null);
 
     TestBed.configureTestingModule({
       providers: [
@@ -26,17 +36,15 @@ describe('WiiiContextService - operator preview/apply flows', () => {
         {
           provide: Router,
           useValue: {
-            url: '/teacher/courses/course-1/editor/curriculum',
-            events: routerEvents$.asObservable(),
-            navigate: jasmine.createSpy('navigate').and.resolveTo(true),
-            navigateByUrl: jasmine.createSpy('navigateByUrl').and.resolveTo(true),
+            url: router.url,
+            events: router.events.asObservable(),
+            navigate: router.navigate,
+            navigateByUrl: router.navigateByUrl,
           },
         },
         {
           provide: PageDataExtractorService,
-          useValue: {
-            extract: jasmine.createSpy('extract').and.returnValue({}),
-          },
+          useValue: pageDataExtractor,
         },
         {
           provide: AuthService,
@@ -223,5 +231,88 @@ describe('WiiiContextService - operator preview/apply flows', () => {
     expect(capabilities.connector_id).toBe('maritime-lms');
     expect(capabilities.host_workspace_id).toBe('org-1');
     expect(capabilities.host_organization_id).toBe('org-1');
+  });
+
+  it('recognizes student task work routes as assignment pages', () => {
+    const context = (service as any).extractPageContext('/student/tasks/assignment-1/work');
+
+    expect(context).toEqual(jasmine.objectContaining({
+      page_type: 'assignment',
+    }));
+  });
+
+  it('hydrates assignment snippets with title, status, deadline, and instructions before posting to the iframe', () => {
+    pageDataExtractor.extract.and.returnValue({
+      _type: 'assignment',
+      title: 'Bai tap tinh huong so cuu',
+      course_name: 'Ky nang an toan',
+      due_date: '2026-04-12T10:00:00Z',
+      status: 'IN_PROGRESS',
+      instructions: 'Tom tat yeu cau, rubric, va checklist nop bai.',
+      max_score: 10,
+    });
+
+    const postMessage = jasmine.createSpy('postMessage');
+    service.connectIframe({ contentWindow: { postMessage } } as unknown as HTMLIFrameElement);
+
+    (service as any).sendContext({
+      page_type: 'assignment',
+      page_title: 'LMS',
+    });
+
+    expect(postMessage).toHaveBeenCalled();
+    const payload = postMessage.calls.mostRecent().args[0].payload;
+    expect(payload.page_title).toBe('Bai tap tinh huong so cuu');
+    expect(payload.assignment_description).toContain('rubric');
+    expect(payload.content_snippet).toContain('Han nop');
+    expect(payload.content_snippet).toContain('Trang thai');
+    expect(payload.content_snippet).toContain('Diem toi da');
+  });
+
+  it('hydrates lesson snippets from structured extraction before posting to the iframe', () => {
+    pageDataExtractor.extract.and.returnValue({
+      _type: 'lesson',
+      course_name: 'Huấn luyện an toàn',
+      chapter_name: 'Chương 1',
+      lesson_title: 'Bài 1.1: Các loại phương tiện cứu sinh',
+      content_text: 'Xuồng cứu sinh là phương tiện ...',
+      media_types: [],
+      progress: 3,
+    });
+
+    const postMessage = jasmine.createSpy('postMessage');
+    service.connectIframe({ contentWindow: { postMessage } } as unknown as HTMLIFrameElement);
+
+    (service as any).sendContext({
+      page_type: 'lesson',
+      page_title: 'Bài học',
+      lesson_id: 'lesson-1',
+    });
+
+    expect(postMessage).toHaveBeenCalled();
+    const payload = postMessage.calls.mostRecent().args[0].payload;
+    expect(payload.page_title).toBe('Bài 1.1: Các loại phương tiện cứu sinh');
+    expect(payload.lesson_name).toBe('Bài 1.1: Các loại phương tiện cứu sinh');
+    expect(payload.chapter_name).toBe('Chương 1');
+    expect(payload.content_snippet).toContain('Xuồng cứu sinh');
+  });
+
+  it('supports semantic next_lesson navigation targets', async () => {
+    const button = document.createElement('button');
+    button.textContent = 'Bài tiếp theo';
+    const clickSpy = spyOn(button, 'click');
+    document.body.appendChild(button);
+
+    try {
+      const result = await (service as any).handleActionRequest('navigation.go_to', {
+        target: 'next_lesson',
+      });
+
+      expect(result.success).toBeTrue();
+      expect(clickSpy).toHaveBeenCalled();
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+    } finally {
+      button.remove();
+    }
   });
 });

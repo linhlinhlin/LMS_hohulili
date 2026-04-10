@@ -18,7 +18,7 @@ import { ToastService } from '../../../core/services/toast.service';
       <!-- Sticky top bar -->
       <div class="flex-shrink-0 bg-white border-b border-slate-200/80 z-10">
         <div class="max-w-[1100px] mx-auto px-5 sm:px-8 flex items-center justify-between h-12">
-          <a routerLink="/teacher/courses"
+          <a routerLink="/teacher/courses/library"
              class="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900 transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
@@ -561,7 +561,7 @@ export class CourseCreationComponent implements OnInit {
   }
 
   onCancel() {
-    this.router.navigate(['/teacher/courses']);
+    this.router.navigate(['/teacher/courses/library']);
   }
 
   hasUnsavedData(): boolean {

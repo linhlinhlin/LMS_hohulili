@@ -1,0 +1,227 @@
+<div class="grades-page">
+
+  <!-- Header -->
+  <div class="grades-header">
+    <h1 class="grades-title">Kết quả học tập</h1>
+    <p class="grades-subtitle">Điểm số và chứng chỉ từ các khóa học đã đăng ký</p>
+  </div>
+
+  <!-- Main Tabs: Bảng điểm / Chứng chỉ -->
+  <div class="main-tabs" role="tablist">
+    <button class="main-tab" [class.active]="activeTab() === 'grades'"
+            (click)="activeTab.set('grades')" role="tab"
+            [attr.aria-selected]="activeTab() === 'grades'" type="button">
+      Bảng điểm
+    </button>
+    <button class="main-tab" [class.active]="activeTab() === 'certificates'"
+            (click)="activeTab.set('certificates'); loadCertificates()" role="tab"
+            [attr.aria-selected]="activeTab() === 'certificates'" type="button">
+      Chứng chỉ ({{ certificates().length }})
+    </button>
+  </div>
+
+  <!-- Error -->
+  @if (error()) {
+    <div class="error-bar">
+      <span class="error-text">{{ error() }}</span>
+      <button class="error-close" (click)="error.set(null)" type="button">&times;</button>
+    </div>
+  }
+
+  <!-- ===== GRADES TAB ===== -->
+  @if (activeTab() === 'grades') {
+
+    <!-- Loading -->
+    @if (isLoading()) {
+      <div class="skeleton-card animate-pulse">
+        @for (i of [1,2,3]; track i) {
+          <div class="skeleton-row">
+            <div class="sk" style="height:16px;width:200px;margin-bottom:8px"></div>
+            <div class="sk-light" style="height:12px;width:100%"></div>
+          </div>
+        }
+      </div>
+    } @else if (grades().length === 0) {
+      <!-- Empty -->
+      <div class="empty-state">
+        <p class="empty-title">Chưa có dữ liệu điểm</p>
+        <p class="empty-sub">Đăng ký và hoàn thành các khóa học để xem bảng điểm</p>
+        <a routerLink="/student/courses/library" class="empty-link">Xem khóa học →</a>
+      </div>
+    } @else {
+
+      <!-- Status Filter Tabs -->
+      <div class="filter-bar" role="tablist">
+        @for (tab of statusFilterTabs(); track tab.key) {
+          <button type="button" class="tab-chip"
+                  [class.active]="activeStatusFilter() === tab.key"
+                  (click)="setStatusFilter(tab.key)"
+                  role="tab" [attr.aria-selected]="activeStatusFilter() === tab.key">
+            <span class="tab-label">{{ tab.label }} ({{ tab.count }})</span>
+          </button>
+        }
+
+        <!-- Semester dropdown (chỉ khi có INSTRUCTOR_LED + semester) -->
+        @if (hasSemesterFilter()) {
+          <select class="semester-select"
+                  (change)="setSemesterFilter($any($event.target).value || null)">
+            <option value="">Tất cả học kỳ</option>
+            @for (sem of availableSemesters(); track sem) {
+              <option [value]="sem" [selected]="selectedSemester() === sem">{{ sem }}</option>
+            }
+          </select>
+        }
+      </div>
+
+      <!-- Summary -->
+      <p class="grades-summary">
+        {{ filteredGrades().length }} kết quả · {{ completedCount() }} hoàn thành · Trung bình {{ averageProgress() }}%
+      </p>
+
+      <!-- Grade Cards -->
+      <div class="grade-cards">
+        @for (grade of visibleGrades(); track grade.enrollmentId) {
+          <div class="grade-card">
+            <!-- Card Header -->
+            <div class="grade-card-header">
+              <div class="grade-card-info">
+                <a [routerLink]="['/student/courses', grade.courseId]" class="grade-card-title">
+                  {{ grade.courseTitle }}
+                </a>
+                @if (grade.courseCode) {
+                  <span class="grade-card-code">{{ grade.courseCode }}</span>
+                }
+                <!-- INSTRUCTOR_LED: hiện semester + class name -->
+                @if (grade.deliveryMode === 'INSTRUCTOR_LED') {
+                  <div class="grade-card-class-info">
+                    @if (grade.semester) {
+                      <span class="semester-badge">{{ grade.semester }}</span>
+                    }
+                    @if (grade.className && grade.className !== 'DEFAULT') {
+                      <span class="class-name">{{ grade.className }}</span>
+                    }
+                  </div>
+                }
+              </div>
+              <div class="grade-card-badges">
+                <span class="delivery-tag" [class.instructor-led]="grade.deliveryMode === 'INSTRUCTOR_LED'">
+                  {{ grade.deliveryMode === 'INSTRUCTOR_LED' ? 'Lớp học' : 'Tự học' }}
+                </span>
+                <span class="status-badge" [class.completed]="grade.enrollmentStatus === 'COMPLETED'">
+                  {{ grade.enrollmentStatus === 'COMPLETED' ? 'Hoàn thành' : 'Đang học' }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Table -->
+            @if (getAllItems(grade).length === 0) {
+              <div class="empty-items">Chưa có bài kiểm tra hoặc bài tập</div>
+            } @else {
+              <div style="overflow-x:auto">
+                <table class="grade-table">
+                  <thead>
+                    <tr>
+                      <th>Bài</th>
+                      <th class="col-center" style="width:80px">Loại</th>
+                      <th class="col-right" style="width:96px">Điểm</th>
+                      <th class="col-center" style="width:96px">Kết quả</th>
+                      <th class="col-right" style="width:64px"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (item of getAllItems(grade); track item.quizId || item.assignmentId) {
+                      <tr>
+                        <td>{{ item.quizTitle || item.assignmentTitle }}</td>
+                        <td class="col-center" style="font-size:12px;color:#9CA3AF">
+                          {{ item.type === 'quiz' ? 'Trắc nghiệm' : 'Bài tập' }}
+                        </td>
+                        <td class="col-right">
+                          @if (item.type === 'quiz') {
+                            <span class="score-text">{{ formatScore(item.bestScore) }}/{{ formatScore(item.maxScore) }}</span>
+                          } @else if (item.grade !== null && item.grade !== undefined) {
+                            <span class="score-text">{{ item.grade }}/{{ item.maxScore }}</span>
+                          } @else {
+                            <span class="score-empty">—</span>
+                          }
+                        </td>
+                        <td class="col-center">
+                          @if (item.type === 'quiz') {
+                            <span [class]="item.isPassed === true ? 'result-pass' : item.isPassed === false ? 'result-fail' : 'result-neutral'"
+                                  style="font-size:12px">
+                              {{ item.isPassed === true ? 'Đạt' : item.isPassed === false ? 'Chưa đạt' : '—' }}
+                            </span>
+                          } @else {
+                            <span [class]="item.status === 'GRADED' ? 'result-pass' : item.status === 'SUBMITTED' ? 'result-submitted' : 'result-neutral'"
+                                  style="font-size:12px">
+                              {{ getAssignmentStatusLabel(item.status) }}
+                            </span>
+                          }
+                        </td>
+                        <td class="col-right">
+                          @if (item.type === 'quiz' && item.bestAttemptId) {
+                            <button (click)="viewQuizResult(item.bestAttemptId); $event.stopPropagation()"
+                                    class="view-btn" type="button">
+                              Xem
+                            </button>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Load More -->
+      @if (hasMoreGrades()) {
+        <div class="load-more-section">
+          <button type="button" class="load-more-btn" (click)="loadMoreGrades()">
+            Xem thêm {{ remainingGrades() }} kết quả
+          </button>
+          <p class="load-more-count">Đang hiện {{ visibleGrades().length }} / {{ filteredGrades().length }}</p>
+        </div>
+      } @else if (filteredGrades().length > 5) {
+        <p class="load-more-count" style="text-align:center;padding-top:16px">
+          Tất cả {{ filteredGrades().length }} kết quả
+        </p>
+      }
+    }
+  }
+
+  <!-- ===== CERTIFICATES TAB ===== -->
+  @if (activeTab() === 'certificates') {
+    @if (certsLoading()) {
+      <div class="cert-list">
+        @for (i of [1,2]; track i) {
+          <div class="cert-card animate-pulse">
+            <div class="sk" style="width:40px;height:40px;border-radius:8px;flex-shrink:0"></div>
+            <div style="flex:1">
+              <div class="sk" style="height:16px;width:200px;margin-bottom:8px"></div>
+              <div class="sk-light" style="height:12px;width:140px"></div>
+            </div>
+          </div>
+        }
+      </div>
+    } @else if (certificates().length === 0) {
+      <div class="empty-state">
+        <p class="empty-title">Chưa có chứng chỉ</p>
+        <p class="empty-sub">Hoàn thành khóa học để nhận chứng chỉ</p>
+      </div>
+    } @else {
+      <div class="cert-list">
+        @for (cert of certificates(); track cert.id) {
+          <div class="cert-card">
+            <div class="cert-info">
+              <p class="cert-name">{{ cert.courseName }}</p>
+              <p class="cert-meta">Cấp ngày {{ cert.issuedAt }} · Mã: {{ cert.verificationToken.substring(0, 8) }}...</p>
+            </div>
+            <a [routerLink]="['/student/certificate', cert.verificationToken]" class="cert-link">Xem</a>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>

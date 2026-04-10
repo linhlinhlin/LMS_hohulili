@@ -1,0 +1,200 @@
+<div class="payment-page">
+  <!-- Header -->
+  <div class="header-bar">
+    <div class="header-inner">
+      <div class="header-text">
+        <h1>Lịch sử thanh toán</h1>
+        <p class="header-sub">Quản lý và theo dõi các giao dịch của bạn</p>
+      </div>
+      <div class="header-actions">
+        <button class="print-btn" (click)="printPage()" [disabled]="isLoading()">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+          <span class="btn-text">In lịch sử</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="payment-main">
+
+    <!-- ===== SKELETON LOADING ===== -->
+    @if (isLoading()) {
+      <!-- Skeleton: Metrics -->
+      <div class="skeleton-strip animate-pulse">
+        @for (_ of [1,2,3]; track $index) {
+          <div class="skeleton-cell">
+            <div class="sk" style="height:22px;width:48px;margin-bottom:6px"></div>
+            <div class="sk-light" style="height:12px;width:72px"></div>
+          </div>
+        }
+      </div>
+
+      <!-- Skeleton: Filters -->
+      <div class="skeleton-filters animate-pulse">
+        <div class="sk" style="width:65px;height:30px;border-radius:15px"></div>
+        <div class="sk-light" style="width:85px;height:30px;border-radius:15px"></div>
+        <div class="sk-light" style="width:78px;height:30px;border-radius:15px"></div>
+        <div class="sk-light" style="width:68px;height:30px;border-radius:15px"></div>
+      </div>
+
+      <!-- Skeleton: Table (desktop) -->
+      <div class="skeleton-table animate-pulse">
+        @for (_ of [1,2,3,4,5]; track $index) {
+          <div class="skeleton-row">
+            <div class="sk" style="width:180px;height:14px"></div>
+            <div class="sk-light" style="width:80px;height:14px"></div>
+            <div class="sk-light" style="width:70px;height:14px"></div>
+            <div class="sk-light" style="width:60px;height:14px"></div>
+            <div class="sk-light" style="width:110px;height:14px"></div>
+          </div>
+        }
+      </div>
+
+      <!-- Skeleton: Cards (mobile) — ẩn mặc định, hiện qua CSS -->
+      <div class="skeleton-cards" style="display:none;flex-direction:column;gap:10px">
+        @for (_ of [1,2,3]; track $index) {
+          <div class="card animate-pulse" style="padding:14px 16px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+              <div class="sk" style="width:140px;height:14px"></div>
+              <div class="sk-light" style="width:65px;height:20px;border-radius:10px"></div>
+            </div>
+            <div class="sk" style="width:90px;height:18px;margin-bottom:6px"></div>
+            <div class="sk-light" style="width:160px;height:12px"></div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ===== ERROR STATE ===== -->
+    @if (!isLoading() && loadError()) {
+      <div class="error-state">
+        <div class="error-icon">
+          <app-icon name="warning" size="lg"/>
+        </div>
+        <h3 class="empty-title">Không thể tải lịch sử thanh toán</h3>
+        <p class="empty-text">{{ loadError() }}</p>
+        <button type="button" class="empty-cta" (click)="loadPayments()">
+          <app-icon name="refresh" size="sm"/> Thử lại
+        </button>
+      </div>
+    }
+
+    <!-- ===== EMPTY STATE ===== -->
+    @if (!isLoading() && !loadError() && payments().length === 0) {
+      <div class="empty-state">
+        <div class="empty-icon">
+          <app-icon name="briefcase" size="lg"/>
+        </div>
+        <h3 class="empty-title">Chưa có giao dịch nào</h3>
+        <p class="empty-text">Bạn chưa thực hiện thanh toán khóa học nào.</p>
+        <a routerLink="/student/browse" class="empty-cta">
+          <app-icon name="search" size="sm"/> Khám phá khóa học
+        </a>
+      </div>
+    }
+
+    <!-- ===== PAYMENT DATA ===== -->
+    @if (!isLoading() && !loadError() && payments().length > 0) {
+
+      <!-- ① Metrics Strip -->
+      <div class="metrics-strip">
+        <div class="metric-cell">
+          <p class="metric-value">{{ totalCount() }}</p>
+          <p class="metric-label">Tổng giao dịch</p>
+        </div>
+        <div class="metric-cell">
+          <p class="metric-value success">{{ completedCount() }}</p>
+          <p class="metric-label">Thành công</p>
+        </div>
+        <div class="metric-cell">
+          <p class="metric-value primary">{{ formatAmount(totalSpent()) }}</p>
+          <p class="metric-label">Tổng chi tiêu</p>
+        </div>
+      </div>
+
+      <!-- ② Filter Tabs -->
+      <div class="filter-bar" role="tablist">
+        @for (tab of filterTabs(); track tab.key) {
+          <button type="button"
+                  class="tab-chip"
+                  [class.active]="activeFilter() === tab.key"
+                  (click)="setFilter(tab.key)"
+                  role="tab"
+                  [attr.aria-selected]="activeFilter() === tab.key">
+            <span class="tab-label">{{ tab.label }} ({{ tab.count }})</span>
+          </button>
+        }
+      </div>
+
+      <!-- ③ Table (desktop/tablet) -->
+      <div class="table-card">
+        <table class="payment-table">
+          <thead>
+            <tr>
+              <th>Khóa học</th>
+              <th class="col-amount">Số tiền</th>
+              <th>Trạng thái</th>
+              <th>Phương thức</th>
+              <th>Ngày</th>
+              <th class="col-txid">Mã giao dịch</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (payment of filteredPayments(); track payment.id) {
+              <tr>
+                <td>
+                  @if (payment.courseTitle) {
+                    <a [routerLink]="['/student/courses', payment.courseId]" class="course-link">
+                      {{ payment.courseTitle }}
+                    </a>
+                    @if (payment.status === 'COMPLETED' && payment.accessActivationState === 'MANUAL_ACTIVATION_REQUIRED') {
+                      <p class="course-sub">Đã thanh toán, đang chờ xếp lớp hoặc kích hoạt.</p>
+                    } @else if (payment.status === 'COMPLETED' && payment.accessActivationState === 'ACCESS_PENDING') {
+                      <p class="course-sub" style="color: var(--blue-primary, #0056D2)">Đã thanh toán, quyền học đang được kích hoạt.</p>
+                    }
+                  } @else {
+                    <span class="method-text">Khóa học</span>
+                  }
+                </td>
+                <td class="col-amount"><span class="amount">{{ formatAmount(payment.amount) }}</span></td>
+                <td><span class="badge" [ngClass]="getStatusClass(payment)">{{ getStatusLabel(payment) }}</span></td>
+                <td><span class="method-text">{{ getMethodLabel(payment.paymentMethod) }}</span></td>
+                <td><span class="date-text">{{ formatDate(payment.paidAt || payment.createdAt) }}</span></td>
+                <td class="col-txid"><span class="txid-text">{{ payment.transactionId || '—' }}</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ④ Card Layout (mobile) -->
+      <div class="payment-cards">
+        @for (payment of filteredPayments(); track payment.id) {
+          <div class="payment-card">
+            <div class="payment-card-header">
+              <span class="payment-card-title">{{ payment.courseTitle || 'Khóa học' }}</span>
+              <span class="badge" [ngClass]="getStatusClass(payment)">{{ getStatusLabel(payment) }}</span>
+            </div>
+            <div class="payment-card-amount">{{ formatAmount(payment.amount) }}</div>
+            <div class="payment-card-meta">
+              {{ getMethodLabel(payment.paymentMethod) }} · {{ formatDate(payment.paidAt || payment.createdAt) }}
+              @if (payment.transactionId) {
+                · {{ payment.transactionId }}
+              }
+            </div>
+            @if (payment.status === 'COMPLETED' && payment.accessActivationState === 'MANUAL_ACTIVATION_REQUIRED') {
+              <p class="payment-card-sub">Đã thanh toán, đang chờ kích hoạt</p>
+            } @else if (payment.status === 'COMPLETED' && payment.accessActivationState === 'ACCESS_PENDING') {
+              <p class="payment-card-sub" style="color: #0056D2">Đã thanh toán, quyền học đang được kích hoạt</p>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- ⑤ Footer count -->
+      @if (filteredPayments().length > 0 && activeFilter() !== 'ALL') {
+        <div class="table-footer">{{ filteredCount() }} giao dịch</div>
+      }
+    }
+  </div>
+</div>

@@ -217,13 +217,21 @@ public class CommunicationControllerV3 {
 
         UserSummary senderSummary = batchFetchUsers(Set.of(senderId)).getOrDefault(senderId, UserSummary.unknown(senderId));
 
+        // Resolve replyTo data BEFORE use case (for both API response and WS broadcast)
+        Map<String, Object> replyToData = null;
+        if (request.replyToId() != null) {
+            replyToData = resolveReplyToData(request.replyToId());
+        }
+
         SendMessageUseCaseV3.SendMessageResult result = sendMessageUseCase.execute(
                 new SendMessageUseCaseV3.SendMessageCommand(
                         senderId,
                         request.recipientId(),
                         request.content(),
                         senderSummary.displayName(),
-                        senderSummary.role()
+                        senderSummary.role(),
+                        request.replyToId(),
+                        replyToData
                 ));
 
         // Set replyToId on JPA entity (Messenger quote-reply pattern)
@@ -234,15 +242,24 @@ public class CommunicationControllerV3 {
             });
         }
 
+        // Build message response with replyTo data
+        Map<String, Object> messageData = new LinkedHashMap<>();
+        messageData.put("id", result.messageId());
+        messageData.put("content", request.content());
+        messageData.put("senderId", senderId);
+        messageData.put("senderName", senderSummary.displayName());
+        messageData.put("senderRole", senderSummary.role());
+        messageData.put("createdAt", Instant.now());
+
+        if (request.replyToId() != null) {
+            messageData.put("replyToId", request.replyToId());
+            if (replyToData != null) {
+                messageData.put("replyTo", replyToData);
+            }
+        }
+
         Map<String, Object> response = new LinkedHashMap<>();
-        response.put("message", Map.of(
-                "id", result.messageId(),
-                "content", request.content(),
-                "senderId", senderId,
-                "senderName", senderSummary.displayName(),
-                "senderRole", senderSummary.role(),
-                "createdAt", Instant.now()
-        ));
+        response.put("message", messageData);
         response.put("conversationId", result.conversationId());
 
         return ResponseEntity.ok(ApiResponse.success(response, "Gửi tin nhắn thành công"));
@@ -461,6 +478,19 @@ public class CommunicationControllerV3 {
         map.put("role", userSummary.role());
         map.put("avatar", userSummary.avatarUrl());
         return map;
+    }
+
+    /** Resolve replyTo data (id, senderName, content) for API response and WS broadcast. */
+    private Map<String, Object> resolveReplyToData(UUID replyToId) {
+        var entity = messageJpaRepository.findById(replyToId).orElse(null);
+        if (entity == null) return null;
+        var senderName = userJpaRepository.findById(entity.getSenderId())
+                .map(u -> u.getFullName()).orElse("Unknown");
+        return Map.of(
+                "id", entity.getId(),
+                "senderName", senderName,
+                "content", entity.getContent() != null ? entity.getContent() : ""
+        );
     }
 
     private Map<UUID, UserSummary> batchFetchUsers(Set<UUID> userIds) {

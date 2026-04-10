@@ -28,6 +28,8 @@ import {
 import {
   Conversation,
   Message,
+  formatDateSeparator,
+  isDifferentDay,
   sortMessagesByDate,
 } from './utils/message-utils';
 
@@ -40,16 +42,18 @@ type HeaderParticipant = {
 
 @Component({
   selector: 'app-conversation-view',
+  host: { class: 'flex flex-1 flex-col min-h-0' },
   imports: [RouterModule, MessageBubbleComponent, MessageInputComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <!-- Full-height chat: 100dvh works on both desktop and mobile (handles iOS address bar) -->
-    <div class="flex flex-col bg-white" style="height: 100dvh; height: 100vh;">
+    <!-- Full-height chat: flex-1 fills parent (layout provides height) -->
+    <div class="flex flex-1 flex-col bg-white min-h-0">
 
       <!-- ═══ Header: fixed top — Messenger 56px ═══ -->
       <div class="flex h-14 flex-shrink-0 items-center gap-2 border-b border-slate-200 px-3">
+        <!-- Back button: visible on mobile, hidden on desktop (sidebar handles nav) -->
         <button type="button" (click)="goBack()"
-          class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100"
+          class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 md:hidden"
           aria-label="Quay lại">
           <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
@@ -113,14 +117,24 @@ type HeaderParticipant = {
             <div class="mb-2 rounded-lg bg-amber-50 px-3 py-1.5 text-[13px] text-amber-700">{{ error() }}</div>
           }
 
-          @for (message of sortedMessages(); track message.id) {
+          @for (message of sortedMessages(); track message.id; let i = $index) {
+            <!-- Date separator (Messenger pattern) -->
+            @if (showDateSeparator(i)) {
+              <div class="my-3 flex items-center justify-center">
+                <span class="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-500">
+                  {{ getDateSeparatorLabel(i) }}
+                </span>
+              </div>
+            }
             <app-message-bubble
               [message]="message"
               [currentUserId]="currentUserId"
+              [isFirstInGroup]="isFirstInGroup(i)"
+              [isLastInGroup]="isLastInGroup(i)"
               (reactionToggle)="onReactionToggle($event)"
               (recallMessage)="onRecallMessage($event)"
               (replyMessage)="onReplyMessage($event)"
-              (scrollToMsg)="scrollToMessage($event)"></app-message-bubble>
+              (scrollToMsg)="scrollToMessage($event)"/>
           }
         }
       </div>
@@ -206,6 +220,42 @@ export class ConversationViewComponent implements OnInit, OnDestroy, AfterViewCh
 
     return this.draftRecipientState();
   });
+
+  /** Date separator: show between messages on different days */
+  showDateSeparator(index: number): boolean {
+    const msgs = this.sortedMessages();
+    if (index === 0) return true; // always show for first message
+    return isDifferentDay(msgs[index - 1].createdAt, msgs[index].createdAt);
+  }
+
+  getDateSeparatorLabel(index: number): string {
+    return formatDateSeparator(this.sortedMessages()[index].createdAt);
+  }
+
+  /**
+   * Messenger grouping: consecutive messages from same sender within 2 minutes
+   * are visually grouped (border-radius collapses on the sender side).
+   */
+  isFirstInGroup(index: number): boolean {
+    const msgs = this.sortedMessages();
+    if (index === 0) return true;
+    const prev = msgs[index - 1];
+    const curr = msgs[index];
+    if (prev.senderId !== curr.senderId) return true;
+    // Break group if > 2 min gap
+    const gap = new Date(curr.createdAt).getTime() - new Date(prev.createdAt).getTime();
+    return gap > 2 * 60 * 1000;
+  }
+
+  isLastInGroup(index: number): boolean {
+    const msgs = this.sortedMessages();
+    if (index === msgs.length - 1) return true;
+    const curr = msgs[index];
+    const next = msgs[index + 1];
+    if (curr.senderId !== next.senderId) return true;
+    const gap = new Date(next.createdAt).getTime() - new Date(curr.createdAt).getTime();
+    return gap > 2 * 60 * 1000;
+  }
 
   onScroll(): void {
     const el = this.messagesContainer().nativeElement;
@@ -316,13 +366,18 @@ export class ConversationViewComponent implements OnInit, OnDestroy, AfterViewCh
     this.messagingService.sendMessage(request).subscribe({
       next: (response) => {
         this.error.set(null);
-        // Replace optimistic message with real one
+        // Replace optimistic message with real one, preserving replyTo if server omits it
         this.messagesState.update((messages) => {
           const withoutOptimistic = messages.filter((m) => m.id !== tempId);
           if (withoutOptimistic.some((m) => m.id === response.message.id)) {
             return withoutOptimistic;
           }
-          return [...withoutOptimistic, { ...response.message, status: 'sent' as const }];
+          const serverMsg = { ...response.message, status: 'sent' as const };
+          if (!serverMsg.replyTo && replyToData) {
+            serverMsg.replyTo = replyToData;
+            serverMsg.replyToId = reply?.id;
+          }
+          return [...withoutOptimistic, serverMsg];
         });
         this.shouldScrollToBottom = true;
         this.messageInput().onSendComplete();
@@ -510,6 +565,8 @@ export class ConversationViewComponent implements OnInit, OnDestroy, AfterViewCh
               senderRole: (wsMsg.senderRole as any) || 'STUDENT',
               content: wsMsg.content,
               isRead: false,
+              replyToId: wsMsg.replyToId,
+              replyTo: wsMsg.replyTo,
               createdAt: wsMsg.createdAt,
             },
           ];
@@ -548,7 +605,10 @@ export class ConversationViewComponent implements OnInit, OnDestroy, AfterViewCh
     const nextLastId = messages.at(-1)?.id;
     const changed = previousMessages.length !== messages.length || previousLastId !== nextLastId;
 
-    this.messagesState.set(messages);
+    // Deduplicate by ID (prevents NG0955 with optimistic + polling overlap)
+    const seen = new Set<string>();
+    const deduped = messages.filter(m => { if (seen.has(m.id)) return false; seen.add(m.id); return true; });
+    this.messagesState.set(deduped);
     this.loading.set(false);
 
     if (forceScroll || changed) {

@@ -33,6 +33,16 @@ export interface AssignmentListData {
   summary: { total: number; pending: number; overdue: number };
 }
 
+export interface AssignmentWorkData {
+  _type: 'assignment';
+  title: string;
+  course_name: string;
+  due_date: string;
+  status: string;
+  instructions: string;
+  max_score?: number;
+}
+
 export interface LessonPageData {
   _type: 'lesson';
   course_name: string;
@@ -66,6 +76,7 @@ export interface CourseOverviewData {
 export type PageStructuredData =
   | GradesPageData
   | AssignmentListData
+  | AssignmentWorkData
   | LessonPageData
   | QuizPageData
   | CourseOverviewData
@@ -82,6 +93,8 @@ export class PageDataExtractorService {
     switch (pageType) {
       case 'grades':
         return this.extractGrades();
+      case 'assignment':
+        return this.extractAssignmentWork();
       case 'assignment_list':
         return this.extractAssignments();
       case 'lesson':
@@ -160,11 +173,42 @@ export class PageDataExtractorService {
     };
   }
 
+  private extractAssignmentWork(): AssignmentWorkData {
+    const title = this.firstText('h1, .assignment-title, [class*="assignment"] h1');
+    const courseName = this.firstText(
+      '.mb-6 p.text-sm.text-gray-500, h1 + p, .assignment-course, [class*="course"] .text-sm',
+    );
+    const instructions = this.firstText(
+      '.whitespace-pre-wrap, .assignment-instructions, [data-testid="assignment-instructions"]',
+    );
+    const badgeTexts = this.collectTexts(
+      '.mb-6 span, .status, [class*="status"], [class*="badge"], [class*="chip"]',
+    );
+
+    return {
+      _type: 'assignment',
+      title: title || document.title,
+      course_name: courseName,
+      due_date: this.extractAssignmentDueDate(badgeTexts),
+      status: this.extractAssignmentStatus(badgeTexts),
+      instructions: instructions.slice(0, 3000),
+      max_score: this.extractAssignmentMaxScore(badgeTexts),
+    };
+  }
+
   private extractLesson(): LessonPageData {
-    const courseEl = document.querySelector('.course-name, [class*="course"] h2');
-    const chapterEl = document.querySelector('.chapter-name, [class*="chapter"]');
-    const titleEl = document.querySelector('h1, .lesson-title, [class*="lesson"] h2');
-    const contentEl = document.querySelector('.lesson-content, .content-area, main article');
+    const courseEl = document.querySelector(
+      '.course-name, [class*="course"] h2, aside h2, aside .text-slate-800',
+    );
+    const chapterEl = document.querySelector(
+      'app-lesson-content h3, .chapter-name, [class*="chapter"]',
+    );
+    const titleEl = document.querySelector(
+      'app-lesson-content h1, .lesson-title, [class*="lesson"] h2, h1',
+    );
+    const contentEl = document.querySelector(
+      'app-lesson-content .prose, .lesson-content, .content-area, main article',
+    );
     const progressEl = document.querySelector('[class*="progress"] span, .progress-value');
 
     return {
@@ -223,5 +267,38 @@ export class PageDataExtractorService {
     if (document.querySelector('img:not([class*="icon"]):not([class*="avatar"])'))
       types.push('image');
     return types;
+  }
+
+  private firstText(selector: string): string {
+    return document.querySelector(selector)?.textContent?.trim() || '';
+  }
+
+  private collectTexts(selector: string): string[] {
+    return Array.from(document.querySelectorAll(selector))
+      .map((el) => el.textContent?.trim() || '')
+      .filter((value) => value.length > 0);
+  }
+
+  private extractAssignmentDueDate(values: string[]): string {
+    const match = values.find(
+      (value) => value.includes('Hạn:') || value.includes('Quá hạn') || value.includes('Qua han'),
+    );
+    return match || '';
+  }
+
+  private extractAssignmentStatus(values: string[]): string {
+    const candidates = ['Đã chấm điểm', 'Đã nộp', 'Quá hạn', 'Chưa nộp'];
+    return values.find((value) => candidates.some((candidate) => value.includes(candidate))) || '';
+  }
+
+  private extractAssignmentMaxScore(values: string[]): number | undefined {
+    const match = values
+      .map((value) => /Tối đa\s+(\d+)/i.exec(value))
+      .find((result) => result);
+    if (!match) {
+      return undefined;
+    }
+    const parsed = Number.parseInt(match[1], 10);
+    return Number.isFinite(parsed) ? parsed : undefined;
   }
 }

@@ -323,3 +323,79 @@ body.quiz-taking-mode .floating-bubble-container {
 .codex-editor--empty .codex-editor__redactor {
   padding-bottom: 10px !important;
 }
+
+/* ===== GLOBAL PRINT — ẩn app shell, chỉ in nội dung trang ===== */
+@media print {
+  /* Nền trắng, không scroll */
+  body {
+    background: white !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* 1) Desktop sidebar (fixed left panel chứa app-sidebar) */
+  app-student-layout-simple > div > div:has(> app-sidebar) {
+    display: none !important;
+  }
+  /* Fallback: ẩn sidebar trực tiếp */
+  app-sidebar { display: none !important; }
+
+  /* 2) Mobile sidebar overlay */
+  .mobile-sidebar-overlay { display: none !important; }
+
+  /* 3) Mobile top header (hamburger + avatar) */
+  header[class*="sticky"][class*="md:hidden"] {
+    display: none !important;
+  }
+
+  /* 4) Mobile bottom nav */
+  .mobile-bottom-nav,
+  nav[class*="mobile-bottom-nav"] {
+    display: none !important;
+  }
+
+  /* 5) AI chat panel */
+  app-chat-panel { display: none !important; }
+
+  /* 6) Main content: bỏ padding-left (sidebar offset), full width */
+  [class*="md:pl-72"],
+  [class*="md:pl-16"] {
+    padding-left: 0 !important;
+  }
+
+  /* 7) Layout wrapper: reset flex constraints (nguyên nhân in 2 trang)
+     min-h-screen ép full viewport = full A4 page height → nội dung nhỏ vẫn chiếm 1 trang
+     flex-1 stretch content area → phần trống đẩy tràn trang 2 */
+  app-student-layout-simple > div,
+  app-teacher-layout-simple > div {
+    min-height: auto !important;
+    height: auto !important;
+  }
+
+  /* Reset flex-1 trên main content wrappers → co lại vừa nội dung */
+  app-student-layout-simple main,
+  app-teacher-layout-simple main {
+    flex: none !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /* Reset flex containers bên trong layout */
+  [class*="flex-1"][class*="min-h-0"],
+  [class*="flex-col"][class*="flex-1"] {
+    flex: none !important;
+    min-height: auto !important;
+    height: auto !important;
+  }
+
+  /* 8) AI sidebar toggle + overlay: ẩn khi in */
+  .ai-sidebar-toggle,
+  .ai-sidebar,
+  .mobile-ai-overlay,
+  .resize-handle-track { display: none !important; }
+
+  /* Ẩn scrollbar khi in */
+  * { scrollbar-width: none; }
+  ::-webkit-scrollbar { display: none; }
+}

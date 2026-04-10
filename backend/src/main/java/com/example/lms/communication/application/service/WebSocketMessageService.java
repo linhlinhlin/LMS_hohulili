@@ -30,6 +30,15 @@ public class WebSocketMessageService {
      */
     public void broadcastNewMessage(UUID conversationId, UUID messageId, UUID senderId,
                                      String senderName, String senderRole, String content) {
+        broadcastNewMessage(conversationId, messageId, senderId, senderName, senderRole, content, null, null);
+    }
+
+    /**
+     * Broadcast a new message with optional reply context.
+     */
+    public void broadcastNewMessage(UUID conversationId, UUID messageId, UUID senderId,
+                                     String senderName, String senderRole, String content,
+                                     UUID replyToId, Map<String, Object> replyTo) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("type", "NEW_MESSAGE");
         payload.put("messageId", messageId);
@@ -39,6 +48,12 @@ public class WebSocketMessageService {
         payload.put("senderRole", senderRole);
         payload.put("content", content);
         payload.put("createdAt", Instant.now());
+        if (replyToId != null) {
+            payload.put("replyToId", replyToId);
+        }
+        if (replyTo != null) {
+            payload.put("replyTo", replyTo);
+        }
 
         messagingTemplate.convertAndSend(
                 "/topic/conversation/" + conversationId, payload);

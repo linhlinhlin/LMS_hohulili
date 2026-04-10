@@ -11,10 +11,10 @@
 }
 
 .main-content {
-  max-width: 1300px;
+  max-width: 1400px;
   margin: 0 auto;
   width: 100%;
-  padding: $spacing-8 $spacing-8;
+  padding: 24px 24px;
 }
 
 /* ===== HEADER ===== */
@@ -26,21 +26,6 @@
   display: flex;
   align-items: center;
   gap: $spacing-4;
-}
-
-.avatar-circle {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: $blue-primary;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  font-weight: $font-bold;
-  flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0, 86, 210, 0.2);
 }
 
 .greeting-section {
@@ -90,105 +75,8 @@
   height: 16px;
 }
 
-/* ===== KPI CARDS ===== */
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: $spacing-4;
-  margin-bottom: $spacing-6;
-
-  @include desktop {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-.kpi-card {
-  background: white;
-  border: 1px solid $border-default;
-  border-radius: $radius-md;
-  box-shadow: $shadow-sm;
-  padding: $spacing-5;
-  display: flex;
-  align-items: center;
-  gap: $spacing-3;
-  transition: box-shadow $transition-normal;
-
-  &:hover {
-    box-shadow: $shadow-card-hover;
-  }
-}
-
-.kpi-icon-circle {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-
-  svg {
-    width: 20px;
-    height: 20px;
-  }
-
-  &.icon-blue {
-    background: #E6F0FF;
-    color: $blue-primary;
-
-    svg { stroke: $blue-primary; }
-  }
-
-  &.icon-green {
-    background: #D1FAE5;
-    color: #059669;
-
-    svg { stroke: #059669; }
-  }
-
-  &.icon-amber {
-    background: #FEF3C7;
-    color: #D97706;
-
-    svg { stroke: #D97706; }
-  }
-
-  &.icon-yellow {
-    background: #FEF9C3;
-    color: #CA8A04;
-
-    svg { stroke: #CA8A04; }
-  }
-}
-
-.kpi-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.kpi-value {
-  font-size: $text-2xl;
-  font-weight: $font-bold;
-  color: $text-primary;
-  line-height: 1.2;
-}
-
-.kpi-label {
-  font-size: $text-xs;
-  font-weight: $font-medium;
-  color: $text-muted;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.kpi-skeleton {
-  height: 28px;
-  width: 48px;
-  background: $gray-100;
-  border-radius: $radius-sm;
-  animation: pulse 1.5s ease-in-out infinite;
-}
+/* KPI cards removed — SOTA: Canvas/Coursera/Moodle don't show KPI on dashboard */
+/* Action banner uses inline Tailwind (see template) */
 
 /* ===== COURSES PANEL ===== */
 
@@ -202,58 +90,7 @@
   padding-bottom: $spacing-3;
 }
 
-.tabs-container {
-  display: flex;
-  align-items: center;
-  gap: $spacing-2;
-  flex-wrap: wrap;
-}
-
-.tab-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 16px;
-  border: 1px solid $border-dark;
-  border-radius: 20px;
-  background: white;
-  color: $gray-700;
-  font-size: $text-sm;
-  font-weight: $font-medium;
-  cursor: pointer;
-  transition: all $transition-normal;
-  outline: none;
-
-  &:hover {
-    background: $gray-50;
-    border-color: $gray-400;
-  }
-
-  &.active {
-    background: $blue-primary;
-    color: white;
-    border-color: $blue-primary;
-
-    &:hover {
-      background: $blue-hover;
-      border-color: $blue-hover;
-    }
-
-    .tab-count {
-      color: rgba(255, 255, 255, 0.8);
-    }
-  }
-}
-
-.tab-label {
-  line-height: 1;
-}
-
-.tab-count {
-  font-size: $text-xs;
-  color: $gray-400;
-  line-height: 1;
-}
+/* Tabs: inline Tailwind (see template) — no SCSS needed */
 
 .view-all-link {
   display: flex;
@@ -454,19 +291,18 @@
 
 .edit-button {
   padding: 4px 12px;
-  border: 1px solid $border-default;
+  border: 1px solid $blue-primary;
   border-radius: $radius-sm;
   background: white;
-  color: $text-secondary;
+  color: $blue-primary;
   font-size: $text-xs;
-  font-weight: $font-medium;
+  font-weight: $font-semibold;
   cursor: pointer;
   transition: all $transition-normal;
 
   &:hover {
-    background: $gray-50;
-    border-color: $border-dark;
-    color: $text-primary;
+    background: $blue-primary;
+    color: white;
   }
 }
 
@@ -582,28 +418,18 @@
 /* ===== RESPONSIVE ===== */
 @media (max-width: $breakpoint-md) {
   .main-content {
-    padding: $spacing-6 $spacing-4;
+    padding: 24px 16px;
   }
 
   .course-thumbnail {
     width: 120px;
     height: 72px;
   }
-
-  .course-actions {
-    display: none;
-  }
 }
 
 @media (max-width: $breakpoint-sm) {
   .main-content {
-    padding: $spacing-4 $spacing-3;
-  }
-
-  .avatar-circle {
-    width: 48px;
-    height: 48px;
-    font-size: 18px;
+    padding: 16px 12px;
   }
 
   .greeting {
@@ -621,23 +447,22 @@
     .cta-icon { display: none; }
   }
 
-  .kpi-card {
-    padding: $spacing-3;
-  }
-
-  .kpi-value {
-    font-size: $text-xl;
-  }
-
   .course-card-body {
     flex-direction: column;
     gap: 10px;
-    padding: $spacing-3;
+    padding: 12px;
   }
 
   .course-thumbnail {
     width: 100%;
     height: 140px;
+  }
+
+  .course-title {
+    white-space: normal;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    display: -webkit-box;
   }
 
   .course-actions {
@@ -648,17 +473,13 @@
     justify-content: space-between;
   }
 
+  .edit-button {
+    padding: 6px 16px;
+    font-size: 13px;
+  }
+
   .section-header {
     flex-wrap: wrap;
     gap: $spacing-2;
-  }
-
-  .tabs-container {
-    gap: 6px;
-  }
-
-  .tab-chip {
-    padding: 6px 12px;
-    font-size: 13px;
   }
 }

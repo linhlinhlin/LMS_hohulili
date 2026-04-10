@@ -339,7 +339,7 @@ export class WiiiContextService implements OnDestroy {
     }
 
     // ── Assignment work: /student/assignments/:id/work ──
-    if (path.match(/\/assignments\/[^\/]+\/work/)) {
+    if (path.match(/\/student\/(?:tasks|assignments)\/[^\/]+\/work/)) {
       return { page_type: 'assignment', page_title: 'Làm bài tập' };
     }
 
@@ -1359,9 +1359,21 @@ export class WiiiContextService implements OnDestroy {
         return this.captureScreenshot(String(params['selector'] || 'main'));
       case 'navigation.go_to': {
         const url = String(params['url'] || params['route'] || '').trim();
-        if (!url) throw new Error('Missing route');
-        await this.router.navigateByUrl(url);
-        return { success: true, data: { navigated: true, url } };
+        if (url) {
+          await this.router.navigateByUrl(url);
+          return { success: true, data: { navigated: true, url } };
+        }
+
+        const target = String(params['target'] || '').trim();
+        if (target) {
+          const navigated = this.navigateByTarget(target);
+          if (navigated) {
+            return { success: true, data: { navigated: true, target } };
+          }
+          throw new Error(`Unsupported navigation target: ${target}`);
+        }
+
+        throw new Error('Missing route');
       }
       case 'navigation.open_course_editor_tab': {
         const courseId = String(params['courseId'] || this.lastContext?.course_id || '').trim();
@@ -1406,12 +1418,13 @@ export class WiiiContextService implements OnDestroy {
 
       // Sprint 223: Extract structured page data for rich AI context
       const structured: PageStructuredData = this.pageDataExtractor.extract(payload.page_type);
+      const hydratedPayload = this.hydrateStructuredContext(payload, structured);
 
       this.iframeEl.contentWindow?.postMessage(
         {
           type: 'wiii:page-context',
           payload: {
-            ...payload,
+            ...hydratedPayload,
             structured, // Sprint 223: rich page data
           },
         },
@@ -1423,6 +1436,139 @@ export class WiiiContextService implements OnDestroy {
     } catch {
       // Iframe may not be ready — silently ignore
     }
+  }
+
+  private hydrateStructuredContext(
+    payload: WiiiPageContext,
+    structured: PageStructuredData,
+  ): WiiiPageContext {
+    if (!structured) {
+      return payload;
+    }
+
+    switch (structured._type) {
+      case 'assignment':
+        {
+          const assignmentSummary = this.buildAssignmentContextSummary(structured);
+        return {
+          ...payload,
+          page_title: this.preferSpecificTitle(payload.page_title, structured.title, ['lam_bai_tap']),
+          course_name: payload.course_name || structured.course_name || undefined,
+          content_snippet:
+            payload.content_snippet
+            || this.buildSnippet(assignmentSummary),
+          assignment_description:
+            payload.assignment_description
+            || this.buildSnippet(assignmentSummary),
+        };
+        }
+      case 'lesson':
+        return {
+          ...payload,
+          page_title: this.preferSpecificTitle(payload.page_title, structured.lesson_title, ['bai_hoc']),
+          course_name: payload.course_name || structured.course_name || undefined,
+          lesson_name: payload.lesson_name || structured.lesson_title || undefined,
+          chapter_name: payload.chapter_name || structured.chapter_name || undefined,
+          content_snippet:
+            payload.content_snippet
+            || this.buildSnippet(structured.content_text || structured.lesson_title),
+        };
+      case 'course_overview':
+        return {
+          ...payload,
+          page_title: this.preferSpecificTitle(
+            payload.page_title,
+            structured.course_name,
+            ['tong_quan_khoa_hoc'],
+          ),
+          course_name: payload.course_name || structured.course_name || undefined,
+        };
+      default:
+        return payload;
+    }
+  }
+
+  private buildSnippet(value: string | undefined, maxLength = 1200): string | undefined {
+    const normalized = String(value || '').replace(/\s+/g, ' ').trim();
+    if (!normalized) {
+      return undefined;
+    }
+    if (normalized.length <= maxLength) {
+      return normalized;
+    }
+    return `${normalized.slice(0, maxLength - 3).trim()}...`;
+  }
+
+  private buildAssignmentContextSummary(structured: Extract<PageStructuredData, { _type: 'assignment' }>): string {
+    const parts = [
+      structured.title ? `Bai tap: ${structured.title}` : '',
+      structured.course_name ? `Mon hoc: ${structured.course_name}` : '',
+      structured.due_date ? `Han nop: ${structured.due_date}` : '',
+      structured.status ? `Trang thai: ${structured.status}` : '',
+      structured.max_score !== undefined ? `Diem toi da: ${structured.max_score}` : '',
+      structured.instructions ? `Yeu cau va huong dan: ${structured.instructions}` : '',
+    ];
+    return parts.filter((part) => part.length > 0).join('\n');
+  }
+
+  private preferSpecificTitle(
+    current: string | undefined,
+    candidate: string | undefined,
+    genericFallbacks: string[],
+  ): string | undefined {
+    const next = String(candidate || '').trim();
+    if (!next) {
+      return current;
+    }
+
+    const currentTitle = String(current || '').trim();
+    const normalizedCurrent = this.normalizeNavigationTarget(currentTitle);
+    if (
+      !currentTitle
+      || currentTitle === 'LMS'
+      || genericFallbacks.includes(normalizedCurrent)
+    ) {
+      return next;
+    }
+
+    return currentTitle;
+  }
+
+  private navigateByTarget(target: string): boolean {
+    const normalized = this.normalizeNavigationTarget(target);
+
+    if (normalized === 'next_lesson' || normalized === 'next') {
+      return this.clickButtonByText(['Bai tiep theo']);
+    }
+
+    if (normalized === 'previous_lesson' || normalized === 'previous' || normalized === 'back') {
+      return this.clickButtonByText(['Bai truoc']);
+    }
+
+    return false;
+  }
+
+  private clickButtonByText(candidates: string[]): boolean {
+    const button = Array.from(document.querySelectorAll('button')).find((node) => {
+      const text = this.normalizeNavigationTarget(node.textContent || '');
+      return candidates.some((candidate) => text.includes(this.normalizeNavigationTarget(candidate)));
+    });
+
+    if (!button || !(button instanceof HTMLButtonElement)) {
+      return false;
+    }
+
+    button.click();
+    return true;
+  }
+
+  private normalizeNavigationTarget(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
   }
 
   private resolveEmbedOrigin(): string | null {

@@ -98,7 +98,7 @@ export class QuizPreviewComponent implements OnInit, OnDestroy {
       || this.route.snapshot.paramMap.get('lessonId')
       || '';
     this.quizTitle.set(this.route.snapshot.queryParamMap.get('title') || 'Bài kiểm tra');
-    this.returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/teacher/courses';
+    this.returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') || '/teacher/courses/library';
     this.loadQuiz();
   }
 
@@ -288,7 +288,7 @@ export class QuizPreviewComponent implements OnInit, OnDestroy {
     if (this.returnUrl) {
       this.router.navigateByUrl(this.returnUrl);
     } else {
-      this.router.navigate(['/teacher/courses']);
+      this.router.navigate(['/teacher/courses/library']);
     }
   }
 

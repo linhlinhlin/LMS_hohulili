@@ -20,6 +20,9 @@ export interface WsNewMessage {
   senderRole: string;
   content: string;
   createdAt: string;
+  /** Reply reference (if backend includes it in WS payload) */
+  replyToId?: string;
+  replyTo?: { id: string; senderName: string; content: string };
 }
 
 export interface WsMessagesRead {

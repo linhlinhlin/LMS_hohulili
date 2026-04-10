@@ -1,0 +1,543 @@
+@use '../../../styles/variables' as *;
+
+/* ===== PAGE ===== */
+.analytics-page {
+  background: #FAFAFA;
+  min-height: 100vh;
+  overflow-x: hidden; // Ngăn horizontal scroll từ content bên trong
+}
+
+/* ===== HEADER ===== */
+.header-bar {
+  background: white;
+  border-bottom: 1px solid $border-default;
+}
+
+.header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.header-text h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1F1F1F;
+  margin: 0;
+  line-height: 1.25;
+  @include truncate; // Không bị overflow trên mobile nhỏ
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: $gray-700;
+  background: white;
+  border: 1px solid $border-default;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all $transition-normal;
+  white-space: nowrap;
+
+  &:hover { background: $gray-50; border-color: $border-dark; }
+  &:disabled { opacity: 0.5; cursor: default; }
+  svg { width: 14px; height: 14px; flex-shrink: 0; }
+}
+
+/* ===== MAIN ===== */
+.analytics-main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* ===== CARD ===== */
+.card {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid $border-default;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* ===== ① METRICS STRIP ===== */
+.metrics-strip {
+  @extend .card;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  margin-bottom: 20px;
+  overflow: hidden;
+
+  @include desktop { grid-template-columns: repeat(4, 1fr); }
+}
+
+.metric-cell {
+  padding: 14px 20px;
+
+  // Mobile 2-col: right border on odd items, bottom border on first row
+  &:nth-child(odd) { border-right: 1px solid $border-light; }
+  &:nth-child(-n+2) { border-bottom: 1px solid $border-light; }
+
+  @include desktop {
+    border-right: 1px solid $border-light;
+    border-bottom: none !important;
+    &:last-child { border-right: none; }
+    &:nth-child(odd) { border-right: 1px solid $border-light; }
+  }
+}
+
+.metric-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1F1F1F;
+  line-height: 1.2;
+  margin: 0 0 2px 0;
+
+  .metric-denominator {
+    font-size: 14px;
+    font-weight: 400;
+    color: $gray-400;
+    margin-left: 1px;
+  }
+}
+
+.metric-label { font-size: 12px; color: $gray-500; margin: 0; }
+.metric-sub { font-size: 11px; color: $gray-400; margin: 1px 0 0 0; }
+
+/* ===== ② CONTENT GRID ===== */
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  min-width: 0; // Ngăn grid children overflow
+
+  // Tablet: courses wider — students check progress more than chart
+  @include tablet {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+
+  @include desktop {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+}
+
+/* ===== COURSE CARD ===== */
+.courses-card {
+  @extend .card;
+  padding: 16px 20px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1F1F1F;
+  margin: 0;
+}
+
+.section-count {
+  font-size: 12px;
+  color: $gray-400;
+  font-weight: 500;
+}
+
+.course-list-scroll {
+  margin: 0;
+  padding: 0;
+  padding-right: 8px; // Khoảng cách giữa content và scrollbar
+  list-style: none;
+  max-height: 340px;
+  overflow-y: auto;
+
+  // Scrollbar nhỏ gọn (Coursera pattern)
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: $gray-300; border-radius: 2px; }
+  scrollbar-width: thin;
+  scrollbar-color: $gray-300 transparent;
+}
+
+.course-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  min-height: 44px; // WCAG touch target
+  border-bottom: 1px solid $border-light;
+
+  &:first-child { padding-top: 0; }
+  &:last-child { border-bottom: none; padding-bottom: 0; }
+}
+
+.course-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: $gray-100;
+  img { width: 100%; height: 100%; object-fit: cover; display: block; }
+}
+
+.course-thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba($blue-primary, 0.08);
+  color: $blue-primary;
+  svg { width: 16px; height: 16px; }
+}
+
+.course-info { flex: 1; min-width: 0; }
+
+.course-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.course-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1F1F1F;
+  text-decoration: none;
+  @include truncate;
+  transition: color $transition-normal;
+  &:hover { color: $blue-primary; }
+}
+
+.course-percent {
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.course-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: $gray-200;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.course-progress-fill {
+  height: 100%;
+  background: $blue-primary;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  &.high { background: $success; }
+}
+
+.course-meta {
+  font-size: 11px;
+  color: $gray-400;
+  margin-top: 2px;
+}
+
+/* ===== CHART CARD ===== */
+.chart-card {
+  @extend .card;
+  padding: 16px 20px;
+  overflow: hidden; // Contain chart min-width trên mobile
+}
+
+// Chart SVG wrapper — min-width đảm bảo text không quá nhỏ trên mobile
+.chart-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  svg { min-width: 400px; }
+}
+
+.chart-empty {
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+
+  .empty-title { font-size: 14px; color: $gray-500; margin: 0; }
+  .empty-sub { font-size: 12px; color: $gray-400; margin: 4px 0 0 0; }
+}
+
+// Footer nằm TRONG chart card — cùng ngữ cảnh
+.chart-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid $border-light;
+}
+
+.footer-stat {
+  font-size: 13px;
+  color: $gray-500;
+  font-weight: 500;
+}
+
+.footer-dot {
+  color: $gray-300;
+  font-size: 14px;
+}
+
+/* ===== EMPTY STATE CTA ===== */
+.empty-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  background: $blue-primary;
+  border: none;
+  border-radius: 6px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background $transition-normal;
+  &:hover { background: $blue-hover; }
+}
+
+/* ===== SKELETON ===== */
+.skeleton-strip {
+  @extend .card;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  overflow: hidden;
+  margin-bottom: 20px;
+  @include desktop { grid-template-columns: repeat(4, 1fr); }
+}
+
+.skeleton-cell {
+  padding: 14px 20px;
+  &:nth-child(odd) { border-right: 1px solid $border-light; }
+  &:nth-child(-n+2) { border-bottom: 1px solid $border-light; }
+  @include desktop {
+    border-right: 1px solid $border-light;
+    border-bottom: none !important;
+    &:last-child { border-right: none; }
+  }
+}
+
+.skeleton-card {
+  @extend .card;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.sk { background: $gray-200; border-radius: 4px; }
+.sk-light { background: $gray-100; border-radius: 4px; }
+
+/* ===== RESPONSIVE ===== */
+
+// Tablet
+@media (max-width: $breakpoint-md) {
+  .analytics-main { padding: 20px 16px; }
+  .header-inner { padding: 14px 16px; }
+}
+
+// Mobile
+@media (max-width: $breakpoint-sm) {
+  .analytics-main { padding: 14px 12px; }
+  .header-inner { padding: 12px; }
+  .header-text h1 { font-size: 18px; }
+
+  // Export: icon + short text
+  .export-btn {
+    padding: 6px 10px;
+    font-size: 13px;
+    .btn-text { display: none; }
+  }
+
+  // Metrics: compact, no sub-labels
+  .metric-cell { padding: 10px 12px; }
+  .metric-value { font-size: 17px; }
+  .metric-label { font-size: 11px; }
+  .metric-sub { display: none; }
+
+  // Cards
+  .courses-card, .chart-card { padding: 12px 14px; }
+  .section-header { margin-bottom: 10px; }
+  .section-title { font-size: 14px; }
+  .section-count { font-size: 11px; }
+
+  // Courses
+  .course-list-scroll { max-height: 300px; }
+  .course-item { gap: 10px; padding: 8px 0; }
+  .course-thumb { width: 36px; height: 36px; }
+  .course-name { font-size: 12px; }
+  .course-meta { font-size: 10px; }
+
+  // Chart
+  .chart-empty { height: 120px; }
+
+  // Summary
+  .summary-strip {
+    padding: 10px 14px;
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .summary-value { font-size: 13px; }
+  .summary-label { font-size: 11px; }
+
+  // Content grid
+  .content-grid { gap: 12px; }
+
+  // Chart footer compact
+  .chart-footer { gap: 4px; margin-top: 10px; padding-top: 10px; }
+  .footer-stat { font-size: 12px; }
+
+  // Course scrollbar padding
+  .course-list-scroll { padding-right: 6px; }
+}
+
+// Ultra-small (<340px) — SE, Galaxy Fold outer
+@media (max-width: 340px) {
+  .analytics-main { padding: 12px 8px; }
+  .metric-cell { padding: 8px 10px; }
+  .metric-value { font-size: 16px; }
+  .metric-label { font-size: 10px; }
+
+  .courses-card, .chart-card { padding: 10px 12px; }
+  .course-item { gap: 8px; }
+  .course-thumb { width: 32px; height: 32px; border-radius: 4px; }
+  .course-name { font-size: 11px; }
+  .course-percent { font-size: 11px; }
+  .course-progress-bar { height: 4px; }
+  .course-meta { font-size: 9px; }
+
+  .section-title { font-size: 13px; }
+  .footer-stat { font-size: 11px; }
+}
+
+/* ===== PRINT (Moodle pattern — clean A4 report) ===== */
+@media print {
+  :host { display: block; }
+
+  // Page: nền trắng, không min-height
+  .analytics-page {
+    background: white !important;
+    min-height: auto;
+    overflow: visible !important;
+  }
+
+  // Header: tiêu đề đậm + đường kẻ, ẩn nút in
+  .header-bar {
+    border-bottom: 2px solid #1F1F1F;
+    .export-btn { display: none !important; }
+  }
+
+  .header-inner {
+    padding: 12px 0 10px 0;
+    max-width: 100%;
+  }
+
+  .header-text h1 {
+    font-size: 20px;
+  }
+
+  // Main: bỏ max-width, margin sạch cho A4
+  .analytics-main {
+    padding: 14px 0 0 0;
+    max-width: 100%;
+  }
+
+  // Cards: bỏ shadow + border-radius, giữ border nhẹ, không bị cắt giữa trang
+  .card, .metrics-strip, .courses-card, .chart-card {
+    box-shadow: none !important;
+    border: 1px solid #D1D5DB;
+    border-radius: 4px;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .metrics-strip {
+    margin-bottom: 14px;
+  }
+
+  // Metrics: hiện lại sub-label khi in (đã ẩn trên mobile)
+  .metric-sub { display: block !important; }
+
+  // Courses: expand toàn bộ — không scroll, không cắt
+  .course-list-scroll {
+    max-height: none !important;
+    overflow: visible !important;
+    padding-right: 0;
+  }
+
+  .course-thumb {
+    // In ảnh thumbnail
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  // Chart: vừa trang, không scroll
+  .chart-scroll {
+    overflow: visible !important;
+    svg {
+      min-width: auto !important;
+      width: 100% !important;
+    }
+  }
+
+  // Grid: single column cho A4 portrait
+  .content-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px;
+  }
+
+  // Footer stats
+  .chart-footer {
+    border-top: 1px solid #D1D5DB;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  // Progress bars: đảm bảo in màu
+  .course-progress-fill, .metric-value {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  // SVG chart: in màu
+  svg {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  // Ẩn skeleton, empty CTA
+  .skeleton-strip, .skeleton-card { display: none !important; }
+  .empty-cta { display: none !important; }
+}

@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment History — Design Mockup</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Source Sans Pro', 'Inter', -apple-system, sans-serif; background: #FAFAFA; color: #111827; }
+
+  /* ===== TOKENS ===== */
+  :root {
+    --blue: #0056D2;
+    --blue-hover: #004BB8;
+    --gray-50: #F9FAFB;
+    --gray-100: #F3F4F6;
+    --gray-200: #E5E7EB;
+    --gray-300: #D1D5DB;
+    --gray-400: #9CA3AF;
+    --gray-500: #6B7280;
+    --gray-600: #4B5563;
+    --gray-700: #374151;
+    --gray-800: #1F2937;
+    --gray-900: #111827;
+    --success: #059669;
+    --success-light: #D1FAE5;
+    --warning: #D97706;
+    --warning-light: #FEF3C7;
+    --error: #DC2626;
+    --error-light: #FEE2E2;
+    --border: #E5E7EB;
+    --border-light: #F3F4F6;
+  }
+
+  /* ===== HEADER ===== */
+  .header-bar { background: white; border-bottom: 1px solid var(--border); }
+  .header-inner { max-width: 1400px; margin: 0 auto; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .header-inner h1 { font-size: 22px; font-weight: 700; color: #1F1F1F; }
+  .header-sub { font-size: 13px; color: var(--gray-500); margin-top: 2px; }
+  .print-btn { display: inline-flex; align-items: center; gap: 5px; padding: 7px 14px; font-size: 14px; font-weight: 600; color: var(--gray-700); background: white; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
+  .print-btn:hover { background: var(--gray-50); border-color: var(--gray-300); }
+
+  /* ===== MAIN ===== */
+  .main { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+  /* ===== CARD ===== */
+  .card { background: white; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+
+  /* ===== METRICS STRIP ===== */
+  .metrics-strip { display: grid; grid-template-columns: repeat(3, 1fr); margin-bottom: 20px; overflow: hidden; }
+  .metric-cell { padding: 14px 20px; border-right: 1px solid var(--border-light); }
+  .metric-cell:last-child { border-right: none; }
+  .metric-value { font-size: 20px; font-weight: 700; color: #1F1F1F; line-height: 1.2; margin-bottom: 2px; }
+  .metric-value.success { color: var(--success); }
+  .metric-value.primary { color: var(--blue); }
+  .metric-label { font-size: 12px; color: var(--gray-500); }
+
+  /* ===== FILTER TABS ===== */
+  .filter-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .filter-chip { display: inline-flex; align-items: center; padding: 6px 14px; border: 1px solid var(--gray-300); border-radius: 20px; background: white; color: var(--gray-700); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+  .filter-chip:hover { background: var(--gray-50); border-color: var(--gray-400); }
+  .filter-chip.active { background: var(--blue); color: white; border-color: var(--blue); }
+  .filter-chip .count { font-size: 11px; color: var(--gray-400); margin-left: 4px; }
+  .filter-chip.active .count { color: rgba(255,255,255,0.7); }
+
+  /* ===== TABLE (desktop) ===== */
+  .table-card { overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: var(--gray-50); border-bottom: 1px solid var(--border); }
+  th { text-align: left; font-size: 12px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 20px; }
+  td { padding: 14px 20px; font-size: 14px; vertical-align: middle; }
+  tbody tr { border-bottom: 1px solid var(--border-light); transition: background 0.15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--gray-50); }
+  .course-link { color: var(--blue); font-weight: 600; text-decoration: none; }
+  .course-link:hover { text-decoration: underline; }
+  .course-sub { font-size: 12px; color: var(--warning); margin-top: 2px; }
+  .amount { font-weight: 600; color: var(--gray-900); }
+  .date { color: var(--gray-500); }
+  .method { color: var(--gray-600); }
+
+  /* Status badge */
+  .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .badge-success { background: var(--success-light); color: var(--success); }
+  .badge-warning { background: var(--warning-light); color: var(--warning); }
+  .badge-error { background: var(--error-light); color: var(--error); }
+  .badge-neutral { background: var(--gray-100); color: var(--gray-600); }
+  .badge-info { background: #DBEAFE; color: var(--blue); }
+
+  /* ===== CARD LAYOUT (mobile) ===== */
+  .payment-cards { display: none; flex-direction: column; gap: 10px; }
+  .payment-card { padding: 14px 16px; }
+  .payment-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 8px; }
+  .payment-card-title { font-size: 14px; font-weight: 600; color: var(--blue); flex: 1; min-width: 0; }
+  .payment-card-body { display: flex; justify-content: space-between; align-items: center; }
+  .payment-card-amount { font-size: 16px; font-weight: 700; color: var(--gray-900); }
+  .payment-card-meta { font-size: 12px; color: var(--gray-500); margin-top: 6px; }
+  .payment-card-sub { font-size: 11px; color: var(--warning); margin-top: 4px; }
+
+  /* ===== LOAD MORE ===== */
+  .load-more-section { text-align: center; padding: 16px; }
+  .load-more-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 24px; font-size: 14px; font-weight: 600; color: var(--blue); background: white; border: 1px solid var(--blue); border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+  .load-more-btn:hover { background: rgba(0,86,210,0.05); }
+  .load-more-count { font-size: 13px; color: var(--gray-400); margin-top: 8px; }
+
+  /* ===== EMPTY STATE ===== */
+  .empty-state { text-align: center; padding: 48px 24px; }
+  .empty-icon { width: 64px; height: 64px; background: var(--gray-100); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 24px; color: var(--gray-400); }
+  .empty-title { font-size: 16px; font-weight: 600; color: var(--gray-900); margin-bottom: 6px; }
+  .empty-text { font-size: 14px; color: var(--gray-500); margin-bottom: 20px; }
+  .empty-cta { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; background: var(--blue); color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; }
+
+  /* ===== SKELETON ===== */
+  .skeleton .sk { background: var(--gray-200); border-radius: 4px; animation: pulse 1.5s ease-in-out infinite; }
+  .skeleton .sk-light { background: var(--gray-100); border-radius: 4px; animation: pulse 1.5s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+  /* ===== TABS ===== */
+  .demo-tabs { display: flex; gap: 0; margin-bottom: 32px; background: white; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .demo-tab { flex: 1; padding: 12px; text-align: center; font-size: 14px; font-weight: 600; cursor: pointer; border-right: 1px solid var(--border); transition: all 0.2s; color: var(--gray-600); }
+  .demo-tab:last-child { border-right: none; }
+  .demo-tab.active { background: var(--blue); color: white; }
+  .demo-tab:hover:not(.active) { background: var(--gray-50); }
+
+  .demo-section { display: none; }
+  .demo-section.active { display: block; }
+
+  /* ===== MOCKUP LABEL ===== */
+  .mockup-label { display: inline-block; padding: 4px 12px; background: var(--blue); color: white; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border-radius: 4px; margin-bottom: 16px; }
+
+  /* ===== RESPONSIVE DEMO ===== */
+  @media (max-width: 768px) {
+    .main { padding: 16px; }
+    .header-inner { padding: 14px 16px; }
+    .metrics-strip { grid-template-columns: repeat(3, 1fr); }
+    .metric-cell { padding: 10px 12px; }
+    .metric-value { font-size: 17px; }
+    .metric-label { font-size: 11px; }
+    th, td { padding: 10px 14px; }
+  }
+
+  @media (max-width: 640px) {
+    .main { padding: 14px 12px; }
+    .header-inner { padding: 12px; }
+    .header-inner h1 { font-size: 18px; }
+    .print-btn .btn-text { display: none; }
+
+    /* Switch: table hidden, cards shown */
+    .table-card { display: none !important; }
+    .payment-cards { display: flex !important; }
+
+    .metrics-strip { grid-template-columns: 1fr 1fr; }
+    .metric-cell:nth-child(3) { grid-column: span 2; border-top: 1px solid var(--border-light); border-right: none; }
+    .metric-cell:nth-child(1) { border-right: 1px solid var(--border-light); }
+    .metric-cell:nth-child(2) { border-right: none; }
+  }
+
+  @media (max-width: 340px) {
+    .main { padding: 12px 8px; }
+    .metric-cell { padding: 8px 10px; }
+    .metric-value { font-size: 15px; }
+    .payment-card { padding: 12px; }
+    .payment-card-title { font-size: 13px; }
+    .payment-card-amount { font-size: 14px; }
+  }
+
+  /* ===== PRINT ===== */
+  @media print {
+    body { background: white; }
+    .demo-tabs, .print-btn, .load-more-section, .filter-bar { display: none !important; }
+    .main { padding: 0; max-width: 100%; }
+    .header-bar { border-bottom: 2px solid #1F1F1F; }
+    .header-inner { padding: 12px 0; max-width: 100%; }
+    .card { box-shadow: none !important; border: 1px solid var(--gray-300); border-radius: 4px; break-inside: avoid; }
+    .metrics-strip { margin-bottom: 14px; grid-template-columns: repeat(3, 1fr) !important; }
+    .metric-cell:nth-child(3) { grid-column: auto !important; border-top: none !important; }
+    .table-card { display: block !important; }
+    .payment-cards { display: none !important; }
+    tbody tr { break-inside: avoid; }
+    .badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== DEMO MODE SWITCHER ===== -->
+<div style="background: #1F1F1F; color: white; padding: 12px 24px; text-align: center;">
+  <strong>MOCKUP</strong> — Lịch sử thanh toán redesign &nbsp;|&nbsp; Thu nhỏ cửa sổ trình duyệt để xem mobile layout
+</div>
+
+<div class="demo-tabs">
+  <div class="demo-tab active" onclick="showTab('data')">Có dữ liệu</div>
+  <div class="demo-tab" onclick="showTab('empty')">Trống</div>
+  <div class="demo-tab" onclick="showTab('skeleton')">Loading</div>
+  <div class="demo-tab" onclick="showTab('error')">Lỗi</div>
+</div>
+
+<!-- ===== TAB 1: DATA ===== -->
+<div class="demo-section active" id="tab-data">
+
+  <!-- Header -->
+  <div class="header-bar">
+    <div class="header-inner">
+      <div>
+        <h1>Lịch sử thanh toán</h1>
+        <p class="header-sub">Quản lý và theo dõi các giao dịch của bạn</p>
+      </div>
+      <button class="print-btn" onclick="window.print()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        <span class="btn-text">In</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- Metrics Strip -->
+    <div class="card metrics-strip">
+      <div class="metric-cell">
+        <div class="metric-value">12</div>
+        <div class="metric-label">Tổng giao dịch</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-value success">10</div>
+        <div class="metric-label">Thành công</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-value primary">2.450.000₫</div>
+        <div class="metric-label">Tổng chi tiêu</div>
+      </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="filter-bar">
+      <div class="filter-chip active">Tất cả <span class="count">12</span></div>
+      <div class="filter-chip" onclick="this.classList.toggle('active')">Thành công <span class="count">10</span></div>
+      <div class="filter-chip" onclick="this.classList.toggle('active')">Chờ xử lý <span class="count">1</span></div>
+      <div class="filter-chip" onclick="this.classList.toggle('active')">Thất bại <span class="count">1</span></div>
+    </div>
+
+    <!-- Desktop: Table -->
+    <div class="card table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Khóa học</th>
+            <th>Số tiền</th>
+            <th>Trạng thái</th>
+            <th>Phương thức</th>
+            <th>Ngày</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <a href="#" class="course-link">An toàn hàng hải cơ bản</a>
+            </td>
+            <td><span class="amount">350.000₫</span></td>
+            <td><span class="badge badge-success">Thành công</span></td>
+            <td><span class="method">VNPay</span></td>
+            <td><span class="date">08/04/2026 14:32</span></td>
+          </tr>
+          <tr>
+            <td>
+              <a href="#" class="course-link">Điều khiển tàu nâng cao</a>
+              <div class="course-sub">Đã thanh toán, đang chờ kích hoạt</div>
+            </td>
+            <td><span class="amount">500.000₫</span></td>
+            <td><span class="badge badge-warning">Chờ kích hoạt</span></td>
+            <td><span class="method">SePay</span></td>
+            <td><span class="date">05/04/2026 09:15</span></td>
+          </tr>
+          <tr>
+            <td><a href="#" class="course-link">Kỹ thuật máy tàu biển</a></td>
+            <td><span class="amount">280.000₫</span></td>
+            <td><span class="badge badge-success">Thành công</span></td>
+            <td><span class="method">VNPay</span></td>
+            <td><span class="date">01/04/2026 16:48</span></td>
+          </tr>
+          <tr>
+            <td><a href="#" class="course-link">STCW — Huấn luyện cơ bản</a></td>
+            <td><span class="amount">450.000₫</span></td>
+            <td><span class="badge badge-error">Thất bại</span></td>
+            <td><span class="method">VNPay</span></td>
+            <td><span class="date">28/03/2026 11:22</span></td>
+          </tr>
+          <tr>
+            <td><a href="#" class="course-link">Luật hàng hải quốc tế</a></td>
+            <td><span class="amount">320.000₫</span></td>
+            <td><span class="badge badge-success">Thành công</span></td>
+            <td><span class="method">Chuyển khoản</span></td>
+            <td><span class="date">25/03/2026 08:30</span></td>
+          </tr>
+          <tr>
+            <td><a href="#" class="course-link">Logistics hàng hải</a></td>
+            <td><span class="amount">250.000₫</span></td>
+            <td><span class="badge badge-success">Thành công</span></td>
+            <td><span class="method">SePay</span></td>
+            <td><span class="date">20/03/2026 13:55</span></td>
+          </tr>
+          <tr>
+            <td><a href="#" class="course-link">ECDIS — Bản đồ điện tử</a></td>
+            <td><span class="amount">300.000₫</span></td>
+            <td><span class="badge badge-info">Hoàn tiền</span></td>
+            <td><span class="method">VNPay</span></td>
+            <td><span class="date">15/03/2026 10:12</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile: Card Layout -->
+    <div class="payment-cards">
+      <div class="card payment-card">
+        <div class="payment-card-header">
+          <span class="payment-card-title">An toàn hàng hải cơ bản</span>
+          <span class="badge badge-success">Thành công</span>
+        </div>
+        <div class="payment-card-body">
+          <span class="payment-card-amount">350.000₫</span>
+        </div>
+        <div class="payment-card-meta">VNPay · 08/04/2026 14:32</div>
+      </div>
+
+      <div class="card payment-card">
+        <div class="payment-card-header">
+          <span class="payment-card-title">Điều khiển tàu nâng cao</span>
+          <span class="badge badge-warning">Chờ kích hoạt</span>
+        </div>
+        <div class="payment-card-body">
+          <span class="payment-card-amount">500.000₫</span>
+        </div>
+        <div class="payment-card-meta">SePay · 05/04/2026 09:15</div>
+        <div class="payment-card-sub">Đã thanh toán, đang chờ kích hoạt</div>
+      </div>
+
+      <div class="card payment-card">
+        <div class="payment-card-header">
+          <span class="payment-card-title">Kỹ thuật máy tàu biển</span>
+          <span class="badge badge-success">Thành công</span>
+        </div>
+        <div class="payment-card-body">
+          <span class="payment-card-amount">280.000₫</span>
+        </div>
+        <div class="payment-card-meta">VNPay · 01/04/2026 16:48</div>
+      </div>
+
+      <div class="card payment-card">
+        <div class="payment-card-header">
+          <span class="payment-card-title">STCW — Huấn luyện cơ bản</span>
+          <span class="badge badge-error">Thất bại</span>
+        </div>
+        <div class="payment-card-body">
+          <span class="payment-card-amount">450.000₫</span>
+        </div>
+        <div class="payment-card-meta">VNPay · 28/03/2026 11:22</div>
+      </div>
+
+      <div class="card payment-card">
+        <div class="payment-card-header">
+          <span class="payment-card-title">Luật hàng hải quốc tế</span>
+          <span class="badge badge-success">Thành công</span>
+        </div>
+        <div class="payment-card-body">
+          <span class="payment-card-amount">320.000₫</span>
+        </div>
+        <div class="payment-card-meta">Chuyển khoản · 25/03/2026 08:30</div>
+      </div>
+    </div>
+
+    <!-- Load More -->
+    <div class="load-more-section">
+      <button class="load-more-btn">Hiện thêm (còn 5 giao dịch)</button>
+      <div class="load-more-count">Đang hiện 7 / 12 giao dịch</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB 2: EMPTY ===== -->
+<div class="demo-section" id="tab-empty">
+  <div class="header-bar">
+    <div class="header-inner">
+      <div>
+        <h1>Lịch sử thanh toán</h1>
+        <p class="header-sub">Quản lý và theo dõi các giao dịch của bạn</p>
+      </div>
+    </div>
+  </div>
+  <div class="main">
+    <div class="card empty-state">
+      <div class="empty-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+      </div>
+      <div class="empty-title">Chưa có giao dịch nào</div>
+      <div class="empty-text">Bạn chưa thực hiện thanh toán khóa học nào.</div>
+      <a href="#" class="empty-cta">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        Khám phá khóa học
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB 3: SKELETON ===== -->
+<div class="demo-section" id="tab-skeleton">
+  <div class="header-bar">
+    <div class="header-inner">
+      <div>
+        <h1>Lịch sử thanh toán</h1>
+        <p class="header-sub">Quản lý và theo dõi các giao dịch của bạn</p>
+      </div>
+    </div>
+  </div>
+  <div class="main skeleton">
+    <!-- Skeleton Metrics -->
+    <div class="card metrics-strip" style="margin-bottom:20px">
+      <div class="metric-cell">
+        <div class="sk" style="width:40px;height:22px;margin-bottom:6px"></div>
+        <div class="sk-light" style="width:70px;height:12px"></div>
+      </div>
+      <div class="metric-cell">
+        <div class="sk" style="width:30px;height:22px;margin-bottom:6px"></div>
+        <div class="sk-light" style="width:60px;height:12px"></div>
+      </div>
+      <div class="metric-cell">
+        <div class="sk" style="width:100px;height:22px;margin-bottom:6px"></div>
+        <div class="sk-light" style="width:80px;height:12px"></div>
+      </div>
+    </div>
+
+    <!-- Skeleton Filter -->
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <div class="sk" style="width:70px;height:32px;border-radius:16px"></div>
+      <div class="sk-light" style="width:85px;height:32px;border-radius:16px"></div>
+      <div class="sk-light" style="width:80px;height:32px;border-radius:16px"></div>
+    </div>
+
+    <!-- Skeleton Table -->
+    <div class="card" style="padding:16px 20px">
+      <div style="display:flex;gap:20px;padding:12px 0;border-bottom:1px solid var(--border-light)">
+        <div class="sk" style="width:180px;height:14px"></div>
+        <div class="sk-light" style="width:80px;height:14px"></div>
+        <div class="sk-light" style="width:70px;height:14px"></div>
+        <div class="sk-light" style="width:60px;height:14px"></div>
+        <div class="sk-light" style="width:100px;height:14px"></div>
+      </div>
+      <div style="display:flex;gap:20px;padding:12px 0;border-bottom:1px solid var(--border-light)">
+        <div class="sk" style="width:200px;height:14px"></div>
+        <div class="sk-light" style="width:70px;height:14px"></div>
+        <div class="sk-light" style="width:65px;height:14px"></div>
+        <div class="sk-light" style="width:55px;height:14px"></div>
+        <div class="sk-light" style="width:110px;height:14px"></div>
+      </div>
+      <div style="display:flex;gap:20px;padding:12px 0;border-bottom:1px solid var(--border-light)">
+        <div class="sk" style="width:160px;height:14px"></div>
+        <div class="sk-light" style="width:85px;height:14px"></div>
+        <div class="sk-light" style="width:72px;height:14px"></div>
+        <div class="sk-light" style="width:50px;height:14px"></div>
+        <div class="sk-light" style="width:95px;height:14px"></div>
+      </div>
+      <div style="display:flex;gap:20px;padding:12px 0;">
+        <div class="sk" style="width:190px;height:14px"></div>
+        <div class="sk-light" style="width:75px;height:14px"></div>
+        <div class="sk-light" style="width:68px;height:14px"></div>
+        <div class="sk-light" style="width:58px;height:14px"></div>
+        <div class="sk-light" style="width:105px;height:14px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB 4: ERROR ===== -->
+<div class="demo-section" id="tab-error">
+  <div class="header-bar">
+    <div class="header-inner">
+      <div>
+        <h1>Lịch sử thanh toán</h1>
+        <p class="header-sub">Quản lý và theo dõi các giao dịch của bạn</p>
+      </div>
+    </div>
+  </div>
+  <div class="main">
+    <div class="card" style="padding:48px 24px;text-align:center;border-color:#FCA5A5">
+      <div style="width:64px;height:64px;background:var(--error-light);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--error)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <div class="empty-title">Không thể tải lịch sử thanh toán</div>
+      <div class="empty-text">Vui lòng kiểm tra kết nối mạng và thử lại.</div>
+      <button class="empty-cta" style="gap:6px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+        Thử lại
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(name) {
+  document.querySelectorAll('.demo-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.demo-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+
+</body>
+</html>

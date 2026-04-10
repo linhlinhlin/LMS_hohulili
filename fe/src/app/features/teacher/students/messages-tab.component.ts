@@ -103,10 +103,12 @@ import { Message, sortMessagesByDate } from '../../student/messages/utils/messag
             </div>
           }
 
-          @for (message of sortedMessages(); track message.id) {
+          @for (message of sortedMessages(); track message.id; let i = $index) {
             <app-message-bubble
               [message]="message"
-              [currentUserId]="currentTeacherId"></app-message-bubble>
+              [currentUserId]="currentTeacherId"
+              [isFirstInGroup]="isFirstInGroup(i)"
+              [isLastInGroup]="isLastInGroup(i)"/>
           }
         }
       </div>
@@ -140,6 +142,24 @@ export class MessagesTabComponent implements OnInit, OnDestroy, AfterViewChecked
   readonly error = signal<string | null>(null);
   readonly availableAssignments = signal<AssignmentOption[]>([]);
   readonly sortedMessages = computed(() => sortMessagesByDate(this.messagesState()));
+
+  isFirstInGroup(index: number): boolean {
+    const msgs = this.sortedMessages();
+    if (index === 0) return true;
+    const prev = msgs[index - 1];
+    const curr = msgs[index];
+    if (prev.senderId !== curr.senderId) return true;
+    return new Date(curr.createdAt).getTime() - new Date(prev.createdAt).getTime() > 2 * 60 * 1000;
+  }
+
+  isLastInGroup(index: number): boolean {
+    const msgs = this.sortedMessages();
+    if (index === msgs.length - 1) return true;
+    const curr = msgs[index];
+    const next = msgs[index + 1];
+    if (curr.senderId !== next.senderId) return true;
+    return new Date(next.createdAt).getTime() - new Date(curr.createdAt).getTime() > 2 * 60 * 1000;
+  }
 
   private shouldScrollToBottom = false;
   private conversationId: string | null = null;

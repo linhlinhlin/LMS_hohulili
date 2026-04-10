@@ -29,76 +29,92 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
           </a>
         </div>
 
-        <!-- Section Header: Tabs + Search -->
-        <div class="section-header">
-          <div class="tabs-container" role="tablist">
-            <!-- Mode tabs -->
-            <button type="button" role="tab" class="tab-chip"
-              [class.active]="modeFilter() === ''"
-              [attr.aria-selected]="modeFilter() === ''"
-              (click)="setModeFilter('')">
-              <span class="tab-label">Tất cả</span>
-              <span class="tab-count">({{ total() }})</span>
-            </button>
-            <button type="button" role="tab" class="tab-chip"
-              [class.active]="modeFilter() === 'SELF_PACED'"
-              [attr.aria-selected]="modeFilter() === 'SELF_PACED'"
-              (click)="setModeFilter('SELF_PACED')">
-              <span class="tab-label">Khóa học</span>
-            </button>
-            <button type="button" role="tab" class="tab-chip"
-              [class.active]="modeFilter() === 'INSTRUCTOR_LED'"
-              [attr.aria-selected]="modeFilter() === 'INSTRUCTOR_LED'"
-              (click)="setModeFilter('INSTRUCTOR_LED')">
-              <span class="tab-label">Lớp học</span>
-            </button>
-
-            <!-- Divider -->
-            <span class="tab-divider"></span>
-
-            <!-- Status tabs -->
-            <button type="button" role="tab" class="tab-chip"
-              [class.active]="status === ''"
-              [attr.aria-selected]="status === ''"
-              (click)="setStatus('')">
-              <span class="tab-label">Mọi trạng thái</span>
-            </button>
-            <button type="button" role="tab" class="tab-chip"
-              [class.active]="status === 'DRAFT'"
-              [attr.aria-selected]="status === 'DRAFT'"
-              (click)="setStatus('DRAFT')">
-              <span class="tab-label">Nháp</span>
-            </button>
-            <button type="button" role="tab" class="tab-chip"
-              [class.active]="status === 'PENDING'"
-              [attr.aria-selected]="status === 'PENDING'"
-              (click)="setStatus('PENDING')">
-              <span class="tab-label">Chờ duyệt</span>
-            </button>
-            <button type="button" role="tab" class="tab-chip"
-              [class.active]="status === 'APPROVED'"
-              [attr.aria-selected]="status === 'APPROVED'"
-              (click)="setStatus('APPROVED')">
-              <span class="tab-label">Đã duyệt</span>
-            </button>
-          </div>
-
-          <!-- Search -->
-          <div class="search-box">
+        <!-- Search + Create (same row) -->
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center mb-6">
+          <div class="search-box flex-1 sm:max-w-md">
             <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
             <input class="search-input"
-              placeholder="Tìm khóa học..."
+              placeholder="Tìm theo tên hoặc mã khóa học..."
               [(ngModel)]="keyword"
               (input)="applyFilters()"
               (keyup.enter)="applyFilters()" />
           </div>
         </div>
 
+        <!-- Filter Tabs — 5 tabs inline Tailwind (matching dashboard + assessments) -->
+        <div class="flex flex-wrap items-center gap-2 mb-6" role="tablist">
+          <button type="button" role="tab"
+            [attr.aria-selected]="activeFilter() === 'ALL'"
+            class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors"
+            [class.bg-[#0056D2]]="activeFilter() === 'ALL'"
+            [class.text-white]="activeFilter() === 'ALL'"
+            [class.border-[#0056D2]]="activeFilter() === 'ALL'"
+            [class.bg-white]="activeFilter() !== 'ALL'"
+            [class.text-gray-700]="activeFilter() !== 'ALL'"
+            [class.border-gray-200]="activeFilter() !== 'ALL'"
+            [class.hover:border-gray-300]="activeFilter() !== 'ALL'"
+            (click)="setFilter('ALL')">
+            Tất cả ({{ courses().length }})
+          </button>
+          <button type="button" role="tab"
+            [attr.aria-selected]="activeFilter() === 'APPROVED'"
+            class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors"
+            [class.bg-[#0056D2]]="activeFilter() === 'APPROVED'"
+            [class.text-white]="activeFilter() === 'APPROVED'"
+            [class.border-[#0056D2]]="activeFilter() === 'APPROVED'"
+            [class.bg-white]="activeFilter() !== 'APPROVED'"
+            [class.text-gray-700]="activeFilter() !== 'APPROVED'"
+            [class.border-gray-200]="activeFilter() !== 'APPROVED'"
+            [class.hover:border-gray-300]="activeFilter() !== 'APPROVED'"
+            (click)="setFilter('APPROVED')">
+            Đã duyệt ({{ countByFilter('APPROVED') }})
+          </button>
+          <button type="button" role="tab"
+            [attr.aria-selected]="activeFilter() === 'EDITING'"
+            class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors"
+            [class.bg-[#0056D2]]="activeFilter() === 'EDITING'"
+            [class.text-white]="activeFilter() === 'EDITING'"
+            [class.border-[#0056D2]]="activeFilter() === 'EDITING'"
+            [class.bg-white]="activeFilter() !== 'EDITING'"
+            [class.text-gray-700]="activeFilter() !== 'EDITING'"
+            [class.border-gray-200]="activeFilter() !== 'EDITING'"
+            [class.hover:border-gray-300]="activeFilter() !== 'EDITING'"
+            (click)="setFilter('EDITING')">
+            Đang soạn ({{ countByFilter('EDITING') }})
+          </button>
+          <button type="button" role="tab"
+            [attr.aria-selected]="activeFilter() === 'PENDING'"
+            class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors"
+            [class.bg-[#0056D2]]="activeFilter() === 'PENDING'"
+            [class.text-white]="activeFilter() === 'PENDING'"
+            [class.border-[#0056D2]]="activeFilter() === 'PENDING'"
+            [class.bg-white]="activeFilter() !== 'PENDING'"
+            [class.text-gray-700]="activeFilter() !== 'PENDING'"
+            [class.border-gray-200]="activeFilter() !== 'PENDING'"
+            [class.hover:border-gray-300]="activeFilter() !== 'PENDING'"
+            (click)="setFilter('PENDING')">
+            Chờ duyệt ({{ countByFilter('PENDING') }})
+          </button>
+          <button type="button" role="tab"
+            [attr.aria-selected]="activeFilter() === 'INSTRUCTOR_LED'"
+            class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors"
+            [class.bg-[#0056D2]]="activeFilter() === 'INSTRUCTOR_LED'"
+            [class.text-white]="activeFilter() === 'INSTRUCTOR_LED'"
+            [class.border-[#0056D2]]="activeFilter() === 'INSTRUCTOR_LED'"
+            [class.bg-white]="activeFilter() !== 'INSTRUCTOR_LED'"
+            [class.text-gray-700]="activeFilter() !== 'INSTRUCTOR_LED'"
+            [class.border-gray-200]="activeFilter() !== 'INSTRUCTOR_LED'"
+            [class.hover:border-gray-300]="activeFilter() !== 'INSTRUCTOR_LED'"
+            (click)="setFilter('INSTRUCTOR_LED')">
+            Lớp học ({{ countByFilter('INSTRUCTOR_LED') }})
+          </button>
+        </div>
+
         <!-- Course List -->
         <div class="courses-list mt-6">
-          @for (c of paged(); track c.id) {
+          @for (c of visible(); track c.id) {
             <div class="course-card" (click)="onEdit(c.id)">
               <div class="course-card-body">
                 <!-- Thumbnail -->
@@ -143,7 +159,11 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
 
                 <!-- Status + Action -->
                 <div class="course-actions">
-                  <span [class]="getStatusClasses(c.status)">
+                  <span class="status-badge"
+                        [class.badge-approved]="c.status === 'APPROVED'"
+                        [class.badge-pending]="c.status === 'PENDING'"
+                        [class.badge-draft]="c.status === 'DRAFT'"
+                        [class.badge-rejected]="c.status === 'REJECTED'">
                     {{ getStatusLabel(c.status) }}
                   </span>
                   <span class="course-date">Cập nhật: {{ formatDate(c.updatedAt || c.createdAt) }}</span>
@@ -212,7 +232,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
         </div>
 
         <!-- Empty State -->
-        @if (paged().length === 0 && !error()) {
+        @if (filtered().length === 0 && !error()) {
           <div class="empty-state mt-8">
             <div class="empty-state-icon">
               <svg width="40" height="40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -225,42 +245,17 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
           </div>
         }
 
-        <!-- Pagination -->
-        @if (total() > 0) {
-          <div class="courses-footer mt-8">
-            <div class="flex items-center gap-3">
-              <span class="footer-summary">Hiển thị</span>
-              <select class="border border-gray-200 rounded px-2 py-1 text-xs font-semibold text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                [ngModel]="pageSize()"
-                (ngModelChange)="onPageSizeChange($event)">
-                <option [ngValue]="5">5</option>
-                <option [ngValue]="10">10</option>
-                <option [ngValue]="20">20</option>
-                <option [ngValue]="50">50</option>
-              </select>
-              <span class="footer-summary">dòng / trang</span>
-            </div>
-            
-            <div class="flex items-center gap-4">
-              <span class="footer-summary">Trang <strong>{{ pageIndex() }}</strong> / {{ totalPages() }}</span>
-              <div class="flex items-center gap-1.5">
-                <button class="p-1.5 rounded-md border border-gray-200 hover:bg-gray-50 text-gray-500 disabled:opacity-30 transition-colors"
-                  [disabled]="pageIndex() <= 1"
-                  (click)="prevPage()">
-                  <app-icon name="chevron-left" size="sm" />
-                </button>
-                <button class="p-1.5 rounded-md border border-gray-200 hover:bg-gray-50 text-gray-500 disabled:opacity-30 transition-colors"
-                  [disabled]="pageIndex() >= totalPages()"
-                  (click)="nextPage()">
-                  <app-icon name="chevron-right" size="sm" />
-                </button>
-              </div>
-            </div>
-            
-            <div class="footer-summary">
-              Tổng số <span class="text-blue-600 font-bold">{{ total() }}</span> khóa học
-            </div>
+        <!-- Load More (matching dashboard + student + UX Guidelines) -->
+        @if (hasMore()) {
+          <div class="pt-6 text-center space-y-2">
+            <button type="button" (click)="loadMore()"
+              class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:border-[#0056D2] hover:text-[#0056D2] hover:bg-[#f0f7ff]">
+              Xem thêm {{ remainingCount() }} khóa học
+            </button>
+            <p class="text-xs text-gray-400">Đang hiện {{ visibleCount() }} / {{ filtered().length }}</p>
           </div>
+        } @else if (filtered().length > 0) {
+          <p class="pt-4 text-center text-xs text-gray-400">Đã hiện tất cả {{ filtered().length }} khóa học</p>
         }
       </div>
     </div>
@@ -304,7 +299,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
     .page-inner {
       max-width: 1400px;
       margin: 0 auto;
-      padding: 32px;
+      padding: 24px;
     }
 
     /* ===== PAGE HEADER ===== */
@@ -360,71 +355,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
       height: 16px;
     }
 
-    /* ===== SECTION HEADER (Tabs + Search) ===== */
-    .section-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid #E5E7EB;
-      flex-wrap: wrap;
-    }
-
-    .tabs-container {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .tab-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 8px 16px;
-      border: 1px solid #D1D5DB;
-      border-radius: 20px;
-      background: white;
-      color: #374151;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      outline: none;
-      white-space: nowrap;
-
-      &:hover {
-        background: #F9FAFB;
-        border-color: #9CA3AF;
-      }
-
-      &.active {
-        background: #0056D2;
-        color: white;
-        border-color: #0056D2;
-
-        &:hover {
-          background: #004BB5;
-          border-color: #004BB5;
-        }
-
-        .tab-count { color: rgba(255,255,255,0.8); }
-      }
-    }
-
-    .tab-label { line-height: 1; }
-    .tab-count { font-size: 12px; color: #9CA3AF; line-height: 1; }
-
-    .tab-divider {
-      display: inline-block;
-      width: 1px;
-      height: 20px;
-      background: #E5E7EB;
-      margin: 0 4px;
-      flex-shrink: 0;
-    }
+    /* Tabs: inline Tailwind (see template) */
 
     /* ===== SEARCH BOX ===== */
     .search-box {
@@ -473,7 +404,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
 
     .course-card {
       background: white;
-      border-radius: 12px;
+      border-radius: 8px;
       border: 1px solid #E5E7EB;
       box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
       transition: all 0.2s ease;
@@ -636,19 +567,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
       &:hover { background: #0056D2; color: white; }
     }
 
-    /* ===== FOOTER / PAGINATION ===== */
-    .courses-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 24px;
-      background: white;
-      border: 1px solid #E5E7EB;
-      border-radius: 12px;
-      box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
-    }
-
-    .footer-summary { font-size: 13px; color: #6B7280; }
+    /* Load More: inline Tailwind (see template) */
 
     /* ===== EMPTY STATE ===== */
     .empty-state {
@@ -658,7 +577,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
       justify-content: center;
       padding: 48px 24px;
       background: white;
-      border-radius: 12px;
+      border-radius: 8px;
       border: 2px dashed #E5E7EB;
       text-align: center;
     }
@@ -719,19 +638,22 @@ export class CourseManagementComponent {
   filtered = signal<CourseSummary[]>([]);
   error = signal('');
   keyword = '';
-  status: '' | 'APPROVED' | 'PENDING' | 'DRAFT' | 'REJECTED' = '';
-  modeFilter = signal<'' | 'SELF_PACED' | 'INSTRUCTOR_LED'>('');
+  activeFilter = signal<'ALL' | 'APPROVED' | 'EDITING' | 'PENDING' | 'INSTRUCTOR_LED'>('ALL');
   publishingId = signal<string | null>(null);
   deletingId = signal<string | null>(null);
   submittingId = signal<string | null>(null);
   cancellingId = signal<string | null>(null);
   openMenuId = signal<string | null>(null);
-  pageIndex = signal(1);
-  pageSize = signal(10);
-  paged = computed(() => {
-    const start = (this.pageIndex() - 1) * this.pageSize();
-    return this.filtered().slice(start, start + this.pageSize());
-  });
+
+  // Load More pattern (matching dashboard + student)
+  private readonly INITIAL_COUNT = 10;
+  private readonly LOAD_MORE_COUNT = 10;
+  visibleLimit = signal(this.INITIAL_COUNT);
+
+  visible = computed(() => this.filtered().slice(0, this.visibleLimit()));
+  visibleCount = computed(() => Math.min(this.visibleLimit(), this.filtered().length));
+  hasMore = computed(() => this.visibleLimit() < this.filtered().length);
+  remainingCount = computed(() => Math.max(0, this.filtered().length - this.visibleLimit()));
 
   private readonly GRADIENTS = [
     'linear-gradient(135deg, #0056D2 0%, #4A90D9 100%)',
@@ -747,54 +669,57 @@ export class CourseManagementComponent {
         const list = res?.data || [];
         this.courses.set(list);
         this.filtered.set(list);
-        this.pageIndex.set(1);
+        this.visibleLimit.set(this.INITIAL_COUNT);
       },
       error: (err: any) => this.error.set(err?.message || 'Không tải được danh sách')
     });
   }
 
-  setModeFilter(mode: '' | 'SELF_PACED' | 'INSTRUCTOR_LED') {
-    this.modeFilter.set(mode);
+  setFilter(f: 'ALL' | 'APPROVED' | 'EDITING' | 'PENDING' | 'INSTRUCTOR_LED') {
+    this.activeFilter.set(f);
     this.applyFilters();
   }
 
-  setStatus(s: '' | 'APPROVED' | 'PENDING' | 'DRAFT' | 'REJECTED') {
-    this.status = s;
-    this.applyFilters();
+  countByFilter(f: string): number {
+    const all = this.courses();
+    switch (f) {
+      case 'APPROVED': return all.filter(c => c.status === 'APPROVED').length;
+      case 'EDITING': return all.filter(c => c.status === 'DRAFT' || c.status === 'REJECTED').length;
+      case 'PENDING': return all.filter(c => c.status === 'PENDING').length;
+      case 'INSTRUCTOR_LED': return all.filter(c => c.deliveryMode === 'INSTRUCTOR_LED').length;
+      default: return all.length;
+    }
+  }
+
+  loadMore() {
+    this.visibleLimit.update(v => v + this.LOAD_MORE_COUNT);
   }
 
   applyFilters() {
     const kw = this.keyword.trim().toLowerCase();
-    const mode = this.modeFilter();
+    const f = this.activeFilter();
     this.filtered.set(
       this.courses()
-        .filter(c => !this.status || c.status === this.status)
-        .filter(c => !mode || c.deliveryMode === mode)
+        .filter(c => {
+          switch (f) {
+            case 'APPROVED': return c.status === 'APPROVED';
+            case 'EDITING': return c.status === 'DRAFT' || c.status === 'REJECTED';
+            case 'PENDING': return c.status === 'PENDING';
+            case 'INSTRUCTOR_LED': return c.deliveryMode === 'INSTRUCTOR_LED';
+            default: return true;
+          }
+        })
         .filter(c => !kw || c.code?.toLowerCase().includes(kw) || c.title?.toLowerCase().includes(kw))
     );
-    this.pageIndex.set(1);
-  }
-
-  getStatusClasses(status: string): string {
-    const m: Record<string, string> = {
-      'APPROVED': 'badge-approved',
-      'PUBLISHED': 'badge-published',
-      'PENDING': 'badge-pending',
-      'DRAFT': 'badge-draft',
-      'REJECTED': 'badge-rejected',
-      'ARCHIVED': 'badge-archived'
-    };
-    return 'status-badge ' + (m[status?.toUpperCase()] || 'badge-draft');
+    this.visibleLimit.set(this.INITIAL_COUNT);
   }
 
   getStatusLabel(status: string): string {
     const m: Record<string, string> = {
       'APPROVED': 'Đã duyệt',
-      'PUBLISHED': 'Xuất bản',
       'PENDING': 'Chờ duyệt',
       'DRAFT': 'Nháp',
-      'REJECTED': 'Từ chối',
-      'ARCHIVED': 'Lưu trữ'
+      'REJECTED': 'Bị từ chối'
     };
     return m[status?.toUpperCase()] || status;
   }
@@ -946,10 +871,4 @@ export class CourseManagementComponent {
     });
   }
 
-  total = computed(() => this.filtered().length);
-  totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.pageSize())));
-  goToPage(n: number) { this.pageIndex.set(Math.min(Math.max(1, n), this.totalPages())); }
-  nextPage() { this.goToPage(this.pageIndex() + 1); }
-  prevPage() { this.goToPage(this.pageIndex() - 1); }
-  onPageSizeChange(v?: any) { if (v !== undefined) this.pageSize.set(Number(v)); this.goToPage(1); }
 }

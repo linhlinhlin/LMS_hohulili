@@ -335,7 +335,7 @@ export class MessagingService implements OnDestroy {
       affectedConversationIds.add(this._currentConversation()!.id);
     }
 
-    return this.http.post<void>(`${this.apiUrl}/mark-read`, { messageIds }).pipe(
+    return this.http.patch<void>(`${this.apiUrl}/mark-read`, { messageIds }).pipe(
       tap(() => {
         // Update messages as read
         this._messages.update((messages) =>

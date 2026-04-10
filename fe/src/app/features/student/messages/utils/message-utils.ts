@@ -311,6 +311,61 @@ export function formatMessageTime(dateString: string): string {
 }
 
 /**
+ * Format full date+time for hover tooltip (Messenger pattern)
+ * E.g., "Thứ hai, 08/04/2026 lúc 23:14"
+ */
+export function formatFullDateTime(dateString: string): string {
+  const date = new Date(dateString);
+  const dayNames = ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'];
+  const day = dayNames[date.getDay()];
+  const dd = String(date.getDate()).padStart(2, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const yyyy = date.getFullYear();
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mi = String(date.getMinutes()).padStart(2, '0');
+  return `${day}, ${dd}/${mm}/${yyyy} lúc ${hh}:${mi}`;
+}
+
+/**
+ * Format date separator label between message groups (Messenger pattern)
+ * - Today → "Hôm nay"
+ * - Yesterday → "Hôm qua"
+ * - This year → "Thứ X, DD tháng MM"
+ * - Older → "DD/MM/YYYY"
+ */
+export function formatDateSeparator(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const msgDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.floor((today.getTime() - msgDay.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return 'Hôm nay';
+  if (diffDays === 1) return 'Hôm qua';
+
+  const dayNames = ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'];
+  const monthNames = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+  const dd = String(date.getDate()).padStart(2, '0');
+
+  if (date.getFullYear() === now.getFullYear()) {
+    return `${dayNames[date.getDay()]}, ${dd} tháng ${monthNames[date.getMonth()]}`;
+  }
+
+  return `${dd}/${monthNames[date.getMonth()]}/${date.getFullYear()}`;
+}
+
+/**
+ * Check if two messages are on different days (for date separator rendering)
+ */
+export function isDifferentDay(dateA: string, dateB: string): boolean {
+  const a = new Date(dateA);
+  const b = new Date(dateB);
+  return a.getFullYear() !== b.getFullYear() ||
+    a.getMonth() !== b.getMonth() ||
+    a.getDate() !== b.getDate();
+}
+
+/**
  * Check if a message contains an assignment reference
  *
  * @param message - The message to check
@@ -397,6 +452,27 @@ export function parseMessageWithLinks(content: string): TextSegment[] {
   }
 
   return segments;
+}
+
+/**
+ * Check if a message is emoji-only (1–6 emoji, no other text).
+ * Emoji-only messages render LARGE (32–40px) without bubble background.
+ *
+ * @param text - Message content
+ * @returns true if text contains only emoji (max 6 grapheme clusters)
+ */
+export function isEmojiOnly(text: string): boolean {
+  if (!text) return false;
+  const trimmed = text.trim();
+  if (trimmed.length === 0) return false;
+  // Match sequences of emoji presentation, extended pictographic, variation selectors, ZWJ, and whitespace
+  const emojiRegex = /^(\p{Emoji_Presentation}|\p{Extended_Pictographic}|\uFE0F|\u200D|\s)+$/u;
+  if (!emojiRegex.test(trimmed)) return false;
+  // Count actual emoji grapheme clusters (filter out whitespace/joiners)
+  const clusters = [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(trimmed)]
+    .map(s => s.segment.trim())
+    .filter(s => s.length > 0);
+  return clusters.length >= 1 && clusters.length <= 6;
 }
 
 /**

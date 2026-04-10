@@ -141,6 +141,10 @@ export class SidebarComponent implements OnInit, OnDestroy {
   }
 
   isSubMenuOpen(item: SidebarMenuItem): boolean {
-    return this.router.url.startsWith(item.route);
+    const url = this.router.url.split('?')[0];
+    if (url.startsWith(item.route)) return true;
+    if (item.children?.some(child => url.startsWith(child.route))) return true;
+    if (item.alsoActiveFor?.some(prefix => url.startsWith(prefix))) return true;
+    return false;
   }
 }

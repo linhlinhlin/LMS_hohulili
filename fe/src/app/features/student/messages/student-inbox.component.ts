@@ -15,10 +15,8 @@ import {
   MessageRecipientCandidate,
   MessagingService,
 } from '../../../core/services/messaging.service';
-import { AnnouncementService } from '../../../core/services/announcement.service';
 import { ConversationListItemComponent } from './conversation-list-item.component';
 import { MessageRecipientPickerComponent } from './message-recipient-picker.component';
-import { AnnouncementListComponent } from './announcement-list.component';
 import {
   Conversation,
   ConversationListItem,
@@ -27,16 +25,30 @@ import {
 
 @Component({
   selector: 'app-student-inbox',
+  host: { class: 'flex flex-1 flex-col min-h-0' },
   imports: [
     FormsModule,
     RouterModule,
     ConversationListItemComponent,
     MessageRecipientPickerComponent,
-    AnnouncementListComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-slate-50">
+    <!-- Desktop: placeholder (sidebar handles conversation list) -->
+    <div class="hidden h-full flex-col items-center justify-center bg-slate-50 md:flex">
+      <div class="text-center">
+        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#0056D2]/10">
+          <svg class="h-8 w-8 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+          </svg>
+        </div>
+        <h2 class="text-lg font-semibold text-slate-700">Chọn cuộc trò chuyện</h2>
+        <p class="mt-1 text-sm text-slate-400">hoặc bắt đầu tin nhắn mới từ thanh bên</p>
+      </div>
+    </div>
+
+    <!-- Mobile: full inbox (no min-h-screen — allows sticky to work with portal scroll) -->
+    <div class="bg-slate-50 md:hidden">
       <div class="sticky top-0 z-10 border-b border-slate-200 bg-white">
         <div class="mx-auto max-w-[1400px] px-4 sm:px-6 py-4">
           <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -47,64 +59,30 @@ import {
               </p>
             </div>
 
-            @if (activeTab() === 'messages') {
-              <div class="flex items-center gap-2">
-                <button
-                  type="button"
-                  (click)="openRecipientPicker()"
-                  class="rounded-lg bg-[#0056D2] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#004BB5]">
-                  Tin nhắn mới
-                </button>
-                <button
-                  type="button"
-                  (click)="refreshConversations()"
-                  class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-                  aria-label="Làm mới danh sách hội thoại">
-                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                  </svg>
-                </button>
-              </div>
-            }
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                (click)="openRecipientPicker()"
+                class="rounded-lg bg-[#0056D2] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#004BB5]">
+                Tin nhắn mới
+              </button>
+              <button
+                type="button"
+                (click)="refreshConversations()"
+                class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                aria-label="Làm mới danh sách hội thoại">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+              </button>
+            </div>
           </div>
 
-          <!-- Tabs -->
-          <div class="flex gap-1 mb-4">
-            <button
-              type="button"
-              (click)="setTab('messages')"
-              class="rounded-lg px-4 py-2 text-sm font-medium transition"
-              [class]="activeTab() === 'messages'
-                ? 'bg-[#0056D2]/10 text-[#0056D2]'
-                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'">
-              Tin nhắn
-              @if (totalUnread() > 0) {
-                <span class="ml-1.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white">
-                  {{ totalUnread() > 9 ? '9+' : totalUnread() }}
-                </span>
-              }
-            </button>
-            <button
-              type="button"
-              (click)="setTab('announcements')"
-              class="rounded-lg px-4 py-2 text-sm font-medium transition"
-              [class]="activeTab() === 'announcements'
-                ? 'bg-[#0056D2]/10 text-[#0056D2]'
-                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'">
-              Thông báo
-              @if (announcementUnread() > 0) {
-                <span class="ml-1.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white">
-                  {{ announcementUnread() > 9 ? '9+' : announcementUnread() }}
-                </span>
-              }
-            </button>
-          </div>
-
-          @if (activeTab() === 'messages') {
+          <!-- Search (messages only, no tabs — announcements belong in course pages per SOTA) -->
             <div class="relative">
               <svg
                 class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
@@ -135,12 +113,10 @@ import {
                 </button>
               }
             </div>
-          }
         </div>
       </div>
 
       <div class="mx-auto max-w-[1400px] px-4 sm:px-6 py-4">
-        @if (activeTab() === 'messages') {
           @if (error() && filteredConversations().length > 0) {
             <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               {{ error() }}
@@ -206,10 +182,6 @@ import {
               }
             </div>
           }
-        } @else {
-          <!-- Announcements Tab -->
-          <app-announcement-list />
-        }
       </div>
 
       @if (showRecipientPicker()) {
@@ -223,7 +195,6 @@ import {
 export class StudentInboxComponent implements OnInit, OnDestroy {
   private readonly messagingService = inject(MessagingService);
   private readonly authService = inject(AuthService);
-  private readonly announcementService = inject(AnnouncementService);
   private readonly router = inject(Router);
 
   private readonly conversationsState = signal<ConversationListItem[]>([]);
@@ -232,8 +203,6 @@ export class StudentInboxComponent implements OnInit, OnDestroy {
   readonly error = signal<string | null>(null);
   readonly selectedConversationId = signal<string | null>(null);
   readonly showRecipientPicker = signal(false);
-  readonly activeTab = signal<'messages' | 'announcements'>('messages');
-  readonly announcementUnread = this.announcementService.unreadCount;
 
   searchQuery = '';
 
@@ -280,10 +249,6 @@ export class StudentInboxComponent implements OnInit, OnDestroy {
 
   clearSearch(): void {
     this.searchQuery = '';
-  }
-
-  setTab(tab: 'messages' | 'announcements'): void {
-    this.activeTab.set(tab);
   }
 
   openRecipientPicker(): void {

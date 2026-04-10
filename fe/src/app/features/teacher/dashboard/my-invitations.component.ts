@@ -91,9 +91,9 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
               </svg>
               <h3 class="text-lg font-medium text-gray-900 mb-2">Không có lời mời</h3>
               <p class="text-sm text-gray-600 mb-4">Khi được mời làm đồng giảng viên, lời mời sẽ hiển thị ở đây</p>
-              <a routerLink="/teacher/dashboard" 
+              <a routerLink="/teacher/courses"
                  class="inline-flex items-center px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
-                Về Dashboard
+                Về trang chủ
               </a>
             </div>
           }

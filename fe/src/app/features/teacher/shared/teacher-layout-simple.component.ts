@@ -4,15 +4,14 @@ import { RouterModule, RouterOutlet, Router, NavigationEnd } from '@angular/rout
 import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent, SidebarConfig } from '../../../shared/components/navigation/sidebar.component';
-import { teacherSidebarConfig } from '../../../shared/components/navigation/sidebar.config';
-import { NotificationBellComponent } from '../../../shared/components/notification-bell.component';
+import { teacherSidebarConfig as baseTeacherSidebarConfig } from '../../../shared/components/navigation/sidebar.config';
 import { NotificationService } from '../../../core/services/notification.service';
+import { MessagingService } from '../../../core/services/messaging.service';
 import { ChatPanelComponent } from '../../ai-chat/presentation/components/chat-panel/chat-panel.component';
-import { FloatingChatBubbleComponent } from '../../ai-chat/presentation/components/floating-chat-bubble/floating-chat-bubble.component';
 
 @Component({
   selector: 'app-teacher-layout-simple',
-  imports: [RouterModule, RouterOutlet, SidebarComponent, NotificationBellComponent, ChatPanelComponent, FloatingChatBubbleComponent],
+  imports: [RouterModule, RouterOutlet, SidebarComponent, ChatPanelComponent],
   template: `
     <!-- Modern gradient background for teacher portal -->
     <div class="min-h-screen flex flex-col">
@@ -20,20 +19,19 @@ import { FloatingChatBubbleComponent } from '../../ai-chat/presentation/componen
       @if (!shouldHideSidebar()) {
         <div [class]="'hidden md:flex md:flex-col md:fixed md:inset-y-0 md:z-40 transition-all duration-300 '
           + (sidebarCollapsed() ? 'md:w-16' : 'md:w-72')">
-          <app-sidebar [config]="teacherSidebarConfig"
+          <app-sidebar [config]="teacherSidebarConfig()"
             [collapsed]="sidebarCollapsed()"
             (toggleCollapse)="toggleSidebarCollapse()"></app-sidebar>
         </div>
       }
 
-      <!-- Mobile sidebar overlay -->
-      @if (isMobileSidebarOpen() && !shouldHideSidebar()) {
-        <div
-          class="fixed inset-0 z-50 md:hidden"
-          (click)="toggleMobileSidebar()">
-          <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
-          <div class="fixed inset-y-0 left-0 w-72 bg-white/95 backdrop-blur-xl shadow-2xl border-r border-white/20">
-            <app-sidebar [config]="teacherSidebarConfig"
+      <!-- Mobile sidebar overlay — CSS animation (matching student layout) -->
+      @if (!shouldHideSidebar()) {
+        <div class="mobile-sidebar-overlay md:hidden"
+             [class.open]="isMobileSidebarOpen()">
+          <div class="mobile-sidebar-backdrop" (click)="toggleMobileSidebar()"></div>
+          <div class="mobile-sidebar-panel">
+            <app-sidebar [config]="teacherSidebarConfig()"
               [collapsed]="false"></app-sidebar>
           </div>
         </div>
@@ -47,53 +45,31 @@ import { FloatingChatBubbleComponent } from '../../ai-chat/presentation/componen
 
         <!-- Main content column -->
         <div class="flex flex-col flex-1 min-w-0">
-          <!-- Modern top navigation bar - Mobile only -->
-          <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 md:hidden shadow-sm">
-            <div class="px-4 sm:px-6 lg:px-8">
-              <div class="flex justify-between items-center h-16">
+          <!-- Mobile top bar — minimal: [☰] [Logo] [Avatar] (matching student layout) -->
+          <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 md:hidden shadow-sm overflow-hidden transition-[max-height,opacity] duration-300 ease-out"
+                  [class.max-h-14]="!shouldHideMobileChrome()"
+                  [class.max-h-0]="shouldHideMobileChrome()"
+                  [class.opacity-0]="shouldHideMobileChrome()"
+                  [class.border-b-0]="shouldHideMobileChrome()">
+            <div class="px-4">
+              <div class="flex justify-between items-center h-14">
                 <div class="flex items-center space-x-3">
-                  <!-- Modern hamburger menu -->
                   <button (click)="toggleMobileSidebar()"
-                    class="p-2 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 transition-all duration-200">
+                    class="p-2 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 focus:outline-none transition-all duration-200">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
                   </button>
-                  <!-- Modern logo/brand -->
                   <div class="flex items-center space-x-2">
-                    <div class="w-8 h-8 bg-[#0056D2] rounded-lg flex items-center justify-center">
-                      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                      </svg>
-                    </div>
-                    <h1 class="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                      Cổng Giảng viên
-                    </h1>
+                    <img src="/icons/logo-master.png" alt="LMS Maritime" class="w-7 h-7 rounded-lg">
+                    <span class="text-base font-bold text-gray-900">Cổng Giảng viên</span>
                   </div>
                 </div>
-                <!-- Modern user menu -->
-                <div class="flex items-center space-x-3">
-                  <!-- Notification Bell -->
-                  <app-notification-bell></app-notification-bell>
-                  <!-- User avatar and info -->
-                  <div class="flex items-center space-x-2">
-                    <div class="w-8 h-8 bg-[#0056D2] rounded-full flex items-center justify-center text-white text-sm font-medium">
-                      {{ getUserInitials() }}
-                    </div>
-                    <div class="hidden sm:block">
-                      <p class="text-sm font-medium text-gray-900">{{ authService.currentUser()?.fullName }}</p>
-                      <p class="text-xs text-gray-500">Giảng viên</p>
-                    </div>
+                <button (click)="toggleMobileSidebar()" class="p-1 rounded-full hover:bg-gray-100 transition-colors">
+                  <div class="w-8 h-8 bg-[#0056D2] rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                    {{ getUserInitials() }}
                   </div>
-                  <!-- Logout button -->
-                  <button (click)="logout()"
-                    class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500/20">
-                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-                    </svg>
-                    Đăng xuất
-                  </button>
-                </div>
+                </button>
               </div>
             </div>
           </header>
@@ -103,75 +79,68 @@ import { FloatingChatBubbleComponent } from '../../ai-chat/presentation/componen
             <router-outlet></router-outlet>
           </main>
 
-          <!-- Mobile Bottom Navigation Bar — Udemy/Coursera pattern (matching student) -->
-          @if (!shouldHideSidebar()) {
-            <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-gray-200/50 shadow-2xl">
-              <div class="flex items-center justify-around px-2 py-2">
-                <!-- Dashboard -->
-                <a routerLink="/teacher/dashboard"
-                  routerLinkActive="text-[#0056D2]"
-                  [routerLinkActiveOptions]="{exact: true}"
-                  class="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-0 flex-1">
-                  <div class="w-6 h-6 mb-1">
-                    <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z"></path>
-                    </svg>
-                  </div>
-                  <span class="text-xs font-medium">Trang chủ</span>
-                </a>
-                <!-- Courses -->
+          <!-- Mobile Bottom Navigation — 4 nav + 1 center AI (matching student + UX Guidelines) -->
+            <nav class="mobile-bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-lg transition-[transform,opacity] duration-300 ease-out"
+                 [class.translate-y-full]="shouldHideMobileChrome()"
+                 [class.opacity-0]="shouldHideMobileChrome()"
+                 [class.pointer-events-none]="shouldHideMobileChrome()">
+              <div class="flex items-center justify-around px-1 py-1.5">
                 <a routerLink="/teacher/courses"
-                  routerLinkActive="text-emerald-600"
-                  class="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-0 flex-1">
-                  <div class="w-6 h-6 mb-1">
-                    <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                    </svg>
-                  </div>
-                  <span class="text-xs font-medium">Khóa học</span>
+                  aria-label="Khóa học của tôi"
+                  routerLinkActive="tab-active"
+                  [routerLinkActiveOptions]="{exact: true}"
+                  class="tab-item">
+                  <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z"></path>
+                  </svg>
+                  <span class="tab-label">Khóa học</span>
                 </a>
-                <!-- Assignments -->
+                <a routerLink="/teacher/courses/library"
+                  aria-label="Tất cả khóa học"
+                  routerLinkActive="tab-active"
+                  class="tab-item">
+                  <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                  </svg>
+                  <span class="tab-label">Tất cả</span>
+                </a>
+                <!-- Center: Wiii AI toggle (matching student pattern) -->
+                <button
+                  (click)="toggleMobilePanel()"
+                  aria-label="Trợ lý Wiii AI"
+                  class="tab-item"
+                  [class.tab-active]="isMobilePanelOpen()">
+                  <svg class="w-5 h-5 mb-0.5" fill="currentColor" viewBox="0 0 24 24">
+                    <path fill-rule="evenodd" d="M9 4.5a.75.75 0 01.721.544l.813 2.846a3.75 3.75 0 002.576 2.576l2.846.813a.75.75 0 010 1.442l-2.846.813a3.75 3.75 0 00-2.576 2.576l-.813 2.846a.75.75 0 01-1.442 0l-.813-2.846a3.75 3.75 0 00-2.576-2.576l-2.846-.813a.75.75 0 010-1.442l2.846-.813A3.75 3.75 0 007.466 7.89l.813-2.846A.75.75 0 019 4.5z" clip-rule="evenodd"/>
+                  </svg>
+                  <span class="tab-label">Wiii AI</span>
+                </button>
                 <a routerLink="/teacher/assessments"
-                  routerLinkActive="text-purple-600"
-                  class="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-0 flex-1">
-                  <div class="w-6 h-6 mb-1">
-                    <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                    </svg>
-                  </div>
-                  <span class="text-xs font-medium">Đánh giá</span>
+                  aria-label="Đánh giá"
+                  routerLinkActive="tab-active"
+                  class="tab-item">
+                  <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                  </svg>
+                  <span class="tab-label">Đánh giá</span>
                 </a>
-                <!-- Analytics -->
-                <a routerLink="/teacher/analytics"
-                  routerLinkActive="text-orange-600"
-                  class="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-0 flex-1">
-                  <div class="w-6 h-6 mb-1">
-                    <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                    </svg>
-                  </div>
-                  <span class="text-xs font-medium">Phân tích</span>
-                </a>
-                <!-- Revenue -->
                 <a routerLink="/teacher/revenue"
-                  routerLinkActive="text-[#0056D2]"
-                  class="flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-0 flex-1">
-                  <div class="w-6 h-6 mb-1">
-                    <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                  </div>
-                  <span class="text-xs font-medium">Doanh thu</span>
+                  aria-label="Doanh thu"
+                  routerLinkActive="tab-active"
+                  class="tab-item">
+                  <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <span class="tab-label">Doanh thu</span>
                 </a>
               </div>
             </nav>
-          }
 
-          <!-- Add bottom padding for mobile navigation -->
-          @if (!shouldHideSidebar()) {
-            <div class="h-20 md:hidden"></div>
-          }
+          <!-- Bottom padding — collapses when nav hidden -->
+            <div class="md:hidden transition-[height] duration-300 ease-out"
+                 [class.h-16]="!shouldHideMobileChrome()"
+                 [class.h-0]="shouldHideMobileChrome()"></div>
         </div>
 
         <!-- AI Sidebar (Desktop) — always rendered, animated via CSS -->
@@ -218,23 +187,128 @@ import { FloatingChatBubbleComponent } from '../../ai-chat/presentation/componen
       </button>
 
       <!-- ============================================================
-           MOBILE: Floating bubble + popup panel
+           MOBILE: Slide-up AI panel (triggered from bottom nav tab)
            ============================================================ -->
-      <div class="md:hidden">
-        @if (isMobilePanelOpen()) {
-          <app-chat-panel
-            mode="widget"
-            (closePanel)="closeMobilePanel()"
-          />
-        }
-        <app-floating-chat-bubble
-          [isPanelOpen]="isMobilePanelOpen()"
-          (bubbleClick)="toggleMobilePanel()"
-        />
+      <div class="mobile-ai-overlay md:hidden"
+           [class.open]="isMobilePanelOpen()">
+        <div class="mobile-ai-backdrop" (click)="closeMobilePanel()"></div>
+        <div class="mobile-ai-panel">
+          @if (isMobilePanelOpen()) {
+            <app-chat-panel
+              mode="widget"
+              (closePanel)="closeMobilePanel()"
+            />
+          }
+        </div>
       </div>
     </div>
     `,
   styles: [`
+    /* ── Mobile Sidebar — slide-in from left (matching student) ── */
+    .mobile-sidebar-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      pointer-events: none;
+    }
+    .mobile-sidebar-overlay.open {
+      pointer-events: auto;
+    }
+
+    .mobile-sidebar-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .mobile-sidebar-overlay.open .mobile-sidebar-backdrop {
+      opacity: 1;
+    }
+
+    .mobile-sidebar-panel {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 288px;
+      background: white;
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 51;
+    }
+    .mobile-sidebar-overlay.open .mobile-sidebar-panel {
+      transform: translateX(0);
+    }
+
+    /* ── Bottom nav bar (matching student) ── */
+    .mobile-bottom-nav { padding-bottom: env(safe-area-inset-bottom, 0); }
+
+    .tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 0;
+      min-width: 0;
+      flex: 1;
+      color: #9ca3af;
+      transition: color 0.15s ease;
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .tab-item.tab-active {
+      color: #0056D2;
+    }
+
+    .tab-label {
+      font-size: 10px;
+      font-weight: 500;
+      line-height: 1;
+    }
+
+    /* ── Mobile AI Panel — slide-up from bottom ── */
+    .mobile-ai-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      pointer-events: none;
+    }
+    .mobile-ai-overlay.open {
+      pointer-events: auto;
+    }
+
+    .mobile-ai-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .mobile-ai-overlay.open .mobile-ai-backdrop {
+      opacity: 1;
+    }
+
+    .mobile-ai-panel {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 61;
+    }
+    .mobile-ai-overlay.open .mobile-ai-panel {
+      transform: translateY(0);
+    }
+
     /* ── AI Sidebar — always rendered, animated via CSS ── */
     .ai-sidebar {
       flex-shrink: 0;
@@ -342,6 +416,13 @@ import { FloatingChatBubbleComponent } from '../../ai-chat/presentation/componen
       width: 18px;
       height: 18px;
     }
+
+    /* Respect reduced motion preference */
+    @media (prefers-reduced-motion: reduce) {
+      header, nav, .mobile-bottom-nav,
+      .mobile-sidebar-backdrop, .mobile-sidebar-panel,
+      .mobile-ai-backdrop, .mobile-ai-panel { transition-duration: 0ms !important; }
+    }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -349,9 +430,25 @@ export class TeacherLayoutSimpleComponent implements OnInit, OnDestroy {
   protected authService = inject(AuthService);
   private router = inject(Router);
   private notificationService = inject(NotificationService);
+  private messagingService = inject(MessagingService);
   protected isMobileSidebarOpen = signal(false);
   protected sidebarCollapsed = signal(false);
-  protected teacherSidebarConfig = teacherSidebarConfig;
+
+  // Dynamic sidebar config with unread messages badge (matching student pattern)
+  protected teacherSidebarConfig = computed<SidebarConfig>(() => {
+    const unreadCount = this.messagingService.totalUnreadCount();
+    const config = { ...baseTeacherSidebarConfig };
+    config.menuItems = config.menuItems.map(item => {
+      if (item.route === '/teacher/messages') {
+        return {
+          ...item,
+          badge: unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount.toString()) : undefined
+        };
+      }
+      return item;
+    });
+    return config;
+  });
 
   // AI Sidebar state (desktop)
   protected isAiSidebarOpen = signal(false);
@@ -366,14 +463,22 @@ export class TeacherLayoutSimpleComponent implements OnInit, OnDestroy {
   protected isResizing = signal(false);
 
   private sidebarHidden = signal<boolean>(false);
+  protected readonly hideMobileChrome = signal(false);
   private routerSubscription?: Subscription;
 
   protected shouldHideSidebar = computed(() => this.sidebarHidden());
+  protected shouldHideMobileChrome = computed(() => this.sidebarHidden() || this.hideMobileChrome());
 
   ngOnInit(): void {
     // Initialize notification service with current user ID
     const userId = this.authService.currentUser()?.id || 'teacher-1';
     this.notificationService.initialize(userId);
+
+    // Initialize messaging service for unread count badge
+    this.messagingService.setCurrentUserId(userId);
+    this.messagingService.getConversations().subscribe({
+      error: () => {} // Non-blocking init
+    });
 
     this.loadCollapsedState();
     this.loadAiSidebarState();
@@ -399,6 +504,10 @@ export class TeacherLayoutSimpleComponent implements OnInit, OnDestroy {
   private handleRouteChange(url: string) {
     const isInAiChat = url.includes('/ai-chat');
     this.sidebarHidden.set(isInAiChat);
+
+    // Chat: only hide mobile chrome, NOT desktop sidebar
+    const isInConversation = /\/teacher\/messages\/[0-9a-f-]{36}/i.test(url) || url.includes('/teacher/messages/new');
+    this.hideMobileChrome.set(isInConversation);
   }
 
   toggleSidebarCollapse(): void {

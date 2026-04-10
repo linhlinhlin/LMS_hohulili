@@ -48,8 +48,12 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
 
         <!-- Main content column -->
         <div class="flex flex-col flex-1 min-w-0">
-          <!-- Mobile top bar — minimal: hamburger + logo + avatar (Coursera pattern) -->
-          <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 md:hidden shadow-sm">
+          <!-- Mobile top bar — sticky + collapses in full-screen views -->
+          <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 md:hidden shadow-sm overflow-hidden transition-[max-height,opacity] duration-300 ease-out"
+                  [class.max-h-14]="!shouldHideMobileChrome()"
+                  [class.max-h-0]="shouldHideMobileChrome()"
+                  [class.opacity-0]="shouldHideMobileChrome()"
+                  [class.border-b-0]="shouldHideMobileChrome()">
             <div class="px-4">
               <div class="flex justify-between items-center h-14">
                 <div class="flex items-center space-x-3">
@@ -83,9 +87,11 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
             <router-outlet></router-outlet>
           </main>
 
-          <!-- Mobile Bottom Navigation — 5 tabs with AI center (Google/Canvas pattern) -->
-          @if (!shouldHideSidebar()) {
-            <nav class="mobile-bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-lg">
+          <!-- Mobile Bottom Navigation — slides down in full-screen views -->
+            <nav class="mobile-bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-lg transition-[transform,opacity] duration-300 ease-out"
+                 [class.translate-y-full]="shouldHideMobileChrome()"
+                 [class.opacity-0]="shouldHideMobileChrome()"
+                 [class.pointer-events-none]="shouldHideMobileChrome()">
               <div class="flex items-center justify-around px-1 py-1.5">
                 <a routerLink="/student/courses"
                   aria-label="Khóa học"
@@ -138,12 +144,11 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
                 </a>
               </div>
             </nav>
-          }
 
-          <!-- Add bottom padding for mobile navigation -->
-          @if (!shouldHideSidebar()) {
-            <div class="h-16 md:hidden"></div>
-          }
+          <!-- Bottom padding for mobile navigation — collapses when nav hidden -->
+            <div class="md:hidden transition-[height] duration-300 ease-out"
+                 [class.h-16]="!shouldHideMobileChrome()"
+                 [class.h-0]="shouldHideMobileChrome()"></div>
         </div>
 
         <!-- AI Sidebar (Desktop) — always rendered, animated via CSS -->
@@ -421,6 +426,11 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
       font-weight: 500;
       line-height: 1;
     }
+
+    /* Respect reduced motion preference */
+    @media (prefers-reduced-motion: reduce) {
+      header, nav, .mobile-bottom-nav { transition-duration: 0ms !important; }
+    }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -483,10 +493,17 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
 
   // Sidebar visibility state persisted in localStorage
   private sidebarHidden = signal<boolean>(false);
+  /** Mobile-only: hide header + bottom nav when in full-screen chat */
+  protected readonly hideMobileChrome = signal(false);
 
   // Hide sidebar when in learning interface for focused experience
   protected shouldHideSidebar = computed(() => {
     return this.sidebarHidden();
+  });
+
+  /** Hide mobile chrome (header + bottom nav) — combines sidebar-hidden + chat mode */
+  protected shouldHideMobileChrome = computed(() => {
+    return this.sidebarHidden() || this.hideMobileChrome();
   });
 
   private routerSubscription?: Subscription;
@@ -530,9 +547,12 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
     this.currentUrl.set(url.split('?')[0]);
 
     const isInLearningInterface = url.includes('/student/learn/course/');
-    const isInQuiz = url.includes('/student/quiz/take/'); // Hide sidebar when taking quiz
-    // Assignment work page now shows sidebar (redesigned as normal page, not full-page takeover)
+    const isInQuiz = url.includes('/student/quiz/take/');
     const shouldHide = isInLearningInterface || isInQuiz || url.includes('/ai-chat');
+
+    // Chat conversation: only hide mobile chrome (header + bottom nav), NOT desktop sidebar
+    const isInConversation = /\/student\/messages\/[0-9a-f-]{36}/i.test(url) || url.includes('/student/messages/new');
+    this.hideMobileChrome.set(isInConversation);
     const isCurrentlyHidden = this.sidebarHidden();
 
     // Auto-hide sidebar when entering learning interface or quiz

@@ -16,7 +16,7 @@ export class LegacySectionEditorRedirectComponent implements OnInit {
     const chapterId = this.route.snapshot.paramMap.get('sectionId');
 
     if (!courseId || !chapterId) {
-      void this.router.navigate(['/teacher/courses']);
+      void this.router.navigate(['/teacher/courses/library']);
       return;
     }
 
