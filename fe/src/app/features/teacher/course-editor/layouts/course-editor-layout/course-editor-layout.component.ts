@@ -7,8 +7,8 @@ import { CourseEditorHeaderComponent } from '../../components/header/header.comp
 import { CourseEditorStore } from '../../store/course-editor.store';
 import { CurriculumSelectionService } from '../../services/curriculum-selection.service';
 import { AuthService } from '../../../../../core/services/auth.service';
-import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 import { filter, take, map } from 'rxjs/operators';
+
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -29,11 +29,7 @@ import { filter, take, map } from 'rxjs/operators';
       }
 
       <!-- Header -->
-      <app-course-editor-header
-        class="h-12 flex-shrink-0 z-20 bg-white"
-        [sidebarCollapsed]="sidebarCollapsed()"
-        [activeTab]="activeTab()"
-        (toggleSidebar)="toggleSidebar()">
+      <app-course-editor-header class="h-12 flex-shrink-0 z-20 bg-white">
       </app-course-editor-header>
 
       <main class="flex-grow grid grid-cols-1 overflow-hidden relative"
@@ -54,76 +50,58 @@ import { filter, take, map } from 'rxjs/operators';
 
         <!-- Main Content -->
         <div class="flex flex-col min-w-0 h-full overflow-hidden bg-slate-50 relative">
-            <!-- Compact Tabs -->
+            <!-- Editor Tabs -->
             <nav aria-label="Editor tabs"
-                 class="flex items-center gap-0 border-b border-slate-200 flex-shrink-0 bg-white z-10 px-4 overflow-x-auto scrollbar-hide">
+                 class="flex items-center gap-1 border-b border-gray-200 flex-shrink-0 bg-white z-10 px-4 overflow-x-auto scrollbar-hide">
                <a routerLink="info"
                   routerLinkActive="text-[#0056D2] border-b-2 border-[#0056D2]"
-                  class="px-3 py-2 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors border-b-2 border-transparent whitespace-nowrap">
+                  class="px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-md transition-colors border-b-2 border-transparent whitespace-nowrap">
                   Thông tin
                </a>
                <a routerLink="curriculum"
                   routerLinkActive="text-[#0056D2] border-b-2 border-[#0056D2]"
-                  class="px-3 py-2 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors border-b-2 border-transparent whitespace-nowrap">
+                  class="px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-md transition-colors border-b-2 border-transparent whitespace-nowrap">
                   Nội dung
                </a>
                @if (isInstructorLed()) {
                  <a routerLink="classes"
                     routerLinkActive="text-[#0056D2] border-b-2 border-[#0056D2]"
-                    class="px-3 py-2 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors border-b-2 border-transparent whitespace-nowrap">
+                    class="px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-md transition-colors border-b-2 border-transparent whitespace-nowrap">
                     Lớp học
                  </a>
                }
                <a routerLink="settings"
                   routerLinkActive="text-[#0056D2] border-b-2 border-[#0056D2]"
-                  class="px-3 py-2 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors border-b-2 border-transparent whitespace-nowrap">
+                  class="px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-md transition-colors border-b-2 border-transparent whitespace-nowrap">
                   Cài đặt
                </a>
             </nav>
 
-            <!-- Breadcrumb (curriculum tab: Chapter > Lesson > Section) -->
-            @if (activeTab() === 'curriculum' && breadcrumbChapter()) {
-                <div class="flex items-center gap-1.5 px-5 py-1.5 bg-slate-50 border-b border-slate-100 text-xs flex-shrink-0">
-                    <button (click)="clearBreadcrumb()" class="text-slate-400 hover:text-[#0056D2] transition-colors" title="Xóa lựa chọn">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12h18M3 6h18M3 18h18" /></svg>
-                    </button>
-                    <svg class="w-3 h-3 text-slate-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                    <button (click)="selectChapter()" class="font-medium truncate max-w-[220px]"
-                            [class]="breadcrumbLesson() ? 'text-[#0056D2] hover:text-[#004BB5]' : 'text-slate-900'">
-                        {{ breadcrumbChapter()?.title }}
-                    </button>
-                    @if (breadcrumbLesson()) {
-                        <svg class="w-3 h-3 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                        <button (click)="selectLesson()" class="font-medium truncate max-w-[200px]"
-                                [class]="breadcrumbSection() ? 'text-[#0056D2] hover:text-[#004BB5]' : 'text-slate-900'">
-                            {{ breadcrumbLesson()?.title }}
-                        </button>
-                    }
-                    @if (breadcrumbSection()) {
-                        <svg class="w-3 h-3 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                        <span class="text-slate-900 font-medium truncate max-w-[200px]">{{ breadcrumbSection()?.title }}</span>
-                    }
-                </div>
-            }
-
             <!-- Workspace Area -->
             <div class="flex-grow overflow-y-auto min-h-0 relative">
                 @if (store.isLoading()) {
-                  <!-- Loading Skeleton -->
-                  <div class="p-6 space-y-6 animate-pulse">
-                    <div class="h-8 bg-gray-200 rounded w-1/3"></div>
-                    <div class="space-y-3">
-                      <div class="h-4 bg-gray-200 rounded w-full"></div>
-                      <div class="h-4 bg-gray-200 rounded w-5/6"></div>
-                      <div class="h-4 bg-gray-200 rounded w-2/3"></div>
+                  <!-- Loading Skeleton — matches sidebar + cards grid -->
+                  <div class="p-5 animate-pulse" style="display:grid; grid-template-columns:180px minmax(0,720px); gap:1.5rem; max-width:960px; margin:0 auto">
+                    <div class="hidden md:flex flex-col gap-2 pt-1">
+                      <div class="h-4 w-20 bg-gray-200 rounded"></div>
+                      <div class="h-4 w-24 bg-gray-200 rounded"></div>
+                      <div class="h-4 w-16 bg-gray-200 rounded"></div>
+                      <div class="h-4 w-20 bg-gray-200 rounded"></div>
+                      <div class="h-4 w-14 bg-gray-200 rounded"></div>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
-                      <div class="h-32 bg-gray-200 rounded-lg"></div>
-                      <div class="h-32 bg-gray-200 rounded-lg"></div>
-                    </div>
-                    <div class="space-y-3">
-                      <div class="h-4 bg-gray-200 rounded w-full"></div>
-                      <div class="h-4 bg-gray-200 rounded w-4/6"></div>
+                    <div class="space-y-4">
+                      <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                        <div class="px-5 py-4 border-b border-gray-100 bg-slate-50"><div class="h-4 w-32 bg-gray-200 rounded"></div></div>
+                        <div class="p-5 space-y-3">
+                          <div class="h-10 bg-gray-100 rounded-lg"></div>
+                          <div class="h-20 bg-gray-100 rounded-lg"></div>
+                          <div class="flex gap-3"><div class="h-10 flex-1 bg-gray-100 rounded-lg"></div><div class="h-10 flex-1 bg-gray-100 rounded-lg"></div></div>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                        <div class="px-5 py-4 border-b border-gray-100 bg-slate-50"><div class="h-4 w-28 bg-gray-200 rounded"></div></div>
+                        <div class="p-5"><div class="h-40 bg-gray-100 rounded-lg"></div></div>
+                      </div>
                     </div>
                   </div>
                 } @else if (store.error()) {
@@ -162,7 +140,6 @@ export class CourseEditorLayoutComponent implements OnInit {
   store = inject(CourseEditorStore);
   private selectionService = inject(CurriculumSelectionService);
   private authService = inject(AuthService);
-  private confirmDialog = inject(ConfirmDialogService);
   private destroyRef = inject(DestroyRef);
   private currentUrl = toSignal(this.router.events.pipe(
     filter((event): event is NavigationEnd => event instanceof NavigationEnd),
@@ -185,11 +162,6 @@ export class CourseEditorLayoutComponent implements OnInit {
   isInstructorLed = computed(() => {
     return this.store.courseTree()?.deliveryMode === 'INSTRUCTOR_LED';
   });
-
-  // Breadcrumb signals
-  breadcrumbChapter = this.selectionService.selectedChapter;
-  breadcrumbLesson = this.selectionService.selectedLesson;
-  breadcrumbSection = this.selectionService.selectedSection;
 
   constructor() {
     // Auto-collapse/expand sidebar based on active route
@@ -292,37 +264,6 @@ export class CourseEditorLayoutComponent implements OnInit {
     }
   }
 
-  async clearBreadcrumb() {
-    if (!(await this.canChangeCurriculumSelection())) {
-      return;
-    }
-
-    this.selectionService.clearSelection();
-  }
-
-  async selectChapter() {
-    if (!(await this.canChangeCurriculumSelection())) {
-      return;
-    }
-
-    const ch = this.selectionService.selectedChapter();
-    if (ch) {
-      this.selectionService.selectChapter(ch);
-    }
-  }
-
-  async selectLesson() {
-    if (!(await this.canChangeCurriculumSelection())) {
-      return;
-    }
-
-    const ch = this.selectionService.selectedChapter();
-    const ls = this.selectionService.selectedLesson();
-    if (ch && ls) {
-      this.selectionService.selectLesson(ch, ls);
-    }
-  }
-
   ngOnInit() {
     // Set initial state from current URL
     this.updateSidebarForRoute(this.router.url);
@@ -343,25 +284,6 @@ export class CourseEditorLayoutComponent implements OnInit {
     ).subscribe(id => {
       this.store.loadCourse(id, true);
     });
-  }
-
-  private async canChangeCurriculumSelection(): Promise<boolean> {
-    if (this.activeTab() !== 'curriculum' || this.store.saveStatus() !== 'unsaved') {
-      return true;
-    }
-
-    const shouldDiscard = await this.confirmDialog.confirm({
-      title: 'Rời nội dung đang chỉnh sửa',
-      message: 'Bạn có thay đổi chưa lưu trong chương trình học. Nếu chuyển ngữ cảnh lúc này, các chỉnh sửa sẽ bị mất.',
-      variant: 'warning',
-      confirmText: 'Rời màn này',
-      cancelText: 'Ở lại'
-    });
-    if (shouldDiscard) {
-      this.store.markSaved();
-    }
-
-    return shouldDiscard;
   }
 
   private getRouteId() {
@@ -386,39 +308,4 @@ export class CourseEditorLayoutComponent implements OnInit {
     return new URLSearchParams(this.router.parseUrl(url).queryParams as Record<string, string>);
   }
 
-  private resolveCurriculumSelection(
-    tree: NonNullable<ReturnType<CourseEditorStore['courseTree']>>,
-    chapterId: string | null,
-    lessonId: string | null,
-    sectionId: string | null
-  ): {
-    chapter: (typeof tree.chapters)[number];
-    lesson?: (typeof tree.chapters)[number]['lessons'][number];
-    section?: (typeof tree.chapters)[number]['lessons'][number]['sections'][number];
-  } | null {
-    if (!chapterId && !lessonId && !sectionId) {
-      return null;
-    }
-
-    for (const chapter of tree.chapters) {
-      if (chapterId && chapter.id === chapterId && !lessonId && !sectionId) {
-        return { chapter };
-      }
-
-      for (const lesson of chapter.lessons || []) {
-        if (sectionId) {
-          const section = (lesson.sections || []).find(item => item.id === sectionId);
-          if (section) {
-            return { chapter, lesson, section };
-          }
-        }
-
-        if (lessonId && lesson.id === lessonId) {
-          return { chapter, lesson };
-        }
-      }
-    }
-
-    return null;
-  }
 }

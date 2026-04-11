@@ -18,11 +18,9 @@ import { Table } from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
-import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
 import Youtube from '@tiptap/extension-youtube';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
-import { Link } from '@tiptap/extension-link';
 import { TextAlign } from '@tiptap/extension-text-align';
 import { Color } from '@tiptap/extension-color';
 import { TextStyle } from '@tiptap/extension-text-style';
@@ -223,6 +221,11 @@ const COLOR_PRESETS = [
         <button type="button" (click)="triggerImageUpload()" class="tt-btn" title="Hình ảnh">
           <svg class="tt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
         </button>
+        @if (videoUploadFn()) {
+          <button type="button" (click)="triggerVideoUpload()" class="tt-btn" title="Tải video lên">
+            <svg class="tt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          </button>
+        }
         <button type="button" (click)="insertYoutube()" class="tt-btn" title="Video YouTube">
           <svg class="tt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
         </button>
@@ -302,9 +305,11 @@ const COLOR_PRESETS = [
       <span>{{ wordCount() }} từ</span>
     </div>
 
-    <!-- Hidden file input -->
+    <!-- Hidden file inputs -->
     <input #fileInput type="file" accept="image/*" class="hidden"
            (change)="onFileSelected($event)" />
+    <input #videoFileInput type="file" accept="video/*" class="hidden"
+           (change)="onVideoFileSelected($event)" />
   `,
   styles: [`
     :host { display: block; }
@@ -584,6 +589,7 @@ export class TiptapEditorComponent implements ControlValueAccessor, OnDestroy {
   readonly placeholder = input('Nhập nội dung...');
   readonly height = input(360);
   readonly uploadFn = input<((file: File) => Promise<string>) | null>(null);
+  readonly videoUploadFn = input<((file: File) => Promise<string>) | null>(null);
 
   editor!: Editor;
   linkUrl = '';
@@ -593,6 +599,7 @@ export class TiptapEditorComponent implements ControlValueAccessor, OnDestroy {
   readonly openDropdown = signal<string | null>(null);
 
   private fileInputRef = viewChild<ElementRef<HTMLInputElement>>('fileInput');
+  private videoFileInputRef = viewChild<ElementRef<HTMLInputElement>>('videoFileInput');
   private linkInputRef = viewChild<ElementRef<HTMLInputElement>>('linkInput');
   private onChange: (value: string) => void = () => {};
   private onTouched: () => void = () => {};
@@ -619,8 +626,10 @@ export class TiptapEditorComponent implements ControlValueAccessor, OnDestroy {
   constructor() {
     this.editor = new Editor({
       extensions: [
-        StarterKit.configure({ codeBlock: false }),
-        Underline,
+        StarterKit.configure({
+          codeBlock: false,
+          link: { openOnClick: false, autolink: true, HTMLAttributes: { rel: 'noopener noreferrer nofollow', target: '_blank' } },
+        }),
         Image.configure({ inline: false, allowBase64: false }),
         Table.configure({ resizable: true }),
         TableRow,
@@ -629,7 +638,6 @@ export class TiptapEditorComponent implements ControlValueAccessor, OnDestroy {
         CodeBlockLowlight.configure({ lowlight }),
         Placeholder.configure({ placeholder: this.placeholder() }),
         Youtube.configure({ width: 640, height: 360 }),
-        Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { rel: 'noopener noreferrer nofollow', target: '_blank' } }),
         TextAlign.configure({ types: ['heading', 'paragraph'] }),
         TextStyle,
         Color,
@@ -789,5 +797,40 @@ export class TiptapEditorComponent implements ControlValueAccessor, OnDestroy {
     if (url) {
       this.editor.chain().focus().setYoutubeVideo({ src: url }).run();
     }
+  }
+
+  // ── Video Upload ──
+
+  triggerVideoUpload(): void {
+    this.videoFileInputRef()?.nativeElement?.click();
+  }
+
+  async onVideoFileSelected(event: Event): Promise<void> {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+
+    const fn = this.videoUploadFn();
+    if (!fn) return;
+
+    // Insert placeholder while uploading
+    this.editor.chain().focus().insertContent(
+      `<p><em>Đang tải video "${file.name}"...</em></p>`
+    ).run();
+
+    try {
+      const url = await fn(file);
+      if (url) {
+        // Replace placeholder with HTML5 video
+        this.editor.chain().focus().insertContent(
+          `<video src="${url}" controls style="max-width:100%;border-radius:8px;margin:12px 0"></video>`
+        ).run();
+      }
+    } catch {
+      this.editor.chain().focus().insertContent(
+        `<p><em>Tải video thất bại. Vui lòng thử lại.</em></p>`
+      ).run();
+    }
+
+    (event.target as HTMLInputElement).value = '';
   }
 }
