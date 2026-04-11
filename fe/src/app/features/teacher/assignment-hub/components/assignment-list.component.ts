@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+﻿import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
@@ -22,8 +22,12 @@ interface CourseAssignmentGroup {
   classroomGroups: CourseAssignmentClassGroup[];
   courseAssignments: AssignmentWithStats[];
   unassignedAssignments: AssignmentWithStats[];
+  allAssignments: AssignmentWithStats[];
   totalCount: number;
   pendingCount: number;
+  classroomAssignmentCount: number;
+  courseLevelAssignmentCount: number;
+  unassignedAssignmentCount: number;
 }
 
 @Component({
@@ -42,9 +46,11 @@ export class AssignmentListComponent implements OnInit {
   readonly filter = signal<FilterType>('ALL');
   readonly searchQuery = signal('');
   readonly error = signal<string | null>(null);
-  readonly expandedCourseKey = signal<string | null>(null);
+  readonly selectedCourseKey = signal<string | null>(null);
+  readonly catalogVisibleLimit = signal(8);
+  readonly detailVisibleLimit = signal(10);
 
-  readonly filteredAssignments = computed(() => {
+  readonly statusFilteredAssignments = computed(() => {
     let result = this.assignments();
 
     switch (this.filter()) {
@@ -65,25 +71,8 @@ export class AssignmentListComponent implements OnInit {
         break;
     }
 
-    const searchTerm = this.searchQuery().trim().toLowerCase();
-    if (searchTerm) {
-      result = result.filter(assignment =>
-        assignment.title.toLowerCase().includes(searchTerm) ||
-        assignment.courseTitle?.toLowerCase().includes(searchTerm) ||
-        assignment.className?.toLowerCase().includes(searchTerm)
-      );
-    }
-
     return result;
   });
-
-  readonly allClassroomAssignments = computed(() =>
-    this.assignments().filter(assignment => this.getOperationalBucket(assignment) === 'CLASSROOM')
-  );
-
-  readonly allCourseAssignments = computed(() =>
-    this.assignments().filter(assignment => this.getOperationalBucket(assignment) === 'COURSE')
-  );
 
   readonly allCount = computed(() => this.assignments().length);
 
@@ -109,87 +98,80 @@ export class AssignmentListComponent implements OnInit {
     this.filter() !== 'ALL' || !!this.searchQuery().trim()
   );
 
-  readonly courseGroups = computed<CourseAssignmentGroup[]>(() => {
-    const groups = new Map<string, {
-      key: string;
-      courseId?: string;
-      courseTitle: string;
-      classroomMap: Map<string, CourseAssignmentClassGroup>;
-      courseAssignments: AssignmentWithStats[];
-      unassignedAssignments: AssignmentWithStats[];
-    }>();
+  readonly allCourseGroups = computed<CourseAssignmentGroup[]>(() =>
+    this.buildCourseGroups(this.assignments())
+  );
 
-    for (const assignment of this.sortAssignments(this.filteredAssignments())) {
-      const key = assignment.courseId || assignment.courseTitle || `course-${assignment.id}`;
-      const group = groups.get(key) ?? {
-        key,
-        courseId: assignment.courseId,
-        courseTitle: assignment.courseTitle || 'Khóa học chưa rõ',
-        classroomMap: new Map<string, CourseAssignmentClassGroup>(),
-        courseAssignments: [],
-        unassignedAssignments: [],
-      };
+  readonly catalogCourseGroups = computed<CourseAssignmentGroup[]>(() => {
+    const searchTerm = this.searchQuery().trim().toLowerCase();
+    const groups = this.buildCourseGroups(this.statusFilteredAssignments());
 
-      const bucket = this.getOperationalBucket(assignment);
-      if (bucket === 'CLASSROOM') {
-        const classKey = this.getClassroomGroupKey(assignment);
-        const classGroup = group.classroomMap.get(classKey) ?? {
-          key: classKey,
-          label: this.getClassroomGroupLabel(assignment),
-          assignments: [],
-        };
-        classGroup.assignments.push(assignment);
-        group.classroomMap.set(classKey, classGroup);
-      } else if (bucket === 'COURSE') {
-        group.courseAssignments.push(assignment);
-      } else {
-        group.unassignedAssignments.push(assignment);
-      }
-
-      groups.set(key, group);
+    if (!searchTerm) {
+      return groups;
     }
 
-    return Array.from(groups.values())
-      .map(group => {
-        const classroomGroups = Array.from(group.classroomMap.values())
-          .map(classGroup => ({
-            ...classGroup,
-            assignments: this.sortAssignments(classGroup.assignments),
-          }))
-          .sort((left, right) => left.label.localeCompare(right.label, 'vi'));
-        const courseAssignments = this.sortAssignments(group.courseAssignments);
-        const unassignedAssignments = this.sortAssignments(group.unassignedAssignments);
-        const totalCount =
-          classroomGroups.reduce((sum, classGroup) => sum + classGroup.assignments.length, 0) +
-          courseAssignments.length +
-          unassignedAssignments.length;
-        const pendingCount = classroomGroups.reduce(
-          (sum, classGroup) => sum + this.getPendingCount(classGroup.assignments),
-          this.getPendingCount(courseAssignments) + this.getPendingCount(unassignedAssignments)
-        );
-
-        return {
-          key: group.key,
-          courseId: group.courseId,
-          courseTitle: group.courseTitle,
-          classroomGroups,
-          courseAssignments,
-          unassignedAssignments,
-          totalCount,
-          pendingCount,
-        };
-      })
-      .sort((left, right) => left.courseTitle.localeCompare(right.courseTitle, 'vi'));
+    return groups.filter(group =>
+      group.courseTitle.toLowerCase().includes(searchTerm) ||
+      group.allAssignments.some(assignment =>
+        assignment.title.toLowerCase().includes(searchTerm) ||
+        assignment.className?.toLowerCase().includes(searchTerm)
+      )
+    );
   });
 
-  readonly courseCount = computed(() => this.courseGroups().length);
+  readonly selectedCourseGroup = computed<CourseAssignmentGroup | null>(() => {
+    const key = this.selectedCourseKey();
+    if (!key) {
+      return null;
+    }
+
+    return this.allCourseGroups().find(group => group.key === key) ?? null;
+  });
+
+  readonly selectedCourseAssignments = computed<AssignmentWithStats[]>(() => {
+    const key = this.selectedCourseKey();
+    if (!key) {
+      return [];
+    }
+
+    const searchTerm = this.searchQuery().trim().toLowerCase();
+    let result = this.statusFilteredAssignments().filter(assignment => this.getCourseKey(assignment) === key);
+
+    if (searchTerm) {
+      result = result.filter(assignment =>
+        assignment.title.toLowerCase().includes(searchTerm) ||
+        assignment.courseTitle?.toLowerCase().includes(searchTerm) ||
+        assignment.className?.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    return this.sortAssignments(result);
+  });
+
+  readonly catalogTotal = computed(() => this.catalogCourseGroups().length);
+  readonly visibleCourseGroups = computed(() =>
+    this.catalogCourseGroups().slice(0, this.catalogVisibleLimit())
+  );
+  readonly hasMoreCourseGroups = computed(() =>
+    this.visibleCourseGroups().length < this.catalogTotal()
+  );
+  readonly remainingCourseGroups = computed(() =>
+    Math.max(0, this.catalogTotal() - this.visibleCourseGroups().length)
+  );
+
+  readonly detailTotal = computed(() => this.selectedCourseAssignments().length);
+  readonly visibleSelectedAssignments = computed(() =>
+    this.selectedCourseAssignments().slice(0, this.detailVisibleLimit())
+  );
+  readonly hasMoreSelectedAssignments = computed(() =>
+    this.visibleSelectedAssignments().length < this.detailTotal()
+  );
+  readonly remainingSelectedAssignments = computed(() =>
+    Math.max(0, this.detailTotal() - this.visibleSelectedAssignments().length)
+  );
 
   ngOnInit(): void {
     this.loadAssignments();
-  }
-
-  getCompletedCount(): number {
-    return this.assignments().filter(assignment => (assignment.pendingCount || 0) === 0 && assignment.status !== 'pending').length;
   }
 
   navigateToAssignment(id: string): void {
@@ -201,12 +183,14 @@ export class AssignmentListComponent implements OnInit {
     this.navigateToAssignment(id);
   }
 
-  toggleCourseGroup(courseKey: string): void {
-    this.expandedCourseKey.update(current => current === courseKey ? null : courseKey);
+  openCourse(courseKey: string): void {
+    this.selectedCourseKey.set(courseKey);
+    this.detailVisibleLimit.set(10);
   }
 
-  isCourseExpanded(courseKey: string): boolean {
-    return this.expandedCourseKey() === courseKey;
+  backToCatalog(): void {
+    this.selectedCourseKey.set(null);
+    this.catalogVisibleLimit.set(8);
   }
 
   async deleteAssignment(id: string, event: Event): Promise<void> {
@@ -259,12 +243,21 @@ export class AssignmentListComponent implements OnInit {
 
   setFilter(filter: FilterType): void {
     this.filter.set(filter);
+    this.catalogVisibleLimit.set(8);
+    this.detailVisibleLimit.set(10);
+  }
+
+  updateSearchQuery(query: string): void {
+    this.searchQuery.set(query);
+    this.catalogVisibleLimit.set(8);
+    this.detailVisibleLimit.set(10);
   }
 
   clearViewFilters(): void {
     this.filter.set('ALL');
     this.searchQuery.set('');
-    this.expandedCourseKey.set(null);
+    this.catalogVisibleLimit.set(8);
+    this.detailVisibleLimit.set(10);
   }
 
   formatDate(dateString?: string): string {
@@ -339,8 +332,39 @@ export class AssignmentListComponent implements OnInit {
     return courseId ? { courseId } : null;
   }
 
+  getSelectedCourseCreateQueryParams(): { courseId: string } | null {
+    const courseId = this.selectedCourseGroup()?.courseId;
+    return this.getCreateAssignmentQueryParams(courseId);
+  }
+
+  getCourseScopeSummary(group: CourseAssignmentGroup): string {
+    const parts: string[] = [];
+
+    if (group.courseLevelAssignmentCount > 0) {
+      parts.push(`${group.courseLevelAssignmentCount} to\u00e0n kh\u00f3a`);
+    }
+
+    if (group.classroomAssignmentCount > 0) {
+      parts.push(`${group.classroomAssignmentCount} theo l\u1edbp`);
+    }
+
+    if (group.unassignedAssignmentCount > 0) {
+      parts.push(`${group.unassignedAssignmentCount} kh\u00e1c`);
+    }
+
+    return parts.join(' | ');
+  }
+
   getCourseEditorLink(courseId: string): string[] {
     return ['/teacher/courses', courseId, 'editor', 'curriculum'];
+  }
+
+  loadMoreCatalog(): void {
+    this.catalogVisibleLimit.update(current => current + 8);
+  }
+
+  loadMoreDetails(): void {
+    this.detailVisibleLimit.update(current => current + 10);
   }
 
   private getOperationalBucket(assignment: AssignmentSummary): OperationalBucket {
@@ -373,6 +397,90 @@ export class AssignmentListComponent implements OnInit {
 
   private getPendingCount(assignments: AssignmentWithStats[]): number {
     return assignments.reduce((sum, assignment) => sum + (assignment.pendingCount || 0), 0);
+  }
+
+  private getCourseKey(assignment: AssignmentSummary): string {
+    return assignment.courseId || assignment.courseTitle || `course-${assignment.id}`;
+  }
+
+  private buildCourseGroups(assignments: AssignmentWithStats[]): CourseAssignmentGroup[] {
+    const groups = new Map<string, {
+      key: string;
+      courseId?: string;
+      courseTitle: string;
+      classroomMap: Map<string, CourseAssignmentClassGroup>;
+      courseAssignments: AssignmentWithStats[];
+      unassignedAssignments: AssignmentWithStats[];
+    }>();
+
+    for (const assignment of this.sortAssignments(assignments)) {
+      const key = this.getCourseKey(assignment);
+      const group = groups.get(key) ?? {
+        key,
+        courseId: assignment.courseId,
+        courseTitle: assignment.courseTitle || 'Kh\u00f3a h\u1ecdc ch\u01b0a r\u00f5',
+        classroomMap: new Map<string, CourseAssignmentClassGroup>(),
+        courseAssignments: [],
+        unassignedAssignments: [],
+      };
+
+      const bucket = this.getOperationalBucket(assignment);
+      if (bucket === 'CLASSROOM') {
+        const classKey = this.getClassroomGroupKey(assignment);
+        const classGroup = group.classroomMap.get(classKey) ?? {
+          key: classKey,
+          label: this.getClassroomGroupLabel(assignment),
+          assignments: [],
+        };
+        classGroup.assignments.push(assignment);
+        group.classroomMap.set(classKey, classGroup);
+      } else if (bucket === 'COURSE') {
+        group.courseAssignments.push(assignment);
+      } else {
+        group.unassignedAssignments.push(assignment);
+      }
+
+      groups.set(key, group);
+    }
+
+    return Array.from(groups.values())
+      .map(group => {
+        const classroomGroups = Array.from(group.classroomMap.values())
+          .map(classGroup => ({
+            ...classGroup,
+            assignments: this.sortAssignments(classGroup.assignments),
+          }))
+          .sort((left, right) => left.label.localeCompare(right.label, 'vi'));
+        const courseAssignments = this.sortAssignments(group.courseAssignments);
+        const unassignedAssignments = this.sortAssignments(group.unassignedAssignments);
+        const classroomAssignmentCount = classroomGroups.reduce((sum, classGroup) => sum + classGroup.assignments.length, 0);
+        const allAssignments = this.sortAssignments([
+          ...courseAssignments,
+          ...classroomGroups.flatMap(classGroup => classGroup.assignments),
+          ...unassignedAssignments,
+        ]);
+        const totalCount = allAssignments.length;
+        const pendingCount = classroomGroups.reduce(
+          (sum, classGroup) => sum + this.getPendingCount(classGroup.assignments),
+          this.getPendingCount(courseAssignments) + this.getPendingCount(unassignedAssignments)
+        );
+
+        return {
+          key: group.key,
+          courseId: group.courseId,
+          courseTitle: group.courseTitle,
+          classroomGroups,
+          courseAssignments,
+          unassignedAssignments,
+          allAssignments,
+          totalCount,
+          pendingCount,
+          classroomAssignmentCount,
+          courseLevelAssignmentCount: courseAssignments.length,
+          unassignedAssignmentCount: unassignedAssignments.length,
+        };
+      })
+      .sort((left, right) => left.courseTitle.localeCompare(right.courseTitle, 'vi'));
   }
 
   sortAssignments(assignments: AssignmentWithStats[]): AssignmentWithStats[] {

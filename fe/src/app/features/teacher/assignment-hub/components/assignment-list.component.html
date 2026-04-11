@@ -1,202 +1,400 @@
-<div class="mx-auto max-w-[1400px] px-4 sm:px-6 py-6 space-y-6">
+﻿<div class="mx-auto max-w-[1400px] px-4 py-6 space-y-6 sm:px-6">
 
-  <!-- Needs Grading Banner (only when > 0) -->
   @if (needsGradingCount() > 0) {
     <div class="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
       <div class="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100">
         <span class="text-sm font-bold text-amber-700">{{ needsGradingCount() }}</span>
       </div>
       <div class="flex-1">
-        <p class="text-sm font-medium text-amber-900">bài tập cần chấm điểm</p>
+        <p class="text-sm font-medium text-amber-900">Bài tập cần chấm điểm</p>
       </div>
-      <button type="button" (click)="setFilter('NEEDS_GRADING')"
-              class="rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 transition-colors">
+      <button
+        type="button"
+        (click)="setFilter('NEEDS_GRADING')"
+        class="rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amber-700">
         Xem ngay
       </button>
     </div>
   }
 
-  <!-- Search + Create Button (same row, balanced) -->
   <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
     <div class="relative flex-1 sm:max-w-md">
-    <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-    </svg>
-    <input type="text"
-           [value]="searchQuery()"
-           (input)="searchQuery.set($any($event.target).value)"
-           placeholder="Tìm theo tên bài tập, khóa học hoặc lớp..."
-           class="w-full pl-11 pr-10 py-2.5 border border-gray-300 rounded-md text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2] outline-none transition-shadow" />
-    @if (searchQuery()) {
-      <button type="button" (click)="searchQuery.set('')"
-              class="absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-              aria-label="Xóa tìm kiếm">
-        <lucide-icon name="x" [size]="14"></lucide-icon>
-      </button>
-    }
+      <svg class="absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+      <input
+        type="text"
+        [value]="searchQuery()"
+        (input)="updateSearchQuery($any($event.target).value)"
+        [attr.placeholder]="selectedCourseGroup() ? 'Tìm theo tên bài tập hoặc lớp...' : 'Tìm theo tên khóa học, bài tập hoặc lớp...'"
+        class="w-full rounded-md border border-gray-300 py-2.5 pl-11 pr-10 text-sm text-gray-900 outline-none transition-shadow placeholder:text-gray-400 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20" />
+      @if (searchQuery()) {
+        <button
+          type="button"
+          (click)="updateSearchQuery('')"
+          class="absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+          aria-label="Xóa tìm kiếm">
+          <lucide-icon name="x" [size]="14"></lucide-icon>
+        </button>
+      }
     </div>
-    <a routerLink="create"
-       class="inline-flex items-center justify-center gap-2 rounded-full bg-[#0056D2] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#004BB5] flex-shrink-0">
+
+    <a
+      routerLink="create"
+      [queryParams]="getSelectedCourseCreateQueryParams()"
+      class="inline-flex flex-shrink-0 items-center justify-center gap-2 rounded-full bg-[#0056D2] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#004BB5]">
       <lucide-icon name="plus" [size]="16"></lucide-icon>
-      Tạo bài tập
+      {{ selectedCourseGroup() ? 'Tạo bài tập cho khóa học này' : 'Tạo bài tập' }}
     </a>
   </div>
 
-  <!-- Filter Tabs -->
   <div class="flex flex-wrap items-center gap-2" role="tablist">
-    <button type="button" role="tab"
-            [class]="filter() === 'ALL'
-              ? 'bg-[#0056D2] text-white border-[#0056D2]'
-              : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'"
-            [attr.aria-selected]="filter() === 'ALL'"
-            class="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors"
-            (click)="setFilter('ALL')">
+    <button
+      type="button"
+      role="tab"
+      [class]="filter() === 'ALL'
+        ? 'border-[#0056D2] bg-[#0056D2] text-white'
+        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'"
+      [attr.aria-selected]="filter() === 'ALL'"
+      class="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors"
+      (click)="setFilter('ALL')">
       Tất cả ({{ allCount() }})
     </button>
-    <button type="button" role="tab"
-            [class]="filter() === 'NEEDS_GRADING'
-              ? 'bg-amber-600 text-white border-amber-600'
-              : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'"
-            [attr.aria-selected]="filter() === 'NEEDS_GRADING'"
-            class="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors"
-            (click)="setFilter('NEEDS_GRADING')">
+    <button
+      type="button"
+      role="tab"
+      [class]="filter() === 'NEEDS_GRADING'
+        ? 'border-amber-600 bg-amber-600 text-white'
+        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'"
+      [attr.aria-selected]="filter() === 'NEEDS_GRADING'"
+      class="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors"
+      (click)="setFilter('NEEDS_GRADING')">
       Cần chấm ({{ needsGradingCount() }})
     </button>
-    <button type="button" role="tab"
-            [class]="filter() === 'GRADED'
-              ? 'bg-emerald-600 text-white border-emerald-600'
-              : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'"
-            [attr.aria-selected]="filter() === 'GRADED'"
-            class="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors"
-            (click)="setFilter('GRADED')">
+    <button
+      type="button"
+      role="tab"
+      [class]="filter() === 'GRADED'
+        ? 'border-emerald-600 bg-emerald-600 text-white'
+        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'"
+      [attr.aria-selected]="filter() === 'GRADED'"
+      class="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors"
+      (click)="setFilter('GRADED')">
       Đã chấm ({{ gradedCount() }})
     </button>
-    <button type="button" role="tab"
-            [class]="filter() === 'DRAFT'
-              ? 'bg-gray-700 text-white border-gray-700'
-              : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'"
-            [attr.aria-selected]="filter() === 'DRAFT'"
-            class="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors"
-            (click)="setFilter('DRAFT')">
+    <button
+      type="button"
+      role="tab"
+      [class]="filter() === 'DRAFT'
+        ? 'border-gray-700 bg-gray-700 text-white'
+        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'"
+      [attr.aria-selected]="filter() === 'DRAFT'"
+      class="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors"
+      (click)="setFilter('DRAFT')">
       Nháp ({{ draftCount() }})
     </button>
     @if (hasActiveViewFilters()) {
-      <button type="button" (click)="clearViewFilters()"
-              class="text-xs text-gray-500 hover:text-gray-700 ml-1 transition-colors">
+      <button
+        type="button"
+        (click)="clearViewFilters()"
+        class="ml-1 text-xs text-gray-500 transition-colors hover:text-gray-700">
         Xóa lọc
       </button>
     }
   </div>
 
-  <!-- Loading -->
   @if (loading()) {
-    <div class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
       @for (i of [1, 2, 3, 4, 5]; track i) {
-        <div class="flex items-center gap-4 px-5 py-4 border-b border-gray-100 animate-pulse">
+        <div class="flex items-center gap-4 border-b border-gray-100 px-5 py-4 last:border-b-0 animate-pulse">
           <div class="h-4 w-48 rounded bg-gray-200"></div>
-          <div class="h-4 w-16 rounded bg-gray-100 ml-auto"></div>
-          <div class="h-4 w-20 rounded bg-gray-100"></div>
+          <div class="ml-auto h-4 w-20 rounded bg-gray-100"></div>
+          <div class="h-4 w-28 rounded bg-gray-100"></div>
         </div>
       }
     </div>
-  } @else if (filteredAssignments().length === 0) {
-    <!-- Empty State -->
-    <div class="rounded-lg border border-gray-200 bg-white p-12 text-center shadow-sm">
-      <svg class="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" />
-      </svg>
-      @if (allCount() === 0) {
-        <p class="text-sm font-medium text-gray-600">Chưa có bài tập nào</p>
-        <p class="mt-1 text-xs text-gray-400">Tạo bài tập đầu tiên để giao cho học viên</p>
-        <a routerLink="create"
-           class="mt-4 inline-flex items-center gap-2 rounded-md bg-[#0056D2] px-4 py-2 text-sm font-medium text-white hover:bg-[#004BB5] transition-colors">
-          <lucide-icon name="plus" [size]="14"></lucide-icon>
-          Tạo bài tập
-        </a>
-      } @else {
-        <p class="text-sm font-medium text-gray-600">Không có bài tập phù hợp với bộ lọc</p>
-        <p class="mt-1 text-xs text-gray-400">Thử đổi trạng thái hoặc xóa từ khóa tìm kiếm</p>
-        <button type="button" (click)="clearViewFilters()"
-                class="mt-4 inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-          Xóa bộ lọc
-        </button>
-      }
+  } @else if (!selectedCourseGroup()) {
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <p class="text-sm font-semibold text-gray-900">Khóa học có bài tập</p>
+        <p class="text-sm text-gray-500">{{ catalogTotal() }} khóa học phù hợp với bộ lọc hiện tại</p>
+      </div>
+      <div class="hidden rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600 sm:inline-flex">
+        Danh mục theo khóa học
+      </div>
     </div>
-  } @else {
-    <!-- Flat Assignment List (Canvas style) -->
-    <div class="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden divide-y divide-gray-100">
-      @for (assignment of sortAssignments(filteredAssignments()); track assignment.id) {
-        <div
-          class="group cursor-pointer transition-colors hover:bg-gray-50 focus-within:ring-2 focus-within:ring-[#0056D2]/15"
-          role="link"
-          tabindex="0"
-          [attr.aria-label]="'Mở bài tập ' + assignment.title"
-          (click)="navigateToAssignment(assignment.id)"
-          (keydown.enter)="navigateToAssignment(assignment.id)"
-          (keydown.space)="onAssignmentRowSpace($event, assignment.id)">
-          <div class="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-center sm:gap-4">
-            <!-- Title + Status + Course -->
-            <div class="min-w-0 flex-1">
-              <div class="flex flex-wrap items-center gap-2">
-                <h3 class="truncate text-sm font-medium text-gray-900 group-hover:text-[#0056D2] transition-colors">
-                  {{ assignment.title }}
-                </h3>
-                <span class="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold"
-                      [ngClass]="getStatusClass(assignment.status)">
-                  {{ getStatusText(assignment.status) }}
-                </span>
+
+    @if (catalogTotal() === 0) {
+      <div class="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
+        <svg class="mx-auto mb-4 h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
+        </svg>
+        @if (allCount() === 0) {
+          <p class="text-sm font-medium text-gray-600">Chưa có bài tập nào</p>
+          <p class="mt-1 text-xs text-gray-400">Tạo bài tập đầu tiên để quản lý theo từng khóa học.</p>
+          <a
+            routerLink="create"
+            class="mt-4 inline-flex items-center gap-2 rounded-md bg-[#0056D2] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#004BB5]">
+            <lucide-icon name="plus" [size]="14"></lucide-icon>
+            Tạo bài tập
+          </a>
+        } @else {
+          <p class="text-sm font-medium text-gray-600">Không có khóa học phù hợp với bộ lọc hiện tại</p>
+          <p class="mt-1 text-xs text-gray-400">Thử đổi trạng thái hoặc từ khóa tìm kiếm để xem lại danh mục khóa học.</p>
+          <button
+            type="button"
+            (click)="clearViewFilters()"
+            class="mt-4 inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50">
+            Xóa bộ lọc
+          </button>
+        }
+      </div>
+    } @else {
+      <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm divide-y divide-gray-100">
+        @for (group of visibleCourseGroups(); track group.key) {
+          <div
+            class="group cursor-pointer transition-colors hover:bg-gray-50"
+            role="button"
+            tabindex="0"
+            (click)="openCourse(group.key)"
+            (keydown.enter)="openCourse(group.key)">
+            <div class="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center">
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <div class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#0056D2]/10 text-[#0056D2]">
+                    <lucide-icon name="book-open" [size]="18"></lucide-icon>
+                  </div>
+                  <div class="min-w-0">
+                    <h3 class="truncate text-sm font-semibold text-gray-900 transition-colors group-hover:text-[#0056D2]">
+                      {{ group.courseTitle }}
+                    </h3>
+                    <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
+                      <span>{{ group.totalCount }} bài tập</span>
+                      @if (getCourseScopeSummary(group)) {
+                        <span class="text-gray-300">&middot;</span>
+                        <span>{{ getCourseScopeSummary(group) }}</span>
+                      }
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-400">
-                <span class="text-gray-500">{{ assignment.courseTitle || 'Chưa gán khóa học' }}</span>
-                @if (assignment.className) {
-                  <span>·</span>
-                  <span class="text-emerald-600 font-medium">{{ assignment.className }}</span>
+
+              <div class="flex flex-wrap items-center gap-2 lg:justify-end">
+                @if (group.pendingCount > 0) {
+                  <span class="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                    {{ group.pendingCount }} cần chấm
+                  </span>
                 }
-              </div>
-            </div>
-
-            <!-- Metrics -->
-            <div class="flex flex-wrap items-center gap-2 text-xs sm:justify-end sm:flex-shrink-0">
-              <span class="rounded-full bg-gray-100 px-2.5 py-1 font-medium text-gray-600">
-                {{ assignment.submissionsCount }}/{{ assignment.totalStudents }} nộp
-              </span>
-              @if (assignment.pendingCount && assignment.pendingCount > 0) {
-                <span class="rounded-full bg-amber-50 px-2.5 py-1 font-semibold text-amber-700">
-                  {{ assignment.pendingCount }} cần chấm
+                @if (group.classroomAssignmentCount > 0) {
+                  <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                    {{ group.classroomAssignmentCount }} theo lớp
+                  </span>
+                }
+                @if (group.courseLevelAssignmentCount > 0) {
+                  <span class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-[#0056D2]">
+                    {{ group.courseLevelAssignmentCount }} toàn khóa
+                  </span>
+                }
+                <span class="inline-flex items-center gap-1 rounded-md bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors group-hover:bg-[#0056D2]/10 group-hover:text-[#0056D2]">
+                  Xem bài tập
+                  <lucide-icon name="chevron-right" [size]="14"></lucide-icon>
                 </span>
-              }
-              @if (hasAverageScore(assignment)) {
-                <span class="rounded-full bg-[#0056D2]/10 px-2.5 py-1 font-medium text-[#0056D2]">
-                  {{ assignment.averageScore | number:'1.0-0' }}%
-                </span>
-              }
-            </div>
-
-            <!-- Date + Actions -->
-            <div class="flex items-center gap-3 sm:flex-shrink-0">
-              <span class="text-xs sm:w-24 sm:text-right"
-                    [ngClass]="isOverdue(assignment.dueDate) && assignment.status === 'published' ? 'font-semibold text-red-500' : 'text-gray-400'">
-                {{ formatDate(assignment.dueDate) }}
-              </span>
-              <div class="flex items-center gap-1 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
-                <a [routerLink]="[assignment.id, 'settings']"
-                   (click)="$event.stopPropagation()"
-                   aria-label="Chỉnh sửa"
-                   class="flex h-8 w-8 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-blue-50 hover:text-[#0056D2]">
-                  <lucide-icon name="edit-3" [size]="14"></lucide-icon>
-                </a>
-                <button type="button"
-                        (click)="deleteAssignment(assignment.id, $event)"
-                        aria-label="Xóa"
-                        class="flex h-8 w-8 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600">
-                  <lucide-icon name="trash-2" [size]="14"></lucide-icon>
-                </button>
               </div>
             </div>
           </div>
-        </div>
+        }
+      </div>
+
+      @if (catalogTotal() > 0) {
+        @if (hasMoreCourseGroups()) {
+          <div class="space-y-2 pt-6 text-center">
+            <button
+              type="button"
+              (click)="loadMoreCatalog()"
+              class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:border-[#0056D2] hover:bg-[#f0f7ff] hover:text-[#0056D2]">
+              Xem thêm {{ remainingCourseGroups() }} khóa học
+            </button>
+            <p class="text-xs text-gray-400">Đang hiện {{ visibleCourseGroups().length }} / {{ catalogTotal() }}</p>
+          </div>
+        } @else {
+          <p class="pt-4 text-center text-xs text-gray-400">Đã hiện tất cả {{ catalogTotal() }} khóa học</p>
+        }
       }
+    }
+  } @else {
+    @let selectedCourse = selectedCourseGroup();
+
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div class="min-w-0">
+          <button
+            type="button"
+            (click)="backToCatalog()"
+            class="inline-flex items-center gap-2 text-sm font-medium text-[#0056D2] transition-colors hover:text-[#004BB5]">
+            <lucide-icon name="arrow-left" [size]="16"></lucide-icon>
+            Quay lại danh sách khóa học
+          </button>
+
+          <h2 class="mt-3 text-2xl font-semibold text-gray-900">{{ selectedCourse?.courseTitle }}</h2>
+          <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500">
+            <span>{{ selectedCourse?.totalCount || 0 }} bài tập trong khóa học</span>
+            @if ((selectedCourse?.pendingCount || 0) > 0) {
+              <span class="text-gray-300">&middot;</span>
+              <span>{{ selectedCourse?.pendingCount }} bài cần chấm</span>
+            }
+            @if (hasActiveViewFilters()) {
+              <span class="text-gray-300">&middot;</span>
+              <span>Đang hiển thị {{ detailTotal() }} mục phù hợp với bộ lọc</span>
+            }
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 lg:justify-end">
+          @if (selectedCourse?.courseId; as courseId) {
+            <a
+              [routerLink]="getCourseEditorLink(courseId)"
+              class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-[#0056D2] hover:text-[#0056D2]">
+              <lucide-icon name="edit-3" [size]="14"></lucide-icon>
+              Mở khóa học
+            </a>
+          }
+          <a
+            routerLink="create"
+            [queryParams]="getSelectedCourseCreateQueryParams()"
+            class="inline-flex items-center gap-2 rounded-lg bg-[#0056D2] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#004BB5]">
+            <lucide-icon name="plus" [size]="14"></lucide-icon>
+            Tạo bài tập
+          </a>
+        </div>
+      </div>
+
+      <div class="mt-4 flex flex-wrap items-center gap-2">
+        <span class="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-[#0056D2]">
+          {{ selectedCourse?.courseLevelAssignmentCount || 0 }} bài toàn khóa
+        </span>
+        <span class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+          {{ selectedCourse?.classroomAssignmentCount || 0 }} bài theo lớp
+        </span>
+        @if ((selectedCourse?.unassignedAssignmentCount || 0) > 0) {
+          <span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+            {{ selectedCourse?.unassignedAssignmentCount }} bài khác
+          </span>
+        }
+      </div>
     </div>
+
+    @if (detailTotal() === 0) {
+      <div class="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
+        <svg class="mx-auto mb-4 h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l4.414 4.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z" />
+        </svg>
+        <p class="text-sm font-medium text-gray-600">Không có bài tập nào trong khóa học này phù hợp với bộ lọc hiện tại</p>
+        <p class="mt-1 text-xs text-gray-400">Bạn có thể xóa bộ lọc hoặc quay lại danh sách khóa học để chọn khóa khác.</p>
+        <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+          <button
+            type="button"
+            (click)="clearViewFilters()"
+            class="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50">
+            Xóa bộ lọc
+          </button>
+          <button
+            type="button"
+            (click)="backToCatalog()"
+            class="inline-flex items-center gap-2 rounded-md bg-[#0056D2] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#004BB5]">
+            Quay lại danh sách khóa học
+          </button>
+        </div>
+      </div>
+    } @else {
+      <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm divide-y divide-gray-100">
+        @for (assignment of visibleSelectedAssignments(); track assignment.id) {
+          <div
+            class="group cursor-pointer transition-colors hover:bg-gray-50 focus-within:ring-2 focus-within:ring-[#0056D2]/15"
+            role="link"
+            tabindex="0"
+            [attr.aria-label]="'Mở bài tập ' + assignment.title"
+            (click)="navigateToAssignment(assignment.id)"
+            (keydown.enter)="navigateToAssignment(assignment.id)"
+            (keydown.space)="onAssignmentRowSpace($event, assignment.id)">
+            <div class="flex flex-col gap-3 px-5 py-4 lg:flex-row lg:items-center">
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <h3 class="truncate text-sm font-semibold text-gray-900 transition-colors group-hover:text-[#0056D2]">
+                    {{ assignment.title }}
+                  </h3>
+                  <span class="rounded-full border px-2 py-0.5 text-[10px] font-semibold" [ngClass]="getStatusClass(assignment.status)">
+                    {{ getStatusText(assignment.status) }}
+                  </span>
+                </div>
+                <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
+                  <span>{{ getAudienceLabel(assignment) }}</span>
+                  @if (assignment.className) {
+                    <span class="text-gray-300">&middot;</span>
+                    <span class="font-medium text-emerald-700">{{ assignment.className }}</span>
+                  }
+                </div>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2 text-xs lg:justify-end">
+                <span class="rounded-full bg-gray-100 px-2.5 py-1 font-medium text-gray-600">
+                  {{ assignment.submissionsCount }}/{{ assignment.totalStudents }} nộp
+                </span>
+                @if (assignment.pendingCount && assignment.pendingCount > 0) {
+                  <span class="rounded-full bg-amber-50 px-2.5 py-1 font-semibold text-amber-700">
+                    {{ assignment.pendingCount }} cần chấm
+                  </span>
+                }
+                @if (hasAverageScore(assignment)) {
+                  <span class="rounded-full bg-[#0056D2]/10 px-2.5 py-1 font-medium text-[#0056D2]">
+                    {{ assignment.averageScore | number:'1.0-0' }}%
+                  </span>
+                }
+              </div>
+
+              <div class="flex items-center gap-3 lg:flex-shrink-0">
+                <span
+                  class="text-xs lg:w-24 lg:text-right"
+                  [ngClass]="isOverdue(assignment.dueDate) && assignment.status === 'published' ? 'font-semibold text-red-500' : 'text-gray-400'">
+                  {{ formatDate(assignment.dueDate) }}
+                </span>
+                <div class="flex items-center gap-1 lg:opacity-0 lg:transition-opacity lg:group-hover:opacity-100">
+                  <a
+                    [routerLink]="[assignment.id, 'settings']"
+                    (click)="$event.stopPropagation()"
+                    aria-label="Chỉnh sửa"
+                    class="flex h-8 w-8 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-blue-50 hover:text-[#0056D2]">
+                    <lucide-icon name="edit-3" [size]="14"></lucide-icon>
+                  </a>
+                  <button
+                    type="button"
+                    (click)="deleteAssignment(assignment.id, $event)"
+                    aria-label="Xóa"
+                    class="flex h-8 w-8 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600">
+                    <lucide-icon name="trash-2" [size]="14"></lucide-icon>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      @if (detailTotal() > 0) {
+        @if (hasMoreSelectedAssignments()) {
+          <div class="space-y-2 pt-6 text-center">
+            <button
+              type="button"
+              (click)="loadMoreDetails()"
+              class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:border-[#0056D2] hover:bg-[#f0f7ff] hover:text-[#0056D2]">
+              Xem thêm {{ remainingSelectedAssignments() }} bài tập
+            </button>
+            <p class="text-xs text-gray-400">Đang hiện {{ visibleSelectedAssignments().length }} / {{ detailTotal() }}</p>
+          </div>
+        } @else {
+          <p class="pt-4 text-center text-xs text-gray-400">Đã hiện tất cả {{ detailTotal() }} bài tập</p>
+        }
+      }
+    }
   }
 
   @if (error()) {

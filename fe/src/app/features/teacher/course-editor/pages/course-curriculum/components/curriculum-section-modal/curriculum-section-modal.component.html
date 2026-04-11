@@ -10,7 +10,7 @@
     tabindex="-1">
     <div class="border-b border-gray-200 px-5 py-4">
       <h3 id="section-modal-title" class="text-lg font-semibold text-gray-900">{{ getDialogTitle() }}</h3>
-      <button (click)="closeRequested.emit()" class="text-gray-400 hover:text-gray-600" aria-label="ÄÃ³ng">
+      <button (click)="closeRequested.emit()" class="text-gray-400 hover:text-gray-600" aria-label="Đóng">
         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
         </svg>
@@ -19,31 +19,31 @@
 
     <div class="space-y-3 overflow-y-auto p-5">
       <div>
-        <label class="mb-2 block text-sm font-medium text-gray-700">TiÃªu Ä‘á» má»¥c <span class="text-red-500">*</span></label>
+        <label class="mb-2 block text-sm font-medium text-gray-700">Tiêu đề mục <span class="text-red-500">*</span></label>
         <input type="text" [ngModel]="sectionTitle()" (ngModelChange)="onSectionTitleInput($event)" class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-[#0056D2]">
       </div>
 
       <div class="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
         <input type="checkbox" [ngModel]="sectionIsRequired()" (ngModelChange)="onSectionRequiredInput($event)" id="reqSec" class="mt-0.5 h-4 w-4 rounded text-[#0056D2] focus:ring-[#0056D2]">
         <label for="reqSec" class="cursor-pointer select-none text-sm font-medium text-gray-700">
-          Báº¯t buá»™c hoÃ n thÃ nh
-          <span class="mt-0.5 block text-xs font-normal text-slate-500">Há»c viÃªn pháº£i hoÃ n thÃ nh má»¥c nÃ y trÆ°á»›c khi tiáº¿p tá»¥c.</span>
+          Bắt buộc hoàn thành
+          <span class="mt-0.5 block text-xs font-normal text-slate-500">Học viên phải hoàn thành mục này trước khi tiếp tục.</span>
         </label>
       </div>
 
       @if (sectionType() === 'VIDEO') {
         <div class="space-y-4">
           <div class="rounded-xl border border-[#0056D2]/20 bg-[#0056D2]/5 p-4">
-            <p class="text-sm font-semibold text-gray-900">Video bÃ i giáº£ng chuáº©n production</p>
+            <p class="text-sm font-semibold text-gray-900">Video bài giảng chuẩn production</p>
             <p class="mt-1 text-sm text-gray-600">
-              Video section má»›i Ä‘i theo pipeline chuáº©n: táº£i tá»‡p gá»‘c lÃªn, táº¡o video asset, xá»­ lÃ½ phÃ¡t trá»±c tuyáº¿n vÃ  sinh profile táº£i ngoáº¡i tuyáº¿n.
-              YouTube hoáº·c URL ngoÃ i chá»‰ cÃ²n lÃ  ná»™i dung legacy, khÃ´ng pháº£i luá»“ng táº¡o má»›i máº·c Ä‘á»‹nh.
+              Video section mới đi theo pipeline chuẩn: tải tệp gốc lên, tạo video asset, xử lý phát trực tuyến và sinh profile tải ngoại tuyến.
+              YouTube hoặc URL ngoài chỉ còn là nội dung legacy, không phải luồng tạo mới mặc định.
             </p>
           </div>
 
           @if (hasLegacyVideoSource()) {
             <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
-              <p class="text-sm font-semibold text-amber-900">Video legacy Ä‘ang tá»“n táº¡i</p>
+              <p class="text-sm font-semibold text-amber-900">Video legacy đang tồn tại</p>
               <p class="mt-1 text-sm text-amber-800">{{ getLegacyVideoPolicyCopy() }}</p>
               @if (sectionVideoUrl()) {
                 <p class="mt-2 truncate text-xs text-amber-700">{{ sectionVideoUrl() }}</p>
@@ -56,7 +56,7 @@
                 </div>
               }
               <p class="mt-3 text-xs text-amber-700">
-                Báº¡n cÃ³ thá»ƒ giá»¯ nguyÃªn video cÅ© Ä‘á»ƒ tÆ°Æ¡ng thÃ­ch, hoáº·c táº£i video má»›i lÃªn bÃªn dÆ°á»›i Ä‘á»ƒ thay tháº¿ báº±ng luá»“ng chuáº©n.
+                Bạn có thể giữ nguyên video cũ để tương thích, hoặc tải video mới lên bên dưới để thay thế bằng luồng chuẩn.
               </p>
             </div>
           }
@@ -70,9 +70,9 @@
                   <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#0056D2]/10">
                     <lucide-icon name="upload-cloud" [size]="24" class="text-[#0056D2]"></lucide-icon>
                   </div>
-                  <p class="text-sm font-semibold text-gray-800">Nháº¥n Ä‘á»ƒ chá»n video táº£i lÃªn ná»™i bá»™</p>
-                  <p class="mt-1 text-xs text-gray-500">MP4, MOV, WebM â€” tá»‡p gá»‘c sáº½ Ä‘Æ°á»£c xá»­ lÃ½ thÃ nh phÃ¡t trá»±c tuyáº¿n vÃ  profile ngoáº¡i tuyáº¿n phÃ¹ há»£p.</p>
-                  <p class="mt-2 text-xs text-[#0056D2]">Luá»“ng má»›i Æ°u tiÃªn video asset: online qua playback chuáº©n, offline chá»‰ hiá»‡n profile nÃ o há»‡ thá»‘ng Ä‘Ã£ xá»­ lÃ½ xong.</p>
+                  <p class="text-sm font-semibold text-gray-800">Nhấn để chọn video tải lên nội bộ</p>
+                  <p class="mt-1 text-xs text-gray-500">MP4, MOV, WebM — tệp gốc sẽ được xử lý thành phát trực tuyến và profile ngoại tuyến phù hợp.</p>
+                  <p class="mt-2 text-xs text-[#0056D2]">Luồng mới ưu tiên video asset: online qua playback chuẩn, offline chỉ hiện profile nào hệ thống đã xử lý xong.</p>
                 </div>
               </div>
             }
@@ -81,15 +81,15 @@
               <div class="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4">
                 <lucide-icon name="clock-3" [size]="20" class="mt-0.5 shrink-0 text-sky-600"></lucide-icon>
                 <div class="min-w-0 flex-1">
-                  <p class="text-sm font-semibold text-sky-900">Video Ä‘Ã£ Ä‘Æ°á»£c chá»n vÃ  sáº½ táº£i lÃªn khi báº¡n lÆ°u má»¥c nÃ y.</p>
-                  <p class="mt-0.5 text-xs text-sky-800">Sau khi táº£i tá»‡p gá»‘c thÃ nh cÃ´ng, há»‡ thá»‘ng sáº½ táº¡o video asset rá»“i má»›i gáº¯n asset Ä‘Ã³ vÃ o section.</p>
+                  <p class="text-sm font-semibold text-sky-900">Video đã được chọn và sẽ tải lên khi bạn lưu mục này.</p>
+                  <p class="mt-0.5 text-xs text-sky-800">Sau khi tải tệp gốc thành công, hệ thống sẽ tạo video asset rồi mới gắn asset đó vào section.</p>
                   @if (stagedVideoFileName()) {
                     <p class="mt-1 truncate text-xs font-medium text-slate-600">{{ stagedVideoFileName() }}</p>
                   }
                 </div>
                 <button type="button" (click)="resetCfUpload()"
                         class="shrink-0 text-xs text-slate-500 underline hover:text-slate-700">
-                  Bá» chá»n
+                  Bỏ chọn
                 </button>
               </div>
             }
@@ -97,14 +97,14 @@
             @if (cfUploadStatus() === 'uploading') {
               <div class="rounded-xl border border-[#0056D2]/20 bg-[#0056D2]/5 p-4">
                 <div class="mb-2 flex items-center justify-between">
-                  <span class="text-sm font-medium text-gray-700">Äang táº£i video gá»‘c vÃ  táº¡o asset...</span>
+                  <span class="text-sm font-medium text-gray-700">Đang tải video gốc và tạo asset...</span>
                   <span class="text-sm font-semibold text-[#0056D2]">{{ cfUploadPercent() }}%</span>
                 </div>
                 <div class="h-2 w-full overflow-hidden rounded-full bg-gray-200">
                   <div class="h-full rounded-full bg-[#0056D2] transition-all duration-300"
                        [style.width.%]="cfUploadPercent()"></div>
                 </div>
-                <p class="mt-2 text-xs text-gray-500">Video sáº½ Ä‘Æ°á»£c lÆ°u thÃ nh tá»‡p gá»‘c, sau Ä‘Ã³ há»‡ thá»‘ng xá»­ lÃ½ phÃ¡t trá»±c tuyáº¿n vÃ  cÃ¡c profile ngoáº¡i tuyáº¿n kháº£ dá»¥ng.</p>
+                <p class="mt-2 text-xs text-gray-500">Video sẽ được lưu thành tệp gốc, sau đó hệ thống xử lý phát trực tuyến và các profile ngoại tuyến khả dụng.</p>
               </div>
             }
 
@@ -112,7 +112,7 @@
               <div class="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
                 <lucide-icon name="check-circle" [size]="20" class="mt-0.5 shrink-0 text-emerald-600"></lucide-icon>
                 <div class="min-w-0 flex-1">
-                  <p class="text-sm font-semibold text-emerald-800">Video Ä‘Ã£ Ä‘Æ°á»£c gáº¯n vÃ o má»¥c nÃ y.</p>
+                  <p class="text-sm font-semibold text-emerald-800">Video đã được gắn vào mục này.</p>
                   <p class="mt-0.5 text-xs text-emerald-700">{{ getVideoProcessingCopy() }}</p>
                   @if (sectionVideoAssetId()) {
                     <p class="mt-1 truncate font-mono text-xs text-gray-500">Asset: {{ sectionVideoAssetId() }}</p>
@@ -138,7 +138,7 @@
                   }
                   <button type="button" (click)="resetCfUpload()"
                           class="text-xs text-gray-500 underline hover:text-gray-700">
-                    Chá»n láº¡i
+                    Chọn lại
                   </button>
                 </div>
               </div>
@@ -148,12 +148,12 @@
               <div class="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
                 <lucide-icon name="alert-circle" [size]="20" class="mt-0.5 shrink-0 text-red-600"></lucide-icon>
                 <div class="flex-1">
-                  <p class="text-sm font-semibold text-red-800">Táº¡o video asset tháº¥t báº¡i</p>
-                  <p class="mt-0.5 text-xs text-red-700">Kiá»ƒm tra káº¿t ná»‘i, kÃ­ch thÆ°á»›c tá»‡p, rá»“i thá»­ láº¡i. Náº¿u lá»—i láº·p láº¡i, hÃ£y kiá»ƒm tra pipeline video `R2 + FFmpeg + Shaka` hoáº·c dedicated video-worker trÃªn server.</p>
+                  <p class="text-sm font-semibold text-red-800">Tạo video asset thất bại</p>
+                  <p class="mt-0.5 text-xs text-red-700">Kiểm tra kết nối, kích thước tệp, rồi thử lại. Nếu lỗi lặp lại, hãy kiểm tra pipeline video `R2 + FFmpeg + Shaka` hoặc dedicated video-worker trên server.</p>
                 </div>
                 <button type="button" (click)="resetCfUpload()"
                         class="shrink-0 text-xs text-gray-500 underline hover:text-gray-700">
-                  Thá»­ láº¡i
+                  Thử lại
                 </button>
               </div>
             }
@@ -163,7 +163,7 @@
 
       @if (sectionType() === 'TEXT') {
         <div class="space-y-2">
-          <label class="mb-2 block text-sm font-medium text-gray-700">Ná»™i dung</label>
+          <label class="mb-2 block text-sm font-medium text-gray-700">Nội dung</label>
           <div class="editor-container-wrapper relative rounded-xl border border-gray-300 bg-white shadow-sm" [style.height.px]="editorHeight()">
             @if (isDataLoaded()) {
               <ckeditor
@@ -177,11 +177,11 @@
             } @else {
               <div class="flex h-full flex-col items-center justify-center gap-3 text-gray-400">
                 <div class="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-[#0056D2]"></div>
-                <span class="text-sm font-medium">Äang táº£i trÃ¬nh soáº¡n tháº£o...</span>
+                <span class="text-sm font-medium">Đang tải trình soạn thảo...</span>
               </div>
             }
             <div class="absolute bottom-0 left-0 right-0 z-10 flex h-8 select-none items-center justify-between border-t border-gray-200 bg-gray-50 px-4 text-xs text-gray-500">
-              <span class="font-medium">{{ wordCount() }} tá»«</span>
+              <span class="font-medium">{{ wordCount() }} từ</span>
             </div>
             <div class="absolute bottom-0 right-0 z-20 flex h-6 w-6 cursor-ns-resize items-center justify-center rounded-br-lg hover:bg-gray-200" (mousedown)="onResizeStart($event)">
               <svg class="h-3 w-3 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M22 22H20V20H22V22ZM22 18H20V16H22V18ZM18 22H16V20H18V22ZM22 14H20V12H22V14ZM18 18H16V16H18V18ZM14 22H12V20H14V22Z"/></svg>
@@ -193,13 +193,13 @@
       @if (sectionType() === 'QUIZ') {
         <div class="space-y-4 rounded-xl border border-violet-200 bg-violet-50 p-4">
           <div class="space-y-1">
-            <label class="block text-xs font-black uppercase text-violet-800">Thiáº¿t láº­p tráº¯c nghiá»‡m</label>
-            <p class="text-sm text-violet-900">DÃ¹ng má»¥c nÃ y Ä‘á»ƒ giá»¯ shell cá»§a pháº§n tráº¯c nghiá»‡m trong bÃ i giáº£ng. CÃ¢u há»i sáº½ Ä‘Æ°á»£c quáº£n lÃ½ qua ngÃ¢n hÃ ng hoáº·c bá»™ sinh ngáº«u nhiÃªn.</p>
+            <label class="block text-xs font-black uppercase text-violet-800">Thiết lập trắc nghiệm</label>
+            <p class="text-sm text-violet-900">Dùng mục này để giữ shell của phần trắc nghiệm trong bài giảng. Câu hỏi sẽ được quản lý qua ngân hàng hoặc bộ sinh ngẫu nhiên.</p>
           </div>
 
           <div class="grid gap-3 md:grid-cols-2">
             <div class="rounded-lg border border-violet-200 bg-white p-3">
-              <label class="mb-2 block text-sm font-medium text-slate-700">Loáº¡i tráº¯c nghiá»‡m</label>
+              <label class="mb-2 block text-sm font-medium text-slate-700">Loại trắc nghiệm</label>
               <div class="grid gap-2 md:grid-cols-3">
                 @for (type of sectionQuizTypes; track type) {
                   <button
@@ -220,10 +220,10 @@
             </div>
 
             <div class="rounded-lg border border-violet-200 bg-white p-3">
-              <label class="mb-2 block text-sm font-medium text-slate-700">Thiáº¿t láº­p lÃ m bÃ i</label>
+              <label class="mb-2 block text-sm font-medium text-slate-700">Thiết lập làm bài</label>
               <div class="grid grid-cols-3 gap-3">
                 <div>
-                  <label class="mb-1 block text-xs font-medium text-slate-500">PhÃºt</label>
+                  <label class="mb-1 block text-xs font-medium text-slate-500">Phút</label>
                   <input
                     type="number"
                     min="1"
@@ -232,7 +232,7 @@
                     class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
                 </div>
                 <div>
-                  <label class="mb-1 block text-xs font-medium text-slate-500">Äiá»ƒm Ä‘áº¡t</label>
+                  <label class="mb-1 block text-xs font-medium text-slate-500">Điểm đạt</label>
                   <input
                     type="number"
                     min="0"
@@ -242,7 +242,7 @@
                     class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
                 </div>
                 <div>
-                  <label class="mb-1 block text-xs font-medium text-slate-500">Sá»‘ láº§n</label>
+                  <label class="mb-1 block text-xs font-medium text-slate-500">Số lần</label>
                   <input
                     type="number"
                     min="1"
@@ -261,7 +261,7 @@
                 [ngModel]="sectionQuizShuffleQuestions()"
                 (ngModelChange)="onSectionQuizShuffleQuestionsInput($event)"
                 class="mt-0.5 h-4 w-4 rounded text-violet-600">
-              <span>Trá»™n thá»© tá»± cÃ¢u há»i</span>
+              <span>Trộn thứ tự câu hỏi</span>
             </label>
             <label class="flex items-start gap-2 rounded-lg border border-violet-200 bg-white px-3 py-2 text-sm text-slate-700">
               <input
@@ -269,7 +269,7 @@
                 [ngModel]="sectionQuizShuffleOptions()"
                 (ngModelChange)="onSectionQuizShuffleOptionsInput($event)"
                 class="mt-0.5 h-4 w-4 rounded text-violet-600">
-              <span>Trá»™n Ä‘Ã¡p Ã¡n</span>
+              <span>Trộn đáp án</span>
             </label>
             <label class="flex items-start gap-2 rounded-lg border border-violet-200 bg-white px-3 py-2 text-sm text-slate-700">
               <input
@@ -277,7 +277,7 @@
                 [ngModel]="sectionQuizShowResults()"
                 (ngModelChange)="onSectionQuizShowResultsInput($event)"
                 class="mt-0.5 h-4 w-4 rounded text-violet-600">
-              <span>Hiá»‡n káº¿t quáº£ ngay</span>
+              <span>Hiện kết quả ngay</span>
             </label>
           </div>
 
@@ -289,8 +289,8 @@
                 (ngModelChange)="onSectionQuizCountsTowardCertificateInput($event)"
                 class="mt-0.5 h-4 w-4 rounded text-violet-600">
               <span>
-                <span class="block font-medium text-slate-900">TÃ­nh vÃ o Ä‘iá»u kiá»‡n cáº¥p chá»©ng chá»‰</span>
-                <span class="mt-1 block text-xs text-slate-500">Chá»‰ báº­t khi Ä‘Ã¢y lÃ  bÃ i thi báº¯t buá»™c Ä‘á»ƒ hoÃ n thÃ nh khÃ³a há»c.</span>
+                <span class="block font-medium text-slate-900">Tính vào điều kiện cấp chứng chỉ</span>
+                <span class="mt-1 block text-xs text-slate-500">Chỉ bật khi đây là bài thi bắt buộc để hoàn thành khóa học.</span>
               </span>
             </label>
           }
@@ -298,21 +298,21 @@
           <div class="rounded-lg border border-violet-200 bg-white">
             <div class="flex items-center justify-between gap-3 border-b border-violet-100 px-4 py-3">
               <div>
-                <h4 class="text-sm font-semibold text-slate-800">CÃ¢u há»i Ä‘Æ°á»£c chá»n</h4>
-                <p class="text-xs text-slate-500">Quáº£n lÃ½ danh sÃ¡ch cÃ¢u há»i cho má»¥c nÃ y ngay trong modal.</p>
+                <h4 class="text-sm font-semibold text-slate-800">Câu hỏi được chọn</h4>
+                <p class="text-xs text-slate-500">Quản lý danh sách câu hỏi cho mục này ngay trong modal.</p>
               </div>
               <div class="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   (click)="requestOpenSectionQuizBank()"
                   class="rounded-lg border border-violet-200 px-3 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-50">
-                  Chá»n tá»« ngÃ¢n hÃ ng
+                  Chọn từ ngân hàng
                 </button>
                 <button
                   type="button"
                   (click)="requestOpenSectionQuizRandom()"
                   class="rounded-lg border border-violet-200 px-3 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-50">
-                  ThÃªm ngáº«u nhiÃªn
+                  Thêm ngẫu nhiên
                 </button>
               </div>
             </div>
@@ -320,8 +320,8 @@
             <div class="max-h-64 overflow-y-auto p-3">
               @if (sectionQuizSelectedQuestions().length === 0) {
                 <div class="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center">
-                  <p class="text-sm font-medium text-slate-700">Má»¥c tráº¯c nghiá»‡m nÃ y chÆ°a cÃ³ cÃ¢u há»i.</p>
-                  <p class="mt-1 text-xs text-slate-500">HÃ£y chá»n tá»« ngÃ¢n hÃ ng hoáº·c thÃªm ngáº«u nhiÃªn trÆ°á»›c khi lÆ°u.</p>
+                  <p class="text-sm font-medium text-slate-700">Mục trắc nghiệm này chưa có câu hỏi.</p>
+                  <p class="mt-1 text-xs text-slate-500">Hãy chọn từ ngân hàng hoặc thêm ngẫu nhiên trước khi lưu.</p>
                 </div>
               } @else {
                 <div class="space-y-2">
@@ -332,13 +332,13 @@
                       </span>
                       <div class="min-w-0 flex-1">
                         <p class="line-clamp-2 text-sm font-medium text-slate-800">{{ question.content }}</p>
-                        <p class="mt-1 text-xs text-slate-500">Äá»™ khÃ³: {{ getDifficultyLabel(question.difficulty) }}</p>
+                        <p class="mt-1 text-xs text-slate-500">Độ khó: {{ getDifficultyLabel(question.difficulty) }}</p>
                       </div>
                       <button
                         type="button"
                         (click)="requestRemoveSectionQuizQuestion(question.id)"
                         class="rounded p-1 text-slate-400 hover:bg-white hover:text-red-600"
-                        aria-label="XÃ³a cÃ¢u há»i khá»i má»¥c nÃ y">
+                        aria-label="Xóa câu hỏi khỏi mục này">
                         <lucide-icon name="x" [size]="16"></lucide-icon>
                       </button>
                     </div>
@@ -353,10 +353,10 @@
       @if (sectionType() === 'FILE') {
         <div class="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
           <div class="flex items-center justify-between">
-            <label class="block text-xs font-black uppercase text-amber-800">Táº­p Ä‘Ã­nh kÃ¨m</label>
+            <label class="block text-xs font-black uppercase text-amber-800">Tập đính kèm</label>
             @if (sectionFileUrl()) {
               <a [href]="sectionFileUrl()" target="_blank" class="flex items-center gap-1 text-xs font-bold text-[#0056D2] hover:underline">
-                <lucide-icon name="download" [size]="12"></lucide-icon> Táº£i xuá»‘ng hiá»‡n táº¡i
+                <lucide-icon name="download" [size]="12"></lucide-icon> Tải xuống hiện tại
               </a>
             }
           </div>
@@ -369,7 +369,7 @@
                 <div class="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-600">
                   <lucide-icon name="upload-cloud" [size]="20"></lucide-icon>
                 </div>
-                <p class="text-sm font-bold text-slate-700">Nháº¥n Ä‘á»ƒ táº£i lÃªn tÃ i liá»‡u</p>
+                <p class="text-sm font-bold text-slate-700">Nhấn để tải lên tài liệu</p>
                 <p class="mt-1 text-xs text-slate-400">PDF, Word, Excel, PowerPoint (Max 50MB)</p>
               </div>
             } @else {
@@ -390,7 +390,7 @@
             <div class="flex items-center gap-3 rounded-lg border border-amber-100 bg-white p-3">
               <lucide-icon name="check-circle" [size]="16" class="text-green-500"></lucide-icon>
               <div class="min-w-0 flex-grow">
-                <p class="text-xs font-bold text-slate-700">ÄÃ£ chá»n táº­p Ä‘Ã­nh kÃ¨m:</p>
+                <p class="text-xs font-bold text-slate-700">Đã chọn tập đính kèm:</p>
                 <a [href]="sectionFileUrl()" target="_blank" class="block max-w-full truncate text-xs text-[#0056D2] hover:underline">
                   {{ getFileNameFromUrl(sectionFileUrl()!) }}
                 </a>
@@ -401,7 +401,7 @@
           @if (safePdfUrl()) {
             <div class="mt-4">
               <div class="mb-2 flex items-center justify-between">
-                <label class="text-xs font-bold text-slate-600">Xem trÆ°á»›c PDF (SOTA Stream)</label>
+                <label class="text-xs font-bold text-slate-600">Xem trước PDF (SOTA Stream)</label>
               </div>
               <div class="h-[420px] w-full overflow-hidden rounded-lg border border-slate-200 bg-slate-800 shadow-inner">
                 <iframe [src]="safePdfUrl()" class="h-full w-full" frameborder="0"></iframe>
@@ -413,7 +413,7 @@
     </div>
 
     <div class="flex justify-end gap-3 border-t border-gray-200 bg-gray-50 p-4">
-      <button (click)="closeRequested.emit()" class="rounded-lg px-4 py-2 text-gray-700 hover:bg-gray-100">Há»§y</button>
+      <button (click)="closeRequested.emit()" class="rounded-lg px-4 py-2 text-gray-700 hover:bg-gray-100">Hủy</button>
       <button
         (click)="requestSave()"
         [disabled]="isSaving() || !sectionTitle().trim() || (sectionType() === 'FILE' && !selectedFile() && !sectionFileUrl()) || (sectionType() === 'QUIZ' && sectionQuizSelectedQuestions().length === 0)"

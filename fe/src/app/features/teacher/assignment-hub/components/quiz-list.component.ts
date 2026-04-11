@@ -3,10 +3,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
+import { firstValueFrom } from 'rxjs';
 import { QuizApi } from '../../../../api/endpoints/quiz.api';
 import { CourseApi } from '../../../../api/client/course.api';
 import { ChapterApi } from '../../../../api/client/chapter.api';
-import { firstValueFrom } from 'rxjs';
 
 type StatusFilter = '' | 'NEEDS_GRADING' | 'OPEN' | 'DRAFT' | 'CLOSED';
 type QuizTypeFilter = '' | 'PRACTICE' | 'ASSESSMENT' | 'EXAM';
@@ -46,8 +46,14 @@ interface TeacherQuiz {
 
 interface CourseGroup {
   courseId: string;
+  actualCourseId?: string;
   courseTitle: string;
   quizzes: TeacherQuiz[];
+  totalCount: number;
+  pendingEssayCount: number;
+  openCount: number;
+  draftCount: number;
+  closedCount: number;
 }
 
 @Component({
@@ -62,9 +68,8 @@ export class QuizListComponent implements OnInit {
   private readonly chapterApi = inject(ChapterApi);
   private readonly router = inject(Router);
 
-  // Create quiz modal
   readonly showCreateModal = signal(false);
-  readonly createStep = signal<1 | 2>(1);  // step 1: chọn khóa, step 2: chương + tiêu đề
+  readonly createStep = signal<1 | 2>(1);
   readonly createCourses = signal<any[]>([]);
   readonly createSelectedCourseId = signal('');
   readonly createSearchTerm = signal('');
@@ -74,46 +79,49 @@ export class QuizListComponent implements OnInit {
   readonly createLoading = signal(false);
   readonly createError = signal('');
 
-  readonly filteredCreateCourses = computed(() => {
-    const term = this.createSearchTerm().toLowerCase().trim();
-    const courses = this.createCourses();
-    if (!term) return courses;
-    return courses.filter((c: any) =>
-      (c.title || '').toLowerCase().includes(term) ||
-      (c.code || '').toLowerCase().includes(term)
-    );
-  });
-
   readonly quizzes = signal<TeacherQuiz[]>([]);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
+  readonly selectedCourseId = signal<string | null>(null);
+  readonly catalogVisibleLimit = signal(8);
+  readonly detailVisibleLimit = signal(10);
 
-  // --- Filters (all dropdowns, 1 row) ---
   readonly searchQuery = signal('');
   readonly statusFilter = signal<StatusFilter>('');
   readonly typeFilter = signal<QuizTypeFilter>('');
   readonly courseFilter = signal('');
   readonly sortKey = signal<SortKey>('NEWEST');
-
-  // --- Dropdown state ---
   readonly openDropdown = signal<string | null>(null);
 
-  // --- Derived: available courses ---
+  readonly filteredCreateCourses = computed(() => {
+    const term = this.createSearchTerm().toLowerCase().trim();
+    const courses = this.createCourses();
+    if (!term) {
+      return courses;
+    }
+
+    return courses.filter((course: any) =>
+      (course.title || '').toLowerCase().includes(term) ||
+      (course.code || '').toLowerCase().includes(term)
+    );
+  });
+
   readonly availableCourses = computed(() => {
     const seen = new Map<string, string>();
-    for (const q of this.quizzes()) {
-      if (q.courseId && q.courseTitle && !seen.has(q.courseId)) {
-        seen.set(q.courseId, q.courseTitle);
+
+    for (const quiz of this.quizzes()) {
+      if (quiz.courseId && quiz.courseTitle && !seen.has(quiz.courseId)) {
+        seen.set(quiz.courseId, quiz.courseTitle);
       }
     }
+
     return Array.from(seen.entries())
       .map(([id, title]) => ({ id, title }))
-      .sort((a, b) => a.title.localeCompare(b.title, 'vi'));
+      .sort((left, right) => left.title.localeCompare(right.title, 'vi'));
   });
 
   readonly showCourseFilter = computed(() => this.availableCourses().length >= 2);
 
-  // --- Active filters count ---
   readonly activeFilterCount = computed(() => {
     let count = 0;
     if (this.statusFilter()) count++;
@@ -122,21 +130,11 @@ export class QuizListComponent implements OnInit {
     return count;
   });
 
-  // --- Filtered + sorted quizzes ---
-  readonly filteredQuizzes = computed(() => {
+  readonly contextFilteredQuizzes = computed(() => {
     let list = this.quizzes();
-    const q = this.searchQuery().toLowerCase().trim();
     const status = this.statusFilter();
     const type = this.typeFilter();
     const course = this.courseFilter();
-
-    if (q) {
-      list = list.filter(quiz =>
-        (quiz.title || '').toLowerCase().includes(q) ||
-        (quiz.courseTitle || '').toLowerCase().includes(q) ||
-        (quiz.className || '').toLowerCase().includes(q)
-      );
-    }
 
     if (status) {
       switch (status) {
@@ -166,88 +164,136 @@ export class QuizListComponent implements OnInit {
     return this.applySorting(list);
   });
 
-  // --- Grouped by course ---
-  readonly groupedQuizzes = computed<CourseGroup[]>(() => {
-    const quizzes = this.filteredQuizzes();
-    const groups = new Map<string, CourseGroup>();
+  readonly allCourseGroups = computed<CourseGroup[]>(() => this.buildCourseGroups(this.quizzes()));
 
-    for (const quiz of quizzes) {
-      const key = quiz.courseId || 'unknown';
-      const group = groups.get(key);
-      if (group) {
-        group.quizzes.push(quiz);
-      } else {
-        groups.set(key, {
-          courseId: key,
-          courseTitle: quiz.courseTitle || 'Khóa học chưa xác định',
-          quizzes: [quiz],
-        });
-      }
+  readonly catalogCourseGroups = computed<CourseGroup[]>(() => {
+    const searchTerm = this.searchQuery().toLowerCase().trim();
+    const groups = this.buildCourseGroups(this.contextFilteredQuizzes());
+
+    if (!searchTerm) {
+      return groups;
     }
 
-    return Array.from(groups.values());
+    return groups.filter(group =>
+      group.courseTitle.toLowerCase().includes(searchTerm) ||
+      group.quizzes.some(quiz =>
+        (quiz.title || '').toLowerCase().includes(searchTerm) ||
+        (quiz.className || '').toLowerCase().includes(searchTerm)
+      )
+    );
   });
 
-  // --- Alert banner ---
-  readonly totalPendingEssays = computed(() =>
-    this.quizzes().reduce((sum, q) => sum + (q.pendingEssayCount ?? 0), 0)
+  readonly selectedCourseGroup = computed<CourseGroup | null>(() => {
+    const courseId = this.selectedCourseId();
+    if (!courseId) {
+      return null;
+    }
+
+    return this.allCourseGroups().find(group => group.courseId === courseId) ?? null;
+  });
+
+  readonly selectedCourseQuizzes = computed<TeacherQuiz[]>(() => {
+    const courseId = this.selectedCourseId();
+    if (!courseId) {
+      return [];
+    }
+
+    const searchTerm = this.searchQuery().toLowerCase().trim();
+    let list = this.contextFilteredQuizzes().filter(quiz => this.getQuizCourseKey(quiz) === courseId);
+
+    if (searchTerm) {
+      list = list.filter(quiz =>
+        (quiz.title || '').toLowerCase().includes(searchTerm) ||
+        (quiz.courseTitle || '').toLowerCase().includes(searchTerm) ||
+        (quiz.className || '').toLowerCase().includes(searchTerm)
+      );
+    }
+
+    return this.applySorting(list);
+  });
+
+  readonly catalogTotal = computed(() => this.catalogCourseGroups().length);
+  readonly visibleCourseGroups = computed(() =>
+    this.catalogCourseGroups().slice(0, this.catalogVisibleLimit())
   );
-  readonly quizzesWithPendingEssays = computed(() =>
-    this.quizzes().filter(q => (q.pendingEssayCount ?? 0) > 0).length
+  readonly hasMoreCourseGroups = computed(() =>
+    this.visibleCourseGroups().length < this.catalogTotal()
+  );
+  readonly remainingCourseGroups = computed(() =>
+    Math.max(0, this.catalogTotal() - this.visibleCourseGroups().length)
   );
 
-  // --- Labels ---
+  readonly detailTotal = computed(() => this.selectedCourseQuizzes().length);
+  readonly visibleSelectedQuizzes = computed(() =>
+    this.selectedCourseQuizzes().slice(0, this.detailVisibleLimit())
+  );
+  readonly hasMoreSelectedQuizzes = computed(() =>
+    this.visibleSelectedQuizzes().length < this.detailTotal()
+  );
+  readonly remainingSelectedQuizzes = computed(() =>
+    Math.max(0, this.detailTotal() - this.visibleSelectedQuizzes().length)
+  );
+
+  readonly totalPendingEssays = computed(() =>
+    this.quizzes().reduce((sum, quiz) => sum + (quiz.pendingEssayCount ?? 0), 0)
+  );
+  readonly quizzesWithPendingEssays = computed(() =>
+    this.quizzes().filter(quiz => (quiz.pendingEssayCount ?? 0) > 0).length
+  );
+
   readonly statusFilterLabel = computed(() => {
     const labels: Record<string, string> = {
-      '': 'Trạng thái',
-      'NEEDS_GRADING': 'Cần chấm',
-      'OPEN': 'Đang mở',
-      'DRAFT': 'Bản nháp',
-      'CLOSED': 'Kết thúc',
+      '': 'Tr\u1ea1ng th\u00e1i',
+      'NEEDS_GRADING': 'C\u1ea7n ch\u1ea5m',
+      OPEN: '\u0110ang m\u1edf',
+      DRAFT: 'B\u1ea3n nh\u00e1p',
+      CLOSED: 'K\u1ebft th\u00fac',
     };
-    return labels[this.statusFilter()] || 'Trạng thái';
+    return labels[this.statusFilter()] || 'Tr\u1ea1ng th\u00e1i';
   });
 
   readonly typeFilterLabel = computed(() => {
     const labels: Record<string, string> = {
-      '': 'Loại',
-      'PRACTICE': 'Luyện tập',
-      'ASSESSMENT': 'Kiểm tra',
-      'EXAM': 'Bài thi',
+      '': 'Lo\u1ea1i',
+      PRACTICE: 'Luy\u1ec7n t\u1eadp',
+      ASSESSMENT: 'Ki\u1ec3m tra',
+      EXAM: 'B\u00e0i thi',
     };
-    return labels[this.typeFilter()] || 'Loại';
+    return labels[this.typeFilter()] || 'Lo\u1ea1i';
   });
 
   readonly courseFilterLabel = computed(() => {
     const id = this.courseFilter();
-    if (!id) return 'Khóa học';
-    return this.availableCourses().find(c => c.id === id)?.title || 'Khóa học';
+    if (!id) {
+      return 'Kh\u00f3a h\u1ecdc';
+    }
+
+    return this.availableCourses().find(course => course.id === id)?.title || 'Kh\u00f3a h\u1ecdc';
   });
 
   readonly sortLabel = computed(() => {
     const labels: Record<SortKey, string> = {
-      NEWEST: 'Mới nhất',
-      OLDEST: 'Cũ nhất',
-      TITLE_AZ: 'Tên A-Z',
-      TITLE_ZA: 'Tên Z-A',
-      AVG_SCORE: 'Điểm TB cao nhất',
-      PASS_RATE: 'Tỷ lệ đạt cao nhất',
+      NEWEST: 'M\u1edbi nh\u1ea5t',
+      OLDEST: 'C\u0169 nh\u1ea5t',
+      TITLE_AZ: 'T\u00ean A-Z',
+      TITLE_ZA: 'T\u00ean Z-A',
+      AVG_SCORE: '\u0110i\u1ec3m TB cao nh\u1ea5t',
+      PASS_RATE: 'T\u1ef7 l\u1ec7 \u0111\u1ea1t cao nh\u1ea5t',
     };
     return labels[this.sortKey()];
   });
 
-  // --- Counts for status dropdown badges ---
   readonly needsGradingCount = computed(() =>
-    this.quizzes().filter(q => (q.pendingEssayCount ?? 0) > 0).length
+    this.quizzes().filter(quiz => (quiz.pendingEssayCount ?? 0) > 0).length
   );
   readonly openCount = computed(() =>
-    this.quizzes().filter(q => this.isQuizOpen(q)).length
+    this.quizzes().filter(quiz => this.isQuizOpen(quiz)).length
   );
   readonly draftCount = computed(() =>
-    this.quizzes().filter(q => q.status?.toUpperCase() === 'DRAFT').length
+    this.quizzes().filter(quiz => quiz.status?.toUpperCase() === 'DRAFT').length
   );
   readonly closedCount = computed(() =>
-    this.quizzes().filter(q => this.isQuizClosed(q)).length
+    this.quizzes().filter(quiz => this.isQuizClosed(quiz)).length
   );
 
   ngOnInit(): void {
@@ -264,7 +310,7 @@ export class QuizListComponent implements OnInit {
         this.quizzes.set(data);
       },
       error: () => {
-        this.error.set('Không thể tải danh sách bài kiểm tra. Vui lòng thử lại.');
+        this.error.set('Kh\u00f4ng th\u1ec3 t\u1ea3i danh s\u00e1ch b\u00e0i ki\u1ec3m tra. Vui l\u00f2ng th\u1eed l\u1ea1i.');
         this.quizzes.set([]);
         this.loading.set(false);
       },
@@ -272,25 +318,38 @@ export class QuizListComponent implements OnInit {
     });
   }
 
-  // --- Actions ---
-  setStatusFilter(val: StatusFilter): void {
-    this.statusFilter.set(val);
-    this.openDropdown.set(null);
+  updateSearchQuery(query: string): void {
+    this.searchQuery.set(query);
+    this.catalogVisibleLimit.set(8);
+    this.detailVisibleLimit.set(10);
   }
 
-  setTypeFilter(val: QuizTypeFilter): void {
-    this.typeFilter.set(val);
+  setStatusFilter(value: StatusFilter): void {
+    this.statusFilter.set(value);
     this.openDropdown.set(null);
+    this.catalogVisibleLimit.set(8);
+    this.detailVisibleLimit.set(10);
   }
 
-  setCourseFilter(val: string): void {
-    this.courseFilter.set(val);
+  setTypeFilter(value: QuizTypeFilter): void {
+    this.typeFilter.set(value);
     this.openDropdown.set(null);
+    this.catalogVisibleLimit.set(8);
+    this.detailVisibleLimit.set(10);
   }
 
-  setSortKey(val: SortKey): void {
-    this.sortKey.set(val);
+  setCourseFilter(value: string): void {
+    this.courseFilter.set(value);
     this.openDropdown.set(null);
+    this.catalogVisibleLimit.set(8);
+    this.detailVisibleLimit.set(10);
+  }
+
+  setSortKey(value: SortKey): void {
+    this.sortKey.set(value);
+    this.openDropdown.set(null);
+    this.catalogVisibleLimit.set(8);
+    this.detailVisibleLimit.set(10);
   }
 
   clearAllFilters(): void {
@@ -299,14 +358,36 @@ export class QuizListComponent implements OnInit {
     this.typeFilter.set('');
     this.courseFilter.set('');
     this.sortKey.set('NEWEST');
+    this.catalogVisibleLimit.set(8);
+    this.detailVisibleLimit.set(10);
+    this.openDropdown.set(null);
   }
 
   toggleDropdown(name: string): void {
-    this.openDropdown.update(cur => cur === name ? null : name);
+    this.openDropdown.update(current => current === name ? null : name);
   }
 
   closeDropdowns(): void {
     this.openDropdown.set(null);
+  }
+
+  openCourse(courseId: string): void {
+    this.selectedCourseId.set(courseId);
+    this.detailVisibleLimit.set(10);
+    this.closeDropdowns();
+  }
+
+  backToCatalog(): void {
+    this.selectedCourseId.set(null);
+    this.catalogVisibleLimit.set(8);
+  }
+
+  loadMoreCatalog(): void {
+    this.catalogVisibleLimit.update(current => current + 8);
+  }
+
+  loadMoreDetails(): void {
+    this.detailVisibleLimit.update(current => current + 10);
   }
 
   selectCreateCourse(courseId: string): void {
@@ -315,19 +396,23 @@ export class QuizListComponent implements OnInit {
 
   getCreateSelectedCourseTitle(): string {
     const id = this.createSelectedCourseId();
-    if (!id) return '';
-    return this.createCourses().find((c: any) => c.id === id)?.title || '';
+    if (!id) {
+      return '';
+    }
+
+    return this.createCourses().find((course: any) => course.id === id)?.title || '';
   }
 
-  openCreateModal(): void {
+  openCreateModal(preselectedCourseId?: string | null): void {
     this.showCreateModal.set(true);
     this.createStep.set(1);
-    this.createSelectedCourseId.set('');
+    this.createSelectedCourseId.set(preselectedCourseId || '');
     this.createSearchTerm.set('');
     this.createChapters.set([]);
     this.createSelectedChapterId.set('');
     this.createTitle.set('');
     this.createError.set('');
+
     if (this.createCourses().length === 0) {
       this.courseApi.myCourses().subscribe({
         next: (response: any) => {
@@ -344,10 +429,13 @@ export class QuizListComponent implements OnInit {
 
   proceedToStep2(): void {
     const courseId = this.createSelectedCourseId();
-    if (!courseId) return;
+    if (!courseId) {
+      return;
+    }
+
     this.createStep.set(2);
     this.createLoading.set(true);
-    // Load chapters for selected course
+
     this.chapterApi.listChaptersFlat(courseId).subscribe({
       next: (response: any) => {
         const chapters = Array.isArray(response) ? response : (response?.data ?? []);
@@ -369,12 +457,15 @@ export class QuizListComponent implements OnInit {
     const courseId = this.createSelectedCourseId();
     const chapterId = this.createSelectedChapterId();
     const title = this.createTitle().trim();
+
     if (!courseId || !chapterId || !title) {
-      this.createError.set('Vui lòng điền đầy đủ thông tin.');
+      this.createError.set('Vui l\u00f2ng \u0111i\u1ec1n \u0111\u1ea7y \u0111\u1ee7 th\u00f4ng tin.');
       return;
     }
+
     this.createLoading.set(true);
     this.createError.set('');
+
     try {
       const result: any = await firstValueFrom(
         this.quizApi.createCourseQuizV3(courseId, {
@@ -388,8 +479,10 @@ export class QuizListComponent implements OnInit {
           timeLimitMinutes: 30,
         } as any)
       );
+
       const quizId = result?.data?.id || result?.data?.quizId || result?.quizId || result?.id;
       this.closeCreateModal();
+
       if (quizId) {
         this.router.navigate(
           ['/teacher/assessments/classes/quizzes', quizId, 'editor'],
@@ -398,8 +491,8 @@ export class QuizListComponent implements OnInit {
       } else {
         this.loadQuizzes();
       }
-    } catch (err: any) {
-      this.createError.set(err?.error?.message || 'Không thể tạo bài kiểm tra. Vui lòng thử lại.');
+    } catch (error: any) {
+      this.createError.set(error?.error?.message || 'Kh\u00f4ng th\u1ec3 t\u1ea1o b\u00e0i ki\u1ec3m tra. Vui l\u00f2ng th\u1eed l\u1ea1i.');
     } finally {
       this.createLoading.set(false);
     }
@@ -409,59 +502,104 @@ export class QuizListComponent implements OnInit {
     this.router.navigate(['/teacher/assessments/classes/quizzes', quiz.id, 'results']);
   }
 
-  // --- Display helpers ---
+  getCourseEditorLink(courseId: string): string[] {
+    return ['/teacher/courses', courseId, 'editor', 'curriculum'];
+  }
+
   getStatusClass(quiz: TeacherQuiz): string {
-    if (quiz.status?.toUpperCase() === 'DRAFT') return 'bg-slate-50 text-slate-600 border border-slate-200';
-    if (this.isQuizClosed(quiz)) return 'bg-slate-100 text-slate-600 border border-slate-200';
+    if (quiz.status?.toUpperCase() === 'DRAFT') {
+      return 'bg-slate-50 text-slate-600 border border-slate-200';
+    }
+
+    if (this.isQuizClosed(quiz)) {
+      return 'bg-slate-100 text-slate-600 border border-slate-200';
+    }
+
     return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
   }
 
   getStatusText(quiz: TeacherQuiz): string {
-    if (quiz.status?.toUpperCase() === 'DRAFT') return 'Bản nháp';
-    if (this.isQuizClosed(quiz)) return 'Kết thúc';
-    return 'Đang mở';
+    if (quiz.status?.toUpperCase() === 'DRAFT') {
+      return 'B\u1ea3n nh\u00e1p';
+    }
+
+    if (this.isQuizClosed(quiz)) {
+      return 'K\u1ebft th\u00fac';
+    }
+
+    return '\u0110ang m\u1edf';
   }
 
   getQuizTypeClass(quizType?: string): string {
     switch (quizType) {
-      case 'PRACTICE': return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
-      case 'EXAM': return 'bg-purple-50 text-purple-700 border border-purple-200';
-      default: return 'bg-blue-50 text-blue-700 border border-blue-200';
+      case 'PRACTICE':
+        return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+      case 'EXAM':
+        return 'bg-purple-50 text-purple-700 border border-purple-200';
+      default:
+        return 'bg-blue-50 text-blue-700 border border-blue-200';
     }
   }
 
   getQuizTypeText(quizType?: string): string {
     switch (quizType) {
-      case 'PRACTICE': return 'Luyện tập';
-      case 'EXAM': return 'Bài thi';
-      default: return 'Kiểm tra';
+      case 'PRACTICE':
+        return 'Luy\u1ec7n t\u1eadp';
+      case 'EXAM':
+        return 'B\u00e0i thi';
+      default:
+        return 'Ki\u1ec3m tra';
     }
   }
 
   getQuizTypeIcon(quizType?: string): string {
     switch (quizType) {
-      case 'PRACTICE': return 'refresh-cw';
-      case 'EXAM': return 'shield-check';
-      default: return 'clipboard-check';
+      case 'PRACTICE':
+        return 'refresh-cw';
+      case 'EXAM':
+        return 'shield-check';
+      default:
+        return 'clipboard-check';
     }
   }
 
   getPassRateClass(passRate: number | null | undefined): string {
-    if (passRate == null) return '';
-    if (passRate >= 70) return 'bg-emerald-50 text-emerald-700';
-    if (passRate >= 40) return 'bg-amber-50 text-amber-700';
+    if (passRate == null) {
+      return '';
+    }
+
+    if (passRate >= 70) {
+      return 'bg-emerald-50 text-emerald-700';
+    }
+
+    if (passRate >= 40) {
+      return 'bg-amber-50 text-amber-700';
+    }
+
     return 'bg-red-50 text-red-700';
   }
 
   isQuizOpen(quiz: TeacherQuiz): boolean {
-    if (quiz.status?.toUpperCase() !== 'PUBLISHED') return false;
-    if (quiz.lockAt && new Date(quiz.lockAt) < new Date()) return false;
+    if (quiz.status?.toUpperCase() !== 'PUBLISHED') {
+      return false;
+    }
+
+    if (quiz.lockAt && new Date(quiz.lockAt) < new Date()) {
+      return false;
+    }
+
     return true;
   }
 
   isQuizClosed(quiz: TeacherQuiz): boolean {
-    if (quiz.status?.toUpperCase() !== 'PUBLISHED') return false;
-    if (!quiz.lockAt) return false;
+    if (quiz.status?.toUpperCase() !== 'PUBLISHED') {
+      return false;
+    }
+
+    if (!quiz.lockAt) {
+      return false;
+    }
+
     return new Date(quiz.lockAt) < new Date();
   }
 
@@ -469,32 +607,70 @@ export class QuizListComponent implements OnInit {
     return (quiz.essayQuestionCount ?? 0) > 0;
   }
 
+  private getQuizCourseKey(quiz: TeacherQuiz): string {
+    return quiz.courseId || quiz.courseTitle || `course-${quiz.id}`;
+  }
+
+  private buildCourseGroups(quizzes: TeacherQuiz[]): CourseGroup[] {
+    const groups = new Map<string, CourseGroup>();
+
+    for (const quiz of this.applySorting(quizzes)) {
+      const key = this.getQuizCourseKey(quiz);
+      const current = groups.get(key);
+
+      if (current) {
+        current.quizzes.push(quiz);
+        current.totalCount += 1;
+        current.pendingEssayCount += quiz.pendingEssayCount ?? 0;
+        current.openCount += this.isQuizOpen(quiz) ? 1 : 0;
+        current.draftCount += quiz.status?.toUpperCase() === 'DRAFT' ? 1 : 0;
+        current.closedCount += this.isQuizClosed(quiz) ? 1 : 0;
+      } else {
+        groups.set(key, {
+          courseId: key,
+          actualCourseId: quiz.courseId,
+          courseTitle: quiz.courseTitle || 'Kh\u00f3a h\u1ecdc ch\u01b0a x\u00e1c \u0111\u1ecbnh',
+          quizzes: [quiz],
+          totalCount: 1,
+          pendingEssayCount: quiz.pendingEssayCount ?? 0,
+          openCount: this.isQuizOpen(quiz) ? 1 : 0,
+          draftCount: quiz.status?.toUpperCase() === 'DRAFT' ? 1 : 0,
+          closedCount: this.isQuizClosed(quiz) ? 1 : 0,
+        });
+      }
+    }
+
+    return Array.from(groups.values()).sort((left, right) =>
+      left.courseTitle.localeCompare(right.courseTitle, 'vi')
+    );
+  }
+
   private applySorting(quizzes: TeacherQuiz[]): TeacherQuiz[] {
     const sorted = [...quizzes];
     const key = this.sortKey();
 
-    sorted.sort((a, b) => {
-      // Pending essays always float to top
-      const aPending = a.pendingEssayCount ?? 0;
-      const bPending = b.pendingEssayCount ?? 0;
-      if (aPending > 0 && bPending === 0) return -1;
-      if (bPending > 0 && aPending === 0) return 1;
+    sorted.sort((left, right) => {
+      const leftPending = left.pendingEssayCount ?? 0;
+      const rightPending = right.pendingEssayCount ?? 0;
+
+      if (leftPending > 0 && rightPending === 0) return -1;
+      if (rightPending > 0 && leftPending === 0) return 1;
 
       switch (key) {
         case 'NEWEST':
-          return (Date.parse(b.updatedAt || b.createdAt || '') || 0) -
-                 (Date.parse(a.updatedAt || a.createdAt || '') || 0);
+          return (Date.parse(right.updatedAt || right.createdAt || '') || 0) -
+            (Date.parse(left.updatedAt || left.createdAt || '') || 0);
         case 'OLDEST':
-          return (Date.parse(a.createdAt || '') || 0) -
-                 (Date.parse(b.createdAt || '') || 0);
+          return (Date.parse(left.createdAt || '') || 0) -
+            (Date.parse(right.createdAt || '') || 0);
         case 'TITLE_AZ':
-          return (a.title || '').localeCompare(b.title || '', 'vi');
+          return (left.title || '').localeCompare(right.title || '', 'vi');
         case 'TITLE_ZA':
-          return (b.title || '').localeCompare(a.title || '', 'vi');
+          return (right.title || '').localeCompare(left.title || '', 'vi');
         case 'AVG_SCORE':
-          return (b.averageScore ?? -1) - (a.averageScore ?? -1);
+          return (right.averageScore ?? -1) - (left.averageScore ?? -1);
         case 'PASS_RATE':
-          return (b.passRate ?? -1) - (a.passRate ?? -1);
+          return (right.passRate ?? -1) - (left.passRate ?? -1);
         default:
           return 0;
       }
