@@ -119,39 +119,6 @@ export class CourseCurriculumComponent implements OnDestroy {
     event.stopPropagation();
       void this.closeSectionModal();
   };
-  private resizeCleanup: (() => void) | null = null;
-
-  public editorHeight = signal(380);
-
-
-
-  startResize(event: MouseEvent) {
-    event.preventDefault();
-    this.resizeCleanup?.();
-    const startY = event.clientY;
-    const startHeight = this.editorHeight();
-
-    const onMouseMove = (e: MouseEvent) => {
-      const newHeight = startHeight + (e.clientY - startY);
-      if (newHeight > 200) { // Giới hạn chiều cao tối thiểu
-        this.editorHeight.set(newHeight);
-      }
-    };
-
-    const onMouseUp = () => {
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-      this.resizeCleanup = null;
-    };
-
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-    this.resizeCleanup = () => {
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-      this.resizeCleanup = null;
-    };
-  }
 
 
 
@@ -189,8 +156,6 @@ export class CourseCurriculumComponent implements OnDestroy {
   // State
   isSaving = signal(false);
   isLoadingLesson = signal(false);
-  showVideoPreview = signal(false);
-  wordCount = signal(0); // Optimisation: Signal based word count
   private editorBaselineSignature = signal('');
   private editorDirty = signal(false);
 
@@ -527,7 +492,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       this.sectionSurfaceHydrationKey = nextHydrationKey;
       this.closeSectionQuizChildSurfaces();
       this.showSectionModal.set(true);
-      this.hydrateSectionState(sectionContext.section);
+      this.editorSvc.hydrateSectionForm(sectionContext.section);
     });
 
     // Validates that the currently selected lesson is updated from the new tree.
@@ -607,77 +572,6 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.markEditorUnsaved();
   }
 
-  onSectionTitleChange(value: string) {
-    this.sectionTitle = value;
-    this.markEditorUnsaved();
-  }
-
-  onSectionRequiredChange(value: boolean) {
-    this.sectionIsRequired = value;
-    this.markEditorUnsaved();
-  }
-
-  onSectionContentModelChange(value: string) {
-    this.sectionContent = value;
-  }
-
-  onSectionVideoUrlChange(value: string) {
-    this.sectionVideoUrl = value;
-    if (!value) {
-      this.sectionStreamVideoUid = null;
-    } else if (!value.includes('videodelivery.net')) {
-      this.sectionStreamVideoUid = null;
-      this.selectedSectionVideoFile = null;
-    }
-    this.syncSectionVideoMetadata(value);
-    this.markEditorUnsaved();
-  }
-
-  onSectionVideoAssetIdChange(value: string | null) {
-    this.sectionVideoAssetId = value;
-    if (!value) {
-      this.sectionVideoProcessingStatus = null;
-      this.sectionVideoAvailableOfflineProfiles = [];
-    }
-    this.syncSectionVideoMetadata(this.sectionVideoUrl);
-    this.markEditorUnsaved();
-  }
-
-  onSectionVideoProcessingStatusChange(value: string | null) {
-    this.sectionVideoProcessingStatus = value;
-    if (this.sectionVideoAssetId && value && !['READY', 'FAILED'].includes(value.toUpperCase())) {
-      this.scheduleSectionVideoPoll(this.sectionVideoAssetId);
-    }
-    this.markEditorUnsaved();
-  }
-
-  onSectionStreamVideoUidChange(value: string | null) {
-    this.sectionStreamVideoUid = value;
-    if (value) {
-      this.sectionVideoType = 'CLOUDFLARE';
-    }
-    this.markEditorUnsaved();
-  }
-
-  onSectionVideoFileSelected(file: File | null) {
-    this.selectedSectionVideoFile = file;
-    if (file) {
-      this.sectionVideoAssetId = null;
-      this.sectionVideoProcessingStatus = null;
-      this.sectionVideoAvailableOfflineProfiles = [];
-      this.sectionVideoType = 'CLOUDFLARE';
-    }
-    this.markEditorUnsaved();
-  }
-
-  onClearSelectedSectionVideoFile() {
-    this.selectedSectionVideoFile = null;
-    if (!this.sectionStreamVideoUid && !this.sectionVideoUrl && !this.sectionVideoAssetId) {
-      this.sectionVideoType = null;
-    }
-    this.markEditorUnsaved();
-  }
-
   onAssignmentDescriptionChange(value: string) {
     this.assignmentDescription = value;
     this.markEditorUnsaved();
@@ -696,38 +590,6 @@ export class CourseCurriculumComponent implements OnDestroy {
   onAssignmentMaxScoreChange(value: number | string) {
     const next = this.coerceNumber(value, this.assignmentMaxScore);
     this.assignmentMaxScore = Math.max(1, next);
-    this.markEditorUnsaved();
-  }
-
-  onSectionQuizTypeChange(type: SectionQuizAssessmentType) {
-    if (this.sectionQuizType === type) {
-      return;
-    }
-
-    this.sectionQuizType = type;
-    if (type !== 'EXAM') {
-      this.sectionQuizCountsTowardCertificate = false;
-    }
-    this.markEditorUnsaved();
-  }
-
-  onSectionQuizCountsTowardCertificateChange(value: boolean) {
-    this.sectionQuizCountsTowardCertificate = this.sectionQuizType === 'EXAM' && value;
-    this.markEditorUnsaved();
-  }
-
-  onSectionQuizShuffleQuestionsChange(value: boolean) {
-    this.sectionQuizShuffleQuestions = value;
-    this.markEditorUnsaved();
-  }
-
-  onSectionQuizShuffleOptionsChange(value: boolean) {
-    this.sectionQuizShuffleOptions = value;
-    this.markEditorUnsaved();
-  }
-
-  onSectionQuizShowResultsChange(value: boolean) {
-    this.sectionQuizShowResults = value;
     this.markEditorUnsaved();
   }
 
@@ -935,7 +797,6 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.selectedFile = null;
     this.selectedSectionVideoFile = null;
     this.safePdfUrl.set(null);
-    this.wordCount.set(0);
   }
 
   private closeSectionQuizChildSurfaces() {
@@ -947,90 +808,6 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.sectionSurfaceMode.set('closed');
     this.sectionSurfaceId.set(null);
     this.sectionSurfaceHydrationKey = null;
-  }
-
-  private hydrateSectionState(section: SectionDraftDTO) {
-    this.isDataLoaded.set(false);
-    this.resetSectionModalTransientState();
-
-    this.editingSectionId.set(section.id);
-    this.sectionTitle = section.title;
-    this.newSectionType = (section.type as any) || 'TEXT';
-    this.sectionContent = section.content || '';
-    this.sectionVideoAssetId = (section as any).videoAssetId || null;
-    this.sectionVideoProcessingStatus = (section as any).videoProcessingStatus || null;
-    this.sectionVideoAvailableOfflineProfiles = this.normalizeSectionVideoProfiles(
-      (section as any).availableOfflineProfiles,
-    );
-    this.sectionVideoUrl = section.videoUrl || '';
-    this.sectionVideoType = (section as any).videoType || null;
-    this.sectionStreamVideoUid = (section as any).streamVideoUid || null;
-    this.sectionCfObjectKey = (section as any).cfObjectKey || null;
-    this.sectionFileUrl.set(section.fileUrl || null);
-    this.sectionIsRequired = (section as any).isRequired || false;
-    this.syncSectionVideoMetadata(this.sectionVideoUrl);
-    if (
-      this.sectionVideoAssetId
-      && !['READY', 'FAILED'].includes((this.sectionVideoProcessingStatus || '').toUpperCase())
-    ) {
-      this.scheduleSectionVideoPoll(this.sectionVideoAssetId);
-    }
-
-    if (this.newSectionType === 'QUIZ') {
-      const quizData = (section as any).quizData;
-      if (quizData) {
-        this.sectionQuizType = quizData.quizType === 'PRACTICE'
-          ? 'PRACTICE'
-          : (quizData.quizType === 'EXAM' ? 'EXAM' : 'ASSESSMENT');
-        this.sectionQuizCountsTowardCertificate = this.sectionQuizType === 'EXAM'
-          && quizData.countsTowardCertificate === true;
-        this.sectionQuizTimeLimit.set(quizData.timeLimitMinutes || 30);
-        this.sectionQuizPassingScore.set(quizData.passingScore || 60);
-        this.sectionQuizMaxAttempts.set(quizData.maxAttempts || 1);
-        this.sectionQuizShuffleQuestions = quizData.shuffleQuestions ?? true;
-        this.sectionQuizShuffleOptions = quizData.shuffleOptions ?? true;
-        this.sectionQuizShowResults = quizData.showResultsImmediately ?? true;
-        if (quizData.questions && quizData.questions.length > 0) {
-          this.sectionQuizSelectedQuestions.set(quizData.questions.map((q: any) => ({
-            id: q.id,
-            content: q.content,
-            difficulty: q.difficulty ?? 'MEDIUM'
-          })));
-        } else {
-          this.sectionQuizSelectedQuestions.set([]);
-        }
-      } else {
-        this.resetSectionQuizFields();
-      }
-      this.isDataLoaded.set(true);
-      this.refreshEditorBaseline();
-      return;
-    }
-
-    if (this.newSectionType === 'FILE') {
-      if (this.isPdfFile(section) && section.fileUrl) {
-        this.pdfService.getSafePdfUrl(section.fileUrl).subscribe(url => {
-          this.safePdfUrl.set(url);
-        });
-      } else {
-        this.safePdfUrl.set(null);
-      }
-      this.isDataLoaded.set(true);
-      this.refreshEditorBaseline();
-      return;
-    }
-
-    this.safePdfUrl.set(null);
-    if (this.newSectionType === 'TEXT') {
-      setTimeout(() => {
-        this.isDataLoaded.set(true);
-        this.refreshEditorBaseline();
-      }, 100);
-      return;
-    }
-
-    this.isDataLoaded.set(true);
-    this.refreshEditorBaseline();
   }
 
   private restoreCurrentEditorState() {
@@ -1047,7 +824,7 @@ export class CourseCurriculumComponent implements OnDestroy {
     }
 
     if (section) {
-      this.hydrateSectionState(section);
+      this.editorSvc.hydrateSectionForm(section);
       return;
     }
 
@@ -1696,41 +1473,6 @@ export class CourseCurriculumComponent implements OnDestroy {
     return 'Bài tập này áp dụng cho toàn bộ học viên đã ghi danh trong khóa học tự học.';
   }
 
-  async loadPackageQuestions() {
-    if (!this.selectedPackageId) {
-      this.packageQuestions.set([]);
-      return;
-    }
-    try {
-      const questions = await firstValueFrom(this.packageApi.getQuestionsInPackage(this.selectedPackageId));
-      this.packageQuestions.set(questions || []);
-      this.selectedQuestionIds.set(new Set());
-    } catch (err: any) {
-      this.packageQuestions.set([]);
-      this.toast.error('Tải câu hỏi từ gói thất bại');
-    }
-  }
-
-  selectAllQuestions() {
-    const allIds = new Set(this.packageQuestions().map((q: any) => q.id));
-    this.selectedQuestionIds.set(allIds);
-  }
-
-  clearQuestionSelection() {
-    this.selectedQuestionIds.set(new Set());
-  }
-
-  toggleQuestionSelection(questionId: string) {
-    const current = this.selectedQuestionIds();
-    const newSet = new Set(current);
-    if (newSet.has(questionId)) {
-      newSet.delete(questionId);
-    } else {
-      newSet.add(questionId);
-    }
-    this.selectedQuestionIds.set(newSet);
-  }
-
   // Section Methods (L3)
   async openSectionEditor(type: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE') {
     if (!(await this.confirmDiscardChangesIfNeeded())) {
@@ -1794,7 +1536,7 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.sectionSurfaceHydrationKey = `edit|${section.id}`;
     this.closeSectionQuizChildSurfaces();
     this.showSectionModal.set(true);
-    this.hydrateSectionState(section);
+    this.editorSvc.hydrateSectionForm(section);
   }
 
   // AI Course Generation: subscribe to progress events
@@ -1830,7 +1572,6 @@ export class CourseCurriculumComponent implements OnDestroy {
     if (typeof window !== 'undefined') {
       window.removeEventListener('keydown', this.handleWindowKeydown, true);
     }
-    this.resizeCleanup?.();
     this.clearSectionVideoPollTimer();
     this.pdfService.cleanup();
   }
@@ -2233,112 +1974,6 @@ export class CourseCurriculumComponent implements OnDestroy {
   getSafePdfUrl(url: string | null): any {
     if (!url) return null;
     return this.sanitizer.bypassSecurityTrustResourceUrl(url);
-  }
-
-  // ============================================
-  // Section Quiz Methods (for QUIZ type sections)
-  // ============================================
-
-  openSectionQuizBankModal() {
-    if (!this.showSectionModal()) {
-      return;
-    }
-
-    this.showSectionQuizRandomModal.set(false);
-    this.showSectionQuizBankModal.set(true);
-    this.selectedPackageId = '';
-    this.packageQuestions.set([]);
-    this.selectedQuestionIds.set(new Set());
-  }
-
-  openSectionQuizRandomModal() {
-    if (!this.showSectionModal()) {
-      return;
-    }
-
-    this.showSectionQuizBankModal.set(false);
-    this.showSectionQuizRandomModal.set(true);
-    this.selectedPackageId = '';
-    this.sectionQuizRandomCount.set(5);
-  }
-
-  async addSectionQuizQuestionsFromBank() {
-    if (this.selectedQuestionIds().size === 0) return;
-
-    try {
-      const questionIds = Array.from(this.selectedQuestionIds());
-      const allQuestions = this.packageQuestions();
-      const selectedQuestions = allQuestions.filter(q => questionIds.includes(q.id));
-
-      // Add to current selection (avoid duplicates)
-      const currentIds = new Set(this.sectionQuizSelectedQuestions().map(q => q.id));
-      const newQuestions = selectedQuestions.filter(q => !currentIds.has(q.id));
-
-      if (newQuestions.length === 0) {
-        this.toast.warning('Các câu hỏi đã chọn đã có trong mục này.');
-        return;
-      }
-
-      this.sectionQuizSelectedQuestions.update(current => [...current, ...newQuestions]);
-      this.markEditorUnsaved();
-      this.showSectionQuizBankModal.set(false);
-      this.selectedQuestionIds.set(new Set());
-    } catch (err: any) {
-      this.toast.error('Thêm câu hỏi từ ngân hàng thất bại');
-    }
-  }
-
-  async generateSectionQuizRandomQuestions() {
-    if (!this.selectedPackageId) return;
-
-    try {
-      const questions = await firstValueFrom(this.packageApi.getQuestionsInPackage(this.selectedPackageId));
-      if (!questions || questions.length === 0) {
-        this.toast.warning('Gói câu hỏi này không có dữ liệu!');
-        return;
-      }
-
-      // Add to current selection (avoid duplicates)
-      const currentIds = new Set(this.sectionQuizSelectedQuestions().map(q => q.id));
-      const availableQuestions = questions.filter((q: any) => !currentIds.has(q.id));
-      if (availableQuestions.length === 0) {
-        this.toast.warning('Gói câu hỏi này không còn câu hỏi mới để thêm vào mục này.');
-        return;
-      }
-
-      const count = this.sectionQuizRandomCount();
-      const selectionCount = Math.min(count, availableQuestions.length);
-      const shuffled = [...availableQuestions].sort(() => 0.5 - Math.random());
-      const newQuestions = shuffled.slice(0, selectionCount);
-
-      this.sectionQuizSelectedQuestions.update(current => [...current, ...newQuestions]);
-      this.markEditorUnsaved();
-      this.showSectionQuizRandomModal.set(false);
-      if (newQuestions.length < count) {
-        this.toast.info(`Chỉ còn ${newQuestions.length} câu hỏi mới trong gói này, hệ thống đã thêm toàn bộ câu khả dụng.`);
-      }
-    } catch {
-      this.toast.error('Lỗi khi tạo câu hỏi ngẫu nhiên.');
-    }
-  }
-
-  removeSectionQuizQuestion(questionId: string) {
-    this.sectionQuizSelectedQuestions.update(current =>
-      current.filter(q => q.id !== questionId)
-    );
-    this.markEditorUnsaved();
-  }
-
-  // Helper methods for template (Angular doesn't support arrow functions in templates)
-  decreaseSectionQuizRandomCount() {
-    const current = this.sectionQuizRandomCount();
-    if (current > 1) {
-      this.sectionQuizRandomCount.set(current - 1);
-    }
-  }
-
-  increaseSectionQuizRandomCount() {
-    this.sectionQuizRandomCount.update(v => v + 1);
   }
 
   // Reset section quiz fields when opening new section
