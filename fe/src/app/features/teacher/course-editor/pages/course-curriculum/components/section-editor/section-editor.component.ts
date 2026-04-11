@@ -248,21 +248,21 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                     <label class="mb-1 block text-xs font-medium text-slate-500">Phút</label>
                     <input type="number" min="1"
                       [ngModel]="svc.sectionQuizTimeLimit()"
-                      (ngModelChange)="svc.sectionQuizTimeLimit.set($event); svc.markDirty()"
+                      (ngModelChange)="svc.sectionQuizTimeLimit.set(+$event); svc.markDirty()"
                       class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
                   </div>
                   <div>
                     <label class="mb-1 block text-xs font-medium text-slate-500">Điểm đạt</label>
                     <input type="number" min="0" max="100"
                       [ngModel]="svc.sectionQuizPassingScore()"
-                      (ngModelChange)="svc.sectionQuizPassingScore.set($event); svc.markDirty()"
+                      (ngModelChange)="svc.sectionQuizPassingScore.set(+$event); svc.markDirty()"
                       class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
                   </div>
                   <div>
                     <label class="mb-1 block text-xs font-medium text-slate-500">Số lần</label>
                     <input type="number" min="1"
                       [ngModel]="svc.sectionQuizMaxAttempts()"
-                      (ngModelChange)="svc.sectionQuizMaxAttempts.set($event); svc.markDirty()"
+                      (ngModelChange)="svc.sectionQuizMaxAttempts.set(+$event); svc.markDirty()"
                       class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
                   </div>
                 </div>

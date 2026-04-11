@@ -35,6 +35,7 @@ import { CurriculumAssessmentSummaryComponent } from './components/curriculum-as
 import { CurriculumAssignmentDetailsComponent } from './components/curriculum-assignment-details/curriculum-assignment-details.component';
 import { CurriculumQuizManagerComponent } from './components/curriculum-quiz-manager/curriculum-quiz-manager.component';
 import { CurriculumSectionModalComponent } from './components/curriculum-section-modal/curriculum-section-modal.component';
+import { ChapterEditorComponent } from './components/chapter-editor/chapter-editor.component';
 
 type SectionQuizAssessmentType = 'PRACTICE' | 'ASSESSMENT' | 'EXAM';
 
@@ -49,7 +50,8 @@ type SectionQuizAssessmentType = 'PRACTICE' | 'ASSESSMENT' | 'EXAM';
     CurriculumAssessmentSummaryComponent,
     CurriculumAssignmentDetailsComponent,
     CurriculumQuizManagerComponent,
-    CurriculumSectionModalComponent
+    CurriculumSectionModalComponent,
+    ChapterEditorComponent
   ],
   styleUrl: './course-curriculum.component.scss',
   providers: [],

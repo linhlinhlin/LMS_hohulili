@@ -153,9 +153,9 @@ import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
               [maxAttempts]="quizMaxAttempts()"
               [questions]="quizQuestions()"
               [loading]="quizQuestionsLoading()"
-              (timeLimitChange)="quizTimeLimitChange.emit($event)"
-              (passingScoreChange)="quizPassingScoreChange.emit($event)"
-              (maxAttemptsChange)="quizMaxAttemptsChange.emit($event)">
+              (timeLimitChange)="quizTimeLimitChange.emit(+$event)"
+              (passingScoreChange)="quizPassingScoreChange.emit(+$event)"
+              (maxAttemptsChange)="quizMaxAttemptsChange.emit(+$event)">
             </app-curriculum-quiz-manager>
           </div>
         }
@@ -183,7 +183,7 @@ import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
               (descriptionChange)="assignmentDescriptionChange.emit($event)"
               (instructionsChange)="assignmentInstructionsChange.emit($event)"
               (dueDateChange)="assignmentDueDateChange.emit($event)"
-              (maxScoreChange)="assignmentMaxScoreChange.emit($event)">
+              (maxScoreChange)="assignmentMaxScoreChange.emit(+$event)">
             </app-curriculum-assignment-details>
           </div>
         }

@@ -16,6 +16,7 @@ import { PdfViewerService } from '../../../../shared/services/pdf-viewer.service
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import type { OfflineVideoProfileDescriptor } from '../../../../core/models/video-quality';
+import type { ApiResponse } from '../../../../api/types/common.types';
 
 export type EditorMode = 'empty' | 'chapter' | 'lesson';
 export type SectionSurfaceMode = 'closed' | 'create' | 'edit';
@@ -206,7 +207,7 @@ export class CurriculumEditorService {
     const confirmed = await this.confirmDialog.confirm({
       title: 'Xóa mục nội dung?',
       message: 'Hành động này không thể hoàn tác. Mọi nội dung trong mục sẽ bị xóa vĩnh viễn.',
-      variant: 'destructive',
+      variant: 'danger',
       confirmText: 'Xóa',
       cancelText: 'Hủy',
     });
@@ -234,7 +235,10 @@ export class CurriculumEditorService {
         filter((event: UploadEvent): event is Extract<UploadEvent, { type: 'complete' }> => event.type === 'complete'),
       ),
     );
-    return firstValueFrom(this.videoAssetApi.createFromUpload(uploadResult.id, file.name));
+    const res: ApiResponse<VideoAssetResponse> = await firstValueFrom(
+      this.videoAssetApi.createFromUpload(uploadResult.id, file.name),
+    );
+    return res.data;
   }
 
   scheduleSectionVideoPoll(assetId: string, delayMs = 5000): void {
@@ -242,7 +246,8 @@ export class CurriculumEditorService {
 
     this.sectionVideoPollTimer = setTimeout(async () => {
       try {
-        const asset = await firstValueFrom(this.videoAssetApi.getById(assetId));
+        const res: ApiResponse<VideoAssetResponse> = await firstValueFrom(this.videoAssetApi.getById(assetId));
+        const asset = res.data;
         this.sectionVideoProcessingStatus.set(asset.status ?? null);
 
         if (asset.status === 'READY') {
@@ -274,7 +279,7 @@ export class CurriculumEditorService {
     if (!assetId) return;
 
     try {
-      await firstValueFrom(this.videoAssetApi.retry(assetId));
+      await firstValueFrom(this.videoAssetApi.retry(assetId) as any);
       this.sectionVideoProcessingStatus.set('PROCESSING');
       this.scheduleSectionVideoPoll(assetId);
     } catch {
@@ -341,7 +346,7 @@ export class CurriculumEditorService {
 
     // Quiz
     if (section.type === 'QUIZ' && section.quizData) {
-      const qd = section.quizData;
+      const qd = section.quizData as any;
       this.sectionQuizType.set((qd.quizType as SectionQuizAssessmentType) || 'PRACTICE');
       this.sectionQuizCountsTowardCertificate.set(qd.countsTowardCertificate ?? false);
       this.sectionQuizTimeLimit.set(qd.timeLimitMinutes ?? 30);
