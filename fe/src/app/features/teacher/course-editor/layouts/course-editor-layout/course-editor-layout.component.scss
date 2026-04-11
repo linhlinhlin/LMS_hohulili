@@ -5,6 +5,13 @@
   --editor-nav-padding: 1.5rem;
 }
 
+// Sidebar grid: desktop only — mobile uses overlay positioning
+@media (min-width: 768px) {
+  main.sidebar-open {
+    grid-template-columns: var(--editor-sidebar-width) 1fr !important;
+  }
+}
+
 .editor-layout-tabs {
   padding-inline: var(--editor-nav-padding);
 }

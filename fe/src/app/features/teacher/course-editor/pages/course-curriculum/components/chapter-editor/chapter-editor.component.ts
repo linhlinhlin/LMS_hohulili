@@ -27,7 +27,7 @@ import { ChapterDraftDTO, LessonDraftDTO } from '../../../../services/course-aut
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FormsModule],
   template: `
-    <div class="editor-workspace-card bg-white shadow-sm border border-gray-200 flex-grow overflow-hidden flex flex-col">
+    <div class="editor-workspace-card bg-white shadow-sm border border-gray-200 overflow-hidden flex flex-col rounded-xl">
 
       @if (isLoading()) {
         <!-- Skeleton -->

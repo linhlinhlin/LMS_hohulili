@@ -1,8 +1,8 @@
 
-<div class="course-curriculum-shell min-h-full flex flex-col pb-20">
+<div class="course-curriculum-shell min-h-full flex flex-col pb-8 px-6 py-6 max-w-4xl">
   <!-- Empty State — Onboarding Guide (Teachable/Canvas pattern) -->
   @if (!selectedChapterId() && !selectedLessonId()) {
-    <div class="editor-workspace-card editor-workspace-card--empty bg-white shadow-sm border border-gray-200 flex-grow flex items-center justify-center">
+    <div class="editor-workspace-card editor-workspace-card--empty bg-white shadow-sm border border-gray-200 flex items-center justify-center min-h-[400px] rounded-xl">
       <div class="p-8 max-w-lg w-full">
 
         @if (store.chapters().length === 0) {

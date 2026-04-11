@@ -470,7 +470,7 @@ export class SectionEditorComponent {
   getTypeIconName(): string {
     const type = this.svc.sectionEditorType();
     switch (type) {
-      case 'TEXT': return 'align-left';
+      case 'TEXT': return 'pilcrow';
       case 'VIDEO': return 'play-circle';
       case 'FILE': return 'file-text';
       case 'QUIZ': return 'help-circle';

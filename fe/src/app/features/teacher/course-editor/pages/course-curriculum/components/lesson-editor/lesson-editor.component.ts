@@ -42,7 +42,7 @@ import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
     SectionEditorComponent,
   ],
   template: `
-    <div class="editor-workspace-card bg-white shadow-sm border border-gray-200 flex-grow overflow-hidden flex flex-col">
+    <div class="editor-workspace-card bg-white shadow-sm border border-gray-200 overflow-hidden flex flex-col rounded-xl">
 
       @if (isLoading()) {
         <!-- Skeleton -->

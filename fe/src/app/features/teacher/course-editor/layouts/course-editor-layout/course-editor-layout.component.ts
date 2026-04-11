@@ -36,12 +36,18 @@ import { filter, take, map } from 'rxjs/operators';
         (toggleSidebar)="toggleSidebar()">
       </app-course-editor-header>
 
-      <main class="flex-grow grid overflow-hidden relative transition-[grid-template-columns] duration-300 ease-in-out"
-            [style.grid-template-columns]="sidebarCollapsed() ? '1fr' : '320px 1fr'">
+      <main class="flex-grow grid grid-cols-1 overflow-hidden relative"
+            [class.sidebar-open]="!sidebarCollapsed()">
 
-        <!-- Sidebar Container -->
+        <!-- Sidebar: Desktop = grid column, Mobile = overlay -->
         @if (!sidebarCollapsed()) {
-          <div class="h-full overflow-hidden border-r border-slate-200 bg-white z-10 transition-[opacity] duration-300">
+          <!-- Mobile backdrop -->
+          <div class="fixed inset-0 bg-black/30 z-20 md:hidden" (click)="toggleSidebar()"></div>
+
+          <!-- Sidebar panel -->
+          <div class="fixed top-14 left-0 bottom-0 w-[300px] overflow-hidden border-r border-slate-200 bg-white z-30 shadow-xl
+                      md:static md:w-auto md:shadow-none md:z-10 md:top-auto md:left-auto md:bottom-auto
+                      transition-[opacity] duration-300">
             <app-course-editor-sidebar class="h-full block"></app-course-editor-sidebar>
           </div>
         }
@@ -285,11 +291,12 @@ export class CourseEditorLayoutComponent implements OnInit {
 
   private updateSidebarForRoute(url: string) {
     const lastSegment = this.getRouteTailSegment(url);
-    // Collapse on info/settings, expand on curriculum/classes
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    // Collapse on info/settings, expand on curriculum/classes (desktop only)
     if (lastSegment === 'info' || lastSegment === 'settings') {
       this.sidebarCollapsed.set(true);
     } else if (lastSegment === 'curriculum' || lastSegment === 'classes') {
-      this.sidebarCollapsed.set(false);
+      this.sidebarCollapsed.set(isMobile); // collapsed on mobile, expanded on desktop
     }
   }
 
