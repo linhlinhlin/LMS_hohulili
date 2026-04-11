@@ -37,6 +37,7 @@ import { CurriculumQuizManagerComponent } from './components/curriculum-quiz-man
 import { ChapterEditorComponent } from './components/chapter-editor/chapter-editor.component';
 import { LessonEditorComponent } from './components/lesson-editor/lesson-editor.component';
 import { CurriculumEditorService } from '../../services/curriculum-editor.service';
+import { QuizPackageModalsComponent } from './components/quiz-package-modals/quiz-package-modals.component';
 
 type SectionQuizAssessmentType = 'PRACTICE' | 'ASSESSMENT' | 'EXAM';
 
@@ -52,7 +53,8 @@ type SectionQuizAssessmentType = 'PRACTICE' | 'ASSESSMENT' | 'EXAM';
     CurriculumAssignmentDetailsComponent,
     CurriculumQuizManagerComponent,
     ChapterEditorComponent,
-    LessonEditorComponent
+    LessonEditorComponent,
+    QuizPackageModalsComponent
   ],
   styleUrl: './course-curriculum.component.scss',
   providers: [],
@@ -213,13 +215,13 @@ export class CourseCurriculumComponent implements OnDestroy {
   private inFlightLessonDetailId: string | null = null;
   private sectionVideoPollTimer: ReturnType<typeof setTimeout> | null = null;
 
-  // Quiz packages
+  // Quiz packages — now managed by QuizPackageModalsComponent
   quizPackages = signal<any[]>([]);
   selectedPackageId = '';
   packageQuestions = signal<any[]>([]);
   selectedQuestionIds = signal<Set<string>>(new Set());
 
-  // Section Quiz Fields (for QUIZ type sections)
+  // Section Quiz Fields — legacy sync (used by hydrateSectionState/effects, will be removed in Phase 3)
   sectionQuizType: SectionQuizAssessmentType = 'PRACTICE';
   sectionQuizCountsTowardCertificate = false;
   sectionQuizTimeLimit = signal(30);

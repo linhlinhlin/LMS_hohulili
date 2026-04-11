@@ -44,6 +44,28 @@ import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
   template: `
     <div class="editor-workspace-card bg-white shadow-sm border border-gray-200 flex-grow overflow-hidden flex flex-col">
 
+      @if (isLoading()) {
+        <!-- Skeleton -->
+        <div class="p-6 space-y-4 animate-pulse">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-gray-200 rounded-lg"></div>
+            <div class="space-y-2 flex-1">
+              <div class="h-5 bg-gray-200 rounded w-1/4"></div>
+              <div class="h-3 bg-gray-100 rounded w-1/5"></div>
+            </div>
+          </div>
+          <div class="h-10 bg-gray-200 rounded-lg w-full"></div>
+          <div class="space-y-3">
+            <div class="h-32 bg-gray-100 rounded-xl w-full"></div>
+            <div class="grid grid-cols-3 gap-2">
+              <div class="h-20 bg-gray-100 rounded-lg"></div>
+              <div class="h-20 bg-gray-100 rounded-lg"></div>
+              <div class="h-20 bg-gray-100 rounded-lg"></div>
+            </div>
+          </div>
+        </div>
+      } @else {
+
       <!-- ═══ Header ═══ -->
       <div class="editor-workspace-card__header px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
         <div class="flex items-center gap-3 min-w-0">
@@ -209,10 +231,12 @@ import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
           Lưu thay đổi
         </button>
       </div>
+      }
     </div>
   `,
 })
 export class LessonEditorComponent {
+  readonly isLoading = input(false);
   readonly editorSvc = inject(CurriculumEditorService);
 
   // Core inputs

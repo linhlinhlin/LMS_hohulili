@@ -29,6 +29,26 @@ import { ChapterDraftDTO, LessonDraftDTO } from '../../../../services/course-aut
   template: `
     <div class="editor-workspace-card bg-white shadow-sm border border-gray-200 flex-grow overflow-hidden flex flex-col">
 
+      @if (isLoading()) {
+        <!-- Skeleton -->
+        <div class="p-6 space-y-4 animate-pulse">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-gray-200 rounded-lg"></div>
+            <div class="space-y-2 flex-1">
+              <div class="h-5 bg-gray-200 rounded w-1/3"></div>
+              <div class="h-3 bg-gray-100 rounded w-1/4"></div>
+            </div>
+          </div>
+          <div class="h-10 bg-gray-200 rounded-lg w-full"></div>
+          <div class="h-20 bg-gray-200 rounded-lg w-full"></div>
+          <div class="border-t border-gray-200 pt-4 space-y-2">
+            <div class="h-4 bg-gray-200 rounded w-1/4"></div>
+            <div class="h-12 bg-gray-100 rounded-lg w-full"></div>
+            <div class="h-12 bg-gray-100 rounded-lg w-full"></div>
+          </div>
+        </div>
+      } @else {
+
       <!-- ═══ Header ═══ -->
       <div class="editor-workspace-card__header px-6 py-4 border-b border-gray-200 flex items-center gap-3 flex-shrink-0">
         <div class="w-10 h-10 bg-[#0056D2]/10 rounded-lg flex items-center justify-center">
@@ -120,11 +140,13 @@ import { ChapterDraftDTO, LessonDraftDTO } from '../../../../services/course-aut
           Lưu thay đổi
         </button>
       </div>
+      }
     </div>
   `,
 })
 export class ChapterEditorComponent {
   // Inputs
+  readonly isLoading = input(false);
   readonly chapter = input.required<ChapterDraftDTO>();
   readonly isSaving = input(false);
 
