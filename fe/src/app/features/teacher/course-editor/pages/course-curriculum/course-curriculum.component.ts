@@ -19,26 +19,6 @@ import { QuizApi } from '../../../../../api/endpoints/quiz.api';
 import { PackageApi } from '../../../../../api/endpoints/package.api';
 import { firstValueFrom } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
-import {
-  ClassicEditor,
-  // Essentials
-  Essentials, Paragraph,
-  // Styling
-  Bold, Italic, Underline, Strikethrough, Subscript, Superscript, RemoveFormat,
-  // Font
-  Font, FontFamily, FontSize, FontColor, FontBackgroundColor,
-  // Layout & Structure
-  Alignment, List, Indent, IndentBlock, BlockQuote, Heading,
-  // Media & Insert
-  Link, Image, ImageUpload, ImageToolbar, ImageStyle, ImageResize, ImageCaption,
-  Table, TableToolbar, MediaEmbed,
-  // Utils
-  SourceEditing, Autoformat,
-  // Helper classes
-  EventInfo
-} from 'ckeditor5';
-import viTranslations from 'ckeditor5/translations/vi.js';
-import { createServerUploadPlugin } from '../../../../../core/utils/server-upload-adapter';
 import { environment } from '../../../../../../environments/environment';
 import { PresignedUploadService, type UploadEvent } from '../../../../../core/services/presigned-upload.service';
 import { PdfViewerService } from '../../../../../shared/services/pdf-viewer.service';
@@ -103,7 +83,6 @@ export class CourseCurriculumComponent implements OnDestroy {
   private hydratedSectionComposerKey: string | null = null;
   private inFlightSectionHydrationKey: string | null = null;
   private lessonDetailRequestToken = 0;
-  private ignoreNextSectionEditorChange = false;
   private sectionSurfaceMode = signal<'closed' | 'create' | 'edit'>('closed');
   private sectionSurfaceId = signal<string | null>(null);
   private sectionSurfaceHydrationKey: string | null = null;
@@ -136,77 +115,7 @@ export class CourseCurriculumComponent implements OnDestroy {
   };
   private resizeCleanup: (() => void) | null = null;
 
-  // CKEditor
-  public Editor = ClassicEditor;
   public editorHeight = signal(380);
-  public editorInstance: any;
-
-  public editorConfig = {
-    licenseKey: 'GPL',
-    language: 'vi',
-    translations: [viTranslations],
-    // [QUAN TRỌNG] Phải nạp Plugins vào đây thì Toolbar mới hiện
-    plugins: [
-      Essentials, Paragraph, Heading,
-      Bold, Italic, Underline, Strikethrough, Subscript, Superscript, RemoveFormat,
-      Font, FontFamily, FontSize, FontColor, FontBackgroundColor,
-      Alignment, List, Indent, IndentBlock, BlockQuote,
-      Link, Image, ImageUpload, ImageToolbar, ImageStyle, ImageResize, ImageCaption,
-      Table, TableToolbar, MediaEmbed,
-      SourceEditing, Autoformat,
-
-      // Server-side image upload (prevents Base64 DB bloat)
-      createServerUploadPlugin(this.http, environment.apiUrl)
-    ],
-
-    // Cấu hình Toolbar (Thiết lập nút bấm)
-    toolbar: {
-      items: [
-        'undo', 'redo', '|',
-        'heading', '|',
-        'fontFamily', 'fontSize', 'fontColor', 'fontBackgroundColor', '|',
-        'bold', 'italic', 'underline', 'strikethrough', 'removeFormat', '|',
-        'alignment', 'bulletedList', 'numberedList', 'outdent', 'indent', '|',
-        'link', 'uploadImage', 'insertTable', 'mediaEmbed', 'blockQuote', '|',
-        'sourceEditing'
-      ],
-      shouldNotGroupWhenFull: true // Tổng nhóm nút nếu màn hình nhỏ
-    },
-
-    // Cấu hình Font (Cài đặt Arial làm mặc định)
-    fontFamily: {
-      options: [
-        'default', // Mặc định của theme
-        'Arial, Helvetica, sans-serif',
-        'Times New Roman, Times, serif',
-        'Courier New, Courier, monospace',
-        'Verdana, Geneva, sans-serif'
-      ],
-      supportAllValues: true
-    },
-
-    // Cấu hình ảnh (Thanh công cụ khi click vào ảnh)
-    image: {
-      toolbar: [
-        'imageTextAlternative', // Alt text
-        'toggleImageCaption',   // Chú thích
-        '|',
-        'imageStyle:inline',    // Căn dòng
-        'imageStyle:block',     // Xuống dòng
-        'imageStyle:side',
-        '|',
-        'resizeImage'           // Kích thước ảnh
-      ]
-    },
-
-    // Cấu hình Bảng
-    table: {
-      contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
-    },
-
-    // Placeholder
-    placeholder: 'Nhập nội dung bài học chi tiết tại đây (văn bản, hình ảnh, video)...'
-  };
 
 
 
@@ -674,36 +583,6 @@ export class CourseCurriculumComponent implements OnDestroy {
       case 'FILE': return 'Tài liệu';
       case 'QUIZ': return 'Trắc nghiệm';
       default: return type;
-    }
-  }
-  onEditorReady(editor: any) {
-    this.editorInstance = editor;
-    // FIX: Set data after editor is ready if content already exists (for edit mode)
-    if (this.sectionContent && this.editingSectionId()) {
-      // Use setTimeout to ensure Angular change detection has completed
-      setTimeout(() => {
-        this.ignoreNextSectionEditorChange = true;
-        editor.setData(this.sectionContent);
-      }, 0);
-    }
-  }
-
-  onEditorChange(event: any) {
-    const editor = event.editor;
-    if (editor) {
-      const data = editor.getData();
-      const plainText = data.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-      const count = plainText ? plainText.split(' ').length : 0;
-      this.wordCount.set(count);
-
-      if (this.ignoreNextSectionEditorChange) {
-        this.ignoreNextSectionEditorChange = false;
-        return;
-      }
-
-      if (this.showSectionModal() && this.newSectionType === 'TEXT') {
-        this.markEditorUnsaved();
-      }
     }
   }
 

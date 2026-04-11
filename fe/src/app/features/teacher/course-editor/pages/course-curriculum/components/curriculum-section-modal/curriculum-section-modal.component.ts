@@ -1,8 +1,11 @@
 import { ChangeDetectionStrategy, Component, ElementRef, afterNextRender, effect, inject, input, output, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { CKEditorModule } from '@ckeditor/ckeditor5-angular';
+import { HttpClient } from '@angular/common/http';
 import { LucideAngularModule } from 'lucide-angular';
+import { TiptapEditorComponent } from '../../../../../../../shared/components/tiptap-editor/tiptap-editor.component';
+import { createTiptapUploadFn } from '../../../../../../../shared/components/tiptap-editor/tiptap-upload';
+import { environment } from '../../../../../../../../environments/environment';
 import { formatOfflineVideoProfileLabel, type OfflineVideoProfileDescriptor } from '../../../../../../../core/models/video-quality';
 
 type SectionEditorType = 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE';
@@ -13,12 +16,14 @@ type SectionQuizAssessmentType = 'PRACTICE' | 'ASSESSMENT' | 'EXAM';
 @Component({
   selector: 'app-curriculum-section-modal',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, CKEditorModule, LucideAngularModule],
+  imports: [FormsModule, TiptapEditorComponent, LucideAngularModule],
   templateUrl: './curriculum-section-modal.component.html'
 })
 export class CurriculumSectionModalComponent {
   private sanitizer = inject(DomSanitizer);
+  private http = inject(HttpClient);
   readonly sectionQuizTypes: SectionQuizAssessmentType[] = ['PRACTICE', 'ASSESSMENT', 'EXAM'];
+  readonly editorUploadFn = createTiptapUploadFn(this.http, environment.apiUrl);
 
   private dialogShell = viewChild<ElementRef<HTMLElement>>('dialogShell');
 
@@ -51,8 +56,6 @@ export class CurriculumSectionModalComponent {
   sectionQuizShowResults = input(true);
   sectionQuizSelectedQuestions = input<any[]>([]);
   isSaving = input(false);
-  editor = input<any>(null);
-  editorConfig = input<any>(null);
 
   closeRequested = output<void>();
   saveRequested = output<void>();
@@ -77,8 +80,6 @@ export class CurriculumSectionModalComponent {
   fileSelected = output<Event>();
   clearSelectedFile = output<void>();
   resizeStarted = output<MouseEvent>();
-  editorReady = output<any>();
-  editorChange = output<any>();
   openSectionQuizBank = output<void>();
   openSectionQuizRandom = output<void>();
   removeSectionQuizQuestion = output<string>();
@@ -271,13 +272,6 @@ export class CurriculumSectionModalComponent {
     this.resizeStarted.emit(event);
   }
 
-  onEditorReadyEvent(event: any): void {
-    this.editorReady.emit(event);
-  }
-
-  onEditorChangeEvent(event: any): void {
-    this.editorChange.emit(event);
-  }
 
   requestSave(): void {
     this.saveRequested.emit();

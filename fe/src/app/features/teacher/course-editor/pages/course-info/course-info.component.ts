@@ -10,6 +10,7 @@ import {
   signal,
   untracked
 } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Subscription, firstValueFrom } from 'rxjs';
 import { VideoAssetApi, type VideoAssetResponse } from '../../../../../api/client/video-asset.api';
@@ -22,7 +23,9 @@ import {
   isOfflineVideoProfileId,
   type OfflineVideoProfileDescriptor,
 } from '../../../../../core/models/video-quality';
-import { RichTextEditorComponent } from '../../../../../shared/components/rich-text-editor/rich-text-editor.component';
+import { TiptapEditorComponent } from '../../../../../shared/components/tiptap-editor/tiptap-editor.component';
+import { createTiptapUploadFn } from '../../../../../shared/components/tiptap-editor/tiptap-upload';
+import { environment } from '../../../../../../environments/environment';
 import { CourseAuthoringService, CourseDraftDTO, DeliveryMode } from '../../services/course-authoring.service';
 import { CourseEditorStore } from '../../store/course-editor.store';
 
@@ -35,19 +38,22 @@ type ValidationSummaryItem = {
 @Component({
   selector: 'app-course-info',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RichTextEditorComponent],
+  imports: [ReactiveFormsModule, TiptapEditorComponent],
   templateUrl: './course-info.component.html',
   styleUrl: './course-info.component.scss'
 })
 export class CourseInfoComponent implements OnInit, OnDestroy {
   private readonly store = inject(CourseEditorStore);
   private readonly fb = inject(FormBuilder);
+  private readonly http = inject(HttpClient);
   private readonly service = inject(CourseAuthoringService);
   private readonly presignedUpload = inject(PresignedUploadService);
   private readonly videoAssetApi = inject(VideoAssetApi);
   private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly toast = inject(ToastService);
   private readonly document = inject(DOCUMENT);
+
+  readonly editorUploadFn = createTiptapUploadFn(this.http, environment.apiUrl);
 
   readonly categoryTree = signal<CourseCategoryDTO[]>([]);
   readonly selectedRootId = signal('');

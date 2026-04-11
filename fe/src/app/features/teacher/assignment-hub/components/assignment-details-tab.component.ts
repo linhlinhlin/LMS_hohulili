@@ -17,16 +17,9 @@ import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.s
 import { DistributionSelectorComponent, DistributionSettings } from './distribution-selector.component';
 import { EnrolledStudent, DistributionType } from '../utils/allocation-utils';
 import { HttpClient } from '@angular/common/http';
-import { CKEditorModule } from '@ckeditor/ckeditor5-angular';
-import {
-  ClassicEditor, Essentials, Paragraph,
-  Bold, Italic, Underline, Strikethrough, RemoveFormat,
-  Font, FontFamily, FontSize, FontColor, FontBackgroundColor,
-  Alignment, List, Indent, IndentBlock, BlockQuote, Heading,
-  Link, Image, ImageUpload, ImageToolbar, ImageStyle, ImageResize, ImageCaption,
-  Table, TableToolbar, Autoformat
-} from 'ckeditor5';
-import viTranslations from 'ckeditor5/translations/vi.js';
+import { TiptapEditorComponent } from '../../../../shared/components/tiptap-editor/tiptap-editor.component';
+import { createTiptapUploadFn } from '../../../../shared/components/tiptap-editor/tiptap-upload';
+import { environment } from '../../../../../environments/environment';
 import { ClassService } from '../../../../state/class.service';
 import { validateMaxScore } from '../../assignments/utils/assignment-validators';
 
@@ -47,7 +40,7 @@ type AssignmentStatus = 'pending' | 'published' | 'closed';
  */
 @Component({
   selector: 'app-assignment-details-tab',
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, DistributionSelectorComponent, CKEditorModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, DistributionSelectorComponent, TiptapEditorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bg-slate-50 -mx-4 sm:-mx-6 -my-6 px-4 sm:px-6 py-6 min-h-[60vh]">
@@ -219,11 +212,11 @@ type AssignmentStatus = 'pending' | 'published' | 'closed';
               <div class="p-5 space-y-4">
                 <div>
                   <label class="block text-xs font-medium text-gray-600 mb-2">Mô tả</label>
-                  <ckeditor [editor]="ckEditorClass" [config]="ckEditorConfig" formControlName="description"></ckeditor>
+                  <app-tiptap-editor formControlName="description" placeholder="Mô tả bài tập..." [height]="200" [uploadFn]="editorUploadFn"></app-tiptap-editor>
                 </div>
                 <div>
                   <label class="block text-xs font-medium text-gray-600 mb-2">Hướng dẫn thực hiện</label>
-                  <ckeditor [editor]="ckEditorClass" [config]="ckEditorConfig" formControlName="instructions"></ckeditor>
+                  <app-tiptap-editor formControlName="instructions" placeholder="Hướng dẫn chi tiết..." [height]="200" [uploadFn]="editorUploadFn"></app-tiptap-editor>
                 </div>
               </div>
             </section>
@@ -383,30 +376,8 @@ export class AssignmentDetailsTabComponent implements OnInit {
     { key: 'distribution' as const, label: 'Phân phối' }
   ];
 
-  // Full CKEditor config — same as lesson editor for UI consistency
-  ckEditorClass = ClassicEditor;
-  ckEditorConfig = {
-    licenseKey: 'GPL' as const,
-    language: 'vi',
-    translations: [viTranslations],
-    plugins: [
-      Essentials, Paragraph, Heading,
-      Bold, Italic, Underline, Strikethrough, RemoveFormat,
-      Font, FontFamily, FontSize, FontColor, FontBackgroundColor,
-      Alignment, List, Indent, IndentBlock, BlockQuote,
-      Link, Image, ImageUpload, ImageToolbar, ImageStyle, ImageResize, ImageCaption,
-      Table, TableToolbar, Autoformat
-    ],
-    toolbar: {
-      items: [
-        'heading', '|',
-        'bold', 'italic', 'underline', 'strikethrough', 'removeFormat', '|',
-        'alignment', 'bulletedList', 'numberedList', 'outdent', 'indent', '|',
-        'link', 'uploadImage', 'insertTable', 'blockQuote'
-      ]
-    },
-    placeholder: 'Nhập nội dung...'
-  };
+  private http = inject(HttpClient);
+  editorUploadFn = createTiptapUploadFn(this.http, environment.apiUrl);
   saving = signal(false);
   deleting = signal(false);
   formError = signal('');

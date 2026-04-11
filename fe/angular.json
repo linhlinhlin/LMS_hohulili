@@ -30,7 +30,6 @@
             "styles": [
               "src/styles/critical.scss",
               "src/styles.scss",
-              "ckeditor5/ckeditor5.css",
               "node_modules/video.js/dist/video-js.min.css",
               "node_modules/katex/dist/katex.min.css",
               "node_modules/@ctrl/ngx-emoji-mart/picker.css"

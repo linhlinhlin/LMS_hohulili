@@ -208,11 +208,12 @@
               </div>
             </div>
             <div class="editor-card__body">
-              <app-rich-text-editor
+              <app-tiptap-editor
                 formControlName="courseInformation"
                 placeholder="Nhập thông tin chi tiết..."
-                [height]="360">
-              </app-rich-text-editor>
+                [height]="360"
+                [uploadFn]="editorUploadFn">
+              </app-tiptap-editor>
             </div>
           </section>
 

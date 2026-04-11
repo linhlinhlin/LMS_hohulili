@@ -379,8 +379,6 @@
                           [sectionQuizShowResults]="sectionQuizShowResults"
                           [sectionQuizSelectedQuestions]="sectionQuizSelectedQuestions()"
                           [isSaving]="isSaving()"
-                          [editor]="Editor"
-                          [editorConfig]="editorConfig"
                           (closeRequested)="closeSectionModal()"
                           (saveRequested)="saveSection()"
               (sectionTitleChange)="onSectionTitleChange($event)"
@@ -406,8 +404,6 @@
                           (removeSectionQuizQuestion)="removeSectionQuizQuestion($event)"
                           (fileSelected)="onFileSelected($event)"
                           (clearSelectedFile)="onClearSelectedFile()"
-                          (resizeStarted)="startResize($event)"
-                          (editorReady)="onEditorReady($event)"
-                          (editorChange)="onEditorChange($event)">
+                          (resizeStarted)="startResize($event)">
                         </app-curriculum-section-modal>
                       }
