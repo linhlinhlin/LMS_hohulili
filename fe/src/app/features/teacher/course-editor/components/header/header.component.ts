@@ -14,14 +14,14 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
     selector: 'app-course-editor-header',
     imports: [CommonModule, RouterModule],
     template: `
-    <header class="h-14 flex items-center justify-between px-4 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-        <!-- Left: Navigation + Breadcrumb -->
-        <div class="flex items-center gap-1.5 min-w-0">
+    <header class="h-12 flex items-center justify-between px-3 bg-white border-b border-slate-200">
+        <!-- Left: Back + Sidebar toggle + Course title -->
+        <div class="flex items-center gap-1 min-w-0">
             <button (click)="goBack()"
                     class="flex items-center justify-center w-8 h-8 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors flex-shrink-0"
                     title="Quay lại danh sách khóa học">
-                <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
                 </svg>
             </button>
 
@@ -29,53 +29,23 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
               <button (click)="toggleSidebar.emit()"
                       class="flex items-center justify-center w-8 h-8 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors flex-shrink-0"
                       [title]="sidebarCollapsed() ? 'Hiện sidebar' : 'Ẩn sidebar'">
-                  @if (sidebarCollapsed()) {
-                    <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                  } @else {
-                    <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                    </svg>
-                  }
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    @if (sidebarCollapsed()) {
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h18M3 6h18M3 18h18" />
+                    } @else {
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h12M9 9h12M9 15h12M9 21h12M3 3v18" />
+                    }
+                  </svg>
               </button>
             }
 
-            <div class="w-px h-5 bg-slate-200 mx-0.5 flex-shrink-0"></div>
+            <div class="w-px h-5 bg-slate-200 mx-1 flex-shrink-0"></div>
 
-            <!-- Breadcrumb — wider truncation for usability -->
-            <nav class="flex items-center gap-1 min-w-0 overflow-hidden text-[13px]" aria-label="Breadcrumb">
-                <button (click)="clearBreadcrumb()"
-                        class="text-slate-500 hover:text-[#0056D2] transition-colors truncate max-w-[160px] sm:max-w-[240px]"
-                        [class.font-semibold]="!breadcrumbChapter() && activeTab() === 'curriculum'"
-                        [class.text-slate-800]="!breadcrumbChapter() && activeTab() === 'curriculum'"
-                        [title]="store.courseInfo()?.title || ''">
-                    {{ store.courseInfo()?.title || 'Đang tải...' }}
-                </button>
-
-                @if (activeTab() === 'curriculum') {
-                    @if (breadcrumbChapter()) {
-                        <svg class="w-3 h-3 text-slate-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
-                        <button (click)="selectChapter()"
-                                class="text-slate-500 hover:text-[#0056D2] transition-colors truncate max-w-[140px] sm:max-w-[220px]"
-                                [class.font-semibold]="!breadcrumbLesson()"
-                                [class.text-slate-800]="!breadcrumbLesson()"
-                                [title]="breadcrumbChapter()?.title || ''">
-                            {{ breadcrumbChapter()?.title }}
-                        </button>
-                    }
-                    @if (breadcrumbLesson()) {
-                        <svg class="w-3 h-3 text-slate-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
-                        <span class="text-slate-800 font-semibold truncate max-w-[160px] sm:max-w-[320px]"
-                              [title]="breadcrumbLesson()?.title || ''">
-                            {{ breadcrumbLesson()?.title }}
-                        </span>
-                    }
-                } @else {
-                    <svg class="w-3 h-3 text-slate-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
-                    <span class="text-slate-800 font-semibold truncate">{{ tabLabel() }}</span>
-                }
-            </nav>
+            <!-- Course title -->
+            <span class="text-sm font-semibold text-slate-800 truncate max-w-[160px] sm:max-w-[280px]"
+                  [title]="store.courseInfo()?.title || ''">
+                {{ store.courseInfo()?.title || 'Đang tải...' }}
+            </span>
         </div>
 
         <!-- Right: Status + Actions -->
@@ -194,6 +164,7 @@ export class CourseEditorHeaderComponent {
         return role === 'admin' || role === 'org_admin';
     });
 
+    isInstructorLed = computed(() => this.store.courseTree()?.deliveryMode === 'INSTRUCTOR_LED');
     readinessChecklist = this.store.readinessChecklist;
     readinessPercent = this.store.readinessPercent;
     hasUnsavedChanges = computed(() => this.store.saveStatus() === 'unsaved');

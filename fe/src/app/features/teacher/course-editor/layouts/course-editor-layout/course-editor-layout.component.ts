@@ -30,7 +30,7 @@ import { filter, take, map } from 'rxjs/operators';
 
       <!-- Header -->
       <app-course-editor-header
-        class="h-14 flex-shrink-0 z-20 border-b border-slate-200 bg-white"
+        class="h-12 flex-shrink-0 z-20 bg-white"
         [sidebarCollapsed]="sidebarCollapsed()"
         [activeTab]="activeTab()"
         (toggleSidebar)="toggleSidebar()">
@@ -45,7 +45,7 @@ import { filter, take, map } from 'rxjs/operators';
           <div class="fixed inset-0 bg-black/30 z-20 md:hidden" (click)="toggleSidebar()"></div>
 
           <!-- Sidebar panel -->
-          <div class="fixed top-14 left-0 bottom-0 w-[300px] overflow-hidden border-r border-slate-200 bg-white z-30 shadow-xl
+          <div class="fixed top-12 left-0 bottom-0 w-[300px] overflow-hidden border-r border-slate-200 bg-white z-30 shadow-xl
                       md:static md:w-auto md:shadow-none md:z-10 md:top-auto md:left-auto md:bottom-auto
                       transition-[opacity] duration-300">
             <app-course-editor-sidebar class="h-full block"></app-course-editor-sidebar>
@@ -54,56 +54,41 @@ import { filter, take, map } from 'rxjs/operators';
 
         <!-- Main Content -->
         <div class="flex flex-col min-w-0 h-full overflow-hidden bg-slate-50 relative">
-            <!-- Navigation Tabs (Underline style - Coursera/Material Design 3) -->
-            <nav aria-label="Điều hướng trình biên tập khóa học"
-                 class="editor-layout-tabs flex items-center gap-0 border-b border-slate-200 flex-shrink-0 bg-white z-10 w-full overflow-x-auto scrollbar-hide"
-                 [class.editor-layout-tabs--aligned]="sidebarCollapsed()">
+            <!-- Compact Tabs -->
+            <nav aria-label="Editor tabs"
+                 class="flex items-center gap-0 border-b border-slate-200 flex-shrink-0 bg-white z-10 px-4 overflow-x-auto scrollbar-hide">
                <a routerLink="info"
                   routerLinkActive="text-[#0056D2] border-b-2 border-[#0056D2]"
-                  class="px-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors border-b-2 border-transparent">
+                  class="px-3 py-2 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors border-b-2 border-transparent whitespace-nowrap">
                   Thông tin
                </a>
                <a routerLink="curriculum"
                   routerLinkActive="text-[#0056D2] border-b-2 border-[#0056D2]"
-                  class="px-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors border-b-2 border-transparent">
+                  class="px-3 py-2 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors border-b-2 border-transparent whitespace-nowrap">
                   Nội dung
                </a>
                @if (isInstructorLed()) {
                  <a routerLink="classes"
                     routerLinkActive="text-[#0056D2] border-b-2 border-[#0056D2]"
-                    class="px-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors border-b-2 border-transparent flex items-center gap-1.5">
+                    class="px-3 py-2 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors border-b-2 border-transparent whitespace-nowrap">
                     Lớp học
                  </a>
                }
                <a routerLink="settings"
                   routerLinkActive="text-[#0056D2] border-b-2 border-[#0056D2]"
-                  class="px-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors border-b-2 border-transparent">
+                  class="px-3 py-2 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors border-b-2 border-transparent whitespace-nowrap">
                   Cài đặt
                </a>
-               <!-- Mode badge -->
-               <div class="ml-auto pr-2">
-                 @if (isInstructorLed()) {
-                   <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700">
-                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-                     Lớp học
-                   </span>
-                 } @else {
-                   <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#0056D2]/10 text-[#0056D2]">
-                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-                     Khóa học
-                   </span>
-                 }
-               </div>
             </nav>
 
-            <!-- Breadcrumb (only on curriculum tab when chapter/lesson selected) -->
+            <!-- Breadcrumb (curriculum tab: Chapter > Lesson > Section) -->
             @if (activeTab() === 'curriculum' && breadcrumbChapter()) {
-                <div class="flex items-center gap-1.5 px-6 py-2 bg-white border-b border-slate-100 text-xs flex-shrink-0">
-                    <button (click)="clearBreadcrumb()" class="text-[#0056D2] hover:text-[#004BB5] font-medium truncate max-w-[200px]">
-                        {{ store.courseInfo()?.title || 'Khóa học' }}
+                <div class="flex items-center gap-1.5 px-5 py-1.5 bg-slate-50 border-b border-slate-100 text-xs flex-shrink-0">
+                    <button (click)="clearBreadcrumb()" class="text-slate-400 hover:text-[#0056D2] transition-colors" title="Xóa lựa chọn">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12h18M3 6h18M3 18h18" /></svg>
                     </button>
-                    <svg class="w-3 h-3 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                    <button (click)="selectChapter()" class="font-medium truncate max-w-[200px]"
+                    <svg class="w-3 h-3 text-slate-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                    <button (click)="selectChapter()" class="font-medium truncate max-w-[220px]"
                             [class]="breadcrumbLesson() ? 'text-[#0056D2] hover:text-[#004BB5]' : 'text-slate-900'">
                         {{ breadcrumbChapter()?.title }}
                     </button>
