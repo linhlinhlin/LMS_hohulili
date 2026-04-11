@@ -97,21 +97,21 @@ export class CourseCurriculumComponent implements OnDestroy {
       return;
     }
 
-    if (this.showSectionQuizBankModal()) {
+    if (this.editorSvc.showSectionQuizBankModal()) {
       event.preventDefault();
       event.stopPropagation();
-      this.showSectionQuizBankModal.set(false);
+      this.editorSvc.showSectionQuizBankModal.set(false);
       return;
     }
 
-    if (this.showSectionQuizRandomModal()) {
+    if (this.editorSvc.showSectionQuizRandomModal()) {
       event.preventDefault();
       event.stopPropagation();
-      this.showSectionQuizRandomModal.set(false);
+      this.editorSvc.showSectionQuizRandomModal.set(false);
       return;
     }
 
-    if (!this.showSectionModal()) {
+    if (!this.editorSvc.isSectionSurfaceOpen()) {
       return;
     }
 
@@ -132,26 +132,7 @@ export class CourseCurriculumComponent implements OnDestroy {
   selectedSectionId = this.selectionService.selectedSectionId; // [NEW]
   selectedSection = this.selectionService.selectedSection; // [NEW]
 
-  // Section Logic (L3)
-  editingSectionId = signal<string | null>(null);
-  showSectionModal = signal(false);
-  newSectionType: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE' = 'TEXT';
-
-  // Section Form
-  sectionTitle = '';
-  sectionContent = '';
-  sectionVideoAssetId: string | null = null;
-  sectionVideoProcessingStatus: string | null = null;
-  sectionVideoAvailableOfflineProfiles: VideoAssetResponse['availableOfflineProfiles'] = [];
-  sectionVideoUrl = '';
-  sectionIsRequired = false;
-  sectionFileUrl = signal<string | null>(null); // [NEW] For FILE type sections
-  sectionVideoType: 'YOUTUBE' | 'CLOUDFLARE' | null = null; // [NEW] Video source type
-  sectionStreamVideoUid: string | null = null;
-  sectionCfObjectKey: string | null = null; // [NEW] Cloudflare R2 object key
-  selectedFile: File | null = null; // [NEW] For FILE upload
-  selectedSectionVideoFile: File | null = null;
-  safePdfUrl = signal<SafeResourceUrl | null>(null); // [NEW] SOTA 2025 Secure PDF
+  // Section state delegated to CurriculumEditorService (Phase 4)
 
   // State
   isSaving = signal(false);
@@ -180,25 +161,7 @@ export class CourseCurriculumComponent implements OnDestroy {
   private inFlightLessonDetailId: string | null = null;
   private sectionVideoPollTimer: ReturnType<typeof setTimeout> | null = null;
 
-  // Quiz packages — now managed by QuizPackageModalsComponent
-  quizPackages = signal<any[]>([]);
-  selectedPackageId = '';
-  packageQuestions = signal<any[]>([]);
-  selectedQuestionIds = signal<Set<string>>(new Set());
-
-  // Section Quiz Fields — legacy sync (used by hydrateSectionState/effects, will be removed in Phase 3)
-  sectionQuizType: SectionQuizAssessmentType = 'PRACTICE';
-  sectionQuizCountsTowardCertificate = false;
-  sectionQuizTimeLimit = signal(30);
-  sectionQuizPassingScore = signal(60);
-  sectionQuizMaxAttempts = signal(1);
-  sectionQuizShuffleQuestions = true;
-  sectionQuizShuffleOptions = true;
-  sectionQuizShowResults = true;
-  sectionQuizSelectedQuestions = signal<any[]>([]);
-  showSectionQuizBankModal = signal(false);
-  showSectionQuizRandomModal = signal(false);
-  sectionQuizRandomCount = signal(5);
+  // Quiz packages + section quiz state → delegated to QuizPackageModalsComponent + CurriculumEditorService
 
   // Assignment fields
   assignmentDescription = '';
@@ -257,7 +220,6 @@ export class CourseCurriculumComponent implements OnDestroy {
   }
 
   constructor() {
-    this.loadQuizPackages();
     if (typeof window !== 'undefined') {
       window.addEventListener('keydown', this.handleWindowKeydown, true);
     }
@@ -462,7 +424,7 @@ export class CourseCurriculumComponent implements OnDestroy {
         if (surfaceMode === 'edit') {
           this.resetSectionSurfaceController();
           this.closeSectionQuizChildSurfaces();
-          this.showSectionModal.set(false);
+          this.editorSvc.closeSectionSurface();
         }
         return;
       }
@@ -481,8 +443,8 @@ export class CourseCurriculumComponent implements OnDestroy {
         && this.sectionSurfaceId() === selectedSectionId
         && this.sectionSurfaceHydrationKey === nextHydrationKey
       ) {
-        if (!this.showSectionModal()) {
-          this.showSectionModal.set(true);
+        if (!this.editorSvc.isSectionSurfaceOpen()) {
+          /* section surface managed by editorSvc */;
         }
         return;
       }
@@ -491,7 +453,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       this.sectionSurfaceId.set(selectedSectionId);
       this.sectionSurfaceHydrationKey = nextHydrationKey;
       this.closeSectionQuizChildSurfaces();
-      this.showSectionModal.set(true);
+      /* section surface managed by editorSvc */;
       this.editorSvc.hydrateSectionForm(sectionContext.section);
     });
 
@@ -783,25 +745,12 @@ export class CourseCurriculumComponent implements OnDestroy {
   }
 
   private resetSectionModalTransientState() {
-    this.clearSectionVideoPollTimer();
-    this.sectionContent = '';
-    this.sectionVideoAssetId = null;
-    this.sectionVideoProcessingStatus = null;
-    this.sectionVideoAvailableOfflineProfiles = [];
-    this.sectionVideoUrl = '';
-    this.sectionVideoType = null;
-    this.sectionStreamVideoUid = null;
-    this.sectionCfObjectKey = null;
-    this.sectionFileUrl.set(null);
-    this.sectionIsRequired = false;
-    this.selectedFile = null;
-    this.selectedSectionVideoFile = null;
-    this.safePdfUrl.set(null);
+    this.editorSvc.resetSectionForm();
   }
 
   private closeSectionQuizChildSurfaces() {
-    this.showSectionQuizBankModal.set(false);
-    this.showSectionQuizRandomModal.set(false);
+    this.editorSvc.showSectionQuizBankModal.set(false);
+    this.editorSvc.showSectionQuizRandomModal.set(false);
   }
 
   private resetSectionSurfaceController() {
@@ -828,8 +777,8 @@ export class CourseCurriculumComponent implements OnDestroy {
       return;
     }
 
-    if (!this.showSectionModal()) {
-      this.isDataLoaded.set(false);
+    if (!this.editorSvc.isSectionSurfaceOpen()) {
+      /* isDataLoaded no longer tracked here */;
     }
 
     this.syncEditorDirtyState();
@@ -862,7 +811,7 @@ export class CourseCurriculumComponent implements OnDestroy {
   }
 
   private buildCurrentEditorSignature(): string {
-    if (this.showSectionModal()) {
+    if (this.editorSvc.isSectionSurfaceOpen()) {
       return this.buildSectionEditorSignature();
     }
 
@@ -919,39 +868,34 @@ export class CourseCurriculumComponent implements OnDestroy {
   }
 
   private buildSectionEditorSignature(): string {
-    const selectedQuestionIds = this.sectionQuizSelectedQuestions()
-      .map(question => question.id)
-      .sort()
-      .join(',');
-    const selectedFileSignature = this.selectedFile
-      ? `${this.selectedFile.name}:${this.selectedFile.size}`
-      : '';
+    const svc = this.editorSvc;
+    const selectedQuestionIds = svc.sectionQuizSelectedQuestions()
+      .map((q: any) => q.id).sort().join(',');
+    const file = svc.selectedFile();
+    const videoFile = svc.selectedSectionVideoFile();
 
     return [
       'section',
-      this.editingSectionId() ?? 'new',
-      this.newSectionType,
-      this.sectionTitle.trim(),
-      String(this.sectionIsRequired),
-      this.sectionContent.trim(),
-      this.sectionVideoAssetId ?? '',
-      this.sectionVideoProcessingStatus ?? '',
-      this.sectionVideoUrl.trim(),
-      this.sectionVideoType ?? '',
-      this.sectionStreamVideoUid ?? '',
-      this.sectionCfObjectKey ?? '',
-      this.sectionFileUrl() ?? '',
-      selectedFileSignature,
-      this.selectedSectionVideoFile
-        ? `${this.selectedSectionVideoFile.name}:${this.selectedSectionVideoFile.size}`
-        : '',
-      this.sectionQuizType,
-      String(this.sectionQuizTimeLimit()),
-      String(this.sectionQuizPassingScore()),
-      String(this.sectionQuizMaxAttempts()),
-      String(this.sectionQuizShuffleQuestions),
-      String(this.sectionQuizShuffleOptions),
-      String(this.sectionQuizShowResults),
+      svc.editingSectionId() ?? 'new',
+      svc.sectionEditorType(),
+      svc.sectionTitle().trim(),
+      String(svc.sectionIsRequired()),
+      svc.sectionContent().trim(),
+      svc.sectionVideoAssetId() ?? '',
+      svc.sectionVideoProcessingStatus() ?? '',
+      svc.sectionVideoUrl().trim(),
+      svc.sectionVideoType() ?? '',
+      svc.sectionStreamVideoUid() ?? '',
+      svc.sectionFileUrl() ?? '',
+      file ? `${file.name}:${file.size}` : '',
+      videoFile ? `${videoFile.name}:${videoFile.size}` : '',
+      svc.sectionQuizType(),
+      String(svc.sectionQuizTimeLimit()),
+      String(svc.sectionQuizPassingScore()),
+      String(svc.sectionQuizMaxAttempts()),
+      String(svc.sectionQuizShuffleQuestions()),
+      String(svc.sectionQuizShuffleOptions()),
+      String(svc.sectionQuizShowResults()),
       selectedQuestionIds
     ].join('|');
   }
@@ -1070,22 +1014,6 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.markEditorUnsaved();
   }
 
-  updateSectionQuizTimeLimit(value: string | number | null | undefined) {
-    this.sectionQuizTimeLimit.set(Math.max(1, this.coerceNumber(value, this.sectionQuizTimeLimit())));
-    this.markEditorUnsaved();
-  }
-
-  updateSectionQuizPassingScore(value: string | number | null | undefined) {
-    const next = this.coerceNumber(value, this.sectionQuizPassingScore());
-    this.sectionQuizPassingScore.set(Math.min(100, Math.max(0, next)));
-    this.markEditorUnsaved();
-  }
-
-  updateSectionQuizMaxAttempts(value: string | number | null | undefined) {
-    this.sectionQuizMaxAttempts.set(Math.max(1, this.coerceNumber(value, this.sectionQuizMaxAttempts())));
-    this.markEditorUnsaved();
-  }
-
   // YouTube helpers
   isYouTubeUrl(url: string): boolean {
     if (!url) return false;
@@ -1133,19 +1061,12 @@ export class CourseCurriculumComponent implements OnDestroy {
   }
 
   private closeSectionSurface() {
-    this.closeSectionQuizChildSurfaces();
-    this.clearSectionVideoPollTimer();
+    this.editorSvc.closeSectionSurface();
     this.resetSectionSurfaceController();
-    this.showSectionModal.set(false);
-    this.editingSectionId.set(null);
-    this.isDataLoaded.set(false);
+    this.editorSvc.closeSectionSurface();
+    this.editorSvc.editingSectionId.set(null);
     this.selectionService.clearSectionSelection();
     this.refreshEditorBaseline();
-  }
-
-  onClearSelectedFile() {
-    this.selectedFile = null;
-    this.markEditorUnsaved();
   }
 
   // Save methods
@@ -1243,17 +1164,6 @@ export class CourseCurriculumComponent implements OnDestroy {
       this.toast.error('Cập nhật bài học thất bại: ' + (err?.error?.message || err?.message || ''));
     } finally {
       this.isSaving.set(false);
-    }
-  }
-
-  // Quiz methods
-  async loadQuizPackages() {
-    try {
-      const packages = await firstValueFrom(this.packageApi.getMyPackages());
-      this.quizPackages.set(packages || []);
-    } catch (err: any) {
-      this.quizPackages.set([]);
-      this.toast.error('Tải ngân hàng câu hỏi thất bại');
     }
   }
 
@@ -1482,29 +1392,7 @@ export class CourseCurriculumComponent implements OnDestroy {
     // New: delegate to CurriculumEditorService
     this.editorSvc.openSectionCreate(type as any);
 
-    // Legacy: keep old state in sync until full migration
     this.selectionService.clearSectionSelection();
-    this.closeSectionQuizChildSurfaces();
-    this.sectionSurfaceMode.set('create');
-    this.sectionSurfaceId.set(null);
-    this.sectionSurfaceHydrationKey = `create|${type}`;
-    this.isDataLoaded.set(false);
-    this.editingSectionId.set(null);
-    this.newSectionType = type as any;
-    this.sectionTitle = '';
-    this.resetSectionModalTransientState();
-    this.resetSectionQuizFields();
-    this.showSectionModal.set(true);
-
-    if (type === 'TEXT') {
-      setTimeout(() => {
-        this.isDataLoaded.set(true);
-        this.refreshEditorBaseline();
-      }, 50);
-      return;
-    }
-
-    this.isDataLoaded.set(true);
     this.refreshEditorBaseline();
   }
 
@@ -1530,12 +1418,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       return;
     }
 
-    // Legacy sync
-    this.sectionSurfaceMode.set('edit');
-    this.sectionSurfaceId.set(section.id);
-    this.sectionSurfaceHydrationKey = `edit|${section.id}`;
-    this.closeSectionQuizChildSurfaces();
-    this.showSectionModal.set(true);
+    // Section editing now handled by editorSvc.openSectionEdit() above
     this.editorSvc.hydrateSectionForm(section);
   }
 
@@ -1572,250 +1455,8 @@ export class CourseCurriculumComponent implements OnDestroy {
     if (typeof window !== 'undefined') {
       window.removeEventListener('keydown', this.handleWindowKeydown, true);
     }
-    this.clearSectionVideoPollTimer();
+    this.editorSvc.closeSectionSurface(); // Clears video poll timer in service
     this.pdfService.cleanup();
-  }
-
-  // Video Preview Logic [NEW]
-  private syncSectionVideoMetadata(url: string) {
-    if (this.sectionVideoAssetId || this.sectionStreamVideoUid || this.selectedSectionVideoFile) {
-      this.sectionVideoType = 'CLOUDFLARE';
-      return;
-    }
-
-    if (!url) {
-      if (!this.sectionCfObjectKey) {
-        this.sectionVideoType = null;
-      }
-      return;
-    }
-    const videoId = this.extractYouTubeId(url);
-    if (videoId) {
-      if (!this.sectionCfObjectKey) {
-        this.sectionVideoType = 'YOUTUBE';
-      }
-    } else {
-      if (!this.sectionCfObjectKey) {
-        this.sectionVideoType = null;
-      }
-    }
-  }
-
-  getSafeUrl(url: string): SafeResourceUrl {
-    const videoId = this.extractYouTubeId(url);
-    if (videoId) {
-      return this.sanitizer.bypassSecurityTrustResourceUrl(`https://www.youtube.com/embed/${videoId}`);
-    }
-    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
-  }
-
-  async saveSection() {
-    const lesson = this.selectedLesson();
-    if (!lesson || !this.sectionTitle.trim()) return;
-
-    if (
-      this.newSectionType === 'VIDEO'
-      && !this.sectionVideoAssetId
-      && !this.sectionStreamVideoUid
-      && !this.selectedSectionVideoFile
-      && !this.sectionVideoUrl.trim()
-    ) {
-      this.toast.error('Mục video mới cần một video tải lên nội bộ trước khi lưu');
-      return;
-    }
-
-    if (this.newSectionType === 'QUIZ' && this.sectionQuizSelectedQuestions().length === 0) {
-      this.toast.error('Mục trắc nghiệm phải có ít nhất 1 câu hỏi trước khi lưu');
-      return;
-    }
-
-    this.isSaving.set(true);
-    this.store.markSaving();
-    try {
-      if (this.newSectionType === 'VIDEO' && this.selectedSectionVideoFile) {
-        const asset = await this.uploadSectionVideoAsset(this.selectedSectionVideoFile);
-        this.applySectionVideoAssetResponse(asset);
-        this.scheduleSectionVideoPoll(asset.id);
-      }
-
-      // Construction of DTO Payload
-      const payload: any = {
-        lessonId: lesson.id,
-        title: this.sectionTitle.trim(),
-        type: this.newSectionType,
-        isRequired: this.sectionIsRequired
-      };
-
-      if (this.newSectionType === 'TEXT') {
-        payload.content = this.sectionContent;
-      } else if (this.newSectionType === 'VIDEO') {
-        if (this.sectionVideoAssetId) {
-          payload.videoAssetId = this.sectionVideoAssetId;
-        } else {
-          payload.videoUrl = this.sectionVideoUrl;
-          payload.videoType = this.sectionVideoType;
-          payload.streamVideoUid = this.sectionStreamVideoUid;
-          payload.cfObjectKey = this.sectionCfObjectKey;
-        }
-      } else if (this.newSectionType === 'QUIZ') {
-        payload.quizData = {
-          // Mapping variables to DTO fields
-          quizType: this.sectionQuizType,
-          countsTowardCertificate: this.sectionQuizType === 'EXAM' && this.sectionQuizCountsTowardCertificate,
-          timeLimitMinutes: this.sectionQuizTimeLimit(),
-          passingScore: this.sectionQuizPassingScore(),
-          maxAttempts: this.sectionQuizMaxAttempts(),
-          shuffleQuestions: this.sectionQuizShuffleQuestions,
-          shuffleOptions: this.sectionQuizShuffleOptions,
-          showResultsImmediately: this.sectionQuizShowResults,
-          questionIds: this.sectionQuizSelectedQuestions().map(q => q.id)
-        };
-      }
-
-      const formData = new FormData();
-      // append JSON data as a Blob with application/json type
-      formData.append('data', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
-
-      // append File if existing
-      if (this.newSectionType === 'FILE' && this.selectedFile) {
-        formData.append('file', this.selectedFile);
-      }
-
-
-
-
-
-      if (this.editingSectionId()) {
-        const res: any = await firstValueFrom(this.sectionApi.updateSection(lesson.id, this.editingSectionId()!, formData));
-        const updatedSection = res.data || res;
-        if (updatedSection?.fileUrl && this.newSectionType === 'FILE') {
-          this.sectionFileUrl.set(updatedSection.fileUrl);
-        }
-      } else {
-        const res: any = await firstValueFrom(this.sectionApi.createSection(lesson.id, formData));
-        const createdSection = res.data || res;
-        this.editingSectionId.set(createdSection?.id ?? null);
-      }
-
-      // Clear staged file after successful save
-      this.selectedFile = null;
-      this.selectedSectionVideoFile = null;
-
-      // Reload course to refresh tree
-      const courseId = this.store.courseTree()?.id;
-      if (courseId) this.store.loadCourse(courseId, true);
-      this.refreshEditorBaselineWithOptions(true);
-      this.closeSectionSurface();
-    } catch (e: any) {
-      this.store.markUnsaved();
-      this.toast.error('Lỗi khi lưu mục: ' + (e?.message || 'Không rõ lỗi'));
-    } finally {
-      this.isSaving.set(false);
-    }
-  }
-
-  private async uploadSectionVideoAsset(file: File): Promise<VideoAssetResponse> {
-    const uploadResult = await firstValueFrom(
-      this.presignedUpload.upload(file, 'videos').pipe(
-        filter((event: UploadEvent): event is Extract<UploadEvent, { type: 'complete' }> => event.type === 'complete'),
-      ),
-    );
-
-    const response: any = await firstValueFrom(
-      this.videoAssetApi.createFromUpload(uploadResult.id, file.name),
-    );
-    return response?.data || response;
-  }
-
-  async retrySectionVideoAsset() {
-    const assetId = this.sectionVideoAssetId;
-    if (!assetId) {
-      return;
-    }
-
-    try {
-      const response = await firstValueFrom(this.videoAssetApi.retry(assetId));
-      this.applySectionVideoAssetResponse(response.data);
-      this.scheduleSectionVideoPoll(response.data.id);
-      this.toast.success('Đã đưa video mục bài giảng vào hàng đợi xử lý lại');
-    } catch (error: any) {
-      const message = error?.error?.message || error?.message || 'Không thể xử lý lại video mục bài giảng.';
-      this.toast.error(message);
-    }
-  }
-
-  private applySectionVideoAssetResponse(asset: VideoAssetResponse | null | undefined) {
-    if (!asset) {
-      return;
-    }
-
-    this.sectionVideoAssetId = asset.id;
-    this.sectionVideoProcessingStatus = asset.status;
-    this.sectionStreamVideoUid = asset.streamVideoUid ?? null;
-    this.sectionVideoUrl = asset.playbackUrl ?? '';
-    this.sectionCfObjectKey = null;
-    this.sectionVideoAvailableOfflineProfiles = this.normalizeSectionVideoProfiles(
-      asset.availableOfflineProfiles,
-    );
-    this.sectionVideoType = asset.streamVideoUid ? 'CLOUDFLARE' : this.sectionVideoType;
-  }
-
-  private scheduleSectionVideoPoll(assetId: string | null, delayMs = 5000) {
-    this.clearSectionVideoPollTimer();
-
-    if (!assetId) {
-      return;
-    }
-
-    const status = (this.sectionVideoProcessingStatus || '').toUpperCase();
-    if (status === 'READY' || status === 'FAILED') {
-      return;
-    }
-
-    this.sectionVideoPollTimer = setTimeout(async () => {
-      try {
-        const response = await firstValueFrom(this.videoAssetApi.getById(assetId));
-        this.applySectionVideoAssetResponse(response.data);
-        this.scheduleSectionVideoPoll(assetId);
-      } catch {
-        this.scheduleSectionVideoPoll(assetId, 10000);
-      }
-    }, delayMs);
-  }
-
-  private clearSectionVideoPollTimer() {
-    if (!this.sectionVideoPollTimer) {
-      return;
-    }
-
-    clearTimeout(this.sectionVideoPollTimer);
-    this.sectionVideoPollTimer = null;
-  }
-
-  private normalizeSectionVideoProfiles(
-    profiles: Array<{
-      id: string;
-      label: string;
-      actualResolution?: string | null;
-      sizeBytes?: number | null;
-      downloadUrl?: string | null;
-    }> | null | undefined,
-  ): Array<OfflineVideoProfileDescriptor & { downloadUrl?: string | null }> {
-    return (profiles ?? [])
-      .filter((profile): profile is VideoAssetResponse['availableOfflineProfiles'][number] =>
-        isOfflineVideoProfileId(profile.id))
-      .map((profile) => ({
-        ...profile,
-        id: profile.id,
-      }));
-  }
-
-  private async safeRollbackCreatedSection(lessonId: string, sectionId: string): Promise<void> {
-    try {
-      await firstValueFrom(this.sectionApi.deleteSection(lessonId, sectionId));
-    } catch {
-      // Best-effort rollback. The user still gets the upload error, but we avoid masking it.
-    }
   }
 
   async deleteSection(sectionId: string) {
@@ -1885,30 +1526,6 @@ export class CourseCurriculumComponent implements OnDestroy {
     });
   }
 
-  // [NEW] File selection handler for FILE type sections
-  onFileSelected(event: Event) {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files[0]) {
-      this.selectedFile = input.files[0];
-      this.markEditorUnsaved();
-    }
-  }
-
-  // [NEW] Extract filename from URL for display
-  getFileNameFromUrl(url: string): string {
-    if (!url) return 'Tập đính kèm';
-    try {
-      const urlObj = new URL(url);
-      const pathname = urlObj.pathname;
-      const fileName = pathname.substring(pathname.lastIndexOf('/') + 1);
-      return decodeURIComponent(fileName) || 'Tệp đính kèm';
-    } catch {
-      // If URL parsing fails, try simple approach
-      const lastSlash = url.lastIndexOf('/');
-      return lastSlash >= 0 ? url.substring(lastSlash + 1) : url;
-    }
-  }
-
   // [NEW] Navigate to Quiz Builder for the selected lesson
   async goToQuizBuilder() {
     if (!(await this.confirmDiscardChangesIfNeeded())) {
@@ -1976,16 +1593,4 @@ export class CourseCurriculumComponent implements OnDestroy {
     return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   }
 
-  // Reset section quiz fields when opening new section
-  private resetSectionQuizFields() {
-    this.sectionQuizType = 'PRACTICE';
-    this.sectionQuizCountsTowardCertificate = false;
-    this.sectionQuizTimeLimit.set(30);
-    this.sectionQuizPassingScore.set(60);
-    this.sectionQuizMaxAttempts.set(1);
-    this.sectionQuizShuffleQuestions = true;
-    this.sectionQuizShuffleOptions = true;
-    this.sectionQuizShowResults = true;
-    this.sectionQuizSelectedQuestions.set([]);
-  }
 }
