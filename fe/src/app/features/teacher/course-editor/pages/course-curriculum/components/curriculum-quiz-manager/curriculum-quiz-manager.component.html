@@ -91,11 +91,16 @@
 
   <div class="relative flex-1 overflow-y-auto bg-gray-50/50 p-2">
     @if (loading()) {
-      <div class="absolute inset-0 z-10 flex items-center justify-center bg-white/80">
-        <div class="flex flex-col items-center gap-3">
-          <div class="h-8 w-8 animate-spin rounded-full border-4 border-purple-500 border-t-transparent"></div>
-          <span class="text-sm font-medium text-gray-500">Đang tải dữ liệu...</span>
-        </div>
+      <div class="p-3 space-y-2 animate-pulse">
+        @for (_ of [1,2,3]; track $index) {
+          <div class="flex items-start gap-4 rounded-xl border border-gray-100 bg-white p-4">
+            <div class="h-8 w-8 rounded-lg bg-gray-200"></div>
+            <div class="flex-1 space-y-2">
+              <div class="h-3 bg-gray-200 rounded w-1/4"></div>
+              <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+            </div>
+          </div>
+        }
       </div>
     }
 

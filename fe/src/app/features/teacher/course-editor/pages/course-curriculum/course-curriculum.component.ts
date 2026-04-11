@@ -93,6 +93,17 @@ export class CourseCurriculumComponent implements OnDestroy {
   private sectionSurfaceId = signal<string | null>(null);
   private sectionSurfaceHydrationKey: string | null = null;
   private readonly handleWindowKeydown = (event: KeyboardEvent) => {
+    // Ctrl+S / Cmd+S → save active editor
+    if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+      event.preventDefault();
+      if (this.selectedLessonId()) {
+        void this.saveLesson();
+      } else if (this.selectedChapterId()) {
+        void this.saveChapter();
+      }
+      return;
+    }
+
     if (event.key !== 'Escape' || this.confirmDialog.isOpen()) {
       return;
     }

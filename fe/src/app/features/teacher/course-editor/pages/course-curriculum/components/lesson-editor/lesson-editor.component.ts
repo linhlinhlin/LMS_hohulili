@@ -212,7 +212,7 @@ import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
       </div>
 
       <!-- ═══ Footer ═══ -->
-      <div class="editor-workspace-card__footer px-6 py-4 border-t border-gray-200 flex justify-between items-center flex-shrink-0">
+      <div class="editor-workspace-card__footer px-6 py-4 border-t border-gray-200 flex justify-between items-center flex-shrink-0 sticky bottom-0 bg-white z-10">
         <button type="button" (click)="backClicked.emit()"
           class="text-gray-600 hover:text-gray-800 text-sm transition-colors">
           Quay lại

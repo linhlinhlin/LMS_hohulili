@@ -124,7 +124,7 @@ import { ChapterDraftDTO, LessonDraftDTO } from '../../../../services/course-aut
       </div>
 
       <!-- ═══ Footer ═══ -->
-      <div class="editor-workspace-card__footer px-6 py-4 border-t border-gray-200 flex justify-end flex-shrink-0">
+      <div class="editor-workspace-card__footer px-6 py-4 border-t border-gray-200 flex justify-end flex-shrink-0 sticky bottom-0 bg-white z-10">
         <button type="button"
           (click)="saveClicked.emit()"
           [disabled]="isSaving() || !title().trim()"

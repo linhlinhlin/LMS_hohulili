@@ -94,8 +94,8 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
                          </div>
                      }
                      @case ('unsaved') {
-                         <div class="text-xs text-amber-600 font-medium flex items-center gap-1.5">
-                             <div class="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
+                         <div class="text-xs text-amber-600 font-medium flex items-center gap-1.5 px-2 py-1 bg-amber-50 rounded-md border border-amber-200">
+                             <div class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
                              <span class="hidden sm:inline">Chưa lưu</span>
                          </div>
                      }
