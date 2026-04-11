@@ -34,7 +34,6 @@ import { LectureSectionsPanelComponent } from './components/lecture-sections-pan
 import { CurriculumAssessmentSummaryComponent } from './components/curriculum-assessment-summary/curriculum-assessment-summary.component';
 import { CurriculumAssignmentDetailsComponent } from './components/curriculum-assignment-details/curriculum-assignment-details.component';
 import { CurriculumQuizManagerComponent } from './components/curriculum-quiz-manager/curriculum-quiz-manager.component';
-import { CurriculumSectionModalComponent } from './components/curriculum-section-modal/curriculum-section-modal.component';
 import { ChapterEditorComponent } from './components/chapter-editor/chapter-editor.component';
 import { LessonEditorComponent } from './components/lesson-editor/lesson-editor.component';
 import { CurriculumEditorService } from '../../services/curriculum-editor.service';
@@ -52,7 +51,6 @@ type SectionQuizAssessmentType = 'PRACTICE' | 'ASSESSMENT' | 'EXAM';
     CurriculumAssessmentSummaryComponent,
     CurriculumAssignmentDetailsComponent,
     CurriculumQuizManagerComponent,
-    CurriculumSectionModalComponent,
     ChapterEditorComponent,
     LessonEditorComponent
   ],
