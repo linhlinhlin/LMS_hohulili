@@ -36,6 +36,8 @@ import { CurriculumAssignmentDetailsComponent } from './components/curriculum-as
 import { CurriculumQuizManagerComponent } from './components/curriculum-quiz-manager/curriculum-quiz-manager.component';
 import { CurriculumSectionModalComponent } from './components/curriculum-section-modal/curriculum-section-modal.component';
 import { ChapterEditorComponent } from './components/chapter-editor/chapter-editor.component';
+import { LessonEditorComponent } from './components/lesson-editor/lesson-editor.component';
+import { CurriculumEditorService } from '../../services/curriculum-editor.service';
 
 type SectionQuizAssessmentType = 'PRACTICE' | 'ASSESSMENT' | 'EXAM';
 
@@ -51,7 +53,8 @@ type SectionQuizAssessmentType = 'PRACTICE' | 'ASSESSMENT' | 'EXAM';
     CurriculumAssignmentDetailsComponent,
     CurriculumQuizManagerComponent,
     CurriculumSectionModalComponent,
-    ChapterEditorComponent
+    ChapterEditorComponent,
+    LessonEditorComponent
   ],
   styleUrl: './course-curriculum.component.scss',
   providers: [],
@@ -60,6 +63,7 @@ type SectionQuizAssessmentType = 'PRACTICE' | 'ASSESSMENT' | 'EXAM';
 export class CourseCurriculumComponent implements OnDestroy {
   readonly store = inject(CourseEditorStore);
   readonly selectionService = inject(CurriculumSelectionService);
+  readonly editorSvc = inject(CurriculumEditorService);
   private http = inject(HttpClient);
   private router = inject(Router);
   private lessonApi = inject(LessonApi);
@@ -1333,6 +1337,16 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.selectionService.clearSelection();
   }
 
+  onSectionSaved(): void {
+    const courseId = this.store.courseTree()?.id;
+    if (courseId) this.store.loadCourse(courseId, true);
+    this.refreshEditorBaselineWithOptions(true);
+  }
+
+  onSectionClosed(): void {
+    this.editorSvc.closeSectionSurface();
+  }
+
   async closeSectionModal() {
     if (!(await this.confirmDiscardChangesIfNeeded())) {
       return;
@@ -1723,6 +1737,10 @@ export class CourseCurriculumComponent implements OnDestroy {
       return;
     }
 
+    // New: delegate to CurriculumEditorService
+    this.editorSvc.openSectionCreate(type as any);
+
+    // Legacy: keep old state in sync until full migration
     this.selectionService.clearSectionSelection();
     this.closeSectionQuizChildSurfaces();
     this.sectionSurfaceMode.set('create');
@@ -1733,7 +1751,7 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.newSectionType = type as any;
     this.sectionTitle = '';
     this.resetSectionModalTransientState();
-    this.resetSectionQuizFields(); // Reset quiz fields for new section
+    this.resetSectionQuizFields();
     this.showSectionModal.set(true);
 
     if (type === 'TEXT') {
@@ -1756,6 +1774,9 @@ export class CourseCurriculumComponent implements OnDestroy {
       return;
     }
 
+    // New: delegate to CurriculumEditorService
+    this.editorSvc.openSectionEdit(section);
+
     const lesson = this.selectedLesson();
     if (!lesson) {
       return;
@@ -1767,6 +1788,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       return;
     }
 
+    // Legacy sync
     this.sectionSurfaceMode.set('edit');
     this.sectionSurfaceId.set(section.id);
     this.sectionSurfaceHydrationKey = `edit|${section.id}`;
