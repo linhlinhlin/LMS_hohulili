@@ -125,10 +125,12 @@ public class CourseQueryControllerV3 {
             return ResponseEntity.ok(ApiResponse.success(publishedDetail, "ThÃ´ng tin khÃ³a há»c"));
         }
 
-        // FIX: Use findByIdWithContent to eagerly load chapters via JOIN FETCH
-        // This prevents LazyInitializationException when open-in-view=false
+        // Fallback to direct DB query — with access check for unpublished/private courses
         return courseRepository.findByIdWithContent(courseId)
-                .map(course -> ResponseEntity.ok(ApiResponse.success(toDetail(course), "Thông tin khóa học")))
+                .map(course -> {
+                    verifyCourseAccess(course, currentUser);
+                    return ResponseEntity.ok(ApiResponse.success(toDetail(course), "Thông tin khóa học"));
+                })
                 .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Khóa học", courseId));
     }
 
@@ -175,8 +177,10 @@ public class CourseQueryControllerV3 {
             return ResponseEntity.ok(ApiResponse.success(publishedChapters, "Ná»™i dung khÃ³a há»c"));
         }
 
+        // Access check for unpublished/private courses
+        courseRepository.findById(courseId).ifPresent(course -> verifyCourseAccess(course, currentUser));
+
         // Query chapters and lessons directly from JPA repositories
-        // (CourseEntityMapper.toDomain() doesn't load chapters - they're separate entities)
         var chapterEntities = chapterRepository.findByCourseIdOrderByOrderIndex(courseId);
 
         if (chapterEntities.isEmpty()) {
@@ -371,9 +375,13 @@ public class CourseQueryControllerV3 {
             @PathVariable UUID lessonId,
             @AuthenticationPrincipal UserJpaEntity currentUser
     ) {
-        LessonDetailResponse publishedLesson = getPublishedLessonDetail(lessonId, currentUser);
-        if (publishedLesson != null) {
-            return ResponseEntity.ok(ApiResponse.success(publishedLesson, "ThÃ´ng tin bÃ i há»c"));
+        try {
+            LessonDetailResponse publishedLesson = getPublishedLessonDetail(lessonId, currentUser);
+            if (publishedLesson != null) {
+                return ResponseEntity.ok(ApiResponse.success(publishedLesson, "Thông tin bài học"));
+            }
+        } catch (Exception e) {
+            // Published path failed — fall through to draft query
         }
 
         // Query chain: Lesson -> Chapter -> Course (3 indexed queries, no nested loops)
@@ -393,7 +401,11 @@ public class CourseQueryControllerV3 {
                                             // Populate content from first TEXT block as fallback
                                             contentText = lesson.getContentBlocks().stream()
                                                 .filter(b -> "TEXT".equalsIgnoreCase(b.getType()) && b.getData() != null)
-                                                .map(b -> (String) b.getData().get("content"))
+                                                .map(b -> {
+                                                    Object c = b.getData().get("content");
+                                                    return c != null ? c.toString() : null;
+                                                })
+                                                .filter(java.util.Objects::nonNull)
                                                 .findFirst().orElse(null);
                                         }
                                     }
@@ -925,9 +937,9 @@ public class CourseQueryControllerV3 {
                     .videoType(showContent ? videoType : null)
                     .streamVideoUid(showContent ? streamVideoUid : null)
                     .fileUrl(showContent ? (String) data.get("fileUrl") : null)
-                    .duration(data.get("duration") != null ? ((Number) data.get("duration")).intValue() : 0)
-                    .orderIndex(data.get("orderIndex") != null ? ((Number) data.get("orderIndex")).intValue() : 0)
-                    .isRequired(data.get("isRequired") != null ? (Boolean) data.get("isRequired") : false)
+                    .duration(safeInt(data.get("duration"), 0))
+                    .orderIndex(safeInt(data.get("orderIndex"), 0))
+                    .isRequired(safeBool(data.get("isRequired"), false))
                     .quizData(showContent ? buildSectionQuizData(data, questionMap) : null)
                     .build();
             if (showContent) {
@@ -955,6 +967,18 @@ public class CourseQueryControllerV3 {
             }
         }
         return ids;
+    }
+
+    private static int safeInt(Object value, int fallback) {
+        if (value == null) return fallback;
+        if (value instanceof Number n) return n.intValue();
+        try { return Integer.parseInt(value.toString()); } catch (Exception e) { return fallback; }
+    }
+
+    private static boolean safeBool(Object value, boolean fallback) {
+        if (value == null) return fallback;
+        if (value instanceof Boolean b) return b;
+        return Boolean.parseBoolean(value.toString());
     }
 
     private UUID parseVideoAssetId(Object value) {
@@ -1258,6 +1282,36 @@ public class CourseQueryControllerV3 {
                 .maxScore(assignment.getMaxScore())
                 .status(assignment.getStatus() != null ? assignment.getStatus().name() : null)
                 .build();
+    }
+
+    /**
+     * Access check for unpublished or private courses.
+     * PUBLIC + APPROVED → accessible to everyone (including anonymous for browsing).
+     * PRIVATE or non-APPROVED → only accessible to: owner, enrolled student, ADMIN, ORG_ADMIN.
+     */
+    private void verifyCourseAccess(Course course, UserJpaEntity currentUser) {
+        boolean isPublicAndApproved = course.getVisibility() == Course.Visibility.PUBLIC
+                && course.getStatus() == Course.CourseStatus.APPROVED;
+        if (isPublicAndApproved) return;
+
+        // Non-public or non-approved: require authentication
+        if (currentUser == null) {
+            throw new org.springframework.security.access.AccessDeniedException("Khóa học này yêu cầu đăng nhập");
+        }
+
+        // ADMIN / ORG_ADMIN can access any course
+        if (isAdminRole(currentUser)) return;
+
+        // Course owner (teacher) can always access their own course
+        if (course.getTeacherId().equals(currentUser.getId())) return;
+
+        // Enrolled student can access
+        boolean isEnrolled = enrollmentJpaRepository
+                .findByStudentIdAndCourseId(currentUser.getId(), course.getId())
+                .isPresent();
+        if (isEnrolled) return;
+
+        throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền truy cập khóa học này");
     }
 
     private void verifyCourseOwnership(UUID courseId, UserJpaEntity user) {
