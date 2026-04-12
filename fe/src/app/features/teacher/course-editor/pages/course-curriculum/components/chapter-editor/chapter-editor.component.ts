@@ -27,122 +27,147 @@ import { ChapterDraftDTO, LessonDraftDTO } from '../../../../services/course-aut
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FormsModule],
   template: `
-    <div class="editor-workspace-card bg-white shadow-sm border border-gray-200 overflow-hidden flex flex-col rounded-xl">
+    <div class="chapter-workspace">
+      <!-- Breadcrumb -->
+      <p class="chapter-breadcrumb"><span class="chapter-breadcrumb__type">Chương</span> · {{ title() || 'Chưa đặt tên' }}</p>
 
-      @if (isLoading()) {
-        <!-- Skeleton -->
-        <div class="p-6 space-y-4 animate-pulse">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-gray-200 rounded-lg"></div>
-            <div class="space-y-2 flex-1">
-              <div class="h-5 bg-gray-200 rounded w-1/3"></div>
-              <div class="h-3 bg-gray-100 rounded w-1/4"></div>
-            </div>
-          </div>
-          <div class="h-10 bg-gray-200 rounded-lg w-full"></div>
-          <div class="h-20 bg-gray-200 rounded-lg w-full"></div>
-          <div class="border-t border-gray-200 pt-4 space-y-2">
-            <div class="h-4 bg-gray-200 rounded w-1/4"></div>
-            <div class="h-12 bg-gray-100 rounded-lg w-full"></div>
-            <div class="h-12 bg-gray-100 rounded-lg w-full"></div>
-          </div>
-        </div>
-      } @else {
-
-      <!-- ═══ Header ═══ -->
-      <div class="editor-workspace-card__header px-6 py-4 border-b border-gray-200 flex items-center gap-3 flex-shrink-0">
-        <div class="w-10 h-10 bg-[#0056D2]/10 rounded-lg flex items-center justify-center">
-          <svg class="w-5 h-5 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-          </svg>
-        </div>
-        <div class="min-w-0">
-          <h2 class="text-lg font-semibold text-gray-900 truncate">Chỉnh sửa chương</h2>
-          <p class="text-sm text-gray-500">Cập nhật thông tin chương</p>
-        </div>
-      </div>
-
-      <!-- ═══ Body ═══ -->
-      <div class="editor-workspace-card__body p-6 space-y-4 flex-1 overflow-y-auto">
-
-        <!-- Title -->
-        <div>
-          <label for="chapter-title" class="block text-sm font-medium text-gray-700 mb-2">
-            Tên chương <span class="text-red-500">*</span>
+      <!-- Tên chương -->
+      <div class="editor-field">
+          <label for="chapter-title" class="editor-label">
+            Tên chương <span class="editor-field-error">*</span>
           </label>
           <input id="chapter-title" type="text"
             [ngModel]="title()"
             (ngModelChange)="onTitleChange($event)"
-            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm
-                   focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2]
-                   transition-colors"
+            class="editor-input"
             placeholder="Nhập tên chương..." />
         </div>
 
         <!-- Description -->
-        <div>
-          <label for="chapter-desc" class="block text-sm font-medium text-gray-700 mb-2">Mô tả</label>
+        <div class="editor-field">
+          <label for="chapter-desc" class="editor-label">Mô tả</label>
           <textarea id="chapter-desc"
             [ngModel]="description()"
             (ngModelChange)="onDescriptionChange($event)"
             rows="3"
-            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm resize-none
-                   focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2]
-                   transition-colors"
+            class="editor-textarea"
             placeholder="Mô tả ngắn về nội dung chương..."></textarea>
         </div>
 
         <!-- Lesson list -->
-        <div class="border-t border-gray-200 pt-6">
-          <h3 class="font-medium text-gray-900 mb-4">
-            Bài học ({{ lessons().length }})
-          </h3>
+        <div class="editor-field" style="padding-top: 0.5rem; border-top: 1px solid var(--editor-card-header-border, rgb(226 232 240))">
+          <label class="editor-label">Bài học ({{ lessons().length }})</label>
 
           @if (lessons().length > 0) {
-            <div class="space-y-2">
+            <div class="editor-stack" style="gap: 0.375rem">
               @for (lesson of lessons(); track lesson.id; let i = $index) {
                 <button type="button"
                   (click)="lessonClicked.emit(lesson)"
-                  class="w-full flex items-center gap-3 p-3 bg-gray-50 rounded-lg
-                         hover:bg-gray-100 cursor-pointer text-left transition-colors">
-                  <span class="text-sm text-gray-400 w-6 tabular-nums">{{ i + 1 }}.</span>
-                  <span class="text-sm text-gray-900 flex-1 truncate">{{ lesson.title }}</span>
-                  <span class="text-xs px-2 py-0.5 rounded-full whitespace-nowrap"
-                    [class]="getLessonTypeBadgeClass(lesson)">
+                  class="chapter-lesson-row">
+                  <span class="chapter-lesson-row__index">{{ i + 1 }}.</span>
+                  <span class="chapter-lesson-row__title"><span style="color: rgb(148 163 184); font-size: 0.6875rem; font-weight: 600">Bài {{ i + 1 }}</span> {{ stripLessonPrefix(lesson.title) }}</span>
+                  <span class="chapter-lesson-row__badge"
+                    [class.chapter-lesson-row__badge--quiz]="(lesson.type || 'LECTURE').toUpperCase() === 'QUIZ'"
+                    [class.chapter-lesson-row__badge--assignment]="(lesson.type || 'LECTURE').toUpperCase() === 'ASSIGNMENT'">
                     {{ getLessonTypeLabel(lesson) }}
                   </span>
                 </button>
               }
             </div>
           } @else {
-            <div class="text-center py-8 bg-gray-50 rounded-lg">
-              <p class="text-gray-500 text-sm">Chưa có bài học</p>
-            </div>
+            <p class="editor-empty-state" style="padding: 1.5rem; text-align: center">Chưa có bài học. Thêm bài học từ sidebar bên trái.</p>
           }
         </div>
-      </div>
 
-      <!-- ═══ Footer ═══ -->
-      <div class="editor-workspace-card__footer px-6 py-4 border-t border-gray-200 flex justify-end flex-shrink-0 sticky bottom-0 bg-white z-10">
-        <button type="button"
-          (click)="saveClicked.emit()"
-          [disabled]="isSaving() || !title().trim()"
-          class="px-5 py-2.5 bg-[#0056D2] text-white text-sm font-medium rounded-lg
-                 hover:bg-[#004BB5] disabled:opacity-50 disabled:cursor-not-allowed
-                 flex items-center gap-2 transition-colors">
-          @if (isSaving()) {
-            <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          }
-          Lưu thay đổi
-        </button>
-      </div>
-      }
+        <!-- Lưu -->
+        <div class="chapter-footer">
+          <button type="button"
+            (click)="saveClicked.emit()"
+            [disabled]="isSaving() || !title().trim()"
+            class="editor-primary-button">
+            @if (isSaving()) {
+              <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            }
+            Lưu thay đổi
+          </button>
+        </div>
     </div>
   `,
+  styles: [`
+    @import '../../../course-info/editor-shared';
+    :host { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+    .chapter-workspace { display: flex; flex-direction: column; flex: 1; gap: 1rem; }
+    .chapter-breadcrumb {
+      font-size: 0.8125rem;
+      color: rgb(100 116 139);
+      margin-bottom: 0.25rem;
+    }
+    .chapter-breadcrumb__type {
+      font-weight: 600;
+      color: rgb(0 86 210);
+    }
+    .chapter-footer {
+      display: flex;
+      justify-content: flex-end;
+      padding-top: 0.75rem;
+      border-top: 1px solid rgb(226 232 240);
+      margin-top: auto;
+    }
+    @import '../../../course-info/editor-shared';
+
+    .chapter-lesson-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100%;
+      padding: 0.625rem 0.75rem;
+      border: 1px solid var(--editor-control-border);
+      border-radius: var(--editor-control-radius);
+      background: #fff;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 160ms ease, background-color 160ms ease;
+    }
+    .chapter-lesson-row:hover {
+      border-color: rgba(0, 86, 210, 0.3);
+      background: rgba(0, 86, 210, 0.03);
+    }
+    .chapter-lesson-row__index {
+      font-size: 0.8125rem;
+      color: rgb(148 163 184);
+      min-width: 1.5rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .chapter-lesson-row__title {
+      flex: 1;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: rgb(15 23 42);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .chapter-lesson-row__badge {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      padding: 0.2rem 0.5rem;
+      border-radius: 999px;
+      background: rgba(0, 86, 210, 0.08);
+      color: rgb(0 75 181);
+      white-space: nowrap;
+    }
+    .chapter-lesson-row__badge--quiz {
+      background: rgba(139, 92, 246, 0.1);
+      color: rgb(109 40 217);
+    }
+    .chapter-lesson-row__badge--assignment {
+      background: rgba(16, 185, 129, 0.1);
+      color: rgb(4 120 87);
+    }
+  `],
 })
 export class ChapterEditorComponent {
   // Inputs
@@ -188,6 +213,12 @@ export class ChapterEditorComponent {
       case 'ASSIGNMENT': return 'Bài tập';
       default: return 'Bài giảng';
     }
+  }
+
+  stripLessonPrefix(title: string): string {
+    const pattern = /^bài\s+\d+[.:.]\s*/i;
+    const match = title.match(pattern);
+    return match ? title.slice(match[0].length).trim() : title;
   }
 
   getLessonTypeBadgeClass(lesson: LessonDraftDTO): string {

@@ -41,197 +41,150 @@ import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
     CurriculumQuizManagerComponent,
     SectionEditorComponent,
   ],
+  styles: [`
+    @import '../../../course-info/editor-shared';
+    :host { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+    .lesson-workspace { display: flex; flex-direction: column; flex: 1; gap: 1rem; }
+    .lesson-breadcrumb {
+      font-size: 0.8125rem;
+      color: rgb(100 116 139);
+      margin-bottom: 0.25rem;
+    }
+    .lesson-breadcrumb__type {
+      font-weight: 600;
+      color: rgb(0 86 210);
+    }
+    .lesson-footer {
+      display: flex;
+      justify-content: flex-end;
+      padding-top: 0.75rem;
+      border-top: 1px solid rgb(226 232 240);
+      margin-top: auto;
+    }
+  `],
   template: `
-    <div class="editor-workspace-card bg-white shadow-sm border border-gray-200 overflow-hidden flex flex-col rounded-xl">
-
-      @if (isLoading()) {
-        <!-- Skeleton -->
-        <div class="p-6 space-y-4 animate-pulse">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-gray-200 rounded-lg"></div>
-            <div class="space-y-2 flex-1">
-              <div class="h-5 bg-gray-200 rounded w-1/4"></div>
-              <div class="h-3 bg-gray-100 rounded w-1/5"></div>
-            </div>
-          </div>
-          <div class="h-10 bg-gray-200 rounded-lg w-full"></div>
-          <div class="space-y-3">
-            <div class="h-32 bg-gray-100 rounded-xl w-full"></div>
-            <div class="grid grid-cols-3 gap-2">
-              <div class="h-20 bg-gray-100 rounded-lg"></div>
-              <div class="h-20 bg-gray-100 rounded-lg"></div>
-              <div class="h-20 bg-gray-100 rounded-lg"></div>
-            </div>
-          </div>
-        </div>
-      } @else {
-
-      <!-- ═══ Header ═══ -->
-      <div class="editor-workspace-card__header px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
-        <div class="flex items-center gap-3 min-w-0">
-          <div class="w-10 h-10 rounded-lg flex items-center justify-center"
-               [class]="getTypeBgClass()">
-            <svg class="w-5 h-5" [class]="getTypeTextClass()" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              @switch (lessonType()) {
-                @case ('QUIZ') {
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01" />
-                }
-                @case ('ASSIGNMENT') {
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                }
-                @default {
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                }
-              }
-            </svg>
-          </div>
-          <div class="min-w-0">
-            <h2 class="text-lg font-semibold text-gray-900 truncate">{{ getTypeLabel() }}</h2>
-            <p class="text-sm text-gray-500 truncate">{{ lesson().title }}</p>
-          </div>
-        </div>
+    <div class="lesson-workspace">
+      <!-- Breadcrumb -->
+      <div class="lesson-breadcrumb">
+        <span class="lesson-breadcrumb__type">{{ getTypeLabel() }}</span> · {{ lesson().title }}
       </div>
 
-      <!-- ═══ Body ═══ -->
-      <div class="editor-workspace-card__body p-6 space-y-4 flex-1 overflow-y-auto">
+      <!-- Tiêu đề -->
+      <div class="editor-field">
+        <label for="lesson-title" class="editor-label">
+          Tiêu đề <span class="editor-field-error">*</span>
+        </label>
+        <input id="lesson-title" type="text"
+          [value]="title()"
+          (input)="onTitleChange($any($event.target).value)"
+          class="editor-input"
+          placeholder="Nhập tiêu đề bài học..." />
+      </div>
 
-        <!-- Title (shared) -->
-        <div>
-          <label for="lesson-title" class="block text-sm font-medium text-gray-700 mb-2">
-            Tiêu đề <span class="text-red-500">*</span>
-          </label>
-          <input id="lesson-title" type="text"
-            [value]="title()"
-            (input)="onTitleChange($any($event.target).value)"
-            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm
-                   focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2] transition-colors"
-            placeholder="Nhập tiêu đề bài học..." />
-        </div>
-
-        <!-- ═══ LECTURE ═══ -->
+        <!-- LECTURE -->
         @if (lessonType() === 'LECTURE') {
-          <div class="space-y-4">
-            <!-- Legacy video warning -->
-            @if (hasLegacyVideo()) {
-              <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                  <div class="min-w-0">
-                    <p class="text-sm font-semibold text-amber-900">Video legacy ở cấp bài học</p>
-                    <p class="mt-1 text-sm text-amber-800">{{ legacyVideoCopy() }}</p>
-                  </div>
-                  @if (!hasVideoSections()) {
-                    <button type="button"
-                      (click)="createSection.emit('VIDEO')"
-                      class="shrink-0 rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-medium text-amber-900 transition hover:bg-amber-100">
-                      Tạo mục video chuẩn mới
-                    </button>
-                  }
-                </div>
+          <!-- Legacy video warning -->
+          @if (hasLegacyVideo()) {
+            <div class="editor-callout--warning" style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 1rem; border: 1px solid rgba(217,119,6,0.22); border-radius: var(--editor-control-radius); background: rgba(245,158,11,0.1)">
+              <div style="min-width: 0">
+                <p style="font-size: 0.8125rem; font-weight: 600; color: rgb(146 64 14)">Video cũ ở bài học</p>
+                <p style="margin-top: 0.25rem; font-size: 0.8125rem; color: rgb(146 64 14)">{{ legacyVideoCopy() }}</p>
               </div>
-            }
-
-            <!-- Sections panel -->
-            <app-lecture-sections-panel
-              [sections]="lesson().sections || []"
-              (createSection)="createSection.emit($event)"
-              (editSection)="editSection.emit($event)"
-              (deleteSection)="deleteSection.emit($event)"
-              (dropSection)="dropSection.emit($event)">
-            </app-lecture-sections-panel>
-
-            <!-- Inline section editor -->
-            @if (editorSvc.isSectionSurfaceOpen()) {
-              <app-section-editor
-                [lessonId]="lesson().id"
-                [courseId]="courseId()"
-                (saved)="sectionSaved.emit()"
-                (closed)="sectionClosed.emit()">
-              </app-section-editor>
-            }
-          </div>
-        }
-
-        <!-- ═══ QUIZ ═══ -->
-        @if (lessonType() === 'QUIZ') {
-          <div class="flex flex-col gap-6">
-            <app-curriculum-assessment-summary
-              accent="purple"
-              eyebrow="Bài kiểm tra trong bài học"
-              title="Giữ cấu hình chính ở bài học, chuyển quản lý câu hỏi sang builder"
-              [description]="quizFlowDescription()"
-              [placementLabel]="placementLabel()"
-              [audienceLabel]="audienceLabel()"
-              [distributionLabel]="distributionLabel()"
-              actionLabel="Mở builder bài kiểm tra"
-              (actionClick)="goToQuizBuilder.emit()">
-            </app-curriculum-assessment-summary>
-
-            <app-curriculum-quiz-manager
-              [timeLimit]="quizTimeLimit()"
-              [passingScore]="quizPassingScore()"
-              [maxAttempts]="quizMaxAttempts()"
-              [questions]="quizQuestions()"
-              [loading]="quizQuestionsLoading()"
-              (timeLimitChange)="quizTimeLimitChange.emit(+$event)"
-              (passingScoreChange)="quizPassingScoreChange.emit(+$event)"
-              (maxAttemptsChange)="quizMaxAttemptsChange.emit(+$event)">
-            </app-curriculum-quiz-manager>
-          </div>
-        }
-
-        <!-- ═══ ASSIGNMENT ═══ -->
-        @if (lessonType() === 'ASSIGNMENT') {
-          <div class="space-y-4">
-            <app-curriculum-assessment-summary
-              accent="green"
-              eyebrow="Bài tập trong bài học"
-              title="Giữ tiêu chí mặc định ở bài học, tách riêng phần giao cho người học"
-              [description]="assignmentFlowDescription()"
-              [placementLabel]="placementLabel()"
-              [audienceLabel]="audienceLabel()"
-              [distributionLabel]="distributionLabel()"
-              actionLabel="Mở cài đặt bài tập"
-              (actionClick)="goToAssignmentSettings.emit()">
-            </app-curriculum-assessment-summary>
-
-            <app-curriculum-assignment-details
-              [description]="assignmentDescription()"
-              [instructions]="assignmentInstructions()"
-              [dueDate]="assignmentDueDate()"
-              [maxScore]="assignmentMaxScore()"
-              (descriptionChange)="assignmentDescriptionChange.emit($event)"
-              (instructionsChange)="assignmentInstructionsChange.emit($event)"
-              (dueDateChange)="assignmentDueDateChange.emit($event)"
-              (maxScoreChange)="assignmentMaxScoreChange.emit(+$event)">
-            </app-curriculum-assignment-details>
-          </div>
-        }
-      </div>
-
-      <!-- ═══ Footer ═══ -->
-      <div class="editor-workspace-card__footer px-6 py-4 border-t border-gray-200 flex justify-between items-center flex-shrink-0 sticky bottom-0 bg-white z-10">
-        <button type="button" (click)="backClicked.emit()"
-          class="text-gray-600 hover:text-gray-800 text-sm transition-colors">
-          Quay lại
-        </button>
-        <button type="button" (click)="saveClicked.emit()"
-          [disabled]="isSaving() || !title().trim()"
-          class="px-5 py-2.5 bg-[#0056D2] text-white text-sm font-medium rounded-lg
-                 hover:bg-[#004BB5] disabled:opacity-50 disabled:cursor-not-allowed
-                 flex items-center gap-2 transition-colors">
-          @if (isSaving()) {
-            <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
+              @if (!hasVideoSections()) {
+                <button type="button" (click)="createSection.emit('VIDEO')"
+                  class="editor-secondary-button" style="font-size: 0.75rem; min-height: 2rem; padding: 0.25rem 0.75rem">
+                  Tạo mục video mới
+                </button>
+              }
+            </div>
           }
-          Lưu thay đổi
-        </button>
-      </div>
-      }
+
+          <!-- Sections panel -->
+          <app-lecture-sections-panel
+            [sections]="lesson().sections || []"
+            (createSection)="createSection.emit($event)"
+            (editSection)="editSection.emit($event)"
+            (deleteSection)="deleteSection.emit($event)"
+            (dropSection)="dropSection.emit($event)">
+          </app-lecture-sections-panel>
+
+          <!-- Inline section editor -->
+          @if (editorSvc.isSectionSurfaceOpen()) {
+            <app-section-editor
+              [lessonId]="lesson().id"
+              [courseId]="courseId()"
+              (saved)="sectionSaved.emit()"
+              (closed)="sectionClosed.emit()">
+            </app-section-editor>
+          }
+        }
+
+        <!-- QUIZ -->
+        @if (lessonType() === 'QUIZ') {
+          <app-curriculum-assessment-summary
+            accent="purple"
+            eyebrow="Bài kiểm tra trong bài học"
+            title="Thiết lập bài kiểm tra tại đây, quản lý câu hỏi ở trang riêng"
+            [description]="quizFlowDescription()"
+            [placementLabel]="placementLabel()"
+            [audienceLabel]="audienceLabel()"
+            [distributionLabel]="distributionLabel()"
+            actionLabel="Mở trang quản lý bài kiểm tra"
+            (actionClick)="goToQuizBuilder.emit()">
+          </app-curriculum-assessment-summary>
+
+          <app-curriculum-quiz-manager
+            [timeLimit]="quizTimeLimit()"
+            [passingScore]="quizPassingScore()"
+            [maxAttempts]="quizMaxAttempts()"
+            [questions]="quizQuestions()"
+            [loading]="quizQuestionsLoading()"
+            (timeLimitChange)="quizTimeLimitChange.emit(+$event)"
+            (passingScoreChange)="quizPassingScoreChange.emit(+$event)"
+            (maxAttemptsChange)="quizMaxAttemptsChange.emit(+$event)">
+          </app-curriculum-quiz-manager>
+        }
+
+        <!-- ASSIGNMENT -->
+        @if (lessonType() === 'ASSIGNMENT') {
+          <app-curriculum-assessment-summary
+            accent="green"
+            eyebrow="Bài tập trong bài học"
+            title="Thiết lập bài tập tại đây, giao bài cho học viên ở trang riêng"
+            [description]="assignmentFlowDescription()"
+            [placementLabel]="placementLabel()"
+            [audienceLabel]="audienceLabel()"
+            [distributionLabel]="distributionLabel()"
+            actionLabel="Mở cài đặt bài tập"
+            (actionClick)="goToAssignmentSettings.emit()">
+          </app-curriculum-assessment-summary>
+
+          <app-curriculum-assignment-details
+            [description]="assignmentDescription()"
+            [instructions]="assignmentInstructions()"
+            [dueDate]="assignmentDueDate()"
+            [maxScore]="assignmentMaxScore()"
+            (descriptionChange)="assignmentDescriptionChange.emit($event)"
+            (instructionsChange)="assignmentInstructionsChange.emit($event)"
+            (dueDateChange)="assignmentDueDateChange.emit($event)"
+            (maxScoreChange)="assignmentMaxScoreChange.emit(+$event)">
+          </app-curriculum-assignment-details>
+        }
+
+        <!-- Lưu -->
+        <div class="lesson-footer">
+          <button type="button" (click)="saveClicked.emit()"
+            [disabled]="isSaving() || !title().trim()"
+            class="editor-primary-button">
+            @if (isSaving()) {
+              <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            }
+            Lưu thay đổi
+          </button>
+        </div>
     </div>
   `,
 })

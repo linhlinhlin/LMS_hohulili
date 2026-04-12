@@ -32,6 +32,33 @@ import { filter, take, map } from 'rxjs/operators';
       <app-course-editor-header class="h-12 flex-shrink-0 z-20 bg-white">
       </app-course-editor-header>
 
+      <!-- Editor Tabs — above grid so position is stable regardless of sidebar -->
+      <nav aria-label="Editor tabs"
+           class="flex items-center gap-1 border-b border-gray-200 flex-shrink-0 bg-white relative z-10 px-4 overflow-x-auto scrollbar-hide">
+         <a routerLink="info"
+            routerLinkActive="text-[#0056D2] border-b-2 border-[#0056D2]"
+            class="px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-md transition-colors border-b-2 border-transparent whitespace-nowrap">
+            Thông tin
+         </a>
+         <a routerLink="curriculum"
+            routerLinkActive="text-[#0056D2] border-b-2 border-[#0056D2]"
+            class="px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-md transition-colors border-b-2 border-transparent whitespace-nowrap">
+            Nội dung
+         </a>
+         @if (isInstructorLed()) {
+           <a routerLink="classes"
+              routerLinkActive="text-[#0056D2] border-b-2 border-[#0056D2]"
+              class="px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-md transition-colors border-b-2 border-transparent whitespace-nowrap">
+              Lớp học
+           </a>
+         }
+         <a routerLink="settings"
+            routerLinkActive="text-[#0056D2] border-b-2 border-[#0056D2]"
+            class="px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-md transition-colors border-b-2 border-transparent whitespace-nowrap">
+            Cài đặt
+         </a>
+      </nav>
+
       <main class="flex-grow grid grid-cols-1 overflow-hidden relative"
             [class.sidebar-open]="!sidebarCollapsed()">
 
@@ -50,33 +77,6 @@ import { filter, take, map } from 'rxjs/operators';
 
         <!-- Main Content -->
         <div class="flex flex-col min-w-0 h-full overflow-hidden bg-slate-50 relative">
-            <!-- Editor Tabs -->
-            <nav aria-label="Editor tabs"
-                 class="flex items-center gap-1 border-b border-gray-200 flex-shrink-0 bg-white z-10 px-4 overflow-x-auto scrollbar-hide">
-               <a routerLink="info"
-                  routerLinkActive="text-[#0056D2] border-b-2 border-[#0056D2]"
-                  class="px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-md transition-colors border-b-2 border-transparent whitespace-nowrap">
-                  Thông tin
-               </a>
-               <a routerLink="curriculum"
-                  routerLinkActive="text-[#0056D2] border-b-2 border-[#0056D2]"
-                  class="px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-md transition-colors border-b-2 border-transparent whitespace-nowrap">
-                  Nội dung
-               </a>
-               @if (isInstructorLed()) {
-                 <a routerLink="classes"
-                    routerLinkActive="text-[#0056D2] border-b-2 border-[#0056D2]"
-                    class="px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-md transition-colors border-b-2 border-transparent whitespace-nowrap">
-                    Lớp học
-                 </a>
-               }
-               <a routerLink="settings"
-                  routerLinkActive="text-[#0056D2] border-b-2 border-[#0056D2]"
-                  class="px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-md transition-colors border-b-2 border-transparent whitespace-nowrap">
-                  Cài đặt
-               </a>
-            </nav>
-
             <!-- Workspace Area -->
             <div class="flex-grow overflow-y-auto min-h-0 relative">
                 @if (store.isLoading()) {

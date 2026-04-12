@@ -109,7 +109,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
             <div class="rounded-xl border border-[#0056D2]/20 bg-[#0056D2]/5 p-4">
               <p class="text-sm font-semibold text-gray-900">Video bài giảng</p>
               <p class="mt-1 text-sm text-gray-600">
-                Tải tệp video gốc lên. Hệ thống sẽ xử lý phát trực tuyến và profile tải ngoại tuyến.
+                Tải video bài giảng lên. Video sẽ được tối ưu để phát trực tuyến và tải về xem ngoại tuyến.
               </p>
             </div>
 
@@ -149,7 +149,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                   <p class="mt-0.5 text-xs text-emerald-700">{{ getVideoProcessingCopy() }}</p>
                   @if (svc.sectionVideoAvailableOfflineProfiles().length) {
                     <p class="mt-2 text-xs text-emerald-700">
-                      Profile offline:
+                      Chất lượng tải về:
                       @for (profile of svc.sectionVideoAvailableOfflineProfiles(); track $index) {
                         <span>{{ formatProfile(profile) }}@if (!$last) {, }</span>
                       }

@@ -1,104 +1,48 @@
-<div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-  <div class="border-b border-slate-200 bg-slate-50/80 px-4 py-4">
-    <div class="flex flex-wrap items-start justify-between gap-3">
-      <div class="min-w-0 flex-1">
-        <h3 class="text-base font-semibold leading-6 text-slate-900">Nội dung bài học ({{ sections().length }} mục)</h3>
-        <p class="mt-1 text-sm leading-6 text-slate-500">
-          Kéo thả để sắp xếp và chọn từng mục để chỉnh sửa nội dung hoặc thiết lập.
-        </p>
-      </div>
-
-      <div class="flex max-w-full flex-wrap justify-start gap-2 sm:justify-end">
-        <button (click)="onCreateSection('TEXT')" class="flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50">
-          <span>+ Bài giảng</span>
-        </button>
-        <button (click)="onCreateSection('VIDEO')" class="flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50">
-          <span>+ Video</span>
-        </button>
-        <button (click)="onCreateSection('FILE')" class="flex items-center gap-1 rounded-lg border border-amber-200 bg-white px-3 py-1.5 text-sm text-amber-700 hover:bg-amber-50">
-          <span>+ Tài liệu</span>
-        </button>
-        <button (click)="onCreateSection('QUIZ')" class="flex items-center gap-1 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-sm text-rose-700 hover:bg-rose-50">
-          <span>+ Trắc nghiệm</span>
-        </button>
-      </div>
-    </div>
+<!-- Section list header -->
+<div class="sections-header">
+  <label class="editor-label">Nội dung ({{ sections().length }} mục)</label>
+  <div class="sections-header__actions">
+    <button type="button" (click)="onCreateSection('TEXT')" class="sections-add-btn">+ Bài giảng</button>
+    <button type="button" (click)="onCreateSection('VIDEO')" class="sections-add-btn">+ Video</button>
+    <button type="button" (click)="onCreateSection('FILE')" class="sections-add-btn sections-add-btn--file">+ Tài liệu</button>
+    <button type="button" (click)="onCreateSection('QUIZ')" class="sections-add-btn sections-add-btn--quiz">+ Trắc nghiệm</button>
   </div>
+</div>
 
-  <div class="p-4">
-    @if (sections().length === 0) {
-      <div class="py-8 text-center text-sm text-gray-500">
-        <lucide-icon name="inbox" [size]="32" class="mx-auto mb-2 text-gray-300"></lucide-icon>
-        <p>Chưa có nội dung cho bài học này. Hãy thêm bài giảng, video, tài liệu hoặc trắc nghiệm.</p>
-      </div>
-    } @else {
-      <div
-        class="space-y-2 rounded-lg border border-slate-200/90 bg-slate-50/70 p-3"
-        cdkDropList
-        cdkDropListLockAxis="y"
-        [cdkDropListData]="sections()"
-        (cdkDropListDropped)="onDropSection($event)">
-        @for (section of sections(); track section.id) {
-          <div
-            class="group relative flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-white px-3 py-3 pr-12 shadow-sm transition-all hover:border-[#0056D2]/30 hover:shadow-md"
-            (click)="onEditSection(section)"
-            cdkDrag>
-            <div
-              class="absolute left-0 top-1/2 h-10 w-1 -translate-y-1/2 rounded-r-md"
-              [class.bg-[#0056D2]]="section.type === 'VIDEO'"
-              [class.bg-amber-500]="section.type === 'FILE'"
-              [class.bg-rose-500]="section.type === 'QUIZ'"
-              [class.bg-slate-400]="section.type === 'TEXT'"></div>
+<!-- Section list -->
+@if (sections().length === 0) {
+  <p class="editor-empty-state sections-empty">Chưa có nội dung. Thêm bài giảng, video, tài liệu hoặc trắc nghiệm ở trên.</p>
+} @else {
+  <div class="sections-list"
+       cdkDropList cdkDropListLockAxis="y"
+       [cdkDropListData]="sections()"
+       (cdkDropListDropped)="onDropSection($event)">
+    @for (section of sections(); track section.id) {
+      <div class="section-row" (click)="onEditSection(section)" cdkDrag>
+        <!-- Drag handle -->
+        <div class="section-row__handle" cdkDragHandle>
+          <lucide-icon name="grip-vertical" [size]="14"></lucide-icon>
+        </div>
 
-            <div class="ml-2 mt-1 cursor-move text-gray-400" cdkDragHandle>
-              <lucide-icon name="grip-vertical" [size]="16"></lucide-icon>
-            </div>
-
-            <div
-              class="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg"
-              [class.bg-[#0056D2]/10]="section.type === 'VIDEO'"
-              [class.bg-amber-100]="section.type === 'FILE'"
-              [class.bg-rose-100]="section.type === 'QUIZ'"
-              [class.bg-slate-100]="section.type === 'TEXT'">
-              @if (section.type === 'VIDEO') {
-                <lucide-icon name="play-circle" [size]="16" class="text-[#0056D2]"></lucide-icon>
-              } @else if (section.type === 'FILE') {
-                <lucide-icon name="file-text" [size]="16" class="text-amber-600"></lucide-icon>
-              } @else if (section.type === 'QUIZ') {
-                <lucide-icon name="clipboard-check" [size]="16" class="text-rose-600"></lucide-icon>
-              } @else {
-                <lucide-icon name="pilcrow" [size]="16" class="text-slate-600"></lucide-icon>
-              }
-            </div>
-
-            <div class="min-w-0 flex-1">
-              <div class="flex flex-wrap items-start gap-2">
-                <h4 class="min-w-0 flex-1 break-words text-sm font-semibold leading-5 text-gray-900">{{ section.title }}</h4>
-                <div class="flex flex-wrap gap-1.5">
-                  <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
-                    {{ getSectionTypeLabel(section.type) }}
-                  </span>
-                  @if (section.isRequired) {
-                    <span class="inline-flex items-center rounded-full bg-[#0056D2]/10 px-2 py-0.5 text-[11px] font-semibold text-[#0056D2]">
-                      Bắt buộc
-                    </span>
-                  }
-                </div>
-              </div>
-
-              <p class="mt-1 text-xs leading-5 text-slate-500">
-                Nhấn để chỉnh sửa nội dung và thiết lập của mục này.
-              </p>
-            </div>
-
-            <button
-              (click)="onDeleteSection(section.id, $event)"
-              class="absolute right-3 top-3 rounded-lg p-1.5 text-gray-400 opacity-100 transition-all hover:bg-red-50 hover:text-red-600 md:opacity-0 md:group-hover:opacity-100">
-              <lucide-icon name="trash-2" [size]="14"></lucide-icon>
-            </button>
+        <!-- Content -->
+        <div class="section-row__content">
+          <span class="section-row__title">{{ stripSectionPrefix(section.title) }}</span>
+          <div class="section-row__meta">
+            <span class="section-row__type">{{ getSectionTypeLabel(section.type) }}</span>
+            @if (section.isRequired) {
+              <span class="section-row__required">Bắt buộc</span>
+            }
           </div>
-        }
+        </div>
+
+        <!-- Delete -->
+        <button type="button"
+          (click)="onDeleteSection(section.id, $event)"
+          class="section-row__delete"
+          aria-label="Xóa">
+          <lucide-icon name="trash-2" [size]="14"></lucide-icon>
+        </button>
       </div>
     }
   </div>
-</div>
+}

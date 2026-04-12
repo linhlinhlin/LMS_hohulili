@@ -11,7 +11,7 @@ import { SectionApi } from '../../../../../api/client/section.api';
 import { ChapterDraftDTO, LessonDraftDTO, SectionDraftDTO, CourseAuthoringService } from '../../services/course-authoring.service';
 import { CurriculumSelectionService } from '../../services/curriculum-selection.service';
 import { CONTENT_TYPE_CONFIG, ContentType } from '../../../../../core/constants/content-type.constant';
-import { ResizableSidebarDirective } from '../../../../../shared/directives/resizable-sidebar.directive';
+
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { LucideAngularModule } from 'lucide-angular';
@@ -30,7 +30,6 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
     FormsModule,
     DragDropModule,
     CdkScrollable,
-    ResizableSidebarDirective,
     MatTooltipModule,
     LucideAngularModule
   ],
@@ -43,46 +42,160 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
       ])
     ])
   ],
-  template: `
-    <aside class="flex flex-col bg-white border-r border-slate-200 h-full overflow-hidden select-none relative"
-           role="tree"
-           aria-label="Cấu trúc khóa học"
-           appResizableSidebar
-           (sidebarResize)="onSidebarResize($event)">
+  styles: [`
+    /* ── Sidebar row system ── */
+    .sidebar-row {
+      display: flex;
+      align-items: center;
+      gap: 0.125rem;
+      padding: 0 0.5rem 0 0;
+      transition: background-color 160ms ease;
+    }
+    .sidebar-row:hover { background: rgb(248 250 252); }
+    .sidebar-row--lesson { padding-left: 0.75rem; }
+    .sidebar-row--selected {
+      background: rgba(0, 86, 210, 0.06);
+      border-left: 2px solid rgb(0 86 210);
+    }
+    .sidebar-row:not(.sidebar-row--selected) {
+      border-left: 2px solid transparent;
+    }
 
-        <!-- Resize Handle -->
-        <div class="resize-handle absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-[#0056D2]/40 active:bg-[#E8F0FE]/60 transition-colors z-50"></div>
+    /* Drag handle */
+    .sidebar-drag-handle {
+      flex-shrink: 0;
+      width: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+      align-self: stretch;
+    }
+    .sidebar-drag-handle:active { cursor: grabbing; }
+
+    /* Expand arrow */
+    .sidebar-expand {
+      flex-shrink: 0;
+      width: 1.75rem;
+      height: 1.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.25rem;
+      color: rgb(148 163 184);
+      transition: color 160ms ease, transform 160ms ease;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 0;
+    }
+    .sidebar-expand:hover { color: rgb(51 65 85); }
+    .sidebar-expand--sm { width: 1.5rem; height: 1.5rem; }
+
+    /* Kebab button */
+    .sidebar-kebab {
+      padding: 0.375rem;
+      border-radius: 0.25rem;
+      color: rgb(203 213 225);
+      transition: color 160ms ease, background 160ms ease;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    .sidebar-kebab:hover {
+      color: rgb(71 85 105);
+      background: rgb(241 245 249);
+    }
+
+    /* Drag handles: hidden by default, appear on row hover */
+    .sidebar-hover-reveal {
+      opacity: 0;
+      transition: opacity 160ms ease 300ms;
+    }
+    .group\\/ch:hover .sidebar-hover-reveal,
+    .group\\/ls:hover .sidebar-hover-reveal {
+      opacity: 0.6;
+      transition-delay: 0ms;
+    }
+    @media (pointer: coarse) {
+      .sidebar-hover-reveal {
+        opacity: 0.35;
+        transition-delay: 0ms;
+      }
+    }
+
+    /* ── Section items (Mục) ── */
+    .sidebar-sections {
+      padding: 0.125rem 0.5rem 0.375rem 2.25rem;
+    }
+    .sidebar-section-row {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      width: 100%;
+      padding: 0.375rem 0.5rem;
+      border-radius: 0.25rem;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      text-align: left;
+      font-size: 0.8125rem; /* 13px */
+      font-weight: 500;
+      color: rgb(100 116 139);
+      transition: background 160ms ease, color 160ms ease;
+    }
+    .sidebar-section-row:hover {
+      background: rgb(241 245 249);
+      color: rgb(51 65 85);
+    }
+    .sidebar-section-row--selected {
+      background: rgba(0, 86, 210, 0.08);
+      color: rgb(0 86 210);
+    }
+    .sidebar-section-row__num {
+      flex-shrink: 0;
+      font-size: 0.6875rem; /* 11px */
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: rgb(0 86 210);
+      opacity: 0.5;
+      min-width: 1.75rem;
+    }
+    .sidebar-section-row--selected .sidebar-section-row__num {
+      opacity: 0.8;
+    }
+    .sidebar-section-row__title {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .sidebar-section-row__type {
+      flex-shrink: 0;
+      font-size: 0.625rem;
+      opacity: 0.5;
+    }
+
+    /* CDK Drag overrides */
+    .cdk-drag-preview { border-radius: 0.5rem; }
+    .cdk-drag-placeholder { opacity: 0.3; }
+  `],
+  template: `
+    <aside class="flex flex-col bg-white border-r border-slate-200 h-full overflow-hidden select-none"
+           role="tree"
+           aria-label="Cấu trúc khóa học">
 
         <!-- Header -->
-        <div class="p-4 pb-3 border-b border-slate-200">
-            <div class="flex items-center justify-between mb-3">
-              <h2 class="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">Cấu trúc khóa học</h2>
-              <div class="flex items-center gap-2">
-                <span class="text-xs font-bold text-slate-400">{{ publishedCount() }}/{{ totalCount() }}</span>
-                <button (click)="toggleAll()"
-                        class="p-1.5 rounded-md hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors"
-                        [matTooltip]="isAllExpanded() ? 'Thu gọn tất cả' : 'Mở rộng tất cả'">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    @if (isAllExpanded()) {
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 14h16M4 10h16"></path>
-                    } @else {
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
-                    }
-                  </svg>
-                </button>
-              </div>
-            </div>
-            <!-- Search -->
-            <div class="relative">
-                <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
-                <input type="text"
-                       [(ngModel)]="tempSearch"
-                       (input)="onSearch(tempSearch)"
-                       placeholder="Tìm kiếm... (Ctrl+K)"
-                       class="w-full h-10 pl-10 pr-4 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2] transition-all placeholder:text-slate-400 shadow-sm">
-            </div>
+        <div class="px-3 py-2.5 border-b border-slate-200 flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Nội dung</span>
+            <button (click)="showAddChapterModal()"
+                    class="p-1.5 rounded-md hover:bg-[#E8F0FE] text-slate-400 hover:text-[#0056D2] transition-colors"
+                    matTooltip="Thêm chương">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+              </svg>
+            </button>
         </div>
 
         <!-- Scroll Area -->
@@ -114,67 +227,45 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
               </div>
             }
 
-            <!-- Empty State: Search no results -->
-            @if (store.chapters().length > 0 && searchQuery() && filteredChapterCount() === 0) {
-              <div class="flex flex-col items-center justify-center py-12 px-6 text-center">
-                <svg class="w-10 h-10 text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
-                <p class="text-sm font-medium text-slate-600 mb-1">Không tìm thấy kết quả</p>
-                <p class="text-xs text-slate-400">Thử từ khóa khác</p>
-              </div>
-            }
-
             <!-- Chapter Tree -->
             @for (chapter of store.chapters(); track chapter.id; let chapterIdx = $index) {
-                @if (!searchQuery() || chapterMatchesSearch(chapter)) {
                   <div class="border-b border-slate-100 last:border-0"
                        role="treeitem"
                        [attr.aria-expanded]="isChapterExpanded(chapter.id)"
                        cdkDrag [cdkDragData]="chapter"
-                       [cdkDragStartDelay]="isTouchDevice ? 150 : 0">
+                       [cdkDragStartDelay]="isTouchDevice ? 150 : 0"
+                       (cdkDragStarted)="onChapterDragStart(chapter.id)">
 
                       <!-- Drag Preview -->
                       <div *cdkDragPreview class="bg-white shadow-lg rounded-lg px-4 py-2 border border-[#0056D2] text-sm font-medium text-slate-800 max-w-[280px] line-clamp-2 break-words">
-                        {{ chapter.title }}
+                        Chương {{ chapterIdx + 1 }} · {{ getChapterDisplayTitle(chapter.title, chapterIdx) }}
                       </div>
                       <!-- Drag Placeholder (insertion line) -->
                       <div *cdkDragPlaceholder class="h-0.5 bg-[#0056D2] rounded-full mx-2 my-1"></div>
 
                       <!-- CHAPTER ROW -->
-                      <div class="flex items-center gap-1.5 pr-1 group/ch hover:bg-slate-50 transition-colors border-l-3"
-                           [class.bg-[#E8F0FE]]="selectedChapterId() === chapter.id"
-                           [class.border-l-[#0056D2]]="selectedChapterId() === chapter.id"
-                           [class.border-l-transparent]="selectedChapterId() !== chapter.id">
+                      <div class="sidebar-row group/ch"
+                           [class.sidebar-row--selected]="selectedChapterId() === chapter.id">
 
-                          <!-- Drag Handle (Teachable 6-dot) -->
-                          <div cdkDragHandle
-                               class="flex-shrink-0 w-6 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover/ch:opacity-70 transition-opacity self-stretch">
-                            <svg class="w-3.5 h-5 text-slate-400" viewBox="0 0 6 10" fill="currentColor">
-                              <circle cx="1.5" cy="1.5" r="1"/>
-                              <circle cx="4.5" cy="1.5" r="1"/>
-                              <circle cx="1.5" cy="5" r="1"/>
-                              <circle cx="4.5" cy="5" r="1"/>
-                              <circle cx="1.5" cy="8.5" r="1"/>
-                              <circle cx="4.5" cy="8.5" r="1"/>
+                          <!-- Drag Handle -->
+                          <div cdkDragHandle class="sidebar-drag-handle sidebar-hover-reveal">
+                            <svg class="w-3 h-4 text-slate-300" viewBox="0 0 6 10" fill="currentColor">
+                              <circle cx="1.5" cy="1.5" r="1"/><circle cx="4.5" cy="1.5" r="1"/>
+                              <circle cx="1.5" cy="5" r="1"/><circle cx="4.5" cy="5" r="1"/>
+                              <circle cx="1.5" cy="8.5" r="1"/><circle cx="4.5" cy="8.5" r="1"/>
                             </svg>
                           </div>
 
-                          <!-- Expand/Collapse Arrow -->
-                          <button (click)="toggleChapter(chapter.id)"
-                                  class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-all"
-                                  [class.rotate-90]="isChapterExpanded(chapter.id)">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <!-- Expand Arrow -->
+                          <button (click)="toggleChapter(chapter.id); $event.stopPropagation()"
+                                  class="sidebar-expand" [class.rotate-90]="isChapterExpanded(chapter.id)">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path>
                             </svg>
                           </button>
 
-                          <!-- Status Dot -->
-                          <div [class]="'w-2.5 h-2.5 rounded-full flex-shrink-0 ring-2 ring-white ' + getChapterStatusColor(chapter)"
-                               [matTooltip]="getChapterStatus(chapter) === 'ready' ? 'Hoàn chỉnh' : getChapterStatus(chapter) === 'partial' ? 'Đang xây dựng' : 'Trống'"></div>
-
-                          <!-- Title (click to expand + select) -->
-                          <div class="flex-grow min-w-0 py-3 cursor-pointer"
+                          <!-- Title -->
+                          <div class="flex-grow min-w-0 py-2.5 cursor-pointer"
                                (click)="toggleChapterSelection(chapter)">
                               @if (editingChapterId() === chapter.id) {
                                   <input [value]="editingValue"
@@ -182,28 +273,18 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                                          (blur)="confirmEditChapter(chapter.id)"
                                          (keydown)="onEditKeydown($event, 'chapter', chapter.id)"
                                          (click)="$event.stopPropagation()"
-                                         class="w-full text-base font-bold text-slate-800 bg-white border border-[#0056D2] rounded px-2 py-1 outline-none focus:ring-2 focus:ring-[#0056D2]/30"
+                                         class="w-full text-sm font-semibold text-slate-800 bg-white border border-[#0056D2] rounded px-2 py-0.5 outline-none focus:ring-2 focus:ring-[#0056D2]/30"
                                          #editInput>
                               } @else {
-                                  <h4 class="text-base font-bold text-slate-800 leading-tight line-clamp-2 break-words"><span class="text-[#0056D2] font-extrabold">Chương {{ chapterIdx + 1 }}:</span> {{ getChapterDisplayTitle(chapter.title, chapterIdx) }}</h4>
-                                  <span class="text-xs text-slate-500 font-medium">{{ chapter.lessons.length }} bài học</span>
+                                  <h4 class="text-[15px] font-semibold text-slate-800 leading-snug line-clamp-2 break-words"><span class="text-[13px] font-semibold text-[#0056D2]">Chương {{ chapterIdx + 1 }}</span> · {{ getChapterDisplayTitle(chapter.title, chapterIdx) }}</h4>
                               }
                           </div>
 
-                          <!-- Chapter Actions: Add + Kebab Menu (Teachable pattern) -->
-                          <div class="flex items-center gap-0.5 flex-shrink-0" (click)="$event.stopPropagation()">
-                            <!-- Add Lesson (always visible on hover) -->
-                            <button (click)="showAddLessonModal(chapter, chapterIdx)"
-                                    class="p-1.5 rounded text-slate-400 hover:text-[#0056D2] hover:bg-[#E8F0FE] transition-colors opacity-0 group-hover/ch:opacity-100"
-                                    matTooltip="Thêm bài học">
-                              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                              </svg>
-                            </button>
-                            <!-- Kebab Menu -->
+                          <!-- Kebab -->
+                          <div class="flex items-center flex-shrink-0" (click)="$event.stopPropagation()">
                             <div class="relative">
                               <button (click)="toggleMenu('chapter', chapter.id)"
-                                      class="p-1.5 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                                      class="sidebar-kebab">
                                 <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 16 16">
                                   <circle cx="8" cy="3" r="1.5"/>
                                   <circle cx="8" cy="8" r="1.5"/>
@@ -263,66 +344,54 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                                [cdkDropListConnectedTo]="[]"
                                (cdkDropListDropped)="dropLesson($event, chapter.id)">
 
-                              <!-- Empty: no lessons in chapter (Canvas pattern) -->
+                              <!-- Empty: no lessons in chapter -->
                               @if (chapter.lessons.length === 0) {
-                                <div class="py-6 px-4 text-center">
-                                  <p class="text-xs text-slate-400 mb-2">Chưa có bài học nào</p>
-                                  <button (click)="showAddLessonModal(chapter, chapterIdx)"
-                                          class="text-xs font-medium text-[#0056D2] hover:text-[#004BB5] inline-flex items-center gap-1">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                    </svg>
-                                    Thêm bài học đầu tiên
-                                  </button>
-                                </div>
+                                <button (click)="showAddLessonModal(chapter, chapterIdx)"
+                                        class="flex items-center gap-2 w-full pl-8 pr-4 py-2.5 text-[12px] text-slate-400 hover:text-[#0056D2] hover:bg-slate-50 transition-colors text-left">
+                                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                  </svg>
+                                  Thêm bài học
+                                </button>
                               }
 
                               @for (lesson of chapter.lessons; track lesson.id; let lessonIdx = $index) {
                                   <div class="relative group/ls"
                                        role="treeitem"
                                        cdkDrag [cdkDragData]="lesson"
-                                       [cdkDragStartDelay]="isTouchDevice ? 150 : 0">
+                                       [cdkDragStartDelay]="isTouchDevice ? 150 : 0"
+                                       (cdkDragStarted)="onLessonDragStart(lesson.id)">
 
                                       <!-- Drag Preview -->
                                       <div *cdkDragPreview class="bg-white shadow-lg rounded-lg px-4 py-2 border border-[#0056D2] text-xs font-medium text-slate-700 max-w-[260px] line-clamp-2 break-words">
-                                        {{ lesson.title }}
+                                        Bài {{ chapterIdx + 1 }}.{{ lessonIdx + 1 }} · {{ getLessonDisplayTitle(lesson.title, lessonIdx) }}
                                       </div>
                                       <!-- Drag Placeholder (insertion line) -->
                                       <div *cdkDragPlaceholder class="h-0.5 bg-[#0056D2] rounded-full mx-2 my-1"></div>
 
                                       <!-- LESSON ROW -->
-                                      <div class="flex items-center gap-1 pl-4 pr-1 hover:bg-white transition-colors border-l-2"
-                                           [class.bg-[#E8F0FE]]="selectedLessonId() === lesson.id"
-                                           [class.border-l-[#0056D2]/60]="selectedLessonId() === lesson.id"
-                                           [class.border-l-transparent]="selectedLessonId() !== lesson.id">
+                                      <div class="sidebar-row sidebar-row--lesson group/ls"
+                                           [class.sidebar-row--selected]="selectedLessonId() === lesson.id">
 
                                           <!-- Drag Handle -->
-                                          <div cdkDragHandle
-                                               class="flex-shrink-0 w-5 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover/ls:opacity-70 transition-opacity self-stretch">
-                                            <svg class="w-3 h-4 text-slate-400" viewBox="0 0 6 10" fill="currentColor">
-                                              <circle cx="1.5" cy="1.5" r="1"/>
-                                              <circle cx="4.5" cy="1.5" r="1"/>
-                                              <circle cx="1.5" cy="5" r="1"/>
-                                              <circle cx="4.5" cy="5" r="1"/>
-                                              <circle cx="1.5" cy="8.5" r="1"/>
-                                              <circle cx="4.5" cy="8.5" r="1"/>
+                                          <div cdkDragHandle class="sidebar-drag-handle sidebar-hover-reveal">
+                                            <svg class="w-2.5 h-3.5 text-slate-300" viewBox="0 0 6 10" fill="currentColor">
+                                              <circle cx="1.5" cy="1.5" r="1"/><circle cx="4.5" cy="1.5" r="1"/>
+                                              <circle cx="1.5" cy="5" r="1"/><circle cx="4.5" cy="5" r="1"/>
+                                              <circle cx="1.5" cy="8.5" r="1"/><circle cx="4.5" cy="8.5" r="1"/>
                                             </svg>
                                           </div>
 
-                                          <!-- Expand/Collapse Arrow (3-level tree) -->
+                                          <!-- Expand Arrow -->
                                           <button (click)="toggleLesson(lesson.id); $event.stopPropagation()"
-                                                  class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all"
-                                                  [class.rotate-90]="isLessonExpanded(lesson.id)">
+                                                  class="sidebar-expand sidebar-expand--sm" [class.rotate-90]="isLessonExpanded(lesson.id)">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path>
                                             </svg>
                                           </button>
 
-                                          <!-- Status Dot -->
-                                          <div [class]="'w-2 h-2 rounded-full flex-shrink-0 ' + getLessonStatusColor(lesson)"></div>
-
                                           <!-- Title -->
-                                          <div class="flex-grow min-w-0 py-2.5 cursor-pointer"
+                                          <div class="flex-grow min-w-0 py-2 cursor-pointer"
                                                (click)="toggleLessonSelection(chapter, lesson)">
                                             @if (editingLessonId() === lesson.id) {
                                                 <input [value]="editingValue"
@@ -330,28 +399,18 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                                                        (blur)="confirmEditLesson(lesson.id)"
                                                        (keydown)="onEditKeydown($event, 'lesson', lesson.id)"
                                                        (click)="$event.stopPropagation()"
-                                                       class="w-full text-sm font-medium text-slate-700 bg-white border border-[#0056D2] rounded px-2 py-0.5 outline-none focus:ring-2 focus:ring-[#0056D2]/30"
+                                                       class="w-full text-[13px] font-medium text-slate-700 bg-white border border-[#0056D2] rounded px-2 py-0.5 outline-none focus:ring-2 focus:ring-[#0056D2]/30"
                                                        #editInput>
                                             } @else {
-                                                <p class="text-sm font-semibold text-slate-700 leading-snug line-clamp-2 break-words group-hover/ls:text-slate-900"><span class="font-extrabold text-[#0056D2]">Bài {{ lessonIdx + 1 }}:</span> {{ getLessonDisplayTitle(lesson.title, lessonIdx) }}</p>
-                                                @if (!isLessonExpanded(lesson.id) && lesson.sections.length) {
-                                                  <span class="text-xs text-slate-500 font-medium">{{ lesson.sections.length }} nội dung</span>
-                                                }
+                                                <p class="text-sm font-medium text-slate-600 leading-snug line-clamp-2 break-words group-hover/ls:text-slate-900"><span class="text-xs font-semibold text-[#0056D2]">Bài {{ chapterIdx + 1 }}.{{ lessonIdx + 1 }}</span> {{ getLessonDisplayTitle(lesson.title, lessonIdx) }}</p>
                                             }
                                           </div>
 
-                                          <!-- Lesson Actions -->
-                                          <div class="flex items-center gap-0.5 flex-shrink-0" (click)="$event.stopPropagation()">
-                                            <button (click)="showAddSectionModal(lesson, lesson.sections.length || 0, lessonIdx)"
-                                                    class="p-1 rounded text-slate-400 hover:text-[#0056D2] hover:bg-[#E8F0FE] transition-colors opacity-0 group-hover/ls:opacity-100"
-                                                    matTooltip="Thêm nội dung">
-                                              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                              </svg>
-                                            </button>
+                                          <!-- Kebab -->
+                                          <div class="flex items-center flex-shrink-0" (click)="$event.stopPropagation()">
                                             <div class="relative">
                                               <button (click)="toggleMenu('lesson', lesson.id)"
-                                                      class="p-1 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                                                      class="sidebar-kebab">
                                                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 16 16">
                                                   <circle cx="8" cy="3" r="1.5"/>
                                                   <circle cx="8" cy="8" r="1.5"/>
@@ -406,123 +465,28 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                                           </div>
                                       </div>
 
-                                      <!-- SECTIONS (L3) - Only visible when lesson expanded -->
-                                      @if (isLessonExpanded(lesson.id)) {
-                                        @if (lesson.sections && lesson.sections.length > 0) {
-                                          <div class="pl-10 pr-2 pb-1 border-l-2 border-l-slate-100 ml-6"
-                                               cdkDropList
-                                               cdkDropListLockAxis="y"
-                                               [cdkDropListData]="lesson.sections"
-                                               [cdkDropListConnectedTo]="[]"
-                                               (cdkDropListDropped)="dropSection($event, lesson.id)">
-                                              @for (section of lesson.sections; track section.id; let secIdx = $index) {
-                                                  <div class="flex items-center gap-1.5 py-1.5 px-1.5 rounded-md group/sec hover:bg-white transition-colors cursor-pointer"
-                                                       [class.bg-[#E8F0FE]/80]="selectedSectionId() === section.id"
-                                                       cdkDrag [cdkDragData]="section"
-                                                       [cdkDragStartDelay]="isTouchDevice ? 150 : 0"
-                                                       (click)="selectSection(chapter, lesson, section); $event.stopPropagation()">
-
-                                                      <!-- Drag Preview -->
-                                                      <div *cdkDragPreview class="bg-white shadow-lg rounded-lg px-3 py-1.5 border border-[#0056D2] text-xs font-medium text-slate-700 max-w-[220px] line-clamp-2 break-words">
-                                                        {{ section.title }}
-                                                      </div>
-                                                      <!-- Drag Placeholder -->
-                                                      <div *cdkDragPlaceholder class="h-0.5 bg-[#0056D2] rounded-full mx-1 my-0.5"></div>
-
-                                                      <!-- Drag Handle -->
-                                                      <div cdkDragHandle
-                                                           class="flex-shrink-0 w-4 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover/sec:opacity-60 transition-opacity self-stretch">
-                                                        <svg class="w-2.5 h-3.5 text-slate-400" viewBox="0 0 6 10" fill="currentColor">
-                                                          <circle cx="1.5" cy="1.5" r="1"/><circle cx="4.5" cy="1.5" r="1"/>
-                                                          <circle cx="1.5" cy="5" r="1"/><circle cx="4.5" cy="5" r="1"/>
-                                                          <circle cx="1.5" cy="8.5" r="1"/><circle cx="4.5" cy="8.5" r="1"/>
-                                                        </svg>
-                                                      </div>
-
-                                                      <!-- Type Color Bar -->
-                                                      <div [class]="'w-1 h-4 rounded-full flex-shrink-0 ' + getTypeColor(section.type)"></div>
-
-                                                      <div class="flex-grow min-w-0">
-                                                          <p class="text-[13px] text-slate-600 leading-snug line-clamp-2 break-words group-hover/sec:text-slate-900 font-medium">
-                                                              {{ section.title }}
-                                                          </p>
-                                                          <span class="text-[11px] text-slate-400 uppercase tracking-widest font-bold">{{ section.type }}</span>
-                                                      </div>
-
-                                                      <!-- Section Actions -->
-                                                      <div class="flex items-center gap-0.5 opacity-0 group-hover/sec:opacity-100 transition-opacity" (click)="$event.stopPropagation()">
-                                                        @if (secIdx > 0) {
-                                                          <button (click)="moveSectionUp(lesson.id, secIdx)"
-                                                                  class="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
-                                                                  matTooltip="Di chuyển lên">
-                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
-                                                          </button>
-                                                        }
-                                                        @if (secIdx < (lesson.sections.length || 0) - 1) {
-                                                          <button (click)="moveSectionDown(lesson.id, secIdx)"
-                                                                  class="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
-                                                                  matTooltip="Di chuyển xuống">
-                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                                                          </button>
-                                                        }
-                                                        <button (click)="editSection(chapter, lesson, section)"
-                                                                class="p-1 text-slate-400 hover:text-[#0056D2] hover:bg-[#E8F0FE] rounded-md transition-colors"
-                                                                matTooltip="Chỉnh sửa">
-                                                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                                        </button>
-                                                        <button (click)="deleteSection(lesson.id, section.id)"
-                                                                class="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
-                                                                matTooltip="Xóa">
-                                                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                                        </button>
-                                                      </div>
-                                                  </div>
-                                              }
-                                          </div>
-                                        } @else {
-                                          <!-- Empty: no sections in lesson -->
-                                          <div class="py-3 pl-12 pr-4">
-                                            <p class="text-[11px] text-slate-400 italic">Chưa có nội dung</p>
-                                          </div>
-                                        }
-
-                                        <!-- Add Content Button (visible when lesson expanded) -->
-                                        <button (click)="showAddSectionModal(lesson, lesson.sections.length || 0, lessonIdx); $event.stopPropagation()"
-                                                class="ml-10 mb-1 text-[11px] font-semibold text-[#0056D2] hover:text-[#004BB5] transition-colors flex items-center gap-1 py-1 opacity-60 hover:opacity-100">
-                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                            </svg>
-                                            Thêm nội dung
-                                        </button>
+                                      <!-- SECTIONS (L3) — clean list, click to select -->
+                                      @if (isLessonExpanded(lesson.id) && lesson.sections?.length) {
+                                        <div class="sidebar-sections">
+                                          @for (section of lesson.sections; track section.id; let secIdx = $index) {
+                                            <button class="sidebar-section-row"
+                                                 [class.sidebar-section-row--selected]="selectedSectionId() === section.id"
+                                                 (click)="selectSection(chapter, lesson, section); $event.stopPropagation()">
+                                              <span class="sidebar-section-row__num">{{ chapterIdx + 1 }}.{{ lessonIdx + 1 }}.{{ secIdx + 1 }}</span>
+                                              <span class="sidebar-section-row__title">{{ getSectionDisplayTitle(section.title) }}</span>
+                                              <span class="sidebar-section-row__type">{{ section.type === 'TEXT' ? 'văn bản' : section.type === 'VIDEO' ? 'video' : section.type === 'FILE' ? 'tệp' : section.type === 'QUIZ' ? 'trắc nghiệm' : section.type }}</span>
+                                            </button>
+                                          }
+                                        </div>
                                       }
                                   </div>
                               }
-
-                              <!-- Add Lesson inline (Udemy pattern) -->
-                              <button (click)="showAddLessonModal(chapter, chapterIdx)"
-                                      class="w-full py-2.5 text-[13px] font-semibold text-slate-400 hover:text-[#0056D2] hover:bg-[#E8F0FE]/50 transition-colors flex items-center justify-center gap-1.5 border-t border-slate-100">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                </svg>
-                                Thêm bài học
-                              </button>
                           </div>
                       }
                   </div>
-                }
             }
         </div>
 
-        <!-- Footer -->
-        <div class="p-3.5 border-t border-slate-200 bg-slate-50/80">
-            <button (click)="showAddChapterModal()"
-                    class="w-full py-2.5 flex items-center justify-center gap-2 bg-white border border-slate-200 rounded-lg text-[13px] font-semibold text-slate-700 hover:border-[#0056D2] hover:text-[#0056D2] hover:bg-[#E8F0FE]/30 hover:shadow-sm active:scale-[0.98] transition-all">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                </svg>
-                Thêm chương mới
-            </button>
-        </div>
     </aside>
 
     <!-- Click-away overlay for menus -->
@@ -543,7 +507,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
             <input type="text" [(ngModel)]="newChapterTitle"
                    (keydown.enter)="createChapter()"
                    class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2] transition-all"
-                   placeholder="VD: Kiến thức cơ bản...">
+                   placeholder="Nhập tên chương...">
           </div>
           <div class="px-5 py-3.5 bg-slate-50 flex justify-end gap-2.5 border-t border-slate-100">
             <button (click)="closeModals()" class="px-4 py-2.5 text-[13px] font-semibold text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-200 transition-colors">Hủy</button>
@@ -574,7 +538,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
             <input type="text" [(ngModel)]="newLessonTitle"
                    (keydown.enter)="createLesson()"
                    class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2] transition-all"
-                   placeholder="VD: Bài 1: Giới thiệu...">
+                   placeholder="Nhập tên bài học...">
           </div>
           <div class="px-5 py-3.5 bg-slate-50 flex justify-end gap-2.5 border-t border-slate-100">
             <button (click)="closeModals()" class="px-4 py-2.5 text-[13px] font-semibold text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-200 transition-colors">Hủy</button>
@@ -607,7 +571,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                      [(ngModel)]="newSectionTitle"
                      (keydown.enter)="createSection()"
                      class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2] transition-all"
-                     placeholder="VD: Video bài giảng, Tài liệu đọc...">
+                     placeholder="Nhập tiêu đề nội dung...">
             </div>
 
             <div>
@@ -719,7 +683,6 @@ export class CourseEditorSidebarComponent implements OnDestroy {
   private toast = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
 
-  sidebarWidth = signal(320);
   searchQuery = signal('');
 
   // Multi-expand chapters (Moodle 4.x pattern - replaces single-accordion)
@@ -865,7 +828,16 @@ export class CourseEditorSidebarComponent implements OnDestroy {
       return;
     }
 
-    this.toggleChapter(chapter.id);
+    // Title click = select only (show chapter editor).
+    // Expand/collapse is handled separately by the chevron arrow.
+    // Auto-expand if collapsed so lessons are visible after selecting.
+    if (!this.isChapterExpanded(chapter.id)) {
+      this.expandedChapters.update(set => {
+        const next = new Set(set);
+        next.add(chapter.id);
+        return next;
+      });
+    }
     this.selectionService.selectChapter(chapter);
     this.navigateToCurriculum();
   }
@@ -966,14 +938,41 @@ export class CourseEditorSidebarComponent implements OnDestroy {
   // immediately destroys DOM nodes that CDK still references, causing stale
   // registry entries that break expand/collapse after a few drags (CDK #16671).
 
+  // Collapse expanded content before drag to prevent CDK DOM duplication.
+  // CDK clones the cdkDrag element (incl. children). If lessons are rendered
+  // inside the chapter's cdkDrag, both the clone and re-rendered DOM show
+  // lessons → duplicate. Collapsing removes children from the clone source.
+  onChapterDragStart(chapterId: string) {
+    this.expandedChapters.set(new Set());
+    this.expandedLessons.set(new Set());
+  }
+
+  onLessonDragStart(lessonId: string) {
+    this.expandedLessons.update(set => {
+      const next = new Set(set);
+      next.delete(lessonId);
+      return next;
+    });
+  }
+
   dropChapter(event: CdkDragDrop<ChapterDraftDTO[]>) {
     if (event.previousIndex === event.currentIndex) return;
     const chapters = [...this.store.chapters()];
     moveItemInArray(chapters, event.previousIndex, event.currentIndex);
     const courseId = this.store.courseTree()?.id;
     if (courseId) {
+      // Collapse all first, reorder, then restore the moved chapter as expanded
+      const movedChapterId = chapters[event.currentIndex]?.id;
+      this.expandedChapters.set(new Set());
+      this.expandedLessons.set(new Set());
       requestAnimationFrame(() => {
         this.store.reorderChapters(courseId, chapters.map(c => c.id));
+        // Re-expand the moved chapter after store updates
+        if (movedChapterId) {
+          requestAnimationFrame(() => {
+            this.expandedChapters.set(new Set([movedChapterId]));
+          });
+        }
       });
     }
   }
@@ -984,6 +983,8 @@ export class CourseEditorSidebarComponent implements OnDestroy {
     if (!chapter) return;
     const lessons = [...chapter.lessons];
     moveItemInArray(lessons, event.previousIndex, event.currentIndex);
+    // Collapse lessons to prevent CDK duplicate during reorder
+    this.expandedLessons.set(new Set());
     requestAnimationFrame(() => {
       this.store.reorderLessonsOptimistic(chapterId, lessons.map(l => l.id));
     });
@@ -1006,23 +1007,21 @@ export class CourseEditorSidebarComponent implements OnDestroy {
 
   // --- Modal handlers ---
   showAddChapterModal() {
-    const nextIndex = this.store.chapters().length + 1;
-    this.newChapterTitle = `Chương ${nextIndex}: `;
+    this.newChapterTitle = '';
     this.newChapterDescription = '';
     this.showChapterModal.set(true);
   }
 
   showAddLessonModal(chapter: ChapterDraftDTO, chapterIndex: number) {
-    const nextLessonIndex = chapter.lessons.length + 1;
     this.currentChapterForLesson.set(chapter);
-    this.newLessonTitle = `Bài ${nextLessonIndex}: `;
+    this.newLessonTitle = '';
     this.newLessonType = 'LECTURE';
     this.showLessonModal.set(true);
   }
 
   showAddSectionModal(lesson: LessonDraftDTO, sectionIndex: number, lessonIndex: number) {
     this.currentLessonForSection.set(lesson);
-    this.newSectionTitle = `${lessonIndex + 1}.${sectionIndex + 1}: `;
+    this.newSectionTitle = '';
     this.newSectionType = 'TEXT';
     this.selectedFile = null;
     this.showSectionModal.set(true);
@@ -1305,6 +1304,15 @@ export class CourseEditorSidebarComponent implements OnDestroy {
     return title;
   }
 
+  // Helper to strip section prefix (e.g. "1.2: ", "2.1: ", "2.1:") from title
+  getSectionDisplayTitle(title: string): string {
+    const sectionPattern = /^\d+\.\d+[.:.]\s*/;
+    const match = title.match(sectionPattern);
+    if (!match) return title;
+    const stripped = title.slice(match[0].length).trim();
+    return stripped || 'Chưa đặt tên';
+  }
+
   // Helper to strip lesson prefix if already present in title
   getLessonDisplayTitle(title: string, index: number): string {
     // If title already starts with "Bài X:" or "Bài X.", strip it to avoid duplication
@@ -1327,18 +1335,8 @@ export class CourseEditorSidebarComponent implements OnDestroy {
   }
 
   // --- Keyboard & Resize ---
-  @HostListener('sidebarResize', ['$event'])
-  onSidebarResize(event: any) {
-    this.sidebarWidth.set(event.detail.width);
-  }
-
   @HostListener('window:keydown', ['$event'])
   onGlobalKeyDown(event: KeyboardEvent) {
-    if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
-      event.preventDefault();
-      const input = document.querySelector('input[placeholder*="Tìm"]') as HTMLInputElement;
-      input?.focus();
-    }
     // Close menu on Escape
     if (event.key === 'Escape' && this.openMenuId()) {
       this.closeMenu();

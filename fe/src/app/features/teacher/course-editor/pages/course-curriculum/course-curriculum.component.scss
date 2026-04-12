@@ -1,132 +1,71 @@
+@import '../course-info/editor-shared';
+
 :host {
-    display: block;
-    min-height: 100%;
-    --editor-card-radius: 0.625rem;
-    --editor-control-radius: 0.5rem;
-    --editor-card-border: rgb(217 226 236);
-    --editor-card-header-border: rgb(214 223 236);
-    --editor-control-border: rgb(193 204 218);
+  display: block;
+  min-height: 100%;
 }
 
 .course-curriculum-shell {
-    min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 1.25rem;
 }
 
-.course-curriculum-shell .editor-workspace-card {
-    border-color: var(--editor-card-border) !important;
-    border-radius: var(--editor-card-radius) !important;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 14px 30px rgba(15, 23, 42, 0.035);
+@media (max-width: 767px) {
+  .course-curriculum-shell {
+    padding: 1rem;
+  }
 }
 
-.course-curriculum-shell .editor-workspace-card__header {
-    border-bottom-color: var(--editor-card-header-border) !important;
-    background: linear-gradient(180deg, rgb(243 246 249), rgb(235 240 246));
-    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.55);
+// Empty state step list
+.curriculum-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--editor-control-border);
+  border-radius: var(--editor-control-radius);
 }
 
-.course-curriculum-shell .editor-workspace-card__body {
-    background: linear-gradient(180deg, rgba(247, 250, 252, 0.98), rgba(242, 246, 250, 0.94));
+.curriculum-step__num {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.375rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  background: rgb(226 232 240);
+  color: #fff;
 }
 
-.course-curriculum-shell .editor-workspace-card__footer {
-    border-top-color: var(--editor-card-header-border) !important;
-    background: linear-gradient(180deg, rgba(248, 250, 252, 0.92), rgba(255, 255, 255, 0.98));
+.curriculum-step__num--active {
+  background: rgb(0 86 210);
 }
 
-.course-curriculum-shell .rounded-xl,
-.course-curriculum-shell .rounded-xl-overflow {
-    border-radius: var(--editor-card-radius) !important;
+.curriculum-step__title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgb(15 23 42);
 }
 
-.course-curriculum-shell .rounded-lg,
-.course-curriculum-shell .rounded-md {
-    border-radius: var(--editor-control-radius) !important;
+.curriculum-step__title--muted {
+  color: rgb(148 163 184);
 }
 
-.course-curriculum-shell input[type='text'],
-.course-curriculum-shell input[type='number'],
-.course-curriculum-shell textarea,
-.course-curriculum-shell select {
-    border-color: var(--editor-control-border) !important;
-    border-radius: var(--editor-control-radius) !important;
-    background: #fff;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.035), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-}
-
-.course-curriculum-shell input[type='text']:focus,
-.course-curriculum-shell input[type='number']:focus,
-.course-curriculum-shell textarea:focus,
-.course-curriculum-shell select:focus {
+// Ensure inputs in child components (section-editor) get consistent focus ring
+:host ::ng-deep {
+  input[type='text']:focus,
+  input[type='number']:focus,
+  textarea:focus,
+  select:focus {
     outline: none;
-    border-color: rgb(0 86 210) !important;
+    border-color: rgb(0 86 210);
     box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.1);
-}
-
-/* --- WRAPPER --- */
-.editor-container-wrapper {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    /* Bo góc hoạt động tốt */
-    transition: box-shadow 0.2s;
-
-    &:focus-within {
-        border-color: #3b82f6;
-        /* Màu tím (Primary theme) */
-        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
-    }
-}
-
-
-.shake {
-    animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
-    transform: translate3d(0, 0, 0);
-    backface-visibility: hidden;
-    perspective: 1000px;
-}
-
-@keyframes shake {
-
-    10%,
-    90% {
-        transform: translate3d(-1px, 0, 0);
-    }
-
-    20%,
-    80% {
-        transform: translate3d(2px, 0, 0);
-    }
-
-    30%,
-    50%,
-    70% {
-        transform: translate3d(-4px, 0, 0);
-    }
-
-    40%,
-    60% {
-        transform: translate3d(4px, 0, 0);
-    }
-}
-
-/* --- SMART FILE CARD --- */
-.group:hover .group-hover\:scale-105 {
-    transform: scale(1.05);
-}
-
-.group:hover .group-hover\:scale-110 {
-    transform: scale(1.1);
-}
-
-/* Custom rounded for viewers */
-.rounded-xl-overflow {
-    border-radius: var(--editor-card-radius);
-    overflow: hidden;
-}
-
-/* Transition for file card interactive areas */
-h4.cursor-pointer {
-    &:hover {
-        color: #004BB5;
-    }
+  }
 }

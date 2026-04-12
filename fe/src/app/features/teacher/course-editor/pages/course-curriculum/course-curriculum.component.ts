@@ -206,15 +206,15 @@ export class CourseCurriculumComponent implements OnDestroy {
 
     if (lesson.streamVideoUid) {
       return this.hasVideoSections(lesson)
-        ? 'Bài học này vẫn đang giữ một video legacy ở cấp bài để tương thích dữ liệu cũ. Luồng tạo mới chuẩn production nên đi qua mục video riêng ở bên dưới.'
-        : 'Bài học này vẫn đang dùng video legacy ở cấp bài. Để chuẩn hóa playback online/offline theo kiến trúc mới, hãy tạo một mục video riêng trong lesson.';
+        ? 'Bài học này vẫn đang giữ một video cũ. Nên dùng mục video riêng bên dưới thay cho video cũ này.'
+        : 'Bài học này vẫn đang dùng video cũ. Hãy tạo một mục video riêng để video hoạt động tốt cả khi có mạng và khi tải về.';
     }
 
     if (this.isYouTubeUrl(lesson.videoUrl || '')) {
-      return 'Bài học này vẫn đang dùng YouTube hoặc nguồn ngoài ở cấp bài. Learner chỉ xem trực tuyến được và không thể tải offline theo pipeline video mới.';
+      return 'Bài học này đang dùng YouTube hoặc nguồn ngoài. Học viên chỉ xem trực tuyến được và không thể tải về xem ngoại tuyến.';
     }
 
-    return 'Bài học này vẫn đang dùng URL video legacy ở cấp bài. Nên chuyển sang mục video tải lên nội bộ để hệ thống tạo video asset, playback online, và profile offline đúng chuẩn.';
+    return 'Bài học này đang dùng video cũ. Nên tải video lên bằng mục video riêng để video phát được trực tuyến và tải về xem ngoại tuyến.';
   }
 
   getLegacyLessonVideoReference(): string | null {
@@ -464,8 +464,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       this.sectionSurfaceId.set(selectedSectionId);
       this.sectionSurfaceHydrationKey = nextHydrationKey;
       this.closeSectionQuizChildSurfaces();
-      /* section surface managed by editorSvc */;
-      this.editorSvc.hydrateSectionForm(sectionContext.section);
+      this.editorSvc.openSectionEdit(sectionContext.section);
     });
 
     // Validates that the currently selected lesson is updated from the new tree.
@@ -970,7 +969,8 @@ export class CourseCurriculumComponent implements OnDestroy {
         if (requestToken !== this.lessonDetailRequestToken) {
           return;
         }
-        this.toast.error('Không thể tải chi tiết bài học');
+        // Silent fail — tree data is sufficient for editing.
+        // Detailed lesson data (assignment metadata, etc.) is optional.
         this.inFlightLessonDetailId = null;
         this.isLoadingLesson.set(false);
       }
@@ -1380,15 +1380,15 @@ export class CourseCurriculumComponent implements OnDestroy {
 
   getQuizFlowDescription(): string {
     if (this.isInstructorLedCourse()) {
-      return 'Bạn đang chỉnh lesson shell và thiết lập cốt lõi của bài kiểm tra. Việc giao theo lớp hoặc nhóm học viên được tách riêng, còn ngân hàng câu hỏi được quản lý ở builder chi tiết.';
+      return 'Bạn đang thiết lập chung cho bài kiểm tra. Việc giao theo lớp hoặc nhóm học viên được tách riêng, còn câu hỏi được quản lý ở trang quản lý bài kiểm tra.';
     }
 
-    return 'Bài kiểm tra này áp dụng cho toàn bộ học viên đã ghi danh trong khóa học tự học. Hãy dùng builder chi tiết để thêm, tái sử dụng hoặc sắp xếp câu hỏi.';
+    return 'Bài kiểm tra này áp dụng cho toàn bộ học viên đã ghi danh trong khóa học tự học. Hãy dùng trang quản lý bài kiểm tra để thêm hoặc sắp xếp câu hỏi.';
   }
 
   getAssignmentFlowDescription(): string {
     if (this.isInstructorLedCourse()) {
-      return 'Bạn đang chỉnh phần nội dung và tiêu chí mặc định của bài tập. Việc giao theo lớp hoặc theo học viên được tách riêng khỏi bài học này.';
+      return 'Bạn đang thiết lập nội dung và yêu cầu chung của bài tập. Việc giao bài theo lớp hoặc theo học viên được quản lý ở trang riêng.';
     }
 
     return 'Bài tập này áp dụng cho toàn bộ học viên đã ghi danh trong khóa học tự học.';
