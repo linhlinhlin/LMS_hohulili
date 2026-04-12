@@ -417,6 +417,11 @@ export class CourseLearningComponent implements OnInit {
       return;
     }
 
+    // Preview mode: verify ownership for TEACHER role (ADMIN/ORG_ADMIN can preview any)
+    if (this.isPreview()) {
+      this.verifyPreviewAccess(courseId);
+    }
+
     try {
       // Load course
       this.learningService.loadCourse(courseId);
@@ -432,6 +437,29 @@ export class CourseLearningComponent implements OnInit {
     } catch (err: any) {
       this.error.set(err?.message || 'Không thể tải khóa học. Vui lòng thử lại.');
     }
+  }
+
+  private verifyPreviewAccess(courseId: string): void {
+    const user = this.authService.currentUser();
+    if (!user) return;
+
+    const role = user.role?.toUpperCase();
+    // ADMIN and ORG_ADMIN can preview any course
+    if (role === 'ADMIN' || role === 'ORG_ADMIN') return;
+
+    // TEACHER: must verify ownership via API
+    this.apiClient.get<any>(`/api/v3/courses/${courseId}`).subscribe({
+      next: (res: any) => {
+        const teacherId = res?.data?.teacherId;
+        if (teacherId && teacherId !== user.id) {
+          this.toast.error('Bạn không có quyền xem trước khóa học này.');
+          this.router.navigate(['/teacher/courses']);
+        }
+      },
+      error: () => {
+        this.router.navigate(['/teacher/courses']);
+      }
+    });
   }
 
   private resolveInitialLessonSelection(sections = this.learningService.sections()) {
