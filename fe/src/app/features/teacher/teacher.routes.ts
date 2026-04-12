@@ -20,6 +20,15 @@ export const teacherRoutes: Routes = [
   // Standalone routes (không có sidebar) - phải đặt TRƯỚC layout routes
   ...quizStandaloneRoutes,
 
+  // Course Preview — Teacher xem như học viên (reuse student CourseLearningComponent)
+  {
+    path: 'courses/:id/preview',
+    loadComponent: () => import('../learning/pages/course-learning.component').then(m => m.CourseLearningComponent),
+    canActivate: [teacherGuard],
+    data: { preview: true },
+    title: 'Xem trước như học viên'
+  },
+
   // Course Editor - Standalone Layout (không có teacher sidebar)
   {
     path: 'courses/:id/editor',
@@ -74,6 +83,13 @@ export const teacherRoutes: Routes = [
         loadComponent: () => import('./courses/course-creation.component').then(m => m.CourseCreationComponent),
         title: 'Tạo khóa học mới',
         canDeactivate: [(component: any) => component.canDeactivate()]
+      },
+
+      // TipTap Editor Demo (temporary — remove after migration)
+      {
+        path: 'editor-demo',
+        loadComponent: () => import('../../shared/components/tiptap-editor/tiptap-demo.component').then(m => m.TiptapDemoComponent),
+        title: 'TipTap Editor Demo'
       },
 
       // Assignment Hub Routes (Unified Assignment + Grading)

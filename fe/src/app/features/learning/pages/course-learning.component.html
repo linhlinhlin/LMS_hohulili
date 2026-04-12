@@ -1,4 +1,18 @@
-<div class="h-screen flex flex-col md:flex-row overflow-hidden bg-white">
+@if (isPreview()) {
+  <div class="flex items-center justify-between px-4 py-2 bg-amber-50 border-b border-amber-200 shrink-0 z-30">
+    <div class="flex items-center gap-2 text-sm text-amber-800">
+      <span class="material-symbols-outlined text-base">visibility</span>
+      <span class="font-semibold">Chế độ xem trước</span>
+      <span class="hidden sm:inline text-amber-700">— Đây là giao diện học viên sẽ thấy</span>
+    </div>
+    <button (click)="goBack()"
+      class="px-3 py-1 text-xs font-semibold text-amber-800 bg-white border border-amber-300 rounded-lg hover:bg-amber-100 transition-colors">
+      Quay lại chỉnh sửa
+    </button>
+  </div>
+}
+
+<div class="flex flex-col md:flex-row overflow-hidden bg-white" [class.h-screen]="!isPreview()" [style.height]="isPreview() ? 'calc(100vh - 40px)' : ''">
 
   <!-- Mobile Header (md:hidden) -->
   <header class="md:hidden flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white z-20 shrink-0">

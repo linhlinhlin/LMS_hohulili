@@ -62,6 +62,9 @@ export class CourseLearningComponent implements OnInit {
   awaitingManualActivation = computed(() => this.paymentAccessState() === 'MANUAL_ACTIVATION_REQUIRED');
   accessPending = computed(() => this.paymentAccessState() === 'ACCESS_PENDING');
 
+  // Preview mode (teacher viewing as student)
+  readonly isPreview = signal(false);
+
   // Local UI state
   isMobileView = signal(false);
   showMobileSidebar = signal(false);
@@ -355,10 +358,13 @@ export class CourseLearningComponent implements OnInit {
   filteredSections = computed(() => this.sections());
 
   ngOnInit(): void {
+    this.isPreview.set(!!this.route.snapshot.data['preview']);
     this.checkMobileView();
     this.loadCourseFromRoute();
-    void this.loadCompletedSections();
-    this.loadPaymentStatus();
+    if (!this.isPreview()) {
+      void this.loadCompletedSections();
+      this.loadPaymentStatus();
+    }
 
     // Set pending lesson ID — the autoExpandEffect will handle expansion reactively when sections load
     const lessonId = this.route.snapshot.paramMap.get('lessonId');
@@ -456,6 +462,8 @@ export class CourseLearningComponent implements OnInit {
     this.learningService.loadLesson(lessonId);
     this.pendingExpandLessonId.set(lessonId);
 
+    if (this.isPreview()) return; // Preview mode: don't update URL
+
     const courseId = this.course()?.id
       || this.route.snapshot.paramMap.get('courseId')
       || this.route.snapshot.paramMap.get('id');
@@ -509,13 +517,15 @@ export class CourseLearningComponent implements OnInit {
         });
       }
 
-      // Update URL
-      const courseId = this.course()?.id;
-      if (courseId) {
-        this.router.navigate(
-          ['/student/learn/course', courseId, 'lesson', lessonId],
-          { replaceUrl: true }
-        );
+      // Update URL (skip in preview mode)
+      if (!this.isPreview()) {
+        const courseId = this.course()?.id;
+        if (courseId) {
+          this.router.navigate(
+            ['/student/learn/course', courseId, 'lesson', lessonId],
+            { replaceUrl: true }
+          );
+        }
       }
     }
   }
@@ -582,6 +592,7 @@ export class CourseLearningComponent implements OnInit {
   }
 
   private updateUrlForCurrentLesson(): void {
+    if (this.isPreview()) return;
     const courseId = this.course()?.id;
     const lessonId = this.currentLesson()?.id;
     if (courseId && lessonId) {
@@ -620,6 +631,10 @@ export class CourseLearningComponent implements OnInit {
 
   // Progress
   async onMarkComplete(): Promise<boolean> {
+    if (this.isPreview()) {
+      this.toast.info('Chế độ xem trước — không ghi nhận tiến độ.');
+      return false;
+    }
     const currentLessonForCompletion = this.currentLesson();
     if (!currentLessonForCompletion) {
       return false;
@@ -1026,6 +1041,14 @@ export class CourseLearningComponent implements OnInit {
   // Navigation
   goBack(): void {
     const courseId = this.course()?.id;
+    if (this.isPreview()) {
+      if (courseId) {
+        this.router.navigate(['/teacher/courses', courseId, 'editor', 'curriculum']);
+      } else {
+        this.router.navigate(['/teacher/courses']);
+      }
+      return;
+    }
     if (courseId) {
       this.router.navigate(['/student/courses', courseId]);
     } else {
