@@ -5,59 +5,111 @@
 }
 
 // Prose styling for HTML content rendered via [innerHTML]
+// Matches Tiptap editor output — headings, lists, media, embeds, marks
 .prose {
+  // ── Typography ──
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+  h3 { font-size: 1.125rem; }
+  h4 { font-size: 1rem; }
+
   h1, h2, h3, h4, h5, h6 {
-    color: #0056D2;
+    color: #1e293b;
     font-weight: 700;
-    margin-top: 1.5rem;
+    margin-top: 1.75rem;
     margin-bottom: 0.5rem;
+    line-height: 1.35;
+    &:first-child { margin-top: 0; }
   }
-  h3 { font-size: 1rem; }
-  h4 { font-size: 0.875rem; }
+
   p {
-    color: #475569;
-    text-align: justify;
-    margin-bottom: 1rem;
+    color: #334155;
+    margin-bottom: 0.875rem;
+    line-height: 1.75;
   }
+
+  // ── Lists ──
   ul, ol {
     padding-left: 1.5rem;
     margin-bottom: 1rem;
   }
-  li { margin-bottom: 0.25rem; }
+  ul { list-style-type: disc; }
+  ol { list-style-type: decimal; }
+  li {
+    margin-bottom: 0.25rem;
+    line-height: 1.7;
+    &::marker { color: #94a3b8; }
+  }
+
+  // ── Links ──
   a {
     color: #0056D2;
     text-decoration: underline;
+    text-underline-offset: 2px;
     &:hover { color: #004BB5; }
   }
+
+  // ── Images ──
   img {
     max-width: 100%;
+    height: auto;
     border-radius: 0.5rem;
-    margin: 1rem 0;
+    margin: 1.25rem 0;
   }
+
+  // ── YouTube / Video embeds (Tiptap iframe) ──
+  iframe {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: none;
+    border-radius: 0.5rem;
+    margin: 1.25rem 0;
+  }
+  .iframe-wrapper, div[data-youtube-video] {
+    position: relative;
+    width: 100%;
+    margin: 1.25rem 0;
+    iframe { margin: 0; }
+  }
+
+  // ── Blockquote ──
   blockquote {
     border-left: 4px solid #0056D2;
     background: #eff6ff;
     padding: 0.75rem 1rem;
     border-radius: 0 0.375rem 0.375rem 0;
-    margin: 1rem 0;
+    margin: 1.25rem 0;
     color: #334155;
+    p:last-child { margin-bottom: 0; }
   }
+
+  // ── Tables ──
   table {
     width: 100%;
     border-collapse: collapse;
-    margin: 1rem 0;
+    margin: 1.25rem 0;
+    font-size: 0.875rem;
     th, td {
       border: 1px solid #e2e8f0;
-      padding: 0.5rem 0.75rem;
+      padding: 0.625rem 0.75rem;
       text-align: left;
+      vertical-align: top;
     }
-    th { background: #f8fafc; font-weight: 600; }
+    th {
+      background: #f8fafc;
+      font-weight: 600;
+      color: #1e293b;
+    }
+    td { color: #475569; }
   }
+
+  // ── Code ──
   code {
     background: #f1f5f9;
     padding: 0.125rem 0.375rem;
     border-radius: 0.25rem;
     font-size: 0.875em;
+    color: #be185d;
   }
   pre {
     background: #1e293b;
@@ -65,7 +117,28 @@
     padding: 1rem;
     border-radius: 0.5rem;
     overflow-x: auto;
-    margin: 1rem 0;
+    margin: 1.25rem 0;
+    line-height: 1.6;
     code { background: none; padding: 0; color: inherit; }
   }
+
+  // ── Marks (Tiptap highlight, strikethrough) ──
+  mark {
+    background-color: #fef08a;
+    color: inherit;
+    padding: 0.0625rem 0.125rem;
+    border-radius: 0.125rem;
+  }
+  s { color: #94a3b8; }
+
+  // ── Horizontal rule ──
+  hr {
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    margin: 1.5rem 0;
+  }
+
+  // ── Subscript / Superscript ──
+  sub { font-size: 0.75em; }
+  sup { font-size: 0.75em; }
 }

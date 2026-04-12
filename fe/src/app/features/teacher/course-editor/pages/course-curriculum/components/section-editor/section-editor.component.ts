@@ -38,70 +38,117 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FormsModule, LucideAngularModule, TiptapEditorComponent],
   template: `
-    <!-- ═══ Inline panel (slide-down, not modal) ═══ -->
-    <div class="border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden animate-slide-down"
-         #editorPanel>
-
-      <!-- Header -->
-      <div class="px-5 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white flex items-center justify-between">
-        <div class="flex items-center gap-3 min-w-0">
-          <div class="w-9 h-9 rounded-lg flex items-center justify-center"
-               [class]="getTypeIconBgClass()">
-            <lucide-icon [name]="getTypeIconName()" [size]="18" [class]="getTypeIconColorClass()"></lucide-icon>
+    <!-- ═══ Expanded TEXT mode: full-screen Tiptap only (course-info pattern) ═══ -->
+    @if (isExpanded()) {
+      <section class="editor-card editor-card--expanded">
+        <div class="editor-card__header">
+          <div style="display: flex; align-items: center; gap: 0.75rem">
+            <h2 class="editor-card__title" style="margin: 0">Nội dung</h2>
+            <div class="preview-toggle">
+              <button type="button" [class.preview-toggle--active]="!isPreviewMode()"
+                      (click)="isPreviewMode.set(false)">Chỉnh sửa</button>
+              <button type="button" [class.preview-toggle--active]="isPreviewMode()"
+                      (click)="isPreviewMode.set(true)">Xem trước</button>
+            </div>
           </div>
-          <div class="min-w-0">
-            <h3 class="text-sm font-semibold text-gray-900 truncate">{{ getDialogTitle() }}</h3>
-            <p class="text-xs text-gray-500">{{ getTypeDescription() }}</p>
-          </div>
+          <button type="button" class="editor-link-button" style="white-space: nowrap"
+                  (click)="toggleExpand()">Thu nhỏ</button>
         </div>
-        <button type="button" (click)="onClose()"
-          class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-          aria-label="Đóng">
-          <lucide-icon name="x" [size]="18"></lucide-icon>
-        </button>
-      </div>
-
-      <!-- Body -->
-      <div class="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
-
-        <!-- Title -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            Tiêu đề mục <span class="text-red-500">*</span>
-          </label>
-          <input type="text"
-            [ngModel]="svc.sectionTitle()"
-            (ngModelChange)="onTitleChange($event)"
-            class="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm
-                   focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2] transition-colors"
-            placeholder="Nhập tiêu đề..." />
-        </div>
-
-        <!-- Required checkbox -->
-        <div class="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-          <input type="checkbox" id="reqSec"
-            [ngModel]="svc.sectionIsRequired()"
-            (ngModelChange)="svc.sectionIsRequired.set($event); svc.markDirty()"
-            class="mt-0.5 h-4 w-4 rounded text-[#0056D2] focus:ring-[#0056D2]" />
-          <label for="reqSec" class="cursor-pointer select-none text-sm font-medium text-gray-700">
-            Bắt buộc hoàn thành
-            <span class="mt-0.5 block text-xs font-normal text-slate-500">Học viên phải hoàn thành mục này trước khi tiếp tục.</span>
-          </label>
-        </div>
-
-        <!-- ═══ TEXT ═══ -->
-        @if (svc.sectionEditorType() === 'TEXT') {
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Nội dung</label>
+        <div class="editor-card__body editor-stack">
+          @if (!isPreviewMode()) {
             <app-tiptap-editor
               [ngModel]="svc.sectionContent()"
               (ngModelChange)="svc.sectionContent.set($event); svc.markDirty()"
               placeholder="Nhập nội dung bài học chi tiết tại đây..."
-              [height]="340"
+              [height]="800"
               [uploadFn]="editorUploadFn">
             </app-tiptap-editor>
+          } @else {
+            <div class="preview-pane preview-pane--expanded prose" [innerHTML]="svc.sectionContent()"></div>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- ═══ Normal mode: inline section editor card ═══ -->
+    @if (!isExpanded()) {
+      <section class="editor-card animate-slide-down" #editorPanel>
+
+        <!-- Header -->
+        <div class="editor-card__header">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center"
+                 [class]="getTypeIconBgClass()">
+              <lucide-icon [name]="getTypeIconName()" [size]="16" [class]="getTypeIconColorClass()"></lucide-icon>
+            </div>
+            <div class="min-w-0">
+              <h3 class="editor-card__title" style="font-size: 0.875rem">{{ getDialogTitle() }}</h3>
+              <p class="editor-card__subtitle">{{ getTypeDescription() }}</p>
+            </div>
           </div>
-        }
+          <button type="button" (click)="onClose()"
+            class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            aria-label="Đóng">
+            <lucide-icon name="x" [size]="18"></lucide-icon>
+          </button>
+        </div>
+
+        <!-- Body -->
+        <div class="editor-card__body editor-stack">
+
+          <!-- Title -->
+          <div class="editor-field">
+            <label for="section-title" class="editor-label">
+              Tiêu đề mục <span class="editor-field-error">*</span>
+            </label>
+            <input id="section-title" type="text"
+              [ngModel]="svc.sectionTitle()"
+              (ngModelChange)="onTitleChange($event)"
+              class="editor-input"
+              placeholder="Nhập tiêu đề..." />
+          </div>
+
+          <!-- Required checkbox -->
+          <div class="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+            <input type="checkbox" id="reqSec"
+              [ngModel]="svc.sectionIsRequired()"
+              (ngModelChange)="svc.sectionIsRequired.set($event); svc.markDirty()"
+              class="mt-0.5 h-4 w-4 rounded text-[#0056D2] focus:ring-[#0056D2]" />
+            <label for="reqSec" class="cursor-pointer select-none editor-label" style="font-weight: 500">
+              Bắt buộc hoàn thành
+              <span class="editor-hint" style="display: block; margin-top: 0.25rem">Học viên phải hoàn thành mục này trước khi tiếp tục.</span>
+            </label>
+          </div>
+
+          <!-- ═══ TEXT ═══ -->
+          @if (svc.sectionEditorType() === 'TEXT') {
+            <div class="editor-field">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem">
+                <div style="display: flex; align-items: center; gap: 0.75rem">
+                  <label class="editor-label" style="margin-bottom: 0">Nội dung</label>
+                  <div class="preview-toggle">
+                    <button type="button" [class.preview-toggle--active]="!isPreviewMode()"
+                            (click)="isPreviewMode.set(false)">Chỉnh sửa</button>
+                    <button type="button" [class.preview-toggle--active]="isPreviewMode()"
+                            (click)="isPreviewMode.set(true)">Xem trước</button>
+                  </div>
+                </div>
+                <button type="button" class="editor-link-button" style="white-space: nowrap"
+                        (click)="toggleExpand()">Mở rộng</button>
+              </div>
+              @if (!isPreviewMode()) {
+                <app-tiptap-editor
+                  [ngModel]="svc.sectionContent()"
+                  (ngModelChange)="svc.sectionContent.set($event); svc.markDirty()"
+                  placeholder="Nhập nội dung bài học chi tiết tại đây..."
+                  [height]="340"
+                  [uploadFn]="editorUploadFn">
+                </app-tiptap-editor>
+              } @else {
+                <div class="preview-pane prose" [innerHTML]="svc.sectionContent()"></div>
+              }
+            </div>
+          }
 
         <!-- ═══ VIDEO ═══ -->
         @if (svc.sectionEditorType() === 'VIDEO') {
@@ -165,7 +212,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
         @if (svc.sectionEditorType() === 'FILE') {
           <div class="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
             <div class="flex items-center justify-between">
-              <label class="block text-xs font-black uppercase text-amber-800">Tập đính kèm</label>
+              <label class="block text-xs font-black uppercase text-amber-800">Tài liệu đính kèm</label>
               @if (svc.sectionFileUrl()) {
                 <a [href]="svc.sectionFileUrl()" target="_blank"
                    class="flex items-center gap-1 text-xs font-bold text-[#0056D2] hover:underline">
@@ -343,16 +390,13 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
       </div>
 
       <!-- Footer -->
-      <div class="px-5 py-3 border-t border-gray-200 bg-gray-50 flex items-center justify-end gap-3 flex-shrink-0">
-        <button type="button" (click)="onClose()"
-          class="px-4 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgb(226 232 240)">
+        <button type="button" (click)="onClose()" class="editor-secondary-button">
           Hủy
         </button>
         <button type="button" (click)="onSave()"
           [disabled]="svc.isSaving() || !svc.sectionTitle().trim()"
-          class="px-5 py-2 text-sm font-medium text-white bg-[#0056D2] rounded-lg
-                 hover:bg-[#004BB5] disabled:opacity-50 disabled:cursor-not-allowed
-                 flex items-center gap-2 transition-colors">
+          class="editor-primary-button">
           @if (svc.isSaving()) {
             <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -362,18 +406,132 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
           {{ svc.editingSectionId() ? 'Cập nhật' : 'Tạo mới' }}
         </button>
       </div>
-    </div>
+    </section>
+    }
   `,
   styles: [`
+    @import '../../../course-info/editor-shared';
     :host { display: block; }
 
     .animate-slide-down {
       animation: slideDown 0.2s ease-out;
     }
-
     @keyframes slideDown {
       from { opacity: 0; transform: translateY(-8px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+
+    .editor-card--expanded {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      border-radius: 0;
+      border: none;
+      display: flex;
+      flex-direction: column;
+      box-shadow: none;
+    }
+    .editor-card--expanded .editor-card__header {
+      border-radius: 0;
+      flex-shrink: 0;
+    }
+    .editor-card--expanded .editor-card__body {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .editor-card--expanded .editor-card__body app-tiptap-editor {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .editor-card--expanded .editor-card__body app-tiptap-editor ::ng-deep .tt-content {
+      flex: 1;
+      min-height: 0 !important;
+      overflow-y: auto;
+    }
+
+    /* ── Preview toggle (Chỉnh sửa | Xem trước) ── */
+    .preview-toggle {
+      display: inline-flex;
+      border: 1px solid rgb(226 232 240);
+      border-radius: 0.375rem;
+      overflow: hidden;
+    }
+    .preview-toggle button {
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 0.25rem 0.625rem;
+      border: none;
+      background: transparent;
+      color: rgb(100 116 139);
+      cursor: pointer;
+      transition: background 120ms ease, color 120ms ease;
+    }
+    .preview-toggle button:hover { background: rgb(248 250 252); }
+    .preview-toggle--active {
+      background: rgb(0 86 210) !important;
+      color: #fff !important;
+    }
+
+    /* ── Preview pane (student view) ── */
+    .preview-pane {
+      min-height: 340px;
+      padding: 1.25rem;
+      border: 1px solid rgb(226 232 240);
+      border-radius: 0.5rem;
+      background: #fff;
+      overflow-y: auto;
+    }
+    .preview-pane--expanded {
+      flex: 1;
+      min-height: 0;
+      border: none;
+      border-radius: 0;
+    }
+
+    /* ── Student prose styles (mirror lesson-content.component.scss) ── */
+    .prose {
+      h1 { font-size: 1.5rem; }
+      h2 { font-size: 1.25rem; }
+      h3 { font-size: 1.125rem; }
+      h4 { font-size: 1rem; }
+      h1, h2, h3, h4, h5, h6 {
+        color: #1e293b; font-weight: 700;
+        margin-top: 1.75rem; margin-bottom: 0.5rem; line-height: 1.35;
+        &:first-child { margin-top: 0; }
+      }
+      p { color: #334155; margin-bottom: 0.875rem; line-height: 1.75; }
+      ul, ol { padding-left: 1.5rem; margin-bottom: 1rem; }
+      ul { list-style-type: disc; }
+      ol { list-style-type: decimal; }
+      li { margin-bottom: 0.25rem; line-height: 1.7; }
+      a { color: #0056D2; text-decoration: underline; &:hover { color: #004BB5; } }
+      img { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1.25rem 0; }
+      iframe { width: 100%; aspect-ratio: 16/9; border: none; border-radius: 0.5rem; margin: 1.25rem 0; }
+      blockquote {
+        border-left: 4px solid #0056D2; background: #eff6ff;
+        padding: 0.75rem 1rem; border-radius: 0 0.375rem 0.375rem 0;
+        margin: 1.25rem 0; color: #334155;
+        p:last-child { margin-bottom: 0; }
+      }
+      table {
+        width: 100%; border-collapse: collapse; margin: 1.25rem 0; font-size: 0.875rem;
+        th, td { border: 1px solid #e2e8f0; padding: 0.625rem 0.75rem; text-align: left; }
+        th { background: #f8fafc; font-weight: 600; color: #1e293b; }
+        td { color: #475569; }
+      }
+      code { background: #f1f5f9; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.875em; color: #be185d; }
+      pre {
+        background: #1e293b; color: #e2e8f0; padding: 1rem;
+        border-radius: 0.5rem; overflow-x: auto; margin: 1.25rem 0;
+        code { background: none; padding: 0; color: inherit; }
+      }
+      mark { background-color: #fef08a; padding: 0.0625rem 0.125rem; border-radius: 0.125rem; }
+      s { color: #94a3b8; }
+      hr { border: none; border-top: 1px solid #e2e8f0; margin: 1.5rem 0; }
     }
   `],
 })
@@ -387,8 +545,25 @@ export class SectionEditorComponent {
   readonly closed = output<void>();
   readonly saved = output<void>();
 
+  readonly editorPanel = viewChild<ElementRef>('editorPanel');
+  readonly isExpanded = signal(false);
+  readonly isPreviewMode = signal(false);
+
   readonly editorUploadFn = createTiptapUploadFn(this.http, environment.apiUrl);
   readonly quizTypes: SectionQuizAssessmentType[] = ['PRACTICE', 'ASSESSMENT', 'EXAM'];
+
+  constructor() {
+    // Auto-scroll section editor into view after slide-down animation
+    afterNextRender(() => {
+      setTimeout(() => {
+        this.editorPanel()?.nativeElement?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 220);
+    });
+  }
+
+  toggleExpand(): void {
+    this.isExpanded.update(v => !v);
+  }
 
   readonly cfUploadStatus = computed<CfUploadStatus>(() => {
     if (this.svc.selectedSectionVideoFile()) return 'staged';

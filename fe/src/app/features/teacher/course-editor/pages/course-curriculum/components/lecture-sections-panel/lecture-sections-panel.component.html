@@ -1,38 +1,94 @@
 <!-- Section list header -->
 <div class="sections-header">
   <label class="editor-label">Nội dung ({{ sections().length }} mục)</label>
-  <div class="sections-header__actions">
-    <button type="button" (click)="onCreateSection('TEXT')" class="sections-add-btn">+ Bài giảng</button>
-    <button type="button" (click)="onCreateSection('VIDEO')" class="sections-add-btn">+ Video</button>
-    <button type="button" (click)="onCreateSection('FILE')" class="sections-add-btn sections-add-btn--file">+ Tài liệu</button>
-    <button type="button" (click)="onCreateSection('QUIZ')" class="sections-add-btn sections-add-btn--quiz">+ Trắc nghiệm</button>
+
+  <!-- P1: Single dropdown instead of 4 buttons -->
+  <div class="add-content-wrapper">
+    <button type="button" class="add-content-btn" (click)="toggleDropdown()">
+      <lucide-icon name="plus" [size]="14"></lucide-icon>
+      Thêm nội dung
+      <lucide-icon name="chevron-down" [size]="12"></lucide-icon>
+    </button>
+
+    @if (isDropdownOpen()) {
+      <div class="add-content-dropdown">
+        <button type="button" class="add-content-option" (click)="onCreateSection('TEXT')">
+          <div class="add-content-option__icon" style="background: rgb(241 245 249)">
+            <lucide-icon name="pilcrow" [size]="14" style="color: rgb(71 85 105)"></lucide-icon>
+          </div>
+          <div class="add-content-option__text">
+            <span class="add-content-option__label">Bài giảng</span>
+            <span class="add-content-option__hint">Nội dung văn bản, hình ảnh</span>
+          </div>
+        </button>
+        <button type="button" class="add-content-option" (click)="onCreateSection('VIDEO')">
+          <div class="add-content-option__icon" style="background: rgba(0, 86, 210, 0.08)">
+            <lucide-icon name="play-circle" [size]="14" style="color: rgb(0 86 210)"></lucide-icon>
+          </div>
+          <div class="add-content-option__text">
+            <span class="add-content-option__label">Video</span>
+            <span class="add-content-option__hint">Tải lên video bài giảng</span>
+          </div>
+        </button>
+        <button type="button" class="add-content-option" (click)="onCreateSection('FILE')">
+          <div class="add-content-option__icon" style="background: rgba(245, 158, 11, 0.08)">
+            <lucide-icon name="file-text" [size]="14" style="color: rgb(180 83 9)"></lucide-icon>
+          </div>
+          <div class="add-content-option__text">
+            <span class="add-content-option__label">Tài liệu</span>
+            <span class="add-content-option__hint">PDF, Word, Excel, PowerPoint</span>
+          </div>
+        </button>
+        <button type="button" class="add-content-option" (click)="onCreateSection('QUIZ')">
+          <div class="add-content-option__icon" style="background: rgba(139, 92, 246, 0.08)">
+            <lucide-icon name="help-circle" [size]="14" style="color: rgb(109 40 217)"></lucide-icon>
+          </div>
+          <div class="add-content-option__text">
+            <span class="add-content-option__label">Trắc nghiệm</span>
+            <span class="add-content-option__hint">Kiểm tra kiến thức học viên</span>
+          </div>
+        </button>
+      </div>
+    }
   </div>
 </div>
 
 <!-- Section list -->
 @if (sections().length === 0) {
-  <p class="editor-empty-state sections-empty">Chưa có nội dung. Thêm bài giảng, video, tài liệu hoặc trắc nghiệm ở trên.</p>
+  <div class="sections-empty">
+    <p style="font-size: 0.8125rem; font-weight: 500; color: rgb(100 116 139); margin-bottom: 0.25rem">Chưa có nội dung</p>
+    <p style="font-size: 0.75rem; color: rgb(148 163 184)">Nhấn "Thêm nội dung" để bắt đầu soạn bài học</p>
+  </div>
 } @else {
   <div class="sections-list"
        cdkDropList cdkDropListLockAxis="y"
        [cdkDropListData]="sections()"
        (cdkDropListDropped)="onDropSection($event)">
     @for (section of sections(); track section.id) {
-      <div class="section-row" (click)="onEditSection(section)" cdkDrag>
+      <div class="section-row"
+           [class.section-row--active]="activeSectionId() === section.id"
+           (click)="onEditSection(section)" cdkDrag>
         <!-- Drag handle -->
         <div class="section-row__handle" cdkDragHandle>
           <lucide-icon name="grip-vertical" [size]="14"></lucide-icon>
         </div>
 
-        <!-- Content -->
+        <!-- Content with preview -->
         <div class="section-row__content">
-          <span class="section-row__title">{{ stripSectionPrefix(section.title) }}</span>
-          <div class="section-row__meta">
-            <span class="section-row__type">{{ getSectionTypeLabel(section.type) }}</span>
-            @if (section.isRequired) {
-              <span class="section-row__required">Bắt buộc</span>
-            }
+          <!-- Top line: status dot + title + badges -->
+          <div class="section-row__top">
+            <span class="section-row__status"
+                  [style.background]="hasContent(section) ? 'rgb(16 185 129)' : 'rgb(203 213 225)'"></span>
+            <span class="section-row__title">{{ stripSectionPrefix(section.title) }}</span>
+            <div class="section-row__meta">
+              <span class="section-row__type">{{ getSectionTypeLabel(section.type) }}</span>
+              @if (section.isRequired) {
+                <span class="section-row__required">Bắt buộc</span>
+              }
+            </div>
           </div>
+          <!-- Bottom line: content snippet -->
+          <span class="section-row__snippet">{{ getSectionSnippet(section) }}</span>
         </div>
 
         <!-- Delete -->

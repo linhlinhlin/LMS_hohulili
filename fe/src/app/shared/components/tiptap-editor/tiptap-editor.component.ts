@@ -294,7 +294,7 @@ const COLOR_PRESETS = [
     </div>
 
     <!-- ═══════════ EDITOR CONTENT ═══════════ -->
-    <div class="tt-content" [style.min-height.px]="height()" (click)="closeDropdown()">
+    <div class="tt-content" [style.min-height.px]="height()" (click)="focusEditor()">
       <div tiptapEditor [editor]="editor"></div>
     </div>
 
@@ -505,6 +505,8 @@ const COLOR_PRESETS = [
       border: 1px solid #E5E7EB;
       background: white;
       overflow-y: auto;
+      display: flex;
+      flex-direction: column;
 
       :host ::ng-deep .tiptap {
         padding: 16px;
@@ -512,6 +514,8 @@ const COLOR_PRESETS = [
         font-size: 14px;
         line-height: 1.7;
         color: #1F1F1F;
+        flex: 1;
+        cursor: text;
 
         &:focus { border-color: #0056D2; }
 
@@ -761,6 +765,13 @@ export class TiptapEditorComponent implements ControlValueAccessor, OnDestroy {
 
   closeDropdown(): void {
     this.openDropdown.set(null);
+  }
+
+  focusEditor(): void {
+    this.closeDropdown();
+    if (this.editor && !this.editor.isFocused) {
+      this.editor.commands.focus('end');
+    }
   }
 
   // ── Image ──

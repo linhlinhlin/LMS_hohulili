@@ -322,7 +322,7 @@ export class CurriculumEditorService {
   }
 
   hydrateSectionForm(section: SectionDraftDTO): void {
-    this.sectionTitle.set(section.title || '');
+    this.sectionTitle.set(this.stripSectionPrefix(section.title || ''));
     this.sectionContent.set(section.content || '');
     this.sectionIsRequired.set(section.isRequired ?? false);
 
@@ -388,6 +388,13 @@ export class CurriculumEditorService {
     this.resetQuizFields();
     this.clearSectionVideoPoll();
     this.isDirty.set(false);
+  }
+
+  private stripSectionPrefix(title: string): string {
+    // Strip "N.M:" or "N.M." prefix (e.g., "1.1: Introduction" → "Introduction")
+    const pattern = /^\d+\.\d+[.:.]\s*/;
+    const match = title.match(pattern);
+    return match ? title.slice(match[0].length).trim() : title;
   }
 
   private resetQuizFields(): void {

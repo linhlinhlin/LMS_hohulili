@@ -102,6 +102,7 @@ import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
           <!-- Sections panel -->
           <app-lecture-sections-panel
             [sections]="lesson().sections || []"
+            [activeSectionId]="editorSvc.editingSectionId()"
             (createSection)="createSection.emit($event)"
             (editSection)="editSection.emit($event)"
             (deleteSection)="deleteSection.emit($event)"
@@ -259,9 +260,10 @@ export class LessonEditorComponent {
   );
 
   constructor() {
+    // Strip legacy "Bài N:" prefix — sidebar auto-numbers by position
     effect(() => {
       const lesson = this.lesson();
-      this.title.set(lesson.title || '');
+      this.title.set(this.stripLessonPrefix(lesson.title || ''));
     });
   }
 
@@ -273,6 +275,12 @@ export class LessonEditorComponent {
   onTitleChange(value: string): void {
     this.title.set(value);
     this.titleChange.emit(value);
+  }
+
+  private stripLessonPrefix(title: string): string {
+    const pattern = /^bài\s+\d+[.:.]\s*/i;
+    const match = title.match(pattern);
+    return match ? title.slice(match[0].length).trim() : title;
   }
 
   getTypeLabel(): string {

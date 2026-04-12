@@ -189,9 +189,11 @@ export class ChapterEditorComponent {
 
   constructor() {
     // Sync form when chapter input changes (new selection)
+    // Strip legacy "Chương N:" prefix to avoid user confusion
+    // (sidebar auto-numbers chapters by position)
     effect(() => {
       const ch = this.chapter();
-      this.title.set(ch.title || '');
+      this.title.set(this.stripChapterPrefix(ch.title || ''));
       this.description.set(ch.description || '');
     });
   }
@@ -213,6 +215,12 @@ export class ChapterEditorComponent {
       case 'ASSIGNMENT': return 'Bài tập';
       default: return 'Bài giảng';
     }
+  }
+
+  stripChapterPrefix(title: string): string {
+    const pattern = /^chương\s+\d+[.:.]\s*/i;
+    const match = title.match(pattern);
+    return match ? title.slice(match[0].length).trim() : title;
   }
 
   stripLessonPrefix(title: string): string {
