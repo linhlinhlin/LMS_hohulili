@@ -63,8 +63,55 @@ fe/src/app/features/teacher/course-editor/services/
 
 ---
 
+## Kiến trúc đã phân tích (từ session trước)
+
+### Data flow khi "Thêm nội dung" click:
+```
+lecture-sections-panel.onCreateSection('TEXT')
+  → emits createSection output
+  → course-curriculum catches: (createSection)="openSectionEditor($any($event))"
+  → openSectionEditor(type):
+      → confirmDiscardChangesIfNeeded()  ← ĐÂY LÀ CHỖ BỊ BLOCK
+      → editorSvc.openSectionCreate(type)
+      → sectionSurfaceMode.set('create')
+      → <app-section-editor> hiện
+```
+
+### State management:
+- `CurriculumSelectionService` — selectedChapterId, selectedLessonId, selectedSectionId
+- `CurriculumEditorService` — sectionSurfaceMode, editingSectionId, section form signals
+- `sidebar.component` — expandedChapters, expandedLessons, modal states
+- **2 paths tạo section**: sidebar (modal) vs main area (inline editor) — cần đồng bộ
+
+### Chapter numbering:
+- UI dùng `chapterIdx + 1` để hiện số (theo vị trí trong array)
+- Backend có thể dùng `orderIndex` field
+- Khi tạo mới, cần gửi `orderIndex: chapters.length` để append cuối
+
+---
+
+## URL test
+```
+# Teacher editor — curriculum
+http://localhost:4200/teacher/courses/{courseId}/editor/curriculum
+
+# Login
+teacher@maritime.edu / teacher123
+```
+
+---
+
 ## Quy tắc
 - Vietnamese có dấu, viết cho giảng viên
-- Không thay đổi API contracts (backend)
+- Không thay đổi API contracts (backend) — chỉ fix frontend
 - Test trước/sau bằng Playwright hoặc agent-browser
 - Commit từng fix riêng biệt
+- Dùng `cot-research` nếu cần nghiên cứu SOTA pattern
+- Tham khảo repo: `/tmp/angular-tiptap-editor` (FloGeez) nếu cần
+
+---
+
+## Quy trình
+```
+Đọc files → Phân tích → Fix P0 → Build → Test → Commit → Fix P1 → ... → Push all
+```
