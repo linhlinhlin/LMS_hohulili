@@ -1,11 +1,5 @@
-:host {
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
-}
-
 // ::ng-deep required because .prose content is injected via [innerHTML]
 // which doesn't get Angular's _ngcontent-xxx attribute scoping
 :host ::ng-deep .prose {
-  @import '../../../../shared/components/tiptap-editor/prose-content';
+  @import '../../../../../../../shared/components/tiptap-editor/prose-content';
 }

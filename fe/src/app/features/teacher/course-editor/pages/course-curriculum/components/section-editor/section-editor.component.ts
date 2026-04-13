@@ -18,6 +18,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { CurriculumEditorService, SectionQuizAssessmentType } from '../../../../services/curriculum-editor.service';
 import { TiptapEditorComponent } from '../../../../../../../shared/components/tiptap-editor/tiptap-editor.component';
 import { createTiptapUploadFn } from '../../../../../../../shared/components/tiptap-editor/tiptap-upload';
+import { LESSON_TEMPLATES, type LessonTemplate } from '../../../../../../../shared/components/tiptap-editor/lesson-templates';
 import { environment } from '../../../../../../../../environments/environment';
 import { formatOfflineVideoProfileLabel, type OfflineVideoProfileDescriptor } from '../../../../../../../core/models/video-quality';
 
@@ -37,6 +38,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
   selector: 'app-section-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FormsModule, LucideAngularModule, TiptapEditorComponent],
+  styleUrls: ['./section-editor-prose.scss'],
   template: `
     <!-- ═══ Expanded TEXT mode: full-screen Tiptap only (course-info pattern) ═══ -->
     @if (isExpanded()) {
@@ -122,6 +124,28 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
 
           <!-- ═══ TEXT ═══ -->
           @if (svc.sectionEditorType() === 'TEXT') {
+
+            <!-- Template picker — only when content is empty and not yet dismissed -->
+            @if (showTemplatePicker() && isContentEmpty()) {
+              <div class="tpl-picker">
+                <div class="tpl-picker__header">
+                  <p class="tpl-picker__title">Chọn mẫu bài giảng</p>
+                  <p class="tpl-picker__subtitle">Bắt đầu nhanh với cấu trúc có sẵn, hoặc chọn "Trang trống" để tự do sáng tạo</p>
+                </div>
+                <div class="tpl-picker__grid">
+                  @for (tpl of lessonTemplates; track tpl.id) {
+                    <button type="button" class="tpl-card" (click)="applyTemplate(tpl)">
+                      <span class="tpl-card__icon" [innerHTML]="tpl.icon"></span>
+                      <span class="tpl-card__title">{{ tpl.title }}</span>
+                      <span class="tpl-card__desc">{{ tpl.description }}</span>
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Editor — shown when template dismissed or content exists -->
+            @if (!showTemplatePicker() || !isContentEmpty()) {
             <div class="editor-field">
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem">
                 <div style="display: flex; align-items: center; gap: 0.75rem">
@@ -140,7 +164,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                 <app-tiptap-editor
                   [ngModel]="svc.sectionContent()"
                   (ngModelChange)="svc.sectionContent.set($event); svc.markDirty()"
-                  placeholder="Nhập nội dung bài học chi tiết tại đây..."
+                  placeholder="Gõ / để xem danh sách lệnh nhanh..."
                   [height]="340"
                   [uploadFn]="editorUploadFn">
                 </app-tiptap-editor>
@@ -148,6 +172,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                 <div class="preview-pane prose" [innerHTML]="svc.sectionContent()"></div>
               }
             </div>
+            }
           }
 
         <!-- ═══ VIDEO ═══ -->
@@ -476,6 +501,66 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
       color: #fff !important;
     }
 
+    /* ── Template Picker ── */
+    .tpl-picker {
+      border: 1px solid rgb(226 232 240);
+      border-radius: 0.625rem;
+      overflow: hidden;
+    }
+    .tpl-picker__header {
+      padding: 1rem 1.25rem;
+      background: rgb(248 250 252);
+      border-bottom: 1px solid rgb(226 232 240);
+    }
+    .tpl-picker__title {
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: rgb(15 23 42);
+    }
+    .tpl-picker__subtitle {
+      margin-top: 0.25rem;
+      font-size: 0.75rem;
+      color: rgb(100 116 139);
+    }
+    .tpl-picker__grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0;
+    }
+    .tpl-card {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.375rem;
+      padding: 1rem 1.25rem;
+      border: none;
+      border-right: 1px solid rgb(241 245 249);
+      border-bottom: 1px solid rgb(241 245 249);
+      background: #fff;
+      text-align: left;
+      cursor: pointer;
+      transition: background 150ms;
+    }
+    .tpl-card:hover { background: rgb(248 250 252); }
+    .tpl-card:nth-child(2n) { border-right: none; }
+    .tpl-card:nth-last-child(-n+2) { border-bottom: none; }
+    .tpl-card__icon {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      color: rgb(100 116 139);
+    }
+    .tpl-card__icon :host ::ng-deep svg { width: 24px; height: 24px; }
+    .tpl-card__title {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: rgb(15 23 42);
+    }
+    .tpl-card__desc {
+      font-size: 0.6875rem;
+      color: rgb(100 116 139);
+      line-height: 1.4;
+    }
+
     /* ── Preview pane (student view) ── */
     .preview-pane {
       min-height: 340px;
@@ -492,47 +577,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
       border-radius: 0;
     }
 
-    /* ── Student prose styles (mirror lesson-content.component.scss) ── */
-    .prose {
-      h1 { font-size: 1.5rem; }
-      h2 { font-size: 1.25rem; }
-      h3 { font-size: 1.125rem; }
-      h4 { font-size: 1rem; }
-      h1, h2, h3, h4, h5, h6 {
-        color: #1e293b; font-weight: 700;
-        margin-top: 1.75rem; margin-bottom: 0.5rem; line-height: 1.35;
-        &:first-child { margin-top: 0; }
-      }
-      p { color: #334155; margin-bottom: 0.875rem; line-height: 1.75; }
-      ul, ol { padding-left: 1.5rem; margin-bottom: 1rem; }
-      ul { list-style-type: disc; }
-      ol { list-style-type: decimal; }
-      li { margin-bottom: 0.25rem; line-height: 1.7; }
-      a { color: #0056D2; text-decoration: underline; &:hover { color: #004BB5; } }
-      img { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1.25rem 0; }
-      iframe { width: 100%; aspect-ratio: 16/9; border: none; border-radius: 0.5rem; margin: 1.25rem 0; }
-      blockquote {
-        border-left: 4px solid #0056D2; background: #eff6ff;
-        padding: 0.75rem 1rem; border-radius: 0 0.375rem 0.375rem 0;
-        margin: 1.25rem 0; color: #334155;
-        p:last-child { margin-bottom: 0; }
-      }
-      table {
-        width: 100%; border-collapse: collapse; margin: 1.25rem 0; font-size: 0.875rem;
-        th, td { border: 1px solid #e2e8f0; padding: 0.625rem 0.75rem; text-align: left; }
-        th { background: #f8fafc; font-weight: 600; color: #1e293b; }
-        td { color: #475569; }
-      }
-      code { background: #f1f5f9; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.875em; color: #be185d; }
-      pre {
-        background: #1e293b; color: #e2e8f0; padding: 1rem;
-        border-radius: 0.5rem; overflow-x: auto; margin: 1.25rem 0;
-        code { background: none; padding: 0; color: inherit; }
-      }
-      mark { background-color: #fef08a; padding: 0.0625rem 0.125rem; border-radius: 0.125rem; }
-      s { color: #94a3b8; }
-      hr { border: none; border-top: 1px solid #e2e8f0; margin: 1.5rem 0; }
-    }
+    /* prose styles loaded via styleUrls: section-editor-prose.scss */
   `],
 })
 export class SectionEditorComponent {
@@ -551,6 +596,14 @@ export class SectionEditorComponent {
 
   readonly editorUploadFn = createTiptapUploadFn(this.http, environment.apiUrl);
   readonly quizTypes: SectionQuizAssessmentType[] = ['PRACTICE', 'ASSESSMENT', 'EXAM'];
+  readonly lessonTemplates = LESSON_TEMPLATES;
+  readonly showTemplatePicker = signal(true);
+  readonly isContentEmpty = computed(() => {
+    const content = this.svc.sectionContent();
+    if (!content) return true;
+    const stripped = content.replace(/<[^>]*>/g, '').trim();
+    return stripped.length === 0;
+  });
 
   constructor() {
     // Auto-scroll section editor into view after slide-down animation
@@ -575,6 +628,14 @@ export class SectionEditorComponent {
     }
     return 'idle';
   });
+
+  applyTemplate(tpl: LessonTemplate): void {
+    this.showTemplatePicker.set(false);
+    if (tpl.content) {
+      this.svc.sectionContent.set(tpl.content);
+      this.svc.markDirty();
+    }
+  }
 
   onTitleChange(value: string): void {
     this.svc.sectionTitle.set(value);
