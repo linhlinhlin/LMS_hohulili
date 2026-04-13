@@ -32,6 +32,11 @@
   box-shadow: 0 1px 3px rgba(0, 86, 210, 0.08);
 }
 
+// Hide toggle on desktop/tablet where sidebar is always static
+@media (min-width: 768px) {
+  .sidebar-toggle-btn { display: none; }
+}
+
 @media (max-width: 767px) {
   .course-curriculum-shell {
     padding: 1rem;
