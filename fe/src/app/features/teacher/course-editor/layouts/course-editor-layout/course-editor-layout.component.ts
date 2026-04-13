@@ -62,18 +62,17 @@ import { filter, take, map } from 'rxjs/operators';
       <main class="flex-grow grid grid-cols-1 overflow-hidden relative"
             [class.sidebar-open]="!sidebarCollapsed()">
 
-        <!-- Sidebar: Desktop = grid column, Mobile = overlay -->
-        @if (!sidebarCollapsed()) {
-          <!-- Mobile backdrop -->
-          <div class="fixed inset-0 bg-black/30 z-20 md:hidden" (click)="toggleSidebar()"></div>
+        <!-- Sidebar: always in DOM for signals/effects/modals -->
+        <!-- Mobile backdrop -->
+        <div class="sidebar-backdrop"
+             [class.sidebar-backdrop--visible]="!sidebarCollapsed()"
+             (click)="toggleSidebar()"></div>
 
-          <!-- Sidebar panel -->
-          <div class="fixed top-12 left-0 bottom-0 w-[300px] overflow-hidden border-r border-slate-200 bg-white z-30 shadow-xl
-                      md:static md:w-auto md:shadow-none md:z-10 md:top-auto md:left-auto md:bottom-auto
-                      transition-[opacity] duration-300">
-            <app-course-editor-sidebar class="h-full block"></app-course-editor-sidebar>
-          </div>
-        }
+        <!-- Sidebar panel (CSS-controlled visibility) -->
+        <div class="sidebar-panel"
+             [class.sidebar-panel--open]="!sidebarCollapsed()">
+          <app-course-editor-sidebar class="h-full block"></app-course-editor-sidebar>
+        </div>
 
         <!-- Main Content -->
         <div class="flex flex-col min-w-0 h-full overflow-hidden bg-slate-50 relative">
