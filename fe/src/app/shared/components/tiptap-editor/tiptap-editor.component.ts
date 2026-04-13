@@ -34,7 +34,7 @@ import { Details, DetailsContent, DetailsSummary } from '@tiptap/extension-detai
 import { common, createLowlight } from 'lowlight';
 import { Callout, type CalloutType } from './callout-node';
 import { SlashCommands, getSlashCommandItems, type SlashCommandItem } from './slash-commands';
-import { PasteHandler } from './paste-handler';
+import { PasteHandler, fixLegacyVideoTags } from './paste-handler';
 import { Video } from './video-node';
 import { UploadDecoration, showUploadDecoration, hideUploadDecoration } from './upload-decoration';
 
@@ -1204,7 +1204,9 @@ export class TiptapEditorComponent implements ControlValueAccessor, OnDestroy {
 
   writeValue(value: string): void {
     if (this.editor && value !== this.editor.getHTML()) {
-      this.editor.commands.setContent(value || '', { emitUpdate: false });
+      // Fix legacy content: escaped <video> tags from old editor
+      const cleaned = fixLegacyVideoTags(value || '');
+      this.editor.commands.setContent(cleaned, { emitUpdate: false });
     }
   }
 

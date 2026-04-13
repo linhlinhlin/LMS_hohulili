@@ -25,6 +25,21 @@ const EMPTY_SPAN_REGEX = /<span[^>]*>\s*<\/span>/gi;
 const FONT_TAGS_REGEX = /<\/?font[^>]*>/gi;
 const COND_COMMENT_REGEX = /<!\[if[^>]*>[\s\S]*?<!\[endif\]>/gi;
 
+/**
+ * Fix escaped <video> tags in legacy content.
+ * Old editor (without Video node) saved <video> as escaped text:
+ * &lt;video src="..."&gt;&lt;/video&gt;
+ * Convert back to proper HTML so Tiptap Video node can parse it.
+ */
+export function fixLegacyVideoTags(html: string): string {
+  if (!html) return html;
+  // Match escaped video tags: &lt;video src="..."...&gt;...&lt;/video&gt;
+  return html.replace(
+    /&lt;video\s+src=(?:&quot;|")([^"&]+)(?:&quot;|")[^&]*&gt;(?:&lt;\/video&gt;|<\/video>)/gi,
+    '<video src="$1"></video>',
+  );
+}
+
 export function cleanWordHTML(html: string): string {
   if (!html || !isWordHTML(html)) return html;
 
