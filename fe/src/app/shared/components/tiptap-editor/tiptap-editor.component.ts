@@ -370,7 +370,9 @@ const COLOR_PRESETS = [
     </div>
 
     <!-- ═══════════ EDITOR CONTENT ═══════════ -->
-    <div class="tt-content" [style.min-height.px]="height()" (click)="focusEditor()">
+    <div class="tt-content" [style.min-height.px]="height()"
+      [style.max-height]="maxHeight() ? maxHeight() + 'px' : 'none'"
+      (click)="focusEditor()">
       <div tiptapEditor [editor]="editor"></div>
       <!-- Slash menu inside tt-content for correct absolute positioning -->
       @if (slashMenuVisible()) {
@@ -924,21 +926,27 @@ const COLOR_PRESETS = [
       border-radius: 10px;
       box-shadow: 0 8px 30px rgba(0,0,0,.12), 0 2px 8px rgba(0,0,0,.06);
       padding: 6px;
-      min-width: 260px;
-      max-width: 320px;
-      max-height: 380px;
+      width: 280px;
+      max-height: 340px;
       overflow-y: auto;
+      overflow-x: hidden;
       animation: ttDropIn 0.12s ease-out;
+      scrollbar-width: thin;
+      scrollbar-color: #E5E7EB transparent;
     }
 
     .slash-category {
-      padding: 6px 10px 4px;
+      padding: 8px 10px 4px;
       font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
       color: #9CA3AF;
-      &:not(:first-child) { margin-top: 4px; }
+      &:not(:first-child) {
+        margin-top: 6px;
+        border-top: 1px solid #F3F4F6;
+        padding-top: 10px;
+      }
     }
 
     .slash-item {
@@ -984,9 +992,6 @@ const COLOR_PRESETS = [
       font-size: 11px;
       color: #9CA3AF;
       line-height: 1.3;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
     .slash-empty {
@@ -1002,6 +1007,7 @@ const COLOR_PRESETS = [
 export class TiptapEditorComponent implements ControlValueAccessor, OnDestroy {
   readonly placeholder = input('Nhập nội dung...');
   readonly height = input(360);
+  readonly maxHeight = input(0); // 0 = no limit (expanded mode)
   readonly uploadFn = input<((file: File) => Promise<string>) | null>(null);
   readonly videoUploadFn = input<((file: File) => Promise<string>) | null>(null);
 

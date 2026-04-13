@@ -150,30 +150,19 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
             @if (!showTemplatePicker() || !isContentEmpty()) {
             <div class="editor-field">
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem">
-                <div style="display: flex; align-items: center; gap: 0.75rem">
-                  <label class="editor-label" style="margin-bottom: 0">Nội dung</label>
-                  <div class="preview-toggle">
-                    <button type="button" [class.preview-toggle--active]="!isPreviewMode()"
-                            (click)="isPreviewMode.set(false)">Chỉnh sửa</button>
-                    <button type="button" [class.preview-toggle--active]="isPreviewMode()"
-                            (click)="isPreviewMode.set(true)">Xem trước</button>
-                  </div>
-                </div>
+                <label class="editor-label" style="margin-bottom: 0">Nội dung</label>
                 <button type="button" class="editor-link-button" style="white-space: nowrap"
                         (click)="toggleExpand()">Mở rộng</button>
               </div>
-              @if (!isPreviewMode()) {
-                <app-tiptap-editor
-                  [ngModel]="svc.sectionContent()"
-                  (ngModelChange)="svc.sectionContent.set($event); svc.markDirty()"
-                  placeholder="Gõ / để xem danh sách lệnh nhanh..."
-                  [height]="340"
-                  [uploadFn]="editorUploadFn"
-                  [videoUploadFn]="editorVideoUploadFn">
-                </app-tiptap-editor>
-              } @else {
-                <div class="preview-pane prose" [innerHTML]="svc.sectionContent()"></div>
-              }
+              <app-tiptap-editor
+                [ngModel]="svc.sectionContent()"
+                (ngModelChange)="svc.sectionContent.set($event); svc.markDirty()"
+                placeholder="Gõ / để xem danh sách lệnh nhanh..."
+                [height]="280"
+                [maxHeight]="420"
+                [uploadFn]="editorUploadFn"
+                [videoUploadFn]="editorVideoUploadFn">
+              </app-tiptap-editor>
             </div>
             }
           }
@@ -417,8 +406,8 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
         }
       </div>
 
-      <!-- Footer -->
-      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgb(226 232 240)">
+      <!-- Footer — sticky bottom -->
+      <div class="section-editor-footer">
         <button type="button" (click)="onClose()" class="editor-secondary-button">
           Hủy
         </button>
@@ -562,6 +551,20 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
       font-size: 0.6875rem;
       color: rgb(100 116 139);
       line-height: 1.4;
+    }
+
+    /* ── Section Editor Footer (sticky) ── */
+    .section-editor-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      padding: 0.75rem 1.25rem;
+      border-top: 1px solid rgb(226 232 240);
+      background: rgb(248 250 252);
+      border-radius: 0 0 0.625rem 0.625rem;
+      position: sticky;
+      bottom: 0;
+      z-index: 5;
     }
 
     /* ── Preview pane (student view) ── */
