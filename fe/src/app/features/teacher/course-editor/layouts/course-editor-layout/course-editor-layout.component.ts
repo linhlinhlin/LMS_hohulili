@@ -149,8 +149,8 @@ export class CourseEditorLayoutComponent implements OnInit {
   });
   private lastSyncedCurriculumSelectionKey: string | null = null;
 
-  /** Sidebar collapsed state - auto-managed by route */
-  sidebarCollapsed = signal(false);
+  /** Sidebar collapsed state — synced via store for child component access */
+  sidebarCollapsed = this.store.sidebarCollapsed;
   /** Current active tab - tracks route segment */
   activeTab = signal<string>('info');
 

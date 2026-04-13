@@ -12,6 +12,26 @@
   padding: 1.25rem;
 }
 
+.sidebar-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgb(0 86 210);
+  background: white;
+  border: 1px solid rgb(226 232 240);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  margin-bottom: 0.75rem;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.sidebar-toggle-btn:hover {
+  border-color: rgba(0, 86, 210, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 86, 210, 0.08);
+}
+
 @media (max-width: 767px) {
   .course-curriculum-shell {
     padding: 1rem;

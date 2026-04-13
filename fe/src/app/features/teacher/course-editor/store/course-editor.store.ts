@@ -18,6 +18,9 @@ export class CourseEditorStore {
     readonly isLoading = signal<boolean>(false);
     readonly isSaving = signal<boolean>(false);
 
+    // Sidebar state (shared between layout + curriculum child components)
+    readonly sidebarCollapsed = signal(false);
+
     // Auto-save status
     readonly saveStatus = signal<SaveStatus>('saved');
     private autoSaveTimer: ReturnType<typeof setTimeout> | null = null;

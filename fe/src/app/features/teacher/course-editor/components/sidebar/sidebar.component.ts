@@ -968,6 +968,7 @@ export class CourseEditorSidebarComponent implements OnDestroy {
 
     this.selectionService.selectChapter(chapter);
     this.navigateToCurriculum();
+    this.autoCollapseSidebarOnMobile();
   }
 
   async selectLesson(chapter: ChapterDraftDTO, lesson: LessonDraftDTO) {
@@ -983,6 +984,7 @@ export class CourseEditorSidebarComponent implements OnDestroy {
       return next;
     });
     this.navigateToCurriculum();
+    this.autoCollapseSidebarOnMobile();
   }
 
   async selectSection(chapter: ChapterDraftDTO, lesson: LessonDraftDTO, section: SectionDraftDTO) {
@@ -1402,6 +1404,12 @@ export class CourseEditorSidebarComponent implements OnDestroy {
       }
     }
     return title;
+  }
+
+  private autoCollapseSidebarOnMobile(): void {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      this.store.sidebarCollapsed.set(true);
+    }
   }
 
   getLessonReadinessColor(lesson: LessonDraftDTO): string {

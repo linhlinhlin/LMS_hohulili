@@ -1,5 +1,16 @@
 
 <div class="course-curriculum-shell">
+  <!-- Sidebar toggle (visible when sidebar collapsed, e.g. mobile) -->
+  @if (store.sidebarCollapsed()) {
+    <button type="button" (click)="store.sidebarCollapsed.set(false)"
+      class="sidebar-toggle-btn">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+      </svg>
+      Nội dung
+    </button>
+  }
+
   <!-- Empty State -->
   @if (!selectedChapterId() && !selectedLessonId()) {
     <section class="editor-card">

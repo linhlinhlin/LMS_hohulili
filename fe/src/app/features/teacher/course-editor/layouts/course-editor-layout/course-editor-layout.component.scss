@@ -1,8 +1,14 @@
 :host {
   display: block;
   min-height: 100%;
-  --editor-sidebar-width: 360px;
+  --editor-sidebar-width: 280px;
   --editor-nav-padding: 1.5rem;
+}
+
+@media (min-width: 1280px) {
+  :host {
+    --editor-sidebar-width: 360px;
+  }
 }
 
 // Sidebar grid: desktop only — mobile uses overlay positioning
