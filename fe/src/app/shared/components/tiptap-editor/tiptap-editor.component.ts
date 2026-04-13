@@ -57,6 +57,15 @@ const COLOR_PRESETS = [
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <!-- ═══════════ ERROR BANNER ═══════════ -->
+    @if (editorError()) {
+      <div class="tt-error" (click)="editorError.set('')">
+        <svg class="tt-icon" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>{{ editorError() }}</span>
+        <span style="margin-left:auto;font-size:11px;color:#9CA3AF">Nhấn để đóng</span>
+      </div>
+    }
+
     <!-- ═══════════ TOOLBAR ═══════════ -->
     <div class="tt-toolbar">
 
@@ -409,6 +418,20 @@ const COLOR_PRESETS = [
   `,
   styles: [`
     :host { display: block; }
+
+    .tt-error {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      border-radius: 8px 8px 0 0;
+      font-size: 13px;
+      color: #991B1B;
+      cursor: pointer;
+      animation: ttDropIn 0.15s ease-out;
+    }
 
     /* ── Toolbar ── */
     .tt-toolbar {
@@ -992,6 +1015,7 @@ export class TiptapEditorComponent implements ControlValueAccessor, OnDestroy {
   readonly openDropdown = signal<string | null>(null);
   readonly isUploading = signal(false);
   readonly uploadLabel = signal('');
+  readonly editorError = signal('');
 
   // ── Slash Command state ──
   readonly slashMenuVisible = signal(false);
@@ -1263,6 +1287,13 @@ export class TiptapEditorComponent implements ControlValueAccessor, OnDestroy {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
 
+    // Validate file size (max 10MB for images)
+    if (file.size > 10 * 1024 * 1024) {
+      this.showEditorError('Ảnh quá lớn. Kích thước tối đa là 10MB.');
+      (event.target as HTMLInputElement).value = '';
+      return;
+    }
+
     const fn = this.uploadFn();
     if (fn) {
       showUploadDecoration(this.editor, 'Đang tải ảnh lên...');
@@ -1274,6 +1305,7 @@ export class TiptapEditorComponent implements ControlValueAccessor, OnDestroy {
         }
       } catch {
         hideUploadDecoration(this.editor);
+        this.showEditorError('Tải ảnh thất bại. Vui lòng thử lại.');
       }
     } else {
       const reader = new FileReader();
@@ -1301,9 +1333,15 @@ export class TiptapEditorComponent implements ControlValueAccessor, OnDestroy {
 
   applyYoutube(): void {
     const url = this.youtubeUrl.trim();
-    if (url && this.isValidYoutubeUrl(url)) {
-      this.editor.chain().focus().setYoutubeVideo({ src: url }).run();
+    if (!url) {
+      this.cancelYoutube();
+      return;
     }
+    if (!this.isValidYoutubeUrl(url)) {
+      this.showEditorError('URL không hợp lệ. Vui lòng dán đúng link YouTube (ví dụ: https://youtube.com/watch?v=...)');
+      return;
+    }
+    this.editor.chain().focus().setYoutubeVideo({ src: url }).run();
     this.youtubeEditMode.set(false);
     this.youtubeUrl = '';
   }
@@ -1328,6 +1366,13 @@ export class TiptapEditorComponent implements ControlValueAccessor, OnDestroy {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
 
+    // Validate file size (max 500MB for video)
+    if (file.size > 500 * 1024 * 1024) {
+      this.showEditorError('Video quá lớn. Kích thước tối đa là 500MB.');
+      (event.target as HTMLInputElement).value = '';
+      return;
+    }
+
     const fn = this.videoUploadFn();
     if (!fn) return;
 
@@ -1343,9 +1388,7 @@ export class TiptapEditorComponent implements ControlValueAccessor, OnDestroy {
       }
     } catch {
       hideUploadDecoration(this.editor);
-      this.editor.chain().focus().insertContent(
-        `<p><em>Tải video thất bại. Vui lòng thử lại.</em></p>`
-      ).run();
+      this.showEditorError('Tải video thất bại. Vui lòng thử lại.');
     }
 
     (event.target as HTMLInputElement).value = '';
@@ -1415,5 +1458,10 @@ export class TiptapEditorComponent implements ControlValueAccessor, OnDestroy {
 
   trustIcon(svg: string) {
     return this.sanitizer.bypassSecurityTrustHtml(svg);
+  }
+
+  private showEditorError(message: string): void {
+    this.editorError.set(message);
+    setTimeout(() => this.editorError.set(''), 6000);
   }
 }

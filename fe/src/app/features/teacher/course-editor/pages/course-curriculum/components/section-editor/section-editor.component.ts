@@ -17,7 +17,8 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { LucideAngularModule } from 'lucide-angular';
 import { CurriculumEditorService, SectionQuizAssessmentType } from '../../../../services/curriculum-editor.service';
 import { TiptapEditorComponent } from '../../../../../../../shared/components/tiptap-editor/tiptap-editor.component';
-import { createTiptapUploadFn } from '../../../../../../../shared/components/tiptap-editor/tiptap-upload';
+import { createTiptapUploadFn, createTiptapVideoUploadFn } from '../../../../../../../shared/components/tiptap-editor/tiptap-upload';
+import { PresignedUploadService } from '../../../../../../../core/services/presigned-upload.service';
 import { LESSON_TEMPLATES, type LessonTemplate } from '../../../../../../../shared/components/tiptap-editor/lesson-templates';
 import { environment } from '../../../../../../../../environments/environment';
 import { formatOfflineVideoProfileLabel, type OfflineVideoProfileDescriptor } from '../../../../../../../core/models/video-quality';
@@ -63,7 +64,8 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
               (ngModelChange)="svc.sectionContent.set($event); svc.markDirty()"
               placeholder="Nhập nội dung bài học chi tiết tại đây..."
               [height]="800"
-              [uploadFn]="editorUploadFn">
+              [uploadFn]="editorUploadFn"
+                  [videoUploadFn]="editorVideoUploadFn">
             </app-tiptap-editor>
           } @else {
             <div class="preview-pane preview-pane--expanded prose" [innerHTML]="svc.sectionContent()"></div>
@@ -166,7 +168,8 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                   (ngModelChange)="svc.sectionContent.set($event); svc.markDirty()"
                   placeholder="Gõ / để xem danh sách lệnh nhanh..."
                   [height]="340"
-                  [uploadFn]="editorUploadFn">
+                  [uploadFn]="editorUploadFn"
+                  [videoUploadFn]="editorVideoUploadFn">
                 </app-tiptap-editor>
               } @else {
                 <div class="preview-pane prose" [innerHTML]="svc.sectionContent()"></div>
@@ -594,7 +597,9 @@ export class SectionEditorComponent {
   readonly isExpanded = signal(false);
   readonly isPreviewMode = signal(false);
 
-  readonly editorUploadFn = createTiptapUploadFn(this.http, environment.apiUrl);
+  private readonly presignedUpload = inject(PresignedUploadService, { optional: true });
+  readonly editorUploadFn = createTiptapUploadFn(this.http, environment.apiUrl, this.presignedUpload ?? undefined);
+  readonly editorVideoUploadFn = this.presignedUpload ? createTiptapVideoUploadFn(this.presignedUpload) : null;
   readonly quizTypes: SectionQuizAssessmentType[] = ['PRACTICE', 'ASSESSMENT', 'EXAM'];
   readonly lessonTemplates = LESSON_TEMPLATES;
   readonly showTemplatePicker = signal(true);
