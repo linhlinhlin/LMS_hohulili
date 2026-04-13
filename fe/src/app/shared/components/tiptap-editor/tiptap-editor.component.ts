@@ -35,6 +35,7 @@ import { common, createLowlight } from 'lowlight';
 import { Callout, type CalloutType } from './callout-node';
 import { SlashCommands, getSlashCommandItems, type SlashCommandItem } from './slash-commands';
 import { PasteHandler } from './paste-handler';
+import { Video } from './video-node';
 import { UploadDecoration, showUploadDecoration, hideUploadDecoration } from './upload-decoration';
 
 const lowlight = createLowlight(common);
@@ -877,6 +878,27 @@ const COLOR_PRESETS = [
       user-select: none !important;
     }
 
+    /* ── Video Node ── */
+    :host ::ng-deep .vid-wrapper {
+      display: block;
+      margin: 12px 0;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #000;
+      line-height: 0;
+    }
+
+    :host ::ng-deep .vid-player {
+      width: 100%;
+      max-width: 100%;
+      display: block;
+      border-radius: 8px;
+    }
+
+    :host ::ng-deep .vid-selected .vid-player {
+      box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.35);
+    }
+
     /* ── Callout toolbar dropdown ── */
     .tt-callout-dropdown {
       position: absolute;
@@ -1093,6 +1115,7 @@ export class TiptapEditorComponent implements ControlValueAccessor, OnDestroy {
         Details,
         DetailsSummary,
         DetailsContent,
+        Video,
         UploadDecoration,
         PasteHandler.configure({
           uploadImage: this.uploadFn() || undefined,
@@ -1388,9 +1411,7 @@ export class TiptapEditorComponent implements ControlValueAccessor, OnDestroy {
       const url = await fn(file);
       hideUploadDecoration(this.editor);
       if (url) {
-        this.editor.chain().focus().insertContent(
-          `<video src="${url}" controls style="max-width:100%;border-radius:8px;margin:12px 0"></video>`
-        ).run();
+        this.editor.chain().focus().setVideo({ src: url }).run();
       }
     } catch {
       hideUploadDecoration(this.editor);

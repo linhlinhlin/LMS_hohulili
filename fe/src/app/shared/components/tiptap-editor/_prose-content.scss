@@ -282,6 +282,15 @@ figure {
   }
 }
 
+// ── HTML5 Video ──
+video {
+  width: 100%;
+  max-width: 100%;
+  border-radius: 0.5rem;
+  margin: 1.25rem 0;
+  background: #000;
+}
+
 // ── YouTube / Video Embeds ──
 iframe {
   width: 100%;
