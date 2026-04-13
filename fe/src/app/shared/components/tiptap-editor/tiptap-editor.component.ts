@@ -745,17 +745,28 @@ const COLOR_PRESETS = [
         /* YouTube responsive embed */
         div[data-youtube-video] {
           position: relative;
+          width: 100%;
           padding-bottom: 56.25%;
           height: 0;
           overflow: hidden;
           border-radius: 8px;
           margin: 12px 0;
+          background: #000;
+          cursor: pointer;
+
           iframe {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
+            border: none;
+          }
+
+          /* Selection ring */
+          &.ProseMirror-selectednode {
+            outline: 3px solid rgba(0, 86, 210, 0.35);
+            outline-offset: 2px;
           }
         }
     }

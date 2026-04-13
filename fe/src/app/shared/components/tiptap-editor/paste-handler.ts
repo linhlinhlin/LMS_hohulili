@@ -34,9 +34,13 @@ const COND_COMMENT_REGEX = /<!\[if[^>]*>[\s\S]*?<!\[endif\]>/gi;
 export function fixLegacyVideoTags(html: string): string {
   if (!html) return html;
   // Match escaped video tags: &lt;video src="..."...&gt;...&lt;/video&gt;
+  // Handle &amp; in URLs (query params) and both escaped/unescaped quotes
   return html.replace(
-    /&lt;video\s+src=(?:&quot;|")([^"&]+)(?:&quot;|")[^&]*&gt;(?:&lt;\/video&gt;|<\/video>)/gi,
-    '<video src="$1"></video>',
+    /&lt;video\s+src=(?:&quot;|"|&#34;)([\s\S]*?)(?:&quot;|"|&#34;)[\s\S]*?(?:&gt;|>)[\s\S]*?(?:&lt;\/video&gt;|&lt;\/video>|<\/video>)/gi,
+    (_match, rawUrl) => {
+      const url = rawUrl.replace(/&amp;/g, '&');
+      return `<video src="${url}"></video>`;
+    },
   );
 }
 

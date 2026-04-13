@@ -148,7 +148,15 @@ export const ResizableImage = Node.create<ResizableImageOptions>({
       let aspectRatio = 1;
 
       img.onload = () => {
-        aspectRatio = img.naturalWidth / img.naturalHeight;
+        if (img.naturalWidth && img.naturalHeight) {
+          aspectRatio = img.naturalWidth / img.naturalHeight;
+        }
+      };
+      img.onerror = () => {
+        // Fallback: use width/height from attrs if available
+        if (node.attrs['width'] && node.attrs['height']) {
+          aspectRatio = node.attrs['width'] / node.attrs['height'];
+        }
       };
 
       const onMouseDown = (e: MouseEvent, dir: string) => {

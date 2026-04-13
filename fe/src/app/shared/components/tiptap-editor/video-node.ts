@@ -43,6 +43,15 @@ export const Video = Node.create<VideoOptions>({
   parseHTML() {
     return [
       { tag: 'video[src]' },
+      {
+        tag: 'video',
+        getAttrs: (el: HTMLElement) => {
+          // Also match <video><source src="..."></video>
+          const source = el.querySelector('source[src]');
+          if (source) return { src: source.getAttribute('src') };
+          return false;
+        },
+      },
     ];
   },
 
@@ -50,8 +59,7 @@ export const Video = Node.create<VideoOptions>({
     return [
       'video',
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
-        controls: 'true',
-        style: 'max-width:100%;border-radius:8px;margin:12px 0',
+        controls: true,
       }),
     ];
   },
