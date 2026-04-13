@@ -56,7 +56,17 @@ import { ChapterDraftDTO, LessonDraftDTO } from '../../../../services/course-aut
 
         <!-- Lesson list -->
         <div class="editor-field" style="padding-top: 0.5rem; border-top: 1px solid var(--editor-card-header-border, rgb(226 232 240))">
-          <label class="editor-label">Bài học ({{ lessons().length }})</label>
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <label class="editor-label">Bài học ({{ lessons().length }})</label>
+            @if (lessons().length > 0) {
+              <button type="button" (click)="addLesson.emit()" class="add-lesson-header-btn">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Thêm bài học
+              </button>
+            }
+          </div>
 
           @if (lessons().length > 0) {
             <div class="editor-stack" style="gap: 0.375rem">
@@ -116,6 +126,24 @@ import { ChapterDraftDTO, LessonDraftDTO } from '../../../../services/course-aut
     .chapter-breadcrumb__type {
       font-weight: 600;
       color: rgb(0 86 210);
+    }
+    .add-lesson-header-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      padding: 0.375rem 0.75rem;
+      border: 1px solid var(--editor-control-border);
+      border-radius: var(--editor-control-radius);
+      background: #fff;
+      color: rgb(0 86 210);
+      cursor: pointer;
+      transition: border-color 160ms ease, background 160ms ease;
+    }
+    .add-lesson-header-btn:hover {
+      border-color: rgba(0, 86, 210, 0.4);
+      background: rgba(0, 86, 210, 0.04);
     }
     .chapter-footer {
       display: flex;
