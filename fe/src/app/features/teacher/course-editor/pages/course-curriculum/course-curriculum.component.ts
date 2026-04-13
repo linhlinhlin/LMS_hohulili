@@ -600,6 +600,13 @@ export class CourseCurriculumComponent implements OnDestroy {
   private hasPendingChanges(): boolean {
     return this.editorDirty() || this.isSaving();
   }
+  requestAddLessonForCurrentChapter() {
+    const chapter = this.selectionService.selectedChapter();
+    if (chapter) {
+      this.editorSvc.pendingLessonCreateForChapter.set(chapter);
+    }
+  }
+
   async selectLessonFromChapter(lesson: LessonDraftDTO) {
     if (!(await this.confirmDiscardChangesIfNeeded())) {
       return;
@@ -1045,6 +1052,14 @@ export class CourseCurriculumComponent implements OnDestroy {
   }
 
   // Navigation
+  async backToChapter() {
+    if (!(await this.confirmDiscardChangesIfNeeded())) {
+      return;
+    }
+    this.editorSvc.closeSectionSurface();
+    this.selectionService.clearLessonSelection();
+  }
+
   async clearSelection() {
     if (!(await this.confirmDiscardChangesIfNeeded())) {
       return;
@@ -1396,9 +1411,8 @@ export class CourseCurriculumComponent implements OnDestroy {
 
   // Section Methods (L3)
   async openSectionEditor(type: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE') {
-    if (!(await this.confirmDiscardChangesIfNeeded())) {
-      return;
-    }
+    // No discard-confirm needed: creating a section doesn't navigate away
+    // from the current lesson — it opens a new section surface within it.
 
     // New: delegate to CurriculumEditorService
     this.editorSvc.openSectionCreate(type as any);

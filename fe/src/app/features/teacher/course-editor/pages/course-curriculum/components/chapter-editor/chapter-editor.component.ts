@@ -75,7 +75,15 @@ import { ChapterDraftDTO, LessonDraftDTO } from '../../../../services/course-aut
               }
             </div>
           } @else {
-            <p class="editor-empty-state" style="padding: 1.5rem; text-align: center">Chưa có bài học. Thêm bài học từ sidebar bên trái.</p>
+            <div class="editor-empty-state" style="padding: 1.5rem; text-align: center">
+              <p style="font-size: 0.8125rem; color: rgb(100 116 139); margin-bottom: 0.75rem">Chưa có bài học trong chương này</p>
+              <button type="button" (click)="addLesson.emit()" class="editor-primary-button" style="font-size: 0.8125rem">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Thêm bài học đầu tiên
+              </button>
+            </div>
           }
         </div>
 
@@ -180,6 +188,7 @@ export class ChapterEditorComponent {
   readonly descriptionChange = output<string>();
   readonly saveClicked = output<void>();
   readonly lessonClicked = output<LessonDraftDTO>();
+  readonly addLesson = output<void>();
 
   // Local form state derived from chapter input
   readonly title = signal('');

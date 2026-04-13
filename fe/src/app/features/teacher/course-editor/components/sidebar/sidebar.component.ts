@@ -10,6 +10,7 @@ import { LessonApi } from '../../../../../api/client/lesson.api';
 import { SectionApi } from '../../../../../api/client/section.api';
 import { ChapterDraftDTO, LessonDraftDTO, SectionDraftDTO, CourseAuthoringService } from '../../services/course-authoring.service';
 import { CurriculumSelectionService } from '../../services/curriculum-selection.service';
+import { CurriculumEditorService } from '../../services/curriculum-editor.service';
 import { CONTENT_TYPE_CONFIG, ContentType } from '../../../../../core/constants/content-type.constant';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -673,6 +674,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
 export class CourseEditorSidebarComponent implements OnDestroy {
   store = inject(CourseEditorStore);
   selectionService = inject(CurriculumSelectionService);
+  private editorSvc = inject(CurriculumEditorService);
   private router = inject(Router);
   private chapterApi = inject(ChapterApi);
   private lessonApi = inject(LessonApi);
@@ -759,6 +761,17 @@ export class CourseEditorSidebarComponent implements OnDestroy {
   moveToLessonTarget = signal<LessonDraftDTO | null>(null);
 
   constructor() {
+    // Bridge: chapter-editor requests lesson creation via shared service signal
+    effect(() => {
+      const chapter = this.editorSvc.pendingLessonCreateForChapter();
+      if (chapter) {
+        untracked(() => {
+          this.showAddLessonModal(chapter, 0);
+          this.editorSvc.pendingLessonCreateForChapter.set(null);
+        });
+      }
+    });
+
     // Auto-expand first chapter when data loads
     effect(() => {
       const chapters = this.store.chapters();
@@ -1042,7 +1055,8 @@ export class CourseEditorSidebarComponent implements OnDestroy {
 
     this.chapterApi.createChapter(courseId, {
       title: this.newChapterTitle.trim(),
-      description: this.newChapterDescription.trim()
+      description: this.newChapterDescription.trim(),
+      orderIndex: this.store.chapters().length
     }).subscribe({
       next: () => {
         this.closeModals();

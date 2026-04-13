@@ -50,6 +50,25 @@ import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
       color: rgb(100 116 139);
       margin-bottom: 0.25rem;
     }
+    .lesson-breadcrumb__back {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 0.8125rem;
+      color: rgb(100 116 139);
+      padding: 0;
+      transition: color 120ms ease;
+    }
+    .lesson-breadcrumb__back:hover {
+      color: rgb(0 86 210);
+    }
+    .lesson-breadcrumb__sep {
+      color: rgb(203 213 225);
+      margin: 0 0.25rem;
+    }
     .lesson-breadcrumb__type {
       font-weight: 600;
       color: rgb(0 86 210);
@@ -66,7 +85,16 @@ import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
     <div class="lesson-workspace">
       <!-- Breadcrumb -->
       <div class="lesson-breadcrumb">
-        <span class="lesson-breadcrumb__type">{{ getTypeLabel() }}</span> · {{ lesson().title }}
+        @if (chapterTitle()) {
+          <button type="button" class="lesson-breadcrumb__back" (click)="backClicked.emit()">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            {{ chapterTitle() }}
+          </button>
+          <span class="lesson-breadcrumb__sep">›</span>
+        }
+        <span class="lesson-breadcrumb__type">{{ getTypeLabel() }}</span>
       </div>
 
       <!-- Tiêu đề -->
@@ -196,6 +224,7 @@ export class LessonEditorComponent {
   // Core inputs
   readonly lesson = input.required<LessonDraftDTO>();
   readonly courseId = input.required<string>();
+  readonly chapterTitle = input('');
   readonly isSaving = input(false);
 
   // Lesson form state (managed by parent, passed as inputs)

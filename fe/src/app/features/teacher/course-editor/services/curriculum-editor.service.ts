@@ -53,6 +53,10 @@ export class CurriculumEditorService {
     return 'empty';
   });
 
+  // ── Cross-component bridge ───────────────────────────────────────────
+  /** Set by chapter-editor (via parent) to request sidebar opens lesson modal */
+  readonly pendingLessonCreateForChapter = signal<ChapterDraftDTO | null>(null);
+
   // ── Section surface state ────────────────────────────────────────────
   readonly sectionSurfaceMode = signal<SectionSurfaceMode>('closed');
   readonly sectionEditorType = signal<SectionEditorType>('TEXT');

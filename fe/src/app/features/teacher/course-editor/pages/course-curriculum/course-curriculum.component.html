@@ -59,7 +59,8 @@
         (titleChange)="onChapterTitleChange($event)"
         (descriptionChange)="onChapterDescriptionChange($event)"
         (saveClicked)="saveChapter()"
-        (lessonClicked)="selectLessonFromChapter($event)">
+        (lessonClicked)="selectLessonFromChapter($event)"
+        (addLesson)="requestAddLessonForCurrentChapter()">
       </app-chapter-editor>
     }
   }
@@ -70,6 +71,7 @@
       <app-lesson-editor
         [lesson]="lesson"
         [courseId]="store.courseTree()?.id || ''"
+        [chapterTitle]="selectionService.selectedChapter()?.title || ''"
         [isSaving]="isSaving()"
         [quizTimeLimit]="quizTimeLimit()"
         [quizPassingScore]="quizPassingScore()"
@@ -88,7 +90,7 @@
         [legacyVideoCopy]="getLegacyLessonVideoPolicyCopy()"
         (titleChange)="onLessonTitleChange($event)"
         (saveClicked)="saveLesson()"
-        (backClicked)="clearSelection()"
+        (backClicked)="backToChapter()"
         (createSection)="openSectionEditor($any($event))"
         (editSection)="editSection($event)"
         (deleteSection)="deleteSection($event)"
