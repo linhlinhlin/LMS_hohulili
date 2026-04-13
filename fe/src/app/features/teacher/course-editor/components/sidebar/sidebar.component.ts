@@ -188,15 +188,47 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
            aria-label="Cấu trúc khóa học">
 
         <!-- Header -->
-        <div class="px-3 py-2.5 border-b border-slate-200 flex items-center justify-between">
-            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Nội dung</span>
-            <button (click)="showAddChapterModal()"
-                    class="p-1.5 rounded-md hover:bg-[#E8F0FE] text-slate-400 hover:text-[#0056D2] transition-colors"
-                    matTooltip="Thêm chương">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-              </svg>
-            </button>
+        <div class="px-3 py-2.5 border-b border-slate-200">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Nội dung</span>
+              @if (store.chapters().length > 0) {
+                <span class="text-[10px] text-slate-400 ml-1.5">{{ store.chapters().length }} chương · {{ totalCount() }} bài</span>
+              }
+            </div>
+            <div class="flex items-center gap-1">
+              @if (store.chapters().length > 1) {
+                <button (click)="toggleAll()"
+                        class="p-1.5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+                        [matTooltip]="isAllExpanded() ? 'Thu gọn tất cả' : 'Mở rộng tất cả'">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    @if (isAllExpanded()) {
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 14l8-8 8 8"></path>
+                    } @else {
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 10l8 8 8-8"></path>
+                    }
+                  </svg>
+                </button>
+              }
+              <button (click)="showAddChapterModal()"
+                      class="p-1.5 rounded-md hover:bg-[#E8F0FE] text-slate-400 hover:text-[#0056D2] transition-colors"
+                      matTooltip="Thêm chương">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <!-- Search -->
+          @if (store.chapters().length > 3) {
+            <div class="mt-2">
+              <input type="text"
+                     [ngModel]="searchQuery()"
+                     (ngModelChange)="searchQuery.set($event)"
+                     class="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-md bg-slate-50 focus:outline-none focus:ring-1 focus:ring-[#0056D2]/30 focus:border-[#0056D2] transition-colors"
+                     placeholder="Tìm chương hoặc bài học...">
+            </div>
+          }
         </div>
 
         <!-- Scroll Area -->
@@ -228,8 +260,16 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
               </div>
             }
 
+            <!-- Search no-results -->
+            @if (searchQuery() && filteredChapterCount() === 0) {
+              <div class="flex flex-col items-center py-8 px-4 text-center">
+                <p class="text-xs text-slate-400">Không tìm thấy kết quả cho "{{ searchQuery() }}"</p>
+              </div>
+            }
+
             <!-- Chapter Tree -->
             @for (chapter of store.chapters(); track chapter.id; let chapterIdx = $index) {
+              @if (chapterMatchesSearch(chapter)) {
                   <div class="border-b border-slate-100 last:border-0"
                        role="treeitem"
                        [attr.aria-expanded]="isChapterExpanded(chapter.id)"
@@ -403,7 +443,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                                                        class="w-full text-[13px] font-medium text-slate-700 bg-white border border-[#0056D2] rounded px-2 py-0.5 outline-none focus:ring-2 focus:ring-[#0056D2]/30"
                                                        #editInput>
                                             } @else {
-                                                <p class="text-sm font-medium text-slate-600 leading-snug line-clamp-2 break-words group-hover/ls:text-slate-900"><span class="text-xs font-semibold text-[#0056D2]">Bài {{ chapterIdx + 1 }}.{{ lessonIdx + 1 }}</span> {{ getLessonDisplayTitle(lesson.title, lessonIdx) }}</p>
+                                                <p class="text-sm font-medium text-slate-600 leading-snug line-clamp-2 break-words group-hover/ls:text-slate-900"><span class="text-xs font-semibold text-[#0056D2]">Bài {{ chapterIdx + 1 }}.{{ lessonIdx + 1 }}</span> {{ getLessonDisplayTitle(lesson.title, lessonIdx) }} <span class="inline-block w-1.5 h-1.5 rounded-full align-middle ml-1" [style.background]="getLessonReadinessColor(lesson)"></span></p>
                                             }
                                           </div>
 
@@ -485,6 +525,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                           </div>
                       }
                   </div>
+              }
             }
         </div>
 
@@ -534,12 +575,34 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
             <h3 class="text-base font-bold text-slate-900">Thêm bài học</h3>
             <p class="text-xs text-slate-500 mt-0.5">Chương: {{ currentChapterForLesson()?.title }}</p>
           </div>
-          <div class="px-5 py-5">
-            <label class="text-[13px] font-semibold text-slate-700 mb-2 block">Tên bài học</label>
-            <input type="text" [(ngModel)]="newLessonTitle"
-                   (keydown.enter)="createLesson()"
-                   class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2] transition-all"
-                   placeholder="Nhập tên bài học...">
+          <div class="px-5 py-5 space-y-4">
+            <div>
+              <label class="text-[13px] font-semibold text-slate-700 mb-2 block">Tên bài học</label>
+              <input type="text" [(ngModel)]="newLessonTitle"
+                     (keydown.enter)="createLesson()"
+                     class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2] transition-all"
+                     placeholder="Nhập tên bài học...">
+            </div>
+            <div>
+              <label class="text-[13px] font-semibold text-slate-700 mb-2 block">Loại bài học</label>
+              <div class="grid grid-cols-3 gap-2">
+                <button type="button" (click)="newLessonType = 'LECTURE'"
+                        class="px-3 py-2 text-xs font-medium rounded-lg border transition-colors"
+                        [class]="newLessonType === 'LECTURE' ? 'border-[#0056D2] bg-[#E8F0FE] text-[#0056D2]' : 'border-slate-200 text-slate-600 hover:border-slate-300'">
+                  Bài giảng
+                </button>
+                <button type="button" (click)="newLessonType = 'QUIZ'"
+                        class="px-3 py-2 text-xs font-medium rounded-lg border transition-colors"
+                        [class]="newLessonType === 'QUIZ' ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'">
+                  Trắc nghiệm
+                </button>
+                <button type="button" (click)="newLessonType = 'ASSIGNMENT'"
+                        class="px-3 py-2 text-xs font-medium rounded-lg border transition-colors"
+                        [class]="newLessonType === 'ASSIGNMENT' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'">
+                  Bài tập
+                </button>
+              </div>
+            </div>
           </div>
           <div class="px-5 py-3.5 bg-slate-50 flex justify-end gap-2.5 border-t border-slate-100">
             <button (click)="closeModals()" class="px-4 py-2.5 text-[13px] font-semibold text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-200 transition-colors">Hủy</button>
@@ -1339,6 +1402,15 @@ export class CourseEditorSidebarComponent implements OnDestroy {
       }
     }
     return title;
+  }
+
+  getLessonReadinessColor(lesson: LessonDraftDTO): string {
+    const state = getLessonReadinessState(lesson);
+    switch (state) {
+      case 'ready': return 'rgb(16 185 129)';
+      case 'draft': return 'rgb(245 158 11)';
+      default: return 'rgb(203 213 225)';
+    }
   }
 
   ngOnDestroy() {

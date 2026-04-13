@@ -56,6 +56,7 @@
       <app-chapter-editor
         [chapter]="chapter"
         [isSaving]="isSaving()"
+        [isDirty]="editorDirty()"
         (titleChange)="onChapterTitleChange($event)"
         (descriptionChange)="onChapterDescriptionChange($event)"
         (saveClicked)="saveChapter()"
@@ -73,6 +74,7 @@
         [courseId]="store.courseTree()?.id || ''"
         [chapterTitle]="selectionService.selectedChapter()?.title || ''"
         [isSaving]="isSaving()"
+        [isDirty]="editorDirty()"
         [quizTimeLimit]="quizTimeLimit()"
         [quizPassingScore]="quizPassingScore()"
         [quizMaxAttempts]="quizMaxAttempts()"

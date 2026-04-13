@@ -73,9 +73,30 @@ import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
       font-weight: 600;
       color: rgb(0 86 210);
     }
+    .unsaved-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      font-size: 0.75rem;
+      color: rgb(217 119 6);
+      font-weight: 500;
+    }
+    .unsaved-hint__dot {
+      width: 0.375rem;
+      height: 0.375rem;
+      border-radius: 50%;
+      background: rgb(245 158 11);
+      animation: pulse-dot 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 0.55; }
+      50% { opacity: 1; }
+    }
     .lesson-footer {
       display: flex;
       justify-content: flex-end;
+      align-items: center;
+      gap: 1rem;
       padding-top: 0.75rem;
       border-top: 1px solid rgb(226 232 240);
       margin-top: auto;
@@ -202,6 +223,12 @@ import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 
         <!-- Lưu -->
         <div class="lesson-footer">
+          @if (isDirty()) {
+            <span class="unsaved-hint">
+              <span class="unsaved-hint__dot"></span>
+              Có thay đổi chưa lưu
+            </span>
+          }
           <button type="button" (click)="saveClicked.emit()"
             [disabled]="isSaving() || !title().trim()"
             class="editor-primary-button">
@@ -226,6 +253,7 @@ export class LessonEditorComponent {
   readonly courseId = input.required<string>();
   readonly chapterTitle = input('');
   readonly isSaving = input(false);
+  readonly isDirty = input(false);
 
   // Lesson form state (managed by parent, passed as inputs)
   readonly title = signal('');

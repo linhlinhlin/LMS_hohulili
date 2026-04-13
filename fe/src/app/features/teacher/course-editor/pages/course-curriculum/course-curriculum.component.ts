@@ -149,7 +149,7 @@ export class CourseCurriculumComponent implements OnDestroy {
   isSaving = signal(false);
   isLoadingLesson = signal(false);
   private editorBaselineSignature = signal('');
-  private editorDirty = signal(false);
+  editorDirty = signal(false);
 
   // Chapter form
   chapterTitle = '';
