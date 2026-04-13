@@ -10,10 +10,8 @@ import { SessionExpiredService } from '../../../core/services/session-expired.se
   imports: [RouterLink],
   template: `
     @if (isOffline()) {
-      <!-- Persistent top banner when fully offline (Google OHS pattern) -->
-      <div class="fixed left-0 right-0 z-[100] bg-red-600 text-white px-4 py-2 flex items-center justify-between shadow-md"
-           [class.top-0]="!hasExpiredBanner()"
-           [class.top-10]="hasExpiredBanner()"
+      <!-- Persistent top banner when fully offline — in document flow, not fixed -->
+      <div class="bg-red-600 text-white px-4 py-2 flex items-center justify-between shadow-md"
            role="alert"
            aria-live="assertive">
         <div class="flex items-center gap-3">
