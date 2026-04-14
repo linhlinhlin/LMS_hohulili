@@ -382,6 +382,14 @@ export class CurriculumEditorService {
     this.sectionStreamVideoUid.set(section.streamVideoUid ?? null);
     this.selectedSectionVideoFile.set(null);
 
+    // Fetch playback URL for uploaded video assets (videoUrl is empty for these)
+    if (section.videoAssetId && !section.videoUrl && section.videoProcessingStatus === 'READY') {
+      this.videoAssetApi.getPlayUrl(section.videoAssetId).subscribe({
+        next: (res: any) => this.sectionVideoUrl.set(res.data?.playUrl ?? ''),
+        error: () => {},
+      });
+    }
+
     // File
     this.sectionFileUrl.set(section.fileUrl ?? null);
     this.selectedFile.set(null);
