@@ -27,7 +27,8 @@ type ResolvedSource =
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [],
   template: `
-    <div class="relative w-full bg-black rounded-lg overflow-hidden">
+    <div class="relative w-full bg-black rounded-lg overflow-hidden"
+         (click)="showQualityMenu() && showQualityMenu.set(false)">
       <video
         #videoElement
         controls
@@ -64,11 +65,33 @@ type ResolvedSource =
         </div>
       }
 
-      @if (qualityLabel()) {
-        <div class="absolute left-3 top-3 rounded-full bg-slate-950/80 px-2.5 py-1 text-[11px] font-semibold text-white">
-          {{ qualityLabel() }}
-        </div>
-      }
+      <!-- Quality selector (same pattern as lesson player) -->
+      <div class="absolute left-3 top-3 z-10">
+        @if (showQualityMenu()) {
+          <div class="rounded-lg bg-slate-950/90 backdrop-blur-sm py-1 min-w-[140px] shadow-lg">
+            <button (click)="selectQuality(null)"
+              class="flex w-full items-center justify-between px-3 py-1.5 text-[11px] text-white hover:bg-white/10"
+              [class.font-bold]="isAutoQuality()">
+              <span>Tự động</span>
+              @if (isAutoQuality()) { <span class="text-sky-400">✓</span> }
+            </button>
+            @for (q of availableQualities(); track q.height) {
+              <button (click)="selectQuality(q)"
+                class="flex w-full items-center justify-between px-3 py-1.5 text-[11px] text-white hover:bg-white/10"
+                [class.font-bold]="!isAutoQuality() && qualityLabel() === q.height + 'p'">
+                <span>{{ q.height }}p</span>
+                @if (!isAutoQuality() && qualityLabel() === q.height + 'p') { <span class="text-sky-400">✓</span> }
+              </button>
+            }
+          </div>
+        } @else if (qualityLabel()) {
+          <button (click)="showQualityMenu.set(true)"
+            class="rounded-full bg-slate-950/80 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-slate-950/95 cursor-pointer flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            {{ isAutoQuality() ? 'Tự động' : '' }} {{ qualityLabel() }}
+          </button>
+        }
+      </div>
     </div>
   `
 })
@@ -83,6 +106,9 @@ export class QuizVideoPlayerComponent {
   readonly isLoading = signal(true);
   readonly error = signal<string | null>(null);
   readonly qualityLabel = signal<string | null>(null);
+  readonly showQualityMenu = signal(false);
+  readonly isAutoQuality = signal(true);
+  readonly availableQualities = signal<Array<{ height: number; bandwidth: number }>>([]);
 
   private shakaPlayer: any = null;
   private loadToken = 0;
@@ -225,11 +251,43 @@ export class QuizVideoPlayerComponent {
 
   private syncQuality(player: any): void {
     try {
-      const active = player.getVariantTracks().find((t: any) => t.active);
+      const tracks = player.getVariantTracks();
+      const active = tracks.find((t: any) => t.active);
       if (active?.height) {
         this.qualityLabel.set(`${active.height}p`);
       }
+      // Populate available qualities
+      const seen = new Set<number>();
+      const qualities = tracks
+        .filter((t: any) => t.height && !seen.has(t.height) && seen.add(t.height))
+        .map((t: any) => ({ height: t.height as number, bandwidth: t.bandwidth as number }))
+        .sort((a: any, b: any) => b.height - a.height);
+      if (qualities.length > 1) {
+        this.availableQualities.set(qualities);
+      }
     } catch {}
+  }
+
+  selectQuality(quality: { height: number; bandwidth: number } | null): void {
+    this.showQualityMenu.set(false);
+    if (!this.shakaPlayer) return;
+    try {
+      if (quality === null) {
+        this.shakaPlayer.configure('abr.enabled', true);
+        this.isAutoQuality.set(true);
+      } else {
+        this.shakaPlayer.configure('abr.enabled', false);
+        const target = this.shakaPlayer.getVariantTracks().find((t: any) => t.height === quality.height);
+        if (target) {
+          this.shakaPlayer.selectVariantTrack(target, true);
+          this.qualityLabel.set(`${quality.height}p`);
+        }
+        this.isAutoQuality.set(false);
+      }
+    } catch {
+      this.shakaPlayer?.configure?.('abr.enabled', true);
+      this.isAutoQuality.set(true);
+    }
   }
 
   private async destroyShakaPlayer(): Promise<void> {
