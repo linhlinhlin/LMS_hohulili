@@ -362,12 +362,12 @@ export class CurriculumEditorService {
     this.selectedFile.set(null);
     if (section.type === 'FILE') {
       // Use previewPdfUrl (converted by Gotenberg) if available, else native PDF
-      const previewUrl = (section as any).previewPdfUrl ?? null;
+      const previewUrl = section.previewPdfUrl ?? null;
       const fileUrl = section.fileUrl ?? null;
-      if (previewUrl) {
-        this.safePdfUrl.set(this.pdfService.getSafePdfUrl(previewUrl));
-      } else if (fileUrl && fileUrl.toLowerCase().endsWith('.pdf')) {
-        this.safePdfUrl.set(this.pdfService.getSafePdfUrl(fileUrl));
+      const urlToPreview = previewUrl ?? (fileUrl?.toLowerCase().endsWith('.pdf') ? fileUrl : null);
+      if (urlToPreview) {
+        // Direct sanitize for preview URL — no blob fetch needed for server-hosted PDFs
+        this.safePdfUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(urlToPreview));
       } else {
         this.safePdfUrl.set(null);
       }
