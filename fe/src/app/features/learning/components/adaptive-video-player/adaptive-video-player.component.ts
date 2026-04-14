@@ -28,7 +28,8 @@ type ResolvedVideoSource =
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [],
   template: `
-    <div class="relative h-full w-full bg-black" data-testid="adaptive-video-player">
+    <div class="relative h-full w-full bg-black" data-testid="adaptive-video-player"
+         (click)="showQualityMenu() && showQualityMenu.set(false)">
       <video
         #videoElement
         data-testid="adaptive-video-element"
@@ -78,11 +79,34 @@ type ResolvedVideoSource =
         </div>
       }
 
-      @if (qualityLabel()) {
-        <div class="absolute left-3 top-3 rounded-full bg-slate-950/80 px-2.5 py-1 text-[11px] font-semibold text-white" data-testid="adaptive-video-quality">
-          {{ qualityLabel() }}
-        </div>
-      }
+      <!-- Quality selector (YouTube/Coursera pattern) -->
+      <div class="absolute left-3 top-3 z-10">
+        @if (showQualityMenu()) {
+          <div class="rounded-lg bg-slate-950/90 backdrop-blur-sm py-1 min-w-[140px] shadow-lg">
+            <button (click)="selectQuality(null)"
+              class="flex w-full items-center justify-between px-3 py-1.5 text-[11px] text-white hover:bg-white/10 transition-colors"
+              [class.font-bold]="isAutoQuality()">
+              <span>Tự động</span>
+              @if (isAutoQuality()) { <span class="text-sky-400">✓</span> }
+            </button>
+            @for (q of availableQualities(); track q.height) {
+              <button (click)="selectQuality(q)"
+                class="flex w-full items-center justify-between px-3 py-1.5 text-[11px] text-white hover:bg-white/10 transition-colors"
+                [class.font-bold]="!isAutoQuality() && qualityLabel() === q.height + 'p'">
+                <span>{{ q.height }}p</span>
+                @if (!isAutoQuality() && qualityLabel() === q.height + 'p') { <span class="text-sky-400">✓</span> }
+              </button>
+            }
+          </div>
+        } @else if (qualityLabel()) {
+          <button (click)="showQualityMenu.set(true)"
+            class="rounded-full bg-slate-950/80 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-slate-950/95 transition-colors cursor-pointer flex items-center gap-1"
+            data-testid="adaptive-video-quality">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            {{ isAutoQuality() ? 'Tự động' : '' }} {{ qualityLabel() }}
+          </button>
+        }
+      </div>
 
       @if (showNetworkHint()) {
         <div class="absolute bottom-3 left-3 rounded-full bg-amber-500/90 px-3 py-1 text-[11px] font-semibold text-slate-950">
@@ -117,6 +141,9 @@ export class AdaptiveVideoPlayerComponent {
   readonly isLoading = signal(true);
   readonly error = signal<string | null>(null);
   readonly qualityLabel = signal<string | null>(null);
+  readonly showQualityMenu = signal(false);
+  readonly isAutoQuality = signal(true);
+  readonly availableQualities = signal<Array<{ height: number; bandwidth: number }>>([]);
   readonly showNetworkHint = computed(() => {
     const metrics = this.qoe.metrics();
     const rebufferCount = metrics?.rebufferCount ?? 0;
@@ -513,12 +540,9 @@ export class AdaptiveVideoPlayerComponent {
 
   private syncActiveVariant(player: any): void {
     try {
-      const activeVariant = player
-        .getVariantTracks()
-        .find((track: any) => track.active);
-      if (!activeVariant) {
-        return;
-      }
+      const tracks = player.getVariantTracks();
+      const activeVariant = tracks.find((track: any) => track.active);
+      if (!activeVariant) return;
 
       if (activeVariant.height) {
         this.qualityLabel.set(`${activeVariant.height}p`);
@@ -526,8 +550,46 @@ export class AdaptiveVideoPlayerComponent {
       if (activeVariant.bandwidth) {
         this.qoe.recordBitrateChange(Math.round(activeVariant.bandwidth / 1_000));
       }
+
+      // Update available qualities (deduplicated by height)
+      const seen = new Set<number>();
+      const qualities = tracks
+        .filter((t: any) => t.height && !seen.has(t.height) && seen.add(t.height))
+        .map((t: any) => ({ height: t.height as number, bandwidth: t.bandwidth as number }))
+        .sort((a: any, b: any) => b.height - a.height);
+      if (qualities.length > 1) {
+        this.availableQualities.set(qualities);
+      }
     } catch {
       // Best-effort QoE sync only.
+    }
+  }
+
+  /** Manual quality selection (YouTube/Coursera pattern) */
+  selectQuality(quality: { height: number; bandwidth: number } | null): void {
+    this.showQualityMenu.set(false);
+    if (!this.shakaPlayer) return;
+
+    try {
+      if (quality === null) {
+        // Auto mode: re-enable ABR
+        this.shakaPlayer.configure('abr.enabled', true);
+        this.isAutoQuality.set(true);
+      } else {
+        // Manual: disable ABR, select specific variant
+        this.shakaPlayer.configure('abr.enabled', false);
+        const tracks = this.shakaPlayer.getVariantTracks();
+        const target = tracks.find((t: any) => t.height === quality.height);
+        if (target) {
+          this.shakaPlayer.selectVariantTrack(target, /* clearBuffer */ true);
+          this.qualityLabel.set(`${quality.height}p`);
+        }
+        this.isAutoQuality.set(false);
+      }
+    } catch {
+      // Fallback: re-enable ABR
+      this.shakaPlayer?.configure?.('abr.enabled', true);
+      this.isAutoQuality.set(true);
     }
   }
 

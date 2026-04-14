@@ -292,6 +292,13 @@ export class CurriculumEditorService {
 
         if (asset.status === 'READY') {
           this.sectionVideoAvailableOfflineProfiles.set(asset.availableOfflineProfiles ?? []);
+          // Fetch playback URL for editor preview
+          try {
+            const playRes = await firstValueFrom(this.videoAssetApi.getPlayUrl(assetId));
+            this.sectionVideoUrl.set(playRes.data?.playUrl ?? asset.playbackUrl ?? '');
+          } catch {
+            this.sectionVideoUrl.set(asset.playbackUrl ?? '');
+          }
           return; // Done polling
         }
         if (asset.status === 'FAILED') {
