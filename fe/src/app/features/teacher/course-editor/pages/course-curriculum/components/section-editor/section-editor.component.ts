@@ -1219,9 +1219,8 @@ export class SectionEditorComponent {
 
   switchVideoTab(tab: 'upload' | 'youtube'): void {
     if (tab === this.videoSourceTab()) return;
-    // Clear video state when switching tabs
-    this.resetVideoUpload();
-    this.svc.sectionVideoUrl.set('');
+    // Only update videoType — do NOT clear existing asset/URL
+    // User switching tabs to explore is not the same as replacing video
     this.svc.sectionVideoType.set(tab === 'youtube' ? 'YOUTUBE' : null);
     this.videoSourceTab.set(tab);
   }
