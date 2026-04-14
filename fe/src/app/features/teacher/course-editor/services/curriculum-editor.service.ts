@@ -83,6 +83,7 @@ export class CurriculumEditorService {
   readonly selectedFile = signal<File | null>(null);
   readonly sectionFileUrl = signal<string | null>(null);
   readonly safePdfUrl = signal<SafeResourceUrl | null>(null);
+  readonly sectionPreviewStatus = signal<string | null>(null);
 
   // Quiz
   readonly sectionQuizType = signal<SectionQuizAssessmentType>('PRACTICE');
@@ -361,18 +362,18 @@ export class CurriculumEditorService {
     this.sectionFileUrl.set(section.fileUrl ?? null);
     this.selectedFile.set(null);
     if (section.type === 'FILE') {
-      // Use previewPdfUrl (converted by Gotenberg) if available, else native PDF
+      this.sectionPreviewStatus.set(section.previewStatus ?? null);
       const previewUrl = section.previewPdfUrl ?? null;
       const fileUrl = section.fileUrl ?? null;
       const urlToPreview = previewUrl ?? (fileUrl?.toLowerCase().endsWith('.pdf') ? fileUrl : null);
       if (urlToPreview) {
-        // Direct sanitize for preview URL — no blob fetch needed for server-hosted PDFs
         this.safePdfUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(urlToPreview));
       } else {
         this.safePdfUrl.set(null);
       }
     } else {
       this.safePdfUrl.set(null);
+      this.sectionPreviewStatus.set(null);
     }
 
     // Quiz
@@ -417,6 +418,7 @@ export class CurriculumEditorService {
     this.selectedFile.set(null);
     this.sectionFileUrl.set(null);
     this.safePdfUrl.set(null);
+    this.sectionPreviewStatus.set(null);
 
     this.resetQuizFields();
     this.clearSectionVideoPoll();

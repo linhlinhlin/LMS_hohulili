@@ -462,14 +462,26 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
               }
             }
 
-            <!-- Existing PDF preview (when not replacing) -->
-            @if (svc.safePdfUrl() && !svc.selectedFile() && !fileReplaceMode()) {
-              <div>
-                <label class="text-xs font-semibold text-slate-600 mb-2 block">Xem trước</label>
-                <div class="h-[380px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
-                  <iframe [src]="svc.safePdfUrl()" class="h-full w-full" frameborder="0"></iframe>
+            <!-- Preview status + PDF preview (when not replacing) -->
+            @if (!svc.selectedFile() && !fileReplaceMode()) {
+
+              <!-- Conversion failed -->
+              @if (svc.sectionPreviewStatus() === 'FAILED') {
+                <div class="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+                  <lucide-icon name="alert-triangle" [size]="16" class="mt-0.5 shrink-0 text-amber-600"></lucide-icon>
+                  <p class="text-xs text-amber-800">Không thể tạo bản xem trước. Học viên vẫn có thể tải xuống tài liệu gốc.</p>
                 </div>
-              </div>
+              }
+
+              <!-- PDF preview iframe -->
+              @if (svc.safePdfUrl()) {
+                <div>
+                  <label class="text-xs font-semibold text-slate-600 mb-2 block">Xem trước</label>
+                  <div class="h-[380px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                    <iframe [src]="svc.safePdfUrl()" class="h-full w-full" frameborder="0"></iframe>
+                  </div>
+                </div>
+              }
             }
 
           </div>

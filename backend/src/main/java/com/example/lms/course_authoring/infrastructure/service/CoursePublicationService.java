@@ -287,6 +287,7 @@ public class CoursePublicationService {
             section.put("streamVideoUid", streamVideoUid);
             section.put("fileUrl", data.get("fileUrl"));
             section.put("previewPdfUrl", data.get("previewPdfUrl"));
+            section.put("previewStatus", data.get("previewStatus"));
             section.put("duration", asInteger(data.get("duration"), 0));
             section.put("orderIndex", asInteger(data.get("orderIndex"), 0));
             section.put("isRequired", asBoolean(data.get("isRequired"), false));

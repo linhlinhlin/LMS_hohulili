@@ -25,6 +25,7 @@ export interface SectionDraftDTO { // Renamed from TopicDraftDTO
     streamVideoUid?: string;
     fileUrl?: string;
     previewPdfUrl?: string;
+    previewStatus?: 'PROCESSING' | 'READY' | 'FAILED' | null;
     duration?: number;
     orderIndex: number;
     isRequired?: boolean;
@@ -323,6 +324,7 @@ export class CourseAuthoringService {
                             streamVideoUid: t.streamVideoUid,
                             fileUrl: t.fileUrl,
                             previewPdfUrl: t.previewPdfUrl,
+                            previewStatus: t.previewStatus,
                             duration: t.duration,
                             orderIndex: t.orderIndex,
                             isRequired: t.isRequired,

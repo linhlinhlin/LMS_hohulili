@@ -537,8 +537,12 @@ public class CourseAuthoringControllerV3 {
 
     /**
      * Convert Office documents to PDF for inline preview.
-     * Stores the PDF alongside the original and adds previewPdfUrl to payload.
-     * Non-blocking: if conversion fails, original file is still usable (download only).
+     * Runs synchronously but with proper error handling and status reporting.
+     * For files that can be converted, sets previewPdfUrl + previewStatus in payload.
+     *
+     * Trade-off: synchronous conversion adds latency to save (~5-15s for typical docs)
+     * but guarantees preview is ready immediately. This matches the video asset pipeline
+     * pattern where processing happens during save.
      */
     private void convertAndAttachPreviewPdf(
             org.springframework.web.multipart.MultipartFile file,
@@ -546,24 +550,31 @@ public class CourseAuthoringControllerV3 {
             UserJpaEntity user
     ) {
         String fileName = file.getOriginalFilename();
-        log.info("[DocConvert] Checking conversion for: {} (enabled={})", fileName, documentConversionService.isEnabled());
         if (!documentConversionService.canConvert(fileName)) {
-            log.info("[DocConvert] Skipped — not convertible: {}", fileName);
             return;
         }
+
+        payload.put("previewStatus", "PROCESSING");
+
         try {
             byte[] pdfBytes = documentConversionService.convertToPdf(file.getBytes(), fileName);
-            if (pdfBytes == null) return;
+            if (pdfBytes == null) {
+                payload.put("previewStatus", "FAILED");
+                log.warn("[DocConvert] Conversion returned null for {}", fileName);
+                return;
+            }
 
             String pdfName = fileName.replaceAll("\\.[^.]+$", "") + "_preview.pdf";
             var pdfFile = com.example.lms.shared.infrastructure.util.ByteArrayMultipartFile.of(
                     "preview", pdfName, "application/pdf", pdfBytes);
             var pdfAttachment = fileManagementService.uploadFile(pdfFile, "previews", user.getId());
             payload.put("previewPdfUrl", pdfAttachment.getFileUrl());
-            log.info("Preview PDF generated for {}: {}", fileName, pdfAttachment.getFileUrl());
+            payload.put("previewStatus", "READY");
+            log.info("[DocConvert] Preview PDF: {} → {} ({} bytes)",
+                    fileName, pdfAttachment.getFileUrl(), pdfBytes.length);
         } catch (Exception e) {
-            log.warn("Preview PDF generation failed for {} — file still usable via download: {}",
-                    fileName, e.getMessage());
+            payload.put("previewStatus", "FAILED");
+            log.error("[DocConvert] Failed for {}: {}", fileName, e.getMessage());
         }
     }
 
