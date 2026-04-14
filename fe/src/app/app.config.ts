@@ -107,7 +107,17 @@ import {
   Building2,
   RotateCcw,
   CircleCheck,
-  CircleX
+  CircleX,
+  Youtube,
+  File,
+  FileUp,
+  FileType,
+  Film,
+  Clock3,
+  PencilLine,
+  Library,
+  Sheet,
+  Presentation
 } from 'lucide-angular';
 
 function isLocalBrowserRuntime(): boolean {
@@ -270,7 +280,17 @@ export const appConfig: ApplicationConfig = {
       Building2,
       RotateCcw,
       CircleCheck,
-      CircleX
+      CircleX,
+      Youtube,
+      File,
+      FileUp,
+      FileType,
+      Film,
+      Clock3,
+      PencilLine,
+      Library,
+      Sheet,
+      Presentation
     }))
   ]
 };
