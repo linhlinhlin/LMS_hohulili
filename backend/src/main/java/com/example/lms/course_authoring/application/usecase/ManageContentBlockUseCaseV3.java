@@ -93,6 +93,23 @@ public class ManageContentBlockUseCaseV3 {
         courseDraftMutationUseCase.markCourseChangedByLesson(lessonId);
     }
 
+    /**
+     * Patch specific fields in a ContentBlock's data map (async conversion updates).
+     * Does NOT require ownership check — called from background thread after save.
+     */
+    @Transactional
+    public void patchBlockData(UUID lessonId, String blockId, Map<String, Object> patch) {
+        List<ContentBlock> blocks = lessonRepository.getContentBlocks(lessonId)
+                .orElseThrow(() -> new EntityNotFoundException("Lesson", lessonId));
+        blocks.stream()
+                .filter(b -> b.getId().equals(blockId))
+                .findFirst()
+                .ifPresent(block -> {
+                    block.getData().putAll(patch);
+                    lessonRepository.saveContentBlocks(lessonId, blocks);
+                });
+    }
+
     @Transactional
     public void deleteBlock(UUID lessonId, String blockId, UUID userId, boolean isAdmin) {
         verifyOwnership(lessonId, userId, isAdmin);

@@ -299,8 +299,12 @@ public class CourseAuthoringControllerV3 {
                 var attachment = fileManagementService.uploadFile(file, "sections", user.getId());
                 payload.put("fileUrl", attachment.getFileUrl());
                 payload.put("fileName", file.getOriginalFilename());
-                // Convert Office docs to PDF for preview
-                convertAndAttachPreviewPdf(file, payload, user);
+                // Mark for async conversion (copy bytes before multipart cleanup)
+                if (documentConversionService.canConvert(file.getOriginalFilename())) {
+                    payload.put("previewStatus", "PROCESSING");
+                    payload.put("_convBytes", file.getBytes());
+                    payload.put("_convName", file.getOriginalFilename());
+                }
             } catch (java.io.IOException e) {
                 log.error("File upload failed for section", e);
                 return ResponseEntity.badRequest().body(ApiResponse.error("Tải file thất bại: " + e.getMessage()));
@@ -317,8 +321,17 @@ public class CourseAuthoringControllerV3 {
         String type = (String) payload.getOrDefault("type", "TEXT");
         log.debug("Processing addSection for lesson: {}, type: {}", lessonId, type);
         boolean isAdmin = isAdminRole(user);
+        // Extract conversion data before save (removed from payload to keep JSON clean)
+        final byte[] convBytes = (byte[]) payload.remove("_convBytes");
+        final String convName = (String) payload.remove("_convName");
+
         com.example.lms.shared.domain.model.ContentBlock block = manageContentBlockUseCase.addBlock(lessonId, type, payload, user.getId(), isAdmin);
-        return ResponseEntity.ok(ApiResponse.success(block, "Táº¡o pháº§n há»c thÃ nh cÃ´ng"));
+                // Fire async document conversion AFTER section saved
+        if (convBytes != null) {
+            scheduleAsyncPreviewConversion(block.getId().toString(), lessonId, convBytes, convName, user.getId());
+        }
+
+return ResponseEntity.ok(ApiResponse.success(block, "Táº¡o pháº§n há»c thÃ nh cÃ´ng"));
     }
 
     @Operation(summary = "Update a section (content block)")
@@ -345,8 +358,12 @@ public class CourseAuthoringControllerV3 {
                 var attachment = fileManagementService.uploadFile(file, "sections", user.getId());
                 payload.put("fileUrl", attachment.getFileUrl());
                 payload.put("fileName", file.getOriginalFilename());
-                // Convert Office docs to PDF for preview
-                convertAndAttachPreviewPdf(file, payload, user);
+                // Mark for async conversion (copy bytes before multipart cleanup)
+                if (documentConversionService.canConvert(file.getOriginalFilename())) {
+                    payload.put("previewStatus", "PROCESSING");
+                    payload.put("_convBytes", file.getBytes());
+                    payload.put("_convName", file.getOriginalFilename());
+                }
             } catch (java.io.IOException e) {
                 log.error("File upload failed for section update", e);
                 return ResponseEntity.badRequest().body(ApiResponse.error("Tải file thất bại: " + e.getMessage()));
@@ -361,8 +378,15 @@ public class CourseAuthoringControllerV3 {
         }
 
         boolean isAdmin = isAdminRole(user);
+        final byte[] convBytes2 = (byte[]) payload.remove("_convBytes");
+        final String convName2 = (String) payload.remove("_convName");
+
         com.example.lms.shared.domain.model.ContentBlock block = manageContentBlockUseCase.updateBlock(lessonId, sectionId, payload, user.getId(), isAdmin);
-        return ResponseEntity.ok(ApiResponse.success(block, "Cáº­p nháº­t pháº§n há»c thÃ nh cÃ´ng"));
+                if (convBytes2 != null) {
+            scheduleAsyncPreviewConversion(sectionId, lessonId, convBytes2, convName2, user.getId());
+        }
+
+return ResponseEntity.ok(ApiResponse.success(block, "Cáº­p nháº­t pháº§n há»c thÃ nh cÃ´ng"));
     }
 
     @Operation(summary = "Delete a section (content block)")
@@ -536,46 +560,43 @@ public class CourseAuthoringControllerV3 {
     }
 
     /**
-     * Convert Office documents to PDF for inline preview.
-     * Runs synchronously but with proper error handling and status reporting.
-     * For files that can be converted, sets previewPdfUrl + previewStatus in payload.
-     *
-     * Trade-off: synchronous conversion adds latency to save (~5-15s for typical docs)
-     * but guarantees preview is ready immediately. This matches the video asset pipeline
-     * pattern where processing happens during save.
+     * Schedule async document-to-PDF conversion (Coursera pattern).
+     * Section saves instantly with previewStatus=PROCESSING.
+     * Background thread converts via Gotenberg → updates ContentBlock data.
      */
-    private void convertAndAttachPreviewPdf(
-            org.springframework.web.multipart.MultipartFile file,
-            Map<String, Object> payload,
-            UserJpaEntity user
-    ) {
-        String fileName = file.getOriginalFilename();
-        if (!documentConversionService.canConvert(fileName)) {
-            return;
-        }
+    private void scheduleAsyncPreviewConversion(
+            String blockId, UUID lessonId, byte[] fileBytes, String fileName, UUID userId) {
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                log.info("[DocConvert] Starting async conversion: {} ({}B)", fileName, fileBytes.length);
+                byte[] pdfBytes = documentConversionService.convertToPdf(fileBytes, fileName);
+                if (pdfBytes == null) {
+                    log.warn("[DocConvert] Conversion returned null for {}", fileName);
+                    manageContentBlockUseCase.patchBlockData(lessonId, blockId,
+                            java.util.Map.of("previewStatus", "FAILED"));
+                    return;
+                }
 
-        payload.put("previewStatus", "PROCESSING");
+                String pdfName = fileName.replaceAll("\\.[^.]+$", "") + "_preview.pdf";
+                var pdfFile = com.example.lms.shared.infrastructure.util.ByteArrayMultipartFile.of(
+                        "preview", pdfName, "application/pdf", pdfBytes);
+                var pdfAttachment = fileManagementService.uploadFile(pdfFile, "previews", userId);
 
-        try {
-            byte[] pdfBytes = documentConversionService.convertToPdf(file.getBytes(), fileName);
-            if (pdfBytes == null) {
-                payload.put("previewStatus", "FAILED");
-                log.warn("[DocConvert] Conversion returned null for {}", fileName);
-                return;
+                manageContentBlockUseCase.patchBlockData(lessonId, blockId,
+                        java.util.Map.of(
+                                "previewPdfUrl", pdfAttachment.getFileUrl(),
+                                "previewStatus", "READY"
+                        ));
+
+                log.info("[DocConvert] Async done: {} → {} ({}B)", fileName, pdfAttachment.getFileUrl(), pdfBytes.length);
+            } catch (Exception e) {
+                log.error("[DocConvert] Async failed for {}: {}", fileName, e.getMessage());
+                try {
+                    manageContentBlockUseCase.patchBlockData(lessonId, blockId,
+                            java.util.Map.of("previewStatus", "FAILED"));
+                } catch (Exception ignore) {}
             }
-
-            String pdfName = fileName.replaceAll("\\.[^.]+$", "") + "_preview.pdf";
-            var pdfFile = com.example.lms.shared.infrastructure.util.ByteArrayMultipartFile.of(
-                    "preview", pdfName, "application/pdf", pdfBytes);
-            var pdfAttachment = fileManagementService.uploadFile(pdfFile, "previews", user.getId());
-            payload.put("previewPdfUrl", pdfAttachment.getFileUrl());
-            payload.put("previewStatus", "READY");
-            log.info("[DocConvert] Preview PDF: {} → {} ({} bytes)",
-                    fileName, pdfAttachment.getFileUrl(), pdfBytes.length);
-        } catch (Exception e) {
-            payload.put("previewStatus", "FAILED");
-            log.error("[DocConvert] Failed for {}: {}", fileName, e.getMessage());
-        }
+        });
     }
 
     private UUID parseUuidOrBadRequest(String value, String message) {
