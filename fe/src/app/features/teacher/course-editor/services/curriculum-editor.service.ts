@@ -360,8 +360,17 @@ export class CurriculumEditorService {
     // File
     this.sectionFileUrl.set(section.fileUrl ?? null);
     this.selectedFile.set(null);
-    if (section.type === 'FILE' && section.fileUrl && section.fileUrl.toLowerCase().endsWith('.pdf')) {
-      this.safePdfUrl.set(this.pdfService.getSafePdfUrl(section.fileUrl));
+    if (section.type === 'FILE') {
+      // Use previewPdfUrl (converted by Gotenberg) if available, else native PDF
+      const previewUrl = (section as any).previewPdfUrl ?? null;
+      const fileUrl = section.fileUrl ?? null;
+      if (previewUrl) {
+        this.safePdfUrl.set(this.pdfService.getSafePdfUrl(previewUrl));
+      } else if (fileUrl && fileUrl.toLowerCase().endsWith('.pdf')) {
+        this.safePdfUrl.set(this.pdfService.getSafePdfUrl(fileUrl));
+      } else {
+        this.safePdfUrl.set(null);
+      }
     } else {
       this.safePdfUrl.set(null);
     }

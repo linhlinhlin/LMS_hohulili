@@ -213,16 +213,20 @@ export class LessonContentComponent implements AfterViewInit {
 
   private pdfPreviewEffect = effect((onCleanup) => {
     const section = this.currentSection();
-    const fileUrl = section?.type === 'FILE' ? (section.fileUrl || null) : null;
 
     this.safePdfUrl.set(null);
     this.pdfViewer.cleanup();
 
-    if (!fileUrl || !this.isPdfFileUrl(fileUrl)) {
-      return;
-    }
+    if (section?.type !== 'FILE') return;
 
-    const sub = this.pdfViewer.getSafePdfUrl(fileUrl).subscribe({
+    // Prefer previewPdfUrl (Gotenberg-converted) over original fileUrl
+    const previewPdfUrl = (section as any).previewPdfUrl || null;
+    const fileUrl = section.fileUrl || null;
+    const urlToPreview = previewPdfUrl ?? (fileUrl && this.isPdfFileUrl(fileUrl) ? fileUrl : null);
+
+    if (!urlToPreview) return;
+
+    const sub = this.pdfViewer.getSafePdfUrl(urlToPreview).subscribe({
       next: url => this.safePdfUrl.set(url),
       error: () => this.safePdfUrl.set(null)
     });

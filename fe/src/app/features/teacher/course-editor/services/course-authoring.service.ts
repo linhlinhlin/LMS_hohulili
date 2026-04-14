@@ -24,6 +24,7 @@ export interface SectionDraftDTO { // Renamed from TopicDraftDTO
     videoType?: 'YOUTUBE' | 'CLOUDFLARE';
     streamVideoUid?: string;
     fileUrl?: string;
+    previewPdfUrl?: string;
     duration?: number;
     orderIndex: number;
     isRequired?: boolean;

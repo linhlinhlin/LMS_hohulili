@@ -54,6 +54,7 @@ public class CourseAuthoringControllerV3 {
     private final com.example.lms.course_authoring.application.usecase.ManageContentBlockUseCaseV3 manageContentBlockUseCase;
     private final com.example.lms.course_authoring.application.usecase.UpdateCourseUseCase updateCourseUseCase;
     private final com.example.lms.shared.infrastructure.service.FileManagementService fileManagementService;
+    private final com.example.lms.shared.infrastructure.service.DocumentConversionService documentConversionService;
     private final com.example.lms.learning_delivery.infrastructure.service.VideoAssetLifecycleService videoAssetLifecycleService;
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository chapterJpaRepository;
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository lessonJpaRepository;
@@ -298,9 +299,11 @@ public class CourseAuthoringControllerV3 {
                 var attachment = fileManagementService.uploadFile(file, "sections", user.getId());
                 payload.put("fileUrl", attachment.getFileUrl());
                 payload.put("fileName", file.getOriginalFilename());
+                // Convert Office docs to PDF for preview
+                convertAndAttachPreviewPdf(file, payload, user);
             } catch (java.io.IOException e) {
                 log.error("File upload failed for section", e);
-                return ResponseEntity.badRequest().body(ApiResponse.error("Táº£i file tháº¥t báº¡i: " + e.getMessage()));
+                return ResponseEntity.badRequest().body(ApiResponse.error("Tải file thất bại: " + e.getMessage()));
             }
         }
 
@@ -342,9 +345,11 @@ public class CourseAuthoringControllerV3 {
                 var attachment = fileManagementService.uploadFile(file, "sections", user.getId());
                 payload.put("fileUrl", attachment.getFileUrl());
                 payload.put("fileName", file.getOriginalFilename());
+                // Convert Office docs to PDF for preview
+                convertAndAttachPreviewPdf(file, payload, user);
             } catch (java.io.IOException e) {
                 log.error("File upload failed for section update", e);
-                return ResponseEntity.badRequest().body(ApiResponse.error("Táº£i file tháº¥t báº¡i: " + e.getMessage()));
+                return ResponseEntity.badRequest().body(ApiResponse.error("Tải file thất bại: " + e.getMessage()));
             }
         }
 
@@ -528,6 +533,35 @@ public class CourseAuthoringControllerV3 {
 
     private boolean isYouTubeUrl(String url) {
         return url != null && YOUTUBE_URL_PATTERN.matcher(url).find();
+    }
+
+    /**
+     * Convert Office documents to PDF for inline preview.
+     * Stores the PDF alongside the original and adds previewPdfUrl to payload.
+     * Non-blocking: if conversion fails, original file is still usable (download only).
+     */
+    private void convertAndAttachPreviewPdf(
+            org.springframework.web.multipart.MultipartFile file,
+            Map<String, Object> payload,
+            UserJpaEntity user
+    ) {
+        String fileName = file.getOriginalFilename();
+        if (!documentConversionService.canConvert(fileName)) {
+            return;
+        }
+        try {
+            byte[] pdfBytes = documentConversionService.convertToPdf(file.getBytes(), fileName);
+            if (pdfBytes == null) return;
+
+            String pdfName = fileName.replaceAll("\\.[^.]+$", "") + "_preview.pdf";
+            var pdfFile = new InMemoryMultipartFile("preview", pdfName, "application/pdf", pdfBytes);
+            var pdfAttachment = fileManagementService.uploadFile(pdfFile, "previews", user.getId());
+            payload.put("previewPdfUrl", pdfAttachment.getFileUrl());
+            log.info("Preview PDF generated for {}: {}", fileName, pdfAttachment.getFileUrl());
+        } catch (Exception e) {
+            log.warn("Preview PDF generation failed for {} — file still usable via download: {}",
+                    fileName, e.getMessage());
+        }
     }
 
     private UUID parseUuidOrBadRequest(String value, String message) {
@@ -735,4 +769,22 @@ class CourseAuthoringSupportControllerV3 {
 
     // DTOs
     public record CategoryDTO(String id, String code, String name, String prefix) {}
+
+    /**
+     * Lightweight in-memory MultipartFile for passing converted PDF to FileManagementService.
+     */
+    private record InMemoryMultipartFile(
+            String name, String originalFilename, String contentType, byte[] bytes
+    ) implements org.springframework.web.multipart.MultipartFile {
+        @Override public String getName() { return name; }
+        @Override public String getOriginalFilename() { return originalFilename; }
+        @Override public String getContentType() { return contentType; }
+        @Override public boolean isEmpty() { return bytes.length == 0; }
+        @Override public long getSize() { return bytes.length; }
+        @Override public byte[] getBytes() { return bytes; }
+        @Override public java.io.InputStream getInputStream() { return new java.io.ByteArrayInputStream(bytes); }
+        @Override public void transferTo(java.io.File dest) throws java.io.IOException {
+            java.nio.file.Files.write(dest.toPath(), bytes);
+        }
+    }
 }

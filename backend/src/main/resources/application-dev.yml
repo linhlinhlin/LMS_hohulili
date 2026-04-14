@@ -117,6 +117,10 @@ app:
 # - R2 would store master/offline files if enabled
 # - Shaka + private tokenized playback uses the same R2 credentials when enabled
 # Keep R2 off by default so LocalStorageService remains the fallback.
+# Gotenberg (Document → PDF conversion for preview)
+gotenberg:
+  url: ${GOTENBERG_URL:http://localhost:3000}
+
 cloudflare:
   r2:
     enabled: false
