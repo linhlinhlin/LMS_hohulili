@@ -360,7 +360,7 @@ export class CurriculumEditorService {
     // File
     this.sectionFileUrl.set(section.fileUrl ?? null);
     this.selectedFile.set(null);
-    if (section.type === 'FILE' && section.fileUrl) {
+    if (section.type === 'FILE' && section.fileUrl && section.fileUrl.toLowerCase().endsWith('.pdf')) {
       this.safePdfUrl.set(this.pdfService.getSafePdfUrl(section.fileUrl));
     } else {
       this.safePdfUrl.set(null);
