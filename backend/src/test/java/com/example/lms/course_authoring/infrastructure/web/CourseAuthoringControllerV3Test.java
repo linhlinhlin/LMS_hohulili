@@ -111,6 +111,7 @@ class CourseAuthoringControllerV3Test {
                 manageContentBlockUseCase,
                 updateCourseUseCase,
                 fileManagementService,
+                new com.example.lms.shared.infrastructure.service.DocumentConversionService(""),
                 videoAssetLifecycleService,
                 chapterJpaRepository,
                 lessonJpaRepository,

@@ -546,7 +546,9 @@ public class CourseAuthoringControllerV3 {
             UserJpaEntity user
     ) {
         String fileName = file.getOriginalFilename();
+        log.info("[DocConvert] Checking conversion for: {} (enabled={})", fileName, documentConversionService.isEnabled());
         if (!documentConversionService.canConvert(fileName)) {
+            log.info("[DocConvert] Skipped — not convertible: {}", fileName);
             return;
         }
         try {
@@ -554,7 +556,8 @@ public class CourseAuthoringControllerV3 {
             if (pdfBytes == null) return;
 
             String pdfName = fileName.replaceAll("\\.[^.]+$", "") + "_preview.pdf";
-            var pdfFile = new InMemoryMultipartFile("preview", pdfName, "application/pdf", pdfBytes);
+            var pdfFile = com.example.lms.shared.infrastructure.util.ByteArrayMultipartFile.of(
+                    "preview", pdfName, "application/pdf", pdfBytes);
             var pdfAttachment = fileManagementService.uploadFile(pdfFile, "previews", user.getId());
             payload.put("previewPdfUrl", pdfAttachment.getFileUrl());
             log.info("Preview PDF generated for {}: {}", fileName, pdfAttachment.getFileUrl());
@@ -770,21 +773,4 @@ class CourseAuthoringSupportControllerV3 {
     // DTOs
     public record CategoryDTO(String id, String code, String name, String prefix) {}
 
-    /**
-     * Lightweight in-memory MultipartFile for passing converted PDF to FileManagementService.
-     */
-    private record InMemoryMultipartFile(
-            String name, String originalFilename, String contentType, byte[] bytes
-    ) implements org.springframework.web.multipart.MultipartFile {
-        @Override public String getName() { return name; }
-        @Override public String getOriginalFilename() { return originalFilename; }
-        @Override public String getContentType() { return contentType; }
-        @Override public boolean isEmpty() { return bytes.length == 0; }
-        @Override public long getSize() { return bytes.length; }
-        @Override public byte[] getBytes() { return bytes; }
-        @Override public java.io.InputStream getInputStream() { return new java.io.ByteArrayInputStream(bytes); }
-        @Override public void transferTo(java.io.File dest) throws java.io.IOException {
-            java.nio.file.Files.write(dest.toPath(), bytes);
-        }
-    }
 }

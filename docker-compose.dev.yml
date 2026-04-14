@@ -20,6 +20,13 @@ services:
       LOGGING_LEVEL_ORG_HIBERNATE_SQL: DEBUG
     # Development: No resource limits for debugging flexibility
 
+  gotenberg:
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks:
+      - lms-backend
+      - lms-frontend
+
   frontend:
     ports:
       - "127.0.0.1:4200:80"
