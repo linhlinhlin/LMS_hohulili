@@ -48,14 +48,14 @@ public class SecurityConfig {
             .cors(org.springframework.security.config.Customizer.withDefaults())
             .csrf(AbstractHttpConfigurer::disable)
             .headers(headers -> headers
-                .frameOptions(frame -> frame.deny())
+                .frameOptions(frame -> frame.sameOrigin())
                 .contentTypeOptions(content -> {})
                 .httpStrictTransportSecurity(hsts -> hsts
                     .includeSubDomains(true)
                     .maxAgeInSeconds(31536000)
                 )
                 .contentSecurityPolicy(csp -> csp
-                    .policyDirectives("default-src 'none'; frame-ancestors 'none'; frame-src https://wiii.holilihu.online")
+                    .policyDirectives("default-src 'none'; frame-ancestors 'self' http://localhost:4200 https://holilihu.online; frame-src https://wiii.holilihu.online https://www.youtube.com")
                 )
             )
             .authorizeHttpRequests(auth -> auth
