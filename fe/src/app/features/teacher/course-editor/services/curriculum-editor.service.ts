@@ -1,7 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { firstValueFrom, filter } from 'rxjs';
+import { firstValueFrom, filter, lastValueFrom } from 'rxjs';
 import {
   ChapterDraftDTO,
   LessonDraftDTO,
@@ -76,6 +76,8 @@ export class CurriculumEditorService {
   readonly sectionVideoType = signal<'YOUTUBE' | 'CLOUDFLARE' | null>(null);
   readonly sectionStreamVideoUid = signal<string | null>(null);
   readonly selectedSectionVideoFile = signal<File | null>(null);
+  readonly sectionVideoUploadProgress = signal(0);
+  readonly sectionVideoIsUploading = signal(false);
 
   // File
   readonly selectedFile = signal<File | null>(null);
@@ -234,15 +236,31 @@ export class CurriculumEditorService {
   // ── Video pipeline ───────────────────────────────────────────────────
 
   private async uploadVideoAsset(file: File): Promise<VideoAssetResponse> {
-    const uploadResult = await firstValueFrom(
-      this.presignedUpload.upload(file, 'videos').pipe(
-        filter((event: UploadEvent): event is Extract<UploadEvent, { type: 'complete' }> => event.type === 'complete'),
-      ),
-    );
-    const res: ApiResponse<VideoAssetResponse> = await firstValueFrom(
-      this.videoAssetApi.createFromUpload(uploadResult.id, file.name),
-    );
-    return res.data;
+    this.sectionVideoIsUploading.set(true);
+    this.sectionVideoUploadProgress.set(0);
+
+    try {
+      const uploadResult = await new Promise<Extract<UploadEvent, { type: 'complete' }>>((resolve, reject) => {
+        this.presignedUpload.upload(file, 'videos').subscribe({
+          next: (event: UploadEvent) => {
+            if (event.type === 'progress') {
+              this.sectionVideoUploadProgress.set(event.progress);
+            } else if (event.type === 'complete') {
+              this.sectionVideoUploadProgress.set(100);
+              resolve(event);
+            }
+          },
+          error: reject,
+        });
+      });
+
+      const res: ApiResponse<VideoAssetResponse> = await firstValueFrom(
+        this.videoAssetApi.createFromUpload(uploadResult.id, file.name),
+      );
+      return res.data;
+    } finally {
+      this.sectionVideoIsUploading.set(false);
+    }
   }
 
   scheduleSectionVideoPoll(assetId: string, delayMs = 5000): void {
@@ -384,6 +402,8 @@ export class CurriculumEditorService {
     this.sectionVideoType.set(null);
     this.sectionStreamVideoUid.set(null);
     this.selectedSectionVideoFile.set(null);
+    this.sectionVideoUploadProgress.set(0);
+    this.sectionVideoIsUploading.set(false);
 
     this.selectedFile.set(null);
     this.sectionFileUrl.set(null);

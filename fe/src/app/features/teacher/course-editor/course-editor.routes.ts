@@ -46,21 +46,21 @@ export const courseEditorRoutes: Routes = [
                 path: 'info',
                 loadComponent: () => import('./pages/course-info/course-info.component')
                     .then(m => m.CourseInfoComponent),
-                canDeactivate: [(component: any) => component.canDeactivate?.() ?? true],
+                canDeactivate: [(component: any) => component?.canDeactivate?.() ?? true],
                 title: 'Sửa thông tin khóa học'
             },
             {
                 path: 'curriculum',
                 loadComponent: () => import('./pages/course-curriculum')
                     .then(m => m.CourseCurriculumComponent),
-                canDeactivate: [(component: any) => component.canDeactivate?.() ?? true],
+                canDeactivate: [(component: any) => component?.canDeactivate?.() ?? true],
                 title: 'Sửa chương trình học'
             },
             {
                 path: 'settings',
                 loadComponent: () => import('./pages/course-settings/course-settings.component')
                     .then(m => m.CourseSettingsComponent),
-                canDeactivate: [(component: any) => component.canDeactivate?.() ?? true],
+                canDeactivate: [(component: any) => component?.canDeactivate?.() ?? true],
                 title: 'Cài đặt khóa học'
             },
             {

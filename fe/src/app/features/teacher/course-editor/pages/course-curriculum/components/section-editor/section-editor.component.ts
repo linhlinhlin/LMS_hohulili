@@ -170,58 +170,194 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
         <!-- ═══ VIDEO ═══ -->
         @if (svc.sectionEditorType() === 'VIDEO') {
           <div class="space-y-4">
-            <div class="rounded-xl border border-[#0056D2]/20 bg-[#0056D2]/5 p-4">
-              <p class="text-sm font-semibold text-gray-900">Video bài giảng</p>
-              <p class="mt-1 text-sm text-gray-600">
-                Tải video bài giảng lên. Video sẽ được tối ưu để phát trực tuyến và tải về xem ngoại tuyến.
-              </p>
+
+            <!-- Tab bar: Tải lên | YouTube -->
+            <div class="video-source-tabs">
+              <button type="button" class="video-source-tab"
+                [class.video-source-tab--active]="videoSourceTab() === 'upload'"
+                (click)="switchVideoTab('upload')">
+                <lucide-icon name="upload-cloud" [size]="14"></lucide-icon>
+                Tải lên
+              </button>
+              <button type="button" class="video-source-tab"
+                [class.video-source-tab--active]="videoSourceTab() === 'youtube'"
+                (click)="switchVideoTab('youtube')">
+                <lucide-icon name="youtube" [size]="14"></lucide-icon>
+                YouTube
+              </button>
             </div>
 
-            @if (cfUploadStatus() === 'idle') {
-              <div class="relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#0056D2]/40 bg-[#0056D2]/5 p-6 transition-colors hover:bg-[#0056D2]/10">
-                <input type="file" accept="video/*" (change)="onVideoFileSelected($event)"
-                       class="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
-                <div class="pointer-events-none text-center">
-                  <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#0056D2]/10">
-                    <lucide-icon name="upload-cloud" [size]="24" class="text-[#0056D2]"></lucide-icon>
-                  </div>
-                  <p class="text-sm font-semibold text-gray-800">Nhấn để chọn video</p>
-                  <p class="mt-1 text-xs text-gray-500">MP4, MOV, WebM</p>
-                </div>
-              </div>
-            }
+            <!-- ── UPLOAD TAB ── -->
+            @if (videoSourceTab() === 'upload') {
 
-            @if (cfUploadStatus() === 'staged') {
-              <div class="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4">
-                <lucide-icon name="clock-3" [size]="20" class="mt-0.5 shrink-0 text-sky-600"></lucide-icon>
-                <div class="min-w-0 flex-1">
-                  <p class="text-sm font-semibold text-sky-900">Video đã chọn, sẽ tải lên khi lưu.</p>
-                  @if (svc.selectedSectionVideoFile()?.name; as fileName) {
-                    <p class="mt-1 truncate text-xs font-medium text-slate-600">{{ fileName }}</p>
-                  }
-                </div>
-                <button type="button" (click)="resetVideoUpload()"
-                  class="shrink-0 text-xs text-slate-500 underline hover:text-slate-700">Bỏ chọn</button>
-              </div>
-            }
-
-            @if (cfUploadStatus() === 'done') {
-              <div class="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-                <lucide-icon name="check-circle" [size]="20" class="mt-0.5 shrink-0 text-emerald-600"></lucide-icon>
-                <div class="min-w-0 flex-1">
-                  <p class="text-sm font-semibold text-emerald-800">Video đã được gắn.</p>
-                  <p class="mt-0.5 text-xs text-emerald-700">{{ getVideoProcessingCopy() }}</p>
-                  @if (svc.sectionVideoAvailableOfflineProfiles().length) {
-                    <p class="mt-2 text-xs text-emerald-700">
-                      Chất lượng tải về:
-                      @for (profile of svc.sectionVideoAvailableOfflineProfiles(); track $index) {
-                        <span>{{ formatProfile(profile) }}@if (!$last) {, }</span>
-                      }
+              <!-- IDLE: drag-drop upload zone -->
+              @if (cfUploadStatus() === 'idle') {
+                <div class="video-dropzone"
+                     [class.video-dropzone--dragover]="isDragOver()"
+                     (dragover)="onDragOver($event)"
+                     (dragleave)="onDragLeave($event)"
+                     (drop)="onDrop($event)">
+                  <input type="file" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/x-matroska"
+                         (change)="onVideoFileSelected($event)"
+                         class="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
+                  <div class="pointer-events-none text-center">
+                    <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#0056D2]/10">
+                      <lucide-icon name="upload-cloud" [size]="24" class="text-[#0056D2]"></lucide-icon>
+                    </div>
+                    <p class="text-sm font-semibold text-gray-800">
+                      {{ isDragOver() ? 'Thả video vào đây' : 'Kéo thả hoặc nhấn để chọn video' }}
                     </p>
+                    <p class="mt-1 text-xs text-gray-500">MP4, MOV, WebM, AVI, MKV — tối đa 5 GB</p>
+                  </div>
+                </div>
+              }
+
+              <!-- STAGED: file selected, waiting for save -->
+              @if (cfUploadStatus() === 'staged') {
+                <div class="video-status-card video-status-card--staged">
+                  <div class="video-status-card__icon bg-sky-100">
+                    <lucide-icon name="film" [size]="20" class="text-sky-600"></lucide-icon>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold text-sky-900">Đã chọn video</p>
+                    @if (svc.selectedSectionVideoFile(); as file) {
+                      <p class="mt-0.5 truncate text-xs text-slate-600">{{ file.name }}</p>
+                      <p class="text-xs text-slate-400">{{ formatFileSize(file.size) }}</p>
+                    }
+                    <p class="mt-1 text-xs text-sky-700">Sẽ tải lên khi bạn nhấn "Tạo mới" hoặc "Cập nhật".</p>
+                  </div>
+                  <button type="button" (click)="resetVideoUpload()"
+                    class="shrink-0 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
+                    Bỏ chọn
+                  </button>
+                </div>
+              }
+
+              <!-- UPLOADING: progress bar -->
+              @if (cfUploadStatus() === 'uploading') {
+                <div class="video-status-card video-status-card--uploading">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center justify-between mb-2">
+                      <p class="text-sm font-semibold text-[#0056D2]">
+                        @if (svc.sectionVideoProcessingStatus() === 'PROCESSING') {
+                          Đang xử lý video...
+                        } @else {
+                          Đang tải lên...
+                        }
+                      </p>
+                      <span class="text-xs font-semibold text-[#0056D2] tabular-nums">{{ svc.sectionVideoUploadProgress() }}%</span>
+                    </div>
+                    <div class="h-2 w-full overflow-hidden rounded-full bg-[#0056D2]/10">
+                      <div class="h-full rounded-full bg-[#0056D2] transition-[width] duration-300 ease-out"
+                           [style.width.%]="svc.sectionVideoUploadProgress()"></div>
+                    </div>
+                    @if (svc.sectionVideoProcessingStatus() === 'PROCESSING') {
+                      <p class="mt-2 text-xs text-slate-500">Video đang được tối ưu để phát trực tuyến. Bạn có thể đóng và quay lại sau.</p>
+                    }
+                  </div>
+                </div>
+              }
+
+              <!-- ERROR: upload/processing failed -->
+              @if (cfUploadStatus() === 'error') {
+                <div class="video-status-card video-status-card--error">
+                  <div class="video-status-card__icon bg-red-100">
+                    <lucide-icon name="alert-triangle" [size]="20" class="text-red-600"></lucide-icon>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold text-red-800">Xử lý video thất bại</p>
+                    <p class="mt-0.5 text-xs text-red-600">Vui lòng thử lại hoặc chọn video khác.</p>
+                  </div>
+                  <div class="flex shrink-0 gap-2">
+                    @if (svc.sectionVideoAssetId()) {
+                      <button type="button" (click)="retryVideoProcessing()"
+                        class="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">
+                        Thử lại
+                      </button>
+                    }
+                    <button type="button" (click)="resetVideoUpload()"
+                      class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
+                      Chọn video khác
+                    </button>
+                  </div>
+                </div>
+              }
+
+              <!-- DONE: video attached with preview + actions -->
+              @if (cfUploadStatus() === 'done') {
+                <div class="space-y-3">
+                  <!-- Video preview -->
+                  @if (svc.sectionVideoUrl()) {
+                    <div class="overflow-hidden rounded-xl border border-slate-200 bg-black">
+                      <video [src]="svc.sectionVideoUrl()" controls preload="metadata"
+                             controlsList="nodownload"
+                             class="aspect-video w-full"></video>
+                    </div>
+                  }
+
+                  <div class="video-status-card video-status-card--done">
+                    <div class="video-status-card__icon bg-emerald-100">
+                      <lucide-icon name="check-circle" [size]="20" class="text-emerald-600"></lucide-icon>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <p class="text-sm font-semibold text-emerald-800">{{ getVideoProcessingCopy() }}</p>
+                      @if (svc.sectionVideoAvailableOfflineProfiles().length) {
+                        <p class="mt-1 text-xs text-emerald-700">
+                          Chất lượng:
+                          @for (profile of svc.sectionVideoAvailableOfflineProfiles(); track $index) {
+                            <span class="inline-block rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 mr-1">{{ formatProfile(profile) }}</span>
+                          }
+                        </p>
+                      }
+                    </div>
+                    <button type="button" (click)="replaceVideo()"
+                      class="shrink-0 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
+                      Thay video
+                    </button>
+                  </div>
+                </div>
+              }
+            }
+
+            <!-- ── YOUTUBE TAB ── -->
+            @if (videoSourceTab() === 'youtube') {
+              <div class="space-y-3">
+                <div class="editor-field">
+                  <label class="editor-label">URL video YouTube</label>
+                  <div class="relative">
+                    <input type="url"
+                      [ngModel]="svc.sectionVideoUrl()"
+                      (ngModelChange)="onYouTubeUrlChange($event)"
+                      class="editor-input pl-10"
+                      placeholder="https://www.youtube.com/watch?v=..." />
+                    <lucide-icon name="youtube" [size]="16"
+                      class="absolute left-3 top-1/2 -translate-y-1/2 text-red-500"></lucide-icon>
+                  </div>
+                  @if (svc.sectionVideoUrl() && !youtubeVideoId()) {
+                    <p class="mt-1 text-xs text-amber-600">URL không hợp lệ. Hãy dán link YouTube đầy đủ.</p>
                   }
                 </div>
+
+                <!-- YouTube preview embed -->
+                @if (youtubeVideoId(); as videoId) {
+                  <div class="overflow-hidden rounded-xl border border-slate-200">
+                    <iframe [src]="getYouTubeEmbedUrl(videoId)"
+                            class="aspect-video w-full" frameborder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen></iframe>
+                  </div>
+                }
+
+                @if (!svc.sectionVideoUrl()) {
+                  <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center">
+                    <lucide-icon name="youtube" [size]="32" class="mx-auto text-slate-300"></lucide-icon>
+                    <p class="mt-2 text-sm font-medium text-slate-500">Dán link YouTube để nhúng video</p>
+                    <p class="mt-1 text-xs text-slate-400">Hỗ trợ: youtube.com/watch, youtu.be, youtube.com/embed</p>
+                  </div>
+                }
               </div>
             }
+
           </div>
         }
 
@@ -583,6 +719,96 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
       border-radius: 0;
     }
 
+    /* ── Video Source Tabs ── */
+    .video-source-tabs {
+      display: flex;
+      gap: 0;
+      border: 1px solid rgb(226 232 240);
+      border-radius: 0.5rem;
+      overflow: hidden;
+      background: rgb(248 250 252);
+    }
+    .video-source-tab {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.375rem;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: rgb(100 116 139);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: background 150ms, color 150ms;
+    }
+    .video-source-tab:hover { background: rgb(241 245 249); }
+    .video-source-tab--active {
+      background: #fff !important;
+      color: rgb(0 86 210) !important;
+      box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+    }
+
+    /* ── Video Dropzone ── */
+    .video-dropzone {
+      position: relative;
+      display: flex;
+      cursor: pointer;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.75rem;
+      border: 2px dashed rgba(0, 86, 210, 0.35);
+      background: rgba(0, 86, 210, 0.03);
+      padding: 2rem 1.5rem;
+      transition: border-color 200ms, background 200ms;
+    }
+    .video-dropzone:hover {
+      border-color: rgba(0, 86, 210, 0.6);
+      background: rgba(0, 86, 210, 0.07);
+    }
+    .video-dropzone--dragover {
+      border-color: rgb(0, 86, 210) !important;
+      background: rgba(0, 86, 210, 0.12) !important;
+      border-style: solid !important;
+    }
+
+    /* ── Video Status Cards ── */
+    .video-status-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      border-radius: 0.75rem;
+      padding: 1rem;
+    }
+    .video-status-card--staged {
+      border: 1px solid rgb(186 230 253);
+      background: rgb(240 249 255);
+    }
+    .video-status-card--uploading {
+      border: 1px solid rgba(0, 86, 210, 0.2);
+      background: rgba(0, 86, 210, 0.04);
+      padding: 1rem 1.25rem;
+    }
+    .video-status-card--error {
+      border: 1px solid rgb(254 202 202);
+      background: rgb(254 242 242);
+    }
+    .video-status-card--done {
+      border: 1px solid rgb(167 243 208);
+      background: rgb(236 253 245);
+    }
+    .video-status-card__icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 0.5rem;
+      flex-shrink: 0;
+    }
+
     /* prose styles loaded via styleUrls: section-editor-prose.scss */
   `],
 })
@@ -599,6 +825,9 @@ export class SectionEditorComponent {
   readonly editorPanel = viewChild<ElementRef>('editorPanel');
   readonly isExpanded = signal(false);
   readonly isPreviewMode = signal(false);
+  readonly videoSourceTab = signal<'upload' | 'youtube'>('upload');
+  readonly isDragOver = signal(false);
+  private readonly sanitizer = inject(DomSanitizer);
 
   private readonly presignedUpload = inject(PresignedUploadService, { optional: true });
   readonly editorUploadFn = createTiptapUploadFn(this.http, environment.apiUrl, this.presignedUpload ?? undefined);
@@ -620,6 +849,12 @@ export class SectionEditorComponent {
         this.editorPanel()?.nativeElement?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }, 220);
     });
+    // Set initial video tab based on existing section data
+    effect(() => {
+      if (this.svc.sectionVideoType() === 'YOUTUBE') {
+        this.videoSourceTab.set('youtube');
+      }
+    });
   }
 
   toggleExpand(): void {
@@ -627,6 +862,7 @@ export class SectionEditorComponent {
   }
 
   readonly cfUploadStatus = computed<CfUploadStatus>(() => {
+    if (this.svc.sectionVideoIsUploading()) return 'uploading';
     if (this.svc.selectedSectionVideoFile()) return 'staged';
     if (this.svc.sectionVideoAssetId()) {
       const status = this.svc.sectionVideoProcessingStatus();
@@ -749,7 +985,7 @@ export class SectionEditorComponent {
     if (status === 'READY') return 'Video đã sẵn sàng phát.';
     if (status === 'PROCESSING') return 'Đang xử lý video...';
     if (status === 'FAILED') return 'Xử lý video thất bại.';
-    return '';
+    return 'Video đã được gắn.';
   }
 
   formatProfile(profile: OfflineVideoProfileDescriptor): string {
@@ -762,5 +998,89 @@ export class SectionEditorComponent {
       case 'ASSESSMENT': return 'Đánh giá';
       case 'EXAM': return 'Thi';
     }
+  }
+
+  // ── Video: drag-drop ─────────────────────────────────────────────────
+
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver.set(true);
+  }
+
+  onDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver.set(false);
+  }
+
+  onDrop(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver.set(false);
+    const file = event.dataTransfer?.files?.[0];
+    if (file && file.type.startsWith('video/')) {
+      this.svc.selectedSectionVideoFile.set(file);
+      this.svc.markDirty();
+    }
+  }
+
+  // ── Video: tab switching ─────────────────────────────────────────────
+
+  switchVideoTab(tab: 'upload' | 'youtube'): void {
+    if (tab === this.videoSourceTab()) return;
+    // Clear video state when switching tabs
+    this.resetVideoUpload();
+    this.svc.sectionVideoUrl.set('');
+    this.svc.sectionVideoType.set(tab === 'youtube' ? 'YOUTUBE' : null);
+    this.videoSourceTab.set(tab);
+  }
+
+  // ── Video: replace flow ──────────────────────────────────────────────
+
+  replaceVideo(): void {
+    this.resetVideoUpload();
+    this.svc.markDirty();
+  }
+
+  // ── Video: retry processing ──────────────────────────────────────────
+
+  retryVideoProcessing(): void {
+    const assetId = this.svc.sectionVideoAssetId();
+    if (!assetId) return;
+    this.svc.sectionVideoProcessingStatus.set('PROCESSING');
+    this.svc.scheduleSectionVideoPoll(assetId);
+  }
+
+  // ── Video: file size formatting ──────────────────────────────────────
+
+  formatFileSize(bytes: number): string {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+  }
+
+  // ── YouTube helpers ──────────────────────────────────────────────────
+
+  private static readonly YOUTUBE_REGEX = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+
+  readonly youtubeVideoId = computed(() => {
+    const url = this.svc.sectionVideoUrl();
+    if (!url) return null;
+    const match = url.match(SectionEditorComponent.YOUTUBE_REGEX);
+    return match?.[1] ?? null;
+  });
+
+  onYouTubeUrlChange(url: string): void {
+    this.svc.sectionVideoUrl.set(url);
+    this.svc.sectionVideoType.set('YOUTUBE');
+    this.svc.markDirty();
+  }
+
+  getYouTubeEmbedUrl(videoId: string): SafeResourceUrl {
+    return this.sanitizer.bypassSecurityTrustResourceUrl(
+      `https://www.youtube.com/embed/${videoId}`
+    );
   }
 }
