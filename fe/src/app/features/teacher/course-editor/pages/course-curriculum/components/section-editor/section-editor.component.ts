@@ -462,14 +462,24 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
               }
             }
 
-            <!-- Existing PDF preview (when not replacing) -->
-            @if (svc.safePdfUrl() && !svc.selectedFile() && !fileReplaceMode(); as pdfUrl) {
-              <div>
-                <label class="text-xs font-semibold text-slate-600 mb-2 block">Xem trước</label>
-                <div class="h-[380px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
-                  <iframe [src]="svc.safePdfUrl()" class="h-full w-full" frameborder="0"></iframe>
+            <!-- Existing file preview (when not replacing) -->
+            @if (svc.sectionFileUrl() && !svc.selectedFile() && !fileReplaceMode()) {
+              @if (existingFilePreviewUrl(); as previewUrl) {
+                <div>
+                  <label class="text-xs font-semibold text-slate-600 mb-2 block">Xem trước</label>
+                  <div class="h-[380px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                    <iframe [src]="previewUrl" class="h-full w-full" frameborder="0"></iframe>
+                  </div>
                 </div>
-              </div>
+              }
+              @if (isTextFile(svc.sectionFileUrl()!) && !existingFilePreviewUrl()) {
+                <div>
+                  <label class="text-xs font-semibold text-slate-600 mb-2 block">Xem trước</label>
+                  <div class="max-h-[380px] overflow-auto rounded-xl border border-slate-200 bg-white p-4">
+                    <pre class="whitespace-pre-wrap text-xs text-slate-700 font-mono">{{ textFileContent() }}</pre>
+                  </div>
+                </div>
+              }
             }
 
           </div>
@@ -1232,6 +1242,42 @@ export class SectionEditorComponent {
       case 'ppt': case 'pptx': return 'text-orange-600';
       default: return 'text-slate-500';
     }
+  }
+
+  // ── File preview helpers ──────────────────────────────────────────
+
+  private static readonly OFFICE_EXTENSIONS = new Set(['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx']);
+  private static readonly TEXT_EXTENSIONS = new Set(['txt', 'csv', 'rtf', 'md', 'json', 'xml']);
+
+  readonly existingFilePreviewUrl = computed<SafeResourceUrl | null>(() => {
+    const url = this.svc.sectionFileUrl();
+    if (!url) return null;
+    const ext = this.getFileExtension(url);
+
+    // PDF: native iframe
+    if (ext === 'pdf') {
+      return this.svc.safePdfUrl();
+    }
+
+    // Office: Google Docs Viewer (requires public URL)
+    if (SectionEditorComponent.OFFICE_EXTENSIONS.has(ext)) {
+      const encodedUrl = encodeURIComponent(url);
+      return this.sanitizer.bypassSecurityTrustResourceUrl(
+        `https://docs.google.com/gview?url=${encodedUrl}&embedded=true`
+      );
+    }
+
+    return null;
+  });
+
+  readonly textFileContent = signal('');
+
+  isTextFile(url: string): boolean {
+    return SectionEditorComponent.TEXT_EXTENSIONS.has(this.getFileExtension(url));
+  }
+
+  isOfficeFile(ext: string): boolean {
+    return SectionEditorComponent.OFFICE_EXTENSIONS.has(ext);
   }
 
   getFileTypeBadgeClass(ext: string): string {

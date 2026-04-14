@@ -211,6 +211,24 @@ export class LessonContentComponent implements AfterViewInit {
   /** Safe PDF URL for iframe embedding */
   readonly safePdfUrl = signal<SafeResourceUrl | null>(null);
 
+  private static readonly OFFICE_EXTS = new Set(['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx']);
+
+  /** Google Docs Viewer URL for Office documents */
+  readonly officeViewerUrl = computed<SafeResourceUrl | null>(() => {
+    const section = this.currentSection();
+    const fileUrl = section?.type === 'FILE' ? (section.fileUrl || null) : null;
+    if (!fileUrl) return null;
+    const ext = fileUrl.split('/').pop()?.split('?')[0]?.split('.').pop()?.toLowerCase() ?? '';
+    if (!LessonContentComponent.OFFICE_EXTS.has(ext)) return null;
+    return this.sanitizer.bypassSecurityTrustResourceUrl(
+      `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`
+    );
+  });
+
+  openFileInNewTab(url: string): void {
+    window.open(url, '_blank');
+  }
+
   private pdfPreviewEffect = effect((onCleanup) => {
     const section = this.currentSection();
     const fileUrl = section?.type === 'FILE' ? (section.fileUrl || null) : null;
