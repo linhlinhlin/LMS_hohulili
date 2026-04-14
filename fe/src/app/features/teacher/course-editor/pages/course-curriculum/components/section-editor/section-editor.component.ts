@@ -477,124 +477,151 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
 
         <!-- ═══ QUIZ ═══ -->
         @if (svc.sectionEditorType() === 'QUIZ') {
-          <div class="space-y-4 rounded-xl border border-violet-200 bg-violet-50 p-4">
-            <div class="space-y-1">
-              <label class="block text-xs font-black uppercase text-violet-800">Thiết lập trắc nghiệm</label>
-              <p class="text-sm text-violet-900">Cấu hình và chọn câu hỏi cho mục trắc nghiệm này.</p>
+          <div class="space-y-4">
+
+            <!-- Quiz type cards -->
+            <div class="grid gap-2 sm:grid-cols-3">
+              @for (type of quizTypes; track type) {
+                <button type="button"
+                  (click)="onQuizTypeChange(type)"
+                  class="quiz-type-card"
+                  [class.quiz-type-card--active]="svc.sectionQuizType() === type">
+                  <lucide-icon [name]="getQuizTypeIcon(type)" [size]="18"></lucide-icon>
+                  <span class="quiz-type-card__title">{{ getQuizTypeLabel(type) }}</span>
+                  <span class="quiz-type-card__desc">{{ getQuizTypeDescription(type) }}</span>
+                </button>
+              }
             </div>
 
-            <div class="grid gap-3 md:grid-cols-2">
-              <!-- Quiz type selector -->
-              <div class="rounded-lg border border-violet-200 bg-white p-3">
-                <label class="mb-2 block text-sm font-medium text-slate-700">Loại</label>
-                <div class="grid gap-2 md:grid-cols-3">
-                  @for (type of quizTypes; track type) {
-                    <button type="button"
-                      (click)="svc.sectionQuizType.set(type); svc.markDirty()"
-                      class="rounded-lg border px-3 py-2 text-sm font-medium transition"
-                      [class.border-violet-600]="svc.sectionQuizType() === type"
-                      [class.bg-violet-600]="svc.sectionQuizType() === type"
-                      [class.text-white]="svc.sectionQuizType() === type"
-                      [class.border-slate-200]="svc.sectionQuizType() !== type"
-                      [class.bg-white]="svc.sectionQuizType() !== type"
-                      [class.text-slate-700]="svc.sectionQuizType() !== type">
-                      {{ getQuizTypeLabel(type) }}
-                    </button>
-                  }
+            <!-- Certificate flag (EXAM only) -->
+            @if (svc.sectionQuizType() === 'EXAM') {
+              <div class="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3">
+                <input type="checkbox" id="certQuiz"
+                  [ngModel]="svc.sectionQuizCountsTowardCertificate()"
+                  (ngModelChange)="svc.sectionQuizCountsTowardCertificate.set($event); svc.markDirty()"
+                  class="mt-0.5 h-4 w-4 rounded text-amber-600 focus:ring-amber-500" />
+                <label for="certQuiz" class="cursor-pointer select-none">
+                  <span class="text-sm font-semibold text-amber-900">Tính vào chứng chỉ</span>
+                  <span class="block mt-0.5 text-xs text-amber-700">Kết quả bài thi này sẽ được tính vào điều kiện cấp chứng chỉ khóa học.</span>
+                </label>
+              </div>
+            }
+
+            <!-- Settings grid -->
+            <div class="rounded-xl border border-slate-200 bg-white">
+              <div class="border-b border-slate-100 px-4 py-2.5">
+                <h4 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Thiết lập làm bài</h4>
+              </div>
+              <div class="grid gap-4 p-4 sm:grid-cols-3">
+                <div>
+                  <label class="mb-1.5 block text-xs font-medium text-slate-600">Thời gian (phút)</label>
+                  <input type="number" min="1"
+                    [ngModel]="svc.sectionQuizTimeLimit()"
+                    (ngModelChange)="svc.sectionQuizTimeLimit.set(+$event); svc.markDirty()"
+                    class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-[#0056D2]" />
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-xs font-medium text-slate-600">Điểm đạt (%)</label>
+                  <input type="number" min="0" max="100"
+                    [ngModel]="svc.sectionQuizPassingScore()"
+                    (ngModelChange)="svc.sectionQuizPassingScore.set(+$event); svc.markDirty()"
+                    class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-[#0056D2]" />
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-xs font-medium text-slate-600">Số lần làm bài</label>
+                  <input type="number" min="1"
+                    [ngModel]="svc.sectionQuizMaxAttempts()"
+                    (ngModelChange)="svc.sectionQuizMaxAttempts.set(+$event); svc.markDirty()"
+                    class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-[#0056D2]" />
                 </div>
               </div>
 
-              <!-- Quiz settings -->
-              <div class="rounded-lg border border-violet-200 bg-white p-3">
-                <label class="mb-2 block text-sm font-medium text-slate-700">Thiết lập làm bài</label>
-                <div class="grid grid-cols-3 gap-3">
-                  <div>
-                    <label class="mb-1 block text-xs font-medium text-slate-500">Phút</label>
-                    <input type="number" min="1"
-                      [ngModel]="svc.sectionQuizTimeLimit()"
-                      (ngModelChange)="svc.sectionQuizTimeLimit.set(+$event); svc.markDirty()"
-                      class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-                  </div>
-                  <div>
-                    <label class="mb-1 block text-xs font-medium text-slate-500">Điểm đạt</label>
-                    <input type="number" min="0" max="100"
-                      [ngModel]="svc.sectionQuizPassingScore()"
-                      (ngModelChange)="svc.sectionQuizPassingScore.set(+$event); svc.markDirty()"
-                      class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-                  </div>
-                  <div>
-                    <label class="mb-1 block text-xs font-medium text-slate-500">Số lần</label>
-                    <input type="number" min="1"
-                      [ngModel]="svc.sectionQuizMaxAttempts()"
-                      (ngModelChange)="svc.sectionQuizMaxAttempts.set(+$event); svc.markDirty()"
-                      class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-                  </div>
+              <!-- Behavioral toggles -->
+              <div class="border-t border-slate-100 px-4 py-3">
+                <div class="flex flex-wrap gap-x-6 gap-y-2">
+                  <label class="inline-flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                    <input type="checkbox"
+                      [ngModel]="svc.sectionQuizShuffleQuestions()"
+                      (ngModelChange)="svc.sectionQuizShuffleQuestions.set($event); svc.markDirty()"
+                      class="h-4 w-4 rounded text-[#0056D2] focus:ring-[#0056D2]" />
+                    Trộn câu hỏi
+                  </label>
+                  <label class="inline-flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                    <input type="checkbox"
+                      [ngModel]="svc.sectionQuizShuffleOptions()"
+                      (ngModelChange)="svc.sectionQuizShuffleOptions.set($event); svc.markDirty()"
+                      class="h-4 w-4 rounded text-[#0056D2] focus:ring-[#0056D2]" />
+                    Trộn đáp án
+                  </label>
+                  <label class="inline-flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                    <input type="checkbox"
+                      [ngModel]="svc.sectionQuizShowResults()"
+                      (ngModelChange)="svc.sectionQuizShowResults.set($event); svc.markDirty()"
+                      class="h-4 w-4 rounded text-[#0056D2] focus:ring-[#0056D2]" />
+                    Hiện kết quả ngay
+                  </label>
                 </div>
               </div>
-            </div>
-
-            <!-- Checkboxes -->
-            <div class="grid gap-2 md:grid-cols-3">
-              <label class="flex items-start gap-2 rounded-lg border border-violet-200 bg-white px-3 py-2 text-sm text-slate-700">
-                <input type="checkbox"
-                  [ngModel]="svc.sectionQuizShuffleQuestions()"
-                  (ngModelChange)="svc.sectionQuizShuffleQuestions.set($event); svc.markDirty()"
-                  class="mt-0.5 h-4 w-4 rounded text-violet-600" />
-                <span>Trộn câu hỏi</span>
-              </label>
-              <label class="flex items-start gap-2 rounded-lg border border-violet-200 bg-white px-3 py-2 text-sm text-slate-700">
-                <input type="checkbox"
-                  [ngModel]="svc.sectionQuizShuffleOptions()"
-                  (ngModelChange)="svc.sectionQuizShuffleOptions.set($event); svc.markDirty()"
-                  class="mt-0.5 h-4 w-4 rounded text-violet-600" />
-                <span>Trộn đáp án</span>
-              </label>
-              <label class="flex items-start gap-2 rounded-lg border border-violet-200 bg-white px-3 py-2 text-sm text-slate-700">
-                <input type="checkbox"
-                  [ngModel]="svc.sectionQuizShowResults()"
-                  (ngModelChange)="svc.sectionQuizShowResults.set($event); svc.markDirty()"
-                  class="mt-0.5 h-4 w-4 rounded text-violet-600" />
-                <span>Hiện kết quả ngay</span>
-              </label>
             </div>
 
             <!-- Questions list -->
-            <div class="rounded-lg border border-violet-200 bg-white">
-              <div class="flex items-center justify-between gap-3 border-b border-violet-100 px-4 py-3">
-                <div>
-                  <h4 class="text-sm font-semibold text-slate-800">
-                    Câu hỏi ({{ svc.sectionQuizSelectedQuestions().length }})
-                  </h4>
-                </div>
-                <div class="flex flex-wrap items-center gap-2">
+            <div class="rounded-xl border border-slate-200 bg-white">
+              <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+                <h4 class="text-sm font-semibold text-slate-800">
+                  Câu hỏi
+                  @if (svc.sectionQuizSelectedQuestions().length) {
+                    <span class="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#0056D2] px-1.5 text-[10px] font-bold text-white">
+                      {{ svc.sectionQuizSelectedQuestions().length }}
+                    </span>
+                  }
+                </h4>
+                <div class="flex items-center gap-2">
                   <button type="button" (click)="svc.showSectionQuizBankModal.set(true)"
-                    class="rounded-lg border border-violet-200 px-3 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-50">
-                    Chọn từ ngân hàng
+                    class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-[#0056D2] hover:bg-[#0056D2]/5">
+                    <lucide-icon name="library" [size]="12" class="mr-1 inline-block -mt-0.5"></lucide-icon>
+                    Ngân hàng
                   </button>
                   <button type="button" (click)="svc.showSectionQuizRandomModal.set(true)"
-                    class="rounded-lg border border-violet-200 px-3 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-50">
-                    Thêm ngẫu nhiên
+                    class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-[#0056D2] hover:bg-[#0056D2]/5">
+                    <lucide-icon name="shuffle" [size]="12" class="mr-1 inline-block -mt-0.5"></lucide-icon>
+                    Ngẫu nhiên
                   </button>
                 </div>
               </div>
 
-              <div class="max-h-64 overflow-y-auto p-3">
+              <div class="max-h-72 overflow-y-auto">
                 @if (svc.sectionQuizSelectedQuestions().length === 0) {
-                  <div class="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center">
-                    <p class="text-sm font-medium text-slate-700">Chưa có câu hỏi.</p>
-                    <p class="mt-1 text-xs text-slate-500">Chọn từ ngân hàng hoặc thêm ngẫu nhiên.</p>
+                  <div class="px-4 py-8 text-center">
+                    <lucide-icon name="help-circle" [size]="32" class="mx-auto text-slate-300"></lucide-icon>
+                    <p class="mt-2 text-sm font-medium text-slate-500">Chưa có câu hỏi nào</p>
+                    <p class="mt-1 text-xs text-slate-400">Chọn từ ngân hàng câu hỏi hoặc thêm ngẫu nhiên</p>
                   </div>
                 } @else {
-                  <div class="space-y-2">
+                  <div class="divide-y divide-slate-100">
                     @for (q of svc.sectionQuizSelectedQuestions(); track q.id; let idx = $index) {
-                      <div class="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-                        <span class="mt-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-violet-100 text-xs font-semibold text-violet-700 tabular-nums">
+                      <div class="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors">
+                        <span class="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#0056D2]/10 text-[10px] font-bold text-[#0056D2] tabular-nums shrink-0">
                           {{ idx + 1 }}
                         </span>
-                        <p class="min-w-0 flex-1 line-clamp-2 text-sm font-medium text-slate-800">{{ q.content }}</p>
+                        <div class="min-w-0 flex-1">
+                          <p class="line-clamp-2 text-sm text-slate-800">{{ q.content }}</p>
+                          <div class="mt-1 flex items-center gap-2">
+                            @if (q.questionType) {
+                              <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
+                                {{ getQuestionTypeLabel(q.questionType) }}
+                              </span>
+                            }
+                            @if (q.difficulty) {
+                              <span class="rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                                [class]="getDifficultyClass(q.difficulty)">
+                                {{ getDifficultyLabel(q.difficulty) }}
+                              </span>
+                            }
+                          </div>
+                        </div>
                         <button type="button" (click)="removeQuestion(q.id)"
-                          class="rounded p-1 text-slate-400 hover:bg-white hover:text-red-600" aria-label="Xóa">
-                          <lucide-icon name="x" [size]="16"></lucide-icon>
+                          class="shrink-0 rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors" aria-label="Xóa">
+                          <lucide-icon name="x" [size]="14"></lucide-icon>
                         </button>
                       </div>
                     }
@@ -602,6 +629,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                 }
               </div>
             </div>
+
           </div>
         }
       </div>
@@ -873,6 +901,43 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
       flex-shrink: 0;
     }
 
+    /* ── Quiz Type Cards ── */
+    .quiz-type-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.75rem 0.5rem;
+      border: 2px solid rgb(226 232 240);
+      border-radius: 0.75rem;
+      background: #fff;
+      cursor: pointer;
+      text-align: center;
+      transition: border-color 150ms, background 150ms, box-shadow 150ms;
+    }
+    .quiz-type-card:hover {
+      border-color: rgba(0, 86, 210, 0.3);
+      background: rgba(0, 86, 210, 0.02);
+    }
+    .quiz-type-card--active {
+      border-color: rgb(0, 86, 210) !important;
+      background: rgba(0, 86, 210, 0.05) !important;
+      box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.1);
+    }
+    .quiz-type-card--active lucide-icon {
+      color: rgb(0, 86, 210);
+    }
+    .quiz-type-card__title {
+      font-size: 0.8125rem;
+      font-weight: 700;
+      color: rgb(15 23 42);
+    }
+    .quiz-type-card__desc {
+      font-size: 0.6875rem;
+      color: rgb(100 116 139);
+      line-height: 1.35;
+    }
+
     /* prose styles loaded via styleUrls: section-editor-prose.scss */
   `],
 })
@@ -1061,6 +1126,61 @@ export class SectionEditorComponent {
       case 'PRACTICE': return 'Luyện tập';
       case 'ASSESSMENT': return 'Đánh giá';
       case 'EXAM': return 'Thi';
+    }
+  }
+
+  getQuizTypeDescription(type: SectionQuizAssessmentType): string {
+    switch (type) {
+      case 'PRACTICE': return 'Không tính điểm, luyện tập thoải mái';
+      case 'ASSESSMENT': return 'Tính điểm, giới hạn số lần';
+      case 'EXAM': return 'Thi chính thức, có thể tính chứng chỉ';
+    }
+  }
+
+  getQuizTypeIcon(type: SectionQuizAssessmentType): string {
+    switch (type) {
+      case 'PRACTICE': return 'pencil-line';
+      case 'ASSESSMENT': return 'clipboard-check';
+      case 'EXAM': return 'award';
+    }
+  }
+
+  onQuizTypeChange(type: SectionQuizAssessmentType): void {
+    this.svc.sectionQuizType.set(type);
+    // Only EXAM can count toward certificate
+    if (type !== 'EXAM') {
+      this.svc.sectionQuizCountsTowardCertificate.set(false);
+    }
+    this.svc.markDirty();
+  }
+
+  getQuestionTypeLabel(type: string): string {
+    switch (type?.toUpperCase()) {
+      case 'SINGLE_CHOICE': return 'Một đáp án';
+      case 'MULTIPLE_CHOICE': return 'Nhiều đáp án';
+      case 'TRUE_FALSE': return 'Đúng/Sai';
+      case 'FILL_IN_BLANK': return 'Điền khuyết';
+      case 'SHORT_ANSWER': return 'Trả lời ngắn';
+      case 'ESSAY': return 'Tự luận';
+      default: return type || '';
+    }
+  }
+
+  getDifficultyLabel(d: string): string {
+    switch (d?.toUpperCase()) {
+      case 'EASY': return 'Dễ';
+      case 'MEDIUM': return 'TB';
+      case 'HARD': return 'Khó';
+      default: return d || '';
+    }
+  }
+
+  getDifficultyClass(d: string): string {
+    switch (d?.toUpperCase()) {
+      case 'EASY': return 'bg-green-100 text-green-700';
+      case 'MEDIUM': return 'bg-amber-100 text-amber-700';
+      case 'HARD': return 'bg-red-100 text-red-700';
+      default: return 'bg-slate-100 text-slate-600';
     }
   }
 
