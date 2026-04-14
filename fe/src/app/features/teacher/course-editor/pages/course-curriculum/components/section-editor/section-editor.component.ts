@@ -375,7 +375,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
           <div class="space-y-4">
 
             <!-- Existing file: show current attachment with download + replace -->
-            @if (svc.sectionFileUrl() && !svc.selectedFile()) {
+            @if (svc.sectionFileUrl() && !svc.selectedFile() && !fileReplaceMode()) {
               <div class="video-status-card video-status-card--done">
                 <div class="video-status-card__icon" [class]="getFileIconBgClass(getFileExtension(svc.sectionFileUrl()!))">
                   <lucide-icon [name]="getFileIconName(getFileExtension(svc.sectionFileUrl()!))" [size]="20"
@@ -995,6 +995,11 @@ export class SectionEditorComponent {
       if (this.svc.sectionVideoType() === 'YOUTUBE') {
         this.videoSourceTab.set('youtube');
       }
+    });
+    // Reset file replace mode when section changes
+    effect(() => {
+      this.svc.editingSectionId(); // track dependency
+      this.fileReplaceMode.set(false);
     });
   }
 
