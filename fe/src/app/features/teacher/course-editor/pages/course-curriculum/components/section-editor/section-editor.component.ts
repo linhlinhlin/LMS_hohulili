@@ -322,6 +322,15 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
             <!-- ── YOUTUBE TAB ── -->
             @if (videoSourceTab() === 'youtube') {
               <div class="space-y-3">
+                <!-- Info: tracking + offline note -->
+                <div class="flex items-start gap-2.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2.5">
+                  <lucide-icon name="info" [size]="16" class="mt-0.5 shrink-0 text-sky-600"></lucide-icon>
+                  <div class="text-xs text-sky-800 leading-relaxed">
+                    <p class="font-semibold">Tiến trình xem được theo dõi bình thường</p>
+                    <p class="mt-0.5 text-sky-700">Hoàn thành tự động khi học viên xem ≥ 90%. Tuy nhiên video YouTube <strong>không hỗ trợ xem ngoại tuyến</strong>.</p>
+                  </div>
+                </div>
+
                 <div class="editor-field">
                   <label class="editor-label">URL video YouTube</label>
                   <div class="relative">

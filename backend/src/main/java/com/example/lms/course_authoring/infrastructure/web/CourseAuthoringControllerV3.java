@@ -484,10 +484,20 @@ public class CourseAuthoringControllerV3 {
             return;
         }
 
+        // Allow YouTube URLs (both create and update) — tracked via IFrame API
+        String videoType = normalizeText(asString(payload.get("videoType")));
+        if ("YOUTUBE".equalsIgnoreCase(videoType) && isYouTubeUrl(videoUrl)) {
+            payload.remove("videoAssetId");
+            payload.remove("streamVideoUid");
+            payload.remove("cfObjectKey");
+            return;
+        }
+
+        // Block all other external URLs (direct MP4, legacy, etc.)
         if (sectionId == null) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Mục video mới chỉ hỗ trợ tải lên nội bộ. URL video ngoài hoặc legacy không còn là luồng tạo mới."
+                    "Mục video mới chỉ hỗ trợ tải lên nội bộ hoặc YouTube. URL video trực tiếp không được hỗ trợ."
             );
         }
 
@@ -508,8 +518,16 @@ public class CourseAuthoringControllerV3 {
 
         throw new ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
-                "Không thể gán URL video ngoài mới cho mục video. Hãy tải video lên nội bộ để chuẩn hóa playback và offline."
+                "Không thể gán URL video ngoài mới cho mục video. Hãy tải video lên nội bộ hoặc dùng YouTube."
         );
+    }
+
+    private static final java.util.regex.Pattern YOUTUBE_URL_PATTERN = java.util.regex.Pattern.compile(
+            "(?:https?://)?(?:www\\.)?(?:youtube\\.com/(?:watch\\?v=|embed/|shorts/)|youtu\\.be/)[a-zA-Z0-9_-]{11}"
+    );
+
+    private boolean isYouTubeUrl(String url) {
+        return url != null && YOUTUBE_URL_PATTERN.matcher(url).find();
     }
 
     private UUID parseUuidOrBadRequest(String value, String message) {
