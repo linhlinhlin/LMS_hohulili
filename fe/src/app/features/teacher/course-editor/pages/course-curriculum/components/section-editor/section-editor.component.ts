@@ -22,6 +22,7 @@ import { PresignedUploadService } from '../../../../../../../core/services/presi
 import { LESSON_TEMPLATES, type LessonTemplate } from '../../../../../../../shared/components/tiptap-editor/lesson-templates';
 import { environment } from '../../../../../../../../environments/environment';
 import { formatOfflineVideoProfileLabel, type OfflineVideoProfileDescriptor } from '../../../../../../../core/models/video-quality';
+import { QuizVideoPlayerComponent } from '../../../../../../../shared/blocks/video-block/quiz-video-player.component';
 
 type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
 
@@ -38,7 +39,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
 @Component({
   selector: 'app-section-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, LucideAngularModule, TiptapEditorComponent],
+  imports: [FormsModule, LucideAngularModule, TiptapEditorComponent, QuizVideoPlayerComponent],
   styleUrls: ['./section-editor-prose.scss'],
   template: `
     <!-- ═══ Expanded TEXT mode: full-screen Tiptap only (course-info pattern) ═══ -->
@@ -265,8 +266,15 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
               <!-- DONE: video attached with preview + actions -->
               @if (cfUploadStatus() === 'done') {
                 <div class="space-y-3">
-                  <!-- Video preview -->
-                  @if (svc.sectionVideoUrl()) {
+                  <!-- Video preview (Shaka Player for HLS/DASH + native MP4 fallback) -->
+                  @if (svc.sectionVideoAssetId()) {
+                    <div class="overflow-hidden rounded-xl border border-slate-200 bg-black aspect-video">
+                      <app-quiz-video-player
+                        [videoAssetId]="svc.sectionVideoAssetId()"
+                        [rawVideoUrl]="svc.sectionVideoUrl()">
+                      </app-quiz-video-player>
+                    </div>
+                  } @else if (svc.sectionVideoUrl()) {
                     <div class="overflow-hidden rounded-xl border border-slate-200 bg-black">
                       <video [src]="svc.sectionVideoUrl()" controls preload="metadata"
                              controlsList="nodownload"
