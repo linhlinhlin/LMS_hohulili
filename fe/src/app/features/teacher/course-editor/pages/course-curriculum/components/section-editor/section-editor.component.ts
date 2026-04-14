@@ -266,9 +266,9 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
               <!-- DONE: video attached with preview + actions -->
               @if (cfUploadStatus() === 'done') {
                 <div class="space-y-3">
-                  <!-- Video preview (Shaka Player for HLS/DASH + native MP4 fallback) -->
+                  <!-- Video preview (compact, max 280px height for editor) -->
                   @if (svc.sectionVideoAssetId()) {
-                    <div class="overflow-hidden rounded-xl border border-slate-200 bg-black aspect-video">
+                    <div class="overflow-hidden rounded-xl border border-slate-200 bg-black" style="max-height: 280px; aspect-ratio: 16/9;">
                       <app-quiz-video-player
                         [videoAssetId]="svc.sectionVideoAssetId()"
                         [rawVideoUrl]="svc.sectionVideoUrl()">
@@ -278,7 +278,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                     <div class="overflow-hidden rounded-xl border border-slate-200 bg-black">
                       <video [src]="svc.sectionVideoUrl()" controls preload="metadata"
                              controlsList="nodownload"
-                             class="aspect-video w-full"></video>
+                             class="w-full" style="max-height: 280px;"></video>
                     </div>
                   }
 
