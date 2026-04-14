@@ -322,6 +322,7 @@ export class CourseAuthoringService {
                             videoType: t.videoType,
                             streamVideoUid: t.streamVideoUid,
                             fileUrl: t.fileUrl,
+                            previewPdfUrl: t.previewPdfUrl,
                             duration: t.duration,
                             orderIndex: t.orderIndex,
                             isRequired: t.isRequired,
