@@ -169,13 +169,8 @@ export class CurriculumEditorService {
     this.isSaving.set(true);
 
     try {
-      // Upload video if staged
-      if (type === 'VIDEO' && this.selectedSectionVideoFile()) {
-        const asset = await this.uploadVideoAsset(this.selectedSectionVideoFile()!);
-        this.sectionVideoAssetId.set(asset.id);
-        this.sectionVideoProcessingStatus.set(asset.status ?? 'PROCESSING');
-        this.scheduleSectionVideoPoll(asset.id);
-      }
+      // Video upload now happens on file select (upload-on-select pattern)
+      // By save time, sectionVideoAssetId is already set
 
       const payload = this.buildSectionPayload(type);
       const formData = new FormData();
@@ -261,6 +256,28 @@ export class CurriculumEditorService {
       return res.data;
     } finally {
       this.sectionVideoIsUploading.set(false);
+    }
+  }
+
+  /**
+   * Upload-on-select: starts upload immediately when teacher picks a video file.
+   * By the time teacher clicks "Save", asset ID is already set → instant save.
+   * (Coursera/Udemy pattern)
+   */
+  async startVideoUpload(file: File): Promise<void> {
+    this.selectedSectionVideoFile.set(file);
+    this.markDirty();
+    try {
+      const asset = await this.uploadVideoAsset(file);
+      this.sectionVideoAssetId.set(asset.id);
+      this.sectionVideoProcessingStatus.set(asset.status ?? 'PROCESSING');
+      this.scheduleSectionVideoPoll(asset.id);
+      this.selectedSectionVideoFile.set(null); // Upload done, clear staged file
+    } catch (err: any) {
+      this.sectionVideoIsUploading.set(false);
+      this.sectionVideoUploadProgress.set(0);
+      this.selectedSectionVideoFile.set(null);
+      this.toast.error('Tải video thất bại: ' + (err?.message || ''));
     }
   }
 

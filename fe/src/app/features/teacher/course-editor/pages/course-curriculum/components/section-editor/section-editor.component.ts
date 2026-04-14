@@ -212,28 +212,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                 </div>
               }
 
-              <!-- STAGED: file selected, waiting for save -->
-              @if (cfUploadStatus() === 'staged') {
-                <div class="video-status-card video-status-card--staged">
-                  <div class="video-status-card__icon bg-sky-100">
-                    <lucide-icon name="film" [size]="20" class="text-sky-600"></lucide-icon>
-                  </div>
-                  <div class="min-w-0 flex-1">
-                    <p class="text-sm font-semibold text-sky-900">Đã chọn video</p>
-                    @if (svc.selectedSectionVideoFile(); as file) {
-                      <p class="mt-0.5 truncate text-xs text-slate-600">{{ file.name }}</p>
-                      <p class="text-xs text-slate-400">{{ formatFileSize(file.size) }}</p>
-                    }
-                    <p class="mt-1 text-xs text-sky-700">Sẽ tải lên khi bạn nhấn "Tạo mới" hoặc "Cập nhật".</p>
-                  </div>
-                  <button type="button" (click)="resetVideoUpload()"
-                    class="shrink-0 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
-                    Bỏ chọn
-                  </button>
-                </div>
-              }
-
-              <!-- UPLOADING: progress bar -->
+              <!-- UPLOADING: progress bar (starts immediately on file select) -->
               @if (cfUploadStatus() === 'uploading') {
                 <div class="video-status-card video-status-card--uploading">
                   <div class="min-w-0 flex-1">
@@ -663,7 +642,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
           Hủy
         </button>
         <button type="button" (click)="onSave()"
-          [disabled]="svc.isSaving() || !svc.sectionTitle().trim()"
+          [disabled]="svc.isSaving() || svc.sectionVideoIsUploading() || !svc.sectionTitle().trim()"
           class="editor-primary-button">
           @if (svc.isSaving()) {
             <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -1020,7 +999,7 @@ export class SectionEditorComponent {
 
   readonly cfUploadStatus = computed<CfUploadStatus>(() => {
     if (this.svc.sectionVideoIsUploading()) return 'uploading';
-    if (this.svc.selectedSectionVideoFile()) return 'staged';
+    // No 'staged' state — upload starts immediately on file select (Coursera pattern)
     if (this.svc.sectionVideoAssetId()) {
       const status = this.svc.sectionVideoProcessingStatus();
       if (status === 'PROCESSING') return 'uploading';
@@ -1056,8 +1035,8 @@ export class SectionEditorComponent {
   onVideoFileSelected(event: Event): void {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (file) {
-      this.svc.selectedSectionVideoFile.set(file);
-      this.svc.markDirty();
+      // Upload starts immediately (Coursera/Udemy upload-on-select pattern)
+      this.svc.startVideoUpload(file);
     }
   }
 
@@ -1232,8 +1211,7 @@ export class SectionEditorComponent {
     this.isDragOver.set(false);
     const file = event.dataTransfer?.files?.[0];
     if (file && file.type.startsWith('video/')) {
-      this.svc.selectedSectionVideoFile.set(file);
-      this.svc.markDirty();
+      this.svc.startVideoUpload(file);
     }
   }
 
