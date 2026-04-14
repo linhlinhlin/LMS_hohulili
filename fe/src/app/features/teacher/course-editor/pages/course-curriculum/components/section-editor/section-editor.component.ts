@@ -372,51 +372,106 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
 
         <!-- ═══ FILE ═══ -->
         @if (svc.sectionEditorType() === 'FILE') {
-          <div class="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
-            <div class="flex items-center justify-between">
-              <label class="block text-xs font-black uppercase text-amber-800">Tài liệu đính kèm</label>
-              @if (svc.sectionFileUrl()) {
-                <a [href]="svc.sectionFileUrl()" target="_blank"
-                   class="flex items-center gap-1 text-xs font-bold text-[#0056D2] hover:underline">
-                  <lucide-icon name="download" [size]="12"></lucide-icon> Tải xuống
-                </a>
-              }
-            </div>
+          <div class="space-y-4">
 
-            <div class="relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-amber-300 bg-white p-5 transition-colors hover:bg-amber-50">
-              <input type="file" (change)="onFileSelected($event)"
-                     class="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
-              @if (!svc.selectedFile()) {
-                <div class="pointer-events-none text-center">
-                  <div class="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-600">
-                    <lucide-icon name="upload-cloud" [size]="20"></lucide-icon>
-                  </div>
-                  <p class="text-sm font-bold text-slate-700">Nhấn để tải lên tài liệu</p>
-                  <p class="mt-1 text-xs text-slate-400">PDF, Word, Excel, PowerPoint (Max 50MB)</p>
+            <!-- Existing file: show current attachment with download + replace -->
+            @if (svc.sectionFileUrl() && !svc.selectedFile()) {
+              <div class="video-status-card video-status-card--done">
+                <div class="video-status-card__icon" [class]="getFileIconBgClass(getFileExtension(svc.sectionFileUrl()!))">
+                  <lucide-icon [name]="getFileIconName(getFileExtension(svc.sectionFileUrl()!))" [size]="20"
+                    [class]="getFileIconColorClass(getFileExtension(svc.sectionFileUrl()!))"></lucide-icon>
                 </div>
-              } @else {
-                <div class="pointer-events-none flex w-full max-w-xs items-center gap-3 rounded-lg border border-amber-200 bg-amber-100 p-3">
-                  <lucide-icon name="file" [size]="20" class="flex-shrink-0 text-amber-600"></lucide-icon>
-                  <div class="min-w-0 flex-grow">
-                    <p class="truncate text-xs font-bold text-slate-800">{{ svc.selectedFile()!.name }}</p>
-                    <p class="text-[10px] text-slate-500">{{ (svc.selectedFile()!.size / 1024 / 1024).toFixed(2) }} MB</p>
-                  </div>
-                  <button type="button" (click)="$event.stopPropagation(); svc.selectedFile.set(null)"
-                    class="pointer-events-auto rounded p-1 text-amber-700 hover:bg-amber-200">
-                    <lucide-icon name="x" [size]="14"></lucide-icon>
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-semibold text-emerald-800">Tài liệu đã đính kèm</p>
+                  <p class="mt-0.5 truncate text-xs text-slate-600">{{ getFileName(svc.sectionFileUrl()!) }}</p>
+                  <span class="mt-1 inline-block rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-emerald-700">
+                    {{ getFileExtension(svc.sectionFileUrl()!) }}
+                  </span>
+                </div>
+                <div class="flex shrink-0 gap-2">
+                  <a [href]="svc.sectionFileUrl()" target="_blank"
+                     class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 inline-flex items-center gap-1">
+                    <lucide-icon name="download" [size]="12"></lucide-icon> Tải xuống
+                  </a>
+                  <button type="button" (click)="triggerFileReplace()"
+                    class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
+                    Thay tệp
                   </button>
-                </div>
-              }
-            </div>
-
-            @if (svc.safePdfUrl(); as pdfUrl) {
-              <div class="mt-4">
-                <label class="text-xs font-bold text-slate-600 mb-2 block">Xem trước PDF</label>
-                <div class="h-[420px] w-full overflow-hidden rounded-lg border border-slate-200 bg-slate-800 shadow-inner">
-                  <iframe [src]="pdfUrl" class="h-full w-full" frameborder="0"></iframe>
                 </div>
               </div>
             }
+
+            <!-- Upload zone: drag-drop (shown when no existing file, or replacing) -->
+            @if (!svc.sectionFileUrl() || svc.selectedFile() || fileReplaceMode()) {
+
+              <!-- Staged file card -->
+              @if (svc.selectedFile(); as file) {
+                <div class="video-status-card video-status-card--staged">
+                  <div class="video-status-card__icon" [class]="getFileIconBgClass(getExtFromName(file.name))">
+                    <lucide-icon [name]="getFileIconName(getExtFromName(file.name))" [size]="20"
+                      [class]="getFileIconColorClass(getExtFromName(file.name))"></lucide-icon>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold text-sky-900">Tệp đã chọn</p>
+                    <p class="mt-0.5 truncate text-xs text-slate-600">{{ file.name }}</p>
+                    <div class="mt-1 flex items-center gap-2">
+                      <span class="text-xs text-slate-400">{{ formatFileSize(file.size) }}</span>
+                      <span class="inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase"
+                        [class]="getFileTypeBadgeClass(getExtFromName(file.name))">
+                        {{ getExtFromName(file.name) }}
+                      </span>
+                    </div>
+                    <p class="mt-1 text-xs text-sky-700">Sẽ tải lên khi bạn nhấn "{{ svc.editingSectionId() ? 'Cập nhật' : 'Tạo mới' }}".</p>
+                  </div>
+                  <button type="button" (click)="clearFileSelection()"
+                    class="shrink-0 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
+                    Bỏ chọn
+                  </button>
+                </div>
+
+                <!-- PDF preview for newly selected file -->
+                @if (stagedPdfUrl(); as pdfUrl) {
+                  <div>
+                    <label class="text-xs font-semibold text-slate-600 mb-2 block">Xem trước</label>
+                    <div class="h-[380px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                      <iframe [src]="pdfUrl" class="h-full w-full" frameborder="0"></iframe>
+                    </div>
+                  </div>
+                }
+              } @else {
+                <!-- Empty dropzone -->
+                <div class="video-dropzone"
+                     [class.video-dropzone--dragover]="isDragOver()"
+                     (dragover)="onDragOver($event)"
+                     (dragleave)="onDragLeave($event)"
+                     (drop)="onFileDrop($event)">
+                  <input type="file"
+                         accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf"
+                         (change)="onFileSelected($event)"
+                         class="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
+                  <div class="pointer-events-none text-center">
+                    <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#0056D2]/10">
+                      <lucide-icon name="file-up" [size]="24" class="text-[#0056D2]"></lucide-icon>
+                    </div>
+                    <p class="text-sm font-semibold text-gray-800">
+                      {{ isDragOver() ? 'Thả tệp vào đây' : 'Kéo thả hoặc nhấn để chọn tài liệu' }}
+                    </p>
+                    <p class="mt-1 text-xs text-gray-500">PDF, Word, Excel, PowerPoint — tối đa 50 MB</p>
+                  </div>
+                </div>
+              }
+            }
+
+            <!-- Existing PDF preview (when not replacing) -->
+            @if (svc.safePdfUrl() && !svc.selectedFile() && !fileReplaceMode(); as pdfUrl) {
+              <div>
+                <label class="text-xs font-semibold text-slate-600 mb-2 block">Xem trước</label>
+                <div class="h-[380px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                  <iframe [src]="svc.safePdfUrl()" class="h-full w-full" frameborder="0"></iframe>
+                </div>
+              </div>
+            }
+
           </div>
         }
 
@@ -1091,5 +1146,101 @@ export class SectionEditorComponent {
     return this.sanitizer.bypassSecurityTrustResourceUrl(
       `https://www.youtube.com/embed/${videoId}`
     );
+  }
+
+  // ── File section helpers ─────────────────────────────────────────────
+
+  readonly fileReplaceMode = signal(false);
+  private stagedPdfObjectUrl: string | null = null;
+
+  readonly stagedPdfUrl = computed<SafeResourceUrl | null>(() => {
+    const file = this.svc.selectedFile();
+    if (!file || !file.name.toLowerCase().endsWith('.pdf')) return null;
+    // Revoke previous URL
+    if (this.stagedPdfObjectUrl) {
+      URL.revokeObjectURL(this.stagedPdfObjectUrl);
+    }
+    this.stagedPdfObjectUrl = URL.createObjectURL(file);
+    return this.sanitizer.bypassSecurityTrustResourceUrl(this.stagedPdfObjectUrl);
+  });
+
+  triggerFileReplace(): void {
+    this.fileReplaceMode.set(true);
+    this.svc.markDirty();
+  }
+
+  clearFileSelection(): void {
+    this.svc.selectedFile.set(null);
+    this.fileReplaceMode.set(false);
+    if (this.stagedPdfObjectUrl) {
+      URL.revokeObjectURL(this.stagedPdfObjectUrl);
+      this.stagedPdfObjectUrl = null;
+    }
+  }
+
+  onFileDrop(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver.set(false);
+    const file = event.dataTransfer?.files?.[0];
+    if (file) {
+      this.svc.selectedFile.set(file);
+      this.svc.markDirty();
+    }
+  }
+
+  getFileExtension(urlOrName: string): string {
+    const name = urlOrName.split('/').pop()?.split('?')[0] ?? '';
+    const ext = name.split('.').pop()?.toLowerCase() ?? '';
+    return ext || 'file';
+  }
+
+  getExtFromName(name: string): string {
+    return name.split('.').pop()?.toLowerCase() ?? 'file';
+  }
+
+  getFileName(url: string): string {
+    const decoded = decodeURIComponent(url.split('/').pop()?.split('?')[0] ?? '');
+    return decoded || 'Tài liệu';
+  }
+
+  getFileIconName(ext: string): string {
+    switch (ext) {
+      case 'pdf': return 'file-text';
+      case 'doc': case 'docx': return 'file-type';
+      case 'xls': case 'xlsx': case 'csv': return 'sheet';
+      case 'ppt': case 'pptx': return 'presentation';
+      default: return 'file';
+    }
+  }
+
+  getFileIconBgClass(ext: string): string {
+    switch (ext) {
+      case 'pdf': return 'bg-red-100';
+      case 'doc': case 'docx': return 'bg-blue-100';
+      case 'xls': case 'xlsx': case 'csv': return 'bg-green-100';
+      case 'ppt': case 'pptx': return 'bg-orange-100';
+      default: return 'bg-slate-100';
+    }
+  }
+
+  getFileIconColorClass(ext: string): string {
+    switch (ext) {
+      case 'pdf': return 'text-red-600';
+      case 'doc': case 'docx': return 'text-blue-600';
+      case 'xls': case 'xlsx': case 'csv': return 'text-green-600';
+      case 'ppt': case 'pptx': return 'text-orange-600';
+      default: return 'text-slate-500';
+    }
+  }
+
+  getFileTypeBadgeClass(ext: string): string {
+    switch (ext) {
+      case 'pdf': return 'bg-red-100 text-red-700';
+      case 'doc': case 'docx': return 'bg-blue-100 text-blue-700';
+      case 'xls': case 'xlsx': case 'csv': return 'bg-green-100 text-green-700';
+      case 'ppt': case 'pptx': return 'bg-orange-100 text-orange-700';
+      default: return 'bg-slate-100 text-slate-600';
+    }
   }
 }
