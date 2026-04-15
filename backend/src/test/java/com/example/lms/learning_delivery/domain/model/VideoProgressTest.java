@@ -59,16 +59,29 @@ class VideoProgressTest {
     }
 
     @Test
-    @DisplayName("90% threshold triggers completion")
-    void completionAt90Percent() {
+    @DisplayName("default 50% threshold triggers completion")
+    void completionAtDefaultThreshold() {
         VideoProgress vp = VideoProgress.create(UUID.randomUUID(), UUID.randomUUID(), "s1", 100);
+
+        vp.markWatched(0, 49);
+        assertThat(vp.isCompleted()).isFalse();
+
+        vp.markWatched(49, 50);
+        assertThat(vp.getWatchedSeconds()).isEqualTo(50);
+        assertThat(vp.getProgressPercent()).isEqualTo(50.0);
+        assertThat(vp.isCompleted()).isTrue();
+    }
+
+    @Test
+    @DisplayName("configurable threshold (90%) triggers completion at 90%")
+    void completionAtConfigurableThreshold() {
+        VideoProgress vp = VideoProgress.create(UUID.randomUUID(), UUID.randomUUID(), "s1", 100);
+        vp.setCompletionThreshold(90.0);
 
         vp.markWatched(0, 89);
         assertThat(vp.isCompleted()).isFalse();
 
         vp.markWatched(89, 90);
-        assertThat(vp.getWatchedSeconds()).isEqualTo(90);
-        assertThat(vp.getProgressPercent()).isEqualTo(90.0);
         assertThat(vp.isCompleted()).isTrue();
     }
 

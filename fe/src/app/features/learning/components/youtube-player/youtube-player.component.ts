@@ -85,6 +85,7 @@ export class YouTubePlayerComponent implements OnInit, OnDestroy {
   videoUrl = input.required<string>();
   lessonId = input.required<string>();
   sectionId = input.required<string>();
+  completionThreshold = input<number | undefined>(undefined);
   videoEnded = output<void>();
 
   private tracker = inject(WatchedSegmentsTracker);
@@ -133,7 +134,7 @@ export class YouTubePlayerComponent implements OnInit, OnDestroy {
 
     const duration = event.target.getDuration?.() || 0;
     if (duration > 0) {
-      this.tracker.startTracking(this.lessonId(), this.sectionId(), duration);
+      this.tracker.startTracking(this.lessonId(), this.sectionId(), duration, this.completionThreshold());
     }
 
     // Resume from last position

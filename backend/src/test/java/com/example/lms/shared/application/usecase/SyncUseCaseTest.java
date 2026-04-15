@@ -131,7 +131,7 @@ class SyncUseCaseTest {
             assertThat(result.rejected()).isZero();
             verify(videoProgressUseCase).trackSegments(
                     eq(STUDENT_ID), eq(lessonId), eq(sectionId),
-                    eq(300), eq(10), eq(60), eq(55.0));
+                    eq(300), eq(10), eq(60), eq(55.0), isNull());
         }
 
         @Test
@@ -248,7 +248,7 @@ class SyncUseCaseTest {
             assertThat(result.rejected()).isZero();
             verify(videoProgressUseCase).trackSegments(
                     eq(STUDENT_ID), eq(lessonId), eq("section-2"),
-                    eq(240), eq(20), eq(60), eq(58.0));
+                    eq(240), eq(20), eq(60), eq(58.0), isNull());
         }
     }
 

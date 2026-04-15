@@ -6,8 +6,7 @@ import java.util.UUID;
 
 public class VideoProgress {
 
-    // Default completion threshold — teacher can configure per-course/lesson in future
-    private static final double COMPLETION_THRESHOLD = 90.0;
+    private static final double DEFAULT_COMPLETION_THRESHOLD = 50.0;
 
     private UUID id;
     private UUID studentId;
@@ -21,6 +20,9 @@ public class VideoProgress {
     private double lastPosition;
     private Instant createdAt;
     private Instant updatedAt;
+
+    /** Transient — teacher-configurable threshold (10–100%). Not persisted to DB. */
+    private double completionThreshold = DEFAULT_COMPLETION_THRESHOLD;
 
     protected VideoProgress() {
         this.watchedSegments = new BitSet();
@@ -46,12 +48,20 @@ public class VideoProgress {
         recalculate();
     }
 
+    public void setCompletionThreshold(double threshold) {
+        this.completionThreshold = Math.max(10.0, Math.min(100.0, threshold));
+    }
+
+    public double getCompletionThreshold() {
+        return completionThreshold;
+    }
+
     public void recalculate() {
         this.watchedSeconds = watchedSegments.cardinality();
         this.progressPercent = durationSeconds > 0
                 ? Math.min(100.0, (double) watchedSeconds / durationSeconds * 100.0)
                 : 0.0;
-        this.completed = progressPercent >= COMPLETION_THRESHOLD;
+        this.completed = progressPercent >= completionThreshold;
         this.updatedAt = Instant.now();
     }
 

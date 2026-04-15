@@ -79,6 +79,7 @@ export interface SectionContent {
   duration?: number;
   orderIndex: number;
   isRequired: boolean;
+  completionThreshold?: number;
   quizData?: SectionQuizData;
 }
 

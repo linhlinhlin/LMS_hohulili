@@ -1216,32 +1216,30 @@ public class CourseQueryControllerV3 {
         if (blocks == null || blocks.isEmpty()) {
             return "";
         }
-
-        return blocks.stream()
-                .map(com.example.lms.shared.domain.model.ContentBlock::getData)
-                .filter(Objects::nonNull)
-                .map(this::extractTextFromBlockData)
-                .filter(text -> !text.isBlank())
-                .findFirst()
-                .orElse("");
-    }
-
-    private String extractTextFromBlockData(Map<String, Object> data) {
-        if (data == null || data.isEmpty()) {
-            return "";
+        StringBuilder sb = new StringBuilder();
+        for (var block : blocks) {
+            if (block.getData() == null) continue;
+            var data = block.getData();
+            Object rawText = firstNonNull(data.get("content"), data.get("text"), data.get("html"));
+            if (rawText != null && !rawText.toString().isBlank()) {
+                if (!sb.isEmpty()) sb.append(" ");
+                sb.append(normalizePreviewText(rawText.toString()));
+            } else {
+                String blockType = block.getType() != null ? block.getType().toLowerCase(java.util.Locale.ROOT) : "";
+                String fallback = switch (blockType) {
+                    case "image" -> "[Hình ảnh]";
+                    case "video" -> "[Video]";
+                    case "math", "formula", "katex" -> "[Công thức]";
+                    case "table" -> "[Bảng]";
+                    default -> null;
+                };
+                if (fallback != null) {
+                    if (!sb.isEmpty()) sb.append(" ");
+                    sb.append(fallback);
+                }
+            }
         }
-
-        Object rawText = firstNonNull(
-                data.get("content"),
-                data.get("text"),
-                data.get("html")
-        );
-
-        if (rawText == null) {
-            return "";
-        }
-
-        return normalizePreviewText(rawText.toString());
+        return sb.toString();
     }
 
     private Object firstNonNull(Object... values) {

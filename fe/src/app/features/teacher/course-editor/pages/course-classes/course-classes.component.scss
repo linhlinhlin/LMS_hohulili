@@ -1,15 +1,15 @@
+@import '../course-info/editor-shared';
+
 :host {
   display: block;
   min-height: 100%;
-  --editor-card-radius: 0.625rem;
-  --editor-control-radius: 0.5rem;
-  --editor-card-border: rgb(217 226 236);
-  --editor-card-header-border: rgb(214 223 236);
-  --editor-control-border: rgb(193 204 218);
 }
 
 .course-classes-page {
   min-height: 100%;
+  padding: 1.25rem;
+  max-width: 1040px;
+  margin: 0 auto;
 }
 
 .course-classes-page .editor-classes-panel {

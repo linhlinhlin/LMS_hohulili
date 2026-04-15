@@ -1,75 +1,236 @@
+@import '../course-info/editor-shared';
+
 :host {
   display: block;
   min-height: 100%;
-  --editor-card-radius: 0.625rem;
-  --editor-control-radius: 0.5rem;
-  --editor-card-border: rgb(217 226 236);
-  --editor-card-header-border: rgb(214 223 236);
-  --editor-control-border: rgb(193 204 218);
 }
 
 .course-settings-page {
   min-height: 100%;
+  padding: 1.25rem;
 }
 
-.course-settings-page .editor-settings-panel {
-  border-color: var(--editor-card-border) !important;
-  border-radius: var(--editor-card-radius) !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 14px 30px rgba(15, 23, 42, 0.035);
+/* ── Layout: same 2-column pattern as course-info ── */
+.settings-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  max-width: 1040px;
+  margin: 0 auto;
 }
 
-.course-settings-page .editor-settings-panel > div:first-child {
-  border-bottom-color: var(--editor-card-header-border) !important;
-  background: linear-gradient(180deg, rgb(243 246 249), rgb(235 240 246));
-  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.55);
+@media (min-width: 1024px) {
+  .settings-layout {
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 1.5rem;
+  }
 }
 
-.course-settings-page .editor-settings-panel > div:last-child {
-  background: linear-gradient(180deg, rgba(247, 250, 252, 0.98), rgba(242, 246, 250, 0.94));
+.settings-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
 }
 
-.course-settings-page .editor-settings-panel--danger > div:first-child {
-  background: linear-gradient(180deg, rgb(254 242 242), rgb(254 226 226));
+.settings-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  position: sticky;
+  top: 1.25rem;
 }
 
-.course-settings-page .rounded-xl {
-  border-radius: var(--editor-card-radius) !important;
+/* ── Toggle row (offline download, etc.) ── */
+.settings-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
-.course-settings-page .rounded-lg {
-  border-radius: var(--editor-control-radius) !important;
+.settings-toggle-row__label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(15 23 42);
+  margin: 0;
 }
 
-.course-settings-page button.rounded-lg,
-.course-settings-page button.rounded-xl,
-.course-settings-page input,
-.course-settings-page select,
-.course-settings-page textarea {
-  border-radius: var(--editor-control-radius) !important;
+.settings-toggle-row__hint {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: rgb(100 116 139);
 }
 
-.course-settings-page button.border,
-.course-settings-page input,
-.course-settings-page select,
-.course-settings-page textarea {
-  border-color: var(--editor-control-border);
+/* ── Toggle switch (accessible) ── */
+.settings-toggle {
+  position: relative;
+  display: inline-flex;
+  height: 1.5rem;
+  width: 2.75rem;
+  flex-shrink: 0;
+  align-items: center;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background: rgb(203 213 225);
+  cursor: pointer;
+  transition: background-color 200ms ease;
 }
 
-.course-settings-page input,
-.course-settings-page select,
-.course-settings-page textarea {
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.035), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-}
-
-.course-settings-page input:focus,
-.course-settings-page select:focus,
-.course-settings-page textarea:focus {
+.settings-toggle:focus-visible {
   outline: none;
-  border-color: rgb(0 86 210) !important;
-  box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.15);
 }
 
-.course-settings-page .editor-settings-save-button {
-  border-radius: var(--editor-control-radius) !important;
+.settings-toggle--on {
+  background: rgb(0 86 210);
+}
+
+.settings-toggle__knob {
+  display: inline-block;
+  height: 1.25rem;
+  width: 1.25rem;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: transform 200ms ease;
+  transform: translateX(0);
+}
+
+.settings-toggle__knob--on {
+  transform: translateX(1.25rem);
+}
+
+/* ── Coming Soon badge ── */
+.settings-badge {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.settings-badge--amber {
+  border: 1px solid rgb(253 224 71);
+  background: rgb(254 249 195);
+  color: rgb(161 98 7);
+}
+
+.settings-badge--green {
+  border: 1px solid rgb(134 239 172);
+  background: rgb(220 252 231);
+  color: rgb(21 128 61);
+}
+
+/* ── Feature list ── */
+.settings-features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.settings-feature-item {
+  display: flex;
+  gap: 0.875rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid rgb(241 245 249);
+}
+
+.settings-feature-item:first-child {
+  padding-top: 0;
+}
+
+.settings-feature-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.settings-feature-item__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.settings-feature-item__icon--active {
+  background: rgba(0, 86, 210, 0.08);
+  color: rgb(0 86 210);
+}
+
+.settings-feature-item__icon--upcoming {
+  background: rgb(254 249 195);
+  color: rgb(161 98 7);
+}
+
+.settings-feature-item__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-feature-item__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.settings-feature-item__title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgb(15 23 42);
+  margin: 0;
+}
+
+.settings-feature-item__desc {
+  font-size: 0.75rem;
+  color: rgb(100 116 139);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ── Save row ── */
+.settings-save-row {
+  display: flex;
+  justify-content: flex-end;
+  padding-bottom: 1rem;
+}
+
+/* ── Danger zone ── */
+.settings-danger-card {
+  border-color: rgb(254 202 202) !important;
+}
+
+.settings-danger-card__header {
+  background: rgb(254 242 242) !important;
+  border-bottom-color: rgb(254 202 202) !important;
+}
+
+.settings-danger-card__warning {
+  font-size: 0.75rem;
+  color: rgba(185, 28, 28, 0.7);
+  margin-bottom: 0.75rem;
+}
+
+.settings-danger-card__button {
+  width: 100%;
+  height: 2.25rem;
+  border: 1px solid rgb(252 165 165);
+  border-radius: var(--editor-control-radius);
+  background: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(220 38 38);
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+
+.settings-danger-card__button:hover {
+  background: rgb(254 226 226);
 }

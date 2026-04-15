@@ -74,13 +74,15 @@ import { ChapterDraftDTO, LessonDraftDTO } from '../../../../services/course-aut
                 <button type="button"
                   (click)="lessonClicked.emit(lesson)"
                   class="chapter-lesson-row">
-                  <span class="chapter-lesson-row__index">{{ i + 1 }}.</span>
-                  <span class="chapter-lesson-row__title"><span style="color: rgb(148 163 184); font-size: 0.6875rem; font-weight: 600">Bài {{ i + 1 }}</span> {{ stripLessonPrefix(lesson.title) }}</span>
-                  <span class="chapter-lesson-row__badge"
-                    [class.chapter-lesson-row__badge--quiz]="(lesson.type || 'LECTURE').toUpperCase() === 'QUIZ'"
-                    [class.chapter-lesson-row__badge--assignment]="(lesson.type || 'LECTURE').toUpperCase() === 'ASSIGNMENT'">
-                    {{ getLessonTypeLabel(lesson) }}
+                  <span class="chapter-lesson-row__dot" [class.chapter-lesson-row__dot--ready]="lesson.sections?.length > 0"></span>
+                  <span class="chapter-lesson-row__title">
+                    <span style="color: rgb(148 163 184); font-size: 0.6875rem; font-weight: 600">Bài {{ i + 1 }}</span>
+                    {{ stripLessonPrefix(lesson.title) }}
                   </span>
+                  <span class="chapter-lesson-row__meta">{{ lesson.sections?.length || 0 }} mục</span>
+                  <svg class="chapter-lesson-row__arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/>
+                  </svg>
                 </button>
               }
             </div>
@@ -213,22 +215,30 @@ import { ChapterDraftDTO, LessonDraftDTO } from '../../../../services/course-aut
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .chapter-lesson-row__badge {
+    .chapter-lesson-row__dot {
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 50%;
+      background: rgb(203 213 225);
+      flex-shrink: 0;
+    }
+    .chapter-lesson-row__dot--ready {
+      background: rgb(34 197 94);
+    }
+    .chapter-lesson-row__meta {
       font-size: 0.6875rem;
-      font-weight: 600;
-      padding: 0.2rem 0.5rem;
-      border-radius: 999px;
-      background: rgba(0, 86, 210, 0.08);
-      color: rgb(0 75 181);
+      color: rgb(148 163 184);
       white-space: nowrap;
+      flex-shrink: 0;
     }
-    .chapter-lesson-row__badge--quiz {
-      background: rgba(139, 92, 246, 0.1);
-      color: rgb(109 40 217);
+    .chapter-lesson-row__arrow {
+      width: 1rem;
+      height: 1rem;
+      color: rgb(203 213 225);
+      flex-shrink: 0;
     }
-    .chapter-lesson-row__badge--assignment {
-      background: rgba(16, 185, 129, 0.1);
-      color: rgb(4 120 87);
+    .chapter-lesson-row:hover .chapter-lesson-row__arrow {
+      color: rgb(0 86 210);
     }
   `],
 })

@@ -22,10 +22,13 @@ public class TrackVideoProgressUseCase {
     @Transactional
     public VideoProgressDTO trackSegments(UUID studentId, UUID lessonId, String sectionId,
                                            int durationSeconds, int fromSecond, int toSecond,
-                                           double lastPosition) {
+                                           double lastPosition, Double completionThreshold) {
         VideoProgress vp = videoProgressRepository.findByStudentAndSection(studentId, sectionId)
                 .orElseGet(() -> VideoProgress.create(studentId, lessonId, sectionId, durationSeconds));
 
+        if (completionThreshold != null && completionThreshold > 0) {
+            vp.setCompletionThreshold(completionThreshold);
+        }
         vp.updateDuration(durationSeconds);
         vp.markWatched(fromSecond, toSecond);
         vp.updateLastPosition(lastPosition);
@@ -61,7 +64,7 @@ public class TrackVideoProgressUseCase {
     @Transactional(readOnly = true)
     public boolean canProceed(UUID studentId, String sectionId) {
         return videoProgressRepository.findByStudentAndSection(studentId, sectionId)
-                .map(vp -> vp.isCompleted() || vp.getProgressPercent() >= 90.0)
+                .map(VideoProgress::isCompleted)
                 .orElse(false);
     }
 
@@ -111,7 +114,8 @@ public class TrackVideoProgressUseCase {
             int fromSecond,
             @jakarta.validation.constraints.PositiveOrZero(message = "Vị trí kết thúc không được âm")
             int toSecond,
-            double lastPosition
+            double lastPosition,
+            Double completionThreshold
     ) {}
 
     public record CanProceedResponse(boolean canProceed) {}

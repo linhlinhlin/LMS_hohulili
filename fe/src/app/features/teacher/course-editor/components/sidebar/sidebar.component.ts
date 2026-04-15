@@ -125,9 +125,9 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
       }
     }
 
-    /* ── Section items (Mục) ── */
+    /* ── Section items (Mục) — indented one level deeper than Bài ── */
     .sidebar-sections {
-      padding: 0.125rem 0.5rem 0.375rem 2.25rem;
+      padding: 0.125rem 0.5rem 0.375rem 3.25rem;
     }
     .sidebar-section-row {
       display: flex;
@@ -575,7 +575,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
             <h3 class="text-base font-bold text-slate-900">Thêm bài học</h3>
             <p class="text-xs text-slate-500 mt-0.5">Chương: {{ currentChapterForLesson()?.title }}</p>
           </div>
-          <div class="px-5 py-5 space-y-4">
+          <div class="px-5 py-5 space-y-3">
             <div>
               <label class="text-[13px] font-semibold text-slate-700 mb-2 block">Tên bài học</label>
               <input type="text" [(ngModel)]="newLessonTitle"
@@ -583,26 +583,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                      class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2] transition-all"
                      placeholder="Nhập tên bài học...">
             </div>
-            <div>
-              <label class="text-[13px] font-semibold text-slate-700 mb-2 block">Loại bài học</label>
-              <div class="grid grid-cols-3 gap-2">
-                <button type="button" (click)="newLessonType = 'LECTURE'"
-                        class="px-3 py-2 text-xs font-medium rounded-lg border transition-colors"
-                        [class]="newLessonType === 'LECTURE' ? 'border-[#0056D2] bg-[#E8F0FE] text-[#0056D2]' : 'border-slate-200 text-slate-600 hover:border-slate-300'">
-                  Bài giảng
-                </button>
-                <button type="button" (click)="newLessonType = 'QUIZ'"
-                        class="px-3 py-2 text-xs font-medium rounded-lg border transition-colors"
-                        [class]="newLessonType === 'QUIZ' ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'">
-                  Trắc nghiệm
-                </button>
-                <button type="button" (click)="newLessonType = 'ASSIGNMENT'"
-                        class="px-3 py-2 text-xs font-medium rounded-lg border transition-colors"
-                        [class]="newLessonType === 'ASSIGNMENT' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'">
-                  Bài tập
-                </button>
-              </div>
-            </div>
+            <p class="text-xs text-slate-400 leading-relaxed">Sau khi tạo, bạn có thể thêm nội dung (văn bản, video, tài liệu, trắc nghiệm) vào bài học.</p>
           </div>
           <div class="px-5 py-3.5 bg-slate-50 flex justify-end gap-2.5 border-t border-slate-100">
             <button (click)="closeModals()" class="px-4 py-2.5 text-[13px] font-semibold text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-200 transition-colors">Hủy</button>
@@ -1144,51 +1125,11 @@ export class CourseEditorSidebarComponent implements OnDestroy {
     this.isCreating.set(true);
 
     try {
-      if (this.newLessonType === 'LECTURE') {
-        await firstValueFrom(this.lessonApi.createLesson(chapter.id, {
-          title,
-          type: 'LECTURE',
-          content: undefined
-        }));
-      } else if (this.newLessonType === 'QUIZ') {
-        await firstValueFrom(this.quizApi.createChapterQuiz(chapter.id, {
-          title,
-          description: '',
-          timeLimitMinutes: 30,
-          maxAttempts: 1,
-          passingScore: 60,
-          shuffleQuestions: true,
-          shuffleOptions: true,
-          showResultsImmediately: true,
-          showCorrectAnswers: false,
-          questionIds: [],
-          publishImmediately: false
-        }));
-      } else {
-        const lessonResponse: any = await firstValueFrom(this.lessonApi.createLesson(chapter.id, {
-          title,
-          type: 'ASSIGNMENT',
-          content: undefined
-        }));
-        const lessonId = lessonResponse?.data?.id ?? lessonResponse?.data;
-        if (!lessonId) {
-          throw new Error('Khong the khoi tao lesson assignment');
-        }
-
-        try {
-          await firstValueFrom(this.assignmentApi.createAssignment(courseId, {
-            lessonId,
-            title,
-            description: '',
-            instructions: '',
-            maxScore: 100,
-            distributionType: 'ALL_STUDENTS'
-          }));
-        } catch (assignmentError) {
-          await this.rollbackLessonCreation(lessonId, courseId);
-          throw assignmentError;
-        }
-      }
+      await firstValueFrom(this.lessonApi.createLesson(chapter.id, {
+        title,
+        type: 'LECTURE',
+        content: undefined
+      }));
 
       this.closeModals();
       this.toast.success('Đã tạo bài học mới');

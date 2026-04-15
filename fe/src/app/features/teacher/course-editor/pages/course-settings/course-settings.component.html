@@ -1,235 +1,140 @@
-<div class="course-settings-page mx-auto max-w-screen-2xl px-5 py-5 sm:px-8">
-  <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-    <div class="min-w-0 space-y-5">
-      <section class="editor-settings-panel overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div class="border-b border-slate-100 bg-slate-50/60 px-5 py-3.5">
-          <h2 class="text-sm font-semibold text-slate-900">Hiển thị & đăng ký</h2>
-          <p class="mt-0.5 text-xs text-slate-500">
-            Kiểm soát ai có thể tìm thấy khóa học và xem phần giới thiệu công khai.
-          </p>
+<div class="course-settings-page">
+  <div class="settings-layout">
+    <div class="settings-main">
+
+      <!-- ═══ Học tập & trải nghiệm ═══ -->
+      <section class="editor-card">
+        <div class="editor-card__header">
+          <h2 class="editor-card__title">Học tập & trải nghiệm</h2>
+          <p class="editor-card__subtitle">Thiết lập cách học viên trải nghiệm nội dung khóa học.</p>
         </div>
-
-        <div class="space-y-5 p-5">
-          <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-            Trang này hiện lưu được cài đặt hiển thị của khóa học. Các thiết lập đăng ký, mở bài theo tiến độ và chứng chỉ sẽ được bật khi contract backend hoàn thiện.
-          </div>
-
-          <fieldset class="space-y-3">
-            <legend class="text-sm font-semibold text-slate-900">Chế độ hiển thị</legend>
-            <p class="text-xs text-slate-500">
-              Dùng chế độ công khai khi bạn muốn khóa học xuất hiện trong danh mục. Dùng riêng tư khi chỉ chia sẻ cho người được mời.
-            </p>
-
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                class="rounded-lg border p-4 text-left transition-all"
-                [class.border-[#0056D2]]="visibility() === 'public'"
-                [class.bg-[#0056D2]/5]="visibility() === 'public'"
-                [class.shadow-sm]="visibility() === 'public'"
-                [class.border-slate-200]="visibility() !== 'public'"
-                [class.hover:border-slate-300]="visibility() !== 'public'"
-                (click)="setVisibility('public')"
-              >
-                <div class="mb-1.5 flex items-center justify-between gap-3">
-                  <span class="text-sm font-semibold text-slate-900">Công khai</span>
-                  <span
-                    class="inline-flex h-4 w-4 items-center justify-center rounded-full border"
-                    [class.border-[#0056D2]]="visibility() === 'public'"
-                    [class.bg-[#0056D2]]="visibility() === 'public'"
-                    [class.border-slate-300]="visibility() !== 'public'"
-                  >
-                    @if (visibility() === 'public') {
-                      <span class="h-1.5 w-1.5 rounded-full bg-white"></span>
-                    }
-                  </span>
-                </div>
-                <p class="text-xs leading-5 text-slate-500">
-                  Bất kỳ ai cũng có thể tìm thấy khóa học và xem phần giới thiệu trước khi đăng ký.
-                </p>
-              </button>
-
-              <button
-                type="button"
-                class="rounded-lg border p-4 text-left transition-all"
-                [class.border-[#0056D2]]="visibility() === 'private'"
-                [class.bg-[#0056D2]/5]="visibility() === 'private'"
-                [class.shadow-sm]="visibility() === 'private'"
-                [class.border-slate-200]="visibility() !== 'private'"
-                [class.hover:border-slate-300]="visibility() !== 'private'"
-                (click)="setVisibility('private')"
-              >
-                <div class="mb-1.5 flex items-center justify-between gap-3">
-                  <span class="text-sm font-semibold text-slate-900">Riêng tư</span>
-                  <span
-                    class="inline-flex h-4 w-4 items-center justify-center rounded-full border"
-                    [class.border-[#0056D2]]="visibility() === 'private'"
-                    [class.bg-[#0056D2]]="visibility() === 'private'"
-                    [class.border-slate-300]="visibility() !== 'private'"
-                  >
-                    @if (visibility() === 'private') {
-                      <span class="h-1.5 w-1.5 rounded-full bg-white"></span>
-                    }
-                  </span>
-                </div>
-                <p class="text-xs leading-5 text-slate-500">
-                  Chỉ học viên được mời hoặc được cấp quyền mới có thể truy cập khóa học.
-                </p>
-              </button>
-            </div>
-          </fieldset>
-
-          <!-- Offline Download Toggle -->
-          <div class="border-t border-slate-100 pt-5">
-            <div class="flex items-center justify-between">
-              <div>
-                <h3 class="text-sm font-medium text-slate-900">Cho phép tải về offline</h3>
-                <p class="mt-0.5 text-xs text-slate-500">Học viên có thể tải nội dung để học khi không có mạng</p>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                [attr.aria-checked]="allowOfflineDownload()"
-                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-                [class.bg-[#0056D2]]="allowOfflineDownload()"
-                [class.bg-slate-300]="!allowOfflineDownload()"
-                (click)="allowOfflineDownload.set(!allowOfflineDownload())"
-              >
-                <span
-                  class="inline-block h-4 w-4 rounded-full bg-white transition-transform"
-                  [class.translate-x-6]="allowOfflineDownload()"
-                  [class.translate-x-1]="!allowOfflineDownload()"
-                ></span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="editor-settings-panel overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div class="border-b border-slate-100 bg-slate-50/60 px-5 py-3.5">
-          <h2 class="text-sm font-semibold text-slate-900">Tải xuống ngoại tuyến</h2>
-          <p class="mt-0.5 text-xs text-slate-500">
-            Cho phép học viên tải nội dung khóa học để xem khi không có mạng.
-          </p>
-        </div>
-
-        <div class="p-5">
-          <label class="flex cursor-pointer items-center justify-between gap-4">
+        <div class="editor-card__body">
+          <div class="settings-toggle-row">
             <div>
-              <span class="text-sm font-medium text-slate-900">Cho phép tải xuống</span>
-              <p class="mt-0.5 text-xs text-slate-500">
-                Học viên có thể tải bài giảng, video và tài liệu để xem ngoại tuyến.
-              </p>
+              <h3 class="settings-toggle-row__label">Cho phép tải về ngoại tuyến</h3>
+              <p class="settings-toggle-row__hint">Học viên có thể tải bài giảng, video và tài liệu để học khi không có mạng.</p>
             </div>
-            <button
-              type="button"
-              role="switch"
+            <button type="button" role="switch"
               [attr.aria-checked]="allowOfflineDownload()"
-              (click)="toggleOfflineDownload()"
-              class="relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:ring-offset-2"
-              [class.bg-[#0056D2]]="allowOfflineDownload()"
-              [class.bg-slate-200]="!allowOfflineDownload()"
-            >
-              <span
-                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                [class.translate-x-5]="allowOfflineDownload()"
-                [class.translate-x-0]="!allowOfflineDownload()"
-              ></span>
+              [attr.aria-label]="'Cho phép tải về ngoại tuyến: ' + (allowOfflineDownload() ? 'Bật' : 'Tắt')"
+              class="settings-toggle"
+              [class.settings-toggle--on]="allowOfflineDownload()"
+              (click)="allowOfflineDownload.set(!allowOfflineDownload())">
+              <span class="settings-toggle__knob"
+                [class.settings-toggle__knob--on]="allowOfflineDownload()"></span>
             </button>
-          </label>
-        </div>
-      </section>
-
-      <section class="editor-settings-panel overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/60 px-5 py-3.5">
-          <div>
-            <h2 class="text-sm font-semibold text-slate-900">Thiết lập nâng cao</h2>
-            <p class="mt-0.5 text-xs text-slate-500">
-              Các nhóm cài đặt dưới đây đã được chốt hướng sản phẩm nhưng chưa mở runtime.
-            </p>
-          </div>
-          <span class="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-600">
-            Sắp ra mắt
-          </span>
-        </div>
-
-        <div class="space-y-4 p-5">
-          <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-              <h3 class="text-sm font-medium text-slate-900">Đăng ký & sĩ số</h3>
-              <p class="mt-1 text-xs leading-5 text-slate-500">
-                Cho phép tự đăng ký, giới hạn sĩ số theo lớp, và các policy ghi danh theo mode Khóa học hoặc Lớp học.
-              </p>
-            </div>
-
-            <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-              <h3 class="text-sm font-medium text-slate-900">Mở bài theo tiến độ</h3>
-              <p class="mt-1 text-xs leading-5 text-slate-500">
-                Thiết lập tuần tự, mở theo lịch, hoặc mở dựa trên tiến độ hoàn thành để hỗ trợ các luồng học có kiểm soát.
-              </p>
-            </div>
-
-            <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-              <h3 class="text-sm font-medium text-slate-900">Chứng chỉ hoàn thành</h3>
-              <p class="mt-1 text-xs leading-5 text-slate-500">
-                Tự động cấp chứng chỉ khi học viên hoàn thành khóa học và đạt điều kiện đánh giá.
-              </p>
-            </div>
-
-            <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-              <h3 class="text-sm font-medium text-slate-900">Ranh giới Khóa học và Lớp học</h3>
-              <p class="mt-1 text-xs leading-5 text-slate-500">
-                Các policy delivery nâng cao sẽ bám đúng boundary hiện tại: nội dung thuộc Khóa học, phân phối thuộc Lớp học.
-              </p>
-            </div>
-          </div>
-
-          <div class="rounded-lg border border-dashed border-slate-300 px-4 py-3 text-xs leading-5 text-slate-500">
-            Khi backend chưa hỗ trợ đầy đủ, các cài đặt này sẽ không xuất hiện dưới dạng control tương tác để tránh tạo cảm giác đã lưu thành công nhưng runtime chưa áp dụng.
           </div>
         </div>
       </section>
 
-      <div class="flex justify-end pb-4">
-        <button
-          type="button"
-          (click)="saveSettings()"
+      <!-- ═══ Tính năng hệ thống ═══ -->
+      <section class="editor-card">
+        <div class="editor-card__header">
+          <h2 class="editor-card__title">Tính năng hệ thống</h2>
+          <p class="editor-card__subtitle">Các tính năng đã tích hợp sẵn trong khóa học.</p>
+        </div>
+        <div class="editor-card__body">
+          <div class="settings-features-list">
+
+            <div class="settings-feature-item">
+              <div class="settings-feature-item__icon settings-feature-item__icon--active">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a23.838 23.838 0 0 0-1.012 5.434c3.089.997 5.57 3.052 6.744 5.72"/>
+                </svg>
+              </div>
+              <div class="settings-feature-item__content">
+                <div class="settings-feature-item__header">
+                  <h3 class="settings-feature-item__title">Chứng chỉ hoàn thành</h3>
+                  <span class="settings-badge settings-badge--green">Đang hoạt động</span>
+                </div>
+                <p class="settings-feature-item__desc">Tự động cấp chứng chỉ khi học viên hoàn thành 100% khóa học và vượt qua tất cả bài thi có đánh dấu "Tính vào chứng chỉ". Học viên có thể tải PDF và xác minh trực tuyến.</p>
+              </div>
+            </div>
+
+            <div class="settings-feature-item">
+              <div class="settings-feature-item__icon settings-feature-item__icon--active">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772"/>
+                </svg>
+              </div>
+              <div class="settings-feature-item__content">
+                <div class="settings-feature-item__header">
+                  <h3 class="settings-feature-item__title">Đăng ký & sĩ số</h3>
+                  <span class="settings-badge settings-badge--green">Đang hoạt động</span>
+                </div>
+                <p class="settings-feature-item__desc">Học viên tự đăng ký qua trang khóa học. Khóa học trả phí yêu cầu thanh toán trước. Giới hạn sĩ số theo lớp học (mặc định 9.999).</p>
+              </div>
+            </div>
+
+            <div class="settings-feature-item">
+              <div class="settings-feature-item__icon settings-feature-item__icon--active">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6Z"/>
+                </svg>
+              </div>
+              <div class="settings-feature-item__content">
+                <div class="settings-feature-item__header">
+                  <h3 class="settings-feature-item__title">Khóa học & Lớp học</h3>
+                  <span class="settings-badge settings-badge--green">Đang hoạt động</span>
+                </div>
+                <p class="settings-feature-item__desc">Nội dung thuộc khóa học, phân phối qua lớp học. Hỗ trợ ghim phiên bản hoặc tự động cập nhật khi xuất bản mới.</p>
+              </div>
+            </div>
+
+            <div class="settings-feature-item">
+              <div class="settings-feature-item__icon settings-feature-item__icon--upcoming">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/>
+                </svg>
+              </div>
+              <div class="settings-feature-item__content">
+                <div class="settings-feature-item__header">
+                  <h3 class="settings-feature-item__title">Mở bài theo tiến độ</h3>
+                  <span class="settings-badge settings-badge--amber">Sắp ra mắt</span>
+                </div>
+                <p class="settings-feature-item__desc">Mở bài học tuần tự, theo lịch, hoặc theo tiến độ hoàn thành để hỗ trợ luồng học có kiểm soát.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- Save -->
+      <div class="settings-save-row">
+        <button type="button" (click)="saveSettings()"
           [disabled]="isLoading() || !hasPersistableChanges()"
-          class="editor-settings-save-button inline-flex h-10 items-center gap-2 rounded-lg bg-[#0056D2] px-6 text-sm font-medium text-white transition-colors hover:bg-[#004BB5] disabled:cursor-not-allowed disabled:opacity-50"
-        >
+          [attr.aria-busy]="isLoading()"
+          class="editor-primary-button">
           @if (isLoading()) {
             <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
           }
-          <span>Lưu thay đổi</span>
+          Lưu thay đổi
         </button>
       </div>
     </div>
 
-    <div class="space-y-5 lg:sticky lg:top-5">
-      <section class="editor-settings-panel overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div class="border-b border-slate-100 bg-slate-50/60 px-5 py-3.5">
-          <h2 class="text-sm font-semibold text-slate-900">Giảng viên</h2>
+    <!-- ═══ Sidebar ═══ -->
+    <div class="settings-sidebar">
+      <section class="editor-card">
+        <div class="editor-card__header">
+          <h2 class="editor-card__title">Giảng viên</h2>
         </div>
-        <div class="p-4">
+        <div class="editor-card__body">
           <app-course-instructors [courseId]="store.courseTree()?.id || ''"></app-course-instructors>
         </div>
       </section>
 
-      <section class="editor-settings-panel editor-settings-panel--danger overflow-hidden rounded-xl border border-red-200 bg-red-50">
-        <div class="border-b border-red-100 px-5 py-3.5">
-          <h2 class="text-sm font-semibold text-red-700">Vùng nguy hiểm</h2>
+      <section class="editor-card settings-danger-card">
+        <div class="editor-card__header settings-danger-card__header">
+          <h2 class="editor-card__title" style="color: rgb(185 28 28)">Vùng nguy hiểm</h2>
         </div>
-        <div class="p-4">
-          <p class="mb-3 text-xs text-red-600/70">Hành động này không thể hoàn tác.</p>
-          <button
-            type="button"
-            (click)="deleteCourse()"
-            class="h-9 w-full rounded-lg border border-red-300 bg-white text-sm font-medium text-red-600 transition-colors hover:bg-red-100"
-          >
+        <div class="editor-card__body">
+          <p class="settings-danger-card__warning">Hành động này không thể hoàn tác.</p>
+          <button type="button" (click)="deleteCourse()" class="settings-danger-card__button">
             Xóa khóa học
           </button>
         </div>

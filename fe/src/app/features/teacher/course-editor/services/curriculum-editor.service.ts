@@ -67,6 +67,7 @@ export class CurriculumEditorService {
   readonly sectionTitle = signal('');
   readonly sectionContent = signal('');
   readonly sectionIsRequired = signal(false);
+  readonly sectionCompletionThreshold = signal(50);
 
   // Video
   readonly sectionVideoAssetId = signal<string | null>(null);
@@ -94,6 +95,7 @@ export class CurriculumEditorService {
   readonly sectionQuizShuffleQuestions = signal(true);
   readonly sectionQuizShuffleOptions = signal(true);
   readonly sectionQuizShowResults = signal(true);
+  readonly sectionQuizShowCorrectAnswers = signal(true);
   readonly sectionQuizSelectedQuestions = signal<any[]>([]);
 
   // Quiz modals
@@ -163,6 +165,11 @@ export class CurriculumEditorService {
 
     if (type === 'VIDEO' && !this.sectionVideoAssetId() && !this.sectionVideoUrl() && !this.selectedSectionVideoFile()) {
       this.toast.error('Mục video cần một video. Hãy tải lên hoặc nhập URL.');
+      return false;
+    }
+
+    if (type === 'QUIZ' && this.sectionQuizSelectedQuestions().length === 0) {
+      this.toast.error('Bài trắc nghiệm cần ít nhất 1 câu hỏi. Hãy chọn từ ngân hàng hoặc thêm ngẫu nhiên.');
       return false;
     }
 
@@ -350,6 +357,7 @@ export class CurriculumEditorService {
       payload['videoUrl'] = this.sectionVideoUrl();
       payload['videoType'] = this.sectionVideoType();
       payload['streamVideoUid'] = this.sectionStreamVideoUid();
+      payload['completionThreshold'] = this.sectionCompletionThreshold();
     } else if (type === 'QUIZ') {
       payload['quizData'] = {
         quizType: this.sectionQuizType(),
@@ -360,6 +368,7 @@ export class CurriculumEditorService {
         shuffleQuestions: this.sectionQuizShuffleQuestions(),
         shuffleOptions: this.sectionQuizShuffleOptions(),
         showResultsImmediately: this.sectionQuizShowResults(),
+        showCorrectAnswers: this.sectionQuizShowCorrectAnswers(),
         questionIds: this.sectionQuizSelectedQuestions().map((q: any) => q.id),
       };
     }
@@ -372,6 +381,7 @@ export class CurriculumEditorService {
     this.sectionTitle.set(this.stripSectionPrefix(section.title || ''));
     this.sectionContent.set(section.content || '');
     this.sectionIsRequired.set(section.isRequired ?? false);
+    this.sectionCompletionThreshold.set(section.completionThreshold ?? 50);
 
     // Video
     this.sectionVideoAssetId.set(section.videoAssetId ?? null);
@@ -419,6 +429,7 @@ export class CurriculumEditorService {
       this.sectionQuizShuffleQuestions.set(qd.shuffleQuestions ?? true);
       this.sectionQuizShuffleOptions.set(qd.shuffleOptions ?? true);
       this.sectionQuizShowResults.set(qd.showResultsImmediately ?? true);
+      this.sectionQuizShowCorrectAnswers.set(qd.showCorrectAnswers ?? true);
       this.sectionQuizSelectedQuestions.set(qd.questions ?? []);
     } else {
       this.resetQuizFields();
@@ -436,6 +447,7 @@ export class CurriculumEditorService {
     this.sectionTitle.set('');
     this.sectionContent.set('');
     this.sectionIsRequired.set(false);
+    this.sectionCompletionThreshold.set(50);
 
     this.sectionVideoAssetId.set(null);
     this.sectionVideoProcessingStatus.set(null);
@@ -473,6 +485,7 @@ export class CurriculumEditorService {
     this.sectionQuizShuffleQuestions.set(true);
     this.sectionQuizShuffleOptions.set(true);
     this.sectionQuizShowResults.set(true);
+    this.sectionQuizShowCorrectAnswers.set(true);
     this.sectionQuizSelectedQuestions.set([]);
     this.showSectionQuizBankModal.set(false);
     this.showSectionQuizRandomModal.set(false);

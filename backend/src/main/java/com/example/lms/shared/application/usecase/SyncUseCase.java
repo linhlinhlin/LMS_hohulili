@@ -235,9 +235,11 @@ public class SyncUseCase {
                 return false;
             }
 
+            Double completionThreshold = getDouble(payload, "completionThreshold", 0.0);
             videoProgressUseCase.trackSegments(
                     studentId, lessonId, sectionId,
-                    duration, fromSecond, toSecond, lastPosition);
+                    duration, fromSecond, toSecond, lastPosition,
+                    completionThreshold > 0 ? completionThreshold : null);
 
             log.debug("Video progress synced: student={}, section={}", studentId, sectionId);
             return true;

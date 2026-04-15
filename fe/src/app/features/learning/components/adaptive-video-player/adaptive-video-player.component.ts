@@ -132,6 +132,7 @@ export class AdaptiveVideoPlayerComponent {
   readonly streamVideoUid = input<string | null>(null);
   readonly offlineVideoUrl = input<string | null>(null);
   readonly posterUrl = input<string | null>(null);
+  readonly completionThreshold = input<number | undefined>(undefined);
 
   readonly videoEnded = output<void>();
 
@@ -201,7 +202,7 @@ export class AdaptiveVideoPlayerComponent {
       return;
     }
 
-    this.tracker.startTracking(this.lessonId(), sectionId, video.duration || 0);
+    this.tracker.startTracking(this.lessonId(), sectionId, video.duration || 0, this.completionThreshold());
     this.restoreResumePosition(sectionId, video);
   }
 

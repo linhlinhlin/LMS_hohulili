@@ -462,7 +462,8 @@ export class LessonContentComponent implements AfterViewInit {
     this.tracker.startTracking(
       this.lesson().id,
       section.id,
-      video.duration || 0
+      video.duration || 0,
+      section.completionThreshold
     );
 
     // Resume from last position

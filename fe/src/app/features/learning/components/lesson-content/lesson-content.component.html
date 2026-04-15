@@ -261,12 +261,13 @@
       <div class="relative aspect-video w-full rounded-lg overflow-hidden shadow-sm bg-black border border-gray-100 mb-6">
         @if (!section.streamVideoUid && isYouTubeUrl(section.videoUrl || lesson().videoUrl)) {
         <app-youtube-player [videoUrl]="(section.videoUrl || lesson().videoUrl)!" [lessonId]="lesson().id" [sectionId]="section.id"
-          (videoEnded)="onVideoEnd()" />
+          [completionThreshold]="section.completionThreshold" (videoEnded)="onVideoEnd()" />
         } @else {
         <app-adaptive-video-player [lessonId]="lesson().id" [sectionId]="section.id"
           [videoAssetId]="section.videoAssetId || null" [videoSourceKind]="section.videoSourceKind || null"
           [rawVideoUrl]="section.videoUrl || null" [streamVideoUid]="section.streamVideoUid || null"
-          [offlineVideoUrl]="resolveSectionOfflineVideoUrl(section)" (videoEnded)="onVideoEnd()" />
+          [offlineVideoUrl]="resolveSectionOfflineVideoUrl(section)"
+          [completionThreshold]="section.completionThreshold" (videoEnded)="onVideoEnd()" />
         }
         <!-- Thin progress bar at top -->
         <div class="absolute top-0 left-0 right-0 h-[3px] bg-white/10 z-10">

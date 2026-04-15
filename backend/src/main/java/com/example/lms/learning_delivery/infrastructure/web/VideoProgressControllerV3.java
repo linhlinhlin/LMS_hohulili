@@ -40,7 +40,8 @@ public class VideoProgressControllerV3 {
                 request.durationSeconds(),
                 request.fromSecond(),
                 request.toSecond(),
-                request.lastPosition()
+                request.lastPosition(),
+                request.completionThreshold()
         );
         return ResponseEntity.ok(ApiResponse.success(result, "Đã ghi nhận tiến độ"));
     }

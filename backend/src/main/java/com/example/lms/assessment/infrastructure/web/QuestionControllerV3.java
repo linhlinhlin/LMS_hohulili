@@ -878,14 +878,30 @@ public class QuestionControllerV3 {
         }
         StringBuilder sb = new StringBuilder();
         for (var block : blocks) {
-            if (block.getData() != null) {
-                Object text = block.getData().get("text");
-                if (text == null) {
-                    text = block.getData().get("html");
-                }
-                if (text != null) {
+            if (block.getData() == null) continue;
+            var data = block.getData();
+            boolean found = false;
+            for (String key : List.of("html", "text", "content")) {
+                Object val = data.get(key);
+                if (val != null && !val.toString().isBlank()) {
                     if (sb.length() > 0) sb.append(" ");
-                    sb.append(text.toString());
+                    sb.append(val);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                String blockType = block.getType() != null ? block.getType().toLowerCase(java.util.Locale.ROOT) : "";
+                String fallback = switch (blockType) {
+                    case "image" -> "[Hình ảnh]";
+                    case "video" -> "[Video]";
+                    case "math", "formula", "katex" -> "[Công thức]";
+                    case "table" -> "[Bảng]";
+                    default -> null;
+                };
+                if (fallback != null) {
+                    if (sb.length() > 0) sb.append(" ");
+                    sb.append(fallback);
                 }
             }
         }

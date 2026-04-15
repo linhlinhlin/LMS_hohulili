@@ -8,8 +8,10 @@ import {
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { PackageApi } from '../../../../../../../api/endpoints/package.api';
+import { QuestionApi } from '../../../../../../../api/endpoints/question.api';
 import { ToastService } from '../../../../../../../core/services/toast.service';
 import { CurriculumEditorService } from '../../../../services/curriculum-editor.service';
+import { BlockRendererComponent } from '../../../../../../../shared/blocks/block-renderer/block-renderer.component';
 
 /**
  * Quiz Package Modals — self-contained component for quiz bank + random question selection.
@@ -21,7 +23,7 @@ import { CurriculumEditorService } from '../../../../services/curriculum-editor.
 @Component({
   selector: 'app-quiz-package-modals',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule],
+  imports: [FormsModule, BlockRendererComponent],
   template: `
     <!-- ═══ Quiz Bank Modal ═══ -->
     @if (svc.showSectionQuizBankModal()) {
@@ -64,26 +66,87 @@ import { CurriculumEditorService } from '../../../../services/curriculum-editor.
                     <button (click)="clearSelection()" class="text-xs text-gray-600 hover:underline">Bỏ chọn</button>
                   </div>
                 </div>
-                <div class="max-h-64 overflow-y-auto p-3 space-y-2">
+                <div class="max-h-80 overflow-y-auto p-3 space-y-2">
                   @for (q of questions(); track q.id) {
-                    <label class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors"
-                      [class.border-rose-500]="selectedIds().has(q.id)"
-                      [class.bg-rose-50]="selectedIds().has(q.id)">
-                      <input type="checkbox" [checked]="selectedIds().has(q.id)"
-                        (change)="toggleQuestion(q.id)" class="mt-1 h-4 w-4 text-rose-600 rounded" />
-                      <div class="flex-1 min-w-0">
-                        <p class="text-sm text-gray-900">{{ q.content }}</p>
-                        <span class="text-[10px] px-1.5 py-0.5 rounded mt-1 inline-block"
-                          [class.bg-green-100]="q.difficulty === 'EASY'"
-                          [class.text-green-700]="q.difficulty === 'EASY'"
-                          [class.bg-yellow-100]="q.difficulty === 'MEDIUM'"
-                          [class.text-yellow-700]="q.difficulty === 'MEDIUM'"
-                          [class.bg-red-100]="q.difficulty === 'HARD'"
-                          [class.text-red-700]="q.difficulty === 'HARD'">
-                          {{ q.difficulty === 'EASY' ? 'Dễ' : q.difficulty === 'MEDIUM' ? 'TB' : 'Khó' }}
-                        </span>
+                    <div class="rounded-lg border transition-colors"
+                      [class.border-[#0056D2]]="selectedIds().has(q.id)"
+                      [class.bg-[#0056D2]/5]="selectedIds().has(q.id)">
+                      <!-- Row: checkbox + text + preview toggle -->
+                      <div class="flex items-center gap-3 p-3">
+                        <input type="checkbox" [checked]="selectedIds().has(q.id)"
+                          (change)="toggleQuestion(q.id)" class="h-4 w-4 text-[#0056D2] rounded shrink-0" />
+                        <div class="flex-1 min-w-0 cursor-pointer" (click)="toggleQuestion(q.id)">
+                          <p class="text-sm text-gray-900 line-clamp-1">{{ q.content || 'Câu hỏi chưa có nội dung' }}</p>
+                          <div class="flex items-center gap-1.5 mt-1">
+                            <span class="text-[10px] px-1.5 py-0.5 rounded-full"
+                              [class.bg-green-100]="q.difficulty === 'EASY'"
+                              [class.text-green-700]="q.difficulty === 'EASY'"
+                              [class.bg-yellow-100]="q.difficulty === 'MEDIUM'"
+                              [class.text-yellow-700]="q.difficulty === 'MEDIUM'"
+                              [class.bg-red-100]="q.difficulty === 'HARD'"
+                              [class.text-red-700]="q.difficulty === 'HARD'">
+                              {{ q.difficulty === 'EASY' ? 'Dễ' : q.difficulty === 'MEDIUM' ? 'TB' : 'Khó' }}
+                            </span>
+                          </div>
+                        </div>
+                        <button type="button" (click)="$event.stopPropagation(); togglePreview(q.id)"
+                          class="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-[#0056D2] hover:bg-[#0056D2]/10 transition-colors"
+                          [title]="previewIds().has(q.id) ? 'Thu gọn' : 'Xem trước'">
+                          <svg class="w-4 h-4 transition-transform" [class.rotate-180]="previewIds().has(q.id)"
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/>
+                          </svg>
+                        </button>
                       </div>
-                    </label>
+
+                      <!-- Expanded preview (lazy-loaded) -->
+                      @if (previewIds().has(q.id)) {
+                        <div class="px-4 pb-3 ml-10 border-t border-gray-100">
+                          @if (previewCache().has(q.id)) {
+                            <div class="pt-2 text-sm text-gray-800 leading-relaxed">
+                              @if ($any(previewCache().get(q.id)).contentBlocks?.length > 0) {
+                                <app-block-renderer [blocks]="$any(previewCache().get(q.id)).contentBlocks"></app-block-renderer>
+                              } @else {
+                                <p class="whitespace-pre-line">{{ $any(previewCache().get(q.id)).content }}</p>
+                              }
+                              @if ($any(previewCache().get(q.id)).options?.length > 0) {
+                                <div class="mt-2 space-y-1">
+                                  @for (opt of $any(previewCache().get(q.id)).options; track opt.optionKey) {
+                                    <div class="flex items-start gap-2 rounded px-2.5 py-1.5 text-xs"
+                                         [class.bg-emerald-50]="opt.optionKey === $any(previewCache().get(q.id)).correctOption"
+                                         [class.text-emerald-800]="opt.optionKey === $any(previewCache().get(q.id)).correctOption"
+                                         [class.bg-gray-50]="opt.optionKey !== $any(previewCache().get(q.id)).correctOption"
+                                         [class.text-gray-600]="opt.optionKey !== $any(previewCache().get(q.id)).correctOption">
+                                      <span class="font-semibold w-4 shrink-0">{{ opt.optionKey }}.</span>
+                                      <span class="flex-1">
+                                        @if ($any(opt).contentBlocks?.length > 0) {
+                                          <app-block-renderer [blocks]="$any(opt).contentBlocks"></app-block-renderer>
+                                        } @else {
+                                          {{ opt.content }}
+                                        }
+                                      </span>
+                                      @if (opt.optionKey === $any(previewCache().get(q.id)).correctOption) {
+                                        <svg class="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                          <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/>
+                                        </svg>
+                                      }
+                                    </div>
+                                  }
+                                </div>
+                              }
+                            </div>
+                          } @else {
+                            <div class="pt-3 pb-1 flex items-center gap-2 text-xs text-gray-400">
+                              <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Đang tải xem trước...
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
                   }
                 </div>
               </div>
@@ -156,11 +219,14 @@ import { CurriculumEditorService } from '../../../../services/curriculum-editor.
 export class QuizPackageModalsComponent implements OnInit {
   readonly svc = inject(CurriculumEditorService);
   private readonly packageApi = inject(PackageApi);
+  private readonly questionApi = inject(QuestionApi);
   private readonly toast = inject(ToastService);
 
   readonly packages = signal<any[]>([]);
   readonly questions = signal<any[]>([]);
   readonly selectedIds = signal<Set<string>>(new Set());
+  readonly previewIds = signal<Set<string>>(new Set());
+  readonly previewCache = signal<Map<string, any>>(new Map());
   readonly randomCount = signal(5);
   selectedPackageId = '';
 
@@ -198,6 +264,30 @@ export class QuizPackageModalsComponent implements OnInit {
 
   clearSelection(): void {
     this.selectedIds.set(new Set());
+  }
+
+  togglePreview(id: string): void {
+    const expanding = !this.previewIds().has(id);
+    this.previewIds.update(s => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+    if (expanding && !this.previewCache().has(id)) {
+      this.questionApi.getQuestionById(id).subscribe({
+        next: (question: any) => {
+          const data = question?.data || question;
+          if (data) {
+            this.previewCache.update(m => {
+              const next = new Map(m);
+              next.set(id, data);
+              return next;
+            });
+          }
+        },
+        error: () => this.toast.error('Không thể tải xem trước câu hỏi'),
+      });
+    }
   }
 
   toggleQuestion(id: string): void {

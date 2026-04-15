@@ -3,15 +3,15 @@
     <!-- Header -->
     <div class="editor-classes-panel__header px-6 py-3 border-b border-gray-200 flex justify-between items-center bg-gray-50">
         <div>
-            <h2 class="text-xl font-bold text-gray-900">Quản lý Lớp học</h2>
-            <p class="text-sm text-gray-500 mt-1">Danh sách các lớp đang hoạt động</p>
+            <h2 class="text-base font-semibold text-slate-900">Quản lý lớp học</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Tạo và quản lý các lớp học trong khóa học.</p>
         </div>
         <button (click)="openCreateDialog()"
-            class="inline-flex items-center px-4 py-2 bg-[#0056D2] hover:bg-[#004BB5] text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            class="editor-primary-button">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
-            Tạo Lớp mới
+            Tạo lớp mới
         </button>
     </div>
 
@@ -24,24 +24,23 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-</div>
-</div>
+            </div>
             <input type="text" [formControl]="searchControl"
                 class="block w-full pl-10 pr-3 py-1.5 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#0056D2] focus:border-[#0056D2] sm:text-sm"
-                placeholder="Tìm theo tên lớp hoặc mã lớp...">
+                placeholder="Tìm theo tên hoặc mã lớp...">
         </div>
 
         <!-- Year Filter -->
         <select (change)="onYearChange($event)"
-            class="block pl-3 pr-8 py-1.5 text-base border-gray-300 focus:outline-none focus:ring-[#0056D2] focus:border-[#0056D2] sm:text-sm rounded-md">
+            class="block pl-3 pr-8 py-1.5 text-sm border-gray-300 focus:outline-none focus:ring-[#0056D2] focus:border-[#0056D2] rounded-md">
             @for (y of years; track y) {
-            <option [value]="y" [selected]="y === selectedYear">Năm {{ y }} - {{ y + 1 }}</option>
+            <option [value]="y" [selected]="y === selectedYear">{{ y }}–{{ y + 1 }}</option>
             }
         </select>
 
         <!-- Semester Filter -->
         <select (change)="onSemesterChange($event)"
-            class="block pl-3 pr-8 py-1.5 text-base border-gray-300 focus:outline-none focus:ring-[#0056D2] focus:border-[#0056D2] sm:text-sm rounded-md">
+            class="block pl-3 pr-8 py-1.5 text-sm border-gray-300 focus:outline-none focus:ring-[#0056D2] focus:border-[#0056D2] rounded-md">
             <option value="">Tất cả học kỳ</option>
             @for (s of semesters; track s) {
             <option [value]="s">{{ s }}</option>
@@ -50,103 +49,97 @@
 
         <!-- Status Filter -->
         <select (change)="onStatusChange($event)"
-            class="block pl-3 pr-8 py-1.5 text-base border-gray-300 focus:outline-none focus:ring-[#0056D2] focus:border-[#0056D2] sm:text-sm rounded-md">
+            class="block pl-3 pr-8 py-1.5 text-sm border-gray-300 focus:outline-none focus:ring-[#0056D2] focus:border-[#0056D2] rounded-md">
             <option value="">Tất cả trạng thái</option>
             <option value="OPEN">Đang mở</option>
             <option value="CLOSED">Đã đóng</option>
         </select>
     </div>
 
-    <!-- COMPACT TABLE -->
+    <!-- TABLE -->
     <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">Tên lớp</th>
-                    <th class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">Giáo viên</th>
-                    <th class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">Thời gian (Mới nhất)</th>
-                    <th class="px-4 py-2 text-xs font-semibold text-center text-gray-500 uppercase">Sĩ số</th>
-                    <th class="px-4 py-2 text-xs font-semibold text-right text-gray-500 uppercase">Hành động</th>
+                    <th class="px-4 py-2.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Tên lớp</th>
+                    <th class="px-4 py-2.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Giảng viên</th>
+                    <th class="px-4 py-2.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Thời gian</th>
+                    <th class="px-4 py-2.5 text-[11px] font-semibold text-center text-slate-500 uppercase tracking-wide">Sĩ số</th>
+                    <th class="px-4 py-2.5 text-[11px] font-semibold text-right text-slate-500 uppercase tracking-wide">Thao tác</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
-                <!-- Loading State -->
+            <tbody class="divide-y divide-slate-100">
+                <!-- Loading -->
                 @if (isLoading()) {
                 <tr>
-                    <td colspan="5" class="px-4 py-8 text-center text-gray-500">Đang tải dữ liệu...</td>
+                    <td colspan="5" class="px-4 py-10 text-center text-slate-400 text-sm">
+                        <svg class="w-5 h-5 animate-spin mx-auto mb-2 text-[#0056D2]" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        Đang tải...
+                    </td>
                 </tr>
                 }
 
-                <!-- Empty State -->
+                <!-- Empty -->
                 @if (!isLoading() && classes().length === 0) {
                 <tr>
-                    <td colspan="5" class="px-4 py-8 text-center text-gray-500">
-                        Chưa có lớp học nào phù hợp.
+                    <td colspan="5" class="px-4 py-10 text-center">
+                        <p class="text-sm text-slate-500">Chưa có lớp học nào.</p>
+                        <p class="text-xs text-slate-400 mt-1">Nhấn "Tạo lớp mới" để bắt đầu.</p>
                     </td>
                 </tr>
                 }
 
-                <!-- List Items -->
+                <!-- Rows -->
                 @for (cls of classes(); track cls.id) {
-                <tr class="hover:bg-[#0056D2]/5 transition-colors">
-                    <!-- Compact Name -->
-                    <td class="px-4 py-2 whitespace-nowrap">
-                        <div class="flex flex-col">
-                            <span class="text-sm font-medium text-gray-900">{{ cls.name }}</span>
-                            <span class="text-xs text-gray-400">{{ cls.code }}</span>
+                <tr class="hover:bg-[#0056D2]/[0.03] transition-colors">
+                    <td class="px-4 py-2.5 whitespace-nowrap">
+                        <div>
+                            <span class="text-sm font-medium text-slate-900">{{ cls.name }}</span>
+                            <span class="block text-[11px] text-slate-400 tabular-nums">{{ cls.code }}</span>
                         </div>
                     </td>
 
-                    <!-- Compact Teacher -->
-                    <td class="px-4 py-2 whitespace-nowrap">
-                        <div class="flex items-center text-sm text-gray-700">
-                            <div
-                                class="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center text-xs mr-2 font-bold text-gray-600">
+                    <td class="px-4 py-2.5 whitespace-nowrap">
+                        <div class="flex items-center gap-2 text-sm text-slate-700">
+                            <span class="h-6 w-6 rounded-full bg-[#0056D2]/10 flex items-center justify-center text-[10px] font-bold text-[#0056D2] shrink-0">
                                 {{ (cls.teacherName || 'N')[0] }}
-                            </div>
-                            {{ cls.teacherName || 'Chưa có giáo viên' }}
+                            </span>
+                            {{ cls.teacherName || 'Chưa phân công' }}
                         </div>
                     </td>
 
-                    <!-- Compact Time -->
-                    <td class="px-4 py-2 whitespace-nowrap">
-                        <div class="flex flex-col text-xs text-gray-500">
-                            <div class="flex items-center">
-                                @if (cls.scheduleType === 'SEMESTER') {
-                                <span class="mr-1.5 font-semibold text-[#004BB5]">
-                                    {{ cls.semester }}
-                                </span>
-                                }
-                                @if (cls.scheduleType === 'CUSTOM') {
-                                <span class="mr-1.5 font-semibold text-purple-700">
-                                    Custom
-                                </span>
-                                }
-                            </div>
-                            <span>{{ cls.startDate | date:'dd/MM/yyyy' }} - {{ cls.endDate | date:'dd/MM/yyyy' }}</span>
+                    <td class="px-4 py-2.5 whitespace-nowrap">
+                        <div class="text-xs text-slate-500">
+                            @if (cls.scheduleType === 'SEMESTER') {
+                                <span class="font-semibold text-[#004BB5]">{{ cls.semester }}</span>
+                            } @else {
+                                <span class="font-semibold text-purple-700">Tùy chỉnh</span>
+                            }
+                            <span class="block tabular-nums mt-0.5">{{ cls.startDate | date:'dd/MM/yyyy' }} – {{ cls.endDate | date:'dd/MM/yyyy' }}</span>
                         </div>
                     </td>
 
-                    <!-- Compact Count -->
-                    <td class="px-4 py-2 whitespace-nowrap text-center">
-                        <span class="text-xs font-medium bg-gray-100 px-2 py-0.5 rounded text-gray-700">
-                            {{ cls.studentCount || 0 }} / {{ cls.maxStudents }}
+                    <td class="px-4 py-2.5 whitespace-nowrap text-center">
+                        <span class="text-xs font-medium bg-slate-100 px-2 py-0.5 rounded-full text-slate-700 tabular-nums">
+                            {{ cls.studentCount || 0 }}/{{ cls.maxStudents }}
                         </span>
                     </td>
 
-                    <!-- Compact Actions -->
-                    <td class="px-4 py-2 whitespace-nowrap text-right">
-                        <div class="flex items-center justify-end space-x-2">
+                    <td class="px-4 py-2.5 whitespace-nowrap text-right">
+                        <div class="flex items-center justify-end gap-1">
                             <button (click)="quickEnroll(cls)"
-                                class="text-green-500 hover:text-green-700 transition-colors p-1" title="Thêm học viên">
+                                class="w-7 h-7 flex items-center justify-center rounded-md text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors" title="Thêm học viên">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                                 </svg>
                             </button>
                             <button (click)="viewStudents(cls.id)"
-                                class="text-[#0056D2] hover:text-[#004BB5] transition-colors p-1"
-                                title="Xem danh sách học viên">
+                                class="w-7 h-7 flex items-center justify-center rounded-md text-[#0056D2] hover:text-[#004BB5] hover:bg-[#0056D2]/10 transition-colors"
+                                title="Danh sách học viên">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -155,14 +148,14 @@
                                 </svg>
                             </button>
                             <button (click)="editClass(cls)"
-                                class="text-[#0056D2] hover:text-[#004BB5] transition-colors p-1" title="Sửa">
+                                class="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-[#0056D2] hover:bg-[#0056D2]/10 transition-colors" title="Chỉnh sửa">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
                             </button>
                             <button (click)="deleteClass(cls.id)"
-                                class="text-red-500 hover:text-red-700 transition-colors p-1" title="Xóa">
+                                class="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors" title="Xóa">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -176,41 +169,32 @@
         </table>
     </div>
 
-    <!-- PAGINATION FOOTER -->
+    <!-- PAGINATION -->
     @if (totalElements > 0) {
-    <div class="px-4 py-2 border-t border-gray-200 bg-white flex items-center justify-between sm:px-6">
-        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-                <p class="text-xs text-gray-700">
-                    Hiển thị <span class="font-medium">{{ pageInfo.startRow }}</span> đến <span class="font-medium">{{
-                        pageInfo.endRow }}</span>
-                    trong số <span class="font-medium">{{ totalElements }}</span> kết quả
-                </p>
-            </div>
-            <div>
-                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Phân trang">
-                    <button (click)="changePage(currentPage - 1)" [disabled]="currentPage === 0"
-                        class="relative inline-flex items-center px-2 py-1 rounded-l-md border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                        Trước
-                    </button>
-
-                    <!-- Page Numbers (Simplified: Current Page only for now, can implement proper sliding window if needed) -->
-                    <span
-                        class="relative inline-flex items-center px-4 py-1 border border-gray-300 bg-white text-xs font-medium text-gray-700">
-                        Trang {{ currentPage + 1 }} / {{ totalPages }}
-                    </span>
-
-                    <button (click)="changePage(currentPage + 1)" [disabled]="isLastPage"
-                        class="relative inline-flex items-center px-2 py-1 rounded-r-md border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                        Tiếp
-                    </button>
-                </nav>
-            </div>
-        </div>
+    <div class="px-5 py-2.5 border-t border-slate-200 bg-slate-50/60 flex items-center justify-between">
+        <p class="text-xs text-slate-500">
+            Hiển thị <span class="font-medium text-slate-700">{{ pageInfo.startRow }}</span>–<span class="font-medium text-slate-700">{{ pageInfo.endRow }}</span>
+            trong <span class="font-medium text-slate-700">{{ totalElements }}</span> lớp
+        </p>
+        <nav class="inline-flex rounded-md overflow-hidden border border-slate-200" aria-label="Phân trang">
+            <button (click)="changePage(currentPage - 1)" [disabled]="currentPage === 0"
+                class="px-3 py-1 text-xs font-medium text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed border-r border-slate-200">
+                Trước
+            </button>
+            <span class="px-3 py-1 text-xs font-medium text-slate-700 bg-white tabular-nums">
+                {{ currentPage + 1 }}/{{ totalPages }}
+            </span>
+            <button (click)="changePage(currentPage + 1)" [disabled]="isLastPage"
+                class="px-3 py-1 text-xs font-medium text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed border-l border-slate-200">
+                Tiếp
+            </button>
+        </nav>
     </div>
     }
+</div>
 
-    <!-- Enrollment Drawer -->
-    <app-add-student-drawer [isOpen]="isDrawerOpen()" (isOpenChange)="isDrawerOpen.set($event)"
-        [classId]="selectedClassId()" (onSaved)="loadClasses()">
-    </app-add-student-drawer>
+<!-- Enrollment Drawer -->
+<app-add-student-drawer [isOpen]="isDrawerOpen()" (isOpenChange)="isDrawerOpen.set($event)"
+    [classId]="selectedClassId()" (onSaved)="loadClasses()">
+</app-add-student-drawer>
+</div>

@@ -45,7 +45,7 @@ class TrackVideoProgressUseCaseTest {
         when(videoProgressRepository.save(any()))
                 .thenAnswer(inv -> inv.getArgument(0));
 
-        var result = useCase.trackSegments(studentId, lessonId, sectionId, 100, 0, 30, 30.0);
+        var result = useCase.trackSegments(studentId, lessonId, sectionId, 100, 0, 30, 30.0, null);
 
         assertThat(result.watchedSeconds()).isEqualTo(30);
         assertThat(result.progressPercent()).isEqualTo(30.0);
@@ -64,7 +64,7 @@ class TrackVideoProgressUseCaseTest {
         when(videoProgressRepository.save(any()))
                 .thenAnswer(inv -> inv.getArgument(0));
 
-        var result = useCase.trackSegments(studentId, lessonId, sectionId, 100, 30, 60, 60.0);
+        var result = useCase.trackSegments(studentId, lessonId, sectionId, 100, 30, 60, 60.0, null);
 
         assertThat(result.watchedSeconds()).isEqualTo(60);
         assertThat(result.progressPercent()).isEqualTo(60.0);
@@ -83,7 +83,7 @@ class TrackVideoProgressUseCaseTest {
         when(learningEventRepository.save(any()))
                 .thenAnswer(inv -> inv.getArgument(0));
 
-        var result = useCase.trackSegments(studentId, lessonId, sectionId, 100, 89, 95, 95.0);
+        var result = useCase.trackSegments(studentId, lessonId, sectionId, 100, 89, 95, 95.0, null);
 
         assertThat(result.completed()).isTrue();
 
@@ -100,7 +100,7 @@ class TrackVideoProgressUseCaseTest {
         when(videoProgressRepository.save(any()))
                 .thenAnswer(inv -> inv.getArgument(0));
 
-        useCase.trackSegments(studentId, lessonId, sectionId, 100, 0, 30, 30.0);
+        useCase.trackSegments(studentId, lessonId, sectionId, 100, 0, 30, 30.0, null);
 
         verify(learningEventRepository, never()).save(any());
     }
@@ -134,10 +134,10 @@ class TrackVideoProgressUseCaseTest {
     }
 
     @Test
-    @DisplayName("canProceed returns false when under 90%")
-    void canProceedFalseUnder90() {
+    @DisplayName("canProceed returns false when under default threshold (50%)")
+    void canProceedFalseUnderThreshold() {
         VideoProgress vp = VideoProgress.create(studentId, lessonId, sectionId, 100);
-        vp.markWatched(0, 50);
+        vp.markWatched(0, 30);
 
         when(videoProgressRepository.findByStudentAndSection(studentId, sectionId))
                 .thenReturn(Optional.of(vp));
@@ -146,10 +146,10 @@ class TrackVideoProgressUseCaseTest {
     }
 
     @Test
-    @DisplayName("canProceed returns true when at 90%")
-    void canProceedTrueAt90() {
+    @DisplayName("canProceed returns true when at default threshold (50%)")
+    void canProceedTrueAtThreshold() {
         VideoProgress vp = VideoProgress.create(studentId, lessonId, sectionId, 100);
-        vp.markWatched(0, 90);
+        vp.markWatched(0, 50);
 
         when(videoProgressRepository.findByStudentAndSection(studentId, sectionId))
                 .thenReturn(Optional.of(vp));

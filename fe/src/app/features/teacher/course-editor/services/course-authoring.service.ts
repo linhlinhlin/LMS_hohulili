@@ -29,17 +29,20 @@ export interface SectionDraftDTO { // Renamed from TopicDraftDTO
     duration?: number;
     orderIndex: number;
     isRequired?: boolean;
+    completionThreshold?: number;
     availableOfflineProfiles?: CourseVideoOfflineProfile[];
-    // [NEW] Quiz Data for hydration - SOTA 2025
     quizData?: {
         quizId?: string;
+        quizType?: string;
+        countsTowardCertificate?: boolean;
         timeLimitMinutes?: number;
         passingScore?: number;
         maxAttempts?: number;
         shuffleQuestions?: boolean;
         shuffleOptions?: boolean;
         showResultsImmediately?: boolean;
-        questions?: { id: string; content: string }[];
+        showCorrectAnswers?: boolean;
+        questions?: { id: string; content: string; questionType?: string; difficulty?: string }[];
     };
 }
 
@@ -329,15 +332,17 @@ export class CourseAuthoringService {
                             orderIndex: t.orderIndex,
                             isRequired: t.isRequired,
                             availableOfflineProfiles: t.availableOfflineProfiles || [],
-                            // [NEW] Quiz Data hydration - SOTA 2025
                             quizData: t.quizData ? {
                                 quizId: t.quizData.quizId,
+                                quizType: t.quizData.quizType,
+                                countsTowardCertificate: t.quizData.countsTowardCertificate,
                                 timeLimitMinutes: t.quizData.timeLimitMinutes,
                                 passingScore: t.quizData.passingScore,
                                 maxAttempts: t.quizData.maxAttempts,
                                 shuffleQuestions: t.quizData.shuffleQuestions,
                                 shuffleOptions: t.quizData.shuffleOptions,
                                 showResultsImmediately: t.quizData.showResultsImmediately,
+                                showCorrectAnswers: t.quizData.showCorrectAnswers,
                                 questions: t.quizData.questions || []
                             } : undefined
                         }))
@@ -428,6 +433,7 @@ export class CourseAuthoringService {
         price: number | null;
         salePrice: number | null;
         deliveryMode: string;
+        allowOfflineDownload: boolean;
     }>): Observable<void> {
         return this.http.put<void>(`${this.baseUrl}/courses/${courseId}`, data);
     }

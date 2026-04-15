@@ -291,6 +291,7 @@ public class CoursePublicationService {
             section.put("duration", asInteger(data.get("duration"), 0));
             section.put("orderIndex", asInteger(data.get("orderIndex"), 0));
             section.put("isRequired", asBoolean(data.get("isRequired"), false));
+            section.put("completionThreshold", asDouble(data.get("completionThreshold"), 50.0));
             section.put("quizData", buildSectionQuizData(data, questionMap));
             applyVideoAssetView(section, data, resolveVideoAssetView(videoAssets, data.get("videoAssetId")), videoType);
             sections.add(section);
@@ -588,6 +589,8 @@ public class CoursePublicationService {
         questionDto.put("content", extractTextFromBlocks(question.getContentBlocks()));
         questionDto.put("contentBlocks", question.getContentBlocks() != null ? question.getContentBlocks() : List.of());
         questionDto.put("questionType", question.getQuestionType() != null ? question.getQuestionType().name() : "SINGLE_CHOICE");
+        questionDto.put("difficulty", question.getDifficulty() != null ? question.getDifficulty().name() : "MEDIUM");
+        questionDto.put("correctOption", question.getCorrectOption());
 
         List<Map<String, Object>> options = new ArrayList<>();
         if (question.getOptions() != null) {
@@ -615,6 +618,8 @@ public class CoursePublicationService {
                 builder.append('\n');
             }
             Map<String, Object> data = block.getData() != null ? block.getData() : Map.of();
+
+            // Text content (html, text, content fields)
             String html = asString(data.get("html"), null);
             if (html != null && !html.isBlank()) {
                 builder.append(html);
@@ -628,6 +633,25 @@ public class CoursePublicationService {
             String content = asString(data.get("content"), null);
             if (content != null && !content.isBlank()) {
                 builder.append(content);
+                continue;
+            }
+
+            // Non-text blocks: generate descriptive fallback from block type
+            String blockType = block.getType() != null ? block.getType().toLowerCase(java.util.Locale.ROOT) : "";
+            switch (blockType) {
+                case "image" -> {
+                    String caption = asString(data.get("caption"), asString(data.get("alt"), null));
+                    builder.append(caption != null ? "[Hình ảnh] " + caption : "[Hình ảnh]");
+                }
+                case "video" -> {
+                    String caption = asString(data.get("caption"), null);
+                    builder.append(caption != null ? "[Video] " + caption : "[Video]");
+                }
+                case "math", "formula", "katex" -> builder.append("[Công thức]");
+                case "table" -> builder.append("[Bảng]");
+                case "code" -> builder.append("[Mã nguồn]");
+                case "embed" -> builder.append("[Nhúng]");
+                default -> { /* skip unknown empty blocks */ }
             }
         }
         return builder.toString();
@@ -734,6 +758,20 @@ public class CoursePublicationService {
         }
         if (value != null) {
             return Boolean.parseBoolean(String.valueOf(value));
+        }
+        return fallback;
+    }
+
+    private double asDouble(Object value, double fallback) {
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        if (value != null) {
+            try {
+                return Double.parseDouble(String.valueOf(value));
+            } catch (NumberFormatException ignored) {
+                // fall through
+            }
         }
         return fallback;
     }

@@ -54,6 +54,7 @@ export interface CourseSummary {
   sectionCount?: number;
   lessonCount?: number;
   maxStudents?: number;
+  averageRating?: number;
   // Enrollment fields (from StudentEnrollmentControllerV3)
   thumbnailUrl?: string;
   progress?: number;

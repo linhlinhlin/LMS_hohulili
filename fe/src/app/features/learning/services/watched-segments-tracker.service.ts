@@ -5,6 +5,7 @@ interface TrackConfig {
   lessonId: string;
   sectionId: string;
   duration: number;
+  completionThreshold?: number;
 }
 
 interface TrackResponse {
@@ -31,9 +32,9 @@ export class WatchedSegmentsTracker implements OnDestroy {
   /** Server-confirmed completion status */
   readonly serverCompleted = signal(false);
 
-  startTracking(lessonId: string, sectionId: string, duration: number): void {
+  startTracking(lessonId: string, sectionId: string, duration: number, completionThreshold?: number): void {
     this.stopTracking();
-    this.currentConfig = { lessonId, sectionId, duration: Math.ceil(duration) };
+    this.currentConfig = { lessonId, sectionId, duration: Math.ceil(duration), completionThreshold };
     this.segments.clear();
     this.lastSyncedSegments.clear();
     this.pendingSegments.clear();
@@ -98,6 +99,7 @@ export class WatchedSegmentsTracker implements OnDestroy {
         fromSecond: range.from,
         toSecond: range.to,
         lastPosition,
+        completionThreshold: this.currentConfig.completionThreshold ?? 50,
       }).subscribe({
         next: (response: TrackResponse | any) => {
           if (response?.success && response.data) {
