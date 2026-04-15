@@ -74,7 +74,7 @@ import { ChapterDraftDTO, LessonDraftDTO } from '../../../../services/course-aut
                 <button type="button"
                   (click)="lessonClicked.emit(lesson)"
                   class="chapter-lesson-row">
-                  <span class="chapter-lesson-row__dot" [class.chapter-lesson-row__dot--ready]="lesson.sections?.length > 0"></span>
+                  <span class="chapter-lesson-row__dot" [class.chapter-lesson-row__dot--ready]="(lesson.sections?.length || 0) > 0"></span>
                   <span class="chapter-lesson-row__title">
                     <span style="color: rgb(148 163 184); font-size: 0.6875rem; font-weight: 600">Bài {{ i + 1 }}</span>
                     {{ stripLessonPrefix(lesson.title) }}
