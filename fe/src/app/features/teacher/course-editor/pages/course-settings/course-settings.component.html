@@ -1,71 +1,58 @@
 <div class="course-settings-page">
-  <div class="settings-layout">
-    <div class="settings-main">
+  <div class="settings-single-col">
 
-      <!-- ═══ Học tập & trải nghiệm ═══ -->
-      <section class="editor-card">
-        <div class="editor-card__header">
-          <h2 class="editor-card__title">Học tập & trải nghiệm</h2>
-          <p class="editor-card__subtitle">Thiết lập cách học viên trải nghiệm nội dung khóa học.</p>
-        </div>
-        <div class="editor-card__body">
-          <div class="settings-toggle-row">
-            <div>
-              <h3 class="settings-toggle-row__label">Cho phép tải về ngoại tuyến</h3>
-              <p class="settings-toggle-row__hint">Học viên có thể tải bài giảng, video và tài liệu để học khi không có mạng.</p>
-            </div>
-            <button type="button" role="switch"
-              [attr.aria-checked]="allowOfflineDownload()"
-              [attr.aria-label]="'Cho phép tải về ngoại tuyến: ' + (allowOfflineDownload() ? 'Bật' : 'Tắt')"
-              class="settings-toggle"
-              [class.settings-toggle--on]="allowOfflineDownload()"
-              (click)="allowOfflineDownload.set(!allowOfflineDownload())">
-              <span class="settings-toggle__knob"
-                [class.settings-toggle__knob--on]="allowOfflineDownload()"></span>
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <!-- Save -->
-      <div class="settings-save-row">
-        <button type="button" (click)="saveSettings()"
-          [disabled]="isLoading() || !hasPersistableChanges()"
-          [attr.aria-busy]="isLoading()"
-          class="editor-primary-button">
-          @if (isLoading()) {
-            <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          }
-          Lưu thay đổi
-        </button>
+    <!-- ═══ Học tập & trải nghiệm ═══ -->
+    <section class="editor-card">
+      <div class="editor-card__header">
+        <h2 class="editor-card__title">Học tập & trải nghiệm</h2>
+        <p class="editor-card__subtitle">Thiết lập cách học viên trải nghiệm nội dung khóa học.</p>
       </div>
-    </div>
-
-    <!-- ═══ Sidebar ═══ -->
-    <div class="settings-sidebar">
-      <section class="editor-card">
-        <div class="editor-card__header">
-          <h2 class="editor-card__title">Giảng viên</h2>
-        </div>
-        <div class="editor-card__body">
-          <app-course-instructors [courseId]="store.courseTree()?.id || ''"></app-course-instructors>
-        </div>
-      </section>
-
-      <section class="editor-card settings-danger-card">
-        <div class="editor-card__header settings-danger-card__header">
-          <h2 class="editor-card__title" style="color: rgb(185 28 28)">Vùng nguy hiểm</h2>
-        </div>
-        <div class="editor-card__body">
-          <p class="settings-danger-card__warning">Hành động này không thể hoàn tác.</p>
-          <button type="button" (click)="deleteCourse()" class="settings-danger-card__button">
-            Xóa khóa học
+      <div class="editor-card__body">
+        <div class="settings-toggle-row">
+          <div>
+            <h3 class="settings-toggle-row__label">Cho phép tải về ngoại tuyến</h3>
+            <p class="settings-toggle-row__hint">Học viên có thể tải bài giảng, video và tài liệu để học khi không có mạng.</p>
+          </div>
+          <button type="button" role="switch"
+            [attr.aria-checked]="allowOfflineDownload()"
+            [attr.aria-label]="'Cho phép tải về ngoại tuyến: ' + (allowOfflineDownload() ? 'Bật' : 'Tắt')"
+            class="settings-toggle"
+            [class.settings-toggle--on]="allowOfflineDownload()"
+            (click)="allowOfflineDownload.set(!allowOfflineDownload())">
+            <span class="settings-toggle__knob"
+              [class.settings-toggle__knob--on]="allowOfflineDownload()"></span>
           </button>
         </div>
-      </section>
+      </div>
+    </section>
+
+    <!-- Save -->
+    <div class="settings-save-row">
+      <button type="button" (click)="saveSettings()"
+        [disabled]="isLoading() || !hasPersistableChanges()"
+        [attr.aria-busy]="isLoading()"
+        class="editor-primary-button">
+        @if (isLoading()) {
+          <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        }
+        Lưu thay đổi
+      </button>
     </div>
+
+    <!-- ═══ Xóa khóa học ═══ -->
+    <section class="editor-card settings-danger-card">
+      <div class="editor-card__header settings-danger-card__header">
+        <h2 class="editor-card__title" style="color: rgb(185 28 28)">Xóa khóa học</h2>
+      </div>
+      <div class="editor-card__body">
+        <p class="settings-danger-card__warning">Toàn bộ nội dung, bài học, và dữ liệu học viên sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.</p>
+        <button type="button" (click)="deleteCourse()" class="settings-danger-card__button">
+          Xóa vĩnh viễn
+        </button>
+      </div>
+    </section>
   </div>
 </div>

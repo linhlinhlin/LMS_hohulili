@@ -593,18 +593,26 @@ export class CourseLearningComponent implements OnInit {
 
   async nextLesson(): Promise<void> {
     const currentLesson = this.currentLesson();
-    
+
     // Check if we're navigating within sections of current lesson
     if (currentLesson?.sections && currentLesson.sections.length > 0) {
       if (this.currentSectionIndex() < currentLesson.sections.length - 1) {
-        // 🔒 CHECK 75% RULE before going to next section
         const currentSection = currentLesson.sections[this.currentSectionIndex()];
-        
+
+        // 🔒 VIDEO: always check server-side threshold
         if (currentSection.type === 'VIDEO' && (currentSection.videoUrl || currentSection.streamVideoUid)) {
           const canProceed = await this.ensureVideoProgressThreshold(currentSection.id, 'next-section');
-          if (!canProceed) {
-            return;
-          }
+          if (!canProceed) return;
+        }
+        // 🔒 Required non-VIDEO sections: must be completed before proceeding
+        else if (currentSection.isRequired && !this.completedSections().has(currentSection.id)) {
+          const messages: Record<string, string> = {
+            'TEXT': 'Bạn cần đọc hết nội dung phần này trước khi chuyển tiếp.',
+            'QUIZ': 'Bạn cần hoàn thành bài kiểm tra trước khi chuyển tiếp.',
+            'FILE': 'Bạn cần xem và xác nhận tài liệu trước khi chuyển tiếp.',
+          };
+          this.toast.warning(messages[currentSection.type] || 'Bạn cần hoàn thành phần này trước khi tiếp tục.');
+          return;
         }
 
         // All checks passed, proceed to next section
@@ -612,7 +620,7 @@ export class CourseLearningComponent implements OnInit {
         return;
       }
     }
-    
+
     // No more sections, go to next lesson
     this.learningService.goToNextLesson();
     this.currentSectionIndex.set(0);
@@ -642,9 +650,9 @@ export class CourseLearningComponent implements OnInit {
 
       if (progressCheck.success && progressCheck.data && !progressCheck.data.canProceed) {
         const messageByAction = {
-          'next-section': 'Bạn cần xem ít nhất 90% video để chuyển sang phần tiếp theo.',
-          'complete-section': 'Bạn cần xem ít nhất 90% video để hoàn thành phần này.',
-          'complete-lesson': 'Bạn cần xem ít nhất 90% video để hoàn thành bài học.',
+          'next-section': 'Bạn cần xem đủ video để chuyển sang phần tiếp theo.',
+          'complete-section': 'Bạn cần xem đủ video để hoàn thành phần này.',
+          'complete-lesson': 'Bạn cần xem đủ video để hoàn thành bài học.',
         } as const;
         this.toast.warning(messageByAction[action]);
         return false;
@@ -681,11 +689,18 @@ export class CourseLearningComponent implements OnInit {
       return false;
     }
 
+    // 🔒 VIDEO: always check server-side threshold
     if (currentSection.type === 'VIDEO' && (currentSection.videoUrl || currentSection.streamVideoUid)) {
       const canProceed = await this.ensureVideoProgressThreshold(currentSection.id, 'complete-section');
       if (!canProceed) {
         return false;
       }
+    }
+
+    // 🔒 QUIZ: cannot be manually completed — must pass the quiz
+    if (currentSection.type === 'QUIZ' && currentSection.isRequired && !this.completedSections().has(currentSection.id)) {
+      this.toast.warning('Bạn cần hoàn thành bài kiểm tra để đánh dấu phần này là hoàn thành.');
+      return false;
     }
 
     const nextCompletedSections = new Set(this.completedSections());
@@ -968,6 +983,18 @@ export class CourseLearningComponent implements OnInit {
     return labels[lessonType] || 'Bài học';
   }
 
+  /** Check if a section is locked because a previous required section is incomplete */
+  isSectionLockedByPrereqs(lesson: any, sectionIndex: number): boolean {
+    if (!lesson?.sections) return false;
+    for (let i = 0; i < sectionIndex; i++) {
+      const section = lesson.sections[i];
+      if (section.isRequired && !this.completedSections().has(section.id)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   // Section type label for sidebar
   getSectionTypeLabel(type: string): string {
     const labels: Record<string, string> = {
@@ -998,6 +1025,14 @@ export class CourseLearningComponent implements OnInit {
 
   selectSectionInSidebar(sectionIndex: number, event: Event): void {
     event.stopPropagation();
+
+    // 🔒 Sequential progression: reuse the same check as the sidebar lock indicator
+    const lesson = this.currentLesson();
+    if (lesson && this.isSectionLockedByPrereqs(lesson, sectionIndex)) {
+      this.toast.warning('Bạn cần hoàn thành các phần bắt buộc trước đó.');
+      return;
+    }
+
     this.currentSectionIndex.set(sectionIndex);
   }
 

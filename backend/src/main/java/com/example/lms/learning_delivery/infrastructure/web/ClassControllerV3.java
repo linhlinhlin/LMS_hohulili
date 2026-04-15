@@ -55,6 +55,7 @@ public class ClassControllerV3 {
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.CoursePublicationJpaRepository coursePublicationJpaRepository;
     private final UserJpaRepository userJpaRepository;
     private final JpaEnrollmentRepository enrollmentJpaRepository;
+    private final ManageClassTeachersUseCase manageClassTeachersUseCase;
 
     // ================================================================================================
     // Course-scoped Class Listing (FE: ClassService)
@@ -539,5 +540,59 @@ public class ClassControllerV3 {
                     "Quan ly lop chi ap dung cho khoa hoc dang \"Lop hoc\"."
             );
         }
+    }
+
+    // ================================================================================================
+    // Co-Teacher Management (Google Classroom pattern — direct assignment)
+    // ================================================================================================
+
+    @Operation(summary = "List teachers for a class")
+    @GetMapping("/{classId}/teachers")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    public ResponseEntity<ApiResponse<List<ManageClassTeachersUseCase.ClassTeacherDTO>>> getClassTeachers(
+            @PathVariable UUID classId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        resolveOwnedClassContext(classId, user);
+        return ResponseEntity.ok(ApiResponse.success(
+                manageClassTeachersUseCase.listTeachers(classId),
+                "Danh sách giảng viên của lớp"
+        ));
+    }
+
+    @Operation(summary = "Add a co-teacher to a class")
+    @PostMapping("/{classId}/teachers")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    public ResponseEntity<ApiResponse<Map<String, String>>> addClassTeacher(
+            @PathVariable UUID classId,
+            @RequestBody Map<String, String> request,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        resolveOwnedClassContext(classId, user);
+
+        String teacherIdStr = request.get("teacherId");
+        if (teacherIdStr == null || teacherIdStr.isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("MISSING_TEACHER_ID", "Vui lòng chọn giảng viên"));
+        }
+
+        String teacherName = manageClassTeachersUseCase.addCoTeacher(classId, UUID.fromString(teacherIdStr));
+        return ResponseEntity.ok(ApiResponse.success(
+                Map.of("message", "Đã thêm " + teacherName + " làm đồng giảng viên"),
+                "Thêm giảng viên thành công"
+        ));
+    }
+
+    @Operation(summary = "Remove a co-teacher from a class")
+    @DeleteMapping("/{classId}/teachers/{teacherId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    public ResponseEntity<ApiResponse<Map<String, String>>> removeClassTeacher(
+            @PathVariable UUID classId,
+            @PathVariable UUID teacherId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        resolveOwnedClassContext(classId, user);
+        manageClassTeachersUseCase.removeCoTeacher(classId, teacherId);
+        return ResponseEntity.ok(ApiResponse.success(
+                Map.of("message", "Đã xóa giảng viên khỏi lớp"),
+                "Xóa giảng viên thành công"
+        ));
     }
 }

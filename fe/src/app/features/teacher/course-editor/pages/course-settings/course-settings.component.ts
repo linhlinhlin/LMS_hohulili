@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, u
 import { Router } from '@angular/router';
 import { CourseEditorStore } from '../../store/course-editor.store';
 import { CourseAuthoringService } from '../../services/course-authoring.service';
-import { CourseInstructorsComponent } from './course-instructors.component';
 import { CourseApi } from '../../../../../api/client/course.api';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
@@ -10,7 +9,7 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-course-settings',
-  imports: [CourseInstructorsComponent],
+  imports: [],
   templateUrl: './course-settings.component.html',
   styleUrl: './course-settings.component.scss'
 })

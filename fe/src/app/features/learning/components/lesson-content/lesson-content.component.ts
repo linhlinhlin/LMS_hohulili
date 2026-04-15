@@ -157,6 +157,7 @@ export class LessonContentComponent implements AfterViewInit {
   readonly hasQuiz = input(false);
   readonly chapterIndex = input(0);
   readonly lessonIndex = input(0);
+  readonly completedSections = input<Set<string>>(new Set<string>());
   readonly isOfflinePackageStale = input(false);
   readonly staleReason = input<'UPDATE_AVAILABLE' | 'CLASS_ADOPTED_NEW_PUBLICATION' | 'LEGACY_PACKAGE' | 'UNKNOWN' | null>(null);
 
@@ -439,8 +440,22 @@ export class LessonContentComponent implements AfterViewInit {
     });
   }
 
-  // Output for reading completion
+  // Output for reading/file completion
   readonly sectionReadComplete = output<string>();
+
+  /** Mark a FILE section as completed (explicit student acknowledgment) */
+  markFileComplete(): void {
+    const section = this.currentSection();
+    if (section && section.type === 'FILE') {
+      this.sectionReadComplete.emit(section.id);
+    }
+  }
+
+  /** Check if current section is already completed */
+  isCurrentSectionCompleted(): boolean {
+    const section = this.currentSection();
+    return !!section && this.completedSections().has(section.id);
+  }
 
   // Video player events
   onVideoEnd(): void {

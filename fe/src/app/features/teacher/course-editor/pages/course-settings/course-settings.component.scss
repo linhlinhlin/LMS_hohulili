@@ -10,35 +10,13 @@
   padding: 1.25rem;
 }
 
-/* ── Layout: same 2-column pattern as course-info ── */
-.settings-layout {
-  display: grid;
-  grid-template-columns: 1fr;
+/* ── Single-column layout ── */
+.settings-single-col {
+  display: flex;
+  flex-direction: column;
   gap: 1.25rem;
-  max-width: 1040px;
+  max-width: 720px;
   margin: 0 auto;
-}
-
-@media (min-width: 1024px) {
-  .settings-layout {
-    grid-template-columns: minmax(0, 1fr) 320px;
-    gap: 1.5rem;
-  }
-}
-
-.settings-main {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  min-width: 0;
-}
-
-.settings-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  position: sticky;
-  top: 1.25rem;
 }
 
 /* ── Toggle row (offline download, etc.) ── */
@@ -99,100 +77,6 @@
 
 .settings-toggle__knob--on {
   transform: translateX(1.25rem);
-}
-
-/* ── Coming Soon badge ── */
-.settings-badge {
-  font-size: 0.625rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 0.2rem 0.5rem;
-  border-radius: 999px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.settings-badge--amber {
-  border: 1px solid rgb(253 224 71);
-  background: rgb(254 249 195);
-  color: rgb(161 98 7);
-}
-
-.settings-badge--green {
-  border: 1px solid rgb(134 239 172);
-  background: rgb(220 252 231);
-  color: rgb(21 128 61);
-}
-
-/* ── Feature list ── */
-.settings-features-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.settings-feature-item {
-  display: flex;
-  gap: 0.875rem;
-  padding: 1rem 0;
-  border-bottom: 1px solid rgb(241 245 249);
-}
-
-.settings-feature-item:first-child {
-  padding-top: 0;
-}
-
-.settings-feature-item:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.settings-feature-item__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 0.5rem;
-  flex-shrink: 0;
-  margin-top: 0.125rem;
-}
-
-.settings-feature-item__icon--active {
-  background: rgba(0, 86, 210, 0.08);
-  color: rgb(0 86 210);
-}
-
-.settings-feature-item__icon--upcoming {
-  background: rgb(254 249 195);
-  color: rgb(161 98 7);
-}
-
-.settings-feature-item__content {
-  flex: 1;
-  min-width: 0;
-}
-
-.settings-feature-item__header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.25rem;
-}
-
-.settings-feature-item__title {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: rgb(15 23 42);
-  margin: 0;
-}
-
-.settings-feature-item__desc {
-  font-size: 0.75rem;
-  color: rgb(100 116 139);
-  line-height: 1.5;
-  margin: 0;
 }
 
 /* ── Save row ── */

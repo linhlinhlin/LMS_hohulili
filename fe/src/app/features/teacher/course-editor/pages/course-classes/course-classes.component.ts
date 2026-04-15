@@ -12,6 +12,7 @@ import { ClassSummary } from '../../../../../shared/types/course.types';
 import { ClassDialogComponent } from './class-dialog/class-dialog.component';
 import { Page } from '../../../../../api/types/common.types';
 import { AddStudentDrawerComponent } from './class-students/add-student-drawer/add-student-drawer.component';
+import { ClassTeachersDrawerComponent } from './class-teachers/class-teachers-drawer.component';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { CourseEditorStore } from '../../store/course-editor.store';
@@ -19,7 +20,7 @@ import { CourseEditorStore } from '../../store/course-editor.store';
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-course-classes',
-    imports: [CommonModule, ReactiveFormsModule, MatDialogModule, AddStudentDrawerComponent],
+    imports: [CommonModule, ReactiveFormsModule, MatDialogModule, AddStudentDrawerComponent, ClassTeachersDrawerComponent],
     templateUrl: './course-classes.component.html',
     styleUrl: './course-classes.component.scss',
 })
@@ -42,6 +43,10 @@ export class CourseClassesComponent implements OnInit {
     // Drawer State
     isDrawerOpen = signal(false);
     selectedClassId = signal('');
+
+    // Co-teacher Drawer State
+    isTeacherDrawerOpen = signal(false);
+    teacherDrawerClassId = signal('');
 
     // ... (rest of the properties)
     searchControl = new FormControl('');
@@ -239,5 +244,10 @@ export class CourseClassesComponent implements OnInit {
     quickEnroll(cls: ClassSummary) {
         this.selectedClassId.set(cls.id);
         this.isDrawerOpen.set(true);
+    }
+
+    manageTeachers(cls: ClassSummary) {
+        this.teacherDrawerClassId.set(cls.id);
+        this.isTeacherDrawerOpen.set(true);
     }
 }

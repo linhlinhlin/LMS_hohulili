@@ -3,6 +3,8 @@ package com.example.lms.learning_delivery.application.usecase;
 import com.example.lms.course_authoring.application.port.CoursePublicationPort;
 import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepository;
+import com.example.lms.learning_delivery.infrastructure.persistence.ClassTeacherJpaRepository;
+import com.example.lms.learning_delivery.infrastructure.persistence.entity.ClassTeacherJpaEntity;
 import com.example.lms.shared.exception.BusinessRuleException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +25,7 @@ public class CreateLearningClassUseCaseV3 {
 
     private final LearningClassRepository classRepository;
     private final CoursePublicationPort coursePublicationPort;
+    private final ClassTeacherJpaRepository classTeacherJpaRepository;
 
     public record CreateClassCommand(
         UUID courseId,
@@ -78,6 +81,15 @@ public class CreateLearningClassUseCaseV3 {
                 .build();
 
         LearningClass saved = classRepository.save(learningClass);
+
+        // Auto-insert PRIMARY teacher into class_teachers junction table
+        if (command.teacherId() != null) {
+            classTeacherJpaRepository.save(ClassTeacherJpaEntity.builder()
+                    .classId(saved.getId())
+                    .teacherId(command.teacherId())
+                    .role(ClassTeacherJpaEntity.TeacherRole.PRIMARY)
+                    .build());
+        }
 
         log.info("Learning class {} created successfully with ID {}", command.name(), saved.getId());
 

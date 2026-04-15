@@ -188,24 +188,34 @@
           <!-- Level 3: Sub-sections -->
           @if (lesson.sections && lesson.sections.length > 0 && isLessonExpanded(lesson.id)) {
           @for (sectionItem of lesson.sections; track sectionItem.id; let sectionIndex = $index) {
-          <button class="flex items-center gap-2 w-full pl-12 pr-4 py-1.5 text-xs cursor-pointer transition-colors text-left hover:text-[#0056D2]"
+          <button class="flex items-center gap-2 w-full pl-12 pr-4 py-1.5 text-xs cursor-pointer transition-colors text-left"
             [class.text-green-600]="isSectionCompleted(sectionItem.id)"
             [class.font-semibold]="currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex"
-            [class.text-[#0056D2]]="currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex"
+            [class.text-[#0056D2]]="currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex && !isSectionLockedByPrereqs(lesson, sectionIndex)"
             [class.bg-blue-50]="currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex"
             [class.text-slate-500]="!isSectionCompleted(sectionItem.id) && !(currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex)"
+            [class.opacity-40]="isSectionLockedByPrereqs(lesson, sectionIndex)"
+            [class.cursor-not-allowed]="isSectionLockedByPrereqs(lesson, sectionIndex)"
+            [class.hover:text-[#0056D2]]="!isSectionLockedByPrereqs(lesson, sectionIndex)"
             (click)="selectSectionInSidebar(sectionIndex, $event)">
               <span class="font-bold text-[10px] text-[#0056D2] min-w-[20px]">{{ lessonIdx + 1 }}.{{ sectionIndex + 1 }}</span>
-              @if (sectionItem.type === 'VIDEO') {
-            <span class="material-symbols-outlined text-[14px]">play_circle</span>
-            } @else if (sectionItem.type === 'TEXT') {
-            <span class="material-symbols-outlined text-[14px]">description</span>
-            } @else if (sectionItem.type === 'QUIZ') {
-            <span class="material-symbols-outlined text-[14px]">quiz</span>
-            } @else {
-            <span class="material-symbols-outlined text-[14px]">attach_file</span>
-            }
-            <span class="truncate">{{ sectionItem.title }}</span>
+              @if (isSectionLockedByPrereqs(lesson, sectionIndex)) {
+              <span class="material-symbols-outlined text-[14px] text-slate-400">lock</span>
+              } @else if (isSectionCompleted(sectionItem.id)) {
+              <span class="material-symbols-outlined text-[14px] text-green-600">check_circle</span>
+              } @else if (sectionItem.type === 'VIDEO') {
+              <span class="material-symbols-outlined text-[14px]">play_circle</span>
+              } @else if (sectionItem.type === 'TEXT') {
+              <span class="material-symbols-outlined text-[14px]">description</span>
+              } @else if (sectionItem.type === 'QUIZ') {
+              <span class="material-symbols-outlined text-[14px]">quiz</span>
+              } @else {
+              <span class="material-symbols-outlined text-[14px]">attach_file</span>
+              }
+              <span class="truncate flex-1">{{ sectionItem.title }}</span>
+              @if (sectionItem.isRequired && !isSectionCompleted(sectionItem.id)) {
+              <span class="text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1 py-0.5 rounded shrink-0">Bắt buộc</span>
+              }
           </button>
           }
           }
@@ -288,6 +298,7 @@
         [sectionIndex]="currentSectionIndex()"
         [chapterIndex]="currentChapterIndex()"
         [lessonIndex]="currentLessonIndex()"
+        [completedSections]="completedSections()"
         [isOfflinePackageStale]="course()?.isOfflinePackage === true && course()?.isStale === true"
         [staleReason]="course()?.staleReason ?? null"
         [(activeTab)]="activeTab"
