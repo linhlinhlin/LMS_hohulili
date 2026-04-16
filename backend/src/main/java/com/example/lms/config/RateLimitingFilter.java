@@ -69,9 +69,10 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         String method = request.getMethod();
 
-        // Rate limit auth, AI, payment, invite, and public endpoints
+        // Rate limit auth, AI, payment, invite, user search, and public endpoints
         if (!path.startsWith("/api/v3/auth") && !path.startsWith("/api/v3/ai")
                 && !path.startsWith("/api/v3/payments") && !path.startsWith("/api/v3/invites")
+                && !path.startsWith("/api/v3/users/search") && !path.startsWith("/api/v3/users/instructors")
                 && !isPublicEndpoint(path, method)) {
             filterChain.doFilter(request, response);
             return;
@@ -143,6 +144,10 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             }
             // Everything else (refresh, me, reset-password) — generous
             return new EndpointTier("auth:other", LIMIT_AUTH_OTHER);
+        }
+        // OWASP: Rate limit user search/enumeration endpoints (10 req/min)
+        if (path.startsWith("/api/v3/users/search") || path.startsWith("/api/v3/users/instructors")) {
+            return new EndpointTier("users:search", 10);
         }
         if (path.startsWith("/api/v3/invites/validate")) {
             return new EndpointTier("invite:validate", LIMIT_INVITE_VALIDATE);

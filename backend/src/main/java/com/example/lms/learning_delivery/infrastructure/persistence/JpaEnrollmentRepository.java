@@ -60,6 +60,9 @@ public interface JpaEnrollmentRepository extends JpaRepository<EnrollmentJpaEnti
     @Query("SELECT COUNT(e) FROM EnrollmentJpaEntity e WHERE e.learningClass.id = :classId")
     long countByClassId(@Param("classId") UUID classId);
 
+    @Query("SELECT COUNT(e) FROM EnrollmentJpaEntity e WHERE e.learningClass.id = :classId AND e.status = 'ACTIVE'")
+    long countActiveByClassId(@Param("classId") UUID classId);
+
     /**
      * Check if any enrollment exists for a course (across all classes).
      * Used to lock delivery mode changes after first enrollment (Open edX immutable pattern).

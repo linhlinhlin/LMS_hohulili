@@ -1,0 +1,330 @@
+@use '../../../../../styles/variables' as *;
+
+/* ===== PAGE ===== */
+.audit-page {
+  background: $bg-page;
+  min-height: 100vh;
+}
+
+.audit-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: $spacing-6;
+}
+
+/* ===== HEADER ===== */
+.page-title {
+  font-size: $text-2xl;
+  font-weight: $font-bold;
+  color: $text-primary;
+  margin: 0 0 $spacing-6;
+  line-height: $leading-tight;
+}
+
+/* ===== FILTER BAR ===== */
+.filter-bar {
+  background: $bg-surface;
+  border-radius: $radius-xl;
+  border: 1px solid $border-default;
+  box-shadow: $shadow-sm;
+  padding: $spacing-4;
+  margin-bottom: $spacing-6;
+}
+
+.filter-row {
+  display: flex;
+  gap: $spacing-4;
+  align-items: flex-end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-label {
+  display: block;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $gray-700;
+  margin-bottom: $spacing-1;
+}
+
+.filter-select {
+  padding: $spacing-2 $spacing-3;
+  border: 1px solid $border-dark;
+  border-radius: $radius-lg;
+  font-size: $text-sm;
+  color: $text-primary;
+  background: $bg-surface;
+  transition: border-color $transition-normal, box-shadow $transition-normal;
+
+  &:focus {
+    outline: none;
+    border-color: $blue-primary;
+    box-shadow: 0 0 0 2px rgba($blue-primary, 0.2);
+  }
+}
+
+/* ===== TABLE CARD ===== */
+.table-card {
+  background: $bg-surface;
+  border-radius: $radius-xl;
+  border: 1px solid $border-default;
+  box-shadow: $shadow-sm;
+  overflow: hidden;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table thead tr {
+  background: $gray-50;
+  border-bottom: 1px solid $border-default;
+}
+
+.data-table th {
+  text-align: left;
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  color: $text-muted;
+  text-transform: uppercase;
+  padding: $spacing-3 $spacing-4;
+}
+
+.data-table td {
+  padding: $spacing-3 $spacing-4;
+  font-size: $text-sm;
+  vertical-align: middle;
+}
+
+.data-table tbody tr {
+  border-bottom: 1px solid $border-default;
+  transition: background $transition-fast;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: $gray-50; }
+}
+
+.cell-id {
+  color: $text-primary;
+}
+
+.cell-table-name {
+  color: $text-primary;
+}
+
+.cell-record-id {
+  color: $text-muted;
+  font-family: $font-family-mono;
+}
+
+.cell-time {
+  color: $text-muted;
+}
+
+/* ===== ACTION BADGES ===== */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: $radius-full;
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  white-space: nowrap;
+}
+
+.badge-insert {
+  background: $success-light;
+  color: $success;
+}
+
+.badge-update {
+  background: $info-light;
+  color: $info;
+}
+
+.badge-delete {
+  background: $error-light;
+  color: $error;
+}
+
+.badge-default {
+  background: $gray-100;
+  color: $gray-800;
+}
+
+/* ===== DETAIL TOGGLE ===== */
+.btn-detail {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $blue-primary;
+  transition: color $transition-normal;
+
+  &:hover { color: $blue-hover; }
+}
+
+/* ===== EXPANDED DETAIL ROW ===== */
+.detail-cell {
+  padding: $spacing-4;
+  background: $gray-50;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-4;
+}
+
+.detail-section-title {
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $gray-700;
+  margin-bottom: $spacing-2;
+}
+
+.detail-pre {
+  font-size: $text-xs;
+  font-family: $font-family-mono;
+  background: $bg-surface;
+  padding: $spacing-3;
+  border-radius: $radius-sm;
+  border: 1px solid $border-default;
+  overflow: auto;
+  max-height: 192px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ===== EMPTY STATE ===== */
+.table-empty {
+  padding: $spacing-4 $spacing-8;
+  text-align: center;
+  color: $text-muted;
+  font-size: $text-sm;
+}
+
+/* ===== PAGINATION ===== */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: $spacing-2;
+  margin-top: $spacing-4;
+}
+
+.btn-page {
+  padding: $spacing-1 $spacing-3;
+  border: 1px solid $border-default;
+  border-radius: $radius-sm;
+  font-size: $text-sm;
+  background: $bg-surface;
+  color: $text-primary;
+  cursor: pointer;
+  transition: background $transition-normal;
+
+  &:hover:not(:disabled) { background: $gray-50; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.page-info {
+  padding: $spacing-1 $spacing-3;
+  font-size: $text-sm;
+  color: $text-secondary;
+}
+
+/* ===== RESPONSIVE ===== */
+
+// Tablet
+@media screen and (max-width: $breakpoint-md) {
+  .audit-inner { padding: $spacing-5 $spacing-4; }
+  .filter-row { flex-direction: column; align-items: stretch; }
+
+  .detail-grid { grid-template-columns: 1fr; }
+}
+
+// Mobile
+@media screen and (max-width: $breakpoint-sm) {
+  .audit-inner { padding: $spacing-3; }
+  .page-title { font-size: $text-lg; }
+
+  .filter-bar { padding: $spacing-3; }
+
+  .data-table th { padding: 8px $spacing-3; font-size: 10px; }
+  .data-table td { padding: 8px $spacing-3; font-size: 13px; }
+
+  .detail-cell { padding: $spacing-3; }
+  .detail-pre { max-height: 140px; }
+}
+
+// Ultra-small (<340px)
+@media screen and (max-width: 340px) {
+  .audit-inner { padding: $spacing-3 $spacing-2; }
+  .data-table th { padding: 6px $spacing-2; }
+  .data-table td { padding: 6px $spacing-2; font-size: 12px; }
+}
+
+/* ===== PRINT ===== */
+@media print {
+  :host { display: block; }
+
+  .audit-page {
+    background: white !important;
+    min-height: auto !important;
+  }
+
+  .audit-inner {
+    padding: 10px 0 0 !important;
+    max-width: 100% !important;
+  }
+
+  .page-title { font-size: 18px !important; }
+
+  .filter-bar { display: none !important; }
+  .pagination { display: none !important; }
+
+  .table-card {
+    box-shadow: none !important;
+    border: 1px solid $gray-300 !important;
+    border-radius: 2px !important;
+  }
+
+  .data-table th {
+    padding: 6px 8px !important;
+    font-size: 10px !important;
+  }
+
+  .data-table td {
+    padding: 6px 8px !important;
+    font-size: 12px !important;
+  }
+
+  .data-table tbody tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .btn-detail { display: none !important; }
+
+  .detail-cell {
+    background: white !important;
+    padding: 6px 8px !important;
+  }
+
+  .detail-pre {
+    max-height: none !important;
+    overflow: visible !important;
+    border: 1px solid $gray-300 !important;
+    font-size: 9px !important;
+  }
+
+  .badge {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

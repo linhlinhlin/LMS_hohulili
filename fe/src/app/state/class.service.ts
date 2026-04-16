@@ -94,7 +94,12 @@ export class ClassService {
             maxStudents: item?.maxStudents ?? 0,
             studentCount: item?.studentCount ?? 0,
             scheduleType: item?.scheduleType ?? (item?.semester ? 'SEMESTER' : 'CUSTOM'),
-            semester: item?.semester ?? ''
+            semester: item?.semester ?? '',
+            versionMode: item?.versionMode ?? 'PINNED',
+            publicationNumber: item?.publicationNumber ?? null,
+            latestPublicationNumber: item?.latestPublicationNumber ?? null,
+            updateAvailable: item?.updateAvailable ?? false,
+            capacityPercent: item?.capacityPercent ?? 0
         };
     }
 }

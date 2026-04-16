@@ -1,0 +1,166 @@
+@use '../../../../../../styles/variables' as *;
+
+// ===== HOST =====
+:host {
+  display: block;
+}
+
+// ===== PAGE LAYOUT =====
+.um-page {
+  min-height: 100vh;
+  background: $bg-surface;
+}
+
+.um-container {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: $spacing-6 $spacing-4;
+
+  @media (min-width: $breakpoint-sm) {
+    padding: $spacing-6;
+  }
+
+  @include desktop {
+    padding: $spacing-6 $spacing-8;
+  }
+}
+
+// ===== HEADER =====
+.um-header {
+  margin-bottom: $spacing-8;
+}
+
+.um-header__row {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-6;
+
+  @include desktop {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.um-header__title {
+  font-size: $text-2xl;
+  font-weight: $font-bold;
+  color: $text-primary;
+  margin-bottom: $spacing-1;
+}
+
+.um-header__subtitle {
+  font-size: $text-sm;
+  color: $text-secondary;
+}
+
+.um-header__actions {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-3;
+
+  @media (min-width: $breakpoint-sm) {
+    flex-direction: row;
+  }
+}
+
+// ===== BUTTONS =====
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.625rem $spacing-4;
+  background: $blue-primary;
+  color: $text-inverse;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  border-radius: $radius-sm;
+  border: none;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: $blue-hover;
+  }
+}
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.625rem $spacing-4;
+  background: $bg-surface;
+  color: $gray-700;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  border-radius: $radius-sm;
+  border: 1px solid $border-dark;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: $bg-hover;
+  }
+}
+
+.btn-icon {
+  width: 1rem;
+  height: 1rem;
+  margin-right: $spacing-2;
+}
+
+// ===== SKELETON =====
+.skeleton {
+  background: linear-gradient(90deg, $gray-200 25%, $gray-100 50%, $gray-200 75%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  border-radius: $radius-sm;
+}
+
+.skeleton-text {
+  height: 1rem;
+  width: 60%;
+  margin-bottom: $spacing-2;
+}
+
+.skeleton-block {
+  height: 6rem;
+  border-radius: $radius-lg;
+}
+
+@keyframes skeleton-pulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+// ===== RESPONSIVE =====
+@media (max-width: 340px) {
+  .um-container {
+    padding: $spacing-3 $spacing-2;
+  }
+
+  .um-header__title {
+    font-size: $text-xl;
+  }
+
+  .um-header__actions {
+    flex-direction: column;
+  }
+
+  .btn-primary,
+  .btn-outline {
+    width: 100%;
+  }
+}
+
+// ===== PRINT =====
+@media print {
+  .um-page {
+    min-height: auto;
+    background: white;
+  }
+
+  .um-header__actions {
+    display: none !important;
+  }
+}

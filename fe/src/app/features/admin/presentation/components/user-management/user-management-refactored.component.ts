@@ -39,53 +39,8 @@ import { ToastService } from '../../../../../core/services/toast.service';
 ],
   providers: [UserManagementState],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div class="min-h-screen bg-white">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <!-- Header Section -->
-        <div class="mb-8">
-          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <h1 class="text-2xl font-bold text-gray-900 mb-1">Quản lý người dùng</h1>
-              <p class="text-sm text-gray-600">Quản lý và theo dõi tất cả người dùng trong hệ thống</p>
-            </div>
-            <div class="flex flex-col sm:flex-row gap-3">
-              <button (click)="state.openCreateUserModal()"
-                      class="inline-flex items-center justify-center px-4 py-2.5 bg-[#0056D2] text-white text-sm font-medium rounded hover:bg-[#004BB5] transition-colors">
-                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
-                </svg>
-                Thêm người dùng
-              </button>
-              <button (click)="state.openBulkImportModal()"
-                      class="inline-flex items-center justify-center px-4 py-2.5 bg-white text-gray-700 text-sm font-medium rounded border border-gray-300 hover:bg-gray-50 transition-colors">
-                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                </svg>
-                Import Excel
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Stats Cards -->
-        <app-user-stats-cards />
-
-        <!-- Search and Filter -->
-        <app-user-search-filter />
-
-        <!-- Users Table -->
-        <app-users-table (statusAction)="onStatusAction($event)" />
-      </div>
-    </div>
-
-    <!-- Modals -->
-    <app-create-user-modal />
-    <app-edit-user-modal />
-    <app-bulk-import-modal
-      (startImport)="startBulkImport()"
-      (downloadTemplate)="downloadTemplate()" />
-  `
+  templateUrl: './user-management-refactored.component.html',
+  styleUrl: './user-management-refactored.component.scss'
 })
 export class UserManagementRefactoredComponent implements OnInit {
   readonly state = inject(UserManagementState);

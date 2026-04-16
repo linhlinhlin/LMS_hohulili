@@ -4,6 +4,8 @@ import com.example.lms.course_authoring.application.usecase.ApproveCourseUseCase
 import com.example.lms.course_authoring.application.usecase.RejectCourseUseCase;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
+import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseReviewEventJpaEntity;
+import com.example.lms.course_authoring.infrastructure.persistence.repository.CourseReviewEventJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseCategoryJpaEntity;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.CourseCategoryJpaRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
@@ -53,6 +55,7 @@ public class AdminCoursesControllerV3 {
     private final PaymentTransactionJpaRepository paymentTransactionRepository;
     private final ApproveCourseUseCase approveCourseUseCase;
     private final RejectCourseUseCase rejectCourseUseCase;
+    private final CourseReviewEventJpaRepository reviewEventRepository;
 
     @Operation(summary = "Get all courses with pagination and filtering")
     @GetMapping("/all")
@@ -333,7 +336,39 @@ public class AdminCoursesControllerV3 {
                 .orElseThrow(() -> new EntityNotFoundException("Khóa học", courseId));
         course.revoke(admin.getId(), reason);
         courseRepository.save(course);
+
+        reviewEventRepository.save(CourseReviewEventJpaEntity.builder()
+                .courseId(courseId)
+                .reviewerId(admin.getId())
+                .action("REVOKED")
+                .comment(reason)
+                .build());
+
         return ResponseEntity.ok(ApiResponse.success(toAdminResponse(course), "Đã thu hồi khóa học"));
+    }
+
+    @Operation(summary = "Get review history for a course")
+    @GetMapping("/{courseId}/review-history")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
+    public ResponseEntity<ApiResponse<List<ReviewEventResponse>>> getReviewHistory(
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal UserJpaEntity admin
+    ) {
+        verifyCourseOrgAccess(courseId, admin);
+        var events = reviewEventRepository.findByCourseIdOrderByCreatedAtDesc(courseId);
+        var responses = events.stream().map(e -> {
+            String reviewerName = null;
+            if (e.getReviewerId() != null) {
+                reviewerName = userRepository.findById(e.getReviewerId())
+                        .map(UserJpaEntity::getFullName)
+                        .orElse(null);
+            }
+            return new ReviewEventResponse(
+                    e.getId(), e.getAction(), e.getComment(),
+                    e.getReviewerId(), reviewerName, e.getCreatedAt()
+            );
+        }).toList();
+        return ResponseEntity.ok(ApiResponse.success(responses, "Lịch sử phê duyệt"));
     }
 
     @Operation(summary = "Bulk approve courses")
@@ -691,5 +726,16 @@ public class AdminCoursesControllerV3 {
         private int success;
         private int failed;
         private List<String> errors;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    public static class ReviewEventResponse {
+        private UUID id;
+        private String action;
+        private String comment;
+        private UUID reviewerId;
+        private String reviewerName;
+        private Instant createdAt;
     }
 }

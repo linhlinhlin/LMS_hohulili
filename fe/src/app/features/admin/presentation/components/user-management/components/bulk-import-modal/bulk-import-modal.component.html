@@ -1,0 +1,168 @@
+@if (state.isBulkImportModalOpen()) {
+  <div class="modal-backdrop">
+    <div class="modal-center">
+      <div class="modal-panel">
+        <div class="modal-body-wrapper">
+          <div class="modal-content-row">
+            <div class="modal-icon-wrap">
+              <svg class="modal-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+            </div>
+            <div class="modal-content-area">
+              <h3 class="modal-title">Import người dùng từ Excel</h3>
+
+              <!-- Template Info -->
+              <div class="info-note">
+                <div class="info-note-inner">
+                  <svg class="info-icon" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                  </svg>
+                  <div class="info-content">
+                    <p class="info-heading">Định dạng file Excel yêu cầu:</p>
+                    <ul class="info-list">
+                      <li>Cột A: Username (tùy chọn) - Nếu để trống sẽ tự sinh từ email</li>
+                      <li>Cột B: Email (bắt buộc) - Địa chỉ email</li>
+                      <li>Cột C: Full Name (bắt buộc) - Họ tên đầy đủ</li>
+                      <li>Cột D: Password (tùy chọn) - Mật khẩu</li>
+                      <li>Cột E: Department (tùy chọn) - Phòng ban/Khoa</li>
+                    </ul>
+                    <div class="password-note">
+                      <p class="password-note-title">Mật khẩu mặc định: <span class="password-note-bold">Password123!</span></p>
+                      <p class="password-note-desc">Nếu file Excel không có cột Password, tất cả tài khoản sẽ dùng mật khẩu này.</p>
+                    </div>
+                    <p class="info-hint">File sẽ được xử lý trên máy chủ và trả về lỗi chi tiết theo từng dòng.</p>
+                    <button (click)="downloadTemplate.emit()" class="template-link">
+                      Tải template mẫu
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Role Selection -->
+              <div class="form-field">
+                <label class="form-label">
+                  Vai trò mặc định cho đợt import
+                </label>
+                <select [ngModel]="state.defaultImportRole()"
+                        (ngModelChange)="state.defaultImportRole.set($event)"
+                        name="importRole"
+                        class="form-select">
+                  @for (roleOpt of state.ROLE_OPTIONS; track roleOpt.value) {
+                    <option [value]="roleOpt.value">{{ roleOpt.label }}</option>
+                  }
+                </select>
+                <p class="form-hint">Tất cả người dùng hợp lệ trong file sẽ được gán vai trò này</p>
+              </div>
+
+              <!-- File Upload -->
+              <div class="upload-section">
+                <div class="upload-field">
+                  <label class="form-label">Chọn file Excel (.xlsx hoặc .xls)</label>
+                  <div class="upload-dropzone">
+                    @if (state.selectedFile()) {
+                      <div class="upload-preview">
+                        <svg class="upload-success-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div class="upload-file-info">
+                          <p class="upload-filename">{{ state.selectedFile()?.name }}</p>
+                          <p class="upload-filesize">{{ state.formatFileSize(state.selectedFile()?.size || 0) }}</p>
+                        </div>
+                        <button (click)="state.removeFile()" class="upload-change-btn">
+                          Chọn file khác
+                        </button>
+                      </div>
+                    } @else {
+                      <div class="upload-placeholder">
+                        <svg class="upload-placeholder-icon" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                          <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                        </svg>
+                        <div class="upload-text">
+                          <label for="file-upload" class="upload-label">
+                            <span class="upload-label-primary">Kéo thả file vào đây hoặc</span>
+                            <span class="upload-label-action">chọn file từ máy tính</span>
+                          </label>
+                          <input id="file-upload" name="file-upload" type="file" class="sr-only" accept=".xlsx,.xls" (change)="state.onFileSelected($event)">
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <!-- Progress Bar -->
+                @if (state.bulkImportProgress().isImporting) {
+                  <div class="progress-section">
+                    <div class="progress-step">{{ state.bulkImportProgress().currentStep }}</div>
+                    <div class="progress-track">
+                      <div class="progress-fill"
+                           [style.width.%]="state.bulkImportProgress().progress"></div>
+                    </div>
+                  </div>
+                }
+
+                <!-- Import Results -->
+                @if (state.bulkImportProgress().result) {
+                  <div class="import-results">
+                    <h4 class="results-title">Kết quả import:</h4>
+                    <div class="results-grid">
+                      <div class="result-cell">
+                        <div class="result-value result-value--total">{{ state.bulkImportProgress().result?.totalRows }}</div>
+                        <div class="result-label">Tổng dòng</div>
+                      </div>
+                      <div class="result-cell">
+                        <div class="result-value result-value--success">{{ state.bulkImportProgress().result?.successfulImports }}</div>
+                        <div class="result-label">Thành công</div>
+                      </div>
+                      <div class="result-cell">
+                        <div class="result-value result-value--error">{{ state.bulkImportProgress().result?.failedImports }}</div>
+                        <div class="result-label">Thất bại</div>
+                      </div>
+                    </div>
+
+                    @if (state.bulkImportProgress().result!.errors.length > 0) {
+                      <div class="error-details">
+                        <h5 class="error-details-title">Lỗi chi tiết:</h5>
+                        <div class="error-details-box">
+                          <ul class="error-list">
+                            @for (error of state.bulkImportProgress().result!.errors; track $index) {
+                              <li>{{ error }}</li>
+                            }
+                          </ul>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="modal-footer">
+          @if (!state.bulkImportProgress().result) {
+            <button (click)="startImport.emit()"
+                    [disabled]="!state.selectedFile() || state.bulkImportProgress().isImporting"
+                    class="btn-primary btn-primary--full">
+              @if (state.bulkImportProgress().isImporting) {
+                <svg class="btn-spinner" fill="none" viewBox="0 0 24 24">
+                  <circle class="spinner-track" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="spinner-fill" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Đang import...
+              } @else {
+                Bắt đầu Import
+              }
+            </button>
+          }
+          <button (click)="state.closeBulkImportModal()"
+                  type="button"
+                  class="btn-secondary btn-secondary--full">
+            {{ state.bulkImportProgress().result ? 'Đóng' : 'Hủy' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

@@ -49,9 +49,15 @@ public interface EnrollmentRepository {
     List<Enrollment> findActiveByStudentId(UUID studentId);
 
     /**
-     * Count enrollments in a class.
+     * Count enrollments in a class (all statuses).
      */
     long countByClassId(UUID classId);
+
+    /**
+     * Count only ACTIVE enrollments in a class.
+     * Used for deletion checks — DROPPED students should not block class deletion.
+     */
+    long countActiveByClassId(UUID classId);
 
     /**
      * Find enrollment by student and course.

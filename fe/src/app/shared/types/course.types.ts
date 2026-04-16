@@ -334,9 +334,14 @@ export interface ClassSummary {
   startDate: string;
   endDate: string;
   maxStudents: number;
-  studentCount?: number; // Matches backend response
+  studentCount?: number;
   scheduleType: ScheduleType;
   semester?: string;
+  versionMode?: 'PINNED' | 'FOLLOW_LATEST';
+  publicationNumber?: number;
+  latestPublicationNumber?: number;
+  updateAvailable?: boolean;
+  capacityPercent?: number;
 }
 
 export interface CreateClassRequest {

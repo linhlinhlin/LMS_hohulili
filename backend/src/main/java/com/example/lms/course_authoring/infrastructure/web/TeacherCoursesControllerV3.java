@@ -44,6 +44,8 @@ public class TeacherCoursesControllerV3 {
     private final com.example.lms.course_authoring.infrastructure.service.CoursePublicationService coursePublicationService;
     private final VideoAssetPresentationService videoAssetPresentationService;
     private final AdaptiveVideoPlaybackService adaptiveVideoPlaybackService;
+    private final com.example.lms.learning_delivery.infrastructure.persistence.ClassTeacherJpaRepository classTeacherJpaRepository;
+    private final com.example.lms.course_authoring.infrastructure.persistence.repository.CourseReviewEventJpaRepository reviewEventRepository;
 
     @GetMapping("/my-courses")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
@@ -61,7 +63,11 @@ public class TeacherCoursesControllerV3 {
 
         int safeSize = Math.min(size, 100);
         PageRequest pageable = PageRequest.of(page, safeSize);
-        var response = courseAuthoringUseCase.getMyCourses(currentUser.getId(), pageable);
+
+        // Google Classroom pattern: include co-taught courses in the same list
+        Page<CourseDTOs.TeacherCourseResponse> response = jpaCourseRepository
+                .findByTeacherIdIncludingCoTeaching(currentUser.getId(), pageable)
+                .map(entity -> mapEntityToResponse(entity, currentUser.getId()));
 
         // Batch-enrich with real stats (Coursera/Canvas pattern - avoid N+1)
         List<UUID> courseIds = response.getContent().stream()
@@ -156,9 +162,11 @@ public class TeacherCoursesControllerV3 {
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     public ResponseEntity<ApiResponse<Object>> submitForApproval(
             @PathVariable UUID courseId,
+            @RequestBody(required = false) java.util.Map<String, String> body,
             @AuthenticationPrincipal UserJpaEntity user) {
         verifyCourseOwnership(courseId, user);
-        courseAuthoringUseCase.submitForApproval(courseId);
+        String releaseNotes = body != null ? body.get("releaseNotes") : null;
+        courseAuthoringUseCase.submitForApproval(courseId, user.getId(), releaseNotes);
         return ResponseEntity.ok(ApiResponse.success("Đã gửi yêu cầu phê duyệt"));
     }
 
@@ -180,6 +188,31 @@ public class TeacherCoursesControllerV3 {
         verifyCourseOwnership(courseId, user);
         var status = courseAuthoringUseCase.getReviewStatus(courseId);
         return ResponseEntity.ok(ApiResponse.success(status));
+    }
+
+    @GetMapping("/{courseId}/review-history")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    public ResponseEntity<ApiResponse<Object>> getReviewHistory(
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        verifyCourseOwnership(courseId, user);
+        var events = reviewEventRepository.findByCourseIdOrderByCreatedAtDesc(courseId);
+        var responses = events.stream().map(e -> {
+            String reviewerName = null;
+            if (e.getReviewerId() != null) {
+                reviewerName = userRepository.findById(e.getReviewerId())
+                        .map(UserJpaEntity::getFullName)
+                        .orElse(null);
+            }
+            return java.util.Map.of(
+                    "id", e.getId().toString(),
+                    "action", e.getAction(),
+                    "comment", e.getComment() != null ? e.getComment() : "",
+                    "reviewerName", reviewerName != null ? reviewerName : "",
+                    "createdAt", e.getCreatedAt().toString()
+            );
+        }).toList();
+        return ResponseEntity.ok(ApiResponse.success(responses));
     }
     @GetMapping("/{courseId}/students")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
@@ -235,8 +268,9 @@ public class TeacherCoursesControllerV3 {
         if (isAdminRole(user)) return;
         var course = jpaCourseRepository.findById(courseId)
                 .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Course", courseId));
-        if (!course.getTeacherId().equals(user.getId())) {
-            throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu khóa học này");
+        if (!course.getTeacherId().equals(user.getId())
+                && !classTeacherJpaRepository.existsByTeacherIdAndCourseId(user.getId(), courseId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền truy cập khóa học này");
         }
     }
 
@@ -280,5 +314,31 @@ public class TeacherCoursesControllerV3 {
             );
             draft.setIntroVideoUrl(playUrl);
         });
+    }
+
+    private CourseDTOs.TeacherCourseResponse mapEntityToResponse(
+            com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity entity,
+            UUID currentUserId) {
+        return CourseDTOs.TeacherCourseResponse.builder()
+                .id(entity.getId())
+                .code(entity.getCode())
+                .slug(entity.getCode())
+                .title(entity.getTitle())
+                .description(entity.getDescription())
+                .thumbnail(entity.getThumbnailUrl())
+                .price(entity.getPrice())
+                .status(entity.getStatus() != null ? entity.getStatus().name() : "DRAFT")
+                .deliveryMode(entity.getDeliveryMode() != null ? entity.getDeliveryMode().name() : "SELF_PACED")
+                .categoryName(null) // Enriched via batch query if needed
+                .createdAt(entity.getCreatedAt() != null ? entity.getCreatedAt().toString() : null)
+                .updatedAt(entity.getUpdatedAt() != null ? entity.getUpdatedAt().toString() : null)
+                .sectionCount(0)
+                .lessonCount(0)
+                .enrolledCount(0)
+                .studentsCount(0)
+                .averageRating(0.0)
+                .teacherRole(entity.getTeacherId() != null && entity.getTeacherId().equals(currentUserId)
+                        ? "OWNER" : "CO_TEACHER")
+                .build();
     }
 }

@@ -1,288 +1,362 @@
-    <div class="bg-slate-50 min-h-screen">
-      <div class="max-w-7xl mx-auto px-6 py-8">
-        <!-- Header -->
-        <div class="mb-8">
-          <div class="flex items-center justify-between">
-            <div>
-              <h1 class="text-2xl font-bold text-gray-900 mb-2">
-                <svg class="w-7 h-7 inline-block mr-2 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path>
-                </svg>
-                {{ pageTitle() }}
-              </h1>
-              <p class="text-gray-600">{{ pageSubtitle() }}</p>
+@if (isLoading()) {
+  <!-- ===== SKELETON ===== -->
+  <div class="analytics-page">
+    <div class="header-bar">
+      <div class="header-inner">
+        <div class="sk animate-pulse" style="height:24px;width:280px"></div>
+      </div>
+    </div>
+    <div class="analytics-main">
+      <!-- Metrics strip skeleton -->
+      <div class="skeleton-strip animate-pulse">
+        @for (_ of [1,2,3,4]; track $index) {
+          <div class="skeleton-cell">
+            <div class="sk" style="height:32px;width:32px;border-radius:12px;margin-bottom:8px"></div>
+            <div class="sk" style="height:24px;width:80px;margin-bottom:6px"></div>
+            <div class="sk-light" style="height:12px;width:100px"></div>
+          </div>
+        }
+      </div>
+      <!-- Left + Right skeleton -->
+      <div class="content-grid grid-2-1">
+        <!-- Left column -->
+        <div>
+          <!-- Revenue skeleton -->
+          <div class="skeleton-card animate-pulse" style="margin-bottom:20px">
+            <div class="sk" style="height:16px;width:200px;margin-bottom:20px"></div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+              @for (_ of [1,2,3]; track $index) {
+                <div style="text-align:center">
+                  <div class="sk" style="height:28px;width:120px;margin:0 auto 8px"></div>
+                  <div class="sk-light" style="height:12px;width:100px;margin:0 auto"></div>
+                </div>
+              }
             </div>
-            <div class="flex items-center space-x-4">
-              <div class="text-right">
-                <div class="text-sm text-gray-600">Cập nhật lần cuối</div>
-                <div class="text-sm font-medium text-gray-900">{{ getCurrentTime() }}</div>
-              </div>
-              <button (click)="refreshAnalytics()"
-                      class="px-4 py-2 bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
-                <svg class="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path>
-                </svg>
-                Làm mới
-              </button>
+          </div>
+          <!-- Course stats skeleton -->
+          <div class="skeleton-card animate-pulse">
+            <div class="sk" style="height:16px;width:180px;margin-bottom:20px"></div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px">
+              @for (_ of [1,2,3,4]; track $index) {
+                <div style="text-align:center">
+                  <div class="sk" style="height:24px;width:50px;margin:0 auto 8px"></div>
+                  <div class="sk-light" style="height:12px;width:80px;margin:0 auto"></div>
+                </div>
+              }
             </div>
           </div>
         </div>
-
-        <!-- Main Analytics Grid -->
-        <div class="grid grid-cols-12 gap-6 mb-8">
-          <!-- Left Column - Key Metrics (8 columns) -->
-          <div class="col-span-12 xl:col-span-8 space-y-6">
-            <!-- Key Metrics -->
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-              <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 hover:shadow-md transition-all border-l-4 border-l-[#0056D2]">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <p class="text-sm font-medium text-gray-600 mb-1">Tổng người dùng</p>
-                    <p class="text-3xl font-bold text-gray-900">{{ analytics()?.totalUsers || 0 }}</p>
-                    <p class="text-sm text-[#0056D2] flex items-center mt-1">
-                      <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
-                      </svg>
-                      +{{ analytics()?.userGrowth?.growthRate || 0 }}% tháng này
-                    </p>
-                  </div>
-                  <div class="w-12 h-12 bg-[#0056D2]/10 rounded-xl flex items-center justify-center">
-                    <svg class="w-6 h-6 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
-                    </svg>
-                  </div>
-                </div>
+        <!-- Right column -->
+        <div class="right-column">
+          <!-- Health skeleton -->
+          <div class="skeleton-card animate-pulse">
+            <div class="sk" style="height:16px;width:160px;margin-bottom:16px"></div>
+            @for (_ of [1,2,3,4]; track $index) {
+              <div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid #f3f4f6">
+                <div class="sk" style="height:10px;width:10px;border-radius:50%;flex-shrink:0"></div>
+                <div class="sk-light" style="height:14px;flex:1"></div>
+                <div class="sk-light" style="height:22px;width:80px;border-radius:4px;flex-shrink:0"></div>
               </div>
-
-              <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 hover:shadow-md transition-all border-l-4 border-l-purple-500">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <p class="text-sm font-medium text-gray-600 mb-1">Giảng viên</p>
-                    <p class="text-3xl font-bold text-gray-900">{{ analytics()?.totalTeachers || 0 }}</p>
-                    <p class="text-sm text-purple-600 flex items-center mt-1">
-                      <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
-                      </svg>
-                      Hoạt động
-                    </p>
-                  </div>
-                  <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                    <svg class="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
-                      <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
-                    </svg>
-                  </div>
-                </div>
+            }
+          </div>
+          <!-- Growth skeleton -->
+          <div class="skeleton-card animate-pulse">
+            <div class="sk" style="height:16px;width:200px;margin-bottom:16px"></div>
+            @for (_ of [1,2,3]; track $index) {
+              <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f3f4f6">
+                <div class="sk-light" style="height:14px;width:100px"></div>
+                <div class="sk" style="height:18px;width:50px"></div>
               </div>
+            }
+            <div class="sk-light" style="height:8px;width:100%;border-radius:999px;margin-top:12px"></div>
+          </div>
+          <!-- Active users skeleton -->
+          <div class="skeleton-card animate-pulse" style="text-align:center">
+            <div class="sk" style="height:16px;width:180px;margin:0 auto 16px"></div>
+            <div class="sk" style="height:36px;width:80px;margin:0 auto 8px"></div>
+            <div class="sk-light" style="height:12px;width:100px;margin:0 auto 16px"></div>
+            <div class="sk-light" style="height:10px;width:100%;border-radius:999px"></div>
+            <div class="sk-light" style="height:10px;width:120px;margin:8px auto 0"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+} @else {
+  <!-- ===== ANALYTICS PAGE ===== -->
+  <div class="analytics-page">
+    <!-- Header -->
+    <div class="header-bar">
+      <div class="header-inner">
+        <div class="header-left">
+          <h1 class="page-title">
+            <svg fill="currentColor" viewBox="0 0 20 20">
+              <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path>
+            </svg>
+            {{ pageTitle() }}
+          </h1>
+          <p class="page-subtitle">{{ pageSubtitle() }}</p>
+        </div>
+        <div class="header-right">
+          <div class="last-updated">
+            <p class="last-updated-label">Cập nhật lần cuối</p>
+            <p class="last-updated-time">{{ getCurrentTime() }}</p>
+          </div>
+          <button class="btn-refresh" (click)="refreshAnalytics()">
+            <svg fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path>
+            </svg>
+            Làm mới
+          </button>
+        </div>
+      </div>
+    </div>
 
-              <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 hover:shadow-md transition-all border-l-4 border-l-[#0056D2]">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <p class="text-sm font-medium text-gray-600 mb-1">Học viên</p>
-                    <p class="text-3xl font-bold text-gray-900">{{ analytics()?.totalStudents || 0 }}</p>
-                    <p class="text-sm text-[#0056D2] flex items-center mt-1">
-                      <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
-                      </svg>
-                      Đang học
-                    </p>
-                  </div>
-                  <div class="w-12 h-12 bg-[#0056D2]/10 rounded-xl flex items-center justify-center">
-                    <svg class="w-6 h-6 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
-                    </svg>
-                  </div>
-                </div>
-              </div>
+    <div class="analytics-main">
+      <!-- Metrics Strip -->
+      <div class="metrics-strip">
+        <div class="metric-cell">
+          <div class="metric-icon icon-primary">
+            <svg fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
+            </svg>
+          </div>
+          <p class="metric-value">{{ analytics()?.totalUsers || 0 }}</p>
+          <p class="metric-label">Tổng người dùng</p>
+          <p class="metric-sub sub-primary">
+            <svg fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+            </svg>
+            +{{ analytics()?.userGrowth?.growthRate || 0 }}% tháng này
+          </p>
+        </div>
 
-              <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 hover:shadow-md transition-all border-l-4 border-l-green-500">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <p class="text-sm font-medium text-gray-600 mb-1">Khóa học</p>
-                    <p class="text-3xl font-bold text-gray-900">{{ analytics()?.totalCourses || 0 }}</p>
-                    <p class="text-sm text-green-600 flex items-center mt-1">
-                      <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
-                      </svg>
-                      {{ analytics()?.pendingCourses || 0 }} chờ phê duyệt
-                    </p>
-                  </div>
-                  <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                    <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
-                      <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
+        <div class="metric-cell">
+          <div class="metric-icon icon-purple">
+            <svg fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+              <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+            </svg>
+          </div>
+          <p class="metric-value">{{ analytics()?.totalTeachers || 0 }}</p>
+          <p class="metric-label">Giảng viên</p>
+          <p class="metric-sub sub-purple">Hoạt động</p>
+        </div>
 
-            <!-- Revenue Analytics -->
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-              <h3 class="text-lg font-semibold text-gray-900 mb-6">
-                <svg class="w-5 h-5 inline-block mr-2 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+        <div class="metric-cell">
+          <div class="metric-icon icon-primary">
+            <svg fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
+            </svg>
+          </div>
+          <p class="metric-value">{{ analytics()?.totalStudents || 0 }}</p>
+          <p class="metric-label">Học viên</p>
+          <p class="metric-sub sub-primary">Đang học</p>
+        </div>
+
+        <div class="metric-cell">
+          <div class="metric-icon icon-green">
+            <svg fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+              <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+            </svg>
+          </div>
+          <p class="metric-value">{{ analytics()?.totalCourses || 0 }}</p>
+          <p class="metric-label">Khóa học</p>
+          <p class="metric-sub sub-green">
+            <svg fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+            </svg>
+            {{ analytics()?.pendingCourses || 0 }} chờ phê duyệt
+          </p>
+        </div>
+      </div>
+
+      <!-- Main 2-column layout -->
+      <div class="content-grid grid-2-1">
+        <!-- Left Column -->
+        <div>
+          <!-- Revenue Analytics -->
+          <div class="card" style="margin-bottom:20px">
+            <div class="card-header">
+              <h3 class="card-title title-green">
+                <svg fill="currentColor" viewBox="0 0 20 20">
                   <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path>
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"></path>
                 </svg>
                 Phân tích doanh thu
               </h3>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="text-center">
-                  <div class="text-3xl font-bold text-green-600 mb-2">{{ formatCurrency(analytics()?.totalRevenue || 0) }}</div>
-                  <div class="text-sm text-gray-600">Tổng doanh thu</div>
+            </div>
+            <div class="card-body">
+              <div class="revenue-grid">
+                <div class="revenue-stat">
+                  <p class="revenue-value value-green">{{ formatCurrency(analytics()?.totalRevenue || 0) }}</p>
+                  <p class="revenue-label">Tổng doanh thu</p>
                 </div>
-                <div class="text-center">
-                  <div class="text-3xl font-bold text-[#0056D2] mb-2">{{ formatCurrency(analytics()?.monthlyRevenue || 0) }}</div>
-                  <div class="text-sm text-gray-600">Doanh thu tháng này</div>
+                <div class="revenue-stat">
+                  <p class="revenue-value value-primary">{{ formatCurrency(analytics()?.monthlyRevenue || 0) }}</p>
+                  <p class="revenue-label">Doanh thu tháng này</p>
                 </div>
-                <div class="text-center">
-                  <div class="text-3xl font-bold text-purple-600 mb-2">+{{ analytics()?.revenueStats?.growthRate || 0 }}%</div>
-                  <div class="text-sm text-gray-600">Tăng trưởng</div>
+                <div class="revenue-stat">
+                  <p class="revenue-value value-purple">+{{ analytics()?.revenueStats?.growthRate || 0 }}%</p>
+                  <p class="revenue-label">Tăng trưởng</p>
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- Course Statistics -->
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-              <h3 class="text-lg font-semibold text-gray-900 mb-6">
-                <svg class="w-5 h-5 inline-block mr-2 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+          <!-- Course Statistics -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title title-purple">
+                <svg fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
                   <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
                 </svg>
                 Thống kê khóa học
               </h3>
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-                <div class="text-center">
-                  <div class="text-2xl font-bold text-yellow-600 mb-2">{{ analytics()?.courseStats?.pending || 0 }}</div>
-                  <div class="text-sm text-gray-600">Chờ phê duyệt</div>
-                </div>
-                <div class="text-center">
-                  <div class="text-2xl font-bold text-green-600 mb-2">{{ analytics()?.courseStats?.approved || 0 }}</div>
-                  <div class="text-sm text-gray-600">Đã phê duyệt</div>
-                </div>
-                <div class="text-center">
-                  <div class="text-2xl font-bold text-red-600 mb-2">{{ analytics()?.courseStats?.rejected || 0 }}</div>
-                  <div class="text-sm text-gray-600">Bị từ chối</div>
-                </div>
-                <div class="text-center">
-                  <div class="text-2xl font-bold text-[#0056D2] mb-2">{{ analytics()?.courseStats?.active || 0 }}</div>
-                  <div class="text-sm text-gray-600">Đang hoạt động</div>
-                </div>
-              </div>
             </div>
-          </div>
-
-          <!-- Right Column - System Health & Activity (4 columns) -->
-          <div class="col-span-12 xl:col-span-4 space-y-6">
-            <!-- System Health -->
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-              <h3 class="text-lg font-semibold text-gray-900 mb-6">
-                <svg class="w-5 h-5 inline-block mr-2 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
-                </svg>
-                Trạng thái hệ thống
-              </h3>
-              <div class="space-y-4">
-                <div class="flex items-center justify-between p-3 rounded-lg"
-                     [class]="getHealthClass(analytics()?.systemHealth?.database || 'healthy')">
-                  <div class="flex items-center space-x-3">
-                    <div class="w-3 h-3 rounded-full"
-                         [class]="getHealthDotClass(analytics()?.systemHealth?.database || 'healthy')"></div>
-                    <span class="font-medium text-gray-900">Database</span>
-                  </div>
-                  <span class="text-sm font-medium"
-                        [class]="getHealthTextClass(analytics()?.systemHealth?.database || 'healthy')">
-                    {{ getHealthText(analytics()?.systemHealth?.database || 'healthy') }}
-                  </span>
+            <div class="card-body">
+              <div class="course-stats-grid">
+                <div class="course-stat">
+                  <p class="stat-value value-warning">{{ analytics()?.courseStats?.pending || 0 }}</p>
+                  <p class="stat-label">Chờ phê duyệt</p>
                 </div>
-                <div class="flex items-center justify-between p-3 rounded-lg"
-                     [class]="getHealthClass(analytics()?.systemHealth?.api || 'healthy')">
-                  <div class="flex items-center space-x-3">
-                    <div class="w-3 h-3 rounded-full"
-                         [class]="getHealthDotClass(analytics()?.systemHealth?.api || 'healthy')"></div>
-                    <span class="font-medium text-gray-900">API Server</span>
-                  </div>
-                  <span class="text-sm font-medium"
-                        [class]="getHealthTextClass(analytics()?.systemHealth?.api || 'healthy')">
-                    {{ getHealthText(analytics()?.systemHealth?.api || 'healthy') }}
-                  </span>
+                <div class="course-stat">
+                  <p class="stat-value value-green">{{ analytics()?.courseStats?.approved || 0 }}</p>
+                  <p class="stat-label">Đã phê duyệt</p>
                 </div>
-                <div class="flex items-center justify-between p-3 rounded-lg"
-                     [class]="getHealthClass(analytics()?.systemHealth?.storage || 'healthy')">
-                  <div class="flex items-center space-x-3">
-                    <div class="w-3 h-3 rounded-full"
-                         [class]="getHealthDotClass(analytics()?.systemHealth?.storage || 'healthy')"></div>
-                    <span class="font-medium text-gray-900">File Storage</span>
-                  </div>
-                  <span class="text-sm font-medium"
-                        [class]="getHealthTextClass(analytics()?.systemHealth?.storage || 'healthy')">
-                    {{ getHealthText(analytics()?.systemHealth?.storage || 'healthy') }}
-                  </span>
+                <div class="course-stat">
+                  <p class="stat-value value-red">{{ analytics()?.courseStats?.rejected || 0 }}</p>
+                  <p class="stat-label">Bị từ chối</p>
                 </div>
-                <div class="flex items-center justify-between p-3 rounded-lg"
-                     [class]="getHealthClass(analytics()?.systemHealth?.email || 'healthy')">
-                  <div class="flex items-center space-x-3">
-                    <div class="w-3 h-3 rounded-full"
-                         [class]="getHealthDotClass(analytics()?.systemHealth?.email || 'healthy')"></div>
-                    <span class="font-medium text-gray-900">Email Service</span>
-                  </div>
-                  <span class="text-sm font-medium"
-                        [class]="getHealthTextClass(analytics()?.systemHealth?.email || 'healthy')">
-                    {{ getHealthText(analytics()?.systemHealth?.email || 'healthy') }}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <!-- User Growth -->
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-              <h3 class="text-lg font-semibold text-gray-900 mb-6">
-                <svg class="w-5 h-5 inline-block mr-2 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd"></path>
-                </svg>
-                Tăng trưởng người dùng
-              </h3>
-              <div class="space-y-4">
-                <div class="flex items-center justify-between">
-                  <span class="text-sm text-gray-600">Tháng này</span>
-                  <span class="text-lg font-semibold text-gray-900">{{ analytics()?.userGrowth?.thisMonth || 0 }}</span>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-sm text-gray-600">Tháng trước</span>
-                  <span class="text-lg font-semibold text-gray-900">{{ analytics()?.userGrowth?.lastMonth || 0 }}</span>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-sm text-gray-600">Tỷ lệ tăng trưởng</span>
-                  <span class="text-lg font-semibold text-green-600">+{{ analytics()?.userGrowth?.growthRate || 0 }}%</span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-2">
-                  <div class="bg-[#0056D2] h-2 rounded-full"
-                       [style.width.%]="getGrowthBarWidth()"></div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Active Users -->
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-              <h3 class="text-lg font-semibold text-gray-900 mb-6">
-                <svg class="w-5 h-5 inline-block mr-2 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
-                </svg>
-                Người dùng hoạt động
-              </h3>
-              <div class="text-center">
-                <div class="text-4xl font-bold text-[#0056D2] mb-2">{{ analytics()?.activeUsers || 0 }}</div>
-                <div class="text-sm text-gray-600 mb-4">Đang online</div>
-                <div class="w-full bg-gray-200 rounded-full h-3">
-                  <div class="bg-[#0056D2] h-3 rounded-full"
-                       [style.width.%]="getActiveUserPercent()"></div>
-                </div>
-                <div class="text-xs text-gray-500 mt-2">
-                  {{ getActiveUserPercentText() }}% tổng người dùng
+                <div class="course-stat">
+                  <p class="stat-value value-primary">{{ analytics()?.courseStats?.active || 0 }}</p>
+                  <p class="stat-label">Đang hoạt động</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        <!-- Right Column -->
+        <div class="right-column">
+          <!-- System Health -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title title-primary">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
+                </svg>
+                Trạng thái hệ thống
+              </h3>
+            </div>
+            <div class="health-list">
+              <div class="health-item">
+                <div class="health-dot"
+                     [class.healthy]="analytics()?.systemHealth?.database === 'healthy'"
+                     [class.warn]="analytics()?.systemHealth?.database === 'warning'"
+                     [class.error]="analytics()?.systemHealth?.database === 'error'"></div>
+                <span class="health-name">Database</span>
+                <span class="health-status"
+                      [class.status-ok]="analytics()?.systemHealth?.database === 'healthy'"
+                      [class.status-warn]="analytics()?.systemHealth?.database === 'warning'"
+                      [class.status-err]="analytics()?.systemHealth?.database === 'error'">
+                  {{ getHealthText(analytics()?.systemHealth?.database || 'healthy') }}
+                </span>
+              </div>
+              <div class="health-item">
+                <div class="health-dot"
+                     [class.healthy]="analytics()?.systemHealth?.api === 'healthy'"
+                     [class.warn]="analytics()?.systemHealth?.api === 'warning'"
+                     [class.error]="analytics()?.systemHealth?.api === 'error'"></div>
+                <span class="health-name">API Server</span>
+                <span class="health-status"
+                      [class.status-ok]="analytics()?.systemHealth?.api === 'healthy'"
+                      [class.status-warn]="analytics()?.systemHealth?.api === 'warning'"
+                      [class.status-err]="analytics()?.systemHealth?.api === 'error'">
+                  {{ getHealthText(analytics()?.systemHealth?.api || 'healthy') }}
+                </span>
+              </div>
+              <div class="health-item">
+                <div class="health-dot"
+                     [class.healthy]="analytics()?.systemHealth?.storage === 'healthy'"
+                     [class.warn]="analytics()?.systemHealth?.storage === 'warning'"
+                     [class.error]="analytics()?.systemHealth?.storage === 'error'"></div>
+                <span class="health-name">File Storage</span>
+                <span class="health-status"
+                      [class.status-ok]="analytics()?.systemHealth?.storage === 'healthy'"
+                      [class.status-warn]="analytics()?.systemHealth?.storage === 'warning'"
+                      [class.status-err]="analytics()?.systemHealth?.storage === 'error'">
+                  {{ getHealthText(analytics()?.systemHealth?.storage || 'healthy') }}
+                </span>
+              </div>
+              <div class="health-item">
+                <div class="health-dot"
+                     [class.healthy]="analytics()?.systemHealth?.email === 'healthy'"
+                     [class.warn]="analytics()?.systemHealth?.email === 'warning'"
+                     [class.error]="analytics()?.systemHealth?.email === 'error'"></div>
+                <span class="health-name">Email Service</span>
+                <span class="health-status"
+                      [class.status-ok]="analytics()?.systemHealth?.email === 'healthy'"
+                      [class.status-warn]="analytics()?.systemHealth?.email === 'warning'"
+                      [class.status-err]="analytics()?.systemHealth?.email === 'error'">
+                  {{ getHealthText(analytics()?.systemHealth?.email || 'healthy') }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- User Growth -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title title-primary">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd"></path>
+                </svg>
+                Tăng trưởng người dùng
+              </h3>
+            </div>
+            <div class="growth-list">
+              <div class="growth-row">
+                <span class="growth-label">Tháng này</span>
+                <span class="growth-value">{{ analytics()?.userGrowth?.thisMonth || 0 }}</span>
+              </div>
+              <div class="growth-row">
+                <span class="growth-label">Tháng trước</span>
+                <span class="growth-value">{{ analytics()?.userGrowth?.lastMonth || 0 }}</span>
+              </div>
+              <div class="growth-row">
+                <span class="growth-label">Ty le tang truong</span>
+                <span class="growth-value value-green">+{{ analytics()?.userGrowth?.growthRate || 0 }}%</span>
+              </div>
+              <div class="progress-track" style="margin-top:12px">
+                <div class="progress-fill" [style.width.%]="getGrowthBarWidth()"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active Users -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title title-primary">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
+                </svg>
+                Nguoi dung hoat dong
+              </h3>
+            </div>
+            <div class="active-users-body">
+              <p class="active-count">{{ analytics()?.activeUsers || 0 }}</p>
+              <p class="active-label">Dang online</p>
+              <div class="progress-track">
+                <div class="progress-fill" [style.width.%]="getActiveUserPercent()"></div>
+              </div>
+              <p class="active-percent">{{ getActiveUserPercentText() }}% tong nguoi dung</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
+  </div>
+}

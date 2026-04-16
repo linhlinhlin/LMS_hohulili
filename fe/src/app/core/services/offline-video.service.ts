@@ -368,18 +368,31 @@ export class OfflineVideoService {
       },
     });
 
-    // Consume stream to get actual size, then re-cache with correct Content-Length
-    const streamResponse = new Response(progressStream);
-    const blob = await streamResponse.blob();
-    const actualSize = blob.size;
-
-    await cache.put(cacheKey, new Response(blob, {
+    // Stream directly to Cache API — the browser writes chunks to disk
+    // incrementally instead of accumulating the entire video in RAM.
+    await cache.put(cacheKey, new Response(progressStream, {
       headers: {
         'Content-Type': contentType,
-        'Content-Length': String(actualSize),
+        ...(contentLength > 0 ? { 'Content-Length': String(contentLength) } : {}),
         'Accept-Ranges': 'bytes',
       },
     }));
+
+    // When Content-Length was unknown (rare — most CDNs include it),
+    // re-cache with the actual size so Range requests work correctly.
+    if (contentLength === 0 && received > 0) {
+      const existing = await cache.match(cacheKey);
+      if (existing) {
+        const blob = await existing.blob();
+        await cache.put(cacheKey, new Response(blob, {
+          headers: {
+            'Content-Type': contentType,
+            'Content-Length': String(received),
+            'Accept-Ranges': 'bytes',
+          },
+        }));
+      }
+    }
   }
 
   private async ensureOfflineReady(optional = false): Promise<boolean> {

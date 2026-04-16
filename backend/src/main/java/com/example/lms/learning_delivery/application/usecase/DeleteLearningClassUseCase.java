@@ -30,11 +30,11 @@ public class DeleteLearningClassUseCase {
         LearningClass learningClass = classRepository.findById(classId)
                 .orElseThrow(() -> new EntityNotFoundException("Lớp học", classId));
 
-        // Check if class has students
-        long studentCount = enrollmentRepository.countByClassId(classId);
-        if (studentCount > 0) {
+        // Check if class has ACTIVE students (DROPPED students should not block deletion)
+        long activeStudentCount = enrollmentRepository.countActiveByClassId(classId);
+        if (activeStudentCount > 0) {
             throw new BusinessRuleException("CANNOT_DELETE_CLASS_WITH_STUDENTS",
-                    "Không thể xóa lớp học có học viên. Vui lòng xóa tất cả học viên trước.");
+                    "Không thể xóa lớp học có học viên đang hoạt động. Vui lòng xóa tất cả học viên trước.");
         }
 
         classRepository.delete(learningClass);

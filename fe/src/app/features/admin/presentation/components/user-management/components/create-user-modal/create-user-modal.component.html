@@ -1,0 +1,87 @@
+@if (state.showCreateModal()) {
+  <div class="modal-backdrop" (click)="state.closeCreateUserModal()">
+    <div class="modal-center">
+      <div class="modal-panel" (click)="$event.stopPropagation()">
+        <!-- Modal Header -->
+        <div class="modal-header">
+          <h3 class="modal-title">Thêm người dùng mới</h3>
+          <button (click)="state.closeCreateUserModal()" class="modal-close-btn" type="button">
+            <svg class="icon-close" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Modal Body -->
+        <form (ngSubmit)="state.createUser()" class="modal-body">
+          <div class="form-field">
+            <label class="form-label">
+              Tên người dùng <span class="required-mark">*</span>
+            </label>
+            <input type="text"
+                   [ngModel]="state.newUserName()"
+                   (ngModelChange)="state.newUserName.set($event)"
+                   name="name"
+                   required
+                   placeholder="Nhập tên đầy đủ"
+                   class="form-input">
+          </div>
+
+          <div class="form-field">
+            <label class="form-label">
+              Email <span class="required-mark">*</span>
+            </label>
+            <input type="email"
+                   [ngModel]="state.newUserEmail()"
+                   (ngModelChange)="state.newUserEmail.set($event)"
+                   name="email"
+                   required
+                   placeholder="example@domain.com"
+                   class="form-input">
+          </div>
+
+          <div class="form-field">
+            <label class="form-label">
+              Vai trò <span class="required-mark">*</span>
+            </label>
+            <select [ngModel]="state.newUserRole()"
+                    (ngModelChange)="state.newUserRole.set($event)"
+                    name="role"
+                    required
+                    class="form-select">
+              <option value="">Chọn vai trò</option>
+              @for (roleOpt of state.ROLE_OPTIONS; track roleOpt.value) {
+                <option [value]="roleOpt.value">{{ roleOpt.label }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Info Note -->
+          <div class="info-note">
+            <div class="info-note-inner">
+              <svg class="info-icon" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+              </svg>
+              <p class="info-text">
+                Mật khẩu mặc định là <span class="info-bold">Password123!</span>. Người dùng nên đổi mật khẩu sau lần đăng nhập đầu tiên.
+              </p>
+            </div>
+          </div>
+        </form>
+
+        <!-- Modal Footer -->
+        <div class="modal-footer">
+          <button (click)="state.closeCreateUserModal()" type="button" class="btn-secondary">
+            Hủy
+          </button>
+          <button (click)="state.createUser()"
+                  type="button"
+                  [disabled]="!state.newUserName() || !state.newUserEmail() || !state.newUserRole()"
+                  class="btn-primary">
+            Tạo người dùng
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

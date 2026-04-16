@@ -61,6 +61,7 @@ public class CourseAuthoringControllerV3 {
     private final com.example.lms.course_authoring.domain.repository.CourseRepository courseRepository;
     private final com.example.lms.course_authoring.application.usecase.CourseDraftMutationUseCase courseDraftMutationUseCase;
     private final ObjectMapper objectMapper;
+    private final com.example.lms.learning_delivery.infrastructure.persistence.ClassTeacherJpaRepository classTeacherJpaRepository;
 
     @Operation(summary = "Create a new chapter")
     @PostMapping("/{courseId}/chapters")
@@ -682,8 +683,9 @@ return ResponseEntity.ok(ApiResponse.success(block, "Cáº­p nháº­t pháº§
         if (isAdminRole(user)) return;
         var course = courseRepository.findById(courseId)
             .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Course", courseId));
-        if (!course.getTeacherId().equals(user.getId())) {
-            throw new org.springframework.security.access.AccessDeniedException("Báº¡n khÃ´ng sá»Ÿ há»¯u khÃ³a há»c nÃ y");
+        if (!course.getTeacherId().equals(user.getId())
+                && !classTeacherJpaRepository.existsByTeacherIdAndCourseId(user.getId(), courseId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền truy cập khóa học này");
         }
     }
 
@@ -691,8 +693,9 @@ return ResponseEntity.ok(ApiResponse.success(block, "Cáº­p nháº­t pháº§
         if (isAdminRole(user)) return;
         var course = courseRepository.findByChapterId(chapterId)
             .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Course", chapterId));
-        if (!course.getTeacherId().equals(user.getId())) {
-            throw new org.springframework.security.access.AccessDeniedException("Báº¡n khÃ´ng sá»Ÿ há»¯u khÃ³a há»c nÃ y");
+        if (!course.getTeacherId().equals(user.getId())
+                && !classTeacherJpaRepository.existsByTeacherIdAndCourseId(user.getId(), course.getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền truy cập khóa học này");
         }
     }
 
@@ -700,8 +703,9 @@ return ResponseEntity.ok(ApiResponse.success(block, "Cáº­p nháº­t pháº§
         if (isAdminRole(user)) return;
         var course = courseRepository.findByLessonId(lessonId)
             .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Course", lessonId));
-        if (!course.getTeacherId().equals(user.getId())) {
-            throw new org.springframework.security.access.AccessDeniedException("Báº¡n khÃ´ng sá»Ÿ há»¯u khÃ³a há»c nÃ y");
+        if (!course.getTeacherId().equals(user.getId())
+                && !classTeacherJpaRepository.existsByTeacherIdAndCourseId(user.getId(), course.getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền truy cập khóa học này");
         }
     }
 

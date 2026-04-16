@@ -47,6 +47,9 @@ public class CoursePublicationJpaEntity {
     @Column(name = "published_by_id")
     private UUID publishedById;
 
+    @Column(name = "release_notes", columnDefinition = "TEXT")
+    private String releaseNotes;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

@@ -13,6 +13,16 @@ import { UserService, UserSummary } from '../../../../../../core/services/user.s
 import { ClassSummary } from '../../../../../../shared/types/course.types';
 import { ToastService } from '../../../../../../core/services/toast.service';
 
+/**
+ * Semester date configuration for maritime training calendar.
+ * Update these if the institution changes its academic calendar.
+ */
+const SEMESTER_DATES: Record<string, { startMonth: number; startDay: number; endMonth: number; endDay: number; crossYear: boolean }> = {
+  '1': { startMonth: 9, startDay: 5,  endMonth: 1, endDay: 15, crossYear: true  },  // HK1: 05/09 → 15/01 năm sau
+  '2': { startMonth: 1, startDay: 20, endMonth: 5, endDay: 30, crossYear: false },  // HK2: 20/01 → 30/05
+  '3': { startMonth: 6, startDay: 5,  endMonth: 8, endDay: 15, crossYear: false },  // Hè:  05/06 → 15/08
+};
+
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-class-dialog',
@@ -44,7 +54,8 @@ export class ClassDialogComponent implements OnInit {
         startDate: ['', Validators.required],
         endDate: ['', Validators.required],
         maxStudents: [50, [Validators.required, Validators.min(1)]],
-        teacherId: [null] // Store selected teacher ID
+        teacherId: [null], // Store selected teacher ID
+        versionMode: ['PINNED']
     });
 
     // Teacher Autocomplete Controls
@@ -104,7 +115,8 @@ export class ClassDialogComponent implements OnInit {
                 startDate: cls.startDate ? cls.startDate.split('T')[0] : '',
                 endDate: cls.endDate ? cls.endDate.split('T')[0] : '',
                 maxStudents: cls.maxStudents,
-                teacherId: cls.teacherId ?? null
+                teacherId: cls.teacherId ?? null,
+                versionMode: (cls as any).versionMode || 'PINNED'
             });
 
             // Set initial display for teacher
@@ -133,24 +145,18 @@ export class ClassDialogComponent implements OnInit {
     }
 
     calculateDates(year: number, semester: string) {
-        let start = '';
-        let end = '';
+        const config = SEMESTER_DATES[semester] || SEMESTER_DATES[semester === 'Hè' ? '3' : ''];
+        if (!config) return;
+
         const y = Number(year);
+        const startYear = config.crossYear ? y : y + 1;
+        const endYear = config.crossYear ? y + 1 : y + 1;
+        const pad = (n: number) => String(n).padStart(2, '0');
 
-        if (semester === '1') {
-            start = `${y}-09-05`;
-            end = `${y + 1}-01-15`;
-        } else if (semester === '2') {
-            start = `${y + 1}-01-20`;
-            end = `${y + 1}-05-30`;
-        } else if (semester === '3' || semester === 'Hè') {
-            start = `${y + 1}-06-05`;
-            end = `${y + 1}-08-15`;
-        }
+        const start = `${startYear}-${pad(config.startMonth)}-${pad(config.startDay)}`;
+        const end = `${endYear}-${pad(config.endMonth)}-${pad(config.endDay)}`;
 
-        if (start && end) {
-            this.form.patchValue({ startDate: start, endDate: end }, { emitEvent: false });
-        }
+        this.form.patchValue({ startDate: start, endDate: end }, { emitEvent: false });
     }
 
     extractSemesterIndex(semesterStr: string): string {

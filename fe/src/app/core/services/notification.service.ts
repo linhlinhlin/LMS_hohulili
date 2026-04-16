@@ -22,7 +22,9 @@ export type NotificationType =
   | 'DEADLINE_EXTENDED'
   | 'FEEDBACK_RECEIVED'
   | 'SUBMISSION_RECEIVED'
-  | 'MESSAGE_RECEIVED';
+  | 'MESSAGE_RECEIVED'
+  | 'COURSE_APPROVED'
+  | 'COURSE_REJECTED';
 
 export type NotificationPriority = 'HIGH' | 'MEDIUM' | 'LOW';
 
@@ -80,6 +82,9 @@ export class NotificationService {
   // Real-time updates subject
   private newNotification$ = new Subject<Notification>();
   private pollingSubscription: Subscription | null = null;
+  private pollTimer: ReturnType<typeof setTimeout> | null = null;
+  private visibilityHandler: (() => void) | null = null;
+  private isPollingInFlight = false;
 
   // Computed
   readonly allNotifications = computed(() => this.notifications());
@@ -442,16 +447,27 @@ export class NotificationService {
   }
 
   /**
-   * Start polling for new notifications
-   * In production, replace with WebSocket connection
+   * SOTA polling: Visibility API + adaptive interval (Slack/Discord pattern).
+   * - Tab visible: poll every 60s
+   * - Tab hidden: poll every 5 minutes (save connections)
+   * - Prevents HikariCP pool exhaustion from multiple tabs
    */
   private startPolling(): void {
-    // Stop any existing polling to prevent stacking on re-login
     this.stopPolling();
-    // Poll every 30 seconds
-    this.pollingSubscription = interval(30000).subscribe(() => {
-      this.checkForNewNotifications();
-    });
+
+    const poll = () => {
+      if (this.pollTimer) clearTimeout(this.pollTimer);
+      const delay = document.hidden ? 300_000 : 60_000; // 5min hidden, 60s visible
+      this.pollTimer = setTimeout(() => {
+        this.checkForNewNotifications();
+        poll(); // schedule next
+      }, delay);
+    };
+
+    // Re-schedule when tab visibility changes
+    this.visibilityHandler = () => poll();
+    document.addEventListener('visibilitychange', this.visibilityHandler);
+    poll();
   }
 
   private stopPolling(): void {
@@ -459,18 +475,31 @@ export class NotificationService {
       this.pollingSubscription.unsubscribe();
       this.pollingSubscription = null;
     }
+    if (this.pollTimer) {
+      clearTimeout(this.pollTimer);
+      this.pollTimer = null;
+    }
+    if (this.visibilityHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
+      this.visibilityHandler = null;
+    }
   }
 
   private checkForNewNotifications(): void {
+    // Guard: skip if a request is already in flight (prevents connection stacking)
+    if (this.isPollingInFlight) return;
+    this.isPollingInFlight = true;
+
     this.apiClient.get<{ data?: { count?: number }; count?: number }>('/api/v3/gamification/notifications/unread-count')
       .subscribe({
         next: (response: any) => {
+          this.isPollingInFlight = false;
           const count = response?.data?.count ?? response?.count ?? 0;
           if (count > this.unreadCount()) {
             this.loadNotifications().subscribe();
           }
         },
-        error: () => { /* silently ignore polling errors */ }
+        error: () => { this.isPollingInFlight = false; }
       });
   }
 

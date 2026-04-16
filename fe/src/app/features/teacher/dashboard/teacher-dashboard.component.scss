@@ -252,6 +252,8 @@
   font-weight: $font-medium;
   padding: 3px 10px;
   border-radius: $radius-full;
+  min-width: 72px;
+  text-align: center;
 
   &.badge-approved {
     background: #ECFDF5;

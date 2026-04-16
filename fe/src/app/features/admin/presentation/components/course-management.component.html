@@ -1,767 +1,655 @@
+<div class="course-page">
+  <!-- Header -->
+  <div class="header-bar">
+    <div class="header-inner">
+      <div>
+        <h1 class="page-title">Quản lý khóa học hệ thống</h1>
+        <p class="page-subtitle">Phê duyệt và quản lý tất cả khóa học trong hệ thống</p>
+      </div>
+    </div>
+  </div>
 
-    <!-- Modern Coursera-inspired Layout -->
-    <div class="min-h-screen bg-white">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <!-- Header -->
-        <div class="mb-8">
-          <div class="flex items-center justify-between">
-            <div>
-              <h1 class="text-3xl font-bold text-gray-900 mb-2">
-                <svg class="w-8 h-8 inline-block mr-2 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
-                  <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
-                </svg>
-                Quản lý khóa học hệ thống
-              </h1>
-              <p class="text-gray-600">Phê duyệt và quản lý tất cả khóa học trong hệ thống</p>
+  <div class="course-main">
+    @if (isLoading()) {
+      <!-- Skeleton loading -->
+      <div class="animate-pulse">
+        <!-- Skeleton metrics -->
+        <div class="skeleton-strip">
+          @for (_ of [1,2,3,4]; track $index) {
+            <div class="skeleton-cell">
+              <div class="sk" style="width:60%;height:12px;margin-bottom:8px"></div>
+              <div class="sk" style="width:40%;height:20px;margin-bottom:4px"></div>
+              <div class="sk-light" style="width:50%;height:10px"></div>
             </div>
-            <div class="flex items-center space-x-4">
-              <div class="text-right">
-                <div class="text-sm text-gray-600">Khóa học chờ phê duyệt</div>
-                <div class="text-2xl font-bold text-red-600">{{ pendingCourses() }}</div>
-              </div>
+          }
+        </div>
+        <!-- Skeleton filter bar -->
+        <div class="skeleton-table" style="margin-bottom:20px">
+          <div style="padding:16px 20px">
+            <div class="sk" style="width:100%;height:36px;margin-bottom:12px"></div>
+            <div style="display:flex;gap:16px">
+              <div class="sk" style="width:140px;height:36px"></div>
+              <div class="sk" style="width:140px;height:36px"></div>
+              <div class="sk" style="width:100px;height:36px"></div>
             </div>
           </div>
         </div>
-
-        <!-- Stats Cards - Coursera Style -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <!-- Total Courses Card -->
-          <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-start justify-between">
-              <div class="flex-1">
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Tổng khóa học</p>
-                <p class="text-2xl font-bold text-gray-900">{{ totalCourses() }}</p>
-                <p class="text-xs text-gray-600 mt-2">{{ approvedCourses() }} đã phê duyệt</p>
-              </div>
-              <div class="w-10 h-10 bg-[#0056D2]/5 rounded-lg flex items-center justify-center flex-shrink-0">
-                <svg class="w-5 h-5 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
-                  <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
-                </svg>
-              </div>
+        <!-- Skeleton table -->
+        <div class="skeleton-table">
+          <div class="skeleton-thead">
+            <div style="display:flex;gap:32px">
+              @for (_ of [1,2,3,4,5]; track $index) {
+                <div class="sk" style="width:80px;height:10px"></div>
+              }
             </div>
           </div>
-
-          <!-- Pending Courses Card -->
-          <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-start justify-between">
-              <div class="flex-1">
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Chờ phê duyệt</p>
-                <p class="text-2xl font-bold text-gray-900">{{ pendingCourses() }}</p>
-                <p class="text-xs text-yellow-600 mt-2">Cần xem xét</p>
+          @for (_ of [1,2,3,4,5]; track $index) {
+            <div class="skeleton-row">
+              <div class="sk" style="width:40px;height:40px;border-radius:8px;flex-shrink:0"></div>
+              <div style="flex:1">
+                <div class="sk" style="width:60%;height:12px;margin-bottom:6px"></div>
+                <div class="sk-light" style="width:40%;height:10px"></div>
               </div>
-              <div class="w-10 h-10 bg-yellow-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                <svg class="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <!-- Approved Courses Card -->
-          <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-start justify-between">
-              <div class="flex-1">
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Đã phê duyệt</p>
-                <p class="text-2xl font-bold text-gray-900">{{ approvedCourses() }}</p>
-                <p class="text-xs text-green-600 mt-2">Đang hoạt động</p>
-              </div>
-              <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <!-- Revenue Card -->
-          <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-start justify-between">
-              <div class="flex-1">
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Tổng doanh thu</p>
-                <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(totalRevenue()) }}</p>
-                <p class="text-xs text-gray-600 mt-2">Từ các khóa học</p>
-              </div>
-              <div class="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                <svg class="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path>
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"></path>
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Search and Filter - Coursera Style -->
-        <div class="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-          <div class="flex flex-col gap-4">
-            <!-- Row 1: Search + Status + Category + CSV -->
-            <div class="flex flex-col md:flex-row gap-4">
-              <div class="flex-1">
-                <input type="text"
-                       [ngModel]="searchQuery()"
-                       (ngModelChange)="searchQuery.set($event)"
-                       (keyup.enter)="onFilterChange()"
-                       placeholder="Tìm kiếm khóa học..."
-                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
-              </div>
-              <div class="flex gap-4 flex-wrap">
-                <select [ngModel]="statusFilter()"
-                        (ngModelChange)="statusFilter.set($event); onFilterChange()"
-                        class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
-                  <option value="">Tất cả trạng thái</option>
-                  <option value="draft">Nháp</option>
-                  <option value="pending">Chờ phê duyệt</option>
-                  <option value="approved">Đã phê duyệt</option>
-                  <option value="rejected">Bị từ chối</option>
-                </select>
-                <select [ngModel]="categoryFilter()"
-                        (ngModelChange)="categoryFilter.set($event); onFilterChange()"
-                        class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
-                  <option value="">Tất cả danh mục</option>
-                  @for (root of categoryTree(); track root.id) {
-                    <option [value]="root.id">{{ root.name }}</option>
-                    @for (sub of root.children; track sub.id) {
-                      <option [value]="sub.id">&nbsp;&nbsp;↳ {{ sub.name }}</option>
-                    }
-                  }
-                </select>
-                <button (click)="exportCoursesToCsv()"
-                        class="inline-flex items-center px-4 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-                        title="Xuất CSV">
-                  <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                  </svg>
-                  Xuất CSV
-                </button>
-              </div>
-            </div>
-            <!-- Row 2: Date range filters -->
-            <div class="flex flex-col md:flex-row gap-4 items-center">
-              <div class="flex items-center gap-2">
-                <label class="text-sm text-gray-600 whitespace-nowrap">Từ ngày</label>
-                <input type="date"
-                       [ngModel]="fromDate()"
-                       (ngModelChange)="fromDate.set($event); onFilterChange()"
-                       class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
-              </div>
-              <div class="flex items-center gap-2">
-                <label class="text-sm text-gray-600 whitespace-nowrap">Đến ngày</label>
-                <input type="date"
-                       [ngModel]="toDate()"
-                       (ngModelChange)="toDate.set($event); onFilterChange()"
-                       class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Bulk Action Toolbar -->
-        @if (selectedCount() > 0) {
-          <div class="bg-[#0056D2]/5 border border-[#0056D2]/20 rounded-lg p-4 mb-4 flex items-center justify-between">
-            <div class="text-sm font-medium text-[#004BB5]">
-              Đã chọn {{ selectedCount() }} khóa học
-            </div>
-            <div class="flex items-center gap-3">
-              <button (click)="bulkApprove()"
-                      class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors">
-                <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                </svg>
-                Duyệt ({{ selectedCount() }})
-              </button>
-              <button (click)="openBulkRejectModal()"
-                      class="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors">
-                <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                </svg>
-                Từ chối ({{ selectedCount() }})
-              </button>
-              <button (click)="clearSelection()"
-                      class="inline-flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors">
-                Bỏ chọn
-              </button>
-            </div>
-          </div>
-        }
-
-        <!-- Courses Table -->
-        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          @if (isLoading()) {
-            <div class="p-12 text-center">
-              <div class="inline-block">
-                <div class="w-12 h-12 border-4 border-gray-200 border-t-[#0056D2] rounded-full animate-spin"></div>
-              </div>
-              <p class="mt-4 text-sm text-gray-600">Đang tải danh sách khóa học...</p>
-            </div>
-          } @else if (courses().length > 0) {
-            <div class="overflow-x-auto">
-              <table class="w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                  <tr>
-                    <th class="px-4 py-3 w-10">
-                      <input type="checkbox"
-                             [checked]="allPendingSelected()"
-                             (change)="toggleSelectAll()"
-                             class="w-4 h-4 rounded border-gray-300 text-[#0056D2] focus:ring-[#0056D2]"
-                             title="Chọn tất cả khóa học chờ phê duyệt">
-                    </th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Khóa học
-                    </th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Giảng viên
-                    </th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Trạng thái
-                    </th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Giá / Học viên
-                    </th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Thao tác
-                    </th>
-                  </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-100">
-                  @for (course of courses(); track course.id) {
-                    <tr class="hover:bg-gray-50 transition-colors">
-                      <!-- Checkbox -->
-                      <td class="px-4 py-3">
-                        @if (isPendingStatus(course.status)) {
-                          <input type="checkbox"
-                                 [checked]="isCourseSelected(course.id)"
-                                 (change)="toggleCourseSelection(course.id)"
-                                 class="w-4 h-4 rounded border-gray-300 text-[#0056D2] focus:ring-[#0056D2]">
-                        }
-                      </td>
-                      <!-- Course Info -->
-                      <td class="px-4 py-3">
-                        <div class="flex items-center">
-                          @if (course.thumbnail) {
-                            <img [src]="course.thumbnail"
-                                 [alt]="course.title"
-                                 class="w-10 h-10 rounded-lg object-cover mr-3 border border-gray-200 flex-shrink-0"
-                                 (error)="$any($event.target).style.display='none'">
-                          } @else {
-                            <div class="w-10 h-10 rounded-lg bg-[#0056D2]/10 flex items-center justify-center mr-3 flex-shrink-0">
-                              <span class="text-sm font-bold text-[#0056D2]">{{ (course.title || 'K').charAt(0).toUpperCase() }}</span>
-                            </div>
-                          }
-                          <div class="min-w-0 max-w-[220px]">
-                            <div class="text-sm font-medium text-gray-900 truncate">{{ course.title }}</div>
-                            <div class="text-xs text-gray-500 truncate">{{ course.shortDescription || 'Chưa có mô tả' }}</div>
-                            @if (course.level) {
-                              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 mt-0.5">
-                                {{ getLevelText(course.level) }}
-                              </span>
-                            }
-                          </div>
-                        </div>
-                      </td>
-                      <!-- Instructor -->
-                      <td class="px-4 py-3 whitespace-nowrap">
-                        <div class="flex items-center">
-                          <div class="w-7 h-7 rounded-full bg-[#0056D2] flex items-center justify-center flex-shrink-0">
-                            <span class="text-xs font-bold text-white">{{ (course.teacherName || 'T').charAt(0).toUpperCase() }}</span>
-                          </div>
-                          <div class="ml-2 min-w-0">
-                            <div class="text-sm font-medium text-gray-900 truncate max-w-[120px]">{{ course.teacherName }}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <!-- Status -->
-                      <td class="px-4 py-3 whitespace-nowrap">
-                        <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full"
-                              [class]="getStatusClass(course.status)">
-                          {{ getStatusText(course.status) }}
-                        </span>
-                        @if (course.rejectionReason && course.status.toLowerCase() === 'rejected') {
-                          <div class="text-xs text-red-500 mt-1 max-w-[140px] truncate" [title]="course.rejectionReason">
-                            {{ course.rejectionReason }}
-                          </div>
-                        }
-                      </td>
-                      <!-- Price / Students -->
-                      <td class="px-4 py-3 whitespace-nowrap">
-                        <div class="text-sm font-semibold text-gray-900">{{ course.price ? formatCurrency(course.price) : 'Miễn phí' }}</div>
-                        <div class="flex items-center text-xs text-gray-500 mt-0.5">
-                          <svg class="w-3 h-3 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1a1 1 0 01-1 1H6a1 1 0 01-1-1v-1a5 5 0 018.93-3z"></path>
-                          </svg>
-                          {{ course.enrolledCount || 0 }} học viên
-                        </div>
-                      </td>
-                      <!-- Actions -->
-                      <td class="px-4 py-3 whitespace-nowrap text-center">
-                        <div class="flex items-center justify-center gap-1">
-                          <!-- Approve/Reject for PENDING courses -->
-                          @if (isPendingStatus(course.status)) {
-                            <button (click)="approveCourse(course.id)"
-                                    class="p-1.5 text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors"
-                                    title="Phê duyệt">
-                              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                              </svg>
-                            </button>
-                            <button (click)="openRejectModal(course)"
-                                    class="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
-                                    title="Từ chối">
-                              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                              </svg>
-                            </button>
-                          }
-                          <!-- Revoke for APPROVED courses -->
-                          @if (isApprovedStatus(course.status)) {
-                            <button (click)="openRevokeModal(course.id)"
-                                    class="p-1.5 text-orange-600 hover:text-orange-800 hover:bg-orange-50 rounded transition-colors"
-                                    title="Thu hồi phê duyệt">
-                              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path>
-                              </svg>
-                            </button>
-                          }
-                          <button (click)="previewContent(course.id)"
-                                  class="p-1.5 text-[#0056D2] hover:text-[#004BB5] hover:bg-[#0056D2]/5 rounded transition-colors"
-                                  title="Xem nội dung">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                              <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"></path>
-                            </svg>
-                          </button>
-                          <button (click)="viewCourse(course.id)"
-                                  class="p-1.5 text-[#0056D2] hover:text-[#004BB5] hover:bg-[#0056D2]/5 rounded transition-colors"
-                                  title="Xem chi tiết">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
-                              <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path>
-                            </svg>
-                          </button>
-                          <button (click)="editCourse(course.id)"
-                                  class="p-1.5 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
-                                  title="Chỉnh sửa">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path>
-                            </svg>
-                          </button>
-                          <!-- Delete for ADMIN only -->
-                          @if (isSystemAdmin()) {
-                            <button (click)="deleteCourse(course)"
-                                    class="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
-                                    title="Xóa khóa học">
-                              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                              </svg>
-                            </button>
-                          }
-                        </div>
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Pagination -->
-            @if (totalPages() > 1) {
-              <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
-                <div class="text-sm text-gray-600">
-                  Hiển thị {{ getDisplayStart() }} - {{ getDisplayEnd() }} trong tổng số {{ totalElements() }} khóa học
-                </div>
-                <div class="flex items-center gap-2">
-                  <button (click)="previousPage()"
-                          [disabled]="currentPage() === 0"
-                          class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                    Trước
-                  </button>
-                  <span class="px-3 py-1.5 text-sm text-gray-600">
-                    Trang {{ currentPage() + 1 }} / {{ totalPages() }}
-                  </span>
-                  <button (click)="nextPage()"
-                          [disabled]="currentPage() >= totalPages() - 1"
-                          class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                    Sau
-                  </button>
-                </div>
-              </div>
-            }
-          } @else if (!isLoading()) {
-            <!-- Empty State inside table container -->
-            <div class="p-12 text-center">
-              <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
-                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
-              </svg>
-              <h3 class="text-base font-medium text-gray-900 mb-2">Không có khóa học nào</h3>
-              <p class="text-sm text-gray-600">Chưa có khóa học nào được nộp để phê duyệt hoặc phù hợp với bộ lọc</p>
+              <div class="sk" style="width:80px;height:12px"></div>
+              <div class="sk" style="width:70px;height:20px;border-radius:10px"></div>
+              <div class="sk" style="width:60px;height:12px"></div>
             </div>
           }
         </div>
       </div>
-    </div>
+    } @else {
+      <!-- Metrics Strip -->
+      <div class="metrics-strip">
+        <div class="metric-cell">
+          <p class="metric-value">{{ totalCourses() }}</p>
+          <p class="metric-label">Tổng khóa học</p>
+          <p class="metric-sub">{{ approvedCourses() }} đã phê duyệt</p>
+        </div>
+        <div class="metric-cell highlight">
+          <p class="metric-value warning">{{ pendingCourses() }}</p>
+          <p class="metric-label">Chờ phê duyệt</p>
+          <p class="metric-sub warning-text">Cần xem xét</p>
+        </div>
+        <div class="metric-cell">
+          <p class="metric-value">{{ approvedCourses() }}</p>
+          <p class="metric-label">Đã phê duyệt</p>
+          <p class="metric-sub">Đang hoạt động</p>
+        </div>
+        <div class="metric-cell">
+          <p class="metric-value">{{ formatCurrency(totalRevenue()) }}</p>
+          <p class="metric-label">Tổng doanh thu</p>
+          <p class="metric-sub">Từ các khóa học</p>
+        </div>
+      </div>
 
-    <!-- Reject Course Modal -->
-    @if (showRejectModal()) {
-      <div class="fixed inset-0 z-50 overflow-y-auto" (click)="closeRejectModal()">
-        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-
-          <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full" (click)="$event.stopPropagation()">
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-              <div class="sm:flex sm:items-start">
-                <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                  <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                  </svg>
-                </div>
-                <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                  <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
-                    Từ chối khóa học
-                  </h3>
-
-                  <div class="mb-4">
-                    <div class="text-sm text-gray-600 mb-2">
-                      <strong>{{ selectedCourse()?.title }}</strong>
-                    </div>
-                    <div class="text-sm text-gray-500">
-                      Giảng viên: {{ selectedCourse()?.teacherName || 'Không xác định' }}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Lý do từ chối *</label>
-                    <textarea [ngModel]="rejectionReason()"
-                              (ngModelChange)="rejectionReason.set($event)"
-                              name="rejectionReason"
-                              rows="4"
-                              required
-                              placeholder="Vui lòng giải thích lý do từ chối khóa học này..."
-                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#0056D2] focus:border-[#0056D2]"></textarea>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-              <button (click)="rejectCourse()"
-                      [disabled]="!rejectionReason()"
-                      class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                Từ chối khóa học
-              </button>
-              <button (click)="closeRejectModal()"
-                      class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0056D2] sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
-                Hủy
-              </button>
-            </div>
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <div class="filter-row">
+          <div class="filter-search">
+            <input type="text"
+                   class="filter-input"
+                   [ngModel]="searchQuery()"
+                   (ngModelChange)="searchQuery.set($event)"
+                   (keyup.enter)="onFilterChange()"
+                   placeholder="Tìm kiếm khóa học...">
+          </div>
+          <div class="filter-actions">
+            <select class="filter-select"
+                    [ngModel]="statusFilter()"
+                    (ngModelChange)="statusFilter.set($event); onFilterChange()">
+              <option value="">Tất cả trạng thái</option>
+              <option value="draft">Nháp</option>
+              <option value="pending">Chờ phê duyệt</option>
+              <option value="approved">Đã phê duyệt</option>
+              <option value="rejected">Bị từ chối</option>
+            </select>
+            <select class="filter-select"
+                    [ngModel]="categoryFilter()"
+                    (ngModelChange)="categoryFilter.set($event); onFilterChange()">
+              <option value="">Tất cả danh mục</option>
+              @for (root of categoryTree(); track root.id) {
+                <option [value]="root.id">{{ root.name }}</option>
+                @for (sub of root.children; track sub.id) {
+                  <option [value]="sub.id">&nbsp;&nbsp;&#x21B3; {{ sub.name }}</option>
+                }
+              }
+            </select>
+            <button class="export-btn" (click)="exportCoursesToCsv()" title="Xuất CSV">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              Xuất CSV
+            </button>
+          </div>
+        </div>
+        <div class="filter-row">
+          <div class="date-group">
+            <label class="date-label">Từ ngày</label>
+            <input type="date"
+                   class="filter-date"
+                   [ngModel]="fromDate()"
+                   (ngModelChange)="fromDate.set($event); onFilterChange()">
+          </div>
+          <div class="date-group">
+            <label class="date-label">Đến ngày</label>
+            <input type="date"
+                   class="filter-date"
+                   [ngModel]="toDate()"
+                   (ngModelChange)="toDate.set($event); onFilterChange()">
           </div>
         </div>
       </div>
-    }
 
-    <!-- Course Detail Modal (SOTA 2025: Material Design 3 inspired) -->
-    @if (showDetailModal()) {
-      <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <!-- Backdrop with blur -->
-        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" (click)="closeDetailModal()"></div>
+      <!-- Bulk Action Toolbar -->
+      @if (selectedCount() > 0) {
+        <div class="bulk-bar">
+          <div class="bulk-label">Đã chọn {{ selectedCount() }} khóa học</div>
+          <div class="bulk-actions">
+            <button class="btn-bulk-approve" (click)="bulkApprove()">
+              <svg fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+              </svg>
+              Duyệt ({{ selectedCount() }})
+            </button>
+            <button class="btn-bulk-reject" (click)="openBulkRejectModal()">
+              <svg fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+              </svg>
+              Từ chối ({{ selectedCount() }})
+            </button>
+            <button class="btn-bulk-clear" (click)="clearSelection()">Bỏ chọn</button>
+          </div>
+        </div>
+      }
 
-        <div class="flex min-h-full items-center justify-center p-4">
-          <!-- Modal Panel -->
-          <div class="relative transform overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5 transition-all w-full max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-200"
-               (click)="$event.stopPropagation()">
+      <!-- Courses Table -->
+      <div class="table-card">
+        @if (courses().length > 0) {
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="col-checkbox">
+                    <input type="checkbox"
+                           class="tbl-checkbox"
+                           [checked]="allPendingSelected()"
+                           (change)="toggleSelectAll()"
+                           title="Chọn tất cả khóa học chờ phê duyệt">
+                  </th>
+                  <th>Khóa học</th>
+                  <th>Giảng viên</th>
+                  <th>Trạng thái</th>
+                  <th>Giá / Học viên</th>
+                  <th class="col-actions">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (course of courses(); track course.id) {
+                  <tr>
+                    <!-- Checkbox -->
+                    <td>
+                      @if (isPendingStatus(course.status)) {
+                        <input type="checkbox"
+                               class="tbl-checkbox"
+                               [checked]="isCourseSelected(course.id)"
+                               (change)="toggleCourseSelection(course.id)">
+                      }
+                    </td>
+                    <!-- Course Info -->
+                    <td>
+                      <div class="course-cell">
+                        @if (course.thumbnail) {
+                          <img class="course-thumb"
+                               [src]="course.thumbnail"
+                               [alt]="course.title"
+                               (error)="$any($event.target).style.display='none'">
+                        } @else {
+                          <div class="course-thumb-placeholder">
+                            <span>{{ (course.title || 'K').charAt(0).toUpperCase() }}</span>
+                          </div>
+                        }
+                        <div class="course-info">
+                          <div class="course-name">{{ course.title }}</div>
+                          <div class="course-desc">{{ course.shortDescription || 'Chưa có mô tả' }}</div>
+                          @if (course.level) {
+                            <span class="course-level">{{ getLevelText(course.level) }}</span>
+                          }
+                        </div>
+                      </div>
+                    </td>
+                    <!-- Instructor -->
+                    <td>
+                      <div class="teacher-cell">
+                        <div class="teacher-avatar">
+                          <span>{{ (course.teacherName || 'T').charAt(0).toUpperCase() }}</span>
+                        </div>
+                        <span class="teacher-name">{{ course.teacherName }}</span>
+                      </div>
+                    </td>
+                    <!-- Status -->
+                    <td>
+                      <span class="badge" [class]="getStatusClass(course.status)">
+                        {{ getStatusText(course.status) }}
+                      </span>
+                      @if (course.rejectionReason && course.status.toLowerCase() === 'rejected') {
+                        <div class="rejection-hint" [title]="course.rejectionReason">
+                          {{ course.rejectionReason }}
+                        </div>
+                      }
+                    </td>
+                    <!-- Price / Students -->
+                    <td>
+                      <div class="price-text">{{ course.price ? formatCurrency(course.price) : 'Miễn phí' }}</div>
+                      <div class="students-text">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1a1 1 0 01-1 1H6a1 1 0 01-1-1v-1a5 5 0 018.93-3z"></path>
+                        </svg>
+                        {{ course.enrolledCount || 0 }} học viên
+                      </div>
+                    </td>
+                    <!-- Actions -->
+                    <td>
+                      <div class="action-btns">
+                        @if (isPendingStatus(course.status)) {
+                          <button class="act-btn act-approve" (click)="approveCourse(course.id)" title="Phê duyệt">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                          </button>
+                          <button class="act-btn act-reject" (click)="openRejectModal(course)" title="Từ chối">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                            </svg>
+                          </button>
+                        }
+                        @if (isApprovedStatus(course.status)) {
+                          <button class="act-btn act-revoke" (click)="openRevokeModal(course.id)" title="Thu hồi phê duyệt">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                              <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path>
+                            </svg>
+                          </button>
+                        }
+                        <button class="act-btn act-primary" (click)="previewContent(course.id)" title="Xem nội dung">
+                          <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"></path>
+                          </svg>
+                        </button>
+                        <button class="act-btn act-primary" (click)="viewCourse(course.id)" title="Xem chi tiết">
+                          <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
+                            <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path>
+                          </svg>
+                        </button>
+                        <button class="act-btn act-neutral" (click)="editCourse(course.id)" title="Chỉnh sửa">
+                          <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path>
+                          </svg>
+                        </button>
+                        @if (isSystemAdmin()) {
+                          <button class="act-btn act-danger" (click)="deleteCourse(course)" title="Xóa khóa học">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                              <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                            </svg>
+                          </button>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
 
-            <!-- Header -->
-            <div class="bg-white border-b border-gray-200 px-6 py-5">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                  <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0056D2]/10">
-                    <svg class="h-6 w-6 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 class="text-xl font-semibold text-gray-900">Chi tiết khóa học</h3>
-                    <p class="text-sm text-gray-500">{{ selectedCourse()?.title }}</p>
-                  </div>
-                </div>
-                <button (click)="closeDetailModal()"
-                        class="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
-                  <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                  </svg>
+          <!-- Pagination -->
+          @if (totalPages() > 1) {
+            <div class="pagination-bar">
+              <div class="pagination-info">
+                Hiển thị {{ getDisplayStart() }} - {{ getDisplayEnd() }} trong tổng số {{ totalElements() }} khóa học
+              </div>
+              <div class="pagination-controls">
+                <button class="pagination-btn"
+                        (click)="previousPage()"
+                        [disabled]="currentPage() === 0">
+                  Trước
+                </button>
+                <span class="pagination-page">
+                  Trang {{ currentPage() + 1 }} / {{ totalPages() }}
+                </span>
+                <button class="pagination-btn"
+                        (click)="nextPage()"
+                        [disabled]="currentPage() >= totalPages() - 1">
+                  Sau
                 </button>
               </div>
             </div>
+          }
+        } @else {
+          <!-- Empty State -->
+          <div class="empty-state">
+            <svg fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+              <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+            </svg>
+            <h3 class="empty-title">Không có khóa học nào</h3>
+            <p class="empty-desc">Chưa có khóa học nào được nộp để phê duyệt hoặc phù hợp với bộ lọc</p>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>
 
-            <!-- Content -->
-            <div class="max-h-[65vh] overflow-y-auto px-6 py-6 space-y-6">
-              <!-- Course Thumbnail -->
-              @if (selectedCourse()?.thumbnail) {
-                <div class="relative overflow-hidden rounded-xl">
-                  <img [src]="selectedCourse()!.thumbnail"
-                       [alt]="selectedCourse()!.title"
-                       class="w-full h-52 object-cover">
-                  <div class="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
-                </div>
-              }
-
-              <!-- Stats Cards -->
-              <div class="grid grid-cols-4 gap-4">
-                <div class="bg-gradient-to-br from-[#0056D2]/5 to-[#0056D2]/10 rounded-xl p-4 ring-1 ring-[#0056D2]/20">
-                  <div class="flex items-center gap-3">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0056D2] text-white">
-                      <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <div class="text-2xl font-bold text-[#004BB5]">{{ selectedCourse()?.sectionsCount || 0 }}</div>
-                      <div class="text-xs text-[#0056D2]/70 font-medium">Chương</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="bg-gradient-to-br from-green-50 to-green-100/50 rounded-xl p-4 ring-1 ring-green-200/50">
-                  <div class="flex items-center gap-3">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500 text-white">
-                      <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <div class="text-2xl font-bold text-green-700">{{ selectedCourse()?.lessonsCount || 0 }}</div>
-                      <div class="text-xs text-green-600/70 font-medium">Bài học</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-xl p-4 ring-1 ring-purple-200/50">
-                  <div class="flex items-center gap-3">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-500 text-white">
-                      <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <div class="text-2xl font-bold text-purple-700">{{ selectedCourse()?.assignmentsCount || 0 }}</div>
-                      <div class="text-xs text-purple-600/70 font-medium">Bài tập</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="bg-gradient-to-br from-[#0056D2]/5 to-[#0056D2]/10 rounded-xl p-4 ring-1 ring-[#0056D2]/20">
-                  <div class="flex items-center gap-3">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0056D2] text-white">
-                      <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <div class="text-2xl font-bold text-[#0056D2]">{{ selectedCourse()?.enrolledCount || 0 }}</div>
-                      <div class="text-xs text-[#0056D2]/70 font-medium">Học viên</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Info Sections -->
-              <div class="grid grid-cols-2 gap-6">
-                <!-- Basic Info -->
-                <div class="bg-slate-50 rounded-xl p-5 ring-1 ring-slate-200/50">
-                  <h4 class="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-4">
-                    <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    Thông tin cơ bản
-                  </h4>
-                  <div class="space-y-3">
-                    <div>
-                      <span class="text-xs text-slate-500 font-medium">Trạng thái</span>
-                      <p class="mt-1">
-                        <span class="px-2.5 py-1 rounded-full text-xs font-medium" [class]="getStatusClass(selectedCourse()?.status || '')">
-                          {{ getStatusText(selectedCourse()?.status || '') }}
-                        </span>
-                      </p>
-                    </div>
-                    <div>
-                      <span class="text-xs text-slate-500 font-medium">Giá</span>
-                      <p class="text-sm text-slate-900 font-semibold mt-1">{{ selectedCourse()?.price ? formatCurrency(selectedCourse()!.price!) : 'Miễn phí' }}</p>
-                    </div>
-                    <div>
-                      <span class="text-xs text-slate-500 font-medium">Cấp độ</span>
-                      <p class="text-sm text-slate-900 mt-1">{{ getLevelText(selectedCourse()?.level || 'unknown') }}</p>
-                    </div>
-                    <div>
-                      <span class="text-xs text-slate-500 font-medium">Danh mục</span>
-                      <p class="text-sm text-slate-900 mt-1">{{ selectedCourse()?.category || 'Chưa phân loại' }}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Teacher Info -->
-                <div class="bg-slate-50 rounded-xl p-5 ring-1 ring-slate-200/50">
-                  <h4 class="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-4">
-                    <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                    </svg>
-                    Giảng viên
-                  </h4>
-                  <div class="flex items-center gap-4">
-                    <div class="h-14 w-14 rounded-full bg-[#0056D2] flex items-center justify-center text-white font-bold text-lg">
-                      {{ (selectedCourse()?.teacherName || 'T').charAt(0).toUpperCase() }}
-                    </div>
-                    <div class="flex-1">
-                      <p class="text-sm font-semibold text-slate-900">{{ selectedCourse()?.teacherName }}</p>
-                      <p class="text-xs text-slate-500">{{ selectedCourse()?.teacherEmail }}</p>
-                      <div class="flex items-center gap-3 mt-2">
-                        <span class="flex items-center gap-1 text-xs text-slate-600">
-                          <svg class="w-3.5 h-3.5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                          </svg>
-                          {{ selectedCourse()?.rating || 0 }}/5
-                        </span>
-                        <span class="text-xs text-slate-400">&bull;</span>
-                        <span class="text-xs text-slate-600">{{ selectedCourse()?.enrolledCount || 0 }} học viên</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Description -->
-              @if (selectedCourse()?.shortDescription) {
-                <div class="bg-slate-50 rounded-xl p-5 ring-1 ring-slate-200/50">
-                  <h4 class="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-3">
-                    <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
-                    </svg>
-                    Mô tả
-                  </h4>
-                  <p class="text-sm text-slate-600 leading-relaxed">{{ selectedCourse()?.shortDescription }}</p>
-                </div>
-              }
-
-              <!-- Review Status -->
-              <div class="bg-slate-50 rounded-xl p-5 ring-1 ring-slate-200/50">
-                <h4 class="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-4">
-                  <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  </svg>
-                  Trạng thái phê duyệt
-                </h4>
-                <div class="grid grid-cols-2 gap-4">
-                  <div>
-                    <span class="text-xs text-slate-500 font-medium">Ngày nộp</span>
-                    <p class="text-sm text-slate-900 mt-1">{{ selectedCourse()?.submittedAt ? formatDate(selectedCourse()!.submittedAt!) : 'Chưa nộp' }}</p>
-                  </div>
-                  @if (selectedCourse()?.approvedAt) {
-                    <div>
-                      <span class="text-xs text-slate-500 font-medium">Ngày phê duyệt</span>
-                      <p class="text-sm text-slate-900 mt-1">{{ formatDate(selectedCourse()!.approvedAt!) }}</p>
-                    </div>
-                  }
-                </div>
-                @if (selectedCourse()?.rejectionReason) {
-                  <div class="mt-4 p-3 bg-red-50 rounded-lg ring-1 ring-red-200/50">
-                    <span class="text-xs text-red-600 font-medium">Lý do từ chối</span>
-                    <p class="text-sm text-red-700 mt-1">{{ selectedCourse()!.rejectionReason }}</p>
-                  </div>
-                }
-              </div>
-
-              <!-- Revenue -->
-              <div class="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl p-5 text-white">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <h4 class="text-sm font-medium text-white/80">Tổng doanh thu</h4>
-                    <p class="text-3xl font-bold mt-1">{{ selectedCourse()?.revenue ? formatCurrency(selectedCourse()!.revenue!) : '0 ₫' }}</p>
-                  </div>
-                  <div class="h-14 w-14 rounded-full bg-white/20 flex items-center justify-center">
-                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                  </div>
-                </div>
-              </div>
+<!-- Reject Course Modal -->
+@if (showRejectModal()) {
+  <div class="modal-backdrop" (click)="closeRejectModal()">
+    <div class="modal-panel" (click)="$event.stopPropagation()">
+      <div class="modal-body">
+        <div class="modal-reject-body">
+          <div class="modal-icon-danger">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </div>
+          <div class="modal-reject-content">
+            <h3 class="modal-title" style="margin-bottom:16px">Từ chối khóa học</h3>
+            <div class="modal-course-title">
+              <strong>{{ selectedCourse()?.title }}</strong>
             </div>
-
-            <!-- Footer -->
-            <div class="bg-slate-50 px-6 py-4 flex items-center justify-end gap-3 border-t border-slate-200">
-              <button (click)="closeDetailModal()"
-                      class="px-4 py-2 text-sm font-medium text-slate-700 bg-white rounded-lg ring-1 ring-slate-200 hover:bg-slate-50 transition-colors">
-                Đóng
-              </button>
-              <button (click)="openFullCourseView(selectedCourse()!.id)"
-                      class="px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                </svg>
-                Xem chi tiết đầy đủ
-              </button>
+            <div class="modal-course-teacher">
+              Giảng viên: {{ selectedCourse()?.teacherName || 'Không xác định' }}
+            </div>
+            <div style="margin-top:16px">
+              <label class="modal-field-label">Lý do từ chối *</label>
+              <textarea class="modal-textarea textarea-danger"
+                        [ngModel]="rejectionReason()"
+                        (ngModelChange)="rejectionReason.set($event)"
+                        name="rejectionReason"
+                        rows="4"
+                        required
+                        placeholder="Vui lòng giải thích lý do từ chối khóa học này..."></textarea>
             </div>
           </div>
         </div>
       </div>
-    }
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="closeRejectModal()">Hủy</button>
+        <button class="btn-danger" (click)="rejectCourse()" [disabled]="!rejectionReason()">
+          Từ chối khóa học
+        </button>
+      </div>
+    </div>
+  </div>
+}
 
-    <!-- Bulk Reject Modal -->
-    @if (showBulkRejectModal()) {
-      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
-          <div class="px-6 py-4 border-b border-slate-100">
-            <h3 class="text-lg font-semibold text-slate-900">Từ chối hàng loạt</h3>
-            <p class="text-sm text-slate-500 mt-1">Nhập lý do từ chối {{ selectedCount() }} khóa học đã chọn</p>
+<!-- Course Detail Modal -->
+@if (showDetailModal()) {
+  <div class="modal-backdrop" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="modal-panel-lg" (click)="$event.stopPropagation()">
+      <!-- Header -->
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:16px">
+          <div class="detail-header-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+            </svg>
           </div>
-          <div class="px-6 py-4">
-            <textarea
-              [ngModel]="bulkRejectReason()"
-              (ngModelChange)="bulkRejectReason.set($event)"
-              name="bulkRejectReason"
-              rows="4"
-              class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
-              placeholder="Vui lòng giải thích lý do từ chối..."
-            ></textarea>
+          <div class="detail-header-text">
+            <h3>Chi tiết khóa học</h3>
+            <p>{{ selectedCourse()?.title }}</p>
           </div>
-          <div class="px-6 py-3 bg-slate-50 flex justify-end gap-3">
-            <button (click)="closeBulkRejectModal()"
-                    class="px-4 py-2 text-sm font-medium text-slate-700 bg-white rounded-lg ring-1 ring-slate-200 hover:bg-slate-50 transition-colors">
-              Hủy
-            </button>
-            <button (click)="confirmBulkReject()"
-                    [disabled]="!bulkRejectReason().trim()"
-                    class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-              Từ chối ({{ selectedCount() }})
-            </button>
+        </div>
+        <button class="modal-close-btn" (click)="closeDetailModal()">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Content -->
+      <div class="modal-body-scroll">
+        <!-- Thumbnail -->
+        @if (selectedCourse()?.thumbnail) {
+          <div class="detail-thumbnail">
+            <img [src]="selectedCourse()!.thumbnail" [alt]="selectedCourse()!.title">
+            <div class="detail-thumbnail-overlay"></div>
+          </div>
+        }
+
+        <!-- Stats Cards -->
+        <div class="detail-stats">
+          <div class="detail-stat-card stat-primary">
+            <div class="detail-stat-icon icon-primary">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+              </svg>
+            </div>
+            <div>
+              <div class="detail-stat-value text-primary-brand">{{ selectedCourse()?.sectionsCount || 0 }}</div>
+              <div class="detail-stat-label text-primary-muted">Chương</div>
+            </div>
+          </div>
+          <div class="detail-stat-card stat-success">
+            <div class="detail-stat-icon icon-success">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="detail-stat-value text-success">{{ selectedCourse()?.lessonsCount || 0 }}</div>
+              <div class="detail-stat-label text-success-muted">Bài học</div>
+            </div>
+          </div>
+          <div class="detail-stat-card stat-purple">
+            <div class="detail-stat-icon icon-purple">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+              </svg>
+            </div>
+            <div>
+              <div class="detail-stat-value text-purple">{{ selectedCourse()?.assignmentsCount || 0 }}</div>
+              <div class="detail-stat-label text-purple-muted">Bài tập</div>
+            </div>
+          </div>
+          <div class="detail-stat-card stat-primary">
+            <div class="detail-stat-icon icon-primary">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="detail-stat-value text-primary-brand">{{ selectedCourse()?.enrolledCount || 0 }}</div>
+              <div class="detail-stat-label text-primary-muted">Học viên</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Info Grid -->
+        <div class="detail-info-grid">
+          <!-- Basic Info -->
+          <div class="detail-section">
+            <h4 class="detail-section-title">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              Thông tin cơ bản
+            </h4>
+            <div class="detail-field">
+              <span class="detail-field-label">Trạng thái</span>
+              <p class="detail-field-value">
+                <span class="badge" [class]="getStatusClass(selectedCourse()?.status || '')">
+                  {{ getStatusText(selectedCourse()?.status || '') }}
+                </span>
+              </p>
+            </div>
+            <div class="detail-field">
+              <span class="detail-field-label">Giá</span>
+              <p class="detail-field-value font-semibold">{{ selectedCourse()?.price ? formatCurrency(selectedCourse()!.price!) : 'Miễn phí' }}</p>
+            </div>
+            <div class="detail-field">
+              <span class="detail-field-label">Cấp độ</span>
+              <p class="detail-field-value">{{ getLevelText(selectedCourse()?.level || 'unknown') }}</p>
+            </div>
+            <div class="detail-field">
+              <span class="detail-field-label">Danh mục</span>
+              <p class="detail-field-value">{{ selectedCourse()?.category || 'Chưa phân loại' }}</p>
+            </div>
+          </div>
+
+          <!-- Teacher Info -->
+          <div class="detail-section">
+            <h4 class="detail-section-title">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+              </svg>
+              Giảng viên
+            </h4>
+            <div class="detail-teacher">
+              <div class="detail-teacher-avatar">
+                {{ (selectedCourse()?.teacherName || 'T').charAt(0).toUpperCase() }}
+              </div>
+              <div class="detail-teacher-info">
+                <p class="detail-teacher-name">{{ selectedCourse()?.teacherName }}</p>
+                <p class="detail-teacher-email">{{ selectedCourse()?.teacherEmail }}</p>
+                <div class="detail-teacher-meta">
+                  <span class="detail-rating">
+                    <svg fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                    </svg>
+                    {{ selectedCourse()?.rating || 0 }}/5
+                  </span>
+                  <span class="detail-dot">&bull;</span>
+                  <span class="detail-students-count">{{ selectedCourse()?.enrolledCount || 0 }} học viên</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Description -->
+        @if (selectedCourse()?.shortDescription) {
+          <div class="detail-section" style="margin-bottom:24px">
+            <h4 class="detail-section-title">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
+              </svg>
+              Mô tả
+            </h4>
+            <p class="detail-description">{{ selectedCourse()?.shortDescription }}</p>
+          </div>
+        }
+
+        <!-- Review Status -->
+        <div class="detail-section" style="margin-bottom:24px">
+          <h4 class="detail-section-title">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Trạng thái phê duyệt
+          </h4>
+          <div class="detail-info-grid" style="margin-bottom:0">
+            <div class="detail-field">
+              <span class="detail-field-label">Ngày nộp</span>
+              <p class="detail-field-value">{{ selectedCourse()?.submittedAt ? formatDate(selectedCourse()!.submittedAt!) : 'Chưa nộp' }}</p>
+            </div>
+            @if (selectedCourse()?.approvedAt) {
+              <div class="detail-field">
+                <span class="detail-field-label">Ngày phê duyệt</span>
+                <p class="detail-field-value">{{ formatDate(selectedCourse()!.approvedAt!) }}</p>
+              </div>
+            }
+          </div>
+          @if (selectedCourse()?.rejectionReason) {
+            <div class="rejection-box">
+              <span class="rejection-box-label">Lý do từ chối</span>
+              <p class="rejection-box-text">{{ selectedCourse()!.rejectionReason }}</p>
+            </div>
+          }
+        </div>
+
+        <!-- Revenue -->
+        <div class="revenue-banner">
+          <div>
+            <h4 class="revenue-label">Tổng doanh thu</h4>
+            <p class="revenue-value">{{ selectedCourse()?.revenue ? formatCurrency(selectedCourse()!.revenue!) : '0 ₫' }}</p>
+          </div>
+          <div class="revenue-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
           </div>
         </div>
       </div>
-    }
 
-    <!-- Revoke Modal -->
-    @if (showRevokeModal()) {
-      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
-          <div class="px-6 py-4 border-b border-slate-100">
-            <h3 class="text-lg font-semibold text-slate-900">Thu hồi phê duyệt</h3>
-            <p class="text-sm text-slate-500 mt-1">Nhập lý do thu hồi phê duyệt khóa học</p>
-          </div>
-          <div class="px-6 py-4">
-            <textarea
-              [ngModel]="revokeReasonInput()"
-              (ngModelChange)="revokeReasonInput.set($event)"
-              name="revokeReason"
-              rows="3"
-              class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 resize-none"
-              placeholder="Nhập lý do thu hồi..."
-            ></textarea>
-          </div>
-          <div class="px-6 py-3 bg-slate-50 flex justify-end gap-3">
-            <button (click)="closeRevokeModal()"
-                    class="px-4 py-2 text-sm font-medium text-slate-700 bg-white rounded-lg ring-1 ring-slate-200 hover:bg-slate-50 transition-colors">
-              Hủy
-            </button>
-            <button (click)="confirmRevokeCourse()"
-                    [disabled]="!revokeReasonInput().trim()"
-                    class="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-              Thu hồi
-            </button>
-          </div>
+      <!-- Footer -->
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="closeDetailModal()">Đóng</button>
+        <button class="btn-primary-dark" (click)="openFullCourseView(selectedCourse()!.id)">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+          </svg>
+          Xem chi tiết đầy đủ
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Bulk Reject Modal -->
+@if (showBulkRejectModal()) {
+  <div class="modal-backdrop">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">Từ chối hàng loạt</h3>
+          <p class="modal-subtitle">Nhập lý do từ chối {{ selectedCount() }} khóa học đã chọn</p>
         </div>
       </div>
-    }
+      <div class="modal-body">
+        <textarea class="modal-textarea textarea-danger"
+                  [ngModel]="bulkRejectReason()"
+                  (ngModelChange)="bulkRejectReason.set($event)"
+                  name="bulkRejectReason"
+                  rows="4"
+                  placeholder="Vui lòng giải thích lý do từ chối..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="closeBulkRejectModal()">Hủy</button>
+        <button class="btn-danger"
+                (click)="confirmBulkReject()"
+                [disabled]="!bulkRejectReason().trim()">
+          Từ chối ({{ selectedCount() }})
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Revoke Modal -->
+@if (showRevokeModal()) {
+  <div class="modal-backdrop">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">Thu hồi phê duyệt</h3>
+          <p class="modal-subtitle">Nhập lý do thu hồi phê duyệt khóa học</p>
+        </div>
+      </div>
+      <div class="modal-body">
+        <textarea class="modal-textarea textarea-warning"
+                  [ngModel]="revokeReasonInput()"
+                  (ngModelChange)="revokeReasonInput.set($event)"
+                  name="revokeReason"
+                  rows="3"
+                  placeholder="Nhập lý do thu hồi..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="closeRevokeModal()">Hủy</button>
+        <button class="btn-warning"
+                (click)="confirmRevokeCourse()"
+                [disabled]="!revokeReasonInput().trim()">
+          Thu hồi
+        </button>
+      </div>
+    </div>
+  </div>
+}

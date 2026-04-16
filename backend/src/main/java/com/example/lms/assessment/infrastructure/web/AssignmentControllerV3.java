@@ -65,6 +65,7 @@ public class AssignmentControllerV3 {
     private final JpaCourseRepository courseJpaRepository;
     private final JpaLearningClassRepository classRepository;
     private final JpaEnrollmentRepository enrollmentRepository;
+    private final com.example.lms.learning_delivery.infrastructure.persistence.ClassTeacherJpaRepository classTeacherJpaRepository;
 
     @GetMapping("/summary")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
@@ -504,8 +505,9 @@ public class AssignmentControllerV3 {
         }
         var course = courseJpaRepository.findById(courseId)
                 .orElseThrow(() -> new EntityNotFoundException("Course", courseId));
-        if (course.getTeacherId() == null || !course.getTeacherId().equals(user.getId())) {
-            throw new AccessDeniedException("You do not own this course");
+        if ((course.getTeacherId() == null || !course.getTeacherId().equals(user.getId()))
+                && !classTeacherJpaRepository.existsByTeacherIdAndCourseId(user.getId(), courseId)) {
+            throw new AccessDeniedException("Bạn không có quyền truy cập khóa học này");
         }
     }
 

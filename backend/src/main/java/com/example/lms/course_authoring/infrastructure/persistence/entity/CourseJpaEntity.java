@@ -145,6 +145,9 @@ public class CourseJpaEntity {
     @Column(name = "reviewed_by_id")
     private UUID reviewedById;
 
+    @Column(name = "pending_release_notes", columnDefinition = "TEXT")
+    private String pendingReleaseNotes;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
 
@@ -205,6 +208,8 @@ public class CourseJpaEntity {
     public void setReviewedAt(Instant reviewedAt) { this.reviewedAt = reviewedAt; }
     public UUID getReviewedById() { return reviewedById; }
     public void setReviewedById(UUID reviewedById) { this.reviewedById = reviewedById; }
+    public String getPendingReleaseNotes() { return pendingReleaseNotes; }
+    public void setPendingReleaseNotes(String pendingReleaseNotes) { this.pendingReleaseNotes = pendingReleaseNotes; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

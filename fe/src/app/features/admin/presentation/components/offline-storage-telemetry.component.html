@@ -1,38 +1,34 @@
-<div class="min-h-screen bg-slate-50">
-  <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-    <div class="mb-8 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+<div class="telemetry-page">
+  <div class="telemetry-container">
+    <div class="telemetry-header">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">Giám sát bộ nhớ ngoại tuyến</h1>
-        <p class="mt-2 max-w-3xl text-sm text-gray-600">
+        <h1 class="telemetry-title">Giám sát bộ nhớ ngoại tuyến</h1>
+        <p class="telemetry-subtitle">
           Theo dõi các lỗi `IndexedDB`, fallback `online-only`, thao tác reset, và xu hướng lan rộng của sự cố trên production.
         </p>
       </div>
-      <button
-        type="button"
-        (click)="refresh()"
-        class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-      >
+      <button type="button" (click)="refresh()" class="btn-refresh">
         Làm mới
       </button>
     </div>
 
-    <div class="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-      <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+    <div class="card">
+      <div class="analytics-header">
         <div>
-          <h2 class="text-lg font-semibold text-gray-900">Analytics nhẹ</h2>
-          <p class="mt-1 text-sm text-gray-600">
+          <h2 class="analytics-title">Analytics nhẹ</h2>
+          <p class="analytics-desc">
             Tổng hợp trong {{ analyticsWindowDays() }} ngày gần nhất, có áp dụng bộ lọc hiện tại.
           </p>
         </div>
-        <div class="flex items-center gap-2">
-          <span class="text-sm font-medium text-gray-700">Khoảng thời gian</span>
+        <div class="analytics-window">
+          <span class="analytics-window-label">Khoảng thời gian</span>
           @for (days of [7, 14, 30]; track days) {
             <button
               type="button"
               (click)="setAnalyticsWindow(days)"
               [class]="analyticsWindowDays() === days
-                ? 'rounded-lg bg-[#0056D2] px-3 py-2 text-sm font-medium text-white'
-                : 'rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50'"
+                ? 'btn-window btn-window--active'
+                : 'btn-window btn-window--inactive'"
             >
               {{ days }} ngày
             </button>
@@ -41,148 +37,148 @@
       </div>
 
       @if (isAnalyticsLoading()) {
-        <div class="px-6 py-10 text-center">
-          <div class="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-[#0056D2]"></div>
-          <p class="mt-3 text-sm text-gray-600">Đang tải analytics...</p>
+        <div class="loading-center">
+          <div class="spinner"></div>
+          <p class="loading-text">Đang tải analytics...</p>
         </div>
       } @else {
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-          <div class="rounded-xl border border-gray-200 bg-slate-50 p-5">
-            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Tổng sự cố</div>
-            <div class="mt-3 text-3xl font-bold text-gray-900">{{ summaryTotalEvents() }}</div>
-            <div class="mt-2 text-sm text-gray-500">Trong {{ analyticsWindowDays() }} ngày</div>
+        <div class="metrics-grid">
+          <div class="metric-card metric-card--default">
+            <div class="metric-label">Tổng sự cố</div>
+            <div class="metric-value">{{ summaryTotalEvents() }}</div>
+            <div class="metric-sub">Trong {{ analyticsWindowDays() }} ngày</div>
           </div>
 
-          <div class="rounded-xl border border-gray-200 bg-slate-50 p-5">
-            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Người dùng bị ảnh hưởng</div>
-            <div class="mt-3 text-3xl font-bold text-gray-900">{{ summaryAffectedUsers() }}</div>
-            <div class="mt-2 text-sm text-gray-500">Số user duy nhất</div>
+          <div class="metric-card metric-card--default">
+            <div class="metric-label">Người dùng bị ảnh hưởng</div>
+            <div class="metric-value">{{ summaryAffectedUsers() }}</div>
+            <div class="metric-sub">Số user duy nhất</div>
           </div>
 
-          <div class="rounded-xl border border-red-100 bg-red-50/40 p-5">
-            <div class="text-xs font-semibold uppercase tracking-wide text-red-600">Disabled</div>
-            <div class="mt-3 text-3xl font-bold text-gray-900">{{ summaryDisabled() }}</div>
-            <div class="mt-2 text-sm text-gray-500">Fallback online-only</div>
+          <div class="metric-card metric-card--error">
+            <div class="metric-label metric-label--error">Disabled</div>
+            <div class="metric-value">{{ summaryDisabled() }}</div>
+            <div class="metric-sub">Fallback online-only</div>
           </div>
 
-          <div class="rounded-xl border border-slate-200 bg-slate-100/80 p-5">
-            <div class="text-xs font-semibold uppercase tracking-wide text-slate-600">Online-only</div>
-            <div class="mt-3 text-3xl font-bold text-gray-900">{{ summaryOnlineOnly() }}</div>
-            <div class="mt-2 text-sm text-gray-500">Theo availability</div>
+          <div class="metric-card metric-card--slate">
+            <div class="metric-label metric-label--slate">Online-only</div>
+            <div class="metric-value">{{ summaryOnlineOnly() }}</div>
+            <div class="metric-sub">Theo availability</div>
           </div>
 
-          <div class="rounded-xl border border-amber-100 bg-amber-50/50 p-5">
-            <div class="text-xs font-semibold uppercase tracking-wide text-amber-600">Cần tải lại</div>
-            <div class="mt-3 text-3xl font-bold text-gray-900">{{ summaryRequiresRedownload() }}</div>
-            <div class="mt-2 text-sm text-gray-500">requiresRedownload = true</div>
+          <div class="metric-card metric-card--warning">
+            <div class="metric-label metric-label--warning">Cần tải lại</div>
+            <div class="metric-value">{{ summaryRequiresRedownload() }}</div>
+            <div class="metric-sub">requiresRedownload = true</div>
           </div>
         </div>
 
-        <div class="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(240px,0.75fr)_minmax(240px,0.75fr)_minmax(240px,0.75fr)]">
-          <div class="rounded-xl border border-gray-200 bg-white p-5">
-            <div class="mb-4">
-              <h3 class="text-base font-semibold text-gray-900">Xu hướng theo ngày</h3>
-              <p class="mt-1 text-sm text-gray-500">Giúp xác định sự cố đang giảm dần hay bắt đầu lan rộng.</p>
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3 class="chart-title">Xu hướng theo ngày</h3>
+              <p class="chart-desc">Giúp xác định sự cố đang giảm dần hay bắt đầu lan rộng.</p>
             </div>
 
-            <div class="space-y-3">
+            <div class="chart-items">
               @for (item of dailyTrend(); track item.date) {
-                <div class="grid grid-cols-[92px_minmax(0,1fr)_52px] items-center gap-3">
-                  <div class="text-xs font-medium text-gray-500">{{ item.date | date:'dd/MM' }}</div>
-                  <div class="h-3 rounded-full bg-slate-100">
+                <div class="trend-row">
+                  <div class="trend-date">{{ item.date | date:'dd/MM' }}</div>
+                  <div class="trend-bar-bg">
                     <div
-                      class="h-3 rounded-full bg-[#0056D2]"
+                      class="trend-bar-fill"
                       [style.width.%]="trendBarWidth(item)"
                     ></div>
                   </div>
-                  <div class="text-right text-xs font-semibold text-gray-700">{{ item.totalCount }}</div>
+                  <div class="trend-count">{{ item.totalCount }}</div>
                 </div>
               } @empty {
-                <div class="rounded-lg border border-dashed border-gray-300 px-4 py-8 text-center text-sm text-gray-500">
+                <div class="empty-chart">
                   Chưa có dữ liệu xu hướng cho bộ lọc hiện tại.
                 </div>
               }
             </div>
           </div>
 
-          <div class="rounded-xl border border-gray-200 bg-white p-5">
-            <div class="mb-4">
-              <h3 class="text-base font-semibold text-gray-900">Top route lỗi nhiều</h3>
-              <p class="mt-1 text-sm text-gray-500">Giúp biết luồng nào đang phát sinh lỗi offline nhiều nhất.</p>
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3 class="chart-title">Top route lỗi nhiều</h3>
+              <p class="chart-desc">Giúp biết luồng nào đang phát sinh lỗi offline nhiều nhất.</p>
             </div>
 
-            <div class="space-y-4">
+            <div class="chart-bucket-items">
               @for (item of topRoutes(); track item.label) {
                 <div>
-                  <div class="mb-1 flex items-center justify-between gap-3">
-                    <div class="truncate text-sm font-medium text-gray-700">{{ item.label }}</div>
-                    <div class="text-xs font-semibold text-gray-500">{{ item.count }}</div>
+                  <div class="bucket-header">
+                    <div class="bucket-label">{{ item.label }}</div>
+                    <div class="bucket-count">{{ item.count }}</div>
                   </div>
-                  <div class="h-2 rounded-full bg-slate-100">
+                  <div class="bucket-bar-bg">
                     <div
-                      class="h-2 rounded-full bg-emerald-500"
+                      class="bucket-bar-fill bucket-bar-fill--routes"
                       [style.width.%]="bucketBarWidth(item, topRouteMax())"
                     ></div>
                   </div>
                 </div>
               } @empty {
-                <div class="rounded-lg border border-dashed border-gray-300 px-4 py-8 text-center text-sm text-gray-500">
+                <div class="empty-chart">
                   Chưa có route nổi bật.
                 </div>
               }
             </div>
           </div>
 
-          <div class="rounded-xl border border-gray-200 bg-white p-5">
-            <div class="mb-4">
-              <h3 class="text-base font-semibold text-gray-900">Top nền tảng</h3>
-              <p class="mt-1 text-sm text-gray-500">Đã chuẩn hóa để không còn tách kiểu `Win32` với `windows`.</p>
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3 class="chart-title">Top nền tảng</h3>
+              <p class="chart-desc">Đã chuẩn hóa để không còn tách kiểu `Win32` với `windows`.</p>
             </div>
 
-            <div class="space-y-4">
+            <div class="chart-bucket-items">
               @for (item of topPlatforms(); track item.label) {
                 <div>
-                  <div class="mb-1 flex items-center justify-between gap-3">
-                    <div class="truncate text-sm font-medium text-gray-700">{{ item.label }}</div>
-                    <div class="text-xs font-semibold text-gray-500">{{ item.count }}</div>
+                  <div class="bucket-header">
+                    <div class="bucket-label">{{ item.label }}</div>
+                    <div class="bucket-count">{{ item.count }}</div>
                   </div>
-                  <div class="h-2 rounded-full bg-slate-100">
+                  <div class="bucket-bar-bg">
                     <div
-                      class="h-2 rounded-full bg-violet-500"
+                      class="bucket-bar-fill bucket-bar-fill--platforms"
                       [style.width.%]="bucketBarWidth(item, topPlatformMax())"
                     ></div>
                   </div>
                 </div>
               } @empty {
-                <div class="rounded-lg border border-dashed border-gray-300 px-4 py-8 text-center text-sm text-gray-500">
+                <div class="empty-chart">
                   Chưa có platform nổi bật.
                 </div>
               }
             </div>
           </div>
 
-          <div class="rounded-xl border border-gray-200 bg-white p-5">
-            <div class="mb-4">
-              <h3 class="text-base font-semibold text-gray-900">Top trình duyệt</h3>
-              <p class="mt-1 text-sm text-gray-500">Suy ra từ `userAgent` để support ưu tiên browser đang phát sinh lỗi.</p>
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3 class="chart-title">Top trình duyệt</h3>
+              <p class="chart-desc">Suy ra từ `userAgent` để support ưu tiên browser đang phát sinh lỗi.</p>
             </div>
 
-            <div class="space-y-4">
+            <div class="chart-bucket-items">
               @for (item of topBrowsers(); track item.label) {
                 <div>
-                  <div class="mb-1 flex items-center justify-between gap-3">
-                    <div class="truncate text-sm font-medium text-gray-700">{{ item.label }}</div>
-                    <div class="text-xs font-semibold text-gray-500">{{ item.count }}</div>
+                  <div class="bucket-header">
+                    <div class="bucket-label">{{ item.label }}</div>
+                    <div class="bucket-count">{{ item.count }}</div>
                   </div>
-                  <div class="h-2 rounded-full bg-slate-100">
+                  <div class="bucket-bar-bg">
                     <div
-                      class="h-2 rounded-full bg-fuchsia-500"
+                      class="bucket-bar-fill bucket-bar-fill--browsers"
                       [style.width.%]="bucketBarWidth(item, topBrowserMax())"
                     ></div>
                   </div>
                 </div>
               } @empty {
-                <div class="rounded-lg border border-dashed border-gray-300 px-4 py-8 text-center text-sm text-gray-500">
+                <div class="empty-chart">
                   Chưa có browser nổi bật.
                 </div>
               }
@@ -192,26 +188,26 @@
       }
     </div>
 
-    <div class="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-      <div class="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_240px_auto_auto]">
+    <div class="card">
+      <div class="filter-grid">
         <div>
-          <label class="mb-2 block text-sm font-medium text-gray-700">Email hoặc tên người dùng</label>
+          <label class="filter-label">Email hoặc tên người dùng</label>
           <input
             type="text"
             [ngModel]="search()"
             (ngModelChange)="search.set($event)"
             (keyup.enter)="applyFilters()"
             placeholder="Ví dụ: student@maritime.edu hoặc Học viên Mẫu"
-            class="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]"
+            class="filter-input"
           />
         </div>
 
         <div>
-          <label class="mb-2 block text-sm font-medium text-gray-700">Loại sự kiện</label>
+          <label class="filter-label">Loại sự kiện</label>
           <select
             [ngModel]="eventType()"
             (ngModelChange)="eventType.set($event)"
-            class="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]"
+            class="filter-select"
           >
             <option value="">Tất cả</option>
             <option value="disabled">disabled</option>
@@ -220,11 +216,7 @@
           </select>
         </div>
 
-        <button
-          type="button"
-          (click)="applyFilters()"
-          class="inline-flex items-center justify-center rounded-lg bg-[#0056D2] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-[#004BB5]"
-        >
+        <button type="button" (click)="applyFilters()" class="btn-apply">
           Áp dụng
         </button>
 
@@ -232,80 +224,80 @@
           type="button"
           (click)="resetFilters()"
           [disabled]="!hasFilters()"
-          class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          class="btn-reset"
         >
           Xóa bộ lọc
         </button>
       </div>
     </div>
 
-    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div class="table-wrapper">
       @if (isLoading()) {
-        <div class="px-6 py-16 text-center">
-          <div class="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-[#0056D2]"></div>
-          <p class="mt-4 text-sm text-gray-600">Đang tải telemetry bộ nhớ ngoại tuyến...</p>
+        <div class="loading-center loading-center--tall">
+          <div class="spinner spinner--lg"></div>
+          <p class="loading-text loading-text--spaced">Đang tải telemetry bộ nhớ ngoại tuyến...</p>
         </div>
       } @else if (logs().length === 0) {
-        <div class="px-6 py-16 text-center">
-          <h2 class="text-lg font-semibold text-gray-900">Chưa có bản ghi phù hợp</h2>
-          <p class="mt-2 text-sm text-gray-600">
+        <div class="empty-state">
+          <h2 class="empty-title">Chưa có bản ghi phù hợp</h2>
+          <p class="empty-desc">
             Hãy đổi bộ lọc hoặc chờ client gửi thêm telemetry từ các phiên lỗi mới.
           </p>
         </div>
       } @else {
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
               <tr>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Người dùng</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Sự kiện</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Trạng thái</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Route</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Nền tảng</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Thời gian</th>
-                <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Chi tiết</th>
+                <th>Người dùng</th>
+                <th>Sự kiện</th>
+                <th>Trạng thái</th>
+                <th>Route</th>
+                <th>Nền tảng</th>
+                <th>Thời gian</th>
+                <th class="text-right">Chi tiết</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200 bg-white">
+            <tbody>
               @for (log of logs(); track log.id) {
-                <tr class="hover:bg-gray-50">
-                  <td class="px-4 py-4 align-top">
-                    <div class="max-w-xs">
-                      <div class="truncate text-sm font-medium text-gray-900">{{ log.userName || 'Người dùng ẩn danh' }}</div>
-                      <div class="truncate text-sm text-gray-500">{{ log.userEmail || log.userId }}</div>
+                <tr>
+                  <td>
+                    <div>
+                      <div class="cell-user-name">{{ log.userName || 'Người dùng ẩn danh' }}</div>
+                      <div class="cell-user-email">{{ log.userEmail || log.userId }}</div>
                     </div>
                   </td>
-                  <td class="px-4 py-4 align-top">
-                    <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold" [ngClass]="badgeClass(log.eventType)">
+                  <td>
+                    <span [class]="getBadgeClass(log.eventType)">
                       {{ log.eventType }}
                     </span>
                   </td>
-                  <td class="px-4 py-4 align-top">
-                    <div class="flex flex-col gap-2">
-                      <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-medium" [ngClass]="availabilityClass(log.availability)">
+                  <td>
+                    <div class="cell-status">
+                      <span [class]="getAvailabilityBadgeClass(log.availability)">
                         {{ log.availability }}
                       </span>
-                      <span class="text-xs text-gray-500">Recovery: {{ recoveryLabel(log.recoveryAction) }}</span>
+                      <span class="cell-recovery">Recovery: {{ recoveryLabel(log.recoveryAction) }}</span>
                     </div>
                   </td>
-                  <td class="px-4 py-4 align-top">
-                    <div class="max-w-xs truncate text-sm text-gray-700">{{ log.route || 'N/A' }}</div>
+                  <td>
+                    <div class="cell-text">{{ log.route || 'N/A' }}</div>
                   </td>
-                  <td class="px-4 py-4 align-top">
-                    <div class="max-w-xs truncate text-sm text-gray-700">{{ log.normalizedPlatform || log.platform || 'N/A' }}</div>
-                    <div class="mt-1 max-w-xs truncate text-xs text-gray-500">
+                  <td>
+                    <div class="cell-text">{{ log.normalizedPlatform || log.platform || 'N/A' }}</div>
+                    <div class="cell-text-sub">
                       {{ log.browserFamily || 'Unknown browser' }} · {{ log.connectionType || 'unknown' }}
                     </div>
                   </td>
-                  <td class="px-4 py-4 align-top">
-                    <div class="text-sm text-gray-900">{{ log.occurredAt | date:'dd/MM/yyyy HH:mm:ss' }}</div>
-                    <div class="mt-1 text-xs text-gray-500">Lưu lúc {{ log.createdAt | date:'dd/MM HH:mm:ss' }}</div>
+                  <td>
+                    <div class="cell-date">{{ log.occurredAt | date:'dd/MM/yyyy HH:mm:ss' }}</div>
+                    <div class="cell-date-sub">Lưu lúc {{ log.createdAt | date:'dd/MM HH:mm:ss' }}</div>
                   </td>
-                  <td class="px-4 py-4 text-right align-top">
+                  <td class="text-right">
                     <button
                       type="button"
                       (click)="toggleDetail(log.id)"
-                      class="text-sm font-medium text-[#0056D2] transition-colors hover:text-[#004BB5]"
+                      class="detail-link"
                     >
                       {{ expandedId() === log.id ? 'Ẩn' : 'Xem chi tiết' }}
                     </button>
@@ -314,56 +306,56 @@
 
                 @if (expandedId() === log.id) {
                   <tr>
-                    <td colspan="7" class="bg-slate-50 px-4 py-5">
-                      <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,420px)]">
-                        <div class="grid gap-4 sm:grid-cols-2">
-                          <div class="rounded-lg border border-gray-200 bg-white p-4">
-                            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Người dùng</div>
-                            <div class="mt-2 text-sm font-medium text-gray-900">{{ formatUser(log) }}</div>
-                            <div class="mt-1 break-all text-xs text-gray-500">{{ log.userId }}</div>
+                    <td colspan="7" class="detail-row-cell">
+                      <div class="detail-grid">
+                        <div class="detail-cards">
+                          <div class="detail-card">
+                            <div class="detail-label">Người dùng</div>
+                            <div class="detail-value">{{ formatUser(log) }}</div>
+                            <div class="detail-sub">{{ log.userId }}</div>
                           </div>
 
-                          <div class="rounded-lg border border-gray-200 bg-white p-4">
-                            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">DB & yêu cầu tải lại</div>
-                            <div class="mt-2 text-sm font-medium text-gray-900">{{ log.dbName }}</div>
-                            <div class="mt-1 text-xs text-gray-500">
+                          <div class="detail-card">
+                            <div class="detail-label">DB & yêu cầu tải lại</div>
+                            <div class="detail-value">{{ log.dbName }}</div>
+                            <div class="detail-sub">
                               {{ log.requiresRedownload ? 'Cần tải lại gói' : 'Không yêu cầu tải lại' }}
                             </div>
                           </div>
 
-                          <div class="rounded-lg border border-gray-200 bg-white p-4">
-                            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Lỗi</div>
-                            <div class="mt-2 text-sm font-medium text-gray-900">{{ log.errorName || 'Không có' }}</div>
-                            <div class="mt-1 whitespace-pre-wrap text-xs text-gray-600">{{ log.errorMessage || 'Không có thông điệp lỗi' }}</div>
+                          <div class="detail-card">
+                            <div class="detail-label">Lỗi</div>
+                            <div class="detail-value">{{ log.errorName || 'Không có' }}</div>
+                            <div class="detail-error-msg">{{ log.errorMessage || 'Không có thông điệp lỗi' }}</div>
                           </div>
 
-                          <div class="rounded-lg border border-gray-200 bg-white p-4">
-                            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Trình duyệt & nền tảng</div>
-                            <div class="mt-2 text-sm font-medium text-gray-900">{{ log.browserFamily || 'Unknown browser' }}</div>
-                            <div class="mt-1 text-xs text-gray-500">{{ log.normalizedPlatform || log.platform || 'N/A' }}</div>
+                          <div class="detail-card">
+                            <div class="detail-label">Trình duyệt & nền tảng</div>
+                            <div class="detail-value">{{ log.browserFamily || 'Unknown browser' }}</div>
+                            <div class="detail-sub">{{ log.normalizedPlatform || log.platform || 'N/A' }}</div>
                           </div>
 
-                          <div class="rounded-lg border border-gray-200 bg-white p-4 sm:col-span-2">
-                            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">User agent</div>
-                            <div class="mt-2 whitespace-pre-wrap break-words text-xs text-gray-600">{{ log.userAgent || 'Không có' }}</div>
+                          <div class="detail-card detail-card--full">
+                            <div class="detail-label">User agent</div>
+                            <div class="detail-ua">{{ log.userAgent || 'Không có' }}</div>
                           </div>
                         </div>
 
-                        <div class="rounded-lg border border-gray-200 bg-white p-4">
-                          <div class="mb-3 flex items-center justify-between gap-3">
+                        <div class="payload-card">
+                          <div class="payload-header">
                             <div>
-                              <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Payload chẩn đoán</div>
-                              <div class="mt-1 text-xs text-gray-500">Dùng cho QA/support khi cần đối chiếu sự cố thực tế.</div>
+                              <div class="detail-label">Payload chẩn đoán</div>
+                              <div class="payload-desc">Dùng cho QA/support khi cần đối chiếu sự cố thực tế.</div>
                             </div>
                             <button
                               type="button"
                               (click)="copyPayload(log)"
-                              class="inline-flex items-center rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                              class="btn-copy"
                             >
                               Sao chép payload
                             </button>
                           </div>
-                          <pre class="max-h-[420px] overflow-auto rounded-lg bg-slate-950 p-4 text-xs text-slate-100">{{ formatPayload(log.payload) }}</pre>
+                          <pre class="payload-pre">{{ formatPayload(log.payload) }}</pre>
                         </div>
                       </div>
                     </td>
@@ -377,16 +369,16 @@
     </div>
 
     @if (totalPages() > 1) {
-      <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div class="text-sm text-gray-600">
+      <div class="pagination">
+        <div class="pagination-info">
           Trang {{ currentPage() + 1 }} / {{ totalPages() }} · {{ totalElements() }} bản ghi
         </div>
-        <div class="flex items-center gap-2">
+        <div class="pagination-buttons">
           <button
             type="button"
             (click)="goToPage(currentPage() - 1)"
             [disabled]="currentPage() === 0"
-            class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            class="btn-page"
           >
             Trước
           </button>
@@ -394,7 +386,7 @@
             type="button"
             (click)="goToPage(currentPage() + 1)"
             [disabled]="currentPage() >= totalPages() - 1"
-            class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            class="btn-page"
           >
             Sau
           </button>

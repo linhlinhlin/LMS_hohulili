@@ -1,0 +1,212 @@
+<!-- Toolbar -->
+<div class="toolbar">
+  <button (click)="exportUsersToCsv()" class="btn-export" title="Xuất CSV">
+    <svg class="btn-export__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+    </svg>
+    Xuất CSV
+  </button>
+</div>
+
+<div class="table-card">
+  <!-- Deletion Loading Overlay -->
+  @if (state.isDeletingUser()) {
+    <div class="loading-overlay">
+      <div class="loading-overlay__content">
+        <div class="spinner"></div>
+        <p class="loading-overlay__text">Đang xử lý...</p>
+      </div>
+    </div>
+  }
+
+  @if (state.isLoadingUsers()) {
+    <div class="empty-center">
+      <div class="spinner-wrapper">
+        <div class="spinner"></div>
+      </div>
+      <p class="empty-center__text">Đang tải danh sách người dùng...</p>
+    </div>
+  } @else if (state.filteredUsers().length === 0) {
+    <div class="empty-center">
+      <svg class="empty-center__icon" fill="currentColor" viewBox="0 0 20 20">
+        <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 8v1h1.5a.5.5 0 01.5.5v9a.5.5 0 01-.5.5h-13a.5.5 0 01-.5-.5v-9a.5.5 0 01.5-.5H8v-1a5 5 0 00-5 5v1h9.93z"></path>
+      </svg>
+      <h3 class="empty-center__title">Không tìm thấy người dùng</h3>
+      <p class="empty-center__desc">Thử điều chỉnh bộ lọc hoặc tìm kiếm với từ khóa khác</p>
+      <button (click)="state.clearFilters()" class="btn-clear-filters">
+        Xóa bộ lọc
+      </button>
+    </div>
+  } @else {
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Người dùng</th>
+            <th>Vai trò</th>
+            <th class="text-center">Thao tác</th>
+            <th>Trạng thái</th>
+            <th>Hoạt động cuối</th>
+            <th>Thống kê</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of state.filteredUsers(); track user.id) {
+            <tr>
+              <!-- Người dùng -->
+              <td class="no-wrap">
+                <div class="user-cell">
+                  <img [src]="user.avatar || state.getDefaultAvatar(user.email)"
+                       [alt]="user.name"
+                       class="user-avatar">
+                  <div class="user-info">
+                    <div class="user-name">{{ user.name }}</div>
+                    <div class="user-email">{{ user.email }}</div>
+                  </div>
+                </div>
+              </td>
+              <!-- Vai trò -->
+              <td class="no-wrap">
+                @if (state.canChangeRole(user)) {
+                  <select [ngModel]="user.role"
+                          (ngModelChange)="state.onRoleChange(user.id, user.role, $event)"
+                          [name]="'user-role-' + user.id"
+                          class="role-select"
+                          [class]="getRoleSelectClass(user.role)"
+                          title="Click để thay đổi vai trò">
+                    @for (roleOpt of state.ROLE_OPTIONS; track roleOpt.value) {
+                      <option [value]="roleOpt.value">{{ roleOpt.label }}</option>
+                    }
+                  </select>
+                } @else {
+                  <span class="role-badge" [class]="getRoleBadgeClass(user.role)">
+                    {{ state.getRoleText(user.role) }}
+                  </span>
+                }
+              </td>
+              <!-- Thao tác -->
+              <td class="no-wrap text-center">
+                <div class="actions-cell">
+                  @if (state.canChangeStatus(user)) {
+                    <select (change)="onStatusAction(user, $any($event.target).value); $any($event.target).value = ''"
+                            class="status-action-select"
+                            title="Thay đổi trạng thái">
+                      <option value="" disabled selected>Trạng thái</option>
+                      @if (user.accountStatus !== 'ACTIVE') {
+                        <option value="ACTIVE">Kích hoạt</option>
+                      }
+                      @if (user.accountStatus !== 'BLOCKED') {
+                        <option value="BLOCKED">Khóa</option>
+                      }
+                      @if (user.accountStatus !== 'RESTRICTED') {
+                        <option value="RESTRICTED">Hạn chế</option>
+                      }
+                    </select>
+                  }
+                  @if (state.canDeleteUser(user)) {
+                    <button (click)="state.deleteUser(user.id)"
+                            class="btn-delete"
+                            title="Vô hiệu hóa tài khoản">
+                      <svg class="btn-delete__icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                      </svg>
+                    </button>
+                  }
+                </div>
+              </td>
+              <!-- Trạng thái -->
+              <td class="no-wrap">
+                <span class="status-badge" [class]="getStatusClass(user.accountStatus)">
+                  <span class="status-dot" [class]="getStatusDotCssClass(user.accountStatus)"></span>
+                  {{ state.getStatusLabel(user.accountStatus) }}
+                </span>
+              </td>
+              <!-- Hoạt động cuối -->
+              <td class="no-wrap cell-muted">
+                {{ user.lastLogin ? state.formatDate(user.lastLogin) : 'Chưa đăng nhập' }}
+              </td>
+              <!-- Thống kê -->
+              <td class="no-wrap cell-muted">
+                <div class="stats-cell">
+                  @if (user.role === 'TEACHER') {
+                    <div class="stat-row">
+                      <svg class="stat-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                        <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+                      </svg>
+                      <span>{{ user.coursesCreated || 0 }} khóa học</span>
+                    </div>
+                  }
+                  @if (user.role === 'STUDENT') {
+                    <div class="stat-row">
+                      <svg class="stat-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                        <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+                      </svg>
+                      <span>{{ user.coursesEnrolled || 0 }} đã đăng ký</span>
+                    </div>
+                  }
+                  <div class="stat-row">
+                    <svg class="stat-icon" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path>
+                    </svg>
+                    <span>{{ user.loginCount || 0 }} lần</span>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    @if (state.pagination() && state.pagination()!.totalPages > 1) {
+      <div class="pagination">
+        <div class="pagination__row">
+          <div class="pagination__info">
+            <p>
+              Hiển thị
+              <span class="pagination__bold">{{ ((state.pagination()!.page - 1) * state.pagination()!.limit) + 1 }}</span>
+              đến
+              <span class="pagination__bold">{{ state.getMinValue(state.pagination()!.page * state.pagination()!.limit, state.pagination()!.totalItems) }}</span>
+              trong tổng số
+              <span class="pagination__bold">{{ state.pagination()!.totalItems }}</span>
+              kết quả
+            </p>
+          </div>
+
+          <div class="pagination__nav">
+            <nav class="pagination__buttons" aria-label="Pagination">
+              <button (click)="state.goToPage(state.pagination()!.page - 1)"
+                      [disabled]="state.pagination()!.page === 1"
+                      class="pagination__btn pagination__btn--prev">
+                <span class="sr-only">Previous</span>
+                <svg class="pagination__arrow" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+              </button>
+
+              @for (page of state.getVisiblePages(); track page) {
+                <button (click)="state.goToPage(page)"
+                        class="pagination__btn"
+                        [class.pagination__btn--active]="page === state.pagination()!.page">
+                  {{ page }}
+                </button>
+              }
+
+              <button (click)="state.goToPage(state.pagination()!.page + 1)"
+                      [disabled]="state.pagination()!.page === state.pagination()!.totalPages"
+                      class="pagination__btn pagination__btn--next">
+                <span class="sr-only">Next</span>
+                <svg class="pagination__arrow" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                </svg>
+              </button>
+            </nav>
+          </div>
+        </div>
+      </div>
+    }
+  }
+</div>

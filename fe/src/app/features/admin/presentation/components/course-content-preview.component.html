@@ -1,0 +1,288 @@
+@if (loading()) {
+  <div class="loading-screen">
+    <div class="loading-box">
+      <div class="spinner"></div>
+      <p class="loading-text">Đang tải nội dung khóa học...</p>
+    </div>
+  </div>
+} @else if (course()) {
+  <div class="preview-page">
+    <!-- Top bar -->
+    <div class="top-bar">
+      <div class="top-bar-left">
+        <button (click)="goBack()" class="btn-back">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+          Quay lại
+        </button>
+        <div class="bar-divider"></div>
+        <div class="course-meta">
+          <h1 class="course-title-bar">{{ course()!.title }}</h1>
+          <p class="course-teacher-bar">{{ course()!.teacherName }}</p>
+        </div>
+      </div>
+      <span class="status-badge" [class]="getStatusBadgeClass(course()!.status)">
+        {{ getStatusText(course()!.status) }}
+      </span>
+    </div>
+
+    <!-- Split pane -->
+    <div class="split-pane" [style.height]="isPending() ? 'calc(100vh - 52px - 72px)' : 'calc(100vh - 52px)'">
+      <!-- Left sidebar: Chapter tree -->
+      <aside class="sidebar">
+        <div class="sidebar-inner">
+          <h2 class="sidebar-heading">Nội dung khóa học</h2>
+          @if (chapters().length === 0) {
+            <p class="sidebar-empty">Chưa có nội dung</p>
+          }
+          @for (chapter of chapters(); track chapter.id; let ci = $index) {
+            <div class="chapter-group">
+              <!-- Chapter node -->
+              <button (click)="toggleChapter(ci)"
+                class="chapter-btn"
+                [class.selected]="selectedChapterIndex() === ci">
+                <svg class="chevron-icon"
+                  [class.expanded]="expandedChapters().has(ci)"
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+                <svg class="folder-icon" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
+                </svg>
+                <span class="chapter-label">{{ chapter.title }}</span>
+              </button>
+
+              <!-- Lessons under chapter -->
+              @if (expandedChapters().has(ci)) {
+                <div class="lessons-list">
+                  @for (lesson of chapter.lessons; track lesson.id; let li = $index) {
+                    <div class="lesson-item">
+                      <!-- Lesson with sections -->
+                      @if (lesson.sections && lesson.sections.length > 0) {
+                        <button (click)="toggleLesson(ci, li)"
+                          class="lesson-btn"
+                          [class.selected]="selectedChapterIndex() === ci && selectedLessonIndex() === li && selectedSectionIndex() === -1">
+                          <svg class="lesson-chevron"
+                            [class.expanded]="expandedLessons().has(ci + '-' + li)"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                          </svg>
+                          <svg class="lesson-doc-icon" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+                          </svg>
+                          <span class="lesson-label">{{ lesson.title }}</span>
+                        </button>
+
+                        <!-- Sections under lesson -->
+                        @if (expandedLessons().has(ci + '-' + li)) {
+                          <div class="sections-list">
+                            @for (section of lesson.sections; track section.id; let si = $index) {
+                              <button (click)="selectSection(ci, li, si)"
+                                class="section-btn"
+                                [class.selected]="selectedChapterIndex() === ci && selectedLessonIndex() === li && selectedSectionIndex() === si">
+                                <span class="section-emoji">{{ getSectionIcon(section.type) }}</span>
+                                <span class="section-label"
+                                  [class.selected]="selectedChapterIndex() === ci && selectedLessonIndex() === li && selectedSectionIndex() === si">
+                                  {{ section.title }}
+                                </span>
+                              </button>
+                            }
+                          </div>
+                        }
+                      } @else {
+                        <!-- Lesson without sections -->
+                        <button (click)="selectLesson(ci, li)"
+                          class="lesson-btn"
+                          [class.selected]="selectedChapterIndex() === ci && selectedLessonIndex() === li">
+                          <svg class="lesson-doc-icon" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+                          </svg>
+                          <span class="lesson-label-plain"
+                            [class.selected]="selectedChapterIndex() === ci && selectedLessonIndex() === li">
+                            {{ lesson.title }}
+                          </span>
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </aside>
+
+      <!-- Right content area -->
+      <main class="main-content">
+        @if (currentSection(); as section) {
+          <!-- Section content -->
+          <div class="content-area">
+            <div class="section-header">
+              <div class="section-type-row">
+                <span class="section-type-emoji">{{ getSectionIcon(section.type) }}</span>
+                <span class="section-type-badge">{{ section.type }}</span>
+              </div>
+              <h2 class="section-title">{{ section.title }}</h2>
+              @if (currentLesson()) {
+                <p class="section-subtitle">{{ currentLesson()!.title }}</p>
+              }
+            </div>
+
+            <!-- VIDEO -->
+            @if (section.type === 'VIDEO' && section.videoUrl) {
+              <div class="video-container">
+                @if (isYouTubeUrl(section.videoUrl)) {
+                  <iframe [src]="getYouTubeEmbedUrl(section.videoUrl)"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen></iframe>
+                } @else {
+                  <video [src]="section.videoUrl" controls controlsList="nodownload">
+                    Trình duyệt không hỗ trợ video.
+                  </video>
+                }
+              </div>
+            }
+
+            <!-- TEXT -->
+            @if (section.type === 'TEXT' && section.content) {
+              <div class="text-content"
+                [innerHTML]="getSanitizedHtml(section.content)"></div>
+            }
+
+            <!-- FILE -->
+            @if (section.type === 'FILE') {
+              <div class="file-card">
+                <div class="file-icon-box">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                  </svg>
+                </div>
+                <div class="file-info">
+                  <h3 class="file-name">{{ section.title }}</h3>
+                  <p class="file-sub">Tài liệu đính kèm</p>
+                </div>
+                @if (section.fileUrl) {
+                  <a [href]="section.fileUrl" target="_blank" rel="noopener noreferrer" class="btn-download">
+                    Tải xuống
+                  </a>
+                }
+              </div>
+            }
+
+            <!-- QUIZ -->
+            @if (section.type === 'QUIZ') {
+              <div class="quiz-card">
+                <div class="quiz-icon-circle">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 7h6m-6 4h6"/>
+                  </svg>
+                </div>
+                <h3 class="quiz-title">{{ section.title }}</h3>
+                <p class="quiz-sub">Phần trắc nghiệm - Học viên sẽ làm bài tại đây</p>
+              </div>
+            }
+
+            <!-- Empty section content -->
+            @if (!section.content && !section.videoUrl && !section.fileUrl && section.type !== 'QUIZ') {
+              <div class="empty-section">
+                <p>Phần này chưa có nội dung</p>
+              </div>
+            }
+          </div>
+        } @else if (currentLesson(); as lesson) {
+          <!-- Lesson-level content (no sections) -->
+          <div class="content-area">
+            <div class="section-header">
+              <h2 class="section-title">{{ lesson.title }}</h2>
+              @if (lesson.description) {
+                <p class="section-subtitle">{{ lesson.description }}</p>
+              }
+            </div>
+
+            @if (lesson.videoUrl) {
+              <div class="video-container">
+                @if (isYouTubeUrl(lesson.videoUrl)) {
+                  <iframe [src]="getYouTubeEmbedUrl(lesson.videoUrl)"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen></iframe>
+                } @else {
+                  <video [src]="lesson.videoUrl" controls controlsList="nodownload">
+                    Trình duyệt không hỗ trợ video.
+                  </video>
+                }
+              </div>
+            }
+
+            @if (lesson.content) {
+              <div class="text-content"
+                [innerHTML]="getSanitizedHtml(lesson.content)"></div>
+            }
+
+            @if (!lesson.content && !lesson.videoUrl) {
+              <div class="empty-section">
+                <p>Bài học này chưa có nội dung chi tiết</p>
+              </div>
+            }
+          </div>
+        } @else {
+          <!-- Course overview (nothing selected) -->
+          <div class="content-area">
+            <div class="overview-card">
+              <h2 class="overview-title">{{ course()!.title }}</h2>
+              @if (course()!.description) {
+                <p class="overview-desc">{{ course()!.description }}</p>
+              }
+              <div class="overview-grid">
+                <div class="overview-stat stat-blue">
+                  <div class="overview-stat-value">{{ chapters().length }}</div>
+                  <div class="overview-stat-label">Chương</div>
+                </div>
+                <div class="overview-stat stat-green">
+                  <div class="overview-stat-value">{{ totalLessons() }}</div>
+                  <div class="overview-stat-label">Bài học</div>
+                </div>
+                <div class="overview-stat stat-purple">
+                  <div class="overview-stat-value">{{ totalSections() }}</div>
+                  <div class="overview-stat-label">Nội dung</div>
+                </div>
+              </div>
+              <p class="overview-hint">Chọn một chương hoặc bài học ở thanh bên trái để xem nội dung</p>
+            </div>
+          </div>
+        }
+      </main>
+    </div>
+
+    <!-- Bottom action bar (only for PENDING) -->
+    @if (isPending()) {
+      <div class="bottom-bar">
+        <input type="text"
+          [(ngModel)]="feedbackText"
+          placeholder="Nhập lý do từ chối (nếu có)..."
+          class="feedback-input" />
+        <button (click)="rejectCourse()"
+          [disabled]="rejecting() || !feedbackText.trim()"
+          class="btn-reject">
+          Từ chối & Yêu cầu chỉnh sửa
+        </button>
+        <button (click)="approveCourse()"
+          [disabled]="approving()"
+          class="btn-approve">
+          Duyệt khóa học
+        </button>
+      </div>
+    }
+  </div>
+} @else {
+  <div class="not-found-screen">
+    <div class="not-found-box">
+      <p>Không tìm thấy khóa học</p>
+      <button (click)="goBack()" class="btn-link">Quay lại</button>
+    </div>
+  </div>
+}

@@ -36,9 +36,10 @@ public class EnrollStudentByEmailUseCase {
     public UUID enroll(String email, UUID classId) {
         log.info("Enrolling student with email {} to class {}", email, classId);
 
-        // 1. Find Student by email
+        // 1. Find Student by email (generic error to prevent email enumeration — OWASP)
         User student = userRepository.findByEmail(email)
-                .orElseThrow(() -> new EntityNotFoundException("Học viên", "email=" + email));
+                .orElseThrow(() -> new BusinessRuleException("STUDENT_NOT_FOUND",
+                        "Không tìm thấy học viên với email này. Vui lòng kiểm tra lại hoặc yêu cầu học viên đăng ký tài khoản trước."));
 
         // 2. Validate Class exists
         LearningClass learningClass = learningClassRepository.findById(classId)

@@ -82,6 +82,7 @@ public class QuizControllerV3 {
     private final StudentAssessmentAccessPort studentAssessmentAccessPort;
     private final UserJpaRepository userJpaRepository;
     private final PaymentTransactionJpaRepository paymentTransactionJpaRepository;
+    private final com.example.lms.learning_delivery.infrastructure.persistence.ClassTeacherJpaRepository classTeacherJpaRepository;
 
     // ============ Teacher CRUD Operations ============
 
@@ -1452,8 +1453,9 @@ public class QuizControllerV3 {
         if (isAdminRole(user)) return;
         courseJpaRepository.findByLessonId(lessonId).ifPresentOrElse(
             course -> {
-                if (course.getTeacherId() == null || !course.getTeacherId().equals(user.getId())) {
-                    throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu tài nguyên này");
+                if ((course.getTeacherId() == null || !course.getTeacherId().equals(user.getId()))
+                        && !classTeacherJpaRepository.existsByTeacherIdAndCourseId(user.getId(), course.getId())) {
+                    throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền truy cập tài nguyên này");
                 }
             },
             () -> { throw new com.example.lms.shared.exception.EntityNotFoundException("Course for lesson", lessonId); }
@@ -1464,8 +1466,9 @@ public class QuizControllerV3 {
         if (isAdminRole(user)) return;
         courseJpaRepository.findByLessonId(quiz.getLessonId()).ifPresentOrElse(
             course -> {
-                if (course.getTeacherId() == null || !course.getTeacherId().equals(user.getId())) {
-                    throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu bài kiểm tra này");
+                if ((course.getTeacherId() == null || !course.getTeacherId().equals(user.getId()))
+                        && !classTeacherJpaRepository.existsByTeacherIdAndCourseId(user.getId(), course.getId())) {
+                    throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền truy cập bài kiểm tra này");
                 }
             },
             () -> { throw new com.example.lms.shared.exception.EntityNotFoundException("Course for quiz", quiz.getId()); }
@@ -1475,8 +1478,9 @@ public class QuizControllerV3 {
     private void verifyCourseOwnership(UUID courseId, UserJpaEntity user) {
         if (isAdminRole(user)) return;
         CourseJpaEntity course = loadCourse(courseId);
-        if (course.getTeacherId() == null || !course.getTeacherId().equals(user.getId())) {
-            throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu khóa học này");
+        if ((course.getTeacherId() == null || !course.getTeacherId().equals(user.getId()))
+                && !classTeacherJpaRepository.existsByTeacherIdAndCourseId(user.getId(), courseId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền truy cập khóa học này");
         }
     }
 
@@ -1484,8 +1488,9 @@ public class QuizControllerV3 {
         if (isAdminRole(user)) return;
         courseJpaRepository.findByChapterId(chapterId).ifPresentOrElse(
             course -> {
-                if (course.getTeacherId() == null || !course.getTeacherId().equals(user.getId())) {
-                    throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu tài nguyên này");
+                if ((course.getTeacherId() == null || !course.getTeacherId().equals(user.getId()))
+                        && !classTeacherJpaRepository.existsByTeacherIdAndCourseId(user.getId(), course.getId())) {
+                    throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền truy cập tài nguyên này");
                 }
             },
             () -> { throw new com.example.lms.shared.exception.EntityNotFoundException("Course for chapter", chapterId); }

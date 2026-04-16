@@ -7,6 +7,8 @@ import com.example.lms.course_authoring.domain.model.CourseCategory;
 import com.example.lms.course_authoring.domain.repository.ChapterRepositoryPort;
 import com.example.lms.course_authoring.domain.repository.CourseCategoryRepository;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
+import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseReviewEventJpaEntity;
+import com.example.lms.course_authoring.infrastructure.persistence.repository.CourseReviewEventJpaRepository;
 import com.example.lms.shared.domain.valueobject.CourseCode;
 import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.exception.EntityNotFoundException;
@@ -28,6 +30,7 @@ public class CourseAuthoringUseCase {
     private final CourseCategoryRepository courseCategoryRepository;
     private final ChapterRepositoryPort chapterRepository;
     private final GetCourseDraftUseCase getCourseDraftUseCase;
+    private final CourseReviewEventJpaRepository reviewEventRepository;
 
     private static final int MAX_CODE_RETRY = 3;
 
@@ -177,6 +180,11 @@ public class CourseAuthoringUseCase {
 
     @Transactional
     public void submitForApproval(UUID courseId) {
+        submitForApproval(courseId, null, null);
+    }
+
+    @Transactional
+    public void submitForApproval(UUID courseId, UUID teacherId, String releaseNotes) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new EntityNotFoundException("Khóa học", courseId));
 
@@ -187,8 +195,21 @@ public class CourseAuthoringUseCase {
                 "Khóa học phải có ít nhất 1 chương trước khi gửi duyệt");
         }
 
+        // Store release notes for admin review
+        if (releaseNotes != null && !releaseNotes.isBlank()) {
+            course.setPendingReleaseNotes(releaseNotes.trim());
+        }
+
         course.submitForApproval();
         courseRepository.save(course);
+
+        // Record audit event
+        reviewEventRepository.save(CourseReviewEventJpaEntity.builder()
+                .courseId(courseId)
+                .reviewerId(teacherId != null ? teacherId : course.getTeacherId())
+                .action("SUBMITTED")
+                .comment(releaseNotes)
+                .build());
     }
 
     @Transactional

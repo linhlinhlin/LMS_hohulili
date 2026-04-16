@@ -63,6 +63,7 @@ export interface CourseSummary {
   enrolledAt?: string;
   categoryName?: string;
   categoryId?: string;
+  teacherRole?: 'OWNER' | 'CO_TEACHER';
 }
 
 export interface CourseDetail {

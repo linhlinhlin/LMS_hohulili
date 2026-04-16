@@ -23,6 +23,12 @@ public class CoursePublicationPortAdapter implements CoursePublicationPort {
     }
 
     @Override
+    @Transactional
+    public void publish(UUID courseId, UUID publishedById, String releaseNotes) {
+        coursePublicationService.publish(courseId, publishedById, releaseNotes);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Optional<UUID> findLatestPublicationId(UUID courseId) {
         return publicationRepository.findTopByCourseIdOrderByPublicationNumberDesc(courseId)

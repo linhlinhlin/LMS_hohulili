@@ -1,0 +1,235 @@
+@if (isLoading()) {
+  <!-- ===== SKELETON ===== -->
+  <div class="dashboard-page">
+    <div class="header-bar">
+      <div class="header-inner">
+        <div class="sk animate-pulse" style="height:24px;width:280px"></div>
+      </div>
+    </div>
+    <div class="dashboard-main">
+      <!-- Metrics strip skeleton -->
+      <div class="skeleton-strip animate-pulse">
+        @for (_ of [1,2,3,4]; track $index) {
+          <div class="skeleton-cell">
+            <div class="sk" style="height:24px;width:80px;margin-bottom:6px"></div>
+            <div class="sk-light" style="height:12px;width:100px"></div>
+          </div>
+        }
+      </div>
+      <!-- Chart + feed skeleton -->
+      <div class="content-grid grid-2-1">
+        <div class="skeleton-card animate-pulse" style="min-height:440px">
+          <div class="sk" style="height:16px;width:240px;margin-bottom:16px"></div>
+          <div class="sk-light" style="height:360px;width:100%"></div>
+        </div>
+        <div class="skeleton-card animate-pulse" style="min-height:440px">
+          <div class="sk" style="height:16px;width:160px;margin-bottom:16px"></div>
+          @for (_ of [1,2,3,4,5]; track $index) {
+            <div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #f3f4f6">
+              <div class="sk" style="height:8px;width:8px;border-radius:50%;margin-top:4px;flex-shrink:0"></div>
+              <div style="flex:1">
+                <div class="sk-light" style="height:14px;width:90%;margin-bottom:4px"></div>
+                <div class="sk-light" style="height:10px;width:60%"></div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+      <!-- Table + health skeleton -->
+      <div class="content-grid grid-2-1">
+        <div class="skeleton-card animate-pulse" style="min-height:280px">
+          <div class="sk" style="height:16px;width:180px;margin-bottom:16px"></div>
+          @for (_ of [1,2,3]; track $index) {
+            <div style="display:flex;gap:16px;padding:12px 0;border-bottom:1px solid #f3f4f6">
+              <div class="sk-light" style="height:14px;flex:2"></div>
+              <div class="sk-light" style="height:14px;flex:1"></div>
+              <div class="sk-light" style="height:14px;flex:1"></div>
+              <div class="sk-light" style="height:14px;flex:1"></div>
+            </div>
+          }
+        </div>
+        <div class="skeleton-card animate-pulse" style="min-height:280px">
+          <div class="sk" style="height:16px;width:160px;margin-bottom:16px"></div>
+          @for (_ of [1,2,3,4]; track $index) {
+            <div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid #f3f4f6">
+              <div class="sk" style="height:10px;width:10px;border-radius:50%;flex-shrink:0"></div>
+              <div class="sk-light" style="height:14px;flex:1"></div>
+              <div class="sk-light" style="height:22px;width:80px;border-radius:4px;flex-shrink:0"></div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+} @else {
+  <!-- ===== ADMIN SYSTEM DASHBOARD ===== -->
+  <div class="dashboard-page">
+    <!-- Header -->
+    <div class="header-bar">
+      <div class="header-inner">
+        <h1 class="page-title">Bảng điều khiển hệ thống</h1>
+      </div>
+    </div>
+
+    <div class="dashboard-main">
+      <!-- ① Metrics Strip (Stripe pattern — 4 cells, no icons) -->
+      <div class="metrics-strip">
+        <div class="metric-cell">
+          <p class="metric-value">{{ analytics().totalUsers | number }}</p>
+          <p class="metric-label">Tổng người dùng</p>
+          <p class="metric-sub">+{{ analytics().userGrowth.growthRate || 0 }}% so với tháng trước</p>
+        </div>
+        <div class="metric-cell">
+          <p class="metric-value">{{ analytics().revenue | number:'1.0-0' }}đ</p>
+          <p class="metric-label">Doanh thu tháng này</p>
+          <p class="metric-sub">+{{ analytics().revenueGrowth }}% so với tháng trước</p>
+        </div>
+        <div class="metric-cell highlight">
+          <p class="metric-value warning">{{ analytics().pendingCourses | number }}</p>
+          <p class="metric-label">Khóa học chờ duyệt</p>
+          <p class="metric-sub warning-text">Cần xử lý</p>
+        </div>
+        <div class="metric-cell">
+          <p class="metric-value">{{ analytics().totalCourses | number }}</p>
+          <p class="metric-label">Tổng khóa học</p>
+          <p class="metric-sub">{{ analytics().approvedCourses }} đã duyệt</p>
+        </div>
+      </div>
+
+      <!-- ② Revenue Chart + Activity Feed -->
+      <div class="content-grid grid-2-1">
+        <div class="card chart-card">
+          <div class="card-header">
+            <h2 class="card-title">Tổng quan doanh thu (30 ngày)</h2>
+          </div>
+          <div class="chart-area">
+            <app-revenue-chart [revenueData]="revenueChartData()" />
+          </div>
+        </div>
+
+        <div class="card activity-card">
+          <div class="card-header">
+            <h2 class="card-title">Hoạt động gần đây</h2>
+          </div>
+          <div class="activity-list">
+            @for (activity of recentActivities(); track activity.id) {
+              <div class="activity-item">
+                <div class="activity-dot"></div>
+                <div class="activity-content">
+                  <p class="activity-message">{{ activity.message }}</p>
+                  <p class="activity-time">{{ activity.timestamp | date:'short' }}</p>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- ③ Pending Approvals + System Health -->
+      <div class="content-grid grid-2-1">
+        <!-- Pending Approvals Table -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Danh sách chờ duyệt</h2>
+          </div>
+          <div class="card-body">
+            @if (isLoadingPending()) {
+              <div class="table-loading">
+                <div class="spinner"></div>
+                <span>Đang tải...</span>
+              </div>
+            } @else if (pendingApprovals().length === 0) {
+              <div class="table-empty">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p>Không có khóa học nào đang chờ duyệt</p>
+              </div>
+            } @else {
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Tên</th>
+                    <th>Loại</th>
+                    <th>Ngày gửi</th>
+                    <th>Hành động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (approval of pendingApprovals(); track approval.id) {
+                    <tr>
+                      <td>{{ approval.name }}</td>
+                      <td>
+                        @if (approval.type === 'course') {
+                          <span class="badge badge-primary">Khóa học</span>
+                        } @else {
+                          <span class="badge badge-purple">Giảng viên</span>
+                        }
+                      </td>
+                      <td class="date-text">{{ formatDate(approval.submittedDate) }}</td>
+                      <td>
+                        <div class="action-btns">
+                          <button class="btn-approve" (click)="approveCourse(approval.id)">Duyệt</button>
+                          <button class="btn-reject" (click)="rejectCourse(approval.id)">Từ chối</button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          </div>
+        </div>
+
+        <!-- System Health -->
+        <div class="card health-card">
+          <div class="card-header">
+            <h2 class="card-title">Trạng thái hệ thống</h2>
+          </div>
+          <div class="health-list">
+            <div class="health-item">
+              <div class="health-dot" [class.healthy]="analytics().systemHealth.api === 'healthy'"
+                [class.error]="analytics().systemHealth.api !== 'healthy'"></div>
+              <span class="health-name">API Service</span>
+              <span class="health-status"
+                [class.status-ok]="analytics().systemHealth.api === 'healthy'"
+                [class.status-err]="analytics().systemHealth.api !== 'healthy'">
+                {{ analytics().systemHealth.api === 'healthy' ? 'Hoạt động' : 'Lỗi' }}
+              </span>
+            </div>
+            <div class="health-item">
+              <div class="health-dot" [class.healthy]="analytics().systemHealth.database === 'healthy'"
+                [class.error]="analytics().systemHealth.database !== 'healthy'"></div>
+              <span class="health-name">Database</span>
+              <span class="health-status"
+                [class.status-ok]="analytics().systemHealth.database === 'healthy'"
+                [class.status-err]="analytics().systemHealth.database !== 'healthy'">
+                {{ analytics().systemHealth.database === 'healthy' ? 'Hoạt động' : 'Lỗi' }}
+              </span>
+            </div>
+            <div class="health-item">
+              <div class="health-dot" [class.healthy]="analytics().systemHealth.email === 'healthy'"
+                [class.error]="analytics().systemHealth.email !== 'healthy'"></div>
+              <span class="health-name">Email Service</span>
+              <span class="health-status"
+                [class.status-ok]="analytics().systemHealth.email === 'healthy'"
+                [class.status-err]="analytics().systemHealth.email !== 'healthy'">
+                {{ analytics().systemHealth.email === 'healthy' ? 'Hoạt động' : 'Lỗi' }}
+              </span>
+            </div>
+            <div class="health-item">
+              <div class="health-dot" [class.healthy]="analytics().systemHealth.storage === 'healthy'"
+                [class.warn]="analytics().systemHealth.storage !== 'healthy'"></div>
+              <span class="health-name">Bộ nhớ</span>
+              <span class="health-status"
+                [class.status-ok]="analytics().systemHealth.storage === 'healthy'"
+                [class.status-warn]="analytics().systemHealth.storage !== 'healthy'">
+                {{ analytics().systemHealth.storage === 'healthy' ? 'Hoạt động' : 'Cần kiểm tra' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+}

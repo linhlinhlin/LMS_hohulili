@@ -1,0 +1,510 @@
+<div class="org-detail-page">
+  <div class="org-detail-inner">
+    @if (isLoading()) {
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Đang tải thông tin tổ chức...</p>
+      </div>
+    } @else if (org()) {
+      <!-- Header -->
+      <div class="page-header">
+        <a routerLink="/admin/organizations" class="btn-back" title="Quay lại danh sách">
+          <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+        </a>
+        <div class="org-avatar" [class.org-avatar--active]="org()!.enabled" [class.org-avatar--disabled]="!org()!.enabled">
+          {{ org()!.code.substring(0, 2) }}
+        </div>
+        <div class="header-info">
+          <h1 class="header-title">{{ org()!.name }}</h1>
+          <div class="header-meta">
+            <span class="org-code">{{ org()!.code }}</span>
+            <span class="dot-separator">&middot;</span>
+            @if (org()!.enabled) {
+              <span class="badge badge--active">Hoạt động</span>
+            } @else {
+              <span class="badge badge--disabled">Vô hiệu</span>
+            }
+            <span class="dot-separator">&middot;</span>
+            <span>Token: {{ org()!.tokenExpiryDays }} ngày</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tab-bar">
+        <nav class="tab-nav">
+          @for (tab of tabs; track tab.key) {
+            <button (click)="activeTab.set(tab.key)"
+                    class="tab-btn"
+                    [class.tab-btn--active]="activeTab() === tab.key">
+              {{ tab.label }}
+              @if (tab.key === 'members' && members().length > 0) {
+                <span class="tab-count" [class.tab-count--active]="activeTab() === 'members'" [class.tab-count--default]="activeTab() !== 'members'">
+                  {{ members().length }}
+                </span>
+              }
+              @if (tab.key === 'invites' && activeInvites().length > 0) {
+                <span class="tab-count" [class.tab-count--active]="activeTab() === 'invites'" [class.tab-count--default]="activeTab() !== 'invites'">
+                  {{ activeInvites().length }}
+                </span>
+              }
+            </button>
+          }
+        </nav>
+      </div>
+
+      <!-- ==================== MEMBERS TAB ==================== -->
+      @if (activeTab() === 'members') {
+        <div class="card card-overflow">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Họ tên</th>
+                  <th>Email</th>
+                  <th>Vai trò</th>
+                  <th>Token (ngày)</th>
+                  <th>Trạng thái</th>
+                  <th class="col-action"></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (member of members(); track member.id) {
+                  <tr>
+                    <td>
+                      <div class="member-cell">
+                        <div class="member-avatar">{{ member.fullName.charAt(0) }}</div>
+                        <span class="member-name">{{ member.fullName }}</span>
+                      </div>
+                    </td>
+                    <td class="text-muted">{{ member.email }}</td>
+                    <td>
+                      <span class="role-badge" [ngClass]="getRoleBadgeClass(member.role)">
+                        {{ getRoleLabel(member.role) }}
+                      </span>
+                    </td>
+                    <td>
+                      @if (canEditMember(member)) {
+                        @if (editingTokenMemberId() === member.id) {
+                          <div class="token-edit-row">
+                            <input #tokenInput type="number" [value]="member.tokenExpiryDays ?? ''"
+                                   min="1" [max]="org()!.tokenExpiryDays"
+                                   placeholder="Mặc định"
+                                   class="token-input">
+                            <button (click)="saveMemberTokenExpiry(member.id, tokenInput.value)"
+                                    class="btn-icon-xs btn-icon-xs--confirm"
+                                    title="Lưu">
+                              <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                              </svg>
+                            </button>
+                            <button (click)="editingTokenMemberId.set('')"
+                                    class="btn-icon-xs btn-icon-xs--cancel"
+                                    title="Hủy">
+                              <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                              </svg>
+                            </button>
+                          </div>
+                        } @else {
+                          <button (click)="editingTokenMemberId.set(member.id)"
+                                  class="btn-token-display"
+                                  title="Nhấn để chỉnh sửa">
+                            @if (member.tokenExpiryDays) {
+                              <span class="token-value">{{ member.tokenExpiryDays }} ngày</span>
+                            } @else {
+                              <span class="token-default">Mặc định tổ chức</span>
+                            }
+                          </button>
+                        }
+                      } @else {
+                        <span class="token-static">
+                          @if (member.tokenExpiryDays) {
+                            {{ member.tokenExpiryDays }} ngày
+                          } @else {
+                            Mặc định tổ chức
+                          }
+                        </span>
+                      }
+                    </td>
+                    <td>
+                      @if (member.enabled) {
+                        <span class="status status--active">
+                          <span class="status-dot status-dot--active"></span>
+                          Hoạt động
+                        </span>
+                      } @else {
+                        <span class="status status--disabled">
+                          <span class="status-dot status-dot--disabled"></span>
+                          Vô hiệu
+                        </span>
+                      }
+                    </td>
+                    <td>
+                      @if (canRemoveMember(member)) {
+                        <button (click)="removeMember(member)"
+                                class="btn-danger-text"
+                                title="Xóa khỏi tổ chức">
+                          Xóa
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="6" class="table-empty">
+                      <div class="table-empty-inner">
+                        <div class="table-empty-icon">
+                          <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                          </svg>
+                        </div>
+                        <p class="table-empty-title">Chưa có thành viên nào</p>
+                        <p class="table-empty-desc">Gửi lời mời để thêm thành viên vào tổ chức</p>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- ==================== INVITES TAB ==================== -->
+      @if (activeTab() === 'invites') {
+        <!-- Create Invite Actions -->
+        <div class="card invite-actions">
+          <h3>Tạo lời mời mới</h3>
+          <div class="invite-actions-row">
+            <button (click)="createInviteCode()"
+                    [disabled]="isCreatingInvite()"
+                    class="btn-primary">
+              @if (isCreatingInvite()) {
+                <svg class="spinner-icon" fill="none" viewBox="0 0 24 24">
+                  <circle opacity="0.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path opacity="0.75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Đang tạo...
+              } @else {
+                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Tạo mã mời
+              }
+            </button>
+            <div class="email-invite-row">
+              <input #emailInput type="email" placeholder="Email người nhận"
+                     class="email-input">
+              <button (click)="sendEmailInvite(emailInput.value); emailInput.value = ''"
+                      [disabled]="isSendingEmail()"
+                      class="btn-outline">
+                @if (isSendingEmail()) {
+                  <svg class="spinner-icon" fill="none" viewBox="0 0 24 24">
+                    <circle opacity="0.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path opacity="0.75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Đang gửi...
+                } @else {
+                  <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                  </svg>
+                  Gửi lời mời
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- New code display -->
+        @if (newInviteCode()) {
+          <div class="new-code-banner">
+            <p class="new-code-label">Mã mời mới -- chia sẻ cho người dùng để tham gia khi đăng ký:</p>
+            <div class="new-code-row">
+              <code class="invite-code-display">{{ newInviteCode() }}</code>
+              <button (click)="copyCode(newInviteCode())" class="btn-copy">
+                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
+                </svg>
+                Sao chép
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- Invite List -->
+        <div class="card card-overflow">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Loại</th>
+                  <th>Mã / Email</th>
+                  <th>Sử dụng</th>
+                  <th>Trạng thái</th>
+                  <th>Hết hạn</th>
+                  <th class="col-action-lg"></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (invite of invites(); track invite.id) {
+                  <tr>
+                    <td>
+                      @if (invite.type === 'CODE') {
+                        <span class="badge badge--code">
+                          <svg class="badge-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
+                          </svg>
+                          Mã mời
+                        </span>
+                      } @else {
+                        <span class="badge badge--email">
+                          <svg class="badge-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                          </svg>
+                          Email
+                        </span>
+                      }
+                    </td>
+                    <td>
+                      @if (invite.code) {
+                        <div class="invite-code-cell">
+                          <code class="invite-code-text">{{ invite.code }}</code>
+                          <button (click)="copyCode(invite.code!)" class="btn-copy-sm" title="Sao chép mã">
+                            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                          </button>
+                        </div>
+                      } @else {
+                        <span class="text-muted">{{ invite.email || '--' }}</span>
+                      }
+                    </td>
+                    <td>
+                      <span class="use-count">{{ invite.useCount }}</span>
+                      @if (invite.maxUses) {
+                        <span class="use-max">/ {{ invite.maxUses }}</span>
+                      }
+                    </td>
+                    <td>
+                      @switch (invite.status) {
+                        @case ('ACTIVE') {
+                          <span class="badge badge--active">Hoạt động</span>
+                        }
+                        @case ('REVOKED') {
+                          <span class="badge badge--revoked">Đã thu hồi</span>
+                        }
+                        @case ('EXPIRED') {
+                          <span class="badge badge--expired">Hết hạn</span>
+                        }
+                      }
+                    </td>
+                    <td class="date-text">{{ invite.expiresAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                    <td>
+                      @if (invite.status === 'ACTIVE') {
+                        <button (click)="revokeInvite(invite)" class="btn-danger-text">
+                          Thu hồi
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="6" class="table-empty">
+                      <div class="table-empty-inner">
+                        <div class="table-empty-icon">
+                          <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                          </svg>
+                        </div>
+                        <p class="table-empty-title">Chưa có lời mời nào</p>
+                        <p class="table-empty-desc">Tạo mã mời hoặc gửi email để mời thành viên</p>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- ==================== PAYMENT CONFIG TAB ==================== -->
+      @if (activeTab() === 'payment-config') {
+        <div class="config-section">
+          @if (isLoadingConfig()) {
+            <div class="loading-center">
+              <div class="loading-spinner-sm"></div>
+            </div>
+          } @else {
+            <div class="card card-body">
+              <div class="config-header">
+                <div class="config-icon">
+                  <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="config-title">Tỷ lệ chia doanh thu</h3>
+                  <p class="config-subtitle">Cấu hình riêng cho tổ chức này -- ghi đè mặc định hệ thống</p>
+                </div>
+              </div>
+
+              <div class="config-fields">
+                <!-- Platform fee -->
+                <div>
+                  <label class="form-label">
+                    Phí nền tảng (%)
+                    <span class="label-hint">Platform fee</span>
+                  </label>
+                  <input #feeInput type="number" [value]="paymentConfig()?.platformFeePct ?? 20"
+                         min="0" max="50" step="0.5"
+                         (input)="configPreviewPlatform.set(+feeInput.value)"
+                         class="form-input">
+                  <p class="form-hint">Phần trăm platform giữ lại trên mỗi giao dịch</p>
+                </div>
+
+                <!-- Teacher share -->
+                <div>
+                  <label class="form-label">
+                    Giảng viên nhận (%)
+                    <span class="label-hint">Teacher share</span>
+                  </label>
+                  <input #teacherInput type="number" [value]="paymentConfig()?.teacherSharePct ?? 70"
+                         min="0" max="100" step="0.5"
+                         (input)="configPreviewTeacher.set(+teacherInput.value)"
+                         class="form-input">
+                  <p class="form-hint">Phần trăm giảng viên nhận sau khi thanh toán hoàn tất</p>
+                </div>
+
+                <!-- Derived org share -->
+                <div class="derived-box" [class.derived-box--ok]="!configError()" [class.derived-box--error]="configError()">
+                  <div class="derived-row">
+                    <span class="derived-label" [class.derived-label--ok]="!configError()" [class.derived-label--error]="configError()">
+                      Tổ chức nhận (%) -- tính tự động
+                    </span>
+                    <span class="derived-value" [class.derived-value--ok]="!configError()" [class.derived-value--error]="configError()">
+                      {{ configPreviewOrgShare() }}%
+                    </span>
+                  </div>
+                  @if (configError()) {
+                    <p class="derived-hint derived-hint--error">{{ configError() }}</p>
+                  } @else {
+                    <p class="derived-hint derived-hint--ok">
+                      = 100% - phí nền tảng - phần giảng viên
+                    </p>
+                  }
+                </div>
+
+                <!-- Min payout -->
+                <div>
+                  <label class="form-label">Số tiền rút tối thiểu (VND)</label>
+                  <input #minPayoutInput type="number" [value]="paymentConfig()?.minPayoutAmount ?? 100000"
+                         min="10000" step="10000"
+                         class="form-input">
+                  <p class="form-hint">Giảng viên thuộc tổ chức này cần đủ số dư tối thiểu để yêu cầu rút</p>
+                </div>
+
+                <!-- Revenue split visual -->
+                <div class="revenue-visual">
+                  <div class="revenue-header">
+                    Phân bổ doanh thu -- ví dụ 1.000.000đ
+                  </div>
+                  <div class="revenue-body">
+                    <div class="revenue-row">
+                      <div class="revenue-dot revenue-dot--platform"></div>
+                      <span class="revenue-label">Platform</span>
+                      <div class="revenue-bar-track">
+                        <div class="revenue-bar-fill revenue-bar-fill--platform"
+                             [style.width.%]="configPreviewPlatform()"></div>
+                      </div>
+                      <span class="revenue-amount">{{ configPreviewPlatformAmount() | number }}</span>
+                    </div>
+                    <div class="revenue-row">
+                      <div class="revenue-dot revenue-dot--teacher"></div>
+                      <span class="revenue-label">Giảng viên</span>
+                      <div class="revenue-bar-track">
+                        <div class="revenue-bar-fill revenue-bar-fill--teacher"
+                             [style.width.%]="configPreviewTeacher()"></div>
+                      </div>
+                      <span class="revenue-amount">{{ configPreviewTeacherAmount() | number }}</span>
+                    </div>
+                    <div class="revenue-row">
+                      <div class="revenue-dot revenue-dot--org"></div>
+                      <span class="revenue-label">Tổ chức</span>
+                      <div class="revenue-bar-track">
+                        <div class="revenue-bar-fill revenue-bar-fill--org"
+                             [style.width.%]="configPreviewOrgShare()"></div>
+                      </div>
+                      <span class="revenue-amount">{{ configPreviewOrgAmount() | number }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="config-actions">
+                  <button (click)="savePaymentConfig(feeInput.value, teacherInput.value, minPayoutInput.value)"
+                          [disabled]="isSavingConfig() || !!configError()"
+                          class="btn-primary">
+                    @if (isSavingConfig()) {
+                      <svg class="spinner-icon" fill="none" viewBox="0 0 24 24">
+                        <circle opacity="0.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path opacity="0.75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Đang lưu...
+                    } @else {
+                      Lưu cấu hình
+                    }
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ==================== SETTINGS TAB ==================== -->
+      @if (activeTab() === 'settings') {
+        <div class="card card-body settings-card">
+          <h3>Cài đặt tổ chức</h3>
+          <div class="settings-fields">
+            <div>
+              <label for="edit-name" class="form-label">
+                Tên tổ chức <span class="required">*</span>
+              </label>
+              <input #editName id="edit-name" type="text" [value]="org()!.name"
+                     class="form-input">
+            </div>
+            <div>
+              <label for="edit-desc" class="form-label">Mô tả</label>
+              <textarea #editDesc id="edit-desc" rows="3" [value]="org()!.description || ''"
+                        class="form-textarea"></textarea>
+            </div>
+            <div>
+              <label for="edit-expiry" class="form-label">Thời hạn token (ngày)</label>
+              <input #editExpiry id="edit-expiry" type="number" [value]="org()!.tokenExpiryDays" min="7" max="1095"
+                     class="form-input">
+              <p class="form-hint">7 - 1095 ngày (tối đa 3 năm). Thời hạn refresh token cho thành viên</p>
+            </div>
+            <div class="settings-actions">
+              <button (click)="updateOrg(editName.value, editDesc.value, +editExpiry.value)"
+                      [disabled]="isUpdating()"
+                      class="btn-primary">
+                @if (isUpdating()) {
+                  <svg class="spinner-icon" fill="none" viewBox="0 0 24 24">
+                    <circle opacity="0.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path opacity="0.75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Đang lưu...
+                } @else {
+                  Lưu thay đổi
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+    }
+  </div>
+</div>

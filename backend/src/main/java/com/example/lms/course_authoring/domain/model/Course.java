@@ -47,6 +47,7 @@ public class Course extends AggregateRoot {
     private String reviewComment;
     private Instant reviewedAt;
     private UUID reviewedById;
+    private String pendingReleaseNotes;
 
     private Set<Chapter> chapters = new LinkedHashSet<>();
 
@@ -306,7 +307,7 @@ public class Course extends AggregateRoot {
         this.reviewComment = reason;
         this.reviewedAt = Instant.now();
 
-        registerEvent(new CourseRejectedEvent(getId(), code.getValue(), reviewerId, reason));
+        registerEvent(new CourseRejectedEvent(getId(), code.getValue(), title, teacherId, reviewerId, reason));
     }
 
     /**
@@ -474,6 +475,8 @@ public class Course extends AggregateRoot {
     public String getReviewComment() { return reviewComment; }
     public Instant getReviewedAt() { return reviewedAt; }
     public UUID getReviewedById() { return reviewedById; }
+    public String getPendingReleaseNotes() { return pendingReleaseNotes; }
+    public void setPendingReleaseNotes(String pendingReleaseNotes) { this.pendingReleaseNotes = pendingReleaseNotes; }
     public Set<Chapter> getChapters() { return Collections.unmodifiableSet(chapters); }
 
     // ==================== Enums ====================

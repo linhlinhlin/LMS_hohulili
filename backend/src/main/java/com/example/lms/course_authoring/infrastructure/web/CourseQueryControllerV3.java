@@ -65,6 +65,7 @@ public class CourseQueryControllerV3 {
     private final CoursePublicationService coursePublicationService;
     private final VideoAssetPresentationService videoAssetPresentationService;
     private final ObjectMapper objectMapper;
+    private final com.example.lms.learning_delivery.infrastructure.persistence.ClassTeacherJpaRepository classTeacherJpaRepository;
 
     @Operation(summary = "Get all published courses")
     @GetMapping
@@ -1316,8 +1317,9 @@ public class CourseQueryControllerV3 {
         if (isAdminRole(user)) return;
         var course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Khóa học", courseId));
-        if (!course.getTeacherId().equals(user.getId())) {
-            throw new org.springframework.security.access.AccessDeniedException("Bạn không sở hữu khóa học này");
+        if (!course.getTeacherId().equals(user.getId())
+                && !classTeacherJpaRepository.existsByTeacherIdAndCourseId(user.getId(), courseId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền truy cập khóa học này");
         }
     }
 

@@ -1,0 +1,160 @@
+@if (isLoading()) {
+  <!-- ===== SKELETON ===== -->
+  <div class="dashboard-page">
+    <div class="header-bar">
+      <div class="header-inner">
+        <div class="sk animate-pulse" style="height:24px;width:240px"></div>
+      </div>
+    </div>
+    <div class="dashboard-main">
+      <!-- Action cards skeleton -->
+      <div class="action-grid animate-pulse">
+        @for (_ of [1,2,3]; track $index) {
+          <div class="skeleton-action-card">
+            <div class="sk" style="height:32px;width:60px;margin-bottom:8px"></div>
+            <div class="sk-light" style="height:14px;width:140px;margin-bottom:4px"></div>
+            <div class="sk-light" style="height:12px;width:100px"></div>
+          </div>
+        }
+      </div>
+      <!-- Chart + table skeleton -->
+      <div class="content-grid">
+        <div class="skeleton-card animate-pulse" style="min-height:440px">
+          <div class="sk" style="height:16px;width:200px;margin-bottom:16px"></div>
+          <div class="sk-light" style="height:360px;width:100%"></div>
+        </div>
+        <div class="skeleton-card animate-pulse" style="min-height:440px">
+          <div class="sk" style="height:16px;width:180px;margin-bottom:16px"></div>
+          @for (_ of [1,2,3,4]; track $index) {
+            <div style="display:flex;gap:16px;padding:12px 0;border-bottom:1px solid #f3f4f6">
+              <div class="sk-light" style="height:14px;flex:2"></div>
+              <div class="sk-light" style="height:14px;flex:1"></div>
+              <div class="sk-light" style="height:14px;flex:1"></div>
+            </div>
+          }
+        </div>
+      </div>
+      <!-- Stat boxes skeleton -->
+      <div class="stat-grid animate-pulse">
+        @for (_ of [1,2,3,4]; track $index) {
+          <div class="skeleton-stat">
+            <div class="sk" style="height:28px;width:50px;margin:0 auto 6px"></div>
+            <div class="sk-light" style="height:12px;width:80px;margin:0 auto"></div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+} @else {
+  <!-- ===== ORG_ADMIN DASHBOARD ===== -->
+  <div class="dashboard-page">
+    <!-- Header -->
+    <div class="header-bar">
+      <div class="header-inner">
+        <h1 class="page-title">Bảng điều khiển quản lý</h1>
+      </div>
+    </div>
+
+    <div class="dashboard-main">
+      <!-- ① Action Cards (3 clickable) -->
+      <div class="action-grid">
+        <a routerLink="/admin/courses/review" class="action-card accent-warning">
+          <p class="action-value">{{ pendingCount() | number }}</p>
+          <p class="action-label">Khóa học chờ duyệt</p>
+          <p class="action-link warning-text">Xem danh sách →</p>
+        </a>
+        <a routerLink="/admin/users/students" class="action-card accent-primary">
+          <p class="action-value">{{ newStudentsThisMonth() | number }}</p>
+          <p class="action-label">Học viên mới tháng này</p>
+          <p class="action-link primary-text">Quản lý →</p>
+        </a>
+        <a routerLink="/admin/courses" class="action-card accent-success">
+          <p class="action-value">{{ activeCourseCount() | number }}</p>
+          <p class="action-label">Khóa học đang hoạt động</p>
+          <p class="action-link success-text">Xem tất cả →</p>
+        </a>
+      </div>
+
+      <!-- ② Enrollment Chart + Pending Approvals -->
+      <div class="content-grid">
+        <!-- Enrollment Trend Chart -->
+        <div class="card chart-card">
+          <div class="card-header">
+            <h2 class="card-title">Xu hướng đăng ký (30 ngày)</h2>
+          </div>
+          <div class="chart-area">
+            <app-revenue-chart [revenueData]="enrollmentTrendData()" chartLabel="Lượt đăng ký" />
+          </div>
+        </div>
+
+        <!-- Pending Approvals Table -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Danh sách chờ duyệt</h2>
+          </div>
+          <div class="card-body">
+            @if (isLoadingPending()) {
+              <div class="table-loading">
+                <div class="spinner"></div>
+                <span>Đang tải...</span>
+              </div>
+            } @else if (pendingApprovals().length === 0) {
+              <div class="table-empty">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p>Tất cả khóa học đã được xử lý</p>
+              </div>
+            } @else {
+              <div class="table-scroll">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Tên</th>
+                      <th>Ngày gửi</th>
+                      <th>Hành động</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (approval of pendingApprovals(); track approval.id) {
+                      <tr>
+                        <td>{{ approval.name }}</td>
+                        <td class="date-text">{{ formatDate(approval.submittedDate) }}</td>
+                        <td>
+                          <div class="action-btns">
+                            <button class="btn-approve" (click)="approveCourse(approval.id)">Duyệt</button>
+                            <button class="btn-reject" (click)="rejectCourse(approval.id)">Từ chối</button>
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- ③ Course Status Summary (4 stat boxes) -->
+      <div class="stat-grid">
+        <div class="stat-box">
+          <p class="stat-value warning">{{ analytics().pendingCourses | number }}</p>
+          <p class="stat-label">Chờ duyệt</p>
+        </div>
+        <div class="stat-box">
+          <p class="stat-value success">{{ analytics().approvedCourses | number }}</p>
+          <p class="stat-label">Đã duyệt</p>
+        </div>
+        <div class="stat-box">
+          <p class="stat-value error">{{ analytics().rejectedCourses | number }}</p>
+          <p class="stat-label">Từ chối</p>
+        </div>
+        <div class="stat-box">
+          <p class="stat-value primary">{{ analytics().totalCourses | number }}</p>
+          <p class="stat-label">Tổng cộng</p>
+        </div>
+      </div>
+    </div>
+  </div>
+}

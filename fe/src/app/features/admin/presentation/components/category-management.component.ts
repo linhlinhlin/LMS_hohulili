@@ -8,99 +8,84 @@ import { CourseCategoryDTO, CourseTagDTO } from '../../../../api/types/course.ty
   selector: 'app-category-management',
   imports: [CommonModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styleUrl: './category-management.component.scss',
   template: `
-    <div class="min-h-screen bg-slate-50 p-6">
+    <div class="category-page">
       <!-- Header -->
-      <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">Quản lý Danh mục & Tags</h1>
-        <p class="text-sm text-gray-500 mt-1">Quản lý danh mục khóa học (2 cấp) và tags</p>
+      <div class="page-header">
+        <h1 class="page-title">Quản lý Danh mục & Tags</h1>
+        <p class="page-subtitle">Quản lý danh mục khóa học (2 cấp) và tags</p>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="content-grid">
         <!-- LEFT: Category Tree -->
-        <div class="lg:col-span-1 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div class="p-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 class="font-semibold text-gray-900">Danh mục</h2>
-            <button (click)="startCreateRoot()"
-                    class="px-3 py-1.5 text-sm bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
-              + Danh mục gốc
-            </button>
+        <div class="tree-panel">
+          <div class="tree-header">
+            <h2 class="tree-header-title">Danh mục</h2>
+            <button (click)="startCreateRoot()" class="btn-primary">+ Danh mục gốc</button>
           </div>
 
           @if (isLoading()) {
-            <div class="p-8 text-center text-gray-400">Đang tải...</div>
+            <div class="tree-loading">Đang tải...</div>
           } @else {
-            <div class="p-2 max-h-[600px] overflow-y-auto">
+            <div class="tree-body">
               @for (root of categories(); track root.id) {
-                <div class="mb-1">
+                <div class="tree-group">
                   <!-- Root category -->
-                  <div class="flex items-center gap-1 px-3 py-2 rounded-lg cursor-pointer transition-colors"
-                       [class.bg-[#0056D2]/10]="selectedCategory()?.id === root.id"
-                       [class.hover:bg-gray-100]="selectedCategory()?.id !== root.id"
+                  <div class="tree-item"
+                       [class.tree-item-selected]="selectedCategory()?.id === root.id"
                        (click)="selectCategory(root)">
-                    <button (click)="toggleExpand(root.id, $event)" class="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600">
+                    <button (click)="toggleExpand(root.id, $event)" class="tree-expand-btn">
                       @if (root.children.length > 0) {
-                        <span class="text-xs">{{ expandedRoots().has(root.id) ? '▼' : '▶' }}</span>
+                        <span class="expand-icon">{{ expandedRoots().has(root.id) ? '\u25BC' : '\u25B6' }}</span>
                       }
                     </button>
-                    <span class="flex-1 text-sm font-medium" [class.text-gray-400]="!root.active">{{ root.name }}</span>
+                    <span class="tree-item-name" [class.inactive]="!root.active">{{ root.name }}</span>
                     @if (root.prefix) {
-                      <span class="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{{ root.prefix }}</span>
+                      <span class="tree-item-prefix">{{ root.prefix }}</span>
                     }
                     @if (!root.active) {
-                      <span class="text-xs text-red-400">Ẩn</span>
+                      <span class="tree-item-hidden">Ẩn</span>
                     }
                   </div>
 
                   <!-- Subcategories -->
                   @if (expandedRoots().has(root.id)) {
                     @for (sub of root.children; track sub.id) {
-                      <div class="flex items-center gap-1 pl-10 pr-3 py-1.5 rounded-lg cursor-pointer transition-colors"
-                           [class.bg-[#0056D2]/10]="selectedCategory()?.id === sub.id"
-                           [class.hover:bg-gray-50]="selectedCategory()?.id !== sub.id"
+                      <div class="tree-sub-item"
+                           [class.tree-item-selected]="selectedCategory()?.id === sub.id"
                            (click)="selectCategory(sub)">
-                        <span class="text-sm text-gray-700" [class.text-gray-400]="!sub.active">{{ sub.name }}</span>
+                        <span class="tree-sub-name" [class.inactive]="!sub.active">{{ sub.name }}</span>
                         @if (!sub.active) {
-                          <span class="text-xs text-red-400 ml-auto">Ẩn</span>
+                          <span class="tree-item-hidden">Ẩn</span>
                         }
                       </div>
                     }
                     <!-- Add subcategory button -->
-                    <button (click)="startCreateSub(root)"
-                            class="pl-10 pr-3 py-1.5 text-xs text-[#0056D2] hover:text-[#004BB5] w-full text-left">
-                      + Thêm danh mục con
-                    </button>
+                    <button (click)="startCreateSub(root)" class="tree-add-sub">+ Thêm danh mục con</button>
                   }
                 </div>
               } @empty {
-                <div class="p-8 text-center text-gray-400 text-sm">Chưa có danh mục nào</div>
+                <div class="tree-empty">Chưa có danh mục nào</div>
               }
             </div>
           }
         </div>
 
         <!-- RIGHT: Edit Form + Tags -->
-        <div class="lg:col-span-2 space-y-6">
+        <div class="right-panel">
           <!-- Tab switcher -->
-          <div class="flex gap-2">
+          <div class="tab-bar">
             <button (click)="activeTab.set('category')"
-                    class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                    [class.bg-[#0056D2]]="activeTab() === 'category'"
-                    [class.text-white]="activeTab() === 'category'"
-                    [class.bg-white]="activeTab() !== 'category'"
-                    [class.text-gray-700]="activeTab() !== 'category'"
-                    [class.border]="activeTab() !== 'category'"
-                    [class.border-gray-200]="activeTab() !== 'category'">
+                    class="tab-btn"
+                    [class.tab-active]="activeTab() === 'category'"
+                    [class.tab-inactive]="activeTab() !== 'category'">
               Danh mục
             </button>
             <button (click)="activeTab.set('tags')"
-                    class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                    [class.bg-[#0056D2]]="activeTab() === 'tags'"
-                    [class.text-white]="activeTab() === 'tags'"
-                    [class.bg-white]="activeTab() !== 'tags'"
-                    [class.text-gray-700]="activeTab() !== 'tags'"
-                    [class.border]="activeTab() !== 'tags'"
-                    [class.border-gray-200]="activeTab() !== 'tags'">
+                    class="tab-btn"
+                    [class.tab-active]="activeTab() === 'tags'"
+                    [class.tab-inactive]="activeTab() !== 'tags'">
               Tags ({{ tags().length }})
             </button>
           </div>
@@ -108,110 +93,93 @@ import { CourseCategoryDTO, CourseTagDTO } from '../../../../api/types/course.ty
           <!-- Category Edit Panel -->
           @if (activeTab() === 'category') {
             @if (isEditing() || isCreating()) {
-              <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                <h3 class="font-semibold text-gray-900 mb-4">
+              <div class="edit-panel">
+                <h3 class="edit-panel-title">
                   {{ isCreating() ? (createParentId() ? 'Tạo danh mục con' : 'Tạo danh mục gốc') : 'Chỉnh sửa danh mục' }}
                 </h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Tên *</label>
-                    <input [(ngModel)]="formName" placeholder="VD: Hàng hải"
-                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]" />
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Tên *</label>
+                    <input [(ngModel)]="formName" placeholder="VD: Hàng hải" class="form-input" />
                   </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Mã *</label>
-                    <input [(ngModel)]="formCode" placeholder="VD: NAVIGATION"
-                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"
-                           [disabled]="isEditing()" />
+                  <div class="form-group">
+                    <label class="form-label">Mã *</label>
+                    <input [(ngModel)]="formCode" placeholder="VD: NAVIGATION" class="form-input" [disabled]="isEditing()" />
                   </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Slug *</label>
-                    <input [(ngModel)]="formSlug" placeholder="VD: hang-hai"
-                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]" />
+                  <div class="form-group">
+                    <label class="form-label">Slug *</label>
+                    <input [(ngModel)]="formSlug" placeholder="VD: hang-hai" class="form-input" />
                   </div>
                   @if (!createParentId() && !selectedCategory()?.parentId) {
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Prefix</label>
-                      <input [(ngModel)]="formPrefix" placeholder="VD: NAV" maxlength="10"
-                             class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]" />
+                    <div class="form-group">
+                      <label class="form-label">Prefix</label>
+                      <input [(ngModel)]="formPrefix" placeholder="VD: NAV" maxlength="10" class="form-input" />
                     </div>
                   }
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Icon</label>
-                    <input [(ngModel)]="formIcon" placeholder="VD: compass"
-                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]" />
+                  <div class="form-group">
+                    <label class="form-label">Icon</label>
+                    <input [(ngModel)]="formIcon" placeholder="VD: compass" class="form-input" />
                   </div>
-                  <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
-                    <textarea [(ngModel)]="formDescription" rows="2" placeholder="Mô tả ngắn..."
-                              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2]"></textarea>
+                  <div class="form-group full-width">
+                    <label class="form-label">Mô tả</label>
+                    <textarea [(ngModel)]="formDescription" rows="2" placeholder="Mô tả ngắn..." class="form-input"></textarea>
                   </div>
                 </div>
 
-                <div class="flex items-center gap-3 mt-4 pt-4 border-t border-gray-100">
+                <div class="form-actions">
                   @if (isEditing() && selectedCategory()) {
                     <button (click)="toggleActive()"
-                            class="px-4 py-2 text-sm rounded-lg transition-colors"
-                            [class.text-red-600]="selectedCategory()!.active"
-                            [class.hover:bg-red-50]="selectedCategory()!.active"
-                            [class.text-green-600]="!selectedCategory()!.active"
-                            [class.hover:bg-green-50]="!selectedCategory()!.active">
+                            class="btn-toggle-active"
+                            [class.deactivate]="selectedCategory()!.active"
+                            [class.activate]="!selectedCategory()!.active">
                       {{ selectedCategory()!.active ? 'Ẩn danh mục' : 'Kích hoạt' }}
                     </button>
                   }
-                  <div class="flex-1"></div>
-                  <button (click)="cancelEdit()" class="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">Hủy</button>
-                  <button (click)="saveCategory()" [disabled]="isSaving()"
-                          class="px-5 py-2 text-sm bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] disabled:opacity-50 transition-colors">
+                  <div class="form-actions-spacer"></div>
+                  <button (click)="cancelEdit()" class="btn-cancel">Hủy</button>
+                  <button (click)="saveCategory()" [disabled]="isSaving()" class="btn-primary-lg">
                     {{ isSaving() ? 'Đang lưu...' : (isCreating() ? 'Tạo' : 'Lưu') }}
                   </button>
                 </div>
               </div>
             } @else {
-              <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center text-gray-400">
-                <p class="text-sm">Chọn một danh mục từ danh sách bên trái để chỉnh sửa</p>
-                <p class="text-sm mt-1">hoặc nhấn "Danh mục gốc" để tạo mới</p>
+              <div class="empty-panel">
+                <p>Chọn một danh mục từ danh sách bên trái để chỉnh sửa</p>
+                <p>hoặc nhấn "Danh mục gốc" để tạo mới</p>
               </div>
             }
           }
 
           <!-- Tags Panel -->
           @if (activeTab() === 'tags') {
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-              <div class="flex items-center justify-between mb-4">
-                <h3 class="font-semibold text-gray-900">Quản lý Tags</h3>
-                <button (click)="showTagForm.set(true)"
-                        class="px-3 py-1.5 text-sm bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] transition-colors">
-                  + Thêm tag
-                </button>
+            <div class="tags-panel">
+              <div class="tags-header">
+                <h3 class="tags-title">Quản lý Tags</h3>
+                <button (click)="showTagForm.set(true)" class="btn-primary">+ Thêm tag</button>
               </div>
 
               <!-- Tag create form -->
               @if (showTagForm()) {
-                <div class="flex items-center gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
-                  <input [(ngModel)]="tagName" placeholder="Tên tag" class="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0056D2]" />
-                  <input [(ngModel)]="tagSlug" placeholder="slug" class="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0056D2]" />
-                  <button (click)="saveTag()" class="px-3 py-1.5 text-sm bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5]">
+                <div class="tag-form">
+                  <input [(ngModel)]="tagName" placeholder="Tên tag" class="tag-form-input" />
+                  <input [(ngModel)]="tagSlug" placeholder="slug" class="tag-form-input" />
+                  <button (click)="saveTag()" class="btn-primary">
                     {{ editingTagId() ? 'Cập nhật' : 'Tạo' }}
                   </button>
-                  <button (click)="cancelTagEdit()" class="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700">Hủy</button>
+                  <button (click)="cancelTagEdit()" class="btn-cancel">Hủy</button>
                 </div>
               }
 
               <!-- Tag list -->
-              <div class="flex flex-wrap gap-2">
+              <div class="tag-list">
                 @for (tag of tags(); track tag.id) {
-                  <div class="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 rounded-full text-sm group">
+                  <div class="tag-chip">
                     <span>{{ tag.name }}</span>
-                    <button (click)="editTag(tag)" class="text-gray-400 hover:text-[#0056D2] opacity-0 group-hover:opacity-100 transition-opacity" title="Sửa">
-                      ✏️
-                    </button>
-                    <button (click)="deleteTag(tag.id)" class="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" title="Xóa">
-                      ✕
-                    </button>
+                    <button (click)="editTag(tag)" class="tag-action tag-edit" title="Sửa">&#9998;</button>
+                    <button (click)="deleteTag(tag.id)" class="tag-action tag-delete" title="Xóa">&#10005;</button>
                   </div>
                 } @empty {
-                  <p class="text-sm text-gray-400">Chưa có tag nào</p>
+                  <p class="tags-empty">Chưa có tag nào</p>
                 }
               </div>
             </div>

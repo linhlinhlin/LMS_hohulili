@@ -43,6 +43,7 @@ export class CourseClassesComponent implements OnInit {
     // Drawer State
     isDrawerOpen = signal(false);
     selectedClassId = signal('');
+    studentDrawerDefaultTab = signal(0);
 
     // Co-teacher Drawer State
     isTeacherDrawerOpen = signal(false);
@@ -237,12 +238,15 @@ export class CourseClassesComponent implements OnInit {
         });
     }
 
-    viewStudents(classId: string) {
-        this.router.navigate(['/teacher/classes', classId, 'students']);
+    viewStudents(cls: ClassSummary) {
+        this.selectedClassId.set(cls.id);
+        this.studentDrawerDefaultTab.set(0); // Tab "Danh sách học viên"
+        this.isDrawerOpen.set(true);
     }
 
     quickEnroll(cls: ClassSummary) {
         this.selectedClassId.set(cls.id);
+        this.studentDrawerDefaultTab.set(1); // Tab "Thêm học viên"
         this.isDrawerOpen.set(true);
     }
 

@@ -1,0 +1,162 @@
+@use '../../../../../../../../styles/variables' as *;
+
+/* ===== MODAL BACKDROP ===== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: $z-modal-backdrop;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.modal-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: $spacing-4;
+}
+
+.modal-panel {
+  position: relative;
+  background: $bg-surface;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-xl;
+  max-width: 28rem;
+  width: 100%;
+}
+
+/* ===== MODAL HEADER ===== */
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-6;
+  border-bottom: 1px solid $border-default;
+}
+
+.modal-title {
+  font-size: $text-xl;
+  font-weight: $font-semibold;
+  color: $text-primary;
+  margin: 0;
+}
+
+.modal-close-btn {
+  color: $gray-400;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: $spacing-1;
+  border-radius: $radius-sm;
+  transition: color $transition-normal;
+
+  &:hover {
+    color: $gray-600;
+  }
+
+  @include focus-visible;
+}
+
+.icon-close {
+  width: $icon-md;
+  height: $icon-md;
+}
+
+/* ===== MODAL BODY ===== */
+.modal-body {
+  padding: $spacing-6;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-5;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-label {
+  display: block;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $gray-700;
+  margin-bottom: $spacing-2;
+}
+
+.form-input,
+.form-select {
+  width: 100%;
+  padding: 0.625rem $spacing-3;
+  font-size: $text-sm;
+  border: 1px solid $border-dark;
+  border-radius: $radius-sm;
+  background: $bg-surface;
+  color: $text-primary;
+  transition: border-color $transition-normal, box-shadow $transition-normal;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: $blue-primary;
+    box-shadow: 0 0 0 2px rgba($blue-primary, 0.2);
+  }
+}
+
+/* ===== MODAL FOOTER ===== */
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $spacing-3;
+  padding: $spacing-4 $spacing-6;
+  background: $gray-50;
+  border-top: 1px solid $border-default;
+  border-radius: 0 0 $radius-lg $radius-lg;
+}
+
+.btn-primary {
+  padding: $spacing-2 $spacing-4;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $text-inverse;
+  background: $blue-primary;
+  border: none;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: background $transition-normal;
+
+  &:hover {
+    background: $blue-hover;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  @include focus-visible;
+}
+
+.btn-secondary {
+  padding: $spacing-2 $spacing-4;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $gray-700;
+  background: $bg-surface;
+  border: 1px solid $border-dark;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: background $transition-normal;
+
+  &:hover {
+    background: $gray-50;
+  }
+
+  @include focus-visible;
+}
+
+/* ===== PRINT ===== */
+@media print {
+  :host { display: none; }
+}

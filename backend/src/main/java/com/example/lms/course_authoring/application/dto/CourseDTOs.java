@@ -82,5 +82,6 @@ public class CourseDTOs {
         private double averageRating;
         private int sectionCount;
         private int lessonCount;
+        private String teacherRole; // "OWNER" or "CO_TEACHER" — helps FE show role badge
     }
 }

@@ -29,7 +29,11 @@ import { LucideAngularModule, X } from 'lucide-angular';
     <!-- Drawer Panel -->
     <div class="fixed right-0 top-0 h-full bg-white shadow-2xl z-[101] border-l border-slate-200 flex flex-col overflow-hidden"
          [style.width]="width()"
-         [@drawerAnimation]="isOpen() ? 'open' : 'closed'">
+         style="max-width: 100vw"
+         [@drawerAnimation]="isOpen() ? 'open' : 'closed'"
+         role="dialog"
+         aria-modal="true"
+         [attr.aria-label]="title()">
       
       <!-- Header -->
       <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
@@ -39,7 +43,8 @@ import { LucideAngularModule, X } from 'lucide-angular';
             <p class="text-[11px] text-slate-400 font-medium mt-1 uppercase tracking-tighter">{{ subtitle() }}</p>
           }
         </div>
-        <button (click)="close()" class="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all">
+        <button (click)="close()" class="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all"
+                aria-label="Đóng">
           <lucide-icon name="x" [size]="18"></lucide-icon>
         </button>
       </div>

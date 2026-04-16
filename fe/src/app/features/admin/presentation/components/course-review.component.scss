@@ -1,0 +1,963 @@
+@use '../../../../../styles/variables' as *;
+
+/* =============================================
+   Course Review Admin Page
+   Design system: tab-chip pills, data table, modals
+   ============================================= */
+
+/* ===== PAGE LAYOUT ===== */
+.review-page {
+  min-height: 100vh;
+  background: $bg-page;
+}
+
+.review-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: $spacing-6;
+}
+
+/* ===== HEADER BAR ===== */
+.header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-4;
+  margin-bottom: $spacing-5;
+  flex-wrap: wrap;
+}
+
+.page-title {
+  font-size: $text-2xl;
+  font-weight: $font-bold;
+  color: $text-primary;
+  margin: 0;
+  line-height: $leading-tight;
+}
+
+/* ===== SEARCH BOX ===== */
+.search-box {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: $icon-sm;
+  height: $icon-sm;
+  color: $text-disabled;
+  pointer-events: none;
+}
+
+.search-input {
+  height: $input-height;
+  width: 320px;
+  padding-left: 34px;
+  padding-right: 32px;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  background: $bg-surface;
+  font-size: $text-sm;
+  color: $text-primary;
+  outline: none;
+  transition: border-color $transition-normal, box-shadow $transition-normal;
+
+  &:focus {
+    border-color: $blue-primary;
+    box-shadow: 0 0 0 3px rgba($blue-primary, 0.1);
+  }
+
+  &::placeholder {
+    color: $text-disabled;
+  }
+}
+
+.search-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $text-disabled;
+  padding: $spacing-1;
+  display: flex;
+  align-items: center;
+  transition: color $transition-fast;
+
+  &:hover {
+    color: $error;
+  }
+}
+
+/* ===== FILTER BAR (Tab Chips) ===== */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+  flex-wrap: wrap;
+  margin-bottom: $spacing-5;
+  padding-bottom: $spacing-4;
+  border-bottom: 1px solid $border-default;
+}
+
+.tab-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: $spacing-2 $spacing-4;
+  border: 1px solid $border-dark;
+  border-radius: $radius-full;
+  background: $bg-surface;
+  color: $gray-700;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  cursor: pointer;
+  transition: all $transition-normal;
+  outline: none;
+  white-space: nowrap;
+
+  &:hover {
+    background: $gray-50;
+    border-color: $gray-400;
+  }
+
+  @include focus-visible;
+
+  &.active {
+    background: $blue-primary;
+    color: $text-inverse;
+    border-color: $blue-primary;
+
+    &:hover {
+      background: $blue-hover;
+      border-color: $blue-hover;
+    }
+  }
+}
+
+/* ===== TABLE CARD ===== */
+.table-card {
+  background: $bg-surface;
+  border-radius: $radius-md;
+  border: 1px solid $border-default;
+  box-shadow: $shadow-sm;
+  overflow: hidden;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+/* ===== DATA TABLE ===== */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table thead tr {
+  background: $gray-50;
+  border-bottom: 1px solid $border-default;
+}
+
+.data-table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: $font-semibold;
+  color: $gray-500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: $spacing-3 $spacing-4;
+  white-space: nowrap;
+}
+
+.data-table td {
+  padding: $spacing-3 $spacing-4;
+  font-size: $text-sm;
+  vertical-align: middle;
+  border-bottom: 1px solid $border-light;
+}
+
+.data-table tbody tr {
+  transition: background $transition-fast;
+
+  &:last-child td {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: $gray-50;
+  }
+}
+
+/* Column alignment */
+.col-center {
+  text-align: center;
+}
+
+.col-status {
+  text-align: center;
+}
+
+.col-actions {
+  text-align: center;
+}
+
+/* Cell content styles */
+.course-title {
+  font-weight: $font-semibold;
+  color: $text-primary;
+  @include truncate;
+  max-width: 300px;
+}
+
+.course-code {
+  font-size: $text-xs;
+  color: $text-muted;
+  margin-top: 2px;
+}
+
+.teacher-name {
+  font-size: $text-sm;
+  color: $text-primary;
+}
+
+.teacher-email {
+  font-size: $text-xs;
+  color: $text-muted;
+  margin-top: 2px;
+}
+
+/* ===== STATUS BADGES ===== */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: $radius-full;
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  white-space: nowrap;
+
+  &.status-pending {
+    background: $warning-light;
+    color: $warning;
+  }
+
+  &.status-approved {
+    background: $success-light;
+    color: $success;
+  }
+
+  &.status-rejected {
+    background: $error-light;
+    color: $error;
+  }
+
+  &.status-draft {
+    background: $gray-100;
+    color: $gray-600;
+  }
+}
+
+/* ===== ACTION BUTTONS ===== */
+.action-btns {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-2;
+  flex-wrap: wrap;
+}
+
+.btn-action {
+  padding: $spacing-1 $spacing-3;
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  border: none;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: background $transition-normal;
+  white-space: nowrap;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btn-preview {
+  background: $blue-primary;
+  color: $text-inverse;
+
+  &:hover {
+    background: $blue-hover;
+  }
+}
+
+.btn-detail {
+  background: rgba($blue-primary, 0.05);
+  color: $blue-primary;
+
+  &:hover {
+    background: rgba($blue-primary, 0.1);
+  }
+}
+
+.btn-approve {
+  background: $success-light;
+  color: $success;
+
+  &:hover {
+    background: $success-light;
+  }
+}
+
+.btn-reject {
+  background: $error-light;
+  color: $error;
+
+  &:hover {
+    background: $error-light;
+  }
+}
+
+/* ===== PAGINATION ===== */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-3 $spacing-4;
+  border-top: 1px solid $border-default;
+  background: $gray-50;
+  flex-wrap: wrap;
+  gap: $spacing-3;
+}
+
+.pagination-info {
+  font-size: $text-sm;
+  color: $text-secondary;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+}
+
+.btn-page {
+  padding: $spacing-1 $spacing-3;
+  font-size: $text-sm;
+  border: 1px solid $border-default;
+  border-radius: $radius-sm;
+  background: $bg-surface;
+  color: $text-primary;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover:not(:disabled) {
+    background: $bg-hover;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.page-indicator {
+  font-size: $text-sm;
+  color: $text-secondary;
+  padding: $spacing-1 $spacing-3;
+}
+
+/* ===== SKELETON LOADING ===== */
+.skeleton-row {
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+
+  td {
+    padding: $spacing-3 $spacing-4;
+  }
+}
+
+.sk {
+  background: $gray-200;
+  border-radius: $radius-sm;
+}
+
+.sk-title {
+  height: 14px;
+  width: 65%;
+  margin-bottom: $spacing-2;
+}
+
+.sk-subtitle {
+  height: 10px;
+  width: 40%;
+}
+
+.sk-text {
+  height: 12px;
+  width: 50%;
+  margin-bottom: $spacing-2;
+}
+
+.sk-text-sm {
+  height: 10px;
+  width: 35%;
+}
+
+.sk-badge {
+  height: 22px;
+  width: 64px;
+  border-radius: $radius-full;
+  margin: 0 auto;
+}
+
+.sk-actions {
+  display: flex;
+  gap: $spacing-2;
+  justify-content: center;
+}
+
+.sk-btn {
+  height: 24px;
+  width: 56px;
+  border-radius: $radius-sm;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ===== ERROR STATE ===== */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-12 $spacing-6;
+  text-align: center;
+
+  svg {
+    color: $error;
+    margin-bottom: $spacing-3;
+  }
+
+  p {
+    font-size: $text-sm;
+    color: $error;
+    margin: 0;
+  }
+}
+
+/* ===== EMPTY STATE ===== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-16 $spacing-6;
+  text-align: center;
+
+  svg {
+    color: $gray-300;
+    margin-bottom: $spacing-3;
+  }
+}
+
+.empty-text {
+  font-size: $text-sm;
+  color: $text-muted;
+  margin: 0;
+}
+
+/* ===== MODAL BACKDROP ===== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: $z-modal-backdrop;
+  padding: $spacing-4;
+
+  &.modal-backdrop-upper {
+    z-index: $z-popover;
+  }
+}
+
+/* ===== MODAL PANEL ===== */
+.modal-panel {
+  background: $bg-surface;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-2xl;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  z-index: $z-modal;
+
+  &.modal-lg {
+    width: 100%;
+    max-width: 900px;
+  }
+
+  &.modal-sm {
+    width: 100%;
+    max-width: 480px;
+  }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-4 $spacing-6;
+  border-bottom: 1px solid $border-default;
+  flex-shrink: 0;
+}
+
+.modal-title {
+  font-size: $text-lg;
+  font-weight: $font-semibold;
+  color: $text-primary;
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: $text-disabled;
+  cursor: pointer;
+  padding: $spacing-1;
+  display: flex;
+  align-items: center;
+  border-radius: $radius-sm;
+  transition: color $transition-fast, background $transition-fast;
+
+  &:hover {
+    color: $text-secondary;
+    background: $gray-100;
+  }
+}
+
+.modal-body {
+  padding: $spacing-6;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $spacing-3;
+  padding: $spacing-4 $spacing-6;
+  border-top: 1px solid $border-default;
+  background: $gray-50;
+  flex-shrink: 0;
+}
+
+/* ===== MODAL BUTTONS ===== */
+.btn-secondary {
+  padding: $spacing-2 $spacing-4;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  background: $bg-surface;
+  color: $text-primary;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: $bg-hover;
+  }
+}
+
+.btn-success {
+  padding: $spacing-2 $spacing-4;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  border: none;
+  border-radius: $radius-md;
+  background: $success;
+  color: $text-inverse;
+  cursor: pointer;
+  transition: background $transition-normal;
+
+  &:hover {
+    background: $success;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btn-danger {
+  padding: $spacing-2 $spacing-4;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  border: none;
+  border-radius: $radius-md;
+  background: $error;
+  color: $text-inverse;
+  cursor: pointer;
+  transition: background $transition-normal;
+
+  &:hover {
+    background: $error;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+/* ===== DETAIL MODAL CONTENT ===== */
+.detail-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $spacing-4;
+  margin-bottom: $spacing-5;
+}
+
+.detail-heading-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.detail-title {
+  font-size: $text-xl;
+  font-weight: $font-bold;
+  color: $text-primary;
+  margin: 0 0 $spacing-2;
+}
+
+.detail-code {
+  font-size: $text-sm;
+  color: $text-muted;
+  margin: 0;
+}
+
+.detail-description {
+  font-size: $text-sm;
+  color: $gray-700;
+  line-height: $leading-normal;
+  margin: 0 0 $spacing-5;
+}
+
+/* Teacher info card */
+.info-card {
+  background: $gray-50;
+  border-radius: $radius-md;
+  padding: $spacing-4;
+  margin-bottom: $spacing-5;
+}
+
+.info-card-title {
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  color: $text-primary;
+  margin: 0 0 $spacing-2;
+}
+
+.info-card-body {
+  font-size: $text-sm;
+  color: $gray-700;
+
+  p {
+    margin: 0 0 $spacing-1;
+    &:last-child { margin-bottom: 0; }
+  }
+}
+
+/* Stats grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $spacing-4;
+  margin-bottom: $spacing-5;
+}
+
+.stat-card {
+  border-radius: $radius-md;
+  padding: $spacing-4;
+  text-align: center;
+}
+
+.stat-primary {
+  background: rgba($blue-primary, 0.05);
+}
+
+.stat-success {
+  background: $success-light;
+}
+
+.stat-info {
+  background: $info-light;
+}
+
+.stat-value {
+  font-size: $text-xl;
+  font-weight: $font-bold;
+  line-height: 1.2;
+  margin: 0 0 2px;
+}
+
+.stat-primary .stat-value { color: $blue-primary; }
+.stat-success .stat-value { color: $success; }
+.stat-info .stat-value { color: $info; }
+
+.stat-label {
+  font-size: $text-sm;
+  color: $text-secondary;
+}
+
+/* Dates section */
+.detail-dates {
+  border-top: 1px solid $border-default;
+  padding-top: $spacing-4;
+  font-size: $text-sm;
+  color: $text-secondary;
+
+  p {
+    margin: 0 0 $spacing-1;
+    &:last-child { margin-bottom: 0; }
+  }
+}
+
+.rejection-reason {
+  margin-top: $spacing-3;
+  padding: $spacing-3;
+  background: $error-light;
+  border: 1px solid $error-light;
+  border-radius: $radius-sm;
+
+  strong {
+    color: $error;
+  }
+
+  span {
+    color: $error;
+  }
+}
+
+/* ===== REJECT TEXTAREA ===== */
+.reject-textarea {
+  width: 100%;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  padding: $spacing-3;
+  font-size: $text-sm;
+  color: $text-primary;
+  resize: vertical;
+  outline: none;
+  margin: $spacing-4 0;
+  font-family: inherit;
+  transition: border-color $transition-normal, box-shadow $transition-normal;
+
+  &:focus {
+    border-color: $blue-primary;
+    box-shadow: 0 0 0 3px rgba($blue-primary, 0.1);
+  }
+
+  &::placeholder {
+    color: $text-disabled;
+  }
+}
+
+/* ===== RESPONSIVE: Tablet ===== */
+@media screen and (max-width: $breakpoint-md) {
+  .review-inner {
+    padding: $spacing-5 $spacing-4;
+  }
+
+  .header-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+
+  .filter-bar {
+    gap: $spacing-2;
+  }
+
+  .action-btns {
+    flex-direction: column;
+    gap: $spacing-1;
+  }
+
+  .pagination-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .modal-panel.modal-lg {
+    max-width: 100%;
+  }
+}
+
+/* ===== RESPONSIVE: Mobile ===== */
+@media screen and (max-width: $breakpoint-sm) {
+  .review-inner {
+    padding: $spacing-3;
+  }
+
+  .page-title {
+    font-size: $text-lg;
+  }
+
+  .tab-chip {
+    padding: 6px $spacing-3;
+    font-size: $text-xs;
+  }
+
+  .data-table th {
+    padding: 8px $spacing-3;
+    font-size: 10px;
+  }
+
+  .data-table td {
+    padding: 8px $spacing-3;
+    font-size: 13px;
+  }
+
+  .course-title {
+    max-width: 160px;
+  }
+
+  .modal-body {
+    padding: $spacing-4;
+  }
+
+  .modal-header,
+  .modal-footer {
+    padding: $spacing-3 $spacing-4;
+  }
+
+  .detail-title {
+    font-size: $text-lg;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-heading {
+    flex-direction: column;
+    gap: $spacing-2;
+  }
+}
+
+/* ===== RESPONSIVE: Ultra-small (<340px) ===== */
+@media screen and (max-width: 340px) {
+  .review-inner {
+    padding: $spacing-3 $spacing-2;
+  }
+
+  .page-title {
+    font-size: $text-base;
+  }
+
+  .tab-chip {
+    padding: 5px $spacing-2;
+    font-size: 11px;
+  }
+
+  .data-table th {
+    padding: 6px $spacing-2;
+    font-size: 9px;
+  }
+
+  .data-table td {
+    padding: 6px $spacing-2;
+    font-size: 12px;
+  }
+
+  .modal-body {
+    padding: $spacing-3;
+  }
+}
+
+/* ===== PRINT ===== */
+@media print {
+  :host {
+    display: block;
+  }
+
+  .review-page {
+    background: white !important;
+    min-height: auto !important;
+  }
+
+  .review-inner {
+    padding: 10px 0 0 !important;
+    max-width: 100% !important;
+  }
+
+  .page-title {
+    font-size: 18px !important;
+  }
+
+  /* Hide non-printable elements */
+  .filter-bar,
+  .search-box,
+  .action-btns,
+  .pagination-bar,
+  .modal-backdrop {
+    display: none !important;
+  }
+
+  /* Table: clean for print */
+  .table-card {
+    box-shadow: none !important;
+    border: 1px solid $gray-300 !important;
+    border-radius: 2px !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .data-table th {
+    padding: 6px 8px !important;
+    font-size: 10px !important;
+  }
+
+  .data-table td {
+    padding: 6px 8px !important;
+    font-size: 12px !important;
+  }
+
+  .data-table tbody tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Print colors */
+  .status-badge {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

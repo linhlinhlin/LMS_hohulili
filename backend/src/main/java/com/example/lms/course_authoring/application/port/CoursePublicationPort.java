@@ -10,5 +10,9 @@ public interface CoursePublicationPort {
 
     void publish(UUID courseId, UUID publishedById);
 
+    default void publish(UUID courseId, UUID publishedById, String releaseNotes) {
+        publish(courseId, publishedById);
+    }
+
     Optional<UUID> findLatestPublicationId(UUID courseId);
 }

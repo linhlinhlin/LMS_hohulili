@@ -15,6 +15,7 @@ import { ToastService } from '../../../../core/services/toast.service';
   selector: 'app-offline-storage-telemetry',
   imports: [CommonModule, FormsModule],
   templateUrl: './offline-storage-telemetry.component.html',
+  styleUrl: './offline-storage-telemetry.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OfflineStorageTelemetryComponent {
@@ -158,27 +159,35 @@ export class OfflineStorageTelemetryComponent {
   badgeClass(eventType: OfflineStorageTelemetryEventType): string {
     switch (eventType) {
       case 'disabled':
-        return 'bg-red-50 text-red-700 border-red-200';
+        return 'badge badge--disabled';
       case 'manual-reset':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
+        return 'badge badge--manual-reset';
       case 'recreate-failed':
-        return 'bg-purple-50 text-purple-700 border-purple-200';
+        return 'badge badge--recreate-failed';
       default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
+        return 'badge badge--default';
     }
+  }
+
+  getBadgeClass(eventType: OfflineStorageTelemetryEventType): string {
+    return this.badgeClass(eventType);
   }
 
   availabilityClass(value: string): string {
     switch (value) {
       case 'ready':
-        return 'bg-green-50 text-green-700 border-green-200';
+        return 'badge-availability badge-availability--ready';
       case 'recovering':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
+        return 'badge-availability badge-availability--recovering';
       case 'online-only':
-        return 'bg-slate-100 text-slate-700 border-slate-200';
+        return 'badge-availability badge-availability--online-only';
       default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
+        return 'badge-availability badge-availability--default';
     }
+  }
+
+  getAvailabilityBadgeClass(value: string): string {
+    return this.availabilityClass(value);
   }
 
   recoveryLabel(value: string): string {

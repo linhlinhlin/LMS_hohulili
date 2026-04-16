@@ -1,0 +1,47 @@
+@use '../../../../../styles/variables' as *;
+
+/* ===== ERROR PAGE ===== */
+.error-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.error-content {
+  text-align: center;
+
+  h3 {
+    font-size: $text-lg;
+    font-weight: $font-semibold;
+    color: $gray-700;
+    margin: 0 0 $spacing-2;
+  }
+
+  p {
+    font-size: $text-sm;
+    color: $gray-500;
+    margin: 0 0 $spacing-4;
+  }
+}
+
+.error-icon {
+  width: 64px;
+  height: 64px;
+  color: $error;
+  margin-bottom: $spacing-4;
+}
+
+.retry-btn {
+  padding: $spacing-2 $spacing-4;
+  background: $blue-primary;
+  color: white;
+  border: none;
+  border-radius: $radius-md;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  cursor: pointer;
+  transition: background $transition-normal;
+
+  &:hover { background: $blue-hover; }
+}

@@ -1,5 +1,5 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { Observable, BehaviorSubject, throwError } from 'rxjs';
+import { Observable, BehaviorSubject, throwError, of } from 'rxjs';
 import { map, catchError, finalize } from 'rxjs/operators';
 import { ApiClient } from '../../../../api/client/api-client';
 import { ADMIN_ENDPOINTS, BulkActionResponse, CategoryDTO } from '../../../../api/endpoints/admin.endpoints';
@@ -146,6 +146,15 @@ export interface UpdateUserRequest {
   fullName?: string;
   role?: 'ADMIN' | 'ORG_ADMIN' | 'TEACHER' | 'STUDENT';
   enabled?: boolean;
+}
+
+export interface ReviewEvent {
+  id: string;
+  action: string;
+  comment: string;
+  reviewerId?: string;
+  reviewerName?: string;
+  createdAt: string;
 }
 
 export interface AdminCourseSummary {
@@ -364,6 +373,13 @@ export class AdminService {
 
         return throwError(() => error);
       })
+    );
+  }
+
+  getReviewHistory(courseId: string): Observable<ReviewEvent[]> {
+    return this.apiClient.getWithResponse<ReviewEvent[]>(ADMIN_ENDPOINTS.REVIEW_HISTORY(courseId)).pipe(
+      map(response => response.data || []),
+      catchError(() => of([]))
     );
   }
 

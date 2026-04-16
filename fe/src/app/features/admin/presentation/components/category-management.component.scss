@@ -1,0 +1,586 @@
+@use '../../../../../styles/variables' as *;
+
+/* ===== PAGE ===== */
+.category-page {
+  background: $bg-page;
+  min-height: 100vh;
+  padding: $spacing-6;
+}
+
+/* ===== HEADER ===== */
+.page-header {
+  margin-bottom: $spacing-6;
+}
+
+.page-title {
+  font-size: $text-2xl;
+  font-weight: $font-bold;
+  color: $text-primary;
+  margin: 0;
+  line-height: $leading-tight;
+}
+
+.page-subtitle {
+  font-size: $text-sm;
+  color: $text-muted;
+  margin: $spacing-1 0 0;
+}
+
+/* ===== LAYOUT GRID ===== */
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $spacing-6;
+
+  @include desktop {
+    grid-template-columns: 1fr 2fr;
+  }
+}
+
+/* ===== CARD BASE ===== */
+.card {
+  background: white;
+  border-radius: $radius-md;
+  border: 1px solid $border-default;
+  box-shadow: $shadow-sm;
+}
+
+/* ===== TREE PANEL (LEFT) ===== */
+.tree-panel {
+  @extend .card;
+  overflow: hidden;
+}
+
+.tree-header {
+  padding: $spacing-4;
+  border-bottom: 1px solid $border-default;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tree-header-title {
+  font-weight: $font-semibold;
+  color: $text-primary;
+  margin: 0;
+}
+
+.tree-loading {
+  padding: $spacing-8;
+  text-align: center;
+  color: $text-disabled;
+}
+
+.tree-body {
+  padding: $spacing-2;
+  max-height: 600px;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: $gray-300; border-radius: 2px; }
+  scrollbar-width: thin;
+  scrollbar-color: $gray-300 transparent;
+}
+
+.tree-group {
+  margin-bottom: $spacing-1;
+}
+
+/* Root category item */
+.tree-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-1;
+  padding: $spacing-2 $spacing-3;
+  border-radius: $radius-lg;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: $bg-hover;
+  }
+
+  &.tree-item-selected {
+    background: rgba($blue-primary, 0.1);
+  }
+}
+
+.tree-expand-btn {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $gray-400;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+
+  &:hover { color: $gray-600; }
+
+  .expand-icon {
+    font-size: $text-xs;
+  }
+}
+
+.tree-item-name {
+  flex: 1;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+
+  &.inactive { color: $text-disabled; }
+}
+
+.tree-item-prefix {
+  font-size: $text-xs;
+  background: $gray-100;
+  color: $gray-600;
+  padding: 2px $spacing-2;
+  border-radius: $radius-sm;
+}
+
+.tree-item-hidden {
+  font-size: $text-xs;
+  color: $error;
+}
+
+/* Sub-category item */
+.tree-sub-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-1;
+  padding: $spacing-2 $spacing-3;
+  padding-left: 40px;
+  border-radius: $radius-lg;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: $gray-50;
+  }
+
+  &.tree-item-selected {
+    background: rgba($blue-primary, 0.1);
+  }
+}
+
+.tree-sub-name {
+  font-size: $text-sm;
+  color: $gray-700;
+
+  &.inactive { color: $text-disabled; }
+}
+
+.tree-add-sub {
+  display: block;
+  width: 100%;
+  padding: $spacing-2 $spacing-3;
+  padding-left: 40px;
+  text-align: left;
+  font-size: $text-xs;
+  color: $blue-primary;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:hover { color: $blue-hover; }
+}
+
+.tree-empty {
+  padding: $spacing-8;
+  text-align: center;
+  color: $text-disabled;
+  font-size: $text-sm;
+}
+
+/* ===== RIGHT PANEL ===== */
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-6;
+}
+
+/* ===== TAB SWITCHER ===== */
+.tab-bar {
+  display: flex;
+  gap: $spacing-2;
+}
+
+.tab-btn {
+  padding: $spacing-2 $spacing-4;
+  border-radius: $radius-lg;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  cursor: pointer;
+  transition: all $transition-fast;
+  border: 1px solid transparent;
+
+  &.tab-active {
+    background: $blue-primary;
+    color: white;
+    border-color: $blue-primary;
+  }
+
+  &.tab-inactive {
+    background: white;
+    color: $gray-700;
+    border-color: $border-default;
+
+    &:hover {
+      background: $gray-50;
+    }
+  }
+}
+
+/* ===== EDIT FORM PANEL ===== */
+.edit-panel {
+  @extend .card;
+  padding: $spacing-6;
+}
+
+.edit-panel-title {
+  font-weight: $font-semibold;
+  color: $text-primary;
+  margin: 0 0 $spacing-4;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $spacing-4;
+
+  @media (min-width: $breakpoint-md) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.form-group {
+  &.full-width {
+    @media (min-width: $breakpoint-md) {
+      grid-column: span 2;
+    }
+  }
+}
+
+.form-label {
+  display: block;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $gray-700;
+  margin-bottom: $spacing-1;
+}
+
+.form-input {
+  width: 100%;
+  border: 1px solid $gray-300;
+  border-radius: $radius-lg;
+  padding: $spacing-2 $spacing-3;
+  font-size: $text-sm;
+  transition: border-color $transition-fast, box-shadow $transition-fast;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: $blue-primary;
+    box-shadow: 0 0 0 2px rgba($blue-primary, 0.2);
+  }
+
+  &:disabled {
+    background: $gray-50;
+    color: $text-muted;
+    cursor: not-allowed;
+  }
+}
+
+textarea.form-input {
+  resize: vertical;
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-3;
+  margin-top: $spacing-4;
+  padding-top: $spacing-4;
+  border-top: 1px solid $border-light;
+}
+
+.form-actions-spacer {
+  flex: 1;
+}
+
+.btn-toggle-active {
+  padding: $spacing-2 $spacing-4;
+  font-size: $text-sm;
+  border-radius: $radius-lg;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &.deactivate {
+    color: $error;
+    &:hover { background: $error-light; }
+  }
+
+  &.activate {
+    color: $success;
+    &:hover { background: $success-light; }
+  }
+}
+
+/* ===== EMPTY STATE ===== */
+.empty-panel {
+  @extend .card;
+  padding: $spacing-12;
+  text-align: center;
+  color: $text-disabled;
+
+  p {
+    font-size: $text-sm;
+    margin: 0;
+
+    & + p { margin-top: $spacing-1; }
+  }
+}
+
+/* ===== TAGS PANEL ===== */
+.tags-panel {
+  @extend .card;
+  padding: $spacing-6;
+}
+
+.tags-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-4;
+}
+
+.tags-title {
+  font-weight: $font-semibold;
+  color: $text-primary;
+  margin: 0;
+}
+
+.tag-form {
+  display: flex;
+  align-items: center;
+  gap: $spacing-3;
+  margin-bottom: $spacing-4;
+  padding: $spacing-3;
+  background: $gray-50;
+  border-radius: $radius-lg;
+}
+
+.tag-form-input {
+  flex: 1;
+  border: 1px solid $gray-300;
+  border-radius: $radius-lg;
+  padding: $spacing-2 $spacing-3;
+  font-size: $text-sm;
+
+  &:focus {
+    outline: none;
+    border-color: $blue-primary;
+    box-shadow: 0 0 0 2px rgba($blue-primary, 0.2);
+  }
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-2;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-1;
+  padding: $spacing-2 $spacing-3;
+  background: $gray-100;
+  border-radius: $radius-full;
+  font-size: $text-sm;
+
+  &:hover .tag-action { opacity: 1; }
+}
+
+.tag-action {
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity $transition-fast, color $transition-fast;
+  padding: 0;
+  line-height: 1;
+
+  &.tag-edit {
+    color: $text-disabled;
+    &:hover { color: $blue-primary; }
+  }
+
+  &.tag-delete {
+    color: $text-disabled;
+    &:hover { color: $error; }
+  }
+}
+
+.tags-empty {
+  font-size: $text-sm;
+  color: $text-disabled;
+}
+
+/* ===== BUTTONS ===== */
+.btn-primary {
+  padding: $spacing-2 $spacing-3;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  background: $blue-primary;
+  color: white;
+  border: none;
+  border-radius: $radius-lg;
+  cursor: pointer;
+  transition: background $transition-normal;
+
+  &:hover { background: $blue-hover; }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btn-primary-lg {
+  @extend .btn-primary;
+  padding: $spacing-2 $spacing-5;
+}
+
+.btn-cancel {
+  padding: $spacing-2 $spacing-4;
+  font-size: $text-sm;
+  color: $text-muted;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:hover { color: $gray-700; }
+}
+
+/* ===== SKELETON ===== */
+.sk {
+  background: $gray-200;
+  border-radius: 4px;
+}
+
+/* ===== RESPONSIVE ===== */
+
+// Tablet
+@media screen and (max-width: $breakpoint-md) {
+  .category-page {
+    padding: $spacing-4;
+  }
+
+  .page-title {
+    font-size: $text-xl;
+  }
+
+  .edit-panel, .tags-panel {
+    padding: $spacing-4;
+  }
+
+  .tag-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+// Mobile
+@media screen and (max-width: $breakpoint-sm) {
+  .category-page {
+    padding: $spacing-3;
+  }
+
+  .page-title {
+    font-size: $text-lg;
+  }
+
+  .tree-header {
+    padding: $spacing-3;
+  }
+
+  .tree-body {
+    max-height: 400px;
+  }
+
+  .edit-panel, .tags-panel {
+    padding: $spacing-3;
+  }
+
+  .form-actions {
+    flex-wrap: wrap;
+  }
+
+  .tab-btn {
+    font-size: $text-xs;
+    padding: $spacing-2 $spacing-3;
+  }
+}
+
+// Ultra-small (<340px)
+@media screen and (max-width: 340px) {
+  .category-page {
+    padding: $spacing-2;
+  }
+
+  .tree-item, .tree-sub-item {
+    padding: $spacing-1 $spacing-2;
+  }
+
+  .tree-sub-item {
+    padding-left: 28px;
+  }
+}
+
+/* ===== PRINT ===== */
+@media print {
+  :host { display: block; }
+
+  .category-page {
+    background: white !important;
+    min-height: auto !important;
+    padding: 10px 0 !important;
+  }
+
+  .page-title { font-size: 18px !important; }
+
+  .content-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .card, .tree-panel, .edit-panel, .tags-panel, .empty-panel {
+    box-shadow: none !important;
+    border: 1px solid $gray-300 !important;
+    border-radius: 2px !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .btn-primary, .btn-cancel, .btn-toggle-active,
+  .tree-add-sub, .tree-expand-btn, .tag-action,
+  .tab-bar {
+    display: none !important;
+  }
+
+  .tree-body {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .tag-chip {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

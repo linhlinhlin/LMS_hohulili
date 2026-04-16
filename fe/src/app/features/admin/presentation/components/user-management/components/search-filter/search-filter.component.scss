@@ -1,0 +1,182 @@
+@use '../../../../../../../../styles/variables' as *;
+
+// ===== HOST =====
+:host {
+  display: block;
+}
+
+// ===== CARD =====
+.filter-card {
+  background: $bg-surface;
+  border-radius: $radius-lg;
+  border: 1px solid $border-default;
+  padding: $spacing-4;
+  margin-bottom: $spacing-6;
+}
+
+// ===== FILTER ROW =====
+.filter-row {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-4;
+
+  @include desktop {
+    flex-direction: row;
+  }
+}
+
+.filter-search {
+  flex: 1;
+}
+
+.search-wrapper {
+  position: relative;
+}
+
+.search-icon-wrapper {
+  position: absolute;
+  inset: 0 auto 0 0;
+  padding-left: $spacing-3;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.search-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: $text-disabled;
+}
+
+.search-input {
+  width: 100%;
+  padding: $spacing-2 $spacing-4 $spacing-2 2.5rem;
+  font-size: $text-sm;
+  border: 1px solid $border-dark;
+  border-radius: $radius-sm;
+  transition: border-color $transition-fast, box-shadow $transition-fast;
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba($blue-primary, 0.2);
+    border-color: transparent;
+  }
+
+  &::placeholder {
+    color: $text-disabled;
+  }
+}
+
+// ===== FILTER CONTROLS =====
+.filter-controls {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-3;
+
+  @media (min-width: $breakpoint-sm) {
+    flex-direction: row;
+  }
+}
+
+.filter-select {
+  padding: $spacing-2 $spacing-3;
+  font-size: $text-sm;
+  border: 1px solid $border-dark;
+  border-radius: $radius-sm;
+  background: $bg-surface;
+  cursor: pointer;
+  transition: border-color $transition-fast, box-shadow $transition-fast;
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba($blue-primary, 0.2);
+    border-color: transparent;
+  }
+}
+
+// ===== CLEAR FILTERS =====
+.filter-clear {
+  margin-top: $spacing-3;
+}
+
+.btn-clear {
+  padding: $spacing-2 $spacing-3;
+  font-size: $text-sm;
+  color: $text-secondary;
+  border: 1px solid $border-dark;
+  border-radius: $radius-sm;
+  background: $bg-surface;
+  cursor: pointer;
+  transition: color $transition-fast, background $transition-fast;
+
+  &:hover {
+    color: $text-primary;
+    background: $bg-hover;
+  }
+}
+
+// ===== RESULTS COUNT =====
+.filter-results {
+  margin-top: $spacing-3;
+  padding-top: $spacing-3;
+  border-top: 1px solid $border-default;
+}
+
+.filter-results__text {
+  font-size: $text-xs;
+  color: $text-secondary;
+}
+
+.filter-results__bold {
+  font-weight: $font-medium;
+  color: $text-primary;
+}
+
+// ===== SKELETON =====
+.skeleton {
+  background: linear-gradient(90deg, $gray-200 25%, $gray-100 50%, $gray-200 75%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  border-radius: $radius-sm;
+}
+
+.skeleton-input {
+  height: 2.5rem;
+  width: 100%;
+}
+
+.skeleton-select {
+  height: 2.5rem;
+  width: 10rem;
+}
+
+@keyframes skeleton-pulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+// ===== RESPONSIVE =====
+@media (max-width: 340px) {
+  .filter-card {
+    padding: $spacing-3;
+  }
+
+  .filter-row {
+    gap: $spacing-3;
+  }
+
+  .filter-controls {
+    flex-direction: column;
+  }
+
+  .filter-select {
+    width: 100%;
+  }
+}
+
+// ===== PRINT =====
+@media print {
+  .filter-card {
+    display: none !important;
+  }
+}

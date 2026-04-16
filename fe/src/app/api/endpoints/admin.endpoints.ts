@@ -19,6 +19,7 @@ export const ADMIN_ENDPOINTS = {
   DELETE_COURSE: (courseId: string) => `/api/v3/admin/courses/${courseId}`,
   BULK_APPROVE: '/api/v3/admin/courses/bulk-approve',
   BULK_REJECT: '/api/v3/admin/courses/bulk-reject',
+  REVIEW_HISTORY: (courseId: string) => `/api/v3/admin/courses/${courseId}/review-history`,
 
   // === Categories (legacy flat list) ===
   CATEGORIES: '/api/v3/categories',

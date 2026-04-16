@@ -1,0 +1,392 @@
+<div class="review-page">
+  <div class="review-inner">
+
+    <!-- Header -->
+    <div class="header-bar">
+      <h1 class="page-title">Duyệt khóa học</h1>
+      <div class="search-box">
+        <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input
+          class="search-input"
+          [(ngModel)]="searchKeyword"
+          (keyup.enter)="loadCourses()"
+          placeholder="Tìm kiếm theo tên khóa học hoặc giảng viên..." />
+        @if (searchKeyword) {
+          <button class="search-clear" (click)="searchKeyword = ''; loadCourses()">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Filter tabs -->
+    <div class="filter-bar" role="tablist">
+      <button class="tab-chip"
+              [class.active]="statusFilter === ''"
+              role="tab"
+              [attr.aria-selected]="statusFilter === ''"
+              (click)="statusFilter = ''; loadCourses()">
+        Tất cả
+      </button>
+      <button class="tab-chip"
+              [class.active]="statusFilter === 'PENDING'"
+              role="tab"
+              [attr.aria-selected]="statusFilter === 'PENDING'"
+              (click)="statusFilter = 'PENDING'; loadCourses()">
+        Chờ duyệt
+      </button>
+      <button class="tab-chip"
+              [class.active]="statusFilter === 'APPROVED'"
+              role="tab"
+              [attr.aria-selected]="statusFilter === 'APPROVED'"
+              (click)="statusFilter = 'APPROVED'; loadCourses()">
+        Đã duyệt
+      </button>
+      <button class="tab-chip"
+              [class.active]="statusFilter === 'REJECTED'"
+              role="tab"
+              [attr.aria-selected]="statusFilter === 'REJECTED'"
+              (click)="statusFilter = 'REJECTED'; loadCourses()">
+        Bị từ chối
+      </button>
+      <button class="tab-chip"
+              [class.active]="statusFilter === 'DRAFT'"
+              role="tab"
+              [attr.aria-selected]="statusFilter === 'DRAFT'"
+              (click)="statusFilter = 'DRAFT'; loadCourses()">
+        Nháp
+      </button>
+    </div>
+
+    <!-- Data table card -->
+    <div class="table-card">
+
+      <!-- Skeleton loading -->
+      @if (loading()) {
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="col-course">Khóa học</th>
+              <th class="col-teacher">Giảng viên</th>
+              <th class="col-status">Trạng thái</th>
+              <th class="col-actions">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (i of [1,2,3,4,5]; track i) {
+              <tr class="skeleton-row">
+                <td>
+                  <div class="sk sk-title"></div>
+                  <div class="sk sk-subtitle"></div>
+                </td>
+                <td>
+                  <div class="sk sk-text"></div>
+                  <div class="sk sk-text-sm"></div>
+                </td>
+                <td class="col-center">
+                  <div class="sk sk-badge"></div>
+                </td>
+                <td class="col-center">
+                  <div class="sk-actions">
+                    <div class="sk sk-btn"></div>
+                    <div class="sk sk-btn"></div>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+
+      <!-- Error state -->
+      @if (error()) {
+        <div class="error-state">
+          <svg width="40" height="40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+          </svg>
+          <p>{{ error() }}</p>
+        </div>
+      }
+
+      <!-- Data table -->
+      @if (!loading() && !error()) {
+        @if (courses().length > 0) {
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="col-course">Khóa học</th>
+                  <th class="col-teacher">Giảng viên</th>
+                  <th class="col-status">Trạng thái</th>
+                  <th class="col-actions">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (course of courses(); track course.id) {
+                  <tr>
+                    <td>
+                      <div class="course-title">{{ course.title }}</div>
+                      <div class="course-code">{{ course.code }}</div>
+                    </td>
+                    <td>
+                      <div class="teacher-name">{{ course.teacherName }}</div>
+                      <div class="teacher-email">{{ course.teacherEmail }}</div>
+                    </td>
+                    <td class="col-center">
+                      <span [class]="'status-badge status-' + course.status.toLowerCase()">
+                        {{ getStatusText(course.status) }}
+                      </span>
+                    </td>
+                    <td class="col-center">
+                      <div class="action-btns">
+                        <button class="btn-action btn-preview"
+                                (click)="previewContent(course.id)">
+                          Xem nội dung
+                        </button>
+                        <button class="btn-action btn-detail"
+                                (click)="viewDetails(course)">
+                          Xem chi tiết
+                        </button>
+                        @if (course.status === 'PENDING') {
+                          <button class="btn-action btn-approve"
+                                  (click)="approveCourse(course.id)"
+                                  [disabled]="approving() === course.id">
+                            Duyệt
+                          </button>
+                          <button class="btn-action btn-reject"
+                                  (click)="showRejectModal(course)">
+                            Từ chối
+                          </button>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div class="pagination-bar">
+            <span class="pagination-info">
+              Hiển thị {{ (currentPage - 1) * pageSize + 1 }} - {{ getDisplayEnd() }} trong tổng số {{ totalItems }} khóa học
+            </span>
+            <div class="pagination-controls">
+              <button class="btn-page"
+                      (click)="previousPage()"
+                      [disabled]="currentPage === 1">
+                Trước
+              </button>
+              <span class="page-indicator">
+                Trang {{ currentPage }} / {{ totalPages }}
+              </span>
+              <button class="btn-page"
+                      (click)="nextPage()"
+                      [disabled]="currentPage >= totalPages">
+                Sau
+              </button>
+            </div>
+          </div>
+        } @else {
+          <!-- Empty state -->
+          <div class="empty-state">
+            <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <p class="empty-text">Không tìm thấy khóa học nào</p>
+          </div>
+        }
+      }
+    </div>
+
+    <!-- Course Detail Modal -->
+    @if (detailModalOpen()) {
+      <div class="modal-backdrop" (click)="closeDetailModal()">
+        <div class="modal-panel modal-lg" role="dialog" aria-modal="true" (click)="$event.stopPropagation()"
+             style="max-height:90vh;display:flex;flex-direction:column">
+
+          <!-- Modal Header -->
+          <div class="modal-header">
+            <h3 class="modal-title">Chi tiết khóa học</h3>
+            <button class="modal-close" (click)="closeDetailModal()" aria-label="Đóng">
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Modal Body (scrollable) -->
+          @if (courseDetails) {
+            <div class="modal-body" style="overflow-y:auto;flex:1">
+
+              <!-- Course heading -->
+              <div class="detail-heading">
+                <div class="detail-heading-left">
+                  <h4 class="detail-title">{{ courseDetails.title }}</h4>
+                  <p class="detail-code">Mã khóa học: {{ courseDetails.code }}</p>
+                </div>
+                <span [class]="'status-badge status-' + courseDetails.status.toLowerCase()">
+                  {{ getStatusText(courseDetails.status) }}
+                </span>
+              </div>
+
+              <!-- Description -->
+              <p class="detail-description">{{ courseDetails.description }}</p>
+
+              <!-- Teacher info + Stats row -->
+              <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+                <div class="info-card" style="flex:1;min-width:200px;margin-bottom:0">
+                  <h5 class="info-card-title">Thông tin giảng viên</h5>
+                  <div class="info-card-body">
+                    <p><strong>Tên:</strong> {{ courseDetails.teacherName }}</p>
+                    @if (courseDetails.teacherEmail) {
+                      <p><strong>Email:</strong> {{ courseDetails.teacherEmail }}</p>
+                    }
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start">
+                  <div class="stat-card stat-primary">
+                    <div class="stat-value">{{ courseDetails.sectionsCount || 0 }}</div>
+                    <div class="stat-label">Chương</div>
+                  </div>
+                  @if (courseDetails.enrolledCount !== undefined) {
+                    <div class="stat-card stat-success">
+                      <div class="stat-value">{{ courseDetails.enrolledCount }}</div>
+                      <div class="stat-label">Học viên</div>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- Dates -->
+              <div class="detail-dates" style="margin-bottom:16px">
+                <p><strong>Ngày tạo:</strong> {{ courseDetails.createdAt | date:'dd/MM/yyyy HH:mm' }}</p>
+                @if (courseDetails.submittedAt) {
+                  <p><strong>Ngày gửi duyệt:</strong> {{ courseDetails.submittedAt | date:'dd/MM/yyyy HH:mm' }}</p>
+                }
+                @if (courseDetails.approvedAt) {
+                  <p><strong>Ngày duyệt:</strong> {{ courseDetails.approvedAt | date:'dd/MM/yyyy HH:mm' }}</p>
+                }
+                @if (courseDetails.rejectionReason) {
+                  <div class="rejection-reason">
+                    <strong>Lý do từ chối:</strong><br>
+                    <span>{{ courseDetails.rejectionReason }}</span>
+                  </div>
+                }
+              </div>
+
+              <!-- Content Preview Toggle -->
+              <div style="margin-bottom:16px">
+                <button class="btn-action btn-preview" (click)="previewContent(courseDetails.id)" style="width:100%;justify-content:center;padding:10px">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right:6px">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                  </svg>
+                  Xem nội dung khóa học
+                </button>
+              </div>
+
+              <!-- Review History Timeline -->
+              <div style="border-top:1px solid #e5e7eb;padding-top:16px">
+                <h5 style="font-size:14px;font-weight:600;color:#374151;margin-bottom:12px">
+                  Lịch sử phê duyệt
+                </h5>
+
+                @if (loadingHistory()) {
+                  <div style="display:flex;align-items:center;gap:8px;color:#6b7280;font-size:13px;padding:8px 0">
+                    <div style="width:16px;height:16px;border:2px solid #d1d5db;border-top-color:#0056D2;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+                    Đang tải...
+                  </div>
+                } @else if (reviewHistory().length === 0) {
+                  <p style="color:#9ca3af;font-size:13px;padding:8px 0">Chưa có lịch sử phê duyệt</p>
+                } @else {
+                  <div style="position:relative;padding-left:24px">
+                    <!-- Timeline line -->
+                    <div style="position:absolute;left:7px;top:4px;bottom:4px;width:2px;background:#e5e7eb"></div>
+
+                    @for (event of reviewHistory(); track event.id) {
+                      <div style="position:relative;padding-bottom:16px">
+                        <!-- Timeline dot -->
+                        <div style="position:absolute;left:-20px;top:2px;width:12px;height:12px;border-radius:50%;border:2px solid #fff"
+                             [style.background]="event.action === 'APPROVED' ? '#16a34a' :
+                                                  event.action === 'REJECTED' ? '#dc2626' :
+                                                  event.action === 'REVOKED' ? '#ea580c' :
+                                                  event.action === 'SUBMITTED' || event.action === 'RESUBMITTED' ? '#0056D2' : '#9ca3af'">
+                        </div>
+
+                        <!-- Event content -->
+                        <div style="font-size:13px">
+                          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                            <span [class]="getActionColor(event.action)" style="font-weight:600">
+                              {{ getActionText(event.action) }}
+                            </span>
+                            @if (event.reviewerName) {
+                              <span style="color:#6b7280">bởi {{ event.reviewerName }}</span>
+                            }
+                            <span style="color:#9ca3af;font-size:12px">{{ formatDateTime(event.createdAt) }}</span>
+                          </div>
+                          @if (event.comment) {
+                            <p style="margin:4px 0 0;color:#4b5563;line-height:1.4;background:#f9fafb;padding:6px 10px;border-radius:6px;border:1px solid #f3f4f6">
+                              {{ event.comment }}
+                            </p>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+
+            </div>
+          }
+
+          <!-- Modal Footer -->
+          <div class="modal-footer">
+            <button class="btn-secondary" (click)="closeDetailModal()">Đóng</button>
+            @if (courseDetails?.status === 'PENDING') {
+              <button class="btn-success"
+                      (click)="approveCourseFromModal()"
+                      [disabled]="approving() === courseDetails.id">
+                Duyệt khóa học
+              </button>
+              <button class="btn-danger"
+                      (click)="showRejectModalFromDetail()">
+                Từ chối
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Reject Modal -->
+    @if (rejectModalOpen()) {
+      <div class="modal-backdrop modal-backdrop-upper" (click)="closeRejectModal()">
+        <div class="modal-panel modal-sm" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+          <h3 class="modal-title">Từ chối khóa học</h3>
+          <textarea
+            class="reject-textarea"
+            [(ngModel)]="rejectComment"
+            rows="4"
+            placeholder="Nhập lý do từ chối (bắt buộc)..."></textarea>
+          <div class="modal-footer">
+            <button class="btn-secondary" (click)="closeRejectModal()">Hủy</button>
+            <button class="btn-danger"
+                    (click)="confirmReject()"
+                    [disabled]="!rejectComment.trim() || rejecting()">
+              Từ chối
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+  </div>
+</div>

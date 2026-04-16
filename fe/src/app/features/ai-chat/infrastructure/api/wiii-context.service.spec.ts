@@ -241,6 +241,16 @@ describe('WiiiContextService - operator preview/apply flows', () => {
     }));
   });
 
+  it('recognizes quiz result routes as quiz review pages', () => {
+    const context = (service as any).extractPageContext('/student/quiz/result?attemptId=quiz-attempt-1');
+
+    expect(context).toEqual(jasmine.objectContaining({
+      page_type: 'quiz',
+      page_title: 'Kết quả bài kiểm tra',
+      content_type: 'quiz_result',
+    }));
+  });
+
   it('hydrates assignment snippets with title, status, deadline, and instructions before posting to the iframe', () => {
     pageDataExtractor.extract.and.returnValue({
       _type: 'assignment',
@@ -297,15 +307,77 @@ describe('WiiiContextService - operator preview/apply flows', () => {
     expect(payload.content_snippet).toContain('Xuồng cứu sinh');
   });
 
+  it('hydrates quiz result snippets with score and question context before posting to the iframe', () => {
+    pageDataExtractor.extract.and.returnValue({
+      _type: 'quiz_result',
+      quiz_title: 'Quiz theo lop',
+      score: 10,
+      max_score: 10,
+      score_percent: 100,
+      passing_score: 70,
+      passed: true,
+      total_questions: 1,
+      correct_answers: 1,
+      incorrect_answers: 0,
+      show_correct_answers: true,
+      questions: [
+        {
+          index: 1,
+          question_text: 'Gio quanh vung ap thap ban cau Bac co xu huong nao?',
+          selected_option: 'A',
+          correct_option: 'A',
+          is_correct: true,
+        },
+      ],
+    });
+
+    const postMessage = jasmine.createSpy('postMessage');
+    service.connectIframe({ contentWindow: { postMessage } } as unknown as HTMLIFrameElement);
+
+    (service as any).sendContext({
+      page_type: 'quiz',
+      page_title: 'Kết quả bài kiểm tra',
+      content_type: 'quiz_result',
+    });
+
+    expect(postMessage).toHaveBeenCalled();
+    const payload = postMessage.calls.mostRecent().args[0].payload;
+    expect(payload.page_title).toBe('Quiz theo lop');
+    expect(payload.content_type).toBe('quiz_result');
+    expect(payload.content_snippet).toContain('Diem: 10/10 (100%)');
+    expect(payload.content_snippet).toContain('Cau 1: Gio quanh vung ap thap ban cau Bac co xu huong nao?');
+    expect(payload.quiz_question).toBe('Gio quanh vung ap thap ban cau Bac co xu huong nao?');
+  });
+
   it('supports semantic next_lesson navigation targets', async () => {
     const button = document.createElement('button');
     button.textContent = 'Bài tiếp theo';
+    button.textContent = 'Bai tiep theo';
     const clickSpy = spyOn(button, 'click');
     document.body.appendChild(button);
 
     try {
       const result = await (service as any).handleActionRequest('navigation.go_to', {
         target: 'next_lesson',
+      });
+
+      expect(result.success).toBeTrue();
+      expect(clickSpy).toHaveBeenCalled();
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+    } finally {
+      button.remove();
+    }
+  });
+  it('treats symbolic route values like next_lesson as semantic navigation targets', async () => {
+    const button = document.createElement('button');
+    button.textContent = 'BÃ i tiáº¿p theo';
+    button.textContent = 'Bai tiep theo';
+    const clickSpy = spyOn(button, 'click');
+    document.body.appendChild(button);
+
+    try {
+      const result = await (service as any).handleActionRequest('navigation.go_to', {
+        route: 'next_lesson',
       });
 
       expect(result.success).toBeTrue();

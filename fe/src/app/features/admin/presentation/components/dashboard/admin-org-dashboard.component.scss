@@ -1,0 +1,440 @@
+@use '../../../../../../styles/variables' as *;
+
+/* ===== PAGE ===== */
+.dashboard-page {
+  background: $bg-page;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ===== HEADER ===== */
+.header-bar {
+  background: white;
+  border-bottom: 1px solid $border-default;
+}
+
+.header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: $spacing-4 $spacing-6;
+}
+
+.page-title {
+  font-size: $text-2xl;
+  font-weight: $font-bold;
+  color: $text-primary;
+  margin: 0;
+  line-height: $leading-tight;
+}
+
+/* ===== MAIN ===== */
+.dashboard-main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: $spacing-6;
+}
+
+/* ===== CARD BASE ===== */
+.card {
+  background: white;
+  border-radius: $radius-md;
+  border: 1px solid $border-default;
+  box-shadow: $shadow-sm;
+}
+
+.card-header {
+  padding: $spacing-4 $spacing-5;
+  border-bottom: 1px solid $border-light;
+}
+
+.card-title {
+  font-size: $text-base;
+  font-weight: $font-semibold;
+  color: $text-primary;
+  margin: 0;
+}
+
+.card-body {
+  padding: $spacing-5;
+}
+
+/* ===== ① ACTION CARDS ===== */
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $spacing-4;
+  margin-bottom: $spacing-5;
+
+  @media screen and (max-width: $breakpoint-sm) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.action-card {
+  @extend .card;
+  padding: $spacing-5 $spacing-6;
+  text-decoration: none;
+  transition: border-color $transition-normal, box-shadow $transition-normal;
+  cursor: pointer;
+
+  &:hover { box-shadow: $shadow-md; }
+
+  &.accent-warning:hover { border-color: $warning; }
+  &.accent-primary:hover { border-color: $blue-primary; }
+  &.accent-success:hover { border-color: $success; }
+}
+
+.action-value {
+  font-size: $text-3xl;
+  font-weight: $font-bold;
+  color: $text-primary;
+  line-height: 1;
+  margin: 0 0 $spacing-1;
+}
+
+.action-label {
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $text-secondary;
+  margin: 0;
+}
+
+.action-link {
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  margin: $spacing-1 0 0;
+
+  &.warning-text { color: $warning; }
+  &.primary-text { color: $blue-primary; }
+  &.success-text { color: $success; }
+}
+
+/* ===== ② CONTENT GRID ===== */
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $spacing-4;
+  margin-bottom: $spacing-5;
+  min-width: 0;
+
+  @include desktop { grid-template-columns: 1fr 1fr; }
+}
+
+/* ===== CHART CARD ===== */
+.chart-card { overflow: hidden; }
+
+.chart-area {
+  padding: $spacing-5;
+  min-height: 400px;
+}
+
+/* ===== DATA TABLE ===== */
+.table-scroll {
+  max-height: 420px;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: $gray-300; border-radius: 2px; }
+  scrollbar-width: thin;
+  scrollbar-color: $gray-300 transparent;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table thead tr {
+  background: $gray-50;
+  border-bottom: 1px solid $border-default;
+}
+
+.data-table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: $font-semibold;
+  color: $gray-500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 10px $spacing-4;
+}
+
+.data-table td {
+  padding: $spacing-3 $spacing-4;
+  font-size: $text-sm;
+  vertical-align: middle;
+}
+
+.data-table tbody tr {
+  border-bottom: 1px solid $border-light;
+  transition: background $transition-fast;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: $gray-50; }
+}
+
+.date-text { color: $text-muted; }
+
+/* Action buttons */
+.action-btns {
+  display: flex;
+  gap: $spacing-2;
+}
+
+.btn-approve {
+  padding: 4px $spacing-3;
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  background: $blue-primary;
+  color: white;
+  border: none;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: background $transition-normal;
+
+  &:hover { background: $blue-hover; }
+}
+
+.btn-reject {
+  padding: 4px $spacing-3;
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  background: $gray-100;
+  color: $gray-600;
+  border: none;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: background $transition-normal;
+
+  &:hover { background: $gray-200; }
+}
+
+/* Table loading / empty */
+.table-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-3;
+  padding: $spacing-12 0;
+  color: $text-muted;
+  font-size: $text-sm;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid $gray-200;
+  border-top-color: $blue-primary;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.table-empty {
+  text-align: center;
+  padding: $spacing-12 0;
+  color: $gray-400;
+
+  svg {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto $spacing-3;
+    display: block;
+  }
+
+  p {
+    font-size: $text-sm;
+    color: $text-muted;
+    margin: 0;
+  }
+}
+
+/* ===== ③ STAT GRID ===== */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-4;
+
+  @include tablet { grid-template-columns: repeat(4, 1fr); }
+}
+
+.stat-box {
+  @extend .card;
+  padding: $spacing-5;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: $text-2xl;
+  font-weight: $font-bold;
+  margin: 0 0 $spacing-1;
+
+  &.warning { color: $warning; }
+  &.success { color: $success; }
+  &.error { color: $error; }
+  &.primary { color: $blue-primary; }
+}
+
+.stat-label {
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+/* ===== SKELETON ===== */
+.skeleton-action-card {
+  @extend .card;
+  padding: $spacing-5 $spacing-6;
+}
+
+.skeleton-card {
+  @extend .card;
+  padding: $spacing-5;
+}
+
+.skeleton-stat {
+  @extend .card;
+  padding: $spacing-5;
+  text-align: center;
+}
+
+.sk { background: $gray-200; border-radius: 4px; }
+.sk-light { background: $gray-100; border-radius: 4px; }
+
+/* ===== RESPONSIVE ===== */
+
+// Tablet
+@media screen and (max-width: $breakpoint-md) {
+  .dashboard-main { padding: $spacing-5 $spacing-4; }
+  .header-inner { padding: $spacing-3 $spacing-4; }
+  .action-grid { grid-template-columns: repeat(3, 1fr); gap: $spacing-3; }
+}
+
+// Mobile
+@media screen and (max-width: $breakpoint-sm) {
+  .dashboard-main { padding: $spacing-3 $spacing-3; }
+  .header-inner { padding: $spacing-3; }
+  .page-title { font-size: $text-lg; }
+
+  .action-grid { grid-template-columns: 1fr; gap: $spacing-3; }
+  .action-card { padding: $spacing-4; }
+  .action-value { font-size: $text-2xl; }
+
+  .card-header { padding: $spacing-3 $spacing-4; }
+  .card-body { padding: $spacing-3 $spacing-4; }
+  .card-title { font-size: $text-sm; }
+
+  .chart-area { padding: $spacing-3; min-height: 300px; }
+
+  .data-table th { padding: 8px $spacing-3; font-size: 10px; }
+  .data-table td { padding: 8px $spacing-3; font-size: 13px; }
+
+  .stat-grid { gap: $spacing-3; }
+  .stat-box { padding: $spacing-4; }
+  .stat-value { font-size: $text-xl; }
+
+  .content-grid { gap: $spacing-3; margin-bottom: $spacing-3; }
+}
+
+// Ultra-small (<340px)
+@media screen and (max-width: 340px) {
+  .dashboard-main { padding: $spacing-3 $spacing-2; }
+  .action-card { padding: $spacing-3; }
+  .action-value { font-size: $text-xl; }
+  .action-label { font-size: 13px; }
+
+  .stat-box { padding: $spacing-3; }
+  .stat-value { font-size: $text-lg; }
+  .stat-label { font-size: 10px; }
+}
+
+/* ===== PRINT (A4 — clean report) ===== */
+@media print {
+  :host { display: block; }
+
+  .dashboard-page {
+    background: white !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  .header-bar {
+    border-bottom: 2px solid $text-primary;
+  }
+
+  .header-inner {
+    padding: 8px 0 6px !important;
+    max-width: 100% !important;
+  }
+
+  .page-title { font-size: 18px !important; }
+
+  .dashboard-main {
+    padding: 10px 0 0 !important;
+    max-width: 100% !important;
+  }
+
+  // Cards: no shadow
+  .card, .action-card, .stat-box {
+    box-shadow: none !important;
+    border: 1px solid $gray-300 !important;
+    border-radius: 2px !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  // Action cards: 3-col always, no hover
+  .action-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+    margin-bottom: 10px !important;
+  }
+  .action-card {
+    padding: 10px 12px !important;
+    cursor: default;
+  }
+  .action-link { display: none !important; }
+
+  // Grid: single column
+  .content-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    margin-bottom: 10px !important;
+  }
+
+  // Hide: chart, actions, skeleton
+  .chart-card { display: none !important; }
+  .action-btns { display: none !important; }
+  .skeleton-action-card, .skeleton-card, .skeleton-stat { display: none !important; }
+
+  // Table: condensed, expand scroll
+  .table-scroll {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .data-table th { padding: 6px 8px !important; font-size: 10px !important; }
+  .data-table td { padding: 6px 8px !important; font-size: 12px !important; }
+  .data-table tbody tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  // Stat grid: 4-col always
+  .stat-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 8px !important;
+  }
+  .stat-box { padding: 8px !important; }
+  .stat-value { font-size: 16px !important; }
+
+  // Print colors
+  .stat-value, .action-value {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

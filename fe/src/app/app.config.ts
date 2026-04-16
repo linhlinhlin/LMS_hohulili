@@ -163,7 +163,9 @@ export const appConfig: ApplicationConfig = {
       withInMemoryScrolling({ scrollPositionRestoration: 'top', anchorScrolling: 'enabled' }),
       ...(shouldEnableViewTransitions() ? [withViewTransitions()] : [])
     ),
-    provideClientHydration(withEventReplay()),
+    // Only enable hydration in production (SSR). In dev (static mode), hydration
+    // + zoneless change detection causes NG0506 timeout since there's no server DOM.
+    ...(!isDevMode() ? [provideClientHydration(withEventReplay())] : []),
     provideAnimationsAsync(),
     provideHttpClient(
       withFetch(),

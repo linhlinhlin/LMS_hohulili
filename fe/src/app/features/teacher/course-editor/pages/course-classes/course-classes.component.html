@@ -72,8 +72,8 @@
                 <!-- Loading -->
                 @if (isLoading()) {
                 <tr>
-                    <td colspan="5" class="px-4 py-10 text-center text-slate-400 text-sm">
-                        <svg class="w-5 h-5 animate-spin mx-auto mb-2 text-[#0056D2]" fill="none" viewBox="0 0 24 24">
+                    <td colspan="5" class="px-4 py-10 text-center text-slate-400 text-sm" role="status" aria-label="Đang tải danh sách lớp học">
+                        <svg class="w-5 h-5 animate-spin mx-auto mb-2 text-[#0056D2]" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                         </svg>
@@ -119,27 +119,59 @@
                                 <span class="font-semibold text-purple-700">Tùy chỉnh</span>
                             }
                             <span class="block tabular-nums mt-0.5">{{ cls.startDate | date:'dd/MM/yyyy' }} – {{ cls.endDate | date:'dd/MM/yyyy' }}</span>
+                            <!-- Version badge -->
+                            <span class="flex items-center gap-1 mt-1">
+                                @if (cls.publicationNumber) {
+                                <span class="px-1 py-0.5 text-[9px] font-bold bg-slate-100 text-slate-500 border border-slate-200 rounded tabular-nums">
+                                    v{{ cls.publicationNumber }}
+                                </span>
+                                } @else {
+                                <span class="px-1 py-0.5 text-[9px] font-bold bg-amber-50 text-amber-600 border border-amber-200 rounded">
+                                    Chưa phát hành
+                                </span>
+                                }
+                                @if (cls.updateAvailable) {
+                                <span class="px-1 py-0.5 text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200 rounded">
+                                    v{{ cls.latestPublicationNumber }} mới
+                                </span>
+                                }
+                            </span>
                         </div>
                     </td>
 
                     <td class="px-4 py-2.5 whitespace-nowrap text-center">
-                        <span class="text-xs font-medium bg-slate-100 px-2 py-0.5 rounded-full text-slate-700 tabular-nums">
-                            {{ cls.studentCount || 0 }}/{{ cls.maxStudents }}
-                        </span>
+                        <div class="inline-flex flex-col items-center gap-0.5">
+                            <span class="text-xs font-medium tabular-nums"
+                                  [class.text-red-600]="(cls.capacityPercent ?? 0) >= 100"
+                                  [class.text-amber-600]="(cls.capacityPercent ?? 0) >= 80 && (cls.capacityPercent ?? 0) < 100"
+                                  [class.text-slate-700]="(cls.capacityPercent ?? 0) < 80">
+                                {{ cls.studentCount || 0 }}/{{ cls.maxStudents }}
+                            </span>
+                            <div class="w-12 h-1 bg-slate-200 rounded-full overflow-hidden">
+                                <div class="h-full rounded-full transition-all"
+                                     [style.width.%]="cls.capacityPercent ?? 0"
+                                     [class.bg-red-500]="(cls.capacityPercent ?? 0) >= 100"
+                                     [class.bg-amber-400]="(cls.capacityPercent ?? 0) >= 80 && (cls.capacityPercent ?? 0) < 100"
+                                     [class.bg-[#0056D2]]="(cls.capacityPercent ?? 0) < 80">
+                                </div>
+                            </div>
+                        </div>
                     </td>
 
                     <td class="px-4 py-2.5 whitespace-nowrap text-right">
                         <div class="flex items-center justify-end gap-1">
                             <button (click)="quickEnroll(cls)"
-                                class="w-7 h-7 flex items-center justify-center rounded-md text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors" title="Thêm học viên">
+                                class="w-7 h-7 flex items-center justify-center rounded-md text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors" title="Thêm học viên"
+                                [attr.aria-label]="'Thêm học viên vào ' + cls.name">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                                 </svg>
                             </button>
-                            <button (click)="viewStudents(cls.id)"
+                            <button (click)="viewStudents(cls)"
                                 class="w-7 h-7 flex items-center justify-center rounded-md text-[#0056D2] hover:text-[#004BB5] hover:bg-[#0056D2]/10 transition-colors"
-                                title="Danh sách học viên">
+                                title="Danh sách học viên"
+                                [attr.aria-label]="'Xem danh sách học viên ' + cls.name">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -148,21 +180,24 @@
                                 </svg>
                             </button>
                             <button (click)="manageTeachers(cls)"
-                                class="w-7 h-7 flex items-center justify-center rounded-md text-purple-400 hover:text-purple-600 hover:bg-purple-50 transition-colors" title="Đồng giảng viên">
+                                class="w-7 h-7 flex items-center justify-center rounded-md text-purple-400 hover:text-purple-600 hover:bg-purple-50 transition-colors" title="Đồng giảng viên"
+                                [attr.aria-label]="'Quản lý đồng giảng viên ' + cls.name">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
                             </button>
                             <button (click)="editClass(cls)"
-                                class="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-[#0056D2] hover:bg-[#0056D2]/10 transition-colors" title="Chỉnh sửa">
+                                class="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-[#0056D2] hover:bg-[#0056D2]/10 transition-colors" title="Chỉnh sửa"
+                                [attr.aria-label]="'Chỉnh sửa ' + cls.name">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
                             </button>
                             <button (click)="deleteClass(cls.id)"
-                                class="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors" title="Xóa">
+                                class="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors" title="Xóa"
+                                [attr.aria-label]="'Xóa ' + cls.name">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -202,7 +237,7 @@
 
 <!-- Enrollment Drawer -->
 <app-add-student-drawer [isOpen]="isDrawerOpen()" (isOpenChange)="isDrawerOpen.set($event)"
-    [classId]="selectedClassId()" (onSaved)="loadClasses()">
+    [classId]="selectedClassId()" [defaultTab]="studentDrawerDefaultTab()" (onSaved)="loadClasses()">
 </app-add-student-drawer>
 
 <!-- Co-teacher Drawer -->

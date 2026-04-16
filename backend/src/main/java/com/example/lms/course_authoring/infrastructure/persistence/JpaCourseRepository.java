@@ -38,6 +38,34 @@ public interface JpaCourseRepository extends JpaRepository<CourseJpaEntity, UUID
            countQuery = "SELECT COUNT(c) FROM CourseJpaEntity c WHERE c.teacherId = :teacherId")
     Page<CourseJpaEntity> findByTeacherId(@Param("teacherId") UUID teacherId, Pageable pageable);
 
+    /**
+     * Returns courses where user is either the owner OR a co-teacher (via class_teachers).
+     * Used for teacher dashboard — Google Classroom pattern: co-teachers see courses in the same list.
+     */
+    @Query(value = """
+        SELECT DISTINCT c FROM CourseJpaEntity c
+        WHERE c.teacherId = :teacherId
+        OR c.id IN (
+            SELECT lc.courseId FROM LearningClassJpaEntity lc
+            WHERE lc.id IN (
+                SELECT ct.classId FROM ClassTeacherJpaEntity ct
+                WHERE ct.teacherId = :teacherId
+            )
+        )
+        ORDER BY c.createdAt DESC
+    """, countQuery = """
+        SELECT COUNT(DISTINCT c) FROM CourseJpaEntity c
+        WHERE c.teacherId = :teacherId
+        OR c.id IN (
+            SELECT lc.courseId FROM LearningClassJpaEntity lc
+            WHERE lc.id IN (
+                SELECT ct.classId FROM ClassTeacherJpaEntity ct
+                WHERE ct.teacherId = :teacherId
+            )
+        )
+    """)
+    Page<CourseJpaEntity> findByTeacherIdIncludingCoTeaching(@Param("teacherId") UUID teacherId, Pageable pageable);
+
     Page<CourseJpaEntity> findByStatus(CourseJpaEntity.CourseStatus status, Pageable pageable);
 
     @Query(value = "SELECT * FROM courses c WHERE c.status = :status AND unaccent(LOWER(c.title)) LIKE unaccent(LOWER(CONCAT('%', :search, '%')))", nativeQuery = true)

@@ -1,0 +1,134 @@
+<div class="org-list-page">
+  <div class="org-list-inner">
+    <!-- Header -->
+    <div class="page-header">
+      <div class="page-header-text">
+        <h1>Quản lý tổ chức</h1>
+        <p>Quản lý các tổ chức, thành viên và lời mời</p>
+      </div>
+      <button (click)="showCreateForm.set(!showCreateForm())" class="btn-primary">
+        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+        Tạo tổ chức
+      </button>
+    </div>
+
+    <!-- Create Form (inline card) -->
+    @if (showCreateForm()) {
+      <div class="create-form-card">
+        <div class="create-form-header">
+          <h3>Tạo tổ chức mới</h3>
+          <button (click)="showCreateForm.set(false)" class="btn-close">
+            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="form-grid">
+          <div>
+            <label for="create-name" class="form-label">Tên tổ chức <span class="required">*</span></label>
+            <input #orgName id="create-name" type="text" placeholder="VD: Đại học Hàng hải Việt Nam"
+                   class="form-input">
+          </div>
+          <div>
+            <label for="create-code" class="form-label">Mã tổ chức <span class="required">*</span></label>
+            <input #orgCode id="create-code" type="text" placeholder="VD: VMU" maxlength="50"
+                   class="form-input form-input-uppercase">
+            <p class="form-hint">2-50 ký tự, dùng để định danh tổ chức</p>
+          </div>
+          <div class="form-field-full">
+            <label for="create-desc" class="form-label">Mô tả</label>
+            <textarea #orgDesc id="create-desc" rows="2" placeholder="Mô tả ngắn về tổ chức (không bắt buộc)"
+                      class="form-textarea"></textarea>
+          </div>
+          <div>
+            <label for="create-expiry" class="form-label">Thời hạn token (ngày)</label>
+            <input #orgExpiry id="create-expiry" type="number" value="30" min="7" max="730"
+                   class="form-input">
+            <p class="form-hint">7 - 730 ngày. Thời gian token đăng nhập hợp lệ</p>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button (click)="createOrg(orgName.value, orgCode.value, orgDesc.value, +orgExpiry.value)"
+                  [disabled]="isCreating()"
+                  class="btn-primary">
+            @if (isCreating()) {
+              <svg class="spinner-icon" fill="none" viewBox="0 0 24 24">
+                <circle opacity="0.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path opacity="0.75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Đang tạo...
+            } @else {
+              Tạo tổ chức
+            }
+          </button>
+          <button (click)="showCreateForm.set(false)" class="btn-ghost">
+            Hủy
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- Loading -->
+    @if (isLoading()) {
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Đang tải danh sách tổ chức...</p>
+      </div>
+    } @else {
+      <!-- Org List -->
+      <div class="org-grid">
+        @for (org of organizations(); track org.id) {
+          <a [routerLink]="['/admin/organizations', org.id]" class="org-card">
+            <div class="org-card-row">
+              <div class="org-card-left">
+                <div class="org-avatar" [class.org-avatar--active]="org.enabled" [class.org-avatar--disabled]="!org.enabled">
+                  {{ org.code.substring(0, 2) }}
+                </div>
+                <div class="org-info">
+                  <div class="org-name">{{ org.name }}</div>
+                  <div class="org-meta">
+                    <span class="org-code">{{ org.code }}</span>
+                    <span class="dot-separator">&middot;</span>
+                    <span>Token: {{ org.tokenExpiryDays }} ngày</span>
+                  </div>
+                </div>
+              </div>
+              <div class="org-card-right">
+                @if (org.enabled) {
+                  <span class="badge badge--active">Hoạt động</span>
+                } @else {
+                  <span class="badge badge--disabled">Vô hiệu</span>
+                }
+                <svg class="chevron-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+              </div>
+            </div>
+            @if (org.description) {
+              <p class="org-description">{{ org.description }}</p>
+            }
+          </a>
+        } @empty {
+          <!-- Empty State -->
+          <div class="empty-state">
+            <div class="empty-icon-wrapper">
+              <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+              </svg>
+            </div>
+            <h3 class="empty-title">Chưa có tổ chức nào</h3>
+            <p class="empty-desc">Tạo tổ chức đầu tiên để bắt đầu quản lý thành viên</p>
+            <button (click)="showCreateForm.set(true)" class="btn-primary">
+              <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              Tạo tổ chức đầu tiên
+            </button>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

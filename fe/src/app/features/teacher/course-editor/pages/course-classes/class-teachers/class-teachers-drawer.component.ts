@@ -50,10 +50,12 @@ interface TeacherSearchResult {
 
           <!-- Search Results -->
           @if (searchResults().length > 0) {
-          <div class="bg-white border border-slate-200 rounded-lg divide-y divide-slate-100 max-h-48 overflow-y-auto">
+          <div class="bg-white border border-slate-200 rounded-lg divide-y divide-slate-100 max-h-48 overflow-y-auto"
+               role="listbox" aria-label="Kết quả tìm kiếm giảng viên">
             @for (teacher of searchResults(); track teacher.id) {
-            <button type="button" (click)="addTeacher(teacher)"
-              class="flex items-center gap-3 w-full px-3 py-2.5 text-left hover:bg-blue-50 transition-colors">
+            <button type="button" (click)="addTeacher(teacher)" role="option"
+              class="flex items-center gap-3 w-full px-3 py-2.5 text-left hover:bg-blue-50 transition-colors"
+              [attr.aria-label]="'Thêm ' + teacher.fullName">
               <div class="w-8 h-8 rounded-lg bg-[#0056D2]/10 flex items-center justify-center text-[#0056D2] text-xs font-bold shrink-0">
                 {{ getInitials(teacher.fullName) }}
               </div>
@@ -81,7 +83,7 @@ interface TeacherSearchResult {
           </label>
 
           @if (isLoadingTeachers()) {
-          <div class="py-8 flex justify-center">
+          <div class="py-8 flex justify-center" role="status" aria-label="Đang tải danh sách giảng viên">
             <div class="w-6 h-6 border-2 border-slate-200 border-t-[#0056D2] rounded-full animate-spin"></div>
           </div>
           } @else if (teachers().length === 0) {
@@ -111,6 +113,7 @@ interface TeacherSearchResult {
               @if (teacher.role !== 'PRIMARY') {
               <button type="button" (click)="removeTeacher(teacher)"
                 class="w-7 h-7 flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                [attr.aria-label]="'Xóa ' + teacher.teacherName + ' khỏi lớp'"
                 title="Xóa khỏi lớp">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -191,16 +194,12 @@ export class ClassTeachersDrawerComponent {
 
     this.searchTimeout = setTimeout(() => {
       this.isSearching.set(true);
-      this.api.get<any>(`/api/v3/users/instructors`).subscribe({
+      this.api.get<any>(`/api/v3/users/search?q=${encodeURIComponent(query)}&role=TEACHER&size=10`).subscribe({
         next: (res: any) => {
           const existingIds = new Set(this.teachers().map(t => t.teacherId));
-          const lowerQuery = query.toLowerCase();
-          const filtered = (res?.data || [])
+          const items = res?.data?.content || res?.data || [];
+          const filtered = items
             .filter((t: any) => !existingIds.has(t.id))
-            .filter((t: any) =>
-              (t.fullName || '').toLowerCase().includes(lowerQuery) ||
-              (t.email || '').toLowerCase().includes(lowerQuery)
-            )
             .slice(0, 5)
             .map((t: any) => ({ id: t.id, fullName: t.fullName, email: t.email }));
           this.searchResults.set(filtered);

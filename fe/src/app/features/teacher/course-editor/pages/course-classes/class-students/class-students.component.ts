@@ -42,4 +42,9 @@ export class ClassStudentsComponent implements OnInit {
     openAddStudentDialog() {
         this.isDrawerOpen.set(true);
     }
+
+    getInitials(name: string): string {
+        if (!name) return '??';
+        return name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    }
 }

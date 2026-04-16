@@ -43,7 +43,8 @@ export class CourseApi {
           lessonCount: c.lessonCount ?? 0,
           categoryName: c.categoryName,
           updatedAt: c.updatedAt,
-          maxStudents: c.maxStudents
+          maxStudents: c.maxStudents,
+          teacherRole: c.teacherRole
         }));
         return {
           data: content,

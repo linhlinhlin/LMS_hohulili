@@ -328,6 +328,15 @@ export class WiiiContextService implements OnDestroy {
       };
     }
 
+    // ── Quiz result: /student/quiz/result ──
+    if (path.match(/\/quiz\/result$/)) {
+      return {
+        page_type: 'quiz',
+        page_title: 'Kết quả bài kiểm tra',
+        content_type: 'quiz_result',
+      };
+    }
+
     // ── Course detail: /student/course/:id ──
     const courseDetailMatch = path.match(/\/student\/course\/([^\/]+)/);
     if (courseDetailMatch) {
@@ -1358,19 +1367,22 @@ export class WiiiContextService implements OnDestroy {
       case 'capture_screenshot':
         return this.captureScreenshot(String(params['selector'] || 'main'));
       case 'navigation.go_to': {
-        const url = String(params['url'] || params['route'] || '').trim();
-        if (url) {
-          await this.router.navigateByUrl(url);
-          return { success: true, data: { navigated: true, url } };
+        const target = String(params['target'] || '').trim();
+        const route = String(params['route'] || '').trim();
+        const url = String(params['url'] || '').trim();
+        const semanticTarget = target || (this.isSemanticNavigationTarget(route) ? route : '');
+        if (semanticTarget) {
+          const navigated = this.navigateByTarget(semanticTarget);
+          if (navigated) {
+            return { success: true, data: { navigated: true, target: semanticTarget } };
+          }
+          throw new Error(`Unsupported navigation target: ${semanticTarget}`);
         }
 
-        const target = String(params['target'] || '').trim();
-        if (target) {
-          const navigated = this.navigateByTarget(target);
-          if (navigated) {
-            return { success: true, data: { navigated: true, target } };
-          }
-          throw new Error(`Unsupported navigation target: ${target}`);
+        const destination = url || route;
+        if (destination) {
+          await this.router.navigateByUrl(destination);
+          return { success: true, data: { navigated: true, url: destination } };
         }
 
         throw new Error('Missing route');
@@ -1473,6 +1485,22 @@ export class WiiiContextService implements OnDestroy {
             payload.content_snippet
             || this.buildSnippet(structured.content_text || structured.lesson_title),
         };
+      case 'quiz_result':
+        {
+          const quizSummary = this.buildQuizResultContextSummary(structured);
+          const firstQuestion = structured.questions[0];
+          return {
+            ...payload,
+            page_title: this.preferSpecificTitle(
+              payload.page_title,
+              structured.quiz_title,
+              ['bai_kiem_tra', 'ket_qua_bai_kiem_tra'],
+            ),
+            content_type: payload.content_type || 'quiz_result',
+            content_snippet: payload.content_snippet || this.buildSnippet(quizSummary, 1600),
+            quiz_question: payload.quiz_question || firstQuestion?.question_text || undefined,
+          };
+        }
       case 'course_overview':
         return {
           ...payload,
@@ -1511,6 +1539,37 @@ export class WiiiContextService implements OnDestroy {
     return parts.filter((part) => part.length > 0).join('\n');
   }
 
+  private buildQuizResultContextSummary(
+    structured: Extract<PageStructuredData, { _type: 'quiz_result' }>,
+  ): string {
+    const parts = [
+      structured.quiz_title ? `Ket qua quiz: ${structured.quiz_title}` : '',
+      structured.score !== null && structured.max_score !== null
+        ? `Diem: ${structured.score}/${structured.max_score} (${structured.score_percent}%)`
+        : '',
+      structured.passing_score !== null ? `Moc dat: ${structured.passing_score}%` : '',
+      structured.passed === true ? 'Trang thai: Dat yeu cau' : '',
+      structured.passed === false ? 'Trang thai: Chua dat' : '',
+      structured.total_questions ? `Tong so cau: ${structured.total_questions}` : '',
+      structured.correct_answers || structured.incorrect_answers
+        ? `Ket qua tung cau: ${structured.correct_answers} dung, ${structured.incorrect_answers} sai`
+        : '',
+    ];
+
+    const questionLines = structured.questions.slice(0, 3).map((question) => {
+      const details = [
+        question.question_text ? `Cau ${question.index}: ${question.question_text}` : '',
+        question.selected_option ? `Ban chon: ${question.selected_option}` : '',
+        question.correct_option ? `Dap an dung: ${question.correct_option}` : '',
+      ].filter((value) => value.length > 0);
+      return details.join(' | ');
+    });
+
+    return [...parts, ...questionLines]
+      .filter((value) => value.length > 0)
+      .join('\n');
+  }
+
   private preferSpecificTitle(
     current: string | undefined,
     candidate: string | undefined,
@@ -1546,6 +1605,11 @@ export class WiiiContextService implements OnDestroy {
     }
 
     return false;
+  }
+
+  private isSemanticNavigationTarget(value: string): boolean {
+    const normalized = this.normalizeNavigationTarget(value);
+    return ['next_lesson', 'next', 'previous_lesson', 'previous', 'back'].includes(normalized);
   }
 
   private clickButtonByText(candidates: string[]): boolean {

@@ -148,7 +148,9 @@ public class UserControllerV3 {
             @RequestParam(defaultValue = "10") int limit,
             @org.springframework.security.core.annotation.AuthenticationPrincipal UserJpaEntity currentUser
     ) {
-        PageRequest pageable = PageRequest.of(Math.max(0, page - 1), limit);
+        // OWASP: Cap page size to prevent bulk enumeration
+        int safeLimit = Math.min(Math.max(1, limit), 50);
+        PageRequest pageable = PageRequest.of(Math.max(0, page - 1), safeLimit);
 
         boolean hasRole = role != null && !role.isBlank();
         boolean hasSearch = q != null && !q.isBlank();
@@ -199,8 +201,27 @@ public class UserControllerV3 {
             }
         }
 
-        Page<UserResponse> response = users.map(this::toResponse);
+        // OWASP: Mask email for non-admin callers (prevent email enumeration)
+        boolean maskEmail = currentUser != null && currentUser.getRole() == UserJpaEntity.UserRole.TEACHER;
+        Page<UserResponse> response = users.map(u -> {
+            UserResponse r = toResponse(u);
+            if (maskEmail) {
+                r.setEmail(maskEmail(u.getEmail()));
+            }
+            return r;
+        });
         return ResponseEntity.ok(ApiResponse.success(response, "Tìm thấy người dùng"));
+    }
+
+    /** Mask email: "teacher@maritime.edu" → "te*****@maritime.edu" */
+    private String maskEmail(String email) {
+        if (email == null || !email.contains("@")) return "***@***.***";
+        String[] parts = email.split("@");
+        String local = parts[0];
+        String masked = local.length() <= 2
+                ? local.charAt(0) + "*****"
+                : local.substring(0, 2) + "*****";
+        return masked + "@" + parts[1];
     }
 
     @Operation(summary = "Get all instructors")
@@ -218,7 +239,17 @@ public class UserControllerV3 {
                         .filter(user -> user.getRole() == UserJpaEntity.UserRole.TEACHER)
                         .toList()
                 : userRepository.findByRole(UserJpaEntity.UserRole.TEACHER);
-        List<UserResponse> response = instructors.stream().map(this::toResponse).toList();
+
+        // OWASP: Cap at 100 to prevent bulk enumeration, mask email for teachers
+        boolean maskEmails = currentUser != null && currentUser.getRole() == UserJpaEntity.UserRole.TEACHER;
+        List<UserResponse> response = instructors.stream()
+                .limit(100)
+                .map(u -> {
+                    UserResponse r = toResponse(u);
+                    if (maskEmails) r.setEmail(maskEmail(u.getEmail()));
+                    return r;
+                })
+                .toList();
         return ResponseEntity.ok(ApiResponse.success(response, "Danh sách giảng viên"));
     }
 

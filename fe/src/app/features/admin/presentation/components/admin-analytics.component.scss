@@ -1,0 +1,610 @@
+@use '../../../../../styles/variables' as *;
+
+/* ===== PAGE ===== */
+.analytics-page {
+  background: $bg-page;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ===== HEADER ===== */
+.header-bar {
+  background: white;
+  border-bottom: 1px solid $border-default;
+}
+
+.header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: $spacing-4 $spacing-6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-4;
+}
+
+.header-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.page-title {
+  font-size: $text-2xl;
+  font-weight: $font-bold;
+  color: $text-primary;
+  margin: 0 0 $spacing-1;
+  line-height: $leading-tight;
+
+  svg {
+    width: 24px;
+    height: 24px;
+    color: $blue-primary;
+    vertical-align: middle;
+    margin-right: $spacing-2;
+  }
+}
+
+.page-subtitle {
+  font-size: $text-sm;
+  color: $text-secondary;
+  margin: 0;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: $spacing-4;
+  flex-shrink: 0;
+}
+
+.last-updated {
+  text-align: right;
+}
+
+.last-updated-label {
+  font-size: $text-xs;
+  color: $text-secondary;
+  margin: 0;
+}
+
+.last-updated-time {
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  color: $text-primary;
+  margin: 0;
+}
+
+.btn-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-2;
+  padding: $spacing-2 $spacing-4;
+  background: $blue-primary;
+  color: white;
+  border: none;
+  border-radius: $radius-md;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  cursor: pointer;
+  transition: background $transition-normal;
+  @include focus-visible;
+
+  &:hover { background: $blue-hover; }
+  &:active { background: $blue-pressed; }
+
+  svg {
+    width: $icon-sm;
+    height: $icon-sm;
+  }
+}
+
+/* ===== MAIN ===== */
+.analytics-main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: $spacing-6;
+}
+
+/* ===== CONTENT GRID ===== */
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $spacing-5;
+  margin-bottom: $spacing-5;
+  min-width: 0;
+
+  &.grid-2-1 {
+    @include large-desktop { grid-template-columns: 2fr 1fr; }
+  }
+}
+
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-5;
+}
+
+/* ===== CARD BASE ===== */
+.card {
+  background: white;
+  border-radius: $radius-md;
+  border: 1px solid $border-default;
+  box-shadow: $shadow-sm;
+}
+
+.card-header {
+  padding: $spacing-4 $spacing-5;
+  border-bottom: 1px solid $border-light;
+}
+
+.card-title {
+  font-size: $text-base;
+  font-weight: $font-semibold;
+  color: $text-primary;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+
+  svg {
+    width: $icon-md;
+    height: $icon-md;
+    flex-shrink: 0;
+  }
+
+  &.title-green svg { color: $success; }
+  &.title-purple svg { color: #7C3AED; }
+  &.title-primary svg { color: $blue-primary; }
+}
+
+.card-body {
+  padding: $spacing-5;
+  overflow-x: auto;
+}
+
+/* ===== METRICS STRIP (Stripe pattern) ===== */
+.metrics-strip {
+  @extend .card;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  margin-bottom: $spacing-5;
+  overflow: hidden;
+
+  @include desktop { grid-template-columns: repeat(4, 1fr); }
+}
+
+.metric-cell {
+  padding: $spacing-4 $spacing-5;
+
+  &:nth-child(odd) { border-right: 1px solid $border-light; }
+  &:nth-child(-n+2) { border-bottom: 1px solid $border-light; }
+
+  @include desktop {
+    border-right: 1px solid $border-light;
+    border-bottom: none !important;
+    &:last-child { border-right: none; }
+  }
+}
+
+.metric-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: $radius-lg;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: $spacing-3;
+
+  svg {
+    width: $icon-lg;
+    height: $icon-lg;
+  }
+
+  &.icon-primary {
+    background: rgba($blue-primary, 0.1);
+    svg { color: $blue-primary; }
+  }
+
+  &.icon-purple {
+    background: #F3E8FF;
+    svg { color: #7C3AED; }
+  }
+
+  &.icon-green {
+    background: $success-light;
+    svg { color: $success; }
+  }
+}
+
+.metric-value {
+  font-size: $text-xl;
+  font-weight: $font-bold;
+  color: $text-primary;
+  line-height: 1.2;
+  margin: 0 0 2px;
+}
+
+.metric-label {
+  font-size: $text-xs;
+  color: $text-muted;
+  margin: 0;
+}
+
+.metric-sub {
+  font-size: 11px;
+  color: $gray-400;
+  margin: $spacing-1 0 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  &.sub-primary { color: $blue-primary; }
+  &.sub-purple { color: #7C3AED; }
+  &.sub-green { color: $success; }
+}
+
+/* ===== REVENUE SECTION ===== */
+.revenue-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $spacing-5;
+
+  @include tablet { grid-template-columns: repeat(3, 1fr); }
+}
+
+.revenue-stat {
+  text-align: center;
+}
+
+.revenue-value {
+  font-size: $text-xl;
+  font-weight: $font-bold;
+  line-height: 1.2;
+  margin: 0 0 $spacing-1;
+
+  &.value-green { color: $success; }
+  &.value-primary { color: $blue-primary; }
+  &.value-purple { color: #7C3AED; }
+}
+
+.revenue-label {
+  font-size: $text-sm;
+  color: $text-muted;
+  margin: 0;
+}
+
+/* ===== COURSE STATS ===== */
+.course-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-5;
+
+  @include tablet { grid-template-columns: repeat(4, 1fr); }
+}
+
+.course-stat {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: $text-xl;
+  font-weight: $font-bold;
+  line-height: 1.2;
+  margin: 0 0 $spacing-1;
+
+  &.value-warning { color: $warning; }
+  &.value-green { color: $success; }
+  &.value-red { color: $error; }
+  &.value-primary { color: $blue-primary; }
+}
+
+.stat-label {
+  font-size: $text-sm;
+  color: $text-muted;
+  margin: 0;
+}
+
+/* ===== HEALTH CARD ===== */
+.health-list {
+  padding: $spacing-4 $spacing-5;
+}
+
+.health-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-3;
+  padding: $spacing-3 0;
+  border-bottom: 1px solid $border-light;
+
+  &:last-child { border-bottom: none; }
+}
+
+.health-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: $gray-300;
+
+  &.healthy { background: $success; box-shadow: 0 0 0 3px rgba($success, 0.15); }
+  &.error { background: $error; box-shadow: 0 0 0 3px rgba($error, 0.15); }
+  &.warn { background: $warning; box-shadow: 0 0 0 3px rgba($warning, 0.15); }
+}
+
+.health-name {
+  flex: 1;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $gray-700;
+}
+
+.health-status {
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  padding: 3px 10px;
+  border-radius: $radius-sm;
+
+  &.status-ok { background: $success-light; color: $success; }
+  &.status-err { background: $error-light; color: $error; }
+  &.status-warn { background: $warning-light; color: $warning; }
+}
+
+/* ===== GROWTH CARD ===== */
+.growth-list {
+  padding: $spacing-4 $spacing-5;
+}
+
+.growth-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-3 0;
+  border-bottom: 1px solid $border-light;
+
+  &:last-child { border-bottom: none; }
+}
+
+.growth-label {
+  font-size: $text-sm;
+  color: $text-secondary;
+  margin: 0;
+}
+
+.growth-value {
+  font-size: $text-lg;
+  font-weight: $font-semibold;
+  color: $text-primary;
+  margin: 0;
+
+  &.value-green { color: $success; }
+}
+
+/* ===== PROGRESS BAR ===== */
+.progress-track {
+  width: 100%;
+  height: 8px;
+  background: $progress-bg;
+  border-radius: $radius-full;
+  overflow: hidden;
+
+  &.track-thin { height: $progress-height; }
+}
+
+.progress-fill {
+  height: 100%;
+  background: $progress-fill;
+  border-radius: $radius-full;
+  transition: width $transition-slow;
+}
+
+/* ===== ACTIVE USERS CARD ===== */
+.active-users-body {
+  padding: $spacing-5;
+  text-align: center;
+}
+
+.active-count {
+  font-size: $text-3xl;
+  font-weight: $font-bold;
+  color: $blue-primary;
+  margin: 0 0 $spacing-1;
+}
+
+.active-label {
+  font-size: $text-sm;
+  color: $text-muted;
+  margin: 0 0 $spacing-4;
+}
+
+.active-percent {
+  font-size: $text-xs;
+  color: $text-muted;
+  margin: $spacing-2 0 0;
+}
+
+/* ===== SKELETON ===== */
+.skeleton-strip {
+  @extend .card;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  overflow: hidden;
+  margin-bottom: $spacing-5;
+
+  @include desktop { grid-template-columns: repeat(4, 1fr); }
+}
+
+.skeleton-cell {
+  padding: $spacing-4 $spacing-5;
+
+  &:nth-child(odd) { border-right: 1px solid $border-light; }
+  &:nth-child(-n+2) { border-bottom: 1px solid $border-light; }
+
+  @include desktop {
+    border-right: 1px solid $border-light;
+    border-bottom: none !important;
+    &:last-child { border-right: none; }
+  }
+}
+
+.skeleton-card {
+  @extend .card;
+  padding: $spacing-5;
+}
+
+.sk { background: $gray-200; border-radius: 4px; }
+.sk-light { background: $gray-100; border-radius: 4px; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ===== RESPONSIVE ===== */
+
+// Tablet
+@media screen and (max-width: $breakpoint-md) {
+  .analytics-main { padding: $spacing-5 $spacing-4; }
+  .header-inner { padding: $spacing-3 $spacing-4; }
+
+  .revenue-value, .stat-value { font-size: $text-lg; }
+}
+
+// Mobile
+@media screen and (max-width: $breakpoint-sm) {
+  .analytics-main { padding: $spacing-3 $spacing-3; }
+  .header-inner {
+    padding: $spacing-3;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-3;
+  }
+
+  .header-right { width: 100%; justify-content: space-between; }
+
+  .page-title { font-size: $text-lg; }
+  .page-subtitle { font-size: $text-xs; }
+
+  .metric-cell { padding: 10px $spacing-3; }
+  .metric-value { font-size: 17px; }
+  .metric-label { font-size: 11px; }
+  .metric-sub { display: none; }
+  .metric-icon { width: 32px; height: 32px; svg { width: $icon-md; height: $icon-md; } }
+
+  .card-header { padding: $spacing-3 $spacing-4; }
+  .card-body { padding: $spacing-3 $spacing-4; }
+  .card-title { font-size: $text-sm; }
+
+  .health-list { padding: $spacing-3; }
+  .health-name { font-size: 13px; }
+
+  .growth-list { padding: $spacing-3; }
+
+  .active-users-body { padding: $spacing-3; }
+  .active-count { font-size: $text-2xl; }
+
+  .content-grid { gap: $spacing-3; margin-bottom: $spacing-3; }
+  .right-column { gap: $spacing-3; }
+
+  .revenue-value { font-size: $text-lg; }
+  .stat-value { font-size: $text-lg; }
+
+  .course-stats-grid { gap: $spacing-3; }
+  .revenue-grid { gap: $spacing-3; }
+}
+
+// Ultra-small (<340px)
+@media screen and (max-width: 340px) {
+  .analytics-main { padding: $spacing-3 $spacing-2; }
+  .metric-cell { padding: 8px 10px; }
+  .metric-value { font-size: 16px; }
+  .metric-label { font-size: 10px; }
+
+  .card-header { padding: $spacing-2 $spacing-3; }
+  .card-body { padding: $spacing-2 $spacing-3; }
+
+  .active-count { font-size: $text-xl; }
+}
+
+/* ===== PRINT (A4 -- clean report) ===== */
+@media print {
+  :host { display: block; }
+
+  .analytics-page {
+    background: white !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  .header-bar {
+    border-bottom: 2px solid $text-primary;
+  }
+
+  .header-inner {
+    padding: 8px 0 6px !important;
+    max-width: 100% !important;
+  }
+
+  .page-title { font-size: 18px !important; }
+  .btn-refresh { display: none !important; }
+  .last-updated { display: none !important; }
+
+  .analytics-main {
+    padding: 10px 0 0 !important;
+    max-width: 100% !important;
+  }
+
+  // Cards: no shadow, thin border
+  .card, .metrics-strip {
+    box-shadow: none !important;
+    border: 1px solid $gray-300 !important;
+    border-radius: 2px !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  // Metrics: 4-col always
+  .metrics-strip {
+    grid-template-columns: repeat(4, 1fr) !important;
+    margin-bottom: 10px !important;
+  }
+  .metric-cell {
+    padding: 8px 12px !important;
+    border-bottom: none !important;
+    border-right: 1px solid $gray-300;
+    &:last-child { border-right: none; }
+  }
+  .metric-sub { display: flex !important; }
+  .metric-value { font-size: 16px !important; }
+
+  // Grid: single column
+  .content-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    margin-bottom: 10px !important;
+  }
+
+  // Hide skeleton
+  .skeleton-strip, .skeleton-card { display: none !important; }
+
+  // Health: compact
+  .health-list { padding: 8px 12px !important; }
+  .health-item { padding: 6px 0 !important; }
+
+  // Growth: compact
+  .growth-list { padding: 8px 12px !important; }
+
+  // Print colors
+  .health-dot, .health-status, .metric-value, .revenue-value, .stat-value {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

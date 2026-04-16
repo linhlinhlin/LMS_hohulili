@@ -1,0 +1,552 @@
+@use '../../../../../../../../styles/variables' as *;
+
+/* ===== MODAL BACKDROP ===== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: $z-modal-backdrop;
+  overflow-y: auto;
+  background: rgba(75, 85, 99, 0.5);
+}
+
+.modal-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: $spacing-4 $spacing-4 5rem;
+  text-align: center;
+
+  @include tablet {
+    display: block;
+    padding: 0;
+  }
+}
+
+.modal-panel {
+  display: inline-block;
+  vertical-align: bottom;
+  background: $bg-surface;
+  border-radius: $radius-lg;
+  text-align: left;
+  overflow: hidden;
+  box-shadow: $shadow-xl;
+  transform: translateY(0);
+  transition: transform $transition-slow;
+  width: 100%;
+
+  @include tablet {
+    vertical-align: middle;
+    margin: $spacing-8 auto;
+    max-width: 42rem;
+  }
+}
+
+/* ===== MODAL BODY ===== */
+.modal-body-wrapper {
+  background: $bg-surface;
+  padding: $spacing-4 $spacing-4 $spacing-4;
+
+  @include tablet {
+    padding: $spacing-6 $spacing-6 $spacing-4;
+  }
+}
+
+.modal-content-row {
+  @include tablet {
+    display: flex;
+    align-items: flex-start;
+  }
+}
+
+.modal-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: $radius-full;
+  background: rgba($blue-primary, 0.1);
+  flex-shrink: 0;
+  margin: 0 auto;
+
+  @include tablet {
+    margin: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+
+.modal-icon {
+  width: $icon-lg;
+  height: $icon-lg;
+  color: $blue-primary;
+}
+
+.modal-content-area {
+  margin-top: $spacing-3;
+  text-align: center;
+  width: 100%;
+
+  @include tablet {
+    margin-top: 0;
+    margin-left: $spacing-4;
+    text-align: left;
+  }
+}
+
+.modal-title {
+  font-size: $text-lg;
+  line-height: $leading-tight;
+  font-weight: $font-medium;
+  color: $text-primary;
+  margin: 0 0 $spacing-4;
+}
+
+/* ===== INFO NOTE ===== */
+.info-note {
+  background: rgba($blue-primary, 0.05);
+  border: 1px solid rgba($blue-primary, 0.2);
+  border-radius: $radius-lg;
+  padding: $spacing-4;
+  margin-bottom: $spacing-4;
+}
+
+.info-note-inner {
+  display: flex;
+  align-items: flex-start;
+}
+
+.info-icon {
+  width: $icon-md;
+  height: $icon-md;
+  color: $blue-primary;
+  margin-right: $spacing-2;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.info-content {
+  font-size: $text-sm;
+  color: $blue-hover;
+}
+
+.info-heading {
+  font-weight: $font-medium;
+  margin: 0 0 $spacing-2;
+}
+
+.info-list {
+  list-style: disc;
+  padding-left: $spacing-5;
+  margin: 0 0 $spacing-3;
+  font-size: $text-xs;
+
+  li {
+    margin-bottom: $spacing-1;
+  }
+}
+
+.password-note {
+  background: rgba($blue-primary, 0.1);
+  border: 1px solid rgba($blue-primary, 0.3);
+  border-radius: $radius-sm;
+  padding: $spacing-2;
+  margin-bottom: $spacing-2;
+}
+
+.password-note-title {
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  margin: 0;
+}
+
+.password-note-bold {
+  font-weight: $font-bold;
+}
+
+.password-note-desc {
+  font-size: $text-xs;
+  margin: $spacing-1 0 0;
+}
+
+.info-hint {
+  font-size: $text-xs;
+  color: $blue-hover;
+  margin: 0 0 $spacing-2;
+}
+
+.template-link {
+  background: none;
+  border: none;
+  color: $blue-primary;
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    color: $blue-hover;
+  }
+}
+
+/* ===== FORM FIELD ===== */
+.form-field {
+  margin-bottom: $spacing-4;
+}
+
+.form-label {
+  display: block;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $gray-700;
+  margin-bottom: $spacing-2;
+}
+
+.form-select {
+  width: 100%;
+  padding: $spacing-2 $spacing-3;
+  font-size: $text-sm;
+  border: 1px solid $border-dark;
+  border-radius: $radius-md;
+  background: $bg-surface;
+  color: $text-primary;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: $blue-primary;
+    box-shadow: 0 0 0 2px rgba($blue-primary, 0.2);
+  }
+}
+
+.form-hint {
+  font-size: $text-xs;
+  color: $text-muted;
+  margin: $spacing-1 0 0;
+}
+
+/* ===== UPLOAD SECTION ===== */
+.upload-section {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-4;
+}
+
+.upload-dropzone {
+  margin-top: $spacing-1;
+  display: flex;
+  justify-content: center;
+  padding: $spacing-6 $spacing-6;
+  border: 2px dashed $border-dark;
+  border-radius: $radius-md;
+  transition: border-color $transition-normal;
+
+  &:hover {
+    border-color: $blue-primary;
+  }
+}
+
+.upload-preview {
+  text-align: center;
+}
+
+.upload-success-icon {
+  margin: 0 auto;
+  width: 3rem;
+  height: 3rem;
+  color: $success;
+}
+
+.upload-file-info {
+  margin-top: $spacing-4;
+}
+
+.upload-filename {
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $text-primary;
+  margin: 0;
+}
+
+.upload-filesize {
+  font-size: $text-xs;
+  color: $text-muted;
+  margin: $spacing-1 0 0;
+}
+
+.upload-change-btn {
+  margin-top: $spacing-2;
+  background: none;
+  border: none;
+  color: $error;
+  font-size: $text-sm;
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:hover {
+    color: $error;
+  }
+}
+
+.upload-placeholder {
+  text-align: center;
+}
+
+.upload-placeholder-icon {
+  margin: 0 auto;
+  width: 3rem;
+  height: 3rem;
+  color: $gray-400;
+}
+
+.upload-text {
+  margin-top: $spacing-4;
+}
+
+.upload-label {
+  cursor: pointer;
+}
+
+.upload-label-primary {
+  display: block;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $text-primary;
+}
+
+.upload-label-action {
+  display: block;
+  margin-top: $spacing-1;
+  font-size: $text-sm;
+  color: $blue-primary;
+
+  &:hover {
+    color: $blue-hover;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ===== PROGRESS ===== */
+.progress-section {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2;
+}
+
+.progress-step {
+  font-size: $text-sm;
+  color: $text-secondary;
+}
+
+.progress-track {
+  width: 100%;
+  background: $gray-200;
+  border-radius: $radius-full;
+  height: $progress-height;
+  overflow: hidden;
+}
+
+.progress-fill {
+  background: $blue-primary;
+  height: $progress-height;
+  border-radius: $radius-full;
+  transition: width $transition-slow;
+}
+
+/* ===== IMPORT RESULTS ===== */
+.import-results {
+  background: $gray-50;
+  border-radius: $radius-lg;
+  padding: $spacing-4;
+}
+
+.results-title {
+  font-weight: $font-medium;
+  color: $text-primary;
+  margin: 0 0 $spacing-2;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $spacing-4;
+  font-size: $text-sm;
+}
+
+.result-cell {
+  text-align: center;
+}
+
+.result-value {
+  font-size: $text-2xl;
+  font-weight: $font-bold;
+
+  &--total {
+    color: $blue-primary;
+  }
+
+  &--success {
+    color: $success;
+  }
+
+  &--error {
+    color: $error;
+  }
+}
+
+.result-label {
+  color: $text-secondary;
+}
+
+.error-details {
+  margin-top: $spacing-4;
+}
+
+.error-details-title {
+  font-weight: $font-medium;
+  color: $error;
+  margin: 0 0 $spacing-2;
+}
+
+.error-details-box {
+  background: $error-light;
+  border: 1px solid $error-light;
+  border-radius: $radius-sm;
+  padding: $spacing-3;
+  max-height: 8rem;
+  overflow-y: auto;
+}
+
+.error-list {
+  font-size: $text-xs;
+  color: $error;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  li {
+    margin-bottom: $spacing-1;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+/* ===== MODAL FOOTER ===== */
+.modal-footer {
+  background: $gray-50;
+  padding: $spacing-3 $spacing-4;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: $spacing-3;
+
+  @include tablet {
+    padding: $spacing-3 $spacing-6;
+    flex-direction: row-reverse;
+    gap: $spacing-3;
+  }
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: $spacing-2 $spacing-4;
+  font-size: $text-base;
+  font-weight: $font-medium;
+  color: $text-inverse;
+  background: $blue-primary;
+  border: 1px solid transparent;
+  border-radius: $radius-md;
+  box-shadow: $shadow-sm;
+  cursor: pointer;
+  transition: background $transition-normal;
+
+  @include tablet {
+    width: auto;
+    font-size: $text-sm;
+    margin-left: $spacing-3;
+  }
+
+  &:hover {
+    background: $blue-hover;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  @include focus-visible;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: $spacing-2 $spacing-4;
+  font-size: $text-base;
+  font-weight: $font-medium;
+  color: $gray-700;
+  background: $bg-surface;
+  border: 1px solid $border-dark;
+  border-radius: $radius-md;
+  box-shadow: $shadow-sm;
+  cursor: pointer;
+  transition: background $transition-normal;
+
+  @include tablet {
+    width: auto;
+    font-size: $text-sm;
+    margin-top: 0;
+  }
+
+  &:hover {
+    background: $gray-50;
+  }
+
+  @include focus-visible;
+}
+
+.btn-spinner {
+  animation: spin 1s linear infinite;
+  margin-left: -0.25rem;
+  margin-right: $spacing-2;
+  width: $icon-sm;
+  height: $icon-sm;
+  color: $text-inverse;
+}
+
+.spinner-track {
+  opacity: 0.25;
+}
+
+.spinner-fill {
+  opacity: 0.75;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ===== PRINT ===== */
+@media print {
+  :host { display: none; }
+}

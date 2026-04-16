@@ -1,58 +1,118 @@
-<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 m-4">
-    <div class="flex justify-between items-center mb-6">
-        <h2 class="text-xl font-bold text-gray-900">Danh sách Học viên</h2>
-        <div class="space-x-2">
-            <button (click)="goBack()"
-                class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
-                Quay lại
-            </button>
-            <button (click)="openAddStudentDialog()"
-                class="px-4 py-2 bg-[#0056D2] text-white rounded-md hover:bg-[#004BB5]">
-                + Thêm Học viên
-            </button>
+<div class="min-h-screen bg-slate-50">
+  <!-- Header -->
+  <div class="bg-white border-b border-slate-200 sticky top-0 z-10">
+    <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button (click)="goBack()"
+          class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          aria-label="Quay lại">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <div>
+          <h1 class="text-base font-bold text-slate-900">Danh sách học viên</h1>
+          <p class="text-[11px] text-slate-400 mt-0.5">Quản lý học viên trong lớp học</p>
         </div>
+      </div>
+      <button (click)="openAddStudentDialog()"
+        class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#0056D2] text-white text-sm font-semibold rounded-lg hover:bg-[#004BB5] transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+        </svg>
+        Thêm học viên
+      </button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="max-w-5xl mx-auto px-6 py-6">
+    <!-- Stats Bar -->
+    <div class="flex items-center gap-4 mb-5">
+      <div class="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg">
+        <div class="w-7 h-7 bg-[#0056D2]/10 rounded-lg flex items-center justify-center">
+          <svg class="w-4 h-4 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+          </svg>
+        </div>
+        <span class="text-sm text-slate-500">Tổng:</span>
+        <span class="text-sm font-bold text-slate-800 tabular-nums">{{ students().length }}</span>
+      </div>
     </div>
 
-    <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Họ và Tên
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày tham
-                        gia</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tiến độ
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng
-                        thái</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                @for (s of students(); track s.id) {
-                <tr>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ s.fullName }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ s.email }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ s.enrolledAt | date:'dd/MM/yyyy' }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ s.progress }}%</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <span [class.bg-green-100]="s.status==='ACTIVE'" [class.text-green-800]="s.status==='ACTIVE'"
-                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                            {{ s.status }}
-                        </span>
-                    </td>
-                </tr>
+    <!-- Table Card -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50/80">
+              <th class="px-4 py-2.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Học viên</th>
+              <th class="px-4 py-2.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Email</th>
+              <th class="px-4 py-2.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Ngày ghi danh</th>
+              <th class="px-4 py-2.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Tiến độ</th>
+              <th class="px-4 py-2.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wide text-center">Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            @for (s of students(); track s.id) {
+            <tr class="hover:bg-[#0056D2]/[0.02] transition-colors">
+              <td class="px-4 py-3 whitespace-nowrap">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 bg-[#0056D2]/10 rounded-lg flex items-center justify-center text-[#0056D2] text-[11px] font-bold shrink-0">
+                    {{ getInitials(s.fullName || s.email || '') }}
+                  </div>
+                  <span class="text-sm font-medium text-slate-900">{{ s.fullName || 'Chưa cập nhật' }}</span>
+                </div>
+              </td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-500">{{ s.email }}</td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-500 tabular-nums">{{ s.enrolledAt | date:'dd/MM/yyyy' }}</td>
+              <td class="px-4 py-3 whitespace-nowrap">
+                <div class="flex items-center gap-2">
+                  <div class="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                    <div class="h-full bg-[#0056D2] rounded-full transition-all"
+                         [style.width.%]="s.progress || 0"></div>
+                  </div>
+                  <span class="text-xs font-medium text-slate-600 tabular-nums">{{ s.progress || 0 }}%</span>
+                </div>
+              </td>
+              <td class="px-4 py-3 whitespace-nowrap text-center">
+                @if (s.status === 'ACTIVE') {
+                <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full">
+                  Đang học
+                </span>
+                } @else if (s.status === 'COMPLETED') {
+                <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-bold text-[#0056D2] bg-[#0056D2]/10 border border-[#0056D2]/20 rounded-full">
+                  Hoàn thành
+                </span>
+                } @else if (s.status === 'DROPPED') {
+                <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200 rounded-full">
+                  Đã rời
+                </span>
+                } @else {
+                <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200 rounded-full">
+                  {{ s.status }}
+                </span>
                 }
-                @if (students().length === 0) {
-                <tr>
-                    <td colspan="5" class="px-6 py-4 text-center text-gray-500">Chưa có học viên nào.</td>
-                </tr>
-                }
-            </tbody>
+              </td>
+            </tr>
+            }
+
+            @if (students().length === 0) {
+            <tr>
+              <td colspan="5" class="px-4 py-16 text-center">
+                <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+                <p class="text-sm font-medium text-slate-500">Chưa có học viên nào</p>
+                <p class="text-xs text-slate-400 mt-1">Nhấn "Thêm học viên" để ghi danh học viên vào lớp</p>
+              </td>
+            </tr>
+            }
+          </tbody>
         </table>
+      </div>
     </div>
+  </div>
 </div>
 
 <!-- Enrollment Drawer -->

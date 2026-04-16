@@ -1,11 +1,13 @@
 package com.example.lms.learning_delivery.application.usecase;
 
 import com.example.lms.course_authoring.application.port.CoursePublicationPort;
+import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.ClassTeacherJpaRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.entity.ClassTeacherJpaEntity;
 import com.example.lms.shared.exception.BusinessRuleException;
+import com.example.lms.shared.exception.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,7 @@ public class CreateLearningClassUseCaseV3 {
     private final LearningClassRepository classRepository;
     private final CoursePublicationPort coursePublicationPort;
     private final ClassTeacherJpaRepository classTeacherJpaRepository;
+    private final UserJpaRepository userJpaRepository;
 
     public record CreateClassCommand(
         UUID courseId,
@@ -47,6 +50,12 @@ public class CreateLearningClassUseCaseV3 {
         if (command.code() != null && classRepository.existsByCode(command.code())) {
             throw new BusinessRuleException("CLASS_CODE_EXISTS",
                 "Mã lớp học đã tồn tại: " + command.code());
+        }
+
+        // Validate teacherId exists
+        if (command.teacherId() != null) {
+            userJpaRepository.findById(command.teacherId())
+                    .orElseThrow(() -> new EntityNotFoundException("Giảng viên", command.teacherId()));
         }
 
         // Determine schedule type

@@ -48,6 +48,7 @@ public class CourseEntityMapper {
         entity.setReviewComment(domain.getReviewComment());
         entity.setReviewedAt(domain.getReviewedAt());
         entity.setReviewedById(domain.getReviewedById());
+        entity.setPendingReleaseNotes(domain.getPendingReleaseNotes());
         return entity;
     }
 
@@ -150,6 +151,7 @@ public class CourseEntityMapper {
             setField(course, "reviewComment", entity.getReviewComment());
             setField(course, "reviewedAt", entity.getReviewedAt());
             setField(course, "reviewedById", entity.getReviewedById());
+            setField(course, "pendingReleaseNotes", entity.getPendingReleaseNotes());
 
             // Set timestamps from BaseEntity
             setField(course, "createdAt", entity.getCreatedAt());

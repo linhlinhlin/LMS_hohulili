@@ -4,6 +4,8 @@ import com.example.lms.course_authoring.application.dto.CourseResponse;
 import com.example.lms.course_authoring.application.port.CoursePublicationPort;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
+import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseReviewEventJpaEntity;
+import com.example.lms.course_authoring.infrastructure.persistence.repository.CourseReviewEventJpaRepository;
 import com.example.lms.shared.exception.EntityNotFoundException;
 import com.example.lms.shared.domain.event.DomainEventPublisher;
 import lombok.RequiredArgsConstructor;
@@ -24,22 +26,34 @@ public class ApproveCourseUseCase {
     private final CourseRepository courseRepository;
     private final DomainEventPublisher eventPublisher;
     private final CoursePublicationPort coursePublicationPort;
+    private final CourseReviewEventJpaRepository reviewEventRepository;
 
     @Transactional
     public CourseResponse execute(UUID courseId, UUID reviewerId, String comment) {
-        // Find course
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new EntityNotFoundException("Khóa học", courseId));
 
-        // Approve course (domain logic handles validation)
+        // Get release notes before approve clears them
+        String releaseNotes = course.getPendingReleaseNotes();
+
         course.approve(reviewerId, comment);
 
-        // Save course
+        // Clear pending release notes after approval
+        course.setPendingReleaseNotes(null);
+
         course = courseRepository.save(course);
 
-        coursePublicationPort.publish(course.getId(), reviewerId);
+        // Publish with release notes
+        coursePublicationPort.publish(course.getId(), reviewerId, releaseNotes);
 
-        // Publish domain events (CourseApprovedEvent will be received by Learning Delivery)
+        // Record audit event
+        reviewEventRepository.save(CourseReviewEventJpaEntity.builder()
+                .courseId(courseId)
+                .reviewerId(reviewerId)
+                .action("APPROVED")
+                .comment(comment)
+                .build());
+
         course.getDomainEvents().forEach(eventPublisher::publish);
         course.clearDomainEvents();
 

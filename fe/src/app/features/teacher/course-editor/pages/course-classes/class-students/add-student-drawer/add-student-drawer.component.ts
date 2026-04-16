@@ -31,7 +31,7 @@ interface EnrolledStudent {
         (onClose)="close()">
       
       <div class="space-y-6">
-        <mat-tab-group (selectedIndexChange)="onTabChange($event)">
+        <mat-tab-group [selectedIndex]="activeTabIndex()" (selectedIndexChange)="onTabChange($event)">
           <!-- Tab 1: Danh sách học viên hiện tại -->
           <mat-tab label="Danh sách học viên">
             <div class="pt-6 space-y-4">
@@ -247,6 +247,7 @@ export class AddStudentDrawerComponent {
     // Signal Inputs
     isOpen = input(false);
     classId = input('');
+    defaultTab = input(0);
 
     // Signal Outputs
     isOpenChange = output<boolean>();
@@ -283,9 +284,10 @@ export class AddStudentDrawerComponent {
     });
 
     constructor() {
-        // Load students when drawer opens
+        // Load students when drawer opens + switch to requested tab
         effect(() => {
             if (this.isOpen() && this.classId()) {
+                this.activeTabIndex.set(this.defaultTab());
                 this.loadEnrolledStudents();
             }
         });

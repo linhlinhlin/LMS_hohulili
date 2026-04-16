@@ -12,6 +12,7 @@ import { exportToCsv } from '../../../../shared/utils/csv-export';
   selector: 'app-course-management',
   imports: [RouterModule, FormsModule],
   templateUrl: './course-management.component.html',
+  styleUrl: './course-management.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CourseManagementComponent implements OnInit {
@@ -305,12 +306,12 @@ export class CourseManagementComponent implements OnInit {
 
   getStatusClass(status: string): string {
     switch (status?.toLowerCase()) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      case 'active': return 'bg-[#0056D2]/10 text-[#004BB5]';
-      case 'draft': return 'bg-gray-100 text-gray-600';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'pending': return 'badge badge-pending';
+      case 'approved': return 'badge badge-approved';
+      case 'rejected': return 'badge badge-rejected';
+      case 'active': return 'badge badge-active';
+      case 'draft': return 'badge badge-draft';
+      default: return 'badge badge-default';
     }
   }
 

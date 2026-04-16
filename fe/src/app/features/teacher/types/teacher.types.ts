@@ -28,6 +28,7 @@ export interface TeacherCourse {
   students?: number;
   createdAt: string;
   updatedAt: string;
+  teacherRole?: 'OWNER' | 'CO_TEACHER';
 }
 
 export interface TeacherStudent {

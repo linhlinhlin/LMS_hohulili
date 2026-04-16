@@ -56,6 +56,7 @@ public class ClassControllerV3 {
     private final UserJpaRepository userJpaRepository;
     private final JpaEnrollmentRepository enrollmentJpaRepository;
     private final ManageClassTeachersUseCase manageClassTeachersUseCase;
+    private final com.example.lms.learning_delivery.infrastructure.persistence.ClassTeacherJpaRepository classTeacherJpaRepository;
 
     // ================================================================================================
     // Course-scoped Class Listing (FE: ClassService)
@@ -125,8 +126,34 @@ public class ClassControllerV3 {
 
     private List<Map<String, Object>> mapClassSummaries(List<LearningClassJpaEntity> entities) {
         Map<UUID, String> teacherNames = resolveTeacherNames(entities);
+
+        // Batch-resolve publication info for version display
+        UUID latestPubId = null;
+        Integer latestPubNumber = null;
+        Map<UUID, Integer> pubNumberMap = new java.util.HashMap<>();
+        if (!entities.isEmpty()) {
+            UUID courseId = entities.get(0).getCourseId();
+            var latestPub = coursePublicationJpaRepository
+                    .findTopByCourseIdOrderByPublicationNumberDesc(courseId).orElse(null);
+            if (latestPub != null) {
+                latestPubId = latestPub.getId();
+                latestPubNumber = latestPub.getPublicationNumber();
+            }
+            // Build map of publicationId → publicationNumber for pinned classes
+            Set<UUID> versionIds = entities.stream()
+                    .map(LearningClassJpaEntity::getCourseVersionId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+            if (!versionIds.isEmpty()) {
+                coursePublicationJpaRepository.findAllById(versionIds)
+                        .forEach(pub -> pubNumberMap.put(pub.getId(), pub.getPublicationNumber()));
+            }
+        }
+
+        final UUID finalLatestPubId = latestPubId;
+        final Integer finalLatestPubNumber = latestPubNumber;
         return entities.stream()
-                .map(entity -> toClassMap(entity, teacherNames))
+                .map(entity -> toClassMap(entity, teacherNames, pubNumberMap, finalLatestPubId, finalLatestPubNumber))
                 .toList();
     }
 
@@ -145,7 +172,10 @@ public class ClassControllerV3 {
 
     private java.util.Map<String, Object> toClassMap(
             LearningClassJpaEntity e,
-            Map<UUID, String> teacherNames) {
+            Map<UUID, String> teacherNames,
+            Map<UUID, Integer> pubNumberMap,
+            UUID latestPubId,
+            Integer latestPubNumber) {
         java.util.Map<String, Object> map = new java.util.LinkedHashMap<>();
         map.put("id", e.getId().toString());
         map.put("name", e.getName());
@@ -156,13 +186,28 @@ public class ClassControllerV3 {
         map.put("status", e.getStatus().name());
         map.put("scheduleType", e.getScheduleType() != null ? e.getScheduleType().name() : LearningClassJpaEntity.ScheduleType.CUSTOM.name());
         map.put("maxStudents", e.getMaxStudents());
-        map.put("studentCount", enrollmentJpaRepository.countByClassId(e.getId()));
+        long studentCount = enrollmentJpaRepository.countByClassId(e.getId());
+        map.put("studentCount", studentCount);
         map.put("semester", e.getSemester());
         map.put("courseVersionId", e.getCourseVersionId() != null ? e.getCourseVersionId().toString() : null);
         map.put("versionMode", e.getVersionMode() != null ? e.getVersionMode().name() : "PINNED");
         map.put("startDate", e.getStartDate() != null ? e.getStartDate().toString() : null);
         map.put("endDate", e.getEndDate() != null ? e.getEndDate().toString() : null);
         map.put("createdAt", e.getCreatedAt() != null ? e.getCreatedAt().toString() : null);
+
+        // Version info for FE display
+        Integer pinnedPubNumber = e.getCourseVersionId() != null ? pubNumberMap.get(e.getCourseVersionId()) : null;
+        map.put("publicationNumber", pinnedPubNumber);
+        map.put("latestPublicationNumber", latestPubNumber);
+        boolean updateAvailable = latestPubId != null
+                && e.getCourseVersionId() != null
+                && !e.getCourseVersionId().equals(latestPubId);
+        map.put("updateAvailable", updateAvailable);
+
+        // Capacity info
+        int maxStudents = e.getMaxStudents() != null ? e.getMaxStudents() : 9999;
+        map.put("capacityPercent", maxStudents > 0 ? Math.min(100, (int)(studentCount * 100 / maxStudents)) : 0);
+
         return map;
     }
 
@@ -182,10 +227,14 @@ public class ClassControllerV3 {
         var course = resolveOwnedCourse(courseId, user);
         ensureInstructorLedCourse(course);
 
-        // Auto-generate code if missing
+        // Auto-generate code if missing — format: CLS-{semester}-{shortId} or CLS-{shortId}
         String classCode = request.getCode();
         if (classCode == null || classCode.isBlank()) {
-            classCode = "CLS-" + UUID.randomUUID().toString().substring(0, 8);
+            String shortId = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+            String semester = request.getSemester();
+            classCode = (semester != null && !semester.isBlank())
+                    ? "CLS-" + semester + "-" + shortId
+                    : "CLS-" + shortId;
         }
 
         // Determine teacher (defaults to creator if not specified)
@@ -463,49 +512,17 @@ public class ClassControllerV3 {
             || user.getRole() == com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity.UserRole.ORG_ADMIN;
     }
 
+    // Legacy aliases — delegate to resolveOwnedCourse for consistent co-teacher support
     private com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity getOwnedCourse(
             UUID courseId,
             com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
-        var course = courseJpaRepository.findById(courseId)
-                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("KhÃ³a há»c", courseId));
-        if (!isAdminRole(user) && (course.getTeacherId() == null || !course.getTeacherId().equals(user.getId()))) {
-            throw new AccessDeniedException("Báº¡n khÃ´ng sá»Ÿ há»¯u khÃ³a há»c nÃ y");
-        }
-        return course;
+        return resolveOwnedCourse(courseId, user);
     }
 
-    private void verifyCourseOwnership(UUID courseId, com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
-        if (isAdminRole(user)) return;
-        var course = courseJpaRepository.findById(courseId)
-                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Khóa học", courseId));
-        if (course.getTeacherId() == null || !course.getTeacherId().equals(user.getId())) {
-            throw new AccessDeniedException("Bạn không sở hữu khóa học này");
-        }
-    }
-
-    private void verifyClassOwnership(UUID classId, com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
-        if (isAdminRole(user)) return;
-        var cls = classJpaRepository.findById(classId)
-                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Lớp học", classId));
-        verifyCourseOwnership(cls.getCourseId(), user);
-    }
     private OwnedClassContext getOwnedClassContext(
             UUID classId,
             com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
-        var cls = classJpaRepository.findById(classId)
-                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Lá»›p há»c", classId));
-        var course = getOwnedCourse(cls.getCourseId(), user);
-        return new OwnedClassContext(cls, course);
-    }
-
-    private void verifyInstructorLedCourse(
-            com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity course) {
-        if (course.getDeliveryMode() != com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity.DeliveryMode.INSTRUCTOR_LED) {
-            throw new BusinessRuleException(
-                    "CLASS_MANAGEMENT_NOT_ALLOWED",
-                    "Quản lý lớp chỉ áp dụng cho khóa học dạng \"Lớp học\"."
-            );
-        }
+        return resolveOwnedClassContext(classId, user);
     }
 
     private record OwnedClassContext(
@@ -517,8 +534,10 @@ public class ClassControllerV3 {
             com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
         var course = courseJpaRepository.findById(courseId)
                 .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Course", courseId));
-        if (!isAdminRole(user) && (course.getTeacherId() == null || !course.getTeacherId().equals(user.getId()))) {
-            throw new AccessDeniedException("Ban khong so huu khoa hoc nay");
+        if (!isAdminRole(user)
+                && (course.getTeacherId() == null || !course.getTeacherId().equals(user.getId()))
+                && !classTeacherJpaRepository.existsByTeacherIdAndCourseId(user.getId(), courseId)) {
+            throw new AccessDeniedException("Bạn không có quyền truy cập khóa học này");
         }
         return course;
     }

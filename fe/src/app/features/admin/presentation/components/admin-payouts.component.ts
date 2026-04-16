@@ -24,27 +24,25 @@ interface PayoutListItem {
     selector: 'app-admin-payouts',
     imports: [FormsModule],
     changeDetection: ChangeDetectionStrategy.OnPush,
+    styleUrl: './admin-payouts.component.scss',
     template: `
-    <div class="min-h-screen bg-slate-50 p-6">
-      <div class="mx-auto max-w-7xl">
-        <div class="mb-6">
-          <h1 class="text-2xl font-bold text-gray-900">Quản lý rút tiền</h1>
-          <p class="mt-1 text-gray-600">Duyệt và xử lý các yêu cầu rút tiền của giảng viên theo đúng phạm vi quản trị.</p>
+    <div class="payouts-page">
+      <div class="page-inner">
+        <div class="page-header">
+          <h1 class="page-title">Quản lý rút tiền</h1>
+          <p class="page-desc">Duyệt và xử lý các yêu cầu rút tiền của giảng viên theo đúng phạm vi quản trị.</p>
         </div>
 
-        <div class="mb-6 rounded-xl border border-gray-200 bg-white">
-          <div class="flex border-b border-gray-200">
+        <div class="tab-bar">
+          <div class="tab-strip">
             @for (tab of statusTabs; track tab.value) {
               <button
                 (click)="changeStatus(tab.value)"
-                [class]="'px-5 py-3.5 text-sm font-medium transition-colors ' + (
-                  activeStatus() === tab.value
-                    ? 'text-[#0056D2] border-b-2 border-[#0056D2] -mb-px'
-                    : 'text-gray-600 hover:text-gray-900'
-                )">
+                class="tab-btn"
+                [class.active]="activeStatus() === tab.value">
                 {{ tab.label }}
                 @if (tab.value === 'PENDING' && pendingCount() > 0) {
-                  <span class="ml-1.5 rounded-full bg-red-500 px-1.5 py-0.5 text-xs text-white">{{ pendingCount() }}</span>
+                  <span class="pending-badge">{{ pendingCount() }}</span>
                 }
               </button>
             }
@@ -52,127 +50,117 @@ interface PayoutListItem {
         </div>
 
         @if (activeStatus() === 'APPROVED' && payouts().length > 0) {
-          <div class="mb-4 flex items-start gap-3 rounded-xl border border-[#0056D2]/20 bg-[#0056D2]/5 p-4">
-            <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-[#0056D2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="info-banner">
+            <svg class="info-banner-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
             <div>
-              <p class="text-sm font-medium text-[#004BB5]">Hướng dẫn xử lý</p>
-              <p class="mt-0.5 text-sm text-[#004BB5]/80">
+              <p class="info-banner-title">Hướng dẫn xử lý</p>
+              <p class="info-banner-text">
                 Chuyển khoản thủ công tới tài khoản ngân hàng của giảng viên, sau đó bấm <strong>"Xác nhận đã CK"</strong> để hoàn tất.
               </p>
             </div>
           </div>
         }
 
-        <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
+        <div class="table-card">
           @if (isLoading()) {
-            <div class="p-12 text-center">
-              <div class="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-[#0056D2]"></div>
-              <p class="mt-4 text-sm text-gray-600">Đang tải...</p>
+            <div class="state-box">
+              <div class="spinner"></div>
+              <p class="state-text">Đang tải...</p>
             </div>
           } @else if (payouts().length === 0) {
-            <div class="p-12 text-center">
-              <svg class="mx-auto mb-4 h-14 w-14 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="state-box">
+              <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
               </svg>
-              <p class="text-sm text-gray-500">Không có yêu cầu nào trong trạng thái này</p>
+              <p class="empty-text">Không có yêu cầu nào trong trạng thái này</p>
             </div>
           } @else {
-            <div class="overflow-x-auto">
-              <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
                   <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Mã YC</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Giảng viên</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium uppercase text-gray-500">Số tiền</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Tài khoản nhận</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Ghi chú GV</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Ngày yêu cầu</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium uppercase text-gray-500">Trạng thái</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium uppercase text-gray-500">Thao tác</th>
+                    <th>Mã YC</th>
+                    <th>Giảng viên</th>
+                    <th class="col-right">Số tiền</th>
+                    <th>Tài khoản nhận</th>
+                    <th>Ghi chú GV</th>
+                    <th>Ngày yêu cầu</th>
+                    <th class="col-center">Trạng thái</th>
+                    <th class="col-center col-actions">Thao tác</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100">
+                <tbody>
                   @for (payout of payouts(); track payout.id) {
-                    <tr class="hover:bg-gray-50">
-                      <td class="px-4 py-3">
-                        <span class="text-xs font-mono text-gray-700">{{ payout.id.slice(0, 8).toUpperCase() }}</span>
+                    <tr>
+                      <td>
+                        <span class="code-id">{{ payout.id.slice(0, 8).toUpperCase() }}</span>
                       </td>
-                      <td class="px-4 py-3">
-                        <p class="text-sm font-medium text-gray-900">{{ payout.teacherName }}</p>
-                        <p class="text-xs text-gray-500">{{ payout.teacherEmail }}</p>
+                      <td>
+                        <p class="cell-name">{{ payout.teacherName }}</p>
+                        <p class="cell-email">{{ payout.teacherEmail }}</p>
                       </td>
-                      <td class="px-4 py-3 text-right">
-                        <span class="font-semibold text-gray-900">{{ formatCurrency(payout.amount) }}</span>
+                      <td class="col-right">
+                        <span class="cell-amount">{{ formatCurrency(payout.amount) }}</span>
                       </td>
-                      <td class="px-4 py-3">
-                        <div class="flex items-center gap-1.5">
+                      <td>
+                        <div class="bank-info">
                           <div>
-                            <p class="text-xs font-semibold text-gray-900">{{ getBankName(payout.bankCode) }}</p>
-                            <div class="mt-0.5 flex items-center gap-1">
-                              <span class="text-xs font-mono text-gray-700">{{ payout.accountNumber }}</span>
+                            <p class="bank-name">{{ getBankName(payout.bankCode) }}</p>
+                            <div class="bank-account-row">
+                              <span class="bank-account-num">{{ payout.accountNumber }}</span>
                               @if (isSystemAdmin()) {
                                 <button
                                   (click)="copy(payout.accountNumber)"
                                   title="Sao chép số tài khoản"
-                                  class="text-[#0056D2] transition-colors hover:text-[#004BB5]">
-                                  <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  class="btn-copy">
+                                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2"/>
                                   </svg>
                                 </button>
                               }
                             </div>
-                            <p class="text-xs text-gray-500">{{ payout.accountName }}</p>
+                            <p class="bank-holder">{{ payout.accountName }}</p>
                           </div>
                         </div>
                       </td>
-                      <td class="max-w-[160px] truncate px-4 py-3 text-sm text-gray-600" [title]="payout.teacherNote || ''">
-                        {{ payout.teacherNote || '—' }}
+                      <td class="cell-note" [title]="payout.teacherNote || ''">
+                        {{ payout.teacherNote || '\u2014' }}
                       </td>
-                      <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{{ formatDate(payout.requestedAt) }}</td>
-                      <td class="px-4 py-3 text-center">
-                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                              [class]="getStatusClass(payout.status)">
+                      <td class="cell-date">{{ formatDate(payout.requestedAt) }}</td>
+                      <td class="col-center">
+                        <span class="badge" [class]="getStatusClass(payout.status)">
                           {{ getStatusLabel(payout.status) }}
                         </span>
                         @if (payout.status === 'CANCELLED') {
-                          <div class="mx-auto mt-1 max-w-[190px] text-xs text-slate-500">
+                          <span class="status-sub">
                             Giảng viên đã chủ động hủy yêu cầu. Số dư đã được hoàn lại.
-                          </div>
+                          </span>
                         }
                         @if (payout.adminNote) {
-                          <div class="mx-auto mt-1 max-w-[190px] truncate text-xs"
-                               [class.text-slate-500]="payout.status === 'CANCELLED'"
-                               [class.text-gray-500]="payout.status !== 'CANCELLED'"
-                               [title]="payout.adminNote">
+                          <span class="status-sub truncated" [title]="payout.adminNote">
                             {{ payout.adminNote }}
-                          </div>
+                          </span>
                         }
                       </td>
-                      <td class="px-4 py-3 text-center">
-                        <div class="flex items-center justify-center gap-2">
+                      <td class="col-center">
+                        <div class="action-cell">
                           @if (payout.status === 'PENDING') {
-                            <button
-                              (click)="openApprove(payout)"
-                              class="rounded-lg bg-green-600 px-3 py-1.5 text-xs text-white transition-colors hover:bg-green-700">
+                            <button (click)="openApprove(payout)" class="btn-action btn-approve-action">
                               Duyệt
                             </button>
-                            <button
-                              (click)="openReject(payout)"
-                              class="rounded-lg bg-red-500 px-3 py-1.5 text-xs text-white transition-colors hover:bg-red-600">
+                            <button (click)="openReject(payout)" class="btn-action btn-reject-action">
                               Từ chối
                             </button>
                           }
                           @if (payout.status === 'APPROVED' && isSystemAdmin()) {
-                            <button
-                              (click)="complete(payout)"
-                              class="rounded-lg bg-[#0056D2] px-3 py-1.5 text-xs text-white transition-colors hover:bg-[#004BB5]">
+                            <button (click)="complete(payout)" class="btn-action btn-complete-action">
                               Xác nhận đã CK
                             </button>
                           }
                           @if (payout.status === 'APPROVED' && !isSystemAdmin()) {
-                            <span class="text-xs italic text-gray-400">Chờ admin hoàn tất</span>
+                            <span class="action-wait">Chờ admin hoàn tất</span>
                           }
                         </div>
                       </td>
@@ -182,20 +170,20 @@ interface PayoutListItem {
               </table>
             </div>
 
-            <div class="flex items-center justify-between border-t border-gray-200 px-4 py-3">
-              <p class="text-sm text-gray-600">Trang {{ currentPage() + 1 }}</p>
-              <div class="flex gap-2">
+            <div class="pagination">
+              <p class="pagination-info">Trang {{ currentPage() + 1 }}</p>
+              <div class="pagination-btns">
                 <button
                   (click)="prevPage()"
                   [disabled]="currentPage() === 0"
-                  class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm transition-colors hover:bg-gray-50 disabled:opacity-40">
-                  ← Trước
+                  class="btn-page">
+                  \u2190 Trước
                 </button>
                 <button
                   (click)="nextPage()"
                   [disabled]="!hasMore()"
-                  class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm transition-colors hover:bg-gray-50 disabled:opacity-40">
-                  Tiếp →
+                  class="btn-page">
+                  Tiếp \u2192
                 </button>
               </div>
             </div>
@@ -205,40 +193,36 @@ interface PayoutListItem {
     </div>
 
     @if (copyFeedback() && isSystemAdmin()) {
-      <div class="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg bg-gray-900 px-4 py-2 text-sm text-white shadow-lg">
+      <div class="copy-toast">
         Đã sao chép số tài khoản
       </div>
     }
 
     @if (approveTarget()) {
-      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-        <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-          <h3 class="mb-2 text-lg font-semibold text-gray-900">Duyệt yêu cầu rút tiền</h3>
+      <div class="modal-overlay">
+        <div class="modal-box">
+          <h3 class="modal-title">Duyệt yêu cầu rút tiền</h3>
 
-          <div class="mb-4 space-y-1.5 rounded-xl bg-gray-50 p-3 text-sm">
-            <p class="font-medium text-gray-900">{{ approveTarget()!.teacherName }}</p>
-            <p class="text-gray-600">{{ getBankName(approveTarget()!.bankCode) }} · <span class="font-mono">{{ approveTarget()!.accountNumber }}</span></p>
-            <p class="text-gray-600">{{ approveTarget()!.accountName }}</p>
-            <p class="mt-1 text-lg font-bold text-green-600">{{ formatCurrency(approveTarget()!.amount) }}</p>
+          <div class="modal-detail-box">
+            <p class="detail-name">{{ approveTarget()!.teacherName }}</p>
+            <p class="detail-bank">{{ getBankName(approveTarget()!.bankCode) }} · <span class="detail-bank-mono">{{ approveTarget()!.accountNumber }}</span></p>
+            <p class="detail-holder">{{ approveTarget()!.accountName }}</p>
+            <p class="detail-amount amount-approve">{{ formatCurrency(approveTarget()!.amount) }}</p>
           </div>
 
           <div>
-            <label class="mb-1.5 block text-sm font-medium text-gray-700">Ghi chú (tùy chọn)</label>
+            <label class="modal-label">Ghi chú (tùy chọn)</label>
             <textarea
               [(ngModel)]="actionNote"
               rows="2"
-              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]"
+              class="modal-textarea"
               placeholder="Ghi chú cho giảng viên..."></textarea>
           </div>
-          <div class="mt-5 flex gap-3">
-            <button
-              (click)="approveTarget.set(null)"
-              class="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-gray-700 transition-colors hover:bg-gray-50">
+          <div class="modal-actions">
+            <button (click)="approveTarget.set(null)" class="btn-modal btn-cancel">
               Hủy
             </button>
-            <button
-              (click)="submitApprove()"
-              class="flex-1 rounded-lg bg-green-600 px-4 py-2.5 text-white transition-colors hover:bg-green-700">
+            <button (click)="submitApprove()" class="btn-modal btn-confirm-approve">
               Xác nhận duyệt
             </button>
           </div>
@@ -247,28 +231,26 @@ interface PayoutListItem {
     }
 
     @if (rejectTarget()) {
-      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-        <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-          <h3 class="mb-2 text-lg font-semibold text-gray-900">Từ chối yêu cầu rút tiền</h3>
-          <p class="mb-4 text-sm text-gray-500">{{ rejectTarget()!.teacherName }} · {{ formatCurrency(rejectTarget()!.amount) }}</p>
+      <div class="modal-overlay">
+        <div class="modal-box">
+          <h3 class="modal-title">Từ chối yêu cầu rút tiền</h3>
+          <p class="modal-subtitle">{{ rejectTarget()!.teacherName }} · {{ formatCurrency(rejectTarget()!.amount) }}</p>
           <div>
-            <label class="mb-1.5 block text-sm font-medium text-gray-700">Lý do từ chối <span class="text-red-500">*</span></label>
+            <label class="modal-label">Lý do từ chối <span class="required-mark">*</span></label>
             <textarea
               [(ngModel)]="actionNote"
               rows="3"
-              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-red-500 focus:ring-2 focus:ring-red-500"
+              class="modal-textarea textarea-danger"
               placeholder="Lý do từ chối..."></textarea>
           </div>
-          <div class="mt-5 flex gap-3">
-            <button
-              (click)="rejectTarget.set(null)"
-              class="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-gray-700 transition-colors hover:bg-gray-50">
+          <div class="modal-actions">
+            <button (click)="rejectTarget.set(null)" class="btn-modal btn-cancel">
               Hủy
             </button>
             <button
               (click)="submitReject()"
               [disabled]="!actionNote.trim()"
-              class="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-400">
+              class="btn-modal btn-confirm-reject">
               Xác nhận từ chối
             </button>
           </div>
@@ -277,25 +259,21 @@ interface PayoutListItem {
     }
 
     @if (completeTarget()) {
-      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-        <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-          <h3 class="mb-2 text-lg font-semibold text-gray-900">Xác nhận đã chuyển khoản</h3>
-          <p class="mb-4 text-sm text-gray-600">Xác nhận bạn đã chuyển khoản thành công cho:</p>
-          <div class="space-y-1.5 rounded-xl border border-green-200 bg-green-50 p-3 text-sm">
-            <p class="font-semibold text-gray-900">{{ completeTarget()!.teacherName }}</p>
-            <p class="text-gray-700">{{ getBankName(completeTarget()!.bankCode) }} · <span class="font-mono font-semibold">{{ completeTarget()!.accountNumber }}</span></p>
-            <p class="text-gray-600">{{ completeTarget()!.accountName }}</p>
-            <p class="mt-2 text-2xl font-bold text-green-700">{{ formatCurrency(completeTarget()!.amount) }}</p>
+      <div class="modal-overlay">
+        <div class="modal-box">
+          <h3 class="modal-title">Xác nhận đã chuyển khoản</h3>
+          <p class="modal-subtitle">Xác nhận bạn đã chuyển khoản thành công cho:</p>
+          <div class="modal-detail-box detail-success">
+            <p class="detail-name">{{ completeTarget()!.teacherName }}</p>
+            <p class="detail-bank">{{ getBankName(completeTarget()!.bankCode) }} · <span class="detail-bank-mono">{{ completeTarget()!.accountNumber }}</span></p>
+            <p class="detail-holder">{{ completeTarget()!.accountName }}</p>
+            <p class="detail-amount amount-complete">{{ formatCurrency(completeTarget()!.amount) }}</p>
           </div>
-          <div class="mt-5 flex gap-3">
-            <button
-              (click)="completeTarget.set(null)"
-              class="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-gray-700 transition-colors hover:bg-gray-50">
+          <div class="modal-actions">
+            <button (click)="completeTarget.set(null)" class="btn-modal btn-cancel">
               Hủy
             </button>
-            <button
-              (click)="submitComplete()"
-              class="flex-1 rounded-lg bg-[#0056D2] px-4 py-2.5 text-white transition-colors hover:bg-[#004BB5]">
+            <button (click)="submitComplete()" class="btn-modal btn-confirm-complete">
               Xác nhận đã CK
             </button>
           </div>

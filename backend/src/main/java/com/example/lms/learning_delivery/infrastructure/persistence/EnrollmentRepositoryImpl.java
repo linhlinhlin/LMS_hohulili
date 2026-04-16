@@ -108,6 +108,11 @@ public class EnrollmentRepositoryImpl implements EnrollmentRepository, Enrollmen
     }
 
     @Override
+    public long countActiveByClassId(UUID classId) {
+        return jpaRepository.countActiveByClassId(classId);
+    }
+
+    @Override
     public void delete(Enrollment enrollment) {
         if (enrollment != null && enrollment.getId() != null) {
             jpaRepository.deleteById(enrollment.getId());

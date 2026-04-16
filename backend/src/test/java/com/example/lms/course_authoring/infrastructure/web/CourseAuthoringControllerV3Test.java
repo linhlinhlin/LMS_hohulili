@@ -94,6 +94,8 @@ class CourseAuthoringControllerV3Test {
 
     @Mock
     private CourseDraftMutationUseCase courseDraftMutationUseCase;
+    @Mock
+    private com.example.lms.learning_delivery.infrastructure.persistence.ClassTeacherJpaRepository classTeacherJpaRepository;
 
     private CourseAuthoringControllerV3 controller;
     private ObjectMapper objectMapper;
@@ -117,7 +119,8 @@ class CourseAuthoringControllerV3Test {
                 lessonJpaRepository,
                 courseRepository,
                 courseDraftMutationUseCase,
-                objectMapper
+                objectMapper,
+                classTeacherJpaRepository
         );
     }
 

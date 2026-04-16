@@ -16,15 +16,7 @@ import { AuthService } from '../../../../core/services/auth.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-teacher-management',
   imports: [RouterModule, FormsModule],
-  styles: [`
-    select.role-select {
-      cursor: pointer;
-      transition: all 0.2s ease;
-      min-width: 120px;
-      appearance: auto;
-    }
-    select.role-select:hover { border-color: #9CA3AF; }
-  `],
+  styleUrl: './teacher-management.component.scss',
   templateUrl: './teacher-management.html'
 })
 export class TeacherManagementComponent implements OnInit {
@@ -347,19 +339,19 @@ export class TeacherManagementComponent implements OnInit {
 
   getStatusBadgeClass(status: string): string {
     switch (status) {
-      case 'ACTIVE': return 'bg-green-100 text-green-800';
-      case 'BLOCKED': return 'bg-red-100 text-red-800';
-      case 'RESTRICTED': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'ACTIVE': return 'badge-success';
+      case 'BLOCKED': return 'badge-error';
+      case 'RESTRICTED': return 'badge-warning';
+      default: return 'badge-default';
     }
   }
 
   getStatusDotClass(status: string): string {
     switch (status) {
-      case 'ACTIVE': return 'bg-green-500';
-      case 'BLOCKED': return 'bg-red-500';
-      case 'RESTRICTED': return 'bg-yellow-500';
-      default: return 'bg-gray-500';
+      case 'ACTIVE': return 'dot-success';
+      case 'BLOCKED': return 'dot-error';
+      case 'RESTRICTED': return 'dot-warning';
+      default: return 'dot-default';
     }
   }
 

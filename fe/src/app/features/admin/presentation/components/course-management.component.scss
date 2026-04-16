@@ -1,0 +1,1380 @@
+@use '../../../../../styles/variables' as *;
+
+/* ===== PAGE ===== */
+.course-page {
+  background: $bg-page;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ===== HEADER ===== */
+.header-bar {
+  background: white;
+  border-bottom: 1px solid $border-default;
+}
+
+.header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: $spacing-4 $spacing-6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.page-title {
+  font-size: $text-2xl;
+  font-weight: $font-bold;
+  color: $text-primary;
+  margin: 0;
+  line-height: $leading-tight;
+}
+
+.page-subtitle {
+  font-size: $text-sm;
+  color: $text-secondary;
+  margin: $spacing-1 0 0;
+}
+
+/* ===== MAIN ===== */
+.course-main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: $spacing-6;
+}
+
+/* ===== CARD BASE ===== */
+.card {
+  background: white;
+  border-radius: $radius-md;
+  border: 1px solid $border-default;
+  box-shadow: $shadow-sm;
+}
+
+/* ===== METRICS STRIP (Stripe pattern) ===== */
+.metrics-strip {
+  @extend .card;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  margin-bottom: $spacing-5;
+  overflow: hidden;
+
+  @include desktop { grid-template-columns: repeat(4, 1fr); }
+}
+
+.metric-cell {
+  padding: $spacing-3 $spacing-5;
+
+  &:nth-child(odd) { border-right: 1px solid $border-light; }
+  &:nth-child(-n+2) { border-bottom: 1px solid $border-light; }
+
+  @include desktop {
+    border-right: 1px solid $border-light;
+    border-bottom: none !important;
+    &:last-child { border-right: none; }
+  }
+
+  &.highlight {
+    background: rgba($warning, 0.04);
+  }
+}
+
+.metric-value {
+  font-size: $text-xl;
+  font-weight: $font-bold;
+  color: $text-primary;
+  line-height: 1.2;
+  margin: 0 0 2px;
+
+  &.warning { color: $warning; }
+}
+
+.metric-label {
+  font-size: $text-xs;
+  color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: $font-medium;
+  margin: 0;
+}
+
+.metric-sub {
+  font-size: 11px;
+  color: $gray-400;
+  margin: 1px 0 0;
+
+  &.warning-text { color: $warning; }
+}
+
+/* ===== FILTER BAR ===== */
+.filter-bar {
+  @extend .card;
+  padding: $spacing-4 $spacing-5;
+  margin-bottom: $spacing-5;
+}
+
+.filter-row {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-4;
+
+  @media (min-width: $breakpoint-md) {
+    flex-direction: row;
+  }
+}
+
+.filter-row + .filter-row {
+  margin-top: $spacing-4;
+}
+
+.filter-search {
+  flex: 1;
+}
+
+.filter-actions {
+  display: flex;
+  gap: $spacing-4;
+  flex-wrap: wrap;
+}
+
+.filter-input,
+.filter-select,
+.filter-date {
+  height: $input-height;
+  padding: $input-padding;
+  border: 1px solid $border-dark;
+  border-radius: $radius-sm;
+  font-size: $text-sm;
+  color: $text-primary;
+  background: white;
+  transition: border-color $transition-fast, box-shadow $transition-fast;
+
+  &:focus {
+    outline: none;
+    border-color: $blue-primary;
+    box-shadow: 0 0 0 2px rgba($blue-primary, 0.15);
+  }
+}
+
+.filter-input {
+  width: 100%;
+  padding: $spacing-2 $spacing-4;
+  height: 44px;
+}
+
+.filter-select {
+  height: 44px;
+  padding: $spacing-2 $spacing-4;
+  cursor: pointer;
+}
+
+.filter-date {
+  height: 36px;
+}
+
+.date-group {
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+}
+
+.date-label {
+  font-size: $text-sm;
+  color: $text-secondary;
+  white-space: nowrap;
+}
+
+.export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-2;
+  padding: $spacing-2 $spacing-4;
+  height: 44px;
+  border: 1px solid $border-dark;
+  border-radius: $radius-sm;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $gray-700;
+  background: white;
+  cursor: pointer;
+  transition: background $transition-fast;
+  white-space: nowrap;
+
+  &:hover { background: $gray-50; }
+
+  svg {
+    width: $icon-sm;
+    height: $icon-sm;
+    color: $text-muted;
+  }
+}
+
+/* ===== BULK BAR ===== */
+.bulk-bar {
+  @extend .card;
+  background: rgba($blue-primary, 0.05);
+  border-color: rgba($blue-primary, 0.2);
+  padding: $spacing-4 $spacing-5;
+  margin-bottom: $spacing-4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bulk-label {
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $blue-hover;
+}
+
+.bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-3;
+}
+
+.btn-bulk-approve {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: $spacing-2 $spacing-4;
+  background: $success;
+  color: white;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  border: none;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover { background: $success; }
+
+  svg { width: $icon-sm; height: $icon-sm; }
+}
+
+.btn-bulk-reject {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: $spacing-2 $spacing-4;
+  background: $error;
+  color: white;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  border: none;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover { background: $error; }
+
+  svg { width: $icon-sm; height: $icon-sm; }
+}
+
+.btn-bulk-clear {
+  display: inline-flex;
+  align-items: center;
+  padding: $spacing-2 $spacing-3;
+  font-size: $text-sm;
+  color: $text-secondary;
+  background: transparent;
+  border: none;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: background $transition-fast, color $transition-fast;
+
+  &:hover {
+    background: $gray-100;
+    color: $text-primary;
+  }
+}
+
+/* ===== DATA TABLE CARD ===== */
+.table-card {
+  @extend .card;
+  overflow: hidden;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table thead tr {
+  background: $gray-50;
+  border-bottom: 1px solid $border-default;
+}
+
+.data-table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: $font-semibold;
+  color: $gray-500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 10px $spacing-4;
+
+  &.col-checkbox { width: 40px; }
+  &.col-actions { text-align: center; }
+}
+
+.data-table td {
+  padding: $spacing-3 $spacing-4;
+  font-size: $text-sm;
+  vertical-align: middle;
+}
+
+.data-table tbody tr {
+  border-bottom: 1px solid $border-light;
+  transition: background $transition-fast;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: $gray-50; }
+}
+
+/* Checkbox */
+.tbl-checkbox {
+  width: 16px;
+  height: 16px;
+  border-radius: $radius-sm;
+  accent-color: $blue-primary;
+  cursor: pointer;
+}
+
+/* Course info cell */
+.course-cell {
+  display: flex;
+  align-items: center;
+}
+
+.course-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: $radius-md;
+  object-fit: cover;
+  border: 1px solid $border-default;
+  flex-shrink: 0;
+  margin-right: $spacing-3;
+}
+
+.course-thumb-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: $radius-md;
+  background: rgba($blue-primary, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-right: $spacing-3;
+
+  span {
+    font-size: $text-sm;
+    font-weight: $font-bold;
+    color: $blue-primary;
+  }
+}
+
+.course-info {
+  min-width: 0;
+  max-width: 220px;
+}
+
+.course-name {
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $text-primary;
+  @include truncate;
+}
+
+.course-desc {
+  font-size: $text-xs;
+  color: $text-muted;
+  @include truncate;
+}
+
+.course-level {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: $radius-sm;
+  font-size: 10px;
+  font-weight: $font-medium;
+  background: $gray-100;
+  color: $gray-600;
+  margin-top: 2px;
+}
+
+/* Teacher cell */
+.teacher-cell {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.teacher-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: $radius-full;
+  background: $blue-primary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  span {
+    font-size: $text-xs;
+    font-weight: $font-bold;
+    color: white;
+  }
+}
+
+.teacher-name {
+  margin-left: $spacing-2;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $text-primary;
+  @include truncate;
+  max-width: 120px;
+}
+
+/* Status badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: $radius-full;
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  white-space: nowrap;
+
+  &.badge-pending { background: $warning-light; color: $warning; }
+  &.badge-approved { background: $success-light; color: $success; }
+  &.badge-rejected { background: $error-light; color: $error; }
+  &.badge-active { background: rgba($blue-primary, 0.1); color: $blue-hover; }
+  &.badge-draft { background: $gray-100; color: $gray-600; }
+  &.badge-default { background: $gray-100; color: $gray-800; }
+}
+
+.rejection-hint {
+  font-size: $text-xs;
+  color: $error;
+  margin-top: 4px;
+  max-width: 140px;
+  @include truncate;
+}
+
+/* Price / students */
+.price-text {
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  color: $text-primary;
+}
+
+.students-text {
+  display: flex;
+  align-items: center;
+  font-size: $text-xs;
+  color: $text-muted;
+  margin-top: 2px;
+
+  svg {
+    width: 12px;
+    height: 12px;
+    margin-right: 4px;
+    color: $gray-400;
+  }
+}
+
+/* Action buttons */
+.action-btns {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-1;
+}
+
+.act-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: $radius-sm;
+  background: transparent;
+  cursor: pointer;
+  transition: background $transition-fast, color $transition-fast;
+
+  svg { width: $icon-sm; height: $icon-sm; }
+
+  &.act-approve {
+    color: $success;
+    &:hover { background: $success-light; color: $success; }
+  }
+  &.act-reject {
+    color: $error;
+    &:hover { background: $error-light; color: $error; }
+  }
+  &.act-revoke {
+    color: $warning;
+    &:hover { background: $warning-light; color: $warning; }
+  }
+  &.act-primary {
+    color: $blue-primary;
+    &:hover { background: rgba($blue-primary, 0.05); color: $blue-hover; }
+  }
+  &.act-neutral {
+    color: $gray-600;
+    &:hover { background: $gray-100; color: $gray-800; }
+  }
+  &.act-danger {
+    color: $error;
+    &:hover { background: $error-light; color: $error; }
+  }
+}
+
+/* ===== PAGINATION ===== */
+.pagination-bar {
+  padding: $spacing-4 $spacing-6;
+  border-top: 1px solid $border-default;
+  background: $gray-50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pagination-info {
+  font-size: $text-sm;
+  color: $text-secondary;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+}
+
+.pagination-btn {
+  padding: 6px $spacing-3;
+  font-size: $text-sm;
+  border: 1px solid $border-dark;
+  border-radius: $radius-sm;
+  background: white;
+  color: $text-primary;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover:not(:disabled) { background: $gray-100; }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.pagination-page {
+  padding: 6px $spacing-3;
+  font-size: $text-sm;
+  color: $text-secondary;
+}
+
+/* ===== LOADING / SKELETON ===== */
+.skeleton-strip {
+  @extend .card;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  overflow: hidden;
+  margin-bottom: $spacing-5;
+
+  @include desktop { grid-template-columns: repeat(4, 1fr); }
+}
+
+.skeleton-cell {
+  padding: $spacing-3 $spacing-5;
+
+  &:nth-child(odd) { border-right: 1px solid $border-light; }
+  &:nth-child(-n+2) { border-bottom: 1px solid $border-light; }
+
+  @include desktop {
+    border-right: 1px solid $border-light;
+    border-bottom: none !important;
+    &:last-child { border-right: none; }
+  }
+}
+
+.skeleton-table {
+  @extend .card;
+  overflow: hidden;
+}
+
+.skeleton-thead {
+  background: $gray-50;
+  padding: 10px $spacing-4;
+  border-bottom: 1px solid $border-default;
+}
+
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-4;
+  padding: $spacing-3 $spacing-4;
+  border-bottom: 1px solid $border-light;
+
+  &:last-child { border-bottom: none; }
+}
+
+.sk {
+  background: $gray-200;
+  border-radius: 4px;
+}
+
+.sk-light {
+  background: $gray-100;
+  border-radius: 4px;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ===== TABLE LOADING (spinner) ===== */
+.table-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-12 0;
+  color: $text-muted;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid $gray-200;
+  border-top-color: $blue-primary;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: $spacing-4;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-text {
+  font-size: $text-sm;
+  color: $text-secondary;
+}
+
+/* ===== EMPTY STATE ===== */
+.empty-state {
+  text-align: center;
+  padding: $spacing-12 0;
+
+  svg {
+    width: 64px;
+    height: 64px;
+    color: $gray-300;
+    margin: 0 auto $spacing-4;
+    display: block;
+  }
+}
+
+.empty-title {
+  font-size: $text-base;
+  font-weight: $font-medium;
+  color: $text-primary;
+  margin: 0 0 $spacing-2;
+}
+
+.empty-desc {
+  font-size: $text-sm;
+  color: $text-secondary;
+  margin: 0;
+}
+
+/* ===== MODALS ===== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: $z-modal-backdrop;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  overflow-y: auto;
+}
+
+.modal-panel {
+  background: white;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-2xl;
+  max-width: 480px;
+  width: 100%;
+  margin: $spacing-4;
+  overflow: hidden;
+}
+
+.modal-panel-lg {
+  @extend .modal-panel;
+  max-width: 900px;
+}
+
+.modal-header {
+  padding: $spacing-5 $spacing-6;
+  border-bottom: 1px solid $border-light;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-title {
+  font-size: $text-lg;
+  font-weight: $font-semibold;
+  color: $text-primary;
+  margin: 0;
+}
+
+.modal-subtitle {
+  font-size: $text-sm;
+  color: $text-muted;
+  margin: $spacing-1 0 0;
+}
+
+.modal-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: $radius-sm;
+  background: transparent;
+  color: $gray-400;
+  cursor: pointer;
+  transition: background $transition-fast, color $transition-fast;
+
+  &:hover { background: $gray-100; color: $gray-600; }
+
+  svg { width: $icon-md; height: $icon-md; }
+}
+
+.modal-body {
+  padding: $spacing-5 $spacing-6;
+}
+
+.modal-body-scroll {
+  max-height: 65vh;
+  overflow-y: auto;
+  padding: $spacing-5 $spacing-6;
+}
+
+.modal-footer {
+  padding: $spacing-3 $spacing-6;
+  background: $gray-50;
+  border-top: 1px solid $border-light;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $spacing-3;
+}
+
+/* Modal buttons */
+.btn-cancel {
+  padding: $spacing-2 $spacing-4;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $gray-700;
+  background: white;
+  border: 1px solid $border-default;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover { background: $gray-50; }
+}
+
+.btn-danger {
+  padding: $spacing-2 $spacing-4;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: white;
+  background: $error;
+  border: none;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover { background: $error; }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btn-warning {
+  padding: $spacing-2 $spacing-4;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: white;
+  background: $warning;
+  border: none;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover { background: $warning; }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btn-primary-dark {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-2;
+  padding: $spacing-2 $spacing-4;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: white;
+  background: $gray-900;
+  border: none;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover { background: $gray-800; }
+
+  svg { width: $icon-sm; height: $icon-sm; }
+}
+
+/* Modal form elements */
+.modal-textarea {
+  width: 100%;
+  padding: $spacing-2 $spacing-3;
+  border: 1px solid $border-default;
+  border-radius: $radius-sm;
+  font-size: $text-sm;
+  color: $text-primary;
+  resize: none;
+  transition: border-color $transition-fast, box-shadow $transition-fast;
+
+  &:focus {
+    outline: none;
+    border-color: $blue-primary;
+    box-shadow: 0 0 0 2px rgba($blue-primary, 0.15);
+  }
+
+  &.textarea-danger:focus {
+    border-color: $error;
+    box-shadow: 0 0 0 2px rgba($error, 0.15);
+  }
+
+  &.textarea-warning:focus {
+    border-color: $warning;
+    box-shadow: 0 0 0 2px rgba($warning, 0.15);
+  }
+}
+
+/* Reject modal icon */
+.modal-icon-danger {
+  width: 40px;
+  height: 40px;
+  border-radius: $radius-full;
+  background: $error-light;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  svg { width: $icon-lg; height: $icon-lg; color: $error; }
+}
+
+.modal-reject-body {
+  display: flex;
+  gap: $spacing-4;
+}
+
+.modal-reject-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.modal-course-title {
+  font-size: $text-sm;
+  color: $text-secondary;
+  margin-bottom: $spacing-2;
+
+  strong { color: $text-primary; }
+}
+
+.modal-course-teacher {
+  font-size: $text-sm;
+  color: $text-muted;
+}
+
+.modal-field-label {
+  display: block;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $gray-700;
+  margin-bottom: $spacing-1;
+}
+
+/* ===== DETAIL MODAL SPECIFIC ===== */
+.detail-header-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: $radius-lg;
+  background: rgba($blue-primary, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  svg { width: $icon-lg; height: $icon-lg; color: $blue-primary; }
+}
+
+.detail-header-text {
+  h3 {
+    font-size: $text-xl;
+    font-weight: $font-semibold;
+    color: $text-primary;
+    margin: 0;
+  }
+  p {
+    font-size: $text-sm;
+    color: $text-muted;
+    margin: 2px 0 0;
+  }
+}
+
+.detail-thumbnail {
+  position: relative;
+  overflow: hidden;
+  border-radius: $radius-lg;
+  margin-bottom: $spacing-6;
+
+  img {
+    width: 100%;
+    height: 208px;
+    object-fit: cover;
+  }
+}
+
+.detail-thumbnail-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.3), transparent);
+}
+
+/* Detail stats grid */
+.detail-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: $spacing-4;
+  margin-bottom: $spacing-6;
+}
+
+.detail-stat-card {
+  border-radius: $radius-lg;
+  padding: $spacing-4;
+  display: flex;
+  align-items: center;
+  gap: $spacing-3;
+
+  &.stat-primary {
+    background: linear-gradient(135deg, rgba($blue-primary, 0.05), rgba($blue-primary, 0.1));
+    box-shadow: inset 0 0 0 1px rgba($blue-primary, 0.2);
+  }
+  &.stat-success {
+    background: linear-gradient(135deg, rgba($success, 0.05), rgba($success, 0.1));
+    box-shadow: inset 0 0 0 1px rgba($success, 0.15);
+  }
+  &.stat-purple {
+    background: linear-gradient(135deg, #F3E8FF, rgba(124, 58, 237, 0.1));
+    box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.15);
+  }
+}
+
+.detail-stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: $radius-md;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+
+  svg { width: $icon-md; height: $icon-md; }
+
+  &.icon-primary { background: $blue-primary; }
+  &.icon-success { background: $success; }
+  &.icon-purple { background: #7C3AED; }
+}
+
+.detail-stat-value {
+  font-size: $text-2xl;
+  font-weight: $font-bold;
+  line-height: 1.2;
+
+  &.text-primary-brand { color: $blue-hover; }
+  &.text-success { color: $success; }
+  &.text-purple { color: #7C3AED; }
+}
+
+.detail-stat-label {
+  font-size: $text-xs;
+  font-weight: $font-medium;
+
+  &.text-primary-muted { color: rgba($blue-primary, 0.7); }
+  &.text-success-muted { color: rgba($success, 0.7); }
+  &.text-purple-muted { color: rgba(#7C3AED, 0.7); }
+}
+
+/* Info sections */
+.detail-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-6;
+  margin-bottom: $spacing-6;
+}
+
+.detail-section {
+  background: $gray-50;
+  border-radius: $radius-lg;
+  padding: $spacing-5;
+  box-shadow: inset 0 0 0 1px rgba($gray-200, 0.5);
+}
+
+.detail-section-title {
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  color: $gray-700;
+  margin: 0 0 $spacing-4;
+
+  svg { width: $icon-sm; height: $icon-sm; color: $text-muted; }
+}
+
+.detail-field {
+  margin-bottom: $spacing-3;
+
+  &:last-child { margin-bottom: 0; }
+}
+
+.detail-field-label {
+  font-size: $text-xs;
+  color: $text-muted;
+  font-weight: $font-medium;
+}
+
+.detail-field-value {
+  font-size: $text-sm;
+  color: $gray-900;
+  margin-top: 4px;
+
+  &.font-semibold { font-weight: $font-semibold; }
+}
+
+/* Teacher info in detail */
+.detail-teacher {
+  display: flex;
+  align-items: center;
+  gap: $spacing-4;
+}
+
+.detail-teacher-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: $radius-full;
+  background: $blue-primary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: $font-bold;
+  font-size: $text-lg;
+}
+
+.detail-teacher-info {
+  flex: 1;
+}
+
+.detail-teacher-name {
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  color: $gray-900;
+}
+
+.detail-teacher-email {
+  font-size: $text-xs;
+  color: $text-muted;
+}
+
+.detail-teacher-meta {
+  display: flex;
+  align-items: center;
+  gap: $spacing-3;
+  margin-top: $spacing-2;
+}
+
+.detail-rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: $text-xs;
+  color: $gray-600;
+
+  svg {
+    width: 14px;
+    height: 14px;
+    color: #FBBF24;
+  }
+}
+
+.detail-dot {
+  font-size: $text-xs;
+  color: $gray-400;
+}
+
+.detail-students-count {
+  font-size: $text-xs;
+  color: $gray-600;
+}
+
+/* Description section */
+.detail-description {
+  font-size: $text-sm;
+  color: $gray-600;
+  line-height: $leading-relaxed;
+  margin: 0;
+}
+
+/* Rejection reason box */
+.rejection-box {
+  margin-top: $spacing-4;
+  padding: $spacing-3;
+  background: $error-light;
+  border-radius: $radius-md;
+  box-shadow: inset 0 0 0 1px rgba($error, 0.15);
+
+  .rejection-box-label {
+    font-size: $text-xs;
+    color: $error;
+    font-weight: $font-medium;
+  }
+
+  .rejection-box-text {
+    font-size: $text-sm;
+    color: $error;
+    margin-top: 4px;
+  }
+}
+
+/* Revenue banner */
+.revenue-banner {
+  background: linear-gradient(to right, #059669, #0D9488);
+  border-radius: $radius-lg;
+  padding: $spacing-5;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-6;
+}
+
+.revenue-label {
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.revenue-value {
+  font-size: $text-3xl;
+  font-weight: $font-bold;
+  margin-top: 4px;
+}
+
+.revenue-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: $radius-full;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg { width: 28px; height: 28px; color: white; }
+}
+
+/* ===== RESPONSIVE ===== */
+
+// Tablet
+@media screen and (max-width: $breakpoint-md) {
+  .course-main { padding: $spacing-5 $spacing-4; }
+  .header-inner { padding: $spacing-3 $spacing-4; }
+
+  .detail-stats { grid-template-columns: repeat(2, 1fr); }
+  .detail-info-grid { grid-template-columns: 1fr; }
+
+  .bulk-bar {
+    flex-direction: column;
+    gap: $spacing-3;
+    align-items: flex-start;
+  }
+
+  .pagination-bar {
+    flex-direction: column;
+    gap: $spacing-3;
+    align-items: flex-start;
+  }
+}
+
+// Mobile
+@media screen and (max-width: $breakpoint-sm) {
+  .course-main { padding: $spacing-3; }
+  .header-inner {
+    padding: $spacing-3;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-2;
+  }
+  .page-title { font-size: $text-lg; }
+
+  .metric-cell { padding: 10px $spacing-3; }
+  .metric-value { font-size: 17px; }
+  .metric-label { font-size: 11px; }
+  .metric-sub { display: none; }
+
+  .filter-bar { padding: $spacing-3; }
+  .filter-actions { flex-direction: column; }
+  .filter-select { width: 100%; }
+
+  .data-table th { padding: 8px $spacing-3; font-size: 10px; }
+  .data-table td { padding: 8px $spacing-3; font-size: 13px; }
+
+  .course-info { max-width: 140px; }
+  .teacher-name { max-width: 80px; }
+
+  .pagination-bar { padding: $spacing-3 $spacing-4; }
+  .pagination-info { font-size: $text-xs; }
+
+  .bulk-actions { flex-wrap: wrap; gap: $spacing-2; }
+
+  .modal-panel { margin: $spacing-3; }
+  .modal-panel-lg { margin: $spacing-3; }
+  .modal-body, .modal-body-scroll { padding: $spacing-4; }
+  .modal-header { padding: $spacing-4; }
+  .modal-footer { padding: $spacing-3 $spacing-4; }
+
+  .detail-stats { grid-template-columns: repeat(2, 1fr); gap: $spacing-3; }
+  .detail-info-grid { grid-template-columns: 1fr; gap: $spacing-3; }
+}
+
+// Ultra-small (<340px)
+@media screen and (max-width: 340px) {
+  .course-main { padding: $spacing-3 $spacing-2; }
+  .metric-cell { padding: 8px 10px; }
+  .metric-value { font-size: 16px; }
+  .metric-label { font-size: 10px; }
+
+  .filter-bar { padding: $spacing-2; }
+
+  .data-table th { padding: 6px $spacing-2; }
+  .data-table td { padding: 6px $spacing-2; }
+
+  .course-info { max-width: 100px; }
+}
+
+/* ===== PRINT (A4 — clean report) ===== */
+@media print {
+  :host { display: block; }
+
+  .course-page {
+    background: white !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  .header-bar {
+    border-bottom: 2px solid $text-primary;
+  }
+
+  .header-inner {
+    padding: 8px 0 6px !important;
+    max-width: 100% !important;
+  }
+
+  .page-title { font-size: 18px !important; }
+  .page-subtitle { display: none; }
+
+  .course-main {
+    padding: 10px 0 0 !important;
+    max-width: 100% !important;
+  }
+
+  // Metrics: 4-col always, no shadow
+  .metrics-strip {
+    grid-template-columns: repeat(4, 1fr) !important;
+    margin-bottom: 10px !important;
+    box-shadow: none !important;
+    border: 1px solid $gray-300 !important;
+    border-radius: 2px !important;
+  }
+  .metric-cell {
+    padding: 8px 12px !important;
+    border-bottom: none !important;
+    border-right: 1px solid $gray-300;
+    &:last-child { border-right: none; }
+  }
+  .metric-sub { display: block !important; }
+  .metric-value { font-size: 16px !important; }
+
+  // Hide: filters, bulk bar, actions, pagination, modals, skeleton
+  .filter-bar { display: none !important; }
+  .bulk-bar { display: none !important; }
+  .action-btns { display: none !important; }
+  .pagination-bar { display: none !important; }
+  .modal-backdrop { display: none !important; }
+  .skeleton-strip, .skeleton-table { display: none !important; }
+  .tbl-checkbox { display: none !important; }
+  .col-checkbox { display: none !important; }
+
+  // Table card: no shadow
+  .table-card {
+    box-shadow: none !important;
+    border: 1px solid $gray-300 !important;
+    border-radius: 2px !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  // Table: condensed
+  .data-table th { padding: 6px 8px !important; font-size: 10px !important; }
+  .data-table td { padding: 6px 8px !important; font-size: 12px !important; }
+  .data-table tbody tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  // Print colors
+  .badge, .metric-value {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

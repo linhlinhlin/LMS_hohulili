@@ -1,176 +1,112 @@
 import { Component, signal, inject, OnInit, computed, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
-import { AdminService, SystemAnalytics, AdminCourseSummary } from '../../infrastructure/services/admin.service';
-import { LoadingComponent } from '../../../../shared/components/loading/loading.component';
-import { RevenueChartComponent, RevenueData } from './dashboard/components/revenue-chart.component';
+import { AdminService, SystemAnalytics } from '../../infrastructure/services/admin.service';
 import { ToastService } from '../../../../core/services/toast.service';
-import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { PendingApproval } from './dashboard/dashboard.types';
+import { AdminSystemDashboardComponent } from './dashboard/admin-system-dashboard.component';
+import { AdminOrgDashboardComponent } from './dashboard/admin-org-dashboard.component';
 
-interface PendingApproval {
-  id: string;
-  name: string;
-  type: 'course' | 'teacher';
-  submittedDate: string;
-}
+const EMPTY_ANALYTICS: SystemAnalytics = {
+  totalUsers: 0, totalTeachers: 0, totalStudents: 0, totalAdmins: 0,
+  totalCourses: 0, approvedCourses: 0, pendingCourses: 0, rejectedCourses: 0, draftCourses: 0,
+  totalAssignments: 0, totalSubmissions: 0, totalEnrollments: 0,
+  totalRevenue: 0, monthlyRevenue: 0, activeUsers: 0,
+  systemHealth: { database: 'healthy', api: 'healthy', storage: 'healthy', email: 'healthy' },
+  userGrowth: { thisMonth: 0, lastMonth: 0, growthRate: 0 },
+  courseStats: { pending: 0, approved: 0, rejected: 0, active: 0 },
+  revenueStats: { thisMonth: 0, lastMonth: 0, growthRate: 0 },
+  coursesByStatus: {}, usersByRole: {}, enrollmentsByMonth: {},
+  studentGrowth: 0, courseGrowth: 0, revenue: 0, revenueGrowth: 0,
+  systemUptime: 0, onlineStudents: 0, activeCourses: 0,
+  pendingAssignments: 0, unreadMessages: 0
+};
 
 @Component({
-  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin',
-  imports: [CommonModule, RouterModule, LoadingComponent, RevenueChartComponent],
-  templateUrl: './dashboard/admin-dashboard.component.html'
+  imports: [AdminSystemDashboardComponent, AdminOrgDashboardComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  styleUrl: './admin.component.scss',
+  template: `
+    @if (loadError()) {
+      <div class="error-page">
+        <div class="error-content">
+          <svg class="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+          <h3>Không thể tải dữ liệu bảng điều khiển</h3>
+          <p>Vui lòng kiểm tra kết nối và thử lại</p>
+          <button class="retry-btn" (click)="refreshDashboard()">Thử lại</button>
+        </div>
+      </div>
+    } @else if (isSystemAdmin()) {
+      <app-admin-system-dashboard
+        [analytics]="analytics()"
+        [pendingApprovals]="pendingApprovals()"
+        [isLoading]="isLoading()"
+        [isLoadingPending]="isLoadingPending()"
+        (courseApproved)="onCourseApproved($event)"
+        (courseRejected)="onCourseRejected($event)" />
+    } @else {
+      <app-admin-org-dashboard
+        [analytics]="analytics()"
+        [pendingApprovals]="pendingApprovals()"
+        [isLoading]="isLoading()"
+        [isLoadingPending]="isLoadingPending()"
+        (courseApproved)="onCourseApproved($event)"
+        (courseRejected)="onCourseRejected($event)" />
+    }
+  `
 })
 export class AdminComponent implements OnInit {
   private adminService = inject(AdminService);
-  private router = inject(Router);
   private toast = inject(ToastService);
   private authService = inject(AuthService);
 
   isSystemAdmin = computed(() => this.authService.userRole() === 'admin');
-
   isLoading = signal(true);
   loadError = signal(false);
-  lastUpdate = signal<Date>(new Date());
-  analytics = signal<SystemAnalytics>({
-    totalUsers: 0,
-    totalTeachers: 0,
-    totalStudents: 0,
-    totalAdmins: 0,
-    totalCourses: 0,
-    approvedCourses: 0,
-    pendingCourses: 0,
-    rejectedCourses: 0,
-    draftCourses: 0,
-    totalAssignments: 0,
-    totalSubmissions: 0,
-    totalEnrollments: 0,
-    totalRevenue: 0,
-    monthlyRevenue: 0,
-    activeUsers: 0,
-    systemHealth: {
-      database: 'healthy',
-      api: 'healthy',
-      storage: 'healthy',
-      email: 'healthy'
-    },
-    userGrowth: {
-      thisMonth: 0,
-      lastMonth: 0,
-      growthRate: 0
-    },
-    courseStats: {
-      pending: 0,
-      approved: 0,
-      rejected: 0,
-      active: 0
-    },
-    revenueStats: {
-      thisMonth: 0,
-      lastMonth: 0,
-      growthRate: 0
-    },
-    coursesByStatus: {},
-    usersByRole: {},
-    enrollmentsByMonth: {},
-    studentGrowth: 0,
-    courseGrowth: 0,
-    revenue: 0,
-    revenueGrowth: 0,
-    systemUptime: 0,
-    onlineStudents: 0,
-    activeCourses: 0,
-    pendingAssignments: 0,
-    unreadMessages: 0
-  });
-
-  // Recent activities derived from analytics (no backend endpoint for activity log)
-  recentActivities = computed(() => {
-    const a = this.analytics();
-    const activities: { id: number; message: string; timestamp: Date }[] = [];
-    let id = 1;
-    if (a.pendingCourses > 0) {
-      activities.push({ id: id++, message: `${a.pendingCourses} khóa học đang chờ duyệt`, timestamp: new Date() });
-    }
-    if (a.totalEnrollments > 0) {
-      activities.push({ id: id++, message: `${a.totalEnrollments} lượt đăng ký khóa học`, timestamp: new Date() });
-    }
-    if (a.totalStudents > 0) {
-      activities.push({ id: id++, message: `${a.totalStudents} học viên trong hệ thống`, timestamp: new Date() });
-    }
-    if (a.totalCourses > 0) {
-      activities.push({ id: id++, message: `${a.totalCourses} khóa học đã tạo`, timestamp: new Date() });
-    }
-    if (activities.length === 0) {
-      activities.push({ id: 1, message: 'Chưa có hoạt động nào', timestamp: new Date() });
-    }
-    return activities;
-  });
-
-  // Pending approvals - now using real API data
+  analytics = signal<SystemAnalytics>(EMPTY_ANALYTICS);
   pendingApprovals = signal<PendingApproval[]>([]);
   isLoadingPending = signal(false);
-
-  // ORG_ADMIN computed signals (action-oriented dashboard)
-  pendingCount = computed(() => this.analytics().pendingCourses);
-  newStudentsThisMonth = computed(() => this.analytics().userGrowth?.thisMonth || 0);
-  activeCourseCount = computed(() => this.analytics().approvedCourses);
-
-  // Enrollment trend data (30-day, for ORG_ADMIN chart)
-  enrollmentTrendData = computed<RevenueData>(() => {
-    const labels: string[] = [];
-    const data: number[] = [];
-    const today = new Date();
-    const totalEnrollments = this.analytics().totalEnrollments || 0;
-    const dailyAvg = totalEnrollments / 30;
-
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const day = date.getDate().toString().padStart(2, '0');
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      labels.push(`${day}/${month}`);
-      const variation = Math.sin(i * 0.7) * dailyAvg * 0.3;
-      data.push(Math.max(0, Math.floor(dailyAvg + variation)));
-    }
-    return { labels, data };
-  });
-
-  // Revenue chart data - derived from real analytics monthly revenue
-  revenueChartData = computed<RevenueData>(() => {
-    const labels: string[] = [];
-    const data: number[] = [];
-    const today = new Date();
-    const monthlyRevenue = this.analytics().monthlyRevenue || 0;
-    const dailyAvg = monthlyRevenue / 30;
-
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const day = date.getDate().toString().padStart(2, '0');
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      labels.push(`${day}/${month}`);
-      // Deterministic variation based on day index (no Math.random)
-      const variation = Math.sin(i * 0.7) * dailyAvg * 0.3;
-      data.push(Math.max(0, Math.floor(dailyAvg + variation)));
-    }
-
-    return { labels, data };
-  });
 
   ngOnInit(): void {
     this.loadAnalytics();
     this.loadPendingApprovals();
   }
 
+  refreshDashboard(): void {
+    this.loadAnalytics();
+    this.loadPendingApprovals();
+  }
+
+  onCourseApproved(courseId: string): void {
+    this.adminService.approveCourse(courseId).subscribe({
+      next: () => {
+        this.pendingApprovals.update(list => list.filter(item => item.id !== courseId));
+        this.loadAnalytics();
+      },
+      error: () => this.toast.error('Có lỗi xảy ra khi duyệt khóa học. Vui lòng thử lại.')
+    });
+  }
+
+  onCourseRejected(event: { id: string; reason: string }): void {
+    this.adminService.rejectCourse(event.id, event.reason).subscribe({
+      next: () => {
+        this.pendingApprovals.update(list => list.filter(item => item.id !== event.id));
+        this.loadAnalytics();
+        this.toast.success('Đã từ chối khóa học');
+      },
+      error: () => this.toast.error('Có lỗi xảy ra khi từ chối khóa học. Vui lòng thử lại.')
+    });
+  }
+
   private loadAnalytics(): void {
     this.isLoading.set(true);
     this.loadError.set(false);
-    
     this.adminService.getSystemAnalytics().subscribe({
       next: (data) => {
         this.analytics.set(data);
-        this.lastUpdate.set(new Date());
         this.isLoading.set(false);
       },
       error: () => {
@@ -180,83 +116,24 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  refreshDashboard(): void {
-    this.isLoading.set(true);
-    this.loadAnalytics();
-  }
-
-  navigateToUserManagement(): void {
-    this.router.navigate(['/admin/users']);
-  }
-
-  navigateToCourseManagement(): void {
-    this.router.navigate(['/admin/courses']);
-  }
-
-  navigateToAnalytics(): void {
-    this.router.navigate(['/admin/analytics']);
-  }
-
-  navigateToSystemSettings(): void {
-    this.router.navigate(['/admin/settings']);
-  }
-
   private loadPendingApprovals(): void {
     this.isLoadingPending.set(true);
     this.adminService.getPendingCourses().subscribe({
       next: (response) => {
-        const courses = response.data;
-        const pendingList: PendingApproval[] = courses.map(course => ({
-          id: course.id,
-          name: course.title,
-          type: 'course' as const,
-          submittedDate: course.submittedAt || course.createdAt
-        }));
-        this.pendingApprovals.set(pendingList);
+        this.pendingApprovals.set(
+          response.data.map(course => ({
+            id: course.id,
+            name: course.title,
+            type: 'course' as const,
+            submittedDate: course.submittedAt || course.createdAt
+          }))
+        );
         this.isLoadingPending.set(false);
       },
       error: () => {
-        this.isLoadingPending.set(false);
-        // Fallback to empty array on error
         this.pendingApprovals.set([]);
+        this.isLoadingPending.set(false);
       }
     });
-  }
-
-  approveCourse(courseId: string): void {
-    this.adminService.approveCourse(courseId).subscribe({
-      next: () => {
-        // Remove from pending list
-        const currentList = this.pendingApprovals();
-        this.pendingApprovals.set(currentList.filter(item => item.id !== courseId));
-        // Reload analytics to update pending count
-        this.loadAnalytics();
-      },
-      error: () => {
-        this.toast.error('Có lỗi xảy ra khi duyệt khóa học. Vui lòng thử lại.');
-      }
-    });
-  }
-
-  async rejectCourse(courseId: string): Promise<void> {
-    const reason = prompt('Nhập lý do từ chối khóa học:');
-    if (!reason?.trim()) return;
-
-    this.adminService.rejectCourse(courseId, reason.trim()).subscribe({
-      next: () => {
-        const currentList = this.pendingApprovals();
-        this.pendingApprovals.set(currentList.filter(item => item.id !== courseId));
-        this.loadAnalytics();
-        this.toast.success('Đã từ chối khóa học');
-      },
-      error: () => {
-        this.toast.error('Có lỗi xảy ra khi từ chối khóa học. Vui lòng thử lại.');
-      }
-    });
-  }
-
-  formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN');
   }
 }

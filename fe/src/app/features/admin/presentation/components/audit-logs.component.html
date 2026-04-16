@@ -1,0 +1,103 @@
+<div class="audit-page">
+  <div class="audit-inner">
+    <h1 class="page-title">Nhật ký kiểm toán</h1>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+      <div class="filter-row">
+        <div class="filter-group">
+          <label class="filter-label">Bảng</label>
+          <select [(ngModel)]="tableFilter" (ngModelChange)="onFilterChange()" class="filter-select">
+            <option value="">Tất cả</option>
+            <option value="courses">courses</option>
+            <option value="users">users</option>
+            <option value="enrollments">enrollments</option>
+            <option value="submissions">submissions</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Hành động</label>
+          <select [(ngModel)]="actionFilter" (ngModelChange)="onFilterChange()" class="filter-select">
+            <option value="">Tất cả</option>
+            <option value="INSERT">INSERT</option>
+            <option value="UPDATE">UPDATE</option>
+            <option value="DELETE">DELETE</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Bảng</th>
+            <th>Hành động</th>
+            <th>Record ID</th>
+            <th>Thời gian</th>
+            <th>Chi tiết</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (log of logs(); track log.id) {
+            <tr>
+              <td class="cell-id">{{ log.id }}</td>
+              <td class="cell-table-name">{{ log.tableName }}</td>
+              <td>
+                <span class="badge" [class]="getActionClass(log.action)">
+                  {{ log.action }}
+                </span>
+              </td>
+              <td class="cell-record-id">{{ log.recordId | slice:0:8 }}...</td>
+              <td class="cell-time">{{ log.changedAt | date:'dd/MM/yyyy HH:mm' }}</td>
+              <td>
+                <button (click)="toggleDetail(log.id)" class="btn-detail">
+                  {{ expandedId() === log.id ? 'Ẩn' : 'Xem' }}
+                </button>
+              </td>
+            </tr>
+            @if (expandedId() === log.id) {
+              <tr>
+                <td colspan="6" class="detail-cell">
+                  <div class="detail-grid">
+                    @if (log.oldData) {
+                      <div>
+                        <h4 class="detail-section-title">Dữ liệu cũ</h4>
+                        <pre class="detail-pre">{{ formatJson(log.oldData) }}</pre>
+                      </div>
+                    }
+                    @if (log.newData) {
+                      <div>
+                        <h4 class="detail-section-title">Dữ liệu mới</h4>
+                        <pre class="detail-pre">{{ formatJson(log.newData) }}</pre>
+                      </div>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          } @empty {
+            <tr>
+              <td colspan="6" class="table-empty">
+                Không có nhật ký kiểm toán
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    @if (totalPages() > 1) {
+      <div class="pagination">
+        <button (click)="goToPage(currentPage() - 1)" [disabled]="currentPage() === 0" class="btn-page">Trước</button>
+        <span class="page-info">
+          Trang {{ currentPage() + 1 }} / {{ totalPages() }}
+        </span>
+        <button (click)="goToPage(currentPage() + 1)" [disabled]="currentPage() >= totalPages() - 1" class="btn-page">Sau</button>
+      </div>
+    }
+  </div>
+</div>

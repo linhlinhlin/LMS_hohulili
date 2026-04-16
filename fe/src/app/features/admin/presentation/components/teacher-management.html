@@ -1,74 +1,72 @@
 
-    <div class="min-h-screen bg-white">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="teacher-page">
+      <div class="page-inner">
         <!-- Header -->
-        <div class="mb-8">
-          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <h1 class="text-2xl font-bold text-gray-900 mb-1">Quản lý Giảng viên</h1>
-              <p class="text-sm text-gray-600">Quản lý các tài khoản giảng viên trong hệ thống</p>
-            </div>
-            <button (click)="openCreateModal()" class="inline-flex items-center px-4 py-2.5 bg-purple-600 text-white text-sm font-medium rounded hover:bg-purple-700 transition-colors">
-              <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
-              Thêm Giảng viên
-            </button>
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Quản lý Giảng viên</h1>
+            <p class="page-subtitle">Quản lý các tài khoản giảng viên trong hệ thống</p>
           </div>
+          <button (click)="openCreateModal()" class="btn-create">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+            Thêm Giảng viên
+          </button>
         </div>
 
         <!-- Stats Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
-          <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-start justify-between">
+        <div class="stats-strip">
+          <div class="stat-card">
+            <div class="stat-inner">
               <div>
-                <p class="text-xs font-medium text-gray-500 uppercase mb-2">Tổng Giảng viên</p>
-                <p class="text-2xl font-bold text-gray-900">{{ totalTeachers() }}</p>
-                <p class="text-xs text-gray-600 mt-2">{{ activeTeachers() }} đang hoạt động</p>
+                <p class="stat-label">Tổng Giảng viên</p>
+                <p class="stat-value">{{ totalTeachers() }}</p>
+                <p class="stat-sub">{{ activeTeachers() }} đang hoạt động</p>
               </div>
-              <div class="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+              <div class="stat-icon icon-purple">
+                <svg fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
                   <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" clip-rule="evenodd"></path>
                 </svg>
               </div>
             </div>
           </div>
-          <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-start justify-between">
+          <div class="stat-card">
+            <div class="stat-inner">
               <div>
-                <p class="text-xs font-medium text-gray-500 uppercase mb-2">Khóa học</p>
-                <p class="text-2xl font-bold text-gray-900">{{ totalCourses() }}</p>
-                <p class="text-xs text-gray-600 mt-2">Đang giảng dạy</p>
+                <p class="stat-label">Khóa học</p>
+                <p class="stat-value">{{ totalCourses() }}</p>
+                <p class="stat-sub">Đang giảng dạy</p>
               </div>
-              <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+              <div class="stat-icon icon-green">
+                <svg fill="currentColor" viewBox="0 0 20 20">
                   <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z"></path>
                 </svg>
               </div>
             </div>
           </div>
-          <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-start justify-between">
+          <div class="stat-card">
+            <div class="stat-inner">
               <div>
-                <p class="text-xs font-medium text-gray-500 uppercase mb-2">Bị khóa</p>
-                <p class="text-2xl font-bold text-gray-900">{{ blockedTeachers() }}</p>
-                <p class="text-xs text-gray-600 mt-2">Tài khoản bị khóa</p>
+                <p class="stat-label">Bị khóa</p>
+                <p class="stat-value">{{ blockedTeachers() }}</p>
+                <p class="stat-sub">Tài khoản bị khóa</p>
               </div>
-              <div class="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+              <div class="stat-icon icon-red">
+                <svg fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z" clip-rule="evenodd"></path>
                 </svg>
               </div>
             </div>
           </div>
-          <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-start justify-between">
+          <div class="stat-card">
+            <div class="stat-inner">
               <div>
-                <p class="text-xs font-medium text-gray-500 uppercase mb-2">Hoạt động gần đây</p>
-                <p class="text-2xl font-bold text-gray-900">{{ recentlyActive() }}</p>
-                <p class="text-xs text-gray-600 mt-2">Trong 7 ngày qua</p>
+                <p class="stat-label">Hoạt động gần đây</p>
+                <p class="stat-value">{{ recentlyActive() }}</p>
+                <p class="stat-sub">Trong 7 ngày qua</p>
               </div>
-              <div class="w-10 h-10 bg-[#0056D2]/5 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
+              <div class="stat-icon icon-blue">
+                <svg fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
                 </svg>
               </div>
@@ -77,79 +75,79 @@
         </div>
 
         <!-- Search & Filter -->
-        <div class="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-          <div class="flex flex-col lg:flex-row gap-4">
-            <div class="flex-1 relative">
-              <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="search-wrapper">
+              <svg fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
               </svg>
               <input type="text" [value]="searchQuery()" (input)="onSearchInput($any($event.target).value)"
                      placeholder="Tìm kiếm theo tên hoặc email..."
-                     class="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                     class="search-input">
             </div>
             <select [value]="statusFilter()" (change)="onStatusFilterChange($any($event.target).value)"
-                    class="px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:ring-2 focus:ring-purple-500">
+                    class="filter-select">
               <option value="">Tất cả trạng thái</option>
               <option value="ACTIVE">Đang hoạt động</option>
               <option value="BLOCKED">Bị khóa</option>
               <option value="RESTRICTED">Hạn chế</option>
             </select>
           </div>
-          <div class="mt-3 pt-3 border-t border-gray-200">
-            <p class="text-xs text-gray-600">
-              Hiển thị <span class="font-medium text-gray-900">{{ filteredTeachers().length }}</span>
-              trong tổng số <span class="font-medium text-gray-900">{{ totalTeachers() }}</span> giảng viên
+          <div class="filter-summary">
+            <p>
+              Hiển thị <span class="count">{{ filteredTeachers().length }}</span>
+              trong tổng số <span class="count">{{ totalTeachers() }}</span> giảng viên
             </p>
           </div>
         </div>
 
         <!-- Teachers Table -->
-        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div class="table-card">
           @if (isLoading()) {
-            <div class="p-12 text-center">
-              <div class="w-12 h-12 border-4 border-gray-200 border-t-purple-600 rounded-full animate-spin mx-auto"></div>
-              <p class="mt-4 text-sm text-gray-600">Đang tải danh sách giảng viên...</p>
+            <div class="table-loading">
+              <div class="spinner"></div>
+              <p>Đang tải danh sách giảng viên...</p>
             </div>
           } @else if (filteredTeachers().length === 0) {
-            <div class="p-12 text-center">
-              <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
+            <div class="table-empty">
+              <svg fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
                 <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" clip-rule="evenodd"></path>
               </svg>
-              <h3 class="text-base font-medium text-gray-900 mb-2">Không tìm thấy giảng viên</h3>
-              <p class="text-sm text-gray-600">Thử điều chỉnh bộ lọc hoặc tìm kiếm với từ khóa khác</p>
+              <h3>Không tìm thấy giảng viên</h3>
+              <p>Thử điều chỉnh bộ lọc hoặc tìm kiếm với từ khóa khác</p>
             </div>
           } @else {
-            <div class="overflow-x-auto">
-              <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+            <div style="overflow-x: auto;">
+              <table class="data-table">
+                <thead>
                   <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Giảng viên</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Vai trò</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Trạng thái</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Khóa học</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Hoạt động</th>
-                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase">Thao tác</th>
+                    <th>Giảng viên</th>
+                    <th>Vai trò</th>
+                    <th>Trạng thái</th>
+                    <th>Khóa học</th>
+                    <th>Hoạt động</th>
+                    <th class="text-center">Thao tác</th>
                   </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-100">
+                <tbody>
                   @for (teacher of filteredTeachers(); track teacher.id) {
-                    <tr class="hover:bg-gray-50 transition-colors">
+                    <tr>
                       <!-- User Info -->
-                      <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center">
-                          <img [src]="getDefaultAvatar(teacher.email)" class="w-10 h-10 rounded-full border border-gray-200">
-                          <div class="ml-3">
-                            <div class="text-sm font-medium text-gray-900">{{ teacher.name }}</div>
-                            <div class="text-xs text-gray-500">{{ teacher.email }}</div>
+                      <td>
+                        <div class="teacher-cell">
+                          <img [src]="getDefaultAvatar(teacher.email)" class="teacher-avatar">
+                          <div class="teacher-info">
+                            <div class="teacher-name">{{ teacher.name }}</div>
+                            <div class="teacher-email">{{ teacher.email }}</div>
                           </div>
                         </div>
                       </td>
                       <!-- Role Change -->
-                      <td class="px-6 py-4 whitespace-nowrap">
+                      <td>
                         <select [ngModel]="getRoleValue(teacher.role)"
                                 (ngModelChange)="onRoleChange(teacher.id, $event)"
-                                class="role-select px-2 py-1 text-xs font-medium rounded border border-gray-300 bg-white focus:ring-2 focus:ring-purple-500">
+                                class="role-select">
                           <option value="STUDENT">Học viên</option>
                           <option value="TEACHER">Giảng viên</option>
                           @if (isSystemAdmin()) {
@@ -158,57 +156,54 @@
                         </select>
                       </td>
                       <!-- Status -->
-                      <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded" [class]="getStatusBadgeClass(teacher.accountStatus)">
-                          <span class="w-1.5 h-1.5 rounded-full mr-1.5" [class]="getStatusDotClass(teacher.accountStatus)"></span>
+                      <td>
+                        <span class="badge" [class]="getStatusBadgeClass(teacher.accountStatus)">
+                          <span class="status-dot" [class]="getStatusDotClass(teacher.accountStatus)"></span>
                           {{ getStatusLabel(teacher.accountStatus) }}
                         </span>
                       </td>
                       <!-- Courses - Clickable to view managed courses -->
-                      <td class="px-6 py-4 whitespace-nowrap">
-                        <button (click)="viewTeacherCourses(teacher)"
-                                class="flex flex-col items-start text-sm cursor-pointer hover:bg-gray-50 -m-2 p-2 rounded transition-colors">
-                          <div class="flex items-center text-purple-600 hover:text-purple-800">
-                            <svg class="w-4 h-4 mr-1.5 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                      <td>
+                        <button (click)="viewTeacherCourses(teacher)" class="courses-btn">
+                          <div class="courses-owned">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
                               <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z"></path>
                             </svg>
-                            <span class="font-medium">{{ teacher.coursesCreated || 0 }}</span>
-                            <span class="ml-1 text-gray-500 text-xs">sở hữu</span>
+                            <span class="count">{{ teacher.coursesCreated || 0 }}</span>
+                            <span class="label">sở hữu</span>
                           </div>
                           @if ((teacher.coursesCooped || 0) > 0) {
-                            <div class="flex items-center text-[#0056D2] mt-0.5 ml-5.5">
-                              <span class="font-medium">{{ teacher.coursesCooped }}</span>
-                              <span class="ml-1 text-gray-500 text-xs">cộng tác</span>
+                            <div class="courses-coop">
+                              <span class="count">{{ teacher.coursesCooped }}</span>
+                              <span class="label">cộng tác</span>
                             </div>
                           }
                         </button>
                       </td>
                       <!-- Last Login -->
-                      <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600">
-                        {{ teacher.lastLogin ? formatDateValue(teacher.lastLogin) : 'Chưa đăng nhập' }}
+                      <td>
+                        <span class="date-text">{{ teacher.lastLogin ? formatDateValue(teacher.lastLogin) : 'Chưa đăng nhập' }}</span>
                       </td>
                       <!-- Actions -->
-                      <td class="px-6 py-4 whitespace-nowrap text-center">
-                        <div class="flex items-center justify-center space-x-1">
+                      <td>
+                        <div class="actions-cell">
                           <!-- Status Actions -->
                           <select (change)="onStatusActionChange(teacher, $any($event.target).value); $any($event.target).value = ''"
-                                  class="text-xs px-2 py-1 border border-gray-300 rounded bg-white cursor-pointer hover:border-gray-400">
+                                  class="status-select">
                             <option value="" disabled selected>Trạng thái</option>
                             @if (teacher.accountStatus !== 'ACTIVE') {
-                              <option value="ACTIVE">âœ“ Kích hoạt</option>
+                              <option value="ACTIVE">Kích hoạt</option>
                             }
                             @if (teacher.accountStatus !== 'BLOCKED') {
-                              <option value="BLOCKED">đŸ”’ Khóa</option>
+                              <option value="BLOCKED">Khóa</option>
                             }
                             @if (teacher.accountStatus !== 'RESTRICTED') {
-                              <option value="RESTRICTED">â ï¸ Hạn chế</option>
+                              <option value="RESTRICTED">Hạn chế</option>
                             }
                           </select>
                           <!-- Delete -->
-                          <button (click)="deleteUser(teacher.id)"
-                                  class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                                  title="Vô hiệu hóa tài khoản">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <button (click)="deleteUser(teacher.id)" class="btn-delete" title="Vô hiệu hóa tài khoản">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
                               <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                             </svg>
                           </button>
@@ -226,38 +221,35 @@
 
     <!-- Create Teacher Modal -->
     @if (showCreateModal()) {
-      <div class="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-40" (click)="closeCreateModal()">
-        <div class="flex items-center justify-center min-h-screen p-4">
-          <div class="bg-white rounded-lg shadow-xl max-w-md w-full" (click)="$event.stopPropagation()">
-            <div class="flex items-center justify-between p-6 border-b">
-              <h3 class="text-xl font-semibold text-gray-900">Thêm Giảng viên mới</h3>
-              <button (click)="closeCreateModal()" class="text-gray-400 hover:text-gray-600">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="modal-overlay" (click)="closeCreateModal()">
+        <div class="modal-center">
+          <div class="modal-card" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+              <h3 class="modal-title">Thêm Giảng viên mới</h3>
+              <button (click)="closeCreateModal()" class="modal-close">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
               </button>
             </div>
-            <div class="p-6 space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Tên đầy đủ <span class="text-red-500">*</span></label>
-                <input type="text" [(ngModel)]="newTeacherName" placeholder="Nhập họ và tên"
-                       class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+            <div class="modal-body">
+              <div class="modal-form-group">
+                <label class="modal-label">Tên đầy đủ <span class="required">*</span></label>
+                <input type="text" [(ngModel)]="newTeacherName" placeholder="Nhập họ và tên" class="modal-input">
               </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Email <span class="text-red-500">*</span></label>
-                <input type="email" [(ngModel)]="newTeacherEmail" placeholder="email@example.com"
-                       class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+              <div class="modal-form-group">
+                <label class="modal-label">Email <span class="required">*</span></label>
+                <input type="email" [(ngModel)]="newTeacherEmail" placeholder="email@example.com" class="modal-input">
               </div>
-              <div class="bg-purple-50 border border-purple-200 rounded p-3">
-                <p class="text-xs text-purple-700">
-                  <span class="font-medium">Mật khẩu mặc định:</span> Password123! - Giảng viên nên đổi sau khi đăng nhập.
+              <div class="info-box-purple">
+                <p>
+                  <span class="bold">Mật khẩu mặc định:</span> Password123! - Giảng viên nên đổi sau khi đăng nhập.
                 </p>
               </div>
             </div>
-            <div class="flex justify-end gap-3 px-6 py-4 bg-gray-50 border-t">
-              <button (click)="closeCreateModal()" class="px-4 py-2 text-sm text-gray-700 bg-white border rounded hover:bg-gray-50">Hủy</button>
-              <button (click)="createTeacher()" [disabled]="!newTeacherName() || !newTeacherEmail()"
-                      class="px-4 py-2 text-sm text-white bg-purple-600 rounded hover:bg-purple-700 disabled:opacity-50">
+            <div class="modal-footer">
+              <button (click)="closeCreateModal()" class="btn-secondary">Hủy</button>
+              <button (click)="createTeacher()" [disabled]="!newTeacherName() || !newTeacherEmail()" class="btn-purple">
                 Thêm giảng viên
               </button>
             </div>
@@ -268,93 +260,88 @@
 
     <!-- View Courses Modal -->
     @if (showCoursesModal() && selectedTeacher()) {
-      <div class="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-40" (click)="closeCoursesModal()">
-        <div class="flex items-center justify-center min-h-screen p-4">
-          <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden" (click)="$event.stopPropagation()">
-            <div class="flex items-center justify-between p-6 border-b bg-purple-50">
+      <div class="modal-overlay" (click)="closeCoursesModal()">
+        <div class="modal-center">
+          <div class="modal-card-lg" (click)="$event.stopPropagation()">
+            <div class="modal-header-purple">
               <div>
-                <h3 class="text-xl font-semibold text-gray-900">Khóa học đang quản lý</h3>
-                <p class="text-sm text-gray-600 mt-1">{{ selectedTeacher()?.name }} - {{ selectedTeacher()?.email }}</p>
+                <h3 class="modal-title">Khóa học đang quản lý</h3>
+                <p class="modal-subtitle">{{ selectedTeacher()?.name }} - {{ selectedTeacher()?.email }}</p>
               </div>
-              <button (click)="closeCoursesModal()" class="text-gray-400 hover:text-gray-600">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button (click)="closeCoursesModal()" class="modal-close">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
               </button>
             </div>
-            <div class="p-6 overflow-y-auto max-h-[60vh]">
+            <div class="modal-body-scroll">
               @if (isLoadingCourses()) {
-                <div class="text-center py-8">
-                  <div class="w-8 h-8 border-4 border-gray-200 border-t-purple-600 rounded-full animate-spin mx-auto"></div>
-                  <p class="mt-2 text-sm text-gray-600">Đang tải khóa học...</p>
+                <div class="modal-loading">
+                  <div class="spinner-sm"></div>
+                  <p>Đang tải khóa học...</p>
                 </div>
               } @else if (teacherCourses().length === 0 && coopCourses().length === 0) {
-                <div class="text-center py-8">
-                  <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="currentColor" viewBox="0 0 20 20">
+                <div class="modal-empty">
+                  <svg fill="currentColor" viewBox="0 0 20 20">
                     <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z"></path>
                   </svg>
-                  <p class="text-gray-600">Giảng viên chưa có khóa học nào</p>
+                  <p>Giảng viên chưa có khóa học nào</p>
                 </div>
               } @else {
                 <!-- Owned Courses Section -->
                 @if (teacherCourses().length > 0) {
-                  <div class="mb-6">
-                    <h4 class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                      <svg class="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                  <div class="course-section">
+                    <h4 class="course-section-title title-purple">
+                      <svg fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z"></path>
                       </svg>
                       Khóa học sở hữu ({{ teacherCourses().length }})
                     </h4>
-                    <div class="space-y-3">
+                    <div class="course-list">
                       @for (course of teacherCourses(); track course.id) {
-                        <div class="p-4 bg-purple-50 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors">
-                          <div class="flex items-start justify-between">
-                            <div class="flex-1 min-w-0">
-                              <h4 class="font-medium text-gray-900">{{ course.title }}</h4>
-                              <div class="flex flex-wrap items-center gap-2 mt-1">
-                                <span class="text-xs px-2 py-0.5 rounded-full bg-purple-200 text-purple-800">Chủ sở hữu</span>
-                                <span class="text-xs px-2 py-0.5 rounded-full"
-                                      [class]="course.status?.toUpperCase() === 'PUBLISHED' ? 'bg-green-100 text-green-700' : 
-                                               course.status?.toUpperCase() === 'PENDING' ? 'bg-yellow-100 text-yellow-700' : 
-                                               'bg-gray-100 text-gray-700'">
-                                  {{ course.status?.toUpperCase() === 'PUBLISHED' ? 'Đã xuất bản' : 
+                        <div class="course-item course-owned">
+                          <div class="course-item-header">
+                            <div class="course-item-body">
+                              <h4 class="course-item-title">{{ course.title }}</h4>
+                              <div class="course-meta">
+                                <span class="badge-owner">Chủ sở hữu</span>
+                                <span [class]="course.status?.toUpperCase() === 'PUBLISHED' ? 'badge-published' :
+                                               course.status?.toUpperCase() === 'PENDING' ? 'badge-pending' : 'badge-draft'">
+                                  {{ course.status?.toUpperCase() === 'PUBLISHED' ? 'Đã xuất bản' :
                                      course.status?.toUpperCase() === 'PENDING' ? 'Chờ duyệt' : 'Bản nháp' }}
                                 </span>
-                                <span class="text-xs text-gray-500">{{ formatDateValue(course.createdAt) }}</span>
-                                <span class="text-xs text-purple-600 font-medium">{{ course.enrolledCount }} học viên</span>
+                                <span class="meta-date">{{ formatDateValue(course.createdAt) }}</span>
+                                <span class="meta-students students-purple">{{ course.enrolledCount }} học viên</span>
                               </div>
                             </div>
                           </div>
-                          
+
                           <!-- Action buttons -->
-                          <div class="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-purple-200">
+                          <div class="course-actions actions-purple">
                             @if (course.status?.toUpperCase() === 'PENDING') {
-                              <button (click)="approveCourse(course.id)"
-                                      class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700 transition-colors">
-                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <button (click)="approveCourse(course.id)" class="btn-action action-approve">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                 </svg>
                                 Phê duyệt
                               </button>
-                              <button (click)="openRejectCourseModal(course.id)"
-                                      class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700 transition-colors">
-                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <button (click)="openRejectCourseModal(course.id)" class="btn-action action-reject">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                 </svg>
                                 Từ chối
                               </button>
                             }
                             <a [routerLink]="['/admin/courses']" [queryParams]="{search: course.title}"
-                               class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-[#0056D2] bg-[#0056D2]/5 rounded hover:bg-[#0056D2]/10 transition-colors">
-                              <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                               class="btn-action action-detail">
+                              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                               </svg>
                               Chi tiết
                             </a>
-                            <button (click)="openFullCourseView(course.id)"
-                                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-100 rounded hover:bg-purple-200 transition-colors">
-                              <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <button (click)="openFullCourseView(course.id)" class="btn-action action-view-full">
+                              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
                               </svg>
                               Xem đầy đủ
@@ -365,50 +352,47 @@
                     </div>
                   </div>
                 }
-                
+
                 <!-- Co-op Courses Section -->
                 @if (coopCourses().length > 0) {
-                  <div>
-                    <h4 class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                      <svg class="w-4 h-4 text-[#0056D2]" fill="currentColor" viewBox="0 0 20 20">
+                  <div class="course-section">
+                    <h4 class="course-section-title title-blue">
+                      <svg fill="currentColor" viewBox="0 0 20 20">
                         <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path>
                       </svg>
                       Khóa học cộng tác ({{ coopCourses().length }})
                     </h4>
-                    <div class="space-y-3">
+                    <div class="course-list">
                       @for (course of coopCourses(); track course.id) {
-                        <div class="p-4 bg-[#0056D2]/5 rounded-lg border border-[#0056D2]/20 hover:bg-[#0056D2]/10 transition-colors">
-                          <div class="flex items-start justify-between">
-                            <div class="flex-1 min-w-0">
-                              <h4 class="font-medium text-gray-900">{{ course.title }}</h4>
-                              <div class="flex flex-wrap items-center gap-2 mt-1">
-                                <span class="text-xs px-2 py-0.5 rounded-full bg-[#0056D2]/20 text-[#004BB5]">Cộng tác viên</span>
-                                <span class="text-xs text-gray-500">Chủ sở hữu: {{ course.teacherName }}</span>
-                                <span class="text-xs px-2 py-0.5 rounded-full"
-                                      [class]="course.status?.toUpperCase() === 'PUBLISHED' ? 'bg-green-100 text-green-700' : 
-                                               course.status?.toUpperCase() === 'PENDING' ? 'bg-yellow-100 text-yellow-700' : 
-                                               'bg-gray-100 text-gray-700'">
-                                  {{ course.status?.toUpperCase() === 'PUBLISHED' ? 'Đã xuất bản' : 
+                        <div class="course-item course-coop">
+                          <div class="course-item-header">
+                            <div class="course-item-body">
+                              <h4 class="course-item-title">{{ course.title }}</h4>
+                              <div class="course-meta">
+                                <span class="badge-collaborator">Cộng tác viên</span>
+                                <span class="meta-owner">Chủ sở hữu: {{ course.teacherName }}</span>
+                                <span [class]="course.status?.toUpperCase() === 'PUBLISHED' ? 'badge-published' :
+                                               course.status?.toUpperCase() === 'PENDING' ? 'badge-pending' : 'badge-draft'">
+                                  {{ course.status?.toUpperCase() === 'PUBLISHED' ? 'Đã xuất bản' :
                                      course.status?.toUpperCase() === 'PENDING' ? 'Chờ duyệt' : 'Bản nháp' }}
                                 </span>
-                                <span class="text-xs text-[#0056D2] font-medium">{{ course.enrolledCount }} học viên</span>
+                                <span class="meta-students students-blue">{{ course.enrolledCount }} học viên</span>
                               </div>
                             </div>
                           </div>
-                          
+
                           <!-- Action buttons for co-op (no approve/reject) -->
-                          <div class="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-[#0056D2]/20">
+                          <div class="course-actions actions-blue">
                             <a [routerLink]="['/admin/courses']" [queryParams]="{search: course.title}"
-                               class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-[#0056D2] bg-[#0056D2]/5 rounded hover:bg-[#0056D2]/10 transition-colors">
-                              <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                               class="btn-action action-detail">
+                              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                               </svg>
                               Chi tiết
                             </a>
-                            <button (click)="openFullCourseView(course.id)"
-                                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-[#004BB5] bg-[#0056D2]/10 rounded hover:bg-[#0056D2]/20 transition-colors">
-                              <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <button (click)="openFullCourseView(course.id)" class="btn-action action-view-blue">
+                              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
                               </svg>
                               Xem đầy đủ
@@ -421,10 +405,8 @@
                 }
               }
             </div>
-            <div class="px-6 py-4 bg-gray-50 border-t">
-              <button (click)="closeCoursesModal()" class="w-full px-4 py-2 text-sm text-gray-700 bg-white border rounded hover:bg-gray-50">
-                Đóng
-              </button>
+            <div class="modal-footer">
+              <button (click)="closeCoursesModal()" class="btn-close-full">Đóng</button>
             </div>
           </div>
         </div>
@@ -433,34 +415,30 @@
 
     <!-- Reject Course Modal -->
     @if (showRejectCourseModal()) {
-      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
-          <div class="px-6 py-4 border-b border-slate-100">
-            <h3 class="text-lg font-semibold text-slate-900">Từ chối khóa học</h3>
-            <p class="text-sm text-slate-500 mt-1">Nhập lý do từ chối khóa học</p>
+      <div class="reject-modal-overlay">
+        <div class="reject-modal-card">
+          <div class="reject-header">
+            <h3>Từ chối khóa học</h3>
+            <p>Nhập lý do từ chối khóa học</p>
           </div>
-          <div class="px-6 py-4">
+          <div class="reject-body">
             <textarea
               [ngModel]="rejectReasonInput()"
               (ngModelChange)="rejectReasonInput.set($event)"
               name="rejectReason"
               rows="3"
-              class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2] resize-none"
+              class="reject-textarea"
               placeholder="Nhập lý do từ chối..."
             ></textarea>
           </div>
-          <div class="px-6 py-3 bg-slate-50 flex justify-end gap-3">
-            <button (click)="closeRejectCourseModal()"
-                    class="px-4 py-2 text-sm font-medium text-slate-700 bg-white rounded-lg ring-1 ring-slate-200 hover:bg-slate-50 transition-colors">
-              Hủy
-            </button>
+          <div class="reject-footer">
+            <button (click)="closeRejectCourseModal()" class="btn-reject-cancel">Hủy</button>
             <button (click)="confirmRejectCourse()"
                     [disabled]="!rejectReasonInput().trim()"
-                    class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                    class="btn-reject-confirm">
               Từ chối
             </button>
           </div>
         </div>
       </div>
     }
-  

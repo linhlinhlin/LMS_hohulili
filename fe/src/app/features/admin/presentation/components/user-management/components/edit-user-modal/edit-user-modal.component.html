@@ -1,0 +1,57 @@
+@if (state.isEditModalOpen()) {
+  <div class="modal-backdrop" (click)="state.closeEditModal()">
+    <div class="modal-center">
+      <div class="modal-panel" (click)="$event.stopPropagation()">
+        <!-- Modal Header -->
+        <div class="modal-header">
+          <h3 class="modal-title">Chỉnh sửa người dùng</h3>
+          <button (click)="state.closeEditModal()" class="modal-close-btn" type="button">
+            <svg class="icon-close" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="modal-body">
+          <div class="form-field">
+            <label class="form-label">Tên</label>
+            <input type="text"
+                   [ngModel]="state.editingUserName()"
+                   (ngModelChange)="state.editingUserName.set($event)"
+                   class="form-input">
+          </div>
+
+          <div class="form-field">
+            <label class="form-label">Email</label>
+            <input type="email"
+                   [ngModel]="state.editingUserEmail()"
+                   (ngModelChange)="state.editingUserEmail.set($event)"
+                   class="form-input">
+          </div>
+
+          <div class="form-field">
+            <label class="form-label">Vai trò</label>
+            <select [ngModel]="state.editingUserRole()"
+                    (ngModelChange)="state.editingUserRole.set($event)"
+                    class="form-select">
+              @for (roleOpt of state.ROLE_OPTIONS; track roleOpt.value) {
+                <option [value]="roleOpt.value">{{ roleOpt.label }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="modal-footer">
+          <button (click)="state.closeEditModal()" type="button" class="btn-secondary">
+            Hủy
+          </button>
+          <button (click)="state.saveUserEdit()" type="button" class="btn-primary">
+            Lưu thay đổi
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

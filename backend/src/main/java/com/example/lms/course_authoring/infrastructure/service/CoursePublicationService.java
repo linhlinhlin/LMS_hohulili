@@ -45,6 +45,11 @@ public class CoursePublicationService {
 
     @Transactional
     public CoursePublicationJpaEntity publish(UUID courseId, UUID publishedById) {
+        return publish(courseId, publishedById, null);
+    }
+
+    @Transactional
+    public CoursePublicationJpaEntity publish(UUID courseId, UUID publishedById, String releaseNotes) {
         Course course = courseRepository.findByIdWithContent(courseId)
                 .orElseThrow(() -> new EntityNotFoundException("Khóa học", courseId));
 
@@ -63,6 +68,7 @@ public class CoursePublicationService {
                 .snapshot(snapshot)
                 .publishedAt(Instant.now())
                 .publishedById(publishedById)
+                .releaseNotes(releaseNotes)
                 .build();
 
         return publicationRepository.save(publication);

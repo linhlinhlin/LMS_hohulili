@@ -2,6 +2,7 @@ package com.example.lms.course_authoring.application.usecase;
 
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
 import com.example.lms.course_authoring.domain.repository.LessonRepositoryPort;
+import com.example.lms.learning_delivery.infrastructure.persistence.ClassTeacherJpaRepository;
 import com.example.lms.shared.domain.model.ContentBlock;
 import com.example.lms.shared.exception.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -16,8 +17,7 @@ import java.util.UUID;
 
 /**
  * Use case for managing Content Blocks (Sections) within a Lesson.
- * Uses domain repository ports only - no infrastructure dependencies.
- * Ownership verification ensures only the course teacher or admin can modify content.
+ * Ownership verification ensures only the course teacher, co-teacher, or admin can modify content.
  */
 @Service
 @RequiredArgsConstructor
@@ -26,6 +26,7 @@ public class ManageContentBlockUseCaseV3 {
     private final LessonRepositoryPort lessonRepository;
     private final CourseRepository courseRepository;
     private final CourseDraftMutationUseCase courseDraftMutationUseCase;
+    private final ClassTeacherJpaRepository classTeacherJpaRepository;
 
     @Transactional
     public ContentBlock addBlock(UUID lessonId, String type, Map<String, Object> data, UUID userId, boolean isAdmin) {
@@ -135,7 +136,8 @@ public class ManageContentBlockUseCaseV3 {
         if (isAdmin) return;
         var course = courseRepository.findByLessonId(lessonId)
                 .orElseThrow(() -> new EntityNotFoundException("Course for lesson", lessonId));
-        if (!course.getTeacherId().equals(userId)) {
+        if (!course.getTeacherId().equals(userId)
+                && !classTeacherJpaRepository.existsByTeacherIdAndCourseId(userId, course.getId())) {
             throw new AccessDeniedException("You don't have permission to modify this content");
         }
     }

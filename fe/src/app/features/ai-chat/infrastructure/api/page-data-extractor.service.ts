@@ -64,6 +64,27 @@ export interface QuizPageData {
   attempts_used: number;
 }
 
+export interface QuizResultPageData {
+  _type: 'quiz_result';
+  quiz_title: string;
+  score: number | null;
+  max_score: number | null;
+  score_percent: number;
+  passing_score: number | null;
+  passed: boolean | null;
+  total_questions: number;
+  correct_answers: number;
+  incorrect_answers: number;
+  show_correct_answers: boolean;
+  questions: Array<{
+    index: number;
+    question_text: string;
+    selected_option: string;
+    correct_option?: string;
+    is_correct: boolean | null;
+  }>;
+}
+
 export interface CourseOverviewData {
   _type: 'course_overview';
   course_name: string;
@@ -79,6 +100,7 @@ export type PageStructuredData =
   | AssignmentWorkData
   | LessonPageData
   | QuizPageData
+  | QuizResultPageData
   | CourseOverviewData
   | null;
 
@@ -222,7 +244,11 @@ export class PageDataExtractorService {
     };
   }
 
-  private extractQuiz(): QuizPageData {
+  private extractQuiz(): QuizPageData | QuizResultPageData {
+    if (this.looksLikeQuizResultPage()) {
+      return this.extractQuizResult();
+    }
+
     const titleEl = document.querySelector('.quiz-title, h1, [class*="quiz"] h2');
     const questionEl = document.querySelector(
       '.question-text, .question, [class*="question"] p',
@@ -240,6 +266,81 @@ export class PageDataExtractorService {
       question_text: questionEl?.textContent?.trim() || '',
       options: options.filter(o => o.length > 0),
       attempts_used: 0,
+    };
+  }
+
+  private extractQuizResult(): QuizResultPageData {
+    const title = this.firstText('nav span.font-medium, h1.text-sm.font-medium, h1');
+    const badgeText = this.findText(
+      'span, p',
+      (value) => ['dat_yeu_cau', 'chua_dat', 'chua_cong_bo_diem'].includes(this.normalizeText(value)),
+    );
+    const score = this.parseNumber(this.firstText('span.text-3xl.font-bold.tabular-nums, span.text-3xl.font-bold'));
+    const maxScore = this.parseNumber(
+      this.findText('span', (value) => String(value || '').trim().startsWith('/')).replace('/', ''),
+    );
+    const scorePercent = this.parseNumber(
+      this.findText('span', (value) => /^\d+(?:[.,]\d+)?%$/.test(String(value || '').trim())).replace('%', ''),
+    ) ?? 0;
+    const passingScore = this.parseNumber(
+      this.findText('p, span', (value) => this.normalizeText(value).startsWith('can_')).replace(/[^\d.,-]+/g, ''),
+    );
+
+    const questionRows = Array.from(
+      document.querySelectorAll('div.flex.items-start.gap-3.px-5.py-3'),
+    );
+
+    const questions = questionRows.map((row, index) => {
+      const questionText = row.querySelector('p')?.textContent?.trim() || `Cau hoi ${index + 1}`;
+      const answerValues = Array.from(row.querySelectorAll('span.font-medium'))
+        .map((el) => el.textContent?.trim() || '')
+        .filter((value) => value.length > 0);
+      const selectedOption = answerValues[0] || '';
+      const correctOption = answerValues[1] || undefined;
+      const selectedEl = row.querySelector('span.font-medium');
+      const isCorrect = selectedEl?.classList.contains('text-green-600')
+        ? true
+        : selectedEl?.classList.contains('text-red-500')
+          ? false
+          : null;
+
+      return {
+        index: index + 1,
+        question_text: questionText,
+        selected_option: selectedOption,
+        correct_option: correctOption,
+        is_correct: isCorrect,
+      };
+    });
+
+    const summaryText = this.findText(
+      'span, p',
+      (value) => /\d+\s*\/\s*\d+/.test(value) && value.includes('%'),
+    );
+    const summaryMatch = /(\d+)\s*\/\s*(\d+)/.exec(summaryText);
+    const totalQuestions = questions.length || (summaryMatch ? Number.parseInt(summaryMatch[2], 10) : 0);
+    const correctAnswers =
+      questions.filter((question) => question.is_correct === true).length
+      || (summaryMatch ? Number.parseInt(summaryMatch[1], 10) : 0);
+    const incorrectAnswers =
+      questions.filter((question) => question.is_correct === false).length
+      || Math.max(totalQuestions - correctAnswers, 0);
+
+    return {
+      _type: 'quiz_result',
+      quiz_title: title || document.title,
+      score: score ?? null,
+      max_score: maxScore ?? null,
+      score_percent: scorePercent,
+      passing_score: passingScore ?? null,
+      passed: badgeText
+        ? this.normalizeText(badgeText) === 'dat_yeu_cau'
+        : null,
+      total_questions: totalQuestions,
+      correct_answers: correctAnswers,
+      incorrect_answers: incorrectAnswers,
+      show_correct_answers: questions.length > 0,
+      questions,
     };
   }
 
@@ -277,6 +378,36 @@ export class PageDataExtractorService {
     return Array.from(document.querySelectorAll(selector))
       .map((el) => el.textContent?.trim() || '')
       .filter((value) => value.length > 0);
+  }
+
+  private findText(selector: string, predicate: (value: string) => boolean): string {
+    return this.collectTexts(selector).find((value) => predicate(value)) || '';
+  }
+
+  private looksLikeQuizResultPage(): boolean {
+    return this.collectTexts('h1, h2, nav span, p, span').some((value) => {
+      const normalized = this.normalizeText(value);
+      return normalized === 'chi_tiet_tung_cau' || normalized === 'ket_qua_bai_kiem_tra';
+    });
+  }
+
+  private normalizeText(value: string): string {
+    return String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/đ/g, 'd')
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+  }
+
+  private parseNumber(value: string): number | undefined {
+    const normalized = String(value || '').replace(',', '.').match(/-?\d+(?:\.\d+)?/);
+    if (!normalized) {
+      return undefined;
+    }
+    const parsed = Number.parseFloat(normalized[0]);
+    return Number.isFinite(parsed) ? parsed : undefined;
   }
 
   private extractAssignmentDueDate(values: string[]): string {
