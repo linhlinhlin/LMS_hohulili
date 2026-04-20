@@ -176,20 +176,21 @@ export class CourseRejectionBannerComponent {
     try { return new Date(at).toLocaleString('vi-VN'); } catch { return ''; }
   });
 
+  // Use a dedicated computed for the id so the fetch effect only fires
+  // when the courseId actually changes (not on every courseTree mutation).
+  private readonly courseId = computed(() => this.store.courseTree()?.id ?? null);
+
   constructor() {
-    // Refetch whenever the current course changes (user navigates between
-    // courses within the editor shell). Dismiss state is scoped per
-    // (courseId + reviewedAt) so a fresh rejection reappears.
     effect(() => {
-      const courseId = this.store.courseTree()?.id;
-      if (!courseId) {
+      const id = this.courseId();
+      if (!id) {
         untracked(() => {
           this.status.set(null);
           this.dismissed.set(false);
         });
         return;
       }
-      untracked(() => this.loadStatus(courseId));
+      untracked(() => this.loadStatus(id));
     });
   }
 
