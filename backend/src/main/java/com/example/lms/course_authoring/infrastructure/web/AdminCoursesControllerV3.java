@@ -285,7 +285,10 @@ public class AdminCoursesControllerV3 {
         // ORG_ADMIN: verify course teacher is in their org
         verifyCourseOrgAccess(courseId, admin);
         // Delegate to use case for proper domain layer handling
-        rejectCourseUseCase.execute(courseId, admin.getId(), request.getReason());
+        com.example.lms.course_authoring.domain.model.CourseRejectionCategory category =
+                com.example.lms.course_authoring.domain.model.CourseRejectionCategory
+                        .fromStringOrOther(request.getCategory());
+        rejectCourseUseCase.execute(courseId, admin.getId(), request.getReason(), category);
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new EntityNotFoundException("Khóa học", courseId));
         return ResponseEntity.ok(ApiResponse.success(toAdminResponse(course), "Đã từ chối khóa học"));
@@ -398,11 +401,14 @@ public class AdminCoursesControllerV3 {
         int failed = 0;
         List<String> errors = new ArrayList<>();
 
+        com.example.lms.course_authoring.domain.model.CourseRejectionCategory bulkCategory =
+                com.example.lms.course_authoring.domain.model.CourseRejectionCategory
+                        .fromStringOrOther(request.getCategory());
         for (UUID courseId : courseIds) {
             try {
                 // ORG_ADMIN: verify course teacher is in their org
                 verifyCourseOrgAccess(courseId, admin);
-                rejectCourseUseCase.execute(courseId, admin.getId(), request.getReason());
+                rejectCourseUseCase.execute(courseId, admin.getId(), request.getReason(), bulkCategory);
                 success++;
             } catch (Exception e) {
                 failed++;
@@ -827,7 +833,16 @@ public class AdminCoursesControllerV3 {
     @Data @NoArgsConstructor @AllArgsConstructor
     public static class RejectRequest {
         @NotBlank(message = "Lý do không được để trống")
+        @Size(max = 2000, message = "Lý do không được vượt quá 2000 ký tự")
         private String reason;
+
+        /**
+         * Optional structured category (Phase 3).
+         * Accepts any {@link com.example.lms.course_authoring.domain.model.CourseRejectionCategory}
+         * value; invalid / absent values default to OTHER.
+         */
+        @Size(max = 50, message = "Danh mục từ chối không hợp lệ")
+        private String category;
     }
 
     @Data @NoArgsConstructor @AllArgsConstructor
@@ -845,7 +860,12 @@ public class AdminCoursesControllerV3 {
         private List<UUID> courseIds;
 
         @NotBlank(message = "Lý do không được để trống")
+        @Size(max = 2000, message = "Lý do không được vượt quá 2000 ký tự")
         private String reason;
+
+        /** Optional structured category shared across all bulk-rejected courses. */
+        @Size(max = 50, message = "Danh mục từ chối không hợp lệ")
+        private String category;
     }
 
     @Data @Builder @NoArgsConstructor @AllArgsConstructor

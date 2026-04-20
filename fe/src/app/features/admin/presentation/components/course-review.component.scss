@@ -750,7 +750,52 @@
   }
 }
 
-/* ===== REJECT TEXTAREA ===== */
+/* ===== REJECT MODAL (Phase 3 — structured category + reason) ===== */
+.reject-subtitle {
+  margin: 0 0 $spacing-4;
+  color: $text-secondary;
+  font-size: $text-sm;
+  line-height: 1.55;
+}
+
+.reject-field-label {
+  display: block;
+  margin: $spacing-3 0 $spacing-2;
+  font-size: $text-sm;
+  font-weight: 600;
+  color: $text-primary;
+}
+
+.reject-required {
+  color: #dc2626;
+  margin-left: 2px;
+}
+
+.reject-select {
+  width: 100%;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  padding: $spacing-2 $spacing-3;
+  font-size: $text-sm;
+  color: $text-primary;
+  background: #fff;
+  outline: none;
+  font-family: inherit;
+  transition: border-color $transition-normal, box-shadow $transition-normal;
+
+  &:focus {
+    border-color: $blue-primary;
+    box-shadow: 0 0 0 3px rgba($blue-primary, 0.1);
+  }
+}
+
+.reject-hint {
+  margin: $spacing-2 0 0;
+  color: $text-secondary;
+  font-size: $text-xs;
+  text-align: right;
+}
+
 .reject-textarea {
   width: 100%;
   border: 1px solid $border-default;
@@ -760,7 +805,7 @@
   color: $text-primary;
   resize: vertical;
   outline: none;
-  margin: $spacing-4 0;
+  margin: 0;
   font-family: inherit;
   transition: border-color $transition-normal, box-shadow $transition-normal;
 

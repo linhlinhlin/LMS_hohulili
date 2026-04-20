@@ -32,6 +32,10 @@ public class CourseReviewEventJpaEntity {
     @Column(name = "comment", columnDefinition = "TEXT")
     private String comment;
 
+    /** Optional rejection category (only populated for REJECTED actions). */
+    @Column(name = "rejection_category", length = 50)
+    private String rejectionCategory;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

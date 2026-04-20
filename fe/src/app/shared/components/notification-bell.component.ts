@@ -52,7 +52,7 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
     }
 
     if (this.recentNotifications().length > 0) {
-      return 'Khong the lam moi thong bao. Dang hien thi du lieu gan nhat.';
+      return 'Không thể làm mới thông báo. Đang hiển thị dữ liệu gần nhất.';
     }
 
     return errorMessage;
@@ -122,16 +122,16 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
     if (diffMins < 1) {
-      return 'Vua xong';
+      return 'Vừa xong';
     }
     if (diffMins < 60) {
-      return `${diffMins} phut truoc`;
+      return `${diffMins} phút trước`;
     }
     if (diffHours < 24) {
-      return `${diffHours} gio truoc`;
+      return `${diffHours} giờ trước`;
     }
     if (diffDays < 7) {
-      return `${diffDays} ngay truoc`;
+      return `${diffDays} ngày trước`;
     }
 
     return date.toLocaleDateString('vi-VN', {

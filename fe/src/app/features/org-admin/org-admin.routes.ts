@@ -15,7 +15,7 @@ export const orgAdminRoutes: Routes = [
       {
         path: 'dashboard',
         loadComponent: () => import('../admin/presentation/components/admin.component').then(m => m.AdminComponent),
-        title: 'Tong quan to chuc'
+        title: 'Tổng quan tổ chức'
       },
       {
         path: 'users',
@@ -28,12 +28,12 @@ export const orgAdminRoutes: Routes = [
           {
             path: 'teachers',
             loadComponent: () => import('../admin/presentation/components/teacher-management.component').then(m => m.TeacherManagementComponent),
-            title: 'Giang vien cua to chuc'
+            title: 'Giảng viên của tổ chức'
           },
           {
             path: 'students',
             loadComponent: () => import('../admin/presentation/components/student-management.component').then(m => m.StudentManagementComponent),
-            title: 'Hoc vien cua to chuc'
+            title: 'Học viên của tổ chức'
           }
         ]
       },
@@ -43,29 +43,29 @@ export const orgAdminRoutes: Routes = [
           {
             path: '',
             loadComponent: () => import('../admin/presentation/components/course-management.component').then(m => m.CourseManagementComponent),
-            title: 'Khoa hoc cua to chuc'
+            title: 'Khóa học của tổ chức'
           },
           {
             path: 'review',
             loadComponent: () => import('../admin/presentation/components/course-review.component').then(m => m.CourseReviewComponent),
-            title: 'Hang doi duyet khoa hoc'
+            title: 'Hàng đợi duyệt khóa học'
           },
           {
             path: ':courseId/preview',
             loadComponent: () => import('../admin/presentation/components/course-content-preview.component').then(m => m.CourseContentPreviewComponent),
-            title: 'Xem truoc noi dung khoa hoc'
+            title: 'Xem trước nội dung khóa học'
           }
         ]
       },
       {
         path: 'analytics',
         loadComponent: () => import('../admin/presentation/components/admin-analytics.component').then(m => m.AdminAnalyticsComponent),
-        title: 'Phan tich to chuc'
+        title: 'Phân tích tổ chức'
       },
       {
         path: 'organization',
         loadComponent: () => import('../admin/presentation/components/organization-detail.component').then(m => m.OrganizationDetailComponent),
-        title: 'To chuc cua toi'
+        title: 'Tổ chức của tôi'
       }
     ]
   }

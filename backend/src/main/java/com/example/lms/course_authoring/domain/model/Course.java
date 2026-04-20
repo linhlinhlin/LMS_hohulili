@@ -272,10 +272,18 @@ public class Course extends AggregateRoot {
     }
 
     /**
-     * Reject the course.
+     * Reject the course (legacy overload — no category).
      * Only allowed when status is PENDING.
      */
     public void reject(UUID reviewerId, String reason) {
+        reject(reviewerId, reason, null);
+    }
+
+    /**
+     * Reject the course with a structured category + free-text reason.
+     * Only allowed when status is PENDING or when a pending change-set exists on APPROVED.
+     */
+    public void reject(UUID reviewerId, String reason, CourseRejectionCategory category) {
         if (status == CourseStatus.APPROVED) {
             if (draftChangeStatus != DraftChangeStatus.PENDING_REVIEW) {
                 throw new BusinessRuleException("INVALID_STATUS",
@@ -286,6 +294,8 @@ public class Course extends AggregateRoot {
                 throw new IllegalArgumentException("Lý do từ chối không được để trống");
             }
 
+            // Preserve legacy behavior: no rejection event for change-set revisions
+            // (teachers are expected to monitor the draft; avoids duplicate notifications)
             this.draftChangeStatus = DraftChangeStatus.CHANGES_REQUESTED;
             this.reviewedById = reviewerId;
             this.reviewComment = reason;
@@ -307,7 +317,8 @@ public class Course extends AggregateRoot {
         this.reviewComment = reason;
         this.reviewedAt = Instant.now();
 
-        registerEvent(new CourseRejectedEvent(getId(), code.getValue(), title, teacherId, reviewerId, reason));
+        registerEvent(new CourseRejectedEvent(getId(), code.getValue(), title,
+                teacherId, reviewerId, reason, category));
     }
 
     /**

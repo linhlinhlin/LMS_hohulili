@@ -143,7 +143,7 @@ export class NotificationService {
         this.loading.set(false);
       }),
       catchError(() => {
-        this.error.set('Khong the tai thong bao');
+        this.error.set('Không thể tải thông báo');
         this.loading.set(false);
         return of([]);
       })
@@ -378,7 +378,7 @@ export class NotificationService {
     return this.apiClient.patch<void>(`/api/v3/gamification/notifications/${notificationId}/read`, {}).pipe(
       catchError((error) => {
         this.notifications.set(previousNotifications);
-        this.error.set('Khong the cap nhat thong bao');
+        this.error.set('Không thể cập nhật thông báo');
         return throwError(() => error);
       })
     );
@@ -400,7 +400,7 @@ export class NotificationService {
     return this.apiClient.patch<void>('/api/v3/gamification/notifications/read-all', {}).pipe(
       catchError((error) => {
         this.notifications.set(previousNotifications);
-        this.error.set('Khong the danh dau tat ca thong bao da doc');
+        this.error.set('Không thể đánh dấu tất cả thông báo đã đọc');
         return throwError(() => error);
       })
     );
@@ -421,7 +421,7 @@ export class NotificationService {
     return this.apiClient.delete<void>(`/api/v3/gamification/notifications/${notificationId}`).pipe(
       catchError((error) => {
         this.notifications.set(previousNotifications);
-        this.error.set('Khong the xoa thong bao');
+        this.error.set('Không thể xóa thông báo');
         return throwError(() => error);
       })
     );

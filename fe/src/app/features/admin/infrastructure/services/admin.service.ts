@@ -152,13 +152,48 @@ export interface UpdateUserRequest {
   enabled?: boolean;
 }
 
+/** Controlled vocabulary for structured rejection reasons. Matches BE CourseRejectionCategory enum. */
+export type CourseRejectionCategory =
+  | 'INSUFFICIENT_CONTENT'
+  | 'LOW_QUALITY'
+  | 'INACCURATE_INFO'
+  | 'MISSING_MEDIA'
+  | 'COPYRIGHT_VIOLATION'
+  | 'INAPPROPRIATE_CONTENT'
+  | 'TECHNICAL_ISSUE'
+  | 'OTHER';
+
+export interface CourseRejectionCategoryOption {
+  value: CourseRejectionCategory;
+  label: string;
+}
+
+/** Options displayed in the rejection modal (order = UX priority). */
+export const COURSE_REJECTION_CATEGORIES: readonly CourseRejectionCategoryOption[] = [
+  { value: 'INSUFFICIENT_CONTENT', label: 'Nội dung chưa đầy đủ' },
+  { value: 'LOW_QUALITY', label: 'Chất lượng nội dung chưa đạt' },
+  { value: 'INACCURATE_INFO', label: 'Thông tin chưa chính xác' },
+  { value: 'MISSING_MEDIA', label: 'Thiếu hình ảnh/video minh họa' },
+  { value: 'COPYRIGHT_VIOLATION', label: 'Vi phạm bản quyền' },
+  { value: 'INAPPROPRIATE_CONTENT', label: 'Nội dung không phù hợp' },
+  { value: 'TECHNICAL_ISSUE', label: 'Lỗi kỹ thuật trong nội dung' },
+  { value: 'OTHER', label: 'Lý do khác' }
+];
+
 export interface ReviewEvent {
   id: string;
   action: string;
   comment: string;
+  /** Only populated for REJECTED actions persisted after V115. */
+  rejectionCategory?: CourseRejectionCategory | null;
   reviewerId?: string;
   reviewerName?: string;
   createdAt: string;
+}
+
+export interface RejectCoursePayload {
+  reason: string;
+  category?: CourseRejectionCategory;
 }
 
 export interface AdminCourseSummary {
@@ -359,15 +394,19 @@ export class AdminService {
     );
   }
 
-  rejectCourse(courseId: string, reason: string): Observable<{ message: string }> {
-    return this.apiClient.patchWithResponse<string>(ADMIN_ENDPOINTS.REJECT_COURSE(courseId), { reason }).pipe(
+  rejectCourse(
+    courseId: string,
+    payload: string | RejectCoursePayload
+  ): Observable<{ message: string }> {
+    // Accept either a bare reason string (legacy call sites) or a structured payload.
+    const body: RejectCoursePayload = typeof payload === 'string'
+      ? { reason: payload }
+      : payload;
+    return this.apiClient.patchWithResponse<string>(ADMIN_ENDPOINTS.REJECT_COURSE(courseId), body).pipe(
       map(response => ({
         message: response.message || 'Course rejected successfully'
       })),
-      catchError(error => {
-
-        return throwError(() => error);
-      })
+      catchError(error => throwError(() => error))
     );
   }
 

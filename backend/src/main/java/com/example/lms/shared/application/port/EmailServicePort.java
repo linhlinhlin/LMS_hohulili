@@ -23,4 +23,17 @@ public interface EmailServicePort {
                                 BigDecimal amount, String reason, String transactionId);
 
     void sendOrganizationInvite(String toEmail, String organizationName, String inviteLink);
+
+    /**
+     * Notifies a teacher that their course was rejected by a reviewer.
+     *
+     * @param toEmail       teacher's email
+     * @param fullName      teacher's display name
+     * @param courseName    course title
+     * @param categoryLabel Vietnamese label of the rejection category (e.g. "Nội dung chưa đầy đủ")
+     * @param reason        free-text reason written by reviewer
+     * @param courseUrl     absolute URL for the teacher to revisit the course editor
+     */
+    void sendCourseRejected(String toEmail, String fullName, String courseName,
+                            String categoryLabel, String reason, String courseUrl);
 }

@@ -124,6 +124,47 @@ public final class EmailTemplates {
         return wrap("Lời mời tham gia tổ chức", body);
     }
 
+    public static String courseRejected(String fullName, String courseName,
+                                         String categoryLabel, String reason, String courseUrl) {
+        String safeCategory = categoryLabel != null && !categoryLabel.isBlank() ? categoryLabel : "—";
+        String safeReason = reason != null && !reason.isBlank() ? reason : "—";
+        String safeCourseUrl = courseUrl != null && !courseUrl.isBlank() ? courseUrl : "#";
+
+        String body = """
+            <p style="color:#475569;line-height:1.6;margin:0 0 16px">Xin chào <strong>%s</strong>,</p>
+            <p style="color:#475569;line-height:1.6;margin:0 0 16px">Khóa học của bạn chưa được duyệt trong lần xét duyệt vừa rồi:</p>
+            <div style="background:#fef2f2;border-left:4px solid #dc2626;padding:16px;border-radius:0 8px 8px 0;margin:0 0 20px">
+              <p style="margin:0;font-weight:600;color:#1e293b;font-size:16px">%s</p>
+            </div>
+            <table width="100%%" cellpadding="8" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;margin:0 0 24px">
+              <tr style="background:#f8fafc"><td style="font-weight:600;color:#475569;border-bottom:1px solid #e2e8f0;width:180px">Danh mục</td><td style="color:#1e293b;border-bottom:1px solid #e2e8f0">%s</td></tr>
+              <tr><td style="font-weight:600;color:#475569;vertical-align:top">Chi tiết</td><td style="color:#1e293b;white-space:pre-wrap">%s</td></tr>
+            </table>
+            <p style="color:#475569;line-height:1.6;margin:0 0 16px">Bạn có thể chỉnh sửa và gửi lại để được duyệt:</p>
+            <table width="100%%" cellpadding="0" cellspacing="0"><tr><td align="center">
+              <a href="%s" style="display:inline-block;padding:14px 32px;background:%s;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:16px">Mở khóa học</a>
+            </td></tr></table>
+            <p style="color:#94a3b8;font-size:13px;margin:24px 0 0">Nếu bạn có thắc mắc về quyết định này, vui lòng liên hệ quản trị viên phụ trách.</p>
+            """.formatted(
+                escapeHtml(fullName),
+                escapeHtml(courseName),
+                escapeHtml(safeCategory),
+                escapeHtml(safeReason),
+                safeCourseUrl,
+                PRIMARY);
+        return wrap("Khóa học chưa được duyệt", body);
+    }
+
+    private static String escapeHtml(String input) {
+        if (input == null) return "";
+        return input
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
+    }
+
     public static String paymentReceipt(String fullName, String courseName, BigDecimal amount,
                                          String txnId, String paymentMethod, String paidAt) {
         NumberFormat nf = NumberFormat.getInstance(new Locale("vi", "VN"));

@@ -2,7 +2,14 @@ import { Component, signal, inject, OnInit, ChangeDetectionStrategy } from '@ang
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AdminService, AdminCourseSummary, PendingCourseSummary, ReviewEvent } from '../../infrastructure/services/admin.service';
+import {
+  AdminService,
+  AdminCourseSummary,
+  COURSE_REJECTION_CATEGORIES,
+  CourseRejectionCategory,
+  PendingCourseSummary,
+  ReviewEvent
+} from '../../infrastructure/services/admin.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -42,6 +49,8 @@ export class CourseReviewComponent implements OnInit {
   rejecting = signal(false);
   rejectModalOpen = signal(false);
   rejectComment = '';
+  rejectCategory: CourseRejectionCategory = 'INSUFFICIENT_CONTENT';
+  readonly rejectionCategoryOptions = COURSE_REJECTION_CATEGORIES;
   selectedCourse: CourseListItem | null = null;
 
   detailModalOpen = signal(false);
@@ -224,6 +233,7 @@ export class CourseReviewComponent implements OnInit {
   showRejectModal(course: CourseListItem) {
     this.selectedCourse = course;
     this.rejectComment = '';
+    this.rejectCategory = 'INSUFFICIENT_CONTENT';
     this.rejectModalOpen.set(true);
   }
 
@@ -231,11 +241,12 @@ export class CourseReviewComponent implements OnInit {
     this.rejectModalOpen.set(false);
     this.selectedCourse = null;
     this.rejectComment = '';
+    this.rejectCategory = 'INSUFFICIENT_CONTENT';
   }
 
   confirmReject() {
     if (!this.rejectComment.trim()) {
-      this.toast.warning('Vui lòng nhập lý do từ chối');
+      this.toast.warning('Vui lòng nhập chi tiết lý do từ chối');
       return;
     }
 
@@ -244,7 +255,10 @@ export class CourseReviewComponent implements OnInit {
     }
 
     this.rejecting.set(true);
-    this.adminService.rejectCourse(this.selectedCourse.id, this.rejectComment.trim()).subscribe({
+    this.adminService.rejectCourse(this.selectedCourse.id, {
+      reason: this.rejectComment.trim(),
+      category: this.rejectCategory
+    }).subscribe({
       next: (response) => {
         this.toast.success(response.message || 'Đã từ chối khóa học');
         this.rejecting.set(false);

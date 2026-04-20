@@ -81,6 +81,14 @@ public class ResendEmailAdapter implements EmailServicePort {
         send(toEmail, "Lời mời tham gia " + organizationName + " - LMS Maritime", html);
     }
 
+    @Override
+    @Async
+    public void sendCourseRejected(String toEmail, String fullName, String courseName,
+                                    String categoryLabel, String reason, String courseUrl) {
+        String html = EmailTemplates.courseRejected(fullName, courseName, categoryLabel, reason, courseUrl);
+        send(toEmail, "Khóa học chưa được duyệt - " + courseName, html);
+    }
+
     private void send(String to, String subject, String htmlBody) {
         try {
             CreateEmailOptions options = CreateEmailOptions.builder()
