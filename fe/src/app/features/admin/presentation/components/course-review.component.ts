@@ -165,6 +165,11 @@ export class CourseReviewComponent implements OnInit {
     return map[action] || 'text-gray-600';
   }
 
+  getRejectionCategoryLabel(code?: string | null): string {
+    if (!code) return '';
+    return COURSE_REJECTION_CATEGORIES.find(o => o.value === code)?.label ?? '';
+  }
+
   formatDateTime(dateStr: string): string {
     if (!dateStr) {
       return '';
