@@ -16,8 +16,19 @@ import { BodyScrollLockService } from '../../services/body-scroll-lock.service';
 
 export type DialogSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
 export type DialogVariant = 'default' | 'danger' | 'warning' | 'info' | 'success';
+/** `alertdialog` = WCAG role for destructive confirms where the user MUST respond. */
+export type DialogRole = 'dialog' | 'alertdialog';
 
 let _dialogSeq = 0;
+
+/**
+ * Module-level stack of currently open dialogs. Needed because multiple
+ * dialogs register HostListener('document:keydown.escape') — without a
+ * stack, pressing ESC on a nested confirm would close BOTH the confirm
+ * and its parent dialog (stopPropagation on a document listener does not
+ * block sibling listeners at the same target).
+ */
+const _openDialogStack: DialogComponent[] = [];
 
 /**
  * Shared Dialog primitive — SOTA a11y + design tokens.
@@ -26,13 +37,14 @@ let _dialogSeq = 0;
  *  - Portal-style fixed positioning (always above page content)
  *  - Body scroll lock (ref-counted for stacked dialogs)
  *  - CDK focus trap + auto focus restore on close
- *  - ESC key to close (configurable)
+ *  - ESC key to close — topmost-only (nested confirms don't close their parent)
  *  - Backdrop click to close (configurable)
- *  - ARIA: role="dialog" + aria-modal + aria-labelledby wired to title
+ *  - ARIA: role="dialog" | "alertdialog" + aria-modal + aria-labelledby + aria-describedby
  *  - Optional header with variant icon + subtitle + close button
  *  - Content projection: default slot for body, [dialogFooter] for sticky footer
  *  - Size variants: sm (420px), md (560px), lg (720px), xl (960px), full
  *  - Variants: default | danger | warning | info | success (affects header icon tint)
+ *  - Mobile bottom-sheet layout with drag-handle cue (<=640px)
  *
  * Usage:
  * ```html
@@ -68,7 +80,7 @@ let _dialogSeq = 0;
           class="dialog-panel"
           [attr.data-size]="size()"
           [attr.data-variant]="variant()"
-          role="dialog"
+          [attr.role]="role()"
           aria-modal="true"
           [attr.aria-labelledby]="titleId"
           [attr.aria-describedby]="subtitle() ? subtitleId : null"
@@ -76,6 +88,8 @@ let _dialogSeq = 0;
           cdkTrapFocus
           [cdkTrapFocusAutoCapture]="true"
           (click)="$event.stopPropagation()">
+          <!-- Mobile-only drag handle — visual affordance that the sheet slides up from bottom. -->
+          <span class="dialog-drag-handle" aria-hidden="true"></span>
           @if (!hideHeader()) {
             <header class="dialog-header">
               @if (variant() !== 'default') {
@@ -158,6 +172,9 @@ let _dialogSeq = 0;
       animation: dialog-slide-up 0.2s ease-out;
       outline: none;
     }
+
+    /* Drag handle — hidden on desktop, visible on mobile bottom-sheet. */
+    .dialog-drag-handle { display: none; }
 
     .dialog-panel[data-size='sm'] { max-width: 420px; }
     .dialog-panel[data-size='md'] { max-width: 560px; }
@@ -288,6 +305,17 @@ let _dialogSeq = 0;
         max-height: 100vh;
         border-radius: 0;
       }
+      /* Drag-handle cue — tells the user this sheet came up from the bottom. */
+      .dialog-drag-handle {
+        display: block;
+        width: 36px;
+        height: 4px;
+        margin: 8px auto 0;
+        border-radius: 999px;
+        background: #cbd5e1;
+      }
+      /* Full-size dialogs fill the screen — drag handle would look out of place. */
+      .dialog-panel[data-size='full'] .dialog-drag-handle { display: none; }
     }
   `]
 })
@@ -298,6 +326,12 @@ export class DialogComponent {
   subtitle = input<string>('');
   size = input<DialogSize>('md');
   variant = input<DialogVariant>('default');
+  /**
+   * Use 'alertdialog' for destructive confirmations where a response is
+   * required (delete, reject, etc.). Assistive tech treats alertdialog
+   * with higher urgency. Defaults to 'dialog' for generic modals.
+   */
+  role = input<DialogRole>('dialog');
   closeOnBackdrop = input<boolean>(true);
   closeOnEsc = input<boolean>(true);
   busy = input<boolean>(false);
@@ -318,15 +352,16 @@ export class DialogComponent {
   private locked = false;
 
   constructor() {
-    // Release scroll lock if component is destroyed while open
+    // Release scroll lock + remove from stack if component is destroyed while open
     inject(DestroyRef).onDestroy(() => {
       if (this.locked) {
         this.scrollLock.unlock();
         this.locked = false;
       }
+      this.removeFromStack();
     });
 
-    // Sync scroll lock + focus restore with open state
+    // Sync scroll lock + focus restore + open-stack membership with open state
     effect(() => {
       const isOpen = this.open();
       if (!isPlatformBrowser(this.platformId)) {
@@ -336,9 +371,11 @@ export class DialogComponent {
         this.previousActiveElement.set(this.doc.activeElement as HTMLElement | null);
         this.scrollLock.lock();
         this.locked = true;
+        _openDialogStack.push(this);
       } else if (!isOpen && this.locked) {
         this.scrollLock.unlock();
         this.locked = false;
+        this.removeFromStack();
         // Restore focus on next frame so the trap has released
         queueMicrotask(() => {
           this.previousActiveElement()?.focus?.();
@@ -353,8 +390,18 @@ export class DialogComponent {
     if (!this.open() || !this.closeOnEsc() || this.busy()) {
       return;
     }
+    // Only the topmost open dialog should react to ESC. Without this guard,
+    // a nested confirm-inside-edit would close both layers on a single press.
+    if (_openDialogStack[_openDialogStack.length - 1] !== this) {
+      return;
+    }
     event.stopPropagation();
     this.close.emit();
+  }
+
+  private removeFromStack(): void {
+    const idx = _openDialogStack.indexOf(this);
+    if (idx !== -1) _openDialogStack.splice(idx, 1);
   }
 
   onBackdropClick(_event: MouseEvent): void {
