@@ -189,6 +189,11 @@ export interface EnrolledStudent {
 export interface CourseReviewStatus {
   courseId: string;
   status: string;
+  /**
+   * Draft change-set status on APPROVED courses (PENDING_REVIEW / CHANGES_REQUESTED / DRAFT).
+   * Null when the course itself is the unit under review (e.g., DRAFT/PENDING/REJECTED).
+   */
+  draftChangeStatus?: string | null;
   reviewComment?: string;
   reviewedAt?: string;
   reviewedByName?: string;

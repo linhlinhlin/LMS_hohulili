@@ -55,6 +55,13 @@ public class CourseDTOs {
     public static class CourseReviewStatusDTO {
         private String courseId;
         private String status;
+        /**
+         * Draft change-set status on APPROVED courses:
+         * PENDING_REVIEW / CHANGES_REQUESTED / DRAFT / null.
+         * Needed so FE can distinguish "approved course with rejected draft" from
+         * "course rejected outright" (both surface reviewComment to the teacher).
+         */
+        private String draftChangeStatus;
         private String reviewComment;
         private String reviewedAt;
         private String reviewedByName;

@@ -5,6 +5,12 @@ import { COURSE_REJECTION_CATEGORIES } from '../../../../admin/infrastructure/se
 
 interface RejectionStatusPayload {
   status: string;
+  /**
+   * Draft change-set status on APPROVED courses. When the course itself is APPROVED
+   * but a submitted draft was rejected, status='APPROVED' + draftChangeStatus='CHANGES_REQUESTED'
+   * — we still need to surface the feedback to the teacher.
+   */
+  draftChangeStatus?: string | null;
   reviewComment?: string;
   reviewedAt?: string;
   reviewedByName?: string;
@@ -33,7 +39,7 @@ interface RejectionStatusPayload {
         </div>
         <div class="body">
           <h2 id="rejection-banner-title" class="title">
-            {{ status()?.status === 'CHANGES_REQUESTED' ? 'Admin yêu cầu chỉnh sửa' : 'Khóa học bị từ chối' }}
+            {{ bannerTitle() }}
           </h2>
           @if (categoryLabel()) {
             <p class="category">
@@ -52,7 +58,7 @@ interface RejectionStatusPayload {
               <span>&middot; {{ reviewedAtText() }}</span>
             }
           </p>
-          <p class="hint">Sau khi chỉnh sửa xong, quay lại trang "Tất cả khóa học" để gửi duyệt lại.</p>
+          <p class="hint">{{ bannerHint() }}</p>
         </div>
         <button type="button" class="dismiss" (click)="dismiss()" aria-label="Đóng thông báo">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
@@ -157,12 +163,36 @@ export class CourseRejectionBannerComponent {
   readonly status = signal<RejectionStatusPayload | null>(null);
   readonly dismissed = signal(false);
 
+  /**
+   * Three pathways surface this banner:
+   *   1. Course itself is REJECTED (fresh course that never shipped)
+   *   2. Course status is literally CHANGES_REQUESTED (legacy — kept for safety)
+   *   3. APPROVED course whose latest draft change-set was rejected
+   *      (status=APPROVED + draftChangeStatus=CHANGES_REQUESTED)
+   */
+  private readonly isChangesRequested = computed(() => {
+    const s = this.status();
+    if (!s) return false;
+    return s.status === 'CHANGES_REQUESTED' || s.draftChangeStatus === 'CHANGES_REQUESTED';
+  });
+
   readonly show = computed(() => {
     const s = this.status();
     if (!s) return false;
-    if (s.status !== 'REJECTED' && s.status !== 'CHANGES_REQUESTED') return false;
+    const isRejected = s.status === 'REJECTED';
+    if (!isRejected && !this.isChangesRequested()) return false;
     return !this.dismissed();
   });
+
+  readonly bannerTitle = computed(() =>
+    this.isChangesRequested() ? 'Admin yêu cầu chỉnh sửa' : 'Khóa học bị từ chối'
+  );
+
+  readonly bannerHint = computed(() =>
+    this.isChangesRequested()
+      ? 'Chỉnh sửa xong bạn bấm "Gửi duyệt" để nộp lại bản cập nhật này.'
+      : 'Sau khi chỉnh sửa xong, quay lại trang "Tất cả khóa học" để gửi duyệt lại.'
+  );
 
   readonly categoryLabel = computed(() => {
     const code = this.status()?.rejectionCategory;
@@ -198,9 +228,14 @@ export class CourseRejectionBannerComponent {
     this.courseApi.getReviewStatus(courseId).subscribe({
       next: (res: any) => {
         const data: RejectionStatusPayload | undefined = res?.data;
-        if (data && (data.status === 'REJECTED' || data.status === 'CHANGES_REQUESTED')) {
-          this.status.set(data);
-          this.dismissed.set(this.isAlreadyDismissed(courseId, data.reviewedAt));
+        const shouldSurface = !!data && (
+          data.status === 'REJECTED'
+          || data.status === 'CHANGES_REQUESTED'
+          || data.draftChangeStatus === 'CHANGES_REQUESTED'
+        );
+        if (shouldSurface) {
+          this.status.set(data!);
+          this.dismissed.set(this.isAlreadyDismissed(courseId, data!.reviewedAt));
         } else {
           this.status.set(null);
           this.dismissed.set(false);

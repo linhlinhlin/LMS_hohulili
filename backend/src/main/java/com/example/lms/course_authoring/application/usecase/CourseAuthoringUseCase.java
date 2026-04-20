@@ -234,9 +234,17 @@ public class CourseAuthoringUseCase {
                 .findFirst()
                 .orElse(null);
 
+        // Surface draft change-set state (NONE → null for FE clarity) so FE can tell
+        // "APPROVED + CHANGES_REQUESTED draft" apart from "APPROVED, nothing pending".
+        String draftChangeStatus = course.getDraftChangeStatus() != null
+                && course.getDraftChangeStatus() != Course.DraftChangeStatus.NONE
+                ? course.getDraftChangeStatus().name()
+                : null;
+
         return CourseDTOs.CourseReviewStatusDTO.builder()
                 .courseId(course.getId().toString())
                 .status(course.getStatus().name())
+                .draftChangeStatus(draftChangeStatus)
                 .reviewComment(course.getReviewComment())
                 .reviewedAt(course.getReviewedAt() != null ? course.getReviewedAt().toString() : null)
                 .rejectionCategory(rejectionCategory)

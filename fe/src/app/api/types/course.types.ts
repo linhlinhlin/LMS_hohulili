@@ -64,6 +64,17 @@ export interface CourseSummary {
   categoryName?: string;
   categoryId?: string;
   teacherRole?: 'OWNER' | 'CO_TEACHER';
+  /**
+   * Workflow state from BE (`TeacherCourseResponse.reviewState`):
+   *   draft | pending | rejected | approved | pending_changes | changes_requested | draft_changes
+   * Teachers need `changes_requested` specifically so the editor CTA flips from
+   * "Gửi duyệt" (DRAFT) to "Gửi duyệt lại" (REJECTED + CHANGES_REQUESTED).
+   */
+  reviewState?: string;
+  /** Latest rejection reason text — surface when status=REJECTED or reviewState=changes_requested. */
+  rejectionReason?: string;
+  /** Latest rejection category code (matches CourseRejectionCategory enum on BE). */
+  rejectionCategory?: string;
 }
 
 export interface CourseDetail {

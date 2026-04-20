@@ -213,11 +213,11 @@ import { COURSE_REJECTION_CATEGORIES } from '../../admin/infrastructure/services
                 <div class="course-actions">
                   <div class="flex items-center gap-2">
                     <span class="status-badge"
-                          [class.badge-approved]="c.status === 'APPROVED'"
+                          [class.badge-approved]="c.status === 'APPROVED' && c.reviewState !== 'changes_requested'"
                           [class.badge-pending]="c.status === 'PENDING'"
                           [class.badge-draft]="c.status === 'DRAFT'"
-                          [class.badge-rejected]="c.status === 'REJECTED'">
-                      {{ getStatusLabel(c.status) }}
+                          [class.badge-rejected]="isRejectedOrChangesRequested(c)">
+                      {{ getStatusLabel(c.status, c.reviewState) }}
                     </span>
                     @if (c.teacherRole === 'CO_TEACHER') {
                     <span class="inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-200 rounded">
@@ -227,7 +227,7 @@ import { COURSE_REJECTION_CATEGORIES } from '../../admin/infrastructure/services
                     <span class="course-date">{{ formatDate(c.updatedAt || c.createdAt) }}</span>
                   </div>
 
-                  @if (c.status === 'REJECTED') {
+                  @if (isRejectedOrChangesRequested(c)) {
                     <button (click)="viewReviewComment(c.id); $event.stopPropagation()"
                       class="text-xs text-purple-600 hover:text-purple-800 font-medium transition-colors">
                       Xem phản hồi admin
@@ -235,12 +235,14 @@ import { COURSE_REJECTION_CATEGORIES } from '../../admin/infrastructure/services
                   }
 
                   <div class="flex items-center gap-2">
-                    @if (c.status === 'DRAFT' || c.status === 'REJECTED') {
+                    @if (c.status === 'DRAFT' || isRejectedOrChangesRequested(c)) {
                       <button class="submit-button"
                         [disabled]="submittingId() === c.id"
                         (click)="submitForApproval(c.id); $event.stopPropagation()">
                         @if (submittingId() === c.id) {
                           Đang gửi...
+                        } @else if (isRejectedOrChangesRequested(c)) {
+                          Gửi duyệt lại
                         } @else {
                           Gửi duyệt
                         }
@@ -902,13 +904,25 @@ export class CourseManagementComponent {
     this.applyFilters();
   }
 
+  /**
+   * Treat course as "needing teacher revisions" when either:
+   *   - the course itself was REJECTED, or
+   *   - an APPROVED course's latest draft change-set was rejected
+   *     (BE returns reviewState='changes_requested')
+   * Both land in the same "Bị từ chối" bucket for the teacher since the
+   * recovery action is identical: edit and re-submit for approval.
+   */
+  isRejectedOrChangesRequested(c: CourseSummary): boolean {
+    return c.status === 'REJECTED' || c.reviewState === 'changes_requested';
+  }
+
   countByFilter(f: string): number {
     const all = this.courses();
     switch (f) {
-      case 'APPROVED': return all.filter(c => c.status === 'APPROVED').length;
+      case 'APPROVED': return all.filter(c => c.status === 'APPROVED' && c.reviewState !== 'changes_requested').length;
       case 'EDITING': return all.filter(c => c.status === 'DRAFT').length;
       case 'PENDING': return all.filter(c => c.status === 'PENDING').length;
-      case 'REJECTED': return all.filter(c => c.status === 'REJECTED').length;
+      case 'REJECTED': return all.filter(c => this.isRejectedOrChangesRequested(c)).length;
       case 'INSTRUCTOR_LED': return all.filter(c => c.deliveryMode === 'INSTRUCTOR_LED').length;
       default: return all.length;
     }
@@ -930,10 +944,10 @@ export class CourseManagementComponent {
     let result = this.courses()
       .filter(c => {
         switch (f) {
-          case 'APPROVED': return c.status === 'APPROVED';
+          case 'APPROVED': return c.status === 'APPROVED' && c.reviewState !== 'changes_requested';
           case 'EDITING': return c.status === 'DRAFT';
           case 'PENDING': return c.status === 'PENDING';
-          case 'REJECTED': return c.status === 'REJECTED';
+          case 'REJECTED': return this.isRejectedOrChangesRequested(c);
           default: return true;
         }
       })
@@ -953,7 +967,10 @@ export class CourseManagementComponent {
     this.visibleLimit.set(this.INITIAL_COUNT);
   }
 
-  getStatusLabel(status: string): string {
+  getStatusLabel(status: string, reviewState?: string): string {
+    // APPROVED + changes_requested on the draft → teacher-facing label mirrors REJECTED
+    // so the badge and bucket tell the same story ("Bị từ chối" bucket).
+    if (reviewState === 'changes_requested') return 'Bị từ chối';
     const m: Record<string, string> = {
       'APPROVED': 'Đã duyệt',
       'PENDING': 'Chờ duyệt',
@@ -1022,8 +1039,18 @@ export class CourseManagementComponent {
     this.submittingId.set(id);
     this.api.submitForApproval(id).subscribe({
       next: () => {
+        // Optimistic update differs by pathway:
+        //   - Fresh course (DRAFT/REJECTED) → status flips to PENDING
+        //   - Approved course with changes_requested draft → status stays APPROVED,
+        //     reviewState flips to pending_changes
         const updateStatus = (list: CourseSummary[]) =>
-          list.map(item => item.id === id ? { ...item, status: 'PENDING' } : item);
+          list.map(item => {
+            if (item.id !== id) return item;
+            if (item.status === 'APPROVED' || item.reviewState === 'changes_requested') {
+              return { ...item, reviewState: 'pending_changes' };
+            }
+            return { ...item, status: 'PENDING', reviewState: 'pending' };
+          });
         this.courses.set(updateStatus(this.courses()));
         this.filtered.set(updateStatus(this.filtered()));
         this.toast.success('Khóa học đã được gửi để phê duyệt');
