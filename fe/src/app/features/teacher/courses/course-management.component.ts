@@ -8,11 +8,20 @@ import { CourseSummary } from '../../../api/types/course.types';
 import { ToastService } from '../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { DialogComponent } from '../../../shared/components/dialog/dialog.component';
 import { COURSE_REJECTION_CATEGORIES } from '../../admin/infrastructure/services/admin.service';
+
+interface ReviewFeedback {
+  categoryLabel: string;
+  comment: string;
+  reviewerName: string;
+  reviewedAtText: string;
+  isChangesRequested: boolean;
+}
 
 @Component({
   selector: 'app-course-management',
-  imports: [RouterModule, FormsModule, IconComponent],
+  imports: [RouterModule, FormsModule, IconComponent, DialogComponent],
   template: `
     <div class="courses-page">
       <div class="page-inner">
@@ -338,29 +347,60 @@ import { COURSE_REJECTION_CATEGORIES } from '../../admin/infrastructure/services
       </div>
     </div>
 
-    <!-- Review Comment Modal -->
-    @if (showReviewModal()) {
-      <div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" (click)="closeReviewModal()">
-        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden" (click)="$event.stopPropagation()">
-          <div class="p-5 border-b border-gray-100 flex items-center gap-3">
-            <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-              <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
-              </svg>
+    <!-- Review Feedback Modal — structured view of admin's rejection/changes-requested details -->
+    <app-dialog
+      [open]="showReviewModal()"
+      [title]="reviewFeedback()?.isChangesRequested ? 'Admin yêu cầu chỉnh sửa' : 'Khóa học bị từ chối'"
+      [subtitle]="reviewFeedbackSubtitle()"
+      size="md"
+      variant="danger"
+      (close)="closeReviewModal()">
+      @if (reviewFeedback(); as fb) {
+        <div class="review-feedback">
+          @if (fb.categoryLabel) {
+            <div class="feedback-row">
+              <span class="feedback-label">Lý do</span>
+              <span class="feedback-chip">{{ fb.categoryLabel }}</span>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900">Phản hồi từ Admin</h3>
+          }
+
+          <div class="feedback-row feedback-row--stack">
+            <span class="feedback-label">Nhận xét của admin</span>
+            @if (fb.comment) {
+              <p class="feedback-comment">{{ fb.comment }}</p>
+            } @else {
+              <p class="feedback-comment feedback-comment--empty">Admin chưa ghi nhận xét chi tiết.</p>
+            }
           </div>
-          <div class="p-5">
-            <p class="text-sm text-gray-700 whitespace-pre-line leading-relaxed">{{ reviewComment() }}</p>
-          </div>
-          <div class="p-4 bg-gray-50 flex justify-end">
-            <button (click)="closeReviewModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300 transition-colors">
-              Đóng
-            </button>
-          </div>
+
+          @if (fb.reviewerName || fb.reviewedAtText) {
+            <div class="feedback-meta">
+              @if (fb.reviewerName) {
+                <span><strong>Người duyệt:</strong> {{ fb.reviewerName }}</span>
+              }
+              @if (fb.reviewerName && fb.reviewedAtText) {
+                <span class="feedback-meta-sep">·</span>
+              }
+              @if (fb.reviewedAtText) {
+                <span>{{ fb.reviewedAtText }}</span>
+              }
+            </div>
+          }
+
+          <p class="feedback-hint">
+            {{ fb.isChangesRequested
+              ? 'Sau khi chỉnh sửa, bạn bấm "Gửi duyệt lại" ngay tại khóa học này.'
+              : 'Sau khi chỉnh sửa xong, bạn có thể bấm "Gửi duyệt" để gửi lại.' }}
+          </p>
         </div>
+      }
+
+      <div dialogFooter>
+        <button (click)="closeReviewModal()" type="button" class="btn-secondary">
+          Đóng
+        </button>
       </div>
-    }
+    </app-dialog>
   `,
   styles: [`
     /* ===== PAGE LAYOUT ===== */
@@ -829,6 +869,97 @@ import { COURSE_REJECTION_CATEGORIES } from '../../admin/infrastructure/services
       .page-inner { padding: 16px 12px; }
       .cta-button .cta-icon { display: none; }
     }
+
+    /* ===== REVIEW FEEDBACK MODAL ===== */
+    .review-feedback {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .feedback-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .feedback-row--stack {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 6px;
+    }
+
+    .feedback-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .feedback-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .feedback-comment {
+      margin: 0;
+      padding: 12px 14px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #1f2937;
+      white-space: pre-line;
+    }
+    .feedback-comment--empty {
+      color: #9ca3af;
+      font-style: italic;
+    }
+
+    .feedback-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #6b7280;
+      padding-top: 4px;
+      border-top: 1px dashed #e5e7eb;
+    }
+    .feedback-meta-sep { color: #d1d5db; }
+
+    .feedback-hint {
+      margin: 0;
+      padding: 10px 12px;
+      background: #f5f3ff;
+      border-left: 3px solid #8b5cf6;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #5b21b6;
+    }
+
+    /* Footer buttons for the review feedback dialog */
+    .btn-secondary {
+      padding: 8px 16px;
+      background: #f3f4f6;
+      color: #374151;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .btn-secondary:hover { background: #e5e7eb; }
+    .btn-secondary:focus-visible { outline: 2px solid #0056D2; outline-offset: 2px; }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -840,7 +971,19 @@ export class CourseManagementComponent {
   private router = inject(Router);
 
   showReviewModal = signal(false);
-  reviewComment = signal('');
+  /**
+   * Structured admin feedback backing the review modal. `null` until loaded.
+   * Replaces the prior string-concat approach so the modal can layout each
+   * field (category, comment, reviewer, timestamp) with its own visual weight.
+   */
+  reviewFeedback = signal<ReviewFeedback | null>(null);
+  readonly reviewFeedbackSubtitle = computed(() => {
+    const fb = this.reviewFeedback();
+    if (!fb) return '';
+    return fb.isChangesRequested
+      ? 'Bản cập nhật cần chỉnh sửa trước khi công khai'
+      : 'Phản hồi chi tiết từ quản trị viên';
+  });
   loading = signal(true);
   courses = signal<CourseSummary[]>([]);
   filtered = signal<CourseSummary[]>([]);
@@ -1092,17 +1235,22 @@ export class CourseManagementComponent {
     this.api.getReviewStatus(id).subscribe({
       next: (res: any) => {
         const status = res?.data;
-        if (status?.reviewComment || status?.rejectionCategory) {
-          const categoryLabel = this.rejectionCategoryLabel(status?.rejectionCategory);
-          const categoryLine = categoryLabel ? `Lý do: ${categoryLabel}\n\n` : '';
-          const commentText = status?.reviewComment || '(Admin chưa ghi chi tiết)';
-          const reviewer = status.reviewedByName ? `\n\nNgười duyệt: ${status.reviewedByName}` : '';
-          const time = status.reviewedAt ? `\nThời gian: ${new Date(status.reviewedAt).toLocaleString('vi-VN')}` : '';
-          this.reviewComment.set(`${categoryLine}${commentText}${reviewer}${time}`);
-          this.showReviewModal.set(true);
-        } else {
+        if (!status?.reviewComment && !status?.rejectionCategory) {
           this.toast.info('Không có phản hồi từ admin');
+          return;
         }
+        this.reviewFeedback.set({
+          categoryLabel: this.rejectionCategoryLabel(status.rejectionCategory),
+          comment: status.reviewComment ?? '',
+          reviewerName: status.reviewedByName ?? '',
+          reviewedAtText: status.reviewedAt
+            ? new Date(status.reviewedAt).toLocaleString('vi-VN')
+            : '',
+          isChangesRequested:
+            status.status === 'CHANGES_REQUESTED'
+            || status.draftChangeStatus === 'CHANGES_REQUESTED',
+        });
+        this.showReviewModal.set(true);
       },
       error: (err: any) => {
         this.toast.error('Không thể tải phản hồi: ' + (err?.message || 'Lỗi không xác định'));
@@ -1118,7 +1266,7 @@ export class CourseManagementComponent {
 
   closeReviewModal() {
     this.showReviewModal.set(false);
-    this.reviewComment.set('');
+    this.reviewFeedback.set(null);
   }
 
   async deleteCourse(id: string, title: string) {

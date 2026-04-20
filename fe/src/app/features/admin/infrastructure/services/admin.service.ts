@@ -171,7 +171,7 @@ export interface CourseRejectionCategoryOption {
 /** Options displayed in the rejection modal (order = UX priority). */
 export const COURSE_REJECTION_CATEGORIES: readonly CourseRejectionCategoryOption[] = [
   { value: 'INSUFFICIENT_CONTENT', label: 'Nội dung chưa đầy đủ' },
-  { value: 'LOW_QUALITY', label: 'Chất lượng nội dung chưa đạt' },
+  { value: 'LOW_QUALITY', label: 'Chất lượng nội dung cần cải thiện' },
   { value: 'INACCURATE_INFO', label: 'Thông tin chưa chính xác' },
   { value: 'MISSING_MEDIA', label: 'Thiếu hình ảnh/video minh họa' },
   { value: 'COPYRIGHT_VIOLATION', label: 'Vi phạm bản quyền' },

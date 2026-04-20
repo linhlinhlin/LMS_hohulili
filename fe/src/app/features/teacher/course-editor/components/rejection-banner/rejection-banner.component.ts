@@ -30,42 +30,54 @@ interface RejectionStatusPayload {
   selector: 'app-course-rejection-banner',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (show()) {
-      <section class="banner" role="alert" aria-labelledby="rejection-banner-title">
-        <div class="icon" aria-hidden="true">
-          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4a2 2 0 00-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/>
-          </svg>
-        </div>
-        <div class="body">
-          <h2 id="rejection-banner-title" class="title">
-            {{ bannerTitle() }}
-          </h2>
-          @if (categoryLabel()) {
-            <p class="category">
-              <span class="category-label">Lý do:</span>
-              {{ categoryLabel() }}
+    @if (hasStatus()) {
+      @if (!collapsed()) {
+        <section class="banner" role="alert" aria-labelledby="rejection-banner-title">
+          <div class="icon" aria-hidden="true">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4a2 2 0 00-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/>
+            </svg>
+          </div>
+          <div class="body">
+            <h2 id="rejection-banner-title" class="title">
+              {{ bannerTitle() }}
+            </h2>
+            @if (categoryLabel()) {
+              <p class="category">
+                <span class="category-label">Lý do:</span>
+                {{ categoryLabel() }}
+              </p>
+            }
+            @if (status()?.reviewComment) {
+              <p class="comment">{{ status()?.reviewComment }}</p>
+            }
+            <p class="meta">
+              @if (status()?.reviewedByName) {
+                <span>Người duyệt: {{ status()?.reviewedByName }}</span>
+              }
+              @if (reviewedAtText()) {
+                <span class="meta-sep">·</span>
+                <span>{{ reviewedAtText() }}</span>
+              }
             </p>
-          }
-          @if (status()?.reviewComment) {
-            <p class="comment">{{ status()?.reviewComment }}</p>
-          }
-          <p class="meta">
-            @if (status()?.reviewedByName) {
-              <span>Người duyệt: {{ status()?.reviewedByName }}</span>
-            }
-            @if (reviewedAtText()) {
-              <span>&middot; {{ reviewedAtText() }}</span>
-            }
-          </p>
-          <p class="hint">{{ bannerHint() }}</p>
-        </div>
-        <button type="button" class="dismiss" (click)="dismiss()" aria-label="Đóng thông báo">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
+            <p class="hint">{{ bannerHint() }}</p>
+          </div>
+          <button type="button" class="dismiss" (click)="collapse()" aria-label="Thu gọn thông báo">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </section>
+      } @else {
+        <button type="button"
+                class="pill"
+                (click)="expand()"
+                [attr.aria-label]="'Mở lại ' + bannerTitle()">
+          <span class="pill-dot" aria-hidden="true"></span>
+          <span class="pill-text">{{ bannerTitle() }}</span>
+          <span class="pill-cta">Xem phản hồi</span>
         </button>
-      </section>
+      }
     }
   `,
   styles: [`
@@ -125,8 +137,11 @@ interface RejectionStatusPayload {
       color: #6b7280;
       display: flex;
       flex-wrap: wrap;
+      align-items: center;
       gap: 0.375rem;
     }
+
+    .meta-sep { color: #9ca3af; }
 
     .hint {
       margin: 0.125rem 0 0;
@@ -152,16 +167,79 @@ interface RejectionStatusPayload {
 
     .dismiss:hover { background: #fecaca; }
     .dismiss:focus-visible { outline: 2px solid #dc2626; outline-offset: 2px; }
+
+    /* Collapsed pill — signals there's unresolved admin feedback without */
+    /* occupying the full banner height. Click to re-expand. */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0.5rem 1.125rem;
+      padding: 0.375rem 0.625rem 0.375rem 0.5rem;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 999px;
+      color: #991b1b;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .pill:hover { background: #fee2e2; border-color: #fca5a5; }
+    .pill:focus-visible { outline: 2px solid #dc2626; outline-offset: 2px; }
+
+    .pill-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #dc2626;
+      flex: 0 0 auto;
+    }
+    .pill-text { white-space: nowrap; }
+    .pill-cta {
+      font-weight: 500;
+      color: #7f1d1d;
+      padding-left: 0.5rem;
+      border-left: 1px solid #fecaca;
+    }
+
+    /* Mobile — stack icon above body, tighten padding, keep pill compact. */
+    @media (max-width: 640px) {
+      .banner {
+        padding: 0.75rem 0.875rem;
+        gap: 0.625rem;
+        align-items: flex-start;
+      }
+      .icon { width: 28px; height: 28px; }
+      .title { font-size: 0.875rem; }
+      .comment { font-size: 0.8125rem; }
+      .dismiss { width: 32px; height: 32px; } /* larger tap target */
+
+      .pill {
+        margin: 0.5rem 0.875rem;
+        font-size: 0.6875rem;
+      }
+      .pill-cta {
+        padding-left: 0.375rem;
+      }
+    }
   `]
 })
 export class CourseRejectionBannerComponent {
   private readonly store = inject(CourseEditorStore);
   private readonly courseApi = inject(CourseApi);
 
+  /**
+   * Persistence key rename: used to be "dismissed" (value = hide entirely).
+   * Now it means "collapsed" (value = show pill only). Old '1' entries are
+   * still honored — they land the banner on the pill state, which is the
+   * closer-to-user-intent behavior.
+   */
   private readonly DISMISS_KEY_PREFIX = 'lms:rejection-dismissed:';
 
   readonly status = signal<RejectionStatusPayload | null>(null);
-  readonly dismissed = signal(false);
+  /** Whether the teacher has collapsed the full banner into a pill. */
+  readonly collapsed = signal(false);
 
   /**
    * Three pathways surface this banner:
@@ -176,12 +254,11 @@ export class CourseRejectionBannerComponent {
     return s.status === 'CHANGES_REQUESTED' || s.draftChangeStatus === 'CHANGES_REQUESTED';
   });
 
-  readonly show = computed(() => {
+  /** True when there's admin feedback worth surfacing (expanded or collapsed). */
+  readonly hasStatus = computed(() => {
     const s = this.status();
     if (!s) return false;
-    const isRejected = s.status === 'REJECTED';
-    if (!isRejected && !this.isChangesRequested()) return false;
-    return !this.dismissed();
+    return s.status === 'REJECTED' || this.isChangesRequested();
   });
 
   readonly bannerTitle = computed(() =>
@@ -216,7 +293,7 @@ export class CourseRejectionBannerComponent {
       if (!id) {
         untracked(() => {
           this.status.set(null);
-          this.dismissed.set(false);
+          this.collapsed.set(false);
         });
         return;
       }
@@ -235,26 +312,33 @@ export class CourseRejectionBannerComponent {
         );
         if (shouldSurface) {
           this.status.set(data!);
-          this.dismissed.set(this.isAlreadyDismissed(courseId, data!.reviewedAt));
+          this.collapsed.set(this.wasPreviouslyCollapsed(courseId, data!.reviewedAt));
         } else {
           this.status.set(null);
-          this.dismissed.set(false);
+          this.collapsed.set(false);
         }
       },
       error: () => { /* silent: don't block editor rendering on a non-critical fetch */ },
     });
   }
 
-  dismiss() {
+  collapse() {
     const courseId = this.store.courseTree()?.id;
     const reviewedAt = this.status()?.reviewedAt;
     if (courseId && reviewedAt) {
-      this.persistDismissal(courseId, reviewedAt);
+      this.persistCollapsed(courseId, reviewedAt);
     }
-    this.dismissed.set(true);
+    this.collapsed.set(true);
   }
 
-  private isAlreadyDismissed(courseId: string, reviewedAt?: string): boolean {
+  expand() {
+    this.collapsed.set(false);
+    // Don't clear the sessionStorage flag — if the teacher navigates away and
+    // comes back in the same session, we respect their last collapsed state
+    // (they can explicitly open via the pill). This mirrors GitHub's banner UX.
+  }
+
+  private wasPreviouslyCollapsed(courseId: string, reviewedAt?: string): boolean {
     if (!reviewedAt || typeof window === 'undefined') return false;
     try {
       return window.sessionStorage.getItem(this.dismissKey(courseId, reviewedAt)) === '1';
@@ -263,7 +347,7 @@ export class CourseRejectionBannerComponent {
     }
   }
 
-  private persistDismissal(courseId: string, reviewedAt: string) {
+  private persistCollapsed(courseId: string, reviewedAt: string) {
     if (typeof window === 'undefined') return;
     try {
       window.sessionStorage.setItem(this.dismissKey(courseId, reviewedAt), '1');
