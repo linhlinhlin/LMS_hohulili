@@ -14,6 +14,7 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { getAdminPortalBase } from '../../../../core/utils/portal-route.util';
+import { DialogComponent } from '../../../../shared/components/dialog/dialog.component';
 
 type ReviewableCourseState =
   | Pick<AdminCourseSummary, 'status' | 'reviewState'>
@@ -24,7 +25,7 @@ type CourseListItem = AdminCourseSummary | PendingCourseSummary;
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-course-review',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DialogComponent],
   templateUrl: './course-review.component.html',
   styleUrl: './course-review.component.scss'
 })

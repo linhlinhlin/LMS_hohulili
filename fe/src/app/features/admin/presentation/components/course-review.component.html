@@ -206,25 +206,15 @@
       }
     </div>
 
-    <!-- Course Detail Modal -->
-    @if (detailModalOpen()) {
-      <div class="modal-backdrop" (click)="closeDetailModal()">
-        <div class="modal-panel modal-lg" role="dialog" aria-modal="true" (click)="$event.stopPropagation()"
-             style="max-height:90vh;display:flex;flex-direction:column">
+    <!-- Course Detail Modal (migrated to shared DialogComponent) -->
+    <app-dialog
+      [open]="detailModalOpen()"
+      title="Chi tiết khóa học"
+      size="lg"
+      (close)="closeDetailModal()">
 
-          <!-- Modal Header -->
-          <div class="modal-header">
-            <h3 class="modal-title">Chi tiết khóa học</h3>
-            <button class="modal-close" (click)="closeDetailModal()" aria-label="Đóng">
-              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-              </svg>
-            </button>
-          </div>
-
-          <!-- Modal Body (scrollable) -->
-          @if (courseDetails) {
-            <div class="modal-body" style="overflow-y:auto;flex:1">
+      @if (courseDetails) {
+        <div class="detail-content">
 
               <!-- Course heading -->
               <div class="detail-heading">
@@ -344,66 +334,64 @@
                 }
               </div>
 
-            </div>
-          }
-
-          <!-- Modal Footer -->
-          <div class="modal-footer">
-            <button class="btn-secondary" (click)="closeDetailModal()">Đóng</button>
-            @if (courseDetails && canReviewCourse(courseDetails)) {
-              <button class="btn-success"
-                      (click)="approveCourseFromModal()"
-                      [disabled]="approving() === courseDetails.id">
-                Duyệt khóa học
-              </button>
-              <button class="btn-danger"
-                      (click)="showRejectModalFromDetail()">
-                Từ chối
-              </button>
-            }
-          </div>
         </div>
+      }
+
+      <div dialogFooter>
+        <button class="btn-secondary" (click)="closeDetailModal()">Đóng</button>
+        @if (courseDetails && canReviewCourse(courseDetails)) {
+          <button class="btn-success"
+                  (click)="approveCourseFromModal()"
+                  [disabled]="approving() === courseDetails.id">
+            Duyệt khóa học
+          </button>
+          <button class="btn-danger"
+                  (click)="showRejectModalFromDetail()">
+            Từ chối
+          </button>
+        }
       </div>
-    }
+    </app-dialog>
 
-    <!-- Reject Modal -->
-    @if (rejectModalOpen()) {
-      <div class="modal-backdrop modal-backdrop-upper" (click)="closeRejectModal()">
-        <div class="modal-panel modal-sm" role="dialog" aria-modal="true" aria-labelledby="reject-modal-title" (click)="$event.stopPropagation()">
-          <h3 id="reject-modal-title" class="modal-title">Từ chối khóa học</h3>
-          <p class="reject-subtitle">Giảng viên sẽ nhận thông báo trong hệ thống và email với nội dung bạn nhập dưới đây.</p>
+    <!-- Reject Modal (migrated to shared DialogComponent) -->
+    <app-dialog
+      [open]="rejectModalOpen()"
+      title="Từ chối khóa học"
+      subtitle="Giảng viên sẽ nhận thông báo trong hệ thống và email với nội dung bạn nhập dưới đây."
+      size="sm"
+      variant="danger"
+      [busy]="rejecting()"
+      (close)="closeRejectModal()">
 
-          <label class="reject-field-label" for="reject-category">Danh mục <span class="reject-required">*</span></label>
-          <select id="reject-category"
-                  class="reject-select"
-                  [(ngModel)]="rejectCategory">
-            @for (option of rejectionCategoryOptions; track option.value) {
-              <option [value]="option.value">{{ option.label }}</option>
-            }
-          </select>
+      <label class="reject-field-label" for="reject-category">Danh mục <span class="reject-required">*</span></label>
+      <select id="reject-category"
+              class="reject-select"
+              [(ngModel)]="rejectCategory">
+        @for (option of rejectionCategoryOptions; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
 
-          <label class="reject-field-label" for="reject-comment">Chi tiết <span class="reject-required">*</span></label>
-          <textarea
-            id="reject-comment"
-            class="reject-textarea"
-            [(ngModel)]="rejectComment"
-            rows="5"
-            maxlength="2000"
-            placeholder="Mô tả cụ thể điều cần chỉnh sửa để giảng viên nắm rõ (ví dụ: cần bổ sung chương nào, sai sót ở phần nào...)."></textarea>
-          <p class="reject-hint">{{ rejectComment.length }} / 2000 ký tự</p>
+      <label class="reject-field-label" for="reject-comment">Chi tiết <span class="reject-required">*</span></label>
+      <textarea
+        id="reject-comment"
+        class="reject-textarea"
+        [(ngModel)]="rejectComment"
+        rows="5"
+        maxlength="2000"
+        placeholder="Mô tả cụ thể điều cần chỉnh sửa để giảng viên nắm rõ (ví dụ: cần bổ sung chương nào, sai sót ở phần nào...)."></textarea>
+      <p class="reject-hint">{{ rejectComment.length }} / 2000 ký tự</p>
 
-          <div class="modal-footer">
-            <button type="button" class="btn-secondary" (click)="closeRejectModal()">Hủy</button>
-            <button type="button"
-                    class="btn-danger"
-                    (click)="confirmReject()"
-                    [disabled]="!rejectComment.trim() || rejecting()">
-              Từ chối
-            </button>
-          </div>
-        </div>
+      <div dialogFooter>
+        <button type="button" class="btn-secondary" (click)="closeRejectModal()" [disabled]="rejecting()">Hủy</button>
+        <button type="button"
+                class="btn-danger"
+                (click)="confirmReject()"
+                [disabled]="!rejectComment.trim() || rejecting()">
+          Từ chối
+        </button>
       </div>
-    }
+    </app-dialog>
 
   </div>
 </div>
