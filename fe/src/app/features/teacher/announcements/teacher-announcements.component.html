@@ -118,90 +118,81 @@
 </div>
 
 <!-- Create Modal -->
-@if (showCreateForm()) {
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="showCreateForm.set(false)">
-    <div class="w-full max-w-lg overflow-hidden rounded-lg bg-white shadow-xl" (click)="$event.stopPropagation()">
-      <div class="border-b border-slate-200 px-6 py-4">
-        <div class="flex items-center justify-between">
-          <h2 class="text-lg font-bold text-slate-900">Tạo thông báo mới</h2>
-          <button type="button" (click)="showCreateForm.set(false)"
-            class="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <div class="space-y-4 px-6 py-4">
-        <div>
-          <label class="mb-1 block text-sm font-medium text-slate-700">Khóa học <span class="text-red-500">*</span></label>
-          <select [(ngModel)]="selectedCourseId"
-            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]">
-            <option value="">-- Chọn khóa học --</option>
-            @for (course of courses(); track course.id) {
-              <option [value]="course.id">{{ course.title }}</option>
-            }
-          </select>
-        </div>
-        <div>
-          <label class="mb-1 block text-sm font-medium text-slate-700">Tiêu đề <span class="text-red-500">*</span></label>
-          <input type="text" [(ngModel)]="formTitle" placeholder="Nhập tiêu đề..." maxlength="200"
-            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]" />
-          <p class="mt-1 text-xs text-slate-400">{{ formTitle.length }}/200</p>
-        </div>
-        <div>
-          <label class="mb-1 block text-sm font-medium text-slate-700">Nội dung <span class="text-red-500">*</span></label>
-          <textarea [(ngModel)]="formContent" placeholder="Nhập nội dung thông báo..." rows="5" maxlength="10000"
-            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]"></textarea>
-        </div>
-        <div>
-          <label class="mb-1 block text-sm font-medium text-slate-700">Mức độ</label>
-          <select [(ngModel)]="formPriority"
-            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]">
-            <option value="NORMAL">Bình thường</option>
-            <option value="IMPORTANT">Quan trọng</option>
-          </select>
-        </div>
-        @if (createError()) {
-          <div class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ createError() }}</div>
+<app-dialog
+  [open]="showCreateForm()"
+  title="Tạo thông báo mới"
+  size="md"
+  [busy]="creating()"
+  (close)="showCreateForm.set(false)">
+  <div class="space-y-4">
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Khóa học <span class="text-red-500">*</span></label>
+      <select [(ngModel)]="selectedCourseId"
+        class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]">
+        <option value="">-- Chọn khóa học --</option>
+        @for (course of courses(); track course.id) {
+          <option [value]="course.id">{{ course.title }}</option>
         }
-      </div>
-
-      <div class="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
-        <button type="button" (click)="showCreateForm.set(false)"
-          class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
-          Hủy
-        </button>
-        <button type="button" (click)="submitAnnouncement()"
-          [disabled]="creating() || !canSubmit()"
-          class="rounded-lg bg-[#0056D2] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#004BB5] disabled:opacity-50 disabled:cursor-not-allowed">
-          @if (creating()) {
-            <span class="flex items-center gap-2">
-              <div class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-              Đang gửi...
-            </span>
-          } @else {
-            Gửi thông báo
-          }
-        </button>
-      </div>
+      </select>
     </div>
-  </div>
-}
-
-<!-- Delete confirm -->
-@if (deleteTarget()) {
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" (click)="deleteTarget.set(null)">
-    <div class="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl" (click)="$event.stopPropagation()">
-      <h3 class="mb-2 text-lg font-bold text-slate-900">Xóa thông báo?</h3>
-      <p class="mb-4 text-sm text-slate-500">Thông báo sẽ bị xóa vĩnh viễn và sinh viên sẽ không thể xem lại.</p>
-      <div class="flex justify-end gap-3">
-        <button type="button" (click)="deleteTarget.set(null)"
-          class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Hủy</button>
-        <button type="button" (click)="confirmDelete()"
-          class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">Xóa</button>
-      </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Tiêu đề <span class="text-red-500">*</span></label>
+      <input type="text" [(ngModel)]="formTitle" placeholder="Nhập tiêu đề..." maxlength="200"
+        class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]" />
+      <p class="mt-1 text-xs text-slate-400">{{ formTitle.length }}/200</p>
     </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Nội dung <span class="text-red-500">*</span></label>
+      <textarea [(ngModel)]="formContent" placeholder="Nhập nội dung thông báo..." rows="5" maxlength="10000"
+        class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]"></textarea>
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Mức độ</label>
+      <select [(ngModel)]="formPriority"
+        class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]">
+        <option value="NORMAL">Bình thường</option>
+        <option value="IMPORTANT">Quan trọng</option>
+      </select>
+    </div>
+    @if (createError()) {
+      <div class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ createError() }}</div>
+    }
   </div>
-}
+  <div dialogFooter>
+    <button type="button" (click)="showCreateForm.set(false)"
+      class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
+      Hủy
+    </button>
+    <button type="button" (click)="submitAnnouncement()"
+      [disabled]="creating() || !canSubmit()"
+      class="rounded-lg bg-[#0056D2] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#004BB5] disabled:opacity-50 disabled:cursor-not-allowed">
+      @if (creating()) {
+        <span class="flex items-center gap-2">
+          <div class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+          Đang gửi...
+        </span>
+      } @else {
+        Gửi thông báo
+      }
+    </button>
+  </div>
+</app-dialog>
+
+<!-- Delete confirm — alertdialog per WCAG for destructive action -->
+<app-dialog
+  [open]="!!deleteTarget()"
+  role="alertdialog"
+  variant="danger"
+  size="sm"
+  title="Xóa thông báo?"
+  (close)="deleteTarget.set(null)">
+  <p class="text-sm text-slate-600 leading-relaxed">
+    Thông báo sẽ bị xóa vĩnh viễn và sinh viên sẽ không thể xem lại.
+  </p>
+  <div dialogFooter>
+    <button type="button" (click)="deleteTarget.set(null)"
+      class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Hủy</button>
+    <button type="button" (click)="confirmDelete()"
+      class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">Xóa</button>
+  </div>
+</app-dialog>

@@ -12,6 +12,7 @@ import { QuestionApi } from '../../../../../../../api/endpoints/question.api';
 import { ToastService } from '../../../../../../../core/services/toast.service';
 import { CurriculumEditorService } from '../../../../services/curriculum-editor.service';
 import { BlockRendererComponent } from '../../../../../../../shared/blocks/block-renderer/block-renderer.component';
+import { DialogComponent } from '../../../../../../../shared/components/dialog/dialog.component';
 
 /**
  * Quiz Package Modals — self-contained component for quiz bank + random question selection.
@@ -23,30 +24,16 @@ import { BlockRendererComponent } from '../../../../../../../shared/blocks/block
 @Component({
   selector: 'app-quiz-package-modals',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, BlockRendererComponent],
+  imports: [FormsModule, BlockRendererComponent, DialogComponent],
   template: `
     <!-- ═══ Quiz Bank Modal ═══ -->
-    @if (svc.showSectionQuizBankModal()) {
-      <div class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50"
-           (click)="svc.showSectionQuizBankModal.set(false)">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col"
-             (click)="$event.stopPropagation()"
-             role="dialog" aria-modal="true" aria-labelledby="quiz-bank-title" tabindex="-1">
-
-          <!-- Header -->
-          <div class="p-5 border-b border-gray-200 flex items-center justify-between">
-            <h3 id="quiz-bank-title" class="text-lg font-semibold text-gray-900">Chọn câu hỏi từ ngân hàng</h3>
-            <button (click)="svc.showSectionQuizBankModal.set(false)"
-              class="rounded p-1 text-gray-400 hover:text-gray-600" aria-label="Đóng">
-              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          <!-- Body -->
-          <div class="p-5 space-y-4 overflow-y-auto flex-1">
-            <div>
+    <app-dialog
+      [open]="svc.showSectionQuizBankModal()"
+      title="Chọn câu hỏi từ ngân hàng"
+      size="lg"
+      (close)="svc.showSectionQuizBankModal.set(false)">
+      <div class="space-y-4">
+        <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Chọn gói câu hỏi</label>
               <select [(ngModel)]="selectedPackageId" (change)="loadPackageQuestions()"
                 class="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-white text-sm">
@@ -150,70 +137,57 @@ import { BlockRendererComponent } from '../../../../../../../shared/blocks/block
                   }
                 </div>
               </div>
-            }
-          </div>
-
-          <!-- Footer -->
-          <div class="p-5 border-t border-gray-200 flex justify-end gap-3">
-            <button (click)="svc.showSectionQuizBankModal.set(false)"
-              class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">Hủy bỏ</button>
-            <button (click)="addFromBank()" [disabled]="selectedIds().size === 0"
-              class="px-4 py-2 text-sm font-medium bg-rose-600 text-white rounded-lg hover:bg-rose-700 disabled:opacity-50 transition-colors">
-              Thêm {{ selectedIds().size }} câu hỏi
-            </button>
-          </div>
-        </div>
+        }
       </div>
-    }
+      <div dialogFooter>
+        <button type="button" (click)="svc.showSectionQuizBankModal.set(false)"
+          class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">Hủy bỏ</button>
+        <button type="button" (click)="addFromBank()" [disabled]="selectedIds().size === 0"
+          class="px-4 py-2 text-sm font-medium bg-rose-600 text-white rounded-lg hover:bg-rose-700 disabled:opacity-50 transition-colors">
+          Thêm {{ selectedIds().size }} câu hỏi
+        </button>
+      </div>
+    </app-dialog>
 
     <!-- ═══ Quiz Random Modal ═══ -->
-    @if (svc.showSectionQuizRandomModal()) {
-      <div class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50"
-           (click)="svc.showSectionQuizRandomModal.set(false)">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4"
-             (click)="$event.stopPropagation()"
-             role="dialog" aria-modal="true" aria-labelledby="quiz-random-title" tabindex="-1">
-
-          <div class="p-5 border-b border-gray-100">
-            <h3 id="quiz-random-title" class="text-lg font-bold text-gray-900">Tạo câu hỏi ngẫu nhiên</h3>
-            <p class="text-sm text-gray-500 mt-1">Chọn gói câu hỏi</p>
-          </div>
-
-          <div class="p-5 space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Nguồn câu hỏi</label>
-              <select [(ngModel)]="selectedPackageId"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm">
-                <option value="">-- Chọn gói câu hỏi --</option>
-                @for (pkg of packages(); track pkg.id) {
-                  <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} câu)</option>
-                }
-              </select>
-            </div>
-            <div [class.opacity-50]="!selectedPackageId">
-              <label class="block text-sm font-medium text-gray-700 mb-1">Số lượng câu hỏi</label>
-              <div class="flex items-center border border-gray-300 rounded-lg overflow-hidden">
-                <button class="px-3 py-2 bg-gray-50 hover:bg-gray-100 border-r transition-colors"
-                  (click)="decreaseCount()">-</button>
-                <input type="number" [ngModel]="randomCount()" (ngModelChange)="randomCount.set(+$event)"
-                  class="w-full text-center border-none focus:ring-0 p-2 text-sm" min="1" />
-                <button class="px-3 py-2 bg-gray-50 hover:bg-gray-100 border-l transition-colors"
-                  (click)="increaseCount()">+</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="p-4 bg-gray-50 flex justify-end gap-3 rounded-b-xl">
-            <button (click)="svc.showSectionQuizRandomModal.set(false)"
-              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Hủy</button>
-            <button (click)="generateRandom()" [disabled]="!selectedPackageId"
-              class="px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-lg hover:bg-rose-700 disabled:opacity-50 transition-colors">
-              Tạo ngay
-            </button>
+    <app-dialog
+      [open]="svc.showSectionQuizRandomModal()"
+      title="Tạo câu hỏi ngẫu nhiên"
+      subtitle="Chọn gói câu hỏi nguồn và số lượng câu muốn lấy."
+      size="sm"
+      (close)="svc.showSectionQuizRandomModal.set(false)">
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nguồn câu hỏi</label>
+          <select [(ngModel)]="selectedPackageId"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm">
+            <option value="">-- Chọn gói câu hỏi --</option>
+            @for (pkg of packages(); track pkg.id) {
+              <option [value]="pkg.id">{{ pkg.name }} ({{ pkg.questionCount || 0 }} câu)</option>
+            }
+          </select>
+        </div>
+        <div [class.opacity-50]="!selectedPackageId">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Số lượng câu hỏi</label>
+          <div class="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+            <button type="button" class="px-3 py-2 bg-gray-50 hover:bg-gray-100 border-r transition-colors"
+              (click)="decreaseCount()">-</button>
+            <input type="number" [ngModel]="randomCount()" (ngModelChange)="randomCount.set(+$event)"
+              class="w-full text-center border-none focus:ring-0 p-2 text-sm" min="1" />
+            <button type="button" class="px-3 py-2 bg-gray-50 hover:bg-gray-100 border-l transition-colors"
+              (click)="increaseCount()">+</button>
           </div>
         </div>
       </div>
-    }
+      <div dialogFooter>
+        <button type="button" (click)="svc.showSectionQuizRandomModal.set(false)"
+          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Hủy</button>
+        <button type="button" (click)="generateRandom()" [disabled]="!selectedPackageId"
+          class="px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-lg hover:bg-rose-700 disabled:opacity-50 transition-colors">
+          Tạo ngay
+        </button>
+      </div>
+    </app-dialog>
   `,
 })
 export class QuizPackageModalsComponent implements OnInit {

@@ -438,98 +438,89 @@
   }
 </div>
 
-@if (showCreateModal()) {
-  <div class="fixed inset-0 z-50 flex items-center justify-center">
-    <div class="absolute inset-0 bg-black/30" (click)="closeCreateModal()"></div>
-    <div class="relative w-full max-w-md rounded-xl border border-gray-200 bg-white shadow-2xl">
-      <div class="flex items-center justify-between border-b border-gray-100 px-5 py-3.5">
-        <h2 class="text-base font-semibold text-gray-900">
-          @if (createStep() === 1) { Chọn khóa học } @else { Tạo bài kiểm tra }
-        </h2>
-        <button type="button" (click)="closeCreateModal()" class="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600">
-          <lucide-icon name="x" [size]="18"></lucide-icon>
-        </button>
-      </div>
-
-      @if (createStep() === 1) {
-        <div class="px-5 pb-3 pt-4">
-          <label class="mb-1.5 block text-sm font-medium text-gray-900">Khóa học <span class="text-red-500">*</span></label>
-          <input
-            type="text"
-            [value]="createSearchTerm()"
-            (input)="createSearchTerm.set($any($event.target).value)"
-            placeholder="Tìm hoặc chọn khóa học..."
-            class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20" />
-        </div>
-        <div class="max-h-56 overflow-y-auto border-t border-gray-100 px-3 pb-2">
-          @if (filteredCreateCourses().length === 0) {
-            <div class="px-3 py-6 text-center text-sm text-gray-500">Không tìm thấy khóa học</div>
-          } @else {
-            @for (course of filteredCreateCourses(); track course.id) {
-              <button type="button" (click)="selectCreateCourse(course.id)" class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm hover:bg-gray-50">
-                <div class="min-w-0 flex-1">
-                  <p class="truncate">{{ course.title }}</p>
-                  @if (course.code) {
-                    <p class="mt-0.5 text-[11px] text-gray-400">{{ course.code }}</p>
-                  }
-                </div>
-                @if (createSelectedCourseId() === course.id) {
-                  <svg class="h-4 w-4 flex-shrink-0 text-[#0056D2]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                  </svg>
-                }
-              </button>
-            }
-          }
-        </div>
-        <div class="flex items-center justify-end gap-2 border-t border-gray-100 px-5 py-3">
-          <button type="button" (click)="closeCreateModal()" class="rounded-lg border border-gray-200 px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Hủy</button>
-          <button type="button" (click)="proceedToStep2()" [disabled]="!createSelectedCourseId()" class="rounded-lg bg-[#0056D2] px-3.5 py-2 text-sm font-medium text-white hover:bg-[#004BB5] disabled:opacity-40">Tiếp tục</button>
-        </div>
+<app-dialog
+  [open]="showCreateModal()"
+  [title]="createStep() === 1 ? 'Chọn khóa học' : 'Tạo bài kiểm tra'"
+  size="sm"
+  [busy]="createLoading()"
+  (close)="closeCreateModal()">
+  @if (createStep() === 1) {
+    <div>
+      <label class="mb-1.5 block text-sm font-medium text-gray-900">Khóa học <span class="text-red-500">*</span></label>
+      <input
+        type="text"
+        [value]="createSearchTerm()"
+        (input)="createSearchTerm.set($any($event.target).value)"
+        placeholder="Tìm hoặc chọn khóa học..."
+        class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20" />
+    </div>
+    <div class="mt-3 max-h-56 overflow-y-auto">
+      @if (filteredCreateCourses().length === 0) {
+        <div class="px-3 py-6 text-center text-sm text-gray-500">Không tìm thấy khóa học</div>
       } @else {
-        <div class="space-y-4 px-5 py-5">
-          <div class="flex items-center gap-2 text-sm">
-            <lucide-icon name="book-open" [size]="14" class="text-gray-400"></lucide-icon>
-            <span class="text-gray-500">{{ getCreateSelectedCourseTitle() }}</span>
-            <button type="button" (click)="backToStep1()" class="ml-auto text-xs text-[#0056D2] hover:underline">Đổi</button>
-          </div>
-
-          <div>
-            <label class="mb-1.5 block text-sm font-medium text-gray-900">Chọn chương <span class="text-red-500">*</span></label>
-            @if (createLoading()) {
-              <div class="py-2 text-sm text-gray-500">Đang tải...</div>
-            } @else if (createChapters().length === 0) {
-              <p class="text-sm text-amber-600">Khóa học này chưa có chương nào.</p>
-            } @else {
-              <select [ngModel]="createSelectedChapterId()" (ngModelChange)="createSelectedChapterId.set($event)" class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
-                @for (chapter of createChapters(); track chapter.id) {
-                  <option [value]="chapter.id">{{ chapter.title }}</option>
-                }
-              </select>
+        @for (course of filteredCreateCourses(); track course.id) {
+          <button type="button" (click)="selectCreateCourse(course.id)" class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm hover:bg-gray-50">
+            <div class="min-w-0 flex-1">
+              <p class="truncate">{{ course.title }}</p>
+              @if (course.code) {
+                <p class="mt-0.5 text-[11px] text-gray-400">{{ course.code }}</p>
+              }
+            </div>
+            @if (createSelectedCourseId() === course.id) {
+              <svg class="h-4 w-4 flex-shrink-0 text-[#0056D2]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+              </svg>
             }
-          </div>
-
-          <div>
-            <label class="mb-1.5 block text-sm font-medium text-gray-900">Tiêu đề bài kiểm tra <span class="text-red-500">*</span></label>
-            <input
-              type="text"
-              [value]="createTitle()"
-              (input)="createTitle.set($any($event.target).value)"
-              placeholder="VD: Kiểm tra giữa kỳ"
-              class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20" />
-          </div>
-
-          @if (createError()) {
-            <p class="text-sm text-red-600">{{ createError() }}</p>
-          }
-        </div>
-        <div class="flex items-center justify-end gap-2 border-t border-gray-100 px-5 py-3.5">
-          <button type="button" (click)="backToStep1()" class="rounded-lg border border-gray-200 px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Quay lại</button>
-          <button type="button" (click)="submitCreate()" [disabled]="createLoading() || !createSelectedChapterId() || !createTitle().trim()" class="rounded-lg bg-[#0056D2] px-3.5 py-2 text-sm font-medium text-white hover:bg-[#004BB5] disabled:opacity-40">
-            {{ createLoading() ? 'Đang tạo...' : 'Tạo bài kiểm tra' }}
           </button>
-        </div>
+        }
       }
     </div>
-  </div>
-}
+    <div dialogFooter>
+      <button type="button" (click)="closeCreateModal()" class="rounded-lg border border-gray-200 px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Hủy</button>
+      <button type="button" (click)="proceedToStep2()" [disabled]="!createSelectedCourseId()" class="rounded-lg bg-[#0056D2] px-3.5 py-2 text-sm font-medium text-white hover:bg-[#004BB5] disabled:opacity-40">Tiếp tục</button>
+    </div>
+  } @else {
+    <div class="space-y-4">
+      <div class="flex items-center gap-2 text-sm">
+        <lucide-icon name="book-open" [size]="14" class="text-gray-400"></lucide-icon>
+        <span class="text-gray-500">{{ getCreateSelectedCourseTitle() }}</span>
+        <button type="button" (click)="backToStep1()" class="ml-auto text-xs text-[#0056D2] hover:underline">Đổi</button>
+      </div>
+
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-gray-900">Chọn chương <span class="text-red-500">*</span></label>
+        @if (createLoading()) {
+          <div class="py-2 text-sm text-gray-500">Đang tải...</div>
+        } @else if (createChapters().length === 0) {
+          <p class="text-sm text-amber-600">Khóa học này chưa có chương nào.</p>
+        } @else {
+          <select [ngModel]="createSelectedChapterId()" (ngModelChange)="createSelectedChapterId.set($event)" class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
+            @for (chapter of createChapters(); track chapter.id) {
+              <option [value]="chapter.id">{{ chapter.title }}</option>
+            }
+          </select>
+        }
+      </div>
+
+      <div>
+        <label class="mb-1.5 block text-sm font-medium text-gray-900">Tiêu đề bài kiểm tra <span class="text-red-500">*</span></label>
+        <input
+          type="text"
+          [value]="createTitle()"
+          (input)="createTitle.set($any($event.target).value)"
+          placeholder="VD: Kiểm tra giữa kỳ"
+          class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20" />
+      </div>
+
+      @if (createError()) {
+        <p class="text-sm text-red-600">{{ createError() }}</p>
+      }
+    </div>
+    <div dialogFooter>
+      <button type="button" (click)="backToStep1()" class="rounded-lg border border-gray-200 px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Quay lại</button>
+      <button type="button" (click)="submitCreate()" [disabled]="createLoading() || !createSelectedChapterId() || !createTitle().trim()" class="rounded-lg bg-[#0056D2] px-3.5 py-2 text-sm font-medium text-white hover:bg-[#004BB5] disabled:opacity-40">
+        {{ createLoading() ? 'Đang tạo...' : 'Tạo bài kiểm tra' }}
+      </button>
+    </div>
+  }
+</app-dialog>

@@ -22,6 +22,7 @@ import { createTiptapUploadFn } from '../../../../shared/components/tiptap-edito
 import { environment } from '../../../../../environments/environment';
 import { ClassService } from '../../../../state/class.service';
 import { validateMaxScore } from '../../assignments/utils/assignment-validators';
+import { DialogComponent } from '../../../../shared/components/dialog/dialog.component';
 
 type AssignmentStatus = 'pending' | 'published' | 'closed';
 
@@ -40,7 +41,7 @@ type AssignmentStatus = 'pending' | 'published' | 'closed';
  */
 @Component({
   selector: 'app-assignment-details-tab',
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, DistributionSelectorComponent, TiptapEditorComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, DistributionSelectorComponent, TiptapEditorComponent, DialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bg-slate-50 -mx-4 sm:-mx-6 -my-6 px-4 sm:px-6 py-6 min-h-[60vh]">
@@ -318,29 +319,30 @@ type AssignmentStatus = 'pending' | 'published' | 'closed';
           </div>
         }
 
-        <!-- Delete Confirmation Modal -->
-        @if (showDeleteConfirm()) {
-          <div class="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
-            <div class="bg-white rounded-lg border border-gray-200 shadow-lg max-w-md w-full overflow-hidden">
-              <div class="px-5 py-4">
-                <h3 class="text-sm font-semibold text-gray-900 mb-2">Xác nhận xóa</h3>
-                <p class="text-sm text-gray-600">
-                  Bạn có chắc chắn muốn xóa bài tập "{{ assignment()?.title }}"? Hành động này không thể hoàn tác.
-                </p>
-              </div>
-              <div class="px-5 py-3 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
-                <button (click)="showDeleteConfirm.set(false)"
-                        class="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                  Hủy
-                </button>
-                <button (click)="confirmDelete()" [disabled]="deleting()"
-                        class="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors">
-                  {{ deleting() ? 'Đang xóa...' : 'Xóa' }}
-                </button>
-              </div>
-            </div>
+        <!-- Delete Confirmation Modal — alertdialog per WCAG for destructive action -->
+        <app-dialog
+          [open]="showDeleteConfirm()"
+          role="alertdialog"
+          variant="danger"
+          size="sm"
+          title="Xác nhận xóa bài tập"
+          [busy]="deleting()"
+          (close)="showDeleteConfirm.set(false)">
+          <p class="text-sm text-gray-700 leading-relaxed">
+            Bạn có chắc chắn muốn xóa bài tập <strong class="text-gray-900">"{{ assignment()?.title }}"</strong>?
+            Hành động này không thể hoàn tác — mọi bài nộp và chấm điểm liên quan sẽ bị xóa theo.
+          </p>
+          <div dialogFooter>
+            <button type="button" (click)="showDeleteConfirm.set(false)"
+                    class="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+              Hủy
+            </button>
+            <button type="button" (click)="confirmDelete()" [disabled]="deleting()"
+                    class="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors">
+              {{ deleting() ? 'Đang xóa...' : 'Xóa bài tập' }}
+            </button>
           </div>
-        }
+        </app-dialog>
       }
     </div>
   `

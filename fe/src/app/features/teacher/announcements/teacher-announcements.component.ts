@@ -14,13 +14,14 @@ import {
   Announcement,
   CreateAnnouncementRequest,
 } from '../../../core/services/announcement.service';
+import { DialogComponent } from '../../../shared/components/dialog/dialog.component';
 
 interface CourseOption { id: string; title: string; }
 type FilterTab = 'all' | 'important';
 
 @Component({
   selector: 'app-teacher-announcements',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DialogComponent],
   templateUrl: './teacher-announcements.component.html',
   styleUrl: './teacher-announcements.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
