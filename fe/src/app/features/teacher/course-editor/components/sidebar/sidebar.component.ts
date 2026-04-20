@@ -18,6 +18,7 @@ import { animate, state, style, transition, trigger } from '@angular/animations'
 import { LucideAngularModule } from 'lucide-angular';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
+import { DialogComponent } from '../../../../../shared/components/dialog/dialog.component';
 import { firstValueFrom } from 'rxjs';
 import { AssignmentApi } from '../../../../../api/client/assignment.api';
 import { QuizApi } from '../../../../../api/endpoints/quiz.api';
@@ -32,7 +33,8 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
     DragDropModule,
     CdkScrollable,
     MatTooltipModule,
-    LucideAngularModule
+    LucideAngularModule,
+    DialogComponent
   ],
   animations: [
     trigger('expandCollapse', [
@@ -181,6 +183,114 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
     /* CDK Drag overrides */
     .cdk-drag-preview { border-radius: 0.5rem; }
     .cdk-drag-placeholder { opacity: 0.3; }
+
+    /* ── Sidebar dialog form helpers (shared across chapter/lesson/section modals) ── */
+    .sidebar-field-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 8px;
+    }
+    .sidebar-field-label--lg { margin-bottom: 10px; }
+
+    .sidebar-field-input {
+      width: 100%;
+      padding: 10px 14px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #0f172a;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .sidebar-field-input:focus {
+      outline: none;
+      border-color: #0056D2;
+      box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.15);
+    }
+
+    .sidebar-field-hint {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.55;
+    }
+
+    .sidebar-section-form { display: flex; flex-direction: column; gap: 20px; }
+
+    /* Section type chooser grid — kept the old 2-row-on-mobile feel via grid-cols-4 */
+    .sidebar-type-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .sidebar-type-btn {
+      padding: 12px 8px;
+      border-radius: 8px;
+      border: 2px solid #e2e8f0;
+      background: #ffffff;
+      color: #64748b;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+    }
+    .sidebar-type-btn:hover { border-color: #cbd5e1; background: #f8fafc; }
+    .sidebar-type-btn--active {
+      border-color: #0056D2;
+      background: #E8F0FE;
+      color: #0056D2;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    }
+
+    .sidebar-file-attach {
+      margin-top: 12px;
+      padding: 12px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+    }
+    .sidebar-file-attach__label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #b45309;
+      margin-bottom: 8px;
+      letter-spacing: 0.02em;
+    }
+
+    /* Buttons — reused by all sidebar dialog footers */
+    .sidebar-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+    }
+    .sidebar-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .sidebar-btn--ghost {
+      padding: 10px 16px;
+      background: transparent;
+      color: #475569;
+    }
+    .sidebar-btn--ghost:hover:not(:disabled) { background: #e2e8f0; color: #0f172a; }
+
+    .sidebar-btn--primary {
+      padding: 10px 20px;
+      background: #0056D2;
+      color: #ffffff;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+    }
+    .sidebar-btn--primary:hover:not(:disabled) { background: #004BB5; }
   `],
   template: `
     <aside class="flex flex-col bg-white border-r border-slate-200 h-full overflow-hidden select-none"
@@ -537,181 +647,160 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
     }
 
     <!-- Chapter Modal -->
-    @if (showChapterModal()) {
-      <div class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]"
-           (click)="closeModals()" (keydown.escape)="closeModals()">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 overflow-hidden" (click)="$event.stopPropagation()">
-          <div class="px-5 py-4 border-b border-slate-200">
-            <h3 class="text-base font-bold text-slate-900">Tạo chương mới</h3>
-          </div>
-          <div class="px-5 py-5">
-            <label class="text-[13px] font-semibold text-slate-700 mb-2 block">Tên chương</label>
-            <input type="text" [(ngModel)]="newChapterTitle"
-                   (keydown.enter)="createChapter()"
-                   class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2] transition-all"
-                   placeholder="Nhập tên chương...">
-          </div>
-          <div class="px-5 py-3.5 bg-slate-50 flex justify-end gap-2.5 border-t border-slate-100">
-            <button (click)="closeModals()" class="px-4 py-2.5 text-[13px] font-semibold text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-200 transition-colors">Hủy</button>
-            <button (click)="createChapter()"
-                    [disabled]="isCreating()"
-                    class="px-5 py-2.5 bg-[#0056D2] text-white text-[13px] font-semibold rounded-lg hover:bg-[#004BB5] transition-colors disabled:opacity-50 inline-flex items-center gap-1.5 shadow-sm">
-              @if (isCreating()) {
-                <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-              }
-              Tạo chương
-            </button>
-          </div>
-        </div>
+    <app-dialog
+      [open]="showChapterModal()"
+      title="Tạo chương mới"
+      size="sm"
+      [busy]="isCreating()"
+      (close)="closeModals()">
+      <label class="sidebar-field-label">Tên chương</label>
+      <input type="text" [(ngModel)]="newChapterTitle"
+             (keydown.enter)="createChapter()"
+             class="sidebar-field-input"
+             placeholder="Nhập tên chương...">
+      <div dialogFooter>
+        <button type="button" (click)="closeModals()" class="sidebar-btn sidebar-btn--ghost">Hủy</button>
+        <button type="button" (click)="createChapter()"
+                [disabled]="isCreating()"
+                class="sidebar-btn sidebar-btn--primary">
+          @if (isCreating()) {
+            <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          }
+          Tạo chương
+        </button>
       </div>
-    }
+    </app-dialog>
 
     <!-- Lesson Modal -->
-    @if (showLessonModal()) {
-      <div class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]"
-           (click)="closeModals()" (keydown.escape)="closeModals()">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 overflow-hidden" (click)="$event.stopPropagation()">
-          <div class="px-5 py-4 border-b border-slate-200">
-            <h3 class="text-base font-bold text-slate-900">Thêm bài học</h3>
-            <p class="text-xs text-slate-500 mt-0.5">Chương: {{ currentChapterForLesson()?.title }}</p>
-          </div>
-          <div class="px-5 py-5 space-y-3">
-            <div>
-              <label class="text-[13px] font-semibold text-slate-700 mb-2 block">Tên bài học</label>
-              <input type="text" [(ngModel)]="newLessonTitle"
-                     (keydown.enter)="createLesson()"
-                     class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2] transition-all"
-                     placeholder="Nhập tên bài học...">
-            </div>
-            <p class="text-xs text-slate-400 leading-relaxed">Sau khi tạo, bạn có thể thêm nội dung (văn bản, video, tài liệu, trắc nghiệm) vào bài học.</p>
-          </div>
-          <div class="px-5 py-3.5 bg-slate-50 flex justify-end gap-2.5 border-t border-slate-100">
-            <button (click)="closeModals()" class="px-4 py-2.5 text-[13px] font-semibold text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-200 transition-colors">Hủy</button>
-            <button (click)="createLesson()"
-                    [disabled]="isCreating()"
-                    class="px-5 py-2.5 bg-[#0056D2] text-white text-[13px] font-semibold rounded-lg hover:bg-[#004BB5] transition-colors disabled:opacity-50 inline-flex items-center gap-1.5 shadow-sm">
-              @if (isCreating()) {
-                <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-              }
-              Thêm bài học
-            </button>
-          </div>
-        </div>
+    <app-dialog
+      [open]="showLessonModal()"
+      title="Thêm bài học"
+      [subtitle]="'Chương: ' + (currentChapterForLesson()?.title || '')"
+      size="sm"
+      [busy]="isCreating()"
+      (close)="closeModals()">
+      <label class="sidebar-field-label">Tên bài học</label>
+      <input type="text" [(ngModel)]="newLessonTitle"
+             (keydown.enter)="createLesson()"
+             class="sidebar-field-input"
+             placeholder="Nhập tên bài học...">
+      <p class="sidebar-field-hint">Sau khi tạo, bạn có thể thêm nội dung (văn bản, video, tài liệu, trắc nghiệm) vào bài học.</p>
+      <div dialogFooter>
+        <button type="button" (click)="closeModals()" class="sidebar-btn sidebar-btn--ghost">Hủy</button>
+        <button type="button" (click)="createLesson()"
+                [disabled]="isCreating()"
+                class="sidebar-btn sidebar-btn--primary">
+          @if (isCreating()) {
+            <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          }
+          Thêm bài học
+        </button>
       </div>
-    }
+    </app-dialog>
 
     <!-- Section Modal -->
-    @if (showSectionModal()) {
-      <div class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]"
-           (click)="closeModals()" (keydown.escape)="closeModals()">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 overflow-hidden" (click)="$event.stopPropagation()">
-          <div class="px-5 py-4 border-b border-slate-200">
-            <h3 class="text-base font-bold text-slate-900">Thêm nội dung</h3>
-            <p class="text-xs text-slate-500 mt-0.5">Bài học: {{ currentLessonForSection()?.title }}</p>
-          </div>
-          <div class="px-5 py-5 space-y-5">
-            <div>
-              <label class="text-[13px] font-semibold text-slate-700 mb-2 block">Tiêu đề</label>
-              <input type="text"
-                     [(ngModel)]="newSectionTitle"
-                     (keydown.enter)="createSection()"
-                     class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2] transition-all"
-                     placeholder="Nhập tiêu đề nội dung...">
-            </div>
+    <app-dialog
+      [open]="showSectionModal()"
+      title="Thêm nội dung"
+      [subtitle]="'Bài học: ' + (currentLessonForSection()?.title || '')"
+      size="md"
+      [busy]="isCreating()"
+      (close)="closeModals()">
+      <div class="sidebar-section-form">
+        <div>
+          <label class="sidebar-field-label">Tiêu đề</label>
+          <input type="text"
+                 [(ngModel)]="newSectionTitle"
+                 (keydown.enter)="createSection()"
+                 class="sidebar-field-input"
+                 placeholder="Nhập tiêu đề nội dung...">
+        </div>
 
-            <div>
-              <label class="text-[13px] font-semibold text-slate-700 mb-2.5 block">Loại nội dung</label>
-              <div class="grid grid-cols-4 gap-2.5">
-                @for (type of sectionTypes; track type) {
-                  <button (click)="newSectionType = type"
-                          [class]="'py-3 px-2 rounded-lg border-2 transition-all flex flex-col items-center gap-1.5 text-center ' +
-                                   (newSectionType === type ? 'border-[#0056D2] bg-[#E8F0FE] text-[#0056D2] shadow-sm' : 'border-slate-200 hover:border-slate-300 text-slate-500 hover:bg-slate-50')">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      @switch (type) {
-                        @case ('TEXT') {
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        }
-                        @case ('VIDEO') {
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                        }
-                        @case ('QUIZ') {
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-                        }
-                        @case ('FILE') {
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
-                        }
-                      }
-                    </svg>
-                    <span class="text-[11px] font-bold uppercase">{{ type }}</span>
-                  </button>
-                }
-              </div>
-
-              @if (newSectionType === 'FILE') {
-                <div class="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                  <label class="block text-[11px] font-bold text-amber-700 uppercase mb-2">Đính kèm tài liệu</label>
-                  @if (!selectedFile) {
-                    <input type="file" (change)="onFileSelected($event)"
-                           class="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-amber-200 file:text-amber-800 hover:file:bg-amber-300 cursor-pointer">
-                  } @else {
-                    <div class="flex items-center justify-between bg-white p-2 rounded-lg border border-amber-200">
-                       <div class="flex items-center gap-2 overflow-hidden">
-                         <svg class="w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                         <span class="text-xs text-slate-700 truncate font-medium">{{ selectedFile.name }}</span>
-                       </div>
-                       <button (click)="removeSelectedFile()" class="p-1 text-slate-400 hover:text-red-500 transition-colors flex-shrink-0">
-                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                       </button>
-                    </div>
+        <div>
+          <label class="sidebar-field-label sidebar-field-label--lg">Loại nội dung</label>
+          <div class="sidebar-type-grid">
+            @for (type of sectionTypes; track type) {
+              <button type="button" (click)="newSectionType = type"
+                      [class]="'sidebar-type-btn ' + (newSectionType === type ? 'sidebar-type-btn--active' : '')">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  @switch (type) {
+                    @case ('TEXT') {
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    }
+                    @case ('VIDEO') {
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    }
+                    @case ('QUIZ') {
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                    }
+                    @case ('FILE') {
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+                    }
                   }
+                </svg>
+                <span class="text-[11px] font-bold uppercase">{{ type }}</span>
+              </button>
+            }
+          </div>
+
+          @if (newSectionType === 'FILE') {
+            <div class="sidebar-file-attach">
+              <label class="sidebar-file-attach__label">Đính kèm tài liệu</label>
+              @if (!selectedFile) {
+                <input type="file" (change)="onFileSelected($event)"
+                       class="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-amber-200 file:text-amber-800 hover:file:bg-amber-300 cursor-pointer">
+              } @else {
+                <div class="flex items-center justify-between bg-white p-2 rounded-lg border border-amber-200">
+                   <div class="flex items-center gap-2 overflow-hidden">
+                     <svg class="w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                     <span class="text-xs text-slate-700 truncate font-medium">{{ selectedFile.name }}</span>
+                   </div>
+                   <button type="button" (click)="removeSelectedFile()" class="p-1 text-slate-400 hover:text-red-500 transition-colors flex-shrink-0">
+                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                   </button>
                 </div>
               }
             </div>
-          </div>
-          <div class="px-5 py-3.5 bg-slate-50 flex justify-end gap-2.5 border-t border-slate-100">
-            <button (click)="closeModals()" class="px-4 py-2.5 text-[13px] font-semibold text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-200 transition-colors">Hủy</button>
-            <button (click)="createSection()"
-                    [disabled]="!newSectionTitle.trim() || (newSectionType === 'FILE' && !selectedFile) || isCreating()"
-                    class="px-5 py-2.5 bg-[#0056D2] text-white text-[13px] font-semibold rounded-lg hover:bg-[#004BB5] transition-colors disabled:opacity-50 inline-flex items-center gap-1.5 shadow-sm">
-              @if (isCreating()) {
-                <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-              }
-              Tạo nội dung
-            </button>
-          </div>
+          }
         </div>
       </div>
-    }
+      <div dialogFooter>
+        <button type="button" (click)="closeModals()" class="sidebar-btn sidebar-btn--ghost">Hủy</button>
+        <button type="button" (click)="createSection()"
+                [disabled]="!newSectionTitle.trim() || (newSectionType === 'FILE' && !selectedFile) || isCreating()"
+                class="sidebar-btn sidebar-btn--primary">
+          @if (isCreating()) {
+            <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          }
+          Tạo nội dung
+        </button>
+      </div>
+    </app-dialog>
+
     <!-- Move to Chapter Modal (Canvas "Move To" pattern - WCAG 2.5.7) -->
-    @if (showMoveToChapter()) {
-      <div class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]"
-           (click)="closeMoveToChapter()" (keydown.escape)="closeMoveToChapter()">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 overflow-hidden" (click)="$event.stopPropagation()">
-          <div class="px-5 py-4 border-b border-slate-200">
-            <h3 class="text-base font-bold text-slate-900">Chuyển bài học sang chương khác</h3>
-            <p class="text-xs text-slate-500 mt-0.5">{{ moveToLessonTarget()?.title }}</p>
-          </div>
-          <div class="px-5 py-5">
-            <label class="text-[13px] font-semibold text-slate-700 mb-2 block">Chọn chương đích</label>
-            <div class="space-y-1.5 max-h-60 overflow-y-auto">
-              @for (ch of store.chapters(); track ch.id) {
-                @if (ch.id !== moveToFromChapterId()) {
-                  <button (click)="executeMoveToChapter(ch.id)"
-                          class="w-full text-left px-3.5 py-2.5 rounded-lg border border-slate-200 hover:border-[#0056D2] hover:bg-[#E8F0FE]/30 text-[13px] text-slate-700 font-medium transition-all flex items-center gap-2">
-                    <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
-                    <span class="line-clamp-2 break-words">{{ ch.title }}</span>
-                    <span class="text-[11px] text-slate-400 ml-auto flex-shrink-0">{{ ch.lessons.length }} bài</span>
-                  </button>
-                }
-              }
-            </div>
-          </div>
-          <div class="px-5 py-3.5 bg-slate-50 flex justify-end border-t border-slate-100">
-            <button (click)="closeMoveToChapter()" class="px-4 py-2.5 text-[13px] font-semibold text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-200 transition-colors">Hủy</button>
-          </div>
-        </div>
+    <app-dialog
+      [open]="showMoveToChapter()"
+      title="Chuyển bài học sang chương khác"
+      [subtitle]="moveToLessonTarget()?.title || ''"
+      size="sm"
+      (close)="closeMoveToChapter()">
+      <label class="sidebar-field-label">Chọn chương đích</label>
+      <div class="space-y-1.5 max-h-60 overflow-y-auto">
+        @for (ch of store.chapters(); track ch.id) {
+          @if (ch.id !== moveToFromChapterId()) {
+            <button type="button" (click)="executeMoveToChapter(ch.id)"
+                    class="w-full text-left px-3.5 py-2.5 rounded-lg border border-slate-200 hover:border-[#0056D2] hover:bg-[#E8F0FE]/30 text-[13px] text-slate-700 font-medium transition-all flex items-center gap-2">
+              <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+              <span class="line-clamp-2 break-words">{{ ch.title }}</span>
+              <span class="text-[11px] text-slate-400 ml-auto flex-shrink-0">{{ ch.lessons.length }} bài</span>
+            </button>
+          }
+        }
       </div>
-    }
+      <div dialogFooter>
+        <button type="button" (click)="closeMoveToChapter()" class="sidebar-btn sidebar-btn--ghost">Hủy</button>
+      </div>
+    </app-dialog>
   `
 })
 
