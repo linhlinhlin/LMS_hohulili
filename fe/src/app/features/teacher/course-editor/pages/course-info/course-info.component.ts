@@ -7,7 +7,6 @@ import {
   OnInit,
   viewChild,
   signal,
-  computed,
   effect,
   inject,
   untracked,
@@ -24,8 +23,6 @@ import { CourseInfoDescriptionComponent } from './sections/course-info-descripti
 import { CourseInfoMediaComponent } from './sections/course-info-media.component';
 import { CourseInfoPricingComponent } from './sections/course-info-pricing.component';
 import { CourseInfoVisibilityComponent } from './sections/course-info-visibility.component';
-import { CourseApi } from '../../../../../api/client/course.api';
-import { COURSE_REJECTION_CATEGORIES } from '../../../../admin/infrastructure/services/admin.service';
 
 @Component({
   selector: 'app-course-info',
@@ -46,41 +43,12 @@ export class CourseInfoComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly store = inject(CourseEditorStore);
   readonly svc = inject(CourseInfoFormService);
   private readonly service = inject(CourseAuthoringService);
-  private readonly courseApi = inject(CourseApi);
   private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly toast = inject(ToastService);
   private readonly el = inject(ElementRef);
 
   readonly mediaSection = viewChild(CourseInfoMediaComponent);
   readonly activeSection = signal<string>('basic');
-
-  // Rejection banner state (P0-3): surfaces admin review feedback when course was rejected or needs changes.
-  readonly rejectionStatus = signal<{
-    status: string;
-    reviewComment?: string;
-    reviewedAt?: string;
-    reviewedByName?: string;
-    rejectionCategory?: string;
-  } | null>(null);
-  readonly rejectionBannerDismissed = signal(false);
-
-  readonly isRejected = computed(() => {
-    const s = this.rejectionStatus();
-    return !!s && (s.status === 'REJECTED' || s.status === 'CHANGES_REQUESTED');
-  });
-
-  readonly rejectionCategoryLabel = computed(() => {
-    const code = this.rejectionStatus()?.rejectionCategory;
-    if (!code) return '';
-    const option = COURSE_REJECTION_CATEGORIES.find(o => o.value === code);
-    return option?.label || '';
-  });
-
-  readonly rejectionReviewedAtText = computed(() => {
-    const at = this.rejectionStatus()?.reviewedAt;
-    if (!at) return '';
-    try { return new Date(at).toLocaleString('vi-VN'); } catch { return ''; }
-  });
 
   readonly sectionNav = [
     { key: 'basic', label: 'Cơ bản' },
@@ -109,34 +77,6 @@ export class CourseInfoComponent implements OnInit, AfterViewInit, OnDestroy {
         untracked(() => this.applyTreeToForm(tree));
       }
     });
-
-    // Fetch rejection status whenever the course id changes — banner appears
-    // at the top of the editor so teacher can't miss admin feedback.
-    effect(() => {
-      const courseId = this.store.courseTree()?.id;
-      if (courseId) {
-        untracked(() => this.loadRejectionStatus(courseId));
-      }
-    });
-  }
-
-  private loadRejectionStatus(courseId: string) {
-    this.courseApi.getReviewStatus(courseId).subscribe({
-      next: (res: any) => {
-        const data = res?.data;
-        if (data && (data.status === 'REJECTED' || data.status === 'CHANGES_REQUESTED')) {
-          this.rejectionStatus.set(data);
-          this.rejectionBannerDismissed.set(false);
-        } else {
-          this.rejectionStatus.set(null);
-        }
-      },
-      error: () => { /* silent: banner just won't show */ },
-    });
-  }
-
-  dismissRejectionBanner() {
-    this.rejectionBannerDismissed.set(true);
   }
 
   ngOnInit() {

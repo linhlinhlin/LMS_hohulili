@@ -4,6 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterOutlet, RouterModule, ActivatedRoute, Router, NavigationEnd } from '@angular/router';
 import { CourseEditorSidebarComponent } from '../../components/sidebar/sidebar.component';
 import { CourseEditorHeaderComponent } from '../../components/header/header.component';
+import { CourseRejectionBannerComponent } from '../../components/rejection-banner/rejection-banner.component';
 import { CourseEditorStore } from '../../store/course-editor.store';
 import { CurriculumSelectionService } from '../../services/curriculum-selection.service';
 import { AuthService } from '../../../../../core/services/auth.service';
@@ -13,7 +14,7 @@ import { filter, take, map } from 'rxjs/operators';
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-course-editor-layout',
-  imports: [RouterOutlet, RouterModule, CourseEditorSidebarComponent, CourseEditorHeaderComponent],
+  imports: [RouterOutlet, RouterModule, CourseEditorSidebarComponent, CourseEditorHeaderComponent, CourseRejectionBannerComponent],
   styleUrl: './course-editor-layout.component.scss',
   template: `
     <div class="relative flex h-screen w-full flex-col overflow-hidden font-sans bg-white text-slate-900">
@@ -31,6 +32,10 @@ import { filter, take, map } from 'rxjs/operators';
       <!-- Header -->
       <app-course-editor-header class="h-12 flex-shrink-0 z-20 bg-white">
       </app-course-editor-header>
+
+      <!-- Admin rejection banner: shows above tabs so teachers see the
+           feedback no matter which tab they deep-link into. -->
+      <app-course-rejection-banner class="flex-shrink-0 z-10"></app-course-rejection-banner>
 
       <!-- Editor Tabs — above grid so position is stable regardless of sidebar -->
       <nav aria-label="Editor tabs"
