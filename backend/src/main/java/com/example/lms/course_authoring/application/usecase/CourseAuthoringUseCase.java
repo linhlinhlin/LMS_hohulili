@@ -225,11 +225,21 @@ public class CourseAuthoringUseCase {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new EntityNotFoundException("Khóa học", courseId));
 
+        // Pull latest rejection category from the audit trail (most-recent REJECTED or CHANGES_REQUESTED event)
+        String rejectionCategory = reviewEventRepository.findByCourseIdOrderByCreatedAtDesc(courseId)
+                .stream()
+                .filter(ev -> "REJECTED".equals(ev.getAction()) || "CHANGES_REQUESTED".equals(ev.getAction()))
+                .map(CourseReviewEventJpaEntity::getRejectionCategory)
+                .filter(s -> s != null && !s.isBlank())
+                .findFirst()
+                .orElse(null);
+
         return CourseDTOs.CourseReviewStatusDTO.builder()
                 .courseId(course.getId().toString())
                 .status(course.getStatus().name())
                 .reviewComment(course.getReviewComment())
                 .reviewedAt(course.getReviewedAt() != null ? course.getReviewedAt().toString() : null)
+                .rejectionCategory(rejectionCategory)
                 .build();
     }
 

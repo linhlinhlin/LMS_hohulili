@@ -88,7 +88,10 @@ export class TeacherService {
         modules: course.sectionCount || 0,
         lessons: course.lessonCount || 0,
         thumbnail: course.thumbnail || course.thumbnailUrl || undefined,
-        teacherRole: course.teacherRole || 'OWNER'
+        teacherRole: course.teacherRole || 'OWNER',
+        reviewState: course.reviewState || undefined,
+        rejectionReason: course.rejectionReason || undefined,
+        rejectionCategory: course.rejectionCategory || undefined
       }));
 
       this._courses.set(courses);

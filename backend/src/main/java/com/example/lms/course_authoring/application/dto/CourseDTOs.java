@@ -58,6 +58,8 @@ public class CourseDTOs {
         private String reviewComment;
         private String reviewedAt;
         private String reviewedByName;
+        /** Latest rejection category code (matches CourseRejectionCategory enum, nullable) */
+        private String rejectionCategory;
     }
     @Data
     @NoArgsConstructor
@@ -83,5 +85,11 @@ public class CourseDTOs {
         private int sectionCount;
         private int lessonCount;
         private String teacherRole; // "OWNER" or "CO_TEACHER" — helps FE show role badge
+        /** Review workflow state — PENDING_REVIEW / REJECTED / CHANGES_REQUESTED / APPROVED / DRAFT_CHANGES */
+        private String reviewState;
+        /** Latest rejection reason text (if course is REJECTED or CHANGES_REQUESTED) */
+        private String rejectionReason;
+        /** Latest rejection category code (matches CourseRejectionCategory enum) */
+        private String rejectionCategory;
     }
 }

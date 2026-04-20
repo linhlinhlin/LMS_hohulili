@@ -192,4 +192,6 @@ export interface CourseReviewStatus {
   reviewComment?: string;
   reviewedAt?: string;
   reviewedByName?: string;
+  /** Latest rejection category code (matches CourseRejectionCategory enum on BE). */
+  rejectionCategory?: string;
 }

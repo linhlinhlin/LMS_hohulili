@@ -29,6 +29,16 @@ export interface TeacherCourse {
   createdAt: string;
   updatedAt: string;
   teacherRole?: 'OWNER' | 'CO_TEACHER';
+  /**
+   * Granular workflow state (lowercase): 'draft' | 'pending' | 'approved' | 'rejected'
+   * | 'changes_requested' | 'pending_changes' | 'draft_changes' | 'archived'.
+   * Matches AdminCoursesControllerV3.resolveReviewState() output.
+   */
+  reviewState?: string;
+  /** Most recent rejection reason text (if course was rejected). */
+  rejectionReason?: string;
+  /** Most recent rejection category code (matches CourseRejectionCategory enum on BE). */
+  rejectionCategory?: string;
 }
 
 export interface TeacherStudent {

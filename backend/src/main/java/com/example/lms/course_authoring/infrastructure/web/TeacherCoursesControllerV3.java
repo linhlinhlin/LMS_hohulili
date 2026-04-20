@@ -95,6 +95,15 @@ public class TeacherCoursesControllerV3 {
                 ratingMap.put((UUID) row[0], Math.round((Double) row[1] * 10.0) / 10.0);
             }
 
+            // Latest rejection category/reason per course (for UI banner on rejected drafts).
+            Map<UUID, com.example.lms.course_authoring.infrastructure.persistence.entity.CourseReviewEventJpaEntity> latestRejectionMap = new HashMap<>();
+            for (var ev : reviewEventRepository.findByCourseIdInOrderByCreatedAtDesc(courseIds)) {
+                if (!"REJECTED".equals(ev.getAction()) && !"CHANGES_REQUESTED".equals(ev.getAction())) {
+                    continue;
+                }
+                latestRejectionMap.putIfAbsent(ev.getCourseId(), ev);
+            }
+
             response.getContent().forEach(c -> {
                 int enrolled = studentCountMap.getOrDefault(c.getId(), 0L).intValue();
                 c.setEnrolledCount(enrolled);
@@ -102,10 +111,35 @@ public class TeacherCoursesControllerV3 {
                 c.setSectionCount(chapterMap.getOrDefault(c.getId(), 0L).intValue());
                 c.setLessonCount(lessonMap.getOrDefault(c.getId(), 0L).intValue());
                 c.setAverageRating(ratingMap.getOrDefault(c.getId(), 0.0));
+
+                var rejectionEv = latestRejectionMap.get(c.getId());
+                if (rejectionEv != null) {
+                    c.setRejectionReason(rejectionEv.getComment());
+                    c.setRejectionCategory(rejectionEv.getRejectionCategory());
+                }
             });
         }
 
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /**
+     * Maps status + draftChangeStatus to a workflow state string that matches
+     * AdminCoursesControllerV3.resolveReviewState() so FE can share badge logic.
+     */
+    private String resolveTeacherReviewState(String statusStr, String draftStatusStr) {
+        if (statusStr == null) return "draft";
+        String s = statusStr.toUpperCase();
+        if (!"APPROVED".equals(s) && !"PUBLISHED".equals(s)) {
+            return s.toLowerCase();
+        }
+        if (draftStatusStr == null) return "approved";
+        return switch (draftStatusStr) {
+            case "PENDING_REVIEW" -> "pending_changes";
+            case "CHANGES_REQUESTED" -> "changes_requested";
+            case "DRAFT" -> "draft_changes";
+            default -> "approved";
+        };
     }
 
     @GetMapping("/{courseId}")
@@ -204,13 +238,14 @@ public class TeacherCoursesControllerV3 {
                         .map(UserJpaEntity::getFullName)
                         .orElse(null);
             }
-            return java.util.Map.of(
-                    "id", e.getId().toString(),
-                    "action", e.getAction(),
-                    "comment", e.getComment() != null ? e.getComment() : "",
-                    "reviewerName", reviewerName != null ? reviewerName : "",
-                    "createdAt", e.getCreatedAt().toString()
-            );
+            java.util.Map<String, Object> payload = new java.util.HashMap<>();
+            payload.put("id", e.getId().toString());
+            payload.put("action", e.getAction());
+            payload.put("comment", e.getComment() != null ? e.getComment() : "");
+            payload.put("reviewerName", reviewerName != null ? reviewerName : "");
+            payload.put("createdAt", e.getCreatedAt().toString());
+            payload.put("rejectionCategory", e.getRejectionCategory());
+            return payload;
         }).toList();
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
@@ -318,6 +353,10 @@ public class TeacherCoursesControllerV3 {
     private CourseDTOs.TeacherCourseResponse mapEntityToResponse(
             com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity entity,
             UUID currentUserId) {
+        String statusName = entity.getStatus() != null ? entity.getStatus().name() : "DRAFT";
+        String draftStatusName = entity.getDraftChangeStatus() != null
+                ? entity.getDraftChangeStatus().name()
+                : null;
         return CourseDTOs.TeacherCourseResponse.builder()
                 .id(entity.getId())
                 .code(entity.getCode())
@@ -326,7 +365,8 @@ public class TeacherCoursesControllerV3 {
                 .description(entity.getDescription())
                 .thumbnail(entity.getThumbnailUrl())
                 .price(entity.getPrice())
-                .status(entity.getStatus() != null ? entity.getStatus().name() : "DRAFT")
+                .status(statusName)
+                .reviewState(resolveTeacherReviewState(statusName, draftStatusName))
                 .deliveryMode(entity.getDeliveryMode() != null ? entity.getDeliveryMode().name() : "SELF_PACED")
                 .categoryName(null) // Enriched via batch query if needed
                 .createdAt(entity.getCreatedAt() != null ? entity.getCreatedAt().toString() : null)

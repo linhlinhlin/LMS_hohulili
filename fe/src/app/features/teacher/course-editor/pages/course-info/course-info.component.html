@@ -24,6 +24,45 @@
 
       <!-- Content: all sections stacked -->
       <div class="course-info-content">
+        @if (isRejected() && !rejectionBannerDismissed()) {
+          <section class="rejection-banner" role="alert" aria-labelledby="rejection-banner-title">
+            <div class="rejection-banner__icon" aria-hidden="true">
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4a2 2 0 00-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/>
+              </svg>
+            </div>
+            <div class="rejection-banner__body">
+              <h2 id="rejection-banner-title" class="rejection-banner__title">
+                {{ rejectionStatus()?.status === 'CHANGES_REQUESTED' ? 'Admin yêu cầu chỉnh sửa' : 'Khóa học bị từ chối' }}
+              </h2>
+              @if (rejectionCategoryLabel()) {
+                <p class="rejection-banner__category">
+                  <span class="rejection-banner__category-label">Lý do:</span>
+                  {{ rejectionCategoryLabel() }}
+                </p>
+              }
+              @if (rejectionStatus()?.reviewComment) {
+                <p class="rejection-banner__comment">{{ rejectionStatus()?.reviewComment }}</p>
+              }
+              <p class="rejection-banner__meta">
+                @if (rejectionStatus()?.reviewedByName) {
+                  <span>Người duyệt: {{ rejectionStatus()?.reviewedByName }}</span>
+                }
+                @if (rejectionReviewedAtText()) {
+                  <span>&middot; {{ rejectionReviewedAtText() }}</span>
+                }
+              </p>
+              <p class="rejection-banner__hint">Vui lòng chỉnh sửa nội dung theo phản hồi, sau đó gửi duyệt lại từ trang "Tất cả khóa học".</p>
+            </div>
+            <button type="button" class="rejection-banner__dismiss"
+                    (click)="dismissRejectionBanner()"
+                    aria-label="Đóng thông báo">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </section>
+        }
         @if (svc.shouldShowErrorSummary()) {
           <section class="editor-error-summary" aria-labelledby="course-info-error-summary-title" role="alert">
             <div class="editor-error-summary__header">

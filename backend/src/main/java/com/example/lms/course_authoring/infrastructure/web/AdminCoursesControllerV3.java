@@ -338,7 +338,8 @@ public class AdminCoursesControllerV3 {
             }
             return new ReviewEventResponse(
                     e.getId(), e.getAction(), e.getComment(),
-                    e.getReviewerId(), reviewerName, e.getCreatedAt()
+                    e.getReviewerId(), reviewerName, e.getCreatedAt(),
+                    e.getRejectionCategory()
             );
         }).toList();
         return ResponseEntity.ok(ApiResponse.success(responses, "Lịch sử phê duyệt"));
@@ -885,5 +886,6 @@ public class AdminCoursesControllerV3 {
         private UUID reviewerId;
         private String reviewerName;
         private Instant createdAt;
+        private String rejectionCategory;
     }
 }

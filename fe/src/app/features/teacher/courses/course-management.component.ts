@@ -8,6 +8,7 @@ import { CourseSummary } from '../../../api/types/course.types';
 import { ToastService } from '../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { COURSE_REJECTION_CATEGORIES } from '../../admin/infrastructure/services/admin.service';
 
 @Component({
   selector: 'app-course-management',
@@ -56,6 +57,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
             <option value="APPROVED">Đã duyệt ({{ countByFilter('APPROVED') }})</option>
             <option value="EDITING">Đang soạn ({{ countByFilter('EDITING') }})</option>
             <option value="PENDING">Chờ duyệt ({{ countByFilter('PENDING') }})</option>
+            <option value="REJECTED">Cần chỉnh sửa ({{ countByFilter('REJECTED') }})</option>
           </select>
           <select [value]="sortBy()" (change)="onSortChange($event)"
             class="text-xs border border-gray-200 rounded-lg px-2.5 py-2 text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-[#0056D2]">
@@ -119,6 +121,22 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
             [class.hover:border-gray-300]="activeFilter() !== 'PENDING'"
             (click)="setFilter('PENDING')">
             Chờ duyệt ({{ countByFilter('PENDING') }})
+          </button>
+          <button type="button" role="tab"
+            [attr.aria-selected]="activeFilter() === 'REJECTED'"
+            class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors"
+            [class.bg-red-600]="activeFilter() === 'REJECTED'"
+            [class.text-white]="activeFilter() === 'REJECTED'"
+            [class.border-red-600]="activeFilter() === 'REJECTED'"
+            [class.bg-white]="activeFilter() !== 'REJECTED'"
+            [class.text-red-700]="activeFilter() !== 'REJECTED'"
+            [class.border-red-200]="activeFilter() !== 'REJECTED'"
+            [class.hover:border-red-300]="activeFilter() !== 'REJECTED'"
+            (click)="setFilter('REJECTED')">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4a2 2 0 00-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/>
+            </svg>
+            Cần chỉnh sửa ({{ countByFilter('REJECTED') }})
           </button>
         </div>
 
@@ -826,7 +844,7 @@ export class CourseManagementComponent {
   filtered = signal<CourseSummary[]>([]);
   error = signal('');
   keyword = '';
-  activeFilter = signal<'ALL' | 'APPROVED' | 'EDITING' | 'PENDING'>('ALL');
+  activeFilter = signal<'ALL' | 'APPROVED' | 'EDITING' | 'PENDING' | 'REJECTED'>('ALL');
   sortBy = signal<'recent' | 'title' | 'students' | 'rating'>('recent');
 
   // Statistics (matching student sidebar pattern)
@@ -879,7 +897,7 @@ export class CourseManagementComponent {
     });
   }
 
-  setFilter(f: 'ALL' | 'APPROVED' | 'EDITING' | 'PENDING') {
+  setFilter(f: 'ALL' | 'APPROVED' | 'EDITING' | 'PENDING' | 'REJECTED') {
     this.activeFilter.set(f);
     this.applyFilters();
   }
@@ -888,8 +906,9 @@ export class CourseManagementComponent {
     const all = this.courses();
     switch (f) {
       case 'APPROVED': return all.filter(c => c.status === 'APPROVED').length;
-      case 'EDITING': return all.filter(c => c.status === 'DRAFT' || c.status === 'REJECTED').length;
+      case 'EDITING': return all.filter(c => c.status === 'DRAFT').length;
       case 'PENDING': return all.filter(c => c.status === 'PENDING').length;
+      case 'REJECTED': return all.filter(c => c.status === 'REJECTED').length;
       case 'INSTRUCTOR_LED': return all.filter(c => c.deliveryMode === 'INSTRUCTOR_LED').length;
       default: return all.length;
     }
@@ -912,8 +931,9 @@ export class CourseManagementComponent {
       .filter(c => {
         switch (f) {
           case 'APPROVED': return c.status === 'APPROVED';
-          case 'EDITING': return c.status === 'DRAFT' || c.status === 'REJECTED';
+          case 'EDITING': return c.status === 'DRAFT';
           case 'PENDING': return c.status === 'PENDING';
+          case 'REJECTED': return c.status === 'REJECTED';
           default: return true;
         }
       })
@@ -1045,10 +1065,13 @@ export class CourseManagementComponent {
     this.api.getReviewStatus(id).subscribe({
       next: (res: any) => {
         const status = res?.data;
-        if (status?.reviewComment) {
-          const reviewer = status.reviewedByName ? `\nNgười duyệt: ${status.reviewedByName}` : '';
+        if (status?.reviewComment || status?.rejectionCategory) {
+          const categoryLabel = this.rejectionCategoryLabel(status?.rejectionCategory);
+          const categoryLine = categoryLabel ? `Lý do: ${categoryLabel}\n\n` : '';
+          const commentText = status?.reviewComment || '(Admin chưa ghi chi tiết)';
+          const reviewer = status.reviewedByName ? `\n\nNgười duyệt: ${status.reviewedByName}` : '';
           const time = status.reviewedAt ? `\nThời gian: ${new Date(status.reviewedAt).toLocaleString('vi-VN')}` : '';
-          this.reviewComment.set(`${status.reviewComment}${reviewer}${time}`);
+          this.reviewComment.set(`${categoryLine}${commentText}${reviewer}${time}`);
           this.showReviewModal.set(true);
         } else {
           this.toast.info('Không có phản hồi từ admin');
@@ -1058,6 +1081,12 @@ export class CourseManagementComponent {
         this.toast.error('Không thể tải phản hồi: ' + (err?.message || 'Lỗi không xác định'));
       }
     });
+  }
+
+  rejectionCategoryLabel(code?: string | null): string {
+    if (!code) return '';
+    const option = COURSE_REJECTION_CATEGORIES.find(o => o.value === code);
+    return option?.label || '';
   }
 
   closeReviewModal() {

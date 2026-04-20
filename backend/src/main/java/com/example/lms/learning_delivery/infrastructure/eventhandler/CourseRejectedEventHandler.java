@@ -74,7 +74,7 @@ public class CourseRejectedEventHandler {
                     "COURSE_REJECTED",
                     title,
                     message.toString(),
-                    "/teacher/courses"
+                    "/teacher/courses/" + event.getCourseId() + "/editor"
             );
             log.info("Created rejection notification for teacher {} (course: {})",
                     event.getTeacherId(), event.getCourseCode());
@@ -97,7 +97,7 @@ public class CourseRejectedEventHandler {
                 log.warn("Cannot send rejection email — teacher {} has no email", event.getTeacherId());
                 return;
             }
-            String courseUrl = baseUrl + "/teacher/courses/" + event.getCourseId() + "/edit";
+            String courseUrl = baseUrl + "/teacher/courses/" + event.getCourseId() + "/editor";
             emailService.sendCourseRejected(
                     email,
                     teacher.getFullName(),
