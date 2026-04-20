@@ -164,15 +164,14 @@ public class QuizManagementUseCase {
 
     /**
      * Validates that the user has permission to modify this quiz.
-     * ADMIN and ORG_ADMIN bypass ownership check (multi-tier admin pattern S43).
+     * ADMIN bypasses ownership check.
      * TEACHER must own the quiz via lesson→chapter→course→teacher_id chain.
      */
     private void validateTeacherOwnership(Quiz quiz, UUID userId, String userRole) {
         if (userId == null || userRole == null) return; // Internal calls without user context
 
-        // ADMIN and ORG_ADMIN bypass ownership
-        if ("ADMIN".equals(userRole) || "ORG_ADMIN".equals(userRole)
-                || "ROLE_ADMIN".equals(userRole) || "ROLE_ORG_ADMIN".equals(userRole)) {
+        // ADMIN bypasses ownership
+        if ("ADMIN".equals(userRole) || "ROLE_ADMIN".equals(userRole)) {
             return;
         }
 

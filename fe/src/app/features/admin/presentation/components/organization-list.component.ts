@@ -1,7 +1,8 @@
-import { Component, signal, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, inject, OnInit, ChangeDetectionStrategy, computed } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { OrganizationService } from '../../infrastructure/services/organization.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { Organization } from '../../../../shared/types/user.types';
 
 @Component({
@@ -14,11 +15,13 @@ import { Organization } from '../../../../shared/types/user.types';
 export class OrganizationListComponent implements OnInit {
   private orgService = inject(OrganizationService);
   private toast = inject(ToastService);
+  private authService = inject(AuthService);
 
   organizations = signal<Organization[]>([]);
   isLoading = signal(true);
   showCreateForm = signal(false);
   isCreating = signal(false);
+  canCreateOrganizations = computed(() => this.authService.userRole() === 'admin');
 
   ngOnInit(): void {
     this.loadOrganizations();
@@ -39,6 +42,12 @@ export class OrganizationListComponent implements OnInit {
   }
 
   createOrg(name: string, code: string, description: string, tokenExpiryDays: number): void {
+    if (!this.canCreateOrganizations()) {
+      this.showCreateForm.set(false);
+      this.toast.warning('ORG_ADMIN chỉ có thể quản lý tổ chức hiện tại, không thể tạo tổ chức mới');
+      return;
+    }
+
     if (!name.trim() || !code.trim()) {
       this.toast.warning('Tên và mã tổ chức là bắt buộc');
       return;

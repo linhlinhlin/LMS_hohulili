@@ -87,7 +87,7 @@ public class QuizControllerV3 {
     // ============ Teacher CRUD Operations ============
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Create a new quiz")
     public ResponseEntity<ApiResponse<UUID>> createQuiz(
             @RequestBody @Valid CreateQuizUseCaseV3.CreateQuizCommand command,
@@ -103,7 +103,7 @@ public class QuizControllerV3 {
     }
 
     @PostMapping("/lessons/{lessonId}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Create a fully configured quiz for an existing lesson")
     public ResponseEntity<ApiResponse<Map<String, Object>>> createLessonQuiz(
             @PathVariable UUID lessonId,
@@ -121,7 +121,7 @@ public class QuizControllerV3 {
     }
 
     @PostMapping("/chapters/{chapterId}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Create a quiz lesson and quiz inside a chapter")
     public ResponseEntity<ApiResponse<Map<String, Object>>> createChapterQuiz(
             @PathVariable UUID chapterId,
@@ -139,7 +139,7 @@ public class QuizControllerV3 {
     }
 
     @PostMapping("/sections/{sectionId}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Legacy alias for chapter-anchored quiz creation")
     public ResponseEntity<ApiResponse<Map<String, Object>>> createSectionQuiz(
             @PathVariable UUID sectionId,
@@ -149,7 +149,7 @@ public class QuizControllerV3 {
     }
 
     @PostMapping("/courses/{courseId}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Create a course-scoped quiz with optional class distribution")
     public ResponseEntity<ApiResponse<Map<String, Object>>> createCourseQuiz(
             @PathVariable UUID courseId,
@@ -193,7 +193,7 @@ public class QuizControllerV3 {
     }
 
     @GetMapping("/{quizId}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN', 'STUDENT')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'STUDENT')")
     @Operation(summary = "Get quiz by ID")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getQuizById(
             @PathVariable UUID quizId,
@@ -215,7 +215,7 @@ public class QuizControllerV3 {
     }
 
     @GetMapping("/lessons/{lessonId}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN', 'STUDENT')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'STUDENT')")
     @Operation(summary = "Get quizzes for a lesson")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQuizzesByLesson(
             @PathVariable UUID lessonId,
@@ -235,7 +235,7 @@ public class QuizControllerV3 {
     }
 
     @GetMapping("/{quizId}/questions")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN', 'STUDENT')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'STUDENT')")
     @Transactional(readOnly = true)
     @Operation(summary = "Get quiz questions with full details")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQuizQuestions(
@@ -266,7 +266,7 @@ public class QuizControllerV3 {
     }
 
     @GetMapping("/lessons/{lessonId}/questions")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN', 'STUDENT')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'STUDENT')")
     @Transactional(readOnly = true)
     @Operation(summary = "Get quiz questions by lesson ID")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQuizQuestionsByLesson(
@@ -277,7 +277,7 @@ public class QuizControllerV3 {
     }
 
     @GetMapping("/lessons/{lessonId}/sections/{sectionId}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN', 'STUDENT')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'STUDENT')")
     @Transactional(readOnly = true)
     @Operation(summary = "Get embedded section quiz for learner flow")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getSectionQuiz(
@@ -337,7 +337,7 @@ public class QuizControllerV3 {
     }
 
     @PostMapping("/{quizId}/questions")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Add a question to a quiz")
     public ResponseEntity<ApiResponse<Void>> addQuestion(
             @PathVariable UUID quizId,
@@ -349,7 +349,7 @@ public class QuizControllerV3 {
     }
 
     @DeleteMapping("/{quizId}/questions/{questionId}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Remove a question from a quiz")
     public ResponseEntity<ApiResponse<Void>> removeQuestion(
             @PathVariable UUID quizId,
@@ -361,7 +361,7 @@ public class QuizControllerV3 {
     }
 
     @PutMapping("/{quizId}/settings")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Update quiz settings")
     public ResponseEntity<ApiResponse<Map<String, Object>>> updateQuizSettings(
             @PathVariable UUID quizId,
@@ -402,7 +402,7 @@ public class QuizControllerV3 {
     }
 
     @PutMapping("/{quizId}/questions")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Transactional
     @Operation(summary = "Update quiz questions (bulk replace)")
     public ResponseEntity<ApiResponse<Void>> updateQuizQuestions(
@@ -438,7 +438,7 @@ public class QuizControllerV3 {
     }
 
     @PostMapping("/{quizId}/publish")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Publish a quiz")
     public ResponseEntity<ApiResponse<Void>> publishQuiz(
             @PathVariable UUID quizId,
@@ -448,7 +448,7 @@ public class QuizControllerV3 {
     }
 
     @DeleteMapping("/{quizId}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Delete a quiz")
     public ResponseEntity<ApiResponse<Void>> deleteQuiz(
             @PathVariable UUID quizId,
@@ -458,7 +458,7 @@ public class QuizControllerV3 {
     }
 
     @GetMapping("/teacher/quizzes")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Transactional(readOnly = true)
     @Operation(summary = "Get teacher's quizzes with attempt statistics")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getTeacherQuizzes(
@@ -612,7 +612,7 @@ public class QuizControllerV3 {
 
     // Phase 1: Answer visibility enforcement (Canvas SOTA: gated by quiz settings)
     @GetMapping("/attempts/{attemptId}")
-    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
     @Operation(summary = "Get attempt result")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getAttempt(
             @PathVariable UUID attemptId,
@@ -632,7 +632,7 @@ public class QuizControllerV3 {
 
     // Phase 2: Manual grading endpoint (Canvas SOTA: PUT /submissions/:id/questions/:qid)
     @PatchMapping("/attempts/{attemptId}/grade")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Manually grade a question in an attempt (essay grading)")
     public ResponseEntity<ApiResponse<Map<String, Object>>> manualGradeQuestion(
             @PathVariable UUID attemptId,
@@ -646,7 +646,7 @@ public class QuizControllerV3 {
 
     // Teacher Moderation: Delete attempt (Canvas "Moderate This Quiz" pattern)
     @DeleteMapping("/attempts/{attemptId}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Delete a student's quiz attempt (frees up retake slot)")
     public ResponseEntity<ApiResponse<Void>> deleteAttempt(
             @PathVariable UUID attemptId,
@@ -657,7 +657,7 @@ public class QuizControllerV3 {
 
     // Canvas/Moodle SOTA: Enrolled students view — shows who has/hasn't taken the quiz
     @GetMapping("/{quizId}/enrolled-students")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Get enrolled students for a quiz (with attempt status)")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getEnrolledStudents(
             @PathVariable UUID quizId,
@@ -723,7 +723,7 @@ public class QuizControllerV3 {
 
     // Phase 5: Paginated attempt lists (Canvas SOTA: page + per_page)
     @GetMapping("/{quizId}/attempts")
-    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN')")
     @Operation(summary = "Get quiz attempts (paginated)")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getQuizAttempts(
             @PathVariable UUID quizId,
@@ -752,7 +752,7 @@ public class QuizControllerV3 {
     }
 
     @GetMapping("/lessons/{lessonId}/attempts")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Transactional(readOnly = true)
     @Operation(summary = "Get all attempts for a lesson's quizzes (paginated)")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getLessonAttempts(
@@ -775,7 +775,7 @@ public class QuizControllerV3 {
     }
 
     @GetMapping("/lessons/{lessonId}/statistics")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Get quiz statistics for a lesson")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getQuizStatistics(
             @PathVariable UUID lessonId,
@@ -1445,8 +1445,7 @@ public class QuizControllerV3 {
     // ============ Ownership Helpers ============
 
     private boolean isAdminRole(UserJpaEntity user) {
-        return user.getRole() == UserJpaEntity.UserRole.ADMIN
-            || user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
+        return user.getRole() == UserJpaEntity.UserRole.ADMIN;
     }
 
     private void verifyLessonOwnership(UUID lessonId, UserJpaEntity user) {

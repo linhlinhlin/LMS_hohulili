@@ -2,6 +2,7 @@ import { inject, Injector } from '@angular/core';
 import { Router, CanActivateFn } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { UserRole } from '../services/auth.service';
+import { getPortalRootRoute, mapAdminPortalPathForRole } from '../utils/portal-route.util';
 
 /**
  * General Auth Guard - Ensures user is authenticated
@@ -51,9 +52,7 @@ export const roleGuard = (allowedRoles: UserRole[]): CanActivateFn => {
       // Redirect to their appropriate area root, each module defaults to its own dashboard
       const role = authService.userRole();
       if (role) {
-        const target = role === 'teacher' ? '/teacher'
-          : (role === 'admin' || role === 'org_admin') ? '/admin'
-          : '/student';
+        const target = getPortalRootRoute(role);
         return router.createUrlTree([target]);
       }
     }
@@ -103,11 +102,11 @@ export const studentGuard: CanActivateFn = roleGuard([UserRole.STUDENT]);
 export const teacherOnlyGuard: CanActivateFn = roleGuard([UserRole.TEACHER]);
 
 /**
- * Teacher Guard - Allows teachers AND admins (SOTA: Admin super access pattern)
- * Following Google/Amazon RBAC best practice: Admin inherits all permissions of lower roles
- * Use for: course editor (Admin can VIEW course content for moderation)
+ * Teacher Guard - Allows teachers AND system admins
+ * ORG_ADMIN stays in the org-admin operations portal and should not enter teacher authoring flows.
+ * Use for: teacher authoring/editor routes where system admin may still inspect as needed.
  */
-export const teacherGuard: CanActivateFn = roleGuard([UserRole.TEACHER, UserRole.ADMIN, UserRole.ORG_ADMIN]);
+export const teacherGuard: CanActivateFn = roleGuard([UserRole.TEACHER, UserRole.ADMIN]);
 
 /**
  * Admin Guard - Allows both ADMIN and ORG_ADMIN (operations + system)
@@ -122,4 +121,52 @@ export const systemAdminGuard: CanActivateFn = roleGuard([UserRole.ADMIN]);
 /**
  * Teacher or Admin Guard - Alias for teacherGuard
  */
-export const teacherOrAdminGuard: CanActivateFn = roleGuard([UserRole.TEACHER, UserRole.ADMIN, UserRole.ORG_ADMIN]);
+export const teacherOrAdminGuard: CanActivateFn = roleGuard([UserRole.TEACHER, UserRole.ADMIN]);
+
+export const systemAdminPortalGuard: CanActivateFn = (route, state) => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  if (!authService.isAuthenticated()) {
+    return router.createUrlTree(['/auth/login'], {
+      queryParams: { returnUrl: state.url }
+    });
+  }
+
+  const role = authService.userRole();
+  if (role === UserRole.ADMIN) {
+    return true;
+  }
+
+  if (role) {
+    return router.createUrlTree([mapAdminPortalPathForRole(state.url, role)]);
+  }
+
+  return router.createUrlTree(['/auth/login'], {
+    queryParams: { returnUrl: state.url }
+  });
+};
+
+export const orgAdminPortalGuard: CanActivateFn = (route, state) => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  if (!authService.isAuthenticated()) {
+    return router.createUrlTree(['/auth/login'], {
+      queryParams: { returnUrl: state.url }
+    });
+  }
+
+  const role = authService.userRole();
+  if (role === UserRole.ORG_ADMIN) {
+    return true;
+  }
+
+  if (role) {
+    return router.createUrlTree([mapAdminPortalPathForRole(state.url, role)]);
+  }
+
+  return router.createUrlTree(['/auth/login'], {
+    queryParams: { returnUrl: state.url }
+  });
+};

@@ -65,7 +65,7 @@ public class CourseAuthoringControllerV3 {
 
     @Operation(summary = "Create a new chapter")
     @PostMapping("/{courseId}/chapters")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<UUID>> createChapter(
             @PathVariable UUID courseId,
             @Valid @RequestBody CreateChapterRequest request,
@@ -86,7 +86,7 @@ public class CourseAuthoringControllerV3 {
 
     @Operation(summary = "Create a new lesson in a chapter")
     @PostMapping("/chapters/{chapterId}/lessons")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<UUID>> createLesson(
             @PathVariable UUID chapterId,
             @Valid @RequestBody CreateLessonRequest request,
@@ -111,7 +111,7 @@ public class CourseAuthoringControllerV3 {
 
     @Operation(summary = "Update a chapter")
     @PutMapping("/chapters/{chapterId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<ChapterResponse>> updateChapter(
             @PathVariable UUID chapterId,
             @Valid @RequestBody UpdateChapterRequest request,
@@ -131,7 +131,7 @@ public class CourseAuthoringControllerV3 {
 
     @Operation(summary = "Delete a chapter")
     @DeleteMapping("/chapters/{chapterId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<Void>> deleteChapter(
             @PathVariable UUID chapterId,
             @RequestParam UUID courseId,
@@ -144,7 +144,7 @@ public class CourseAuthoringControllerV3 {
 
     @Operation(summary = "Update a lesson")
     @PutMapping("/lessons/{lessonId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<LessonResponse>> updateLesson(
             @PathVariable UUID lessonId,
             @Valid @RequestBody UpdateLessonRequest request,
@@ -172,7 +172,7 @@ public class CourseAuthoringControllerV3 {
 
     @Operation(summary = "Delete a lesson")
     @DeleteMapping("/lessons/{lessonId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<Void>> deleteLesson(
             @PathVariable UUID lessonId,
             @RequestParam UUID courseId,
@@ -195,7 +195,7 @@ public class CourseAuthoringControllerV3 {
 
     @Operation(summary = "Reorder chapters in a course")
     @PatchMapping("/chapters/reorder")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<ApiResponse<Void>> reorderChapters(
             @Valid @RequestBody ReorderChaptersRequest request,
@@ -222,7 +222,7 @@ public class CourseAuthoringControllerV3 {
 
     @Operation(summary = "Reorder lessons in a chapter")
     @PatchMapping("/lessons/reorder")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<ApiResponse<Void>> reorderLessons(
             @Valid @RequestBody ReorderLessonsRequest request,
@@ -249,7 +249,7 @@ public class CourseAuthoringControllerV3 {
 
     @Operation(summary = "Reorder sections (content blocks) in a lesson")
     @PatchMapping("/sections/reorder")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<Void>> reorderSections(
             @Valid @RequestBody ReorderSectionsRequest request,
             @AuthenticationPrincipal UserJpaEntity user
@@ -279,7 +279,7 @@ public class CourseAuthoringControllerV3 {
 
     @Operation(summary = "Add a section (content block) to a lesson")
     @PostMapping(value = "/lessons/{lessonId}/sections", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<com.example.lms.shared.domain.model.ContentBlock>> addSection(
             @PathVariable UUID lessonId,
             @RequestPart("data") String payloadJson,
@@ -337,7 +337,7 @@ return ResponseEntity.ok(ApiResponse.success(block, "Táº¡o pháº§n há»c
 
     @Operation(summary = "Update a section (content block)")
     @PutMapping(value = "/lessons/{lessonId}/sections/{sectionId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<com.example.lms.shared.domain.model.ContentBlock>> updateSection(
             @PathVariable UUID lessonId,
             @PathVariable String sectionId,
@@ -392,7 +392,7 @@ return ResponseEntity.ok(ApiResponse.success(block, "Cáº­p nháº­t pháº§
 
     @Operation(summary = "Delete a section (content block)")
     @DeleteMapping("/lessons/{lessonId}/sections/{sectionId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<Void>> deleteSection(
             @PathVariable UUID lessonId,
             @PathVariable String sectionId,
@@ -405,7 +405,7 @@ return ResponseEntity.ok(ApiResponse.success(block, "Cáº­p nháº­t pháº§
 
     @Operation(summary = "Update course details")
     @PutMapping("/{courseId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<com.example.lms.course_authoring.application.dto.CourseResponse>> updateCourse(
             @PathVariable UUID courseId,
             @Valid @RequestBody UpdateCourseRequest request,
@@ -675,8 +675,7 @@ return ResponseEntity.ok(ApiResponse.success(block, "Cáº­p nháº­t pháº§
     }
 
     private boolean isAdminRole(UserJpaEntity user) {
-        return user.getRole() == UserJpaEntity.UserRole.ADMIN
-            || user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
+        return user.getRole() == UserJpaEntity.UserRole.ADMIN;
     }
 
     private void verifyOwnership(UUID courseId, UserJpaEntity user) {

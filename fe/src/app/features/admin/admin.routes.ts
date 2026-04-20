@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { adminGuard, systemAdminGuard } from '../../core/guards/role.guard';
+import { systemAdminGuard, systemAdminPortalGuard } from '../../core/guards/role.guard';
 
 /**
  * Admin Routes Configuration
@@ -14,7 +14,7 @@ export const adminRoutes: Routes = [
   {
     path: '',
     loadComponent: () => import('./presentation/components/admin-layout-simple.component').then(m => m.AdminLayoutSimpleComponent),
-    canActivate: [adminGuard],
+    canActivate: [systemAdminPortalGuard],
     children: [
       // Default redirect to dashboard
       {

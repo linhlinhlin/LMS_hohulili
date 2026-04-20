@@ -1,374 +1,766 @@
+<style>
+  :host {
+    display: block;
+    --auth-primary: #0056d2;
+    --auth-primary-hover: #004bb8;
+    --auth-primary-soft: #e6f0ff;
+    --auth-page-bg: #f8fbff;
+    --auth-surface: rgba(255, 255, 255, 0.98);
+    --auth-border: #e5e7eb;
+    --auth-border-strong: #d1d5db;
+    --auth-text: #111827;
+    --auth-text-secondary: #4b5563;
+    --auth-text-muted: #6b7280;
+    --auth-success-bg: #f0fdf4;
+    --auth-success-border: #bbf7d0;
+    --auth-success-text: #166534;
+    --auth-error-bg: #fef2f2;
+    --auth-error-border: #fecaca;
+    --auth-error-text: #b91c1c;
+    --auth-shadow-card: 0 20px 40px rgba(15, 23, 42, 0.08);
+  }
 
-    <style>
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
+  .auth-shell {
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at top left, rgba(0, 86, 210, 0.12), transparent 28%),
+      radial-gradient(circle at bottom right, rgba(0, 86, 210, 0.06), transparent 24%),
+      linear-gradient(180deg, #fbfdff 0%, #f3f7fd 100%);
+  }
 
-      .animate-fade-in {
-        animation: fadeIn 0.5s ease-out;
-      }
+  .auth-page {
+    min-height: 100vh;
+    padding: 24px 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-      /* Input styling */
-      .input-wrapper {
-        position: relative;
-      }
+  .auth-frame {
+    width: min(100%, 432px);
+    display: grid;
+    gap: 14px;
+  }
 
-      .input-field {
-        transition: all 0.2s ease;
-        background: #FFFFFF;
-      }
+  .auth-brand {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-width: 0;
+    text-decoration: none;
+  }
 
-      .input-field:focus {
-        outline: none;
-        border-color: #0056D2;
-        box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.1);
-        background: #FFFFFF;
-      }
+  .auth-brand-text {
+    min-width: 0;
+  }
 
-      .input-label {
-        position: absolute;
-        left: 16px;
-        top: -8px;
-        background: white;
-        padding: 0 8px;
-        color: #0056D2;
-        font-size: 12px;
-        font-weight: 600;
-        border-radius: 4px;
-      }
+  .auth-brand-kicker {
+    margin: 0;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--auth-text-muted);
+  }
 
-      /* Button Hover Effect */
-      .btn-login {
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-      }
+  .auth-brand-title {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--auth-text);
+  }
 
-      .btn-login:hover:not(:disabled) {
-        background: #004BB5;
-        transform: translateY(-1px);
-        box-shadow: 0 8px 16px rgba(0, 86, 210, 0.3);
-      }
+  .auth-card {
+    width: 100%;
+    padding: 22px 18px;
+    border-radius: 22px;
+    border: 1px solid var(--auth-border);
+    background: var(--auth-surface);
+    box-shadow: var(--auth-shadow-card);
+    backdrop-filter: blur(12px);
+  }
 
-      .btn-login:active:not(:disabled) {
-        transform: translateY(0);
-      }
+  .auth-card-header {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
 
-      /* Social Button */
-      .social-btn {
-        transition: all 0.2s ease;
-      }
+  .auth-card-title {
+    margin: 0;
+    font-size: clamp(1.45rem, 4.4vw, 1.7rem);
+    line-height: 1.14;
+    font-weight: 700;
+    color: var(--auth-text);
+    text-wrap: balance;
+  }
 
-      .social-btn:hover {
-        border-color: #0056D2;
-        background: #EFF6FF;
-        transform: translateY(-2px);
-      }
+  .auth-card-copy {
+    margin: 0;
+    max-width: 34ch;
+    font-size: 0.95rem;
+    line-height: 1.68;
+    color: var(--auth-text-secondary);
+  }
 
-      /* Stagger Animation */
-      .form-element {
-        animation: fadeIn 0.5s ease-out backwards;
-      }
+  .auth-banner {
+    position: relative;
+    margin-bottom: 16px;
+    border-radius: 16px;
+    padding: 14px 16px;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
 
-      .form-element:nth-child(1) { animation-delay: 0.1s; }
-      .form-element:nth-child(2) { animation-delay: 0.2s; }
-      .form-element:nth-child(3) { animation-delay: 0.3s; }
-      .form-element:nth-child(4) { animation-delay: 0.4s; }
-      .form-element:nth-child(5) { animation-delay: 0.5s; }
-      .form-element:nth-child(6) { animation-delay: 0.6s; }
-    </style>
+  .auth-banner-success {
+    border: 1px solid var(--auth-success-border);
+    background: var(--auth-success-bg);
+    color: var(--auth-success-text);
+  }
 
-    <div class="min-h-screen bg-white flex items-center justify-center px-4 py-8">
-      <div class="w-full max-w-md">
-        <!-- Logo -->
-        <div class="flex justify-center mb-8">
-          <a routerLink="/" class="block">
-            <img src="/icons/logo-master.png" alt="LMS Maritime" class="w-16 h-16 rounded-2xl shadow-lg">
-          </a>
-        </div>
+  .auth-banner-error {
+    border: 1px solid var(--auth-error-border);
+    background: var(--auth-error-bg);
+    color: var(--auth-error-text);
+  }
 
-        <!--
-          === MODE 2: OFFLINE + CAN RESUME (Soft-logged-out, tokens cached) ===
-          SOTA: ChromeOS cached user identity + Auth0 "application-only logout"
-          Show: user avatar + name + resume button
-          Hide: login form, social buttons, register link (all irrelevant offline)
-          Material Design: "Hide if currently irrelevant and can't be used"
-        -->
-        @if (canResume()) {
-          <div class="animate-fade-in">
-            <!-- Title: personalized greeting -->
-            <div class="text-center mb-8">
-              <h1 class="text-3xl font-bold text-gray-900 mb-2">
-                Chào, {{ savedUser()?.fullName || savedUser()?.name || 'bạn' }}
-              </h1>
-              <p class="text-base text-gray-500">
-                Phiên ngoại tuyến của bạn
-              </p>
+  .auth-banner-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: currentColor;
+    cursor: pointer;
+    opacity: 0.74;
+  }
+
+  .auth-banner-close:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.72);
+  }
+
+  .auth-section {
+    display: grid;
+    gap: 16px;
+  }
+
+  .auth-chip {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 1px solid #dbeafe;
+    background: #f8fbff;
+  }
+
+  .auth-chip-content {
+    min-width: 0;
+  }
+
+  .auth-chip-label {
+    margin: 0 0 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--auth-text-muted);
+  }
+
+  .auth-chip-value {
+    margin: 0;
+    font-size: 0.96rem;
+    font-weight: 700;
+    color: var(--auth-text);
+    word-break: break-word;
+  }
+
+  .auth-chip-copy {
+    margin: 6px 0 0;
+    font-size: 0.88rem;
+    line-height: 1.58;
+    color: var(--auth-text-secondary);
+  }
+
+  .auth-link-button {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    color: var(--auth-primary);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .auth-link-button:hover {
+    color: var(--auth-primary-hover);
+    text-decoration: underline;
+  }
+
+  .auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #9ca3af;
+  }
+
+  .auth-divider::before,
+  .auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--auth-border);
+  }
+
+  .auth-field {
+    display: grid;
+    gap: 8px;
+  }
+
+  .auth-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #374151;
+  }
+
+  .auth-input {
+    min-height: 48px;
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--auth-border-strong);
+    background: #ffffff;
+    font-size: 0.96rem;
+    color: var(--auth-text);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+  }
+
+  .auth-input::placeholder {
+    color: #9ca3af;
+  }
+
+  .auth-input:focus {
+    outline: none;
+    border-color: var(--auth-primary);
+    box-shadow: 0 0 0 4px rgba(0, 86, 210, 0.12);
+    background: #ffffff;
+  }
+
+  .auth-input-note {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: #dc2626;
+  }
+
+  .auth-password-wrap {
+    position: relative;
+  }
+
+  .auth-password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--auth-text-muted);
+    cursor: pointer;
+  }
+
+  .auth-password-toggle:hover {
+    background: #f3f4f6;
+    color: #374151;
+  }
+
+  .auth-primary,
+  .auth-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 46px;
+    padding: 0 18px;
+    border-radius: 14px;
+    font-size: 0.94rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease;
+  }
+
+  .auth-primary {
+    border: 0;
+    background: var(--auth-primary);
+    color: #ffffff;
+  }
+
+  .auth-primary:hover:not(:disabled) {
+    background: var(--auth-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 12px 24px rgba(0, 86, 210, 0.16);
+  }
+
+  .auth-primary:disabled {
+    cursor: not-allowed;
+    opacity: 0.58;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .auth-secondary {
+    border: 1px solid var(--auth-border-strong);
+    background: #ffffff;
+    color: #374151;
+  }
+
+  .auth-secondary:hover {
+    border-color: #9ca3af;
+    background: #f9fafb;
+    color: var(--auth-text);
+  }
+
+  .auth-inline-row {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+    justify-content: space-between;
+    font-size: 0.9rem;
+  }
+
+  .auth-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--auth-text-secondary);
+  }
+
+  .auth-checkbox input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--auth-primary);
+  }
+
+  .auth-footer {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--auth-border);
+    display: grid;
+    gap: 10px;
+    font-size: 0.8rem;
+    line-height: 1.65;
+    color: var(--auth-text-muted);
+    text-align: center;
+  }
+
+  .auth-footer-register {
+    margin: 0;
+    font-size: 0.88rem;
+    color: var(--auth-text-secondary);
+  }
+
+  .auth-footer-legal {
+    margin: 0;
+  }
+
+  .auth-footer a {
+    color: var(--auth-primary);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .auth-footer a:hover {
+    color: var(--auth-primary-hover);
+    text-decoration: underline;
+  }
+
+  .auth-offline-card {
+    margin: 0;
+  }
+
+  .auth-offline-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 999px;
+    background: var(--auth-primary);
+    color: #ffffff;
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+
+  .auth-link-button:focus-visible,
+  .auth-banner-close:focus-visible,
+  .auth-password-toggle:focus-visible,
+  .auth-primary:focus-visible,
+  .auth-secondary:focus-visible {
+    outline: 2px solid var(--auth-primary);
+    outline-offset: 2px;
+  }
+
+  @media (min-width: 640px) {
+    .auth-page {
+      padding: 32px 20px 40px;
+    }
+
+    .auth-card {
+      padding: 26px 22px;
+    }
+
+    .auth-inline-row {
+      flex-direction: row;
+      align-items: center;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .auth-page {
+      padding: 40px 24px;
+    }
+
+    .auth-frame {
+      gap: 18px;
+    }
+
+    .auth-card {
+      padding: 28px 24px;
+    }
+  }
+</style>
+
+<div class="auth-shell">
+  <div class="auth-page">
+    <div class="auth-frame">
+      @if (canResume()) {
+        <div class="auth-card auth-offline-card">
+          <div class="mb-5 flex items-center justify-center">
+            <a routerLink="/" class="auth-brand">
+              <img src="/icons/logo-master.png" alt="LMS Maritime" class="h-12 w-12 rounded-2xl shadow-sm">
+              <div class="auth-brand-text text-left">
+                <p class="auth-brand-kicker">LMS Maritime</p>
+                <p class="auth-brand-title">Tiếp tục ngoại tuyến</p>
+              </div>
+            </a>
+          </div>
+
+          <div class="auth-chip mb-4">
+            <div class="flex items-center gap-4">
+              <div class="auth-offline-avatar">{{ savedUserInitial() }}</div>
+              <div class="min-w-0">
+                <p class="truncate text-base font-semibold text-slate-900">{{ savedUser()?.fullName || savedUser()?.name }}</p>
+                <p class="truncate text-sm text-slate-500">{{ savedUser()?.email }}</p>
+                @if (savedUser()?.organizationName) {
+                  <p class="mt-1 truncate text-xs text-slate-400">{{ savedUser()?.organizationName }}</p>
+                }
+              </div>
             </div>
+          </div>
 
-            <!-- User identity card (ChromeOS pattern) -->
-            <div class="bg-white border-2 border-gray-100 rounded-2xl p-6 mb-6 shadow-sm">
-              <div class="flex items-center gap-4">
-                <!-- Avatar -->
-                <div class="w-14 h-14 rounded-full bg-[#0056D2] flex items-center justify-center text-white text-xl font-bold shrink-0">
-                  {{ savedUserInitial() }}
-                </div>
-                <div class="min-w-0">
-                  <p class="text-base font-semibold text-gray-900 truncate">
-                    {{ savedUser()?.fullName || savedUser()?.name }}
-                  </p>
-                  <p class="text-sm text-gray-500 truncate">
-                    {{ savedUser()?.email }}
-                  </p>
-                  @if (savedUser()?.organizationName) {
-                    <p class="text-xs text-gray-400 truncate mt-0.5">
-                      {{ savedUser()?.organizationName }}
-                    </p>
+          <div class="auth-banner auth-banner-success mb-5">
+            Bạn đang offline. Nội dung đã tải xuống và tiến trình học tập vẫn sẵn sàng để tiếp tục.
+          </div>
+
+          <button
+            type="button"
+            (click)="resumeOffline()"
+            class="auth-primary"
+          >
+            Tiếp tục với phiên ngoại tuyến
+          </button>
+        </div>
+      } @else if (isOfflineNoSession()) {
+        <div class="auth-card auth-offline-card text-center">
+          <div class="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+            <svg class="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M18.364 5.636l-12.728 12.728M5.636 5.636a9 9 0 0012.728 12.728M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"
+              />
+            </svg>
+          </div>
+
+          <h1 class="auth-card-title">Không có kết nối mạng</h1>
+          <p class="auth-card-copy mx-auto max-w-xl">
+            Hãy kết nối internet để đăng nhập hoặc tạo tài khoản mới.
+          </p>
+        </div>
+      } @else {
+        <a routerLink="/" class="auth-brand">
+          <img src="/icons/logo-master.png" alt="LMS Maritime" class="h-11 w-11 rounded-2xl shadow-sm">
+          <div class="auth-brand-text">
+            <p class="auth-brand-kicker">LMS Maritime</p>
+            <p class="auth-brand-title">HoHoLiHu</p>
+          </div>
+        </a>
+
+        <section class="auth-card">
+          <div class="auth-card-header">
+            <h1 class="auth-card-title">{{ stepTitle() }}</h1>
+            @if (stepDescription()) {
+              <p class="auth-card-copy">{{ stepDescription() }}</p>
+            }
+          </div>
+
+          @if (showSuccessMessage() && successMessage()) {
+            <div class="auth-banner auth-banner-success" role="status" aria-live="polite">
+              {{ successMessage() }}
+              <button
+                type="button"
+                class="auth-banner-close"
+                aria-label="Đóng thông báo"
+                (click)="dismissSuccessMessage()"
+              >
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          }
+
+          @if (errorMessage()) {
+            <div class="auth-banner auth-banner-error" role="alert" aria-live="polite">
+              {{ errorMessage() }}
+            </div>
+          }
+
+          @if (step() === 'identify') {
+            <div class="auth-section">
+              <app-google-signin-button
+                [disabled]="isLoading()"
+                [inviteCode]="getInviteCode()"
+                [showDivider]="false"
+                [showHelperText]="false"
+                [surface]="'bare'"
+                [buttonText]="'signin_with'"
+                (authenticated)="onGoogleAuthenticated($event)"
+                (authError)="onGoogleAuthError($event)"
+              />
+
+              <div class="auth-divider">Hoặc</div>
+
+              <form [formGroup]="identifyForm" (ngSubmit)="submitIdentifier()" class="auth-section">
+                <div class="auth-field">
+                  <label for="email" class="auth-label">Email</label>
+                  <input
+                    id="email"
+                    type="email"
+                    formControlName="email"
+                    autocomplete="email"
+                    inputmode="email"
+                    placeholder="you@maritime.edu.vn"
+                    class="auth-input"
+                  >
+
+                  @if (identifyForm.controls.email.invalid && identifyForm.controls.email.touched) {
+                    <p class="auth-input-note">Vui lòng nhập địa chỉ email hợp lệ.</p>
                   }
                 </div>
-              </div>
+
+                <button
+                  type="submit"
+                  [disabled]="identifyForm.invalid || isLoading()"
+                  class="auth-primary"
+                >
+                  @if (isLoading()) {
+                    <svg class="mr-3 h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    Đang kiểm tra
+                  } @else {
+                    Tiếp tục với email
+                  }
+                </button>
+              </form>
             </div>
+          }
 
-            <!-- Offline status info -->
-            <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
-              <div class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M18.364 5.636a9 9 0 010 12.728M5.636 18.364a9 9 0 010-12.728m2.828 9.9a5 5 0 010-7.072m7.072 0a5 5 0 010 7.072M13 12a1 1 0 11-2 0 1 1 0 012 0z"/>
-                </svg>
-                <p class="text-sm text-amber-800">
-                  Bạn đang ngoại tuyến. Nội dung đã tải xuống và tiến trình học tập vẫn được giữ lại.
-                </p>
-              </div>
-            </div>
-
-            <!-- Primary CTA: Resume offline session -->
-            <button type="button"
-                    (click)="resumeOffline()"
-                    class="w-full flex justify-center items-center py-4 px-6 rounded-xl text-base font-semibold text-white bg-[#0056D2] hover:bg-[#004BB5] shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl">
-              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
-              </svg>
-              Tiếp tục truy cập ngoại tuyến
-            </button>
-
-            <!-- Secondary info -->
-            <p class="text-center text-sm text-gray-400 mt-6">
-              Kết nối mạng để đăng nhập bằng tài khoản khác
-            </p>
-          </div>
-        }
-
-        <!--
-          === MODE 3: OFFLINE + NO SESSION (No cached tokens) ===
-          Material Design: cloud-off icon + clear text
-          Nothing the user can do — just inform them
-        -->
-        @else if (isOfflineNoSession()) {
-          <div class="animate-fade-in">
-            <div class="text-center">
-              <!-- Cloud-off icon -->
-              <div class="flex justify-center mb-6">
-                <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
-                  <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                          d="M18.364 5.636l-12.728 12.728M5.636 5.636a9 9 0 0012.728 12.728M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"/>
-                  </svg>
+          @if (step() === 'password') {
+            <div class="auth-section">
+              <div class="auth-chip">
+                <div class="auth-chip-content">
+                  <p class="auth-chip-label">Email</p>
+                  <p class="auth-chip-value">{{ currentEmail() }}</p>
                 </div>
+
+                <button type="button" (click)="backToIdentifier()" class="auth-link-button">
+                  Đổi
+                </button>
               </div>
 
-              <h1 class="text-2xl font-bold text-gray-900 mb-3">
-                Không có kết nối mạng
-              </h1>
-              <p class="text-base text-gray-500 mb-8 leading-relaxed">
-                Vui lòng kết nối internet để đăng nhập vào hệ thống
-              </p>
+              <form [formGroup]="passwordForm" (ngSubmit)="submitPassword()" class="auth-section">
+                <div class="auth-field">
+                  <label for="password" class="auth-label">Mật khẩu</label>
+                  <div class="auth-password-wrap">
+                    <input
+                      id="password"
+                      [type]="showPassword() ? 'text' : 'password'"
+                      formControlName="password"
+                      autocomplete="current-password"
+                      placeholder="Nhập mật khẩu"
+                      class="auth-input pr-12"
+                    >
 
-              <!-- Retry hint -->
-              <div class="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                <div class="flex items-start gap-3">
-                  <svg class="w-5 h-5 text-gray-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  </svg>
-                  <p class="text-sm text-gray-600 text-left">
-                    Trang sẽ tự động chuyển sang màn hình đăng nhập khi có kết nối trở lại
+                    <button
+                      type="button"
+                      class="auth-password-toggle"
+                      (click)="showPassword.set(!showPassword())"
+                      [attr.aria-pressed]="showPassword()"
+                      aria-label="Hiển thị hoặc ẩn mật khẩu"
+                    >
+                      @if (showPassword()) {
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                        </svg>
+                      } @else {
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      }
+                    </button>
+                  </div>
+
+                  @if (passwordForm.controls.password.invalid && passwordForm.controls.password.touched) {
+                    <p class="auth-input-note">Vui lòng nhập mật khẩu hợp lệ.</p>
+                  }
+                </div>
+
+                <div class="auth-inline-row">
+                  <label class="auth-checkbox">
+                    <input type="checkbox" formControlName="rememberMe">
+                    <span>Ghi nhớ đăng nhập</span>
+                  </label>
+
+                  <a routerLink="/auth/forgot-password" class="auth-link-button">
+                    Quên mật khẩu?
+                  </a>
+                </div>
+
+                <button
+                  type="submit"
+                  [disabled]="passwordForm.invalid || isLoading()"
+                  class="auth-primary"
+                >
+                  @if (isLoading()) {
+                    <svg class="mr-3 h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    Đang đăng nhập
+                  } @else {
+                    Tiếp tục
+                  }
+                </button>
+              </form>
+            </div>
+          }
+
+          @if (step() === 'google') {
+            <div class="auth-section">
+              <div class="auth-chip">
+                <div class="auth-chip-content">
+                  <p class="auth-chip-label">Email</p>
+                  <p class="auth-chip-value">{{ currentEmail() }}</p>
+                  <p class="auth-chip-copy">
+                    @if (currentDisplayName() && currentDisplayName() !== currentEmail()) {
+                      {{ currentDisplayName() }} dùng Google để đăng nhập.
+                    } @else {
+                      Tài khoản này dùng Google để đăng nhập.
+                    }
                   </p>
                 </div>
               </div>
-            </div>
-          </div>
-        }
 
-        <!--
-          === MODE 1: ONLINE (Normal login form) ===
-          No changes from original — full login form
-        -->
-        @else {
-          <!-- Title -->
-          <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">Đăng nhập</h1>
-            <p class="text-sm text-gray-500">Đăng nhập để tiếp tục hành trình học tập</p>
-          </div>
+              <app-google-signin-button
+                [disabled]="isLoading()"
+                [inviteCode]="getInviteCode()"
+                [showDivider]="false"
+                [showHelperText]="false"
+                [surface]="'bare'"
+                [buttonText]="'signin_with'"
+                (authenticated)="onGoogleAuthenticated($event)"
+                (authError)="onGoogleAuthError($event)"
+              />
 
-          <!-- Form -->
-          <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-6">
-            <!-- Email Field -->
-            <div class="input-wrapper form-element">
-              <label for="email" class="input-label">
-                Email hoặc tên đăng nhập
-              </label>
-              <input id="email"
-                     name="email"
-                     type="text"
-                     formControlName="email"
-                     autocomplete="email"
-                     placeholder="mai@gmail.com"
-                     [attr.aria-invalid]="loginForm.get('email')?.invalid || null"
-                     [attr.aria-describedby]="loginForm.get('email')?.invalid ? 'email-error' : null"
-                     class="input-field block w-full px-4 py-4 border-2 border-gray-200 rounded-xl text-base placeholder-gray-400"
-                     [class.border-red-400]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched">
-            </div>
-            @if (loginForm.get('email')?.invalid && loginForm.get('email')?.touched) {
-              <p id="email-error" class="mt-2 text-sm text-red-600 flex items-center gap-1" role="alert" aria-live="polite">
-                <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                </svg>
-                @if (loginForm.get('email')?.errors?.['required']) {
-                  Email hoặc tên đăng nhập là bắt buộc
-                } @else if (loginForm.get('email')?.errors?.['emailOrUsername']) {
-                  Email hoặc tên đăng nhập không hợp lệ
-                }
-              </p>
-            }
-
-            <!-- Password Field -->
-            <div class="input-wrapper form-element">
-              <label for="password" class="input-label">
-                Mật khẩu
-              </label>
-              <input id="password"
-                     name="password"
-                     [type]="showPassword() ? 'text' : 'password'"
-                     formControlName="password"
-                     autocomplete="current-password"
-                     placeholder="••••••"
-                     [attr.aria-invalid]="loginForm.get('password')?.invalid || null"
-                     [attr.aria-describedby]="loginForm.get('password')?.invalid ? 'password-error' : null"
-                     class="input-field block w-full px-4 py-4 border-2 border-gray-200 rounded-xl text-base pr-12 placeholder-gray-400"
-                     [class.border-red-400]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
-              <button type="button"
-                      class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
-                      (click)="showPassword.set(!showPassword())"
-                      [attr.aria-pressed]="showPassword()"
-                      aria-label="Hiển thị/Ẩn mật khẩu">
-                @if (showPassword()) {
-                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"/>
-                  </svg>
-                } @else {
-                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                  </svg>
-                }
+              <button
+                type="button"
+                (click)="useDifferentEmail()"
+                class="auth-secondary"
+              >
+                Dùng email khác
               </button>
             </div>
-            @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
-              <p id="password-error" class="mt-2 text-sm text-red-600 flex items-center gap-1" role="alert" aria-live="polite">
-                <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                </svg>
-                @if (loginForm.get('password')?.errors?.['required']) {
-                  Mật khẩu là bắt buộc
-                }
-              </p>
-            }
+          }
 
-            <!-- Remember & Forgot -->
-            <div class="flex items-center justify-between form-element">
-              <div class="flex items-center">
-                <input id="remember-me"
-                       name="remember-me"
-                       type="checkbox"
-                       formControlName="rememberMe"
-                       class="h-4 w-4 text-[#0056D2] focus:ring-[#0056D2] border-gray-300 rounded">
-                <label for="remember-me" class="ml-2 block text-sm text-gray-700">
-                  Ghi nhớ đăng nhập
-                </label>
-              </div>
-
-              <div class="text-sm">
-                <a routerLink="/auth/forgot-password"
-                   class="font-medium text-[#0056D2] hover:text-[#004BB5] transition-colors">
-                  Quên mật khẩu?
-                </a>
-              </div>
-            </div>
-
-            <!-- Success Message -->
-            @if (showSuccessMessage()) {
-              <div class="bg-green-50 border border-green-200 rounded-xl p-4 form-element" role="alert" aria-live="polite">
-                <div class="flex items-start gap-3">
-                  <svg class="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                  </svg>
-                  <div>
-                    <h3 class="text-sm font-semibold text-green-900">Đăng nhập thành công!</h3>
-                    <p class="text-sm text-green-700 mt-1">{{ successMessage() }}</p>
-                  </div>
+          @if (step() === 'register') {
+            <div class="auth-section">
+              <div class="auth-chip">
+                <div class="auth-chip-content">
+                  <p class="auth-chip-label">Email mới</p>
+                  <p class="auth-chip-value">{{ currentEmail() }}</p>
+                  <p class="auth-chip-copy">
+                    Email này chưa có tài khoản.
+                  </p>
                 </div>
               </div>
-            }
 
-            <!-- Error Message -->
-            @if (errorMessage()) {
-              <div class="bg-red-50 border border-red-200 rounded-xl p-4 form-element" role="alert" aria-live="polite">
-                <div class="flex items-start gap-3">
-                  <svg class="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                  </svg>
-                  <div>
-                    <h3 class="text-sm font-semibold text-red-900">Đăng nhập thất bại</h3>
-                    <p class="text-sm text-red-700 mt-1">{{ errorMessage() }}</p>
-                  </div>
-                </div>
-              </div>
-            }
+              <button
+                type="button"
+                (click)="continueToRegister()"
+                class="auth-primary"
+              >
+                Tạo tài khoản
+              </button>
 
-            <!-- Submit Button -->
-            <div class="form-element">
-              <button type="submit"
-                      [disabled]="loginForm.invalid || isLoading()"
-                      class="btn-login w-full flex justify-center items-center py-4 px-6 border-none rounded-xl text-base font-semibold text-white bg-[#0056D2] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
-                @if (isLoading()) {
-                  <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <span>Đang đăng nhập...</span>
-                } @else {
-                  <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
-                  </svg>
-                  <span>Đăng nhập</span>
-                }
+              <button
+                type="button"
+                (click)="useDifferentEmail()"
+                class="auth-secondary"
+              >
+                Quay lại
               </button>
             </div>
-          </form>
+          }
 
-          <!-- Sign Up Link -->
-          <div class="mt-8 text-center form-element">
-            <p class="text-sm text-gray-600">
-              Bạn không có tài khoản?
-              <a routerLink="/auth/register"
-                 class="font-semibold text-[#0056D2] hover:text-[#004BB5] transition-colors">
-                Đăng ký
-              </a>
+          <div class="auth-footer">
+            <p class="auth-footer-register">
+              Chưa có tài khoản?
+              <a routerLink="/auth/register">Đăng ký</a>
+            </p>
+            <p class="auth-footer-legal">
+              Khi tiếp tục, bạn đồng ý với
+              <a routerLink="/terms">Điều khoản sử dụng</a>
+              và
+              <a routerLink="/privacy">Chính sách bảo mật</a>.
             </p>
           </div>
-        }
-      </div>
+        </section>
+      }
     </div>
-
+  </div>
+</div>

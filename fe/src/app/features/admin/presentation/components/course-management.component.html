@@ -1,19 +1,21 @@
 <div class="course-page">
-  <!-- Header -->
   <div class="header-bar">
     <div class="header-inner">
       <div>
-        <h1 class="page-title">Quản lý khóa học hệ thống</h1>
-        <p class="page-subtitle">Phê duyệt và quản lý tất cả khóa học trong hệ thống</p>
+        <h1 class="page-title">{{ pageTitle() }}</h1>
+        <p class="page-subtitle">{{ pageSubtitle() }}</p>
+        @if (!isSystemAdmin() && organizationName()) {
+          <div class="mt-3 inline-flex items-center rounded-full bg-[#0056D2]/10 px-3 py-1 text-xs font-semibold text-[#0056D2]">
+            {{ organizationName() }}
+          </div>
+        }
       </div>
     </div>
   </div>
 
   <div class="course-main">
     @if (isLoading()) {
-      <!-- Skeleton loading -->
       <div class="animate-pulse">
-        <!-- Skeleton metrics -->
         <div class="skeleton-strip">
           @for (_ of [1,2,3,4]; track $index) {
             <div class="skeleton-cell">
@@ -23,7 +25,6 @@
             </div>
           }
         </div>
-        <!-- Skeleton filter bar -->
         <div class="skeleton-table" style="margin-bottom:20px">
           <div style="padding:16px 20px">
             <div class="sk" style="width:100%;height:36px;margin-bottom:12px"></div>
@@ -34,7 +35,6 @@
             </div>
           </div>
         </div>
-        <!-- Skeleton table -->
         <div class="skeleton-table">
           <div class="skeleton-thead">
             <div style="display:flex;gap:32px">
@@ -58,12 +58,11 @@
         </div>
       </div>
     } @else {
-      <!-- Metrics Strip -->
       <div class="metrics-strip">
         <div class="metric-cell">
           <p class="metric-value">{{ totalCourses() }}</p>
-          <p class="metric-label">Tổng khóa học</p>
-          <p class="metric-sub">{{ approvedCourses() }} đã phê duyệt</p>
+          <p class="metric-label">{{ totalCoursesLabel() }}</p>
+          <p class="metric-sub">{{ totalCoursesSubLabel() }}</p>
         </div>
         <div class="metric-cell highlight">
           <p class="metric-value warning">{{ pendingCourses() }}</p>
@@ -77,12 +76,11 @@
         </div>
         <div class="metric-cell">
           <p class="metric-value">{{ formatCurrency(totalRevenue()) }}</p>
-          <p class="metric-label">Tổng doanh thu</p>
-          <p class="metric-sub">Từ các khóa học</p>
+          <p class="metric-label">{{ revenueLabel() }}</p>
+          <p class="metric-sub">{{ revenueSubLabel() }}</p>
         </div>
       </div>
 
-      <!-- Filter Bar -->
       <div class="filter-bar">
         <div class="filter-row">
           <div class="filter-search">
@@ -91,7 +89,7 @@
                    [ngModel]="searchQuery()"
                    (ngModelChange)="searchQuery.set($event)"
                    (keyup.enter)="onFilterChange()"
-                   placeholder="Tìm kiếm khóa học...">
+                   [placeholder]="searchPlaceholder()">
           </div>
           <div class="filter-actions">
             <select class="filter-select"
@@ -140,29 +138,17 @@
         </div>
       </div>
 
-      <!-- Bulk Action Toolbar -->
       @if (selectedCount() > 0) {
         <div class="bulk-bar">
           <div class="bulk-label">Đã chọn {{ selectedCount() }} khóa học</div>
           <div class="bulk-actions">
-            <button class="btn-bulk-approve" (click)="bulkApprove()">
-              <svg fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-              </svg>
-              Duyệt ({{ selectedCount() }})
-            </button>
-            <button class="btn-bulk-reject" (click)="openBulkRejectModal()">
-              <svg fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-              </svg>
-              Từ chối ({{ selectedCount() }})
-            </button>
+            <button class="btn-bulk-approve" (click)="bulkApprove()">Duyệt ({{ selectedCount() }})</button>
+            <button class="btn-bulk-reject" (click)="openBulkRejectModal()">Từ chối ({{ selectedCount() }})</button>
             <button class="btn-bulk-clear" (click)="clearSelection()">Bỏ chọn</button>
           </div>
         </div>
       }
 
-      <!-- Courses Table -->
       <div class="table-card">
         @if (courses().length > 0) {
           <div class="table-scroll">
@@ -186,16 +172,14 @@
               <tbody>
                 @for (course of courses(); track course.id) {
                   <tr>
-                    <!-- Checkbox -->
                     <td>
-                      @if (isPendingStatus(course.status)) {
+                      @if (canReviewCourse(course)) {
                         <input type="checkbox"
                                class="tbl-checkbox"
                                [checked]="isCourseSelected(course.id)"
                                (change)="toggleCourseSelection(course.id)">
                       }
                     </td>
-                    <!-- Course Info -->
                     <td>
                       <div class="course-cell">
                         @if (course.thumbnail) {
@@ -217,7 +201,6 @@
                         </div>
                       </div>
                     </td>
-                    <!-- Instructor -->
                     <td>
                       <div class="teacher-cell">
                         <div class="teacher-avatar">
@@ -226,67 +209,61 @@
                         <span class="teacher-name">{{ course.teacherName }}</span>
                       </div>
                     </td>
-                    <!-- Status -->
                     <td>
-                      <span class="badge" [class]="getStatusClass(course.status)">
-                        {{ getStatusText(course.status) }}
+                      <span class="badge" [class]="getCourseStatusClass(course)">
+                        {{ getCourseStatusText(course) }}
                       </span>
-                      @if (course.rejectionReason && course.status.toLowerCase() === 'rejected') {
+                      @if (course.rejectionReason && ['rejected', 'changes_requested'].includes(getWorkflowStatus(course).toLowerCase())) {
                         <div class="rejection-hint" [title]="course.rejectionReason">
                           {{ course.rejectionReason }}
                         </div>
                       }
                     </td>
-                    <!-- Price / Students -->
                     <td>
                       <div class="price-text">{{ course.price ? formatCurrency(course.price) : 'Miễn phí' }}</div>
-                      <div class="students-text">
-                        <svg fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1a1 1 0 01-1 1H6a1 1 0 01-1-1v-1a5 5 0 018.93-3z"></path>
-                        </svg>
-                        {{ course.enrolledCount || 0 }} học viên
-                      </div>
+                      <div class="students-text">{{ course.enrolledCount || 0 }} học viên</div>
                     </td>
-                    <!-- Actions -->
                     <td>
                       <div class="action-btns">
-                        @if (isPendingStatus(course.status)) {
-                          <button class="act-btn act-approve" (click)="approveCourse(course.id)" title="Phê duyệt">
+                        @if (canReviewCourse(course)) {
+                          <button class="act-btn act-approve" (click)="approveCourse(course.id)" title="Phê duyệt" aria-label="Phê duyệt khóa học">
                             <svg fill="currentColor" viewBox="0 0 20 20">
                               <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                             </svg>
                           </button>
-                          <button class="act-btn act-reject" (click)="openRejectModal(course)" title="Từ chối">
+                          <button class="act-btn act-reject" (click)="openRejectModal(course)" title="Từ chối" aria-label="Từ chối khóa học">
                             <svg fill="currentColor" viewBox="0 0 20 20">
                               <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                             </svg>
                           </button>
                         }
-                        @if (isApprovedStatus(course.status)) {
-                          <button class="act-btn act-revoke" (click)="openRevokeModal(course.id)" title="Thu hồi phê duyệt">
+                        @if (canRevokeCourse(course)) {
+                          <button class="act-btn act-revoke" (click)="openRevokeModal(course.id)" title="Thu hồi phê duyệt" aria-label="Thu hồi phê duyệt khóa học">
                             <svg fill="currentColor" viewBox="0 0 20 20">
                               <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path>
                             </svg>
                           </button>
                         }
-                        <button class="act-btn act-primary" (click)="previewContent(course.id)" title="Xem nội dung">
+                        <button class="act-btn act-primary" (click)="previewContent(course.id)" title="Xem nội dung" aria-label="Xem trước nội dung khóa học">
                           <svg fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"></path>
                           </svg>
                         </button>
-                        <button class="act-btn act-primary" (click)="viewCourse(course.id)" title="Xem chi tiết">
+                        <button class="act-btn act-primary" (click)="viewCourse(course.id)" title="Xem chi tiết" aria-label="Xem chi tiết khóa học">
                           <svg fill="currentColor" viewBox="0 0 20 20">
                             <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
                             <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path>
                           </svg>
                         </button>
-                        <button class="act-btn act-neutral" (click)="editCourse(course.id)" title="Chỉnh sửa">
-                          <svg fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path>
-                          </svg>
-                        </button>
                         @if (isSystemAdmin()) {
-                          <button class="act-btn act-danger" (click)="deleteCourse(course)" title="Xóa khóa học">
+                          <button class="act-btn act-neutral" (click)="editCourse(course.id)" title="Mở trình biên tập" aria-label="Mở trình biên tập khóa học">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path>
+                            </svg>
+                          </button>
+                        }
+                        @if (isSystemAdmin()) {
+                          <button class="act-btn act-danger" (click)="deleteCourse(course)" title="Xóa khóa học" aria-label="Xóa khóa học">
                             <svg fill="currentColor" viewBox="0 0 20 20">
                               <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                             </svg>
@@ -300,38 +277,26 @@
             </table>
           </div>
 
-          <!-- Pagination -->
           @if (totalPages() > 1) {
             <div class="pagination-bar">
               <div class="pagination-info">
                 Hiển thị {{ getDisplayStart() }} - {{ getDisplayEnd() }} trong tổng số {{ totalElements() }} khóa học
               </div>
               <div class="pagination-controls">
-                <button class="pagination-btn"
-                        (click)="previousPage()"
-                        [disabled]="currentPage() === 0">
-                  Trước
-                </button>
-                <span class="pagination-page">
-                  Trang {{ currentPage() + 1 }} / {{ totalPages() }}
-                </span>
-                <button class="pagination-btn"
-                        (click)="nextPage()"
-                        [disabled]="currentPage() >= totalPages() - 1">
-                  Sau
-                </button>
+                <button class="pagination-btn" (click)="previousPage()" [disabled]="currentPage() === 0">Trước</button>
+                <span class="pagination-page">Trang {{ currentPage() + 1 }} / {{ totalPages() }}</span>
+                <button class="pagination-btn" (click)="nextPage()" [disabled]="currentPage() >= totalPages() - 1">Sau</button>
               </div>
             </div>
           }
         } @else {
-          <!-- Empty State -->
           <div class="empty-state">
             <svg fill="currentColor" viewBox="0 0 20 20">
               <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
               <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
             </svg>
-            <h3 class="empty-title">Không có khóa học nào</h3>
-            <p class="empty-desc">Chưa có khóa học nào được nộp để phê duyệt hoặc phù hợp với bộ lọc</p>
+            <h3 class="empty-title">{{ emptyTitle() }}</h3>
+            <p class="empty-desc">{{ emptyDescription() }}</p>
           </div>
         }
       </div>
@@ -339,25 +304,17 @@
   </div>
 </div>
 
-<!-- Reject Course Modal -->
 @if (showRejectModal()) {
   <div class="modal-backdrop" (click)="closeRejectModal()">
     <div class="modal-panel" (click)="$event.stopPropagation()">
       <div class="modal-body">
         <div class="modal-reject-body">
-          <div class="modal-icon-danger">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          </div>
           <div class="modal-reject-content">
             <h3 class="modal-title" style="margin-bottom:16px">Từ chối khóa học</h3>
             <div class="modal-course-title">
               <strong>{{ selectedCourse()?.title }}</strong>
             </div>
-            <div class="modal-course-teacher">
-              Giảng viên: {{ selectedCourse()?.teacherName || 'Không xác định' }}
-            </div>
+            <div class="modal-course-teacher">Giảng viên: {{ selectedCourse()?.teacherName || 'Không xác định' }}</div>
             <div style="margin-top:16px">
               <label class="modal-field-label">Lý do từ chối *</label>
               <textarea class="modal-textarea textarea-danger"
@@ -373,228 +330,85 @@
       </div>
       <div class="modal-footer">
         <button class="btn-cancel" (click)="closeRejectModal()">Hủy</button>
-        <button class="btn-danger" (click)="rejectCourse()" [disabled]="!rejectionReason()">
-          Từ chối khóa học
-        </button>
+        <button class="btn-danger" (click)="rejectCourse()" [disabled]="!rejectionReason()">Từ chối khóa học</button>
       </div>
     </div>
   </div>
 }
 
-<!-- Course Detail Modal -->
 @if (showDetailModal()) {
   <div class="modal-backdrop" aria-labelledby="modal-title" role="dialog" aria-modal="true">
     <div class="modal-panel-lg" (click)="$event.stopPropagation()">
-      <!-- Header -->
       <div class="modal-header">
-        <div style="display:flex;align-items:center;gap:16px">
-          <div class="detail-header-icon">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-            </svg>
-          </div>
-          <div class="detail-header-text">
-            <h3>Chi tiết khóa học</h3>
-            <p>{{ selectedCourse()?.title }}</p>
-          </div>
+        <div class="detail-header-text">
+          <h3>Chi tiết khóa học</h3>
+          <p>{{ selectedCourse()?.title }}</p>
         </div>
-        <button class="modal-close-btn" (click)="closeDetailModal()">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
-        </button>
+        <button class="modal-close-btn" (click)="closeDetailModal()">✕</button>
       </div>
 
-      <!-- Content -->
       <div class="modal-body-scroll">
-        <!-- Thumbnail -->
-        @if (selectedCourse()?.thumbnail) {
-          <div class="detail-thumbnail">
-            <img [src]="selectedCourse()!.thumbnail" [alt]="selectedCourse()!.title">
-            <div class="detail-thumbnail-overlay"></div>
-          </div>
-        }
-
-        <!-- Stats Cards -->
-        <div class="detail-stats">
-          <div class="detail-stat-card stat-primary">
-            <div class="detail-stat-icon icon-primary">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-              </svg>
-            </div>
-            <div>
-              <div class="detail-stat-value text-primary-brand">{{ selectedCourse()?.sectionsCount || 0 }}</div>
-              <div class="detail-stat-label text-primary-muted">Chương</div>
-            </div>
-          </div>
-          <div class="detail-stat-card stat-success">
-            <div class="detail-stat-icon icon-success">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-              </svg>
-            </div>
-            <div>
-              <div class="detail-stat-value text-success">{{ selectedCourse()?.lessonsCount || 0 }}</div>
-              <div class="detail-stat-label text-success-muted">Bài học</div>
-            </div>
-          </div>
-          <div class="detail-stat-card stat-purple">
-            <div class="detail-stat-icon icon-purple">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
-              </svg>
-            </div>
-            <div>
-              <div class="detail-stat-value text-purple">{{ selectedCourse()?.assignmentsCount || 0 }}</div>
-              <div class="detail-stat-label text-purple-muted">Bài tập</div>
-            </div>
-          </div>
-          <div class="detail-stat-card stat-primary">
-            <div class="detail-stat-icon icon-primary">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-              </svg>
-            </div>
-            <div>
-              <div class="detail-stat-value text-primary-brand">{{ selectedCourse()?.enrolledCount || 0 }}</div>
-              <div class="detail-stat-label text-primary-muted">Học viên</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Info Grid -->
-        <div class="detail-info-grid">
-          <!-- Basic Info -->
-          <div class="detail-section">
-            <h4 class="detail-section-title">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-              Thông tin cơ bản
-            </h4>
-            <div class="detail-field">
-              <span class="detail-field-label">Trạng thái</span>
-              <p class="detail-field-value">
-                <span class="badge" [class]="getStatusClass(selectedCourse()?.status || '')">
-                  {{ getStatusText(selectedCourse()?.status || '') }}
-                </span>
-              </p>
-            </div>
-            <div class="detail-field">
-              <span class="detail-field-label">Giá</span>
-              <p class="detail-field-value font-semibold">{{ selectedCourse()?.price ? formatCurrency(selectedCourse()!.price!) : 'Miễn phí' }}</p>
-            </div>
-            <div class="detail-field">
-              <span class="detail-field-label">Cấp độ</span>
-              <p class="detail-field-value">{{ getLevelText(selectedCourse()?.level || 'unknown') }}</p>
-            </div>
-            <div class="detail-field">
-              <span class="detail-field-label">Danh mục</span>
-              <p class="detail-field-value">{{ selectedCourse()?.category || 'Chưa phân loại' }}</p>
-            </div>
-          </div>
-
-          <!-- Teacher Info -->
-          <div class="detail-section">
-            <h4 class="detail-section-title">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-              </svg>
-              Giảng viên
-            </h4>
-            <div class="detail-teacher">
-              <div class="detail-teacher-avatar">
-                {{ (selectedCourse()?.teacherName || 'T').charAt(0).toUpperCase() }}
-              </div>
-              <div class="detail-teacher-info">
-                <p class="detail-teacher-name">{{ selectedCourse()?.teacherName }}</p>
-                <p class="detail-teacher-email">{{ selectedCourse()?.teacherEmail }}</p>
-                <div class="detail-teacher-meta">
-                  <span class="detail-rating">
-                    <svg fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                    </svg>
-                    {{ selectedCourse()?.rating || 0 }}/5
-                  </span>
-                  <span class="detail-dot">&bull;</span>
-                  <span class="detail-students-count">{{ selectedCourse()?.enrolledCount || 0 }} học viên</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Description -->
         @if (selectedCourse()?.shortDescription) {
           <div class="detail-section" style="margin-bottom:24px">
-            <h4 class="detail-section-title">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
-              </svg>
-              Mô tả
-            </h4>
+            <h4 class="detail-section-title">Mô tả</h4>
             <p class="detail-description">{{ selectedCourse()?.shortDescription }}</p>
           </div>
         }
 
-        <!-- Review Status -->
-        <div class="detail-section" style="margin-bottom:24px">
-          <h4 class="detail-section-title">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            Trạng thái phê duyệt
-          </h4>
-          <div class="detail-info-grid" style="margin-bottom:0">
-            <div class="detail-field">
-              <span class="detail-field-label">Ngày nộp</span>
-              <p class="detail-field-value">{{ selectedCourse()?.submittedAt ? formatDate(selectedCourse()!.submittedAt!) : 'Chưa nộp' }}</p>
-            </div>
-            @if (selectedCourse()?.approvedAt) {
-              <div class="detail-field">
-                <span class="detail-field-label">Ngày phê duyệt</span>
-                <p class="detail-field-value">{{ formatDate(selectedCourse()!.approvedAt!) }}</p>
-              </div>
-            }
+        <div class="detail-info-grid">
+          <div class="detail-field">
+            <span class="detail-field-label">Trạng thái</span>
+            <p class="detail-field-value">
+              {{ selectedCourse() ? getCourseStatusText(selectedCourse()!) : 'KhÃ´ng xÃ¡c Ä‘á»‹nh' }}
+            </p>
           </div>
-          @if (selectedCourse()?.rejectionReason) {
-            <div class="rejection-box">
-              <span class="rejection-box-label">Lý do từ chối</span>
-              <p class="rejection-box-text">{{ selectedCourse()!.rejectionReason }}</p>
+          <div class="detail-field">
+            <span class="detail-field-label">Giá</span>
+            <p class="detail-field-value">{{ selectedCourse()?.price ? formatCurrency(selectedCourse()!.price!) : 'Miễn phí' }}</p>
+          </div>
+          <div class="detail-field">
+            <span class="detail-field-label">Giảng viên</span>
+            <p class="detail-field-value">{{ selectedCourse()?.teacherName || 'Không xác định' }}</p>
+          </div>
+          <div class="detail-field">
+            <span class="detail-field-label">Học viên</span>
+            <p class="detail-field-value">{{ selectedCourse()?.enrolledCount || 0 }}</p>
+          </div>
+          <div class="detail-field">
+            <span class="detail-field-label">Ngày nộp</span>
+            <p class="detail-field-value">{{ selectedCourse()?.submittedAt ? formatDate(selectedCourse()!.submittedAt!) : 'Chưa nộp' }}</p>
+          </div>
+          @if (selectedCourse()?.approvedAt) {
+            <div class="detail-field">
+              <span class="detail-field-label">Ngày phê duyệt</span>
+              <p class="detail-field-value">{{ formatDate(selectedCourse()!.approvedAt!) }}</p>
             </div>
           }
         </div>
 
-        <!-- Revenue -->
+        @if (selectedCourse()?.rejectionReason) {
+          <div class="rejection-box">
+            <span class="rejection-box-label">Lý do từ chối</span>
+            <p class="rejection-box-text">{{ selectedCourse()!.rejectionReason }}</p>
+          </div>
+        }
+
         <div class="revenue-banner">
           <div>
-            <h4 class="revenue-label">Tổng doanh thu</h4>
+            <h4 class="revenue-label">{{ revenueLabel() }}</h4>
             <p class="revenue-value">{{ selectedCourse()?.revenue ? formatCurrency(selectedCourse()!.revenue!) : '0 ₫' }}</p>
-          </div>
-          <div class="revenue-icon">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
           </div>
         </div>
       </div>
 
-      <!-- Footer -->
       <div class="modal-footer">
         <button class="btn-cancel" (click)="closeDetailModal()">Đóng</button>
-        <button class="btn-primary-dark" (click)="openFullCourseView(selectedCourse()!.id)">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-          </svg>
-          Xem chi tiết đầy đủ
-        </button>
+        <button class="btn-primary-dark" (click)="openFullCourseView(selectedCourse()!.id)">Xem chi tiết đầy đủ</button>
       </div>
     </div>
   </div>
 }
 
-<!-- Bulk Reject Modal -->
 @if (showBulkRejectModal()) {
   <div class="modal-backdrop">
     <div class="modal-panel">
@@ -614,17 +428,12 @@
       </div>
       <div class="modal-footer">
         <button class="btn-cancel" (click)="closeBulkRejectModal()">Hủy</button>
-        <button class="btn-danger"
-                (click)="confirmBulkReject()"
-                [disabled]="!bulkRejectReason().trim()">
-          Từ chối ({{ selectedCount() }})
-        </button>
+        <button class="btn-danger" (click)="confirmBulkReject()" [disabled]="!bulkRejectReason().trim()">Từ chối ({{ selectedCount() }})</button>
       </div>
     </div>
   </div>
 }
 
-<!-- Revoke Modal -->
 @if (showRevokeModal()) {
   <div class="modal-backdrop">
     <div class="modal-panel">
@@ -644,11 +453,7 @@
       </div>
       <div class="modal-footer">
         <button class="btn-cancel" (click)="closeRevokeModal()">Hủy</button>
-        <button class="btn-warning"
-                (click)="confirmRevokeCourse()"
-                [disabled]="!revokeReasonInput().trim()">
-          Thu hồi
-        </button>
+        <button class="btn-warning" (click)="confirmRevokeCourse()" [disabled]="!revokeReasonInput().trim()">Thu hồi</button>
       </div>
     </div>
   </div>

@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestController
 @RequestMapping("/api/v3/teacher/students")
-@PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+@PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
 @Tag(name = "Teacher - Students", description = "Teacher student management endpoints")
 @RequiredArgsConstructor
 public class TeacherStudentControllerV3 {
@@ -244,7 +244,6 @@ public class TeacherStudentControllerV3 {
         verifyStudentInTeacherCourses(studentId, teacher);
         List<AssignmentSubmissionJpaEntity> submissions = submissionRepository.findByStudentId(studentId);
         Set<UUID> visibleCourseIds = teacher.getRole() == UserJpaEntity.UserRole.ADMIN
-                || teacher.getRole() == UserJpaEntity.UserRole.ORG_ADMIN
                 ? submissions.stream()
                 .map(AssignmentSubmissionJpaEntity::getCourseId)
                 .collect(Collectors.toSet())
@@ -424,9 +423,8 @@ public class TeacherStudentControllerV3 {
     }
 
     private void verifyStudentInTeacherCourses(UUID studentId, UserJpaEntity teacher) {
-        // Admin/OrgAdmin bypass
-        if (teacher.getRole() == UserJpaEntity.UserRole.ADMIN
-                || teacher.getRole() == UserJpaEntity.UserRole.ORG_ADMIN) {
+        // Admin bypass
+        if (teacher.getRole() == UserJpaEntity.UserRole.ADMIN) {
             return;
         }
         List<UUID> teacherCourseIds = new ArrayList<>(getTeacherCourseIds(teacher.getId()));
@@ -439,8 +437,7 @@ public class TeacherStudentControllerV3 {
     }
 
     private List<EnrollmentJpaEntity> getScopedEnrollments(UUID studentId, UserJpaEntity teacher) {
-        if (teacher.getRole() == UserJpaEntity.UserRole.ADMIN
-                || teacher.getRole() == UserJpaEntity.UserRole.ORG_ADMIN) {
+        if (teacher.getRole() == UserJpaEntity.UserRole.ADMIN) {
             return enrollmentRepository.findByStudentIdWithClass(studentId);
         }
 

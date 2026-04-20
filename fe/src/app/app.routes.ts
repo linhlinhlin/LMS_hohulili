@@ -123,6 +123,10 @@ export const routes: Routes = [
     path: 'admin',
     loadChildren: () => import('./features/admin/admin.routes').then(m => m.adminRoutes)
   },
+  {
+    path: 'org-admin',
+    loadChildren: () => import('./features/org-admin/org-admin.routes').then(m => m.orgAdminRoutes)
+  },
 
   // ========================================
   // OTHER AUTHENTICATED ROUTES

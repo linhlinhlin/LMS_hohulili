@@ -6,16 +6,18 @@
         <h1>Quản lý tổ chức</h1>
         <p>Quản lý các tổ chức, thành viên và lời mời</p>
       </div>
-      <button (click)="showCreateForm.set(!showCreateForm())" class="btn-primary">
-        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-        </svg>
-        Tạo tổ chức
-      </button>
+      @if (canCreateOrganizations()) {
+        <button (click)="showCreateForm.set(!showCreateForm())" class="btn-primary">
+          <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          Tạo tổ chức
+        </button>
+      }
     </div>
 
     <!-- Create Form (inline card) -->
-    @if (showCreateForm()) {
+    @if (canCreateOrganizations() && showCreateForm()) {
       <div class="create-form-card">
         <div class="create-form-header">
           <h3>Tạo tổ chức mới</h3>
@@ -120,12 +122,14 @@
             </div>
             <h3 class="empty-title">Chưa có tổ chức nào</h3>
             <p class="empty-desc">Tạo tổ chức đầu tiên để bắt đầu quản lý thành viên</p>
-            <button (click)="showCreateForm.set(true)" class="btn-primary">
-              <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-              </svg>
-              Tạo tổ chức đầu tiên
-            </button>
+            @if (canCreateOrganizations()) {
+              <button (click)="showCreateForm.set(true)" class="btn-primary">
+                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Tạo tổ chức đầu tiên
+              </button>
+            }
           </div>
         }
       </div>

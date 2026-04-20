@@ -249,8 +249,40 @@ const allAdminMenuItems: SidebarMenuItem[] = [
   }
 ];
 
-// Routes hidden from ORG_ADMIN (system-level only)
-const systemOnlyRoutes = new Set(['/admin/settings', '/admin/logs', '/admin/offline-storage']);
+const orgAdminMenuItems: SidebarMenuItem[] = [
+  {
+    label: 'Tổng quan',
+    route: '/org-admin/dashboard',
+    icon: 'home',
+    exact: true,
+    group: 'Tổng quan'
+  },
+  {
+    label: 'Giảng viên',
+    route: '/org-admin/users/teachers',
+    icon: 'briefcase',
+    group: 'Quản lý'
+  },
+  {
+    label: 'Học viên',
+    route: '/org-admin/users/students',
+    icon: 'graduation-cap',
+    group: 'Quản lý'
+  },
+  {
+    label: 'Khóa học',
+    route: '/org-admin/courses',
+    icon: 'courses',
+    group: 'Quản lý',
+    alsoActiveFor: ['/org-admin/courses/review']
+  },
+  {
+    label: 'Phân tích',
+    route: '/org-admin/analytics',
+    icon: 'bar-chart',
+    group: 'Báo cáo'
+  }
+];
 
 // System Admin sidebar (full access)
 export const adminSidebarConfig: SidebarConfig = {
@@ -261,13 +293,13 @@ export const adminSidebarConfig: SidebarConfig = {
   menuItems: allAdminMenuItems
 };
 
-// ORG_ADMIN sidebar (operations only - no settings/logs/AI knowledge)
+// ORG_ADMIN sidebar (operations portal)
 export const orgAdminSidebarConfig: SidebarConfig = {
   role: 'org_admin',
-  title: 'Cổng Quản trị',
-  subtitle: 'Chuyên viên',
-  logoIcon: 'settings',
-  menuItems: allAdminMenuItems.filter(item => !systemOnlyRoutes.has(item.route))
+  title: 'Cổng Quản lý',
+  subtitle: 'Tổ chức',
+  logoIcon: 'courses',
+  menuItems: orgAdminMenuItems
 };
 
 // Helper function to get sidebar config by role

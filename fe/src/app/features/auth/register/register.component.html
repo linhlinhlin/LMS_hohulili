@@ -318,6 +318,14 @@
                 </div>
               }
 
+              <app-google-signin-button
+                [disabled]="isLoading()"
+                [inviteCode]="getInviteCode()"
+                [buttonText]="'signup_with'"
+                (authenticated)="onGoogleAuthenticated($event)"
+                (authError)="onGoogleAuthError($event)"
+              />
+
               <!-- Submit Button -->
               <div class="form-element">
                 <button type="submit"

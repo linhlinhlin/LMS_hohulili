@@ -58,7 +58,7 @@ public class AssignmentSubmissionControllerV3 {
 
     @Operation(summary = "Get all submissions for an assignment (Teacher)")
     @GetMapping("/api/v3/assignments/{assignmentId}/submissions")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Transactional(readOnly = true)
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getSubmissions(
             @PathVariable UUID assignmentId,
@@ -74,7 +74,7 @@ public class AssignmentSubmissionControllerV3 {
 
     @Operation(summary = "Get detailed submissions for an assignment (Teacher)")
     @GetMapping("/api/v3/assignments/{assignmentId}/submissions/details")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Transactional(readOnly = true)
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getSubmissionDetails(
             @PathVariable UUID assignmentId,
@@ -91,7 +91,7 @@ public class AssignmentSubmissionControllerV3 {
 
     @Operation(summary = "Get pending submissions for teacher assignments")
     @GetMapping("/api/v3/submissions/pending")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Transactional(readOnly = true)
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getPendingSubmissions(
             @AuthenticationPrincipal UserJpaEntity user) {
@@ -126,7 +126,7 @@ public class AssignmentSubmissionControllerV3 {
 
     @Operation(summary = "Grade a submission")
     @PatchMapping("/api/v3/submissions/{submissionId}/grade")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Transactional
     public ResponseEntity<ApiResponse<Map<String, Object>>> gradeSubmission(
             @PathVariable UUID submissionId,
@@ -146,7 +146,7 @@ public class AssignmentSubmissionControllerV3 {
 
     @Operation(summary = "Batch grade multiple submissions")
     @PatchMapping("/api/v3/assignments/{assignmentId}/submissions/batch-grade")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Transactional
     public ResponseEntity<ApiResponse<Map<String, Object>>> batchGrade(
             @PathVariable UUID assignmentId,
@@ -166,7 +166,7 @@ public class AssignmentSubmissionControllerV3 {
 
     @Operation(summary = "Get a single submission by ID")
     @GetMapping("/api/v3/submissions/{submissionId}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN', 'STUDENT')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'STUDENT')")
     @Transactional(readOnly = true)
     public ResponseEntity<ApiResponse<Map<String, Object>>> getSubmissionById(
             @PathVariable UUID submissionId,
@@ -189,7 +189,7 @@ public class AssignmentSubmissionControllerV3 {
 
     @Operation(summary = "Export submissions for an assignment")
     @GetMapping("/api/v3/assignments/{assignmentId}/submissions/export")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Transactional(readOnly = true)
     public ResponseEntity<byte[]> exportSubmissions(
             @PathVariable UUID assignmentId,
@@ -306,7 +306,7 @@ public class AssignmentSubmissionControllerV3 {
 
     @Operation(summary = "Get grading audit log for an assignment (STCW compliance)")
     @GetMapping("/api/v3/assignments/{assignmentId}/audit-log")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Transactional(readOnly = true)
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getAuditLog(
             @PathVariable UUID assignmentId,
@@ -340,7 +340,7 @@ public class AssignmentSubmissionControllerV3 {
 
     @Operation(summary = "Publish an assignment")
     @PutMapping("/api/v3/assignments/{assignmentId}/publish")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Transactional
     public ResponseEntity<ApiResponse<Void>> publishAssignment(
             @PathVariable UUID assignmentId,
@@ -458,8 +458,7 @@ public class AssignmentSubmissionControllerV3 {
     // =============================================
 
     private boolean isAdminRole(UserJpaEntity user) {
-        return user.getRole() == UserJpaEntity.UserRole.ADMIN
-                || user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
+        return user.getRole() == UserJpaEntity.UserRole.ADMIN;
     }
 
     private void verifyAssignmentOwnership(UUID assignmentId, UserJpaEntity user) {

@@ -49,8 +49,8 @@ USER 1001
 EXPOSE 8080
 
 # Health check using Spring Boot Actuator
-HEALTHCHECK --interval=30s --timeout=5s --start-period=180s --retries=5 \
-    CMD wget -q --spider http://localhost:8080/actuator/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=180s --retries=5 \
+    CMD wget -q --spider --tries=1 --timeout=8 http://localhost:8080/actuator/health || exit 1
 
 # JVM optimization for containers (can be overridden by JAVA_OPTS env)
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"

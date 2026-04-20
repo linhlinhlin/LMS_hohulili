@@ -121,7 +121,9 @@ public class CourseQueryControllerV3 {
             @PathVariable UUID courseId,
             @AuthenticationPrincipal UserJpaEntity currentUser
     ) {
-        CourseDetailResponse publishedDetail = getPublishedCourseDetail(courseId, currentUser);
+        CourseDetailResponse publishedDetail = shouldPreferDraftCourseView(currentUser)
+                ? null
+                : getPublishedCourseDetail(courseId, currentUser);
         if (publishedDetail != null) {
             return ResponseEntity.ok(ApiResponse.success(publishedDetail, "ThÃ´ng tin khÃ³a há»c"));
         }
@@ -173,7 +175,9 @@ public class CourseQueryControllerV3 {
             @PathVariable UUID courseId,
             @AuthenticationPrincipal UserJpaEntity currentUser
     ) {
-        List<ChapterResponse> publishedChapters = getPublishedCourseContent(courseId, currentUser);
+        List<ChapterResponse> publishedChapters = shouldPreferDraftCourseView(currentUser)
+                ? null
+                : getPublishedCourseContent(courseId, currentUser);
         if (publishedChapters != null) {
             return ResponseEntity.ok(ApiResponse.success(publishedChapters, "Ná»™i dung khÃ³a há»c"));
         }
@@ -227,7 +231,7 @@ public class CourseQueryControllerV3 {
 
     @Operation(summary = "Get instructors for a course")
     @GetMapping("/{courseId}/instructors")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<List<InstructorResponse>>> getCourseInstructors(
             @PathVariable UUID courseId,
             @AuthenticationPrincipal UserJpaEntity user
@@ -281,7 +285,7 @@ public class CourseQueryControllerV3 {
 
     @Operation(summary = "Get classes for a course")
     @GetMapping("/{courseId}/classes")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<List<ClassInfoResponse>>> getCourseClasses(
             @PathVariable UUID courseId,
             @AuthenticationPrincipal UserJpaEntity user
@@ -294,7 +298,7 @@ public class CourseQueryControllerV3 {
 
     @Operation(summary = "Search classes for a course")
     @GetMapping("/{courseId}/classes/search")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<Page<ClassInfoResponse>>> searchCourseClasses(
             @PathVariable UUID courseId,
             @RequestParam(required = false) String search,
@@ -461,7 +465,7 @@ public class CourseQueryControllerV3 {
 
     @Operation(summary = "Get lessons by chapter ID")
     @GetMapping("/chapters/{chapterId}/lessons")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<List<LessonResponse>>> getChapterLessons(
             @PathVariable UUID chapterId,
             @AuthenticationPrincipal UserJpaEntity user
@@ -755,6 +759,9 @@ public class CourseQueryControllerV3 {
                 .description(course.getDescription())
                 .thumbnailUrl(course.getThumbnailUrl())
                 .status(course.getStatus().name().toLowerCase())
+                .reviewState(resolveReviewState(course))
+                .draftChangeStatus(resolveDraftChangeStatus(course))
+                .pendingReleaseNotes(course.getPendingReleaseNotes())
                 .code(course.getCode() != null ? course.getCode().getValue() : null)
                 .teacherId(course.getTeacherId() != null ? course.getTeacherId().toString() : null)
                 .teacherName(teacherName)
@@ -831,7 +838,8 @@ public class CourseQueryControllerV3 {
 
         if (currentUser == null) return false;
 
-        if (isAdminRole(currentUser) || currentUser.getRole() == UserJpaEntity.UserRole.TEACHER) return true;
+        if (isSystemAdminRole(currentUser) || currentUser.getRole() == UserJpaEntity.UserRole.TEACHER) return true;
+        if (hasOrgScopedCourseAccess(course, currentUser)) return true;
 
         return paymentRepository.existsByStudentIdAndCourseIdAndStatus(
                 currentUser.getId(), course.getId(), PaymentTransactionJpaEntity.PaymentStatus.COMPLETED);
@@ -839,9 +847,45 @@ public class CourseQueryControllerV3 {
 
     // === Ownership Helpers ===
 
-    private boolean isAdminRole(UserJpaEntity user) {
-        return user.getRole() == UserJpaEntity.UserRole.ADMIN
-            || user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
+    private boolean isSystemAdminRole(UserJpaEntity user) {
+        return user != null && user.getRole() == UserJpaEntity.UserRole.ADMIN;
+    }
+
+    private boolean isOrgAdminRole(UserJpaEntity user) {
+        return user != null && user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
+    }
+
+    private boolean shouldPreferDraftCourseView(UserJpaEntity user) {
+        return isSystemAdminRole(user) || isOrgAdminRole(user);
+    }
+
+    private String resolveReviewState(Course course) {
+        if (course.getStatus() != Course.CourseStatus.APPROVED) {
+            return course.getStatus().name().toLowerCase(Locale.ROOT);
+        }
+        return switch (course.getDraftChangeStatus()) {
+            case PENDING_REVIEW -> "pending_changes";
+            case CHANGES_REQUESTED -> "changes_requested";
+            case DRAFT -> "draft_changes";
+            case NONE -> "approved";
+        };
+    }
+
+    private String resolveDraftChangeStatus(Course course) {
+        if (course.getDraftChangeStatus() == null || course.getDraftChangeStatus() == Course.DraftChangeStatus.NONE) {
+            return null;
+        }
+        return course.getDraftChangeStatus().name().toLowerCase(Locale.ROOT);
+    }
+
+    private boolean hasOrgScopedCourseAccess(Course course, UserJpaEntity user) {
+        if (!isOrgAdminRole(user) || user.getOrganizationId() == null || course == null || course.getTeacherId() == null) {
+            return false;
+        }
+
+        return userJpaRepository.findById(course.getTeacherId())
+                .map(teacher -> Objects.equals(teacher.getOrganizationId(), user.getOrganizationId()))
+                .orElse(false);
     }
 
     private Map<UUID, QuizJpaEntity> loadQuizMap(List<UUID> lessonIds) {
@@ -1286,7 +1330,8 @@ public class CourseQueryControllerV3 {
     /**
      * Access check for unpublished or private courses.
      * PUBLIC + APPROVED → accessible to everyone (including anonymous for browsing).
-     * PRIVATE or non-APPROVED → only accessible to: owner, enrolled student, ADMIN, ORG_ADMIN.
+     * PRIVATE or non-APPROVED → only accessible to: owner, enrolled student, ADMIN,
+     * or ORG_ADMIN within the same organization as the course owner.
      */
     private void verifyCourseAccess(Course course, UserJpaEntity currentUser) {
         boolean isPublicAndApproved = course.getVisibility() == Course.Visibility.PUBLIC
@@ -1298,8 +1343,11 @@ public class CourseQueryControllerV3 {
             throw new org.springframework.security.access.AccessDeniedException("Khóa học này yêu cầu đăng nhập");
         }
 
-        // ADMIN / ORG_ADMIN can access any course
-        if (isAdminRole(currentUser)) return;
+        // System admin can access any course.
+        if (isSystemAdminRole(currentUser)) return;
+
+        // ORG_ADMIN can access courses owned by teachers in the same organization.
+        if (hasOrgScopedCourseAccess(course, currentUser)) return;
 
         // Course owner (teacher) can always access their own course
         if (course.getTeacherId().equals(currentUser.getId())) return;
@@ -1314,9 +1362,10 @@ public class CourseQueryControllerV3 {
     }
 
     private void verifyCourseOwnership(UUID courseId, UserJpaEntity user) {
-        if (isAdminRole(user)) return;
+        if (isSystemAdminRole(user)) return;
         var course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Khóa học", courseId));
+        if (hasOrgScopedCourseAccess(course, user)) return;
         if (!course.getTeacherId().equals(user.getId())
                 && !classTeacherJpaRepository.existsByTeacherIdAndCourseId(user.getId(), courseId)) {
             throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền truy cập khóa học này");
@@ -1353,6 +1402,9 @@ public class CourseQueryControllerV3 {
         private String description;
         private String thumbnailUrl;
         private String status;
+        private String reviewState;
+        private String draftChangeStatus;
+        private String pendingReleaseNotes;
         private String code;
         private String teacherId;
         private String teacherName;

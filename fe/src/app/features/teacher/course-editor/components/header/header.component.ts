@@ -7,6 +7,7 @@ import { CourseAuthoringService } from '../../services/course-authoring.service'
 import { AuthService } from '../../../../../core/services/auth.service';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
+import { getAdminPortalBase } from '../../../../../core/utils/portal-route.util';
 
 @Component({
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -198,7 +199,7 @@ export class CourseEditorHeaderComponent {
         }
 
         if (this.isAdminViewMode()) {
-            this.router.navigate(['/admin/courses']);
+            this.router.navigateByUrl(`${getAdminPortalBase(this.authService.userRole())}/courses`);
         } else {
             this.router.navigate(['/teacher/courses']);
         }

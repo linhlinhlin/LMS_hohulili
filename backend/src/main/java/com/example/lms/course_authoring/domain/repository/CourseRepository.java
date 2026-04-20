@@ -57,6 +57,26 @@ public interface CourseRepository {
     Page<Course> findByTeacherId(UUID teacherId, Pageable pageable);
 
     /**
+     * Find courses owned by any teacher in the provided organization-scoped set.
+     */
+    Page<Course> findByTeacherIds(Set<UUID> teacherIds, Pageable pageable);
+
+    /**
+     * Find org-scoped courses by raw course status.
+     */
+    Page<Course> findByTeacherIdsAndStatus(Set<UUID> teacherIds, Course.CourseStatus status, Pageable pageable);
+
+    /**
+     * Find org-scoped courses by title search.
+     */
+    Page<Course> findByTeacherIdsAndTitleContaining(Set<UUID> teacherIds, String search, Pageable pageable);
+
+    /**
+     * Find org-scoped courses by status and title search.
+     */
+    Page<Course> findByTeacherIdsAndStatusAndTitleContaining(Set<UUID> teacherIds, Course.CourseStatus status, String search, Pageable pageable);
+
+    /**
      * Find all approved courses.
      */
     Page<Course> findApproved(Pageable pageable);
@@ -72,6 +92,16 @@ public interface CourseRepository {
     Page<Course> findPending(Pageable pageable);
 
     /**
+     * Find the full review queue: initial submissions plus pending draft changes on approved courses.
+     */
+    Page<Course> findReviewQueue(Pageable pageable);
+
+    /**
+     * Find the review queue scoped to teachers within an organization.
+     */
+    Page<Course> findReviewQueueByTeacherIds(Set<UUID> teacherIds, Pageable pageable);
+
+    /**
      * Count courses by teacher ID.
      */
     long countByTeacherId(UUID teacherId);
@@ -80,6 +110,16 @@ public interface CourseRepository {
      * Count courses by status.
      */
     long countByStatus(Course.CourseStatus status);
+
+    /**
+     * Count the review queue across the whole system.
+     */
+    long countReviewQueue();
+
+    /**
+     * Count the review queue for an organization's teachers.
+     */
+    long countReviewQueueByTeacherIds(Set<UUID> teacherIds);
 
     /**
      * Find all courses with pagination.

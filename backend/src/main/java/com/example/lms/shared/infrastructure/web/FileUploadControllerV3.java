@@ -162,7 +162,7 @@ public class FileUploadControllerV3 {
     }
 
     @PostMapping(value = "/upload/video", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Upload video file (R2 or local storage)")
     public ResponseEntity<Map<String, Object>> uploadVideo(
             @RequestParam("file") MultipartFile file,
@@ -216,7 +216,7 @@ public class FileUploadControllerV3 {
     }
 
     @DeleteMapping("/{storageKey}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Delete file from storage (R2 or local)")
     public ResponseEntity<Map<String, Object>> deleteFile(
             @AuthenticationPrincipal UserJpaEntity user,
@@ -350,7 +350,7 @@ public class FileUploadControllerV3 {
     }
 
     @PostMapping("/upload/multipart/part-url")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Sign one multipart upload part URL for direct video upload")
     public ResponseEntity<Map<String, Object>> createMultipartPartUrl(
             @RequestBody Map<String, Object> body,
@@ -388,7 +388,7 @@ public class FileUploadControllerV3 {
     }
 
     @PostMapping("/upload/multipart/complete")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Complete multipart upload before attachment confirmation")
     public ResponseEntity<Map<String, Object>> completeMultipartUpload(
             @RequestBody Map<String, Object> body,
@@ -455,7 +455,6 @@ public class FileUploadControllerV3 {
     }
 
     private boolean isAdminRole(UserJpaEntity user) {
-        return user != null && (user.getRole() == UserJpaEntity.UserRole.ADMIN
-            || user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN);
+        return user != null && user.getRole() == UserJpaEntity.UserRole.ADMIN;
     }
 }

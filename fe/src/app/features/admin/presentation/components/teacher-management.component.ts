@@ -7,6 +7,7 @@ import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } f
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { getAdminPortalBase } from '../../../../core/utils/portal-route.util';
 
 /**
  * Teacher Management Component
@@ -26,6 +27,13 @@ export class TeacherManagementComponent implements OnInit {
   private authService = inject(AuthService);
 
   isSystemAdmin = computed(() => this.authService.userRole() === 'admin');
+  courseSearchRoute = computed(() => `${getAdminPortalBase(this.authService.userRole())}/courses`);
+  pageTitle = computed(() => this.isSystemAdmin() ? 'Quản lý Giảng viên' : 'Giảng viên của tổ chức');
+  pageSubtitle = computed(() =>
+    this.isSystemAdmin()
+      ? 'Quản lý các tài khoản giảng viên trong hệ thống'
+      : 'Quản lý các tài khoản giảng viên thuộc tổ chức của bạn'
+  );
 
   // State
   allUsers = signal<AdminUser[]>([]);
@@ -166,6 +174,11 @@ export class TeacherManagementComponent implements OnInit {
   }
 
   async deleteUser(userId: string) {
+    if (!this.isSystemAdmin()) {
+      this.toast.warning('Chỉ quản trị hệ thống mới có thể vô hiệu hóa tài khoản giảng viên.');
+      return;
+    }
+
     const confirmed = await this.confirmDialog.confirm({
       title: 'Vô hiệu hóa tài khoản',
       message: 'Bạn có chắc muốn vô hiệu hóa tài khoản này?',
@@ -239,7 +252,12 @@ export class TeacherManagementComponent implements OnInit {
    * This provides 100% course details: chapters, lessons, students, quiz, etc.
    */
   openFullCourseView(courseId: string): void {
-    window.open(`/teacher/courses/${courseId}/editor`, '_blank');
+    if (this.isSystemAdmin()) {
+      window.open(`/teacher/courses/${courseId}/editor`, '_blank');
+      return;
+    }
+
+    window.open(`${getAdminPortalBase(this.authService.userRole())}/courses/${courseId}/preview`, '_blank');
   }
 
   /**
@@ -364,4 +382,3 @@ export class TeacherManagementComponent implements OnInit {
     }
   }
 }
-

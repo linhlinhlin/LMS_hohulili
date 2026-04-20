@@ -70,50 +70,24 @@ public class AdminCoursesControllerV3 {
             @RequestParam(required = false) String toDate,
             @AuthenticationPrincipal UserJpaEntity currentUser
     ) {
-        // Sort PENDING first, then by createdAt descending
         PageRequest pageable = PageRequest.of(page, Math.min(size, 100),
                 Sort.by(Sort.Order.asc("status"), Sort.Order.desc("createdAt")));
-
-        Page<Course> courses;
-        if (status != null && !status.isBlank() && search != null && !search.isBlank()) {
-            try {
-                Course.CourseStatus courseStatus = Course.CourseStatus.valueOf(status.toUpperCase());
-                courses = courseRepository.findByStatusAndTitleContaining(courseStatus, search, pageable);
-            } catch (IllegalArgumentException e) {
-                courses = courseRepository.findAll(pageable);
-            }
-        } else if (status != null && !status.isBlank()) {
-            try {
-                Course.CourseStatus courseStatus = Course.CourseStatus.valueOf(status.toUpperCase());
-                courses = courseRepository.findByStatus(courseStatus, pageable);
-            } catch (IllegalArgumentException e) {
-                courses = courseRepository.findAll(pageable);
-            }
-        } else if (search != null && !search.isBlank()) {
-            courses = courseRepository.findByTitleContaining(search, pageable);
-        } else {
-            courses = courseRepository.findAll(pageable);
-        }
-
-        // ORG_ADMIN: filter to courses whose teacher is in their org
-        if (isOrgAdmin(currentUser)) {
-            Set<UUID> orgTeacherIds = getOrgTeacherIds(currentUser.getOrganizationId());
-            courses = filterCoursesByTeachers(courses, orgTeacherIds);
-        }
-
-        // Apply advanced filters (categoryId, date range) as in-memory post-filters
-        boolean hasCategoryFilter = categoryId != null;
         Instant fromInstant = parseDate(fromDate, true);
         Instant toInstant = parseDate(toDate, false);
-        boolean hasDateFilter = fromInstant != null || toInstant != null;
+        boolean hasAdvancedFilters = categoryId != null || fromInstant != null || toInstant != null;
 
-        if (hasCategoryFilter || hasDateFilter) {
-            List<Course> filtered = courses.getContent().stream()
-                    .filter(c -> !hasCategoryFilter || categoryId.equals(c.getCategoryId()))
-                    .filter(c -> fromInstant == null || (c.getCreatedAt() != null && !c.getCreatedAt().isBefore(fromInstant)))
-                    .filter(c -> toInstant == null || (c.getCreatedAt() != null && !c.getCreatedAt().isAfter(toInstant)))
-                    .collect(Collectors.toList());
-            courses = new PageImpl<>(filtered, courses.getPageable(), filtered.size());
+        Page<Course> courses;
+        if (isOrgAdmin(currentUser)) {
+            Set<UUID> orgTeacherIds = getOrgTeacherIds(currentUser.getOrganizationId());
+            courses = hasAdvancedFilters
+                    ? loadAndFilterOrgScopedCourses(orgTeacherIds, status, search, categoryId, fromInstant, toInstant, pageable)
+                    : queryOrgScopedCourses(orgTeacherIds, status, search, pageable);
+        } else {
+            courses = queryCourses(status, search, pageable);
+            if (hasAdvancedFilters) {
+                List<Course> filtered = applyAdvancedFilters(courses.getContent(), categoryId, fromInstant, toInstant);
+                courses = new PageImpl<>(filtered, pageable, filtered.size());
+            }
         }
 
         Page<CourseAdminResponse> response = enrichCourses(courses);
@@ -129,13 +103,9 @@ public class AdminCoursesControllerV3 {
             @AuthenticationPrincipal UserJpaEntity currentUser
     ) {
         PageRequest pageable = PageRequest.of(page, Math.min(size, 100));
-        Page<Course> courses = courseRepository.findByStatus(Course.CourseStatus.PENDING, pageable);
-
-        // ORG_ADMIN: filter to courses whose teacher is in their org
-        if (isOrgAdmin(currentUser)) {
-            Set<UUID> orgTeacherIds = getOrgTeacherIds(currentUser.getOrganizationId());
-            courses = filterCoursesByTeachers(courses, orgTeacherIds);
-        }
+        Page<Course> courses = isOrgAdmin(currentUser)
+                ? courseRepository.findReviewQueueByTeacherIds(getOrgTeacherIds(currentUser.getOrganizationId()), pageable)
+                : courseRepository.findReviewQueue(pageable);
 
         Page<CourseAdminResponse> response = enrichCourses(courses);
         return ResponseEntity.ok(ApiResponse.success(response, "Danh sách khóa học chờ duyệt"));
@@ -163,7 +133,7 @@ public class AdminCoursesControllerV3 {
      */
     private CourseAnalyticsResponse buildSystemWideAnalytics() {
         long totalCourses = courseRepository.count();
-        long pendingCourses = courseRepository.countByStatus(Course.CourseStatus.PENDING);
+        long pendingCourses = courseRepository.countReviewQueue();
         long approvedCourses = courseRepository.countByStatus(Course.CourseStatus.APPROVED);
         long draftCourses = courseRepository.countByStatus(Course.CourseStatus.DRAFT);
         long rejectedCourses = courseRepository.countByStatus(Course.CourseStatus.REJECTED);
@@ -239,7 +209,7 @@ public class AdminCoursesControllerV3 {
             rejectedCourses = 0;
         } else {
             totalCourses = courseRepository.countByTeacherIdIn(orgTeacherIds);
-            pendingCourses = courseRepository.countByStatusAndTeacherIdIn(Course.CourseStatus.PENDING, orgTeacherIds);
+            pendingCourses = courseRepository.countReviewQueueByTeacherIds(orgTeacherIds);
             approvedCourses = courseRepository.countByStatusAndTeacherIdIn(Course.CourseStatus.APPROVED, orgTeacherIds);
             draftCourses = courseRepository.countByStatusAndTeacherIdIn(Course.CourseStatus.DRAFT, orgTeacherIds);
             rejectedCourses = courseRepository.countByStatusAndTeacherIdIn(Course.CourseStatus.REJECTED, orgTeacherIds);
@@ -493,13 +463,15 @@ public class AdminCoursesControllerV3 {
             }
         }
 
-        return courses.map(course -> toAdminResponseBatch(course, teacherMap, categoryMap, enrollmentMap));
+        Map<UUID, String> submittedAtMap = resolveSubmittedAtMap(courseIds);
+        return courses.map(course -> toAdminResponseBatch(course, teacherMap, categoryMap, enrollmentMap, submittedAtMap));
     }
 
     private CourseAdminResponse toAdminResponseBatch(Course course,
             Map<UUID, UserJpaEntity> teacherMap,
             Map<UUID, String> categoryMap,
-            Map<UUID, Long> enrollmentMap) {
+            Map<UUID, Long> enrollmentMap,
+            Map<UUID, String> submittedAtMap) {
         String teacherName = null;
         String teacherEmail = null;
         if (course.getTeacherId() != null) {
@@ -512,27 +484,14 @@ public class AdminCoursesControllerV3 {
 
         String categoryName = course.getCategoryId() != null ? categoryMap.get(course.getCategoryId()) : null;
         int enrolledCount = enrollmentMap.getOrDefault(course.getId(), 0L).intValue();
-
-        return CourseAdminResponse.builder()
-                .id(course.getId().toString())
-                .code(course.getCode() != null ? course.getCode().getValue() : null)
-                .title(course.getTitle())
-                .description(course.getDescription())
-                .category(categoryName)
-                .price(course.getPrice() != null ? course.getPrice().doubleValue() : null)
-                .thumbnail(course.getThumbnailUrl())
-                .status(course.getStatus().name().toLowerCase())
-                .teacherId(course.getTeacherId() != null ? course.getTeacherId().toString() : null)
-                .teacherName(teacherName)
-                .teacherEmail(teacherEmail)
-                .enrolledCount(enrolledCount)
-                .sectionsCount(course.getChapterCount())
-                .lessonsCount(course.getTotalLessonCount())
-                .rejectionReason(course.getReviewComment())
-                .createdAt(course.getCreatedAt() != null ? course.getCreatedAt().toString() : null)
-                .updatedAt(course.getUpdatedAt() != null ? course.getUpdatedAt().toString() : null)
-                .approvedAt(course.getReviewedAt() != null ? course.getReviewedAt().toString() : null)
-                .build();
+        return buildCourseAdminResponse(
+                course,
+                teacherName,
+                teacherEmail,
+                categoryName,
+                enrolledCount,
+                submittedAtMap.get(course.getId())
+        );
     }
 
     /**
@@ -563,26 +522,14 @@ public class AdminCoursesControllerV3 {
             enrolledCount = ((Long) counts.get(0)[1]).intValue();
         }
 
-        return CourseAdminResponse.builder()
-                .id(course.getId().toString())
-                .code(course.getCode() != null ? course.getCode().getValue() : null)
-                .title(course.getTitle())
-                .description(course.getDescription())
-                .category(categoryName)
-                .price(course.getPrice() != null ? course.getPrice().doubleValue() : null)
-                .thumbnail(course.getThumbnailUrl())
-                .status(course.getStatus().name().toLowerCase())
-                .teacherId(course.getTeacherId() != null ? course.getTeacherId().toString() : null)
-                .teacherName(teacherName)
-                .teacherEmail(teacherEmail)
-                .enrolledCount(enrolledCount)
-                .sectionsCount(course.getChapterCount())
-                .lessonsCount(course.getTotalLessonCount())
-                .rejectionReason(course.getReviewComment())
-                .createdAt(course.getCreatedAt() != null ? course.getCreatedAt().toString() : null)
-                .updatedAt(course.getUpdatedAt() != null ? course.getUpdatedAt().toString() : null)
-                .approvedAt(course.getReviewedAt() != null ? course.getReviewedAt().toString() : null)
-                .build();
+        return buildCourseAdminResponse(
+                course,
+                teacherName,
+                teacherEmail,
+                categoryName,
+                enrolledCount,
+                resolveSubmittedAt(course.getId())
+        );
     }
 
     // === Org-Scoping Helpers ===
@@ -599,11 +546,189 @@ public class AdminCoursesControllerV3 {
                 .collect(Collectors.toSet());
     }
 
-    private Page<Course> filterCoursesByTeachers(Page<Course> courses, Set<UUID> teacherIds) {
-        List<Course> filtered = courses.getContent().stream()
-                .filter(c -> c.getTeacherId() != null && teacherIds.contains(c.getTeacherId()))
+    private Page<Course> queryCourses(String status, String search, PageRequest pageable) {
+        if (status != null && !status.isBlank() && search != null && !search.isBlank()) {
+            try {
+                Course.CourseStatus courseStatus = Course.CourseStatus.valueOf(status.toUpperCase(Locale.ROOT));
+                return courseRepository.findByStatusAndTitleContaining(courseStatus, search, pageable);
+            } catch (IllegalArgumentException e) {
+                return courseRepository.findAll(pageable);
+            }
+        }
+        if (status != null && !status.isBlank()) {
+            try {
+                Course.CourseStatus courseStatus = Course.CourseStatus.valueOf(status.toUpperCase(Locale.ROOT));
+                return courseRepository.findByStatus(courseStatus, pageable);
+            } catch (IllegalArgumentException e) {
+                return courseRepository.findAll(pageable);
+            }
+        }
+        if (search != null && !search.isBlank()) {
+            return courseRepository.findByTitleContaining(search, pageable);
+        }
+        return courseRepository.findAll(pageable);
+    }
+
+    private Page<Course> queryOrgScopedCourses(Set<UUID> teacherIds, String status, String search, PageRequest pageable) {
+        if (teacherIds == null || teacherIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        if (status != null && !status.isBlank() && search != null && !search.isBlank()) {
+            try {
+                Course.CourseStatus courseStatus = Course.CourseStatus.valueOf(status.toUpperCase(Locale.ROOT));
+                return courseRepository.findByTeacherIdsAndStatusAndTitleContaining(teacherIds, courseStatus, search, pageable);
+            } catch (IllegalArgumentException e) {
+                return courseRepository.findByTeacherIds(teacherIds, pageable);
+            }
+        }
+        if (status != null && !status.isBlank()) {
+            try {
+                Course.CourseStatus courseStatus = Course.CourseStatus.valueOf(status.toUpperCase(Locale.ROOT));
+                return courseRepository.findByTeacherIdsAndStatus(teacherIds, courseStatus, pageable);
+            } catch (IllegalArgumentException e) {
+                return courseRepository.findByTeacherIds(teacherIds, pageable);
+            }
+        }
+        if (search != null && !search.isBlank()) {
+            return courseRepository.findByTeacherIdsAndTitleContaining(teacherIds, search, pageable);
+        }
+        return courseRepository.findByTeacherIds(teacherIds, pageable);
+    }
+
+    private Page<Course> loadAndFilterOrgScopedCourses(
+            Set<UUID> teacherIds,
+            String status,
+            String search,
+            UUID categoryId,
+            Instant fromInstant,
+            Instant toInstant,
+            PageRequest pageable
+    ) {
+        List<Course> matchingCourses = new ArrayList<>();
+        int currentPage = 0;
+
+        while (true) {
+            PageRequest batchPageable = PageRequest.of(currentPage, 200, pageable.getSort());
+            Page<Course> batch = queryOrgScopedCourses(teacherIds, status, search, batchPageable);
+            matchingCourses.addAll(batch.getContent());
+            if (!batch.hasNext()) {
+                break;
+            }
+            currentPage++;
+        }
+
+        List<Course> filtered = applyAdvancedFilters(matchingCourses, categoryId, fromInstant, toInstant);
+        return paginateCourses(filtered, pageable);
+    }
+
+    private List<Course> applyAdvancedFilters(List<Course> courses, UUID categoryId, Instant fromInstant, Instant toInstant) {
+        boolean hasCategoryFilter = categoryId != null;
+        boolean hasDateFilter = fromInstant != null || toInstant != null;
+        if (!hasCategoryFilter && !hasDateFilter) {
+            return courses;
+        }
+
+        return courses.stream()
+                .filter(c -> !hasCategoryFilter || categoryId.equals(c.getCategoryId()))
+                .filter(c -> fromInstant == null || (c.getCreatedAt() != null && !c.getCreatedAt().isBefore(fromInstant)))
+                .filter(c -> toInstant == null || (c.getCreatedAt() != null && !c.getCreatedAt().isAfter(toInstant)))
                 .collect(Collectors.toList());
-        return new PageImpl<>(filtered, courses.getPageable(), filtered.size());
+    }
+
+    private Page<Course> paginateCourses(List<Course> courses, PageRequest pageable) {
+        int start = (int) pageable.getOffset();
+        if (start >= courses.size()) {
+            return new PageImpl<>(List.of(), pageable, courses.size());
+        }
+        int end = Math.min(start + pageable.getPageSize(), courses.size());
+        return new PageImpl<>(courses.subList(start, end), pageable, courses.size());
+    }
+
+    private Map<UUID, String> resolveSubmittedAtMap(List<UUID> courseIds) {
+        if (courseIds == null || courseIds.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<UUID, String> submittedAtMap = new HashMap<>();
+        for (CourseReviewEventJpaEntity event : reviewEventRepository.findByCourseIdInOrderByCreatedAtDesc(courseIds)) {
+            if (!isSubmissionAction(event.getAction()) || submittedAtMap.containsKey(event.getCourseId())) {
+                continue;
+            }
+            submittedAtMap.put(event.getCourseId(), event.getCreatedAt() != null ? event.getCreatedAt().toString() : null);
+        }
+        return submittedAtMap;
+    }
+
+    private String resolveSubmittedAt(UUID courseId) {
+        return reviewEventRepository.findByCourseIdOrderByCreatedAtDesc(courseId).stream()
+                .filter(event -> isSubmissionAction(event.getAction()))
+                .map(event -> event.getCreatedAt() != null ? event.getCreatedAt().toString() : null)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private boolean isSubmissionAction(String action) {
+        return "SUBMITTED".equalsIgnoreCase(action) || "RESUBMITTED".equalsIgnoreCase(action);
+    }
+
+    private CourseAdminResponse buildCourseAdminResponse(
+            Course course,
+            String teacherName,
+            String teacherEmail,
+            String categoryName,
+            int enrolledCount,
+            String submittedAt
+    ) {
+        String reviewState = resolveReviewState(course);
+        return CourseAdminResponse.builder()
+                .id(course.getId().toString())
+                .code(course.getCode() != null ? course.getCode().getValue() : null)
+                .title(course.getTitle())
+                .description(course.getDescription())
+                .category(categoryName)
+                .price(course.getPrice() != null ? course.getPrice().doubleValue() : null)
+                .thumbnail(course.getThumbnailUrl())
+                .status(course.getStatus().name().toLowerCase(Locale.ROOT))
+                .reviewState(reviewState)
+                .draftChangeStatus(resolveDraftChangeStatus(course))
+                .pendingReleaseNotes(course.getPendingReleaseNotes())
+                .teacherId(course.getTeacherId() != null ? course.getTeacherId().toString() : null)
+                .teacherName(teacherName)
+                .teacherEmail(teacherEmail)
+                .enrolledCount(enrolledCount)
+                .sectionsCount(course.getChapterCount())
+                .lessonsCount(course.getTotalLessonCount())
+                .submittedAt(submittedAt)
+                .rejectionReason(isRejectedReviewState(reviewState) ? course.getReviewComment() : null)
+                .reviewComment(course.getReviewComment())
+                .createdAt(course.getCreatedAt() != null ? course.getCreatedAt().toString() : null)
+                .updatedAt(course.getUpdatedAt() != null ? course.getUpdatedAt().toString() : null)
+                .approvedAt(course.getReviewedAt() != null ? course.getReviewedAt().toString() : null)
+                .build();
+    }
+
+    private String resolveReviewState(Course course) {
+        if (course.getStatus() != Course.CourseStatus.APPROVED) {
+            return course.getStatus().name().toLowerCase(Locale.ROOT);
+        }
+        return switch (course.getDraftChangeStatus()) {
+            case PENDING_REVIEW -> "pending_changes";
+            case CHANGES_REQUESTED -> "changes_requested";
+            case DRAFT -> "draft_changes";
+            case NONE -> "approved";
+        };
+    }
+
+    private String resolveDraftChangeStatus(Course course) {
+        if (course.getDraftChangeStatus() == null || course.getDraftChangeStatus() == Course.DraftChangeStatus.NONE) {
+            return null;
+        }
+        return course.getDraftChangeStatus().name().toLowerCase(Locale.ROOT);
+    }
+
+    private boolean isRejectedReviewState(String reviewState) {
+        return "rejected".equals(reviewState) || "changes_requested".equals(reviewState);
     }
 
     /**
@@ -655,6 +780,9 @@ public class AdminCoursesControllerV3 {
         private Double price;
         private String thumbnail;
         private String status;
+        private String reviewState;
+        private String draftChangeStatus;
+        private String pendingReleaseNotes;
         private String teacherId;
         private String teacherName;
         private String teacherEmail;

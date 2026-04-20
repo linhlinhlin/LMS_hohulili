@@ -81,7 +81,7 @@ public class QuestionControllerV3 {
     // ============== Endpoints ==============
 
     @GetMapping("/my-questions")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Get questions created by current user")
     public ResponseEntity<ApiResponse<List<QuestionSummaryResponse>>> getMyQuestions(
             @AuthenticationPrincipal UserJpaEntity currentUser) {
@@ -96,7 +96,7 @@ public class QuestionControllerV3 {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Transactional(readOnly = true)
     @Operation(summary = "Get question by ID")
     public ResponseEntity<ApiResponse<QuestionDetailResponse>> getQuestionById(
@@ -110,7 +110,7 @@ public class QuestionControllerV3 {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Update question by ID")
     public ResponseEntity<ApiResponse<Map<String, Object>>> updateQuestion(
             @PathVariable UUID id,
@@ -139,7 +139,7 @@ public class QuestionControllerV3 {
     ) {}
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Transactional
     @Operation(summary = "Delete question by ID")
     public ResponseEntity<ApiResponse<Map<String, String>>> deleteQuestion(
@@ -164,7 +164,7 @@ public class QuestionControllerV3 {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Create a new question")
     public ResponseEntity<ApiResponse<UUID>> createQuestion(
             @AuthenticationPrincipal UserJpaEntity currentUser,
@@ -328,7 +328,7 @@ public class QuestionControllerV3 {
     // ===================== EXCEL IMPORT =====================
 
     @PostMapping("/import/excel")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Import questions from Excel file")
     public ResponseEntity<ApiResponse<ExcelImportResult>> importFromExcel(
             @AuthenticationPrincipal UserJpaEntity currentUser,
@@ -451,7 +451,7 @@ public class QuestionControllerV3 {
 
     // Step 1: Preview — parse DOCX, upload images, return parsed questions for teacher review
     @PostMapping("/import/docx/preview")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Preview questions from Word file before importing")
     public ResponseEntity<ApiResponse<DocxPreviewResult>> previewDocx(
             @AuthenticationPrincipal UserJpaEntity currentUser,
@@ -536,7 +536,7 @@ public class QuestionControllerV3 {
 
     // Step 2: Confirm — save previewed questions to DB
     @PostMapping("/import/docx/confirm")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Confirm and save previewed DOCX questions")
     public ResponseEntity<ApiResponse<ExcelImportResult>> confirmDocxImport(
             @AuthenticationPrincipal UserJpaEntity currentUser,
@@ -911,8 +911,7 @@ public class QuestionControllerV3 {
     // ============== Ownership Helpers ==============
 
     private boolean isAdminRole(UserJpaEntity user) {
-        return user.getRole() == UserJpaEntity.UserRole.ADMIN
-            || user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
+        return user.getRole() == UserJpaEntity.UserRole.ADMIN;
     }
 
     private void verifyQuestionOwnership(UUID questionId, UserJpaEntity user) {

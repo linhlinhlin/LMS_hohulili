@@ -565,6 +565,16 @@
   font-weight: 600;
 }
 
+.sidebar-org_admin .sidebar-logo {
+  background: #0056D2;
+}
+
+.sidebar-org_admin .nav-item.active {
+  background-color: #EFF6FF;
+  color: #0056D2;
+  font-weight: 600;
+}
+
 /* Active nav label — bold text for visual emphasis */
 .nav-item.active .nav-label,
 .nav-item.force-active .nav-label {

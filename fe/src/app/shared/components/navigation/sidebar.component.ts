@@ -5,6 +5,7 @@ import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { UserRole } from '../../../shared/types/user.types';
 import { IconComponent, IconName } from '../icon/icon.component';
+import { getPortalLandingRoute } from '../../../core/utils/portal-route.util';
 
 export interface SidebarMenuItem {
   label: string;
@@ -79,6 +80,8 @@ export class SidebarComponent implements OnInit, OnDestroy {
     switch (this.config().role) {
       case 'student': return '/student/profile';
       case 'teacher': return '/teacher/profile';
+      case 'org_admin': return getPortalLandingRoute('org_admin');
+      case 'admin': return getPortalLandingRoute('admin');
       default: return '/student/profile';
     }
   });
@@ -134,6 +137,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
       case 'teacher':
         return `${baseClasses} text-[#0056D2]`;
       case 'admin':
+      case 'org_admin':
         return `${baseClasses} text-[#0056D2]`;
       default:
         return `${baseClasses} text-gray-500`;

@@ -42,7 +42,11 @@ export class CourseContentPreviewComponent implements OnInit {
   expandedChapters = signal<Set<number>>(new Set());
   expandedLessons = signal<Set<string>>(new Set());
 
-  isPending = computed(() => this.course()?.status === 'PENDING');
+  workflowStatus = computed(() => (this.course()?.reviewState || this.course()?.status || '').toLowerCase());
+  canReview = computed(() => {
+    const status = this.workflowStatus();
+    return status === 'pending' || status === 'pending_changes';
+  });
 
   totalLessons = computed(() =>
     this.chapters().reduce((sum, ch) => sum + ch.lessons.length, 0)
@@ -181,20 +185,31 @@ export class CourseContentPreviewComponent implements OnInit {
 
   getStatusText(status: string): string {
     const map: Record<string, string> = {
-      'DRAFT': 'Nháp',
-      'PENDING': 'Chờ duyệt',
-      'APPROVED': 'Đã duyệt',
-      'REJECTED': 'Bị từ chối'
+      draft: 'Nháp',
+      pending: 'Chờ duyệt',
+      pending_changes: 'Chờ duyệt cập nhật',
+      approved: 'Đã duyệt',
+      active: 'Đang hoạt động',
+      rejected: 'Bị từ chối',
+      changes_requested: 'Yêu cầu chỉnh sửa',
+      draft_changes: 'Có thay đổi chưa gửi'
     };
-    return map[status] || status;
+    return map[status?.toLowerCase()] || status;
   }
 
   getStatusBadgeClass(status: string): string {
-    switch (status) {
-      case 'APPROVED': return 'badge-approved';
-      case 'PENDING': return 'badge-pending';
-      case 'REJECTED': return 'badge-rejected';
-      default: return 'badge-draft';
+    switch (status?.toLowerCase()) {
+      case 'approved':
+      case 'active':
+        return 'badge-approved';
+      case 'pending':
+      case 'pending_changes':
+        return 'badge-pending';
+      case 'rejected':
+      case 'changes_requested':
+        return 'badge-rejected';
+      default:
+        return 'badge-draft';
     }
   }
 

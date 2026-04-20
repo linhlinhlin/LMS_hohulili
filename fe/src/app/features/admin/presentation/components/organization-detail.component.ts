@@ -22,6 +22,7 @@ export class OrganizationDetailComponent implements OnInit {
   private toast = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
   private readonly authService = inject(AuthService);
+  backRoute = computed(() => this.authService.userRole() === 'admin' ? '/admin/organizations' : '/org-admin/dashboard');
 
   org = signal<Organization | null>(null);
   members = signal<OrgMember[]>([]);
@@ -68,7 +69,12 @@ export class OrganizationDetailComponent implements OnInit {
   private orgId = '';
 
   ngOnInit(): void {
-    this.orgId = this.route.snapshot.paramMap.get('id') || '';
+    this.orgId = this.route.snapshot.paramMap.get('id') || this.authService.currentUser()?.organizationId || '';
+    if (!this.orgId) {
+      this.isLoading.set(false);
+      this.toast.error('Không tìm thấy tổ chức để quản lý');
+      return;
+    }
     this.loadAll();
     this.loadPaymentConfig();
   }

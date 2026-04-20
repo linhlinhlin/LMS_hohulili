@@ -68,7 +68,7 @@ public class AssignmentControllerV3 {
     private final com.example.lms.learning_delivery.infrastructure.persistence.ClassTeacherJpaRepository classTeacherJpaRepository;
 
     @GetMapping("/summary")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Get summary of all assignments for the current teacher")
     public ResponseEntity<ApiResponse<Object>> getTeacherAssignmentsSummary(
             @AuthenticationPrincipal UserJpaEntity user) {
@@ -77,7 +77,7 @@ public class AssignmentControllerV3 {
     }
 
     @GetMapping("/courses/{courseId}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Get assignments for a specific course")
     public ResponseEntity<ApiResponse<Object>> getAssignmentsByCourse(
             @PathVariable UUID courseId,
@@ -88,7 +88,7 @@ public class AssignmentControllerV3 {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Get assignment detail by ID")
     public ResponseEntity<ApiResponse<AssignmentDetail>> getAssignmentById(
             @PathVariable UUID id,
@@ -102,7 +102,7 @@ public class AssignmentControllerV3 {
     }
 
     @GetMapping("/lessons/{lessonId}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Get assignment detail by lesson ID")
     public ResponseEntity<ApiResponse<AssignmentDetail>> getAssignmentByLessonId(
             @PathVariable UUID lessonId,
@@ -123,7 +123,7 @@ public class AssignmentControllerV3 {
     }
 
     @PostMapping("/courses/{courseId}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Create new assignment")
     public ResponseEntity<ApiResponse<AssignmentDetail>> createAssignment(
             @PathVariable UUID courseId,
@@ -168,7 +168,7 @@ public class AssignmentControllerV3 {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Update assignment")
     public ResponseEntity<ApiResponse<AssignmentDetail>> updateAssignment(
             @PathVariable UUID id,
@@ -208,7 +208,7 @@ public class AssignmentControllerV3 {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Delete assignment")
     public ResponseEntity<ApiResponse<Void>> deleteAssignment(
             @PathVariable UUID id,
@@ -495,8 +495,7 @@ public class AssignmentControllerV3 {
     }
 
     private boolean isAdminRole(UserJpaEntity user) {
-        return user.getRole() == UserJpaEntity.UserRole.ADMIN
-                || user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
+        return user.getRole() == UserJpaEntity.UserRole.ADMIN;
     }
 
     private void verifyCourseOwnership(UUID courseId, UserJpaEntity user) {

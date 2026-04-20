@@ -21,7 +21,7 @@ import java.util.*;
 @Tag(name = "Teacher - Invitations", description = "Course collaboration invitation management")
 @RestController
 @RequestMapping("/api/v3/teacher/invitations")
-@PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+@PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
 @RequiredArgsConstructor
 public class TeacherInvitationControllerV3 {
 

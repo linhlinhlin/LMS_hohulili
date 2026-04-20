@@ -77,6 +77,44 @@ public class CourseRepositoryImpl implements CourseRepository {
     }
 
     @Override
+    public Page<Course> findByTeacherIds(Set<UUID> teacherIds, Pageable pageable) {
+        if (teacherIds == null || teacherIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        return jpaRepository.findByTeacherIdIn(teacherIds, pageable)
+                .map(mapper::toDomain);
+    }
+
+    @Override
+    public Page<Course> findByTeacherIdsAndStatus(Set<UUID> teacherIds, Course.CourseStatus status, Pageable pageable) {
+        if (teacherIds == null || teacherIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        CourseJpaEntity.CourseStatus entityStatus = mapStatusToEntity(status);
+        return jpaRepository.findByTeacherIdInAndStatus(teacherIds, entityStatus, pageable)
+                .map(mapper::toDomain);
+    }
+
+    @Override
+    public Page<Course> findByTeacherIdsAndTitleContaining(Set<UUID> teacherIds, String search, Pageable pageable) {
+        if (teacherIds == null || teacherIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        return jpaRepository.findByTeacherIdInAndTitleContaining(teacherIds, search, pageable)
+                .map(mapper::toDomain);
+    }
+
+    @Override
+    public Page<Course> findByTeacherIdsAndStatusAndTitleContaining(Set<UUID> teacherIds, Course.CourseStatus status, String search, Pageable pageable) {
+        if (teacherIds == null || teacherIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        CourseJpaEntity.CourseStatus entityStatus = mapStatusToEntity(status);
+        return jpaRepository.findByTeacherIdInAndStatusAndTitleContaining(teacherIds, entityStatus, search, pageable)
+                .map(mapper::toDomain);
+    }
+
+    @Override
     public Page<Course> findApproved(Pageable pageable) {
         return jpaRepository.findByStatus(CourseJpaEntity.CourseStatus.APPROVED, pageable)
                 .map(mapper::toDomain);
@@ -96,6 +134,20 @@ public class CourseRepositoryImpl implements CourseRepository {
     }
 
     @Override
+    public Page<Course> findReviewQueue(Pageable pageable) {
+        return jpaRepository.findReviewQueue(pageable).map(mapper::toDomain);
+    }
+
+    @Override
+    public Page<Course> findReviewQueueByTeacherIds(Set<UUID> teacherIds, Pageable pageable) {
+        if (teacherIds == null || teacherIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        return jpaRepository.findReviewQueueByTeacherIdIn(teacherIds, pageable)
+                .map(mapper::toDomain);
+    }
+
+    @Override
     public long countByTeacherId(UUID teacherId) {
         return jpaRepository.countByTeacherId(teacherId);
     }
@@ -104,6 +156,17 @@ public class CourseRepositoryImpl implements CourseRepository {
     public long countByStatus(Course.CourseStatus status) {
         CourseJpaEntity.CourseStatus entityStatus = mapStatusToEntity(status);
         return jpaRepository.countByStatus(entityStatus);
+    }
+
+    @Override
+    public long countReviewQueue() {
+        return jpaRepository.countReviewQueue();
+    }
+
+    @Override
+    public long countReviewQueueByTeacherIds(Set<UUID> teacherIds) {
+        if (teacherIds == null || teacherIds.isEmpty()) return 0;
+        return jpaRepository.countReviewQueueByTeacherIdIn(teacherIds);
     }
 
     @Override

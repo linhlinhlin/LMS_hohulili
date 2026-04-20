@@ -6,6 +6,7 @@ import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } f
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { getAdminPortalBase } from '../../../../core/utils/portal-route.util';
 
 /**
  * Student Management Component
@@ -33,6 +34,7 @@ export class StudentManagementComponent implements OnInit {
   private authService = inject(AuthService);
 
   isSystemAdmin = computed(() => this.authService.userRole() === 'admin');
+  courseSearchRoute = computed(() => `${getAdminPortalBase(this.authService.userRole())}/courses`);
 
   // State
   allUsers = signal<AdminUser[]>([]);
@@ -169,6 +171,11 @@ export class StudentManagementComponent implements OnInit {
   }
 
   async deleteUser(userId: string) {
+    if (!this.isSystemAdmin()) {
+      this.toast.warning('Chỉ quản trị hệ thống mới có thể vô hiệu hóa tài khoản học viên.');
+      return;
+    }
+
     const confirmed = await this.confirmDialog.confirm({
       title: 'Vô hiệu hóa tài khoản',
       message: 'Bạn có chắc muốn vô hiệu hóa tài khoản này?',
@@ -223,7 +230,12 @@ export class StudentManagementComponent implements OnInit {
    * This provides 100% course details: chapters, lessons, students, quiz, etc.
    */
   openFullCourseView(courseId: string): void {
-    window.open(`/teacher/courses/${courseId}/editor`, '_blank');
+    if (this.isSystemAdmin()) {
+      window.open(`/teacher/courses/${courseId}/editor`, '_blank');
+      return;
+    }
+
+    window.open(`${getAdminPortalBase(this.authService.userRole())}/courses/${courseId}/preview`, '_blank');
   }
 
   // Helpers
@@ -278,4 +290,3 @@ export class StudentManagementComponent implements OnInit {
     }
   }
 }
-

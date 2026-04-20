@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { MegaMenuComponent } from './mega-menu/mega-menu.component';
 import { AuthService } from '../../../core/services/auth.service';
 import { ApiClient } from '../../../api/client/api-client';
+import { getPortalLandingRoute } from '../../../core/utils/portal-route.util';
 
 interface SearchResult {
   id: string;
@@ -79,18 +80,15 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
   }
 
   getDashboardRoute(): string {
-    const role = this.userRole();
-    switch (role) {
-      case 'admin': return '/admin/dashboard';
-      case 'teacher': return '/teacher/courses';
-      default: return '/student/courses';
-    }
+    return getPortalLandingRoute(this.userRole());
   }
 
   getMyCoursesRoute(): string {
     const role = this.userRole();
     switch (role) {
       case 'teacher': return '/teacher/courses/library';
+      case 'admin': return '/admin/courses';
+      case 'org_admin': return '/org-admin/courses';
       default: return '/student/courses/library';
     }
   }

@@ -1,16 +1,17 @@
 # Runbooks
 
-Runbook là tài liệu thao tác thực chiến.
+Runbooks are operational documents for real execution and incident response.
 
-Đọc nhóm này khi cần:
+Read this folder when the team needs to:
 
-- biết sau deploy phải smoke test gì
-- reset PWA / service worker ra sao
-- xử lý stale package, refresh package, và sync conflict
-- kiểm tra learner flow, payment flow, và rollout publication
+- run deploy and smoke checklists
+- validate production-like user flows
+- recover PWA or offline storage problems
+- roll out media, payment, or auth changes safely
 
-## Runbook hiện có
+## Current runbooks
 
+- `GOOGLE_LOGIN_GIS_SETUP_RUNBOOK.md`
 - `PRODUCTION_SMOKE_TEST.md`
 - `DEDICATED_VIDEO_WORKER_RUNBOOK.md`
 - `CLOUDFLARE_R2_VIDEO_SETUP.md`
@@ -24,9 +25,14 @@ Runbook là tài liệu thao tác thực chiến.
 - `PAYMENT_PAYOUT_RUNBOOK.md`
 - `LEARNER_FLOW_RUNBOOK.md`
 
-## Cách đọc theo thứ tự
+## Suggested reading order
 
-Nếu team đang làm publication / PWA / offline:
+If the team is rolling out Google login:
+
+1. `GOOGLE_LOGIN_GIS_SETUP_RUNBOOK.md`
+2. `PRODUCTION_SMOKE_TEST.md`
+
+If the team is working on publication, PWA, or offline:
 
 1. `PHASE_B_PUBLICATION_PWA_CHECKLIST.md`
 2. `PWA_OFFLINE_RUNBOOK.md`
@@ -34,16 +40,16 @@ Nếu team đang làm publication / PWA / offline:
 4. `PUBLICATION_REFRESH_RUNBOOK.md`
 5. `SYNC_CONFLICT_RUNBOOK.md`
 
-Nếu team đang kiểm tra production tổng quát:
+If the team is doing general production validation:
 
 1. `PRODUCTION_SMOKE_TEST.md`
-2. runbook theo luồng cụ thể
+2. the runbook for the specific surface being changed
 
-Nếu team đang rollout hoặc kiểm tra video production:
+If the team is rolling out or debugging production video:
 
 1. `CLOUDFLARE_R2_VIDEO_SETUP.md`
 2. `VIDEO_R2_SHAKA_CUTOVER_CHECKLIST.md`
-3. `DEDICATED_VIDEO_WORKER_RUNBOOK.md` nếu muốn tách ingest khỏi app VM
-4. `CLOUDFLARE_MEDIA_DOMAIN_EDGE_AUTH_RUNBOOK.md` nếu muốn scale concurrent playback
+3. `DEDICATED_VIDEO_WORKER_RUNBOOK.md` when ingest is separated from the app VM
+4. `CLOUDFLARE_MEDIA_DOMAIN_EDGE_AUTH_RUNBOOK.md` when scaling playback concurrency
 5. `PRODUCTION_SMOKE_TEST.md`
-6. `PUBLICATION_REFRESH_RUNBOOK.md` nếu video mới được gắn vào course đã `APPROVED`
+6. `PUBLICATION_REFRESH_RUNBOOK.md` when new media is attached to an already approved course

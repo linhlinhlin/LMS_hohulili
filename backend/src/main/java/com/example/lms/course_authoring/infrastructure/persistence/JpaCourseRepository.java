@@ -38,6 +38,50 @@ public interface JpaCourseRepository extends JpaRepository<CourseJpaEntity, UUID
            countQuery = "SELECT COUNT(c) FROM CourseJpaEntity c WHERE c.teacherId = :teacherId")
     Page<CourseJpaEntity> findByTeacherId(@Param("teacherId") UUID teacherId, Pageable pageable);
 
+    @Query(value = "SELECT c FROM CourseJpaEntity c WHERE c.teacherId IN :teacherIds",
+           countQuery = "SELECT COUNT(c) FROM CourseJpaEntity c WHERE c.teacherId IN :teacherIds")
+    Page<CourseJpaEntity> findByTeacherIdIn(@Param("teacherIds") Collection<UUID> teacherIds, Pageable pageable);
+
+    @Query(value = "SELECT c FROM CourseJpaEntity c WHERE c.teacherId IN :teacherIds AND c.status = :status",
+           countQuery = "SELECT COUNT(c) FROM CourseJpaEntity c WHERE c.teacherId IN :teacherIds AND c.status = :status")
+    Page<CourseJpaEntity> findByTeacherIdInAndStatus(
+            @Param("teacherIds") Collection<UUID> teacherIds,
+            @Param("status") CourseJpaEntity.CourseStatus status,
+            Pageable pageable);
+
+    @Query(value = """
+        SELECT c FROM CourseJpaEntity c
+        WHERE c.teacherId IN :teacherIds
+          AND LOWER(c.title) LIKE LOWER(CONCAT('%', :search, '%'))
+        """,
+           countQuery = """
+        SELECT COUNT(c) FROM CourseJpaEntity c
+        WHERE c.teacherId IN :teacherIds
+          AND LOWER(c.title) LIKE LOWER(CONCAT('%', :search, '%'))
+        """)
+    Page<CourseJpaEntity> findByTeacherIdInAndTitleContaining(
+            @Param("teacherIds") Collection<UUID> teacherIds,
+            @Param("search") String search,
+            Pageable pageable);
+
+    @Query(value = """
+        SELECT c FROM CourseJpaEntity c
+        WHERE c.teacherId IN :teacherIds
+          AND c.status = :status
+          AND LOWER(c.title) LIKE LOWER(CONCAT('%', :search, '%'))
+        """,
+           countQuery = """
+        SELECT COUNT(c) FROM CourseJpaEntity c
+        WHERE c.teacherId IN :teacherIds
+          AND c.status = :status
+          AND LOWER(c.title) LIKE LOWER(CONCAT('%', :search, '%'))
+        """)
+    Page<CourseJpaEntity> findByTeacherIdInAndStatusAndTitleContaining(
+            @Param("teacherIds") Collection<UUID> teacherIds,
+            @Param("status") CourseJpaEntity.CourseStatus status,
+            @Param("search") String search,
+            Pageable pageable);
+
     /**
      * Returns courses where user is either the owner OR a co-teacher (via class_teachers).
      * Used for teacher dashboard — Google Classroom pattern: co-teachers see courses in the same list.
@@ -67,6 +111,40 @@ public interface JpaCourseRepository extends JpaRepository<CourseJpaEntity, UUID
     Page<CourseJpaEntity> findByTeacherIdIncludingCoTeaching(@Param("teacherId") UUID teacherId, Pageable pageable);
 
     Page<CourseJpaEntity> findByStatus(CourseJpaEntity.CourseStatus status, Pageable pageable);
+
+    @Query(value = """
+  SELECT * FROM courses c
+  WHERE c.status = 'PENDING'
+     OR (c.status = 'APPROVED' AND c.draft_change_status = 'PENDING_REVIEW')
+  ORDER BY c.updated_at DESC, c.created_at DESC
+  """,
+           countQuery = """
+        SELECT COUNT(*) FROM courses c
+        WHERE c.status = 'PENDING'
+           OR (c.status = 'APPROVED' AND c.draft_change_status = 'PENDING_REVIEW')
+        """,
+           nativeQuery = true)
+    Page<CourseJpaEntity> findReviewQueue(Pageable pageable);
+
+    @Query(value = """
+        SELECT * FROM courses c
+  WHERE c.teacher_id IN (:teacherIds)
+    AND (
+        c.status = 'PENDING'
+        OR (c.status = 'APPROVED' AND c.draft_change_status = 'PENDING_REVIEW')
+    )
+  ORDER BY c.updated_at DESC, c.created_at DESC
+  """,
+           countQuery = """
+        SELECT COUNT(*) FROM courses c
+        WHERE c.teacher_id IN (:teacherIds)
+          AND (
+              c.status = 'PENDING'
+              OR (c.status = 'APPROVED' AND c.draft_change_status = 'PENDING_REVIEW')
+          )
+        """,
+           nativeQuery = true)
+    Page<CourseJpaEntity> findReviewQueueByTeacherIdIn(@Param("teacherIds") Collection<UUID> teacherIds, Pageable pageable);
 
     @Query(value = "SELECT * FROM courses c WHERE c.status = :status AND unaccent(LOWER(c.title)) LIKE unaccent(LOWER(CONCAT('%', :search, '%')))", nativeQuery = true)
     Page<CourseJpaEntity> findByStatusAndTitleContaining(
@@ -107,6 +185,23 @@ public interface JpaCourseRepository extends JpaRepository<CourseJpaEntity, UUID
 
     @Query("SELECT COUNT(c) FROM CourseJpaEntity c WHERE c.status = :status AND c.teacherId IN :teacherIds")
     long countByStatusAndTeacherIdIn(@Param("status") CourseJpaEntity.CourseStatus status, @Param("teacherIds") Collection<UUID> teacherIds);
+
+    @Query(value = """
+        SELECT COUNT(*) FROM courses c
+        WHERE c.status = 'PENDING'
+           OR (c.status = 'APPROVED' AND c.draft_change_status = 'PENDING_REVIEW')
+        """, nativeQuery = true)
+    long countReviewQueue();
+
+    @Query(value = """
+        SELECT COUNT(*) FROM courses c
+        WHERE c.teacher_id IN (:teacherIds)
+          AND (
+              c.status = 'PENDING'
+              OR (c.status = 'APPROVED' AND c.draft_change_status = 'PENDING_REVIEW')
+          )
+        """, nativeQuery = true)
+    long countReviewQueueByTeacherIdIn(@Param("teacherIds") Collection<UUID> teacherIds);
 
     @Query("SELECT c.id FROM CourseJpaEntity c WHERE c.teacherId IN :teacherIds")
     List<UUID> findCourseIdsByTeacherIdIn(@Param("teacherIds") Collection<UUID> teacherIds);

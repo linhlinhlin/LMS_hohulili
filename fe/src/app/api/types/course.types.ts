@@ -72,6 +72,9 @@ export interface CourseDetail {
   title: string;
   description: string;
   status: string;
+  reviewState?: string;
+  draftChangeStatus?: string | null;
+  pendingReleaseNotes?: string | null;
   teacherId: string;
   teacherName: string;
   enrolledCount: number;

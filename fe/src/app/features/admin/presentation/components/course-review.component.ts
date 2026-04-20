@@ -1,13 +1,18 @@
-import { Component, signal, inject, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AdminService, AdminCourseSummary, PendingCourseSummary, ReviewEvent } from '../../infrastructure/services/admin.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
+import { AuthService } from '../../../../core/services/auth.service';
+import { getAdminPortalBase } from '../../../../core/utils/portal-route.util';
 
-// Union type for courses that can be either pending or full course summary
-type CourseListItem = AdminCourseSummary | (PendingCourseSummary & { status: string });
+type ReviewableCourseState =
+  | Pick<AdminCourseSummary, 'status' | 'reviewState'>
+  | Pick<PendingCourseSummary, 'status' | 'reviewState'>;
+
+type CourseListItem = AdminCourseSummary | PendingCourseSummary;
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -21,34 +26,31 @@ export class CourseReviewComponent implements OnInit {
   private router = inject(Router);
   private toast = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
-  
+  private authService = inject(AuthService);
+
   courses = signal<CourseListItem[]>([]);
   loading = signal(false);
   error = signal('');
   searchKeyword = '';
   statusFilter = 'PENDING';
-  
-  // Pagination
+
   currentPage = 1;
   pageSize = 10;
   totalItems = 0;
-  
+
   approving = signal<string | null>(null);
   rejecting = signal(false);
   rejectModalOpen = signal(false);
   rejectComment = '';
   selectedCourse: CourseListItem | null = null;
-  
-  // Course detail modal
+
   detailModalOpen = signal(false);
   courseDetails: any = null;
   loadingDetails = signal(false);
 
-  // Review history
   reviewHistory = signal<ReviewEvent[]>([]);
   loadingHistory = signal(false);
 
-  // Content preview
   showPreview = signal(false);
   previewContent$ = signal<any[]>([]);
   loadingPreview = signal(false);
@@ -60,40 +62,22 @@ export class CourseReviewComponent implements OnInit {
   loadCourses() {
     this.loading.set(true);
     this.error.set('');
-    
-    const params: any = {
-      page: this.currentPage - 1, // Backend uses 0-based indexing
+
+    const params: Record<string, unknown> = {
+      page: this.currentPage - 1,
       size: this.pageSize
     };
-    
+
     if (this.searchKeyword.trim()) {
-      params.search = this.searchKeyword.trim();
+      params['search'] = this.searchKeyword.trim();
     }
-    
+
     if (this.statusFilter) {
-      params.status = this.statusFilter;
+      params['status'] = this.statusFilter;
     }
-    
-    // Use appropriate endpoint based on filter
+
     if (this.statusFilter === 'PENDING') {
       this.adminService.getPendingCourses(params).subscribe({
-        next: (response) => {
-          // Add status field to pending courses
-          const coursesWithStatus = (response.data || []).map(course => ({
-            ...course,
-            status: 'PENDING'
-          }));
-          this.courses.set(coursesWithStatus);
-          this.totalItems = response.pagination?.totalElements || response.pagination?.totalItems || 0;
-          this.loading.set(false);
-        },
-        error: (err: any) => {
-          this.error.set('Không thể tải danh sách khóa học. Vui lòng thử lại.');
-          this.loading.set(false);
-        }
-      });
-    } else {
-      this.adminService.getAllCourses(params).subscribe({
         next: (response) => {
           this.courses.set(response.data || []);
           this.totalItems = response.pagination?.totalElements || response.pagination?.totalItems || 0;
@@ -104,11 +88,24 @@ export class CourseReviewComponent implements OnInit {
           this.loading.set(false);
         }
       });
+      return;
     }
+
+    this.adminService.getAllCourses(params).subscribe({
+      next: (response) => {
+        this.courses.set(response.data || []);
+        this.totalItems = response.pagination?.totalElements || response.pagination?.totalItems || 0;
+        this.loading.set(false);
+      },
+      error: () => {
+        this.error.set('Không thể tải danh sách khóa học. Vui lòng thử lại.');
+        this.loading.set(false);
+      }
+    });
   }
 
   previewContent(courseId: string) {
-    this.router.navigate(['/admin/courses', courseId, 'preview']);
+    this.router.navigateByUrl(`${getAdminPortalBase(this.authService.userRole())}/courses/${courseId}/preview`);
   }
 
   viewDetails(course: CourseListItem) {
@@ -136,49 +133,61 @@ export class CourseReviewComponent implements OnInit {
 
   getActionText(action: string): string {
     const map: Record<string, string> = {
-      'SUBMITTED': 'Gửi duyệt',
-      'APPROVED': 'Phê duyệt',
-      'REJECTED': 'Từ chối',
-      'REVOKED': 'Thu hồi',
-      'CHANGES_REQUESTED': 'Yêu cầu sửa',
-      'RESUBMITTED': 'Gửi lại'
+      SUBMITTED: 'Gửi duyệt',
+      APPROVED: 'Phê duyệt',
+      REJECTED: 'Từ chối',
+      REVOKED: 'Thu hồi',
+      CHANGES_REQUESTED: 'Yêu cầu sửa',
+      RESUBMITTED: 'Gửi lại'
     };
     return map[action] || action;
   }
 
   getActionColor(action: string): string {
     const map: Record<string, string> = {
-      'SUBMITTED': 'text-blue-600',
-      'APPROVED': 'text-green-600',
-      'REJECTED': 'text-red-600',
-      'REVOKED': 'text-orange-600',
-      'CHANGES_REQUESTED': 'text-amber-600',
-      'RESUBMITTED': 'text-blue-600'
+      SUBMITTED: 'text-blue-600',
+      APPROVED: 'text-green-600',
+      REJECTED: 'text-red-600',
+      REVOKED: 'text-orange-600',
+      CHANGES_REQUESTED: 'text-amber-600',
+      RESUBMITTED: 'text-blue-600'
     };
     return map[action] || 'text-gray-600';
   }
 
   formatDateTime(dateStr: string): string {
-    if (!dateStr) return '';
+    if (!dateStr) {
+      return '';
+    }
     const d = new Date(dateStr);
-    return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   }
-  
+
   closeDetailModal() {
     this.detailModalOpen.set(false);
     this.courseDetails = null;
     this.selectedCourse = null;
   }
-  
+
   approveCourseFromModal() {
-    if (!this.courseDetails) return;
+    if (!this.courseDetails) {
+      return;
+    }
     const courseId = this.courseDetails.id;
-    this.closeDetailModal(); // Đóng modal trước khi approve
+    this.closeDetailModal();
     this.approveCourse(courseId);
   }
-  
+
   showRejectModalFromDetail() {
-    if (!this.courseDetails) return;
+    if (!this.courseDetails) {
+      return;
+    }
     const course = this.courseDetails;
     this.closeDetailModal();
     this.showRejectModal(course);
@@ -191,7 +200,9 @@ export class CourseReviewComponent implements OnInit {
       confirmText: 'Duyệt',
       variant: 'warning'
     });
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     this.approving.set(id);
     this.adminService.approveCourse(id).subscribe({
@@ -252,36 +263,87 @@ export class CourseReviewComponent implements OnInit {
 
   getStatusText(status: string): string {
     const map: Record<string, string> = {
-      'DRAFT': 'Nháp',
-      'PENDING': 'Chờ duyệt',
-      'APPROVED': 'Đã duyệt',
-      'REJECTED': 'Bị từ chối'
+      DRAFT: 'Nháp',
+      PENDING: 'Chờ duyệt',
+      APPROVED: 'Đã duyệt',
+      REJECTED: 'Bị từ chối'
     };
     return map[status] || status;
   }
-  
+
+  getWorkflowStatus(course: ReviewableCourseState): string {
+    return (course.reviewState || course.status || '').toLowerCase();
+  }
+
+  getCourseStatusText(course: ReviewableCourseState): string {
+    const status = this.getWorkflowStatus(course);
+    switch (status) {
+      case 'pending':
+        return 'Chờ duyệt';
+      case 'pending_changes':
+        return 'Chờ duyệt cập nhật';
+      case 'approved':
+        return 'Đã duyệt';
+      case 'active':
+        return 'Đang hoạt động';
+      case 'rejected':
+        return 'Bị từ chối';
+      case 'changes_requested':
+        return 'Yêu cầu chỉnh sửa';
+      case 'draft_changes':
+        return 'Có thay đổi chưa gửi';
+      case 'draft':
+        return 'Nháp';
+      default:
+        return 'Không xác định';
+    }
+  }
+
+  getCourseStatusClass(course: ReviewableCourseState): string {
+    const status = this.getWorkflowStatus(course);
+    switch (status) {
+      case 'pending':
+      case 'pending_changes':
+        return 'status-badge status-pending';
+      case 'approved':
+      case 'active':
+        return 'status-badge status-approved';
+      case 'rejected':
+      case 'changes_requested':
+        return 'status-badge status-rejected';
+      default:
+        return 'status-badge status-draft';
+    }
+  }
+
+  canReviewCourse(course: ReviewableCourseState): boolean {
+    const status = this.getWorkflowStatus(course);
+    return status === 'pending' || status === 'pending_changes';
+  }
+
   getDisplayEnd(): number {
     return Math.min(this.currentPage * this.pageSize, this.totalItems);
   }
 
-  // Pagination methods
   get totalPages(): number {
     return Math.ceil(this.totalItems / this.pageSize);
   }
-  
+
   goToPage(page: number) {
-    if (page < 1 || page > this.totalPages) return;
+    if (page < 1 || page > this.totalPages) {
+      return;
+    }
     this.currentPage = page;
     this.loadCourses();
   }
-  
+
   nextPage() {
     if (this.currentPage < this.totalPages) {
       this.currentPage++;
       this.loadCourses();
     }
   }
-  
+
   previousPage() {
     if (this.currentPage > 1) {
       this.currentPage--;

@@ -1,9 +1,11 @@
-import { Component, input, output, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, input, output, computed, ChangeDetectionStrategy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { SystemAnalytics } from '../../../infrastructure/services/admin.service';
 import { RevenueChartComponent, RevenueData } from './components/revenue-chart.component';
 import { PendingApproval } from './dashboard.types';
+import { AuthService } from '../../../../../core/services/auth.service';
+import { getAdminPortalBase } from '../../../../../core/utils/portal-route.util';
 
 @Component({
   selector: 'app-admin-org-dashboard',
@@ -13,6 +15,8 @@ import { PendingApproval } from './dashboard.types';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AdminOrgDashboardComponent {
+  private authService = inject(AuthService);
+
   // --- Inputs from parent ---
   analytics = input.required<SystemAnalytics>();
   pendingApprovals = input.required<PendingApproval[]>();
@@ -27,6 +31,7 @@ export class AdminOrgDashboardComponent {
   pendingCount = computed(() => this.analytics().pendingCourses);
   newStudentsThisMonth = computed(() => this.analytics().userGrowth?.thisMonth || 0);
   activeCourseCount = computed(() => this.analytics().approvedCourses);
+  portalBase = computed(() => getAdminPortalBase(this.authService.userRole()));
 
   enrollmentTrendData = computed<RevenueData>(() => {
     const dailyAvg = (this.analytics().totalEnrollments || 0) / 30;
@@ -49,7 +54,7 @@ export class AdminOrgDashboardComponent {
   }
 
   rejectCourse(courseId: string): void {
-    const reason = prompt('Nhập lý do từ chối khóa học:');
+    const reason = window.prompt('Nhập lý do từ chối khóa học:');
     if (reason?.trim()) {
       this.courseRejected.emit({ id: courseId, reason: reason.trim() });
     }

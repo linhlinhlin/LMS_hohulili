@@ -74,7 +74,7 @@ public class CourseTagControllerV3 {
 
     @Operation(summary = "Set course tags (max 5)")
     @PutMapping("/courses/{courseId}/tags")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<ApiResponse<Void>> setCourseTags(@PathVariable UUID courseId, @RequestBody Set<UUID> tagIds) {
         assignUseCase.setTags(courseId, tagIds);
         return ResponseEntity.ok(ApiResponse.success(null, "Da cap nhat tags"));

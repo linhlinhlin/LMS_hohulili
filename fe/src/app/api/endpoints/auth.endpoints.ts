@@ -1,5 +1,8 @@
 export const AUTH_ENDPOINTS = {
   LOGIN: '/api/v3/auth/login',
+  LOOKUP: '/api/v3/auth/lookup',
+  GOOGLE_LOGIN: '/api/v3/auth/google',
+  GOOGLE_CONFIG: '/api/v3/auth/google/config',
   REGISTER: '/api/v3/auth/register',
   LOGOUT: '/api/v3/auth/logout',
   REFRESH: '/api/v3/auth/refresh',

@@ -49,11 +49,11 @@ management:
 logging:
   level:
     root: INFO
-    com.example.lms: DEBUG
-    org.hibernate.SQL: debug
-    org.hibernate.orm.jdbc.bind: trace
-    org.springframework.orm.jpa: DEBUG
-    org.springframework.transaction: DEBUG
+    com.example.lms: ${LOGGING_LEVEL_COM_EXAMPLE_LMS:INFO}
+    org.hibernate.SQL: ${LOGGING_LEVEL_ORG_HIBERNATE_SQL:WARN}
+    org.hibernate.orm.jdbc.bind: ${LOGGING_LEVEL_ORG_HIBERNATE_ORM_JDBC_BIND:WARN}
+    org.springframework.orm.jpa: ${LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_ORM_JPA:INFO}
+    org.springframework.transaction: ${LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_TRANSACTION:INFO}
 
 springdoc:
   api-docs:
@@ -70,6 +70,10 @@ app:
     secret: ${APP_JWT_SECRET:ZGV2ZWxvcG1lbnQtb25seS1zZWNyZXQta2V5LWZvci1sbXMtYXBwbGljYXRpb24tbWluaW11bS0yNTYtYml0cw==}
     expiration: ${APP_JWT_EXPIRATION:86400000}  # 24 hours in milliseconds
     refresh-expiration: ${APP_JWT_REFRESH_EXPIRATION:604800000}  # 7 days in milliseconds
+  auth:
+    google:
+      enabled: ${GOOGLE_AUTH_ENABLED:false}
+      web-client-id: ${GOOGLE_WEB_CLIENT_ID:}
   video:
     ingest:
       enabled: ${VIDEO_INGEST_ENABLED:true}
@@ -108,5 +112,3 @@ cloudflare:
     bucket: ${CLOUDFLARE_R2_BUCKET:lms-tracnghiemj-image}
     video-bucket: ${CLOUDFLARE_R2_VIDEO_BUCKET:lms-storage}
     public-url: ${CLOUDFLARE_R2_PUBLIC_URL:}
-
-

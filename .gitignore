@@ -135,3 +135,17 @@ media-edge-env.txt
 tmp-e2e-video.mp4
 tmp/
 coord_runtime_*/
+
+# === Graphify code-graph artifacts ===
+.graphify_python
+graphify-out/
+
+# === Claude Code runtime state ===
+.claude/scheduled_tasks.lock
+
+# === Playwright test artifacts ===
+fe/test-results/
+playwright-report/
+
+# === Local test fixtures (ad-hoc, không cần track) ===
+/test-import-*.docx

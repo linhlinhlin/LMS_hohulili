@@ -31,7 +31,7 @@ public class PackageControllerV3 {
 
     @Operation(summary = "Get teacher's packages (Question Banks)")
     @GetMapping("/my-packages")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<List<PackageDTO>>> getMyPackages(@org.springframework.security.core.annotation.AuthenticationPrincipal com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
         if (user == null) {
             return ResponseEntity.status(401).build();
@@ -43,7 +43,7 @@ public class PackageControllerV3 {
 
     @Operation(summary = "Get all available packages")
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<List<PackageDTO>>> getAllPackages(
             @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
         List<com.example.lms.shared.infrastructure.persistence.entity.PackageJpaEntity> entities;
@@ -61,7 +61,7 @@ public class PackageControllerV3 {
 
     @Operation(summary = "Get package by ID")
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<PackageDTO>> getPackageById(
             @PathVariable java.util.UUID id,
             @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
@@ -79,7 +79,7 @@ public class PackageControllerV3 {
 
     @Operation(summary = "Create package")
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<PackageDTO>> createPackage(
             @Valid @RequestBody CreatePackageRequest request,
             @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
@@ -102,7 +102,7 @@ public class PackageControllerV3 {
 
     @Operation(summary = "Update package")
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<PackageDTO>> updatePackage(
             @PathVariable java.util.UUID id,
             @Valid @RequestBody UpdatePackageRequest request,
@@ -126,7 +126,7 @@ public class PackageControllerV3 {
 
     @Operation(summary = "Delete package")
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<String>> deletePackage(
             @PathVariable java.util.UUID id,
             @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
@@ -140,7 +140,7 @@ public class PackageControllerV3 {
 
     @Operation(summary = "Get questions in package")
     @GetMapping("/{id}/questions")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQuestionsInPackage(
             @PathVariable java.util.UUID id,
             @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
@@ -202,7 +202,7 @@ public class PackageControllerV3 {
 
     @Operation(summary = "Move questions to package")
     @PostMapping("/move-questions")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<String>> moveQuestions(
             @Valid @RequestBody MoveQuestionsRequest request,
             @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
@@ -239,7 +239,7 @@ public class PackageControllerV3 {
     
     @Operation(summary = "Search packages")
     @GetMapping("/search")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<List<PackageDTO>>> searchPackages(
             @RequestParam(required = false) String keyword,
             @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
@@ -267,8 +267,7 @@ public class PackageControllerV3 {
     // === Ownership Helpers ===
 
     private boolean isAdminRole(com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
-        return user.getRole() == com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity.UserRole.ADMIN
-            || user.getRole() == com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity.UserRole.ORG_ADMIN;
+        return user.getRole() == com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity.UserRole.ADMIN;
     }
 
     private void verifyPackageOwnership(java.util.UUID packageId, com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {

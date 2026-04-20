@@ -22,13 +22,13 @@
           <p class="course-teacher-bar">{{ course()!.teacherName }}</p>
         </div>
       </div>
-      <span class="status-badge" [class]="getStatusBadgeClass(course()!.status)">
-        {{ getStatusText(course()!.status) }}
+      <span class="status-badge" [class]="getStatusBadgeClass(workflowStatus())">
+        {{ getStatusText(workflowStatus()) }}
       </span>
     </div>
 
     <!-- Split pane -->
-    <div class="split-pane" [style.height]="isPending() ? 'calc(100vh - 52px - 72px)' : 'calc(100vh - 52px)'">
+    <div class="split-pane" [style.height]="canReview() ? 'calc(100vh - 52px - 72px)' : 'calc(100vh - 52px)'">
       <!-- Left sidebar: Chapter tree -->
       <aside class="sidebar">
         <div class="sidebar-inner">
@@ -258,8 +258,8 @@
       </main>
     </div>
 
-    <!-- Bottom action bar (only for PENDING) -->
-    @if (isPending()) {
+    <!-- Bottom action bar (only for reviewable states) -->
+    @if (canReview()) {
       <div class="bottom-bar">
         <input type="text"
           [(ngModel)]="feedbackText"

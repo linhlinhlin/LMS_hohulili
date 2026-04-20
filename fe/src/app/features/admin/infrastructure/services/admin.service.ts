@@ -62,6 +62,10 @@ export interface PendingCourseSummary {
   code: string;
   title: string;
   description: string;
+  status?: string;
+  reviewState?: string;
+  draftChangeStatus?: string | null;
+  pendingReleaseNotes?: string | null;
   teacherId: string;
   teacherName: string;
   teacherEmail: string;
@@ -168,6 +172,9 @@ export interface AdminCourseSummary {
   price?: number;
   thumbnail?: string;
   status: string;
+  reviewState?: string;
+  draftChangeStatus?: string | null;
+  pendingReleaseNotes?: string | null;
   teacherId?: string;
   teacherName: string;
   teacherEmail?: string;

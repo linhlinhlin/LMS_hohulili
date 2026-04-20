@@ -23,7 +23,7 @@ public class TeacherAnalyticsControllerV3 {
 
     @Operation(summary = "Get teacher analytics")
     @GetMapping("/analytics")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<ApiResponse<TeacherAnalyticsUseCase.TeacherAnalyticsResponse>> getAnalytics(
             @AuthenticationPrincipal UserJpaEntity user) {
         var analytics = analyticsUseCase.getAnalytics(user.getId());

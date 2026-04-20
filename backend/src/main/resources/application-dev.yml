@@ -21,13 +21,13 @@ spring:
       leak-detection-threshold: 60000 # Detect connection leaks in dev
       pool-name: LMS-HikariPool
   jpa:
-    show-sql: true
+    show-sql: false
     hibernate:
       ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
+        format_sql: false
         # Fix Hibernate 6.4 UUID array ClassCastException (HHH-17557)
         dialect.native_param_markers: false
         # SOTA Batch Fetching - Reduce N+1 queries
@@ -65,7 +65,7 @@ management:
 
 logging:
   level:
-    org.springframework.web: DEBUG
+    org.springframework.web: ${LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB:INFO}
     # HikariCP monitoring
     com.zaxxer.hikari: INFO
 

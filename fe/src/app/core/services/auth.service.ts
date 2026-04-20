@@ -7,6 +7,7 @@ import { AUTH_ENDPOINTS } from '../../api/endpoints/auth.endpoints';
 import { ApiResponse } from '../../api/types/common.types';
 import { SessionExpiredService } from './session-expired.service';
 import { NetworkStatusService } from './network-status.service';
+import { getPortalRootRoute } from '../utils/portal-route.util';
 
 export enum UserRole {
   ADMIN = 'admin',
@@ -32,6 +33,20 @@ export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
   user: User & { organizationId?: string };
+}
+
+export interface GoogleLoginRequest {
+  idToken: string;
+  inviteCode?: string;
+}
+
+export interface AuthLookupResponse {
+  email: string;
+  displayName: string | null;
+  accountExists: boolean;
+  passwordLoginAvailable: boolean;
+  googleSignInAvailable: boolean;
+  nextStep: 'PASSWORD' | 'GOOGLE' | 'REGISTER';
 }
 
 @Injectable({
@@ -65,17 +80,33 @@ export class AuthService {
         }
         return response.data;
       }),
-      tap(data => {
-        this.setTokens(data.accessToken, data.refreshToken);
-        this.setUser(data.user);
-        const normalizedUser = this.normalizeUser(data.user);
-        this.currentUserSubject.next(normalizedUser);
-        this._currentUser.set(normalizedUser);
-        this.sessionService.transitionToAuthenticated();
-      }),
+      tap(data => this.applyAuthenticatedSession(data)),
       catchError(error => {
         throw error;
       })
+    );
+  }
+
+  lookupAuthOptions(email: string): Observable<AuthLookupResponse> {
+    return this.http.post<ApiResponse<AuthLookupResponse>>(AUTH_ENDPOINTS.LOOKUP, { email }).pipe(
+      map(response => {
+        if (!response.success || !response.data) {
+          throw new Error(response.message || 'Lookup failed');
+        }
+        return response.data;
+      })
+    );
+  }
+
+  loginWithGoogle(request: GoogleLoginRequest): Observable<AuthResponse> {
+    return this.http.post<ApiResponse<AuthResponse>>(AUTH_ENDPOINTS.GOOGLE_LOGIN, request).pipe(
+      map(response => {
+        if (!response.success || !response.data) {
+          throw new Error(response.message || 'Google login failed');
+        }
+        return response.data;
+      }),
+      tap(data => this.applyAuthenticatedSession(data))
     );
   }
 
@@ -87,15 +118,7 @@ export class AuthService {
         }
         return response.data;
       }),
-      tap(data => {
-        if (data.accessToken) {
-          this.setTokens(data.accessToken, data.refreshToken);
-          this.setUser(data.user);
-          const normalizedUser = this.normalizeUser(data.user);
-          this.currentUserSubject.next(normalizedUser);
-          this._currentUser.set(normalizedUser);
-        }
-      })
+      tap(data => this.applyAuthenticatedSession(data))
     );
   }
 
@@ -130,9 +153,7 @@ export class AuthService {
     this._currentUser.set(null);
     this.sessionService.transitionToUnauthenticated();
 
-    this.router.navigate(['/auth/login'], {
-      queryParams: { message: 'Đã đăng xuất thành công' }
-    });
+    this.router.navigate(['/auth/login']);
   }
 
   /**
@@ -178,19 +199,7 @@ export class AuthService {
 
     // Navigate to role-based dashboard
     const role = savedUser.role?.toLowerCase() || '';
-    let redirectUrl = '/';
-    switch (role) {
-      case 'admin':
-      case 'org_admin':
-        redirectUrl = '/admin';
-        break;
-      case 'teacher':
-        redirectUrl = '/teacher';
-        break;
-      case 'student':
-        redirectUrl = '/student';
-        break;
-    }
+    const redirectUrl = getPortalRootRoute(role);
 
     this.router.navigate([redirectUrl]);
     return true;
@@ -251,6 +260,19 @@ export class AuthService {
     return this.currentUserSubject.value;
   }
 
+  private applyAuthenticatedSession(data: AuthResponse): void {
+    if (!data.accessToken) {
+      return;
+    }
+
+    this.setTokens(data.accessToken, data.refreshToken);
+    this.setUser(data.user);
+    const normalizedUser = this.normalizeUser(data.user);
+    this.currentUserSubject.next(normalizedUser);
+    this._currentUser.set(normalizedUser);
+    this.sessionService.transitionToAuthenticated();
+  }
+
   /** Update local user state after profile edit (no server call) */
   updateLocalUser(partial: Partial<User>): void {
     const current = this.getCurrentUser();
@@ -294,14 +316,7 @@ export class AuthService {
         }
         return response.data;
       }),
-      tap(data => {
-        this.setTokens(data.accessToken, data.refreshToken);
-        this.setUser(data.user);
-        const normalizedUser = this.normalizeUser(data.user);
-        this.currentUserSubject.next(normalizedUser);
-        this._currentUser.set(normalizedUser);
-        this.sessionService.transitionToAuthenticated();
-      })
+      tap(data => this.applyAuthenticatedSession(data))
     );
   }
 }

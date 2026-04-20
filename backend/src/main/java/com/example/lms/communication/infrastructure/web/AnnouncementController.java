@@ -36,7 +36,7 @@ public class AnnouncementController {
 
     @Operation(summary = "Tạo thông báo mới (teacher/admin)")
     @PostMapping
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> createAnnouncement(
             @AuthenticationPrincipal UserJpaEntity user,
             @Valid @RequestBody CreateAnnouncementRequest request
@@ -102,7 +102,7 @@ public class AnnouncementController {
 
     @Operation(summary = "Xóa thông báo (author hoặc admin)")
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteAnnouncement(
             @AuthenticationPrincipal UserJpaEntity user,
             @PathVariable UUID id
@@ -111,8 +111,7 @@ public class AnnouncementController {
                 .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Thông báo", id));
 
         // Only author or admin can delete
-        boolean isAdmin = user.getRole() == UserJpaEntity.UserRole.ADMIN ||
-                           user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
+        boolean isAdmin = user.getRole() == UserJpaEntity.UserRole.ADMIN;
         if (!announcement.getAuthorId().equals(user.getId()) && !isAdmin) {
             return ResponseEntity.status(403)
                     .body(ApiResponse.error("FORBIDDEN", "Bạn không có quyền xóa thông báo này"));

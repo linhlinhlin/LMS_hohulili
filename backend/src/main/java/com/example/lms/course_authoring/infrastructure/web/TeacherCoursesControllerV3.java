@@ -48,7 +48,7 @@ public class TeacherCoursesControllerV3 {
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.CourseReviewEventJpaRepository reviewEventRepository;
 
     @GetMapping("/my-courses")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Get courses created by the current teacher")
     public ResponseEntity<ApiResponse<Page<CourseDTOs.TeacherCourseResponse>>> getMyCourses(
             @AuthenticationPrincipal UserJpaEntity currentUser,
@@ -109,7 +109,7 @@ public class TeacherCoursesControllerV3 {
     }
 
     @GetMapping("/{courseId}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<ApiResponse<Object>> getCourseById(
             @PathVariable UUID courseId,
             @AuthenticationPrincipal UserJpaEntity user) {
@@ -120,7 +120,7 @@ public class TeacherCoursesControllerV3 {
     }
 
     @GetMapping("/{courseId}/draft/content")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<ApiResponse<Object>> getCourseDraftContent(
             @PathVariable UUID courseId,
             @AuthenticationPrincipal UserJpaEntity user) {
@@ -129,7 +129,7 @@ public class TeacherCoursesControllerV3 {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<ApiResponse<Object>> createCourse(
             @Valid @RequestBody CourseDTOs.CreateCourseRequest request,
             @AuthenticationPrincipal UserJpaEntity user) {
@@ -138,7 +138,7 @@ public class TeacherCoursesControllerV3 {
     }
 
     @PutMapping("/{courseId}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<ApiResponse<Object>> updateCourse(
             @PathVariable UUID courseId,
             @Valid @RequestBody CourseDTOs.UpdateCourseRequest request,
@@ -149,7 +149,7 @@ public class TeacherCoursesControllerV3 {
     }
 
     @DeleteMapping("/{courseId}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<ApiResponse<Object>> deleteCourse(
             @PathVariable UUID courseId,
             @AuthenticationPrincipal UserJpaEntity user) {
@@ -159,7 +159,7 @@ public class TeacherCoursesControllerV3 {
     }
 
     @PostMapping("/{courseId}/submit-for-approval")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<ApiResponse<Object>> submitForApproval(
             @PathVariable UUID courseId,
             @RequestBody(required = false) java.util.Map<String, String> body,
@@ -171,7 +171,7 @@ public class TeacherCoursesControllerV3 {
     }
 
     @PostMapping("/{courseId}/cancel-approval")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<ApiResponse<Object>> cancelApproval(
             @PathVariable UUID courseId,
             @AuthenticationPrincipal UserJpaEntity user) {
@@ -181,7 +181,7 @@ public class TeacherCoursesControllerV3 {
     }
 
     @GetMapping("/{courseId}/review-status")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<ApiResponse<Object>> getReviewStatus(
             @PathVariable UUID courseId,
             @AuthenticationPrincipal UserJpaEntity user) {
@@ -191,7 +191,7 @@ public class TeacherCoursesControllerV3 {
     }
 
     @GetMapping("/{courseId}/review-history")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<ApiResponse<Object>> getReviewHistory(
             @PathVariable UUID courseId,
             @AuthenticationPrincipal UserJpaEntity user) {
@@ -215,7 +215,7 @@ public class TeacherCoursesControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
     @GetMapping("/{courseId}/students")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Get enrolled students for a course")
     public ResponseEntity<ApiResponse<java.util.List<StudentInfoResponse>>> getCourseStudents(
             @PathVariable UUID courseId,
@@ -260,8 +260,7 @@ public class TeacherCoursesControllerV3 {
     // === Ownership Helpers ===
 
     private boolean isAdminRole(UserJpaEntity user) {
-        return user.getRole() == UserJpaEntity.UserRole.ADMIN
-            || user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
+        return user.getRole() == UserJpaEntity.UserRole.ADMIN;
     }
 
     private void verifyCourseOwnership(UUID courseId, UserJpaEntity user) {

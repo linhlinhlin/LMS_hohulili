@@ -7,6 +7,7 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { exportToCsv } from '../../../../shared/utils/csv-export';
+import { getAdminPortalBase } from '../../../../core/utils/portal-route.util';
 
 @Component({
   selector: 'app-course-management',
@@ -22,32 +23,70 @@ export class CourseManagementComponent implements OnInit {
   private confirmDialog = inject(ConfirmDialogService);
   private authService = inject(AuthService);
 
-  // Role check
   isSystemAdmin = computed(() => this.authService.userRole() === 'admin');
+  adminPortalBase = computed(() => getAdminPortalBase(this.authService.userRole()));
+  organizationName = computed(() => this.authService.currentUser()?.organizationName || '');
 
-  // Filter states
+  pageTitle = computed(() =>
+    this.isSystemAdmin() ? 'Quản lý khóa học hệ thống' : 'Khóa học của tổ chức'
+  );
+
+  pageSubtitle = computed(() =>
+    this.isSystemAdmin()
+      ? 'Phê duyệt và quản lý tất cả khóa học trong hệ thống'
+      : 'Duyệt, theo dõi và hỗ trợ các khóa học do giảng viên trong tổ chức phụ trách'
+  );
+
+  totalCoursesLabel = computed(() =>
+    this.isSystemAdmin() ? 'Tổng khóa học' : 'Khóa học của tổ chức'
+  );
+
+  totalCoursesSubLabel = computed(() =>
+    this.isSystemAdmin() ? `${this.approvedCourses()} đã phê duyệt` : `${this.approvedCourses()} đang vận hành`
+  );
+
+  revenueLabel = computed(() =>
+    this.isSystemAdmin() ? 'Tổng doanh thu' : 'Doanh thu tổ chức'
+  );
+
+  revenueSubLabel = computed(() =>
+    this.isSystemAdmin() ? 'Từ các khóa học' : 'Trong phạm vi tổ chức'
+  );
+
+  emptyTitle = computed(() =>
+    this.isSystemAdmin() ? 'Không có khóa học nào' : 'Chưa có khóa học phù hợp'
+  );
+
+  emptyDescription = computed(() =>
+    this.isSystemAdmin()
+      ? 'Chưa có khóa học nào được nộp để phê duyệt hoặc phù hợp với bộ lọc'
+      : 'Chưa có khóa học nào trong tổ chức khớp với bộ lọc hiện tại'
+  );
+
+  searchPlaceholder = computed(() =>
+    this.isSystemAdmin() ? 'Tìm kiếm khóa học...' : 'Tìm kiếm khóa học trong tổ chức...'
+  );
+
   searchQuery = signal('');
   statusFilter = signal('');
   categoryFilter = signal('');
   fromDate = signal('');
   toDate = signal('');
 
-  // Data signals
   courses = signal<AdminCourseSummary[]>([]);
   isLoading = signal(true);
   categoryTree = signal<CourseCategoryDTO[]>([]);
 
-  // Bulk selection
   selectedCourses = signal<Set<string>>(new Set());
   selectedCount = computed(() => this.selectedCourses().size);
 
-  // Bulk reject modal
   showBulkRejectModal = signal(false);
   bulkRejectReason = signal('');
 
   pendingVisibleCourses = computed(() =>
-    this.courses().filter(c => c.status?.toLowerCase() === 'pending')
+    this.courses().filter(course => this.canReviewCourse(course))
   );
+
   allPendingSelected = computed(() => {
     const pending = this.pendingVisibleCourses();
     if (pending.length === 0) return false;
@@ -55,19 +94,16 @@ export class CourseManagementComponent implements OnInit {
     return pending.every(c => selected.has(c.id));
   });
 
-  // Pagination
   currentPage = signal(0);
   pageSize = signal(10);
   totalElements = signal(0);
   totalPages = computed(() => Math.ceil(this.totalElements() / this.pageSize()));
 
-  // Stats from analytics API (system-wide, not page-level)
   totalCourses = computed(() => this.totalElements());
   pendingCourses = signal(0);
   approvedCourses = signal(0);
   totalRevenue = signal(0);
 
-  // Modal state
   showRejectModal = signal(false);
   showDetailModal = signal(false);
   selectedCourse = signal<AdminCourseSummary | null>(null);
@@ -95,24 +131,26 @@ export class CourseManagementComponent implements OnInit {
   loadCourses(): void {
     this.isLoading.set(true);
     this.clearSelection();
-    const params: any = {
+
+    const params: Record<string, unknown> = {
       page: this.currentPage(),
       size: this.pageSize()
     };
+
     if (this.statusFilter()) {
-      params.status = this.statusFilter().toUpperCase();
+      params['status'] = this.statusFilter().toUpperCase();
     }
     if (this.searchQuery()) {
-      params.search = this.searchQuery();
+      params['search'] = this.searchQuery();
     }
     if (this.categoryFilter()) {
-      params.categoryId = this.categoryFilter();
+      params['categoryId'] = this.categoryFilter();
     }
     if (this.fromDate()) {
-      params.fromDate = this.fromDate();
+      params['fromDate'] = this.fromDate();
     }
     if (this.toDate()) {
-      params.toDate = this.toDate();
+      params['toDate'] = this.toDate();
     }
 
     this.adminService.getAllCourses(params).subscribe({
@@ -138,7 +176,7 @@ export class CourseManagementComponent implements OnInit {
   private loadCategories(): void {
     this.adminService.getCourseCategories().subscribe({
       next: (tree) => this.categoryTree.set(tree),
-      error: () => { /* Categories unavailable — filter dropdown shows only "Tất cả danh mục" */ }
+      error: () => { /* noop */ }
     });
   }
 
@@ -175,34 +213,43 @@ export class CourseManagementComponent implements OnInit {
   }
 
   rejectCourse(): void {
-    if (this.selectedCourse() && this.rejectionReason()) {
-      this.adminService.rejectCourse(this.selectedCourse()!.id, this.rejectionReason()).subscribe({
-        next: () => {
-          this.toast.success('Đã từ chối khóa học');
-          this.closeRejectModal();
-          this.loadCourses();
-        },
-        error: (err) => {
-          this.toast.error('Không thể từ chối: ' + (err.error?.message || 'Vui lòng thử lại'));
-        }
-      });
+    if (!this.selectedCourse() || !this.rejectionReason()) {
+      return;
     }
+
+    this.adminService.rejectCourse(this.selectedCourse()!.id, this.rejectionReason()).subscribe({
+      next: () => {
+        this.toast.success('Đã từ chối khóa học');
+        this.closeRejectModal();
+        this.loadCourses();
+      },
+      error: (err) => {
+        this.toast.error('Không thể từ chối: ' + (err.error?.message || 'Vui lòng thử lại'));
+      }
+    });
   }
 
   viewCourse(courseId: string): void {
     const course = this.courses().find(c => c.id === courseId);
-    if (course) {
-      this.selectedCourse.set(course);
-      this.showDetailModal.set(true);
+    if (!course) {
+      return;
     }
+
+    this.selectedCourse.set(course);
+    this.showDetailModal.set(true);
   }
 
   openFullCourseView(courseId: string): void {
-    window.open(`/teacher/courses/${courseId}/editor`, '_blank');
+    if (this.isSystemAdmin()) {
+      window.open(`/teacher/courses/${courseId}/editor`, '_blank');
+      return;
+    }
+
+    window.open(`${this.adminPortalBase()}/courses/${courseId}/preview`, '_blank');
   }
 
   previewContent(courseId: string): void {
-    this.router.navigate(['/admin/courses', courseId, 'preview']);
+    this.router.navigateByUrl(`${this.adminPortalBase()}/courses/${courseId}/preview`);
   }
 
   closeDetailModal(): void {
@@ -211,6 +258,11 @@ export class CourseManagementComponent implements OnInit {
   }
 
   editCourse(courseId: string): void {
+    if (!this.isSystemAdmin()) {
+      this.previewContent(courseId);
+      return;
+    }
+
     window.open(`/teacher/courses/${courseId}/editor`, '_blank');
   }
 
@@ -249,7 +301,9 @@ export class CourseManagementComponent implements OnInit {
   confirmRevokeCourse(): void {
     const reason = this.revokeReasonInput();
     const courseId = this.revokingCourseId();
-    if (!reason.trim() || !courseId) return;
+    if (!reason.trim() || !courseId) {
+      return;
+    }
 
     this.adminService.revokeCourse(courseId, reason).subscribe({
       next: () => {
@@ -263,7 +317,6 @@ export class CourseManagementComponent implements OnInit {
     });
   }
 
-  // Pagination
   goToPage(page: number): void {
     if (page < 0 || page >= this.totalPages()) return;
     this.currentPage.set(page);
@@ -292,11 +345,13 @@ export class CourseManagementComponent implements OnInit {
     return Math.min((this.currentPage() + 1) * this.pageSize(), this.totalElements());
   }
 
-  // Formatting
   formatDate(date: string | Date): string {
     return new Date(date).toLocaleDateString('vi-VN', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   }
 
@@ -306,11 +361,18 @@ export class CourseManagementComponent implements OnInit {
 
   getStatusClass(status: string): string {
     switch (status?.toLowerCase()) {
-      case 'pending': return 'badge badge-pending';
-      case 'approved': return 'badge badge-approved';
-      case 'rejected': return 'badge badge-rejected';
-      case 'active': return 'badge badge-active';
-      case 'draft': return 'badge badge-draft';
+      case 'pending':
+      case 'pending_changes':
+        return 'badge badge-pending';
+      case 'approved':
+      case 'active':
+        return 'badge badge-approved';
+      case 'rejected':
+      case 'changes_requested':
+        return 'badge badge-rejected';
+      case 'draft':
+      case 'draft_changes':
+        return 'badge badge-draft';
       default: return 'badge badge-default';
     }
   }
@@ -326,6 +388,64 @@ export class CourseManagementComponent implements OnInit {
     }
   }
 
+  getWorkflowStatus(course: Pick<AdminCourseSummary, 'status' | 'reviewState'>): string {
+    return course.reviewState || course.status || '';
+  }
+
+  getCourseStatusClass(course: Pick<AdminCourseSummary, 'status' | 'reviewState'>): string {
+    const normalizedStatus = this.getWorkflowStatus(course).toLowerCase();
+    switch (normalizedStatus) {
+      case 'pending':
+      case 'pending_changes':
+        return 'badge badge-pending';
+      case 'approved':
+      case 'active':
+        return 'badge badge-approved';
+      case 'rejected':
+      case 'changes_requested':
+        return 'badge badge-rejected';
+      case 'draft':
+      case 'draft_changes':
+        return 'badge badge-draft';
+      default:
+        return 'badge badge-default';
+    }
+  }
+
+  getCourseStatusText(course: Pick<AdminCourseSummary, 'status' | 'reviewState'>): string {
+    const normalizedStatus = this.getWorkflowStatus(course).toLowerCase();
+    switch (normalizedStatus) {
+      case 'pending':
+        return 'Chờ phê duyệt';
+      case 'pending_changes':
+        return 'Chờ duyệt cập nhật';
+      case 'approved':
+        return 'Đã phê duyệt';
+      case 'rejected':
+        return 'Bị từ chối';
+      case 'changes_requested':
+        return 'Yêu cầu chỉnh sửa';
+      case 'active':
+        return 'Đang hoạt động';
+      case 'draft':
+        return 'Nháp';
+      case 'draft_changes':
+        return 'Có thay đổi chưa gửi';
+      default:
+        return 'Không xác định';
+    }
+  }
+
+  canReviewCourse(course: Pick<AdminCourseSummary, 'status' | 'reviewState'>): boolean {
+    const normalizedStatus = this.getWorkflowStatus(course).toLowerCase();
+    return normalizedStatus === 'pending' || normalizedStatus === 'pending_changes';
+  }
+
+  canRevokeCourse(course: Pick<AdminCourseSummary, 'status' | 'reviewState'>): boolean {
+    const normalizedStatus = this.getWorkflowStatus(course).toLowerCase();
+    return normalizedStatus === 'approved' || normalizedStatus === 'active';
+  }
+
   getLevelText(level: string): string {
     switch (level) {
       case 'beginner': return 'Cơ bản';
@@ -334,10 +454,6 @@ export class CourseManagementComponent implements OnInit {
       default: return 'Không xác định';
     }
   }
-
-  // ============================================
-  // BULK SELECTION
-  // ============================================
 
   toggleSelectAll(): void {
     const pending = this.pendingVisibleCourses();
@@ -365,10 +481,6 @@ export class CourseManagementComponent implements OnInit {
   clearSelection(): void {
     this.selectedCourses.set(new Set());
   }
-
-  // ============================================
-  // BULK ACTIONS
-  // ============================================
 
   async bulkApprove(): Promise<void> {
     const ids = Array.from(this.selectedCourses());
@@ -439,31 +551,20 @@ export class CourseManagementComponent implements OnInit {
     });
   }
 
-  // ============================================
-  // CSV EXPORT
-  // ============================================
-
   exportCoursesToCsv(): void {
     const headers = ['Mã', 'Tên', 'Giảng viên', 'Trạng thái', 'Học viên', 'Ngày tạo'];
     const rows = this.courses().map(c => [
       c.code || '',
       c.title || '',
       c.teacherName || '',
-      this.getStatusText(c.status),
+      this.getCourseStatusText(c),
       String(c.enrolledCount || 0),
       c.createdAt ? this.formatDate(c.createdAt) : ''
     ]);
     const today = new Date().toISOString().slice(0, 10);
-    exportToCsv(headers, rows, `courses_${today}.csv`);
+    const filePrefix = this.isSystemAdmin() ? 'courses' : 'org_courses';
+    exportToCsv(headers, rows, `${filePrefix}_${today}.csv`);
     this.toast.success('Đã xuất CSV thành công');
   }
 
-  isPendingStatus(status: string): boolean {
-    return status?.toLowerCase() === 'pending';
-  }
-
-  isApprovedStatus(status: string): boolean {
-    const s = status?.toLowerCase();
-    return s === 'approved' || s === 'active';
-  }
 }

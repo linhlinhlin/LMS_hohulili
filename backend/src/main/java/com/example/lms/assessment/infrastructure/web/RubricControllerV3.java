@@ -28,7 +28,7 @@ public class RubricControllerV3 {
 
     @Operation(summary = "Create a new rubric")
     @PostMapping
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> createRubric(
             @AuthenticationPrincipal UserJpaEntity user,
             @Valid @RequestBody CreateRubricRequest request) {
@@ -45,7 +45,7 @@ public class RubricControllerV3 {
 
     @Operation(summary = "List my rubrics")
     @GetMapping
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> listRubrics(
             @AuthenticationPrincipal UserJpaEntity user) {
 
@@ -59,7 +59,7 @@ public class RubricControllerV3 {
 
     @Operation(summary = "Get rubric by ID")
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getRubric(
             @AuthenticationPrincipal UserJpaEntity user,
             @PathVariable UUID id) {
@@ -70,7 +70,7 @@ public class RubricControllerV3 {
 
     @Operation(summary = "Update a rubric")
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> updateRubric(
             @AuthenticationPrincipal UserJpaEntity user,
             @PathVariable UUID id,
@@ -88,7 +88,7 @@ public class RubricControllerV3 {
 
     @Operation(summary = "Delete a rubric")
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteRubric(
             @AuthenticationPrincipal UserJpaEntity user,
             @PathVariable UUID id) {
@@ -100,7 +100,7 @@ public class RubricControllerV3 {
 
     @Operation(summary = "Assign rubric to an assignment")
     @PostMapping("/{id}/assign/{assignmentId}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> assignRubric(
             @AuthenticationPrincipal UserJpaEntity user,
             @PathVariable UUID id,
@@ -113,7 +113,7 @@ public class RubricControllerV3 {
 
     @Operation(summary = "Unassign rubric from an assignment")
     @DeleteMapping("/assignment/{assignmentId}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<ApiResponse<Void>> unassignRubric(
             @AuthenticationPrincipal UserJpaEntity user,
             @PathVariable UUID assignmentId) {
@@ -125,7 +125,7 @@ public class RubricControllerV3 {
 
     @Operation(summary = "Get rubric for an assignment")
     @GetMapping("/assignment/{assignmentId}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN', 'STUDENT')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'STUDENT')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getAssignmentRubric(
             @AuthenticationPrincipal UserJpaEntity user,
             @PathVariable UUID assignmentId) {
@@ -214,7 +214,7 @@ public class RubricControllerV3 {
 
     private boolean isAdminRole(UserJpaEntity user) {
         return user.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_ORG_ADMIN"));
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
     }
 
     private void verifyRubricAccess(Rubric rubric, UserJpaEntity user) {

@@ -48,7 +48,7 @@ public class QuestionBankControllerV3 {
     // ============ Bank CRUD ============
 
     @GetMapping("/my-banks")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Get current user's question banks")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getMyBanks(
             @AuthenticationPrincipal UserJpaEntity user) {
@@ -58,7 +58,7 @@ public class QuestionBankControllerV3 {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Get question bank by ID with category tree")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getBankById(
             @PathVariable UUID id,
@@ -78,7 +78,7 @@ public class QuestionBankControllerV3 {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Create a new question bank")
     public ResponseEntity<ApiResponse<Map<String, Object>>> createBank(
             @Valid @RequestBody CreateBankRequest request,
@@ -104,7 +104,7 @@ public class QuestionBankControllerV3 {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Update question bank")
     public ResponseEntity<ApiResponse<Map<String, Object>>> updateBank(
             @PathVariable UUID id,
@@ -125,7 +125,7 @@ public class QuestionBankControllerV3 {
     }
 
     @PostMapping("/{id}/archive")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Archive question bank")
     public ResponseEntity<ApiResponse<Void>> archiveBank(
             @PathVariable UUID id,
@@ -137,7 +137,7 @@ public class QuestionBankControllerV3 {
     // ============ Category CRUD ============
 
     @GetMapping("/{id}/categories")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Get category tree for a bank")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getCategoryTree(
             @PathVariable UUID id,
@@ -150,7 +150,7 @@ public class QuestionBankControllerV3 {
     }
 
     @PostMapping("/{id}/categories")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Add category to bank")
     public ResponseEntity<ApiResponse<Map<String, Object>>> addCategory(
             @PathVariable UUID id,
@@ -167,7 +167,7 @@ public class QuestionBankControllerV3 {
     }
 
     @PutMapping("/categories/{catId}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Update category")
     public ResponseEntity<ApiResponse<Map<String, Object>>> updateCategory(
             @PathVariable UUID catId,
@@ -183,7 +183,7 @@ public class QuestionBankControllerV3 {
     }
 
     @DeleteMapping("/categories/{catId}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Delete category")
     public ResponseEntity<ApiResponse<Void>> deleteCategory(
             @PathVariable UUID catId,
@@ -195,7 +195,7 @@ public class QuestionBankControllerV3 {
     // ============ Questions ============
 
     @GetMapping("/{id}/questions")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Get questions in bank (optionally filtered by category)")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getBankQuestions(
             @PathVariable UUID id,
@@ -209,7 +209,7 @@ public class QuestionBankControllerV3 {
     }
 
     @PostMapping("/copy-questions")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Deep-copy questions from accessible banks into a bank owned by the caller")
     public ResponseEntity<ApiResponse<Map<String, Object>>> copyQuestions(
             @Valid @RequestBody CopyQuestionsRequest request,
@@ -228,7 +228,7 @@ public class QuestionBankControllerV3 {
     }
 
     @PostMapping("/move-questions")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Move questions to a target bank/category")
     public ResponseEntity<ApiResponse<Void>> moveQuestions(
             @Valid @RequestBody MoveQuestionsRequest request,
@@ -243,7 +243,7 @@ public class QuestionBankControllerV3 {
     }
 
     @GetMapping("/public")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Get all PUBLIC question banks from other teachers")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getPublicBanks(
             @AuthenticationPrincipal UserJpaEntity user) {
@@ -257,7 +257,7 @@ public class QuestionBankControllerV3 {
     }
 
     @GetMapping("/search")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Search question banks by name")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> searchBanks(
             @RequestParam String query,
@@ -319,7 +319,7 @@ public class QuestionBankControllerV3 {
     // ============ Import/Export & Random Selection ============
 
     @PostMapping("/{bankId}/import")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Import questions from CSV file")
     public ResponseEntity<ApiResponse<QuestionImportExportUseCase.ImportResult>> importQuestions(
             @PathVariable UUID bankId,
@@ -332,7 +332,7 @@ public class QuestionBankControllerV3 {
     }
 
     @GetMapping("/{bankId}/export")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Export questions as CSV")
     public ResponseEntity<byte[]> exportQuestions(
             @PathVariable UUID bankId,
@@ -347,7 +347,7 @@ public class QuestionBankControllerV3 {
     }
 
     @GetMapping("/{bankId}/random")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "Get random questions from a bank")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getRandomQuestions(
             @PathVariable UUID bankId,
@@ -437,8 +437,7 @@ public class QuestionBankControllerV3 {
     }
 
     private boolean isAdminRole(UserJpaEntity user) {
-        return user.getRole() == UserJpaEntity.UserRole.ADMIN
-            || user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
+        return user.getRole() == UserJpaEntity.UserRole.ADMIN;
     }
 
     /** P0: Verify bank read access — owner, admin, or PUBLIC visibility */

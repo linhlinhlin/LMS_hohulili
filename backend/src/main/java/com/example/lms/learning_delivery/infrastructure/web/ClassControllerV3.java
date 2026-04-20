@@ -64,7 +64,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "List classes for a course")
     @GetMapping("/by-course/{courseId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<java.util.List<java.util.Map<String, Object>>>> getClassesByCourse(
             @PathVariable UUID courseId,
             @AuthenticationPrincipal UserJpaEntity user) {
@@ -77,7 +77,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Search classes for a course (paginated)")
     @GetMapping("/by-course/{courseId}/search")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> searchClassesByCourse(
             @PathVariable UUID courseId,
             @AuthenticationPrincipal UserJpaEntity user,
@@ -217,7 +217,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Create a new learning class")
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<UUID>> createClass(
             @jakarta.validation.Valid @RequestBody CreateClassRequest request,
             @AuthenticationPrincipal UserJpaEntity user
@@ -270,7 +270,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Update an existing learning class")
     @PutMapping("/{classId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<LearningClassResponse>> updateClass(
             @PathVariable String classId,
             @Valid @RequestBody UpdateClassRequest request,
@@ -311,7 +311,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Delete a learning class")
     @DeleteMapping("/{classId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<Void>> deleteClass(
             @PathVariable String classId,
             @AuthenticationPrincipal UserJpaEntity user
@@ -325,7 +325,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Get class by ID")
     @GetMapping("/{classId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<LearningClassResponse>> getClassById(
             @PathVariable String classId,
             @AuthenticationPrincipal UserJpaEntity user
@@ -338,7 +338,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Adopt a published course release for this class")
     @PostMapping("/{classId}/adopt-publication")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> adoptPublication(
             @PathVariable String classId,
             @RequestBody(required = false) AdoptPublicationRequest request,
@@ -384,7 +384,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Enroll student by email")
     @PostMapping("/{classId}/enrollments")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<UUID>> enrollStudent(
             @PathVariable String classId,
             @Valid @RequestBody EnrollStudentRequest request,
@@ -408,7 +408,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Get students in class")
     @GetMapping("/{classId}/students")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<PageResponse<EnrollmentResponse>>> getClassStudents(
             @PathVariable String classId,
             @RequestParam(defaultValue = "0") int page,
@@ -427,7 +427,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Remove student from class")
     @DeleteMapping("/{classId}/enrollments/{studentId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<Void>> removeStudent(
             @PathVariable String classId,
             @PathVariable String studentId,
@@ -508,8 +508,7 @@ public class ClassControllerV3 {
     // === Ownership Helpers ===
 
     private boolean isAdminRole(com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
-        return user.getRole() == com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity.UserRole.ADMIN
-            || user.getRole() == com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity.UserRole.ORG_ADMIN;
+        return user.getRole() == com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity.UserRole.ADMIN;
     }
 
     // Legacy aliases — delegate to resolveOwnedCourse for consistent co-teacher support
@@ -567,7 +566,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "List teachers for a class")
     @GetMapping("/{classId}/teachers")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<List<ManageClassTeachersUseCase.ClassTeacherDTO>>> getClassTeachers(
             @PathVariable UUID classId,
             @AuthenticationPrincipal UserJpaEntity user) {
@@ -580,7 +579,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Add a co-teacher to a class")
     @PostMapping("/{classId}/teachers")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<Map<String, String>>> addClassTeacher(
             @PathVariable UUID classId,
             @RequestBody Map<String, String> request,
@@ -602,7 +601,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Remove a co-teacher from a class")
     @DeleteMapping("/{classId}/teachers/{teacherId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<Map<String, String>>> removeClassTeacher(
             @PathVariable UUID classId,
             @PathVariable UUID teacherId,

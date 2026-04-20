@@ -84,6 +84,8 @@ services:
       # App URLs
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:4200}
       APP_CORS_ORIGINS: ${APP_CORS_ORIGINS:-http://localhost:4200}
+      GOOGLE_AUTH_ENABLED: ${GOOGLE_AUTH_ENABLED:-false}
+      GOOGLE_WEB_CLIENT_ID: ${GOOGLE_WEB_CLIENT_ID:-}
       # AI Service (Wiii)
       AI_SERVICE_URL: ${AI_SERVICE_URL:-https://wiii.holilihu.online}
       AI_SERVICE_API_KEY: ${AI_SERVICE_API_KEY:-}
