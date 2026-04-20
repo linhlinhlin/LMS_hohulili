@@ -270,33 +270,16 @@
 </div>
 
 <!-- Preview Modal -->
-@if (showPreview()) {
-<div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
-     role="dialog" aria-modal="true" aria-label="Xem trước câu hỏi"
-     (click)="showPreview.set(false)"
-     (keydown.escape)="showPreview.set(false)">
-  <div class="w-full max-w-2xl max-h-[90vh] rounded-lg border border-gray-200 bg-white shadow-xl overflow-hidden"
-       (click)="$event.stopPropagation()">
-    <div class="flex h-11 items-center justify-between border-b border-gray-200 px-4">
-      <h2 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
-        <lucide-icon name="eye" [size]="15" class="text-[#0056D2]"></lucide-icon>
-        Xem trước câu hỏi
-      </h2>
-      <button (click)="showPreview.set(false)"
-              class="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-              aria-label="Đóng xem trước">
-        <lucide-icon name="x" [size]="16"></lucide-icon>
-      </button>
-    </div>
-    <div class="p-4 sm:p-6 overflow-y-auto max-h-[calc(90vh-44px)]">
-      <app-question-preview
-        [questionContent]="rawQuestionContent()"
-        [optionsList]="_previewOptions()"
-        [correctOption]="questionForm.get('correctOption')?.value || ''"
-        [questionType]="selectedType()"
-        [showCorrectAnswer]="true">
-      </app-question-preview>
-    </div>
-  </div>
-</div>
-}
+<app-dialog
+  [open]="showPreview()"
+  title="Xem trước câu hỏi"
+  size="lg"
+  (close)="showPreview.set(false)">
+  <app-question-preview
+    [questionContent]="rawQuestionContent()"
+    [optionsList]="_previewOptions()"
+    [correctOption]="questionForm.get('correctOption')?.value || ''"
+    [questionType]="selectedType()"
+    [showCorrectAnswer]="true">
+  </app-question-preview>
+</app-dialog>

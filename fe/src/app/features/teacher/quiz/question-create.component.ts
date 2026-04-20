@@ -7,6 +7,7 @@ import { QuestionBankApi } from '../../../api/endpoints/question-bank.api';
 import { BlockEditorComponent } from '../../../shared/components/block-editor/block-editor.component';
 import { EnrichedInputFieldComponent } from '../../../shared/components/enriched-input/enriched-input.component';
 import { QuestionPreviewComponent } from '../../../shared/components/question-preview/question-preview.component';
+import { DialogComponent } from '../../../shared/components/dialog/dialog.component';
 import { ContentBlock } from '../../../api/types/content-block.types';
 
 import { AuthImagePipe } from '../../../shared/pipes/auth-image.pipe';
@@ -17,7 +18,7 @@ import { firstValueFrom } from 'rxjs';
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-question-create',
-  imports: [ReactiveFormsModule, LucideAngularModule, BlockEditorComponent, EnrichedInputFieldComponent, AuthImagePipe, QuestionPreviewComponent],
+  imports: [ReactiveFormsModule, LucideAngularModule, BlockEditorComponent, EnrichedInputFieldComponent, AuthImagePipe, QuestionPreviewComponent, DialogComponent],
   templateUrl: './question-create.component.html',
   styles: [`@keyframes slideIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }`]
 })

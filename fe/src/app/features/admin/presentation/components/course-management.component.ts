@@ -8,10 +8,11 @@ import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.s
 import { AuthService } from '../../../../core/services/auth.service';
 import { exportToCsv } from '../../../../shared/utils/csv-export';
 import { getAdminPortalBase } from '../../../../core/utils/portal-route.util';
+import { DialogComponent } from '../../../../shared/components/dialog/dialog.component';
 
 @Component({
   selector: 'app-course-management',
-  imports: [RouterModule, FormsModule],
+  imports: [RouterModule, FormsModule, DialogComponent],
   templateUrl: './course-management.component.html',
   styleUrl: './course-management.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush

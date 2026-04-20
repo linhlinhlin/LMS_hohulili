@@ -304,157 +304,127 @@
   </div>
 </div>
 
-@if (showRejectModal()) {
-  <div class="modal-backdrop" (click)="closeRejectModal()">
-    <div class="modal-panel" (click)="$event.stopPropagation()">
-      <div class="modal-body">
-        <div class="modal-reject-body">
-          <div class="modal-reject-content">
-            <h3 class="modal-title" style="margin-bottom:16px">Từ chối khóa học</h3>
-            <div class="modal-course-title">
-              <strong>{{ selectedCourse()?.title }}</strong>
-            </div>
-            <div class="modal-course-teacher">Giảng viên: {{ selectedCourse()?.teacherName || 'Không xác định' }}</div>
-            <div style="margin-top:16px">
-              <label class="modal-field-label">Lý do từ chối *</label>
-              <textarea class="modal-textarea textarea-danger"
-                        [ngModel]="rejectionReason()"
-                        (ngModelChange)="rejectionReason.set($event)"
-                        name="rejectionReason"
-                        rows="4"
-                        required
-                        placeholder="Vui lòng giải thích lý do từ chối khóa học này..."></textarea>
-            </div>
-          </div>
-        </div>
+<app-dialog
+  [open]="showRejectModal()"
+  title="Từ chối khóa học"
+  [subtitle]="selectedCourse()?.title || ''"
+  size="md"
+  variant="danger"
+  (close)="closeRejectModal()">
+  <div class="modal-course-teacher">Giảng viên: {{ selectedCourse()?.teacherName || 'Không xác định' }}</div>
+  <label class="modal-field-label" for="reject-reason-input">Lý do từ chối *</label>
+  <textarea id="reject-reason-input"
+            class="modal-textarea textarea-danger"
+            [ngModel]="rejectionReason()"
+            (ngModelChange)="rejectionReason.set($event)"
+            name="rejectionReason"
+            rows="4"
+            required
+            placeholder="Vui lòng giải thích lý do từ chối khóa học này..."></textarea>
+  <div dialogFooter>
+    <button class="btn-cancel" (click)="closeRejectModal()">Hủy</button>
+    <button class="btn-danger" (click)="rejectCourse()" [disabled]="!rejectionReason()">Từ chối khóa học</button>
+  </div>
+</app-dialog>
+
+<app-dialog
+  [open]="showDetailModal()"
+  title="Chi tiết khóa học"
+  [subtitle]="selectedCourse()?.title || ''"
+  size="lg"
+  (close)="closeDetailModal()">
+  @if (selectedCourse()?.shortDescription) {
+    <div class="detail-section" style="margin-bottom:24px">
+      <h4 class="detail-section-title">Mô tả</h4>
+      <p class="detail-description">{{ selectedCourse()?.shortDescription }}</p>
+    </div>
+  }
+
+  <div class="detail-info-grid">
+    <div class="detail-field">
+      <span class="detail-field-label">Trạng thái</span>
+      <p class="detail-field-value">
+        {{ selectedCourse() ? getCourseStatusText(selectedCourse()!) : 'Không xác định' }}
+      </p>
+    </div>
+    <div class="detail-field">
+      <span class="detail-field-label">Giá</span>
+      <p class="detail-field-value">{{ selectedCourse()?.price ? formatCurrency(selectedCourse()!.price!) : 'Miễn phí' }}</p>
+    </div>
+    <div class="detail-field">
+      <span class="detail-field-label">Giảng viên</span>
+      <p class="detail-field-value">{{ selectedCourse()?.teacherName || 'Không xác định' }}</p>
+    </div>
+    <div class="detail-field">
+      <span class="detail-field-label">Học viên</span>
+      <p class="detail-field-value">{{ selectedCourse()?.enrolledCount || 0 }}</p>
+    </div>
+    <div class="detail-field">
+      <span class="detail-field-label">Ngày nộp</span>
+      <p class="detail-field-value">{{ selectedCourse()?.submittedAt ? formatDate(selectedCourse()!.submittedAt!) : 'Chưa nộp' }}</p>
+    </div>
+    @if (selectedCourse()?.approvedAt) {
+      <div class="detail-field">
+        <span class="detail-field-label">Ngày phê duyệt</span>
+        <p class="detail-field-value">{{ formatDate(selectedCourse()!.approvedAt!) }}</p>
       </div>
-      <div class="modal-footer">
-        <button class="btn-cancel" (click)="closeRejectModal()">Hủy</button>
-        <button class="btn-danger" (click)="rejectCourse()" [disabled]="!rejectionReason()">Từ chối khóa học</button>
-      </div>
+    }
+  </div>
+
+  @if (selectedCourse()?.rejectionReason) {
+    <div class="rejection-box">
+      <span class="rejection-box-label">Lý do từ chối</span>
+      <p class="rejection-box-text">{{ selectedCourse()!.rejectionReason }}</p>
+    </div>
+  }
+
+  <div class="revenue-banner">
+    <div>
+      <h4 class="revenue-label">{{ revenueLabel() }}</h4>
+      <p class="revenue-value">{{ selectedCourse()?.revenue ? formatCurrency(selectedCourse()!.revenue!) : '0 ₫' }}</p>
     </div>
   </div>
-}
 
-@if (showDetailModal()) {
-  <div class="modal-backdrop" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="modal-panel-lg" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <div class="detail-header-text">
-          <h3>Chi tiết khóa học</h3>
-          <p>{{ selectedCourse()?.title }}</p>
-        </div>
-        <button class="modal-close-btn" (click)="closeDetailModal()">✕</button>
-      </div>
-
-      <div class="modal-body-scroll">
-        @if (selectedCourse()?.shortDescription) {
-          <div class="detail-section" style="margin-bottom:24px">
-            <h4 class="detail-section-title">Mô tả</h4>
-            <p class="detail-description">{{ selectedCourse()?.shortDescription }}</p>
-          </div>
-        }
-
-        <div class="detail-info-grid">
-          <div class="detail-field">
-            <span class="detail-field-label">Trạng thái</span>
-            <p class="detail-field-value">
-              {{ selectedCourse() ? getCourseStatusText(selectedCourse()!) : 'KhÃ´ng xÃ¡c Ä‘á»‹nh' }}
-            </p>
-          </div>
-          <div class="detail-field">
-            <span class="detail-field-label">Giá</span>
-            <p class="detail-field-value">{{ selectedCourse()?.price ? formatCurrency(selectedCourse()!.price!) : 'Miễn phí' }}</p>
-          </div>
-          <div class="detail-field">
-            <span class="detail-field-label">Giảng viên</span>
-            <p class="detail-field-value">{{ selectedCourse()?.teacherName || 'Không xác định' }}</p>
-          </div>
-          <div class="detail-field">
-            <span class="detail-field-label">Học viên</span>
-            <p class="detail-field-value">{{ selectedCourse()?.enrolledCount || 0 }}</p>
-          </div>
-          <div class="detail-field">
-            <span class="detail-field-label">Ngày nộp</span>
-            <p class="detail-field-value">{{ selectedCourse()?.submittedAt ? formatDate(selectedCourse()!.submittedAt!) : 'Chưa nộp' }}</p>
-          </div>
-          @if (selectedCourse()?.approvedAt) {
-            <div class="detail-field">
-              <span class="detail-field-label">Ngày phê duyệt</span>
-              <p class="detail-field-value">{{ formatDate(selectedCourse()!.approvedAt!) }}</p>
-            </div>
-          }
-        </div>
-
-        @if (selectedCourse()?.rejectionReason) {
-          <div class="rejection-box">
-            <span class="rejection-box-label">Lý do từ chối</span>
-            <p class="rejection-box-text">{{ selectedCourse()!.rejectionReason }}</p>
-          </div>
-        }
-
-        <div class="revenue-banner">
-          <div>
-            <h4 class="revenue-label">{{ revenueLabel() }}</h4>
-            <p class="revenue-value">{{ selectedCourse()?.revenue ? formatCurrency(selectedCourse()!.revenue!) : '0 ₫' }}</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn-cancel" (click)="closeDetailModal()">Đóng</button>
-        <button class="btn-primary-dark" (click)="openFullCourseView(selectedCourse()!.id)">Xem chi tiết đầy đủ</button>
-      </div>
-    </div>
+  <div dialogFooter>
+    <button class="btn-cancel" (click)="closeDetailModal()">Đóng</button>
+    <button class="btn-primary-dark" (click)="openFullCourseView(selectedCourse()!.id)">Xem chi tiết đầy đủ</button>
   </div>
-}
+</app-dialog>
 
-@if (showBulkRejectModal()) {
-  <div class="modal-backdrop">
-    <div class="modal-panel">
-      <div class="modal-header">
-        <div>
-          <h3 class="modal-title">Từ chối hàng loạt</h3>
-          <p class="modal-subtitle">Nhập lý do từ chối {{ selectedCount() }} khóa học đã chọn</p>
-        </div>
-      </div>
-      <div class="modal-body">
-        <textarea class="modal-textarea textarea-danger"
-                  [ngModel]="bulkRejectReason()"
-                  (ngModelChange)="bulkRejectReason.set($event)"
-                  name="bulkRejectReason"
-                  rows="4"
-                  placeholder="Vui lòng giải thích lý do từ chối..."></textarea>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-cancel" (click)="closeBulkRejectModal()">Hủy</button>
-        <button class="btn-danger" (click)="confirmBulkReject()" [disabled]="!bulkRejectReason().trim()">Từ chối ({{ selectedCount() }})</button>
-      </div>
-    </div>
+<app-dialog
+  [open]="showBulkRejectModal()"
+  title="Từ chối hàng loạt"
+  [subtitle]="'Nhập lý do từ chối ' + selectedCount() + ' khóa học đã chọn'"
+  size="md"
+  variant="danger"
+  (close)="closeBulkRejectModal()">
+  <textarea class="modal-textarea textarea-danger"
+            [ngModel]="bulkRejectReason()"
+            (ngModelChange)="bulkRejectReason.set($event)"
+            name="bulkRejectReason"
+            rows="4"
+            placeholder="Vui lòng giải thích lý do từ chối..."></textarea>
+  <div dialogFooter>
+    <button class="btn-cancel" (click)="closeBulkRejectModal()">Hủy</button>
+    <button class="btn-danger" (click)="confirmBulkReject()" [disabled]="!bulkRejectReason().trim()">Từ chối ({{ selectedCount() }})</button>
   </div>
-}
+</app-dialog>
 
-@if (showRevokeModal()) {
-  <div class="modal-backdrop">
-    <div class="modal-panel">
-      <div class="modal-header">
-        <div>
-          <h3 class="modal-title">Thu hồi phê duyệt</h3>
-          <p class="modal-subtitle">Nhập lý do thu hồi phê duyệt khóa học</p>
-        </div>
-      </div>
-      <div class="modal-body">
-        <textarea class="modal-textarea textarea-warning"
-                  [ngModel]="revokeReasonInput()"
-                  (ngModelChange)="revokeReasonInput.set($event)"
-                  name="revokeReason"
-                  rows="3"
-                  placeholder="Nhập lý do thu hồi..."></textarea>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-cancel" (click)="closeRevokeModal()">Hủy</button>
-        <button class="btn-warning" (click)="confirmRevokeCourse()" [disabled]="!revokeReasonInput().trim()">Thu hồi</button>
-      </div>
-    </div>
+<app-dialog
+  [open]="showRevokeModal()"
+  title="Thu hồi phê duyệt"
+  subtitle="Nhập lý do thu hồi phê duyệt khóa học"
+  size="md"
+  variant="warning"
+  (close)="closeRevokeModal()">
+  <textarea class="modal-textarea textarea-warning"
+            [ngModel]="revokeReasonInput()"
+            (ngModelChange)="revokeReasonInput.set($event)"
+            name="revokeReason"
+            rows="3"
+            placeholder="Nhập lý do thu hồi..."></textarea>
+  <div dialogFooter>
+    <button class="btn-cancel" (click)="closeRevokeModal()">Hủy</button>
+    <button class="btn-warning" (click)="confirmRevokeCourse()" [disabled]="!revokeReasonInput().trim()">Thu hồi</button>
   </div>
-}
+</app-dialog>
