@@ -56,6 +56,7 @@ public class AssignmentRubricJpaEntity {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @EqualsAndHashCode
     public static class RubricCriterion {
         private String name;
         private String description;
@@ -68,6 +69,7 @@ public class AssignmentRubricJpaEntity {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @EqualsAndHashCode
     public static class RubricLevel {
         private String label;
         private String description;

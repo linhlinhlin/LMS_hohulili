@@ -26,7 +26,6 @@ spring:
       ddl-auto: update
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: false
         # Fix Hibernate 6.4 UUID array ClassCastException (HHH-17557)
         dialect.native_param_markers: false
@@ -36,7 +35,7 @@ spring:
         order_inserts: true             # Group inserts by entity type
         order_updates: true             # Group updates by entity type
         # Hypersistence Utils: Custom ObjectMapper with JavaTimeModule for JSONB
-        types.jackson.object.mapper: com.example.lms.config.HibernateJsonConfig
+        hypersistence.utils.jackson.object.mapper: com.example.lms.config.HibernateJsonConfig
     # CRITICAL: Disable Open Session In View anti-pattern
     # Reference: Netflix/Google explicitly disable this
     open-in-view: false
