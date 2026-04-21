@@ -777,6 +777,7 @@
                 [showHelperText]="false"
                 [surface]="'bare'"
                 [buttonText]="'signin_with'"
+                [unavailableMessageOverride]="lookupResult()?.googleUnavailableMessage"
                 (authenticated)="onGoogleAuthenticated($event)"
                 (authError)="onGoogleAuthError($event)"
               />

@@ -47,6 +47,7 @@ export interface AuthLookupResponse {
   passwordLoginAvailable: boolean;
   googleSignInAvailable: boolean;
   nextStep: 'PASSWORD' | 'GOOGLE' | 'REGISTER';
+  googleUnavailableMessage?: string | null;
 }
 
 @Injectable({

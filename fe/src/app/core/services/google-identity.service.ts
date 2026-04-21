@@ -16,6 +16,10 @@ export interface GoogleAuthConfig {
   redirectFlowEnabled?: boolean;
   /** Path to navigate to for the redirect flow (e.g. "/api/v3/auth/google/authorize"). */
   authorizeUrl?: string | null;
+  /** Stable reason code when Google auth is unavailable. */
+  unavailableReason?: string | null;
+  /** User-facing fallback copy to show on the login page when Google auth is unavailable. */
+  unavailableMessage?: string | null;
 }
 
 export interface GoogleButtonExperience {
@@ -102,8 +106,22 @@ export class GoogleIdentityService {
   getConfig(): Observable<GoogleAuthConfig> {
     if (!this.googleConfig$) {
       this.googleConfig$ = this.http.get<ApiResponse<GoogleAuthConfig>>(AUTH_ENDPOINTS.GOOGLE_CONFIG).pipe(
-        map(response => response.data ?? { enabled: false, clientId: null, redirectFlowEnabled: false, authorizeUrl: null }),
-        catchError(() => of({ enabled: false, clientId: null, redirectFlowEnabled: false, authorizeUrl: null } as GoogleAuthConfig)),
+        map(response => response.data ?? {
+          enabled: false,
+          clientId: null,
+          redirectFlowEnabled: false,
+          authorizeUrl: null,
+          unavailableReason: null,
+          unavailableMessage: null
+        }),
+        catchError(() => of({
+          enabled: false,
+          clientId: null,
+          redirectFlowEnabled: false,
+          authorizeUrl: null,
+          unavailableReason: null,
+          unavailableMessage: null
+        } as GoogleAuthConfig)),
         shareReplay({ bufferSize: 1, refCount: false })
       );
     }

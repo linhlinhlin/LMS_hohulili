@@ -42,6 +42,29 @@ if [ "${WIII_WEBHOOK_ENABLED:-false}" = "true" ]; then
   fi
 fi
 
+if [ "${GOOGLE_AUTH_ENABLED:-false}" = "true" ] && [ -z "${GOOGLE_WEB_CLIENT_ID:-}" ]; then
+  echo "ERROR: GOOGLE_AUTH_ENABLED=true but GOOGLE_WEB_CLIENT_ID is missing."
+  exit 1
+fi
+
+if [ "${GOOGLE_OAUTH_REDIRECT_FLOW_ENABLED:-false}" = "true" ]; then
+  if [ "${GOOGLE_AUTH_ENABLED:-false}" != "true" ]; then
+    echo "ERROR: GOOGLE_OAUTH_REDIRECT_FLOW_ENABLED=true requires GOOGLE_AUTH_ENABLED=true."
+    exit 1
+  fi
+
+  if [ -z "${GOOGLE_WEB_CLIENT_ID:-}" ] || [ -z "${GOOGLE_CLIENT_SECRET:-}" ] || [ -z "${GOOGLE_OAUTH_REDIRECT_URI:-}" ] || [ -z "${GOOGLE_OAUTH_FRONTEND_CALLBACK:-}" ]; then
+    echo "ERROR: GOOGLE_OAUTH_REDIRECT_FLOW_ENABLED=true but one or more Google OAuth variables are missing."
+    exit 1
+  fi
+fi
+
+if [ "${GOOGLE_AUTH_ENABLED:-false}" != "true" ] && { [ -n "${GOOGLE_WEB_CLIENT_ID:-}" ] || [ "${GOOGLE_OAUTH_REDIRECT_FLOW_ENABLED:-false}" = "true" ]; }; then
+  echo "WARN: Google OAuth values are present but GOOGLE_AUTH_ENABLED=false."
+  echo "      The frontend will show Google sign-in as unavailable and the authorize endpoint will stay disabled."
+  echo ""
+fi
+
 if [ "${CLOUDFLARE_R2_ENABLED:-false}" = "true" ]; then
   if [ -z "${CLOUDFLARE_R2_ACCOUNT_ID:-}" ] || [ -z "${CLOUDFLARE_R2_ACCESS_KEY:-}" ] || [ -z "${CLOUDFLARE_R2_SECRET_KEY:-}" ] || [ -z "${CLOUDFLARE_R2_BUCKET:-}" ] || [ -z "${CLOUDFLARE_R2_VIDEO_BUCKET:-}" ] || [ -z "${CLOUDFLARE_R2_PUBLIC_URL:-}" ]; then
     echo "ERROR: CLOUDFLARE_R2_ENABLED=true but one or more R2 variables are missing."

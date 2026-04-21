@@ -96,7 +96,9 @@ class AuthControllerV3Test {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.enabled").value(false))
-                .andExpect(jsonPath("$.data.clientId").doesNotExist());
+                .andExpect(jsonPath("$.data.clientId").doesNotExist())
+                .andExpect(jsonPath("$.data.unavailableReason").value("GOOGLE_AUTH_DISABLED"))
+                .andExpect(jsonPath("$.data.unavailableMessage").value("Đăng nhập Google hiện tạm thời chưa khả dụng. Vui lòng dùng email và mật khẩu."));
     }
 
     @Test
@@ -109,7 +111,8 @@ class AuthControllerV3Test {
                         true,
                         true,
                         false,
-                        "PASSWORD"
+                        "PASSWORD",
+                        null
                 ));
 
         mockMvc.perform(post("/api/v3/auth/lookup")
@@ -123,5 +126,33 @@ class AuthControllerV3Test {
                 .andExpect(jsonPath("$.data.nextStep").value("PASSWORD"))
                 .andExpect(jsonPath("$.data.passwordLoginAvailable").value(true))
                 .andExpect(jsonPath("$.data.googleSignInAvailable").value(false));
+    }
+
+    @Test
+    @DisplayName("lookup returns fallback message when Google account exists but Google auth is unavailable")
+    void lookupReturnsFallbackMessageForGoogleAccountWhenUnavailable() throws Exception {
+        given(discoverAuthOptionsUseCase.execute(new com.example.lms.identity.application.dto.DiscoverAuthOptionsCommand("student@maritime.edu")))
+                .willReturn(new com.example.lms.identity.application.dto.DiscoverAuthOptionsResponse(
+                        "student@maritime.edu",
+                        "Student Maritime",
+                        true,
+                        false,
+                        true,
+                        "GOOGLE",
+                        null
+                ));
+
+        mockMvc.perform(post("/api/v3/auth/lookup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"student@maritime.edu"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.nextStep").value("GOOGLE"))
+                .andExpect(jsonPath("$.data.googleSignInAvailable").value(false))
+                .andExpect(jsonPath("$.data.googleUnavailableMessage").value(
+                        "Tài khoản này dùng Google để đăng nhập, nhưng Google sign-in hiện tạm thời chưa khả dụng. Vui lòng thử lại sau hoặc liên hệ quản trị viên."
+                ));
     }
 }

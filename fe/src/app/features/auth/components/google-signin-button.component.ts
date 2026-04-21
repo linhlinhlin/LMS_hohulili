@@ -21,7 +21,7 @@ type GoogleButtonSurface = 'card' | 'bare';
 @Component({
   selector: 'app-google-signin-button',
   template: `
-    <div class="google-auth-shell" [class.google-auth-shell-hidden]="!isAvailable() && !errorMessage()">
+    <div class="google-auth-shell" [class.google-auth-shell-hidden]="!isAvailable() && !noticeMessage() && !errorMessage()">
       @if (showDivider()) {
         <div class="google-divider">
           <span class="google-divider-line" aria-hidden="true"></span>
@@ -31,7 +31,8 @@ type GoogleButtonSurface = 'card' | 'bare';
       }
 
       <div class="google-surface" [class.google-surface-card]="surface() === 'card'">
-        @if (useRedirectFlow()) {
+        @if (isAvailable()) {
+          @if (useRedirectFlow()) {
           <!-- Redirect-flow mode: a normal <button> that navigates the browser to the BE
                authorize endpoint. No Google JS SDK runs in this mode — bypasses FedCM,
                popups, third-party-cookie restrictions entirely. -->
@@ -74,6 +75,13 @@ type GoogleButtonSurface = 'card' | 'bare';
             class="google-button-host"
             [class.google-button-host-disabled]="isPending() || disabled()"
           ></div>
+          }
+        } @else if (noticeMessage()) {
+          <div class="google-unavailable" role="status" aria-live="polite">
+            <p class="google-unavailable-title">Đăng nhập Google tạm thời chưa khả dụng</p>
+            <p class="google-unavailable-copy">{{ noticeMessage() }}</p>
+          </div>
+          <div #buttonContainer class="google-button-host-noop" aria-hidden="true"></div>
         }
       </div>
 
@@ -232,6 +240,30 @@ type GoogleButtonSurface = 'card' | 'bare';
       display: none;
     }
 
+    .google-unavailable {
+      display: grid;
+      gap: 6px;
+      padding: 14px 16px;
+      border: 1px solid #dbeafe;
+      border-radius: 14px;
+      background: #eff6ff;
+    }
+
+    .google-unavailable-title {
+      margin: 0;
+      color: #1d4ed8;
+      font-size: 0.88rem;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
+    .google-unavailable-copy {
+      margin: 0;
+      color: #1e3a8a;
+      font-size: 0.82rem;
+      line-height: 1.6;
+    }
+
     .google-helper {
       margin: 0;
       color: #6b7280;
@@ -280,12 +312,14 @@ export class GoogleSigninButtonComponent implements AfterViewInit {
   readonly buttonText = input<GoogleButtonText>('continue_with');
   readonly surface = input<GoogleButtonSurface>('card');
   readonly buttonWidth = input<number | string | null>(null);
+  readonly unavailableMessageOverride = input<string | null | undefined>(undefined);
   readonly authenticated = output<AuthResponse>();
   readonly authError = output<string>();
 
   protected readonly isAvailable = signal(false);
   protected readonly isPending = signal(false);
   protected readonly errorMessage = signal('');
+  protected readonly noticeMessage = signal('');
   protected readonly helperText = signal('');
   /** True when the BE advertises the server-side authorization-code flow. Drives template branching. */
   protected readonly useRedirectFlow = signal(false);
@@ -308,12 +342,26 @@ export class GoogleSigninButtonComponent implements AfterViewInit {
 
     try {
       const config = await firstValueFrom(this.googleIdentityService.getConfig());
-      if (this.destroyed || !config.enabled || !config.clientId) {
+      if (this.destroyed) {
         return;
       }
 
       this.googleConfig = config;
+      if (!config.enabled || !config.clientId) {
+        this.isAvailable.set(false);
+        this.useRedirectFlow.set(false);
+        this.helperText.set('');
+        this.noticeMessage.set(
+          this.unavailableMessageOverride()?.trim()
+            || config.unavailableMessage?.trim()
+            || 'Đăng nhập Google tạm thời chưa khả dụng. Vui lòng dùng email và mật khẩu.'
+        );
+        return;
+      }
+
+      this.noticeMessage.set('');
       this.isAvailable.set(true);
+      this.useRedirectFlow.set(false);
 
       // Prefer the server-side redirect flow when the BE advertises it. No GSI script,
       // no popup, no FedCM — just a normal navigation. Fall back to the in-page button
@@ -333,6 +381,7 @@ export class GoogleSigninButtonComponent implements AfterViewInit {
       await this.renderButton();
     } catch {
       if (!this.destroyed) {
+        this.noticeMessage.set('');
         this.errorMessage.set('Đăng nhập Google tạm thời chưa khả dụng.');
       }
     }
