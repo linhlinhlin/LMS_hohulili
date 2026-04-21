@@ -69,11 +69,19 @@
         [chapterLabel]="selectedChapterLabel()"
         [isSaving]="isSaving()"
         [isDirty]="editorDirty()"
+        [showLessonComposer]="lessonComposerOpen()"
+        [lessonDraftTitle]="lessonComposerTitle()"
+        [lessonDraftType]="lessonComposerType()"
+        [isCreatingLesson]="lessonComposerBusy()"
         (titleChange)="onChapterTitleChange($event)"
         (descriptionChange)="onChapterDescriptionChange($event)"
         (saveClicked)="saveChapter()"
         (lessonClicked)="selectLessonFromChapter($event)"
-        (addLesson)="requestAddLessonForCurrentChapter()">
+        (addLesson)="requestAddLessonForCurrentChapter()"
+        (lessonDraftTitleChange)="onLessonComposerTitleChange($event)"
+        (lessonDraftTypeChange)="onLessonComposerTypeChange($event)"
+        (createLesson)="createLessonFromComposer()"
+        (cancelLessonCreate)="cancelLessonComposer()">
       </app-chapter-editor>
     }
   }
