@@ -162,7 +162,10 @@ jobs:
           docker image prune -f 2>/dev/null || true
 
           # Deploy (no --build: uses pulled images)
-          docker compose "\${COMPOSE_ARGS[@]}" up -d --remove-orphans
+          # --force-recreate backend frontend: ensures containers restart with the new image.
+          # Without this, `up -d` may leave old containers running if Docker Compose
+          # doesn't detect the image digest change reliably.
+          docker compose "\${COMPOSE_ARGS[@]}" up -d --remove-orphans --force-recreate backend frontend
 
           # Wait for health
           echo "Waiting for backend health..."
