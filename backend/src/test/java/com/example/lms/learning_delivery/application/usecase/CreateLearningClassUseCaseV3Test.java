@@ -1,8 +1,10 @@
 package com.example.lms.learning_delivery.application.usecase;
 
 import com.example.lms.course_authoring.application.port.CoursePublicationPort;
+import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepository;
+import com.example.lms.learning_delivery.infrastructure.persistence.ClassTeacherJpaRepository;
 import com.example.lms.shared.exception.BusinessRuleException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,6 +35,12 @@ class CreateLearningClassUseCaseV3Test {
 
     @Mock
     private CoursePublicationPort coursePublicationPort;
+
+    @Mock
+    private ClassTeacherJpaRepository classTeacherJpaRepository;
+
+    @Mock
+    private UserJpaRepository userJpaRepository;
 
     @InjectMocks
     private CreateLearningClassUseCaseV3 useCase;

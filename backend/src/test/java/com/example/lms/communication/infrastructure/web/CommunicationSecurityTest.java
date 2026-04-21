@@ -1,9 +1,15 @@
 package com.example.lms.communication.infrastructure.web;
 
+import com.example.lms.communication.application.service.MessageAuthorizationService;
+import com.example.lms.communication.application.service.WebSocketMessageService;
+import com.example.lms.communication.application.usecase.ListMessageRecipientsUseCase;
 import com.example.lms.communication.application.usecase.SendMessageUseCaseV3;
 import com.example.lms.communication.domain.model.*;
 import com.example.lms.communication.domain.repository.ConversationRepository;
 import com.example.lms.communication.domain.repository.MessageRepository;
+import com.example.lms.communication.infrastructure.persistence.repository.MessageJpaRepositoryV3;
+import com.example.lms.communication.infrastructure.persistence.repository.MessageReactionJpaRepository;
+import com.example.lms.config.WebSocketEventListener;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
@@ -32,9 +38,15 @@ import static org.mockito.Mockito.*;
 class CommunicationSecurityTest {
 
     @Mock private SendMessageUseCaseV3 sendMessageUseCase;
+    @Mock private ListMessageRecipientsUseCase listMessageRecipientsUseCase;
+    @Mock private MessageAuthorizationService messageAuthorizationService;
     @Mock private ConversationRepository conversationRepository;
     @Mock private MessageRepository messageRepository;
     @Mock private UserJpaRepository userJpaRepository;
+    @Mock private WebSocketMessageService webSocketMessageService;
+    @Mock private WebSocketEventListener webSocketEventListener;
+    @Mock private MessageReactionJpaRepository reactionRepository;
+    @Mock private MessageJpaRepositoryV3 messageJpaRepository;
 
     @InjectMocks
     private CommunicationControllerV3 controller;
