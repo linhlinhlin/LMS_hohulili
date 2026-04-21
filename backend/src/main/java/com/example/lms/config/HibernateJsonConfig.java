@@ -8,7 +8,7 @@ import io.hypersistence.utils.hibernate.type.util.ObjectMapperSupplier;
 /**
  * Custom ObjectMapper supplier for Hypersistence Utils' JsonType.
  * Registers JavaTimeModule for proper Instant/LocalDateTime serialization in JSONB columns.
- * Referenced via hibernate property: hibernate.types.jackson.object.mapper
+ * Referenced via hibernate property: hypersistence.utils.jackson.object.mapper
  */
 public class HibernateJsonConfig implements ObjectMapperSupplier {
 
