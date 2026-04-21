@@ -4,6 +4,7 @@ import com.example.lms.course_authoring.application.dto.CourseResponse;
 import com.example.lms.course_authoring.application.port.CoursePublicationPort;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
+import com.example.lms.course_authoring.infrastructure.persistence.repository.CourseReviewEventJpaRepository;
 import com.example.lms.shared.domain.valueobject.CourseCode;
 import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.exception.EntityNotFoundException;
@@ -36,6 +37,9 @@ class ApproveCourseUseCaseTest {
 
     @Mock
     private CoursePublicationPort coursePublicationPort;
+
+    @Mock
+    private CourseReviewEventJpaRepository reviewEventRepository;
 
     @InjectMocks
     private ApproveCourseUseCase useCase;

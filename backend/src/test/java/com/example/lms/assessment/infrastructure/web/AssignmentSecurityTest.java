@@ -1,13 +1,16 @@
 package com.example.lms.assessment.infrastructure.web;
 
 import com.example.lms.assessment.application.port.StudentAssessmentAccessPort;
+import com.example.lms.assessment.application.usecase.GradeSubmissionUseCase;
 import com.example.lms.assessment.infrastructure.persistence.entity.AssignmentJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.entity.AssignmentSubmissionJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentJpaRepository;
 import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentSubmissionJpaRepository;
+import com.example.lms.assessment.infrastructure.persistence.repository.GradingAuditLogJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
+import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -38,6 +41,9 @@ class AssignmentSecurityTest {
     @Mock private AssignmentSubmissionJpaRepository submissionRepository;
     @Mock private AssignmentJpaRepository assignmentRepository;
     @Mock private JpaCourseRepository courseJpaRepository;
+    @Mock private GradeSubmissionUseCase gradeSubmissionUseCase;
+    @Mock private UserJpaRepository userJpaRepository;
+    @Mock private GradingAuditLogJpaRepository gradingAuditLogRepository;
 
     @InjectMocks
     private AssignmentSubmissionControllerV3 controller;

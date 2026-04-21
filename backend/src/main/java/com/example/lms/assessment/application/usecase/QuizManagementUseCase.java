@@ -170,8 +170,9 @@ public class QuizManagementUseCase {
     private void validateTeacherOwnership(Quiz quiz, UUID userId, String userRole) {
         if (userId == null || userRole == null) return; // Internal calls without user context
 
-        // ADMIN bypasses ownership
-        if ("ADMIN".equals(userRole) || "ROLE_ADMIN".equals(userRole)) {
+        // ADMIN and ORG_ADMIN bypass ownership
+        if ("ADMIN".equals(userRole) || "ROLE_ADMIN".equals(userRole)
+                || "ORG_ADMIN".equals(userRole) || "ROLE_ORG_ADMIN".equals(userRole)) {
             return;
         }
 
