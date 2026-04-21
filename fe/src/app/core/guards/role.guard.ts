@@ -2,7 +2,7 @@ import { inject, Injector } from '@angular/core';
 import { Router, CanActivateFn } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { UserRole } from '../services/auth.service';
-import { getPortalRootRoute, mapAdminPortalPathForRole } from '../utils/portal-route.util';
+import { getPortalRootRoute, getPortalLandingRoute, mapAdminPortalPathForRole } from '../utils/portal-route.util';
 
 /**
  * General Auth Guard - Ensures user is authenticated
@@ -169,4 +169,20 @@ export const orgAdminPortalGuard: CanActivateFn = (route, state) => {
   return router.createUrlTree(['/auth/login'], {
     queryParams: { returnUrl: state.url }
   });
+};
+
+/**
+ * Guest Guard - Only allows unauthenticated users
+ * Redirects authenticated users to their portal landing page
+ */
+export const guestGuard: CanActivateFn = (route, state) => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  if (!authService.isAuthenticated()) {
+    return true;
+  }
+
+  const role = authService.userRole();
+  return router.createUrlTree([getPortalLandingRoute(role)]);
 };

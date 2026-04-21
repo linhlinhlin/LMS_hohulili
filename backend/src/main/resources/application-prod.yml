@@ -77,7 +77,7 @@ app:
       base-path: uploads
       base-url: ${APP_BASE_URL:https://holilihu.online}/uploads
   email:
-    from: "LMS Maritime <noreply@maritime.edu>"
+    from: "${EMAIL_FROM:LMS Maritime <noreply@holilihu.online>}"
     base-url: "${APP_BASE_URL:https://holilihu.online}"
   resend:
     api-key: "${RESEND_API_KEY:}"

@@ -55,25 +55,39 @@ if [ "${ENABLE_LOCAL_VIDEO_WORKER:-true}" != "true" ]; then
   echo ""
 fi
 
-echo "[1/5] Validating Docker Compose configuration..."
+echo "[1/7] Validating Docker Compose configuration..."
 docker compose "${COMPOSE_ARGS[@]}" config -q
 
-echo "[2/5] Deploying current checked-out revision..."
+echo "[2/7] Deploying current checked-out revision..."
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   echo "  revision: $(git rev-parse --short HEAD)"
 else
   echo "  revision: unknown (not a git work tree)"
 fi
 
-echo "[3/5] Building and starting containers..."
+echo "[3/7] Backing up database..."
+if docker compose "${COMPOSE_ARGS[@]}" ps db --status running -q 2>/dev/null | grep -q .; then
+  BACKUP_FILE="backups/lms-pre-deploy-$(date +%Y%m%d-%H%M%S).sql.gz"
+  mkdir -p backups
+  docker compose "${COMPOSE_ARGS[@]}" exec -T db \
+    pg_dump -U "${POSTGRES_USER:-lms}" "${POSTGRES_DB:-lms}" | gzip > "$BACKUP_FILE"
+  echo "  Backup saved: $BACKUP_FILE ($(du -h "$BACKUP_FILE" | cut -f1))"
+else
+  echo "  Skipped (database not running — first deploy?)"
+fi
+
+echo "[4/7] Pruning Docker cache to prevent OOM..."
+docker system prune -f --volumes 2>/dev/null || true
+
+echo "[5/7] Building and starting containers..."
 docker compose "${COMPOSE_ARGS[@]}" up -d --build --wait --remove-orphans
 
-echo "[4/5] Container status..."
+echo "[6/7] Container status..."
 echo ""
 docker compose "${COMPOSE_ARGS[@]}" ps
 echo ""
 
-echo "[5/5] Edge health check..."
+echo "[7/7] Edge health check..."
 if curl -sf http://localhost/actuator/health > /dev/null 2>&1; then
   echo "Backend: HEALTHY"
 elif curl -sf http://localhost:80/actuator/health > /dev/null 2>&1; then

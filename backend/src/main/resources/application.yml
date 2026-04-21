@@ -74,6 +74,18 @@ app:
     google:
       enabled: ${GOOGLE_AUTH_ENABLED:false}
       web-client-id: ${GOOGLE_WEB_CLIENT_ID:}
+      # Server-side authorization code flow (Wiii-style redirect). When enabled, the FE
+      # navigates the browser to GET /api/v3/auth/google/authorize, which redirects to
+      # Google. Google sends the user back to /api/v3/auth/google/callback, the BE
+      # exchanges the code for tokens, and forwards the user to FRONTEND_CALLBACK with
+      # the LMS JWT in the URL fragment.
+      redirect-flow-enabled: ${GOOGLE_OAUTH_REDIRECT_FLOW_ENABLED:false}
+      client-secret: ${GOOGLE_CLIENT_SECRET:}
+      # Must match exactly the "Authorized redirect URI" in Google Cloud Console.
+      redirect-uri: ${GOOGLE_OAUTH_REDIRECT_URI:}
+      # Where the BE forwards the browser after the callback succeeds. The JWT is
+      # carried in the URL fragment (#token=...) so it never hits the access log.
+      frontend-callback-uri: ${GOOGLE_OAUTH_FRONTEND_CALLBACK:}
   video:
     ingest:
       enabled: ${VIDEO_INGEST_ENABLED:true}

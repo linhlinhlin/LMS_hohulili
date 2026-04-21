@@ -74,6 +74,7 @@ public class AuthControllerV3 {
     private final SendVerificationEmailUseCase sendVerificationEmailUseCase;
     private final VerifyEmailUseCase verifyEmailUseCase;
     private final EmailServicePort emailService;
+    private final com.example.lms.identity.infrastructure.security.GoogleOAuthProperties googleOAuthProperties;
 
     @Value("${app.auth.google.enabled:false}")
     private boolean googleAuthEnabled;
@@ -155,9 +156,13 @@ public class AuthControllerV3 {
         boolean enabled = googleAuthEnabled
                 && googleWebClientId != null
                 && !googleWebClientId.isBlank();
+        // Redirect flow only advertised when fully configured — FE falls back to GSI button otherwise.
+        boolean redirectFlow = enabled && googleOAuthProperties.isFullyConfigured();
         return ResponseEntity.ok(ApiResponse.success(new GoogleAuthConfigResponse(
                 enabled,
-                enabled ? googleWebClientId : null
+                enabled ? googleWebClientId : null,
+                redirectFlow,
+                redirectFlow ? "/api/v3/auth/google/authorize" : null
         )));
     }
 
@@ -235,58 +240,58 @@ public class AuthControllerV3 {
     }
 
     @PostMapping("/forgot-password")
-    @Operation(summary = "Yeu cau dat lai mat khau")
+    @Operation(summary = "Yêu cầu đặt lại mật khẩu")
     public ResponseEntity<ApiResponse<Map<String, String>>> forgotPassword(
             @RequestBody @Valid ForgotPasswordRequest request
     ) {
         requestPasswordResetUseCase.execute(request.email());
         return ResponseEntity.ok(ApiResponse.success(
-                Map.of("message", "Neu email ton tai, ban se nhan duoc huong dan dat lai mat khau"),
-                "Yeu cau dat lai mat khau da duoc gui"
+                Map.of("message", "Nếu email tồn tại, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu"),
+                "Yêu cầu đặt lại mật khẩu đã được gửi"
         ));
     }
 
     @PostMapping("/reset-password")
-    @Operation(summary = "Dat lai mat khau bang token")
+    @Operation(summary = "Đặt lại mật khẩu bằng token")
     public ResponseEntity<ApiResponse<String>> resetPassword(
             @RequestBody @Valid ResetPasswordRequest request
     ) {
         resetPasswordUseCase.execute(request.token(), request.newPassword());
-        return ResponseEntity.ok(ApiResponse.success("Mat khau da duoc dat lai thanh cong"));
+        return ResponseEntity.ok(ApiResponse.success("Mật khẩu đã được đặt lại thành công"));
     }
 
     @PostMapping("/verify-email")
-    @Operation(summary = "Xac nhan email bang token")
+    @Operation(summary = "Xác nhận email bằng token")
     public ResponseEntity<ApiResponse<String>> verifyEmail(
-            @RequestParam @NotBlank(message = "Token khong duoc de trong") String token
+            @RequestParam @NotBlank(message = "Token không được để trống") String token
     ) {
         verifyEmailUseCase.execute(token);
-        return ResponseEntity.ok(ApiResponse.success("Email da duoc xac nhan thanh cong"));
+        return ResponseEntity.ok(ApiResponse.success("Email đã được xác nhận thành công"));
     }
 
     @PostMapping("/resend-verification")
-    @Operation(summary = "Gui lai email xac nhan")
+    @Operation(summary = "Gửi lại email xác nhận")
     public ResponseEntity<ApiResponse<Map<String, String>>> resendVerification(
             @RequestBody @Valid ResendVerificationRequest request
     ) {
         sendVerificationEmailUseCase.resend(request.email());
         return ResponseEntity.ok(ApiResponse.success(
-                Map.of("message", "Neu email ton tai, ban se nhan duoc email xac nhan"),
-                "Yeu cau gui lai email xac nhan da duoc xu ly"
+                Map.of("message", "Nếu email tồn tại, bạn sẽ nhận được email xác nhận"),
+                "Yêu cầu gửi lại email xác nhận đã được xử lý"
         ));
     }
 
     public record ForgotPasswordRequest(
-            @NotBlank(message = "Email khong duoc de trong")
-            @Email(message = "Email khong hop le")
+            @NotBlank(message = "Email không được để trống")
+            @Email(message = "Email không hợp lệ")
             String email
     ) {}
 
     public record ResetPasswordRequest(
-            @NotBlank(message = "Token khong duoc de trong")
+            @NotBlank(message = "Token không được để trống")
             String token,
-            @NotBlank(message = "Mat khau moi khong duoc de trong")
-            @Size(min = 8, max = 128, message = "Mat khau moi phai co tu 8 den 128 ky tu")
+            @NotBlank(message = "Mật khẩu mới không được để trống")
+            @Size(min = 8, max = 128, message = "Mật khẩu mới phải có từ 8 đến 128 ký tự")
             String newPassword
     ) {}
 
@@ -296,55 +301,55 @@ public class AuthControllerV3 {
     ) {}
 
     public record RegisterRequest(
-            @NotBlank(message = "Ten dang nhap khong duoc de trong")
-            @Size(min = 3, max = 50, message = "Ten dang nhap phai tu 3 den 50 ky tu")
+            @NotBlank(message = "Tên đăng nhập không được để trống")
+            @Size(min = 3, max = 50, message = "Tên đăng nhập phải từ 3 đến 50 ký tự")
             String username,
-            @NotBlank(message = "Email khong duoc de trong")
-            @Email(message = "Email khong hop le")
+            @NotBlank(message = "Email không được để trống")
+            @Email(message = "Email không hợp lệ")
             String email,
-            @NotBlank(message = "Mat khau khong duoc de trong")
-            @Size(min = 8, max = 128, message = "Mat khau phai co tu 8 den 128 ky tu")
+            @NotBlank(message = "Mật khẩu không được để trống")
+            @Size(min = 8, max = 128, message = "Mật khẩu phải có từ 8 đến 128 ký tự")
             String password,
-            @NotBlank(message = "Ho ten khong duoc de trong")
+            @NotBlank(message = "Họ tên không được để trống")
             String fullName,
             String role,
             String inviteCode
     ) {}
 
     public record LoginRequest(
-            @NotBlank(message = "Email khong duoc de trong")
-            @Email(message = "Email khong hop le")
+            @NotBlank(message = "Email không được để trống")
+            @Email(message = "Email không hợp lệ")
             String email,
-            @NotBlank(message = "Mat khau khong duoc de trong")
+            @NotBlank(message = "Mật khẩu không được để trống")
             String password
     ) {}
 
     public record AuthLookupRequest(
-            @NotBlank(message = "Email khong duoc de trong")
-            @Email(message = "Email khong hop le")
+            @NotBlank(message = "Email không được để trống")
+            @Email(message = "Email không hợp lệ")
             String email
     ) {}
 
     public record UpdateProfileRequest(
-            @Size(max = 255, message = "Ho ten khong duoc vuot qua 255 ky tu")
+            @Size(max = 255, message = "Họ tên không được vượt quá 255 ký tự")
             String fullName,
-            @Email(message = "Email khong hop le")
+            @Email(message = "Email không hợp lệ")
             String email,
-            @Size(max = 500, message = "URL avatar khong duoc vuot qua 500 ky tu")
+            @Size(max = 500, message = "URL avatar không được vượt quá 500 ký tự")
             String avatarUrl
     ) {}
 
     public record ChangePasswordRequest(
-            @NotBlank(message = "Mat khau hien tai khong duoc de trong")
+            @NotBlank(message = "Mật khẩu hiện tại không được để trống")
             String currentPassword,
-            @NotBlank(message = "Mat khau moi khong duoc de trong")
-            @Size(min = 8, max = 128, message = "Mat khau moi phai co tu 8 den 128 ky tu")
+            @NotBlank(message = "Mật khẩu mới không được để trống")
+            @Size(min = 8, max = 128, message = "Mật khẩu mới phải có từ 8 đến 128 ký tự")
             String newPassword
     ) {}
 
     public record ResendVerificationRequest(
-            @NotBlank(message = "Email khong duoc de trong")
-            @Email(message = "Email khong hop le")
+            @NotBlank(message = "Email không được để trống")
+            @Email(message = "Email không hợp lệ")
             String email
     ) {}
 
@@ -356,6 +361,10 @@ public class AuthControllerV3 {
 
     public record GoogleAuthConfigResponse(
             boolean enabled,
-            String clientId
+            String clientId,
+            /** True when the server-side authorization-code flow is configured and FE should prefer it. */
+            boolean redirectFlowEnabled,
+            /** Path to navigate to for the redirect flow, e.g. "/api/v3/auth/google/authorize". */
+            String authorizeUrl
     ) {}
 }

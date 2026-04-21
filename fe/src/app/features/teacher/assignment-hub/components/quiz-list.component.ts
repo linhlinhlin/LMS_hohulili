@@ -8,6 +8,7 @@ import { QuizApi } from '../../../../api/endpoints/quiz.api';
 import { CourseApi } from '../../../../api/client/course.api';
 import { ChapterApi } from '../../../../api/client/chapter.api';
 import { DialogComponent } from '../../../../shared/components/dialog/dialog.component';
+import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 
 type StatusFilter = '' | 'NEEDS_GRADING' | 'OPEN' | 'DRAFT' | 'CLOSED';
 type QuizTypeFilter = '' | 'PRACTICE' | 'ASSESSMENT' | 'EXAM';
@@ -59,7 +60,7 @@ interface CourseGroup {
 
 @Component({
   selector: 'app-quiz-list',
-  imports: [CommonModule, RouterModule, LucideAngularModule, FormsModule, DialogComponent],
+  imports: [CommonModule, RouterModule, LucideAngularModule, FormsModule, DialogComponent, EmptyStateComponent],
   templateUrl: './quiz-list.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })

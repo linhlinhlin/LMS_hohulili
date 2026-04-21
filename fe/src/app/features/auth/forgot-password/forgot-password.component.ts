@@ -1,12 +1,10 @@
 import { Component, signal, inject, ChangeDetectionStrategy } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
-import { RouterModule, Router } from '@angular/router';
+import { firstValueFrom, timeout } from 'rxjs';
+import { RouterModule } from '@angular/router';
 import { FormBuilder, FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
-import { AuthService } from '../../../core/services/auth.service';
 import { ApiClient } from '../../../api/client/api-client';
 import { AUTH_ENDPOINTS } from '../../../api/endpoints/auth.endpoints';
 
-// Typed form interface
 type ForgotPasswordForm = {
   email: FormControl<string>;
 };
@@ -16,239 +14,381 @@ type ForgotPasswordForm = {
   imports: [RouterModule, ReactiveFormsModule],
   template: `
     <style>
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+      :host {
+        display: block;
+        --auth-primary: #0056d2;
+        --auth-primary-hover: #004bb8;
+        --auth-border: #e5e7eb;
+        --auth-border-strong: #d1d5db;
+        --auth-text: #111827;
+        --auth-text-secondary: #4b5563;
+        --auth-text-muted: #6b7280;
+        --auth-error-bg: #fef2f2;
+        --auth-error-border: #fecaca;
+        --auth-error-text: #b91c1c;
+        --auth-success-bg: #f0fdf4;
+        --auth-success-border: #bbf7d0;
+        --auth-success-text: #166534;
+        --auth-shadow-card: 0 1px 3px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
       }
 
-      .animate-fade-in {
-        animation: fadeIn 0.5s ease-out;
+      .auth-shell {
+        min-height: 100vh;
+        background: #fafafa;
       }
 
-      /* Floating Label */
-      .input-wrapper {
-        position: relative;
+      .auth-page {
+        min-height: 100vh;
+        padding: 24px 16px 32px;
+        padding-left: max(16px, env(safe-area-inset-left));
+        padding-right: max(16px, env(safe-area-inset-right));
+        padding-bottom: max(32px, env(safe-area-inset-bottom));
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
 
-      .input-field {
-        transition: all 0.2s ease;
-        background: #ffffff;
+      .auth-frame {
+        width: min(100%, 432px);
+        display: grid;
+        gap: 14px;
       }
 
-      .input-field:focus {
-        outline: none;
-        border-color: #0056D2;
-        box-shadow: 0 0 0 3px rgba(2, 136, 209, 0.1);
+      .auth-brand {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        text-decoration: none;
       }
 
-      .input-label {
-        position: absolute;
-        left: 16px;
-        top: 50%;
-        transform: translateY(-50%);
-        background: white;
-        padding: 2px 10px;
-        color: #6B7280;
-        font-size: 15px;
-        pointer-events: none;
-        transition: all 0.2s ease;
-        border-radius: 12px;
+      .auth-brand-kicker {
+        margin: 0;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--auth-text-muted);
       }
 
-      .input-field:focus ~ .input-label,
-      .input-field:not(:placeholder-shown) ~ .input-label {
-        top: 0;
-        transform: translateY(-50%);
-        font-size: 12px;
-        color: #0056D2;
-        font-weight: 600;
-        background: rgba(0, 86, 210, 0.03);
-        padding: 3px 12px;
+      .auth-brand-title {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 700;
+        line-height: 1.1;
+        color: var(--auth-text);
+      }
+
+      .auth-card {
+        width: 100%;
+        padding: 24px 20px;
         border-radius: 16px;
-        box-shadow: 0 0 0 1px #BFDBFE;
+        border: 1px solid var(--auth-border);
+        background: #ffffff;
+        box-shadow: var(--auth-shadow-card);
       }
 
-      .btn-submit {
-        transition: all 0.3s ease;
+      .auth-card-header {
+        display: grid;
+        gap: 6px;
+        margin-bottom: 20px;
+        text-align: center;
+        justify-items: center;
       }
 
-      .btn-submit:hover:not(:disabled) {
-        background: #0277BD;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(2, 136, 209, 0.3);
+      .auth-card-title {
+        margin: 0;
+        font-size: clamp(1.45rem, 4.4vw, 1.7rem);
+        line-height: 1.14;
+        font-weight: 700;
+        color: var(--auth-text);
       }
 
-      .form-element {
-        animation: fadeIn 0.5s ease-out backwards;
+      .auth-card-copy {
+        margin: 0;
+        max-width: 34ch;
+        font-size: 0.95rem;
+        line-height: 1.68;
+        color: var(--auth-text-secondary);
       }
 
-      .form-element:nth-child(1) { animation-delay: 0.1s; }
-      .form-element:nth-child(2) { animation-delay: 0.2s; }
-      .form-element:nth-child(3) { animation-delay: 0.3s; }
+      .auth-section {
+        display: grid;
+        gap: 16px;
+      }
+
+      .auth-field {
+        display: grid;
+        gap: 8px;
+      }
+
+      .auth-label {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #374151;
+      }
+
+      .auth-input {
+        min-height: 48px;
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 14px;
+        border: 1px solid var(--auth-border-strong);
+        background: #ffffff;
+        font-size: 0.96rem;
+        color: var(--auth-text);
+        transition: border-color 0.18s ease, box-shadow 0.18s ease;
+      }
+
+      .auth-input::placeholder { color: #9ca3af; }
+
+      .auth-input:focus {
+        outline: none;
+        border-color: var(--auth-primary);
+        box-shadow: 0 0 0 4px rgba(0, 86, 210, 0.12);
+      }
+
+      .auth-input-note {
+        font-size: 0.85rem;
+        line-height: 1.5;
+        color: #dc2626;
+      }
+
+      .auth-banner {
+        position: relative;
+        margin-bottom: 16px;
+        border-radius: 10px;
+        padding: 14px 16px;
+        font-size: 0.9rem;
+        line-height: 1.6;
+      }
+
+      .auth-banner-error {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        border: 1px solid var(--auth-error-border);
+        background: var(--auth-error-bg);
+        color: var(--auth-error-text);
+      }
+
+      .auth-banner-close {
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--auth-error-text);
+        font-size: 1.2rem;
+        cursor: pointer;
+        opacity: 0.6;
+      }
+
+      .auth-banner-close:hover {
+        opacity: 1;
+        background: rgba(185, 28, 28, 0.08);
+      }
+
+      .auth-primary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 48px;
+        padding: 0 18px;
+        border: 0;
+        border-radius: 14px;
+        background: var(--auth-primary);
+        color: #ffffff;
+        font-size: 0.94rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background-color 0.18s ease, box-shadow 0.18s ease;
+      }
+
+      .auth-primary:hover:not(:disabled) {
+        background: var(--auth-primary-hover);
+        box-shadow: 0 2px 8px rgba(0, 86, 210, 0.18);
+      }
+
+      .auth-primary:disabled {
+        cursor: not-allowed;
+        opacity: 0.58;
+      }
+
+      .auth-success-card {
+        text-align: center;
+      }
+
+      .auth-success-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 16px;
+        border-radius: 999px;
+        background: var(--auth-success-bg);
+        border: 1px solid var(--auth-success-border);
+      }
+
+      .auth-success-icon svg {
+        width: 28px;
+        height: 28px;
+        color: var(--auth-success-text);
+      }
+
+      .auth-success-email {
+        font-weight: 700;
+        color: var(--auth-text);
+      }
+
+      .auth-success-hint {
+        margin: 16px 0 0;
+        font-size: 0.85rem;
+        color: var(--auth-text-muted);
+      }
+
+      .auth-footer {
+        margin-top: 18px;
+        padding-top: 16px;
+        border-top: 1px solid var(--auth-border);
+        display: grid;
+        gap: 10px;
+        font-size: 0.88rem;
+        color: var(--auth-text-secondary);
+        text-align: center;
+      }
+
+      .auth-footer a {
+        color: var(--auth-primary);
+        font-weight: 600;
+        text-decoration: none;
+      }
+
+      .auth-footer a:hover {
+        color: var(--auth-primary-hover);
+        text-decoration: underline;
+      }
+
+      .auth-primary:focus-visible {
+        outline: 2px solid var(--auth-primary);
+        outline-offset: 2px;
+      }
+
+      @media (min-width: 640px) {
+        .auth-page { padding: 32px 20px 40px; }
+        .auth-card { padding: 28px 24px; }
+      }
+
+      @media (min-width: 768px) {
+        .auth-page { padding: 40px 24px; }
+        .auth-frame { gap: 18px; }
+        .auth-card { padding: 32px 28px; }
+      }
     </style>
 
-    <div class="min-h-screen bg-slate-50">
-      <div class="flex min-h-screen">
-        <!-- Left Side - Compact Hero (35%) -->
-        <div class="hidden lg:flex lg:w-[35%] bg-[#0056D2] relative overflow-hidden">
-          <!-- Subtle Pattern Overlay -->
-          <div class="absolute inset-0 opacity-[0.03]">
-            <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <defs>
-                <pattern id="grid" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
-                  <circle cx="5" cy="5" r="1" fill="white"/>
-                </pattern>
-              </defs>
-              <rect width="100" height="100" fill="url(#grid)"/>
-            </svg>
-          </div>
-
-          <!-- Gradient Overlay -->
-          <div class="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent"></div>
-
-          <!-- Compact Content -->
-          <div class="relative z-10 flex flex-col justify-center items-center text-white p-12 w-full">
-            <div class="text-center max-w-sm">
-              <!-- Logo -->
-              <img src="/icons/logo-master.png" alt="LMS Maritime" class="w-16 h-16 rounded-2xl mx-auto mb-6 shadow-xl">
-
-              <!-- Title -->
-              <h2 class="text-3xl font-bold mb-3 text-white">
-                Khôi phục mật khẩu
-              </h2>
-              
-              <!-- Tagline -->
-              <p class="text-white/60 text-sm leading-relaxed">
-                Quy trình khôi phục an toàn và nhanh chóng
-              </p>
+    <div class="auth-shell">
+      <div class="auth-page">
+        <div class="auth-frame">
+          <a routerLink="/" class="auth-brand">
+            <img src="/icons/logo-master.png" alt="LMS Maritime" class="h-11 w-11 rounded-2xl shadow-sm">
+            <div>
+              <p class="auth-brand-kicker">LMS Maritime</p>
+              <p class="auth-brand-title">HoHoLiHu</p>
             </div>
-          </div>
-        </div>
+          </a>
 
-        <!-- Right Side - Form (65%) -->
-        <div class="flex-1 flex flex-col justify-center px-6 py-8 lg:px-16 bg-white">
-          <div class="w-full max-w-md mx-auto">
-            <!-- Mobile Logo -->
-            <div class="lg:hidden flex justify-center mb-8">
-              <img src="/icons/logo-master.png" alt="LMS Maritime" class="w-14 h-14 rounded-2xl shadow-lg">
-            </div>
-
-            <!-- Heading -->
-            <div class="text-center mb-10">
-              <h1 class="text-3xl font-bold text-gray-900 mb-2">Quên mật khẩu?</h1>
-              <p class="text-sm text-gray-500">Nhập email để nhận hướng dẫn khôi phục</p>
-            </div>
-
-            <!-- Success State -->
+          <section class="auth-card">
             @if (emailSent()) {
-              <div class="text-center animate-fade-in">
-                <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <svg class="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+              <div class="auth-success-card">
+                <div class="auth-success-icon">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
                   </svg>
                 </div>
-                <h2 class="text-3xl font-bold text-gray-900 mb-4">Email đã được gửi!</h2>
-                <p class="text-gray-600 mb-8">
-                  Chúng tôi đã gửi hướng dẫn khôi phục mật khẩu đến <strong>{{ lastEmailSent() }}</strong>
+                <h1 class="auth-card-title">Kiểm tra hộp thư</h1>
+                <p class="auth-card-copy" style="margin-top: 8px">
+                  Hướng dẫn khôi phục mật khẩu đã được gửi đến
+                  <span class="auth-success-email">{{ lastEmailSent() }}</span>
                 </p>
-                <p class="text-sm text-gray-500 mb-6">
-                  Không nhận được email? Kiểm tra thư mục spam hoặc thử lại.
-                </p>
-                <button (click)="resetForm()"
-                        class="btn-submit w-full bg-[#0056D2] text-white py-4 px-6 rounded-xl font-semibold shadow-lg">
-                  Gửi lại email
-                </button>
-              </div>
-            } @else {
-              <!-- Form -->
-              <form [formGroup]="forgotPasswordForm" (ngSubmit)="onSubmit()" class="space-y-6">
-                <!-- Email Field -->
-                <div class="input-wrapper form-element">
-                  <input id="email"
-                         name="email"
-                         type="email"
-                         formControlName="email"
-                         autocomplete="email"
-                         placeholder="Email"
-                         [attr.aria-invalid]="forgotPasswordForm.get('email')?.invalid || null"
-                         [attr.aria-describedby]="forgotPasswordForm.get('email')?.invalid ? 'email-error' : null"
-                         class="input-field block w-full px-4 py-4 border-2 border-gray-300 rounded-xl text-base placeholder-gray-500 focus:placeholder-gray-400"
-                         [class.border-red-400]="forgotPasswordForm.get('email')?.invalid && forgotPasswordForm.get('email')?.touched">
-                  <label for="email" class="input-label">
-                    Email
-                  </label>
-                </div>
-                @if (forgotPasswordForm.get('email')?.invalid && forgotPasswordForm.get('email')?.touched) {
-                  <p id="email-error" class="mt-2 text-sm text-red-600 flex items-center gap-1" role="alert" aria-live="polite">
-                    <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                    </svg>
-                    @if (forgotPasswordForm.get('email')?.errors?.['required']) {
-                      Email là bắt buộc
-                    } @else if (forgotPasswordForm.get('email')?.errors?.['email']) {
-                      Email không hợp lệ
-                    }
-                  </p>
-                }
+                <p class="auth-success-hint">Không nhận được? Kiểm tra thư mục spam hoặc thử lại.</p>
 
-                <!-- Error Message -->
-                @if (errorMessage()) {
-                  <div class="bg-red-50 border border-red-200 rounded-xl p-4 form-element" role="alert" aria-live="polite">
-                    <div class="flex items-start gap-3">
-                      <svg class="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                      </svg>
-                      <div>
-                        <h3 class="text-sm font-semibold text-red-900">Có lỗi xảy ra</h3>
-                        <p class="text-sm text-red-700 mt-1">{{ errorMessage() }}</p>
-                      </div>
-                    </div>
-                  </div>
-                }
-
-                <!-- Submit Button -->
-                <div class="form-element">
-                  <button type="submit"
-                          [disabled]="forgotPasswordForm.invalid || isLoading()"
-                          class="btn-submit w-full flex justify-center items-center py-4 px-6 border-none rounded-xl text-base font-semibold text-white bg-[#0056D2] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
-                    @if (isLoading()) {
-                      <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      <span>Đang gửi...</span>
-                    } @else {
-                      <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                      </svg>
-                      <span>Gửi hướng dẫn khôi phục</span>
-                    }
+                <div style="margin-top: 20px">
+                  <button type="button" (click)="resetForm()" class="auth-primary">
+                    Gửi lại email
                   </button>
                 </div>
+              </div>
+            } @else {
+              <div class="auth-card-header">
+                <h1 class="auth-card-title">Quên mật khẩu?</h1>
+                <p class="auth-card-copy">Nhập email để nhận hướng dẫn khôi phục</p>
+              </div>
+
+              @if (errorMessage()) {
+                <div class="auth-banner auth-banner-error" role="alert" id="forgot-error" aria-live="assertive">
+                  {{ errorMessage() }}
+                  <button type="button" class="auth-banner-close" (click)="errorMessage.set('')" aria-label="Đóng thông báo lỗi">&times;</button>
+                </div>
+              }
+
+              <form [formGroup]="forgotPasswordForm" (ngSubmit)="onSubmit()" class="auth-section" novalidate>
+                <div class="auth-field">
+                  <label for="email" class="auth-label">Email</label>
+                  <input
+                    id="email"
+                    type="email"
+                    formControlName="email"
+                    autocomplete="email"
+                    inputmode="email"
+                    autofocus
+                    placeholder="you@maritime.edu.vn"
+                    class="auth-input"
+                    [attr.aria-invalid]="forgotPasswordForm.controls.email.invalid && forgotPasswordForm.controls.email.touched ? 'true' : null"
+                    [attr.aria-describedby]="forgotPasswordForm.controls.email.invalid && forgotPasswordForm.controls.email.touched ? 'email-error' : null"
+                  >
+                  @if (forgotPasswordForm.controls.email.invalid && forgotPasswordForm.controls.email.touched) {
+                    <p class="auth-input-note" id="email-error" role="alert">
+                      @if (forgotPasswordForm.controls.email.errors?.['required']) {
+                        Vui lòng nhập địa chỉ email.
+                      } @else {
+                        Địa chỉ email không hợp lệ.
+                      }
+                    </p>
+                  }
+                </div>
+
+                <button
+                  type="submit"
+                  [disabled]="forgotPasswordForm.invalid || isLoading()"
+                  class="auth-primary"
+                >
+                  @if (isLoading()) {
+                    <svg class="mr-3 h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    Đang gửi...
+                  } @else {
+                    Gửi hướng dẫn khôi phục
+                  }
+                </button>
               </form>
             }
 
-            <!-- Back to Login Link -->
-            <div class="mt-8 text-center form-element">
-              <p class="text-sm text-gray-600">
+            <div class="auth-footer">
+              <p>
                 Nhớ mật khẩu?
-                <a routerLink="/auth/login"
-                   class="font-semibold text-[#0056D2] hover:text-[#004BB5] transition-colors ml-1">
-                  Đăng nhập
-                </a>
+                <a routerLink="/auth/login">Đăng nhập</a>
               </p>
             </div>
-
-            <!-- Security Notice -->
-            <div class="mt-8 text-center form-element">
-              <div class="flex items-center justify-center gap-2 text-xs text-gray-500">
-                <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
-                </svg>
-                <span>SSL Encrypted • Maritime Security Standards</span>
-              </div>
-            </div>
-          </div>
+          </section>
         </div>
       </div>
     </div>
@@ -256,16 +396,14 @@ type ForgotPasswordForm = {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ForgotPasswordComponent {
-  protected authService = inject(AuthService);
-  private router = inject(Router);
   private fb = inject(FormBuilder);
   private apiClient = inject(ApiClient);
 
-  forgotPasswordForm!: FormGroup<ForgotPasswordForm>;
-  emailSent = signal(false);
-  lastEmailSent = signal('');
-  isLoading = signal(false);
-  errorMessage = signal('');
+  forgotPasswordForm: FormGroup<ForgotPasswordForm>;
+  readonly emailSent = signal(false);
+  readonly lastEmailSent = signal('');
+  readonly isLoading = signal(false);
+  readonly errorMessage = signal('');
 
   constructor() {
     this.forgotPasswordForm = this.fb.group({
@@ -283,14 +421,20 @@ export class ForgotPasswordComponent {
     this.errorMessage.set('');
 
     try {
-      const email = this.forgotPasswordForm.get('email')?.value || '';
+      const email = this.forgotPasswordForm.controls.email.value;
       await firstValueFrom(
-        this.apiClient.post(AUTH_ENDPOINTS.FORGOT_PASSWORD, { email })
+        this.apiClient.post(AUTH_ENDPOINTS.FORGOT_PASSWORD, { email }).pipe(timeout(15000))
       );
       this.emailSent.set(true);
       this.lastEmailSent.set(email);
-    } catch {
-      this.errorMessage.set('Không thể gửi email. Vui lòng thử lại sau.');
+    } catch (err: any) {
+      if (err?.name === 'TimeoutError') {
+        this.errorMessage.set('Máy chủ không phản hồi. Vui lòng kiểm tra kết nối mạng và thử lại.');
+      } else if (err?.status === 429) {
+        this.errorMessage.set('Bạn đã gửi quá nhiều yêu cầu. Vui lòng đợi vài phút rồi thử lại.');
+      } else {
+        this.errorMessage.set('Không thể gửi email. Vui lòng thử lại sau.');
+      }
     } finally {
       this.isLoading.set(false);
     }

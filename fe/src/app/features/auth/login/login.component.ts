@@ -1,4 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  Injector,
+  inject,
+  signal,
+  viewChild
+} from '@angular/core';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
@@ -7,9 +18,11 @@ import {
   AuthService
 } from '../../../core/services/auth.service';
 import { NetworkStatusService } from '../../../core/services/network-status.service';
-import { LoginRequest } from '../../../shared/types/user.types';
+import { LoginRequest, RegisterRequest, UserRole } from '../../../shared/types/user.types';
 import { getPortalRootRoute, mapAdminPortalPathForRole } from '../../../core/utils/portal-route.util';
+import { isNewUser } from '../../../core/utils/auth.util';
 import { GoogleSigninButtonComponent } from '../components/google-signin-button.component';
+import { OrganizationService } from '../../admin/infrastructure/services/organization.service';
 
 type LoginStep = 'identify' | 'password' | 'google' | 'register';
 
@@ -19,7 +32,11 @@ type IdentifyForm = {
 
 type PasswordForm = {
   password: FormControl<string>;
-  rememberMe: FormControl<boolean>;
+};
+
+type RegisterPasswordForm = {
+  password: FormControl<string>;
+  inviteCode: FormControl<string>;
 };
 
 @Component({
@@ -35,9 +52,16 @@ export class LoginComponent {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private fb = inject(FormBuilder);
+  private injector = inject(Injector);
+  private orgService = inject(OrganizationService);
 
   identifyForm: FormGroup<IdentifyForm>;
   passwordForm: FormGroup<PasswordForm>;
+  registerPasswordForm: FormGroup<RegisterPasswordForm>;
+
+  /** Reference to the password input — used to move focus when entering the password step,
+   *  so keyboard users don't need to Tab into the field after an email lookup succeeds. */
+  private readonly passwordInput = viewChild<ElementRef<HTMLInputElement>>('passwordInput');
 
   readonly step = signal<LoginStep>('identify');
   readonly isLoading = signal(false);
@@ -46,6 +70,10 @@ export class LoginComponent {
   readonly showSuccessMessage = signal(false);
   readonly showPassword = signal(false);
   readonly lookupResult = signal<AuthLookupResponse | null>(null);
+  readonly showRegisterPassword = signal(false);
+  readonly showInviteField = signal(false);
+  readonly inviteOrgName = signal('');
+  readonly inviteCodeError = signal('');
 
   readonly isOffline = computed(() => !this.network.online());
   readonly canResume = computed(() => this.isOffline() && this.authService.canResumeSession());
@@ -91,20 +119,51 @@ export class LoginComponent {
   constructor() {
     const prefilledEmail = this.route.snapshot.queryParamMap.get('email')?.trim() || '';
     const message = this.route.snapshot.queryParamMap.get('message')?.trim() || '';
+    const errorParam = this.route.snapshot.queryParamMap.get('error')?.trim() || '';
 
     this.identifyForm = this.fb.group({
       email: [prefilledEmail, [Validators.required, Validators.email]]
     }) as FormGroup<IdentifyForm>;
 
     this.passwordForm = this.fb.group({
-      password: ['', [Validators.required, Validators.minLength(6)]],
-      rememberMe: [false]
+      password: ['', [Validators.required, Validators.minLength(6)]]
     }) as FormGroup<PasswordForm>;
 
-    if (message && message !== 'Đã đăng xuất thành công') {
+    this.registerPasswordForm = this.fb.group({
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      inviteCode: ['']
+    }) as FormGroup<RegisterPasswordForm>;
+
+    const inviteFromUrl = this.route.snapshot.queryParamMap.get('invite') || '';
+    if (inviteFromUrl) {
+      this.showInviteField.set(true);
+      this.registerPasswordForm.controls.inviteCode.setValue(inviteFromUrl);
+      this.validateInviteCode(inviteFromUrl);
+    }
+
+    if (errorParam) {
+      this.errorMessage.set(errorParam);
+    } else if (message && message !== 'Đã đăng xuất thành công') {
       this.successMessage.set(message);
       this.showSuccessMessage.set(true);
     }
+
+    if (message || errorParam) {
+      this.cleanUrlParams();
+    }
+
+    // Move focus to the password input the moment we render the password step.
+    // afterNextRender is the signal-safe way to reach for the DOM once the template has
+    // actually rendered the new branch of the @if. We pass the component's Injector
+    // because effect() callbacks run outside Angular's injection context.
+    effect(() => {
+      if (this.step() === 'password') {
+        afterNextRender(
+          () => this.passwordInput()?.nativeElement.focus(),
+          { injector: this.injector }
+        );
+      }
+    });
   }
 
   resumeOffline(): void {
@@ -126,10 +185,7 @@ export class LoginComponent {
         this.isLoading.set(false);
         this.lookupResult.set(result);
         this.identifyForm.controls.email.setValue(result.email);
-        this.passwordForm.reset({
-          password: '',
-          rememberMe: this.passwordForm.controls.rememberMe.value
-        });
+        this.passwordForm.reset({ password: '' });
         this.showPassword.set(false);
         this.step.set(this.mapLookupStep(result));
       },
@@ -175,27 +231,68 @@ export class LoginComponent {
   backToIdentifier(): void {
     this.step.set('identify');
     this.lookupResult.set(null);
-    this.passwordForm.reset({
-      password: '',
-      rememberMe: this.passwordForm.controls.rememberMe.value
-    });
+    this.passwordForm.reset({ password: '' });
     this.showPassword.set(false);
     this.errorMessage.set('');
   }
 
-  continueToRegister(): void {
-    const inviteCode = this.getInviteCode();
-    const queryParams: Record<string, string> = {};
+  submitRegister(): void {
+    if (this.registerPasswordForm.invalid) {
+      this.registerPasswordForm.markAllAsTouched();
+      return;
+    }
+
     const email = this.currentEmail();
-
-    if (email) {
-      queryParams['email'] = email;
-    }
-    if (inviteCode) {
-      queryParams['invite'] = inviteCode;
+    if (!email) {
+      this.backToIdentifier();
+      return;
     }
 
-    this.router.navigate(['/auth/register'], { queryParams });
+    this.isLoading.set(true);
+    this.errorMessage.set('');
+
+    const formData = this.registerPasswordForm.getRawValue();
+    const tempName = email.split('@')[0];
+    const inviteCode = formData.inviteCode?.trim() || undefined;
+
+    const userData: RegisterRequest = {
+      username: email,
+      fullName: tempName,
+      email,
+      password: formData.password,
+      role: UserRole.STUDENT,
+      inviteCode
+    };
+
+    this.authService.register(userData).subscribe({
+      next: () => {
+        this.isLoading.set(false);
+        this.router.navigateByUrl('/auth/onboarding');
+      },
+      error: (error) => {
+        this.isLoading.set(false);
+        this.errorMessage.set(error.error?.message || 'Tạo tài khoản thất bại. Vui lòng thử lại.');
+      }
+    });
+  }
+
+  validateInviteCode(code: string): void {
+    if (!code || code.trim().length < 3) {
+      this.inviteOrgName.set('');
+      this.inviteCodeError.set('');
+      return;
+    }
+
+    this.orgService.validateInviteCode(code.trim()).subscribe({
+      next: (invite) => {
+        this.inviteOrgName.set(invite.organizationName || '');
+        this.inviteCodeError.set('');
+      },
+      error: () => {
+        this.inviteOrgName.set('');
+        this.inviteCodeError.set('Mã mời không hợp lệ hoặc đã hết hạn');
+      }
+    });
   }
 
   useDifferentEmail(): void {
@@ -205,6 +302,17 @@ export class LoginComponent {
 
   dismissSuccessMessage(): void {
     this.showSuccessMessage.set(false);
+  }
+
+  dismissError(): void {
+    this.errorMessage.set('');
+  }
+
+  private cleanUrlParams(): void {
+    const url = this.router.createUrlTree(['/auth/login'], {
+      queryParams: { email: this.route.snapshot.queryParamMap.get('email') || undefined }
+    });
+    this.router.navigateByUrl(url, { replaceUrl: true, skipLocationChange: false });
   }
 
   onGoogleAuthenticated(response: AuthResponse): void {
@@ -272,8 +380,15 @@ export class LoginComponent {
   private handleSuccessfulAuthentication(response: AuthResponse): void {
     this.isLoading.set(false);
     this.errorMessage.set('');
+
+    if (isNewUser(response.user)) {
+      this.router.navigateByUrl('/auth/onboarding');
+      return;
+    }
+
     const userRole = response.user.role.toLowerCase();
     const redirectUrl = this.resolvePostLoginRedirect(userRole);
     this.router.navigateByUrl(redirectUrl);
   }
+
 }

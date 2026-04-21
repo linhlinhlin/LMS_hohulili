@@ -122,6 +122,26 @@ export class AuthService {
     );
   }
 
+  updateProfile(data: { fullName?: string; email?: string; avatarUrl?: string }): Observable<User> {
+    return this.http.put<ApiResponse<User>>(AUTH_ENDPOINTS.PROFILE, data).pipe(
+      map(response => {
+        if (!response.success || !response.data) {
+          throw new Error(response.message || 'Profile update failed');
+        }
+        return response.data;
+      }),
+      tap(updatedUser => {
+        const current = this.currentUserSubject.value;
+        if (current) {
+          const merged = { ...current, ...updatedUser };
+          this.currentUserSubject.next(merged);
+          this._currentUser.set(merged);
+          localStorage.setItem(this.userKey, JSON.stringify(merged));
+        }
+      })
+    );
+  }
+
   /**
    * Logout — online: full logout (clear everything + server call).
    * Offline: soft logout (Auth0 "application-only logout" / Moodle "Change Site" pattern).
@@ -258,6 +278,19 @@ export class AuthService {
 
   getCurrentUser(): User | null {
     return this.currentUserSubject.value;
+  }
+
+  /**
+   * Public entry point for the server-side Google OAuth redirect flow.
+   *
+   * Unlike the in-page Google ID-token flow (which calls /api/v3/auth/google and pipes
+   * the response through `loginWithGoogle().tap(applyAuthenticatedSession)`), the redirect
+   * flow lands the user on /auth/google/callback with an already-issued JWT in the URL
+   * fragment. The callback component parses the fragment, builds an AuthResponse, and
+   * calls this method to hydrate the session — no extra round-trip to the server.
+   */
+  hydrateFromOAuthRedirect(data: AuthResponse): void {
+    this.applyAuthenticatedSession(data);
   }
 
   private applyAuthenticatedSession(data: AuthResponse): void {

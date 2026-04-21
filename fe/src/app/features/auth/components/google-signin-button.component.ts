@@ -31,38 +31,50 @@ type GoogleButtonSurface = 'card' | 'bare';
       }
 
       <div class="google-surface" [class.google-surface-card]="surface() === 'card'">
-        <div
-          class="google-button-visual"
-          [class.google-button-visual-disabled]="isPending() || disabled()"
-          aria-hidden="true"
-        >
-          <svg class="google-button-icon" viewBox="0 0 18 18" aria-hidden="true" focusable="false">
-            <path
-              fill="#EA4335"
-              d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 01-1.796 2.717v2.258h2.908c1.701-1.566 2.684-3.874 2.684-6.615z"
-            />
-            <path
-              fill="#4285F4"
-              d="M9 18c2.43 0 4.468-.806 5.957-2.18l-2.908-2.258c-.806.54-1.837.86-3.049.86-2.344 0-4.328-1.583-5.036-3.71H.957v2.332A8.998 8.998 0 009 18z"
-            />
-            <path
-              fill="#FBBC05"
-              d="M3.964 10.712A5.41 5.41 0 013.682 9c0-.595.102-1.173.282-1.712V4.956H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.044l3.007-2.332z"
-            />
-            <path
-              fill="#34A853"
-              d="M9 3.578c1.322 0 2.507.455 3.44 1.347l2.58-2.58C13.464.891 11.426 0 9 0A8.998 8.998 0 00.957 4.956l3.007 2.332C4.672 5.161 6.656 3.578 9 3.578z"
-            />
-          </svg>
+        @if (useRedirectFlow()) {
+          <!-- Redirect-flow mode: a normal <button> that navigates the browser to the BE
+               authorize endpoint. No Google JS SDK runs in this mode — bypasses FedCM,
+               popups, third-party-cookie restrictions entirely. -->
+          <button
+            type="button"
+            class="google-button-visual google-button-real"
+            [class.google-button-visual-disabled]="isPending() || disabled()"
+            [disabled]="isPending() || disabled()"
+            (click)="startRedirectFlow()"
+          >
+            <svg class="google-button-icon" viewBox="0 0 18 18" aria-hidden="true" focusable="false">
+              <path fill="#EA4335" d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 01-1.796 2.717v2.258h2.908c1.701-1.566 2.684-3.874 2.684-6.615z"/>
+              <path fill="#4285F4" d="M9 18c2.43 0 4.468-.806 5.957-2.18l-2.908-2.258c-.806.54-1.837.86-3.049.86-2.344 0-4.328-1.583-5.036-3.71H.957v2.332A8.998 8.998 0 009 18z"/>
+              <path fill="#FBBC05" d="M3.964 10.712A5.41 5.41 0 013.682 9c0-.595.102-1.173.282-1.712V4.956H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.044l3.007-2.332z"/>
+              <path fill="#34A853" d="M9 3.578c1.322 0 2.507.455 3.44 1.347l2.58-2.58C13.464.891 11.426 0 9 0A8.998 8.998 0 00.957 4.956l3.007 2.332C4.672 5.161 6.656 3.578 9 3.578z"/>
+            </svg>
+            <span class="google-button-label">{{ visualLabel() }}</span>
+          </button>
+          <!-- Hidden container kept so #buttonContainer viewChild stays satisfied even in
+               redirect mode (no rendering side-effects). -->
+          <div #buttonContainer class="google-button-host-noop" aria-hidden="true"></div>
+        } @else {
+          <div
+            class="google-button-visual"
+            [class.google-button-visual-disabled]="isPending() || disabled()"
+            aria-hidden="true"
+          >
+            <svg class="google-button-icon" viewBox="0 0 18 18" aria-hidden="true" focusable="false">
+              <path fill="#EA4335" d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 01-1.796 2.717v2.258h2.908c1.701-1.566 2.684-3.874 2.684-6.615z"/>
+              <path fill="#4285F4" d="M9 18c2.43 0 4.468-.806 5.957-2.18l-2.908-2.258c-.806.54-1.837.86-3.049.86-2.344 0-4.328-1.583-5.036-3.71H.957v2.332A8.998 8.998 0 009 18z"/>
+              <path fill="#FBBC05" d="M3.964 10.712A5.41 5.41 0 013.682 9c0-.595.102-1.173.282-1.712V4.956H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.044l3.007-2.332z"/>
+              <path fill="#34A853" d="M9 3.578c1.322 0 2.507.455 3.44 1.347l2.58-2.58C13.464.891 11.426 0 9 0A8.998 8.998 0 00.957 4.956l3.007 2.332C4.672 5.161 6.656 3.578 9 3.578z"/>
+            </svg>
 
-          <span class="google-button-label">{{ visualLabel() }}</span>
-        </div>
+            <span class="google-button-label">{{ visualLabel() }}</span>
+          </div>
 
-        <div
-          #buttonContainer
-          class="google-button-host"
-          [class.google-button-host-disabled]="isPending() || disabled()"
-        ></div>
+          <div
+            #buttonContainer
+            class="google-button-host"
+            [class.google-button-host-disabled]="isPending() || disabled()"
+          ></div>
+        }
       </div>
 
       @if (isPending()) {
@@ -189,6 +201,37 @@ type GoogleButtonSurface = 'card' | 'bare';
       pointer-events: none;
     }
 
+    /* Redirect-mode button: same visual as the fake overlay, but interactive. */
+    .google-button-real {
+      cursor: pointer;
+      pointer-events: auto;
+    }
+
+    .google-button-real:hover {
+      border-color: #9ca3af;
+      background: #f9fafb;
+      color: #111827;
+    }
+
+    .google-button-real:active:not(:disabled) {
+      transform: scale(0.98);
+      background: #f3f4f6;
+    }
+
+    .google-button-real:focus-visible {
+      border-color: #0056d2;
+      box-shadow: 0 0 0 4px rgba(0, 86, 210, 0.12);
+      outline: none;
+    }
+
+    .google-button-real:disabled {
+      cursor: not-allowed;
+    }
+
+    .google-button-host-noop {
+      display: none;
+    }
+
     .google-helper {
       margin: 0;
       color: #6b7280;
@@ -222,6 +265,13 @@ export class GoogleSigninButtonComponent implements AfterViewInit {
   private googleIdentityService = inject(GoogleIdentityService);
   private destroyRef = inject(DestroyRef);
 
+  /**
+   * Destroyed flag — because the Google Identity callback is a detached closure stored on the
+   * singleton service, it can fire after this component has been destroyed (e.g. user navigates
+   * mid-popup). Without this guard we'd write to signals and emit outputs on a dead instance.
+   */
+  private destroyed = false;
+
   readonly inviteCode = input<string | undefined>(undefined);
   readonly disabled = input(false);
   readonly showDivider = input(true);
@@ -237,6 +287,8 @@ export class GoogleSigninButtonComponent implements AfterViewInit {
   protected readonly isPending = signal(false);
   protected readonly errorMessage = signal('');
   protected readonly helperText = signal('');
+  /** True when the BE advertises the server-side authorization-code flow. Drives template branching. */
+  protected readonly useRedirectFlow = signal(false);
   protected readonly visualLabel = computed(() => {
     switch (this.buttonText()) {
       case 'signin_with':
@@ -250,30 +302,79 @@ export class GoogleSigninButtonComponent implements AfterViewInit {
 
   private readonly buttonContainer = viewChild.required<ElementRef<HTMLElement>>('buttonContainer');
   private googleConfig: GoogleAuthConfig | null = null;
-  private focusResetHandler?: () => void;
-  private rerenderTimeoutId: number | null = null;
 
   async ngAfterViewInit(): Promise<void> {
+    this.destroyRef.onDestroy(() => { this.destroyed = true; });
+
     try {
       const config = await firstValueFrom(this.googleIdentityService.getConfig());
-      if (!config.enabled || !config.clientId) {
+      if (this.destroyed || !config.enabled || !config.clientId) {
         return;
       }
 
       this.googleConfig = config;
       this.isAvailable.set(true);
+
+      // Prefer the server-side redirect flow when the BE advertises it. No GSI script,
+      // no popup, no FedCM — just a normal navigation. Fall back to the in-page button
+      // when the BE doesn't have the redirect endpoints configured.
+      if (config.redirectFlowEnabled && config.authorizeUrl) {
+        this.useRedirectFlow.set(true);
+        this.helperText.set('Bạn sẽ được chuyển sang trang đăng nhập của Google.');
+        return;
+      }
+
       const experience = this.googleIdentityService.getPreferredButtonExperience();
       this.helperText.set(experience.helperText);
-      this.registerWindowFocusRerender();
       await new Promise((resolve) => setTimeout(resolve));
+      if (this.destroyed) {
+        return;
+      }
       await this.renderButton();
     } catch {
-      this.errorMessage.set('Đăng nhập Google tạm thời chưa khả dụng.');
+      if (!this.destroyed) {
+        this.errorMessage.set('Đăng nhập Google tạm thời chưa khả dụng.');
+      }
+    }
+  }
+
+  /**
+   * Click handler for redirect-flow mode. Builds the authorize URL with the optional
+   * invite code + return URL and navigates the whole window away to the BE, which
+   * immediately 302s to Google.
+   */
+  protected startRedirectFlow(): void {
+    if (this.disabled() || this.isPending() || !this.googleConfig?.authorizeUrl) {
+      return;
+    }
+
+    const params = new URLSearchParams();
+    const invite = this.normalizedInviteCode();
+    if (invite) {
+      params.set('invite', invite);
+    }
+    if (typeof window !== 'undefined') {
+      const returnUrl = new URLSearchParams(window.location.search).get('returnUrl')
+        || new URLSearchParams(window.location.search).get('redirect');
+      if (returnUrl) {
+        params.set('returnUrl', returnUrl);
+      }
+    }
+
+    this.isPending.set(true);
+    const query = params.toString();
+    const url = query ? `${this.googleConfig.authorizeUrl}?${query}` : this.googleConfig.authorizeUrl;
+
+    if (typeof window !== 'undefined') {
+      window.location.assign(url);
     }
   }
 
   private async handleCredential(idToken: string): Promise<void> {
-    if (this.disabled() || this.isPending()) {
+    // The callback is held in GoogleIdentityService.activeCredentialCallback. If the user
+    // navigated away between opening the popup and receiving the credential, this instance
+    // is already destroyed — skip all writes to avoid "signal write on destroyed view" noise.
+    if (this.destroyed || this.disabled() || this.isPending()) {
       return;
     }
 
@@ -317,35 +418,5 @@ export class GoogleSigninButtonComponent implements AfterViewInit {
         width: this.buttonWidth()
       }
     );
-  }
-
-  private registerWindowFocusRerender(): void {
-    if (typeof window === 'undefined' || this.focusResetHandler) {
-      return;
-    }
-
-    this.focusResetHandler = () => {
-      if (!this.isAvailable() || this.isPending() || this.disabled()) {
-        return;
-      }
-
-      if (this.rerenderTimeoutId) {
-        clearTimeout(this.rerenderTimeoutId);
-      }
-
-      this.rerenderTimeoutId = window.setTimeout(() => {
-        void this.renderButton();
-      }, 120);
-    };
-
-    window.addEventListener('focus', this.focusResetHandler);
-    this.destroyRef.onDestroy(() => {
-      if (this.focusResetHandler) {
-        window.removeEventListener('focus', this.focusResetHandler);
-      }
-      if (this.rerenderTimeoutId) {
-        clearTimeout(this.rerenderTimeoutId);
-      }
-    });
   }
 }

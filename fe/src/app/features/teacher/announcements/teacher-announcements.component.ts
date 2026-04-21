@@ -15,13 +15,14 @@ import {
   CreateAnnouncementRequest,
 } from '../../../core/services/announcement.service';
 import { DialogComponent } from '../../../shared/components/dialog/dialog.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
 interface CourseOption { id: string; title: string; }
 type FilterTab = 'all' | 'important';
 
 @Component({
   selector: 'app-teacher-announcements',
-  imports: [CommonModule, FormsModule, DialogComponent],
+  imports: [CommonModule, FormsModule, DialogComponent, EmptyStateComponent],
   templateUrl: './teacher-announcements.component.html',
   styleUrl: './teacher-announcements.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

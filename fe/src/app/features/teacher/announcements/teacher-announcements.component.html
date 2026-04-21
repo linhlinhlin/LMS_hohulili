@@ -52,17 +52,17 @@
         }
       </div>
     } @else if (filteredAnnouncements().length === 0) {
-      <div class="rounded-lg border border-slate-200 bg-white px-6 py-12 text-center">
-        <svg class="mx-auto mb-4 h-16 w-16 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-        </svg>
-        <h3 class="mb-1 text-lg font-semibold text-slate-900">Chưa có thông báo nào</h3>
-        <p class="mb-4 text-slate-500">Tạo thông báo đầu tiên để gửi tới sinh viên.</p>
-        <button type="button" (click)="openCreateForm()"
-          class="rounded-lg bg-[#0056D2] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#004BB5]">
-          Tạo thông báo
-        </button>
+      <div class="rounded-lg border border-slate-200 bg-white">
+        <app-empty-state
+          title="Chưa có thông báo nào"
+          description="Tạo thông báo đầu tiên để gửi tới sinh viên."
+          actionLabel="Tạo thông báo"
+          (actionClick)="openCreateForm()">
+          <svg icon fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+          </svg>
+        </app-empty-state>
       </div>
     } @else {
       <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">

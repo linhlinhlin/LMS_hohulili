@@ -194,14 +194,15 @@
             </div>
           </div>
         } @else {
-          <!-- Empty state -->
-          <div class="empty-state">
-            <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <app-empty-state
+            title="Không tìm thấy khóa học nào"
+            description="Thử điều chỉnh từ khóa tìm kiếm hoặc chọn bộ lọc khác."
+            variant="compact">
+            <svg icon fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
             </svg>
-            <p class="empty-text">Không tìm thấy khóa học nào</p>
-          </div>
+          </app-empty-state>
         }
       }
     </div>
@@ -231,8 +232,8 @@
               <p class="detail-description">{{ courseDetails.description }}</p>
 
               <!-- Teacher info + Stats row -->
-              <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px">
-                <div class="info-card" style="flex:1;min-width:200px;margin-bottom:0">
+              <div class="detail-meta-row">
+                <div class="info-card detail-teacher-card">
                   <h5 class="info-card-title">Thông tin giảng viên</h5>
                   <div class="info-card-body">
                     <p><strong>Tên:</strong> {{ courseDetails.teacherName }}</p>
@@ -241,7 +242,7 @@
                     }
                   </div>
                 </div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start">
+                <div class="detail-stats">
                   <div class="stat-card stat-primary">
                     <div class="stat-value">{{ courseDetails.sectionsCount || 0 }}</div>
                     <div class="stat-label">Chương</div>
@@ -256,7 +257,7 @@
               </div>
 
               <!-- Dates -->
-              <div class="detail-dates" style="margin-bottom:16px">
+              <div class="detail-dates detail-dates--compact">
                 <p><strong>Ngày tạo:</strong> {{ courseDetails.createdAt | date:'dd/MM/yyyy HH:mm' }}</p>
                 @if (courseDetails.submittedAt) {
                   <p><strong>Ngày gửi duyệt:</strong> {{ courseDetails.submittedAt | date:'dd/MM/yyyy HH:mm' }}</p>
@@ -266,16 +267,21 @@
                 }
                 @if (courseDetails.rejectionReason) {
                   <div class="rejection-reason">
-                    <strong>Lý do từ chối:</strong><br>
+                    @if (latestRejectionCategory()) {
+                      <div class="rejection-category-pill">
+                        {{ getRejectionCategoryLabel(latestRejectionCategory()) }}
+                      </div>
+                    }
+                    <strong>Lý do từ chối:</strong>
                     <span>{{ courseDetails.rejectionReason }}</span>
                   </div>
                 }
               </div>
 
-              <!-- Content Preview Toggle -->
-              <div style="margin-bottom:16px">
-                <button class="btn-action btn-preview" (click)="previewContent(courseDetails.id)" style="width:100%;justify-content:center;padding:10px">
-                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right:6px">
+              <!-- Content Preview CTA -->
+              <div class="detail-preview-cta">
+                <button type="button" class="detail-preview-btn" (click)="previewContent(courseDetails.id)">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                   </svg>
@@ -284,53 +290,43 @@
               </div>
 
               <!-- Review History Timeline -->
-              <div style="border-top:1px solid #e5e7eb;padding-top:16px">
-                <h5 style="font-size:14px;font-weight:600;color:#374151;margin-bottom:12px">
-                  Lịch sử phê duyệt
-                </h5>
+              <div class="history-section">
+                <h5 class="history-title">Lịch sử phê duyệt</h5>
 
                 @if (loadingHistory()) {
-                  <div style="display:flex;align-items:center;gap:8px;color:#6b7280;font-size:13px;padding:8px 0">
-                    <div style="width:16px;height:16px;border:2px solid #d1d5db;border-top-color:#0056D2;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+                  <div class="history-loading">
+                    <span class="history-loading-spinner" aria-hidden="true"></span>
                     Đang tải...
                   </div>
                 } @else if (reviewHistory().length === 0) {
-                  <p style="color:#9ca3af;font-size:13px;padding:8px 0">Chưa có lịch sử phê duyệt</p>
+                  <p class="history-empty">Chưa có lịch sử phê duyệt</p>
                 } @else {
-                  <div style="position:relative;padding-left:24px">
-                    <!-- Timeline line -->
-                    <div style="position:absolute;left:7px;top:4px;bottom:4px;width:2px;background:#e5e7eb"></div>
+                  <div class="history-timeline">
+                    <span class="history-line" aria-hidden="true"></span>
 
                     @for (event of reviewHistory(); track event.id) {
-                      <div style="position:relative;padding-bottom:16px">
-                        <!-- Timeline dot -->
-                        <div style="position:absolute;left:-20px;top:2px;width:12px;height:12px;border-radius:50%;border:2px solid #fff"
-                             [style.background]="event.action === 'APPROVED' ? '#16a34a' :
-                                                  event.action === 'REJECTED' ? '#dc2626' :
-                                                  event.action === 'REVOKED' ? '#ea580c' :
-                                                  event.action === 'SUBMITTED' || event.action === 'RESUBMITTED' ? '#0056D2' : '#9ca3af'">
-                        </div>
+                      <div class="history-item">
+                        <span class="history-dot"
+                              [attr.data-action]="event.action"
+                              aria-hidden="true"></span>
 
-                        <!-- Event content -->
-                        <div style="font-size:13px">
-                          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-                            <span [class]="getActionColor(event.action)" style="font-weight:600">
+                        <div class="history-event">
+                          <div class="history-event-head">
+                            <span class="history-action" [class]="getActionColor(event.action)">
                               {{ getActionText(event.action) }}
                             </span>
                             @if (getRejectionCategoryLabel(event.rejectionCategory)) {
-                              <span style="display:inline-flex;align-items:center;gap:4px;padding:1px 8px;font-size:11px;font-weight:500;color:#991b1b;background:#fef2f2;border:1px solid #fecaca;border-radius:999px">
+                              <span class="history-category-pill">
                                 {{ getRejectionCategoryLabel(event.rejectionCategory) }}
                               </span>
                             }
                             @if (event.reviewerName) {
-                              <span style="color:#6b7280">bởi {{ event.reviewerName }}</span>
+                              <span class="history-reviewer">bởi {{ event.reviewerName }}</span>
                             }
-                            <span style="color:#9ca3af;font-size:12px">{{ formatDateTime(event.createdAt) }}</span>
+                            <span class="history-date">{{ formatDateTime(event.createdAt) }}</span>
                           </div>
                           @if (event.comment) {
-                            <p style="margin:4px 0 0;color:#4b5563;line-height:1.4;background:#f9fafb;padding:6px 10px;border-radius:6px;border:1px solid #f3f4f6;white-space:pre-line">
-                              {{ event.comment }}
-                            </p>
+                            <p class="history-comment">{{ event.comment }}</p>
                           }
                         </div>
                       </div>

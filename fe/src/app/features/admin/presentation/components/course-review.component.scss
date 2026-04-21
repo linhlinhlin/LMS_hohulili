@@ -246,6 +246,12 @@
     color: $warning;
   }
 
+  &.status-pending-changes {
+    background: rgba($blue-primary, 0.08);
+    color: $blue-primary;
+    border: 1px solid rgba($blue-primary, 0.2);
+  }
+
   &.status-approved {
     background: $success-light;
     color: $success;
@@ -748,6 +754,198 @@
   span {
     color: $error;
   }
+}
+
+.rejection-category-pill {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: $spacing-2;
+  padding: 2px 10px;
+  font-size: $text-xs;
+  font-weight: $font-semibold;
+  color: $error;
+  background: #fff;
+  border: 1px solid rgba($error, 0.35);
+  border-radius: $radius-full;
+}
+
+/* ===== DETAIL MODAL — Meta row (teacher card + stats) ===== */
+.detail-meta-row {
+  display: flex;
+  gap: $spacing-4;
+  flex-wrap: wrap;
+  margin-bottom: $spacing-4;
+}
+
+.detail-teacher-card {
+  flex: 1;
+  min-width: 200px;
+  margin-bottom: 0;
+}
+
+.detail-stats {
+  display: flex;
+  gap: $spacing-2;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.detail-dates--compact {
+  margin-bottom: $spacing-4;
+}
+
+/* ===== DETAIL MODAL — Preview CTA ===== */
+.detail-preview-cta {
+  margin-bottom: $spacing-4;
+}
+
+.detail-preview-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-2;
+  width: 100%;
+  padding: 10px $spacing-4;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $text-inverse;
+  background: $blue-primary;
+  border: none;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: background $transition-normal;
+
+  &:hover {
+    background: $blue-hover;
+  }
+}
+
+/* ===== DETAIL MODAL — Review history timeline ===== */
+.history-section {
+  border-top: 1px solid $border-default;
+  padding-top: $spacing-4;
+}
+
+.history-title {
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  color: $gray-700;
+  margin: 0 0 $spacing-3;
+}
+
+.history-loading {
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+  padding: $spacing-2 0;
+  font-size: 13px;
+  color: $text-secondary;
+}
+
+.history-loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid $gray-300;
+  border-top-color: $blue-primary;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+.history-empty {
+  margin: 0;
+  padding: $spacing-2 0;
+  font-size: 13px;
+  color: $text-disabled;
+}
+
+.history-timeline {
+  position: relative;
+  padding-left: 24px;
+}
+
+.history-line {
+  position: absolute;
+  left: 7px;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: $border-default;
+}
+
+.history-item {
+  position: relative;
+  padding-bottom: $spacing-4;
+
+  &:last-child {
+    padding-bottom: 0;
+  }
+}
+
+.history-dot {
+  position: absolute;
+  left: -20px;
+  top: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: $gray-400;
+
+  &[data-action='APPROVED']       { background: $success; }
+  &[data-action='REJECTED']       { background: $error; }
+  &[data-action='REVOKED']        { background: #ea580c; }
+  &[data-action='SUBMITTED']      { background: $blue-primary; }
+  &[data-action='RESUBMITTED']    { background: $blue-primary; }
+  &[data-action='CHANGES_REQUESTED'] { background: #d97706; }
+}
+
+.history-event {
+  font-size: 13px;
+}
+
+.history-event-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.history-action {
+  font-weight: $font-semibold;
+}
+
+.history-category-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: $font-medium;
+  color: #991b1b;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: $radius-full;
+}
+
+.history-reviewer {
+  color: $text-secondary;
+}
+
+.history-date {
+  color: $text-disabled;
+  font-size: 12px;
+}
+
+.history-comment {
+  margin: 4px 0 0;
+  padding: 6px 10px;
+  color: $gray-600;
+  line-height: 1.4;
+  background: $gray-50;
+  border: 1px solid $gray-100;
+  border-radius: $radius-sm;
+  white-space: pre-line;
 }
 
 /* ===== REJECT MODAL (Phase 3 — structured category + reason) ===== */

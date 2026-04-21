@@ -1,0 +1,455 @@
+// =========================================================================
+// LMS HOLILIHU — ERD (30 bảng, tối ưu layout dbdiagram.io)
+// -------------------------------------------------------------------------
+// Tối ưu cho auto-layout: loại FK thừa (bắc cầu), gom cụm theo TableGroup
+// =========================================================================
+
+Project lms_hohulili {
+  database_type: 'PostgreSQL'
+  Note: 'Maritime LMS — 30 core tables · compact for A3'
+}
+
+// ============== ENUMS ==============
+
+Enum user_role {
+  ADMIN
+  ORG_ADMIN
+  TEACHER
+  STUDENT
+}
+
+Enum course_status {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  PUBLISHED
+  ARCHIVED
+}
+
+Enum class_status {
+  OPEN
+  CLOSED
+  ARCHIVED
+}
+
+Enum class_teacher_role {
+  PRIMARY
+  CO_TEACHER
+}
+
+Enum enrollment_status {
+  ACTIVE
+  COMPLETED
+  DROPPED
+}
+
+Enum lesson_progress_status {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+Enum quiz_attempt_status {
+  IN_PROGRESS
+  SUBMITTED
+  GRADED
+}
+
+Enum submission_status {
+  DRAFT
+  SUBMITTED
+  GRADED
+  RETURNED
+}
+
+Enum payment_status {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+Enum payout_status {
+  PENDING
+  APPROVED
+  COMPLETED
+  REJECTED
+}
+
+Enum review_event_type {
+  SUBMIT
+  APPROVE
+  REJECT
+  REQUEST_CHANGES
+}
+
+// =========================================================================
+// 1. IDENTITY
+// =========================================================================
+
+Table organizations [headercolor: #5B9BD5] {
+  id    uuid         [pk]
+  code  varchar(50)  [unique]
+  name  varchar(255)
+
+  Note: 'Tổ chức (tenant).'
+}
+
+Table users [headercolor: #5B9BD5] {
+  id               uuid          [pk]
+  organization_id  uuid          [ref: > organizations.id]
+  email            varchar(100)  [unique]
+  full_name        varchar(255)
+  role             user_role
+
+  Note: 'Người dùng — 4 vai trò.'
+}
+
+// =========================================================================
+// 2. COURSE AUTHORING  (cụm chặt: courses → chapters → lessons)
+// =========================================================================
+
+Table course_categories [headercolor: #70AD47] {
+  id         uuid         [pk]
+  parent_id  uuid         [ref: > course_categories.id]
+  name       varchar(255)
+
+  Note: 'Danh mục 2 cấp.'
+}
+
+Table courses [headercolor: #70AD47] {
+  id           uuid           [pk]
+  teacher_id   uuid           [ref: > users.id]
+  category_id  uuid           [ref: > course_categories.id]
+  title        varchar(255)
+  status       course_status
+  price        numeric(19, 2)
+
+  Note: 'Khóa học — DRAFT → PENDING → APPROVED → PUBLISHED.'
+}
+
+Table chapters [headercolor: #70AD47] {
+  id         uuid          [pk]
+  course_id  uuid          [ref: > courses.id]
+  title      varchar(255)
+  order_idx  int
+
+  Note: 'Chương.'
+}
+
+Table lessons [headercolor: #70AD47] {
+  id              uuid          [pk]
+  chapter_id      uuid          [ref: > chapters.id]
+  title           varchar(255)
+  lesson_type     varchar(20)
+  content_blocks  jsonb
+
+  Note: 'Bài học — nội dung JSONB.'
+}
+
+Table lesson_attachments [headercolor: #70AD47] {
+  id         uuid          [pk]
+  lesson_id  uuid          [ref: > lessons.id]
+  file_url   varchar(500)
+  file_size  bigint
+
+  Note: 'Tài liệu đính kèm.'
+}
+
+// =========================================================================
+// 3. COURSE MANAGEMENT
+// =========================================================================
+
+Table course_versions [headercolor: #BF8F00] {
+  id                uuid   [pk]
+  course_id         uuid   [ref: > courses.id]
+  version_number    int
+  snapshot_content  jsonb
+
+  Note: 'Snapshot BẤT BIẾN khi publish.'
+}
+
+Table course_review_events [headercolor: #BF8F00] {
+  id          uuid               [pk]
+  course_id   uuid               [ref: > courses.id]
+  event_type  review_event_type
+  comment     text
+
+  Note: 'Audit duyệt khóa học.'
+}
+
+// =========================================================================
+// 4. LEARNING DELIVERY  (cụm chặt: class → enrollment → progress → cert)
+// =========================================================================
+
+Table learning_classes [headercolor: #ED7D31] {
+  id          uuid          [pk]
+  course_id   uuid          [ref: > courses.id]
+  teacher_id  uuid          [ref: > users.id]
+  name        varchar(255)
+  status      class_status
+
+  Note: 'Phiên mở lớp.'
+}
+
+Table class_teachers [headercolor: #ED7D31] {
+  id          uuid                [pk]
+  class_id    uuid                [ref: > learning_classes.id]
+  teacher_id  uuid                [ref: > users.id]
+  role        class_teacher_role
+
+  Note: 'GV lớp — PRIMARY / CO_TEACHER.'
+}
+
+Table enrollments [headercolor: #ED7D31] {
+  id                  uuid               [pk]
+  class_id            uuid               [ref: > learning_classes.id]
+  student_id          uuid               [ref: > users.id]
+  status              enrollment_status
+  completion_percent  int
+
+  Note: 'Ghi danh — UNIQUE (student_id, class_id).'
+}
+
+Table student_lesson_progress [headercolor: #ED7D31] {
+  id                  uuid                    [pk]
+  enrollment_id       uuid                    [ref: > enrollments.id]
+  lesson_id           uuid                    [ref: > lessons.id]
+  status              lesson_progress_status
+  watch_time_seconds  int
+
+  Note: 'Tiến độ per-lesson.'
+}
+
+Table certificates [headercolor: #ED7D31] {
+  id                  uuid  [pk]
+  enrollment_id       uuid  [unique, ref: > enrollments.id]
+  verification_token  uuid  [unique]
+
+  Note: 'Chứng chỉ — 1 / enrollment.'
+}
+
+// =========================================================================
+// 5. ASSESSMENT  (cụm chặt: questions → quizzes → attempts)
+// =========================================================================
+
+Table questions [headercolor: #C0504D] {
+  id              uuid         [pk]
+  content_blocks  jsonb
+  correct_option  varchar(10)
+  difficulty      varchar(10)
+
+  Note: 'Ngân hàng câu hỏi.'
+}
+
+Table question_options [headercolor: #C0504D] {
+  id           uuid         [pk]
+  question_id  uuid         [ref: > questions.id]
+  option_key   varchar(10)
+  is_correct   boolean
+
+  Note: 'Đáp án.'
+}
+
+Table quizzes [headercolor: #C0504D] {
+  id             uuid          [pk]
+  lesson_id      uuid          [ref: > lessons.id]
+  title          varchar(255)
+  passing_score  int
+
+  Note: 'Bài trắc nghiệm.'
+}
+
+Table quiz_questions [headercolor: #C0504D] {
+  id           uuid  [pk]
+  quiz_id      uuid  [ref: > quizzes.id]
+  question_id  uuid  [ref: > questions.id]
+  points       int
+
+  Note: 'Junction quiz ↔ questions.'
+}
+
+Table quiz_attempts [headercolor: #C0504D] {
+  id          uuid                 [pk]
+  quiz_id     uuid                 [ref: > quizzes.id]
+  student_id  uuid                 [ref: > users.id]
+  status      quiz_attempt_status
+  score       double
+  answers     jsonb
+
+  Note: 'Lượt làm bài.'
+}
+
+Table assignments [headercolor: #C0504D] {
+  id         uuid            [pk]
+  lesson_id  uuid            [ref: > lessons.id]
+  title      varchar(255)
+  max_score  numeric(10, 2)
+  due_date   timestamptz
+
+  Note: 'Bài tập lớn.'
+}
+
+Table assignment_rubrics [headercolor: #C0504D] {
+  id             uuid          [pk]
+  assignment_id  uuid          [ref: > assignments.id]
+  title          varchar(255)
+  criteria       jsonb
+
+  Note: 'Rubric chấm bài.'
+}
+
+Table assignment_submissions [headercolor: #C0504D] {
+  id             uuid               [pk]
+  assignment_id  uuid               [ref: > assignments.id]
+  student_id     uuid               [ref: > users.id]
+  status         submission_status
+  grade          double
+
+  Note: 'Bài nộp.'
+}
+
+// =========================================================================
+// 6. COMMUNICATION  (cụm chặt)
+// =========================================================================
+
+Table conversations [headercolor: #4BACC6] {
+  id               uuid  [pk]
+  participant1_id  uuid  [ref: > users.id]
+  participant2_id  uuid  [ref: > users.id]
+
+  Note: 'Hội thoại 1-1.'
+}
+
+Table messages [headercolor: #4BACC6] {
+  id               uuid  [pk]
+  conversation_id  uuid  [ref: > conversations.id]
+  sender_id        uuid  [ref: > users.id]
+  content          text
+
+  Note: 'Tin nhắn.'
+}
+
+Table announcements [headercolor: #4BACC6] {
+  id         uuid          [pk]
+  class_id   uuid          [ref: > learning_classes.id]
+  author_id  uuid          [ref: > users.id]
+  title      varchar(255)
+
+  Note: 'Thông báo lớp.'
+}
+
+// =========================================================================
+// 7. AI ASSISTANT
+// =========================================================================
+
+Table chat_sessions [headercolor: #8064A2] {
+  id       uuid          [pk]
+  user_id  uuid          [ref: > users.id]
+  title    varchar(255)
+
+  Note: 'Chat AI.'
+}
+
+// =========================================================================
+// 8. PAYMENT & REVENUE  (cụm chặt: payment → split → payout)
+// =========================================================================
+
+Table payment_transactions [headercolor: #5F497A] {
+  id          uuid            [pk]
+  student_id  uuid            [ref: > users.id]
+  course_id   uuid            [ref: > courses.id]
+  amount      numeric(19, 2)
+  status      payment_status
+
+  Note: 'Giao dịch VNPay/SePay.'
+}
+
+Table revenue_splits [headercolor: #5F497A] {
+  id               uuid            [pk]
+  payment_id       uuid            [unique, ref: > payment_transactions.id]
+  teacher_id       uuid            [ref: > users.id]
+  teacher_amount   numeric(19, 2)
+  platform_amount  numeric(19, 2)
+
+  Note: 'Ledger APPEND-ONLY 1:1 với payment.'
+}
+
+Table teacher_bank_accounts [headercolor: #5F497A] {
+  id              uuid         [pk]
+  teacher_id      uuid         [ref: > users.id]
+  bank_code       varchar(20)
+  account_number  varchar(30)
+  is_default      boolean
+
+  Note: 'Tài khoản ngân hàng.'
+}
+
+Table payout_requests [headercolor: #5F497A] {
+  id               uuid            [pk]
+  teacher_id       uuid            [ref: > users.id]
+  bank_account_id  uuid            [ref: > teacher_bank_accounts.id]
+  amount           numeric(19, 2)
+  status           payout_status
+
+  Note: 'Yêu cầu rút tiền.'
+}
+
+// =========================================================================
+// TABLE GROUPS — gom cụm trực quan
+// =========================================================================
+
+TableGroup "1. Identity" [color: #5B9BD5] {
+  organizations
+  users
+}
+
+TableGroup "2. Course Authoring" [color: #70AD47] {
+  course_categories
+  courses
+  chapters
+  lessons
+  lesson_attachments
+}
+
+TableGroup "3. Course Management" [color: #BF8F00] {
+  course_versions
+  course_review_events
+}
+
+TableGroup "4. Learning Delivery" [color: #ED7D31] {
+  learning_classes
+  class_teachers
+  enrollments
+  student_lesson_progress
+  certificates
+}
+
+TableGroup "5. Assessment" [color: #C0504D] {
+  questions
+  question_options
+  quizzes
+  quiz_questions
+  quiz_attempts
+  assignments
+  assignment_rubrics
+  assignment_submissions
+}
+
+TableGroup "6. Communication" [color: #4BACC6] {
+  conversations
+  messages
+  announcements
+}
+
+TableGroup "7. AI" [color: #8064A2] {
+  chat_sessions
+}
+
+TableGroup "8. Payment & Revenue" [color: #5F497A] {
+  payment_transactions
+  revenue_splits
+  teacher_bank_accounts
+  payout_requests
+}

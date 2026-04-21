@@ -1,0 +1,281 @@
+<mxfile host="app.diagrams.net" modified="2026-04-20T00:00:00.000Z" agent="Claude" version="24.0.0">
+  <diagram name="LMS SQL Flow" id="lms-sql-flow">
+    <mxGraphModel dx="2600" dy="1800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2500" pageHeight="1700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ==================== TITLE ==================== -->
+        <mxCell id="title" value="SƠ ĐỒ LUỒNG SQL — VÒNG ĐỜI KHÓA HỌC LMS HOLILIHU (Maritime LMS)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="2460" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="88 Flyway migrations · ~60 bảng · Clean Architecture + DDD · Spring Boot 3.2 + PostgreSQL 16" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=13;fontStyle=2;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="20" y="52" width="2460" height="24" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ZONE 1 — IDENTITY ==================== -->
+        <mxCell id="z1" value="1. IDENTITY &amp; ORG" style="swimlane;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=15;fontStyle=1;startSize=32;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="20" y="90" width="600" height="760" as="geometry" />
+        </mxCell>
+        <mxCell id="t_org" value="&lt;b&gt;organizations&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔑 id (PK)&lt;br&gt;name, code (UNIQUE)&lt;br&gt;token_expiry_days&lt;br&gt;enabled&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z1">
+          <mxGeometry x="30" y="50" width="250" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="t_users" value="&lt;b&gt;users&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔑 id (PK)&lt;br&gt;username / email (UNIQUE)&lt;br&gt;password (bcrypt)&lt;br&gt;role: ADMIN / ORG_ADMIN /&lt;br&gt;&amp;nbsp;&amp;nbsp;TEACHER / STUDENT&lt;br&gt;🔗 organization_id → organizations&lt;br&gt;enabled&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z1">
+          <mxGeometry x="30" y="210" width="280" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="t_ext" value="&lt;b&gt;user_external_identities&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔗 user_id → users&lt;br&gt;provider (GOOGLE...)&lt;br&gt;provider_user_id&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z1">
+          <mxGeometry x="30" y="420" width="260" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="t_orginv" value="&lt;b&gt;organization_invites&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔗 organization_id&lt;br&gt;type: CODE / EMAIL&lt;br&gt;code (UNIQUE), token_hash&lt;br&gt;status: ACTIVE / REVOKED / EXPIRED&lt;br&gt;expires_at&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z1">
+          <mxGeometry x="30" y="560" width="280" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ZONE 2 — AUTHORING ==================== -->
+        <mxCell id="z2" value="2. COURSE AUTHORING (status = DRAFT)" style="swimlane;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=15;fontStyle=1;startSize=32;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="640" y="90" width="600" height="760" as="geometry" />
+        </mxCell>
+        <mxCell id="t_courses" value="&lt;b&gt;courses&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔑 id (PK), code (UNIQUE)&lt;br&gt;title, description&lt;br&gt;🔗 teacher_id → users&lt;br&gt;🔗 category_id → course_categories&lt;br&gt;status: DRAFT → PENDING →&lt;br&gt;&amp;nbsp;&amp;nbsp;APPROVED / REJECTED → PUBLISHED&lt;br&gt;price_type: FREE / PAID, price&lt;br&gt;delivery_mode: SELF_PACED /&lt;br&gt;&amp;nbsp;&amp;nbsp;INSTRUCTOR_LED&lt;br&gt;visibility: PUBLIC / PRIVATE&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z2">
+          <mxGeometry x="20" y="50" width="290" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="t_chapters" value="&lt;b&gt;chapters&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔗 course_id&lt;br&gt;title, order_index&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z2">
+          <mxGeometry x="330" y="50" width="250" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="t_lessons" value="&lt;b&gt;lessons&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔗 chapter_id&lt;br&gt;title, lesson_type&lt;br&gt;(VIDEO/TEXT/QUIZ/ASSIGNMENT)&lt;br&gt;content_blocks (JSONB)&lt;br&gt;video_url, duration_minutes&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z2">
+          <mxGeometry x="330" y="160" width="250" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="t_questions" value="&lt;b&gt;questions&lt;/b&gt; · &lt;b&gt;question_options&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;content_blocks (JSONB)&lt;br&gt;difficulty: EASY/MEDIUM/HARD&lt;br&gt;correct_option, correct_rate&lt;br&gt;🔗 package_id → packages&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z2">
+          <mxGeometry x="20" y="310" width="290" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="t_quizzes" value="&lt;b&gt;quizzes&lt;/b&gt; ← &lt;b&gt;quiz_questions&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔗 lesson_id&lt;br&gt;time_limit, max_attempts&lt;br&gt;passing_score, shuffle_*&lt;br&gt;status: DRAFT/PUBLISHED&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z2">
+          <mxGeometry x="330" y="320" width="250" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="t_assignments" value="&lt;b&gt;assignments&lt;/b&gt; · &lt;b&gt;assignment_rubrics&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔗 lesson_id, course_id&lt;br&gt;assignment_type: FILE_UPLOAD/&lt;br&gt;&amp;nbsp;&amp;nbsp;TEXT/ESSAY/PROJECT&lt;br&gt;max_score, passing_score&lt;br&gt;due_date, allow_late&lt;br&gt;rubrics.criteria (JSONB)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z2">
+          <mxGeometry x="20" y="470" width="290" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="t_cat" value="&lt;b&gt;course_categories&lt;/b&gt; · &lt;b&gt;course_tags&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;2-cấp: parent / child&lt;br&gt;course_tag_assignments (N-N)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z2">
+          <mxGeometry x="330" y="470" width="250" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="t_attach" value="&lt;b&gt;lesson_attachments&lt;/b&gt; · &lt;b&gt;video_assets&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;R2/S3 storage_key&lt;br&gt;video_renditions (HLS/DASH)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z2">
+          <mxGeometry x="20" y="660" width="560" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ZONE 3 — REVIEW ==================== -->
+        <mxCell id="z3" value="3. ADMIN DUYỆT &amp; PHIÊN BẢN" style="swimlane;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=15;fontStyle=1;startSize=32;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="90" width="520" height="760" as="geometry" />
+        </mxCell>
+        <mxCell id="t_status_sm" value="&lt;b&gt;STATE MACHINE&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;courses.status:&lt;br&gt;&amp;nbsp;&amp;nbsp;DRAFT → PENDING&lt;br&gt;&amp;nbsp;&amp;nbsp;→ APPROVED / REJECTED&lt;br&gt;&amp;nbsp;&amp;nbsp;→ PUBLISHED → ARCHIVED&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#d6b656;fontSize=12;align=center;verticalAlign=top;fontStyle=1;" vertex="1" parent="z3">
+          <mxGeometry x="30" y="50" width="260" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="t_rev_evt" value="&lt;b&gt;course_review_events&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔗 course_id, reviewer_id&lt;br&gt;event_type: SUBMIT / APPROVE /&lt;br&gt;&amp;nbsp;&amp;nbsp;REJECT / REQUEST_CHANGES&lt;br&gt;rejection_category&lt;br&gt;comment, created_at&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z3">
+          <mxGeometry x="30" y="220" width="280" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="t_cv" value="&lt;b&gt;course_versions&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔗 course_id&lt;br&gt;version_number&lt;br&gt;snapshot_content (JSONB)&lt;br&gt;&amp;nbsp;&amp;nbsp;— chapters + lessons tree&lt;br&gt;⚠ BẤT BIẾN sau publish&lt;br&gt;published_at&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z3">
+          <mxGeometry x="30" y="410" width="280" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="t_pub" value="&lt;b&gt;course_publications&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔗 course_version_id&lt;br&gt;release_notes&lt;br&gt;published_by&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z3">
+          <mxGeometry x="30" y="610" width="280" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ZONE 4 — CLASS ==================== -->
+        <mxCell id="z4" value="4. LEARNING CLASS (mở lớp)" style="swimlane;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=15;fontStyle=1;startSize=32;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1800" y="90" width="680" height="760" as="geometry" />
+        </mxCell>
+        <mxCell id="t_lc" value="&lt;b&gt;learning_classes&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔑 id (PK), code (UNIQUE)&lt;br&gt;🔗 course_id → courses&lt;br&gt;🔗 course_version_id → course_versions&lt;br&gt;🔗 teacher_id → users (primary)&lt;br&gt;status: OPEN / CLOSED /&lt;br&gt;&amp;nbsp;&amp;nbsp;ARCHIVED / CANCELLED&lt;br&gt;schedule_type: SEMESTER / CUSTOM&lt;br&gt;start_date, end_date, max_students&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z4">
+          <mxGeometry x="30" y="50" width="310" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="t_ct" value="&lt;b&gt;class_teachers&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔗 class_id, teacher_id&lt;br&gt;role: PRIMARY / CO_TEACHER&lt;br&gt;UNIQUE (class_id, teacher_id)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z4">
+          <mxGeometry x="360" y="50" width="280" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="t_qa" value="&lt;b&gt;quiz_assignments&lt;/b&gt; · &lt;b&gt;assignment_allocations&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔗 class_id, quiz_id / assignment_id&lt;br&gt;due_date (có thể khác lớp)&lt;br&gt;is_active&lt;br&gt;allocation_students: override deadline&lt;br&gt;&amp;nbsp;&amp;nbsp;theo từng học viên&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z4">
+          <mxGeometry x="30" y="300" width="610" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="t_notif" value="&lt;b&gt;announcements&lt;/b&gt; · &lt;b&gt;announcement_reads&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;Thông báo lớp học (Canvas pattern)&lt;br&gt;🔗 class_id, author_id&lt;br&gt;read tracking per student&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z4">
+          <mxGeometry x="30" y="470" width="610" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="t_conv" value="&lt;b&gt;conversations&lt;/b&gt; · &lt;b&gt;messages&lt;/b&gt; · &lt;b&gt;message_reactions&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;Chat 1-1 giữa GV ↔ HV (WebSocket)&lt;br&gt;unread_count per participant&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z4">
+          <mxGeometry x="30" y="610" width="610" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ZONE 5 — PAYMENT + ENROLL ==================== -->
+        <mxCell id="z5" value="5. THANH TOÁN &amp; GHI DANH" style="swimlane;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=15;fontStyle=1;startSize=32;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="20" y="870" width="600" height="800" as="geometry" />
+        </mxCell>
+        <mxCell id="t_pay" value="&lt;b&gt;payment_transactions&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔑 id (PK), transaction_id (UNIQUE)&lt;br&gt;🔗 student_id, course_id&lt;br&gt;amount (VND), currency&lt;br&gt;payment_method: VNPAY / SEPAY /&lt;br&gt;&amp;nbsp;&amp;nbsp;SIMULATED / REFUND&lt;br&gt;status: PENDING → COMPLETED /&lt;br&gt;&amp;nbsp;&amp;nbsp;FAILED / REFUNDED&lt;br&gt;paid_at, version (optimistic lock)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z5">
+          <mxGeometry x="30" y="50" width="290" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="t_rs" value="&lt;b&gt;revenue_splits&lt;/b&gt; ⚠ APPEND-ONLY&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔗 payment_id (UNIQUE 1-1)&lt;br&gt;🔗 teacher_id, org_id&lt;br&gt;gross_amount&lt;br&gt;platform_fee_pct (snapshot)&lt;br&gt;teacher_share_pct (snapshot)&lt;br&gt;org_share_pct (snapshot)&lt;br&gt;platform_amount, teacher_amount,&lt;br&gt;&amp;nbsp;&amp;nbsp;org_amount&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff4e6;strokeColor=#9673a6;fontSize=12;align=center;verticalAlign=top;fontStyle=1;" vertex="1" parent="z5">
+          <mxGeometry x="30" y="290" width="290" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="t_enroll" value="&lt;b&gt;enrollments&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔗 class_id, student_id&lt;br&gt;UNIQUE (student_id, class_id)&lt;br&gt;status: ACTIVE → COMPLETED /&lt;br&gt;&amp;nbsp;&amp;nbsp;DROPPED / EXPIRED / SUSPENDED&lt;br&gt;progress (JSONB)&lt;br&gt;completion_percent: 0..100&lt;br&gt;enrolled_at, completed_at&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z5">
+          <mxGeometry x="30" y="520" width="290" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="t_cfg" value="&lt;b&gt;admin_settings&lt;/b&gt; · &lt;b&gt;org_payment_configs&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;revenue.platform_fee_pct = 20&lt;br&gt;revenue.teacher_share_pct = 70&lt;br&gt;Org-specific override (per org_id)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z5">
+          <mxGeometry x="340" y="50" width="240" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="t_outbox" value="&lt;b&gt;outbox_messages&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;Transactional Outbox Pattern&lt;br&gt;PENDING → SENT / FAILED / DLQ&lt;br&gt;Event publish sau commit&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z5">
+          <mxGeometry x="340" y="210" width="240" height="130" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ZONE 6 — LEARNING ==================== -->
+        <mxCell id="z6" value="6. HỌC &amp; LÀM BÀI" style="swimlane;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=15;fontStyle=1;startSize=32;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="640" y="870" width="600" height="800" as="geometry" />
+        </mxCell>
+        <mxCell id="t_slp" value="&lt;b&gt;student_lesson_progress&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔗 student_id, lesson_id, enrollment_id&lt;br&gt;status: NOT_STARTED → IN_PROGRESS&lt;br&gt;&amp;nbsp;&amp;nbsp;→ COMPLETED&lt;br&gt;watch_time_seconds&lt;br&gt;completion_percent&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z6">
+          <mxGeometry x="30" y="50" width="280" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="t_vp" value="&lt;b&gt;video_progress&lt;/b&gt; · &lt;b&gt;bookmarks&lt;/b&gt; · &lt;b&gt;student_notes&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;Segment-level video tracking&lt;br&gt;Offline sync (Dexie.js → outbox)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z6">
+          <mxGeometry x="320" y="50" width="260" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="t_qat" value="&lt;b&gt;quiz_attempts&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔗 quiz_id, student_id&lt;br&gt;status: IN_PROGRESS → SUBMITTED&lt;br&gt;&amp;nbsp;&amp;nbsp;→ GRADED / EXPIRED&lt;br&gt;answers (JSONB: qid → optionKey)&lt;br&gt;score, max_score, is_passed&lt;br&gt;version (optimistic lock)&lt;br&gt;started_at, submitted_at&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z6">
+          <mxGeometry x="30" y="230" width="290" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="t_sub" value="&lt;b&gt;assignment_submissions&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔗 assignment_id, student_id&lt;br&gt;UNIQUE (assignment_id, student_id)&lt;br&gt;status: DRAFT → SUBMITTED /&lt;br&gt;&amp;nbsp;&amp;nbsp;LATE → GRADED → RETURNED&lt;br&gt;file_url, content, grade&lt;br&gt;🔗 graded_by → users&lt;br&gt;feedback, graded_at&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z6">
+          <mxGeometry x="330" y="190" width="250" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="t_gal" value="&lt;b&gt;grading_audit_log&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔗 submission_id, grader_id&lt;br&gt;old_grade → new_grade&lt;br&gt;action, reason&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z6">
+          <mxGeometry x="30" y="460" width="270" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="t_gam" value="&lt;b&gt;learning_events&lt;/b&gt; · &lt;b&gt;learning_streaks&lt;/b&gt;&lt;br&gt;&lt;b&gt;achievements&lt;/b&gt; · &lt;b&gt;student_achievements&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;Gamification: XP, streak, badges&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z6">
+          <mxGeometry x="320" y="440" width="260" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="t_ai" value="&lt;b&gt;ai_insights&lt;/b&gt; · &lt;b&gt;ai_alerts&lt;/b&gt; · &lt;b&gt;chat_sessions / chat_messages&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;Wiii AI: phát hiện HV nguy cơ, chat hỗ trợ&lt;br&gt;context_type: GENERAL / COURSE / LESSON&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z6">
+          <mxGeometry x="30" y="600" width="550" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ZONE 7 — CERTIFICATE ==================== -->
+        <mxCell id="z7" value="7. CHỨNG CHỈ" style="swimlane;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=15;fontStyle=1;startSize=32;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="870" width="520" height="800" as="geometry" />
+        </mxCell>
+        <mxCell id="t_cond" value="&lt;b&gt;ĐIỀU KIỆN CẤP&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;enrollments.completion_percent = 100&lt;br&gt;AND tất cả lessons required đã&lt;br&gt;&amp;nbsp;&amp;nbsp;COMPLETED&lt;br&gt;AND tất cả quizzes đã đạt&lt;br&gt;&amp;nbsp;&amp;nbsp;passing_score&lt;br&gt;AND tất cả assignments đã GRADED&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#82b366;fontSize=12;align=center;verticalAlign=top;fontStyle=1;" vertex="1" parent="z7">
+          <mxGeometry x="30" y="50" width="280" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="t_cert" value="&lt;b&gt;certificates&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔗 enrollment_id (UNIQUE — 1 cert/enrollment)&lt;br&gt;🔗 student_id, course_id&lt;br&gt;verification_token (UUID, public)&lt;br&gt;&amp;nbsp;&amp;nbsp;→ xác minh QR public&lt;br&gt;issued_at&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z7">
+          <mxGeometry x="30" y="270" width="280" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="t_review" value="&lt;b&gt;course_reviews&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔗 course_id, student_id&lt;br&gt;UNIQUE (course_id, student_id)&lt;br&gt;rating: 1..5&lt;br&gt;comment&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z7">
+          <mxGeometry x="30" y="470" width="280" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ZONE 8 — PAYOUT ==================== -->
+        <mxCell id="z8" value="8. GIẢNG VIÊN RÚT TIỀN (PAYOUT)" style="swimlane;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=15;fontStyle=1;startSize=32;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1800" y="870" width="680" height="800" as="geometry" />
+        </mxCell>
+        <mxCell id="t_bank" value="&lt;b&gt;teacher_bank_accounts&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔗 teacher_id → users&lt;br&gt;bank_code (MBBank / VCB / TCB …)&lt;br&gt;account_number, account_name&lt;br&gt;is_default (partial UNIQUE)&lt;br&gt;verified&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z8">
+          <mxGeometry x="30" y="50" width="300" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="t_avail" value="&lt;b&gt;TÍNH SỐ DƯ KHẢ DỤNG&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;SUM(revenue_splits.teacher_amount&lt;br&gt;&amp;nbsp;&amp;nbsp;WHERE teacher_id = ?)&lt;br&gt;−&lt;br&gt;SUM(payout_requests.amount&lt;br&gt;&amp;nbsp;&amp;nbsp;WHERE status IN (APPROVED,&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;COMPLETED, PENDING))&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#9673a6;fontSize=12;align=center;verticalAlign=top;fontStyle=1;" vertex="1" parent="z8">
+          <mxGeometry x="350" y="50" width="290" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="t_po" value="&lt;b&gt;payout_requests&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔑 id (PK)&lt;br&gt;🔗 teacher_id → users&lt;br&gt;🔗 bank_account_id → teacher_bank_accounts&lt;br&gt;amount (> 0)&lt;br&gt;status: PENDING → APPROVED /&lt;br&gt;&amp;nbsp;&amp;nbsp;REJECTED / COMPLETED /&lt;br&gt;&amp;nbsp;&amp;nbsp;CANCELLED&lt;br&gt;teacher_note, admin_note&lt;br&gt;🔗 processed_by → users (admin)&lt;br&gt;requested_at, processed_at&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=12;align=center;verticalAlign=top;" vertex="1" parent="z8">
+          <mxGeometry x="30" y="250" width="610" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="t_invariant" value="&lt;b&gt;INVARIANT QUAN TRỌNG&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;① revenue_splits APPEND-ONLY — không UPDATE/DELETE&lt;br&gt;② revenue_splits.payment_id UNIQUE (1-1 với payment_transactions)&lt;br&gt;③ enrollments UNIQUE (student_id, class_id)&lt;br&gt;④ assignment_submissions UNIQUE (assignment_id, student_id) — upsert&lt;br&gt;⑤ certificates UNIQUE (enrollment_id)&lt;br&gt;⑥ course_versions.snapshot_content BẤT BIẾN sau publish&lt;br&gt;⑦ class_teachers chỉ 1 PRIMARY / class (partial unique)&lt;br&gt;⑧ teacher_bank_accounts chỉ 1 is_default=TRUE / teacher&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff4e6;strokeColor=#9673a6;fontSize=11;align=center;verticalAlign=top;fontStyle=1;" vertex="1" parent="z8">
+          <mxGeometry x="30" y="550" width="610" height="200" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== FK / FLOW ARROWS (inter-zone) ==================== -->
+        <!-- Step 1 → Step 2: teacher tạo course -->
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#444444;strokeWidth=3;endArrow=classic;endFill=1;fontSize=12;fontStyle=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="t_users" target="t_courses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1_lbl" value="① teacher_id" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontStyle=1;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="e1">
+          <mxGeometry x="-0.2" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Step 2 → Step 3: submit for review -->
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#444444;strokeWidth=3;endArrow=classic;endFill=1;fontSize=12;fontStyle=1;dashed=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="t_courses" target="t_status_sm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_lbl" value="② submit review" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontStyle=1;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="e2">
+          <mxGeometry x="-0.2" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Step 3 → Step 4: publish → open class -->
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#444444;strokeWidth=3;endArrow=classic;endFill=1;fontSize=12;fontStyle=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="t_cv" target="t_lc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3_lbl" value="③ course_version_id" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontStyle=1;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="e3">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Step 4 → Step 5: class → payment -->
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9673a6;strokeWidth=3;endArrow=classic;endFill=1;fontSize=12;fontStyle=1;labelBackgroundColor=#ffffff;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.3;entryDx=0;entryDy=0;" edge="1" parent="1" source="t_lc" target="t_pay">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1770" y="200" />
+              <mxPoint x="1770" y="830" />
+              <mxPoint x="640" y="830" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4_lbl" value="④ HV ghi danh + thanh toán" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontStyle=1;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="e4">
+          <mxGeometry x="-0.3" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- payment → revenue_splits (inside zone 5) -->
+        <mxCell id="e4b" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#d79b00;strokeWidth=3;endArrow=classic;endFill=1;fontSize=12;fontStyle=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="t_pay" target="t_rs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4b_lbl" value="COMPLETED → split" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontStyle=1;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="e4b">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- payment → enrollments -->
+        <mxCell id="e4c" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#444444;strokeWidth=2;endArrow=classic;endFill=1;fontSize=12;fontStyle=1;dashed=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="t_pay" target="t_enroll">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4c_lbl" value="tạo enrollment" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=2;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="e4c">
+          <mxGeometry x="-0.2" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Step 5 → Step 6: enrollment → learning -->
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#444444;strokeWidth=3;endArrow=classic;endFill=1;fontSize=12;fontStyle=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="t_enroll" target="t_slp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5_lbl" value="⑤ enrollment_id" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontStyle=1;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="e5">
+          <mxGeometry x="-0.2" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Step 6 → Step 7: completion → certificate -->
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#444444;strokeWidth=3;endArrow=classic;endFill=1;fontSize=12;fontStyle=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="t_slp" target="t_cert">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6_lbl" value="⑥ 100% → cấp chứng chỉ" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontStyle=1;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="e6">
+          <mxGeometry x="-0.3" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Step 5 (revenue_splits) → Step 8 (payout) -->
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#d79b00;strokeWidth=3;endArrow=classic;endFill=1;fontSize=12;fontStyle=1;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="t_rs" target="t_avail">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1500" y="400" />
+              <mxPoint x="1500" y="980" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e7_lbl" value="⑦ SUM teacher_amount" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontStyle=1;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="e7">
+          <mxGeometry x="-0.2" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- bank → payout -->
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#444444;strokeWidth=2;endArrow=classic;endFill=1;fontSize=12;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="t_bank" target="t_po">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8_lbl" value="⑧ bank_account_id" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontStyle=1;fillColor=#ffffff;strokeColor=none;" vertex="1" connectable="0" parent="e8">
+          <mxGeometry x="-0.2" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- avail → payout -->
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#444444;strokeWidth=2;endArrow=classic;endFill=1;fontSize=12;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="t_avail" target="t_po">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== LEGEND ==================== -->
+        <mxCell id="legend" value="&lt;b&gt;CHÚ GIẢI&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;div align=&quot;left&quot;&gt;🔑 Primary Key (PK)&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;🔗 Foreign Key (FK)&lt;br&gt;━━━ Luồng nghiệp vụ chính (① → ⑧)&lt;br&gt;╌╌╌ Quan hệ phụ / trigger&lt;br&gt;&lt;span style=&quot;background:#fff8e1;padding:2px 6px;&quot;&gt;Vùng vàng&lt;/span&gt; = Invariant / state machine&lt;br&gt;&lt;span style=&quot;background:#fff4e6;padding:2px 6px;&quot;&gt;Vùng cam&lt;/span&gt; = Append-only ledger (không sửa)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=center;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="20" y="1685" width="600" height="10" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

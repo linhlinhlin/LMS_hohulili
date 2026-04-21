@@ -30,14 +30,10 @@ public class ResetPasswordUseCase {
         String tokenHash = HashUtil.sha256(rawToken);
 
         var token = tokenRepository.findByTokenHash(tokenHash)
-                .orElseThrow(() -> new BusinessRuleException("Liên kết đặt lại mật khẩu không hợp lệ"));
+                .orElseThrow(() -> new BusinessRuleException("Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn"));
 
-        if (token.isUsed()) {
-            throw new BusinessRuleException("Liên kết đặt lại mật khẩu đã được sử dụng");
-        }
-
-        if (token.isExpired()) {
-            throw new BusinessRuleException("Liên kết đặt lại mật khẩu đã hết hạn");
+        if (token.isUsed() || token.isExpired()) {
+            throw new BusinessRuleException("Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn");
         }
 
         // Validate new password (NIST 800-63B-4)

@@ -66,7 +66,8 @@ class AuthControllerV3Test {
                 resetPasswordUseCase,
                 sendVerificationEmailUseCase,
                 verifyEmailUseCase,
-                emailService
+                emailService,
+                new com.example.lms.identity.infrastructure.security.GoogleOAuthProperties()
         );
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller)

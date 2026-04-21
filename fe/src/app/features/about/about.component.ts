@@ -139,9 +139,9 @@ import { SeoService } from '../../core/services/seo.service';
           Tham gia ngay để trải nghiệm hệ thống đào tạo hàng hải chuyên nghiệp
         </p>
         <div class="mt-10 flex flex-col gap-4 sm:flex-row sm:justify-center">
-          <a routerLink="/auth/register"
+          <a routerLink="/auth/login"
              class="inline-flex items-center justify-center rounded-lg bg-white px-7 py-3.5 text-[15px] font-semibold text-[#0a1628] shadow-lg shadow-white/10 transition-all hover:bg-blue-50 hover:shadow-xl">
-            Đăng ký ngay
+            Bắt đầu ngay
             <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
           </a>
           <a routerLink="/courses"

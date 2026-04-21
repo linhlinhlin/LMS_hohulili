@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, inject, OnInit, ChangeDetectionStrategy, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -15,6 +15,7 @@ import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.s
 import { AuthService } from '../../../../core/services/auth.service';
 import { getAdminPortalBase } from '../../../../core/utils/portal-route.util';
 import { DialogComponent } from '../../../../shared/components/dialog/dialog.component';
+import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 
 type ReviewableCourseState =
   | Pick<AdminCourseSummary, 'status' | 'reviewState'>
@@ -25,7 +26,7 @@ type CourseListItem = AdminCourseSummary | PendingCourseSummary;
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-course-review',
-  imports: [CommonModule, FormsModule, DialogComponent],
+  imports: [CommonModule, FormsModule, DialogComponent, EmptyStateComponent],
   templateUrl: './course-review.component.html',
   styleUrl: './course-review.component.scss'
 })
@@ -60,6 +61,18 @@ export class CourseReviewComponent implements OnInit {
 
   reviewHistory = signal<ReviewEvent[]>([]);
   loadingHistory = signal(false);
+
+  /** Newest rejection category (from history) — used to enrich rejection banner in detail modal. */
+  latestRejectionCategory = computed<CourseRejectionCategory | null>(() => {
+    const history = this.reviewHistory();
+    for (let i = history.length - 1; i >= 0; i--) {
+      const e = history[i];
+      if (e.action === 'REJECTED' || e.action === 'CHANGES_REQUESTED') {
+        return e.rejectionCategory ?? null;
+      }
+    }
+    return null;
+  });
 
   showPreview = signal(false);
   previewContent$ = signal<any[]>([]);
@@ -323,8 +336,10 @@ export class CourseReviewComponent implements OnInit {
     const status = this.getWorkflowStatus(course);
     switch (status) {
       case 'pending':
-      case 'pending_changes':
         return 'status-badge status-pending';
+      case 'pending_changes':
+        // Khóa đã được phê duyệt trước đó, giảng viên vừa gửi chỉnh sửa — ưu tiên phân biệt với lần đầu.
+        return 'status-badge status-pending-changes';
       case 'approved':
       case 'active':
         return 'status-badge status-approved';

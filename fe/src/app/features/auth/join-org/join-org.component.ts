@@ -4,6 +4,7 @@ import { OrganizationService } from '../../admin/infrastructure/services/organiz
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { OrganizationInvite } from '../../../shared/types/user.types';
+import { getPortalLandingRoute } from '../../../core/utils/portal-route.util';
 
 @Component({
   selector: 'app-join-org',
@@ -59,16 +60,10 @@ import { OrganizationInvite } from '../../../shared/types/user.types';
                 }
               </button>
             } @else {
-              <div class="space-y-3">
-                <a [routerLink]="['/auth/login']" [queryParams]="{ redirect: currentUrl() }"
-                   class="block w-full py-3 px-6 bg-[#0056D2] text-white text-center rounded-xl font-semibold hover:bg-[#004BB5] transition-colors shadow-sm">
-                  Đăng nhập để tham gia
-                </a>
-                <a [routerLink]="['/auth/register']" [queryParams]="inviteQueryForRegister()"
-                   class="block w-full py-3 px-6 border-2 border-[#0056D2] text-[#0056D2] text-center rounded-xl font-semibold hover:bg-[#0056D2]/5 transition-colors">
-                  Đăng ký tài khoản mới
-                </a>
-              </div>
+              <a [routerLink]="['/auth/login']" [queryParams]="{ redirect: currentUrl(), invite: invite()?.code || '' }"
+                 class="block w-full py-3 px-6 bg-[#0056D2] text-white text-center rounded-xl font-semibold hover:bg-[#004BB5] transition-colors shadow-sm">
+                Đăng nhập hoặc tạo tài khoản
+              </a>
             }
           </div>
         }
@@ -152,7 +147,8 @@ export class JoinOrgComponent implements OnInit {
     this.orgService.acceptInvite(payload).subscribe({
       next: () => {
         this.toast.success('Tham gia thành công!', `Đã tham gia tổ chức "${this.invite()?.organizationName}"`);
-        this.router.navigate(['/student']);
+        const role = this.authService.userRole();
+        this.router.navigate([getPortalLandingRoute(role)]);
       },
       error: (err) => {
         this.isAccepting.set(false);

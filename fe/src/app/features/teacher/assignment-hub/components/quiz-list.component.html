@@ -195,18 +195,13 @@
     </div>
 
     @if (quizzes().length === 0) {
-      <section class="rounded-xl border border-dashed border-gray-200 bg-white px-6 py-14 text-center shadow-sm">
-        <lucide-icon name="clipboard-list" [size]="34" class="mx-auto mb-4 text-gray-300"></lucide-icon>
-        <h3 class="text-base font-semibold text-gray-900">Chưa có bài kiểm tra nào</h3>
-        <p class="mx-auto mt-2 max-w-md text-sm text-gray-500">Tạo bài kiểm tra đầu tiên để quản lý theo từng khóa học.</p>
-        <button
-          type="button"
-          (click)="openCreateModal()"
-          class="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#0056D2] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#004BB5]">
-          <lucide-icon name="plus" [size]="14"></lucide-icon>
-          Tạo bài kiểm tra
-        </button>
-      </section>
+      <app-empty-state
+        title="Chưa có bài kiểm tra nào"
+        description="Tạo bài kiểm tra đầu tiên để quản lý theo từng khóa học."
+        actionLabel="Tạo bài kiểm tra"
+        (actionClick)="openCreateModal()">
+        <lucide-icon icon name="clipboard-list" [size]="34"></lucide-icon>
+      </app-empty-state>
     } @else if (catalogTotal() === 0) {
       <section class="rounded-xl border border-gray-200 bg-white px-6 py-10 text-center shadow-sm">
         <p class="text-sm text-gray-600">Không tìm thấy khóa học phù hợp</p>

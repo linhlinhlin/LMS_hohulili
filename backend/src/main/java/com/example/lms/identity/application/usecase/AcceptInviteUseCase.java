@@ -13,6 +13,7 @@ import com.example.lms.shared.exception.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,12 +45,22 @@ public class AcceptInviteUseCase {
 
     /**
      * Accept invite by email token.
+     * Verifies the accepting user's email matches the invite recipient.
      */
     @Transactional
     public UUID acceptByToken(String rawToken, UUID userId) {
         String tokenHash = TokenHasher.hash(rawToken.trim());
         OrganizationInvite invite = inviteRepo.findActiveByTokenHash(tokenHash)
                 .orElseThrow(() -> new EntityNotFoundException("Lời mời", "token"));
+
+        User user = userRepo.findById(UserId.of(userId))
+                .orElseThrow(() -> new EntityNotFoundException("Người dùng", userId));
+
+        if (invite.getEmail() != null
+                && !invite.getEmail().equalsIgnoreCase(user.getEmail().getValue())) {
+            throw new ValidationException("invite",
+                    "Lời mời này được gửi cho một địa chỉ email khác");
+        }
 
         return acceptInvite(invite, userId);
     }
@@ -73,8 +84,7 @@ public class AcceptInviteUseCase {
         try {
             invite.recordUse();
             inviteRepo.save(invite);
-        } catch (DataIntegrityViolationException e) {
-            // Audit fix: Optimistic lock conflict — concurrent acceptance
+        } catch (DataIntegrityViolationException | OptimisticLockingFailureException e) {
             throw new ValidationException("invite", "Mã mời đã hết lượt sử dụng. Vui lòng thử lại.");
         }
 
@@ -107,7 +117,7 @@ public class AcceptInviteUseCase {
         try {
             invite.recordUse();
             inviteRepo.save(invite);
-        } catch (DataIntegrityViolationException e) {
+        } catch (DataIntegrityViolationException | OptimisticLockingFailureException e) {
             throw new ValidationException("invite", "Mã mời đã hết lượt sử dụng. Vui lòng thử lại.");
         }
 

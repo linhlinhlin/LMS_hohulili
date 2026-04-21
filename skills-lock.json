@@ -31,6 +31,11 @@
       "sourceType": "github",
       "computedHash": "59a710d03e1f66e962b145283c676ed411ea71aec641601abd2ed7c5b61b3879"
     },
+    "docker-compose-production": {
+      "source": "thebushidocollective/han",
+      "sourceType": "github",
+      "computedHash": "71eabff15298ed1751cf7a6e71e3b27269eaff07e8084dbdf8de5fff813044f6"
+    },
     "extract": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",
@@ -50,6 +55,11 @@
       "source": "pbakaus/impeccable",
       "sourceType": "github",
       "computedHash": "54072e299abb30b20ddca38dcbb8c585ccd3dcecc414586d6279db1fccae3578"
+    },
+    "karpathy-guidelines": {
+      "source": "forrestchang/andrej-karpathy-skills",
+      "sourceType": "github",
+      "computedHash": "0ec1641120accbb458780e0bd19a50a4182f2b97863e90851b91307f29802c9f"
     },
     "normalize": {
       "source": "pbakaus/impeccable",

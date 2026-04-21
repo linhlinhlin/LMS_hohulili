@@ -1,0 +1,1161 @@
+// =========================================================================
+// LMS HOLILIHU - Maritime Learning Management System
+// Physical Data Model for dbdiagram.io
+// Source: https://github.com/wiiiii123/LMS_hohulili
+// -------------------------------------------------------------------------
+// 88 Flyway migrations (V1 -> V115) | Clean Architecture + DDD
+// Spring Boot 3.2.6 + PostgreSQL 16 + Flyway 10
+// =========================================================================
+
+Project lms_hohulili {
+  database_type: 'PostgreSQL'
+  Note: 'Maritime LMS - 60 tables across 10 DDD modules'
+}
+
+// =========================================================================
+// ENUMS
+// =========================================================================
+
+Enum user_role {
+  ADMIN
+  ORG_ADMIN
+  TEACHER
+  STUDENT
+}
+
+Enum course_status {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  PUBLISHED
+  ARCHIVED
+}
+
+Enum course_price_type {
+  FREE
+  PAID
+}
+
+Enum course_visibility {
+  PUBLIC
+  PRIVATE
+}
+
+Enum course_delivery_mode {
+  SELF_PACED
+  INSTRUCTOR_LED
+}
+
+Enum lesson_type {
+  VIDEO
+  TEXT
+  QUIZ
+  ASSIGNMENT
+  LECTURE
+}
+
+Enum class_status {
+  OPEN
+  CLOSED
+  ARCHIVED
+  CANCELLED
+}
+
+Enum enrollment_status {
+  ACTIVE
+  COMPLETED
+  DROPPED
+  EXPIRED
+  SUSPENDED
+}
+
+Enum lesson_progress_status {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+Enum quiz_attempt_status {
+  IN_PROGRESS
+  SUBMITTED
+  GRADED
+  EXPIRED
+}
+
+Enum assignment_type {
+  FILE_UPLOAD
+  TEXT
+  QUIZ
+  PROJECT
+  ESSAY
+}
+
+Enum submission_status {
+  DRAFT
+  SUBMITTED
+  LATE
+  GRADED
+  RETURNED
+  RESUBMITTED
+}
+
+Enum payment_status {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+Enum payout_status {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+Enum difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+Enum invite_type {
+  CODE
+  EMAIL
+}
+
+Enum invite_status {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+Enum class_teacher_role {
+  PRIMARY
+  CO_TEACHER
+}
+
+Enum review_event_type {
+  SUBMIT
+  APPROVE
+  REJECT
+  REQUEST_CHANGES
+  RESUBMIT
+}
+
+Enum outbox_status {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+  DLQ
+}
+
+Enum chat_role {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+// =========================================================================
+// MODULE 1: IDENTITY & SECURITY
+// =========================================================================
+
+Table organizations {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar(255) [not null]
+  code varchar(50) [not null, unique]
+  description text
+  enabled boolean [not null, default: true]
+  token_expiry_days int [not null, default: 30]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz
+
+  Note: 'Multi-tenant organization. Default "Wiii Org" for individual signups.'
+}
+
+Table users {
+  id uuid [pk, default: `gen_random_uuid()`]
+  organization_id uuid [ref: > organizations.id]
+  username varchar(50) [not null, unique]
+  email varchar(100) [not null, unique]
+  password varchar(255) [not null, note: 'BCrypt hashed']
+  full_name varchar(255) [not null]
+  role user_role [not null, default: 'STUDENT']
+  avatar_url varchar(500)
+  enabled boolean [not null, default: true]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz
+
+  Note: 'Spring Security UserDetails. Multi-tier roles.'
+}
+
+Table user_external_identities {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null, ref: > users.id]
+  provider varchar(50) [not null, note: 'GOOGLE | MICROSOFT']
+  provider_user_id varchar(255) [not null]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (provider, provider_user_id) [unique]
+  }
+  Note: 'OAuth identities (Google Sign-In S134-S135)'
+}
+
+Table organization_invites {
+  id uuid [pk, default: `gen_random_uuid()`]
+  organization_id uuid [not null, ref: > organizations.id]
+  type invite_type [not null]
+  code varchar(12) [unique]
+  email varchar(255)
+  token_hash varchar(128)
+  max_uses int
+  use_count int [not null, default: 0]
+  status invite_status [not null, default: 'ACTIVE']
+  expires_at timestamptz [not null]
+  created_by uuid [not null, ref: > users.id]
+  created_at timestamptz [not null, default: `now()`]
+  version int [not null, default: 0]
+}
+
+Table password_reset_tokens {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null, ref: > users.id]
+  token_hash varchar(128) [not null, unique]
+  expires_at timestamptz [not null]
+  used_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table email_verification_tokens {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null, ref: > users.id]
+  token_hash varchar(128) [not null, unique]
+  expires_at timestamptz [not null]
+  verified_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table login_attempts {
+  id bigserial [pk]
+  email varchar(100) [not null]
+  ip_address varchar(45)
+  succeeded boolean [not null]
+  attempted_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (email, attempted_at)
+  }
+}
+
+// =========================================================================
+// MODULE 2: COURSE AUTHORING
+// =========================================================================
+
+Table course_categories {
+  id uuid [pk, default: `gen_random_uuid()`]
+  parent_id uuid [ref: > course_categories.id]
+  code varchar(50) [not null, unique]
+  name varchar(255) [not null]
+  slug varchar(255) [not null, unique]
+  description text
+  display_order int [not null, default: 0]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz
+
+  Note: '2-level hierarchy: parent (root) -> child. See V70 migration.'
+}
+
+Table courses {
+  id uuid [pk, default: `gen_random_uuid()`]
+  code varchar(64) [not null, unique]
+  title varchar(255) [not null]
+  description text
+  status course_status [not null, default: 'DRAFT']
+  teacher_id uuid [not null, ref: > users.id]
+  category_id uuid [ref: > course_categories.id]
+  welcome_message text
+  course_information text
+  benefits text
+  intro_video_url varchar(500)
+  credits int
+  visibility course_visibility [not null, default: 'PUBLIC']
+  price_type course_price_type [not null, default: 'FREE']
+  price numeric(19, 2)
+  sale_price numeric(19, 2)
+  delivery_mode course_delivery_mode [not null, default: 'SELF_PACED']
+  allow_offline_download boolean [not null, default: false]
+  content_version int [not null, default: 1]
+  review_comment text
+  reviewed_at timestamptz
+  reviewed_by_id uuid [ref: > users.id]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz
+}
+
+Table course_tags {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar(100) [not null, unique]
+  slug varchar(100) [not null, unique]
+  usage_count int [not null, default: 0]
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'Controlled vocabulary tags. V70 redesign.'
+}
+
+Table course_tag_assignments {
+  course_id uuid [not null, ref: > courses.id]
+  tag_id uuid [not null, ref: > course_tags.id]
+  assigned_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (course_id, tag_id) [pk]
+  }
+}
+
+Table chapters {
+  id uuid [pk, default: `gen_random_uuid()`]
+  course_id uuid [not null, ref: > courses.id]
+  title varchar(255) [not null]
+  description text
+  order_index int [not null, default: 0]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz
+}
+
+Table lessons {
+  id uuid [pk, default: `gen_random_uuid()`]
+  chapter_id uuid [not null, ref: > chapters.id]
+  title varchar(255) [not null]
+  description text
+  lesson_type lesson_type [default: 'VIDEO']
+  video_url varchar(500)
+  stream_video_uid varchar(255) [note: 'Cloudflare Stream UID']
+  duration_minutes int [default: 0]
+  order_index int [not null, default: 0]
+  is_free boolean [default: false]
+  content_blocks jsonb [note: 'Tiptap/EditorJS ContentBlocks']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz
+}
+
+Table sections {
+  id uuid [pk, default: `gen_random_uuid()`]
+  lesson_id uuid [not null, ref: > lessons.id]
+  title varchar(255) [not null]
+  type varchar(20) [not null, note: 'VIDEO | TEXT | QUIZ | FILE | ASSIGNMENT']
+  content text
+  video_url varchar(500)
+  file_url varchar(500)
+  is_required boolean [not null, default: false]
+  duration int [default: 0]
+  order_index int [not null, default: 0]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz
+}
+
+Table lesson_attachments {
+  id uuid [pk, default: `gen_random_uuid()`]
+  lesson_id uuid [not null, ref: > lessons.id]
+  file_name varchar(255) [not null]
+  original_file_name varchar(255) [not null]
+  file_url varchar(500) [not null]
+  file_size bigint
+  content_type varchar(100)
+  file_type varchar(20) [default: 'OTHER']
+  display_order int [default: 0]
+  uploaded_by uuid [ref: > users.id]
+  uploaded_at timestamptz [not null, default: `now()`]
+}
+
+Table video_assets {
+  id uuid [pk, default: `gen_random_uuid()`]
+  owner_user_id uuid [not null, ref: > users.id]
+  lesson_id uuid [ref: > lessons.id]
+  storage_provider varchar(50) [not null, note: 'CLOUDFLARE_STREAM | R2']
+  external_id varchar(255) [note: 'CF Stream UID']
+  status varchar(20) [not null, note: 'UPLOADING | PROCESSING | READY | FAILED']
+  duration_seconds int
+  size_bytes bigint
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table video_renditions {
+  id uuid [pk, default: `gen_random_uuid()`]
+  video_asset_id uuid [not null, ref: > video_assets.id]
+  quality varchar(20) [not null, note: '360p | 720p | 1080p']
+  manifest_url varchar(500)
+  bitrate_kbps int
+  width int
+  height int
+}
+
+Table upload_sessions {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null, ref: > users.id]
+  session_key varchar(255) [not null, unique]
+  storage_key varchar(512) [not null]
+  original_filename varchar(255)
+  content_type varchar(100)
+  file_size bigint
+  status varchar(20) [not null, default: 'PENDING']
+  multipart_upload_id text
+  completed_at timestamptz
+  expires_at timestamptz [not null]
+  created_at timestamptz [not null, default: `now()`]
+}
+
+// =========================================================================
+// MODULE 3: COURSE MANAGEMENT
+// =========================================================================
+
+Table course_versions {
+  id uuid [pk, default: `gen_random_uuid()`]
+  course_id uuid [not null, ref: > courses.id]
+  version_number int [not null]
+  snapshot_content jsonb [not null, note: 'IMMUTABLE snapshot']
+  published_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (course_id, version_number) [unique]
+  }
+  Note: 'Append-only. Snapshot is immutable after publish.'
+}
+
+Table course_publications {
+  id uuid [pk, default: `gen_random_uuid()`]
+  course_version_id uuid [not null, ref: > course_versions.id]
+  release_notes text
+  published_by uuid [not null, ref: > users.id]
+  published_at timestamptz [not null, default: `now()`]
+}
+
+Table course_review_events {
+  id uuid [pk, default: `gen_random_uuid()`]
+  course_id uuid [not null, ref: > courses.id]
+  reviewer_id uuid [ref: > users.id]
+  event_type review_event_type [not null]
+  rejection_category varchar(50)
+  comment text
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (course_id, created_at)
+  }
+  Note: 'Audit trail of approval workflow. V113.'
+}
+
+// =========================================================================
+// MODULE 4: LEARNING DELIVERY
+// =========================================================================
+
+Table learning_classes {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar(255) [not null]
+  code varchar(64) [unique]
+  course_id uuid [not null, ref: > courses.id]
+  course_version_id uuid [ref: > course_versions.id]
+  teacher_id uuid [ref: > users.id]
+  start_date timestamptz
+  end_date timestamptz
+  schedule_type varchar(20) [default: 'CUSTOM']
+  semester varchar(50)
+  status class_status [not null, default: 'OPEN']
+  max_students int [default: 9999]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz
+}
+
+Table class_teachers {
+  id uuid [pk, default: `gen_random_uuid()`]
+  class_id uuid [not null, ref: > learning_classes.id]
+  teacher_id uuid [not null, ref: > users.id]
+  role class_teacher_role [not null, default: 'CO_TEACHER']
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (class_id, teacher_id) [unique]
+  }
+  Note: 'Google Classroom pattern: PRIMARY + CO_TEACHER'
+}
+
+Table enrollments {
+  id uuid [pk, default: `gen_random_uuid()`]
+  class_id uuid [not null, ref: > learning_classes.id]
+  student_id uuid [not null, ref: > users.id]
+  status enrollment_status [not null, default: 'ACTIVE']
+  progress jsonb [note: 'map lessonId -> {status, watchSeconds, grade}']
+  completion_percent int [default: 0]
+  completed_at timestamptz
+  enrolled_at timestamptz [not null, default: `now()`]
+  joined_at timestamptz
+  last_accessed_at timestamptz
+
+  indexes {
+    (student_id, class_id) [unique]
+  }
+}
+
+Table student_lesson_progress {
+  id uuid [pk, default: `gen_random_uuid()`]
+  student_id uuid [not null, ref: > users.id]
+  lesson_id uuid [not null, ref: > lessons.id]
+  enrollment_id uuid [ref: > enrollments.id]
+  status lesson_progress_status [not null, default: 'NOT_STARTED']
+  watch_time_seconds int [default: 0]
+  completion_percent int [default: 0]
+  completed_at timestamptz
+  started_at timestamptz [not null, default: `now()`]
+  last_accessed_at timestamptz
+}
+
+Table video_progress {
+  id uuid [pk, default: `gen_random_uuid()`]
+  student_id uuid [not null, ref: > users.id]
+  lesson_id uuid [not null, ref: > lessons.id]
+  last_position_seconds int [not null, default: 0]
+  total_watched_seconds int [not null, default: 0]
+  completed boolean [not null, default: false]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (student_id, lesson_id) [unique]
+  }
+}
+
+Table certificates {
+  id uuid [pk, default: `gen_random_uuid()`]
+  enrollment_id uuid [not null, unique, ref: > enrollments.id]
+  student_id uuid [not null, ref: > users.id]
+  course_id uuid [not null, ref: > courses.id]
+  verification_token uuid [unique, default: `gen_random_uuid()`]
+  issued_at timestamptz [not null, default: `now()`]
+
+  Note: '1 certificate per enrollment. Public verification via token.'
+}
+
+Table bookmarks {
+  id uuid [pk, default: `gen_random_uuid()`]
+  student_id uuid [not null, ref: > users.id]
+  lesson_id uuid [not null, ref: > lessons.id]
+  title varchar(255)
+  position_seconds int
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table student_notes {
+  id uuid [pk, default: `gen_random_uuid()`]
+  student_id uuid [not null, ref: > users.id]
+  lesson_id uuid [not null, ref: > lessons.id]
+  content text [not null]
+  position_seconds int
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz
+}
+
+Table learning_events {
+  id bigserial [pk]
+  student_id uuid [not null, ref: > users.id]
+  event_type varchar(50) [not null, note: 'LESSON_COMPLETE | QUIZ_PASS | STREAK...']
+  payload jsonb
+  xp_earned int [default: 0]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (student_id, created_at)
+  }
+}
+
+Table learning_streaks {
+  student_id uuid [pk, ref: > users.id]
+  current_streak_days int [not null, default: 0]
+  longest_streak_days int [not null, default: 0]
+  last_activity_date date
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table achievements {
+  id uuid [pk, default: `gen_random_uuid()`]
+  code varchar(50) [not null, unique]
+  name varchar(255) [not null]
+  description text
+  icon_url varchar(500)
+  xp_reward int [default: 0]
+}
+
+Table student_achievements {
+  id uuid [pk, default: `gen_random_uuid()`]
+  student_id uuid [not null, ref: > users.id]
+  achievement_id uuid [not null, ref: > achievements.id]
+  earned_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (student_id, achievement_id) [unique]
+  }
+}
+
+// =========================================================================
+// MODULE 5: ASSESSMENT
+// =========================================================================
+
+Table packages {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar(255) [not null]
+  description text
+  subject varchar(100)
+  owner_id uuid [not null, ref: > users.id]
+  visibility varchar(20) [not null, default: 'PRIVATE']
+  capacity int
+  price numeric(19, 2)
+  duration_days int [default: 365]
+  is_active boolean [default: true]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz
+
+  Note: 'Question bank packages'
+}
+
+Table questions {
+  id uuid [pk, default: `gen_random_uuid()`]
+  content_blocks jsonb
+  difficulty difficulty [not null, default: 'MEDIUM']
+  tags text
+  status varchar(20) [not null, default: 'DRAFT']
+  correct_option varchar(10) [not null]
+  created_by uuid [not null, ref: > users.id]
+  course_id uuid [ref: > courses.id]
+  package_id uuid [ref: > packages.id]
+  usage_count int [not null, default: 0]
+  correct_rate numeric(5, 2) [default: 0]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz
+}
+
+Table question_options {
+  id uuid [pk, default: `gen_random_uuid()`]
+  question_id uuid [not null, ref: > questions.id]
+  option_key varchar(10) [not null]
+  content jsonb
+  is_correct boolean [default: false]
+  display_order int [default: 0]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz
+}
+
+Table quizzes {
+  id uuid [pk, default: `gen_random_uuid()`]
+  lesson_id uuid [not null, ref: > lessons.id]
+  title varchar(255) [not null]
+  description text
+  time_limit_minutes int
+  max_attempts int [default: 3]
+  passing_score int [default: 60]
+  shuffle_questions boolean [default: false]
+  shuffle_options boolean [default: false]
+  show_results_immediately boolean [default: true]
+  show_correct_answers boolean [default: true]
+  access_password varchar(255)
+  available_from timestamptz
+  available_until timestamptz
+  status varchar(20) [not null, default: 'DRAFT']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz
+}
+
+Table quiz_questions {
+  id uuid [pk, default: `gen_random_uuid()`]
+  quiz_id uuid [not null, ref: > quizzes.id]
+  question_id uuid [not null, ref: > questions.id]
+  display_order int [default: 0]
+  points int [default: 1]
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table quiz_attempts {
+  id uuid [pk, default: `gen_random_uuid()`]
+  quiz_id uuid [not null, ref: > quizzes.id]
+  student_id uuid [not null, ref: > users.id]
+  status quiz_attempt_status [not null, default: 'IN_PROGRESS']
+  answers jsonb [note: 'map questionId -> selectedOptionKey']
+  score double
+  max_score double
+  is_passed boolean
+  version int [not null, default: 0, note: 'Optimistic lock']
+  started_at timestamptz
+  submitted_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table quiz_assignments {
+  id uuid [pk, default: `gen_random_uuid()`]
+  quiz_id uuid [not null, ref: > quizzes.id]
+  class_id uuid [ref: > learning_classes.id]
+  course_id uuid [ref: > courses.id]
+  due_date timestamptz
+  is_active boolean [default: true]
+  assigned_at timestamptz [not null, default: `now()`]
+}
+
+Table assignments {
+  id uuid [pk, default: `gen_random_uuid()`]
+  lesson_id uuid [ref: > lessons.id]
+  course_id uuid [ref: > courses.id]
+  title varchar(255) [not null]
+  description text
+  instructions text
+  assignment_type assignment_type [not null, default: 'FILE_UPLOAD']
+  status varchar(20) [not null, default: 'DRAFT']
+  max_score numeric(10, 2) [default: 100]
+  passing_score int [default: 60]
+  due_date timestamptz
+  max_attempts int [default: 1]
+  allow_late_submission boolean [default: false]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz
+}
+
+Table assignment_submissions {
+  id uuid [pk, default: `gen_random_uuid()`]
+  assignment_id uuid [not null, ref: > assignments.id]
+  student_id uuid [not null, ref: > users.id]
+  course_id uuid [ref: > courses.id]
+  status submission_status [not null, default: 'DRAFT']
+  content text
+  file_url varchar(512)
+  file_name varchar(255)
+  grade double
+  max_grade double
+  feedback text
+  graded_by uuid [ref: > users.id]
+  graded_at timestamptz
+  submitted_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz
+
+  indexes {
+    (assignment_id, student_id) [unique]
+  }
+}
+
+Table assignment_attachments {
+  id uuid [pk, default: `gen_random_uuid()`]
+  assignment_id uuid [not null, ref: > assignments.id]
+  submission_id uuid [ref: > assignment_submissions.id]
+  file_name varchar(255) [not null]
+  file_url varchar(512) [not null]
+  file_size bigint
+  file_type varchar(128)
+  storage_key varchar(512)
+  uploaded_by uuid [ref: > users.id]
+  uploaded_at timestamptz [not null, default: `now()`]
+}
+
+Table assignment_rubrics {
+  id uuid [pk, default: `gen_random_uuid()`]
+  assignment_id uuid [not null, ref: > assignments.id]
+  title varchar(255) [not null]
+  description text
+  max_points double
+  criteria jsonb [note: 'criteria: [{name, maxPoints, levels: [...]}]']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz
+}
+
+Table assignment_allocations {
+  id uuid [pk, default: `gen_random_uuid()`]
+  assignment_id uuid [not null, ref: > assignments.id]
+  distribution_type varchar(50)
+  class_id uuid [ref: > learning_classes.id]
+  allocator_id uuid [ref: > users.id]
+  due_date timestamptz
+  is_active boolean [default: true]
+  allocated_at timestamptz [not null, default: `now()`]
+}
+
+Table grading_audit_log {
+  id bigserial [pk]
+  submission_id uuid [not null, ref: > assignment_submissions.id]
+  grader_id uuid [not null, ref: > users.id]
+  old_grade double
+  new_grade double
+  action varchar(20) [not null]
+  reason text
+  created_at timestamptz [not null, default: `now()`]
+}
+
+// =========================================================================
+// MODULE 6: COMMUNICATION
+// =========================================================================
+
+Table conversations {
+  id uuid [pk, default: `gen_random_uuid()`]
+  participant1_id uuid [not null, ref: > users.id]
+  participant2_id uuid [not null, ref: > users.id]
+  last_message_at timestamptz
+  last_message_preview varchar(500)
+  unread_count_1 int [default: 0]
+  unread_count_2 int [default: 0]
+  is_archived_1 boolean [default: false]
+  is_archived_2 boolean [default: false]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz
+}
+
+Table messages {
+  id uuid [pk, default: `gen_random_uuid()`]
+  conversation_id uuid [not null, ref: > conversations.id]
+  sender_id uuid [not null, ref: > users.id]
+  reply_to_id uuid [ref: > messages.id]
+  content text
+  is_read boolean [default: false]
+  is_recalled boolean [default: false]
+  read_at timestamptz
+  sent_at timestamptz [not null, default: `now()`]
+}
+
+Table message_reactions {
+  id uuid [pk, default: `gen_random_uuid()`]
+  message_id uuid [not null, ref: > messages.id]
+  user_id uuid [not null, ref: > users.id]
+  emoji varchar(20) [not null]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (message_id, user_id, emoji) [unique]
+  }
+}
+
+Table announcements {
+  id uuid [pk, default: `gen_random_uuid()`]
+  class_id uuid [ref: > learning_classes.id]
+  course_id uuid [ref: > courses.id]
+  author_id uuid [not null, ref: > users.id]
+  title varchar(255) [not null]
+  content text [not null]
+  pinned boolean [default: false]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz
+}
+
+Table announcement_reads {
+  id uuid [pk, default: `gen_random_uuid()`]
+  announcement_id uuid [not null, ref: > announcements.id]
+  user_id uuid [not null, ref: > users.id]
+  read_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (announcement_id, user_id) [unique]
+  }
+}
+
+Table notifications {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null, ref: > users.id]
+  type varchar(50) [not null]
+  title varchar(255)
+  body text
+  link varchar(500)
+  is_read boolean [default: false]
+  read_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+}
+
+// =========================================================================
+// MODULE 7: AI ASSISTANT
+// =========================================================================
+
+Table chat_sessions {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [not null, ref: > users.id]
+  title varchar(255) [not null]
+  context_type varchar(50) [default: 'GENERAL']
+  context_id uuid
+  is_archived boolean [default: false]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz
+}
+
+Table chat_messages {
+  id uuid [pk, default: `gen_random_uuid()`]
+  session_id uuid [not null, ref: > chat_sessions.id]
+  role chat_role [not null]
+  content text [not null]
+  tokens_used int [default: 0]
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table ai_insights {
+  id uuid [pk, default: `gen_random_uuid()`]
+  student_id uuid [not null, ref: > users.id]
+  course_id uuid [ref: > courses.id]
+  insight_type varchar(50) [not null]
+  payload jsonb
+  confidence numeric(5, 2)
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table ai_alerts {
+  id uuid [pk, default: `gen_random_uuid()`]
+  teacher_id uuid [not null, ref: > users.id]
+  student_id uuid [ref: > users.id]
+  course_id uuid [ref: > courses.id]
+  severity varchar(20) [not null]
+  message text [not null]
+  is_acknowledged boolean [default: false]
+  created_at timestamptz [not null, default: `now()`]
+}
+
+// =========================================================================
+// MODULE 8: PAYMENT & REVENUE
+// =========================================================================
+
+Table payment_transactions {
+  id uuid [pk, default: `gen_random_uuid()`]
+  student_id uuid [not null, ref: > users.id]
+  course_id uuid [not null, ref: > courses.id]
+  transaction_id varchar(255) [not null, unique]
+  amount numeric(19, 2) [not null]
+  currency varchar(3) [not null, default: 'VND']
+  payment_method varchar(50) [not null, note: 'VNPAY | SEPAY | SIMULATED']
+  status payment_status [not null, default: 'PENDING']
+  vnpay_response_code varchar(10)
+  sepay_reference varchar(100)
+  refund_amount numeric(19, 2)
+  refund_reason text
+  version int [not null, default: 0]
+  paid_at timestamptz
+  refunded_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table revenue_splits {
+  id uuid [pk, default: `gen_random_uuid()`]
+  payment_id uuid [not null, unique, ref: > payment_transactions.id]
+  course_id uuid [not null, ref: > courses.id]
+  teacher_id uuid [not null, ref: > users.id]
+  org_id uuid [ref: > organizations.id]
+  gross_amount numeric(19, 2) [not null]
+  platform_fee_pct numeric(5, 2) [not null]
+  teacher_share_pct numeric(5, 2) [not null]
+  org_share_pct numeric(5, 2) [not null]
+  platform_amount numeric(19, 2) [not null]
+  teacher_amount numeric(19, 2) [not null]
+  org_amount numeric(19, 2) [not null, default: 0]
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'APPEND-ONLY ledger. 1 row per completed payment. NEVER UPDATE.'
+}
+
+Table org_payment_configs {
+  org_id uuid [pk, ref: > organizations.id]
+  platform_fee_pct numeric(5, 2) [not null, default: 20]
+  teacher_share_pct numeric(5, 2) [not null, default: 70]
+  min_payout_amount numeric(19, 2) [not null, default: 100000]
+  updated_at timestamptz [default: `now()`]
+}
+
+Table teacher_bank_accounts {
+  id uuid [pk, default: `gen_random_uuid()`]
+  teacher_id uuid [not null, ref: > users.id]
+  bank_code varchar(20) [not null, note: 'MBBank | VCB | TCB | VTB']
+  account_number varchar(30) [not null]
+  account_name varchar(100) [not null]
+  is_default boolean [not null, default: false]
+  verified boolean [not null, default: false]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (teacher_id, bank_code, account_number) [unique]
+  }
+}
+
+Table payout_requests {
+  id uuid [pk, default: `gen_random_uuid()`]
+  teacher_id uuid [not null, ref: > users.id]
+  bank_account_id uuid [not null, ref: > teacher_bank_accounts.id]
+  amount numeric(19, 2) [not null]
+  status payout_status [not null, default: 'PENDING']
+  teacher_note text
+  admin_note text
+  processed_by uuid [ref: > users.id]
+  requested_at timestamptz [not null, default: `now()`]
+  processed_at timestamptz
+}
+
+// =========================================================================
+// MODULE 9: SHARED (Cross-cutting)
+// =========================================================================
+
+Table admin_settings {
+  setting_key varchar(100) [pk]
+  setting_value text
+  description text
+  updated_at timestamptz [default: `now()`]
+  updated_by uuid [ref: > users.id]
+
+  Note: 'Key-value config (revenue.platform_fee_pct, smtp.host, etc.)'
+}
+
+Table file_attachments {
+  id uuid [pk, default: `gen_random_uuid()`]
+  entity_type varchar(50) [note: 'COURSE | LESSON | ASSIGNMENT']
+  entity_id uuid
+  file_category varchar(50) [not null]
+  status varchar(20)
+  stored_filename varchar(255) [not null]
+  original_filename varchar(255) [not null]
+  storage_path varchar(255) [not null]
+  file_size bigint [not null]
+  content_type varchar(100) [not null]
+  uploaded_by uuid [not null, ref: > users.id]
+  uploaded_at timestamptz [not null, default: `now()`]
+
+  Note: 'Polymorphic file registry (R2/S3)'
+}
+
+Table outbox_messages {
+  id uuid [pk, default: `gen_random_uuid()`]
+  aggregate_type varchar(255) [not null]
+  aggregate_id uuid [not null]
+  event_type varchar(255) [not null]
+  payload jsonb [not null]
+  status outbox_status [default: 'PENDING']
+  attempts int [default: 0]
+  next_attempt_at timestamptz
+  last_error text
+  created_at timestamptz [not null, default: `now()`]
+  processed_at timestamptz
+
+  indexes {
+    (status, next_attempt_at)
+  }
+  Note: 'Transactional Outbox Pattern for domain events'
+}
+
+Table audit_log {
+  id bigserial [pk]
+  user_id uuid [ref: > users.id]
+  action varchar(100) [not null]
+  entity_type varchar(50)
+  entity_id uuid
+  old_value jsonb
+  new_value jsonb
+  ip_address varchar(45)
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (entity_type, entity_id, created_at)
+    (user_id, created_at)
+  }
+}
+
+Table client_offline_storage_telemetry {
+  id bigserial [pk]
+  user_id uuid [not null, ref: > users.id]
+  device_id varchar(128)
+  indexed_db_size_bytes bigint
+  cache_api_size_bytes bigint
+  downloaded_courses int
+  reported_at timestamptz [not null, default: `now()`]
+}
+
+// =========================================================================
+// TABLE GROUPS (visual organization in dbdiagram.io)
+// =========================================================================
+
+TableGroup Identity {
+  organizations
+  users
+  user_external_identities
+  organization_invites
+  password_reset_tokens
+  email_verification_tokens
+  login_attempts
+}
+
+TableGroup CourseAuthoring {
+  course_categories
+  courses
+  course_tags
+  course_tag_assignments
+  chapters
+  lessons
+  sections
+  lesson_attachments
+  video_assets
+  video_renditions
+  upload_sessions
+}
+
+TableGroup CourseManagement {
+  course_versions
+  course_publications
+  course_review_events
+}
+
+TableGroup LearningDelivery {
+  learning_classes
+  class_teachers
+  enrollments
+  student_lesson_progress
+  video_progress
+  certificates
+  bookmarks
+  student_notes
+  learning_events
+  learning_streaks
+  achievements
+  student_achievements
+}
+
+TableGroup Assessment {
+  packages
+  questions
+  question_options
+  quizzes
+  quiz_questions
+  quiz_attempts
+  quiz_assignments
+  assignments
+  assignment_submissions
+  assignment_attachments
+  assignment_rubrics
+  assignment_allocations
+  grading_audit_log
+}
+
+TableGroup Communication {
+  conversations
+  messages
+  message_reactions
+  announcements
+  announcement_reads
+  notifications
+}
+
+TableGroup AIAssistant {
+  chat_sessions
+  chat_messages
+  ai_insights
+  ai_alerts
+}
+
+TableGroup PaymentRevenue {
+  payment_transactions
+  revenue_splits
+  org_payment_configs
+  teacher_bank_accounts
+  payout_requests
+}
+
+TableGroup Shared {
+  admin_settings
+  file_attachments
+  outbox_messages
+  audit_log
+  client_offline_storage_telemetry
+}
