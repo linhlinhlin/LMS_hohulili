@@ -30,14 +30,11 @@ import { WiiiContextService } from '../../../../ai-chat/infrastructure/api/wiii-
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { isOfflineVideoProfileId, type OfflineVideoProfileDescriptor } from '../../../../../core/models/video-quality';
-import { LectureSectionsPanelComponent } from './components/lecture-sections-panel/lecture-sections-panel.component';
-import { CurriculumAssessmentSummaryComponent } from './components/curriculum-assessment-summary/curriculum-assessment-summary.component';
-import { CurriculumAssignmentDetailsComponent } from './components/curriculum-assignment-details/curriculum-assignment-details.component';
-import { CurriculumQuizManagerComponent } from './components/curriculum-quiz-manager/curriculum-quiz-manager.component';
 import { ChapterEditorComponent } from './components/chapter-editor/chapter-editor.component';
 import { LessonEditorComponent } from './components/lesson-editor/lesson-editor.component';
 import { CurriculumEditorService } from '../../services/curriculum-editor.service';
 import { QuizPackageModalsComponent } from './components/quiz-package-modals/quiz-package-modals.component';
+import { buildCurriculumLabel, stripCurriculumPrefix } from '../../utils/curriculum-labels';
 
 type SectionQuizAssessmentType = 'PRACTICE' | 'ASSESSMENT' | 'EXAM';
 
@@ -48,10 +45,6 @@ type SectionQuizAssessmentType = 'PRACTICE' | 'ASSESSMENT' | 'EXAM';
     FormsModule,
     LucideAngularModule,
     DragDropModule,
-    LectureSectionsPanelComponent,
-    CurriculumAssessmentSummaryComponent,
-    CurriculumAssignmentDetailsComponent,
-    CurriculumQuizManagerComponent,
     ChapterEditorComponent,
     LessonEditorComponent,
     QuizPackageModalsComponent
@@ -186,6 +179,20 @@ export class CourseCurriculumComponent implements OnDestroy {
     if (!chapterId) return [];
     const chapter = this.store.chapters().find(c => c.id === chapterId);
     return chapter?.lessons || [];
+  });
+  selectedChapterLabel = computed(() => {
+    const chapterId = this.selectedChapterId();
+    if (!chapterId) return '';
+    const chapterIndex = this.store.chapters().findIndex(chapter => chapter.id === chapterId);
+    return chapterIndex >= 0 ? buildCurriculumLabel('chapter', chapterIndex) : '';
+  });
+  selectedLessonLabel = computed(() => {
+    const chapterId = this.selectedChapterId();
+    const lessonId = this.selectedLessonId();
+    if (!chapterId || !lessonId) return '';
+    const chapter = this.store.chapters().find(item => item.id === chapterId);
+    const lessonIndex = chapter?.lessons.findIndex(lesson => lesson.id === lessonId) ?? -1;
+    return lessonIndex >= 0 ? buildCurriculumLabel('lesson', lessonIndex) : '';
   });
 
   hasLegacyLessonLevelVideo(): boolean {
@@ -1110,7 +1117,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       }
       await firstValueFrom(this.chapterApi.updateChapter(chapterId, {
         courseId: courseId,
-        title: this.chapterTitle.trim(),
+        title: stripCurriculumPrefix(this.chapterTitle.trim(), 'chapter'),
         description: this.chapterDescription.trim()
       }));
       this.refreshEditorBaselineWithOptions(true);
@@ -1150,11 +1157,12 @@ export class CourseCurriculumComponent implements OnDestroy {
       }
       const chapterId = lessonContext.chapter.id;
       const lessonType = this.getLessonType(lesson);
+      const normalizedLessonTitle = stripCurriculumPrefix(this.lessonTitle.trim(), 'lesson');
       const updateData: any = {
         courseId: courseId,
         chapterId: chapterId,
         lessonType: lessonType,
-        title: this.lessonTitle.trim()
+        title: normalizedLessonTitle
       };
 
       if (lessonType === 'LECTURE') {
@@ -1167,7 +1175,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       if (lessonType === 'QUIZ') {
         const quizId = await this.resolveQuizIdForLesson(lesson.id);
         await firstValueFrom(this.quizApi.updateQuizSettings(quizId, {
-          title: this.lessonTitle.trim(),
+          title: normalizedLessonTitle,
           timeLimitMinutes: this.quizTimeLimit() || null,
           passingScore: this.quizPassingScore(),
           maxAttempts: this.quizMaxAttempts()
@@ -1175,7 +1183,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       } else if (lessonType === 'ASSIGNMENT') {
         const assignmentId = await this.ensureAssignmentIdForLesson(lesson, courseId);
         await firstValueFrom(this.assignmentApi.updateAssignment(assignmentId, {
-          title: this.lessonTitle.trim(),
+          title: normalizedLessonTitle,
           description: this.assignmentDescription,
           instructions: this.assignmentInstructions,
           dueDate: this.toIsoInstantOrUndefined(this.assignmentDueDate),
@@ -1214,7 +1222,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       }
 
       await firstValueFrom(this.quizApi.createLessonQuizV3(lessonId, {
-        title: this.lessonTitle.trim() || lesson.title || 'Bai kiem tra moi',
+        title: stripCurriculumPrefix(this.lessonTitle.trim(), 'lesson') || lesson.title || 'Bai kiem tra moi',
         description: '',
         timeLimitMinutes: this.quizTimeLimit() || 30,
         maxAttempts: this.quizMaxAttempts(),
@@ -1250,7 +1258,7 @@ export class CourseCurriculumComponent implements OnDestroy {
     try {
       const response = await firstValueFrom(this.assignmentApi.createAssignment(courseId, {
         lessonId: lesson.id,
-        title: this.lessonTitle.trim() || lesson.title || 'Bai tap moi',
+        title: stripCurriculumPrefix(this.lessonTitle.trim(), 'lesson') || lesson.title || 'Bai tap moi',
         description: this.assignmentDescription,
         instructions: this.assignmentInstructions,
         dueDate: this.toIsoInstantOrUndefined(this.assignmentDueDate),
@@ -1564,7 +1572,27 @@ export class CourseCurriculumComponent implements OnDestroy {
 
     try {
       const quizId = await this.resolveQuizIdForLesson(lesson.id);
-      this.router.navigate(['/teacher/quiz', quizId, 'edit']);
+      const queryParams: Record<string, string> = {
+        returnTo: 'curriculum'
+      };
+      const courseId = this.store.courseTree()?.id;
+      const chapterId = this.selectedChapterId();
+      const sectionId = this.selectedSectionId();
+
+      if (courseId) {
+        queryParams['returnCourseId'] = courseId;
+      }
+      if (chapterId) {
+        queryParams['returnChapterId'] = chapterId;
+      }
+      if (lesson.id) {
+        queryParams['returnLessonId'] = lesson.id;
+      }
+      if (sectionId) {
+        queryParams['returnSectionId'] = sectionId;
+      }
+
+      this.router.navigate(['/teacher/quiz', quizId, 'edit'], { queryParams });
     } catch {
       this.toast.error('Không thể mở trình quản lý bài kiểm tra');
     }

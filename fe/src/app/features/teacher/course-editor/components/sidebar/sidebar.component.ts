@@ -22,6 +22,7 @@ import { DialogComponent } from '../../../../../shared/components/dialog/dialog.
 import { firstValueFrom } from 'rxjs';
 import { AssignmentApi } from '../../../../../api/client/assignment.api';
 import { QuizApi } from '../../../../../api/endpoints/quiz.api';
+import { buildCurriculumLabel, stripCurriculumPrefix } from '../../utils/curriculum-labels';
 import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/lesson-readiness';
 
 @Component({
@@ -50,12 +51,12 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
     .sidebar-row {
       display: flex;
       align-items: center;
-      gap: 0.125rem;
-      padding: 0 0.5rem 0 0;
+      gap: 0.25rem;
+      padding: 0 0.375rem 0 0;
       transition: background-color 160ms ease;
     }
     .sidebar-row:hover { background: rgb(248 250 252); }
-    .sidebar-row--lesson { padding-left: 0.75rem; }
+    .sidebar-row--lesson { padding-left: 1rem; }
     .sidebar-row--selected {
       background: rgba(0, 86, 210, 0.06);
       border-left: 2px solid rgb(0 86 210);
@@ -100,10 +101,16 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
       padding: 0.375rem;
       border-radius: 0.25rem;
       color: rgb(203 213 225);
-      transition: color 160ms ease, background 160ms ease;
+      opacity: 0;
+      transition: color 160ms ease, background 160ms ease, opacity 160ms ease;
       border: none;
       background: transparent;
       cursor: pointer;
+    }
+    .group\\/ch:hover .sidebar-kebab,
+    .group\\/ls:hover .sidebar-kebab,
+    .sidebar-row--selected .sidebar-kebab {
+      opacity: 1;
     }
     .sidebar-kebab:hover {
       color: rgb(71 85 105);
@@ -129,7 +136,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
 
     /* ── Section items (Mục) — indented one level deeper than Bài ── */
     .sidebar-sections {
-      padding: 0.125rem 0.5rem 0.375rem 3.25rem;
+      padding: 0.125rem 0.5rem 0.375rem 3.9rem;
     }
     .sidebar-section-row {
       display: flex;
@@ -389,7 +396,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
 
                       <!-- Drag Preview -->
                       <div *cdkDragPreview class="bg-white shadow-lg rounded-lg px-4 py-2 border border-[#0056D2] text-sm font-medium text-slate-800 max-w-[280px] line-clamp-2 break-words">
-                        Chương {{ chapterIdx + 1 }} · {{ getChapterDisplayTitle(chapter.title, chapterIdx) }}
+                        {{ chapterLabel(chapterIdx) }} · {{ getChapterDisplayTitle(chapter.title, chapterIdx) }}
                       </div>
                       <!-- Drag Placeholder (insertion line) -->
                       <div *cdkDragPlaceholder class="h-0.5 bg-[#0056D2] rounded-full mx-2 my-1"></div>
@@ -427,7 +434,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                                          class="w-full text-sm font-semibold text-slate-800 bg-white border border-[#0056D2] rounded px-2 py-0.5 outline-none focus:ring-2 focus:ring-[#0056D2]/30"
                                          #editInput>
                               } @else {
-                                  <h4 class="text-[15px] font-semibold text-slate-800 leading-snug line-clamp-2 break-words"><span class="text-[13px] font-semibold text-[#0056D2]">Chương {{ chapterIdx + 1 }}</span> · {{ getChapterDisplayTitle(chapter.title, chapterIdx) }}</h4>
+                                  <h4 class="text-[15px] font-semibold text-slate-800 leading-snug line-clamp-2 break-words"><span class="text-[13px] font-semibold text-[#0056D2]">{{ chapterLabel(chapterIdx) }}</span> · {{ getChapterDisplayTitle(chapter.title, chapterIdx) }}</h4>
                               }
                           </div>
 
@@ -515,7 +522,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
 
                                       <!-- Drag Preview -->
                                       <div *cdkDragPreview class="bg-white shadow-lg rounded-lg px-4 py-2 border border-[#0056D2] text-xs font-medium text-slate-700 max-w-[260px] line-clamp-2 break-words">
-                                        Bài {{ chapterIdx + 1 }}.{{ lessonIdx + 1 }} · {{ getLessonDisplayTitle(lesson.title, lessonIdx) }}
+                                        {{ lessonLabel(lessonIdx) }} · {{ getLessonDisplayTitle(lesson.title, lessonIdx) }}
                                       </div>
                                       <!-- Drag Placeholder (insertion line) -->
                                       <div *cdkDragPlaceholder class="h-0.5 bg-[#0056D2] rounded-full mx-2 my-1"></div>
@@ -553,7 +560,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                                                        class="w-full text-[13px] font-medium text-slate-700 bg-white border border-[#0056D2] rounded px-2 py-0.5 outline-none focus:ring-2 focus:ring-[#0056D2]/30"
                                                        #editInput>
                                             } @else {
-                                                <p class="text-sm font-medium text-slate-600 leading-snug line-clamp-2 break-words group-hover/ls:text-slate-900"><span class="text-xs font-semibold text-[#0056D2]">Bài {{ chapterIdx + 1 }}.{{ lessonIdx + 1 }}</span> {{ getLessonDisplayTitle(lesson.title, lessonIdx) }} <span class="inline-block w-1.5 h-1.5 rounded-full align-middle ml-1" [style.background]="getLessonReadinessColor(lesson)"></span></p>
+                                                <p class="text-sm font-medium text-slate-600 leading-snug line-clamp-2 break-words group-hover/ls:text-slate-900"><span class="text-xs font-semibold text-[#0056D2]">{{ lessonLabel(lessonIdx) }}</span> {{ getLessonDisplayTitle(lesson.title, lessonIdx) }} <span class="inline-block w-1.5 h-1.5 rounded-full align-middle ml-1" [style.background]="getLessonReadinessColor(lesson)"></span></p>
                                             }
                                           </div>
 
@@ -617,13 +624,13 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                                       </div>
 
                                       <!-- SECTIONS (L3) — clean list, click to select -->
-                                      @if (isLessonExpanded(lesson.id) && lesson.sections?.length) {
+                                      @if (isLessonExpanded(lesson.id) && lesson.sections.length) {
                                         <div class="sidebar-sections">
                                           @for (section of lesson.sections; track section.id; let secIdx = $index) {
                                             <button class="sidebar-section-row"
                                                  [class.sidebar-section-row--selected]="selectedSectionId() === section.id"
                                                  (click)="selectSection(chapter, lesson, section); $event.stopPropagation()">
-                                              <span class="sidebar-section-row__num">{{ chapterIdx + 1 }}.{{ lessonIdx + 1 }}.{{ secIdx + 1 }}</span>
+                                              <span class="sidebar-section-row__num">{{ sectionLabel(secIdx) }}</span>
                                               <span class="sidebar-section-row__title">{{ getSectionDisplayTitle(section.title) }}</span>
                                               <span class="sidebar-section-row__type">{{ section.type === 'TEXT' ? 'văn bản' : section.type === 'VIDEO' ? 'video' : section.type === 'FILE' ? 'tệp' : section.type === 'QUIZ' ? 'trắc nghiệm' : section.type }}</span>
                                             </button>
@@ -1398,42 +1405,31 @@ export class CourseEditorSidebarComponent implements OnDestroy {
     return CONTENT_TYPE_CONFIG[key]?.color || 'bg-slate-300';
   }
 
+  chapterLabel(index: number): string {
+    return buildCurriculumLabel('chapter', index);
+  }
+
+  lessonLabel(index: number): string {
+    return buildCurriculumLabel('lesson', index);
+  }
+
+  sectionLabel(index: number): string {
+    return buildCurriculumLabel('section', index);
+  }
+
   // Helper to strip chapter prefix if already present in title
-  getChapterDisplayTitle(title: string, index: number): string {
-    // If title already starts with "Chương X:" or "Chương X.", strip it to avoid duplication
-    // Match patterns like "Chương 1:", "Chương 1.", "CHƯƠNG 1:" etc.
-    const chapterPattern = /^chương\s+\d+[.:.]/i;
-    if (chapterPattern.test(title)) {
-      // Find where the prefix ends and return the rest
-      const match = title.match(/^chương\s+\d+[.:.]\s*/i);
-      if (match) {
-        return title.slice(match[0].length).trim();
-      }
-    }
-    return title;
+  getChapterDisplayTitle(title: string, _index: number): string {
+    return stripCurriculumPrefix(title, 'chapter');
   }
 
   // Helper to strip section prefix (e.g. "1.2: ", "2.1: ", "2.1:") from title
   getSectionDisplayTitle(title: string): string {
-    const sectionPattern = /^\d+\.\d+[.:.]\s*/;
-    const match = title.match(sectionPattern);
-    if (!match) return title;
-    const stripped = title.slice(match[0].length).trim();
-    return stripped || 'Chưa đặt tên';
+    return stripCurriculumPrefix(title, 'section');
   }
 
   // Helper to strip lesson prefix if already present in title
-  getLessonDisplayTitle(title: string, index: number): string {
-    // If title already starts with "Bài X:" or "Bài X.", strip it to avoid duplication
-    // Match patterns like "Bài 1:", "Bài 1.", "BÀI 1:" etc.
-    const lessonPattern = /^bài\s+\d+[.:.]/i;
-    if (lessonPattern.test(title)) {
-      const match = title.match(/^bài\s+\d+[.:.]\s*/i);
-      if (match) {
-        return title.slice(match[0].length).trim();
-      }
-    }
-    return title;
+  getLessonDisplayTitle(title: string, _index: number): string {
+    return stripCurriculumPrefix(title, 'lesson');
   }
 
   private autoCollapseSidebarOnMobile(): void {
