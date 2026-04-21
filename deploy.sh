@@ -106,7 +106,7 @@ if docker compose "${COMPOSE_ARGS[@]}" config --images 2>/dev/null | grep -q "gh
   echo "[5/7] Pulling pre-built images from GHCR..."
   docker compose "${COMPOSE_ARGS[@]}" pull backend frontend
   docker image prune -f 2>/dev/null || true
-  docker compose "${COMPOSE_ARGS[@]}" up -d --wait --remove-orphans
+  docker compose "${COMPOSE_ARGS[@]}" up -d --wait --remove-orphans --force-recreate backend frontend
 else
   echo "[5/7] Building and starting containers (no GHCR images configured)..."
   docker compose "${COMPOSE_ARGS[@]}" up -d --build --wait --remove-orphans
