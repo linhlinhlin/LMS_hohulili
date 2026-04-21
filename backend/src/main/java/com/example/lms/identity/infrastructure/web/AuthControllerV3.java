@@ -136,6 +136,22 @@ public class AuthControllerV3 {
         DiscoverAuthOptionsResponse response = discoverAuthOptionsUseCase.execute(
                 new DiscoverAuthOptionsCommand(request.email())
         );
+
+        if ("GOOGLE".equals(response.nextStep())) {
+            GoogleAuthAvailability availability = googleAuthAvailability();
+            if (!availability.enabled()) {
+                response = new DiscoverAuthOptionsResponse(
+                        response.email(),
+                        response.displayName(),
+                        response.accountExists(),
+                        response.passwordLoginAvailable(),
+                        false,
+                        response.nextStep(),
+                        "Tài khoản này dùng Google để đăng nhập, nhưng Google sign-in hiện tạm thời chưa khả dụng. Vui lòng thử lại sau hoặc liên hệ quản trị viên."
+                );
+            }
+        }
+
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -153,16 +169,15 @@ public class AuthControllerV3 {
     @GetMapping("/google/config")
     @Operation(summary = "Lay cau hinh Google sign-in cho frontend")
     public ResponseEntity<ApiResponse<GoogleAuthConfigResponse>> getGoogleAuthConfig() {
-        boolean enabled = googleAuthEnabled
-                && googleWebClientId != null
-                && !googleWebClientId.isBlank();
+        GoogleAuthAvailability availability = googleAuthAvailability();
         // Redirect flow only advertised when fully configured — FE falls back to GSI button otherwise.
-        boolean redirectFlow = enabled && googleOAuthProperties.isFullyConfigured();
         return ResponseEntity.ok(ApiResponse.success(new GoogleAuthConfigResponse(
-                enabled,
-                enabled ? googleWebClientId : null,
-                redirectFlow,
-                redirectFlow ? "/api/v3/auth/google/authorize" : null
+                availability.enabled(),
+                availability.enabled() ? googleWebClientId : null,
+                availability.redirectFlowEnabled(),
+                availability.redirectFlowEnabled() ? "/api/v3/auth/google/authorize" : null,
+                availability.unavailableReason(),
+                availability.unavailableMessage()
         )));
     }
 
@@ -365,6 +380,43 @@ public class AuthControllerV3 {
             /** True when the server-side authorization-code flow is configured and FE should prefer it. */
             boolean redirectFlowEnabled,
             /** Path to navigate to for the redirect flow, e.g. "/api/v3/auth/google/authorize". */
-            String authorizeUrl
+            String authorizeUrl,
+            /** Stable reason code when Google auth is unavailable, e.g. GOOGLE_AUTH_DISABLED. */
+            String unavailableReason,
+            /** User-facing fallback copy for the login page when Google auth is unavailable. */
+            String unavailableMessage
+    ) {}
+
+    private GoogleAuthAvailability googleAuthAvailability() {
+        boolean hasClientId = googleWebClientId != null && !googleWebClientId.isBlank();
+        boolean enabled = googleAuthEnabled && hasClientId;
+        boolean redirectFlowEnabled = enabled && googleOAuthProperties.isFullyConfigured();
+
+        if (enabled) {
+            return new GoogleAuthAvailability(true, redirectFlowEnabled, null, null);
+        }
+
+        if (!googleAuthEnabled) {
+            return new GoogleAuthAvailability(
+                    false,
+                    false,
+                    "GOOGLE_AUTH_DISABLED",
+                    "Đăng nhập Google hiện tạm thời chưa khả dụng. Vui lòng dùng email và mật khẩu."
+            );
+        }
+
+        return new GoogleAuthAvailability(
+                false,
+                false,
+                "GOOGLE_CLIENT_ID_MISSING",
+                "Đăng nhập Google hiện chưa được cấu hình đầy đủ. Vui lòng dùng email và mật khẩu."
+        );
+    }
+
+    private record GoogleAuthAvailability(
+            boolean enabled,
+            boolean redirectFlowEnabled,
+            String unavailableReason,
+            String unavailableMessage
     ) {}
 }

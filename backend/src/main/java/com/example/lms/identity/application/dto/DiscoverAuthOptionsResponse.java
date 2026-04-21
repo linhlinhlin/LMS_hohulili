@@ -6,7 +6,8 @@ public record DiscoverAuthOptionsResponse(
         boolean accountExists,
         boolean passwordLoginAvailable,
         boolean googleSignInAvailable,
-        String nextStep
+        String nextStep,
+        String googleUnavailableMessage
 ) {
     public static DiscoverAuthOptionsResponse password(String email, String displayName) {
         return new DiscoverAuthOptionsResponse(
@@ -15,7 +16,8 @@ public record DiscoverAuthOptionsResponse(
                 true,
                 true,
                 false,
-                "PASSWORD"
+                "PASSWORD",
+                null
         );
     }
 
@@ -26,7 +28,8 @@ public record DiscoverAuthOptionsResponse(
                 true,
                 false,
                 true,
-                "GOOGLE"
+                "GOOGLE",
+                null
         );
     }
 
@@ -37,7 +40,8 @@ public record DiscoverAuthOptionsResponse(
                 false,
                 false,
                 false,
-                "REGISTER"
+                "REGISTER",
+                null
         );
     }
 }
