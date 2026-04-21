@@ -2,6 +2,8 @@ package com.example.lms.config;
 
 import com.example.lms.identity.infrastructure.security.JwtService;
 import com.example.lms.identity.infrastructure.security.UserDetailsServiceImpl;
+import com.example.lms.shared.infrastructure.web.ApiResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,9 +27,14 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final String INVALID_TOKEN_MESSAGE =
+            "Phi\u00ean \u0111\u0103ng nh\u1eadp kh\u00f4ng h\u1ee3p l\u1ec7 ho\u1eb7c \u0111\u00e3 h\u1ebft h\u1ea1n. Vui l\u00f2ng \u0111\u0103ng nh\u1eadp l\u1ea1i.";
+
     private final JwtService jwtService;
     @Lazy
     private final UserDetailsServiceImpl userDetailsService;
+    private final PublicApiEndpointMatcher publicApiEndpointMatcher;
+    private final ObjectMapper objectMapper;
 
     @Override
     protected void doFilterInternal(
@@ -35,77 +42,81 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
-
-        // Skip JWT filter for public endpoints
         String path = request.getRequestURI();
-        if (shouldSkipFilter(path)) {
-            filterChain.doFilter(request, response);
-            return;
-        }
+        boolean publicEndpoint = publicApiEndpointMatcher.matches(request);
 
-        final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String username;
-
-        // Check if Authorization header exists and starts with "Bearer "
+        String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Extract JWT token
-        jwt = authHeader.substring(7);
+        String jwt = authHeader.substring(7);
 
         try {
-            username = jwtService.extractUsername(jwt);
+            String username = jwtService.extractUsername(jwt);
 
-            // If username is extracted and no authentication is set in SecurityContext
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                // Skip authentication if user account is disabled or locked
                 if (!userDetails.isEnabled() || !userDetails.isAccountNonLocked()) {
-                    log.warn("User account disabled or locked: {}", username);
-                    filterChain.doFilter(request, response);
-                    return;
-                }
-
-                // Validate token
-                if (jwtService.isTokenValid(jwt, userDetails)) {
+                    if (handleAuthenticationFailure(
+                            response,
+                            publicEndpoint,
+                            path,
+                            "User account disabled or locked: " + username
+                    )) {
+                        return;
+                    }
+                } else if (!jwtService.isTokenValid(jwt, userDetails)) {
+                    if (handleAuthenticationFailure(
+                            response,
+                            publicEndpoint,
+                            path,
+                            "JWT token failed validation checks"
+                    )) {
+                        return;
+                    }
+                } else {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,
                             null,
                             userDetails.getAuthorities()
                     );
-                    authToken.setDetails(
-                            new WebAuthenticationDetailsSource().buildDetails(request)
-                    );
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
         } catch (io.jsonwebtoken.JwtException | UsernameNotFoundException e) {
-            log.warn("Cannot set user authentication for request {}: {}", path, e.getMessage());
+            if (handleAuthenticationFailure(response, publicEndpoint, path, e.getMessage())) {
+                return;
+            }
         }
 
         filterChain.doFilter(request, response);
     }
 
-    /**
-     * Check if the request path should skip JWT authentication
-     */
-    private boolean shouldSkipFilter(String path) {
-        return path.startsWith("/v3/api-docs") ||
-               path.startsWith("/swagger-ui") ||
-               path.startsWith("/swagger-resources") ||
-               path.startsWith("/webjars") ||
-               path.equals("/actuator/health") ||
-               path.equals("/api/v3/ai/health") ||
-               path.equals("/api/v3/ai/ping") ||
-               path.startsWith("/api/v3/integration/") ||
-               path.equals("/api/v3/categories") ||
-               path.equals("/api/v3/payments/vnpay-ipn") ||
-               path.equals("/api/v3/payments/vnpay-return") ||
-               path.startsWith("/uploads/") ||
-               path.startsWith("/ws");
+    private boolean handleAuthenticationFailure(
+            HttpServletResponse response,
+            boolean publicEndpoint,
+            String path,
+            String reason
+    ) throws IOException {
+        SecurityContextHolder.clearContext();
+
+        if (publicEndpoint) {
+            log.debug("Ignoring invalid bearer token on public request {}: {}", path, reason);
+            return false;
+        }
+
+        log.warn("Rejecting invalid bearer token on protected request {}: {}", path, reason);
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        objectMapper.writeValue(
+                response.getWriter(),
+                ApiResponse.error("INVALID_TOKEN", INVALID_TOKEN_MESSAGE)
+        );
+        return true;
     }
 }
