@@ -85,6 +85,7 @@ services:
           memory: 256M
 
   backend:
+    image: ghcr.io/linhlinhlin/lms-backend:${IMAGE_TAG:-latest}
     # NO ports exposed - Caddy proxies internally via lms-frontend network
     restart: always
     environment:
@@ -108,13 +109,11 @@ services:
         window: 120s
 
   video-worker:
+    image: ghcr.io/linhlinhlin/lms-backend:${IMAGE_TAG:-latest}
     profiles:
       - video-worker
     init: true
     restart: always
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
     environment:
       <<: *backend-runtime-env
     volumes:
@@ -150,6 +149,7 @@ services:
         window: 120s
 
   frontend:
+    image: ghcr.io/linhlinhlin/lms-frontend:${IMAGE_TAG:-latest}
     # NO ports exposed - Caddy proxies internally
     # Node.js SSR (~80-150MB) + nginx (~10MB) = ~200MB typical
     restart: always

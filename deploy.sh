@@ -79,8 +79,15 @@ fi
 echo "[4/7] Pruning Docker cache to prevent OOM..."
 docker system prune -f --volumes 2>/dev/null || true
 
-echo "[5/7] Building and starting containers..."
-docker compose "${COMPOSE_ARGS[@]}" up -d --build --wait --remove-orphans
+if docker compose "${COMPOSE_ARGS[@]}" config --images 2>/dev/null | grep -q "ghcr.io"; then
+  echo "[5/7] Pulling pre-built images from GHCR..."
+  docker compose "${COMPOSE_ARGS[@]}" pull backend frontend
+  docker image prune -f 2>/dev/null || true
+  docker compose "${COMPOSE_ARGS[@]}" up -d --wait --remove-orphans
+else
+  echo "[5/7] Building and starting containers (no GHCR images configured)..."
+  docker compose "${COMPOSE_ARGS[@]}" up -d --build --wait --remove-orphans
+fi
 
 echo "[6/7] Container status..."
 echo ""
