@@ -69,6 +69,8 @@ x-backend-runtime-env: &backend-runtime-env
   SEPAY_WEBHOOK_API_KEY: ${SEPAY_WEBHOOK_API_KEY:-}
   SEPAY_TEMPLATE_CODE: ${SEPAY_TEMPLATE_CODE:-compact2}
   GOTENBERG_URL: ${GOTENBERG_URL:-http://gotenberg:3000}
+  HIKARI_MAX_POOL: ${HIKARI_MAX_POOL:-30}
+  HIKARI_MIN_IDLE: ${HIKARI_MIN_IDLE:-15}
   JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
 
 services:

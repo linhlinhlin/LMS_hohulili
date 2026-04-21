@@ -38,28 +38,36 @@ import { filter, take, map } from 'rxjs/operators';
       <app-course-rejection-banner class="flex-shrink-0 z-10"></app-course-rejection-banner>
 
       <!-- Editor Tabs — above grid so position is stable regardless of sidebar -->
-      <nav aria-label="Editor tabs"
+      <nav aria-label="Editor tabs" role="tablist"
            class="flex items-center gap-1 border-b border-gray-200 flex-shrink-0 bg-white relative z-10 px-4 overflow-x-auto scrollbar-hide">
          <a routerLink="info"
-            routerLinkActive="text-[#0056D2] border-b-2 border-[#0056D2]"
-            class="px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-md transition-colors border-b-2 border-transparent whitespace-nowrap">
+            role="tab"
+            [attr.aria-selected]="activeTab() === 'info'"
+            routerLinkActive="editor-tab--active"
+            class="editor-tab">
             Thông tin
          </a>
          <a routerLink="curriculum"
-            routerLinkActive="text-[#0056D2] border-b-2 border-[#0056D2]"
-            class="px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-md transition-colors border-b-2 border-transparent whitespace-nowrap">
+            role="tab"
+            [attr.aria-selected]="activeTab() === 'curriculum'"
+            routerLinkActive="editor-tab--active"
+            class="editor-tab">
             Nội dung
          </a>
          @if (isInstructorLed()) {
            <a routerLink="classes"
-              routerLinkActive="text-[#0056D2] border-b-2 border-[#0056D2]"
-              class="px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-md transition-colors border-b-2 border-transparent whitespace-nowrap">
+              role="tab"
+              [attr.aria-selected]="activeTab() === 'classes'"
+              routerLinkActive="editor-tab--active"
+              class="editor-tab">
               Lớp học
            </a>
          }
          <a routerLink="settings"
-            routerLinkActive="text-[#0056D2] border-b-2 border-[#0056D2]"
-            class="px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-md transition-colors border-b-2 border-transparent whitespace-nowrap">
+            role="tab"
+            [attr.aria-selected]="activeTab() === 'settings'"
+            routerLinkActive="editor-tab--active"
+            class="editor-tab">
             Cài đặt
          </a>
       </nav>
@@ -85,7 +93,7 @@ import { filter, take, map } from 'rxjs/operators';
             <div class="flex-grow overflow-y-auto min-h-0 relative">
                 @if (store.isLoading()) {
                   <!-- Loading Skeleton — matches sidebar + cards grid -->
-                  <div class="p-5 animate-pulse" style="display:grid; grid-template-columns:180px minmax(0,720px); gap:1.5rem; max-width:960px; margin:0 auto">
+                  <div class="p-5 animate-pulse editor-skeleton-layout" aria-hidden="true">
                     <div class="hidden md:flex flex-col gap-2 pt-1">
                       <div class="h-4 w-20 bg-gray-200 rounded"></div>
                       <div class="h-4 w-24 bg-gray-200 rounded"></div>
@@ -122,8 +130,10 @@ import { filter, take, map } from 'rxjs/operators';
                   </div>
                 } @else {
                   @if (isAdminViewMode()) {
+                    <!-- Transparent click-catcher: blocks all interaction with the
+                         editor panel while admin is viewing, without dimming the UI. -->
                     <div class="absolute inset-0 z-50 cursor-not-allowed"
-                         style="background: transparent;"
+                         aria-hidden="true"
                          (click)="$event.stopPropagation(); $event.preventDefault()"
                          (mousedown)="$event.stopPropagation(); $event.preventDefault()"
                          (touchstart)="$event.stopPropagation(); $event.preventDefault()">

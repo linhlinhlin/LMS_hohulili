@@ -1,0 +1,30 @@
+# =============================================================================
+# LMS Maritime - systemd Service
+# Auto-start Docker Compose on VM reboot.
+#
+# Install:
+#   sudo cp lms.service /etc/systemd/system/lms.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable lms.service
+#   sudo systemctl start lms.service
+#
+# Logs:
+#   journalctl -u lms.service -f
+# =============================================================================
+
+[Unit]
+Description=LMS Maritime (Docker Compose)
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/Admin/LMS_hohulili
+EnvironmentFile=/home/Admin/LMS_hohulili/.env.prod
+ExecStart=/usr/bin/docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --wait
+ExecStop=/usr/bin/docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml down
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target

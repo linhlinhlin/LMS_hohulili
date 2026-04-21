@@ -73,18 +73,26 @@ import { getAdminPortalBase } from '../../../../../core/utils/portal-route.util'
 
                  <!-- Publish Dropdown (readiness + preview + publish) -->
                  <div class="relative">
-                     <button (click)="publishMenuOpen.set(!publishMenuOpen())"
+                     <button type="button"
+                             id="editor-publish-trigger"
+                             (click)="publishMenuOpen.set(!publishMenuOpen())"
+                             [attr.aria-expanded]="publishMenuOpen()"
+                             aria-haspopup="menu"
+                             aria-controls="editor-publish-menu"
                              class="h-8 px-3.5 rounded-lg bg-[#0056D2] text-white text-xs font-semibold hover:bg-[#004BB5] transition-colors shadow-sm flex items-center gap-1.5">
                          Xuất bản
-                         <svg class="w-3 h-3 transition-transform" [class.rotate-180]="publishMenuOpen()" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                         <svg class="w-3 h-3 transition-transform" [class.rotate-180]="publishMenuOpen()" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
                              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                          </svg>
                      </button>
 
                      @if (publishMenuOpen()) {
-                         <div class="fixed inset-0 z-40" (click)="publishMenuOpen.set(false)"></div>
+                         <div class="fixed inset-0 z-40" aria-hidden="true" (click)="publishMenuOpen.set(false)"></div>
 
-                         <div class="absolute right-0 top-full mt-1.5 w-72 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden">
+                         <div id="editor-publish-menu"
+                              role="menu"
+                              aria-labelledby="editor-publish-trigger"
+                              class="absolute right-0 top-full mt-1.5 w-72 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden">
                              <!-- Readiness Checklist -->
                              <div class="px-4 py-3 border-b border-slate-100">
                                  <div class="flex items-center justify-between mb-2">
@@ -120,20 +128,25 @@ import { getAdminPortalBase } from '../../../../../core/utils/portal-route.util'
                              </div>
                              <!-- Actions -->
                              <div class="py-1">
-                                 <button (click)="preview(); publishMenuOpen.set(false)"
+                                 <button type="button"
+                                         role="menuitem"
+                                         (click)="preview(); publishMenuOpen.set(false)"
                                          class="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors">
-                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                          <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                      </svg>
                                      Xem trước khóa học
                                  </button>
-                                 <div class="mx-3 border-t border-slate-100"></div>
-                                 <button (click)="publish(); publishMenuOpen.set(false)"
+                                 <div class="mx-3 border-t border-slate-100" role="separator" aria-hidden="true"></div>
+                                 <button type="button"
+                                         role="menuitem"
+                                         (click)="publish(); publishMenuOpen.set(false)"
                                          class="w-full text-left px-4 py-2.5 text-sm font-medium flex items-center gap-2.5 transition-colors"
                                          [class]="readinessChecklist().canPublish ? 'text-[#0056D2] hover:bg-[#0056D2]/5' : 'text-slate-300 cursor-not-allowed'"
-                                         [disabled]="!readinessChecklist().canPublish">
-                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                         [disabled]="!readinessChecklist().canPublish"
+                                         [attr.aria-disabled]="!readinessChecklist().canPublish">
+                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
                                          <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                                      </svg>
                                      Xuất bản khóa học

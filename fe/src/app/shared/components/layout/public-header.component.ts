@@ -228,7 +228,7 @@ export class PublicHeaderComponent implements OnInit, OnDestroy {
   }
 
   goToRegister(): void {
-    this.router.navigate(['/auth/register']);
+    this.router.navigate(['/auth/login']);
   }
 
   goToAssessment(): void {
