@@ -1,6 +1,7 @@
 package com.example.lms.learning_delivery.application.usecase;
 
 import com.example.lms.course_authoring.application.port.CoursePublicationPort;
+import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepository;
@@ -55,6 +56,10 @@ class CreateLearningClassUseCaseV3Test {
         teacherId = UUID.randomUUID();
         lenient().when(coursePublicationPort.findLatestPublicationId(courseId))
                 .thenReturn(java.util.Optional.empty());
+        lenient().when(userJpaRepository.findById(teacherId))
+                .thenReturn(java.util.Optional.of(mock(UserJpaEntity.class)));
+        lenient().when(classTeacherJpaRepository.save(any()))
+                .thenAnswer(inv -> inv.getArgument(0));
 
         validCommand = new CreateLearningClassUseCaseV3.CreateClassCommand(
             courseId,

@@ -35,6 +35,7 @@ import static org.mockito.Mockito.*;
  */
 @ExtendWith(MockitoExtension.class)
 class ClassControllerSecurityTest {
+    private static final String COURSE_ACCESS_DENIED_MESSAGE = "quyền truy cập khóa học";
 
     @Mock private CreateLearningClassUseCaseV3 createLearningClassUseCase;
     @Mock private UpdateLearningClassUseCase updateLearningClassUseCase;
@@ -86,7 +87,7 @@ class ClassControllerSecurityTest {
 
         assertThatThrownBy(() -> controller.createClass(request, otherTeacher))
                 .isInstanceOf(AccessDeniedException.class)
-                .hasMessageContaining("Ban khong so huu khoa hoc nay");
+                .hasMessageContaining(COURSE_ACCESS_DENIED_MESSAGE);
     }
 
     @Test
@@ -120,7 +121,7 @@ class ClassControllerSecurityTest {
 
         assertThatThrownBy(() -> controller.updateClass(classId.toString(), request, otherTeacher))
                 .isInstanceOf(AccessDeniedException.class)
-                .hasMessageContaining("Ban khong so huu khoa hoc nay");
+                .hasMessageContaining(COURSE_ACCESS_DENIED_MESSAGE);
     }
 
     @Test
@@ -134,7 +135,7 @@ class ClassControllerSecurityTest {
 
         assertThatThrownBy(() -> controller.deleteClass(classId.toString(), otherTeacher))
                 .isInstanceOf(AccessDeniedException.class)
-                .hasMessageContaining("Ban khong so huu khoa hoc nay");
+                .hasMessageContaining(COURSE_ACCESS_DENIED_MESSAGE);
     }
 
     // ================================================================================================
@@ -148,7 +149,7 @@ class ClassControllerSecurityTest {
 
         assertThatThrownBy(() -> controller.getClassesByCourse(courseId, otherTeacher))
                 .isInstanceOf(AccessDeniedException.class)
-                .hasMessageContaining("Ban khong so huu khoa hoc nay");
+                .hasMessageContaining(COURSE_ACCESS_DENIED_MESSAGE);
     }
 
     @Test
@@ -158,7 +159,7 @@ class ClassControllerSecurityTest {
 
         assertThatThrownBy(() -> controller.searchClassesByCourse(courseId, otherTeacher, null, null, null, 0, 10))
                 .isInstanceOf(AccessDeniedException.class)
-                .hasMessageContaining("Ban khong so huu khoa hoc nay");
+                .hasMessageContaining(COURSE_ACCESS_DENIED_MESSAGE);
     }
 
     @Test
@@ -172,7 +173,7 @@ class ClassControllerSecurityTest {
 
         assertThatThrownBy(() -> controller.getClassById(classId.toString(), otherTeacher))
                 .isInstanceOf(AccessDeniedException.class)
-                .hasMessageContaining("Ban khong so huu khoa hoc nay");
+                .hasMessageContaining(COURSE_ACCESS_DENIED_MESSAGE);
     }
 
     @Test
@@ -186,7 +187,7 @@ class ClassControllerSecurityTest {
 
         assertThatThrownBy(() -> controller.getClassStudents(classId.toString(), 0, 10, otherTeacher))
                 .isInstanceOf(AccessDeniedException.class)
-                .hasMessageContaining("Ban khong so huu khoa hoc nay");
+                .hasMessageContaining(COURSE_ACCESS_DENIED_MESSAGE);
     }
 
     @Test
