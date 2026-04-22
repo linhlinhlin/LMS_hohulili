@@ -1161,9 +1161,9 @@ export class StudentMyCoursesComponent implements OnInit {
   }
 
 
-  private serverPage = 0;
+  protected serverPage = 0;
   private readonly SERVER_PAGE_SIZE = 50;
-  private hasMoreServerPages = true;
+  protected hasMoreServerPages = true;
 
   private async loadCourses(): Promise<void> {
     try {

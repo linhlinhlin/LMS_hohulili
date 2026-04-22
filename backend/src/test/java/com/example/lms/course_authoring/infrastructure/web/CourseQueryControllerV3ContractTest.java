@@ -93,7 +93,7 @@ class CourseQueryControllerV3ContractTest {
                 java.util.Collections.singletonList(new Object[] {approvedPaidCourse.getId(), 7L})
         );
 
-        var response = controller.getPublicCourses(0, 20, null);
+        var response = controller.getPublicCourses(0, 20, null, null, null, null);
 
         assertThat(response.getBody()).isNotNull();
         ApiResponse<?> body = response.getBody();
