@@ -2,12 +2,12 @@ import { HttpRequest, HttpHandlerFn, HttpEvent, HttpResponse, HttpErrorResponse 
 import { Observable, from, of, throwError } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 import { inject } from '@angular/core';
-import { ensureOfflineDbReady, offlineDb, getCurrentUserId } from '../../core/db/lms-offline.db';
-import { NetworkStatusService } from '../../core/services/network-status.service';
+import { ensureOfflineDbReady, offlineDb, getCurrentUserId, type OfflineCourse } from '../../core/db/lms-offline.db';
 import { OfflineSyncService } from '../../core/services/offline-sync.service';
 
 /** Paths that must never be intercepted offline (auth, health checks) */
 const NEVER_INTERCEPT_PREFIXES = ['/api/v3/auth/', '/api/v3/sync/', '/actuator/'];
+const DEFAULT_OFFLINE_COURSES_PAGE_SIZE = 12;
 
 /**
  * Offline interceptor — catches network errors and falls back to IndexedDB.
@@ -21,7 +21,6 @@ const NEVER_INTERCEPT_PREFIXES = ['/api/v3/auth/', '/api/v3/sync/', '/actuator/'
  * Must be registered AFTER baseUrlInterceptor and authInterceptor.
  */
 export const offlineInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): Observable<HttpEvent<any>> => {
-  const network = inject(NetworkStatusService);
   const syncService = inject(OfflineSyncService);
 
   // If online, proceed normally but catch network failures
@@ -112,12 +111,7 @@ async function getOfflineFallback(url: string): Promise<any | null> {
       const userId = getCurrentUserId();
       const courses = await offlineDb.courses.where('userId').equals(userId).toArray();
       if (courses.length > 0) {
-        return {
-          success: true,
-          data: courses,
-          message: 'Dữ liệu ngoại tuyến',
-          _offline: true,
-        };
+        return buildOfflineCoursesListingResponse(courses, path);
       }
     }
 
@@ -432,6 +426,213 @@ function extractApiPath(fullUrl: string): string | null {
     if (fullUrl.startsWith('/api/')) return fullUrl;
     return null;
   }
+}
+
+type OfflineCourseSummary = {
+  id: string;
+  code: string;
+  title: string;
+  description: string;
+  status: 'APPROVED';
+  teacherName: string;
+  enrolledCount: number;
+  createdAt: string;
+  updatedAt: string;
+  enrolled: true;
+  isEnrolled: true;
+  deliveryMode?: 'SELF_PACED' | 'INSTRUCTOR_LED';
+  allowOfflineDownload: true;
+  lessonCount: number;
+  totalLessons: number;
+  completedLessons: number;
+  thumbnailUrl?: string;
+};
+
+type OfflineCoursesPageResponse = {
+  success: true;
+  message: string;
+  data: {
+    content: OfflineCourseSummary[];
+    totalElements: number;
+    totalPages: number;
+    size: number;
+    number: number;
+    first: boolean;
+    last: boolean;
+    empty: boolean;
+  };
+  pagination: {
+    page: number;
+    limit: number;
+    totalItems: number;
+    totalPages: number;
+    first: boolean;
+    last: boolean;
+  };
+  timestamp: string;
+  _offline: true;
+};
+
+export function buildOfflineCoursesListingResponse(
+  courses: OfflineCourse[],
+  path: string,
+  timestamp = new Date().toISOString(),
+): OfflineCoursesPageResponse {
+  const searchParams = getPathSearchParams(path);
+  const search = normalizeOfflineSearchTerm(searchParams.get('search'));
+  const teacher = normalizeOfflineSearchTerm(searchParams.get('teacher'));
+  const sort = searchParams.get('sort');
+  const order = searchParams.get('order');
+  const page = parseNonNegativeInt(searchParams.get('page'));
+  const size = parsePositiveInt(searchParams.get('size'), DEFAULT_OFFLINE_COURSES_PAGE_SIZE);
+
+  const filteredCourses = sortOfflineCourses(
+    courses.filter(course => matchesOfflineCourseSearch(course, search, teacher)),
+    sort,
+    order,
+  );
+
+  const totalItems = filteredCourses.length;
+  const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / size);
+  const startIndex = page * size;
+  const pagedCourses = filteredCourses.slice(startIndex, startIndex + size).map(mapOfflineCourseToSummary);
+  const last = totalPages === 0 ? true : page >= totalPages - 1;
+
+  return {
+    success: true,
+    message: 'Dữ liệu ngoại tuyến',
+    data: {
+      content: pagedCourses,
+      totalElements: totalItems,
+      totalPages,
+      size,
+      number: page,
+      first: page === 0,
+      last,
+      empty: pagedCourses.length === 0,
+    },
+    pagination: {
+      page,
+      limit: size,
+      totalItems,
+      totalPages,
+      first: page === 0,
+      last,
+    },
+    timestamp,
+    _offline: true,
+  };
+}
+
+function mapOfflineCourseToSummary(course: OfflineCourse): OfflineCourseSummary {
+  const normalizedTimestamp = toIsoTimestamp(course.downloadedAt);
+
+  return {
+    id: course.id,
+    code: `OFFLINE-${course.id.slice(0, 8).toUpperCase()}`,
+    title: course.title,
+    description: course.description || '',
+    status: 'APPROVED',
+    teacherName: course.teacherName || 'LMS Maritime',
+    enrolledCount: 1,
+    createdAt: normalizedTimestamp,
+    updatedAt: normalizedTimestamp,
+    enrolled: true,
+    isEnrolled: true,
+    deliveryMode: course.deliveryMode,
+    allowOfflineDownload: true,
+    lessonCount: course.totalLessons ?? 0,
+    totalLessons: course.totalLessons ?? 0,
+    completedLessons: 0,
+    thumbnailUrl: course.thumbnailUrl,
+  };
+}
+
+function matchesOfflineCourseSearch(
+  course: OfflineCourse,
+  search: string,
+  teacher: string,
+): boolean {
+  const searchableValues = [
+    course.title,
+    course.description,
+    course.teacherName,
+  ]
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .map(normalizeOfflineSearchTerm);
+
+  if (search && !searchableValues.some(value => value.includes(search))) {
+    return false;
+  }
+
+  if (teacher && !normalizeOfflineSearchTerm(course.teacherName).includes(teacher)) {
+    return false;
+  }
+
+  return true;
+}
+
+function sortOfflineCourses(
+  courses: OfflineCourse[],
+  sort: string | null,
+  order: string | null,
+): OfflineCourse[] {
+  const direction = order?.toLowerCase() === 'asc' ? 1 : -1;
+  const next = [...courses];
+
+  next.sort((left, right) => {
+    if (sort === 'title') {
+      return direction * left.title.localeCompare(right.title, 'vi', { sensitivity: 'base' });
+    }
+
+    return direction * (toTimestampValue(left.downloadedAt) - toTimestampValue(right.downloadedAt));
+  });
+
+  return next;
+}
+
+function getPathSearchParams(path: string): URLSearchParams {
+  const queryIndex = path.indexOf('?');
+  return new URLSearchParams(queryIndex >= 0 ? path.slice(queryIndex + 1) : '');
+}
+
+function normalizeOfflineSearchTerm(value: string | null | undefined): string {
+  return (value ?? '').trim().toLocaleLowerCase('vi');
+}
+
+function parseNonNegativeInt(value: string | null | undefined): number {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : 0;
+}
+
+function parsePositiveInt(value: string | null | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function toIsoTimestamp(value: Date | string | undefined): string {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (typeof value === 'string' && value.trim().length > 0) {
+    return value;
+  }
+
+  return new Date(0).toISOString();
+}
+
+function toTimestampValue(value: Date | string | undefined): number {
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+
+  return 0;
 }
 
 type SyncDescriptor = {
