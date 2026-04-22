@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -115,6 +117,50 @@ public class VideoAssetLifecycleService {
         if (!attachment.getUploadedBy().equals(user.getId())) {
             throw new AccessDeniedException("Bạn không có quyền dùng tệp upload này");
         }
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getPipelineDiagnostics() {
+        Map<String, Object> diag = new LinkedHashMap<>();
+
+        long pendingJobs = videoIngestJobRepository.countByStatus("PENDING");
+        long processingJobs = videoIngestJobRepository.countByStatus("PROCESSING");
+        long retryJobs = videoIngestJobRepository.countByStatus("RETRY");
+        long completedJobs = videoIngestJobRepository.countByStatus("COMPLETED");
+        long failedJobs = videoIngestJobRepository.countByStatus("FAILED");
+
+        diag.put("jobs", Map.of(
+                "PENDING", pendingJobs,
+                "PROCESSING", processingJobs,
+                "RETRY", retryJobs,
+                "COMPLETED", completedJobs,
+                "FAILED", failedJobs
+        ));
+
+        long pendingAssets = videoAssetRepository.countByStatus("PENDING");
+        long processingAssets = videoAssetRepository.countByStatus("PROCESSING");
+        long readyAssets = videoAssetRepository.countByStatus("READY");
+        long failedAssets = videoAssetRepository.countByStatus("FAILED");
+
+        diag.put("assets", Map.of(
+                "PENDING", pendingAssets,
+                "PROCESSING", processingAssets,
+                "READY", readyAssets,
+                "FAILED", failedAssets
+        ));
+
+        videoIngestJobRepository.findFirstByStatusInOrderByUpdatedAtDesc(
+                java.util.List.of("FAILED", "RETRY")
+        ).ifPresent(job -> diag.put("lastFailedJob", Map.of(
+                "id", job.getId(),
+                "videoAssetId", job.getVideoAssetId(),
+                "status", job.getStatus(),
+                "attemptCount", job.getAttemptCount() != null ? job.getAttemptCount() : 0,
+                "lastError", job.getLastError() != null ? job.getLastError() : "",
+                "updatedAt", job.getUpdatedAt() != null ? job.getUpdatedAt().toString() : ""
+        )));
+
+        return diag;
     }
 
     private boolean isAdmin(UserJpaEntity user) {

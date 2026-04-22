@@ -28,4 +28,8 @@ public interface VideoIngestJobJpaRepository extends JpaRepository<VideoIngestJo
             @Param("statuses") List<String> statuses,
             @Param("now") Instant now
     );
+
+    long countByStatus(String status);
+
+    Optional<VideoIngestJobJpaEntity> findFirstByStatusInOrderByUpdatedAtDesc(List<String> statuses);
 }

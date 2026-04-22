@@ -88,7 +88,6 @@ public class VideoAssetIngestService {
 
         if (!"PROCESSING".equalsIgnoreCase(job.getStatus())) {
             job.setStatus("PROCESSING");
-            job.setAttemptCount((job.getAttemptCount() == null ? 0 : job.getAttemptCount()) + 1);
             job.setStartedAt(Instant.now());
             job.setLastError(null);
             videoIngestJobRepository.save(job);

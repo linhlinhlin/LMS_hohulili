@@ -15,6 +15,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -78,6 +79,14 @@ public class VideoAssetControllerV3 {
     ) {
         VideoAssetJpaEntity asset = videoAssetLifecycleService.retry(assetId, user);
         return ResponseEntity.ok(ApiResponse.success(toResponse(asset, user), "Da dua video asset vao hang doi xu ly lai"));
+    }
+
+    @GetMapping("/diagnostics/pipeline")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Video pipeline health check — shows job queue status")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> pipelineDiagnostics() {
+        Map<String, Object> diag = videoAssetLifecycleService.getPipelineDiagnostics();
+        return ResponseEntity.ok(ApiResponse.success(diag, "Video pipeline diagnostics"));
     }
 
     private VideoAssetResponse toResponse(VideoAssetJpaEntity asset, UserJpaEntity user) {

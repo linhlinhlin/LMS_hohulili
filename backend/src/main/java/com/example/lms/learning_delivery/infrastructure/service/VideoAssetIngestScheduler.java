@@ -26,10 +26,10 @@ public class VideoAssetIngestScheduler {
         try {
             int processed = videoAssetIngestService.processRunnableJobs(2);
             if (processed > 0) {
-                log.info("[VideoAsset] Scheduler processed {} pending ingest job(s)", processed);
+                log.info("[VideoAsset] Scheduler processed {} ingest job(s)", processed);
             }
         } catch (Exception ex) {
-            log.error("[VideoAsset] Scheduler sweep failed", ex);
+            log.error("[VideoAsset] Scheduler sweep failed: {}", ex.getMessage(), ex);
         }
     }
 }

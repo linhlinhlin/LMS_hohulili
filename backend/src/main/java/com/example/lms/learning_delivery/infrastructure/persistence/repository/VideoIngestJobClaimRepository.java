@@ -14,6 +14,8 @@ import java.util.UUID;
 @Repository
 public class VideoIngestJobClaimRepository {
 
+    private static final long STALE_PROCESSING_THRESHOLD_MINUTES = 30;
+
     private final JdbcTemplate jdbcTemplate;
 
     public VideoIngestJobClaimRepository(JdbcTemplate jdbcTemplate) {
@@ -24,6 +26,8 @@ public class VideoIngestJobClaimRepository {
         if (limit <= 0) {
             return List.of();
         }
+
+        recoverStaleProcessingJobs(now);
 
         return jdbcTemplate.execute(connection -> {
             PreparedStatement statement = connection.prepareStatement("""
@@ -58,5 +62,20 @@ public class VideoIngestJobClaimRepository {
             }
             return claimedIds;
         });
+    }
+
+    private void recoverStaleProcessingJobs(Instant now) {
+        Instant threshold = now.minus(java.time.Duration.ofMinutes(STALE_PROCESSING_THRESHOLD_MINUTES));
+        jdbcTemplate.update("""
+                update video_ingest_jobs
+                set status = 'RETRY',
+                    last_error = 'Recovered from stale PROCESSING state (container crash or timeout)',
+                    next_run_at = now(),
+                    updated_at = now()
+                where status = 'PROCESSING'
+                  and started_at < ?
+                  and attempt_count < 3
+                """,
+                Timestamp.from(threshold));
     }
 }

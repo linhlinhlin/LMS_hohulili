@@ -13,4 +13,6 @@ public interface VideoAssetJpaRepository extends JpaRepository<VideoAssetJpaEnti
     Optional<VideoAssetJpaEntity> findBySourceAttachmentId(UUID sourceAttachmentId);
 
     List<VideoAssetJpaEntity> findByIdIn(Collection<UUID> ids);
+
+    long countByStatus(String status);
 }
