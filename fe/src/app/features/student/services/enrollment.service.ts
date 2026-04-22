@@ -20,6 +20,7 @@ export class StudentEnrollmentService {
 
   private _enrolledCourses = signal<EnrolledCourse[]>([]);
   private _availableCourses = signal<CourseSummary[]>([]);
+  private _enrolledIdCache = signal<Set<string>>(new Set());
   private _isLoading = signal<boolean>(false);
   private _error = signal<string | null>(null);
   private _currentPage = signal<number>(1);
@@ -66,9 +67,7 @@ export class StudentEnrollmentService {
     this._enrolledCourses().filter(course => course.progress === 0)
   );
 
-  readonly enrolledCourseIds = computed(() =>
-    new Set(this._enrolledCourses().map(course => course.id))
-  );
+  readonly enrolledCourseIds = this._enrolledIdCache.asReadonly();
 
   async loadEnrolledCourses(page: number = 0, size: number = 50): Promise<void> {
     this._isLoading.set(true);
@@ -91,6 +90,11 @@ export class StudentEnrollmentService {
         this.mapToEnrolledCourse(course)
       );
       this._enrolledCourses.set(enrolledCourses);
+      this._enrolledIdCache.update(prev => {
+        const next = new Set(prev);
+        for (const c of enrolledCourses) next.add(c.id);
+        return next;
+      });
 
       if (response?.pagination) {
         this._currentPage.set(response.pagination.page || page);
@@ -145,6 +149,7 @@ export class StudentEnrollmentService {
 
     try {
       await firstValueFrom(this.courseApi.enrollCourse(courseId));
+      this._enrolledIdCache.update(prev => new Set(prev).add(courseId));
       await this.loadEnrolledCourses();
       this.errorService.showSuccess('Đăng ký khóa học thành công!', 'enrollment');
       return true;
@@ -190,7 +195,7 @@ export class StudentEnrollmentService {
   }
 
   isEnrolledInCourse(courseId: string): boolean {
-    return this._enrolledCourses().some(course => course.id === courseId);
+    return this._enrolledIdCache().has(courseId);
   }
 
   getEnrolledCourse(courseId: string): EnrolledCourse | undefined {
@@ -200,6 +205,7 @@ export class StudentEnrollmentService {
   clearState(): void {
     this._enrolledCourses.set([]);
     this._availableCourses.set([]);
+    this._enrolledIdCache.set(new Set());
     this._error.set(null);
     this._currentPage.set(1);
     this._totalPages.set(1);
@@ -248,6 +254,11 @@ export class StudentEnrollmentService {
 
       const enrolledCourses = downloads.map(download => this.mapOfflineDownloadToEnrolledCourse(download));
       this._enrolledCourses.set(enrolledCourses);
+      this._enrolledIdCache.update(prev => {
+        const next = new Set(prev);
+        for (const c of enrolledCourses) next.add(c.id);
+        return next;
+      });
       this._currentPage.set(0);
       this._totalPages.set(1);
       this._totalCount.set(enrolledCourses.length);

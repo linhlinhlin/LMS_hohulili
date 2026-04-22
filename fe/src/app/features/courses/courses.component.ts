@@ -64,12 +64,12 @@ import { SeoService } from '../../core/services/seo.service';
                         class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 transition-colors"
                         [class]="filters.category ? 'text-gray-900' : 'text-gray-400'">
                   <option [ngValue]="undefined" class="text-gray-400">Tất cả danh mục</option>
-                  <option [ngValue]="CourseCategory.MARINE_ENGINEERING" class="text-gray-900">Kỹ thuật tàu biển</option>
-                  <option [ngValue]="CourseCategory.PORT_MANAGEMENT" class="text-gray-900">Quản lý cảng</option>
-                  <option [ngValue]="CourseCategory.MARITIME_SAFETY" class="text-gray-900">An toàn hàng hải</option>
                   <option [ngValue]="CourseCategory.NAVIGATION" class="text-gray-900">Hàng hải</option>
-                  <option [ngValue]="CourseCategory.CARGO_HANDLING" class="text-gray-900">Xếp dỡ hàng hóa</option>
-                  <option [ngValue]="CourseCategory.MARITIME_LAW" class="text-gray-900">Luật hàng hải</option>
+                  <option [ngValue]="CourseCategory.ENGINEERING" class="text-gray-900">Kỹ thuật tàu biển</option>
+                  <option [ngValue]="CourseCategory.SAFETY" class="text-gray-900">An toàn hàng hải</option>
+                  <option [ngValue]="CourseCategory.LOGISTICS" class="text-gray-900">Logistics & Cảng</option>
+                  <option [ngValue]="CourseCategory.LAW" class="text-gray-900">Luật hàng hải</option>
+                  <option [ngValue]="CourseCategory.CERTIFICATES" class="text-gray-900">Chứng chỉ STCW</option>
                 </select>
               </div>
 

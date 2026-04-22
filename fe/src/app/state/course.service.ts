@@ -230,7 +230,7 @@ export class CourseService {
           rating: 4.5,
           studentsCount: course.enrolledCount || 0
         },
-        category: CourseCategory.MARINE_ENGINEERING,
+        category: CourseCategory.ENGINEERING,
         categoryName: course.categoryName,
         level: 'beginner' as CourseLevel,
         duration: '30h',
@@ -289,7 +289,7 @@ export class CourseService {
         rating: 4.5,
         studentsCount: course.enrolledCount || 0
       },
-      category: course.categoryName || CourseCategory.MARINE_ENGINEERING,
+      category: course.categoryName || CourseCategory.ENGINEERING,
       categoryName: course.categoryName,
       level: 'beginner' as CourseLevel,
       duration: '30h',

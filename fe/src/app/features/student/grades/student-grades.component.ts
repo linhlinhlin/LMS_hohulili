@@ -118,6 +118,8 @@ export class StudentGradesComponent implements OnInit {
     return g.length > 0 ? Math.round(g.reduce((s, c) => s + c.progress, 0) / g.length) : 0;
   });
 
+  certBadgeCount = computed(() => this.grades().filter(g => g.hasCertificate).length);
+
   // === Load More ===
   private readonly LOAD_MORE_COUNT = 5;
   visibleCount = signal(5);

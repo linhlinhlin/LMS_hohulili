@@ -71,8 +71,8 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
         }
         <!-- Page Header -->
         <div class="page-header">
-          <h1 class="page-title">Khóa học của tôi</h1>
-          <p class="page-subtitle">Quản lý và theo dõi tiến độ các khóa học đã đăng ký</p>
+          <h1 class="page-title">Tất cả khóa học</h1>
+          <p class="page-subtitle">Danh sách đầy đủ các khóa học đã đăng ký</p>
         </div>
 
         <!-- Search — matching Khám Phá design -->
@@ -283,7 +283,14 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
               <button class="load-more-btn" (click)="loadMore()">
                 Xem thêm {{ remainingCount() }} khóa học
               </button>
-              <p class="showing-count">Đang hiện {{ visibleCourses().length }} / {{ filteredCourses().length }}</p>
+              <p class="showing-count">Đang hiện {{ visibleCourses().length }} / {{ serverTotalCount() || filteredCourses().length }}</p>
+            </div>
+          } @else if (hasMoreServerPages) {
+            <div class="load-more-section">
+              <button class="load-more-btn" (click)="loadMoreFromServer()">
+                Tải thêm khóa học từ máy chủ
+              </button>
+              <p class="showing-count">Đang hiện {{ filteredCourses().length }} / {{ serverTotalCount() }}</p>
             </div>
           } @else if (filteredCourses().length > 0) {
             <p class="showing-count">Đã hiện tất cả {{ filteredCourses().length }} khóa học</p>
@@ -1069,6 +1076,7 @@ export class StudentMyCoursesComponent implements OnInit {
   enrolledCourses = signal<EnhancedEnrolledCourse[]>([]);
   activeTab = signal<string>('in-progress');
   isLoading = this.enrollmentService.isLoading;
+  serverTotalCount = this.enrollmentService.totalCount;
 
   // Load More state — initial 5 (fast first paint), then +10 each scroll
   private readonly INITIAL_COUNT = 5;
@@ -1153,21 +1161,46 @@ export class StudentMyCoursesComponent implements OnInit {
   }
 
 
+  private serverPage = 0;
+  private readonly SERVER_PAGE_SIZE = 50;
+  private hasMoreServerPages = true;
+
   private async loadCourses(): Promise<void> {
     try {
-      await this.enrollmentService.loadEnrolledCourses();
+      this.serverPage = 0;
+      this.hasMoreServerPages = true;
+      await this.enrollmentService.loadEnrolledCourses(0, this.SERVER_PAGE_SIZE);
       const courses = this.enrollmentService.enrolledCourses();
 
-      // Enhance courses with empty modules (will be loaded on demand)
       const enhancedCourses: EnhancedEnrolledCourse[] = courses.map((course: any) => ({
         ...course,
         showModules: false,
-        modules: [] // Empty initially, will load from API when expanded
+        modules: [],
       }));
 
       this.enrolledCourses.set(enhancedCourses);
+      this.hasMoreServerPages = this.enrollmentService.hasNextPage();
     } catch (err: any) {
       this.error.set(err?.message || 'Không thể tải danh sách khóa học. Vui lòng thử lại.');
+    }
+  }
+
+  async loadMoreFromServer(): Promise<void> {
+    if (!this.hasMoreServerPages) return;
+    try {
+      this.serverPage++;
+      await this.enrollmentService.loadEnrolledCourses(this.serverPage, this.SERVER_PAGE_SIZE);
+      const courses = this.enrollmentService.enrolledCourses();
+      const enhancedCourses: EnhancedEnrolledCourse[] = courses.map((course: any) => ({
+        ...course,
+        showModules: false,
+        modules: [],
+      }));
+      this.enrolledCourses.update(prev => [...prev, ...enhancedCourses]);
+      this.hasMoreServerPages = this.enrollmentService.hasNextPage();
+      this.visibleCount.set(this.enrolledCourses().length);
+    } catch {
+      this.hasMoreServerPages = false;
     }
   }
 

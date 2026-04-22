@@ -285,7 +285,7 @@ public class CoursePublicationService {
 
             Map<String, Object> section = new LinkedHashMap<>();
             section.put("id", block.getId());
-            section.put("title", asString(data.get("title"), "Untitled"));
+            section.put("title", data.get("title"));
             section.put("type", block.getType() != null ? block.getType().toUpperCase(Locale.ROOT) : "TEXT");
             section.put("content", data.get("content"));
             section.put("videoUrl", data.get("videoUrl"));

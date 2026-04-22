@@ -161,6 +161,10 @@ public interface CourseRepository {
      */
     Page<Course> findByStatusAndTitleContaining(Course.CourseStatus status, String search, Pageable pageable);
 
+    Page<Course> findByStatusAndCategoryId(Course.CourseStatus status, UUID categoryId, Pageable pageable);
+
+    Page<Course> findByStatusAndCategoryIdAndTitleContaining(Course.CourseStatus status, UUID categoryId, String search, Pageable pageable);
+
     /**
      * Find all courses by title containing search text (any status).
      */

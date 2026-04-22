@@ -219,6 +219,19 @@ public class CourseRepositoryImpl implements CourseRepository {
     }
 
     @Override
+    public Page<Course> findByStatusAndCategoryId(Course.CourseStatus status, UUID categoryId, Pageable pageable) {
+        CourseJpaEntity.CourseStatus entityStatus = mapStatusToEntity(status);
+        return jpaRepository.findByStatusAndCategoryId(entityStatus, categoryId, pageable).map(mapper::toDomain);
+    }
+
+    @Override
+    public Page<Course> findByStatusAndCategoryIdAndTitleContaining(Course.CourseStatus status, UUID categoryId, String search, Pageable pageable) {
+        String entityStatus = mapStatusToEntity(status).name();
+        return jpaRepository.findByStatusAndCategoryIdAndTitleContaining(entityStatus, categoryId, search, pageable)
+                .map(mapper::toDomain);
+    }
+
+    @Override
     public int findMaxSequenceNumberByPrefix(String prefix) {
         Integer max = jpaRepository.findMaxSequenceNumberByPrefix(prefix);
         return max != null ? max : 0;

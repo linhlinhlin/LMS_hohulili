@@ -48,10 +48,18 @@ export class CourseRepositoryImpl implements CourseRepository {
     const size = pagination?.limit ?? 12;
     const search = filters?.searchQuery || undefined;
     const teacher = filters?.instructorId?.[0] as unknown as string | undefined;
+    const category = filters?.category?.[0] || undefined;
+    const sortField = sort?.field === 'title' ? 'title' : 'createdAt';
+    const sortDirection = sort?.direction || 'desc';
 
     const params: Record<string, any> = { page, size };
     if (search) params['search'] = search;
     if (teacher) params['teacher'] = teacher;
+    if (category) params['category'] = category;
+    if (sortField !== 'createdAt' || sortDirection !== 'desc') {
+      params['sort'] = sortField;
+      params['order'] = sortDirection;
+    }
 
     return this.api.publicCourses(params).pipe(
       map((res: ApiResponse<any>) => {
