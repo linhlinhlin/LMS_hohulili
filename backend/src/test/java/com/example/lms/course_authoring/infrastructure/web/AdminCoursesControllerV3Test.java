@@ -70,7 +70,7 @@ class AdminCoursesControllerV3Test {
 
             // Course counts
             when(courseRepository.count()).thenReturn(50L);
-            when(courseRepository.countByStatus(Course.CourseStatus.PENDING)).thenReturn(5L);
+            when(courseRepository.countReviewQueue()).thenReturn(5L);
             when(courseRepository.countByStatus(Course.CourseStatus.APPROVED)).thenReturn(30L);
             when(courseRepository.countByStatus(Course.CourseStatus.DRAFT)).thenReturn(10L);
             when(courseRepository.countByStatus(Course.CourseStatus.REJECTED)).thenReturn(5L);
@@ -228,7 +228,7 @@ class AdminCoursesControllerV3Test {
             when(userRepository.findByOrganizationId(orgId))
                     .thenReturn(List.of(teacher1, teacher2, student1, student2, orgAdmin));
             when(courseRepository.countByTeacherIdIn(anySet())).thenReturn(3L);
-            when(courseRepository.countByStatusAndTeacherIdIn(eq(Course.CourseStatus.PENDING), anySet())).thenReturn(1L);
+            when(courseRepository.countReviewQueueByTeacherIds(anySet())).thenReturn(1L);
             when(courseRepository.countByStatusAndTeacherIdIn(eq(Course.CourseStatus.APPROVED), anySet())).thenReturn(1L);
             when(courseRepository.countByStatusAndTeacherIdIn(eq(Course.CourseStatus.DRAFT), anySet())).thenReturn(1L);
             when(courseRepository.countByStatusAndTeacherIdIn(eq(Course.CourseStatus.REJECTED), anySet())).thenReturn(0L);

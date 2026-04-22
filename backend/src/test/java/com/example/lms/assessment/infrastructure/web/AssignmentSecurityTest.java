@@ -140,6 +140,8 @@ class AssignmentSecurityTest {
             when(submission.getStudentId()).thenReturn(studentAId);
             when(submission.getStatus()).thenReturn(AssignmentSubmissionJpaEntity.SubmissionStatus.GRADED);
             when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
+            when(gradeSubmissionUseCase.gradeSubmission(submissionId, 90.0, "Xuat sac", adminId))
+                    .thenReturn(submission);
 
             var admin = mockUser(adminId, UserJpaEntity.UserRole.ADMIN);
             var request = new AssignmentSubmissionControllerV3.GradeRequest(90.0, null, "Xuat sac");

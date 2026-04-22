@@ -128,6 +128,6 @@ class QuestionControllerV3Test {
         assertThat(detail.options().get(0).contentBlocks().get(1).getData().get("url"))
                 .isEqualTo("http://localhost:8088/uploads/question-images/option.png");
         assertThat(detail.options().get(0).content())
-                .isEqualTo("Option A");
+                .isEqualTo("Option A [Hình ảnh]");
     }
 }
