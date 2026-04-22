@@ -24,7 +24,9 @@ FROM eclipse-temurin:21-jre-alpine
 
 ARG SHAKA_PACKAGER_VERSION=v3.4.2
 
-RUN apk add --no-cache ffmpeg wget ca-certificates && \
+RUN apk add --no-cache ffmpeg x264-libs wget ca-certificates && \
+    ffmpeg -version && \
+    ffmpeg -hide_banner -encoders 2>/dev/null | grep -q libx264 && echo "libx264 encoder: OK" && \
     wget -q "https://github.com/shaka-project/shaka-packager/releases/download/${SHAKA_PACKAGER_VERSION}/packager-linux-x64" -O /usr/local/bin/packager && \
     chmod +x /usr/local/bin/packager && \
     /usr/local/bin/packager --version

@@ -120,6 +120,39 @@ public class VideoAssetLifecycleService {
     }
 
     @Transactional(readOnly = true)
+    public Map<String, Object> getAssetProcessingStatus(UUID assetId, UserJpaEntity user) {
+        VideoAssetJpaEntity asset = videoAssetRepository.findById(assetId)
+                .orElseThrow(() -> new IllegalArgumentException("Video asset không tồn tại"));
+
+        if (!isAdmin(user) && !asset.getOwnerId().equals(user.getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Không có quyền");
+        }
+
+        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("assetId", asset.getId());
+        result.put("status", asset.getStatus());
+        result.put("adaptivePackagingStatus", asset.getAdaptivePackagingStatus());
+        result.put("errorMessage", asset.getErrorMessage());
+        result.put("adaptiveErrorMessage", asset.getAdaptiveErrorMessage());
+        result.put("processingStartedAt", asset.getProcessingStartedAt() != null ? asset.getProcessingStartedAt().toString() : null);
+        result.put("processedAt", asset.getProcessedAt() != null ? asset.getProcessedAt().toString() : null);
+        result.put("hlsManifestKey", asset.getHlsManifestStorageKey());
+        result.put("dashManifestKey", asset.getDashManifestStorageKey());
+
+        videoIngestJobRepository.findByVideoAssetId(assetId).ifPresent(job -> {
+            result.put("jobId", job.getId());
+            result.put("jobStatus", job.getStatus());
+            result.put("attemptCount", job.getAttemptCount());
+            result.put("lastError", job.getLastError());
+            result.put("nextRunAt", job.getNextRunAt() != null ? job.getNextRunAt().toString() : null);
+            result.put("jobStartedAt", job.getStartedAt() != null ? job.getStartedAt().toString() : null);
+            result.put("jobFinishedAt", job.getFinishedAt() != null ? job.getFinishedAt().toString() : null);
+        });
+
+        return result;
+    }
+
+    @Transactional(readOnly = true)
     public Map<String, Object> getPipelineDiagnostics() {
         Map<String, Object> diag = new LinkedHashMap<>();
 

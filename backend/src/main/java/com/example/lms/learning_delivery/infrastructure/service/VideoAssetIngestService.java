@@ -100,6 +100,9 @@ public class VideoAssetIngestService {
         asset.setStreamVideoUid(null);
         videoAssetRepository.save(asset);
 
+        log.info("[VideoAsset] Starting ingest: assetId={}, sourceKey={}, size={}, contentType={}",
+                asset.getId(), asset.getSourceStorageKey(), asset.getSourceFileSize(), asset.getContentType());
+
         Path sourceTemp = null;
         Path packageOutputDir = null;
         List<Path> generatedFiles = new ArrayList<>();
@@ -423,19 +426,27 @@ public class VideoAssetIngestService {
     }
 
     private void markJobFailed(VideoIngestJobJpaEntity job, VideoAssetJpaEntity asset, String error, boolean retryable) {
-        asset.setStatus(retryable ? "PENDING" : "FAILED");
-        asset.setAdaptivePackagingStatus(retryable ? "PENDING" : "FAILED");
-        asset.setErrorMessage(error);
-        asset.setAdaptiveErrorMessage(error);
-        videoAssetRepository.save(asset);
-
-        job.setStatus(retryable ? "RETRY" : "FAILED");
-        job.setLastError(error);
-        job.setFinishedAt(Instant.now());
-        if (retryable) {
-            job.setNextRunAt(Instant.now().plusSeconds(60));
+        try {
+            job.setStatus(retryable ? "RETRY" : "FAILED");
+            job.setLastError(error != null && error.length() > 2000 ? error.substring(0, 2000) : error);
+            job.setFinishedAt(Instant.now());
+            if (retryable) {
+                job.setNextRunAt(Instant.now().plusSeconds(60));
+            }
+            videoIngestJobRepository.save(job);
+        } catch (Exception jobSaveEx) {
+            log.error("[VideoAsset] CRITICAL: Failed to save job failure state: jobId={}, error={}", job.getId(), jobSaveEx.getMessage());
         }
-        videoIngestJobRepository.save(job);
+
+        try {
+            asset.setStatus(retryable ? "PENDING" : "FAILED");
+            asset.setAdaptivePackagingStatus(retryable ? "PENDING" : "FAILED");
+            asset.setErrorMessage(error != null && error.length() > 2000 ? error.substring(0, 2000) : error);
+            asset.setAdaptiveErrorMessage(error != null && error.length() > 2000 ? error.substring(0, 2000) : error);
+            videoAssetRepository.save(asset);
+        } catch (Exception assetSaveEx) {
+            log.error("[VideoAsset] CRITICAL: Failed to save asset failure state: assetId={}, error={}", asset.getId(), assetSaveEx.getMessage());
+        }
     }
 
     private void deleteQuietly(Path path) {

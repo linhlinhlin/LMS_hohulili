@@ -89,6 +89,17 @@ public class VideoAssetControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(diag, "Video pipeline diagnostics"));
     }
 
+    @GetMapping("/{assetId}/status")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get processing status for a video asset (owner or admin)")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getAssetStatus(
+            @PathVariable UUID assetId,
+            @AuthenticationPrincipal UserJpaEntity user
+    ) {
+        Map<String, Object> status = videoAssetLifecycleService.getAssetProcessingStatus(assetId, user);
+        return ResponseEntity.ok(ApiResponse.success(status, "Video asset processing status"));
+    }
+
     private VideoAssetResponse toResponse(VideoAssetJpaEntity asset, UserJpaEntity user) {
         VideoAssetPresentationService.VideoAssetView view = videoAssetPresentationService.getView(asset.getId())
                 .orElse(new VideoAssetPresentationService.VideoAssetView(

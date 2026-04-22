@@ -393,12 +393,16 @@ export class CurriculumEditorService {
     this.sectionStreamVideoUid.set(section.streamVideoUid ?? null);
     this.selectedSectionVideoFile.set(null);
 
-    // Fetch playback URL for uploaded video assets (videoUrl is empty for these)
-    if (section.videoAssetId && !section.videoUrl && section.videoProcessingStatus === 'READY') {
-      this.videoAssetApi.getPlayUrl(section.videoAssetId).subscribe({
-        next: (res: any) => this.sectionVideoUrl.set(res.data?.playUrl ?? ''),
-        error: () => {},
-      });
+    if (section.videoAssetId) {
+      const status = section.videoProcessingStatus;
+      if (status === 'PENDING' || status === 'PROCESSING' || (status == null && !section.videoUrl)) {
+        this.scheduleSectionVideoPoll(section.videoAssetId);
+      } else if (status === 'READY' && !section.videoUrl) {
+        this.videoAssetApi.getPlayUrl(section.videoAssetId).subscribe({
+          next: (res: any) => this.sectionVideoUrl.set(res.data?.playUrl ?? ''),
+          error: () => {},
+        });
+      }
     }
 
     // File
