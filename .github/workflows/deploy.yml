@@ -165,13 +165,7 @@ jobs:
           # --force-recreate backend frontend: ensures containers restart with the new image.
           # Without this, `up -d` may leave old containers running if Docker Compose
           # doesn't detect the image digest change reliably.
-          docker compose "\${COMPOSE_ARGS[@]}" up -d --remove-orphans --force-recreate backend frontend
-
-          # Reload Caddy config (Caddyfile is a bind-mount, not baked into image).
-          # `caddy reload` is graceful — no dropped connections, no TLS downtime.
-          docker compose "\${COMPOSE_ARGS[@]}" exec -T caddy caddy reload --config /etc/caddy/Caddyfile 2>/dev/null \
-            && echo "Caddy: config reloaded" \
-            || echo "WARNING: Caddy reload failed (may need manual restart)"
+          docker compose "\${COMPOSE_ARGS[@]}" up -d --remove-orphans --force-recreate backend frontend caddy
 
           # Wait for health
           echo "Waiting for backend health..."
