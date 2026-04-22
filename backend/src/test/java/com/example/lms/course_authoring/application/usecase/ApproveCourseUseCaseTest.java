@@ -94,7 +94,7 @@ class ApproveCourseUseCaseTest {
         assertThat(response.reviewedAt()).isNotNull();
 
         verify(courseRepository).save(any(Course.class));
-        verify(coursePublicationPort).publish(pendingCourse.getId(), reviewerId);
+        verify(coursePublicationPort).publish(pendingCourse.getId(), reviewerId, null);
     }
 
     @Test
@@ -113,7 +113,22 @@ class ApproveCourseUseCaseTest {
         assertThat(response.reviewComment()).isNull();
 
         verify(courseRepository).save(any(Course.class));
-        verify(coursePublicationPort).publish(pendingCourse.getId(), reviewerId);
+        verify(coursePublicationPort).publish(pendingCourse.getId(), reviewerId, null);
+    }
+
+    @Test
+    @DisplayName("Should publish pending release notes when approving")
+    void shouldPublishPendingReleaseNotesWhenApproving() {
+        pendingCourse.setPendingReleaseNotes("Fix quiz feedback copy");
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(pendingCourse));
+        when(courseRepository.save(any(Course.class))).thenAnswer(i -> i.getArgument(0));
+
+        useCase.execute(courseId, reviewerId, "Approved!");
+
+        verify(coursePublicationPort).publish(
+                pendingCourse.getId(),
+                reviewerId,
+                "Fix quiz feedback copy");
     }
 
     @Test

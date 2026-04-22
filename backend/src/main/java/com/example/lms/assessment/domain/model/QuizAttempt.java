@@ -11,25 +11,23 @@ import java.util.UUID;
 
 /**
  * QuizAttempt - Aggregate Root for a student's attempt at a quiz.
- * 
- * Manages the lifecycle of an attempt: START -> IN_PROGRESS -> SUBMITTED.
- * Calculates score and pass/fail status.
+ *
+ * Manages the lifecycle of an attempt: START -> IN_PROGRESS -> SUBMITTED/GRADED/TIMEOUT.
  */
 public class QuizAttempt {
     private UUID id;
     private UUID quizId;
     private UUID studentId;
     private List<AttemptItem> items;
-    
+
     private Instant startTime;
     private Instant endTime;
-    
+
     private AttemptStatus status;
     private Double score;
     private Double maxScore;
     private Boolean isPassed;
 
-    // Private constructor
     private QuizAttempt(UUID id, UUID quizId, UUID studentId, List<AttemptItem> items,
                         Instant startTime, Instant endTime, AttemptStatus status,
                         Double score, Double maxScore, Boolean isPassed) {
@@ -41,7 +39,7 @@ public class QuizAttempt {
         this.endTime = endTime;
         this.status = status;
         this.score = score;
-        this.maxScore = maxScore != null ? maxScore : 100.0;
+        this.maxScore = maxScore != null ? maxScore : 10.0;
         this.isPassed = isPassed;
     }
 
@@ -94,33 +92,25 @@ public class QuizAttempt {
                 .status(AttemptStatus.IN_PROGRESS)
                 .items(new ArrayList<>())
                 .build();
-        
-        // Initialize blank items for tracking
+
         questionIds.forEach(qId -> attempt.items.add(AttemptItem.builder()
                 .questionId(qId)
                 .build()));
-        
+
         return attempt;
     }
 
     public void submit(List<AttemptAnswer> answers, Integer passingScore) {
         if (this.status != AttemptStatus.IN_PROGRESS) {
-             throw new IllegalStateException("Lần làm bài đã được nộp");
+            throw new IllegalStateException("Lần làm bài đã được nộp");
         }
 
         this.endTime = Instant.now();
         this.status = AttemptStatus.SUBMITTED;
-        
-        // Grading logic should be handled by UseCase utilizing Domain Service or here if we have Question data.
-        // Since Attempt doesn't know 'Correct Answer' directly without Question lookup, 
-        // we might need to pass a Grader or graded results.
-        // For pure DDD, we can store 'answers' here and let a Domain Service calculate score.
     }
-    
+
     /**
-     * Marks this attempt as timed out.
-     * Called when server detects elapsed time exceeds the quiz time limit + grace period.
-     * Grading still proceeds to give partial credit for submitted answers.
+     * Marks this attempt as timed out while preserving submitted answers for grading.
      */
     public void markTimeout() {
         if (this.status != AttemptStatus.IN_PROGRESS && this.status != AttemptStatus.SUBMITTED) {
@@ -134,17 +124,22 @@ public class QuizAttempt {
         this.maxScore = maxScore != null ? maxScore : 10.0;
     }
 
-    // Simplification: Let UseCase grade it and update the Attempt
     public void finishGrading(Double score, Boolean isPassed) {
-        if (score != null && score < 0) {
-            throw new IllegalArgumentException("Điểm không được âm");
+        double effectiveMaxScore = maxScore != null ? maxScore : 10.0;
+        if (score != null && (score < 0 || score > effectiveMaxScore)) {
+            String maxScoreLabel = effectiveMaxScore == Math.rint(effectiveMaxScore)
+                    ? String.valueOf((int) effectiveMaxScore)
+                    : String.valueOf(effectiveMaxScore);
+            throw new IllegalArgumentException("Điểm phải nằm trong khoảng 0-" + maxScoreLabel);
         }
+
         this.score = score;
         this.isPassed = isPassed;
-        this.status = AttemptStatus.GRADED;
+        if (this.status != AttemptStatus.TIMEOUT) {
+            this.status = AttemptStatus.GRADED;
+        }
     }
-    
-    // Getters
+
     public UUID getId() { return id; }
     public UUID getQuizId() { return quizId; }
     public UUID getStudentId() { return studentId; }
@@ -156,16 +151,15 @@ public class QuizAttempt {
     public Double getMaxScore() { return maxScore; }
     public Boolean getIsPassed() { return isPassed; }
 
-    
     public static class AttemptItem {
         private UUID questionId;
-        private String selectedOption; // Legacy: kept for backward compat with existing data
-        private Map<String, Object> studentAnswer; // New: flexible answer format (JSONB)
+        private String selectedOption;
+        private Map<String, Object> studentAnswer;
         private Boolean isCorrect;
         private Double pointsEarned;
-        private String feedback; // Teacher feedback for manual grading (essays)
-        private String correctOption; // For SINGLE_CHOICE/TRUE_FALSE: the correct option key
-        private List<String> correctOptions; // For MULTIPLE_CHOICE: all correct option keys
+        private String feedback;
+        private String correctOption;
+        private List<String> correctOptions;
 
         @JsonCreator
         public AttemptItem(
@@ -225,16 +219,15 @@ public class QuizAttempt {
         public String getCorrectOption() { return correctOption; }
         public List<String> getCorrectOptions() { return correctOptions; }
 
-        // Mutable setters for manual grading
         public void setPointsEarned(Double pointsEarned) { this.pointsEarned = pointsEarned; }
         public void setIsCorrect(Boolean isCorrect) { this.isCorrect = isCorrect; }
         public void setFeedback(String feedback) { this.feedback = feedback; }
     }
-    
+
     public static class AttemptAnswer {
         private UUID questionId;
-        private String selectedOption; // Legacy: single choice backward compat
-        private Map<String, Object> studentAnswer; // New: flexible answer format
+        private String selectedOption;
+        private Map<String, Object> studentAnswer;
 
         @JsonCreator
         public AttemptAnswer(
@@ -269,12 +262,10 @@ public class QuizAttempt {
         public String getSelectedOption() { return selectedOption; }
         public Map<String, Object> getStudentAnswer() { return studentAnswer; }
 
-        /** Get the effective answer - prefer studentAnswer, fall back to selectedOption for legacy data */
         public Map<String, Object> getEffectiveAnswer() {
             if (studentAnswer != null && !studentAnswer.isEmpty()) {
                 return studentAnswer;
             }
-            // Legacy: wrap selectedOption into map
             if (selectedOption != null) {
                 return Map.of("selectedOption", selectedOption);
             }

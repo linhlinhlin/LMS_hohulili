@@ -408,6 +408,30 @@ export class QuizEditComponent implements OnInit {
       return;
     }
 
+    const returnTo = this.route.snapshot.queryParamMap.get('returnTo');
+    const returnCourseId = this.route.snapshot.queryParamMap.get('returnCourseId');
+    const returnChapterId = this.route.snapshot.queryParamMap.get('returnChapterId');
+    const returnLessonId = this.route.snapshot.queryParamMap.get('returnLessonId');
+    const returnSectionId = this.route.snapshot.queryParamMap.get('returnSectionId');
+
+    if (returnTo === 'curriculum' && returnCourseId) {
+      const queryParams: Record<string, string> = {};
+      if (returnChapterId) {
+        queryParams['chapterId'] = returnChapterId;
+      }
+      if (returnLessonId) {
+        queryParams['lessonId'] = returnLessonId;
+      }
+      if (returnSectionId) {
+        queryParams['sectionId'] = returnSectionId;
+      }
+      void this.router.navigate(
+        ['/teacher/courses', returnCourseId, 'editor', 'curriculum'],
+        { queryParams }
+      );
+      return;
+    }
+
     const quiz = this.quiz();
 
     if (quiz?.courseId) {

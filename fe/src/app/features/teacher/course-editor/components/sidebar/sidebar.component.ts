@@ -8,10 +8,9 @@ import { CdkScrollable } from '@angular/cdk/scrolling';
 import { ChapterApi } from '../../../../../api/client/chapter.api';
 import { LessonApi } from '../../../../../api/client/lesson.api';
 import { SectionApi } from '../../../../../api/client/section.api';
-import { ChapterDraftDTO, LessonDraftDTO, SectionDraftDTO, CourseAuthoringService } from '../../services/course-authoring.service';
+import { ChapterDraftDTO, LessonDraftDTO, SectionDraftDTO } from '../../services/course-authoring.service';
 import { CurriculumSelectionService } from '../../services/curriculum-selection.service';
 import { CurriculumEditorService } from '../../services/curriculum-editor.service';
-import { CONTENT_TYPE_CONFIG, ContentType } from '../../../../../core/constants/content-type.constant';
 
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { animate, state, style, transition, trigger } from '@angular/animations';
@@ -19,9 +18,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 import { DialogComponent } from '../../../../../shared/components/dialog/dialog.component';
-import { firstValueFrom } from 'rxjs';
-import { AssignmentApi } from '../../../../../api/client/assignment.api';
-import { QuizApi } from '../../../../../api/endpoints/quiz.api';
+import { buildCurriculumLabel, stripCurriculumPrefix } from '../../utils/curriculum-labels';
 import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/lesson-readiness';
 
 @Component({
@@ -50,12 +47,12 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
     .sidebar-row {
       display: flex;
       align-items: center;
-      gap: 0.125rem;
-      padding: 0 0.5rem 0 0;
+      gap: 0.25rem;
+      padding: 0 0.375rem 0 0;
       transition: background-color 160ms ease;
     }
     .sidebar-row:hover { background: rgb(248 250 252); }
-    .sidebar-row--lesson { padding-left: 0.75rem; }
+    .sidebar-row--lesson { padding-left: 1rem; }
     .sidebar-row--selected {
       background: rgba(0, 86, 210, 0.06);
       border-left: 2px solid rgb(0 86 210);
@@ -100,10 +97,16 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
       padding: 0.375rem;
       border-radius: 0.25rem;
       color: rgb(203 213 225);
-      transition: color 160ms ease, background 160ms ease;
+      opacity: 0;
+      transition: color 160ms ease, background 160ms ease, opacity 160ms ease;
       border: none;
       background: transparent;
       cursor: pointer;
+    }
+    .group\\/ch:hover .sidebar-kebab,
+    .group\\/ls:hover .sidebar-kebab,
+    .sidebar-row--selected .sidebar-kebab {
+      opacity: 1;
     }
     .sidebar-kebab:hover {
       color: rgb(71 85 105);
@@ -129,7 +132,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
 
     /* ── Section items (Mục) — indented one level deeper than Bài ── */
     .sidebar-sections {
-      padding: 0.125rem 0.5rem 0.375rem 3.25rem;
+      padding: 0.125rem 0.5rem 0.375rem 3.9rem;
     }
     .sidebar-section-row {
       display: flex;
@@ -389,7 +392,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
 
                       <!-- Drag Preview -->
                       <div *cdkDragPreview class="bg-white shadow-lg rounded-lg px-4 py-2 border border-[#0056D2] text-sm font-medium text-slate-800 max-w-[280px] line-clamp-2 break-words">
-                        Chương {{ chapterIdx + 1 }} · {{ getChapterDisplayTitle(chapter.title, chapterIdx) }}
+                        {{ chapterLabel(chapterIdx) }} · {{ getChapterDisplayTitle(chapter.title, chapterIdx) }}
                       </div>
                       <!-- Drag Placeholder (insertion line) -->
                       <div *cdkDragPlaceholder class="h-0.5 bg-[#0056D2] rounded-full mx-2 my-1"></div>
@@ -427,7 +430,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                                          class="w-full text-sm font-semibold text-slate-800 bg-white border border-[#0056D2] rounded px-2 py-0.5 outline-none focus:ring-2 focus:ring-[#0056D2]/30"
                                          #editInput>
                               } @else {
-                                  <h4 class="text-[15px] font-semibold text-slate-800 leading-snug line-clamp-2 break-words"><span class="text-[13px] font-semibold text-[#0056D2]">Chương {{ chapterIdx + 1 }}</span> · {{ getChapterDisplayTitle(chapter.title, chapterIdx) }}</h4>
+                                  <h4 class="text-[15px] font-semibold text-slate-800 leading-snug line-clamp-2 break-words"><span class="text-[13px] font-semibold text-[#0056D2]">{{ chapterLabel(chapterIdx) }}</span> · {{ getChapterDisplayTitle(chapter.title, chapterIdx) }}</h4>
                               }
                           </div>
 
@@ -451,7 +454,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                     Đổi tên
                                   </button>
-                                  <button (click)="showAddLessonModal(chapter, chapterIdx); closeMenu()"
+                                  <button (click)="requestAddLessonFromSidebar(chapter); closeMenu()"
                                           class="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 text-[13px] text-slate-700 font-medium flex items-center gap-2.5">
                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                                     Thêm bài học
@@ -497,7 +500,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
 
                               <!-- Empty: no lessons in chapter -->
                               @if (chapter.lessons.length === 0) {
-                                <button (click)="showAddLessonModal(chapter, chapterIdx)"
+                                <button (click)="requestAddLessonFromSidebar(chapter)"
                                         class="flex items-center gap-2 w-full pl-8 pr-4 py-2.5 text-[12px] text-slate-400 hover:text-[#0056D2] hover:bg-slate-50 transition-colors text-left">
                                   <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -515,7 +518,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
 
                                       <!-- Drag Preview -->
                                       <div *cdkDragPreview class="bg-white shadow-lg rounded-lg px-4 py-2 border border-[#0056D2] text-xs font-medium text-slate-700 max-w-[260px] line-clamp-2 break-words">
-                                        Bài {{ chapterIdx + 1 }}.{{ lessonIdx + 1 }} · {{ getLessonDisplayTitle(lesson.title, lessonIdx) }}
+                                        {{ lessonLabel(lessonIdx) }} · {{ getLessonDisplayTitle(lesson.title, lessonIdx) }}
                                       </div>
                                       <!-- Drag Placeholder (insertion line) -->
                                       <div *cdkDragPlaceholder class="h-0.5 bg-[#0056D2] rounded-full mx-2 my-1"></div>
@@ -553,7 +556,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                                                        class="w-full text-[13px] font-medium text-slate-700 bg-white border border-[#0056D2] rounded px-2 py-0.5 outline-none focus:ring-2 focus:ring-[#0056D2]/30"
                                                        #editInput>
                                             } @else {
-                                                <p class="text-sm font-medium text-slate-600 leading-snug line-clamp-2 break-words group-hover/ls:text-slate-900"><span class="text-xs font-semibold text-[#0056D2]">Bài {{ chapterIdx + 1 }}.{{ lessonIdx + 1 }}</span> {{ getLessonDisplayTitle(lesson.title, lessonIdx) }} <span class="inline-block w-1.5 h-1.5 rounded-full align-middle ml-1" [style.background]="getLessonReadinessColor(lesson)"></span></p>
+                                                <p class="text-sm font-medium text-slate-600 leading-snug line-clamp-2 break-words group-hover/ls:text-slate-900"><span class="text-xs font-semibold text-[#0056D2]">{{ lessonLabel(lessonIdx) }}</span> {{ getLessonDisplayTitle(lesson.title, lessonIdx) }} <span class="inline-block w-1.5 h-1.5 rounded-full align-middle ml-1" [style.background]="getLessonReadinessColor(lesson)"></span></p>
                                             }
                                           </div>
 
@@ -576,10 +579,10 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                                     Đổi tên
                                                   </button>
-                                                  <button (click)="showAddSectionModal(lesson, lesson.sections.length || 0, lessonIdx); closeMenu()"
+                                                  <button (click)="selectLesson(chapter, lesson); closeMenu()"
                                                           class="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 text-[13px] text-slate-700 font-medium flex items-center gap-2.5">
                                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                                                    Thêm nội dung
+                                                    Mở vùng soạn chính
                                                   </button>
                                                   <div class="border-t border-slate-100 my-1"></div>
                                                   <!-- Move Up/Down + Move To Chapter (WCAG 2.5.7) -->
@@ -617,13 +620,13 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                                       </div>
 
                                       <!-- SECTIONS (L3) — clean list, click to select -->
-                                      @if (isLessonExpanded(lesson.id) && lesson.sections?.length) {
+                                      @if (isLessonExpanded(lesson.id) && lesson.sections.length) {
                                         <div class="sidebar-sections">
                                           @for (section of lesson.sections; track section.id; let secIdx = $index) {
                                             <button class="sidebar-section-row"
                                                  [class.sidebar-section-row--selected]="selectedSectionId() === section.id"
                                                  (click)="selectSection(chapter, lesson, section); $event.stopPropagation()">
-                                              <span class="sidebar-section-row__num">{{ chapterIdx + 1 }}.{{ lessonIdx + 1 }}.{{ secIdx + 1 }}</span>
+                                              <span class="sidebar-section-row__num">{{ sectionLabel(secIdx) }}</span>
                                               <span class="sidebar-section-row__title">{{ getSectionDisplayTitle(section.title) }}</span>
                                               <span class="sidebar-section-row__type">{{ section.type === 'TEXT' ? 'văn bản' : section.type === 'VIDEO' ? 'video' : section.type === 'FILE' ? 'tệp' : section.type === 'QUIZ' ? 'trắc nghiệm' : section.type }}</span>
                                             </button>
@@ -671,112 +674,6 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
       </div>
     </app-dialog>
 
-    <!-- Lesson Modal -->
-    <app-dialog
-      [open]="showLessonModal()"
-      title="Thêm bài học"
-      [subtitle]="'Chương: ' + (currentChapterForLesson()?.title || '')"
-      size="sm"
-      [busy]="isCreating()"
-      (close)="closeModals()">
-      <label class="sidebar-field-label">Tên bài học</label>
-      <input type="text" [(ngModel)]="newLessonTitle"
-             (keydown.enter)="createLesson()"
-             class="sidebar-field-input"
-             placeholder="Nhập tên bài học...">
-      <p class="sidebar-field-hint">Sau khi tạo, bạn có thể thêm nội dung (văn bản, video, tài liệu, trắc nghiệm) vào bài học.</p>
-      <div dialogFooter>
-        <button type="button" (click)="closeModals()" class="sidebar-btn sidebar-btn--ghost">Hủy</button>
-        <button type="button" (click)="createLesson()"
-                [disabled]="isCreating()"
-                class="sidebar-btn sidebar-btn--primary">
-          @if (isCreating()) {
-            <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-          }
-          Thêm bài học
-        </button>
-      </div>
-    </app-dialog>
-
-    <!-- Section Modal -->
-    <app-dialog
-      [open]="showSectionModal()"
-      title="Thêm nội dung"
-      [subtitle]="'Bài học: ' + (currentLessonForSection()?.title || '')"
-      size="md"
-      [busy]="isCreating()"
-      (close)="closeModals()">
-      <div class="sidebar-section-form">
-        <div>
-          <label class="sidebar-field-label">Tiêu đề</label>
-          <input type="text"
-                 [(ngModel)]="newSectionTitle"
-                 (keydown.enter)="createSection()"
-                 class="sidebar-field-input"
-                 placeholder="Nhập tiêu đề nội dung...">
-        </div>
-
-        <div>
-          <label class="sidebar-field-label sidebar-field-label--lg">Loại nội dung</label>
-          <div class="sidebar-type-grid">
-            @for (type of sectionTypes; track type) {
-              <button type="button" (click)="newSectionType = type"
-                      [class]="'sidebar-type-btn ' + (newSectionType === type ? 'sidebar-type-btn--active' : '')">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  @switch (type) {
-                    @case ('TEXT') {
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    }
-                    @case ('VIDEO') {
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                    }
-                    @case ('QUIZ') {
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-                    }
-                    @case ('FILE') {
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
-                    }
-                  }
-                </svg>
-                <span class="text-[11px] font-bold uppercase">{{ type }}</span>
-              </button>
-            }
-          </div>
-
-          @if (newSectionType === 'FILE') {
-            <div class="sidebar-file-attach">
-              <label class="sidebar-file-attach__label">Đính kèm tài liệu</label>
-              @if (!selectedFile) {
-                <input type="file" (change)="onFileSelected($event)"
-                       class="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-amber-200 file:text-amber-800 hover:file:bg-amber-300 cursor-pointer">
-              } @else {
-                <div class="flex items-center justify-between bg-white p-2 rounded-lg border border-amber-200">
-                   <div class="flex items-center gap-2 overflow-hidden">
-                     <svg class="w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                     <span class="text-xs text-slate-700 truncate font-medium">{{ selectedFile.name }}</span>
-                   </div>
-                   <button type="button" (click)="removeSelectedFile()" class="p-1 text-slate-400 hover:text-red-500 transition-colors flex-shrink-0">
-                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                   </button>
-                </div>
-              }
-            </div>
-          }
-        </div>
-      </div>
-      <div dialogFooter>
-        <button type="button" (click)="closeModals()" class="sidebar-btn sidebar-btn--ghost">Hủy</button>
-        <button type="button" (click)="createSection()"
-                [disabled]="!newSectionTitle.trim() || (newSectionType === 'FILE' && !selectedFile) || isCreating()"
-                class="sidebar-btn sidebar-btn--primary">
-          @if (isCreating()) {
-            <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-          }
-          Tạo nội dung
-        </button>
-      </div>
-    </app-dialog>
-
     <!-- Move to Chapter Modal (Canvas "Move To" pattern - WCAG 2.5.7) -->
     <app-dialog
       [open]="showMoveToChapter()"
@@ -812,9 +709,6 @@ export class CourseEditorSidebarComponent implements OnDestroy {
   private chapterApi = inject(ChapterApi);
   private lessonApi = inject(LessonApi);
   private sectionApi = inject(SectionApi);
-  private assignmentApi = inject(AssignmentApi);
-  private quizApi = inject(QuizApi);
-  private authoringService = inject(CourseAuthoringService);
   private toast = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
 
@@ -861,29 +755,15 @@ export class CourseEditorSidebarComponent implements OnDestroy {
 
   // Modal states
   showChapterModal = signal(false);
-  showLessonModal = signal(false);
-  showSectionModal = signal(false);
-  currentChapterForLesson = signal<ChapterDraftDTO | null>(null);
-  currentLessonForSection = signal<LessonDraftDTO | null>(null);
 
   // Form data
   newChapterTitle = '';
   newChapterDescription = '';
-  newLessonTitle = '';
-  newLessonType: 'LECTURE' | 'QUIZ' | 'ASSIGNMENT' = 'LECTURE';
-  newSectionTitle = '';
-  newSectionType: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE' = 'TEXT';
-  readonly sectionTypes: ('TEXT' | 'VIDEO' | 'QUIZ' | 'FILE')[] = ['TEXT', 'VIDEO', 'QUIZ', 'FILE'];
-  selectedFile: File | null = null;
-  tempSearch = '';
 
   // Inline editing
   editingChapterId = signal<string | null>(null);
   editingLessonId = signal<string | null>(null);
   editingValue = '';
-
-  // Pending new lesson for auto-opening section modal
-  private pendingNewLessonChapterId = signal<string | null>(null);
 
   // Touch device detection (Phase C)
   readonly isTouchDevice = 'ontouchstart' in globalThis || navigator.maxTouchPoints > 0;
@@ -894,17 +774,6 @@ export class CourseEditorSidebarComponent implements OnDestroy {
   moveToLessonTarget = signal<LessonDraftDTO | null>(null);
 
   constructor() {
-    // Bridge: chapter-editor requests lesson creation via shared service signal
-    effect(() => {
-      const chapter = this.editorSvc.pendingLessonCreateForChapter();
-      if (chapter) {
-        untracked(() => {
-          this.showAddLessonModal(chapter, 0);
-          this.editorSvc.pendingLessonCreateForChapter.set(null);
-        });
-      }
-    });
-
     // Auto-expand first chapter when data loads
     effect(() => {
       const chapters = this.store.chapters();
@@ -916,28 +785,6 @@ export class CourseEditorSidebarComponent implements OnDestroy {
       }
     });
 
-    // Auto-expand and open section modal when new lesson appears
-    effect(() => {
-      const chapters = this.store.chapters();
-      const pendingChapterId = this.pendingNewLessonChapterId();
-      if (!pendingChapterId) return;
-
-      const chapter = chapters.find(ch => ch.id === pendingChapterId);
-      if (chapter && chapter.lessons.length > 0) {
-        const lastLesson = chapter.lessons[chapter.lessons.length - 1];
-        const chapterIndex = chapters.indexOf(chapter);
-        untracked(() => {
-          this.pendingNewLessonChapterId.set(null);
-          // Auto-expand the new lesson
-          this.expandedLessons.update(set => {
-            const next = new Set(set);
-            next.add(lastLesson.id);
-            return next;
-          });
-          this.showAddSectionModal(lastLesson, 0, chapterIndex);
-        });
-      }
-    });
   }
 
   // --- Chapter expand/collapse (multi-expand) ---
@@ -1038,6 +885,17 @@ export class CourseEditorSidebarComponent implements OnDestroy {
 
     this.selectionService.selectChapter(chapter);
     this.navigateToCurriculum();
+    this.autoCollapseSidebarOnMobile();
+  }
+
+  async requestAddLessonFromSidebar(chapter: ChapterDraftDTO) {
+    if (!(await this.canChangeSelection())) {
+      return;
+    }
+
+    this.selectionService.selectChapter(chapter);
+    this.navigateToCurriculum();
+    this.editorSvc.pendingLessonCreateForChapter.set(chapter);
     this.autoCollapseSidebarOnMobile();
   }
 
@@ -1160,27 +1018,8 @@ export class CourseEditorSidebarComponent implements OnDestroy {
     this.showChapterModal.set(true);
   }
 
-  showAddLessonModal(chapter: ChapterDraftDTO, chapterIndex: number) {
-    this.currentChapterForLesson.set(chapter);
-    this.newLessonTitle = '';
-    this.newLessonType = 'LECTURE';
-    this.showLessonModal.set(true);
-  }
-
-  showAddSectionModal(lesson: LessonDraftDTO, sectionIndex: number, lessonIndex: number) {
-    this.currentLessonForSection.set(lesson);
-    this.newSectionTitle = '';
-    this.newSectionType = 'TEXT';
-    this.selectedFile = null;
-    this.showSectionModal.set(true);
-  }
-
   closeModals() {
     this.showChapterModal.set(false);
-    this.showLessonModal.set(false);
-    this.showSectionModal.set(false);
-    this.currentChapterForLesson.set(null);
-    this.currentLessonForSection.set(null);
   }
 
   createChapter() {
@@ -1206,36 +1045,6 @@ export class CourseEditorSidebarComponent implements OnDestroy {
     });
   }
 
-  async createLesson() {
-    const chapter = this.currentChapterForLesson();
-    const courseId = this.store.courseTree()?.id;
-    const title = this.newLessonTitle.trim();
-    if (!chapter || !courseId || !title) return;
-    this.isCreating.set(true);
-
-    try {
-      await firstValueFrom(this.lessonApi.createLesson(chapter.id, {
-        title,
-        type: 'LECTURE',
-        content: undefined
-      }));
-
-      this.closeModals();
-      this.toast.success('Đã tạo bài học mới');
-      this.expandedChapters.update(set => {
-        const next = new Set(set);
-        next.add(chapter.id);
-        return next;
-      });
-      this.pendingNewLessonChapterId.set(chapter.id);
-      await this.store.loadCourse(courseId, true);
-    } catch (err: any) {
-      this.toast.error('Tạo bài học thất bại: ' + (err?.error?.message || err?.message || ''));
-    } finally {
-      this.isCreating.set(false);
-    }
-  }
-
   private async canChangeSelection(): Promise<boolean> {
     if (this.store.saveStatus() !== 'unsaved') {
       return true;
@@ -1254,52 +1063,6 @@ export class CourseEditorSidebarComponent implements OnDestroy {
 
     return shouldDiscard;
   }
-
-  private async rollbackLessonCreation(lessonId: string, courseId: string): Promise<void> {
-    try {
-      await firstValueFrom(this.lessonApi.deleteLesson(lessonId, courseId));
-    } catch {
-      this.toast.error('Không thể hoàn tác lesson trung gian sau khi tạo assignment thất bại');
-    }
-  }
-
-  createSection() {
-    const lesson = this.currentLessonForSection();
-    if (!lesson || !this.newSectionTitle.trim()) return;
-    this.isCreating.set(true);
-
-    const formData = new FormData();
-    const payload = {
-      title: this.newSectionTitle.trim(),
-      type: this.newSectionType,
-      orderIndex: lesson.sections.length || 0
-    };
-    formData.append('data', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
-    if (this.newSectionType === 'FILE' && this.selectedFile) {
-      formData.append('file', this.selectedFile);
-    }
-
-    this.sectionApi.createSection(lesson.id, formData).subscribe({
-      next: () => {
-        this.closeModals();
-        this.toast.success('Đã tạo nội dung mới');
-        // Auto-expand lesson to show new section
-        this.expandedLessons.update(set => {
-          const next = new Set(set);
-          next.add(lesson.id);
-          return next;
-        });
-        const courseId = this.store.courseTree()?.id;
-        if (courseId) this.store.loadCourse(courseId, true);
-        this.isCreating.set(false);
-      },
-      error: (err: any) => {
-        this.toast.error('Tạo nội dung thất bại: ' + (err?.error?.message || ''));
-        this.isCreating.set(false);
-      }
-    });
-  }
-
   // --- Delete handlers ---
   async deleteChapter(chapterId: string) {
     const confirmed = await this.confirmDialog.confirm({
@@ -1367,73 +1130,31 @@ export class CourseEditorSidebarComponent implements OnDestroy {
       error: (err: any) => this.toast.error('Xóa nội dung thất bại: ' + (err?.error?.message || ''))
     });
   }
-
-  // --- File Handler ---
-  private readonly MAX_FILE_SIZE = 50 * 1024 * 1024;
-  private readonly ALLOWED_FILE_TYPES = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png', 'video/mp4'];
-
-  onFileSelected(event: any) {
-    const file = event.target.files[0];
-    if (!file) return;
-    if (file.size > this.MAX_FILE_SIZE) {
-      this.toast.error('File quá lớn. Kích thước tối đa: 50MB');
-      event.target.value = '';
-      return;
-    }
-    if (!this.ALLOWED_FILE_TYPES.includes(file.type)) {
-      this.toast.error('Định dạng không hỗ trợ. Chỉ chấp nhận: PDF, DOCX, JPG, PNG, MP4');
-      event.target.value = '';
-      return;
-    }
-    this.selectedFile = file;
+  chapterLabel(index: number): string {
+    return buildCurriculumLabel('chapter', index);
   }
 
-  removeSelectedFile() {
-    this.selectedFile = null;
+  lessonLabel(index: number): string {
+    return buildCurriculumLabel('lesson', index);
   }
 
-  // --- Type color helper ---
-  getTypeColor(type: string): string {
-    const key = (type || 'TEXT').toUpperCase() as ContentType;
-    return CONTENT_TYPE_CONFIG[key]?.color || 'bg-slate-300';
+  sectionLabel(index: number): string {
+    return buildCurriculumLabel('section', index);
   }
 
   // Helper to strip chapter prefix if already present in title
-  getChapterDisplayTitle(title: string, index: number): string {
-    // If title already starts with "Chương X:" or "Chương X.", strip it to avoid duplication
-    // Match patterns like "Chương 1:", "Chương 1.", "CHƯƠNG 1:" etc.
-    const chapterPattern = /^chương\s+\d+[.:.]/i;
-    if (chapterPattern.test(title)) {
-      // Find where the prefix ends and return the rest
-      const match = title.match(/^chương\s+\d+[.:.]\s*/i);
-      if (match) {
-        return title.slice(match[0].length).trim();
-      }
-    }
-    return title;
+  getChapterDisplayTitle(title: string, _index: number): string {
+    return stripCurriculumPrefix(title, 'chapter');
   }
 
   // Helper to strip section prefix (e.g. "1.2: ", "2.1: ", "2.1:") from title
   getSectionDisplayTitle(title: string): string {
-    const sectionPattern = /^\d+\.\d+[.:.]\s*/;
-    const match = title.match(sectionPattern);
-    if (!match) return title;
-    const stripped = title.slice(match[0].length).trim();
-    return stripped || 'Chưa đặt tên';
+    return stripCurriculumPrefix(title, 'section');
   }
 
   // Helper to strip lesson prefix if already present in title
-  getLessonDisplayTitle(title: string, index: number): string {
-    // If title already starts with "Bài X:" or "Bài X.", strip it to avoid duplication
-    // Match patterns like "Bài 1:", "Bài 1.", "BÀI 1:" etc.
-    const lessonPattern = /^bài\s+\d+[.:.]/i;
-    if (lessonPattern.test(title)) {
-      const match = title.match(/^bài\s+\d+[.:.]\s*/i);
-      if (match) {
-        return title.slice(match[0].length).trim();
-      }
-    }
-    return title;
+  getLessonDisplayTitle(title: string, _index: number): string {
+    return stripCurriculumPrefix(title, 'lesson');
   }
 
   private autoCollapseSidebarOnMobile(): void {
