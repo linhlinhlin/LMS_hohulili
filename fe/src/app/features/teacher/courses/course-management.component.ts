@@ -816,6 +816,31 @@ interface ReviewFeedback {
     }
 
     /* ===== RESPONSIVE ===== */
+    /* Tablet landscape: action panel wraps to second row to prevent metadata squeeze */
+    @media (min-width: 769px) and (max-width: 1100px) {
+      .course-card-body {
+        flex-wrap: wrap;
+        align-items: flex-start;
+      }
+
+      .course-thumbnail {
+        width: 120px;
+        height: 70px;
+      }
+
+      .course-actions {
+        flex-basis: 100%;
+        min-width: unset;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding-left: 0;
+        padding-top: 8px;
+        border-left: none;
+        border-top: 1px solid #F3F4F6;
+      }
+    }
+
     @media (max-width: 768px) {
       .page-inner { padding: 20px 16px; }
       .page-title { font-size: 22px; }

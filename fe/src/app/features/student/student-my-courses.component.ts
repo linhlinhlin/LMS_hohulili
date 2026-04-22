@@ -387,6 +387,27 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       }
     }
 
+    /* Tablet landscape: action buttons wrap to second row to avoid squeezing metadata to 0px */
+    @media (min-width: 641px) and (max-width: 1100px) {
+      .course-card-wrapper {
+        flex-wrap: wrap;
+        align-items: flex-start;
+      }
+
+      .course-thumbnail {
+        width: 120px;
+        height: 70px;
+      }
+
+      .action-buttons {
+        flex-basis: 100%;
+        min-width: unset;
+        justify-content: flex-end;
+        border-top: 1px solid #F3F4F6;
+        padding-top: 8px;
+      }
+    }
+
     .main-content {
       min-width: 0;
     }
