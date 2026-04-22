@@ -85,7 +85,7 @@ public class CourseQueryControllerV3 {
                     .orElse(null);
         }
 
-        String sortField = Set.of("createdAt", "title").contains(sort) ? sort : "createdAt";
+        String sortField = sort != null && Set.of("createdAt", "title").contains(sort) ? sort : "createdAt";
         Sort sortOrder = "asc".equalsIgnoreCase(order) ? Sort.by(sortField).ascending() : Sort.by(sortField).descending();
         String nativeSortField = "title".equals(sortField) ? "title" : "created_at";
         Sort nativeSortOrder = "asc".equalsIgnoreCase(order) ? Sort.by(nativeSortField).ascending() : Sort.by(nativeSortField).descending();
