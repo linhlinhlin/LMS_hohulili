@@ -47,6 +47,11 @@ export const authRoutes: Routes = [
     title: 'Tham gia tổ chức - LMS Maritime'
   },
   {
+    path: 'change-password',
+    loadComponent: () => import('./change-password/change-password.component').then(m => m.ChangePasswordComponent),
+    title: 'Đổi mật khẩu - LMS Maritime'
+  },
+  {
     path: '',
     redirectTo: 'login',
     pathMatch: 'full'

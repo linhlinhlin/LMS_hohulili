@@ -25,7 +25,8 @@ public class User {
     private String avatarUrl;
     private Instant createdAt;
     private Instant updatedAt;
-    
+    private boolean mustChangePassword;
+
     // Private constructor - use builder or factory methods
     private User() {}
     
@@ -75,6 +76,7 @@ public class User {
     
     public void changePassword(String newEncodedPassword) {
         this.password = Objects.requireNonNull(newEncodedPassword, "Mật khẩu không được null");
+        this.mustChangePassword = false;
         this.updatedAt = Instant.now();
     }
     
@@ -131,6 +133,7 @@ public class User {
     public String getAvatarUrl() { return avatarUrl; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
+    public boolean isMustChangePassword() { return mustChangePassword; }
 
     public void setTokenExpiryDays(Integer days) {
         this.tokenExpiryDays = days;
@@ -168,6 +171,7 @@ public class User {
         private String avatarUrl;
         private Instant createdAt;
         private Instant updatedAt;
+        private boolean mustChangePassword;
 
         public Builder id(UserId id) { this.id = id; return this; }
         public Builder username(String username) { this.username = username; return this; }
@@ -181,11 +185,13 @@ public class User {
         public Builder avatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; return this; }
         public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
         public Builder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
+        public Builder mustChangePassword(boolean mustChangePassword) { this.mustChangePassword = mustChangePassword; return this; }
 
         public User build() {
             User user = new User(id, username, email, password, fullName, role, enabled, organizationId, createdAt, updatedAt);
             user.tokenExpiryDays = this.tokenExpiryDays;
             user.avatarUrl = this.avatarUrl;
+            user.mustChangePassword = this.mustChangePassword;
             return user;
         }
     }

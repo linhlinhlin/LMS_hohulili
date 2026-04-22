@@ -27,6 +27,7 @@ export interface User {
   organizationId?: string;
   organizationName?: string;
   avatar?: string;
+  mustChangePassword?: boolean;
 }
 
 export interface AuthResponse {
@@ -305,6 +306,10 @@ export class AuthService {
     this.currentUserSubject.next(normalizedUser);
     this._currentUser.set(normalizedUser);
     this.sessionService.transitionToAuthenticated();
+
+    if (data.user?.mustChangePassword) {
+      this.router.navigate(['/auth/change-password'], { replaceUrl: true });
+    }
   }
 
   /** Update local user state after profile edit (no server call) */
