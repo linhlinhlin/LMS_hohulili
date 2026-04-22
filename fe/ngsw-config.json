@@ -79,7 +79,7 @@
         "maxAge": "30d",
         "strategy": "performance"
       }
-    },
+    }
   ],
   "navigationUrls": [
     "/**",
