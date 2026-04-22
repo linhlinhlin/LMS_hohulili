@@ -141,10 +141,16 @@ export class ChatApiClient {
    */
   checkHealth(): Observable<HealthStatus> {
     return this.http
-      .get<HealthStatus>(
+      .get<HealthStatus | { data?: HealthStatus }>(
         `${AI_CHAT_CONFIG.baseUrl}/health`
       )
       .pipe(
+        map((response) => {
+          if ('data' in response && response.data) {
+            return response.data;
+          }
+          return response as HealthStatus;
+        }),
         timeout(10000),
         tap(() => {
           this.isServerAwake = true;
