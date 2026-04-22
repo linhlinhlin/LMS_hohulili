@@ -90,7 +90,7 @@ public interface JpaEnrollmentRepository extends JpaRepository<EnrollmentJpaEnti
      */
     @Query("""
         SELECT e FROM EnrollmentJpaEntity e
-        JOIN FETCH e.learningClass lc
+        LEFT JOIN FETCH e.learningClass lc
         WHERE e.studentId = :studentId
         AND e.status IN ('ACTIVE', 'COMPLETED')
         ORDER BY e.lastAccessedAt DESC NULLS LAST
@@ -99,7 +99,7 @@ public interface JpaEnrollmentRepository extends JpaRepository<EnrollmentJpaEnti
 
     @Query("""
         SELECT e FROM EnrollmentJpaEntity e
-        JOIN FETCH e.learningClass lc
+        LEFT JOIN FETCH e.learningClass lc
         WHERE e.studentId = :studentId
     """)
     List<EnrollmentJpaEntity> findByStudentIdWithClass(@Param("studentId") UUID studentId);

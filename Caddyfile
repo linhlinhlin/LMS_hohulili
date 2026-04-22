@@ -42,7 +42,7 @@ holilihu.online {
         Strict-Transport-Security "max-age=31536000; includeSubDomains"
         Referrer-Policy "strict-origin-when-cross-origin"
         Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
-        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com https://fonts.googleapis.com; img-src 'self' data: https:; connect-src 'self' https://accounts.google.com https://lh3.googleusercontent.com https://fonts.googleapis.com https://fonts.gstatic.com https://wiii.holilihu.online https://sandbox.vnpayment.vn https://pay.vnpay.vn https://qr.sepay.vn https://videodelivery.net wss:; media-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; frame-src 'self' https: blob:; frame-ancestors 'self'; object-src 'none'; base-uri 'self';"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com https://fonts.googleapis.com; img-src 'self' data: https: https://ui-avatars.com; connect-src 'self' https://accounts.google.com https://lh3.googleusercontent.com https://ui-avatars.com https://fonts.googleapis.com https://fonts.gstatic.com https://wiii.holilihu.online https://sandbox.vnpayment.vn https://pay.vnpay.vn https://qr.sepay.vn https://videodelivery.net wss:; media-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; frame-src 'self' https: blob:; frame-ancestors 'self'; object-src 'none'; base-uri 'self';"
     }
     # Compression
     encode gzip zstd
