@@ -2,6 +2,119 @@
 
 Tài liệu này mô tả cách làm việc nhất quán trong repo, đặc biệt cho các thay đổi có ảnh hưởng tới runtime, docs, và deploy.
 
+---
+
+## 0. Git Workflow — QUY TẮC BẮT BUỘC
+
+### Branching Strategy (Git Flow)
+
+```
+feature/xxx ──PR──▶ main ──auto──▶ Deploy Production
+fix/xxx     ──PR──▶ main
+chore/xxx   ──PR──▶ main
+hotfix/xxx  ──PR──▶ main (khẩn cấp)
+```
+
+- **`main`** = production. Mỗi commit trên main tự động deploy lên holilihu.online.
+- **`develop`** = staging/tích hợp (CI chạy, không deploy). Dùng khi cần gộp nhiều feature trước khi lên main.
+- **Feature branches** = nhánh làm việc cá nhân/nhóm.
+
+### Quy tắc TUYỆT ĐỐI
+
+| Quy tắc | Lý do |
+|---------|-------|
+| **KHÔNG push trực tiếp vào `main`** | main = production, mỗi push tự động deploy |
+| **KHÔNG push trực tiếp vào `develop`** | Cần review trước khi tích hợp |
+| **MỌI thay đổi phải qua Pull Request** | Đảm bảo code review + CI pass |
+| **KHÔNG merge PR khi CI đỏ** | Backend tests, frontend build, compose phải pass |
+| **KHÔNG dùng `--force` push** | Có thể mất code của người khác |
+
+### Đặt tên branch
+
+```
+feature/short-description     # Tính năng mới
+fix/issue-number-description   # Sửa bug (VD: fix/issue-48-reject-modal)
+chore/description              # Dọn dẹp, refactor, config
+docs/description               # Tài liệu
+hotfix/description             # Fix khẩn cấp production
+```
+
+Quy tắc:
+- Dùng tiếng Anh, chữ thường, dấu gạch ngang `-`
+- Gắn số issue nếu có: `fix/issue-48-reject-modal`
+- Ngắn gọn, mô tả được nội dung: tối đa 50 ký tự
+
+### Commit Message (Conventional Commits)
+
+```
+type(scope): mô tả ngắn gọn (tiếng Anh)
+
+# Types: feat, fix, chore, docs, refactor, test, perf, ci
+# Scope: module bị ảnh hưởng (identity, assessment, admin, student, ...)
+```
+
+Ví dụ:
+```
+feat(assessment): add rubric grading flow
+fix(#48): replace window.prompt with app-dialog modal
+chore(ci): add develop branch to CI triggers
+refactor(admin): extract dashboard chart component
+```
+
+Quy tắc:
+- Dòng đầu ≤ 72 ký tự
+- Viết ở thể mệnh lệnh: "add", "fix", "remove" (không phải "added", "fixes")
+- Nếu close issue, ghi `Closes #XX` trong body
+- Nếu dùng AI hỗ trợ, thêm `Co-Authored-By: ...` cuối body
+
+### Quy trình làm việc
+
+```bash
+# 1. Cập nhật main mới nhất
+git checkout main && git pull origin main
+
+# 2. Tạo feature branch
+git checkout -b feature/my-feature
+
+# 3. Làm việc, commit thường xuyên
+git add <files> && git commit -m "feat(scope): description"
+
+# 4. Push branch lên remote
+git push -u origin feature/my-feature
+
+# 5. Tạo Pull Request trên GitHub (target: main)
+gh pr create --base main --title "feat(scope): description" --body "..."
+
+# 6. Chờ CI pass + review → Merge
+```
+
+### Code Review
+
+- Mỗi PR cần ít nhất **1 reviewer approve** trước khi merge
+- Reviewer kiểm tra: logic đúng, conventions tuân thủ, test coverage, không có security issue
+- Tác giả PR không tự merge — để reviewer merge sau khi approve
+- Nếu PR lớn (>500 dòng), cân nhắc chia nhỏ
+
+### Xử lý conflict
+
+```bash
+# Cập nhật branch với main mới nhất (dùng rebase, KHÔNG merge)
+git checkout feature/my-feature
+git fetch origin
+git rebase origin/main
+
+# Nếu có conflict → resolve → continue
+git add <resolved-files>
+git rebase --continue
+
+# Push (cần force vì đã rebase)
+git push --force-with-lease
+```
+
+> **`--force-with-lease`** an toàn hơn `--force`: nó từ chối push nếu remote có commit mới mà bạn chưa fetch.
+
+---
+
 ## 1. Nguyên tắc chung
 
 - Ưu tiên thay đổi nhỏ, có thể kiểm chứng, và dễ rollback.
