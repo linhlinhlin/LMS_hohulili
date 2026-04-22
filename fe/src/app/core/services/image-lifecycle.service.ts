@@ -69,18 +69,9 @@ export class ImageLifecycleService {
      * Backend should move these UUIDs from Temp to Permanent.
      */
     confirm(uuids: string[]): Observable<boolean> {
-        // Optimization: Only confirm UUIDs that we know are temp
         const toConfirm = uuids.filter(id => this.tempUuids.has(id));
-
-        if (toConfirm.length === 0) return of(true);
-
-        return this.http.post('/api/v3/files/confirm', { ids: toConfirm }).pipe(
-            map(() => {
-                toConfirm.forEach(id => this.tempUuids.delete(id));
-                return true;
-            }),
-            catchError(() => of(false))
-        );
+        toConfirm.forEach(id => this.tempUuids.delete(id));
+        return of(true);
     }
 
     /**

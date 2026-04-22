@@ -126,7 +126,8 @@ public class FileManagementService implements FileManagementPort {
         };
     }
 
-    private void linkFileByUrl(String url, UUID entityId, String entityType) {
+    @Transactional
+    public void linkFileByUrl(String url, UUID entityId, String entityType) {
         fileRepository.findByFileUrl(url).ifPresent(file -> {
             file.setEntityId(entityId);
             file.setEntityType(entityType);

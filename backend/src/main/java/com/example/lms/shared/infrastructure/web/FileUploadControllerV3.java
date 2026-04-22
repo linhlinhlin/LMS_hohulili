@@ -39,6 +39,10 @@ public class FileUploadControllerV3 {
     private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
     private static final long MAX_VIDEO_SIZE = 500L * 1024 * 1024; // Legacy direct-upload ceiling; large videos should use presigned upload
 
+    private static final Set<String> AUTHORING_ONLY_FOLDERS = Set.of(
+        "videos", "course-thumbnails", "sections"
+    );
+
     private static final Set<String> ALLOWED_VIDEO_TYPES = Set.of(
         "video/mp4", "video/webm", "video/quicktime", "video/x-matroska", "video/x-msvideo", "video/avi"
     );
@@ -92,7 +96,7 @@ public class FileUploadControllerV3 {
             }
 
             // Sanitize folder name
-            String sanitizedFolder = sanitizePath(folder);
+            String sanitizedFolder = sanitizeFolderName(folder);
 
             if (user == null) {
                 return ResponseEntity.status(401).body(Map.of("success", 0, "message", "Không được phép truy cập"));
@@ -162,7 +166,7 @@ public class FileUploadControllerV3 {
     }
 
     @PostMapping(value = "/upload/video", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Upload video file (R2 or local storage)")
     public ResponseEntity<Map<String, Object>> uploadVideo(
             @RequestParam("file") MultipartFile file,
@@ -215,12 +219,12 @@ public class FileUploadControllerV3 {
         }
     }
 
-    @DeleteMapping("/{storageKey}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @DeleteMapping
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Delete file from storage (R2 or local)")
     public ResponseEntity<Map<String, Object>> deleteFile(
             @AuthenticationPrincipal UserJpaEntity user,
-            @PathVariable String storageKey) {
+            @RequestParam String storageKey) {
         try {
             if (!isStorageAvailable()) {
                 return ResponseEntity.badRequest().body(Map.of(
@@ -229,7 +233,7 @@ public class FileUploadControllerV3 {
                 ));
             }
 
-            String sanitizedKey = sanitizePath(storageKey);
+            String sanitizedKey = validateStorageKey(storageKey);
 
             // P1: Verify file ownership — only uploader or admin can delete
             var fileOpt = fileAttachmentRepository.findByFileName(sanitizedKey);
@@ -293,6 +297,11 @@ public class FileUploadControllerV3 {
                 return ResponseEntity.badRequest().body(Map.of("success", false, "message", "contentType và fileSize là bắt buộc"));
             }
 
+            if (AUTHORING_ONLY_FOLDERS.contains(folder) && !isAuthoringRole(user)) {
+                return ResponseEntity.status(403).body(Map.of("success", false,
+                    "message", "Chỉ giảng viên và quản trị viên mới được tải lên loại tài nguyên này"));
+            }
+
             var result = presignedUploadUseCase.initUpload(contentType, fileSizeNum.longValue(), folder, user.getId());
 
             Map<String, Object> response = new HashMap<>();
@@ -350,7 +359,7 @@ public class FileUploadControllerV3 {
     }
 
     @PostMapping("/upload/multipart/part-url")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Sign one multipart upload part URL for direct video upload")
     public ResponseEntity<Map<String, Object>> createMultipartPartUrl(
             @RequestBody Map<String, Object> body,
@@ -388,7 +397,7 @@ public class FileUploadControllerV3 {
     }
 
     @PostMapping("/upload/multipart/complete")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Complete multipart upload before attachment confirmation")
     public ResponseEntity<Map<String, Object>> completeMultipartUpload(
             @RequestBody Map<String, Object> body,
@@ -449,12 +458,35 @@ public class FileUploadControllerV3 {
         return null;
     }
 
-    private String sanitizePath(String input) {
+    private String sanitizeFolderName(String input) {
         if (input == null) return "default";
         return input.replaceAll("[^a-zA-Z0-9._-]", "_");
     }
 
+    private String validateStorageKey(String key) {
+        if (key == null || key.isBlank()) {
+            throw new IllegalArgumentException("storageKey không được để trống");
+        }
+        if (key.contains("..") || key.contains("//") || key.startsWith("/") || key.endsWith("/")) {
+            throw new IllegalArgumentException("storageKey không hợp lệ");
+        }
+        if (!key.matches("[a-zA-Z0-9._/-]+")) {
+            throw new IllegalArgumentException("storageKey chứa ký tự không hợp lệ");
+        }
+        return key;
+    }
+
     private boolean isAdminRole(UserJpaEntity user) {
-        return user != null && user.getRole() == UserJpaEntity.UserRole.ADMIN;
+        return user != null && (
+            user.getRole() == UserJpaEntity.UserRole.ADMIN
+            || user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN
+        );
+    }
+
+    private boolean isAuthoringRole(UserJpaEntity user) {
+        if (user == null) return false;
+        return user.getRole() == UserJpaEntity.UserRole.TEACHER
+            || user.getRole() == UserJpaEntity.UserRole.ADMIN
+            || user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
     }
 }
