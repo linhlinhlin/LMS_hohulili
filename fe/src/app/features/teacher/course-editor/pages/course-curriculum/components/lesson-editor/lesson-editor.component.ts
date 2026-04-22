@@ -1,12 +1,12 @@
 import {
   Component,
   ChangeDetectionStrategy,
-  inject,
   input,
   output,
   signal,
   computed,
   effect,
+  inject,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LessonDraftDTO, SectionDraftDTO } from '../../../../services/course-authoring.service';
@@ -17,9 +17,10 @@ import { CurriculumAssignmentDetailsComponent } from '../curriculum-assignment-d
 import { CurriculumQuizManagerComponent } from '../curriculum-quiz-manager/curriculum-quiz-manager.component';
 import { SectionEditorComponent } from '../section-editor/section-editor.component';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
+import { stripCurriculumPrefix } from '../../../../utils/curriculum-labels';
 
 /**
- * Lesson Editor — focused component for editing a single lesson.
+ * Lesson Editor - focused component for editing a single lesson.
  *
  * Routes content by lesson type:
  * - LECTURE: sections panel + inline section-editor
@@ -104,143 +105,159 @@ import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
   `],
   template: `
     <div class="lesson-workspace">
-      <!-- Breadcrumb -->
       <div class="lesson-breadcrumb">
-        @if (chapterTitle()) {
+        @if (chapterTitle() || chapterLabel()) {
           <button type="button" class="lesson-breadcrumb__back" (click)="backClicked.emit()">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
             </svg>
-            {{ chapterTitle() }}
+            {{ chapterLabel() || chapterTitle() }}
           </button>
           <span class="lesson-breadcrumb__sep">›</span>
         }
-        <span class="lesson-breadcrumb__type">{{ getTypeLabel() }}</span>
+        <span class="lesson-breadcrumb__type">{{ lessonLabel() || 'Bài học' }}</span>
+        <span class="lesson-breadcrumb__sep">·</span>
+        <span>{{ getTypeLabel() }}</span>
       </div>
 
-      <!-- Tiêu đề -->
       <div class="editor-field">
         <label for="lesson-title" class="editor-label">
           Tiêu đề <span class="editor-field-error">*</span>
         </label>
-        <input id="lesson-title" type="text"
+        <input
+          id="lesson-title"
+          type="text"
           [value]="title()"
           (input)="onTitleChange($any($event.target).value)"
           class="editor-input"
-          placeholder="Nhập tiêu đề bài học..." />
+          placeholder="Nhập tiêu đề bài học..."
+        />
       </div>
 
-        <!-- LECTURE -->
-        @if (lessonType() === 'LECTURE') {
-          <!-- Legacy video warning -->
-          @if (hasLegacyVideo()) {
-            <div class="editor-callout--warning" style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 1rem; border: 1px solid rgba(217,119,6,0.22); border-radius: var(--editor-control-radius); background: rgba(245,158,11,0.1)">
-              <div style="min-width: 0">
-                <p style="font-size: 0.8125rem; font-weight: 600; color: rgb(146 64 14)">Video cũ ở bài học</p>
-                <p style="margin-top: 0.25rem; font-size: 0.8125rem; color: rgb(146 64 14)">{{ legacyVideoCopy() }}</p>
-              </div>
-              @if (!hasVideoSections()) {
-                <button type="button" (click)="createSection.emit('VIDEO')"
-                  class="editor-secondary-button" style="font-size: 0.75rem; min-height: 2rem; padding: 0.25rem 0.75rem">
-                  Tạo mục video mới
-                </button>
-              }
+      @if (lessonType() === 'LECTURE') {
+        @if (hasLegacyVideo()) {
+          <div
+            class="editor-callout--warning"
+            style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 1rem; border: 1px solid rgba(217,119,6,0.22); border-radius: var(--editor-control-radius); background: rgba(245,158,11,0.1)"
+          >
+            <div style="min-width: 0">
+              <p style="font-size: 0.8125rem; font-weight: 600; color: rgb(146 64 14)">Video cũ ở bài học</p>
+              <p style="margin-top: 0.25rem; font-size: 0.8125rem; color: rgb(146 64 14)">{{ legacyVideoCopy() }}</p>
             </div>
-          }
-
-          <!-- Sections panel -->
-          <app-lecture-sections-panel
-            [sections]="lesson().sections || []"
-            [activeSectionId]="editorSvc.editingSectionId()"
-            (createSection)="createSection.emit($event)"
-            (editSection)="editSection.emit($event)"
-            (deleteSection)="deleteSection.emit($event)"
-            (dropSection)="dropSection.emit($event)">
-          </app-lecture-sections-panel>
-
-          <!-- Inline section editor -->
-          @if (editorSvc.isSectionSurfaceOpen()) {
-            <app-section-editor
-              [lessonId]="lesson().id"
-              [courseId]="courseId()"
-              (saved)="sectionSaved.emit()"
-              (closed)="sectionClosed.emit()">
-            </app-section-editor>
-          }
-        }
-
-        <!-- QUIZ -->
-        @if (lessonType() === 'QUIZ') {
-          <app-curriculum-assessment-summary
-            accent="purple"
-            eyebrow="Bài kiểm tra trong bài học"
-            title="Thiết lập bài kiểm tra tại đây, quản lý câu hỏi ở trang riêng"
-            [description]="quizFlowDescription()"
-            [placementLabel]="placementLabel()"
-            [audienceLabel]="audienceLabel()"
-            [distributionLabel]="distributionLabel()"
-            actionLabel="Mở trang quản lý bài kiểm tra"
-            (actionClick)="goToQuizBuilder.emit()">
-          </app-curriculum-assessment-summary>
-
-          <app-curriculum-quiz-manager
-            [timeLimit]="quizTimeLimit()"
-            [passingScore]="quizPassingScore()"
-            [maxAttempts]="quizMaxAttempts()"
-            [questions]="quizQuestions()"
-            [loading]="quizQuestionsLoading()"
-            (timeLimitChange)="quizTimeLimitChange.emit(+$event)"
-            (passingScoreChange)="quizPassingScoreChange.emit(+$event)"
-            (maxAttemptsChange)="quizMaxAttemptsChange.emit(+$event)">
-          </app-curriculum-quiz-manager>
-        }
-
-        <!-- ASSIGNMENT -->
-        @if (lessonType() === 'ASSIGNMENT') {
-          <app-curriculum-assessment-summary
-            accent="green"
-            eyebrow="Bài tập trong bài học"
-            title="Thiết lập bài tập tại đây, giao bài cho học viên ở trang riêng"
-            [description]="assignmentFlowDescription()"
-            [placementLabel]="placementLabel()"
-            [audienceLabel]="audienceLabel()"
-            [distributionLabel]="distributionLabel()"
-            actionLabel="Mở cài đặt bài tập"
-            (actionClick)="goToAssignmentSettings.emit()">
-          </app-curriculum-assessment-summary>
-
-          <app-curriculum-assignment-details
-            [description]="assignmentDescription()"
-            [instructions]="assignmentInstructions()"
-            [dueDate]="assignmentDueDate()"
-            [maxScore]="assignmentMaxScore()"
-            (descriptionChange)="assignmentDescriptionChange.emit($event)"
-            (instructionsChange)="assignmentInstructionsChange.emit($event)"
-            (dueDateChange)="assignmentDueDateChange.emit($event)"
-            (maxScoreChange)="assignmentMaxScoreChange.emit(+$event)">
-          </app-curriculum-assignment-details>
-        }
-
-        <!-- Lưu -->
-        <div class="lesson-footer">
-          @if (isDirty()) {
-            <span class="unsaved-hint">
-              <span class="unsaved-hint__dot"></span>
-              Có thay đổi chưa lưu
-            </span>
-          }
-          <button type="button" (click)="saveClicked.emit()"
-            [disabled]="isSaving() || !title().trim()"
-            class="editor-primary-button">
-            @if (isSaving()) {
-              <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
+            @if (!hasVideoSections()) {
+              <button
+                type="button"
+                (click)="createSection.emit('VIDEO')"
+                class="editor-secondary-button"
+                style="font-size: 0.75rem; min-height: 2rem; padding: 0.25rem 0.75rem"
+              >
+                Tạo mục video mới
+              </button>
             }
-            Lưu thay đổi
-          </button>
-        </div>
+          </div>
+        }
+
+        <app-lecture-sections-panel
+          [sections]="lesson().sections || []"
+          [activeSectionId]="editorSvc.editingSectionId()"
+          (createSection)="createSection.emit($event)"
+          (editSection)="editSection.emit($event)"
+          (deleteSection)="deleteSection.emit($event)"
+          (dropSection)="dropSection.emit($event)"
+        >
+        </app-lecture-sections-panel>
+
+        @if (editorSvc.isSectionSurfaceOpen()) {
+          <app-section-editor
+            [lessonId]="lesson().id"
+            [courseId]="courseId()"
+            (saved)="sectionSaved.emit()"
+            (closed)="sectionClosed.emit()"
+          >
+          </app-section-editor>
+        }
+      }
+
+      @if (lessonType() === 'QUIZ') {
+        <app-curriculum-assessment-summary
+          accent="purple"
+          eyebrow="Bài kiểm tra trong bài học"
+          title="Thiết lập bài kiểm tra tại đây, quản lý câu hỏi ở trang riêng"
+          [description]="quizFlowDescription()"
+          [placementLabel]="placementLabel()"
+          [audienceLabel]="audienceLabel()"
+          [distributionLabel]="distributionLabel()"
+          actionLabel="Mở trang quản lý bài kiểm tra"
+          (actionClick)="goToQuizBuilder.emit()"
+        >
+        </app-curriculum-assessment-summary>
+
+        <app-curriculum-quiz-manager
+          [timeLimit]="quizTimeLimit()"
+          [passingScore]="quizPassingScore()"
+          [maxAttempts]="quizMaxAttempts()"
+          [questions]="quizQuestions()"
+          [loading]="quizQuestionsLoading()"
+          (timeLimitChange)="quizTimeLimitChange.emit(+$event)"
+          (passingScoreChange)="quizPassingScoreChange.emit(+$event)"
+          (maxAttemptsChange)="quizMaxAttemptsChange.emit(+$event)"
+        >
+        </app-curriculum-quiz-manager>
+      }
+
+      @if (lessonType() === 'ASSIGNMENT') {
+        <app-curriculum-assessment-summary
+          accent="green"
+          eyebrow="Bài tập trong bài học"
+          title="Thiết lập bài tập tại đây, giao bài cho học viên ở trang riêng"
+          [description]="assignmentFlowDescription()"
+          [placementLabel]="placementLabel()"
+          [audienceLabel]="audienceLabel()"
+          [distributionLabel]="distributionLabel()"
+          actionLabel="Mở cài đặt bài tập"
+          (actionClick)="goToAssignmentSettings.emit()"
+        >
+        </app-curriculum-assessment-summary>
+
+        <app-curriculum-assignment-details
+          [description]="assignmentDescription()"
+          [instructions]="assignmentInstructions()"
+          [dueDate]="assignmentDueDate()"
+          [maxScore]="assignmentMaxScore()"
+          (descriptionChange)="assignmentDescriptionChange.emit($event)"
+          (instructionsChange)="assignmentInstructionsChange.emit($event)"
+          (dueDateChange)="assignmentDueDateChange.emit($event)"
+          (maxScoreChange)="assignmentMaxScoreChange.emit(+$event)"
+        >
+        </app-curriculum-assignment-details>
+      }
+
+      <div class="lesson-footer">
+        @if (isDirty()) {
+          <span class="unsaved-hint">
+            <span class="unsaved-hint__dot"></span>
+            Có thay đổi chưa lưu
+          </span>
+        }
+        <button
+          type="button"
+          (click)="saveClicked.emit()"
+          [disabled]="isSaving() || !title().trim()"
+          class="editor-primary-button"
+        >
+          @if (isSaving()) {
+            <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+          }
+          Lưu thay đổi
+        </button>
+      </div>
     </div>
   `,
 })
@@ -248,30 +265,27 @@ export class LessonEditorComponent {
   readonly isLoading = input(false);
   readonly editorSvc = inject(CurriculumEditorService);
 
-  // Core inputs
   readonly lesson = input.required<LessonDraftDTO>();
   readonly courseId = input.required<string>();
   readonly chapterTitle = input('');
+  readonly chapterLabel = input('');
+  readonly lessonLabel = input('');
   readonly isSaving = input(false);
   readonly isDirty = input(false);
 
-  // Lesson form state (managed by parent, passed as inputs)
   readonly title = signal('');
 
-  // Quiz inputs (from parent)
   readonly quizTimeLimit = input(30);
   readonly quizPassingScore = input(60);
   readonly quizMaxAttempts = input(1);
   readonly quizQuestions = input<any[]>([]);
   readonly quizQuestionsLoading = input(false);
 
-  // Assignment inputs (from parent)
   readonly assignmentDescription = input('');
   readonly assignmentInstructions = input('');
   readonly assignmentDueDate = input('');
   readonly assignmentMaxScore = input(100);
 
-  // Context labels (from parent)
   readonly quizFlowDescription = input('');
   readonly assignmentFlowDescription = input('');
   readonly placementLabel = input('');
@@ -279,12 +293,10 @@ export class LessonEditorComponent {
   readonly distributionLabel = input('');
   readonly legacyVideoCopy = input('');
 
-  // Core outputs
   readonly titleChange = output<string>();
   readonly saveClicked = output<void>();
   readonly backClicked = output<void>();
 
-  // Section outputs (LECTURE type)
   readonly createSection = output<string>();
   readonly editSection = output<SectionDraftDTO>();
   readonly deleteSection = output<string>();
@@ -292,20 +304,17 @@ export class LessonEditorComponent {
   readonly sectionSaved = output<void>();
   readonly sectionClosed = output<void>();
 
-  // Quiz outputs
   readonly goToQuizBuilder = output<void>();
   readonly quizTimeLimitChange = output<number>();
   readonly quizPassingScoreChange = output<number>();
   readonly quizMaxAttemptsChange = output<number>();
 
-  // Assignment outputs
   readonly goToAssignmentSettings = output<void>();
   readonly assignmentDescriptionChange = output<string>();
   readonly assignmentInstructionsChange = output<string>();
   readonly assignmentDueDateChange = output<string>();
   readonly assignmentMaxScoreChange = output<number>();
 
-  // Derived
   readonly lessonType = computed(() => {
     const type = (this.lesson().type || 'LECTURE').toUpperCase();
     if (type === 'QUIZ' || type === 'ASSIGNMENT') return type;
@@ -313,11 +322,10 @@ export class LessonEditorComponent {
   });
 
   readonly hasVideoSections = computed(() =>
-    (this.lesson().sections || []).some(s => s.type === 'VIDEO')
+    (this.lesson().sections || []).some(section => section.type === 'VIDEO')
   );
 
   constructor() {
-    // Strip legacy "Bài N:" prefix — sidebar auto-numbers by position
     effect(() => {
       const lesson = this.lesson();
       this.title.set(this.stripLessonPrefix(lesson.title || ''));
@@ -325,8 +333,8 @@ export class LessonEditorComponent {
   }
 
   hasLegacyVideo(): boolean {
-    const l = this.lesson();
-    return !!(l.videoUrl || l.streamVideoUid);
+    const lesson = this.lesson();
+    return !!(lesson.videoUrl || lesson.streamVideoUid);
   }
 
   onTitleChange(value: string): void {
@@ -335,9 +343,7 @@ export class LessonEditorComponent {
   }
 
   private stripLessonPrefix(title: string): string {
-    const pattern = /^bài\s+\d+[.:.]\s*/i;
-    const match = title.match(pattern);
-    return match ? title.slice(match[0].length).trim() : title;
+    return stripCurriculumPrefix(title, 'lesson');
   }
 
   getTypeLabel(): string {

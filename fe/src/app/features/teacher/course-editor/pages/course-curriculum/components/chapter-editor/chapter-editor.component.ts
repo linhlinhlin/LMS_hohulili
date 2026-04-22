@@ -1,7 +1,6 @@
 import {
   Component,
   ChangeDetectionStrategy,
-  inject,
   input,
   output,
   signal,
@@ -10,9 +9,10 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ChapterDraftDTO, LessonDraftDTO } from '../../../../services/course-authoring.service';
+import { buildCurriculumLabel, stripCurriculumPrefix } from '../../../../utils/curriculum-labels';
 
 /**
- * Chapter Editor — focused component for editing a single chapter.
+ * Chapter Editor - focused component for editing a single chapter.
  *
  * Responsibilities:
  * - Chapter title + description form
@@ -28,98 +28,116 @@ import { ChapterDraftDTO, LessonDraftDTO } from '../../../../services/course-aut
   imports: [FormsModule],
   template: `
     <div class="chapter-workspace">
-      <!-- Breadcrumb -->
-      <p class="chapter-breadcrumb"><span class="chapter-breadcrumb__type">Chương</span> · {{ title() || 'Chưa đặt tên' }}</p>
+      <p class="chapter-breadcrumb">
+        <span class="chapter-breadcrumb__type">{{ chapterLabel() || 'Chương' }}</span>
+        ·
+        {{ title() || 'Chưa đặt tên' }}
+      </p>
 
-      <!-- Tên chương -->
       <div class="editor-field">
-          <label for="chapter-title" class="editor-label">
-            Tên chương <span class="editor-field-error">*</span>
-          </label>
-          <input id="chapter-title" type="text"
-            [ngModel]="title()"
-            (ngModelChange)="onTitleChange($event)"
-            class="editor-input"
-            placeholder="Nhập tên chương..." />
+        <label for="chapter-title" class="editor-label">
+          Tên chương <span class="editor-field-error">*</span>
+        </label>
+        <input
+          id="chapter-title"
+          type="text"
+          [ngModel]="title()"
+          (ngModelChange)="onTitleChange($event)"
+          class="editor-input"
+          placeholder="Nhập tên chương..."
+        />
+      </div>
+
+      <div class="editor-field">
+        <label for="chapter-desc" class="editor-label">Mô tả</label>
+        <textarea
+          id="chapter-desc"
+          [ngModel]="description()"
+          (ngModelChange)="onDescriptionChange($event)"
+          rows="3"
+          class="editor-textarea"
+          placeholder="Mô tả ngắn về nội dung chương..."
+        ></textarea>
+      </div>
+
+      <div
+        class="editor-field"
+        style="padding-top: 0.5rem; border-top: 1px solid var(--editor-card-header-border, rgb(226 232 240))"
+      >
+        <div style="display: flex; justify-content: space-between; align-items: center">
+          <label class="editor-label">Bài học ({{ lessons().length }})</label>
+          @if (lessons().length > 0) {
+            <button type="button" (click)="addLesson.emit()" class="add-lesson-header-btn">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+              </svg>
+              Thêm bài học
+            </button>
+          }
         </div>
 
-        <!-- Description -->
-        <div class="editor-field">
-          <label for="chapter-desc" class="editor-label">Mô tả</label>
-          <textarea id="chapter-desc"
-            [ngModel]="description()"
-            (ngModelChange)="onDescriptionChange($event)"
-            rows="3"
-            class="editor-textarea"
-            placeholder="Mô tả ngắn về nội dung chương..."></textarea>
-        </div>
-
-        <!-- Lesson list -->
-        <div class="editor-field" style="padding-top: 0.5rem; border-top: 1px solid var(--editor-card-header-border, rgb(226 232 240))">
-          <div style="display: flex; justify-content: space-between; align-items: center">
-            <label class="editor-label">Bài học ({{ lessons().length }})</label>
-            @if (lessons().length > 0) {
-              <button type="button" (click)="addLesson.emit()" class="add-lesson-header-btn">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+        @if (lessons().length > 0) {
+          <div class="editor-stack" style="gap: 0.375rem">
+            @for (lesson of lessons(); track lesson.id; let i = $index) {
+              <button type="button" (click)="lessonClicked.emit(lesson)" class="chapter-lesson-row">
+                <span
+                  class="chapter-lesson-row__dot"
+                  [class.chapter-lesson-row__dot--ready]="lesson.sections.length > 0"
+                ></span>
+                <span class="chapter-lesson-row__title">
+                  <span style="color: rgb(148 163 184); font-size: 0.6875rem; font-weight: 600">
+                    {{ lessonLabel(i) }}
+                  </span>
+                  {{ stripLessonPrefix(lesson.title) }}
+                </span>
+                <span class="chapter-lesson-row__meta">{{ lessonsSectionCount(lesson) }} mục</span>
+                <svg class="chapter-lesson-row__arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                 </svg>
-                Thêm bài học
               </button>
             }
           </div>
-
-          @if (lessons().length > 0) {
-            <div class="editor-stack" style="gap: 0.375rem">
-              @for (lesson of lessons(); track lesson.id; let i = $index) {
-                <button type="button"
-                  (click)="lessonClicked.emit(lesson)"
-                  class="chapter-lesson-row">
-                  <span class="chapter-lesson-row__dot" [class.chapter-lesson-row__dot--ready]="(lesson.sections?.length || 0) > 0"></span>
-                  <span class="chapter-lesson-row__title">
-                    <span style="color: rgb(148 163 184); font-size: 0.6875rem; font-weight: 600">Bài {{ i + 1 }}</span>
-                    {{ stripLessonPrefix(lesson.title) }}
-                  </span>
-                  <span class="chapter-lesson-row__meta">{{ lesson.sections?.length || 0 }} mục</span>
-                  <svg class="chapter-lesson-row__arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/>
-                  </svg>
-                </button>
-              }
-            </div>
-          } @else {
-            <div class="editor-empty-state" style="padding: 1.5rem; text-align: center">
-              <p style="font-size: 0.8125rem; color: rgb(100 116 139); margin-bottom: 0.75rem">Chưa có bài học trong chương này</p>
-              <button type="button" (click)="addLesson.emit()" class="editor-primary-button" style="font-size: 0.8125rem">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                </svg>
-                Thêm bài học đầu tiên
-              </button>
-            </div>
-          }
-        </div>
-
-        <!-- Lưu -->
-        <div class="chapter-footer">
-          @if (isDirty()) {
-            <span class="unsaved-hint">
-              <span class="unsaved-hint__dot"></span>
-              Có thay đổi chưa lưu
-            </span>
-          }
-          <button type="button"
-            (click)="saveClicked.emit()"
-            [disabled]="isSaving() || !title().trim()"
-            class="editor-primary-button">
-            @if (isSaving()) {
-              <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        } @else {
+          <div class="editor-empty-state" style="padding: 1.5rem; text-align: center">
+            <p style="font-size: 0.8125rem; color: rgb(100 116 139); margin-bottom: 0.75rem">
+              Chưa có bài học trong chương này
+            </p>
+            <button type="button" (click)="addLesson.emit()" class="editor-primary-button" style="font-size: 0.8125rem">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
               </svg>
-            }
-            Lưu thay đổi
-          </button>
-        </div>
+              Thêm bài học đầu tiên
+            </button>
+          </div>
+        }
+      </div>
+
+      <div class="chapter-footer">
+        @if (isDirty()) {
+          <span class="unsaved-hint">
+            <span class="unsaved-hint__dot"></span>
+            Có thay đổi chưa lưu
+          </span>
+        }
+        <button
+          type="button"
+          (click)="saveClicked.emit()"
+          [disabled]="isSaving() || !title().trim()"
+          class="editor-primary-button"
+        >
+          @if (isSaving()) {
+            <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+          }
+          Lưu thay đổi
+        </button>
+      </div>
     </div>
   `,
   styles: [`
@@ -181,8 +199,6 @@ import { ChapterDraftDTO, LessonDraftDTO } from '../../../../services/course-aut
       border-top: 1px solid rgb(226 232 240);
       margin-top: auto;
     }
-    @import '../../../course-info/editor-shared';
-
     .chapter-lesson-row {
       display: flex;
       align-items: center;
@@ -243,33 +259,28 @@ import { ChapterDraftDTO, LessonDraftDTO } from '../../../../services/course-aut
   `],
 })
 export class ChapterEditorComponent {
-  // Inputs
   readonly isLoading = input(false);
   readonly chapter = input.required<ChapterDraftDTO>();
+  readonly chapterLabel = input('');
   readonly isSaving = input(false);
   readonly isDirty = input(false);
 
-  // Outputs
   readonly titleChange = output<string>();
   readonly descriptionChange = output<string>();
   readonly saveClicked = output<void>();
   readonly lessonClicked = output<LessonDraftDTO>();
   readonly addLesson = output<void>();
 
-  // Local form state derived from chapter input
   readonly title = signal('');
   readonly description = signal('');
 
   readonly lessons = computed(() => this.chapter().lessons || []);
 
   constructor() {
-    // Sync form when chapter input changes (new selection)
-    // Strip legacy "Chương N:" prefix to avoid user confusion
-    // (sidebar auto-numbers chapters by position)
     effect(() => {
-      const ch = this.chapter();
-      this.title.set(this.stripChapterPrefix(ch.title || ''));
-      this.description.set(ch.description || '');
+      const chapter = this.chapter();
+      this.title.set(this.stripChapterPrefix(chapter.title || ''));
+      this.description.set(chapter.description || '');
     });
   }
 
@@ -283,33 +294,19 @@ export class ChapterEditorComponent {
     this.descriptionChange.emit(value);
   }
 
-  getLessonTypeLabel(lesson: LessonDraftDTO): string {
-    const type = (lesson.type || 'LECTURE').toUpperCase();
-    switch (type) {
-      case 'QUIZ': return 'Trắc nghiệm';
-      case 'ASSIGNMENT': return 'Bài tập';
-      default: return 'Bài giảng';
-    }
+  lessonsSectionCount(lesson: LessonDraftDTO): number {
+    return lesson.sections?.length || 0;
   }
 
   stripChapterPrefix(title: string): string {
-    const pattern = /^chương\s+\d+[.:.]\s*/i;
-    const match = title.match(pattern);
-    return match ? title.slice(match[0].length).trim() : title;
+    return stripCurriculumPrefix(title, 'chapter');
   }
 
   stripLessonPrefix(title: string): string {
-    const pattern = /^bài\s+\d+[.:.]\s*/i;
-    const match = title.match(pattern);
-    return match ? title.slice(match[0].length).trim() : title;
+    return stripCurriculumPrefix(title, 'lesson');
   }
 
-  getLessonTypeBadgeClass(lesson: LessonDraftDTO): string {
-    const type = (lesson.type || 'LECTURE').toUpperCase();
-    switch (type) {
-      case 'QUIZ': return 'bg-purple-100 text-purple-700';
-      case 'ASSIGNMENT': return 'bg-green-100 text-green-700';
-      default: return 'bg-[#0056D2]/10 text-[#004BB5]';
-    }
+  lessonLabel(index: number): string {
+    return buildCurriculumLabel('lesson', index);
   }
 }

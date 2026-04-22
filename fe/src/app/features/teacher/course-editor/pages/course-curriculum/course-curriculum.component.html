@@ -66,6 +66,7 @@
     @if (selectionService.selectedChapter(); as chapter) {
       <app-chapter-editor
         [chapter]="chapter"
+        [chapterLabel]="selectedChapterLabel()"
         [isSaving]="isSaving()"
         [isDirty]="editorDirty()"
         (titleChange)="onChapterTitleChange($event)"
@@ -98,6 +99,8 @@
         [lesson]="lesson"
         [courseId]="store.courseTree()?.id || ''"
         [chapterTitle]="selectionService.selectedChapter()?.title || ''"
+        [chapterLabel]="selectedChapterLabel()"
+        [lessonLabel]="selectedLessonLabel()"
         [isSaving]="isSaving()"
         [isDirty]="editorDirty()"
         [quizTimeLimit]="quizTimeLimit()"

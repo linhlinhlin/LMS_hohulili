@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, input, output, signal, ElementRef, 
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { LucideAngularModule } from 'lucide-angular';
 import { SectionDraftDTO } from '../../../../services/course-authoring.service';
+import { buildCurriculumLabel, stripCurriculumPrefix } from '../../../../utils/curriculum-labels';
 
 type SectionEditorType = 'TEXT' | 'VIDEO' | 'FILE' | 'QUIZ';
 
@@ -28,7 +29,6 @@ type SectionEditorType = 'TEXT' | 'VIDEO' | 'FILE' | 'QUIZ';
       margin-bottom: 0.625rem;
     }
 
-    /* ── P1: Add content dropdown ── */
     .add-content-wrapper { position: relative; }
     .add-content-btn {
       display: inline-flex;
@@ -116,7 +116,6 @@ type SectionEditorType = 'TEXT' | 'VIDEO' | 'FILE' | 'QUIZ';
       gap: 0.375rem;
     }
 
-    /* ── P0: Redesigned section rows with preview ── */
     .section-row {
       display: flex;
       align-items: flex-start;
@@ -171,6 +170,12 @@ type SectionEditorType = 'TEXT' | 'VIDEO' | 'FILE' | 'QUIZ';
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+    .section-row__label {
+      color: rgb(148 163 184);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      margin-right: 0.375rem;
+    }
     .section-row__meta {
       display: flex;
       gap: 0.375rem;
@@ -218,7 +223,6 @@ type SectionEditorType = 'TEXT' | 'VIDEO' | 'FILE' | 'QUIZ';
       background: rgb(254 242 242);
     }
 
-    /* CDK Drag */
     .cdk-drag-preview {
       box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12);
       border-radius: var(--editor-control-radius);
@@ -239,11 +243,10 @@ export class LectureSectionsPanelComponent {
   deleteSection = output<string>();
   dropSection = output<CdkDragDrop<SectionDraftDTO[]>>();
 
-  // P1: Dropdown state
   isDropdownOpen = signal(false);
 
   toggleDropdown(): void {
-    this.isDropdownOpen.update(v => !v);
+    this.isDropdownOpen.update(value => !value);
   }
 
   onDocumentClick(event: Event): void {
@@ -282,11 +285,11 @@ export class LectureSectionsPanelComponent {
   }
 
   stripSectionPrefix(title: string): string {
-    const pattern = /^\d+\.\d+[.:.]\s*/;
-    const match = title.match(pattern);
-    if (!match) return title;
-    const stripped = title.slice(match[0].length).trim();
-    return stripped || 'Chưa đặt tên';
+    return stripCurriculumPrefix(title, 'section');
+  }
+
+  sectionLabel(index: number): string {
+    return buildCurriculumLabel('section', index);
   }
 
   getSectionTypeLabel(type: string): string {
@@ -299,7 +302,6 @@ export class LectureSectionsPanelComponent {
     }
   }
 
-  // P0: Content preview snippet
   getSectionSnippet(section: SectionDraftDTO): string {
     switch (section.type) {
       case 'TEXT':
@@ -320,18 +322,18 @@ export class LectureSectionsPanelComponent {
           return name.length > 60 ? name.slice(0, 57) + '...' : name;
         }
         return 'Chưa có tài liệu';
-      case 'QUIZ':
-        const qd = section.quizData;
-        if (qd?.questions?.length) {
-          return `${qd.questions.length} câu hỏi`;
+      case 'QUIZ': {
+        const quizData = section.quizData;
+        if (quizData?.questions?.length) {
+          return `${quizData.questions.length} câu hỏi`;
         }
         return 'Chưa có câu hỏi';
+      }
       default:
         return '';
     }
   }
 
-  // P0: Status — has content or not
   hasContent(section: SectionDraftDTO): boolean {
     switch (section.type) {
       case 'TEXT': return !!section.content?.trim();
@@ -346,5 +348,4 @@ export class LectureSectionsPanelComponent {
     const tmp = html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ');
     return tmp.replace(/\s+/g, ' ').trim();
   }
-
 }

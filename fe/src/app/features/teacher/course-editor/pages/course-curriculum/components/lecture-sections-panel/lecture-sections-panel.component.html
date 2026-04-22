@@ -1,8 +1,6 @@
-<!-- Section list header -->
 <div class="sections-header">
   <label class="editor-label">Nội dung ({{ sections().length }} mục)</label>
 
-  <!-- P1: Single dropdown instead of 4 buttons -->
   <div class="add-content-wrapper">
     <button type="button" class="add-content-btn" (click)="toggleDropdown()">
       <lucide-icon name="plus" [size]="14"></lucide-icon>
@@ -21,6 +19,7 @@
             <span class="add-content-option__hint">Nội dung văn bản, hình ảnh</span>
           </div>
         </button>
+
         <button type="button" class="add-content-option" (click)="onCreateSection('VIDEO')">
           <div class="add-content-option__icon" style="background: rgba(0, 86, 210, 0.08)">
             <lucide-icon name="play-circle" [size]="14" style="color: rgb(0 86 210)"></lucide-icon>
@@ -30,6 +29,7 @@
             <span class="add-content-option__hint">Tải lên video bài giảng</span>
           </div>
         </button>
+
         <button type="button" class="add-content-option" (click)="onCreateSection('FILE')">
           <div class="add-content-option__icon" style="background: rgba(245, 158, 11, 0.08)">
             <lucide-icon name="file-text" [size]="14" style="color: rgb(180 83 9)"></lucide-icon>
@@ -39,6 +39,7 @@
             <span class="add-content-option__hint">PDF, Word, Excel, PowerPoint</span>
           </div>
         </button>
+
         <button type="button" class="add-content-option" (click)="onCreateSection('QUIZ')">
           <div class="add-content-option__icon" style="background: rgba(139, 92, 246, 0.08)">
             <lucide-icon name="help-circle" [size]="14" style="color: rgb(109 40 217)"></lucide-icon>
@@ -53,33 +54,35 @@
   </div>
 </div>
 
-<!-- Section list -->
 @if (sections().length === 0) {
   <div class="sections-empty">
     <p style="font-size: 0.8125rem; font-weight: 500; color: rgb(100 116 139); margin-bottom: 0.25rem">Chưa có nội dung</p>
     <p style="font-size: 0.75rem; color: rgb(148 163 184)">Nhấn "Thêm nội dung" để bắt đầu soạn bài học</p>
   </div>
 } @else {
-  <div class="sections-list"
-       cdkDropList cdkDropListLockAxis="y"
-       [cdkDropListData]="sections()"
-       (cdkDropListDropped)="onDropSection($event)">
-    @for (section of sections(); track section.id) {
-      <div class="section-row"
-           [class.section-row--active]="activeSectionId() === section.id"
-           (click)="onEditSection(section)" cdkDrag>
-        <!-- Drag handle -->
+  <div
+    class="sections-list"
+    cdkDropList
+    cdkDropListLockAxis="y"
+    [cdkDropListData]="sections()"
+    (cdkDropListDropped)="onDropSection($event)"
+  >
+    @for (section of sections(); track section.id; let idx = $index) {
+      <div class="section-row" [class.section-row--active]="activeSectionId() === section.id" (click)="onEditSection(section)" cdkDrag>
         <div class="section-row__handle" cdkDragHandle>
           <lucide-icon name="grip-vertical" [size]="14"></lucide-icon>
         </div>
 
-        <!-- Content with preview -->
         <div class="section-row__content">
-          <!-- Top line: status dot + title + badges -->
           <div class="section-row__top">
-            <span class="section-row__status"
-                  [style.background]="hasContent(section) ? 'rgb(16 185 129)' : 'rgb(203 213 225)'"></span>
-            <span class="section-row__title">{{ stripSectionPrefix(section.title) }}</span>
+            <span
+              class="section-row__status"
+              [style.background]="hasContent(section) ? 'rgb(16 185 129)' : 'rgb(203 213 225)'"
+            ></span>
+            <span class="section-row__title">
+              <span class="section-row__label">{{ sectionLabel(idx) }}</span>
+              {{ stripSectionPrefix(section.title) }}
+            </span>
             <div class="section-row__meta">
               <span class="section-row__type">{{ getSectionTypeLabel(section.type) }}</span>
               @if (section.isRequired) {
@@ -87,15 +90,15 @@
               }
             </div>
           </div>
-          <!-- Bottom line: content snippet -->
           <span class="section-row__snippet">{{ getSectionSnippet(section) }}</span>
         </div>
 
-        <!-- Delete -->
-        <button type="button"
+        <button
+          type="button"
           (click)="onDeleteSection(section.id, $event)"
           class="section-row__delete"
-          aria-label="Xóa">
+          aria-label="Xóa"
+        >
           <lucide-icon name="trash-2" [size]="14"></lucide-icon>
         </button>
       </div>

@@ -17,6 +17,7 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import type { OfflineVideoProfileDescriptor } from '../../../../core/models/video-quality';
 import type { ApiResponse } from '../../../../api/types/common.types';
+import { stripCurriculumPrefix } from '../utils/curriculum-labels';
 
 export type EditorMode = 'empty' | 'chapter' | 'lesson';
 export type SectionSurfaceMode = 'closed' | 'create' | 'edit';
@@ -345,7 +346,7 @@ export class CurriculumEditorService {
 
   private buildSectionPayload(type: SectionEditorType): Record<string, any> {
     const payload: Record<string, any> = {
-      title: this.sectionTitle().trim(),
+      title: stripCurriculumPrefix(this.sectionTitle().trim(), 'section'),
       type,
       isRequired: this.sectionIsRequired(),
     };
@@ -470,10 +471,7 @@ export class CurriculumEditorService {
   }
 
   private stripSectionPrefix(title: string): string {
-    // Strip "N.M:" or "N.M." prefix (e.g., "1.1: Introduction" → "Introduction")
-    const pattern = /^\d+\.\d+[.:.]\s*/;
-    const match = title.match(pattern);
-    return match ? title.slice(match[0].length).trim() : title;
+    return stripCurriculumPrefix(title, 'section');
   }
 
   private resetQuizFields(): void {
