@@ -28,6 +28,7 @@ export const quizRoutes: Routes = [
         loadComponent: () => import('./containers/lesson-quiz-create/lesson-quiz-create.component')
           .then(m => m.LessonQuizCreateComponent),
         canActivate: [teacherGuard],
+        canDeactivate: [(component: any) => component.canDeactivate?.() ?? true],
         title: 'Tạo quiz cho bài học'
       },
       {
@@ -35,20 +36,20 @@ export const quizRoutes: Routes = [
         loadComponent: () => import('./containers/lesson-quiz-create/lesson-quiz-create.component')
           .then(m => m.LessonQuizCreateComponent),
         canActivate: [teacherGuard],
+        canDeactivate: [(component: any) => component.canDeactivate?.() ?? true],
         title: 'Tạo quiz cho chương'
       },
       {
         path: 'create/section/:sectionId',
-        loadComponent: () => import('./containers/lesson-quiz-create/lesson-quiz-create.component')
-          .then(m => m.LessonQuizCreateComponent),
-        canActivate: [teacherGuard],
-        title: 'Tạo quiz cho chương (legacy)'
+        redirectTo: 'create/chapter/:sectionId',
+        pathMatch: 'full'
       },
       {
         path: 'create/assignment/:courseId',
         loadComponent: () => import('./containers/assignment-quiz-create/assignment-quiz-create.component')
           .then(m => m.AssignmentQuizCreateComponent),
         canActivate: [teacherGuard],
+        canDeactivate: [(component: any) => component.canDeactivate?.() ?? true],
         title: 'Tạo bài tập'
       },
       {
@@ -68,12 +69,14 @@ export const quizRoutes: Routes = [
         path: 'question/create',
         loadComponent: () => import('./question-create.component').then(m => m.QuestionCreateComponent),
         canActivate: [teacherGuard],
+        canDeactivate: [(component: any) => component.canDeactivate?.() ?? true],
         title: 'Tạo câu hỏi mới'
       },
       {
         path: 'question/:questionId/edit',
         loadComponent: () => import('./question-edit.component').then(m => m.QuestionEditComponent),
         canActivate: [teacherGuard],
+        canDeactivate: [(component: any) => component.canDeactivate?.() ?? true],
         title: 'Chỉnh sửa câu hỏi'
       }
     ]

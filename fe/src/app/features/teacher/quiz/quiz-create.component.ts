@@ -130,19 +130,19 @@ export class QuizCreateComponent {
   }
 
   getPathTitle(path: QuizCreationPath): string {
-    return path === 'LESSON' ? 'Quiz trong lesson/chương' : 'Bài kiểm tra được giao';
+    return path === 'LESSON' ? 'Quiz trong chương' : 'Bài kiểm tra được giao';
   }
 
   getPathDescription(path: QuizCreationPath): string {
     if (path === 'LESSON') {
-      return 'Dùng cho quiz học tập nằm cố định trong nội dung khóa học: luyện tập, bài kiểm tra, hoặc bài thi.';
+      return 'Tạo bài quiz mới nằm trong chương đã chọn. Quiz sẽ thành một bài học mới trong chương.';
     }
-    return 'Dùng cho đánh giá được giao trong workspace vận hành. Flow này luôn online-only và không phải nguồn chân lý của lesson.';
+    return 'Dùng cho đánh giá được giao trong workspace vận hành. Flow này luôn online-only.';
   }
 
   getContinueLabel(): string {
     return this.selectedPath() === 'LESSON'
-      ? 'Tiếp tục tạo quiz trong lesson'
+      ? 'Tiếp tục tạo quiz trong chương'
       : 'Tiếp tục sang flow đánh giá được giao';
   }
 

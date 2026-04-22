@@ -13,6 +13,7 @@ import { QuestionPreviewComponent } from '../../../shared/components/question-pr
 import { ContentBlock } from '../../../api/types/content-block.types';
 import { AuthImagePipe } from '../../../shared/pipes/auth-image.pipe';
 import { ToastService } from '../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -36,6 +37,7 @@ export class QuestionEditComponent implements OnInit {
   private questionApi = inject(QuestionApi);
   private toast = inject(ToastService);
   private questionBankApi = inject(QuestionBankApi);
+  private confirmDialog = inject(ConfirmDialogService);
 
   questionForm: FormGroup;
   isLoading = signal(false);
@@ -76,9 +78,13 @@ export class QuestionEditComponent implements OnInit {
     });
   }
 
+  private returnUrl: string | null = null;
+  private isDirty = false;
+
   ngOnInit(): void {
     this.questionId = this.route.snapshot.paramMap.get('questionId');
     this.packageId = this.route.snapshot.queryParamMap.get('packageId');
+    this.returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
     if (this.questionId) {
       this.loadQuestion();
     }
@@ -170,6 +176,7 @@ export class QuestionEditComponent implements OnInit {
   // --- Block Handlers ---
 
   onQuestionContentChange(blocks: ContentBlock[]) {
+    this.isDirty = true;
     this.questionBlocks.set(blocks);
     this.updateRawQuestionContent(blocks);
     this.updatePreviewOptions();
@@ -431,10 +438,9 @@ export class QuestionEditComponent implements OnInit {
 
     this.questionApi.updateQuestion(this.questionId!, request).subscribe({
       next: () => {
+        this.isDirty = false;
         this.toast.success('Đã cập nhật câu hỏi thành công!');
-        this.router.navigate(['/teacher/assessments/shared/question-bank'], {
-          queryParams: this.packageId ? { packageId: this.packageId } : {}
-        });
+        this.navigateBack();
       },
       error: (error) => {
         this.toast.error('Lỗi khi cập nhật câu hỏi: ' + (error?.error?.message || error?.message));
@@ -444,8 +450,27 @@ export class QuestionEditComponent implements OnInit {
   }
 
   onCancel(): void {
+    this.navigateBack();
+  }
+
+  private navigateBack(): void {
+    if (this.returnUrl) {
+      this.router.navigateByUrl(this.returnUrl);
+      return;
+    }
     this.router.navigate(['/teacher/assessments/shared/question-bank'], {
       queryParams: this.packageId ? { packageId: this.packageId } : {}
+    });
+  }
+
+  async canDeactivate(): Promise<boolean> {
+    if (!this.isDirty) return true;
+    return this.confirmDialog.confirm({
+      title: 'Rời màn chỉnh sửa câu hỏi',
+      message: 'Bạn có thay đổi chưa lưu. Nếu rời màn này, các chỉnh sửa sẽ bị mất.',
+      variant: 'warning',
+      confirmText: 'Rời màn này',
+      cancelText: 'Ở lại'
     });
   }
 

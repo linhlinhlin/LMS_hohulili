@@ -795,7 +795,11 @@ export class QuizBankComponent implements OnInit {
   }
 
   editQuestion(question: Question | BankQuestionDTO) {
-    this.router.navigate(['/teacher/quiz/question', question.id, 'edit']);
+    const queryParams: any = {};
+    if (this.selectedBank()) queryParams.packageId = this.selectedBank()!.id;
+    if (this.addToQuizLessonId) queryParams.addToQuiz = this.addToQuizLessonId;
+    if (this.returnUrl) queryParams.returnUrl = this.returnUrl;
+    this.router.navigate(['/teacher/quiz/question', question.id, 'edit'], { queryParams });
   }
 
   async deleteQuestion(question: Question | BankQuestionDTO) {

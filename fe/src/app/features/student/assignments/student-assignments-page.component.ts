@@ -173,6 +173,12 @@ export class StudentAssignmentsPageComponent implements OnInit {
     this.activeTab.set('todo');
     this.expandedGroups.set(new Set());
     this.visibleGroupCount.set(this.INITIAL_GROUPS);
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: tab === 'assignments' ? {} : { tab },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   setTab(tab: TaskTab): void {
