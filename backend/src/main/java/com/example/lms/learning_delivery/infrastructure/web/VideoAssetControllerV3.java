@@ -82,7 +82,7 @@ public class VideoAssetControllerV3 {
     }
 
     @GetMapping("/diagnostics/pipeline")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Video pipeline health check — shows job queue status")
     public ResponseEntity<ApiResponse<Map<String, Object>>> pipelineDiagnostics() {
         Map<String, Object> diag = videoAssetLifecycleService.getPipelineDiagnostics();
