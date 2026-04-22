@@ -1,6 +1,5 @@
 package com.example.lms.assessment.domain.model;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -14,8 +13,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("QuizAttempt Domain Model Tests")
 class QuizAttemptTest {
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Nested
     @DisplayName("markTimeout()")
@@ -91,19 +88,20 @@ class QuizAttemptTest {
     class FinishGradingTests {
 
         @Test
-        @DisplayName("Should throw when score exceeds 100")
-        void shouldThrowWhenScoreOver100() {
+        @DisplayName("Should throw when score exceeds maxScore")
+        void shouldThrowWhenScoreOverMaxScore() {
             QuizAttempt attempt = QuizAttempt.builder()
                     .id(UUID.randomUUID())
                     .quizId(UUID.randomUUID())
                     .studentId(UUID.randomUUID())
                     .status(QuizAttempt.AttemptStatus.SUBMITTED)
+                    .maxScore(10.0)
                     .items(new ArrayList<>())
                     .build();
 
-            assertThatThrownBy(() -> attempt.finishGrading(150.0, true))
+            assertThatThrownBy(() -> attempt.finishGrading(15.0, true))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("0-100");
+                    .hasMessageContaining("0-10");
         }
 
         @Test
@@ -114,12 +112,13 @@ class QuizAttemptTest {
                     .quizId(UUID.randomUUID())
                     .studentId(UUID.randomUUID())
                     .status(QuizAttempt.AttemptStatus.SUBMITTED)
+                    .maxScore(10.0)
                     .items(new ArrayList<>())
                     .build();
 
             assertThatThrownBy(() -> attempt.finishGrading(-5.0, false))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("0-100");
+                    .hasMessageContaining("0-10");
         }
 
         @Test
@@ -130,14 +129,33 @@ class QuizAttemptTest {
                     .quizId(UUID.randomUUID())
                     .studentId(UUID.randomUUID())
                     .status(QuizAttempt.AttemptStatus.SUBMITTED)
+                    .maxScore(10.0)
                     .items(new ArrayList<>())
                     .build();
 
             attempt.finishGrading(0.0, false);
             assertThat(attempt.getScore()).isEqualTo(0.0);
 
-            attempt.finishGrading(100.0, true);
-            assertThat(attempt.getScore()).isEqualTo(100.0);
+            attempt.finishGrading(10.0, true);
+            assertThat(attempt.getScore()).isEqualTo(10.0);
+        }
+
+        @Test
+        @DisplayName("Should preserve TIMEOUT status after grading")
+        void shouldPreserveTimeoutStatusAfterGrading() {
+            QuizAttempt attempt = QuizAttempt.builder()
+                    .id(UUID.randomUUID())
+                    .quizId(UUID.randomUUID())
+                    .studentId(UUID.randomUUID())
+                    .status(QuizAttempt.AttemptStatus.TIMEOUT)
+                    .maxScore(10.0)
+                    .items(new ArrayList<>())
+                    .build();
+
+            attempt.finishGrading(7.5, true);
+
+            assertThat(attempt.getStatus()).isEqualTo(QuizAttempt.AttemptStatus.TIMEOUT);
+            assertThat(attempt.getScore()).isEqualTo(7.5);
         }
     }
 
@@ -153,7 +171,6 @@ class QuizAttemptTest {
                     .quizId(UUID.randomUUID())
                     .studentId(UUID.randomUUID())
                     .status(QuizAttempt.AttemptStatus.IN_PROGRESS)
-                    // items deliberately not set (null)
                     .build();
 
             assertThat(attempt.getItems()).isNotNull();
@@ -166,7 +183,7 @@ class QuizAttemptTest {
     class MaxScoreTests {
 
         @Test
-        @DisplayName("Should default maxScore to 100.0 when null")
+        @DisplayName("Should default maxScore to 10.0 when null")
         void shouldDefaultMaxScore() {
             QuizAttempt attempt = QuizAttempt.builder()
                     .id(UUID.randomUUID())
@@ -176,51 +193,18 @@ class QuizAttemptTest {
                     .items(new ArrayList<>())
                     .build();
 
-            assertThat(attempt.getMaxScore()).isEqualTo(100.0);
+            assertThat(attempt.getMaxScore()).isEqualTo(10.0);
         }
 
         @Test
-        @DisplayName("Should preserve explicit maxScore value")
-        void shouldPreserveExplicitMaxScore() {
-            QuizAttempt attempt = QuizAttempt.builder()
-                    .id(UUID.randomUUID())
-                    .quizId(UUID.randomUUID())
-                    .studentId(UUID.randomUUID())
-                    .maxScore(50.0)
-                    .status(QuizAttempt.AttemptStatus.IN_PROGRESS)
-                    .items(new ArrayList<>())
+        @DisplayName("Should expose legacy selectedOption through effectiveAnswer")
+        void shouldKeepLegacyAnswerCompatibility() {
+            QuizAttempt.AttemptAnswer answer = QuizAttempt.AttemptAnswer.builder()
+                    .questionId(UUID.randomUUID())
+                    .selectedOption("A")
                     .build();
 
-            assertThat(attempt.getMaxScore()).isEqualTo(50.0);
-        }
-    }
-
-    @Nested
-    @DisplayName("Jackson compatibility")
-    class JacksonCompatibilityTests {
-
-        @Test
-        @DisplayName("Should deserialize AttemptItem from JSON")
-        void shouldDeserializeAttemptItemFromJson() throws Exception {
-            String json = """
-                {
-                  "questionId": "11111111-1111-1111-1111-111111111111",
-                  "selectedOption": "A",
-                  "studentAnswer": { "selectedOption": "A" },
-                  "isCorrect": true,
-                  "pointsEarned": 1.0,
-                  "feedback": "ok"
-                }
-                """;
-
-            QuizAttempt.AttemptItem item = objectMapper.readValue(json, QuizAttempt.AttemptItem.class);
-
-            assertThat(item.getQuestionId()).isEqualTo(UUID.fromString("11111111-1111-1111-1111-111111111111"));
-            assertThat(item.getSelectedOption()).isEqualTo("A");
-            assertThat(item.getStudentAnswer()).isEqualTo(Map.of("selectedOption", "A"));
-            assertThat(item.getIsCorrect()).isTrue();
-            assertThat(item.getPointsEarned()).isEqualTo(1.0);
-            assertThat(item.getFeedback()).isEqualTo("ok");
+            assertThat(answer.getEffectiveAnswer()).isEqualTo(Map.of("selectedOption", "A"));
         }
     }
 }

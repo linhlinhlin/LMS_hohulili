@@ -3,6 +3,7 @@ package com.example.lms.course_authoring.application.usecase;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
 import com.example.lms.course_authoring.domain.repository.LessonRepositoryPort;
+import com.example.lms.learning_delivery.infrastructure.persistence.ClassTeacherJpaRepository;
 import com.example.lms.shared.domain.model.ContentBlock;
 import com.example.lms.shared.exception.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +38,9 @@ class ManageContentBlockUseCaseV3Test {
 
     @Mock
     private CourseDraftMutationUseCase courseDraftMutationUseCase;
+
+    @Mock
+    private ClassTeacherJpaRepository classTeacherJpaRepository;
 
     @InjectMocks
     private ManageContentBlockUseCaseV3 useCase;

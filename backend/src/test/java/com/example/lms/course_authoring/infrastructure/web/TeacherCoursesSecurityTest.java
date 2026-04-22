@@ -5,12 +5,16 @@ import com.example.lms.course_authoring.application.usecase.CourseAuthoringUseCa
 import com.example.lms.course_authoring.application.usecase.GetCourseDraftUseCase;
 import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity;
+import com.example.lms.course_authoring.infrastructure.persistence.repository.CourseReviewEventJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.CourseReviewJpaRepository;
 import com.example.lms.course_authoring.infrastructure.service.CoursePublicationService;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
+import com.example.lms.learning_delivery.infrastructure.persistence.ClassTeacherJpaRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.EnrollmentRepositoryImpl;
 import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
+import com.example.lms.learning_delivery.infrastructure.service.AdaptiveVideoPlaybackService;
+import com.example.lms.learning_delivery.infrastructure.service.VideoAssetPresentationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,15 +27,19 @@ import org.springframework.security.access.AccessDeniedException;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
- * Security tests for TeacherCoursesControllerV3 ownership checks (P0-10).
+ * Security tests for TeacherCoursesControllerV3 ownership checks.
  */
 @ExtendWith(MockitoExtension.class)
 class TeacherCoursesSecurityTest {
+
+    private static final String COURSE_ACCESS_DENIED_MESSAGE = "quyền truy cập khóa học";
 
     @Mock private CourseAuthoringUseCase courseAuthoringUseCase;
     @Mock private GetCourseDraftUseCase getCourseDraftUseCase;
@@ -41,16 +49,18 @@ class TeacherCoursesSecurityTest {
     @Mock private JpaEnrollmentRepository jpaEnrollmentRepository;
     @Mock private CourseReviewJpaRepository courseReviewRepository;
     @Mock private CoursePublicationService coursePublicationService;
+    @Mock private VideoAssetPresentationService videoAssetPresentationService;
+    @Mock private AdaptiveVideoPlaybackService adaptiveVideoPlaybackService;
+    @Mock private ClassTeacherJpaRepository classTeacherJpaRepository;
+    @Mock private CourseReviewEventJpaRepository reviewEventRepository;
 
     @InjectMocks
     private TeacherCoursesControllerV3 controller;
 
-    private UserJpaEntity teacher;
     private UserJpaEntity otherTeacher;
     private UserJpaEntity admin;
     private UUID courseId;
     private CourseJpaEntity course;
-
     private UUID teacherId;
 
     @BeforeEach
@@ -60,7 +70,7 @@ class TeacherCoursesSecurityTest {
     }
 
     @Test
-    @DisplayName("updateCourse: Từ chối khi không phải chủ sở hữu")
+    @DisplayName("updateCourse: rejects non-owner")
     void updateCourse_rejectsNonOwner() {
         otherTeacher = mock(UserJpaEntity.class);
         when(otherTeacher.getId()).thenReturn(UUID.randomUUID());
@@ -73,11 +83,11 @@ class TeacherCoursesSecurityTest {
 
         assertThatThrownBy(() -> controller.updateCourse(courseId, request, otherTeacher))
                 .isInstanceOf(AccessDeniedException.class)
-                .hasMessageContaining("Bạn không sở hữu khóa học này");
+                .hasMessageContaining(COURSE_ACCESS_DENIED_MESSAGE);
     }
 
     @Test
-    @DisplayName("deleteCourse: Từ chối khi không phải chủ sở hữu")
+    @DisplayName("deleteCourse: rejects non-owner")
     void deleteCourse_rejectsNonOwner() {
         otherTeacher = mock(UserJpaEntity.class);
         when(otherTeacher.getId()).thenReturn(UUID.randomUUID());
@@ -89,16 +99,15 @@ class TeacherCoursesSecurityTest {
 
         assertThatThrownBy(() -> controller.deleteCourse(courseId, otherTeacher))
                 .isInstanceOf(AccessDeniedException.class)
-                .hasMessageContaining("Bạn không sở hữu khóa học này");
+                .hasMessageContaining(COURSE_ACCESS_DENIED_MESSAGE);
     }
 
     @Test
-    @DisplayName("Admin bỏ qua kiểm tra sở hữu")
+    @DisplayName("deleteCourse: admin bypasses ownership")
     void adminBypassesOwnership() {
         admin = mock(UserJpaEntity.class);
         when(admin.getRole()).thenReturn(UserJpaEntity.UserRole.ADMIN);
 
-        // Admin should not trigger AccessDeniedException
         assertThatCode(() -> controller.deleteCourse(courseId, admin))
                 .doesNotThrowAnyException();
         verify(courseAuthoringUseCase).deleteCourse(courseId);

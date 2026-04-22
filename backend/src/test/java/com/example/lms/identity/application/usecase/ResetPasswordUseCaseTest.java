@@ -20,22 +20,15 @@ import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * OWASP password reset tests for ResetPasswordUseCase.
- *
- * Verifies:
- * - Token expiration enforcement
- * - Single-use token (used tokens rejected)
- * - Invalid token rejection
- * - Password policy enforcement (NIST 800-63B-4)
- * - Password encoding (BCrypt)
- * - All tokens invalidated after successful reset
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ResetPasswordUseCase (OWASP)")
@@ -77,7 +70,7 @@ class ResetPasswordUseCaseTest {
 
             var expiredToken = new PasswordResetToken(
                     UUID.randomUUID(), UUID.randomUUID(), tokenHash,
-                    Instant.now().minus(1, ChronoUnit.HOURS), // Expired 1 hour ago
+                    Instant.now().minus(1, ChronoUnit.HOURS),
                     null, Instant.now().minus(2, ChronoUnit.HOURS));
 
             when(tokenRepository.findByTokenHash(tokenHash)).thenReturn(Optional.of(expiredToken));
@@ -95,15 +88,15 @@ class ResetPasswordUseCaseTest {
 
             var usedToken = new PasswordResetToken(
                     UUID.randomUUID(), UUID.randomUUID(), tokenHash,
-                    Instant.now().plus(30, ChronoUnit.MINUTES), // Not expired
-                    Instant.now().minus(5, ChronoUnit.MINUTES), // But already used
+                    Instant.now().plus(30, ChronoUnit.MINUTES),
+                    Instant.now().minus(5, ChronoUnit.MINUTES),
                     Instant.now().minus(10, ChronoUnit.MINUTES));
 
             when(tokenRepository.findByTokenHash(tokenHash)).thenReturn(Optional.of(usedToken));
 
             assertThatThrownBy(() -> useCase.execute(rawToken, "newStrongPassword123"))
                     .isInstanceOf(BusinessRuleException.class)
-                    .hasMessageContaining("đã được sử dụng");
+                    .hasMessageContaining("không hợp lệ");
         }
     }
 
@@ -189,7 +182,6 @@ class ResetPasswordUseCaseTest {
 
             useCase.execute(rawToken, "myNewSecurePassword");
 
-            // Should delete all unused tokens AFTER marking current as used
             var inOrder = inOrder(tokenRepository);
             inOrder.verify(tokenRepository).markUsedByTokenHash(any());
             inOrder.verify(tokenRepository).deleteUnusedByUserId(token.getUserId());
@@ -215,8 +207,8 @@ class ResetPasswordUseCaseTest {
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 com.example.lms.shared.domain.util.HashUtil.sha256(rawToken),
-                Instant.now().plus(30, ChronoUnit.MINUTES), // Not expired
-                null,                                        // Not used
-                Instant.now().minus(5, ChronoUnit.MINUTES)); // Created 5 min ago
+                Instant.now().plus(30, ChronoUnit.MINUTES),
+                null,
+                Instant.now().minus(5, ChronoUnit.MINUTES));
     }
 }

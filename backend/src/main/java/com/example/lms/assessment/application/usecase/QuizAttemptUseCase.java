@@ -325,11 +325,14 @@ public class QuizAttemptUseCase {
             obtainedPoints += (item.getPointsEarned() != null ? item.getPointsEarned() : 0);
         }
 
-        double finalScore = (totalPoints > 0) ? (obtainedPoints / totalPoints) * 100.0 : 0.0;
+        double maxScale = quiz.getSettings().maxScoreScale() != null ? quiz.getSettings().maxScoreScale() : 10.0;
+        double finalScore = (totalPoints > 0) ? (obtainedPoints / totalPoints) * maxScale : 0.0;
         int passingScore = quiz.getSettings().passingScore() != null
                 ? quiz.getSettings().passingScore() : 60;
-        boolean passed = finalScore >= passingScore;
+        double passingThreshold = (passingScore / 100.0) * maxScale;
+        boolean passed = finalScore >= passingThreshold;
 
+        attempt.setMaxScore(maxScale);
         attempt.finishGrading(finalScore, passed);
 
         return attemptRepository.save(attempt);

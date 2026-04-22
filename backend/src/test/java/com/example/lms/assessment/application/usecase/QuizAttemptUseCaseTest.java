@@ -248,7 +248,8 @@ class QuizAttemptUseCaseTest {
 
             assertThatThrownBy(() -> useCase.startAttempt(quizId, studentId))
                     .isInstanceOf(BusinessRuleException.class)
-                    .hasMessageContaining("truy cap");
+                    .satisfies(ex -> assertThat(((BusinessRuleException) ex).getRuleName())
+                            .isEqualTo("QUIZ_ACCESS_DENIED"));
         }
 
         @Test
@@ -273,8 +274,8 @@ class QuizAttemptUseCaseTest {
                     .studentId(studentId).status(QuizAttempt.AttemptStatus.SUBMITTED).items(List.of()).build();
 
             when(quizRepository.findById(QuizId.of(quizId))).thenReturn(Optional.of(quiz));
-            when(attemptRepository.findByQuizIdAndStudentId(quizId, studentId))
-                    .thenReturn(List.of(prev1, prev2));
+            when(attemptRepository.countCompletedByQuizIdAndStudentId(quizId, studentId))
+                    .thenReturn(2L);
 
             assertThatThrownBy(() -> useCase.startAttempt(quizId, studentId))
                     .isInstanceOf(BusinessRuleException.class)
@@ -391,8 +392,8 @@ class QuizAttemptUseCaseTest {
 
             QuizAttempt result = useCase.submitAttempt(attemptId, answers);
 
-            assertThat(result.getStatus()).isEqualTo(QuizAttempt.AttemptStatus.SUBMITTED);
-            assertThat(result.getScore()).isCloseTo(100.0, within(0.1));
+            assertThat(result.getStatus()).isEqualTo(QuizAttempt.AttemptStatus.GRADED);
+            assertThat(result.getScore()).isCloseTo(10.0, within(0.1));
             assertThat(result.getIsPassed()).isTrue();
             assertThat(result.getItems()).hasSize(2);
             verify(questionRepository).findAllByIds(any()); // batch fetch
@@ -428,7 +429,7 @@ class QuizAttemptUseCaseTest {
 
             QuizAttempt result = useCase.submitAttempt(attemptId, answers);
 
-            assertThat(result.getScore()).isCloseTo(50.0, within(0.1));
+            assertThat(result.getScore()).isCloseTo(5.0, within(0.1));
             assertThat(result.getIsPassed()).isFalse();
         }
 
@@ -493,8 +494,8 @@ class QuizAttemptUseCaseTest {
 
             QuizAttempt result = useCase.submitAttempt(attemptId, answers);
 
-            // Should be 100% (5/5 points)
-            assertThat(result.getScore()).isCloseTo(100.0, within(0.1));
+            // Default maxScoreScale is 10.0, so full marks should map to 10/10.
+            assertThat(result.getScore()).isCloseTo(10.0, within(0.1));
             // Verify the item has 5 points earned
             assertThat(result.getItems().get(0).getPointsEarned()).isCloseTo(5.0, within(0.01));
         }
@@ -549,7 +550,7 @@ class QuizAttemptUseCaseTest {
 
             QuizAttempt result = useCase.submitAttempt(attemptId, answers);
 
-            assertThat(result.getScore()).isCloseTo(100.0, within(0.1));
+            assertThat(result.getScore()).isCloseTo(10.0, within(0.1));
             assertThat(result.getIsPassed()).isTrue();
         }
 
@@ -577,7 +578,7 @@ class QuizAttemptUseCaseTest {
             // Should not throw, just skip unknown questions
             QuizAttempt result = useCase.submitAttempt(attemptId, answers);
 
-            assertThat(result.getStatus()).isEqualTo(QuizAttempt.AttemptStatus.SUBMITTED);
+            assertThat(result.getStatus()).isEqualTo(QuizAttempt.AttemptStatus.GRADED);
         }
 
         @Test
@@ -657,7 +658,7 @@ class QuizAttemptUseCaseTest {
 
             QuizAttempt result = useCase.submitAttempt(attemptId, answers);
 
-            // Should be marked as TIMEOUT but still graded
+            // TIMEOUT should be preserved even after grading so reporting can distinguish timed submissions.
             assertThat(result.getStatus()).isEqualTo(QuizAttempt.AttemptStatus.TIMEOUT);
             assertThat(result.getScore()).isNotNull(); // Still gets graded
         }
@@ -693,7 +694,7 @@ class QuizAttemptUseCaseTest {
                     .quizId(quizId)
                     .studentId(studentId)
                     .status(QuizAttempt.AttemptStatus.SUBMITTED)
-                    .score(50.0) // 1/2 points
+                    .score(5.0) // 1/2 points on a 10-point scale
                     .isPassed(false)
                     .items(items)
                     .build();
@@ -712,7 +713,7 @@ class QuizAttemptUseCaseTest {
             // Grade essay with full marks
             QuizAttempt result = useCase.manualGrade(attemptId, q2Id, 1.0, "Bài viết tốt!", teacherId, "TEACHER");
 
-            assertThat(result.getScore()).isCloseTo(100.0, within(0.1)); // 2/2 points
+            assertThat(result.getScore()).isCloseTo(10.0, within(0.1)); // 2/2 points on a 10-point scale
             assertThat(result.getIsPassed()).isTrue();
 
             // Verify the essay item was updated
@@ -785,7 +786,7 @@ class QuizAttemptUseCaseTest {
             // Give 5/10 points = 50% < 70% passing
             QuizAttempt result = useCase.manualGrade(attemptId, q1Id, 5.0, null, teacherId, "TEACHER");
 
-            assertThat(result.getScore()).isCloseTo(50.0, within(0.1));
+            assertThat(result.getScore()).isCloseTo(5.0, within(0.1));
             assertThat(result.getIsPassed()).isFalse();
         }
     }
@@ -1062,7 +1063,7 @@ class QuizAttemptUseCaseTest {
 
             // 1/2 points = 50% >= 40% → provisional pass
             assertThat(result.getIsPassed()).isTrue();
-            assertThat(result.getScore()).isCloseTo(50.0, within(0.1));
+            assertThat(result.getScore()).isCloseTo(5.0, within(0.1));
         }
     }
 
