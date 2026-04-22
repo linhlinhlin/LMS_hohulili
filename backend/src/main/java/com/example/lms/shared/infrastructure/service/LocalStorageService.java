@@ -44,10 +44,10 @@ public class LocalStorageService {
         String extension = getExtension(file.getOriginalFilename());
         String key = buildKey(folder, fileId, extension);
 
-        Path targetDir = Path.of(basePath, folder);
+        Path targetDir = resolveAndValidate(folder);
         Files.createDirectories(targetDir);
 
-        Path targetFile = Path.of(basePath, key);
+        Path targetFile = resolveAndValidate(key);
         Files.copy(file.getInputStream(), targetFile, StandardCopyOption.REPLACE_EXISTING);
 
         String publicUrl = resolvePublicUrl(key);
@@ -56,7 +56,7 @@ public class LocalStorageService {
     }
 
     public R2StorageService.UploadResult upload(Path file, String storageKey, String contentType) throws IOException {
-        Path targetFile = Path.of(basePath, storageKey);
+        Path targetFile = resolveAndValidate(storageKey);
         if (targetFile.getParent() != null) {
             Files.createDirectories(targetFile.getParent());
         }
@@ -71,7 +71,7 @@ public class LocalStorageService {
 
     public void delete(String key) {
         try {
-            Path file = Path.of(basePath, key);
+            Path file = resolveAndValidate(key);
             if (Files.deleteIfExists(file)) {
                 log.info("[LocalStorage] Deleted {}", key);
             } else {
@@ -83,18 +83,31 @@ public class LocalStorageService {
     }
 
     public boolean exists(String key) {
-        return Files.exists(Path.of(basePath, key));
+        try {
+            return Files.exists(resolveAndValidate(key));
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     public void downloadToFile(String key, Path destination) throws IOException {
         if (destination.getParent() != null) {
             Files.createDirectories(destination.getParent());
         }
-        Files.copy(Path.of(basePath, key), destination, StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(resolveAndValidate(key), destination, StandardCopyOption.REPLACE_EXISTING);
     }
 
     public String resolvePublicUrl(String key) {
         return baseUrl + "/" + key;
+    }
+
+    private Path resolveAndValidate(String key) throws IOException {
+        Path base = Path.of(basePath).toAbsolutePath().normalize();
+        Path resolved = base.resolve(key).normalize();
+        if (!resolved.startsWith(base)) {
+            throw new IOException("Invalid storage key: path traversal detected");
+        }
+        return resolved;
     }
 
     private String buildKey(String folder, String fileId, String extension) {

@@ -30,14 +30,19 @@ public class VideoBinaryStorageService {
         Path tempFile = Files.createTempFile("video-asset-" + assetId + "-", suffixFromName(attachment.getOriginalName()));
         String storageKey = attachment.getFileName();
 
-        if (shouldUsePrivateVideoStorage(attachment.getFileUrl(), attachment.getFileCategory()) && r2VideoStorageService.isPresent()) {
-            r2VideoStorageService.get().downloadToFile(storageKey, tempFile);
-        } else if (r2StorageService.isPresent()) {
-            r2StorageService.get().downloadToFile(storageKey, tempFile);
-        } else if (localStorageService.isPresent()) {
-            localStorageService.get().downloadToFile(storageKey, tempFile);
-        } else {
-            throw new IOException("No storage backend configured to materialize source video");
+        try {
+            if (shouldUsePrivateVideoStorage(attachment.getFileUrl(), attachment.getFileCategory()) && r2VideoStorageService.isPresent()) {
+                r2VideoStorageService.get().downloadToFile(storageKey, tempFile);
+            } else if (r2StorageService.isPresent()) {
+                r2StorageService.get().downloadToFile(storageKey, tempFile);
+            } else if (localStorageService.isPresent()) {
+                localStorageService.get().downloadToFile(storageKey, tempFile);
+            } else {
+                throw new IOException("No storage backend configured to materialize source video");
+            }
+        } catch (IOException ex) {
+            Files.deleteIfExists(tempFile);
+            throw ex;
         }
 
         return new SourceBinary(

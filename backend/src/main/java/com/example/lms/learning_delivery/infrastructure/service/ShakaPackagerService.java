@@ -29,53 +29,58 @@ public class ShakaPackagerService {
         }
 
         Path outputDir = Files.createTempDirectory("video-package-" + assetId + "-");
-        Files.createDirectories(outputDir.resolve("hls"));
-        Files.createDirectories(outputDir.resolve("dash"));
-        Files.createDirectories(outputDir.resolve("segments"));
+        try {
+            Files.createDirectories(outputDir.resolve("hls"));
+            Files.createDirectories(outputDir.resolve("dash"));
+            Files.createDirectories(outputDir.resolve("segments"));
 
-        List<String> command = new ArrayList<>();
-        command.add("packager");
+            List<String> command = new ArrayList<>();
+            command.add("packager");
 
-        PackagerInput audioSource = inputs.stream()
-                .filter(PackagerInput::hasAudio)
-                .findFirst()
-                .orElse(null);
-        if (audioSource != null) {
-            Files.createDirectories(outputDir.resolve("segments/audio"));
-            command.add(buildAudioArgument(audioSource));
+            PackagerInput audioSource = inputs.stream()
+                    .filter(PackagerInput::hasAudio)
+                    .findFirst()
+                    .orElse(null);
+            if (audioSource != null) {
+                Files.createDirectories(outputDir.resolve("segments/audio"));
+                command.add(buildAudioArgument(audioSource));
+            }
+
+            for (PackagerInput input : inputs.stream()
+                    .sorted(Comparator.comparingInt(PackagerInput::height))
+                    .toList()) {
+                Files.createDirectories(outputDir.resolve("segments").resolve(slugify(input.profile())));
+                command.add(buildVideoArgument(input));
+            }
+
+            command.add("--segment_duration");
+            command.add(String.valueOf(resolveSegmentDurationSeconds()));
+            command.add("--hls_master_playlist_output");
+            command.add("hls/master.m3u8");
+            command.add("--mpd_output");
+            command.add("dash/manifest.mpd");
+
+            runCommand(command, outputDir);
+
+            List<PackagedFile> packagedFiles = Files.walk(outputDir)
+                    .filter(Files::isRegularFile)
+                    .sorted()
+                    .map(path -> new PackagedFile(
+                            outputDir.relativize(path).toString().replace('\\', '/'),
+                            path
+                    ))
+                    .toList();
+
+            return new PackageOutput(
+                    outputDir,
+                    "hls/master.m3u8",
+                    "dash/manifest.mpd",
+                    packagedFiles
+            );
+        } catch (IOException | InterruptedException ex) {
+            deleteDirectoryQuietly(outputDir);
+            throw ex;
         }
-
-        for (PackagerInput input : inputs.stream()
-                .sorted(Comparator.comparingInt(PackagerInput::height))
-                .toList()) {
-            Files.createDirectories(outputDir.resolve("segments").resolve(slugify(input.profile())));
-            command.add(buildVideoArgument(input));
-        }
-
-        command.add("--segment_duration");
-        command.add(String.valueOf(resolveSegmentDurationSeconds()));
-        command.add("--hls_master_playlist_output");
-        command.add("hls/master.m3u8");
-        command.add("--mpd_output");
-        command.add("dash/manifest.mpd");
-
-        runCommand(command, outputDir);
-
-        List<PackagedFile> packagedFiles = Files.walk(outputDir)
-                .filter(Files::isRegularFile)
-                .sorted()
-                .map(path -> new PackagedFile(
-                        outputDir.relativize(path).toString().replace('\\', '/'),
-                        path
-                ))
-                .toList();
-
-        return new PackageOutput(
-                outputDir,
-                "hls/master.m3u8",
-                "dash/manifest.mpd",
-                packagedFiles
-        );
     }
 
     private String buildAudioArgument(PackagerInput input) {
@@ -122,6 +127,17 @@ public class ShakaPackagerService {
 
     int resolveSegmentDurationSeconds() {
         return segmentDurationSeconds >= 2 ? segmentDurationSeconds : DEFAULT_SEGMENT_DURATION_SECONDS;
+    }
+
+    private void deleteDirectoryQuietly(Path directory) {
+        if (directory == null || !Files.exists(directory)) {
+            return;
+        }
+        try (var walk = Files.walk(directory)) {
+            walk.sorted(Comparator.reverseOrder()).forEach(path -> {
+                try { Files.deleteIfExists(path); } catch (IOException ignored) {}
+            });
+        } catch (IOException ignored) {}
     }
 
     private String slugify(String value) {
