@@ -1,13 +1,13 @@
 :host {
   display: block;
   min-height: 100%;
-  --editor-sidebar-width: clamp(14rem, 19vw, 16rem);
+  --editor-sidebar-width: clamp(12rem, 16vw, 14rem);
   --editor-nav-padding: 1.5rem;
 }
 
 @media (min-width: 1280px) {
   :host {
-    --editor-sidebar-width: clamp(15rem, 21vw, 17.5rem);
+    --editor-sidebar-width: clamp(13rem, 17vw, 15rem);
   }
 }
 
@@ -18,7 +18,7 @@
   top: 48px; // header height (h-12)
   left: 0;
   bottom: 0;
-  width: min(280px, calc(100vw - 24px));
+  width: min(240px, calc(100vw - 24px));
   overflow: hidden;
   background: white;
   border-right: 1px solid rgb(226 232 240);

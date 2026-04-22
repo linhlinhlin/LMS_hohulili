@@ -47,12 +47,12 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
     .sidebar-row {
       display: flex;
       align-items: center;
-      gap: 0.25rem;
-      padding: 0 0.375rem 0 0;
+      gap: 0.125rem;
+      padding: 0 0.25rem 0 0;
       transition: background-color 160ms ease;
     }
     .sidebar-row:hover { background: rgb(248 250 252); }
-    .sidebar-row--lesson { padding-left: 1rem; }
+    .sidebar-row--lesson { padding-left: 0.625rem; }
     .sidebar-row--selected {
       background: rgba(0, 86, 210, 0.06);
       border-left: 2px solid rgb(0 86 210);
@@ -64,7 +64,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
     /* Drag handle */
     .sidebar-drag-handle {
       flex-shrink: 0;
-      width: 1.25rem;
+      width: 1rem;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -76,8 +76,8 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
     /* Expand arrow */
     .sidebar-expand {
       flex-shrink: 0;
-      width: 1.75rem;
-      height: 1.75rem;
+      width: 1.5rem;
+      height: 1.5rem;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -90,7 +90,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
       padding: 0;
     }
     .sidebar-expand:hover { color: rgb(51 65 85); }
-    .sidebar-expand--sm { width: 1.5rem; height: 1.5rem; }
+    .sidebar-expand--sm { width: 1.25rem; height: 1.25rem; }
 
     /* Kebab button */
     .sidebar-kebab {
@@ -132,20 +132,20 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
 
     /* ── Section items (Mục) — indented one level deeper than Bài ── */
     .sidebar-sections {
-      padding: 0.125rem 0.5rem 0.375rem 3.9rem;
+      padding: 0.125rem 0.375rem 0.25rem 2.75rem;
     }
     .sidebar-section-row {
       display: flex;
       align-items: center;
-      gap: 0.375rem;
+      gap: 0.25rem;
       width: 100%;
-      padding: 0.375rem 0.5rem;
+      padding: 0.25rem 0.375rem;
       border-radius: 0.25rem;
       border: none;
       background: transparent;
       cursor: pointer;
       text-align: left;
-      font-size: 0.8125rem; /* 13px */
+      font-size: 0.75rem; /* 12px */
       font-weight: 500;
       color: rgb(100 116 139);
       transition: background 160ms ease, color 160ms ease;
@@ -419,7 +419,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                           </button>
 
                           <!-- Title -->
-                          <div class="flex-grow min-w-0 py-2.5 cursor-pointer"
+                          <div class="flex-grow min-w-0 py-1.5 cursor-pointer"
                                (click)="toggleChapterSelection(chapter)">
                               @if (editingChapterId() === chapter.id) {
                                   <input [value]="editingValue"
@@ -430,7 +430,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                                          class="w-full text-sm font-semibold text-slate-800 bg-white border border-[#0056D2] rounded px-2 py-0.5 outline-none focus:ring-2 focus:ring-[#0056D2]/30"
                                          #editInput>
                               } @else {
-                                  <h4 class="text-[15px] font-semibold text-slate-800 leading-snug line-clamp-2 break-words"><span class="text-[13px] font-semibold text-[#0056D2]">{{ chapterLabel(chapterIdx) }}</span> · {{ getChapterDisplayTitle(chapter.title, chapterIdx) }}</h4>
+                                  <h4 class="text-[13px] font-semibold text-slate-800 leading-snug line-clamp-2 break-words"><span class="text-xs font-semibold text-[#0056D2]">{{ chapterLabel(chapterIdx) }}</span> · {{ getChapterDisplayTitle(chapter.title, chapterIdx) }}</h4>
                               }
                           </div>
 
@@ -545,7 +545,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                                           </button>
 
                                           <!-- Title -->
-                                          <div class="flex-grow min-w-0 py-2 cursor-pointer"
+                                          <div class="flex-grow min-w-0 py-1.5 cursor-pointer"
                                                (click)="toggleLessonSelection(chapter, lesson)">
                                             @if (editingLessonId() === lesson.id) {
                                                 <input [value]="editingValue"
@@ -553,10 +553,10 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                                                        (blur)="confirmEditLesson(lesson.id)"
                                                        (keydown)="onEditKeydown($event, 'lesson', lesson.id)"
                                                        (click)="$event.stopPropagation()"
-                                                       class="w-full text-[13px] font-medium text-slate-700 bg-white border border-[#0056D2] rounded px-2 py-0.5 outline-none focus:ring-2 focus:ring-[#0056D2]/30"
+                                                       class="w-full text-xs font-medium text-slate-700 bg-white border border-[#0056D2] rounded px-2 py-0.5 outline-none focus:ring-2 focus:ring-[#0056D2]/30"
                                                        #editInput>
                                             } @else {
-                                                <p class="text-sm font-medium text-slate-600 leading-snug line-clamp-2 break-words group-hover/ls:text-slate-900"><span class="text-xs font-semibold text-[#0056D2]">{{ lessonLabel(lessonIdx) }}</span> {{ getLessonDisplayTitle(lesson.title, lessonIdx) }} <span class="inline-block w-1.5 h-1.5 rounded-full align-middle ml-1" [style.background]="getLessonReadinessColor(lesson)"></span></p>
+                                                <p class="text-[13px] font-medium text-slate-600 leading-snug line-clamp-2 break-words group-hover/ls:text-slate-900"><span class="text-[11px] font-semibold text-[#0056D2]">{{ lessonLabel(lessonIdx) }}</span> {{ getLessonDisplayTitle(lesson.title, lessonIdx) }} <span class="inline-block w-1.5 h-1.5 rounded-full align-middle ml-1" [style.background]="getLessonReadinessColor(lesson)"></span></p>
                                             }
                                           </div>
 

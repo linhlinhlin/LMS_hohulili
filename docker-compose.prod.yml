@@ -90,7 +90,6 @@ services:
     restart: always
     environment:
       <<: *backend-runtime-env
-      VIDEO_INGEST_ENABLED: "false"
     cpus: "${BACKEND_CPU_LIMIT:-1.5}"
     mem_limit: "${BACKEND_MEMORY_LIMIT:-1536M}"
     mem_reservation: "${BACKEND_MEMORY_RESERVATION:-768M}"
