@@ -81,15 +81,15 @@ public class PresignedUploadUseCase {
     public InitUploadResult initUpload(String contentType, long fileSize, String folder, UUID userId) {
         String sanitizedFolder = sanitizeFolder(folder);
 
-        Set<String> allowedTypes = ALLOWED_TYPES.getOrDefault(
-                sanitizedFolder,
-                Set.of("image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf", "video/mp4", "video/webm")
-        );
+        if (!ALLOWED_TYPES.containsKey(sanitizedFolder)) {
+            throw new IllegalArgumentException("Unknown upload folder: " + sanitizedFolder);
+        }
+        Set<String> allowedTypes = ALLOWED_TYPES.get(sanitizedFolder);
         if (!allowedTypes.contains(contentType.toLowerCase())) {
             throw new IllegalArgumentException("Unsupported content type: " + contentType);
         }
 
-        long maxSize = MAX_SIZES.getOrDefault(sanitizedFolder, 50L * 1024 * 1024);
+        long maxSize = MAX_SIZES.get(sanitizedFolder);
         if (fileSize > maxSize) {
             throw new IllegalArgumentException("File exceeds max size: " + humanReadableSize(maxSize));
         }

@@ -327,7 +327,12 @@ public class CourseAuthoringControllerV3 {
         final String convName = (String) payload.remove("_convName");
 
         com.example.lms.shared.domain.model.ContentBlock block = manageContentBlockUseCase.addBlock(lessonId, type, payload, user.getId(), isAdmin);
-                // Fire async document conversion AFTER section saved
+
+        String fileUrl = (String) payload.get("fileUrl");
+        if (fileUrl != null) {
+            fileManagementService.linkFileByUrl(fileUrl, lessonId, "LESSON");
+        }
+
         if (convBytes != null) {
             scheduleAsyncPreviewConversion(block.getId().toString(), lessonId, convBytes, convName, user.getId());
         }
@@ -383,7 +388,13 @@ return ResponseEntity.ok(ApiResponse.success(block, "Táº¡o pháº§n há»c
         final String convName2 = (String) payload.remove("_convName");
 
         com.example.lms.shared.domain.model.ContentBlock block = manageContentBlockUseCase.updateBlock(lessonId, sectionId, payload, user.getId(), isAdmin);
-                if (convBytes2 != null) {
+
+        String fileUrl2 = (String) payload.get("fileUrl");
+        if (fileUrl2 != null) {
+            fileManagementService.linkFileByUrl(fileUrl2, lessonId, "LESSON");
+        }
+
+        if (convBytes2 != null) {
             scheduleAsyncPreviewConversion(sectionId, lessonId, convBytes2, convName2, user.getId());
         }
 

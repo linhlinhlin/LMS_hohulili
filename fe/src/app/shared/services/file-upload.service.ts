@@ -209,17 +209,19 @@ export class FileUploadService {
   }
 
   // File Management Methods
-  async deleteFile(fileId: string): Promise<void> {
+  async deleteFile(fileIdOrStorageKey: string): Promise<void> {
     try {
-      await firstValueFrom(this.fileApi.deleteFile(fileId));
-      
-      this._uploadedFiles.update(files => 
-        files.filter(file => file.id !== fileId)
+      const file = this._uploadedFiles().find(f => f.id === fileIdOrStorageKey);
+      const storageKey = file?.fileName || fileIdOrStorageKey;
+      await firstValueFrom(this.fileApi.deleteFile(storageKey));
+
+      this._uploadedFiles.update(files =>
+        files.filter(f => f.id !== fileIdOrStorageKey && f.fileName !== fileIdOrStorageKey)
       );
-      
+
       this._uploadProgress.update(progressMap => {
         const newMap = new Map(progressMap);
-        newMap.delete(fileId);
+        newMap.delete(fileIdOrStorageKey);
         return newMap;
       });
     } catch (error) {
