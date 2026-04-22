@@ -37,6 +37,7 @@ import { QuizPackageModalsComponent } from './components/quiz-package-modals/qui
 import { buildCurriculumLabel, stripCurriculumPrefix } from '../../utils/curriculum-labels';
 
 type SectionQuizAssessmentType = 'PRACTICE' | 'ASSESSMENT' | 'EXAM';
+type LessonComposerType = 'LECTURE' | 'QUIZ' | 'ASSIGNMENT';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -152,6 +153,10 @@ export class CourseCurriculumComponent implements OnDestroy {
   lessonTitle = '';
   lessonContent = '';
   lessonVideoUrl = '';
+  lessonComposerOpen = signal(false);
+  lessonComposerTitle = signal('');
+  lessonComposerType = signal<LessonComposerType>('LECTURE');
+  lessonComposerBusy = signal(false);
 
   // Quiz fields
   quizTimeLimit = signal(30);
@@ -248,6 +253,19 @@ export class CourseCurriculumComponent implements OnDestroy {
         this.chapterTitle = chapter.title;
         this.chapterDescription = chapter.description || '';
       }
+    });
+
+    effect(() => {
+      const chapter = this.editorSvc.pendingLessonCreateForChapter();
+      if (!chapter) {
+        return;
+      }
+
+      untracked(() => {
+        this.selectionService.selectChapter(chapter);
+        this.openLessonComposerForChapter(chapter);
+        this.editorSvc.pendingLessonCreateForChapter.set(null);
+      });
     });
 
     effect(() => {
@@ -605,13 +623,81 @@ export class CourseCurriculumComponent implements OnDestroy {
   }
 
   private hasPendingChanges(): boolean {
-    return this.editorDirty() || this.isSaving();
+    return this.editorDirty() || this.isSaving() || this.hasPendingLessonComposerDraft();
   }
   requestAddLessonForCurrentChapter() {
     const chapter = this.selectionService.selectedChapter();
     if (chapter) {
-      this.editorSvc.pendingLessonCreateForChapter.set(chapter);
+      this.openLessonComposerForChapter(chapter);
     }
+  }
+
+  private openLessonComposerForChapter(chapter: ChapterDraftDTO): void {
+    this.selectionService.selectChapter(chapter);
+    this.lessonComposerOpen.set(true);
+    this.lessonComposerTitle.set('');
+    this.lessonComposerType.set('LECTURE');
+    this.editorSvc.closeSectionSurface();
+    this.selectionService.clearSectionSelection();
+    this.syncEditorDirtyState();
+  }
+
+  cancelLessonComposer(): void {
+    this.lessonComposerOpen.set(false);
+    this.lessonComposerTitle.set('');
+    this.lessonComposerType.set('LECTURE');
+    this.syncEditorDirtyState();
+  }
+
+  onLessonComposerTitleChange(value: string): void {
+    this.lessonComposerTitle.set(value);
+    this.syncEditorDirtyState();
+  }
+
+  onLessonComposerTypeChange(type: LessonComposerType): void {
+    this.lessonComposerType.set(type);
+    this.syncEditorDirtyState();
+  }
+
+  async createLessonFromComposer(): Promise<void> {
+    const chapter = this.selectionService.selectedChapter();
+    const courseId = this.store.courseTree()?.id;
+    const title = this.lessonComposerTitle().trim();
+    if (!chapter || !courseId || !title) {
+      return;
+    }
+
+    this.lessonComposerBusy.set(true);
+    try {
+      const lessonType = this.lessonComposerType();
+      await firstValueFrom(this.lessonApi.createLesson(chapter.id, {
+        title,
+        type: lessonType,
+        content: undefined
+      }));
+
+      const createdTypeLabel = lessonType === 'QUIZ'
+        ? 'bài kiểm tra'
+        : lessonType === 'ASSIGNMENT'
+          ? 'bài tập'
+          : 'bài học';
+
+      this.cancelLessonComposer();
+      this.store.loadCourse(courseId, true);
+
+      this.toast.success(`Đã tạo ${createdTypeLabel} mới. Chọn mục vừa tạo trong vùng soạn để tiếp tục.`);
+    } catch (err: any) {
+      this.toast.error('Tạo bài học thất bại: ' + (err?.error?.message || err?.message || ''));
+    } finally {
+      this.lessonComposerBusy.set(false);
+    }
+  }
+
+  private hasPendingLessonComposerDraft(): boolean {
+    return this.lessonComposerOpen() && (
+      this.lessonComposerTitle().trim().length > 0
+      || this.lessonComposerType() !== 'LECTURE'
+    );
   }
 
   async selectLessonFromChapter(lesson: LessonDraftDTO) {
@@ -846,11 +932,20 @@ export class CourseCurriculumComponent implements OnDestroy {
 
     const chapter = this.selectionService.selectedChapter();
     if (chapter) {
+      const composerDraft = this.hasPendingLessonComposerDraft()
+        ? [
+            'lesson-composer',
+            this.lessonComposerTitle().trim(),
+            this.lessonComposerType()
+          ].join('|')
+        : '';
+
       return [
         'chapter',
         chapter.id,
         this.chapterTitle.trim(),
-        this.chapterDescription.trim()
+        this.chapterDescription.trim(),
+        composerDraft
       ].join('|');
     }
 

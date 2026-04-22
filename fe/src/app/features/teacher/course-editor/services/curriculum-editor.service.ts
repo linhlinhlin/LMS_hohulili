@@ -55,7 +55,7 @@ export class CurriculumEditorService {
   });
 
   // ── Cross-component bridge ───────────────────────────────────────────
-  /** Set by chapter-editor (via parent) to request sidebar opens lesson modal */
+  /** Set by navigation surfaces to request the main curriculum workspace opens lesson creation */
   readonly pendingLessonCreateForChapter = signal<ChapterDraftDTO | null>(null);
 
   // ── Section surface state ────────────────────────────────────────────

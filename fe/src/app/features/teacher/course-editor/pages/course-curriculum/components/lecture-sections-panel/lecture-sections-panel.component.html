@@ -4,7 +4,7 @@
   <div class="add-content-wrapper">
     <button type="button" class="add-content-btn" (click)="toggleDropdown()">
       <lucide-icon name="plus" [size]="14"></lucide-icon>
-      Thêm nội dung
+      Thêm mục
       <lucide-icon name="chevron-down" [size]="12"></lucide-icon>
     </button>
 
@@ -56,8 +56,8 @@
 
 @if (sections().length === 0) {
   <div class="sections-empty">
-    <p style="font-size: 0.8125rem; font-weight: 500; color: rgb(100 116 139); margin-bottom: 0.25rem">Chưa có nội dung</p>
-    <p style="font-size: 0.75rem; color: rgb(148 163 184)">Nhấn "Thêm nội dung" để bắt đầu soạn bài học</p>
+    <p style="font-size: 0.8125rem; font-weight: 500; color: rgb(100 116 139); margin-bottom: 0.25rem">Chưa có mục nào</p>
+    <p style="font-size: 0.75rem; color: rgb(148 163 184)">Nhấn "Thêm mục" để bắt đầu soạn bài học</p>
   </div>
 } @else {
   <div
