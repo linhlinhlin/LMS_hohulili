@@ -11,6 +11,7 @@ import { ChatPanelComponent } from '../../ai-chat/presentation/components/chat-p
 import { OfflineSyncService } from '../../../core/services/offline-sync.service';
 import { NetworkStatusService } from '../../../core/services/network-status.service';
 import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
+import { AiAvailabilityService } from '../../ai-chat/application/services/ai-availability.service';
 
 @Component({
   selector: 'app-student-layout-simple',
@@ -112,7 +113,7 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
                   </svg>
                   <span class="tab-label">Cần làm</span>
                 </a>
-                @if (enableAssistant) {
+                @if (enableAssistant()) {
                   <button
                     (click)="toggleMobilePanel()"
                     aria-label="Trợ lý Wiii AI"
@@ -152,7 +153,7 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
         </div>
 
         <!-- AI Sidebar (Desktop) — always rendered, animated via CSS -->
-        @if (enableAssistant && isAiSidebarOpen()) {
+        @if (enableAssistant() && isAiSidebarOpen()) {
           <aside class="ai-sidebar ai-sidebar-open hidden md:flex md:flex-col"
                  [class.ai-sidebar-resizing]="isResizing()"
                  [style.width.px]="aiSidebarWidth()"
@@ -165,7 +166,7 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
         }
 
         <!-- Resize handle — fixed position at sidebar's left edge -->
-        @if (enableAssistant && isAiSidebarOpen()) {
+        @if (enableAssistant() && isAiSidebarOpen()) {
           <div class="resize-handle-track"
                [style.right.px]="aiSidebarWidth() - 6"
                [class.resize-active]="isResizing()"
@@ -176,13 +177,13 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
         }
 
         <!-- Resize overlay — blocks iframe from stealing mouse events during drag -->
-        @if (enableAssistant && isResizing()) {
+        @if (enableAssistant() && isResizing()) {
           <div class="resize-overlay"></div>
         }
       </div>
 
       <!-- Desktop: Toggle tab — always rendered, animated -->
-      @if (enableAssistant) {
+      @if (enableAssistant()) {
       <button
         class="ai-sidebar-toggle hidden md:flex"
         [class.ai-toggle-hidden]="isAiSidebarOpen()"
@@ -198,7 +199,7 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
       <!-- ============================================================
            MOBILE: Chat panel with slide-up animation
            ============================================================ -->
-      @if (enableAssistant) {
+      @if (enableAssistant()) {
         <div class="mobile-ai-overlay md:hidden"
              [class.open]="isMobilePanelOpen()">
           <div class="mobile-ai-backdrop" (click)="closeMobilePanel()"></div>
@@ -436,9 +437,8 @@ import { ConfirmDialogService } from '../../../core/services/confirm-dialog.serv
 })
 export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
   protected authService = inject(AuthService);
-  // Students should get the same embedded Wiii assistant surface as teachers.
-  // Role-specific behavior is handled by host context and backend policies, not by hiding the entrypoint.
-  protected readonly enableAssistant = true;
+  private aiAvailability = inject(AiAvailabilityService);
+  protected readonly enableAssistant = this.aiAvailability.isAvailable;
   private router = inject(Router);
   private notificationService = inject(NotificationService);
   private messagingService = inject(MessagingService);

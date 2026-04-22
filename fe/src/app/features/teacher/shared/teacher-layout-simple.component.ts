@@ -8,6 +8,7 @@ import { teacherSidebarConfig as baseTeacherSidebarConfig } from '../../../share
 import { NotificationService } from '../../../core/services/notification.service';
 import { MessagingService } from '../../../core/services/messaging.service';
 import { ChatPanelComponent } from '../../ai-chat/presentation/components/chat-panel/chat-panel.component';
+import { AiAvailabilityService } from '../../ai-chat/application/services/ai-availability.service';
 
 @Component({
   selector: 'app-teacher-layout-simple',
@@ -144,6 +145,7 @@ import { ChatPanelComponent } from '../../ai-chat/presentation/components/chat-p
         </div>
 
         <!-- AI Sidebar (Desktop) — always rendered, animated via CSS -->
+        @if (enableAssistant()) {
         <aside class="ai-sidebar hidden md:flex md:flex-col"
                [class.ai-sidebar-open]="isAiSidebarOpen()"
                [class.ai-sidebar-resizing]="isResizing()"
@@ -172,9 +174,11 @@ import { ChatPanelComponent } from '../../ai-chat/presentation/components/chat-p
         @if (isResizing()) {
           <div class="resize-overlay"></div>
         }
+        }
       </div>
 
       <!-- Desktop: Toggle tab — always rendered, animated -->
+      @if (enableAssistant()) {
       <button
         class="ai-sidebar-toggle hidden md:flex"
         [class.ai-toggle-hidden]="isAiSidebarOpen()"
@@ -185,10 +189,12 @@ import { ChatPanelComponent } from '../../ai-chat/presentation/components/chat-p
           <path fill-rule="evenodd" d="M9 4.5a.75.75 0 01.721.544l.813 2.846a3.75 3.75 0 002.576 2.576l2.846.813a.75.75 0 010 1.442l-2.846.813a3.75 3.75 0 00-2.576 2.576l-.813 2.846a.75.75 0 01-1.442 0l-.813-2.846a3.75 3.75 0 00-2.576-2.576l-2.846-.813a.75.75 0 010-1.442l2.846-.813A3.75 3.75 0 007.466 7.89l.813-2.846A.75.75 0 019 4.5zM18 1.5a.75.75 0 01.728.568l.258 1.036c.236.94.97 1.674 1.91 1.91l1.036.258a.75.75 0 010 1.456l-1.036.258c-.94.236-1.674.97-1.91 1.91l-.258 1.036a.75.75 0 01-1.456 0l-.258-1.036a2.625 2.625 0 00-1.91-1.91l-1.036-.258a.75.75 0 010-1.456l1.036-.258a2.625 2.625 0 001.91-1.91l.258-1.036A.75.75 0 0118 1.5z" clip-rule="evenodd" />
         </svg>
       </button>
+      }
 
       <!-- ============================================================
            MOBILE: Slide-up AI panel (triggered from bottom nav tab)
            ============================================================ -->
+      @if (enableAssistant()) {
       <div class="mobile-ai-overlay md:hidden"
            [class.open]="isMobilePanelOpen()">
         <div class="mobile-ai-backdrop" (click)="closeMobilePanel()"></div>
@@ -201,6 +207,7 @@ import { ChatPanelComponent } from '../../ai-chat/presentation/components/chat-p
           }
         </div>
       </div>
+      }
     </div>
     `,
   styles: [`
@@ -428,9 +435,11 @@ import { ChatPanelComponent } from '../../ai-chat/presentation/components/chat-p
 })
 export class TeacherLayoutSimpleComponent implements OnInit, OnDestroy {
   protected authService = inject(AuthService);
+  private aiAvailability = inject(AiAvailabilityService);
   private router = inject(Router);
   private notificationService = inject(NotificationService);
   private messagingService = inject(MessagingService);
+  protected readonly enableAssistant = this.aiAvailability.isAvailable;
   protected isMobileSidebarOpen = signal(false);
   protected sidebarCollapsed = signal(false);
 

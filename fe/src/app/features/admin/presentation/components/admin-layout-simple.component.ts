@@ -7,6 +7,7 @@ import { SidebarComponent } from '../../../../shared/components/navigation/sideb
 import { getSidebarConfig } from '../../../../shared/components/navigation/sidebar.config';
 import { ChatPanelComponent } from '../../../ai-chat/presentation/components/chat-panel/chat-panel.component';
 import { FloatingChatBubbleComponent } from '../../../ai-chat/presentation/components/floating-chat-bubble/floating-chat-bubble.component';
+import { AiAvailabilityService } from '../../../ai-chat/application/services/ai-availability.service';
 
 @Component({
   selector: 'app-admin-layout-simple',
@@ -272,6 +273,7 @@ import { FloatingChatBubbleComponent } from '../../../ai-chat/presentation/compo
 })
 export class AdminLayoutSimpleComponent implements OnInit, OnDestroy {
   protected authService = inject(AuthService);
+  private aiAvailability = inject(AiAvailabilityService);
   private router = inject(Router);
   protected isMobileSidebarOpen = signal(false);
 
@@ -306,7 +308,9 @@ export class AdminLayoutSimpleComponent implements OnInit, OnDestroy {
     const isOperationalAdminRoute = route.startsWith('/admin/offline-storage')
       || route.startsWith('/admin/settings')
       || route.startsWith('/admin/logs');
-    return !this.shouldHideSidebar() && !isOperationalAdminRoute;
+    return this.aiAvailability.isAvailable()
+      && !this.shouldHideSidebar()
+      && !isOperationalAdminRoute;
   });
 
   ngOnInit(): void {

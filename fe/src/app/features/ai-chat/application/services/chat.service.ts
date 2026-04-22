@@ -1346,7 +1346,7 @@ export class ChatService {
       next: (health) => {
         this._serviceState.update((state) => ({
           ...state,
-          isHealthy: health.status === 'healthy',
+          isHealthy: health.status === 'healthy' && health.aiServiceStatus === 'available',
         }));
       },
       error: () => {
