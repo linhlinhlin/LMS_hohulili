@@ -437,10 +437,12 @@ export class CurriculumEditorService {
     }
 
     // Video polling for in-progress assets.
-    // Also poll when status is null but assetId exists with no playable URL — backend may have
-    // failed to populate videoProcessingStatus (e.g. asset view lookup returned nothing).
+    // 'PENDING' = asset created, ingest worker hasn't started yet.
+    // 'PROCESSING' = worker picked it up.
+    // null = backend couldn't resolve the asset view (rare, treat same as in-progress).
     if (section.videoAssetId && (
       section.videoProcessingStatus === 'PROCESSING' ||
+      section.videoProcessingStatus === 'PENDING' ||
       (section.videoProcessingStatus == null && !section.videoUrl)
     )) {
       this.scheduleSectionVideoPoll(section.videoAssetId);

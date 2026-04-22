@@ -1106,7 +1106,7 @@ export class SectionEditorComponent {
     // No 'staged' state — upload starts immediately on file select (Coursera pattern)
     if (this.svc.sectionVideoAssetId()) {
       const status = this.svc.sectionVideoProcessingStatus();
-      if (status === 'PROCESSING') return 'uploading';
+      if (status === 'PROCESSING' || status === 'PENDING') return 'uploading';
       if (status === 'FAILED') return 'error';
       // Null status + no playable URL → asset exists but backend couldn't confirm READY yet; poll will resolve
       if (status == null && !this.svc.sectionVideoUrl()) return 'uploading';
@@ -1237,7 +1237,7 @@ export class SectionEditorComponent {
   getVideoProcessingCopy(): string {
     const status = this.svc.sectionVideoProcessingStatus();
     if (status === 'READY') return 'Video đã sẵn sàng phát.';
-    if (status === 'PROCESSING') return 'Đang xử lý video...';
+    if (status === 'PROCESSING' || status === 'PENDING') return 'Đang xử lý video...';
     if (status === 'FAILED') return 'Xử lý video thất bại.';
     return 'Video đã được gắn.';
   }
