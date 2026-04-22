@@ -42,6 +42,7 @@ public class UserEntityMapper {
                 .avatarUrl(entity.getAvatarUrl())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
+                .mustChangePassword(entity.isMustChangePassword())
                 .build();
     }
 
@@ -69,6 +70,7 @@ public class UserEntityMapper {
         entity.setAvatarUrl(domain.getAvatarUrl());
         entity.setCreatedAt(domain.getCreatedAt());
         entity.setUpdatedAt(domain.getUpdatedAt());
+        entity.setMustChangePassword(domain.isMustChangePassword());
         return entity;
     }
 

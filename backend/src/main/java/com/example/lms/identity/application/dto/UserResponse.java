@@ -15,7 +15,8 @@ public record UserResponse(
     String role,
     boolean enabled,
     UUID organizationId,
-    String avatarUrl
+    String avatarUrl,
+    boolean mustChangePassword
 ) {
     /**
      * Create from domain User model.
@@ -29,7 +30,8 @@ public record UserResponse(
             user.getRole().name(),
             user.isEnabled(),
             user.getOrganizationId(),
-            user.getAvatarUrl()
+            user.getAvatarUrl(),
+            user.isMustChangePassword()
         );
     }
 }

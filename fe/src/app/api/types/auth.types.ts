@@ -10,6 +10,7 @@ export interface AuthenticationResponse {
     role: 'ADMIN' | 'ORG_ADMIN' | 'TEACHER' | 'STUDENT';
     enabled: boolean;
     organizationId?: string;
+    mustChangePassword?: boolean;
     createdAt?: string;
     updatedAt?: string;
   };

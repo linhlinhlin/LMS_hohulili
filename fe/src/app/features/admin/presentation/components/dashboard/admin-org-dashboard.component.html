@@ -115,7 +115,7 @@
                         <td>
                           <div class="action-btns">
                             <button class="btn-approve" (click)="approveCourse(approval.id)">Duyệt</button>
-                            <button class="btn-reject" (click)="rejectCourse(approval.id)">Từ chối</button>
+                            <button class="btn-reject" (click)="openRejectModal(approval.id, approval.name)">Từ chối</button>
                           </div>
                         </td>
                       </tr>
@@ -149,3 +149,45 @@
     </div>
   </div>
 }
+
+<!-- Reject course modal -->
+<app-dialog
+  [open]="rejectModalOpen()"
+  title="Từ chối khóa học"
+  [subtitle]="pendingRejectName()"
+  size="md"
+  variant="danger"
+  role="alertdialog"
+  [busy]="rejecting()"
+  (close)="closeRejectModal()">
+
+  <div class="reject-form">
+    <label class="reject-label" for="reject-reason">
+      Lý do từ chối <span class="required">*</span>
+    </label>
+    <textarea
+      id="reject-reason"
+      class="reject-textarea"
+      rows="4"
+      placeholder="Mô tả chi tiết lý do từ chối khóa học này (tối thiểu 10 ký tự)..."
+      [value]="rejectReason()"
+      (input)="rejectReason.set($any($event.target).value)"
+    ></textarea>
+    @if (rejectReason().trim().length > 0 && !rejectReasonValid()) {
+      <p class="reject-hint error">Lý do cần ít nhất 10 ký tự.</p>
+    } @else {
+      <p class="reject-hint">{{ rejectReason().trim().length }}/10 ký tự tối thiểu</p>
+    }
+  </div>
+
+  <div dialogFooter>
+    <button type="button" class="btn-cancel" [disabled]="rejecting()" (click)="closeRejectModal()">Hủy</button>
+    <button
+      type="button"
+      class="btn-confirm-reject"
+      [disabled]="!rejectReasonValid() || rejecting()"
+      (click)="confirmReject()">
+      Từ chối khóa học
+    </button>
+  </div>
+</app-dialog>

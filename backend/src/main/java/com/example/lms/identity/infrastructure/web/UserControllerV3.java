@@ -662,6 +662,7 @@ public class UserControllerV3 {
                 .role(user.getRole() != null ? user.getRole().name().toLowerCase(Locale.ROOT) : "student")
                 .isActive(user.isEnabled())
                 .enabled(user.isEnabled())
+                .mustChangePassword(user.isMustChangePassword())
                 .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
                 .updatedAt(user.getUpdatedAt() != null ? user.getUpdatedAt().toString() : null)
                 .build();
@@ -800,6 +801,7 @@ public class UserControllerV3 {
                 Instant.now(),
                 null
         );
+        user.setMustChangePassword(true);
         if (isOrgAdmin(currentUser)) {
             user.setOrganizationId(currentUser.getOrganizationId());
         }
@@ -953,6 +955,7 @@ public class UserControllerV3 {
         private String department;
         private boolean isActive;
         private boolean enabled;
+        private boolean mustChangePassword;
         private String createdAt;
         private String updatedAt;
         private String lastLogin;
