@@ -14,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StopWatch;
 
 import java.io.IOException;
@@ -63,7 +62,6 @@ public class VideoAssetIngestService {
         return processed;
     }
 
-    @Transactional
     public void processSingleJob(UUID jobId) {
         VideoIngestJobJpaEntity job = videoIngestJobRepository.findById(jobId).orElse(null);
         if (job == null) {

@@ -287,13 +287,20 @@ public class FfmpegVideoProcessingService {
         }
     }
 
+    private static final long PROCESS_TIMEOUT_MINUTES = 10;
+
     private ProcessResult runCommand(List<String> command) throws IOException, InterruptedException {
         Process process = new ProcessBuilder(command)
                 .redirectErrorStream(true)
                 .start();
 
         String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-        int exitCode = process.waitFor();
+        boolean finished = process.waitFor(PROCESS_TIMEOUT_MINUTES, java.util.concurrent.TimeUnit.MINUTES);
+        if (!finished) {
+            process.destroyForcibly();
+            throw new IOException("Process timed out after " + PROCESS_TIMEOUT_MINUTES + " minutes: " + command.getFirst());
+        }
+        int exitCode = process.exitValue();
         if (exitCode != 0) {
             throw new IOException("Command failed (" + exitCode + "): " + String.join(" ", command) + "\n" + output);
         }

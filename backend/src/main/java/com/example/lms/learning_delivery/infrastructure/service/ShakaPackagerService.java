@@ -99,6 +99,8 @@ public class ShakaPackagerService {
                 + ",hls_name=" + input.displayLabel();
     }
 
+    private static final long PROCESS_TIMEOUT_MINUTES = 5;
+
     private void runCommand(List<String> command, Path workingDirectory) throws IOException, InterruptedException {
         log.info("[VideoAsset] Running Shaka Packager: {}", String.join(" ", command));
         Process process = new ProcessBuilder(command)
@@ -107,7 +109,12 @@ public class ShakaPackagerService {
                 .start();
 
         String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-        int exitCode = process.waitFor();
+        boolean finished = process.waitFor(PROCESS_TIMEOUT_MINUTES, java.util.concurrent.TimeUnit.MINUTES);
+        if (!finished) {
+            process.destroyForcibly();
+            throw new IOException("Shaka Packager timed out after " + PROCESS_TIMEOUT_MINUTES + " minutes");
+        }
+        int exitCode = process.exitValue();
         if (exitCode != 0) {
             throw new IOException("Shaka Packager failed (" + exitCode + "): " + output);
         }
