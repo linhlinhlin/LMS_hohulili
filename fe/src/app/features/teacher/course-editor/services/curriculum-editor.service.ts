@@ -436,8 +436,13 @@ export class CurriculumEditorService {
       this.resetQuizFields();
     }
 
-    // Video polling for in-progress assets
-    if (section.videoAssetId && section.videoProcessingStatus === 'PROCESSING') {
+    // Video polling for in-progress assets.
+    // Also poll when status is null but assetId exists with no playable URL — backend may have
+    // failed to populate videoProcessingStatus (e.g. asset view lookup returned nothing).
+    if (section.videoAssetId && (
+      section.videoProcessingStatus === 'PROCESSING' ||
+      (section.videoProcessingStatus == null && !section.videoUrl)
+    )) {
       this.scheduleSectionVideoPoll(section.videoAssetId);
     }
 

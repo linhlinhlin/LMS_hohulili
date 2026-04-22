@@ -243,19 +243,21 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                   <div class="min-w-0 flex-1">
                     <div class="flex items-center justify-between mb-2">
                       <p class="text-sm font-semibold text-[#0056D2]">
-                        @if (svc.sectionVideoProcessingStatus() === 'PROCESSING') {
+                        @if (svc.sectionVideoProcessingStatus() === 'PROCESSING' || (svc.sectionVideoAssetId() && !svc.sectionVideoIsUploading())) {
                           Đang xử lý video...
                         } @else {
                           Đang tải lên...
                         }
                       </p>
-                      <span class="text-xs font-semibold text-[#0056D2] tabular-nums">{{ svc.sectionVideoUploadProgress() }}%</span>
+                      @if (!svc.sectionVideoAssetId() || svc.sectionVideoIsUploading()) {
+                        <span class="text-xs font-semibold text-[#0056D2] tabular-nums">{{ svc.sectionVideoUploadProgress() }}%</span>
+                      }
                     </div>
                     <div class="h-2 w-full overflow-hidden rounded-full bg-[#0056D2]/10">
                       <div class="h-full rounded-full bg-[#0056D2] transition-[width] duration-300 ease-out"
-                           [style.width.%]="svc.sectionVideoUploadProgress()"></div>
+                           [style.width.%]="svc.sectionVideoIsUploading() ? svc.sectionVideoUploadProgress() : 100"></div>
                     </div>
-                    @if (svc.sectionVideoProcessingStatus() === 'PROCESSING') {
+                    @if (svc.sectionVideoProcessingStatus() === 'PROCESSING' || (svc.sectionVideoAssetId() && !svc.sectionVideoIsUploading())) {
                       <p class="mt-2 text-xs text-slate-500">Video đang được tối ưu để phát trực tuyến. Bạn có thể đóng và quay lại sau.</p>
                     }
                   </div>
@@ -1106,6 +1108,8 @@ export class SectionEditorComponent {
       const status = this.svc.sectionVideoProcessingStatus();
       if (status === 'PROCESSING') return 'uploading';
       if (status === 'FAILED') return 'error';
+      // Null status + no playable URL → asset exists but backend couldn't confirm READY yet; poll will resolve
+      if (status == null && !this.svc.sectionVideoUrl()) return 'uploading';
       return 'done';
     }
     return 'idle';

@@ -38,7 +38,7 @@ type ResolvedSource =
         crossorigin="anonymous"
         class="w-full"
         style="max-height: 400px;"
-        [class.opacity-0]="isLoading() && !error()"
+        [class.opacity-0]="isLoading() && !error() && !isProcessing()"
         (error)="onVideoError()">
         Trình duyệt không hỗ trợ phát video.
       </video>
@@ -48,6 +48,20 @@ type ResolvedSource =
           <div class="flex items-center gap-3 rounded-xl bg-slate-900/80 px-4 py-3 text-sm">
             <span class="h-4 w-4 animate-spin rounded-full border-2 border-white/25 border-t-white"></span>
             <span>Đang chuẩn bị video...</span>
+          </div>
+        </div>
+      }
+
+      @if (isProcessing()) {
+        <div class="absolute inset-0 flex items-center justify-center bg-slate-950/80 px-6 text-white">
+          <div class="flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-slate-900/90 px-5 py-4 text-center shadow-xl">
+            <span class="h-5 w-5 animate-spin rounded-full border-2 border-white/25 border-t-white"></span>
+            <p class="text-sm font-semibold">Đang xử lý video...</p>
+            <p class="text-xs text-slate-400">Video sẽ sẵn sàng sau vài phút.</p>
+            <button type="button" (click)="retry()"
+              class="mt-1 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-semibold hover:bg-white/20">
+              Kiểm tra lại
+            </button>
           </div>
         </div>
       }
@@ -104,6 +118,7 @@ export class QuizVideoPlayerComponent {
   private readonly videoElement = viewChild<ElementRef<HTMLVideoElement>>('videoElement');
 
   readonly isLoading = signal(true);
+  readonly isProcessing = signal(false);
   readonly error = signal<string | null>(null);
   readonly qualityLabel = signal<string | null>(null);
   readonly showQualityMenu = signal(false);
@@ -147,6 +162,7 @@ export class QuizVideoPlayerComponent {
     const token = ++this.loadToken;
     await this.destroyShakaPlayer();
     this.error.set(null);
+    this.isProcessing.set(false);
     this.isLoading.set(true);
     this.qualityLabel.set(null);
 
@@ -155,7 +171,12 @@ export class QuizVideoPlayerComponent {
       if (token !== this.loadToken) return;
 
       if (!source) {
-        this.error.set('Nguồn phát video chưa sẵn sàng.');
+        // Asset ID known but no playable URL yet — still processing on the server
+        if (assetId) {
+          this.isProcessing.set(true);
+        } else {
+          this.error.set('Nguồn phát video chưa sẵn sàng.');
+        }
         this.isLoading.set(false);
         return;
       }
