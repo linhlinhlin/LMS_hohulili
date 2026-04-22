@@ -1,6 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import {
   ensureOfflineDbReady,
+  getCurrentUserId,
   isOfflineDbUnavailableError,
   isOfflinePersistenceSupported,
 } from '../db/lms-offline.db';
@@ -18,7 +19,7 @@ export class OfflineFileService {
       throw new Error(`HTTP ${response.status}`);
     }
 
-    const cache = await caches.open('offline-files');
+    const cache = await caches.open(`offline-files:${getCurrentUserId()}`);
     await cache.put(`/offline-file/${sectionId}`, response);
     return `/offline-file/${sectionId}`;
   }
@@ -28,7 +29,7 @@ export class OfflineFileService {
       return null;
     }
 
-    const cache = await caches.open('offline-files');
+    const cache = await caches.open(`offline-files:${getCurrentUserId()}`);
     const response = await cache.match(`/offline-file/${sectionId}`);
     return response ? `/offline-file/${sectionId}` : null;
   }
@@ -38,7 +39,7 @@ export class OfflineFileService {
       return;
     }
 
-    const cache = await caches.open('offline-files');
+    const cache = await caches.open(`offline-files:${getCurrentUserId()}`);
     await cache.delete(`/offline-file/${sectionId}`);
   }
 
@@ -48,7 +49,7 @@ export class OfflineFileService {
       return;
     }
     try {
-      const cache = await caches.open('offline-files');
+      const cache = await caches.open(`offline-files:${getCurrentUserId()}`);
       const keys = await cache.keys();
       let total = 0;
       for (const request of keys) {

@@ -13,6 +13,7 @@ import {
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
+import { getCurrentUserId } from '../../../../core/db/lms-offline.db';
 import { VideoProgressApi } from '../../../../api/client/video-progress.api';
 import { SectionApi } from '../../../../api/client/section.api';
 import { QoETrackerService } from '../../../../core/services/qoe-tracker.service';
@@ -413,7 +414,7 @@ export class AdaptiveVideoPlayerComponent {
     }
 
     try {
-      const cache = await caches.open('offline-videos');
+      const cache = await caches.open(`offline-videos:${getCurrentUserId()}`);
       const absoluteUrl = new URL(offlineUrl, window.location.origin);
       const cachedResponse =
         await cache.match(absoluteUrl.toString())

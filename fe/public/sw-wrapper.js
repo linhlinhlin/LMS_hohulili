@@ -21,14 +21,23 @@ self.addEventListener('fetch', (event) => {
   }
 });
 
-async function handleOfflineVideo(request) {
-  try {
-    const cache = await caches.open('offline-videos');
-    const requestUrl = new URL(request.url);
-    const cachedResponse =
-      await cache.match(request.url)
+async function findInUserCaches(prefix, request) {
+  const allNames = await caches.keys();
+  const buckets = allNames.filter(n => n.startsWith(prefix));
+  const requestUrl = new URL(request.url);
+  for (const name of buckets) {
+    const cache = await caches.open(name);
+    const match = await cache.match(request.url)
       || await cache.match(request)
       || await cache.match(requestUrl.pathname);
+    if (match) return match;
+  }
+  return null;
+}
+
+async function handleOfflineVideo(request) {
+  try {
+    const cachedResponse = await findInUserCaches('offline-videos', request);
 
     if (!cachedResponse) {
       return new Response('Video not available offline', {
@@ -62,8 +71,7 @@ async function handleOfflineVideo(request) {
 
 async function handleOfflineFile(request) {
   try {
-    const cache = await caches.open('offline-files');
-    const cachedResponse = await cache.match(request.url);
+    const cachedResponse = await findInUserCaches('offline-files', request);
 
     if (!cachedResponse) {
       return new Response('File not available offline', {

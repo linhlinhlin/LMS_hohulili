@@ -344,7 +344,12 @@ export class CourseDetailComponent implements OnInit {
     const courseId = this.course()?.id;
     if (!courseId) return;
 
-    const storageKey = `learning_progress_${courseId}`;
+    let userId = 'anonymous';
+    try {
+      const userJson = localStorage.getItem('lms_user');
+      if (userJson) { const u = JSON.parse(userJson); if (u?.id) userId = u.id; }
+    } catch { /* ignore */ }
+    const storageKey = `learning_progress_${userId}_${courseId}`;
     try {
       const stored = localStorage.getItem(storageKey);
       if (stored) {

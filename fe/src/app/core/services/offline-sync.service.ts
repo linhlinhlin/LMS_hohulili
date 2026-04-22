@@ -1208,14 +1208,14 @@ export class OfflineSyncService {
         ? Math.round((completedLessons.length / totalLessons) * 100)
         : existing?.progressPercentage ?? 0;
 
-      localStorage.setItem(`learning_progress_${courseId}`, JSON.stringify({
+      localStorage.setItem(`learning_progress_${userId}_${courseId}`, JSON.stringify({
         completedLessons,
         lastAccessedLessonId: existing?.lastAccessedLessonId,
         progressPercentage,
         lastUpdated: new Date().toISOString(),
       }));
 
-      const completedSectionsStorageKey = `learning_completed_sections_${courseId}`;
+      const completedSectionsStorageKey = `learning_completed_sections_${userId}_${courseId}`;
       if (completedSectionIds.length > 0) {
         localStorage.setItem(completedSectionsStorageKey, JSON.stringify(completedSectionIds));
       } else {
@@ -1234,7 +1234,7 @@ export class OfflineSyncService {
     }
 
     try {
-      const raw = localStorage.getItem(`learning_progress_${courseId}`);
+      const raw = localStorage.getItem(`learning_progress_${getCurrentUserId()}_${courseId}`);
       if (!raw) {
         return null;
       }
