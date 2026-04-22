@@ -1038,7 +1038,7 @@ export class CourseDownloadService {
       await this.removeCourse(courseId, {
         preserveProgress: true,
         preserveSyncArtifacts: true,
-        preserveAssetCaches: true,
+        preserveAssetCaches: false,
         silent: true,
       });
 
@@ -1648,11 +1648,11 @@ export class CourseDownloadService {
 
     try {
       if (completedLessons.length === 0 && !lastAccessedLessonId) {
-        localStorage.removeItem(`learning_progress_${courseId}`);
+        localStorage.removeItem(`learning_progress_${getCurrentUserId()}_${courseId}`);
         return;
       }
 
-      localStorage.setItem(`learning_progress_${courseId}`, JSON.stringify({
+      localStorage.setItem(`learning_progress_${getCurrentUserId()}_${courseId}`, JSON.stringify({
         completedLessons,
         lastAccessedLessonId,
         progressPercentage: null,
@@ -1971,7 +1971,7 @@ export class CourseDownloadService {
     lastAccessedLessonId?: string;
   } | null {
     try {
-      const stored = localStorage.getItem(`learning_progress_${courseId}`);
+      const stored = localStorage.getItem(`learning_progress_${getCurrentUserId()}_${courseId}`);
       if (!stored) {
         return null;
       }

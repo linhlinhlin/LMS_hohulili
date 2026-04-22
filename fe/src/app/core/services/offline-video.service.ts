@@ -116,7 +116,7 @@ export class OfflineVideoService {
     const lesson = await offlineDb.lessons.get([userId, lessonId]);
     if (!lesson) return null;
 
-    const cache = await caches.open('offline-videos');
+    const cache = await caches.open(`offline-videos:${getCurrentUserId()}`);
     const response = await cache.match(`/offline-video/${lessonId}`);
     if (!response) return null;
 
@@ -128,7 +128,7 @@ export class OfflineVideoService {
       return null;
     }
 
-    const cache = await caches.open('offline-videos');
+    const cache = await caches.open(`offline-videos:${getCurrentUserId()}`);
     const response = await cache.match(`/offline-video/${sectionId}`);
     return response ? `/offline-video/${sectionId}` : null;
   }
@@ -147,7 +147,7 @@ export class OfflineVideoService {
       return;
     }
 
-    const cache = await caches.open('offline-videos');
+    const cache = await caches.open(`offline-videos:${getCurrentUserId()}`);
     await cache.delete(`/offline-video/${lessonId}`);
 
     const userId = getCurrentUserId();
@@ -164,7 +164,7 @@ export class OfflineVideoService {
       return;
     }
 
-    const cache = await caches.open('offline-videos');
+    const cache = await caches.open(`offline-videos:${getCurrentUserId()}`);
     await cache.delete(`/offline-video/${sectionId}`);
     await this.refreshList();
   }
@@ -180,7 +180,7 @@ export class OfflineVideoService {
     }
 
     try {
-      const cache = await caches.open('offline-videos');
+      const cache = await caches.open(`offline-videos:${getCurrentUserId()}`);
       const keys = await cache.keys();
       const entries: OfflineVideoEntry[] = [];
       const userId = getCurrentUserId();
@@ -328,7 +328,7 @@ export class OfflineVideoService {
   ): Promise<void> {
     const contentLength = Number(response.headers.get('content-length')) || 0;
     const contentType = response.headers.get('content-type') || 'video/mp4';
-    const cache = await caches.open('offline-videos');
+    const cache = await caches.open(`offline-videos:${getCurrentUserId()}`);
     const reader = response.body?.getReader();
 
     if (!reader) {

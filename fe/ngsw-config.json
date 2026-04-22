@@ -70,33 +70,6 @@
       }
     },
     {
-      "name": "user-profile",
-      "urls": [
-        "/api/v3/auth/me",
-        "/api/v3/users/me/**"
-      ],
-      "cacheConfig": {
-        "maxSize": 5,
-        "maxAge": "7d",
-        "strategy": "freshness",
-        "timeout": "5s"
-      }
-    },
-    {
-      "name": "progress-data",
-      "urls": [
-        "/api/v3/progress/**",
-        "/api/v3/enrollments/*/progress",
-        "/api/v3/video-progress/**"
-      ],
-      "cacheConfig": {
-        "maxSize": 200,
-        "maxAge": "7d",
-        "strategy": "freshness",
-        "timeout": "8s"
-      }
-    },
-    {
       "name": "images",
       "urls": [
         "/api/v3/files/view/**"
@@ -107,20 +80,6 @@
         "strategy": "performance"
       }
     },
-    {
-      "name": "enrollments",
-      "urls": [
-        "/api/v3/enrollments",
-        "/api/v3/enrollments?*",
-        "/api/v3/enrollments/**"
-      ],
-      "cacheConfig": {
-        "maxSize": 50,
-        "maxAge": "7d",
-        "strategy": "freshness",
-        "timeout": "5s"
-      }
-    }
   ],
   "navigationUrls": [
     "/**",

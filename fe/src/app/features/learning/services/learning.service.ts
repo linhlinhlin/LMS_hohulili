@@ -974,8 +974,20 @@ export class LearningService {
     this.saveProgressToStorage();
   }
 
+  private getUserId(): string {
+    try {
+      const userJson = localStorage.getItem('lms_user');
+      if (userJson) {
+        const user = JSON.parse(userJson);
+        if (user?.id) return user.id;
+      }
+    } catch { /* ignore */ }
+    return 'anonymous';
+  }
+
   private getStorageKey(courseId: string): string {
-    return `learning_progress_${courseId}`;
+    const userId = this.getUserId();
+    return `learning_progress_${userId}_${courseId}`;
   }
 
   private async loadOfflineProgressState(courseId: string): Promise<void> {

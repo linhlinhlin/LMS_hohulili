@@ -83,11 +83,19 @@ export class PwaRepairService {
       return;
     }
 
-    const keys = [
-      'pwa-ready-shown',
-    ];
+    localStorage.removeItem('pwa-ready-shown');
 
-    for (const key of keys) {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (
+        key.startsWith('learning_progress_') ||
+        key.startsWith('learning_completed_sections_')
+      )) {
+        keysToRemove.push(key);
+      }
+    }
+    for (const key of keysToRemove) {
       localStorage.removeItem(key);
     }
   }

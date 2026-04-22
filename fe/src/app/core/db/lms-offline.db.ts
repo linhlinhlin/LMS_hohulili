@@ -764,7 +764,12 @@ async function clearOfflineCaches(): Promise<void> {
     return;
   }
 
-  await Promise.all(OFFLINE_CACHE_NAMES.map(name => caches.delete(name).catch(() => false)));
+  const allNames = await caches.keys();
+  await Promise.all(
+    allNames
+      .filter(n => n.startsWith('offline-videos') || n.startsWith('offline-files'))
+      .map(n => caches.delete(n).catch(() => false))
+  );
 }
 
 async function deleteOfflineDbByName(dbName: string): Promise<void> {

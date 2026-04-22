@@ -169,6 +169,21 @@ export class AuthService {
       localStorage.removeItem(this.tokenKey);
       localStorage.removeItem(this.refreshTokenKey);
       localStorage.removeItem(this.userKey);
+
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('learning_progress_') || key.startsWith('learning_completed_sections_'))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+    }
+
+    if (typeof caches !== 'undefined') {
+      caches.keys().then(names =>
+        Promise.all(names.filter(n => n.startsWith('ngsw:')).map(n => caches.delete(n)))
+      ).catch(() => {});
     }
 
     this.currentUserSubject.next(null);
