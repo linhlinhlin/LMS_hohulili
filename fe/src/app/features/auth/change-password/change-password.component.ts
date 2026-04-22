@@ -27,7 +27,7 @@ import { ApiResponse } from '../../../api/types/common.types';
           <div class="alert-success">Đổi mật khẩu thành công! Đang chuyển hướng...</div>
         }
 
-        <form class="form" (ngSubmit)="submit()" #f="ngForm">
+        <form class="form" (submit)="$event.preventDefault(); submit()">
           <div class="field">
             <label for="current">Mật khẩu hiện tại <span class="req">*</span></label>
             <input
