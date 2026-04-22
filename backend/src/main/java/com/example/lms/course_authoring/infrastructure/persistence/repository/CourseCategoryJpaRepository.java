@@ -28,4 +28,6 @@ public interface CourseCategoryJpaRepository extends JpaRepository<CourseCategor
     boolean existsByPrefix(String prefix);
 
     Optional<CourseCategoryJpaEntity> findByCode(String code);
+
+    Optional<CourseCategoryJpaEntity> findBySlug(String slug);
 }

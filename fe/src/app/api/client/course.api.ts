@@ -55,7 +55,7 @@ export class CourseApi {
     );
   }
 
-  publicCourses(params?: { page?: number; size?: number; search?: string; teacher?: string }): Observable<ApiResponse<CourseSummary[]>> {
+  publicCourses(params?: { page?: number; size?: number; search?: string; teacher?: string; category?: string; sort?: string; order?: string }): Observable<ApiResponse<CourseSummary[]>> {
     return this.api.getWithResponse<any>(COURSE_ENDPOINTS.BASE, { params }).pipe(
       map((res: ApiResponse<any>) => {
         const content: CourseSummary[] = res?.data?.content ?? [];

@@ -10,6 +10,7 @@ import { PackageApi } from '../../../../../api/endpoints/package.api';
 import { QuizFormComponent, QuizFormConfig, QuizFormData } from '../../components/quiz-form/quiz-form.component';
 import { QuestionCreateComponent } from '../../question-create.component';
 import { ToastService } from '../../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -73,6 +74,7 @@ export class LessonQuizCreateComponent implements OnInit {
     private lessonApi = inject(LessonApi);
     private packageApi = inject(PackageApi);
     private toast = inject(ToastService);
+    private confirmDialog = inject(ConfirmDialogService);
 
     readonly quizFormComponent = viewChild.required(QuizFormComponent);
 
@@ -255,12 +257,29 @@ export class LessonQuizCreateComponent implements OnInit {
         }
     }
 
+    private submitted = false;
+
     handleCancel() {
-        // Navigate back to previous page or lesson detail
-        // Since we don't have exact previous URL, we can use Location.back() or navigate to a known route
-        // For safety, let's try to navigate to course/lesson context if possible, 
-        // but simply history.back() is often best for "Cancel"
-        window.history.back();
+        this.submitted = true;
+        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+        if (returnUrl) {
+            this.router.navigateByUrl(returnUrl);
+        } else {
+            window.history.back();
+        }
+    }
+
+    async canDeactivate(): Promise<boolean> {
+        if (this.submitted) return true;
+        const formRef = this.quizFormComponent();
+        if (!formRef?.quizForm?.dirty) return true;
+        return this.confirmDialog.confirm({
+            title: 'Rời màn tạo bài kiểm tra',
+            message: 'Bạn có thay đổi chưa lưu. Nếu rời màn này, bài kiểm tra đang tạo sẽ bị mất.',
+            variant: 'warning',
+            confirmText: 'Rời màn này',
+            cancelText: 'Ở lại'
+        });
     }
 
     handleRequestCreateQuestion() {

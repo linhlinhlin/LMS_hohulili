@@ -1,5 +1,5 @@
 import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
-import { DOCUMENT, isPlatformBrowser } from '@angular/common';
+import { DOCUMENT } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
@@ -8,7 +8,6 @@ import { PaginationComponent, PaginationInfo } from '../../shared/components/pag
 import { Course, CourseCategory, FilterOptions, ExtendedCourse, LEVEL_LABELS } from '../../shared/types/course.types';
 import { Course as DomainCourse, CourseFilters, CourseSortOptions, PaginationOptions, PaginatedResult } from './domain'; // Import domain types
 import { CourseLevel } from './domain/types'; // Import enum as value
-import { PLATFORM_ID } from '@angular/core';
 import { StudentEnrollmentService } from '../student/services/enrollment.service';
 import { AuthService } from '../../core/services/auth.service';
 import { GetCoursesUseCase } from './application/use-cases/get-courses.use-case';
@@ -64,12 +63,12 @@ import { SeoService } from '../../core/services/seo.service';
                         class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 transition-colors"
                         [class]="filters.category ? 'text-gray-900' : 'text-gray-400'">
                   <option [ngValue]="undefined" class="text-gray-400">Tất cả danh mục</option>
-                  <option [ngValue]="CourseCategory.MARINE_ENGINEERING" class="text-gray-900">Kỹ thuật tàu biển</option>
-                  <option [ngValue]="CourseCategory.PORT_MANAGEMENT" class="text-gray-900">Quản lý cảng</option>
-                  <option [ngValue]="CourseCategory.MARITIME_SAFETY" class="text-gray-900">An toàn hàng hải</option>
                   <option [ngValue]="CourseCategory.NAVIGATION" class="text-gray-900">Hàng hải</option>
-                  <option [ngValue]="CourseCategory.CARGO_HANDLING" class="text-gray-900">Xếp dỡ hàng hóa</option>
-                  <option [ngValue]="CourseCategory.MARITIME_LAW" class="text-gray-900">Luật hàng hải</option>
+                  <option [ngValue]="CourseCategory.ENGINEERING" class="text-gray-900">Kỹ thuật tàu biển</option>
+                  <option [ngValue]="CourseCategory.SAFETY" class="text-gray-900">An toàn hàng hải</option>
+                  <option [ngValue]="CourseCategory.LOGISTICS" class="text-gray-900">Logistics & Cảng</option>
+                  <option [ngValue]="CourseCategory.LAW" class="text-gray-900">Luật hàng hải</option>
+                  <option [ngValue]="CourseCategory.CERTIFICATES" class="text-gray-900">Chứng chỉ STCW</option>
                 </select>
               </div>
 
@@ -196,7 +195,6 @@ import { SeoService } from '../../core/services/seo.service';
 export class CoursesComponent implements OnInit {
   private seo = inject(SeoService);
   private document = inject<Document>(DOCUMENT);
-  private platformId = inject<Object>(PLATFORM_ID);
 
   protected getCoursesUseCase = inject(GetCoursesUseCase);
   protected authService = inject(AuthService);
@@ -275,8 +273,6 @@ export class CoursesComponent implements OnInit {
       this.priceMax = priceMax ? Number(priceMax) : null;
 
       this.loadCourses(page);
-      // Inject ItemList JSON-LD for current list
-      this.injectItemListJsonLd();
     });
   }
 
@@ -323,6 +319,7 @@ export class CoursesComponent implements OnInit {
 
           // Set courses data to signal with new reference for OnPush
           this.courses.set([...uiCourses]);
+          this.injectItemListJsonLd();
 
           // Update pagination info
           this.paginationInfo.set({
@@ -341,15 +338,16 @@ export class CoursesComponent implements OnInit {
   }
 
   private injectItemListJsonLd(): void {
-    if (!isPlatformBrowser(this.platformId)) return;
-    const items = this.courses().slice(0, 12).map((c, idx) => ({
+    const courseList = this.courses();
+    if (courseList.length === 0) return;
+    const items = courseList.slice(0, 12).map((c, idx) => ({
       '@type': 'ListItem',
       position: idx + 1,
       item: {
         '@type': 'Course',
         name: c.title,
-        description: c.shortDescription || c.description,
-        url: `${this.document.location.origin}/courses/${c.id}`,
+        description: (c.shortDescription || c.description || '').slice(0, 200),
+        url: `https://holilihu.online/courses/${c.id}`,
         provider: { '@type': 'Organization', name: 'LMS Maritime' }
       }
     }));

@@ -72,15 +72,38 @@ public class CourseQueryControllerV3 {
     public ResponseEntity<ApiResponse<Page<CourseSummaryResponse>>> getPublicCourses(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String search
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false, defaultValue = "createdAt") String sort,
+            @RequestParam(required = false, defaultValue = "desc") String order
     ) {
+        UUID categoryId = null;
+        if (category != null && !category.isBlank()) {
+            categoryId = courseCategoryJpaRepository.findByCode(category.toUpperCase(Locale.ROOT))
+                    .or(() -> courseCategoryJpaRepository.findBySlug(category.toLowerCase(Locale.ROOT)))
+                    .map(c -> c.getId())
+                    .orElse(null);
+        }
+
+        String sortField = Set.of("createdAt", "title").contains(sort) ? sort : "createdAt";
+        Sort sortOrder = "asc".equalsIgnoreCase(order) ? Sort.by(sortField).ascending() : Sort.by(sortField).descending();
+        String nativeSortField = "title".equals(sortField) ? "title" : "created_at";
+        Sort nativeSortOrder = "asc".equalsIgnoreCase(order) ? Sort.by(nativeSortField).ascending() : Sort.by(nativeSortField).descending();
+
         Page<Course> courses;
-        if (search != null && !search.isBlank()) {
-            // Native query uses snake_case column names
-            PageRequest nativePageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100), Sort.by("created_at").descending());
+        boolean hasSearch = search != null && !search.isBlank();
+
+        if (hasSearch && categoryId != null) {
+            PageRequest nativePageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100), nativeSortOrder);
+            courses = courseRepository.findByStatusAndCategoryIdAndTitleContaining(Course.CourseStatus.APPROVED, categoryId, search, nativePageable);
+        } else if (hasSearch) {
+            PageRequest nativePageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100), nativeSortOrder);
             courses = courseRepository.findByStatusAndTitleContaining(Course.CourseStatus.APPROVED, search, nativePageable);
+        } else if (categoryId != null) {
+            PageRequest pageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100), sortOrder);
+            courses = courseRepository.findByStatusAndCategoryId(Course.CourseStatus.APPROVED, categoryId, pageable);
         } else {
-            PageRequest pageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100), Sort.by("createdAt").descending());
+            PageRequest pageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100), sortOrder);
             courses = courseRepository.findByStatus(Course.CourseStatus.APPROVED, pageable);
         }
         
@@ -974,7 +997,7 @@ public class CourseQueryControllerV3 {
             String videoType = resolveSectionVideoType(data, streamVideoUid);
             SectionResponse response = SectionResponse.builder()
                     .id(block.getId())
-                    .title((String) data.getOrDefault("title", "Untitled"))
+                    .title((String) data.get("title"))
                     .type(block.getType() != null ? block.getType().toUpperCase(Locale.ROOT) : "TEXT")
                     .content(showContent ? (String) data.get("content") : null)
                     .structuredContent(showContent ? new LinkedHashMap<>(data) : null)

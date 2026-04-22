@@ -399,7 +399,7 @@
                 [class.expanded]="isSectionExpanded(section.id)">
                 <div class="section-left">
                   <span class="section-number">Chương {{ sectionIndex + 1 }}</span>
-                  <h3 class="section-name">{{ section.title }}</h3>
+                  <h3 class="section-name">{{ section.title || 'Chương ' + (sectionIndex + 1) }}</h3>
                   <span class="section-progress-text">
                     @if (chapterStats && chapterStats.completed > 0) {
                       <span [class.all-done]="chapterStats.completed === chapterStats.total">

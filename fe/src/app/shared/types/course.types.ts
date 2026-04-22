@@ -77,12 +77,11 @@ export interface CourseFilter {
 
 // Course Category as enum for runtime values
 export enum CourseCategory {
-  MARINE_ENGINEERING = 'engineering',
-  PORT_MANAGEMENT = 'logistics',
-  MARITIME_SAFETY = 'safety',
   NAVIGATION = 'navigation',
-  CARGO_HANDLING = 'logistics',
-  MARITIME_LAW = 'law',
+  ENGINEERING = 'engineering',
+  SAFETY = 'safety',
+  LOGISTICS = 'logistics',
+  LAW = 'law',
   CERTIFICATES = 'certificates'
 }
 

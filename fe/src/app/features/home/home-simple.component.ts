@@ -523,6 +523,30 @@ export class HomeSimpleComponent implements OnInit, AfterViewInit {
       'LMS hàng hải', 'đào tạo hàng hải', 'học hàng hải online',
       'STCW', 'thủy thủ', 'maritime education', 'holilihu'
     ]);
+    this.seo.setJsonLd('jsonld-organization', {
+      '@context': 'https://schema.org',
+      '@type': 'EducationalOrganization',
+      name: 'LMS Maritime',
+      url: 'https://holilihu.online',
+      logo: 'https://holilihu.online/icons/logo-master.png',
+      description: 'Nền tảng đào tạo hàng hải Việt Nam — tích hợp AI và hoạt động ngoại tuyến.',
+      sameAs: ['https://wiii.holilihu.online'],
+      parentOrganization: {
+        '@type': 'Organization',
+        name: 'The Wiii Lab'
+      }
+    });
+    this.seo.setJsonLd('jsonld-website', {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: 'LMS Maritime',
+      url: 'https://holilihu.online',
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: 'https://holilihu.online/courses?q={search_term_string}',
+        'query-input': 'required name=search_term_string'
+      }
+    });
     this.loadFeaturedCourses();
   }
 

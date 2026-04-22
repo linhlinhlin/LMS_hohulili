@@ -330,5 +330,47 @@ export class CourseDetailComponent implements OnInit {
   private updateSeo(course: ExtendedCourse): void {
     const description = course.description?.slice(0, 160) || course.title;
     this.seo.setPageMeta(course.title, description, course.thumbnail);
+    this.seo.setCanonical(`https://holilihu.online/courses/${course.id}`);
+    this.injectCourseJsonLd(course);
+  }
+
+  private injectCourseJsonLd(course: ExtendedCourse): void {
+    const instructorName = typeof course.instructor === 'string'
+      ? course.instructor
+      : course.instructor?.name || 'Giảng viên';
+
+    const jsonLd: Record<string, unknown> = {
+      '@context': 'https://schema.org',
+      '@type': 'Course',
+      name: course.title,
+      description: (course.description || course.title).slice(0, 500),
+      url: `https://holilihu.online/courses/${course.id}`,
+      provider: {
+        '@type': 'Organization',
+        name: 'LMS Maritime',
+        sameAs: 'https://holilihu.online'
+      },
+      instructor: {
+        '@type': 'Person',
+        name: instructorName
+      },
+      inLanguage: 'vi',
+      isAccessibleForFree: !course.price || course.price === 0
+    };
+
+    if (course.thumbnail) {
+      jsonLd['image'] = course.thumbnail;
+    }
+
+    if (course.price && course.price > 0) {
+      jsonLd['offers'] = {
+        '@type': 'Offer',
+        price: course.salePrice ?? course.price,
+        priceCurrency: 'VND',
+        availability: 'https://schema.org/InStock'
+      };
+    }
+
+    this.seo.setJsonLd('jsonld-course-detail', jsonLd);
   }
 }

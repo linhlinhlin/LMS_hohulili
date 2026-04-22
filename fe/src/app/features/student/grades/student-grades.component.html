@@ -16,7 +16,7 @@
     <button class="main-tab" [class.active]="activeTab() === 'certificates'"
             (click)="activeTab.set('certificates'); loadCertificates()" role="tab"
             [attr.aria-selected]="activeTab() === 'certificates'" type="button">
-      Chứng chỉ ({{ certificates().length }})
+      Chứng chỉ ({{ certBadgeCount() }})
     </button>
   </div>
 

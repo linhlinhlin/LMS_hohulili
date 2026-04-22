@@ -9,9 +9,11 @@
     <h1 class="text-xl md:text-2xl font-semibold text-gray-900 mb-2 leading-tight">
       {{ lessonNumber() }}: {{ lesson().title }}
     </h1>
+    @if (section.title) {
     <h3 class="text-xl md:text-xl font-semibold text-gray-700 mb-2 leading-tight">
       {{ section.title }}
     </h3>
+    }
     } @else {
     <h1 class="text-xl md:text-2xl font-semibold text-gray-900 mb-2 leading-tight">
       {{ lesson().title }}
@@ -89,7 +91,9 @@
       @if (section.type === 'QUIZ') {
       <div class="p-6 border border-amber-200 bg-amber-50 rounded-lg text-center">
         <span class="material-symbols-outlined text-4xl text-amber-600 mb-2">assignment</span>
+        @if (section.title) {
         <h3 class="text-lg font-bold text-slate-800 mb-1">{{ section.title }}</h3>
+        }
         @if (quizPresentation(); as quizMeta) {
         <div class="mb-3 flex flex-wrap items-center justify-center gap-2">
           <span class="rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-slate-700">{{ quizMeta.label }}</span>
@@ -123,7 +127,7 @@
       <div class="p-4 border border-[#0056D2]/20 bg-[#0056D2]/5 rounded-lg">
         <div class="flex items-center gap-2 mb-3">
           <span class="material-symbols-outlined text-[#0056D2]">edit_note</span>
-          <h3 class="text-base font-bold text-slate-800">Bài tập: {{ section.title }}</h3>
+          <h3 class="text-base font-bold text-slate-800">Bài tập{{ section.title ? ': ' + section.title : '' }}</h3>
         </div>
         <div class="prose prose-slate max-w-none text-sm" [innerHTML]="getSanitizedHtml(section.content)"></div>
       </div>
