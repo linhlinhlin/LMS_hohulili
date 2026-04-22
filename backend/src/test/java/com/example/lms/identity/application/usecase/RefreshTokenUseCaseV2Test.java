@@ -93,6 +93,21 @@ class RefreshTokenUseCaseV2Test {
     }
 
     @Test
+    @DisplayName("Should reject malformed refresh token with INVALID_TOKEN error")
+    void shouldRejectMalformedRefreshToken() {
+        when(tokenService.extractEmail(OLD_REFRESH_TOKEN)).thenReturn(null);
+
+        assertThatThrownBy(() -> useCase.execute(OLD_REFRESH_TOKEN))
+                .isInstanceOfSatisfying(BusinessRuleException.class,
+                        exception -> assertThat(exception.getRuleName()).isEqualTo("INVALID_TOKEN"));
+
+        verify(userRepository, never()).findByEmail(anyString());
+        verify(tokenService, never()).isTokenValid(anyString(), anyString());
+        verify(tokenService, never()).generateAccessToken(any(), anyString(), anyString(), any());
+        verify(tokenService, never()).generateRefreshToken(any(), anyString(), anyString(), anyLong());
+    }
+
+    @Test
     @DisplayName("Should refresh tokens successfully for enabled user")
     void shouldRefreshTokenForEnabledUser() {
         User enabledUser = User.builder()

@@ -13,6 +13,7 @@ import com.example.lms.identity.application.usecase.SendVerificationEmailUseCase
 import com.example.lms.identity.application.usecase.UpdateProfileUseCaseV2;
 import com.example.lms.identity.application.usecase.VerifyEmailUseCase;
 import com.example.lms.shared.application.port.EmailServicePort;
+import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.infrastructure.web.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -154,5 +155,22 @@ class AuthControllerV3Test {
                 .andExpect(jsonPath("$.data.googleUnavailableMessage").value(
                         "Tài khoản này dùng Google để đăng nhập, nhưng Google sign-in hiện tạm thời chưa khả dụng. Vui lòng thử lại sau hoặc liên hệ quản trị viên."
                 ));
+    }
+
+    @Test
+    @DisplayName("refresh returns 422 when refresh token is invalid")
+    void refreshReturnsUnprocessableEntityForInvalidToken() throws Exception {
+        given(refreshTokenUseCase.execute("not-a-jwt"))
+                .willThrow(new BusinessRuleException("INVALID_TOKEN", "Token khong hop le"));
+
+        mockMvc.perform(post("/api/v3/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"refreshToken":"not-a-jwt"}
+                                """))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Token khong hop le"))
+                .andExpect(jsonPath("$.error.code").value("BUSINESS_RULE_VIOLATION"));
     }
 }

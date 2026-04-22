@@ -1,6 +1,7 @@
 package com.example.lms.identity.infrastructure.security;
 
 import com.example.lms.identity.application.port.TokenService;
+import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -23,13 +24,21 @@ public class TokenServiceAdapter implements TokenService {
 
     @Override
     public String extractEmail(String token) {
-        return jwtService.extractUsername(token);
+        try {
+            return jwtService.extractUsername(token);
+        } catch (JwtException | IllegalArgumentException ex) {
+            return null;
+        }
     }
 
     @Override
     public boolean isTokenValid(String token, String email) {
         UserDetails userDetails = toUserDetails(email);
-        return jwtService.isTokenValid(token, userDetails);
+        try {
+            return jwtService.isTokenValid(token, userDetails);
+        } catch (JwtException | IllegalArgumentException ex) {
+            return false;
+        }
     }
 
     @Override
