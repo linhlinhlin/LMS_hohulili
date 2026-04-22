@@ -16,7 +16,9 @@ holilihu.online {
 
     # Backend API
     handle /api/* {
-        reverse_proxy backend:8080
+        reverse_proxy backend:8080 {
+            header_down -Content-Security-Policy
+        }
     }
 
     # Health check only (other actuator endpoints not exposed)
@@ -39,11 +41,23 @@ holilihu.online {
 
     # Frontend (Angular SPA) — catch-all
     handle {
-        reverse_proxy frontend:80
+        reverse_proxy frontend:80 {
+            header_down -Content-Security-Policy
+        }
     }
 
-    # Security headers
+    # Security headers — Caddy is the single source of truth.
+    # Strip any upstream CSP/security headers first (nginx, Spring Security),
+    # then set the canonical ones. Without the delete, browsers see duplicates
+    # and enforce the intersection (most restrictive).
     header {
+        -Content-Security-Policy
+        -X-Frame-Options
+        -X-Content-Type-Options
+        -Cross-Origin-Opener-Policy
+        -Referrer-Policy
+        -Permissions-Policy
+        -X-XSS-Protection
         X-Frame-Options "SAMEORIGIN"
         X-Content-Type-Options "nosniff"
         Cross-Origin-Opener-Policy "same-origin-allow-popups"
