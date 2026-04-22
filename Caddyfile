@@ -29,6 +29,14 @@ holilihu.online {
         reverse_proxy backend:8080
     }
 
+    # Block Swagger/API docs in production (springdoc disabled, but defense-in-depth)
+    handle /swagger-ui* {
+        respond 404
+    }
+    handle /v3/api-docs* {
+        respond 404
+    }
+
     # Frontend (Angular SPA) — catch-all
     handle {
         reverse_proxy frontend:80

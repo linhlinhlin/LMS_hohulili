@@ -67,7 +67,7 @@ springdoc:
 # JWT Configuration - Externalized for security
 app:
   jwt:
-    secret: ${APP_JWT_SECRET:ZGV2ZWxvcG1lbnQtb25seS1zZWNyZXQta2V5LWZvci1sbXMtYXBwbGljYXRpb24tbWluaW11bS0yNTYtYml0cw==}
+    secret: ${APP_JWT_SECRET}
     expiration: ${APP_JWT_EXPIRATION:86400000}  # 24 hours in milliseconds
     refresh-expiration: ${APP_JWT_REFRESH_EXPIRATION:604800000}  # 7 days in milliseconds
   auth:

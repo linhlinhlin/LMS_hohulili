@@ -81,6 +81,8 @@ server:
 
 # App config
 app:
+  jwt:
+    secret: ${APP_JWT_SECRET:ZGV2ZWxvcG1lbnQtb25seS1zZWNyZXQta2V5LWZvci1sbXMtYXBwbGljYXRpb24tbWluaW11bS0yNTYtYml0cw==}
   storage:
     local:
       base-path: uploads
