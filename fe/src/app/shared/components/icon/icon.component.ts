@@ -13,7 +13,8 @@ export type IconName =
   | 'fire' | 'trophy' | 'graduation-cap' | 'target' | 'zap' | 'sparkles' | 'party'
   | 'file-text' | 'bar-chart' | 'video' | 'image' | 'music' | 'presentation'
   | 'lock' | 'shield' | 'lightbulb' | 'rocket' | 'briefcase' | 'smartphone'
-  | 'anchor' | 'ship' | 'footprints' | 'circle-check' | 'circle-x' | 'users' | 'plug';
+  | 'anchor' | 'ship' | 'footprints' | 'circle-check' | 'circle-x' | 'users' | 'plug'
+  | 'eye' | 'more-vertical' | 'circle' | 'folder' | 'paperclip' | 'play-circle' | 'file-check' | 'help-circle';
 
 export type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
@@ -69,10 +70,19 @@ export type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
           <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
           <path d="M2 12h20"/>
         }
+        @case ('eye') {
+          <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/>
+          <circle cx="12" cy="12" r="3"/>
+        }
         @case ('menu') {
           <line x1="4" x2="20" y1="6" y2="6"/>
           <line x1="4" x2="20" y1="12" y2="12"/>
           <line x1="4" x2="20" y1="18" y2="18"/>
+        }
+        @case ('more-vertical') {
+          <circle cx="12" cy="5" r="1.5"/>
+          <circle cx="12" cy="12" r="1.5"/>
+          <circle cx="12" cy="19" r="1.5"/>
         }
         @case ('x') {
           <path d="M18 6 6 18M6 6l12 12"/>
@@ -161,6 +171,9 @@ export type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
         }
         @case ('check') {
           <polyline points="20,6 9,17 4,12"/>
+        }
+        @case ('circle') {
+          <circle cx="12" cy="12" r="9"/>
         }
         @case ('alert') {
           <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
@@ -299,6 +312,11 @@ export type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
           <line x1="16" x2="8" y1="17" y2="17"/>
           <line x1="10" x2="8" y1="9" y2="9"/>
         }
+        @case ('file-check') {
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14,2 14,8 20,8"/>
+          <polyline points="9,15 11,17 15,13"/>
+        }
         @case ('bar-chart') {
           <line x1="12" x2="12" y1="20" y2="10"/>
           <line x1="18" x2="18" y1="20" y2="4"/>
@@ -326,6 +344,21 @@ export type IconSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
         @case ('lock') {
           <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
           <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        }
+        @case ('folder') {
+          <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>
+        }
+        @case ('paperclip') {
+          <path d="M21.44 11.05 12.25 20.24a6 6 0 1 1-8.49-8.49l8.48-8.48a4 4 0 0 1 5.66 5.66l-8.49 8.48a2 2 0 1 1-2.82-2.82l7.78-7.78"/>
+        }
+        @case ('play-circle') {
+          <circle cx="12" cy="12" r="10"/>
+          <polygon points="10,8 16,12 10,16"/>
+        }
+        @case ('help-circle') {
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M9.09 9a3 3 0 1 1 5.82 1c0 2-3 3-3 3"/>
+          <path d="M12 17h.01"/>
         }
         @case ('shield') {
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>

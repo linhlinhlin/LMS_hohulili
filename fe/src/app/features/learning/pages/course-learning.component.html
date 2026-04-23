@@ -1,7 +1,7 @@
 @if (isPreview()) {
   <div class="flex items-center justify-between px-4 py-2 bg-amber-50 border-b border-amber-200 shrink-0 z-30">
     <div class="flex items-center gap-2 text-sm text-amber-800">
-      <span class="material-symbols-outlined text-base">visibility</span>
+      <app-icon name="eye" size="sm"></app-icon>
       <span class="font-semibold">Chế độ xem trước</span>
       <span class="hidden sm:inline text-amber-700">— Đây là giao diện học viên sẽ thấy</span>
     </div>
@@ -17,11 +17,11 @@
   <!-- Mobile Header (md:hidden) -->
   <header class="md:hidden flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white z-20 shrink-0">
     <button class="text-slate-700 p-1" (click)="toggleSidebar()">
-      <span class="material-symbols-outlined">menu</span>
+      <app-icon name="menu" size="md"></app-icon>
     </button>
     <h1 class="text-sm font-bold truncate text-[#0056D2] max-w-[220px]">{{ course()?.title || 'Đang tải...' }}</h1>
     <button class="text-slate-700 p-1">
-      <span class="material-symbols-outlined">more_vert</span>
+      <app-icon name="more-vertical" size="md"></app-icon>
     </button>
   </header>
 
@@ -47,7 +47,7 @@
     <div class="px-4 py-4 border-b border-gray-200">
       <div class="flex items-center text-xs font-medium text-slate-500 mb-3 cursor-pointer hover:text-[#0056D2] transition-colors"
         (click)="goBack()">
-        <span class="material-symbols-outlined text-sm mr-1">arrow_back</span>
+        <app-icon name="arrow-left" size="sm" class="mr-1"></app-icon>
         Chi tiết khóa học
       </div>
       <h2 class="font-bold text-[#0056D2] text-base leading-tight mb-3">{{ course()?.title || 'Đang tải...' }}</h2>
@@ -64,14 +64,14 @@
     @if (coursePaid() && !hasPaid()) {
     <div class="mx-4 mt-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 cursor-pointer hover:bg-amber-100 transition-colors text-sm text-amber-800"
       (click)="showPaymentModal.set(true)">
-      <span class="material-symbols-outlined text-base">lock</span>
+      <app-icon name="lock" size="sm"></app-icon>
       <span class="flex-1 font-medium">Mở khóa toàn bộ khóa học</span>
-      <span class="material-symbols-outlined text-sm">chevron_right</span>
+      <app-icon name="chevron-right" size="sm"></app-icon>
     </div>
     } @else if (awaitingManualActivation()) {
     <div class="mx-4 mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
       <div class="flex items-start gap-2">
-        <span class="material-symbols-outlined mt-0.5 text-base">pending_actions</span>
+        <app-icon name="clock" size="sm" class="mt-0.5"></app-icon>
         <div class="min-w-0">
           <p class="font-medium">Thanh toan da duoc ghi nhan</p>
           <p class="mt-0.5 text-xs text-amber-700">Khoa hoc dang lop hoc se mo khi ban duoc xep lop hoac kich hoat.</p>
@@ -81,7 +81,7 @@
     } @else if (accessPending()) {
     <div class="mx-4 mt-3 rounded-lg border border-[#0056D2]/20 bg-[#0056D2]/5 px-3 py-2 text-sm text-slate-700">
       <div class="flex items-start gap-2">
-        <span class="material-symbols-outlined mt-0.5 text-base text-[#0056D2]">sync</span>
+        <app-icon name="refresh" size="sm" class="mt-0.5 text-[#0056D2]"></app-icon>
         <div class="min-w-0">
           <p class="font-medium">Da ghi nhan thanh toan</p>
           <p class="mt-0.5 text-xs text-slate-600">Quyen hoc cua ban van dang duoc kich hoat. Hay kiem tra lai trong it phut toi tai lich su thanh toan.</p>
@@ -107,7 +107,7 @@
       </div>
       } @else if (courseError()) {
       <div class="flex flex-col items-center justify-center py-12 text-red-500 px-4">
-        <span class="material-symbols-outlined text-3xl mb-2">error</span>
+        <app-icon name="error" size="xl" class="mb-2"></app-icon>
         <p class="text-sm text-center">{{ courseError() }}</p>
       </div>
       } @else {
@@ -131,12 +131,13 @@
               {{ getCompletedLessonCount(section) }}/{{ section.lessons.length }} bài học
             </p>
           </div>
-          <span class="material-symbols-outlined text-sm transition-transform duration-200 shrink-0"
+          <app-icon
+            name="chevron-down"
+            size="sm"
+            class="shrink-0 transition-transform duration-200"
             [class.text-[#0056D2]]="isSectionExpanded(section.id)"
             [class.text-slate-400]="!isSectionExpanded(section.id)"
-            [class.rotate-180]="isSectionExpanded(section.id)">
-            expand_more
-          </span>
+            [class.rotate-180]="isSectionExpanded(section.id)"></app-icon>
         </button>
 
         <!-- Level 2 + Level 3: Lessons + Sections -->
@@ -154,13 +155,13 @@
 
             <!-- Status Icon -->
             @if (isLessonLocked(lesson)) {
-            <span class="material-symbols-outlined text-slate-400 text-[18px] shrink-0 mt-0.5">lock</span>
+            <app-icon name="lock" size="md" class="shrink-0 mt-0.5 text-slate-400"></app-icon>
             } @else if (learningService.isLessonCompleted(lesson.id)()) {
-            <span class="material-symbols-outlined text-green-600 text-[18px] shrink-0 mt-0.5">check_circle</span>
+            <app-icon name="circle-check" size="md" class="shrink-0 mt-0.5 text-green-600"></app-icon>
             } @else if (currentLesson()?.id === lesson.id) {
-            <span class="material-symbols-outlined text-[#0056D2] text-[18px] shrink-0 mt-0.5">play_circle</span>
+            <app-icon name="play-circle" size="md" class="shrink-0 mt-0.5 text-[#0056D2]"></app-icon>
             } @else {
-            <span class="material-symbols-outlined text-slate-400 text-[18px] shrink-0 mt-0.5">radio_button_unchecked</span>
+            <app-icon name="circle" size="md" class="shrink-0 mt-0.5 text-slate-400"></app-icon>
             }
 
             <!-- Lesson Info -->
@@ -178,10 +179,11 @@
 
             <!-- Expand icon for lessons with sections -->
             @if (lesson.sections && lesson.sections.length > 0) {
-            <span class="material-symbols-outlined text-slate-400 text-sm transition-transform duration-200 shrink-0"
-              [class.rotate-180]="isLessonExpanded(lesson.id)">
-              expand_more
-            </span>
+            <app-icon
+              name="chevron-down"
+              size="sm"
+              class="shrink-0 text-slate-400 transition-transform duration-200"
+              [class.rotate-180]="isLessonExpanded(lesson.id)"></app-icon>
             }
           </button>
 
@@ -200,17 +202,17 @@
             (click)="selectSectionInSidebar(sectionIndex, $event)">
               <span class="font-bold text-[10px] text-[#0056D2] min-w-[20px]">{{ lessonIdx + 1 }}.{{ sectionIndex + 1 }}</span>
               @if (isSectionLockedByPrereqs(lesson, sectionIndex)) {
-              <span class="material-symbols-outlined text-[14px] text-slate-400">lock</span>
+              <app-icon name="lock" size="xs" class="text-slate-400"></app-icon>
               } @else if (isSectionCompleted(sectionItem.id)) {
-              <span class="material-symbols-outlined text-[14px] text-green-600">check_circle</span>
+              <app-icon name="circle-check" size="xs" class="text-green-600"></app-icon>
               } @else if (sectionItem.type === 'VIDEO') {
-              <span class="material-symbols-outlined text-[14px]">play_circle</span>
+              <app-icon name="play-circle" size="xs"></app-icon>
               } @else if (sectionItem.type === 'TEXT') {
-              <span class="material-symbols-outlined text-[14px]">description</span>
+              <app-icon name="file-text" size="xs"></app-icon>
               } @else if (sectionItem.type === 'QUIZ') {
-              <span class="material-symbols-outlined text-[14px]">quiz</span>
+              <app-icon name="help-circle" size="xs"></app-icon>
               } @else {
-              <span class="material-symbols-outlined text-[14px]">attach_file</span>
+              <app-icon name="paperclip" size="xs"></app-icon>
               }
               <span class="truncate flex-1">{{ sectionItem.title }}</span>
               @if (sectionItem.isRequired && !isSectionCompleted(sectionItem.id)) {
@@ -224,7 +226,7 @@
           @if (hasQuiz(lesson.id)) {
           <button class="flex items-center gap-2 w-full pl-12 pr-4 py-1.5 text-xs text-amber-600 hover:text-amber-700 cursor-pointer transition-colors"
             (click)="goToQuiz(lesson.id, $event)">
-            <span class="material-symbols-outlined text-[14px]">assignment</span>
+            <app-icon name="file-check" size="xs"></app-icon>
             <span>Làm bài trắc nghiệm</span>
           </button>
           }
@@ -282,7 +284,7 @@
       </div>
       } @else if (lessonError()) {
       <div class="flex flex-col items-center justify-center py-20 px-6 text-center">
-        <span class="material-symbols-outlined text-4xl text-red-400 mb-3">error</span>
+        <app-icon name="error" size="xl" class="mb-3 text-red-400"></app-icon>
         <h3 class="text-lg font-bold text-slate-800 mb-1">Lỗi tải bài học</h3>
         <p class="text-sm text-slate-500 mb-4">{{ lessonError() }}</p>
         <button class="px-6 py-2 bg-[#0056D2] text-white rounded-lg text-sm font-medium hover:bg-[#004BB5] transition-colors"
@@ -309,7 +311,7 @@
       </app-lesson-content>
       } @else {
       <div class="flex flex-col items-center justify-center py-20 text-slate-400">
-        <span class="material-symbols-outlined text-5xl mb-3">menu_book</span>
+        <app-icon name="book" size="xl" class="mb-3"></app-icon>
         <h3 class="text-lg font-semibold text-slate-700 mb-1">Chọn bài học để bắt đầu</h3>
         <p class="text-sm">Chọn một bài học từ danh sách bên trái</p>
       </div>
@@ -323,7 +325,7 @@
         <button class="flex items-center gap-1 px-3 py-2 rounded text-slate-500 hover:text-[#0056D2] hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:pointer-events-none"
           [disabled]="!canGoPrevious() && currentSectionIndex() === 0"
           (click)="previousLesson()">
-          <span class="material-symbols-outlined text-xl">arrow_back</span>
+          <app-icon name="arrow-left" size="md"></app-icon>
           <span class="hidden sm:inline text-sm font-medium">Bài trước</span>
         </button>
 
@@ -332,11 +334,11 @@
           [class.bg-[#0056D2]]="!learningService.isLessonCompleted(currentLesson()!.id)()"
           (click)="onMarkComplete()">
           @if (learningService.isLessonCompleted(currentLesson()!.id)()) {
-          <span class="material-symbols-outlined text-base">check</span>
+          <app-icon name="check" size="sm"></app-icon>
           <span>Đã hoàn thành</span>
           } @else {
           <span>Đánh dấu hoàn thành</span>
-          <span class="material-symbols-outlined text-base">check</span>
+          <app-icon name="check" size="sm"></app-icon>
           }
         </button>
 
@@ -344,7 +346,7 @@
           [disabled]="!canGoNext() && (!currentLesson()?.sections || currentSectionIndex() >= (currentLesson()?.sections?.length || 0) - 1)"
           (click)="nextLesson()">
           <span class="hidden sm:inline text-sm font-medium">Bài tiếp theo</span>
-          <span class="material-symbols-outlined text-xl">arrow_forward</span>
+          <app-icon name="arrow-right" size="md"></app-icon>
         </button>
       </div>
     </div>
