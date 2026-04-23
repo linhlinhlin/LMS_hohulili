@@ -49,8 +49,8 @@ spring:
   # File upload limits
   servlet:
     multipart:
-      max-file-size: 500MB
-      max-request-size: 520MB
+      max-file-size: 5GB
+      max-request-size: 5.2GB
 
 server:
   port: 8080

@@ -492,7 +492,8 @@ export class AdaptiveVideoPlayerComponent {
       return;
     }
 
-    const player = new shaka.Player(videoElement);
+    const player = new shaka.Player();
+    await player.attach(videoElement);
     player.configure({
       abr: {
         enabled: true,

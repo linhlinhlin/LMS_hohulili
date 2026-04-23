@@ -37,7 +37,7 @@ public class FileUploadControllerV3 {
     );
 
     private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-    private static final long MAX_VIDEO_SIZE = 500L * 1024 * 1024; // Legacy direct-upload ceiling; large videos should use presigned upload
+    private static final long MAX_VIDEO_SIZE = 5L * 1024 * 1024 * 1024; // 5GB — matches presigned upload limit when R2 is disabled
 
     private static final Set<String> AUTHORING_ONLY_FOLDERS = Set.of(
         "videos", "course-thumbnails", "sections"
@@ -185,7 +185,7 @@ public class FileUploadControllerV3 {
             if (file.getSize() > MAX_VIDEO_SIZE) {
                 return ResponseEntity.badRequest().body(Map.of(
                         "success", 0,
-                        "message", "Upload video trực tiếp qua backend chỉ hỗ trợ đến 500MB. Với video lớn, hãy dùng flow presigned upload (/api/v3/files/upload/init + /api/v3/files/upload/confirm)."
+                        "message", "Upload video chỉ hỗ trợ tối đa 5GB."
                 ));
             }
             String contentType = file.getContentType();
