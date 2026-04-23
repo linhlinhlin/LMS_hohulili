@@ -237,42 +237,77 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                 </div>
               }
 
-              <!-- UPLOADING: progress bar (starts immediately on file select) -->
+              <!-- UPLOADING: progress bar + speed/ETA + cancel -->
               @if (cfUploadStatus() === 'uploading') {
-                <div class="video-status-card video-status-card--uploading">
+                <div class="video-status-card video-status-card--uploading" role="status" aria-live="polite">
                   <div class="min-w-0 flex-1">
-                    <div class="flex items-center justify-between mb-2">
-                      <p class="text-sm font-semibold text-[#0056D2]">
-                        @if (svc.sectionVideoProcessingStatus() === 'PROCESSING' || (svc.sectionVideoAssetId() && !svc.sectionVideoIsUploading())) {
-                          Đang xử lý video...
-                        } @else {
-                          Đang tải lên...
-                        }
-                      </p>
-                      @if (!svc.sectionVideoAssetId() || svc.sectionVideoIsUploading()) {
-                        <span class="text-xs font-semibold text-[#0056D2] tabular-nums">{{ svc.sectionVideoUploadProgress() }}%</span>
-                      }
-                    </div>
-                    <div class="h-2 w-full overflow-hidden rounded-full bg-[#0056D2]/10">
-                      <div class="h-full rounded-full bg-[#0056D2] transition-[width] duration-300 ease-out"
-                           [style.width.%]="svc.sectionVideoIsUploading() ? svc.sectionVideoUploadProgress() : 100"></div>
-                    </div>
-                    @if (svc.sectionVideoProcessingStatus() === 'PROCESSING' || (svc.sectionVideoAssetId() && !svc.sectionVideoIsUploading())) {
-                      <p class="mt-2 text-xs text-slate-500">Video đang được tối ưu để phát trực tuyến. Bạn có thể đóng và quay lại sau.</p>
+                    <!-- Upload phase -->
+                    @if (svc.sectionVideoIsUploading()) {
+                      <div class="flex items-center justify-between mb-1">
+                        <div class="flex items-center gap-2">
+                          <p class="text-sm font-semibold text-[#0056D2]">Đang tải lên...</p>
+                          @if (svc.sectionVideoFileName()) {
+                            <span class="text-xs text-slate-500 truncate max-w-[160px]" [title]="svc.sectionVideoFileName()!">{{ svc.sectionVideoFileName() }}</span>
+                          }
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <span class="text-xs font-semibold text-[#0056D2] tabular-nums">{{ svc.sectionVideoUploadProgress() }}%</span>
+                          <button type="button" (click)="cancelUpload()" title="Hủy tải lên"
+                            class="flex h-6 w-6 items-center justify-center rounded-full text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors">
+                            <lucide-icon name="x" [size]="14"></lucide-icon>
+                          </button>
+                        </div>
+                      </div>
+                      <div class="h-2 w-full overflow-hidden rounded-full bg-[#0056D2]/10"
+                           role="progressbar" [attr.aria-valuenow]="svc.sectionVideoUploadProgress()"
+                           aria-valuemin="0" aria-valuemax="100" [attr.aria-label]="'Tiến trình tải lên: ' + svc.sectionVideoUploadProgress() + '%'">
+                        <div class="h-full rounded-full bg-[#0056D2] transition-[width] duration-300 ease-out"
+                             [style.width.%]="svc.sectionVideoUploadProgress()"></div>
+                      </div>
+                      <div class="mt-1.5 flex items-center justify-between text-[11px] text-slate-500 tabular-nums">
+                        <span>
+                          @if (svc.sectionVideoFileSize()) {
+                            {{ formatFileSize(Math.round(svc.sectionVideoFileSize() * svc.sectionVideoUploadProgress() / 100)) }} / {{ formatFileSize(svc.sectionVideoFileSize()) }}
+                          }
+                        </span>
+                        <span class="flex items-center gap-2">
+                          @if (svc.sectionVideoUploadSpeed()) {
+                            <span>{{ svc.sectionVideoUploadSpeed() }}</span>
+                          }
+                          @if (svc.sectionVideoUploadEta()) {
+                            <span>{{ svc.sectionVideoUploadEta() }}</span>
+                          }
+                        </span>
+                      </div>
+                    } @else {
+                      <!-- Processing phase -->
+                      <div class="flex items-center gap-2.5 mb-1">
+                        <div class="video-processing-spinner"></div>
+                        <p class="text-sm font-semibold text-[#0056D2]">Đang xử lý video...</p>
+                      </div>
+                      <div class="h-2 w-full overflow-hidden rounded-full bg-[#0056D2]/10">
+                        <div class="h-full rounded-full bg-[#0056D2] video-processing-bar"></div>
+                      </div>
+                      <p class="mt-2 text-xs text-slate-500">Video đang được tối ưu để phát trực tuyến (3 chất lượng). Bạn có thể đóng và quay lại sau.</p>
                     }
                   </div>
                 </div>
               }
 
-              <!-- ERROR: upload/processing failed -->
+              <!-- ERROR: upload/processing failed with detail -->
               @if (cfUploadStatus() === 'error') {
-                <div class="video-status-card video-status-card--error">
+                <div class="video-status-card video-status-card--error" role="alert">
                   <div class="video-status-card__icon bg-red-100">
                     <lucide-icon name="alert-triangle" [size]="20" class="text-red-600"></lucide-icon>
                   </div>
                   <div class="min-w-0 flex-1">
                     <p class="text-sm font-semibold text-red-800">Xử lý video thất bại</p>
-                    <p class="mt-0.5 text-xs text-red-600">Vui lòng thử lại hoặc chọn video khác.</p>
+                    @if (svc.sectionVideoErrorDetail()) {
+                      <p class="mt-0.5 text-xs text-red-600">{{ svc.sectionVideoErrorDetail() }}</p>
+                    } @else {
+                      <p class="mt-0.5 text-xs text-red-600">Vui lòng thử lại hoặc chọn video khác.</p>
+                    }
+                    <p class="mt-1 text-[11px] text-red-400">Định dạng khuyến nghị: MP4 (H.264 + AAC)</p>
                   </div>
                   <div class="flex shrink-0 gap-2">
                     @if (svc.sectionVideoAssetId()) {
@@ -1003,6 +1038,28 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
       flex-shrink: 0;
     }
 
+    /* ── Video Processing Spinner ── */
+    .video-processing-spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(0, 86, 210, 0.2);
+      border-top-color: rgb(0, 86, 210);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .video-processing-bar {
+      animation: processing-pulse 2s ease-in-out infinite;
+    }
+    @keyframes processing-pulse {
+      0%   { width: 30%; opacity: 0.6; }
+      50%  { width: 80%; opacity: 1; }
+      100% { width: 30%; opacity: 0.6; }
+    }
+
     /* ── Quiz Type Cards ── */
     .quiz-type-card {
       display: flex;
@@ -1138,18 +1195,28 @@ export class SectionEditorComponent {
     if (closed) this.closed.emit();
   }
 
+  readonly Math = Math;
+
   onVideoFileSelected(event: Event): void {
-    const file = (event.target as HTMLInputElement).files?.[0];
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
     if (file) {
-      // Upload starts immediately (Coursera/Udemy upload-on-select pattern)
       this.svc.startVideoUpload(file);
     }
+    input.value = '';
+  }
+
+  cancelUpload(): void {
+    this.svc.cancelVideoUpload();
   }
 
   resetVideoUpload(): void {
     this.svc.selectedSectionVideoFile.set(null);
     this.svc.sectionVideoAssetId.set(null);
     this.svc.sectionVideoProcessingStatus.set(null);
+    this.svc.sectionVideoErrorDetail.set(null);
+    this.svc.sectionVideoFileName.set(null);
+    this.svc.sectionVideoFileSize.set(0);
   }
 
   onFileSelected(event: Event): void {

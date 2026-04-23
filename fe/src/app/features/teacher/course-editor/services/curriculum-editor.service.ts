@@ -1,7 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { firstValueFrom, filter, lastValueFrom } from 'rxjs';
+import { firstValueFrom, filter, lastValueFrom, Subscription } from 'rxjs';
 import {
   ChapterDraftDTO,
   LessonDraftDTO,
@@ -80,6 +80,11 @@ export class CurriculumEditorService {
   readonly selectedSectionVideoFile = signal<File | null>(null);
   readonly sectionVideoUploadProgress = signal(0);
   readonly sectionVideoIsUploading = signal(false);
+  readonly sectionVideoUploadSpeed = signal<string | null>(null);
+  readonly sectionVideoUploadEta = signal<string | null>(null);
+  readonly sectionVideoFileName = signal<string | null>(null);
+  readonly sectionVideoFileSize = signal<number>(0);
+  readonly sectionVideoErrorDetail = signal<string | null>(null);
 
   // File
   readonly selectedFile = signal<File | null>(null);
@@ -239,18 +244,32 @@ export class CurriculumEditorService {
 
   // ── Video pipeline ───────────────────────────────────────────────────
 
+  private static readonly MAX_VIDEO_SIZE_BYTES = 5 * 1024 * 1024 * 1024; // 5 GB
+  private activeUploadSub: Subscription | null = null;
+  private uploadStartTime = 0;
+  private lastProgressBytes = 0;
+  private lastProgressTime = 0;
+
   private async uploadVideoAsset(file: File): Promise<VideoAssetResponse> {
     this.sectionVideoIsUploading.set(true);
     this.sectionVideoUploadProgress.set(0);
+    this.sectionVideoUploadSpeed.set(null);
+    this.sectionVideoUploadEta.set(null);
+    this.uploadStartTime = Date.now();
+    this.lastProgressBytes = 0;
+    this.lastProgressTime = Date.now();
 
     try {
       const uploadResult = await new Promise<Extract<UploadEvent, { type: 'complete' }>>((resolve, reject) => {
-        this.presignedUpload.upload(file, 'videos').subscribe({
+        this.activeUploadSub = this.presignedUpload.upload(file, 'videos').subscribe({
           next: (event: UploadEvent) => {
             if (event.type === 'progress') {
               this.sectionVideoUploadProgress.set(event.progress);
+              this.updateUploadMetrics(event.progress, file.size);
             } else if (event.type === 'complete') {
               this.sectionVideoUploadProgress.set(100);
+              this.sectionVideoUploadSpeed.set(null);
+              this.sectionVideoUploadEta.set(null);
               resolve(event);
             }
           },
@@ -264,28 +283,88 @@ export class CurriculumEditorService {
       return res.data;
     } finally {
       this.sectionVideoIsUploading.set(false);
+      this.activeUploadSub = null;
     }
   }
 
-  /**
-   * Upload-on-select: starts upload immediately when teacher picks a video file.
-   * By the time teacher clicks "Save", asset ID is already set → instant save.
-   * (Coursera/Udemy pattern)
-   */
+  private updateUploadMetrics(progress: number, totalBytes: number): void {
+    const now = Date.now();
+    const uploadedBytes = Math.round(totalBytes * progress / 100);
+    const timeSinceLastSec = (now - this.lastProgressTime) / 1000;
+
+    if (timeSinceLastSec >= 0.5) {
+      const bytesDelta = uploadedBytes - this.lastProgressBytes;
+      const speedBps = bytesDelta / timeSinceLastSec;
+      this.lastProgressBytes = uploadedBytes;
+      this.lastProgressTime = now;
+
+      if (speedBps > 0) {
+        this.sectionVideoUploadSpeed.set(this.formatSpeed(speedBps));
+        const remainingBytes = totalBytes - uploadedBytes;
+        const etaSec = Math.ceil(remainingBytes / speedBps);
+        this.sectionVideoUploadEta.set(this.formatEta(etaSec));
+      }
+    }
+  }
+
+  private formatSpeed(bytesPerSecond: number): string {
+    const mbps = bytesPerSecond / (1024 * 1024);
+    if (mbps >= 1) return `${mbps.toFixed(1)} MB/s`;
+    const kbps = bytesPerSecond / 1024;
+    return `${kbps.toFixed(0)} KB/s`;
+  }
+
+  private formatEta(seconds: number): string {
+    if (seconds < 60) return `~${seconds}s`;
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    if (m < 60) return `~${m}m ${s}s`;
+    const h = Math.floor(m / 60);
+    return `~${h}h ${m % 60}m`;
+  }
+
+  cancelVideoUpload(): void {
+    if (this.activeUploadSub) {
+      this.activeUploadSub.unsubscribe();
+      this.activeUploadSub = null;
+    }
+    this.sectionVideoIsUploading.set(false);
+    this.sectionVideoUploadProgress.set(0);
+    this.sectionVideoUploadSpeed.set(null);
+    this.sectionVideoUploadEta.set(null);
+    this.selectedSectionVideoFile.set(null);
+    this.sectionVideoFileName.set(null);
+    this.sectionVideoFileSize.set(0);
+    this.toast.info('Đã hủy tải lên video.');
+  }
+
   async startVideoUpload(file: File): Promise<void> {
+    if (file.size > CurriculumEditorService.MAX_VIDEO_SIZE_BYTES) {
+      const sizeGB = (file.size / (1024 * 1024 * 1024)).toFixed(1);
+      this.toast.error(`File quá lớn (${sizeGB} GB). Giới hạn tối đa: 5 GB.`);
+      return;
+    }
+
     this.selectedSectionVideoFile.set(file);
+    this.sectionVideoFileName.set(file.name);
+    this.sectionVideoFileSize.set(file.size);
+    this.sectionVideoErrorDetail.set(null);
     this.markDirty();
     try {
       const asset = await this.uploadVideoAsset(file);
       this.sectionVideoAssetId.set(asset.id);
       this.sectionVideoProcessingStatus.set(asset.status ?? 'PROCESSING');
       this.scheduleSectionVideoPoll(asset.id);
-      this.selectedSectionVideoFile.set(null); // Upload done, clear staged file
+      this.selectedSectionVideoFile.set(null);
     } catch (err: any) {
       this.sectionVideoIsUploading.set(false);
       this.sectionVideoUploadProgress.set(0);
+      this.sectionVideoUploadSpeed.set(null);
+      this.sectionVideoUploadEta.set(null);
       this.selectedSectionVideoFile.set(null);
-      this.toast.error('Tải video thất bại: ' + (err?.message || ''));
+      const detail = err?.message || err?.error?.message || 'Lỗi không xác định';
+      this.sectionVideoErrorDetail.set(detail);
+      this.toast.error('Tải video thất bại: ' + detail);
     }
   }
 
@@ -343,6 +422,7 @@ export class CurriculumEditorService {
     try {
       await firstValueFrom(this.videoAssetApi.retry(assetId) as any);
       this.sectionVideoProcessingStatus.set('PROCESSING');
+      this.sectionVideoErrorDetail.set(null);
       this.scheduleSectionVideoPoll(assetId);
     } catch {
       this.toast.error('Thử lại xử lý video thất bại');
