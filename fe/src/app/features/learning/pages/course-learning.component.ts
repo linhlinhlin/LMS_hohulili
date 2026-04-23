@@ -776,10 +776,6 @@ export class CourseLearningComponent implements OnInit {
     } catch {
       if (!this.network.online()) {
         this.learningService.markCurrentLessonComplete();
-        const courseId = lesson?.courseId ?? this.course()?.id;
-        if (courseId) {
-          await this.courseDownload.mergeCompletedSectionsOffline(courseId, lesson.id, []).catch(() => undefined);
-        }
         this.expandCurrentLessonSection();
         this.toast.success(`Hoàn thành bài: ${lesson.title} (sẽ đồng bộ khi có mạng)`);
         return true;
@@ -1214,7 +1210,7 @@ export class CourseLearningComponent implements OnInit {
     const allSectionsCompleted = lesson.sections.every(section => nextCompletedSections.has(section.id));
     const alreadyCompleted = this.isSectionCompleted(sectionId);
     if (!alreadyCompleted) {
-      await this.markSectionAsCompleted(sectionId, { persistBackend: !allSectionsCompleted });
+      await this.markSectionAsCompleted(sectionId, { persistBackend: true });
     }
 
     if (!allSectionsCompleted) {
@@ -1234,7 +1230,15 @@ export class CourseLearningComponent implements OnInit {
       }
       this.toast.success(`Đã hoàn thành bài: ${lesson.title}`);
     } catch {
-      if (!alreadyCompleted) {
+      if (!this.network.online()) {
+        this.learningService.markCurrentLessonComplete();
+        const courseId = lesson?.courseId ?? this.course()?.id;
+        if (courseId) {
+          const allSectionIds = lesson.sections.map((s: any) => s.id).filter(Boolean);
+          await this.courseDownload.mergeCompletedSectionsOffline(courseId, lesson.id, allSectionIds).catch(() => undefined);
+        }
+        this.toast.success(`Hoàn thành bài: ${lesson.title} (sẽ đồng bộ khi có mạng)`);
+      } else if (!alreadyCompleted) {
         this.toast.success(`Đã hoàn thành phần: ${completedSection.title}`);
       }
     }
