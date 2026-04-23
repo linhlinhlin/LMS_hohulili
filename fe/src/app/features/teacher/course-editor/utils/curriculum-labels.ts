@@ -25,7 +25,8 @@ export function buildCurriculumLabel(level: CurriculumLevel, index: number): str
   return `${LEVEL_LABELS[level]} ${index + 1}`;
 }
 
-export function stripCurriculumPrefix(title: string, level: CurriculumLevel): string {
+export function stripCurriculumPrefix(title: string | null | undefined, level: CurriculumLevel): string {
+  if (!title) return 'Chưa đặt tên';
   const normalizedTitle = title.trim();
 
   for (const pattern of LEVEL_PREFIX_PATTERNS[level]) {
