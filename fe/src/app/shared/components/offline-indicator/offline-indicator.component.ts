@@ -10,7 +10,6 @@ import { SessionExpiredService } from '../../../core/services/session-expired.se
   imports: [RouterLink],
   template: `
     @if (isOffline()) {
-      <!-- Persistent top banner when fully offline — in document flow, not fixed -->
       <div class="bg-red-600 text-white px-4 py-2 flex items-center justify-between shadow-md"
            role="alert"
            aria-live="assertive">
@@ -28,8 +27,14 @@ import { SessionExpiredService } from '../../../core/services/session-expired.se
           Khóa học đã tải
         </a>
       </div>
+    } @else if (isSyncing()) {
+      <div class="flex items-center justify-center gap-2 px-3 py-1 bg-blue-50 border-b border-blue-200 text-blue-700"
+           role="status"
+           aria-live="polite">
+        <span class="inline-block w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+        <span class="text-xs font-medium">Đang đồng bộ dữ liệu...</span>
+      </div>
     } @else if (isSlow()) {
-      <!-- Slim inline banner for slow connection — not fixed, no overlay -->
       <div class="flex items-center justify-center gap-2 px-3 py-1 bg-amber-50 border-b border-amber-200 text-amber-700"
            role="status"
            aria-live="polite">
@@ -45,6 +50,7 @@ export class OfflineIndicatorComponent {
   private readonly sessionService = inject(SessionExpiredService);
 
   protected readonly isOffline = computed(() => this.network.connectionTier() === 'none');
+  protected readonly isSyncing = computed(() => !this.isOffline() && this.syncService.isSyncing());
   protected readonly isSlow = computed(() => this.network.connectionTier() === 'slow');
   protected readonly pendingSyncCount = computed(() => this.syncService.pendingCount());
   protected readonly hasExpiredBanner = computed(() => this.sessionService.showExpiredBanner());

@@ -23,6 +23,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { StudentEnrollmentService } from '../../student/services/enrollment.service';
 import { CourseDownloadService } from '../../../core/services/course-download.service';
 import { NetworkStatusService } from '../../../core/services/network-status.service';
+import { OfflineSyncService } from '../../../core/services/offline-sync.service';
 import { getOfflineCourseStaleCopy } from '../../../core/utils/offline-course-staleness';
 
 /**
@@ -52,6 +53,7 @@ export class CourseLearningComponent implements OnInit {
   private enrollmentService = inject(StudentEnrollmentService);
   private courseDownload = inject(CourseDownloadService);
   private network = inject(NetworkStatusService);
+  private syncService = inject(OfflineSyncService);
   private destroyRef = inject(DestroyRef);
 
   // Payment state
@@ -184,6 +186,23 @@ export class CourseLearningComponent implements OnInit {
     this.lastCompletedSectionsHydrationKey = hydrationKey;
     untracked(() => {
       void this.hydrateCompletedSections(courseId, lessonId, online);
+    });
+  });
+
+  private postSyncRefreshEffect = effect(() => {
+    const result = this.syncService.lastSyncResult();
+    if (!result || result.synced === 0) return;
+
+    untracked(() => {
+      const courseId = this.course()?.id;
+      const lessonId = this.currentLesson()?.id ?? null;
+      const online = this.network.online();
+
+      if (courseId) {
+        this.lastCompletedSectionsHydrationKey = '';
+        void this.hydrateCompletedSections(courseId, lessonId, online);
+        void this.enrollmentService.refreshCourseProgress(courseId);
+      }
     });
   });
 
