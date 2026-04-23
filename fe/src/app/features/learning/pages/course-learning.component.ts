@@ -643,6 +643,10 @@ export class CourseLearningComponent implements OnInit {
     sectionId: string,
     action: 'next-section' | 'complete-section' | 'complete-lesson'
   ): Promise<boolean> {
+    if (!this.network.online()) {
+      return true;
+    }
+
     try {
       const progressCheck: any = await firstValueFrom(
         this.videoProgressApi.canProceedToNext(sectionId)
@@ -706,7 +710,7 @@ export class CourseLearningComponent implements OnInit {
     const nextCompletedSections = new Set(this.completedSections());
     nextCompletedSections.add(currentSection.id);
     const allSectionsCompleted = lesson.sections.every((section: any) => nextCompletedSections.has(section.id));
-    await this.markSectionAsCompleted(currentSection.id, { persistBackend: !allSectionsCompleted });
+    await this.markSectionAsCompleted(currentSection.id, { persistBackend: true });
 
     if (allSectionsCompleted) {
       try {
@@ -716,8 +720,18 @@ export class CourseLearningComponent implements OnInit {
         this.learningService.markCurrentLessonComplete();
         this.toast.success(`Đã hoàn thành bài: ${lesson.title}`);
       } catch {
-        this.toast.error('Đã hoàn thành phần cuối nhưng chưa thể cập nhật tiến độ bài học. Vui lòng thử lại.');
-        return false;
+        if (!this.network.online()) {
+          this.learningService.markCurrentLessonComplete();
+          const courseId = lesson?.courseId ?? this.course()?.id;
+          if (courseId) {
+            const allSectionIds = lesson.sections.map((s: any) => s.id).filter(Boolean);
+            await this.courseDownload.mergeCompletedSectionsOffline(courseId, lesson.id, allSectionIds).catch(() => undefined);
+          }
+          this.toast.success(`Hoàn thành bài: ${lesson.title} (sẽ đồng bộ khi có mạng)`);
+        } else {
+          this.toast.error('Đã hoàn thành phần cuối nhưng chưa thể cập nhật tiến độ bài học. Vui lòng thử lại.');
+          return false;
+        }
       }
     } else {
       this.toast.success(`Đã hoàn thành phần: ${currentSection.title}`);
@@ -760,6 +774,16 @@ export class CourseLearningComponent implements OnInit {
       this.expandCurrentLessonSection();
       return true;
     } catch {
+      if (!this.network.online()) {
+        this.learningService.markCurrentLessonComplete();
+        const courseId = lesson?.courseId ?? this.course()?.id;
+        if (courseId) {
+          await this.courseDownload.mergeCompletedSectionsOffline(courseId, lesson.id, []).catch(() => undefined);
+        }
+        this.expandCurrentLessonSection();
+        this.toast.success(`Hoàn thành bài: ${lesson.title} (sẽ đồng bộ khi có mạng)`);
+        return true;
+      }
       this.toast.error('Không thể cập nhật trạng thái hoàn thành. Vui lòng thử lại.');
       return false;
     }
