@@ -1178,15 +1178,22 @@ export class CourseLearningComponent implements OnInit {
       const result = await firstValueFrom(
         this.quizApi.getQuizResult(attemptId).pipe(catchError(() => of(null)))
       );
-      if (result && (result as any)?.data?.isPassed !== false) {
-        const lessonId = this.currentLesson()?.id;
-        if (lessonId) {
-          await firstValueFrom(this.lessonApi.markLessonComplete(lessonId, this.buildLessonCompletionPayload(this.currentLesson())));
+
+      const shouldComplete = result
+        ? (result as any)?.data?.isPassed !== false
+        : !this.network.online();
+
+      if (shouldComplete) {
+        const lesson = this.currentLesson();
+        if (lesson?.id) {
+          await firstValueFrom(this.lessonApi.markLessonComplete(lesson.id, this.buildLessonCompletionPayload(lesson)));
           this.learningService.markCurrentLessonComplete();
         }
       }
     } catch {
-      // Failed to validate - don't mark as complete
+      if (!this.network.online()) {
+        this.learningService.markCurrentLessonComplete();
+      }
     }
   }
 
