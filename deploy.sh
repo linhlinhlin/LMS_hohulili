@@ -21,8 +21,12 @@ set -a
 set +a
 
 COMPOSE_ARGS=(--env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml)
+IMAGE_SERVICES=(backend frontend)
+RUNTIME_SERVICES=(backend frontend caddy)
 if [ "${ENABLE_LOCAL_VIDEO_WORKER:-true}" = "true" ]; then
   COMPOSE_ARGS+=(--profile video-worker)
+  IMAGE_SERVICES+=(video-worker)
+  RUNTIME_SERVICES+=(video-worker)
 fi
 
 if [ "${POSTGRES_PASSWORD:-}" = "CHANGE_ME_STRONG_PASSWORD" ] || [ -z "${POSTGRES_PASSWORD:-}" ]; then
@@ -104,12 +108,16 @@ docker system prune -f --volumes 2>/dev/null || true
 
 if docker compose "${COMPOSE_ARGS[@]}" config --images 2>/dev/null | grep -q "ghcr.io"; then
   echo "[5/7] Pulling pre-built images from GHCR..."
-  docker compose "${COMPOSE_ARGS[@]}" pull backend frontend
+  docker compose "${COMPOSE_ARGS[@]}" pull "${IMAGE_SERVICES[@]}"
   docker image prune -f 2>/dev/null || true
-  docker compose "${COMPOSE_ARGS[@]}" up -d --wait --remove-orphans --force-recreate backend frontend
+  # Recreate Caddy whenever host-mounted config such as Caddyfile changes.
+  docker compose "${COMPOSE_ARGS[@]}" up -d --wait --remove-orphans --force-recreate "${RUNTIME_SERVICES[@]}"
 else
   echo "[5/7] Building and starting containers (no GHCR images configured)..."
-  docker compose "${COMPOSE_ARGS[@]}" up -d --build --wait --remove-orphans
+  # Keep the manual deploy path aligned with CI/CD: app containers + Caddy
+  # must restart together so edge headers never drift from the checked-out
+  # revision on disk.
+  docker compose "${COMPOSE_ARGS[@]}" up -d --build --wait --remove-orphans --force-recreate "${RUNTIME_SERVICES[@]}"
 fi
 
 echo "[6/7] Container status..."
@@ -130,6 +138,13 @@ if curl -sf -o /dev/null http://localhost:80 > /dev/null 2>&1; then
   echo "Caddy:   HEALTHY"
 else
   echo "Caddy:   Unhealthy (check logs: docker compose ${COMPOSE_ARGS[*]} logs caddy --tail=50)"
+fi
+
+CSP_HEADER="$(curl -fsSI http://localhost:80/teacher/profile | tr -d '\r' | grep -i '^Content-Security-Policy:' || true)"
+if printf '%s' "$CSP_HEADER" | grep -Fq "img-src 'self' data: blob:"; then
+  echo "CSP:     HEALTHY (blob: allowed for avatar previews)"
+else
+  echo "CSP:     WARNING (missing blob: in img-src; avatar preview/edit may fail)"
 fi
 
 echo ""
