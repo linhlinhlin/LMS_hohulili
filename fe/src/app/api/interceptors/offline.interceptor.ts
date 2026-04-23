@@ -4,6 +4,8 @@ import { catchError, switchMap } from 'rxjs/operators';
 import { inject } from '@angular/core';
 import { ensureOfflineDbReady, offlineDb, getCurrentUserId, type OfflineCourse } from '../../core/db/lms-offline.db';
 import { OfflineSyncService } from '../../core/services/offline-sync.service';
+import { NetworkStatusService } from '../../core/services/network-status.service';
+import { isOfflineCompatibleHttpError } from '../../core/utils/offline-http-error';
 
 /** Paths that must never be intercepted offline (auth, health checks) */
 const NEVER_INTERCEPT_PREFIXES = ['/api/v3/auth/', '/api/v3/sync/', '/actuator/'];
@@ -22,18 +24,24 @@ const DEFAULT_OFFLINE_COURSES_PAGE_SIZE = 12;
  */
 export const offlineInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): Observable<HttpEvent<any>> => {
   const syncService = inject(OfflineSyncService);
+  const networkStatus = inject(NetworkStatusService);
 
   // If online, proceed normally but catch network failures
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
-      // Only handle network errors (status 0 = no connection, or TypeError)
-      const isNetworkError = error.status === 0 || error.error instanceof ProgressEvent;
-      if (!isNetworkError) {
+      const path = extractApiPath(req.url) || req.url;
+      const isOfflineError = isOfflineCompatibleHttpError(error, req.url, {
+        navigatorOnline: typeof navigator === 'undefined' ? true : navigator.onLine,
+        appOnline: networkStatus.online(),
+        hasRecentOfflineSignal: networkStatus.hasRecentOfflineSignal(),
+      });
+      if (!isOfflineError) {
         return throwError(() => error);
       }
 
+      networkStatus.markOfflineFromTransportFailure();
+
       // Never intercept auth or health-check endpoints
-      const path = extractApiPath(req.url) || req.url;
       if (NEVER_INTERCEPT_PREFIXES.some(prefix => path.startsWith(prefix))) {
         return throwError(() => error);
       }
