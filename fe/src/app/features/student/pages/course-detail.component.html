@@ -94,14 +94,14 @@
       <!-- Progress Section (horizontal bar — consistent with dashboard/my-courses) -->
       <!-- Only show if enrolled, otherwise show enrollment CTA -->
       @if (!isEnrolled()) {
-        <div class="hero-progress-section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 24px; border-radius: 12px; margin-top: 24px;">
+        <div class="hero-progress-section" style="background: linear-gradient(135deg, #0056D2 0%, #004BB5 100%); padding: 24px; border-radius: 12px; margin-top: 24px;">
           <div style="text-align: center;">
             @if (isAwaitingManualActivation()) {
-              <h3 style="color: white; font-size: 20px; font-weight: bold; margin-bottom: 8px;">Thanh toan da duoc ghi nhan</h3>
-              <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin-bottom: 16px;">Khoa hoc dang lop hoc se mo khi ban duoc xep lop hoac kich hoat. Ban co the theo doi trang thai tai lich su thanh toan.</p>
+              <h3 style="color: white; font-size: 20px; font-weight: bold; margin-bottom: 8px;">Thanh toán đã được ghi nhận</h3>
+              <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin-bottom: 16px;">Khóa học dạng lớp học sẽ mở khi bạn được xếp lớp hoặc kích hoạt. Bạn có thể theo dõi trạng thái tại lịch sử thanh toán.</p>
             } @else if (isAccessPending()) {
-              <h3 style="color: white; font-size: 20px; font-weight: bold; margin-bottom: 8px;">Da ghi nhan thanh toan</h3>
-              <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin-bottom: 16px;">Quyen hoc cua ban van dang duoc kich hoat. Hay kiem tra lai tai lich su thanh toan trong it phut toi.</p>
+              <h3 style="color: white; font-size: 20px; font-weight: bold; margin-bottom: 8px;">Đã ghi nhận thanh toán</h3>
+              <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin-bottom: 16px;">Quyền học của bạn vẫn đang được kích hoạt. Hãy kiểm tra lại tại lịch sử thanh toán trong ít phút tới.</p>
             } @else if (course()?.price && (course()!.price ?? 0) > 0 && !hasPaid()) {
               <h3 style="color: white; font-size: 20px; font-weight: bold; margin-bottom: 8px;">Thanh toán để bắt đầu học</h3>
               <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin-bottom: 16px;">Bạn đang xem bản dùng thử. Thanh toán để mở toàn bộ {{ totalLessons() }} bài học và theo dõi tiến độ của bạn.</p>
@@ -123,14 +123,14 @@
               </div>
             }
             @if (isAwaitingManualActivation() || isAccessPending()) {
-              <a routerLink="/student/payments" class="btn-cta" style="display: inline-flex; align-items: center; justify-content: center; background: white; color: #667eea; padding: 12px 32px; font-size: 16px; font-weight: bold; border: none; cursor: pointer; border-radius: 8px; text-decoration: none;">
+              <a routerLink="/student/payments" class="btn-cta" style="display: inline-flex; align-items: center; justify-content: center; background: white; color: #0056D2; padding: 12px 32px; font-size: 16px; font-weight: bold; border: none; cursor: pointer; border-radius: 8px; text-decoration: none;">
                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline-block; margin-right: 8px;">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 014-4h6m0 0l-3-3m3 3l-3 3"/>
                 </svg>
-                Xem lich su thanh toan
+                Xem lịch sử thanh toán
               </a>
             } @else if (course()?.price && (course()!.price ?? 0) > 0 && !hasPaid()) {
-              <button (click)="goToCheckout()" class="btn-cta" style="background: white; color: #667eea; padding: 12px 32px; font-size: 16px; font-weight: bold; border: none; cursor: pointer; border-radius: 8px;">
+              <button (click)="goToCheckout()" class="btn-cta" style="background: white; color: #0056D2; padding: 12px 32px; font-size: 16px; font-weight: bold; border: none; cursor: pointer; border-radius: 8px;">
                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline-block; margin-right: 8px;">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
                 </svg>
@@ -144,7 +144,7 @@
                 Giảng viên sẽ thêm bạn vào lớp học
               </div>
             } @else {
-              <button (click)="handleEnroll()" [disabled]="isEnrolling()" class="btn-cta" style="background: white; color: #667eea; padding: 12px 32px; font-size: 16px; font-weight: bold; border: none; cursor: pointer; border-radius: 8px;">
+              <button (click)="handleEnroll()" [disabled]="isEnrolling()" class="btn-cta" style="background: white; color: #0056D2; padding: 12px 32px; font-size: 16px; font-weight: bold; border: none; cursor: pointer; border-radius: 8px;">
                 @if (isEnrolling()) {
                   <svg class="animate-spin -ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" style="display: inline-block; width: 16px; height: 16px;">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

@@ -12,6 +12,7 @@ import { CourseReviewApi, ReviewDTO, ReviewSummary, SubmitReviewRequest } from '
 import { firstValueFrom } from 'rxjs';
 import { ToastService } from '../../../core/services/toast.service';
 import { QuizApi } from '../../../api/endpoints/quiz.api';
+import { CourseDownloadService } from '../../../core/services/course-download.service';
 
 interface CourseDetail {
   id: string;
@@ -76,6 +77,7 @@ export class CourseDetailComponent implements OnInit {
   private reviewApi = inject(CourseReviewApi);
   private toast = inject(ToastService);
   private quizApi = inject(QuizApi);
+  private courseDownload = inject(CourseDownloadService);
 
   // State
   isLoading = signal(false);
@@ -200,7 +202,13 @@ export class CourseDetailComponent implements OnInit {
       },
       error: () => {
         this.isLoading.set(false);
-        this.loadError.set('Không thể tải thông tin khóa học. Vui lòng thử lại.');
+        const courseId = this.route.snapshot.paramMap.get('id');
+        if (courseId && this.courseDownload.isDownloadedSync(courseId)) {
+          this.isEnrolled.set(true);
+          this.hasPaid.set(true);
+        } else {
+          this.loadError.set('Không thể tải thông tin khóa học. Vui lòng thử lại.');
+        }
       }
     });
 
@@ -486,9 +494,12 @@ export class CourseDetailComponent implements OnInit {
         }
       },
       error: () => {
-        this.isEnrolled.set(false);
+        if (this.courseDownload.isDownloadedSync(courseId)) {
+          this.isEnrolled.set(true);
+        } else {
+          this.isEnrolled.set(false);
+        }
         this._realProgress.set(null);
-        /* supplementary — silent fallback */
       }
     });
   }
