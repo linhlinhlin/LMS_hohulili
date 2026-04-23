@@ -45,38 +45,38 @@ export interface PaymentCompletionOutcome {
         (close)="onSepayClose()">
       </app-sepay-qr-modal>
     } @else {
-      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4 backdrop-blur-sm"
            (click)="onBackdropClick($event)">
-        <div class="max-w-lg w-full overflow-hidden rounded-2xl bg-white shadow-2xl transition-all"
+        <div class="max-w-lg w-full max-h-[90dvh] overflow-y-auto overscroll-contain rounded-2xl bg-white shadow-2xl transition-all"
              (click)="$event.stopPropagation()">
 
-          <div class="relative bg-[#0056D2] p-6 text-white">
+          <div class="sticky top-0 z-10 relative bg-[#0056D2] p-5 sm:p-6 text-white rounded-t-2xl">
             <button (click)="close.emit()"
-                    class="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/20 transition-colors hover:bg-white/30"
+                    class="absolute right-3 top-3 sm:right-4 sm:top-4 flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-white/20 transition-colors hover:bg-white/30 active:bg-white/40"
                     aria-label="Đóng">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
               </svg>
             </button>
-            <h2 class="text-2xl font-bold">Thanh toán khóa học</h2>
+            <h2 class="text-xl sm:text-2xl font-bold pr-10">Thanh toán khóa học</h2>
             <p class="mt-1 text-sm text-white/80">Mở khóa toàn bộ nội dung học tập</p>
           </div>
 
           @if (paymentSuccess()) {
-            <div class="p-8 text-center">
-              <div class="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
-                <svg class="h-10 w-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="p-6 sm:p-8 text-center">
+              <div class="mx-auto mb-3 sm:mb-4 flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full bg-green-100">
+                <svg class="h-8 w-8 sm:h-10 sm:w-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                 </svg>
               </div>
-              <h3 class="mb-2 text-2xl font-bold text-gray-900">
+              <h3 class="mb-2 text-xl sm:text-2xl font-bold text-gray-900">
                 <app-icon name="party" size="md" class="text-emerald-500"/>
                 {{ successTitle() }}
               </h3>
-              <p class="mb-4 text-gray-600">{{ successMessage() }}</p>
+              <p class="mb-4 text-sm sm:text-base text-gray-600">{{ successMessage() }}</p>
 
               @if (accessActivation().message) {
-                <div class="mb-6 rounded-xl border px-4 py-3 text-left text-sm"
+                <div class="mb-5 sm:mb-6 rounded-xl border px-4 py-3 text-left text-sm"
                      [class.border-amber-200]="accessActivation().state === 'MANUAL_ACTIVATION_REQUIRED'"
                      [class.bg-amber-50]="accessActivation().state === 'MANUAL_ACTIVATION_REQUIRED'"
                      [class.text-amber-800]="accessActivation().state === 'MANUAL_ACTIVATION_REQUIRED'"
@@ -88,7 +88,7 @@ export interface PaymentCompletionOutcome {
               }
 
               <button (click)="completeSuccessFlow()"
-                      class="w-full rounded-xl px-6 py-3 font-semibold text-white transition-all hover:shadow-lg"
+                      class="w-full rounded-xl px-6 py-3 font-semibold text-white transition-all hover:shadow-lg active:scale-[0.98]"
                       [class.bg-gradient-to-r]="accessActivation().state === 'READY'"
                       [class.from-green-500]="accessActivation().state === 'READY'"
                       [class.to-emerald-600]="accessActivation().state === 'READY'"
@@ -98,38 +98,38 @@ export interface PaymentCompletionOutcome {
               </button>
             </div>
           } @else {
-            <div class="p-6">
-              <div class="mb-6 flex gap-4 rounded-xl bg-gray-50 p-4">
+            <div class="p-4 sm:p-6">
+              <div class="mb-4 sm:mb-6 flex gap-3 sm:gap-4 rounded-xl bg-gray-50 p-3 sm:p-4">
                 <img [src]="courseInfo().thumbnail || '/icons/icon-192x192.png'"
                      [alt]="courseInfo().title"
-                     class="h-16 w-24 rounded-lg object-cover"
+                     class="h-14 w-20 sm:h-16 sm:w-24 rounded-lg object-cover shrink-0"
                      (error)="$any($event.target).src='/icons/icon-192x192.png'">
                 <div class="min-w-0 flex-1">
-                  <h3 class="truncate font-semibold text-gray-900">{{ courseInfo().title }}</h3>
-                  <p class="text-sm text-gray-500">{{ courseInfo().instructorName }}</p>
+                  <h3 class="truncate font-semibold text-gray-900 text-sm sm:text-base">{{ courseInfo().title }}</h3>
+                  <p class="text-xs sm:text-sm text-gray-500">{{ courseInfo().instructorName }}</p>
                 </div>
               </div>
 
-              <div class="mb-6 flex items-center justify-between rounded-xl bg-[#0056D2]/5 p-4">
-                <span class="font-medium text-gray-700">Tổng thanh toán</span>
+              <div class="mb-4 sm:mb-6 flex items-center justify-between rounded-xl bg-[#0056D2]/5 p-3 sm:p-4">
+                <span class="font-medium text-gray-700 text-sm sm:text-base">Tổng thanh toán</span>
                 <div class="text-right">
                   @if (courseInfo().salePrice && (courseInfo().salePrice ?? 0) < courseInfo().price) {
-                    <span class="mr-2 text-sm text-gray-400 line-through">
+                    <span class="mr-1.5 sm:mr-2 text-xs sm:text-sm text-gray-400 line-through">
                       {{ courseInfo().price | number:'1.0-0' }}₫
                     </span>
-                    <span class="text-2xl font-bold text-[#0056D2]">
+                    <span class="text-xl sm:text-2xl font-bold text-[#0056D2]">
                       {{ courseInfo().salePrice | number:'1.0-0' }}₫
                     </span>
                   } @else {
-                    <span class="text-2xl font-bold text-[#0056D2]">
+                    <span class="text-xl sm:text-2xl font-bold text-[#0056D2]">
                       {{ courseInfo().price | number:'1.0-0' }}₫
                     </span>
                   }
                 </div>
               </div>
 
-              <div class="mb-6">
-                <label class="mb-3 block text-sm font-medium text-gray-700">Chọn phương thức thanh toán</label>
+              <div class="mb-4 sm:mb-6">
+                <label class="mb-2 sm:mb-3 block text-sm font-medium text-gray-700">Chọn phương thức thanh toán</label>
                 @if (isLoadingMethods()) {
                   <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500">
                     Đang tải phương thức thanh toán khả dụng...
@@ -175,7 +175,7 @@ export interface PaymentCompletionOutcome {
 
               <button (click)="processPayment()"
                       [disabled]="isProcessing() || isLoadingMethods() || !selectedMethod() || paymentMethods().length === 0"
-                      class="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0056D2] px-6 py-4 text-lg font-bold text-white transition-all hover:bg-[#004BB5] disabled:cursor-not-allowed disabled:opacity-50">
+                      class="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0056D2] px-6 py-3.5 sm:py-4 text-base sm:text-lg font-bold text-white transition-all hover:bg-[#004BB5] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50">
                 @if (isProcessing()) {
                   <svg class="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -187,7 +187,7 @@ export interface PaymentCompletionOutcome {
                 }
               </button>
 
-              <p class="mt-4 text-center text-xs text-gray-400">
+              <p class="mt-3 sm:mt-4 text-center text-xs text-gray-400">
                 <app-icon name="shield" size="sm" class="mr-1 text-emerald-600"/>
                 @if (selectedMethod() === 'SEPAY') {
                   Thanh toán qua SePay, dùng chuyển khoản ngân hàng an toàn.
