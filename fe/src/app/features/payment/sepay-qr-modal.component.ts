@@ -41,8 +41,23 @@ import { SepayQrData } from '../../api/client/payment.api';
           <p class="text-white/80 text-sm mt-1">{{ qrData().courseTitle }}</p>
         </div>
 
-        @if (isExpired()) {
-          <!-- Expired State -->
+        @if (confirmed()) {
+          <div class="p-8 text-center">
+            <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
+              <svg class="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Thanh toán thành công!</h3>
+            <p class="text-gray-500 text-sm">Đang kích hoạt quyền học của bạn...</p>
+            <div class="mt-4 flex justify-center">
+              <svg class="w-6 h-6 animate-spin text-[#0056D2]" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+              </svg>
+            </div>
+          </div>
+        } @else if (isExpired()) {
           <div class="p-8 text-center">
             <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-amber-100 flex items-center justify-center">
               <svg class="w-10 h-10 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -159,6 +174,7 @@ export class SepayQrModalComponent implements OnInit, OnDestroy {
   qrLoadError = signal(false);
   copyFeedback = signal(false);
   secondsLeft = signal(15 * 60); // 15 minutes
+  confirmed = signal(false);
 
   isExpired = computed(() => this.secondsLeft() <= 0);
 
@@ -192,8 +208,8 @@ export class SepayQrModalComponent implements OnInit, OnDestroy {
       if (result.hasPaid) {
         this.stopPolling();
         this.stopCountdown();
+        this.confirmed.set(true);
         this.paymentComplete.emit();
-        this.close.emit();
         return;
       }
     }, 5000);

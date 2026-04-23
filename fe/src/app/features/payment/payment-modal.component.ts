@@ -299,7 +299,6 @@ export class PaymentModalComponent implements OnInit {
 
   async onSepayPaymentComplete(): Promise<void> {
     const qrData = this.sepayQrData();
-    this.sepayQrData.set(null);
 
     let payment: PaymentResponse | undefined;
     if (qrData?.txnId) {
@@ -312,10 +311,11 @@ export class PaymentModalComponent implements OnInit {
 
     if (payment?.courseId && payment.status === 'COMPLETED') {
       await this.completePaidFlow(payment.courseId, payment);
-      return;
+    } else {
+      await this.completePaidFlow(this.courseInfo().courseId);
     }
 
-    await this.completePaidFlow(this.courseInfo().courseId);
+    this.sepayQrData.set(null);
   }
 
   onSepayClose(): void {
