@@ -80,8 +80,8 @@ export class SidebarComponent implements OnInit, OnDestroy {
     switch (this.config().role) {
       case 'student': return '/student/profile';
       case 'teacher': return '/teacher/profile';
-      case 'org_admin': return getPortalLandingRoute('org_admin');
-      case 'admin': return getPortalLandingRoute('admin');
+      case 'org_admin': return '/org-admin/profile';
+      case 'admin': return '/admin/profile';
       default: return '/student/profile';
     }
   });

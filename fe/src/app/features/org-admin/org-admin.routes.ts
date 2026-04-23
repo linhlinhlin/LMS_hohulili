@@ -66,7 +66,14 @@ export const orgAdminRoutes: Routes = [
         path: 'organization',
         loadComponent: () => import('../admin/presentation/components/organization-detail.component').then(m => m.OrganizationDetailComponent),
         title: 'Tổ chức của tôi'
-      }
+      },
+
+      // Profile — reuse shared profile component
+      {
+        path: 'profile',
+        loadComponent: () => import('../profile/student-profile.component').then(m => m.StudentProfileComponent),
+        title: 'Hồ sơ cá nhân'
+      },
     ]
   }
 ];

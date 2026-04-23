@@ -151,7 +151,12 @@ export const adminRoutes: Routes = [
         title: 'Giám sát bộ nhớ ngoại tuyến'
       },
 
-      // Sprint 220b: ai-chat full-page route removed — AI chat is now an iframe widget
+      // Profile — reuse shared profile component
+      {
+        path: 'profile',
+        loadComponent: () => import('../profile/student-profile.component').then(m => m.StudentProfileComponent),
+        title: 'Hồ sơ cá nhân'
+      },
     ]
   }
 ];
