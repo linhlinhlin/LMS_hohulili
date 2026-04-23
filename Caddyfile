@@ -3,11 +3,29 @@
 # Auto-HTTPS via Let's Encrypt for holilihu.online
 # =============================================================================
 
+(edge_response_headers) {
+    header_down -Content-Security-Policy
+    header_down -X-Frame-Options
+    header_down -X-Content-Type-Options
+    header_down -Cross-Origin-Opener-Policy
+    header_down -Referrer-Policy
+    header_down -Permissions-Policy
+    header_down -X-XSS-Protection
+    header_down Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com https://fonts.googleapis.com; img-src 'self' data: blob: https: https://ui-avatars.com; connect-src 'self' https://accounts.google.com https://lh3.googleusercontent.com https://ui-avatars.com https://fonts.googleapis.com https://fonts.gstatic.com https://wiii.holilihu.online https://sandbox.vnpayment.vn https://pay.vnpay.vn https://qr.sepay.vn https://videodelivery.net wss:; media-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; frame-src 'self' https: blob:; frame-ancestors 'self'; object-src 'none'; base-uri 'self';"
+    header_down X-Frame-Options "SAMEORIGIN"
+    header_down X-Content-Type-Options "nosniff"
+    header_down Cross-Origin-Opener-Policy "same-origin-allow-popups"
+    header_down Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    header_down Referrer-Policy "strict-origin-when-cross-origin"
+    header_down Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+}
+
 holilihu.online {
     @adaptivePlayback path /api/v3/video-assets/*/adaptive/*
 
     handle @adaptivePlayback {
         reverse_proxy backend:8080 {
+            import edge_response_headers
             header_down Cache-Control "private, max-age=30"
             header_down -Pragma
             header_down -Expires
@@ -17,18 +35,22 @@ holilihu.online {
     # Backend API
     handle /api/* {
         reverse_proxy backend:8080 {
-            header_down -Content-Security-Policy
+            import edge_response_headers
         }
     }
 
     # Health check only (other actuator endpoints not exposed)
     handle /actuator/health {
-        reverse_proxy backend:8080
+        reverse_proxy backend:8080 {
+            import edge_response_headers
+        }
     }
 
     # File uploads (LocalStorageService)
     handle /uploads/* {
-        reverse_proxy backend:8080
+        reverse_proxy backend:8080 {
+            import edge_response_headers
+        }
     }
 
     # Block Swagger/API docs in production (springdoc disabled, but defense-in-depth)
@@ -42,29 +64,8 @@ holilihu.online {
     # Frontend (Angular SPA) — catch-all
     handle {
         reverse_proxy frontend:80 {
-            header_down -Content-Security-Policy
+            import edge_response_headers
         }
-    }
-
-    # Security headers — Caddy is the single source of truth.
-    # Strip any upstream CSP/security headers first (nginx, Spring Security),
-    # then set the canonical ones. Without the delete, browsers see duplicates
-    # and enforce the intersection (most restrictive).
-    header {
-        -Content-Security-Policy
-        -X-Frame-Options
-        -X-Content-Type-Options
-        -Cross-Origin-Opener-Policy
-        -Referrer-Policy
-        -Permissions-Policy
-        -X-XSS-Protection
-        X-Frame-Options "SAMEORIGIN"
-        X-Content-Type-Options "nosniff"
-        Cross-Origin-Opener-Policy "same-origin-allow-popups"
-        Strict-Transport-Security "max-age=31536000; includeSubDomains"
-        Referrer-Policy "strict-origin-when-cross-origin"
-        Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
-        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com https://fonts.googleapis.com; img-src 'self' data: blob: https: https://ui-avatars.com; connect-src 'self' https://accounts.google.com https://lh3.googleusercontent.com https://ui-avatars.com https://fonts.googleapis.com https://fonts.gstatic.com https://wiii.holilihu.online https://sandbox.vnpayment.vn https://pay.vnpay.vn https://qr.sepay.vn https://videodelivery.net wss:; media-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; frame-src 'self' https: blob:; frame-ancestors 'self'; object-src 'none'; base-uri 'self';"
     }
     # Compression
     encode gzip zstd
