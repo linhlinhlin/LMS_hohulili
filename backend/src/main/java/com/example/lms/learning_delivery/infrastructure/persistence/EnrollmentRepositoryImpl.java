@@ -154,4 +154,11 @@ public class EnrollmentRepositoryImpl implements EnrollmentRepository, Enrollmen
     public boolean existsByCourseId(UUID courseId) {
         return jpaRepository.existsByCourseId(courseId);
     }
+
+    @Override
+    public List<Enrollment> findByCourseIds(List<UUID> courseIds) {
+        return jpaRepository.findByCourseIds(courseIds).stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
 }

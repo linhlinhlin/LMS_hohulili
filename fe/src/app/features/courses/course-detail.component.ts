@@ -53,6 +53,9 @@ export class CourseDetailComponent implements OnInit {
   paymentAccessState = signal<PaymentAccessActivationState | null>(null);
   showPaymentModal = signal(false);
   courseContent = signal<any[]>([]);
+  totalLessons = signal(0);
+  totalDurationMinutes = signal(0);
+  parsedBenefits = signal<string[]>([]);
 
   private enrollmentService = inject(StudentEnrollmentService);
   private paymentService = inject(PaymentService);
@@ -133,7 +136,44 @@ export class CourseDetailComponent implements OnInit {
   }
 
   handleFreeTrial(): void {
+    const allIds = this.courseContent().map((ch: any) => ch.id);
+    this.expandedChapters.set(new Set(allIds));
     this.scrollToCurriculumPreview();
+  }
+
+  async onLessonClick(lesson: any, chapterIndex: number, lessonIndex: number): Promise<void> {
+    const courseId = this.course()?.id;
+    if (!courseId) return;
+
+    if (this.hasLearningAccess()) {
+      this.router.navigate(['/student/learn/course', courseId, 'lesson', lesson.id]);
+      return;
+    }
+
+    if (!lesson.isFree && !this.hasLearningAccess()) return;
+
+    if (!this.authService.isAuthenticated()) {
+      this.router.navigate(['/auth/login'], { queryParams: { returnUrl: this.router.url } });
+      return;
+    }
+
+    if (this.authService.userRole() !== 'student') {
+      this.toast.info('Đăng nhập bằng tài khoản học viên để xem bài học.');
+      return;
+    }
+
+    if (!this.isCoursePaid()) {
+      try {
+        await this.enroll();
+      } catch {
+        return;
+      }
+      this.router.navigate(['/student/learn/course', courseId, 'lesson', lesson.id]);
+      return;
+    }
+
+    this.toast.info('Đăng ký khóa học để xem toàn bộ nội dung, kể cả bài xem trước.');
+    this.handleFreeTrial();
   }
 
   async handleEnrollClick() {
@@ -206,6 +246,10 @@ export class CourseDetailComponent implements OnInit {
       this.course.set(course);
       if (course) {
         this.updateSeo(course);
+        if (course.benefits) {
+          const lines = course.benefits.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+          this.parsedBenefits.set(lines);
+        }
       }
 
       this.loadCurriculum(id);
@@ -235,11 +279,21 @@ export class CourseDetailComponent implements OnInit {
           if (response.data.length > 0) {
             this.expandedChapters.set(new Set([response.data[0].id]));
           }
+          let lessons = 0;
+          let duration = 0;
+          for (const ch of response.data) {
+            if (ch.lessons) {
+              lessons += ch.lessons.length;
+              for (const l of ch.lessons) {
+                if (l.durationMinutes) duration += l.durationMinutes;
+              }
+            }
+          }
+          this.totalLessons.set(lessons);
+          this.totalDurationMinutes.set(duration);
         }
       },
-      error: () => {
-        // Silently fail - course detail still shows
-      }
+      error: () => {}
     });
   }
 
@@ -285,9 +339,13 @@ export class CourseDetailComponent implements OnInit {
     return names[category] || category || 'Khóa học';
   }
 
-  getDurationInHours(duration: string): number {
-    const match = duration?.match(/(\d+)/);
-    return match ? parseInt(match[1], 10) : 40;
+  getTotalDurationDisplay(): string {
+    const mins = this.totalDurationMinutes();
+    if (mins <= 0) return '';
+    if (mins < 60) return `${mins} phút`;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return m > 0 ? `${h} giờ ${m} phút` : `${h} giờ`;
   }
 
   getPriceDisplay(price: number): string {

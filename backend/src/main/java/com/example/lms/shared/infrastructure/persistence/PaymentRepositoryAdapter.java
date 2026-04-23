@@ -62,4 +62,12 @@ public class PaymentRepositoryAdapter implements PaymentRepository {
                 .map(mapper::toDomain)
                 .toList();
     }
+
+    @Override
+    public List<PaymentTransaction> findCompletedByCourseIds(List<UUID> courseIds) {
+        return jpaRepo.findCompletedByCourseIds(courseIds)
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
 }

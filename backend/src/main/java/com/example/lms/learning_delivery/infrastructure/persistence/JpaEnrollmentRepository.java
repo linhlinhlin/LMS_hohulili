@@ -195,4 +195,11 @@ public interface JpaEnrollmentRepository extends JpaRepository<EnrollmentJpaEnti
 
     @Query("SELECT COUNT(e) FROM EnrollmentJpaEntity e JOIN e.learningClass lc WHERE lc.courseId IN :courseIds")
     long countTotalByCourseIds(@Param("courseIds") List<UUID> courseIds);
+
+    /**
+     * Find all enrollments for given course IDs (across all classes).
+     * Used for Option B: find students already enrolled when assigning paid students.
+     */
+    @Query("SELECT e FROM EnrollmentJpaEntity e JOIN e.learningClass lc WHERE lc.courseId IN :courseIds")
+    List<EnrollmentJpaEntity> findByCourseIds(@Param("courseIds") List<UUID> courseIds);
 }

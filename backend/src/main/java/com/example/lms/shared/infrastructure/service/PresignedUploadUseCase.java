@@ -24,7 +24,7 @@ import java.util.UUID;
 @Slf4j
 public class PresignedUploadUseCase {
 
-    private static final Duration PRESIGN_TTL = Duration.ofMinutes(5);
+    private static final Duration PRESIGN_TTL = Duration.ofMinutes(30);
     private static final long MAX_VIDEO_UPLOAD_BYTES = 5_000_000_000L; // 5 GB decimal, safe for single-object presigned PUT
     private static final long MULTIPART_VIDEO_THRESHOLD_BYTES = 100_000_000L; // Cloudflare recommends multipart for larger uploads
     private static final long MULTIPART_PART_SIZE_BYTES = 64L * 1024 * 1024L;

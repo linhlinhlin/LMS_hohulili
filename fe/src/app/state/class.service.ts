@@ -82,6 +82,16 @@ export class ClassService {
         return this.http.post<any>(`${this.API_URL}/classes/${classId}/enrollments/import?preview=${preview}`, formData);
     }
 
+    getPaidUnenrolledStudents(courseId: string): Observable<any[]> {
+        return this.http.get<ApiResponse<any[]>>(`${this.API_URL}/classes/by-course/${courseId}/paid-unenrolled`)
+            .pipe(map(response => response.data || []));
+    }
+
+    enrollPaidStudents(classId: string, studentIds: string[]): Observable<void> {
+        return this.http.post<ApiResponse<void>>(`${this.API_URL}/classes/${classId}/enroll-paid`, { studentIds })
+            .pipe(map(() => void 0));
+    }
+
     private mapClassSummary(item: any): ClassSummary {
         return {
             id: item?.id ?? '',
@@ -97,6 +107,7 @@ export class ClassService {
             semester: item?.semester ?? '',
             versionMode: item?.versionMode ?? 'PINNED',
             publicationNumber: item?.publicationNumber ?? null,
+            status: item?.status,
             latestPublicationNumber: item?.latestPublicationNumber ?? null,
             updateAvailable: item?.updateAvailable ?? false,
             capacityPercent: item?.capacityPercent ?? 0

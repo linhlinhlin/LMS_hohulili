@@ -148,6 +148,9 @@ export interface ExtendedCourse extends Course {
   categoryName?: string;
   deliveryMode?: 'SELF_PACED' | 'INSTRUCTOR_LED';
   allowOfflineDownload?: boolean;
+  courseInformation?: string;
+  benefits?: string;
+  introVideoUrl?: string;
 }
 
 // Course Review interface
@@ -341,6 +344,7 @@ export interface ClassSummary {
   latestPublicationNumber?: number;
   updateAvailable?: boolean;
   capacityPercent?: number;
+  status?: 'OPEN' | 'CLOSED' | 'ARCHIVED' | 'CANCELLED';
 }
 
 export interface CreateClassRequest {

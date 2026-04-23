@@ -24,4 +24,10 @@ public interface PaymentRepository {
     boolean hasCompletedPayment(UUID studentId, UUID courseId);
 
     List<PaymentTransaction> findStalePending(Instant cutoff);
+
+    /**
+     * Find completed payments for given course IDs.
+     * Used for Option B: teacher assigns students to class after payment.
+     */
+    List<PaymentTransaction> findCompletedByCourseIds(List<UUID> courseIds);
 }

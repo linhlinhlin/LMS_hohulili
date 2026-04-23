@@ -15,6 +15,88 @@
         </button>
     </div>
 
+    <!-- PAID UNENROLLED STUDENTS BANNER -->
+    @if (!isLoadingPaidStudents() && paidUnenrolledStudents().length > 0) {
+        <div class="px-6 py-4 bg-amber-50 border-b border-amber-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                        <mat-icon class="text-amber-600">payments</mat-icon>
+                    </span>
+                    <div>
+                        <h3 class="text-sm font-bold text-amber-900">
+                            {{ paidUnenrolledStudents().length }} học viên đã thanh toán chưa được xếp lớp
+                        </h3>
+                        <p class="text-xs text-amber-700 mt-0.5">
+                            Học viên đã thanh toán và đang chờ giảng viên xếp vào lớp học.
+                        </p>
+                    </div>
+                </div>
+                <button (click)="isPaidStudentsSectionExpanded.set(!isPaidStudentsSectionExpanded())"
+                        class="px-4 py-2 text-sm font-bold text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-lg transition-colors flex items-center gap-2">
+                    <mat-icon class="text-sm">
+                        {{ isPaidStudentsSectionExpanded() ? 'expand_less' : 'expand_more' }}
+                    </mat-icon>
+                    {{ isPaidStudentsSectionExpanded() ? 'Thu gọn' : 'Xem danh sách' }}
+                </button>
+            </div>
+
+            @if (isPaidStudentsSectionExpanded()) {
+                <div class="mt-4 bg-white rounded-xl border border-amber-200 overflow-hidden">
+                    <!-- Toolbar -->
+                    <div class="px-4 py-3 bg-amber-50/50 border-b border-amber-200 flex items-center justify-between">
+                        <label class="flex items-center gap-2 text-sm text-amber-800 cursor-pointer">
+                            <input type="checkbox"
+                                   [checked]="isAllPaidStudentsSelected()"
+                                   (change)="selectAllPaidStudents()"
+                                   class="w-4 h-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500">
+                            <span>Chọn tất cả ({{ paidUnenrolledStudents().length }})</span>
+                        </label>
+                        <button (click)="enrollSelectedPaidStudents()"
+                                [disabled]="selectedPaidStudentIds().size === 0 || isEnrollingPaid()"
+                                class="px-4 py-2 bg-[#0056D2] text-white text-sm font-bold rounded-lg hover:bg-[#004BB5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
+                            @if (isEnrollingPaid()) {
+                                <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                </svg>
+                            }
+                            <span>Xếp {{ selectedPaidStudentIds().size }} học viên</span>
+                        </button>
+                    </div>
+
+                    <!-- Student List -->
+                    <div class="divide-y divide-amber-100">
+                        @for (student of paidUnenrolledStudents(); track student.studentId) {
+                            <div class="px-4 py-3 flex items-center gap-4 hover:bg-amber-50/50 transition-colors">
+                                <input type="checkbox"
+                                       [checked]="isPaidStudentSelected(student.studentId)"
+                                       (change)="togglePaidStudentSelection(student.studentId)"
+                                       class="w-4 h-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500 flex-shrink-0">
+
+                                <div class="w-10 h-10 bg-[#0056D2]/10 rounded-full flex items-center justify-center text-[#0056D2] font-bold text-sm flex-shrink-0">
+                                    {{ getStudentInitials(student.fullName, student.email) }}
+                                </div>
+
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-bold text-gray-900 truncate">{{ student.fullName || 'Chưa cập nhật' }}</p>
+                                    <p class="text-xs text-gray-500 truncate">{{ student.email }}</p>
+                                </div>
+
+                                <div class="text-right flex-shrink-0">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="px-2 py-1 text-[10px] font-bold bg-green-100 text-green-700 rounded uppercase">Đã thanh toán</span>
+                                        <span class="text-xs text-gray-500">{{ formatPaymentDate(student.paidAt) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
     <!-- FILTER BAR -->
     <div class="editor-classes-panel__filters p-4 border-b border-gray-200 bg-white flex flex-wrap gap-3 items-center justify-between">
         <!-- Search -->
@@ -33,8 +115,8 @@
         <!-- Year Filter -->
         <select (change)="onYearChange($event)"
             class="block pl-3 pr-8 py-1.5 text-sm border-gray-300 focus:outline-none focus:ring-[#0056D2] focus:border-[#0056D2] rounded-md">
-            @for (y of years; track y) {
-            <option [value]="y" [selected]="y === selectedYear">{{ y }}–{{ y + 1 }}</option>
+            @for (y of years(); track y) {
+            <option [value]="y" [selected]="y === selectedYear()">{{ y }}–{{ y + 1 }}</option>
             }
         </select>
 
@@ -212,21 +294,21 @@
     </div>
 
     <!-- PAGINATION -->
-    @if (totalElements > 0) {
+    @if (totalElements() > 0) {
     <div class="px-5 py-2.5 border-t border-slate-200 bg-slate-50/60 flex items-center justify-between">
         <p class="text-xs text-slate-500">
-            Hiển thị <span class="font-medium text-slate-700">{{ pageInfo.startRow }}</span>–<span class="font-medium text-slate-700">{{ pageInfo.endRow }}</span>
-            trong <span class="font-medium text-slate-700">{{ totalElements }}</span> lớp
+            Hiển thị <span class="font-medium text-slate-700">{{ pageInfo().start }}</span>–<span class="font-medium text-slate-700">{{ pageInfo().end }}</span>
+            trong <span class="font-medium text-slate-700">{{ totalElements() }}</span> lớp
         </p>
         <nav class="inline-flex rounded-md overflow-hidden border border-slate-200" aria-label="Phân trang">
-            <button (click)="changePage(currentPage - 1)" [disabled]="currentPage === 0"
+            <button (click)="changePage(currentPage() - 1)" [disabled]="currentPage() === 0"
                 class="px-3 py-1 text-xs font-medium text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed border-r border-slate-200">
                 Trước
             </button>
             <span class="px-3 py-1 text-xs font-medium text-slate-700 bg-white tabular-nums">
-                {{ currentPage + 1 }}/{{ totalPages }}
+                {{ currentPage() + 1 }}/{{ totalPages() }}
             </span>
-            <button (click)="changePage(currentPage + 1)" [disabled]="isLastPage"
+            <button (click)="changePage(currentPage() + 1)" [disabled]="isLastPage()"
                 class="px-3 py-1 text-xs font-medium text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed border-l border-slate-200">
                 Tiếp
             </button>

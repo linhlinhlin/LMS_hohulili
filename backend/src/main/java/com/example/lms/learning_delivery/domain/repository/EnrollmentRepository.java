@@ -73,4 +73,10 @@ public interface EnrollmentRepository {
      * Check if any enrollment exists for a course (across all classes).
      */
     boolean existsByCourseId(UUID courseId);
+
+    /**
+     * Find all enrollments for given course IDs (across all classes).
+     * Used for Option B: find students already enrolled when assigning paid students.
+     */
+    List<Enrollment> findByCourseIds(List<UUID> courseIds);
 }

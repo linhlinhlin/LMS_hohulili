@@ -180,12 +180,14 @@ export interface LessonSummary {
   orderIndex: number;
   isFree?: boolean;
   locked?: boolean;
+  durationMinutes?: number;
+  lessonType?: string;
   quizType?: string;
   countsTowardCertificate?: boolean;
   quizAllowOffline?: boolean;
-  content?: string; // Fallback
-  videoUrl?: string; // Fallback
-  sections?: SectionSummary[]; // Renamed from topics
+  content?: string;
+  videoUrl?: string;
+  sections?: SectionSummary[];
 }
 
 // Renamed from SectionDetail (L1) to ChapterDetail

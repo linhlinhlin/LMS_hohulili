@@ -268,7 +268,6 @@ export class CourseService {
    * FIXED Dec 2025: Now uses actual price from backend
    */
   private mapCourseDetailToExtended(course: CourseDetail): ExtendedCourse {
-    // Determine if course is free
     const isFree = course.priceType === 'FREE' || !course.price || course.price === 0;
     const isPublished = this.isPubliclyVisibleStatus(course.status);
 
@@ -282,25 +281,24 @@ export class CourseService {
       instructor: {
         id: course.teacherId || '',
         name: course.teacherName || 'Giảng viên',
-        avatar: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMjAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZWVlZWVlIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmaWxsPSIjOTk5OTk5Ij5QcmV2aWV3PC90ZXh0Pjwvc3ZnPg==',
+        avatar: '',
         title: 'Giảng viên',
         credentials: [],
         experience: 0,
-        rating: 4.5,
+        rating: 0,
         studentsCount: course.enrolledCount || 0
       },
       category: course.categoryName || CourseCategory.ENGINEERING,
       categoryName: course.categoryName,
       level: 'beginner' as CourseLevel,
-      duration: '30h',
+      duration: '',
       students: course.enrolledCount || 0,
       reviews: 0,
-      // FIXED: Use actual price from backend
       price: course.price || 0,
       salePrice: course.salePrice,
       priceType: course.priceType,
       originalPrice: course.price || 0,
-      rating: 4.5,
+      rating: 0,
       tags: course.tags || [],
       skills: [],
       prerequisites: [],
@@ -311,13 +309,16 @@ export class CourseService {
       curriculum: {
         modules: course.chapterCount || 0,
         lessons: 0,
-        duration: '30 giờ'
+        duration: ''
       },
       studentsCount: course.enrolledCount || 0,
       lessonsCount: 0,
       isPublished,
       isFree,
-      deliveryMode: course.deliveryMode
+      deliveryMode: course.deliveryMode,
+      courseInformation: course.courseInformation,
+      benefits: course.benefits,
+      introVideoUrl: course.introVideoUrl
     };
   }
 

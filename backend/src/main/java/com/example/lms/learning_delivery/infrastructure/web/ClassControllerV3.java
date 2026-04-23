@@ -2,9 +2,7 @@ package com.example.lms.learning_delivery.infrastructure.web;
 
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
-import com.example.lms.learning_delivery.application.dto.DropStudentCommand;
-import com.example.lms.learning_delivery.application.dto.EnrollmentResponse;
-import com.example.lms.learning_delivery.application.dto.LearningClassResponse;
+import com.example.lms.learning_delivery.application.dto.*;
 import com.example.lms.learning_delivery.application.usecase.*;
 import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.entity.LearningClassJpaEntity;
@@ -57,6 +55,9 @@ public class ClassControllerV3 {
     private final JpaEnrollmentRepository enrollmentJpaRepository;
     private final ManageClassTeachersUseCase manageClassTeachersUseCase;
     private final com.example.lms.learning_delivery.infrastructure.persistence.ClassTeacherJpaRepository classTeacherJpaRepository;
+    private final com.example.lms.shared.infrastructure.persistence.repository.PaymentTransactionJpaRepository paymentTransactionJpaRepository;
+    private final GetPaidUnenrolledStudentsUseCase getPaidUnenrolledStudentsUseCase;
+    private final BatchEnrollPaidStudentsUseCase batchEnrollPaidStudentsUseCase;
 
     // ================================================================================================
     // Course-scoped Class Listing (FE: ClassService)
@@ -358,11 +359,11 @@ public class ClassControllerV3 {
 
         var resolvedPublication = publication.orElseThrow(() -> new BusinessRuleException(
                 "PUBLICATION_NOT_FOUND",
-                "KhÃ³a há»c chÆ°a cÃ³ báº£n phÃ¡t hÃ nh Ä‘Æ°á»£c phÃª duyá»‡t."
+                "Khóa học chưa có bản phát hành được phê duyệt."
         ));
 
         if (!resolvedPublication.getCourseId().equals(context.course().getId())) {
-            throw new AccessDeniedException("Ban khong the ap dung phien ban cua khoa hoc khac.");
+            throw new AccessDeniedException("Bạn không thể áp dụng phiên bản của khóa học khác.");
         }
 
         var learningClass = context.learningClass();
@@ -375,7 +376,7 @@ public class ClassControllerV3 {
         result.put("courseVersionId", resolvedPublication.getId().toString());
         result.put("publicationNumber", resolvedPublication.getPublicationNumber());
         result.put("versionMode", learningClass.getVersionMode().name());
-        return ResponseEntity.ok(ApiResponse.success(result, "Da cap nhat phien ban khoa hoc cho lop."));
+        return ResponseEntity.ok(ApiResponse.success(result, "Đã cập nhật phiên bản khóa học cho lớp."));
     }
 
     // ================================================================================================
@@ -449,6 +450,97 @@ public class ClassControllerV3 {
     }
 
     // ================================================================================================
+    // Paid-but-unenrolled students (Option B: teacher assigns to class after payment)
+    // ================================================================================================
+
+    @Operation(summary = "List students who paid for this course but aren't enrolled in any class")
+    @GetMapping("/by-course/{courseId}/paid-unenrolled")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getPaidUnenrolledStudents(
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        // Verify ownership
+        resolveOwnedCourse(courseId, user);
+
+        // Use case returns domain DTOs, convert to Map for API response
+        List<PaidUnenrolledStudentResponse> students = getPaidUnenrolledStudentsUseCase.execute(courseId);
+
+        List<Map<String, Object>> result = students.stream()
+                .map(s -> {
+                    Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    m.put("studentId", s.studentId().toString());
+                    m.put("fullName", s.fullName());
+                    m.put("email", s.email());
+                    m.put("paidAt", s.paidAt() != null ? s.paidAt().toString() : null);
+                    m.put("amount", s.amount());
+                    return m;
+                })
+                .toList();
+
+        String message = students.isEmpty()
+                ? "Tất cả học viên đã thanh toán đều đã được xếp lớp"
+                : students.size() + " học viên đã thanh toán chờ xếp lớp";
+
+        return ResponseEntity.ok(ApiResponse.success(result, message));
+    }
+
+    @Operation(summary = "Batch enroll paid students into a class")
+    @PostMapping("/{classId}/enroll-paid")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> enrollPaidStudents(
+            @PathVariable String classId,
+            @Valid @RequestBody EnrollPaidStudentsRequest request,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        UUID classUuid = UUID.fromString(classId);
+        var context = resolveOwnedClassContext(classUuid, user);
+        ensureInstructorLedCourse(context.course());
+
+        UUID courseId = context.course().getId();
+
+        // Validate payment status for each student
+        List<String> unpaidStudents = new java.util.ArrayList<>();
+        List<UUID> validStudentIds = new java.util.ArrayList<>();
+
+        for (String studentIdStr : request.getStudentIds()) {
+            try {
+                UUID studentId = UUID.fromString(studentIdStr);
+                boolean hasPaid = paymentTransactionJpaRepository.existsByStudentIdAndCourseIdAndStatus(
+                        studentId, courseId,
+                        com.example.lms.shared.infrastructure.persistence.entity.PaymentTransactionJpaEntity.PaymentStatus.COMPLETED);
+                if (!hasPaid) {
+                    var studentOpt = userJpaRepository.findById(studentId);
+                    String name = studentOpt.map(UserJpaEntity::getFullName).orElse(studentIdStr);
+                    unpaidStudents.add(name);
+                } else {
+                    validStudentIds.add(studentId);
+                }
+            } catch (Exception e) {
+                unpaidStudents.add(studentIdStr + ": lỗi định dạng ID");
+            }
+        }
+
+        // Batch enroll valid paid students
+        BatchEnrollPaidResult result = batchEnrollPaidStudentsUseCase.execute(classUuid, validStudentIds);
+
+        Map<String, Object> responseData = new java.util.LinkedHashMap<>();
+        responseData.put("enrolledCount", result.enrolledCount());
+        responseData.put("skippedCount", result.skippedCount());
+        responseData.put("skippedReasons", result.skippedReasons());
+
+        // Add unpaid students to errors if any
+        if (!unpaidStudents.isEmpty()) {
+            List<String> allErrors = new java.util.ArrayList<>(result.skippedReasons());
+            for (String name : unpaidStudents) {
+                allErrors.add(name + ": chưa thanh toán");
+            }
+            responseData.put("skippedReasons", allErrors);
+            responseData.put("skippedCount", result.skippedCount() + unpaidStudents.size());
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(responseData, result.message()));
+    }
+
+    // ================================================================================================
     // Request DTOs
     // ================================================================================================
 
@@ -496,6 +588,14 @@ public class ClassControllerV3 {
         @jakarta.validation.constraints.NotBlank(message = "Email không được để trống")
         @jakarta.validation.constraints.Email(message = "Email không hợp lệ")
         private String email;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class EnrollPaidStudentsRequest {
+        @jakarta.validation.constraints.NotEmpty(message = "Danh sách học viên không được rỗng")
+        private List<String> studentIds;
     }
 
     @Data
@@ -555,7 +655,7 @@ public class ClassControllerV3 {
         if (course.getDeliveryMode() != com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity.DeliveryMode.INSTRUCTOR_LED) {
             throw new BusinessRuleException(
                     "CLASS_MANAGEMENT_NOT_ALLOWED",
-                    "Quan ly lop chi ap dung cho khoa hoc dang \"Lop hoc\"."
+                    "Quản lý lớp chỉ áp dụng cho khóa học dạng Lớp học."
             );
         }
     }

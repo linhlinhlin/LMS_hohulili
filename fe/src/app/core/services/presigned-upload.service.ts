@@ -112,6 +112,10 @@ export class PresignedUploadService {
               },
               error: (err) => subscriber.error(err)
             });
+          } else if (xhr.status === 403) {
+            const err: any = new Error('Presigned URL đã hết hạn hoặc không có quyền. Vui lòng thử tải lại.');
+            err.status = 403;
+            subscriber.error(err);
           } else if (xhr.status >= 500 && attempt < maxRetries) {
             attempt++;
             setTimeout(tryUpload, 1000 * Math.pow(2, attempt));

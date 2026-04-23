@@ -59,6 +59,13 @@ public interface PaymentTransactionJpaRepository extends JpaRepository<PaymentTr
            countQuery = "SELECT COUNT(p) FROM PaymentTransactionJpaEntity p WHERE p.courseId IN :courseIds AND p.status = :status")
     org.springframework.data.domain.Page<PaymentTransactionJpaEntity> findByCourseIdInAndStatus(@Param("courseIds") List<UUID> courseIds, @Param("status") PaymentTransactionJpaEntity.PaymentStatus status, org.springframework.data.domain.Pageable pageable);
 
+    /**
+     * Find completed payments for given course IDs (non-paginated).
+     * Used for Option B: teacher assigns students to class after payment.
+     */
+    @Query("SELECT p FROM PaymentTransactionJpaEntity p WHERE p.courseId IN :courseIds AND p.status = 'COMPLETED' ORDER BY p.createdAt DESC")
+    List<PaymentTransactionJpaEntity> findCompletedByCourseIds(@Param("courseIds") List<UUID> courseIds);
+
     @Query("""
         SELECT p.id FROM PaymentTransactionJpaEntity p
         WHERE p.status = 'COMPLETED'
