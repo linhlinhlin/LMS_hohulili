@@ -65,26 +65,4 @@ export class OfflineIndicatorComponent {
   protected readonly pendingSyncCount = computed(() => this.syncService.pendingCount());
   protected readonly hasExpiredBanner = computed(() => this.sessionService.showExpiredBanner());
 
-  constructor() {
-    // Log network status changes for debugging
-    if (typeof window !== 'undefined') {
-      const logStatus = () => {
-        console.log('[PWA] Network Status:', {
-          online: this.network.online(),
-          tier: this.network.connectionTier(),
-          navigatorOnLine: navigator.onLine,
-          timestamp: new Date().toISOString()
-        });
-      };
-      logStatus();
-      window.addEventListener('online', () => {
-        console.log('[PWA] Network: online event fired');
-        logStatus();
-      });
-      window.addEventListener('offline', () => {
-        console.log('[PWA] Network: offline event fired');
-        logStatus();
-      });
-    }
-  }
 }
