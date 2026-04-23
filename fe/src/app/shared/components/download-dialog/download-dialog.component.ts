@@ -238,7 +238,7 @@ export class DownloadDialogComponent implements OnInit {
   readonly streamVideoCount = computed(() =>
     this.lessons()
       .flatMap((lesson) => lesson.videoAssets)
-      .filter((asset) => asset.sourceKind === 'STREAM')
+      .filter((asset) => asset.sourceKind === 'STREAM' || asset.sourceKind === 'ADAPTIVE_R2')
       .length,
   );
   readonly directVideoCount = computed(() =>
@@ -364,11 +364,11 @@ export class DownloadDialogComponent implements OnInit {
       this.lessons.set(allLessons);
       this.freeSpace.set((storageEstimate.quotaBytes ?? 0) - (storageEstimate.usedBytes ?? 0));
 
-      const streamVideoAssets = allLessons
+      const downloadableVideoAssets = allLessons
         .flatMap((lesson) => lesson.videoAssets)
-        .filter((asset) => asset.sourceKind === 'STREAM' && !!asset.streamVideoUid);
-      if (streamVideoAssets.length > 0) {
-        await this.loadStreamProfileSizes(streamVideoAssets);
+        .filter((asset) => asset.sourceKind === 'STREAM' || asset.sourceKind === 'ADAPTIVE_R2');
+      if (downloadableVideoAssets.length > 0) {
+        await this.loadStreamProfileSizes(downloadableVideoAssets);
       }
       this.syncSelectedQualityToAvailableOptions();
     } catch {
@@ -530,7 +530,7 @@ export class DownloadDialogComponent implements OnInit {
       streamVideoUid?: string | null,
       explicitSourceKind?: string | null,
     ): VideoSourceKind => {
-      if (explicitSourceKind === 'STREAM' || explicitSourceKind === 'EXTERNAL' || explicitSourceKind === 'LEGACY_DIRECT') {
+      if (explicitSourceKind === 'ADAPTIVE_R2' || explicitSourceKind === 'STREAM' || explicitSourceKind === 'EXTERNAL' || explicitSourceKind === 'LEGACY_DIRECT') {
         return explicitSourceKind;
       }
 
@@ -548,7 +548,7 @@ export class DownloadDialogComponent implements OnInit {
 
     if (Array.isArray(lesson.sections) && lesson.sections.length > 0) {
       return lesson.sections
-        .filter((section: any) => section.type === 'VIDEO' && (section.videoUrl || section.streamVideoUid))
+        .filter((section: any) => section.type === 'VIDEO' && (section.videoUrl || section.streamVideoUid || section.videoAssetId))
         .map((section: any) => ({
           lessonId: lesson.id,
           sectionId: section.id,

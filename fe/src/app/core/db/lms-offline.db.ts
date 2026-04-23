@@ -117,6 +117,7 @@ export interface OfflineLessonSection {
   content?: string;
   contentBlocks?: any[];
   videoUrl?: string;
+  videoAssetId?: string;
   videoType?: 'YOUTUBE' | 'CLOUDFLARE';
   streamVideoUid?: string;
   videoOfflineUri?: string;

@@ -240,7 +240,7 @@ export class CourseDownloadService {
               : undefined;
 
             const hasSectionVideoAssets = Array.isArray(l.sections)
-              && l.sections.some((section: any) => section.type === 'VIDEO' && (!!section.videoUrl || !!section.streamVideoUid));
+              && l.sections.some((section: any) => section.type === 'VIDEO' && (!!section.videoUrl || !!section.streamVideoUid || !!section.videoAssetId));
             const lessonVideoSourceKind = this.resolveVideoSourceKind(
               l.videoSourceKind,
               hasSectionVideoAssets ? null : l.videoUrl,
@@ -1125,6 +1125,7 @@ export class CourseDownloadService {
         content: section.content || '',
         contentBlocks: Array.isArray(section.contentBlocks) ? section.contentBlocks : [],
         videoUrl: section.videoUrl,
+        videoAssetId: section.videoAssetId,
         videoType: section.videoType,
         streamVideoUid: section.streamVideoUid,
         videoSourceKind,
@@ -1188,7 +1189,7 @@ export class CourseDownloadService {
       return { downloadUrl: null };
     }
 
-    if (section.streamVideoUid) {
+    if (section.streamVideoUid || section.videoAssetId || section.videoSourceKind === 'ADAPTIVE_R2') {
       try {
         return await this.fetchSectionVideoDownloadDescriptor(section.id, profile);
       } catch {
@@ -1253,7 +1254,7 @@ export class CourseDownloadService {
     streamVideoUid?: string | null,
     videoType?: string | null,
   ): VideoSourceKind | undefined {
-    if (explicitSourceKind === 'STREAM' || explicitSourceKind === 'EXTERNAL' || explicitSourceKind === 'LEGACY_DIRECT') {
+    if (explicitSourceKind === 'ADAPTIVE_R2' || explicitSourceKind === 'STREAM' || explicitSourceKind === 'EXTERNAL' || explicitSourceKind === 'LEGACY_DIRECT') {
       return explicitSourceKind;
     }
 
