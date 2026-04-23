@@ -133,53 +133,19 @@ jobs:
           DEPLOY_SHA: ${{ github.sha }}
         run: |
           ssh -i ~/.ssh/id_ed25519 -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            "$DEPLOY_USER@$DEPLOY_HOST" << DEPLOY_EOF
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "DEPLOY_APP_DIR='$DEPLOY_APP_DIR' DEPLOY_SHA='$DEPLOY_SHA' bash -se" <<'DEPLOY_EOF'
           set -euo pipefail
           cd "$DEPLOY_APP_DIR"
 
           echo "=== LMS Maritime — CI/CD Deploy ==="
           echo "Revision: $DEPLOY_SHA"
 
-          # Update compose files, Caddyfile
+          # Pin the VM to the pushed revision, then delegate the rollout to the
+          # same script used for verified manual production deploys.
           git fetch --prune origin
           git checkout --force "$DEPLOY_SHA"
-
-          COMPOSE_ARGS=(--env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml)
-
-          # Backup database (if running)
-          if docker compose "\${COMPOSE_ARGS[@]}" ps db --status running -q 2>/dev/null | grep -q .; then
-            BACKUP_FILE="backups/lms-pre-deploy-\$(date +%Y%m%d-%H%M%S).sql.gz"
-            mkdir -p backups
-            docker compose "\${COMPOSE_ARGS[@]}" exec -T db \
-              pg_dump -U "\${POSTGRES_USER:-lms}" "\${POSTGRES_DB:-lms}" | gzip > "\$BACKUP_FILE"
-            echo "Backup: \$BACKUP_FILE"
-          fi
-
-          # Pull pre-built images from GHCR
-          docker compose "\${COMPOSE_ARGS[@]}" pull backend frontend
-
-          # Prune old images to save disk
-          docker image prune -f 2>/dev/null || true
-
-          # Deploy (no --build: uses pulled images)
-          # --force-recreate backend frontend: ensures containers restart with the new image.
-          # Without this, `up -d` may leave old containers running if Docker Compose
-          # doesn't detect the image digest change reliably.
-          docker compose "\${COMPOSE_ARGS[@]}" up -d --remove-orphans --force-recreate backend frontend caddy
-
-          # Wait for health
-          echo "Waiting for backend health..."
-          for i in \$(seq 1 30); do
-            if curl -sf http://localhost/actuator/health > /dev/null 2>&1; then
-              echo "Backend: HEALTHY"
-              break
-            fi
-            [ "\$i" -eq 30 ] && echo "WARNING: Health check timed out"
-            sleep 5
-          done
-
-          docker compose "\${COMPOSE_ARGS[@]}" ps
-          echo "=== Deploy Complete ==="
+          bash ./deploy.sh
           DEPLOY_EOF
 
       - name: Post-deploy summary
