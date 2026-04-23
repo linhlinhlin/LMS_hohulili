@@ -229,7 +229,7 @@ public class VideoAssetIngestService {
                         stopWatch.getTotalTimeMillis(),
                         summarizeStopWatch(stopWatch));
             }
-            markJobFailed(job, asset, ex.getMessage(), shouldRetry(job));
+            markJobFailed(job, asset, ex.getMessage(), shouldRetry(job, ex));
         } finally {
             deleteQuietly(sourceTemp);
             generatedFiles.forEach(this::deleteQuietly);
@@ -421,17 +421,51 @@ public class VideoAssetIngestService {
                 && sourceAttachment.getContentType().equalsIgnoreCase("video/mp4");
     }
 
-    private boolean shouldRetry(VideoIngestJobJpaEntity job) {
-        return job.getAttemptCount() != null && job.getAttemptCount() < 3;
+    private static final int MAX_RETRY_ATTEMPTS = 5;
+    private static final long BASE_RETRY_DELAY_SECONDS = 60;
+    private static final long MAX_RETRY_DELAY_SECONDS = 900; // 15 minutes cap
+
+    private boolean shouldRetry(VideoIngestJobJpaEntity job, Exception ex) {
+        int attempts = job.getAttemptCount() != null ? job.getAttemptCount() : 0;
+        if (attempts >= MAX_RETRY_ATTEMPTS) {
+            return false;
+        }
+        return isTransientError(ex);
+    }
+
+    private boolean isTransientError(Exception ex) {
+        if (ex == null) {
+            return true;
+        }
+        String msg = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
+        // Permanent: codec not found, unsupported format, corrupt file
+        if (msg.contains("codec not found") || msg.contains("invalid data found")
+                || msg.contains("unsupported codec") || msg.contains("no such file")
+                || msg.contains("source attachment no longer exists")
+                || msg.contains("not a video file") || msg.contains("moov atom not found")) {
+            return false;
+        }
+        // Permanent: process exit with known fatal codes
+        if (ex instanceof UncheckedIOException || msg.contains("exit code 1") && msg.contains("encoder")) {
+            return false;
+        }
+        // Transient: I/O, timeout, disk space, OOM, network
+        return true;
     }
 
     private void markJobFailed(VideoIngestJobJpaEntity job, VideoAssetJpaEntity asset, String error, boolean retryable) {
+        int attempts = job.getAttemptCount() != null ? job.getAttemptCount() : 0;
+        String truncatedError = error != null && error.length() > 2000 ? error.substring(0, 2000) : error;
+
         try {
             job.setStatus(retryable ? "RETRY" : "FAILED");
-            job.setLastError(error != null && error.length() > 2000 ? error.substring(0, 2000) : error);
+            job.setLastError(truncatedError);
             job.setFinishedAt(Instant.now());
             if (retryable) {
-                job.setNextRunAt(Instant.now().plusSeconds(60));
+                long delaySec = Math.min(BASE_RETRY_DELAY_SECONDS * (1L << attempts), MAX_RETRY_DELAY_SECONDS);
+                job.setNextRunAt(Instant.now().plusSeconds(delaySec));
+                log.info("[VideoAsset] Job {} scheduled for retry #{} in {}s (exponential backoff)",
+                        job.getId(), attempts + 1, delaySec);
             }
             videoIngestJobRepository.save(job);
         } catch (Exception jobSaveEx) {
@@ -441,8 +475,8 @@ public class VideoAssetIngestService {
         try {
             asset.setStatus(retryable ? "PENDING" : "FAILED");
             asset.setAdaptivePackagingStatus(retryable ? "PENDING" : "FAILED");
-            asset.setErrorMessage(error != null && error.length() > 2000 ? error.substring(0, 2000) : error);
-            asset.setAdaptiveErrorMessage(error != null && error.length() > 2000 ? error.substring(0, 2000) : error);
+            asset.setErrorMessage(truncatedError);
+            asset.setAdaptiveErrorMessage(truncatedError);
             videoAssetRepository.save(asset);
         } catch (Exception assetSaveEx) {
             log.error("[VideoAsset] CRITICAL: Failed to save asset failure state: assetId={}, error={}", asset.getId(), assetSaveEx.getMessage());

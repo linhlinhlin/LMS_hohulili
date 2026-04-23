@@ -530,11 +530,27 @@ export class AdaptiveVideoPlayerComponent {
 
     player.addEventListener('error', () => {
       this.qoe.recordError();
-      this.error.set('Luồng phát thích ứng hiện không phản hồi. Vui lòng thử lại.');
-      this.isLoading.set(false);
     });
 
-    await player.load(manifestUrl);
+    try {
+      await player.load(manifestUrl);
+    } catch {
+      // HLS failed — try DASH fallback
+      const dashUrl = await this.resolveAdaptivePlayUrl('dash');
+      if (dashUrl && dashUrl !== manifestUrl) {
+        try {
+          await player.load(dashUrl);
+        } catch {
+          this.error.set('Không thể phát video thích ứng. Vui lòng thử lại.');
+          this.isLoading.set(false);
+          return;
+        }
+      } else {
+        this.error.set('Không thể phát video thích ứng. Vui lòng thử lại.');
+        this.isLoading.set(false);
+        return;
+      }
+    }
     this.shakaPlayer = player;
     this.syncActiveVariant(player);
     this.isLoading.set(false);

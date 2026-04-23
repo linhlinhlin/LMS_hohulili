@@ -15,6 +15,7 @@ import java.util.UUID;
 public class VideoIngestJobClaimRepository {
 
     private static final long STALE_PROCESSING_THRESHOLD_MINUTES = 30;
+    private static final int MAX_RETRY_ATTEMPTS = 5;
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -74,8 +75,8 @@ public class VideoIngestJobClaimRepository {
                     updated_at = now()
                 where status = 'PROCESSING'
                   and started_at < ?
-                  and attempt_count < 3
+                  and attempt_count < ?
                 """,
-                Timestamp.from(threshold));
+                Timestamp.from(threshold), MAX_RETRY_ATTEMPTS);
     }
 }

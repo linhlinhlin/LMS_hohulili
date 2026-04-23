@@ -80,48 +80,65 @@ export class PresignedUploadService {
 
   private presignedUpload(file: File, uploadUrl: string, storageKey: string): Observable<UploadEvent> {
     return new Observable<UploadEvent>(subscriber => {
-      const xhr = new XMLHttpRequest();
+      let attempt = 0;
+      const maxRetries = 2;
+      let activeXhr: XMLHttpRequest | null = null;
 
-      xhr.upload.onprogress = (event: ProgressEvent) => {
-        if (event.lengthComputable) {
-          const progress = Math.round(100 * event.loaded / event.total);
-          subscriber.next({ type: 'progress', progress });
-        }
+      const tryUpload = () => {
+        const xhr = new XMLHttpRequest();
+        activeXhr = xhr;
+
+        xhr.upload.onprogress = (event: ProgressEvent) => {
+          if (event.lengthComputable) {
+            const progress = Math.round(100 * event.loaded / event.total);
+            subscriber.next({ type: 'progress', progress });
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            this.http.post<ConfirmResponse>(`${this.baseUrl}/upload/confirm`, {
+              storageKey,
+              originalName: file.name
+            }).subscribe({
+              next: (confirmRes) => {
+                subscriber.next({
+                  type: 'complete',
+                  url: confirmRes.url,
+                  key: confirmRes.storageKey,
+                  id: confirmRes.id
+                });
+                subscriber.complete();
+              },
+              error: (err) => subscriber.error(err)
+            });
+          } else if (xhr.status >= 500 && attempt < maxRetries) {
+            attempt++;
+            setTimeout(tryUpload, 1000 * Math.pow(2, attempt));
+          } else {
+            subscriber.error(new Error(`Upload failed with status ${xhr.status}`));
+          }
+        };
+
+        xhr.onerror = () => {
+          if (attempt < maxRetries) {
+            attempt++;
+            setTimeout(tryUpload, 1000 * Math.pow(2, attempt));
+          } else {
+            subscriber.error(new Error('Upload network error'));
+          }
+        };
+
+        xhr.open('PUT', uploadUrl);
+        xhr.setRequestHeader('Content-Type', file.type);
+        xhr.send(file);
       };
 
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          // Step 3: Confirm upload
-          this.http.post<ConfirmResponse>(`${this.baseUrl}/upload/confirm`, {
-            storageKey,
-            originalName: file.name
-          }).subscribe({
-            next: (confirmRes) => {
-              subscriber.next({
-                type: 'complete',
-                url: confirmRes.url,
-                key: confirmRes.storageKey,
-                id: confirmRes.id
-              });
-              subscriber.complete();
-            },
-            error: (err) => subscriber.error(err)
-          });
-        } else {
-          subscriber.error(new Error(`Upload failed with status ${xhr.status}`));
-        }
-      };
+      tryUpload();
 
-      xhr.onerror = () => subscriber.error(new Error('Upload network error'));
-
-      xhr.open('PUT', uploadUrl);
-      xhr.setRequestHeader('Content-Type', file.type);
-      xhr.send(file);
-
-      // Teardown: abort XHR on unsubscribe
       return () => {
-        if (xhr.readyState !== XMLHttpRequest.DONE) {
-          xhr.abort();
+        if (activeXhr && activeXhr.readyState !== XMLHttpRequest.DONE) {
+          activeXhr.abort();
         }
       };
     });

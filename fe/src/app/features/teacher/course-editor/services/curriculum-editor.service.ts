@@ -289,37 +289,44 @@ export class CurriculumEditorService {
     }
   }
 
-  scheduleSectionVideoPoll(assetId: string, delayMs = 5000): void {
+  private videoPollAttempt = 0;
+
+  scheduleSectionVideoPoll(assetId: string, delayMs?: number): void {
     this.clearSectionVideoPoll();
 
+    const baseDelay = 3000;
+    const maxDelay = 30000;
+    const jitter = Math.random() * 1000;
+    const computedDelay = delayMs ?? Math.min(baseDelay * Math.pow(1.5, this.videoPollAttempt), maxDelay) + jitter;
+
     this.sectionVideoPollTimer = setTimeout(async () => {
+      this.videoPollAttempt++;
       try {
         const res: ApiResponse<VideoAssetResponse> = await firstValueFrom(this.videoAssetApi.getById(assetId));
         const asset = res.data;
         this.sectionVideoProcessingStatus.set(asset.status ?? null);
 
         if (asset.status === 'READY') {
+          this.videoPollAttempt = 0;
           this.sectionVideoAvailableOfflineProfiles.set(asset.availableOfflineProfiles ?? []);
-          // Fetch playback URL for editor preview
           try {
             const playRes = await firstValueFrom(this.videoAssetApi.getPlayUrl(assetId));
             this.sectionVideoUrl.set(playRes.data?.playUrl ?? asset.playbackUrl ?? '');
           } catch {
             this.sectionVideoUrl.set(asset.playbackUrl ?? '');
           }
-          return; // Done polling
+          return;
         }
         if (asset.status === 'FAILED') {
+          this.videoPollAttempt = 0;
           this.toast.error('Xử lý video thất bại. Bạn có thể thử lại.');
           return;
         }
-        // Continue polling
-        this.scheduleSectionVideoPoll(assetId, 5000);
+        this.scheduleSectionVideoPoll(assetId);
       } catch {
-        // Retry with backoff
-        this.scheduleSectionVideoPoll(assetId, 10000);
+        this.scheduleSectionVideoPoll(assetId);
       }
-    }, delayMs);
+    }, computedDelay);
   }
 
   private clearSectionVideoPoll(): void {
