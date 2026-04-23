@@ -199,13 +199,44 @@ export class CurriculumEditorService {
         const res: any = await firstValueFrom(this.sectionApi.createSection(lessonId, formData));
         const created = res.data || res;
         this.editingSectionId.set(created?.id ?? null);
+        if (created?.id) {
+          this.store.addSectionLocal(lessonId, {
+            id: created.id,
+            title: created.title || payload['title'] || '',
+            type: created.type || type,
+            content: created.content || payload['content'],
+            videoAssetId: created.videoAssetId || payload['videoAssetId'],
+            videoProcessingStatus: created.videoProcessingStatus,
+            videoUrl: created.videoUrl || payload['videoUrl'],
+            videoType: created.videoType || payload['videoType'],
+            streamVideoUid: created.streamVideoUid || payload['streamVideoUid'],
+            fileUrl: created.fileUrl,
+            orderIndex: created.orderIndex ?? 0,
+            isRequired: created.isRequired ?? payload['isRequired'] ?? false,
+            completionThreshold: created.completionThreshold ?? payload['completionThreshold'],
+            availableOfflineProfiles: created.availableOfflineProfiles ?? [],
+            quizData: created.quizData ?? payload['quizData'],
+          });
+        }
       } else {
         await firstValueFrom(this.sectionApi.updateSection(lessonId, this.editingSectionId()!, formData));
+        this.store.updateSectionLocal(lessonId, this.editingSectionId()!, {
+          title: payload['title'] || '',
+          type: type,
+          content: payload['content'],
+          videoAssetId: payload['videoAssetId'],
+          videoUrl: payload['videoUrl'],
+          videoType: payload['videoType'],
+          streamVideoUid: payload['streamVideoUid'],
+          isRequired: payload['isRequired'] ?? false,
+          completionThreshold: payload['completionThreshold'],
+          quizData: payload['quizData'],
+        } as any);
       }
 
       this.selectedSectionVideoFile.set(null);
       this.selectedFile.set(null);
-      this.store.loadCourse(courseId, true);
+      this.store.invalidateCache(courseId);
       this.closeSectionSurface();
       this.isDirty.set(false);
       this.store.markSaved();
@@ -230,7 +261,7 @@ export class CurriculumEditorService {
 
     try {
       await firstValueFrom(this.sectionApi.deleteSection(lessonId, sectionId));
-      this.store.loadCourse(courseId, true);
+      this.store.removeSectionLocal(lessonId, sectionId);
       if (this.editingSectionId() === sectionId) {
         this.closeSectionSurface();
       }
@@ -362,16 +393,32 @@ export class CurriculumEditorService {
       this.sectionVideoUploadSpeed.set(null);
       this.sectionVideoUploadEta.set(null);
       this.selectedSectionVideoFile.set(null);
-      const detail = err?.message || err?.error?.message || 'Lỗi không xác định';
+      const status = err?.status || err?.error?.status;
+      let detail: string;
+      if (status === 403) {
+        detail = 'Không có quyền tải video. Vui lòng đăng nhập lại hoặc kiểm tra quyền tài khoản.';
+      } else if (status === 413) {
+        detail = 'File video quá lớn cho server. Hãy thử file nhỏ hơn.';
+      } else {
+        detail = err?.message || err?.error?.message || 'Lỗi không xác định';
+      }
       this.sectionVideoErrorDetail.set(detail);
       this.toast.error('Tải video thất bại: ' + detail);
     }
   }
 
   private videoPollAttempt = 0;
+  private static readonly MAX_VIDEO_POLL_ATTEMPTS = 60;
 
   scheduleSectionVideoPoll(assetId: string, delayMs?: number): void {
     this.clearSectionVideoPoll();
+
+    if (this.videoPollAttempt >= CurriculumEditorService.MAX_VIDEO_POLL_ATTEMPTS) {
+      this.videoPollAttempt = 0;
+      this.sectionVideoProcessingStatus.set('TIMEOUT');
+      this.toast.error('Kiểm tra trạng thái video quá lâu. Hãy tải lại trang hoặc thử lại.');
+      return;
+    }
 
     const baseDelay = 3000;
     const maxDelay = 30000;

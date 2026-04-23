@@ -399,8 +399,11 @@ export class CourseCurriculumComponent implements OnDestroy {
         this.lastHydratedLessonKey = lessonKey;
         this.resetActiveLessonQuiz();
         this.loadLessonData(lesson);
-        this.fetchLessonDetails(lesson.id);
-        if (this.getLessonType(lesson) === 'QUIZ') {
+        const lessonType = this.getLessonType(lesson);
+        if (lessonType === 'ASSIGNMENT') {
+          this.fetchLessonDetails(lesson.id);
+        }
+        if (lessonType === 'QUIZ') {
           this.loadQuizQuestions(lesson.id);
         } else {
           this.quizQuestions.set([]);
@@ -670,12 +673,14 @@ export class CourseCurriculumComponent implements OnDestroy {
     this.lessonComposerBusy.set(true);
     try {
       const lessonType = this.lessonComposerType();
-      await firstValueFrom(this.lessonApi.createLesson(chapter.id, {
+      const res: any = await firstValueFrom(this.lessonApi.createLesson(chapter.id, {
         title,
         type: lessonType,
         content: undefined
       }));
 
+      const created = res?.data || res;
+      const lessonId = typeof created === 'string' ? created : created?.id;
       const createdTypeLabel = lessonType === 'QUIZ'
         ? 'bài kiểm tra'
         : lessonType === 'ASSIGNMENT'
@@ -683,9 +688,25 @@ export class CourseCurriculumComponent implements OnDestroy {
           : 'bài học';
 
       this.cancelLessonComposer();
-      this.store.loadCourse(courseId, true);
 
-      this.toast.success(`Đã tạo ${createdTypeLabel} mới. Chọn mục vừa tạo trong vùng soạn để tiếp tục.`);
+      if (lessonId) {
+        const newLesson: LessonDraftDTO = {
+          id: lessonId,
+          title: (typeof created === 'object' ? created?.title : null) || title,
+          type: (typeof created === 'object' ? (created?.type || created?.lessonType) : null) || lessonType,
+          orderIndex: (typeof created === 'object' ? created?.orderIndex : null) ?? (chapter.lessons?.length || 0),
+          isRequired: (typeof created === 'object' ? created?.isRequired : null) ?? false,
+          sections: (typeof created === 'object' ? created?.sections : null) || []
+        };
+        this.store.addLessonLocal(chapter.id, newLesson);
+        const updatedChapter = this.store.chapters().find(c => c.id === chapter.id) || chapter;
+        this.selectionService.selectLesson(updatedChapter, newLesson);
+      } else {
+        this.store.invalidateCache(courseId);
+        this.store.loadCourse(courseId, true);
+      }
+
+      this.toast.success(`Đã tạo ${createdTypeLabel} mới.`);
     } catch (err: any) {
       this.toast.error('Tạo bài học thất bại: ' + (err?.error?.message || err?.message || ''));
     } finally {
@@ -1171,8 +1192,6 @@ export class CourseCurriculumComponent implements OnDestroy {
   }
 
   onSectionSaved(): void {
-    const courseId = this.store.courseTree()?.id;
-    if (courseId) this.store.loadCourse(courseId, true);
     this.refreshEditorBaselineWithOptions(true);
   }
 
@@ -1191,8 +1210,6 @@ export class CourseCurriculumComponent implements OnDestroy {
   private closeSectionSurface() {
     this.editorSvc.closeSectionSurface();
     this.resetSectionSurfaceController();
-    this.editorSvc.closeSectionSurface();
-    this.editorSvc.editingSectionId.set(null);
     this.selectionService.clearSectionSelection();
     this.refreshEditorBaseline();
   }
@@ -1210,13 +1227,17 @@ export class CourseCurriculumComponent implements OnDestroy {
         this.store.markUnsaved();
         return;
       }
+      const normalizedTitle = stripCurriculumPrefix(this.chapterTitle.trim(), 'chapter');
       await firstValueFrom(this.chapterApi.updateChapter(chapterId, {
         courseId: courseId,
-        title: stripCurriculumPrefix(this.chapterTitle.trim(), 'chapter'),
+        title: normalizedTitle,
         description: this.chapterDescription.trim()
       }));
+      this.store.updateChapterLocal(chapterId, {
+        title: normalizedTitle,
+        description: this.chapterDescription.trim()
+      });
       this.refreshEditorBaselineWithOptions(true);
-      this.store.loadCourse(courseId, true);
     } catch (err: any) {
       this.store.markUnsaved();
       this.toast.error('Cập nhật chương thất bại: ' + (err?.error?.message || err?.message || ''));
@@ -1286,8 +1307,22 @@ export class CourseCurriculumComponent implements OnDestroy {
         }));
       }
 
+      const lessonUpdates: Partial<LessonDraftDTO> = { title: normalizedLessonTitle };
+      if (lessonType === 'LECTURE') {
+        lessonUpdates.content = this.lessonContent;
+        lessonUpdates.videoUrl = this.lessonVideoUrl;
+      } else if (lessonType === 'QUIZ') {
+        lessonUpdates.quizTimeLimit = this.quizTimeLimit();
+        lessonUpdates.quizPassingScore = this.quizPassingScore();
+        lessonUpdates.quizMaxAttempts = this.quizMaxAttempts();
+      } else if (lessonType === 'ASSIGNMENT') {
+        lessonUpdates.assignmentDescription = this.assignmentDescription;
+        lessonUpdates.assignmentInstructions = this.assignmentInstructions;
+        lessonUpdates.assignmentDueDate = this.assignmentDueDate;
+        lessonUpdates.assignmentMaxScore = this.assignmentMaxScore;
+      }
+      this.store.updateLessonLocal(chapterId, lesson.id, lessonUpdates);
       this.refreshEditorBaselineWithOptions(true);
-      this.store.loadCourse(courseId, true);
     } catch (err: any) {
       this.store.markUnsaved();
       this.toast.error('Cập nhật bài học thất bại: ' + (err?.error?.message || err?.message || ''));
@@ -1606,8 +1641,9 @@ export class CourseCurriculumComponent implements OnDestroy {
     try {
       this.store.markSaving();
       await firstValueFrom(this.sectionApi.deleteSection(lesson.id, sectionId));
+      this.store.removeSectionLocal(lesson.id, sectionId);
       const courseId = this.store.courseTree()?.id;
-      if (courseId) this.store.loadCourse(courseId, true);
+      if (courseId) this.store.invalidateCache(courseId);
       if (this.selectedSectionId() === sectionId) {
         this.closeSectionSurface();
         this.refreshEditorBaselineWithOptions(true);

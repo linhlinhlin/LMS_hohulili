@@ -1,5 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { CourseAuthoringService, CourseDraftDTO, ChapterDraftDTO, LessonDraftDTO } from '../services/course-authoring.service';
+import { CourseAuthoringService, CourseDraftDTO, ChapterDraftDTO, LessonDraftDTO, SectionDraftDTO } from '../services/course-authoring.service';
 import { finalize } from 'rxjs/operators';
 import { ToastService } from '../../../../core/services/toast.service';
 import { lessonHasCanonicalContent } from '../utils/lesson-readiness';
@@ -203,6 +203,149 @@ export class CourseEditorStore {
         });
 
         this.setCourseTreeState({ ...currentTree, chapters: newChapters });
+    }
+
+    addChapterLocal(chapter: ChapterDraftDTO) {
+        const currentTree = this.courseTree();
+        if (!currentTree) return;
+        this.setCourseTreeState({
+            ...currentTree,
+            chapters: [...currentTree.chapters, chapter]
+        });
+    }
+
+    updateChapterLocal(chapterId: string, updates: Partial<ChapterDraftDTO>) {
+        const currentTree = this.courseTree();
+        if (!currentTree) return;
+        this.setCourseTreeState({
+            ...currentTree,
+            chapters: currentTree.chapters.map(ch =>
+                ch.id === chapterId ? { ...ch, ...updates } : ch
+            )
+        });
+    }
+
+    removeChapterLocal(chapterId: string) {
+        const currentTree = this.courseTree();
+        if (!currentTree) return;
+        this.setCourseTreeState({
+            ...currentTree,
+            chapters: currentTree.chapters.filter(ch => ch.id !== chapterId)
+        });
+    }
+
+    addLessonLocal(chapterId: string, lesson: LessonDraftDTO) {
+        const currentTree = this.courseTree();
+        if (!currentTree) return;
+        this.setCourseTreeState({
+            ...currentTree,
+            chapters: currentTree.chapters.map(ch =>
+                ch.id === chapterId
+                    ? { ...ch, lessons: [...ch.lessons, lesson] }
+                    : ch
+            )
+        });
+    }
+
+    removeLessonLocal(lessonId: string) {
+        const currentTree = this.courseTree();
+        if (!currentTree) return;
+        this.setCourseTreeState({
+            ...currentTree,
+            chapters: currentTree.chapters.map(ch => {
+                if (!ch.lessons.some(l => l.id === lessonId)) return ch;
+                return { ...ch, lessons: ch.lessons.filter(l => l.id !== lessonId) };
+            })
+        });
+    }
+
+    moveLessonToChapter(lessonId: string, fromChapterId: string, toChapterId: string) {
+        const currentTree = this.courseTree();
+        if (!currentTree) return;
+
+        let movedLesson: LessonDraftDTO | undefined;
+        for (const ch of currentTree.chapters) {
+            if (ch.id === fromChapterId) {
+                movedLesson = ch.lessons.find(l => l.id === lessonId);
+                break;
+            }
+        }
+        if (!movedLesson) return;
+
+        this.setCourseTreeState({
+            ...currentTree,
+            chapters: currentTree.chapters.map(ch => {
+                if (ch.id === fromChapterId) {
+                    return { ...ch, lessons: ch.lessons.filter(l => l.id !== lessonId) };
+                }
+                if (ch.id === toChapterId) {
+                    return { ...ch, lessons: [...ch.lessons, movedLesson!] };
+                }
+                return ch;
+            })
+        });
+    }
+
+    addSectionLocal(lessonId: string, section: SectionDraftDTO) {
+        const currentTree = this.courseTree();
+        if (!currentTree) return;
+        this.setCourseTreeState({
+            ...currentTree,
+            chapters: currentTree.chapters.map(ch => {
+                if (!ch.lessons.some(l => l.id === lessonId)) return ch;
+                return {
+                    ...ch,
+                    lessons: ch.lessons.map(l =>
+                        l.id === lessonId
+                            ? { ...l, sections: [...(l.sections || []), section] }
+                            : l
+                    )
+                };
+            })
+        });
+    }
+
+    updateSectionLocal(lessonId: string, sectionId: string, updates: Partial<SectionDraftDTO>) {
+        const currentTree = this.courseTree();
+        if (!currentTree) return;
+        this.setCourseTreeState({
+            ...currentTree,
+            chapters: currentTree.chapters.map(ch => {
+                if (!ch.lessons.some(l => l.id === lessonId)) return ch;
+                return {
+                    ...ch,
+                    lessons: ch.lessons.map(l =>
+                        l.id === lessonId
+                            ? {
+                                ...l,
+                                sections: (l.sections || []).map(s =>
+                                    s.id === sectionId ? { ...s, ...updates } : s
+                                )
+                            }
+                            : l
+                    )
+                };
+            })
+        });
+    }
+
+    removeSectionLocal(lessonId: string, sectionId: string) {
+        const currentTree = this.courseTree();
+        if (!currentTree) return;
+        this.setCourseTreeState({
+            ...currentTree,
+            chapters: currentTree.chapters.map(ch => {
+                if (!ch.lessons.some(l => l.id === lessonId)) return ch;
+                return {
+                    ...ch,
+                    lessons: ch.lessons.map(l =>
+                        l.id === lessonId
+                            ? { ...l, sections: (l.sections || []).filter(s => s.id !== sectionId) }
+                            : l
+                    )
+                };
+            })
+        });
     }
 
     // Auto-save calling this

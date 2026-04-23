@@ -1032,10 +1032,23 @@ export class CourseEditorSidebarComponent implements OnDestroy {
       description: this.newChapterDescription.trim(),
       orderIndex: this.store.chapters().length
     }).subscribe({
-      next: () => {
+      next: (res: any) => {
+        const created = res?.data || res;
+        const chapterId = typeof created === 'string' ? created : created?.id;
+        if (chapterId) {
+          this.store.addChapterLocal({
+            id: chapterId,
+            title: (typeof created === 'object' ? created?.title : null) || this.newChapterTitle.trim(),
+            description: (typeof created === 'object' ? created?.description : null) || this.newChapterDescription.trim(),
+            orderIndex: (typeof created === 'object' ? created?.orderIndex : null) ?? this.store.chapters().length,
+            lessons: []
+          });
+        } else {
+          this.store.invalidateCache(courseId);
+          this.store.loadCourse(courseId, true);
+        }
         this.closeModals();
         this.toast.success('Đã tạo chương mới');
-        this.store.loadCourse(courseId, true);
         this.isCreating.set(false);
       },
       error: (err: any) => {
@@ -1080,8 +1093,8 @@ export class CourseEditorSidebarComponent implements OnDestroy {
       next: () => {
         if (this.selectedChapterId() === chapterId) this.selectionService.clearSelection();
         this.expandedChapters.update(set => { const next = new Set(set); next.delete(chapterId); return next; });
+        this.store.removeChapterLocal(chapterId);
         this.toast.success('Đã xóa chương');
-        this.store.loadCourse(courseId, true);
       },
       error: (err: any) => this.toast.error('Xóa chương thất bại: ' + (err?.error?.message || ''))
     });
@@ -1103,8 +1116,8 @@ export class CourseEditorSidebarComponent implements OnDestroy {
       next: () => {
         if (this.selectedLessonId() === lessonId) this.selectionService.clearLessonSelection();
         this.expandedLessons.update(set => { const next = new Set(set); next.delete(lessonId); return next; });
+        this.store.removeLessonLocal(lessonId);
         this.toast.success('Đã xóa bài học');
-        this.store.loadCourse(courseId, true);
       },
       error: (err: any) => this.toast.error('Xóa bài học thất bại: ' + (err?.error?.message || ''))
     });
@@ -1124,8 +1137,8 @@ export class CourseEditorSidebarComponent implements OnDestroy {
     if (!courseId) return;
     this.sectionApi.deleteSection(lessonId, sectionId).subscribe({
       next: () => {
+        this.store.removeSectionLocal(lessonId, sectionId);
         this.toast.success('Đã xóa nội dung');
-        this.store.loadCourse(courseId, true);
       },
       error: (err: any) => this.toast.error('Xóa nội dung thất bại: ' + (err?.error?.message || ''))
     });
@@ -1253,7 +1266,10 @@ export class CourseEditorSidebarComponent implements OnDestroy {
     if (!courseId) return;
 
     this.chapterApi.updateChapter(chapterId, { courseId, title: trimmed }).subscribe({
-      next: () => this.store.loadCourse(courseId, true),
+      next: () => {
+        this.store.updateChapterLocal(chapterId, { title: trimmed });
+        this.store.invalidateCache(courseId);
+      },
       error: (err: any) => this.toast.error('Đổi tên chương thất bại: ' + (err?.error?.message || ''))
     });
   }
@@ -1275,7 +1291,10 @@ export class CourseEditorSidebarComponent implements OnDestroy {
     }
 
     this.lessonApi.updateLesson(lessonId, { courseId, chapterId, title: trimmed }).subscribe({
-      next: () => this.store.loadCourse(courseId, true),
+      next: () => {
+        this.store.updateLessonLocal(chapterId, lessonId, { title: trimmed });
+        this.store.invalidateCache(courseId);
+      },
       error: (err: any) => this.toast.error('Đổi tên bài học thất bại: ' + (err?.error?.message || ''))
     });
   }
@@ -1383,9 +1402,10 @@ export class CourseEditorSidebarComponent implements OnDestroy {
       chapterId: toChapterId
     }).subscribe({
       next: () => {
+        this.store.moveLessonToChapter(lesson.id, fromChapterId, toChapterId);
+        this.store.invalidateCache(courseId);
         this.expandedChapters.update(set => new Set([...set, toChapterId]));
         this.toast.success('Đã chuyển bài học sang chương khác');
-        this.store.loadCourse(courseId, true);
         if (this.selectedLessonId() === lesson.id) {
           void this.router.navigate(
             ['/teacher/courses', courseId, 'editor', 'curriculum'],
