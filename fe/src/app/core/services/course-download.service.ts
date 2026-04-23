@@ -126,6 +126,21 @@ export class CourseDownloadService {
         console.error('[CourseDownloadService] Failed to initialize offline downloads:', error);
       }
     });
+
+    // Auto-refresh downloaded courses when network status changes
+    // This ensures UI shows correct offline availability after online/offline transitions
+    if (typeof window !== 'undefined') {
+      const handleNetworkChange = () => {
+        // Debounce refresh to avoid multiple rapid calls
+        setTimeout(() => {
+          void this.refreshDownloadedCourses().catch(() => {
+            // Silently fail — user will see stale data momentarily
+          });
+        }, 500);
+      };
+      window.addEventListener('online', handleNetworkChange);
+      window.addEventListener('offline', handleNetworkChange);
+    }
   }
 
   /**

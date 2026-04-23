@@ -107,16 +107,15 @@ export class NetworkStatusService implements OnDestroy {
   }
 
   /**
-   * Probe actual latency via HEAD to a bundled icon (cached by SW).
-   * Uses /icons/icon-192x192.png which is in the app-shell prefetch group,
-   * so it works even when served from SW cache.
+   * Probe actual latency via network request.
    *
-   * IMPORTANT: Does NOT use cache: 'no-cache' — allows SW to serve
-   * cached responses. We only set offline when the fetch truly fails
-   * (TypeError = no network AND no SW cache).
+   * IMPORTANT: Uses cache: 'no-store' to bypass SW cache and get real network status.
+   * Falls back to API health check if icon probe succeeds (to verify internet connectivity).
    *
-   * On iOS: SW can be evicted after ~5min background. If that happens,
-   * we rely solely on navigator.onLine events (no aggressive probe).
+   * Multi-strategy detection:
+   * 1. Static resource with no-store (bypass SW cache)
+   * 2. If that succeeds, verify with API health endpoint
+   * 3. On iOS: SW can be evicted after ~5min background. Rely on navigator.onLine events (no aggressive probe).
    */
   private probeLatency(): void {
     if (!navigator.onLine) return;
@@ -125,19 +124,41 @@ export class NetworkStatusService implements OnDestroy {
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
     const start = performance.now();
-    fetch('/icons/icon-192x192.png', { method: 'HEAD', signal: controller.signal })
-      .then(() => {
+
+    // Use cache: 'no-store' to bypass SW cache and get real network status
+    fetch('/icons/icon-192x192.png', {
+      method: 'HEAD',
+      signal: controller.signal,
+      cache: 'no-store'
+    })
+      .then(async () => {
         clearTimeout(timeoutId);
         const rtt = performance.now() - start;
-        this.online.set(true);
-        // Probe result is the ground truth — always update bandwidth
-        if (rtt > 500) {
-          this.effectiveBandwidthMbps.set(0.5);   // genuinely slow
-        } else if (rtt > 200) {
-          this.effectiveBandwidthMbps.set(1.5);   // moderate
-        } else {
-          // Fast probe (< 200ms) — override any stale conn.downlink value
-          this.effectiveBandwidthMbps.set(10);
+
+        // Verify internet connectivity with API health check
+        // This catches the case where WiFi is connected but no internet
+        try {
+          const apiController = new AbortController();
+          const apiTimeoutId = setTimeout(() => apiController.abort(), 3000);
+          await fetch('/actuator/health', {
+            method: 'GET',
+            signal: apiController.signal,
+            cache: 'no-store'
+          });
+          clearTimeout(apiTimeoutId);
+
+          this.online.set(true);
+          if (rtt > 500) {
+            this.effectiveBandwidthMbps.set(0.5);   // genuinely slow
+          } else if (rtt > 200) {
+            this.effectiveBandwidthMbps.set(1.5);   // moderate
+          } else {
+            this.effectiveBandwidthMbps.set(10);
+          }
+        } catch {
+          // API health check failed → WiFi connected but no internet
+          this.online.set(false);
+          this.effectiveBandwidthMbps.set(0);
         }
       })
       .catch((err) => {

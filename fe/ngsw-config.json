@@ -84,7 +84,8 @@
   "navigationUrls": [
     "/**",
     "!/__**",
-    "!/api/**"
+    "!/api/**",
+    "!/actuator/**"
   ],
   "navigationRequestStrategy": "freshness"
 }

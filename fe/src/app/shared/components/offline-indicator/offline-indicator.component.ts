@@ -49,9 +49,42 @@ export class OfflineIndicatorComponent {
   private readonly syncService = inject(OfflineSyncService);
   private readonly sessionService = inject(SessionExpiredService);
 
-  protected readonly isOffline = computed(() => this.network.connectionTier() === 'none');
+  // Multi-strategy offline detection:
+  // 1. connectionTier === 'none' (from NetworkStatusService)
+  // 2. navigator.onLine === false (fallback)
+  protected readonly isOffline = computed(() => {
+    const tier = this.network.connectionTier();
+    if (tier === 'none') return true;
+    // Additional safety check: if navigator.onLine is false, treat as offline
+    // even if our probe thinks otherwise
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return true;
+    return false;
+  });
   protected readonly isSyncing = computed(() => !this.isOffline() && this.syncService.isSyncing());
   protected readonly isSlow = computed(() => this.network.connectionTier() === 'slow');
   protected readonly pendingSyncCount = computed(() => this.syncService.pendingCount());
   protected readonly hasExpiredBanner = computed(() => this.sessionService.showExpiredBanner());
+
+  constructor() {
+    // Log network status changes for debugging
+    if (typeof window !== 'undefined') {
+      const logStatus = () => {
+        console.log('[PWA] Network Status:', {
+          online: this.network.online(),
+          tier: this.network.connectionTier(),
+          navigatorOnLine: navigator.onLine,
+          timestamp: new Date().toISOString()
+        });
+      };
+      logStatus();
+      window.addEventListener('online', () => {
+        console.log('[PWA] Network: online event fired');
+        logStatus();
+      });
+      window.addEventListener('offline', () => {
+        console.log('[PWA] Network: offline event fired');
+        logStatus();
+      });
+    }
+  }
 }
