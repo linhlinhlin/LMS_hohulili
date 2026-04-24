@@ -16,7 +16,7 @@
   </parent>
   <properties>
     <java.version>21</java.version>
-    <springdoc.version>2.5.0</springdoc.version>
+    <springdoc.version>3.0.3</springdoc.version>
     <jjwt.version>0.13.0</jjwt.version>
     <lombok.version>1.18.46</lombok.version>
   </properties>
