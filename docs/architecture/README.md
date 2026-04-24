@@ -1,21 +1,21 @@
-# Architecture Docs
+# Architecture
 
-Thư mục này chứa các tài liệu giải thích về boundary, decision, và cấu trúc hệ thống.
+Tài liệu giải thích boundary, decision, cấu trúc hệ thống **đang sống**. Các snapshot date-stamp cho hệ thống đã impl sẽ được chuyển sang `archive/YYYY-QN/architecture-snapshots/`.
 
-## Đây là nơi dùng khi
+## Dùng khi
 
-- cần hiểu vì sao hệ thống tách module theo cách hiện tại
-- cần hiểu boundary giữa course, class, lesson, assessment, learner flow
-- cần xem roadmap kiến trúc cho các mảng như offline hoặc streaming
+- Cần hiểu vì sao hệ thống tách module theo cách hiện tại
+- Cần hiểu boundary course / class / lesson / assessment / learner flow
+- Cần roadmap cho các mảng như offline, streaming, video scale
 
-## Tài liệu nổi bật
+## Tài liệu hiện hành
 
-- `COURSE_VS_CLASS_LESSON_BOUNDARY.md`
-- `TEACHER_ASSESSMENTS_CONTEXT_SPLIT.md`
-- `STUDENT_COURSE_FIRST_EXPERIENCE.md`
-- `LESSON_VIEW_ARCHITECTURE.md`
-- `STREAMING_PWA_ROADMAP.md`
-- `2026-03-16-course-publication-pwa-sync-model.md`
-- `2026-03-15-adaptive-video-v1-implementation-plan.md`
+- [COURSE_VS_CLASS_LESSON_BOUNDARY.md](COURSE_VS_CLASS_LESSON_BOUNDARY.md)
+- [TEACHER_ASSESSMENTS_CONTEXT_SPLIT.md](TEACHER_ASSESSMENTS_CONTEXT_SPLIT.md)
+- [STUDENT_COURSE_FIRST_EXPERIENCE.md](STUDENT_COURSE_FIRST_EXPERIENCE.md)
+- [LESSON_VIEW_ARCHITECTURE.md](LESSON_VIEW_ARCHITECTURE.md)
+- [STREAMING_PWA_ROADMAP.md](STREAMING_PWA_ROADMAP.md)
 
-Nếu một tài liệu ở đây chỉ còn là plan đang làm dở, hãy nói rõ trong file hoặc chuyển về `docs/plans/`.
+## Archive
+
+Date-stamped implementation plans (video R2/Shaka, publication-PWA sync, media edge auth, admin approval SOTA, ...) đã ship → [`docs/archive/2026-Q1/architecture-snapshots/`](../archive/2026-Q1/architecture-snapshots/).

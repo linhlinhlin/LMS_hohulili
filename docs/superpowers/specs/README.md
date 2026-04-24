@@ -1,28 +1,25 @@
-# Specs Guide
+# Specs
 
-This folder contains design and handoff specs created before implementation.
+Design / handoff specs tạo ra TRƯỚC khi implement. Lưu reasoning để review và handoff cross-team.
 
-## Purpose
+## Đang có
 
-- capture decisions before code changes start
-- preserve reasoning for review and cross-team handoff
-- keep proposal-stage work separate from runtime truth
+_(trống — Q1 2026 đã archive sang [`docs/archive/2026-Q1/superpowers/specs/`](../../archive/2026-Q1/superpowers/specs/))._
 
-## Important rule
+## Nguyên tắc
 
-Specs do **not** automatically become source of truth.
-
-Once a feature ships and is verified, the living parts should be promoted into:
+Specs **không tự động** trở thành source of truth. Khi feature ship + ổn định, promote living parts vào:
 
 - `docs/architecture/`
 - `docs/reference/`
 - `docs/runbooks/`
 
-## Recent specs
+Sau đó `git mv` spec gốc sang archive theo [`DOCUMENTATION_POLICY.md §6`](../../reference/DOCUMENTATION_POLICY.md).
 
-- `2026-03-23-messaging-recipient-discovery-design.md` - scoped people picker, send authorization policy, API contract, and query strategy for LMS messaging
-- `2026-04-19-google-login-jwt-design.md` - Google Identity Services login/signup design that preserves the current JWT architecture and org-safety rules
+## Convention
 
-## Promoted to runbooks
+`YYYY-MM-DD-<topic>-design.md` hoặc `YYYY-MM-DD-<topic>.md` tuỳ phạm vi.
 
-- Google login environment setup and live rollout now continue in `docs/runbooks/GOOGLE_LOGIN_GIS_SETUP_RUNBOOK.md`
+## Đã promote
+
+- Google login environment setup/rollout → `docs/runbooks/GOOGLE_LOGIN_GIS_SETUP_RUNBOOK.md`
