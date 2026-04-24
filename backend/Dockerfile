@@ -20,7 +20,7 @@ RUN --mount=type=cache,target=/root/.m2/repository \
     mvn clean package -DskipTests -B
 
 # ----- Stage 2: Runtime -----
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 
 ARG SHAKA_PACKAGER_VERSION=v3.4.2
 
