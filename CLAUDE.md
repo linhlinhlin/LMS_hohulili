@@ -277,7 +277,7 @@ export class ExampleComponent {
 | Purpose | File |
 |---------|------|
 | **Full Backend Docs** | **`backend/README.md`** |
-| **Backend SKILL** | **`.agent/skills/01-backend-ddd-development/SKILL.md`** |
+| **Backend SKILL** | **`.claude/skills/01-backend-ddd-development/SKILL.md`** |
 | Dev Config | `backend/src/main/resources/application-dev.yml` |
 | Prod Config | `backend/src/main/resources/application-prod.yml` |
 | Docker Compose | `docker-compose.yml` + `docker-compose.dev.yml` |
@@ -295,7 +295,7 @@ export class ExampleComponent {
 | Purpose | File |
 |---------|------|
 | **FE Architecture** | **`fe/FRONTEND_ARCHITECTURE.md`** |
-| **FE SKILL** | **`.agent/skills/angular-v20-frontend/SKILL.md`** |
+| **FE SKILL** | **`.claude/skills/angular-v20-frontend/SKILL.md`** |
 | Environment | `fe/src/environments/environment.ts` |
 | API Client | `fe/src/app/api/client/api-client.ts` |
 | Root Routes | `fe/src/app/app.routes.ts` |
