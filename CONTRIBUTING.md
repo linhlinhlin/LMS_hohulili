@@ -15,19 +15,17 @@ chore/xxx   ──PR──▶ main
 hotfix/xxx  ──PR──▶ main (khẩn cấp)
 ```
 
-- **`main`** = production. Mỗi commit trên main tự động deploy lên holilihu.online.
-- **`develop`** = staging/tích hợp (CI chạy, không deploy). Dùng khi cần gộp nhiều feature trước khi lên main.
-- **Feature branches** = nhánh làm việc cá nhân/nhóm.
+- **`main`** = production + integration branch duy nhất. Mỗi commit trên main tự động deploy lên holilihu.online (khi `DEPLOY_ENABLED=true`).
+- **Feature branches** = nhánh làm việc cá nhân/nhóm, merge thẳng vào main qua PR.
 
 ### Quy tắc TUYỆT ĐỐI
 
 | Quy tắc | Lý do |
 |---------|-------|
 | **KHÔNG push trực tiếp vào `main`** | main = production, mỗi push tự động deploy |
-| **KHÔNG push trực tiếp vào `develop`** | Cần review trước khi tích hợp |
 | **MỌI thay đổi phải qua Pull Request** | Đảm bảo code review + CI pass |
 | **KHÔNG merge PR khi CI đỏ** | Backend tests, frontend build, compose phải pass |
-| **KHÔNG dùng `--force` push** | Có thể mất code của người khác |
+| **KHÔNG dùng `--force` push** | Có thể mất code của người khác. Dùng `--force-with-lease` nếu cần rebase branch mình |
 
 ### Đặt tên branch
 
@@ -57,7 +55,7 @@ Ví dụ:
 ```
 feat(assessment): add rubric grading flow
 fix(#48): replace window.prompt with app-dialog modal
-chore(ci): add develop branch to CI triggers
+chore(ci): tighten dependabot schedule to Monday 08:00
 refactor(admin): extract dashboard chart component
 ```
 

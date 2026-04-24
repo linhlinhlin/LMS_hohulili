@@ -246,7 +246,7 @@ git log --since="30 days ago" --grep="feat\|fix\|chore" --format="%H %an %s" \
     done
 
 # Branch local merged chưa xóa
-git branch --merged main | grep -vE "^\*|main|develop"
+git branch --merged main | grep -vE "^\*|main"
 
 # Branch quá 14 ngày
 git for-each-ref --sort=committerdate refs/heads/ \
