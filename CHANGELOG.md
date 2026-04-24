@@ -12,6 +12,32 @@ This file follows the spirit of [Keep a Changelog](https://keepachangelog.com/en
 - Clarified current runtime truth for video, offline, payment, and the smoke-first E2E gate
 - Tightened `.gitignore` for local temp artifacts and test artifacts
 
+## [2026-04-24] — Faculty milestone checkpoint
+
+### Production / Infra
+
+- `deploy.yml` now gates the SSH deploy step on the repo variable `DEPLOY_ENABLED`; build images still push to GHCR on every commit
+- Production GCP VM `lms-production` paused to conserve free-trial credits — static IP and disk preserved; resume via [`docs/runbooks/PRODUCTION_PAUSE_RESUME_RUNBOOK.md`](docs/runbooks/PRODUCTION_PAUSE_RESUME_RUNBOOK.md)
+- Production DB backed up to `backups/prod-2026-04-24.dump` (483 KB, `pg_restore` custom format)
+
+### Authoring
+
+- Video upload flow redesigned to SOTA pattern: client-side metadata probe, phase-aware processing timeline (Tải lên → Giải mã → Đóng gói → Sẵn sàng), categorized error taxonomy with recovery hints, completion toast + `document.title` indicator, Esc-to-cancel, aria-live progress, OnPush-safe signals
+
+### Repo Health (2026-04-24 audit)
+
+- Local disk footprint reduced 8.1 GB → 1.4 GB (emptied `backend/uploads/` 6.7 GB of dev-only media, removed accidental `fe/fe/` nest, cleared FE debug/tmp folders, purged root PNG/docx leftovers)
+- Consolidated 6 duplicate AI-tool skill folders (`.agent/`, `.agents/`, `.kiro/`, `.qwen/`, `skills/`, `skills-lock.json`) into a single `.claude/skills/` (−278 files, −67k LOC)
+- Archived Q1 2026 working docs under `docs/archive/2026-Q1/` per new `DOCUMENTATION_POLICY.md §6`; academic/thesis artifacts moved to `docs/academic/`; 83 `git mv` operations preserve history
+- Added `SECURITY.md`, `.github/CODEOWNERS`, `.github/ISSUE_TEMPLATE/{bug_report,feature_request,documentation}.md`, `.github/pull_request_template.md`
+- Added runbooks: `docs/runbooks/PRODUCTION_PAUSE_RESUME_RUNBOOK.md`, `docs/runbooks/BRANCH_HYGIENE_RUNBOOK.md`
+- Added `scripts/dev/reset-local-data.sh` for repeatable local cleanup
+- Full audit report: [`docs/reports/2026-04-24-repo-health-audit.md`](docs/reports/2026-04-24-repo-health-audit.md)
+
+### PWA
+
+- Offline indicator detection fixed for desktop/laptop devices (fell through on some network stacks)
+
 ## [2026-03-24]
 
 ### Payment / Access Truth
