@@ -17,8 +17,8 @@
   <properties>
     <java.version>21</java.version>
     <springdoc.version>2.5.0</springdoc.version>
-    <jjwt.version>0.12.3</jjwt.version>
-    <lombok.version>1.18.42</lombok.version>
+    <jjwt.version>0.13.0</jjwt.version>
+    <lombok.version>1.18.46</lombok.version>
   </properties>
   <dependencies>
     <!-- Spring Boot Starters -->
@@ -53,13 +53,13 @@
     <dependency><groupId>org.apache.poi</groupId><artifactId>poi-scratchpad</artifactId><version>5.5.1</version></dependency>
 
     <!-- PDF Generation -->
-    <dependency><groupId>org.apache.pdfbox</groupId><artifactId>pdfbox</artifactId><version>3.0.6</version></dependency>
+    <dependency><groupId>org.apache.pdfbox</groupId><artifactId>pdfbox</artifactId><version>3.0.7</version></dependency>
 
     <!-- JSONB Utils -->
     <dependency>
         <groupId>io.hypersistence</groupId>
         <artifactId>hypersistence-utils-hibernate-63</artifactId>
-        <version>3.7.0</version>
+        <version>3.15.2</version>
     </dependency>
     
     <!-- Testing -->
@@ -99,7 +99,7 @@
     <dependency>
         <groupId>com.tngtech.archunit</groupId>
         <artifactId>archunit-junit5</artifactId>
-        <version>1.4.1</version>
+        <version>1.4.2</version>
         <scope>test</scope>
     </dependency>
     
@@ -107,14 +107,14 @@
     <dependency>
         <groupId>software.amazon.awssdk</groupId>
         <artifactId>s3</artifactId>
-        <version>2.25.0</version>
+        <version>2.42.40</version>
     </dependency>
     
     <!-- Google Identity token verification -->
     <dependency>
         <groupId>com.google.api-client</groupId>
         <artifactId>google-api-client</artifactId>
-        <version>2.4.1</version>
+        <version>2.9.0</version>
     </dependency>
     <dependency>
         <groupId>com.google.http-client</groupId>
@@ -132,7 +132,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.13.0</version>
+        <version>3.15.0</version>
         <configuration>
           <annotationProcessorPaths>
             <path>
