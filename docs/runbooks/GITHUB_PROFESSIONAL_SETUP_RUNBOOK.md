@@ -61,10 +61,6 @@ Branch name pattern: `main`
 - [ ] **Allow force pushes**: **OFF** (critical — tránh history rewrite trên main)
 - [ ] **Allow deletions**: **OFF** (critical — tránh xóa main nhầm)
 
-### P1 — Rule cho `develop` (nếu còn dùng)
-
-Nếu `develop` là integration branch active, apply cùng rule như `main` nhưng có thể nới reviews = 0.
-
 ---
 
 ## 3. Security & Analysis (Settings → Security → Code security and analysis)
@@ -240,7 +236,7 @@ CodeRabbit là second opinion độc lập — **không thay thế** Claude/Code
 
 ### Troubleshooting
 
-- **Bot không review**: check PR không phải draft + base branch là `main`/`develop` (theo config)
+- **Bot không review**: check PR không phải draft + base branch là `main` (theo config)
 - **Review bằng tiếng Anh**: verify `language: vi-VN` ở đầu file
 - **Chạy quá chậm**: reduce `path_instructions` count, exclude path lớn hơn trong `path_filters`
 - **Over-comment nhiễu**: đổi profile `chill` → chill strict hoặc disable tool `ast-grep.essential_rules`

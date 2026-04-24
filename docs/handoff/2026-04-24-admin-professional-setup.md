@@ -549,7 +549,7 @@ Quarterly:
 ### 10.1 CodeRabbit không comment
 
 1. Check PR không phải **Draft** (config `auto_review.drafts: false`)
-2. Check base branch là `main` hoặc `develop`
+2. Check base branch là `main`
 3. Check app vẫn installed: Settings → Integrations → GitHub Apps
 4. Comment `@coderabbitai review` để force trigger
 

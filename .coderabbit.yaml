@@ -25,7 +25,6 @@ reviews:
     drafts: false           # Không review draft PR để tiết kiệm credit
     base_branches:
       - "main"
-      - "develop"
 
   # Skip review cho path không đáng review
   path_filters:

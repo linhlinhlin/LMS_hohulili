@@ -35,11 +35,11 @@ git for-each-ref --sort=committerdate refs/heads/ \
 
 ```bash
 # Liệt kê
-git branch --merged main | grep -vE '^\*|^  main$|^  develop$'
+git branch --merged main | grep -vE '^\*|^  main$'
 
 # Xóa hàng loạt (an toàn — Git từ chối nếu chưa merge)
 git branch --merged main \
-  | grep -vE '^\*|^  main$|^  develop$' \
+  | grep -vE '^\*|^  main$' \
   | xargs -r git branch -d
 ```
 
