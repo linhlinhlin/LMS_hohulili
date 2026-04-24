@@ -15,11 +15,14 @@ Doc nhom nay khi can cau tra loi ngan, chinh xac, va on dinh cho cac cau hoi kie
 - `PUBLICATION_PWA_DEFINITION_OF_DONE.md`
 - `BACKEND_OVERVIEW.md`
 - `FRONTEND_OVERVIEW.md`
-- `DOCUMENTATION_POLICY.md`
+- `DOCUMENTATION_POLICY.md` — quy tac tai lieu (ngon ngu, phan loai, promote, archive §6)
 - `RUNTIME_CONVENTIONS.md`
 - `LOCAL_DEV_MATRIX.md`
 - `ROLE_ACCESS_MATRIX.md`
 - `PRODUCTION_SURFACES.md`
+- `COMMIT_CONVENTION.md` — format commit message cho moi contributor (human + agent)
+- `MULTI_AGENT_COLLABORATION.md` — rule cho Claude Code + Codex + agent khac cung work tren repo
+- `AGENT_ONBOARDING.md` — huong dan setup agent moi lam viec trong du an
 
 Neu mot reference doc lech voi code thuc te, phai cap nhat lai ngay sau khi xac minh.
 
