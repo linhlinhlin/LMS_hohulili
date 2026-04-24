@@ -42,7 +42,7 @@
     "@angular/platform-server": "^20.3.17",
     "@angular/router": "^20.3.17",
     "@angular/service-worker": "^20.3.17",
-    "@angular/ssr": "^20.3.19",
+    "@angular/ssr": "^21.2.8",
     "@ctrl/ngx-emoji-mart": "^9.3.0",
     "@editorjs/editorjs": "^2.31.0",
     "@editorjs/header": "^2.8.8",
