@@ -71,14 +71,12 @@
       </div>
 
       <div class="content-grid">
-        <div class="card chart-card">
-          <div class="card-header">
-            <h2 class="card-title">Xu hướng đăng ký (30 ngày)</h2>
-          </div>
-          <div class="chart-area">
-            <app-revenue-chart [revenueData]="enrollmentTrendData()" chartLabel="Lượt đăng ký" />
-          </div>
-        </div>
+        <!--
+          Xu hướng đăng ký 30 ngày chart removed (issue #75): trước đây dựng
+          từ dailyAvg + Math.sin(...) → dữ liệu synthetic hiển thị như số liệu
+          thật. Sẽ khôi phục khi có backend time-series endpoint cho org-scoped
+          enrollments.
+        -->
 
         <div class="card">
           <div class="card-header">

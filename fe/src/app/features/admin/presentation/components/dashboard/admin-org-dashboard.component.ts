@@ -2,7 +2,7 @@ import { Component, input, output, computed, ChangeDetectionStrategy, inject, si
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { SystemAnalytics } from '../../../infrastructure/services/admin.service';
-import { RevenueChartComponent, RevenueData } from './components/revenue-chart.component';
+// RevenueChartComponent + RevenueData removed with the synthetic trend chart (#75).
 import { PendingApproval } from './dashboard.types';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { getAdminPortalBase } from '../../../../../core/utils/portal-route.util';
@@ -10,7 +10,7 @@ import { DialogComponent } from '../../../../../shared/components/dialog/dialog.
 
 @Component({
   selector: 'app-admin-org-dashboard',
-  imports: [CommonModule, RouterModule, RevenueChartComponent, DialogComponent],
+  imports: [CommonModule, RouterModule, DialogComponent],
   templateUrl: './admin-org-dashboard.component.html',
   styleUrl: './admin-org-dashboard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -34,20 +34,8 @@ export class AdminOrgDashboardComponent {
   activeCourseCount = computed(() => this.analytics().approvedCourses);
   portalBase = computed(() => getAdminPortalBase(this.authService.userRole()));
 
-  enrollmentTrendData = computed<RevenueData>(() => {
-    const dailyAvg = (this.analytics().totalEnrollments || 0) / 30;
-    const labels: string[] = [];
-    const data: number[] = [];
-    const today = new Date();
-
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
-      labels.push(`${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`);
-      data.push(Math.max(0, Math.floor(dailyAvg + Math.sin(i * 0.7) * dailyAvg * 0.3)));
-    }
-    return { labels, data };
-  });
+  // enrollmentTrendData removed (issue #75): was synthetic (dailyAvg + sin wave).
+  // Restore when backend exposes a true org-scoped time-series endpoint.
 
   // --- Reject modal state ---
   rejectModalOpen = signal(false);

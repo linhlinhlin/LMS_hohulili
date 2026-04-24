@@ -241,7 +241,8 @@
 
         <!-- Right Column -->
         <div class="right-column">
-          <!-- System Health -->
+          <!-- System Health — platform ops (admin only); hidden for ORG_ADMIN per #75 -->
+          @if (isSystemAdmin()) {
           <div class="card">
             <div class="card-header">
               <h3 class="card-title title-primary">
@@ -306,6 +307,7 @@
               </div>
             </div>
           </div>
+          }
 
           <!-- User Growth -->
           <div class="card">
