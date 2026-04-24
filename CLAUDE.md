@@ -231,6 +231,14 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.
 **Cause**: Angular 20's SSRF protection blocks all hostnames when `outputMode: "server"` is set. The `allowedHosts` array is empty by default.
 **Fix**: Set `NG_ALLOWED_HOSTS=holilihu.online,localhost` environment variable in `docker-entrypoint.sh` and `docker-compose.prod.yml`.
 
+### 12. Dev server TTFB ~7s trên `localhost:4200` (SSR leak vào dev)
+**Cause**: `outputMode` có mặt ở **bất kỳ level nào** (root `options` hoặc `development` config) của `fe/angular.json` khiến Angular 20.3 `@angular/build:dev-server` wire Express SSR middleware vào dev server, dù `ssr: false` đã set. SSR chạy trong dev + `baseUrlInterceptor` gọi `http://backend:8080` ngoài Docker → DNS fail → ~7s timeout mỗi request HTML.
+**Fix**: `outputMode: "server"` CHỈ đặt trong `production` configuration. Root `options` và `development` configuration TUYỆT ĐỐI không có field `outputMode`. `development` chỉ cần `ssr: false`.
+**Verify**: `curl -s -o /dev/null -w "%{time_starttransfer}s\n" http://localhost:4200/` phải < 100ms.
+**Deep dive**: [`ADR-006-angular-dev-server-ssr-separation.md`](backend/docs/adr/ADR-006-angular-dev-server-ssr-separation.md), [`docs/reference/FRONTEND_GOTCHAS.md §1.1`](docs/reference/FRONTEND_GOTCHAS.md). PR #148 / Issue #147.
+
+> **FE gotcha catalog đầy đủ**: [`docs/reference/FRONTEND_GOTCHAS.md`](docs/reference/FRONTEND_GOTCHAS.md) — 20+ gotcha phân theo Build, Deps, PWA, SSR, Offline, IDB, Conventions. Đọc trước khi đụng `angular.json`, `ngsw-config.json`, `proxy.conf.json`, hoặc code SSR path.
+
 ---
 
 ## ANGULAR CONVENTIONS (CRITICAL)

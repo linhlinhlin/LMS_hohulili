@@ -120,6 +120,65 @@ reviews:
         - Không force-recreate trên e2-standard-2 (OOM risk)
         - Verify postgres password trước backend restart
 
+    - path: "fe/angular.json"
+      instructions: |
+        Angular build config — CẨN THẬN với outputMode (xem ADR-006):
+        - outputMode CHỈ đặt trong production configuration (giá trị "server")
+        - Root "options" KHÔNG được có field outputMode
+        - development configuration KHÔNG được có field outputMode (cả "static" lẫn "server" đều trigger SSR middleware → dev TTFB ~7s)
+        - development chỉ cần ssr: false
+        - Sau thay đổi: verify curl localhost:4200/ TTFB < 100ms và ng build --configuration=production vẫn emit dist/lms-angular/server/
+        - Tham chiếu: backend/docs/adr/ADR-006-angular-dev-server-ssr-separation.md, docs/reference/FRONTEND_GOTCHAS.md §1.1
+
+    - path: "fe/proxy.conf.json"
+      instructions: |
+        Dev server proxy — phải cover đủ endpoint probe:
+        - /api, /ws, /actuator đều phải proxy tới localhost:8088 (nếu thiếu /actuator, probe /actuator/health false-positive → hide real backend outage trong dev)
+        - logLevel giữ "info", KHÔNG "debug" (debug spam log)
+        - Tham chiếu: docs/reference/FRONTEND_GOTCHAS.md §5.2
+
+    - path: "fe/ngsw-config.json"
+      instructions: |
+        NGSW (Angular Service Worker) config:
+        - navigationUrls BẮT BUỘC có "!/api/**" và "!/actuator/**" (nếu thiếu, SW trả HTML cho API calls khi offline)
+        - dataGroups strategy "freshness" + timeout ngắn → có thể serve stale silently, accept tradeoff
+        - Thay đổi phải verify qua fe/scripts/fix-ngsw.js post-build (phantom CSS cleanup)
+        - Tham chiếu: docs/reference/FRONTEND_GOTCHAS.md §3
+
+    - path: "fe/public/sw-wrapper.js"
+      instructions: |
+        Active Service Worker (KHÔNG phải sw.js — đó là legacy artifact):
+        - Handle /offline-video/* và /offline-file/* trước khi delegate NGSW
+        - Implement HTTP 206 range request cho video streaming (zero-RAM)
+        - Background Sync handler cho offline queue
+        - importScripts('ngsw-worker.js') ở cuối file — thứ tự quan trọng
+        - Mọi thay đổi SW behavior (push, sync, cache) phải edit file này
+        - Tham chiếu: docs/reference/FRONTEND_GOTCHAS.md §3.4
+
+    - path: "fe/src/server.ts"
+      instructions: |
+        Express SSR handler — chạy trong dev server (Angular builder) và prod (node.js container):
+        - angularApp.handle(req) invoked cho mọi non-static request → CSR-only dev phải gate qua angular.json (xem ADR-006)
+        - Không thêm middleware nặng ở đây — ảnh hưởng cả dev lẫn prod
+        - PORT default 4000 cho prod; dev server tự quản
+
+    - path: "fe/src/app/api/interceptors/base-url.interceptor.ts"
+      instructions: |
+        Base URL interceptor — SSR vs browser path:
+        - isPlatformServer() → prepend 'http://backend:8080' (Docker network hostname)
+        - Browser → environment.apiUrl
+        - Ngoài Docker network (dev local Windows), SSR sẽ fail DNS → không reproduce được prod behavior
+        - Tham chiếu: docs/reference/FRONTEND_GOTCHAS.md §4.3
+
+    - path: "fe/src/app/core/services/network-status.service.ts"
+      instructions: |
+        Online/offline detection — nhiều edge case:
+        - navigator.onLine KHÔNG đáng tin (fire giả trên Wi-Fi transition)
+        - Debounce 1.5s grace trước khi react offline event (tránh flicker)
+        - Probe /actuator/health với redirect: 'error' (reject HTML fallback)
+        - recentOfflineSignalAt default 5s window
+        - Tham chiếu: docs/reference/FRONTEND_GOTCHAS.md §5, PR #148
+
   # Tools / rules
   tools:
     languagetool:
