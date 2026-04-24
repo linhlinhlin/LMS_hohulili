@@ -169,10 +169,10 @@ Phai dat:
 
 ## 9. Tai lieu lien quan
 
-- `docs/architecture/2026-03-16-course-publication-pwa-sync-model.md`
+- `docs/archive/2026-Q1/architecture-snapshots/2026-03-16-course-publication-pwa-sync-model.md`
 - `docs/runbooks/PHASE_B_PUBLICATION_PWA_CHECKLIST.md`
 - `docs/runbooks/PWA_OFFLINE_RUNBOOK.md`
 - `docs/runbooks/PUBLICATION_REFRESH_RUNBOOK.md`
 - `docs/runbooks/SYNC_CONFLICT_RUNBOOK.md`
-- `docs/reports/2026-03-16-phase-a-final-verification.md`
+- `docs/archive/2026-Q1/reports/2026-03-16-phase-a-final-verification.md`
 - `docs/reports/PHASE_B_EXECUTION_REPORT_TEMPLATE.md`

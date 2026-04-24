@@ -209,7 +209,7 @@ Các câu sau **không còn đúng** và không nên dùng trong trao đổi n�
 
 ## Tài liệu đi kèm
 
-- `docs/architecture/2026-03-16-course-publication-pwa-sync-model.md`
+- `docs/archive/2026-Q1/architecture-snapshots/2026-03-16-course-publication-pwa-sync-model.md`
 - `docs/runbooks/PWA_OFFLINE_RUNBOOK.md`
 - `docs/runbooks/PUBLICATION_REFRESH_RUNBOOK.md`
 - `docs/runbooks/SYNC_CONFLICT_RUNBOOK.md`

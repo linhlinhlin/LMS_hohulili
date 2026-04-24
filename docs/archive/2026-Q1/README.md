@@ -37,9 +37,9 @@ Date-stamped architecture plans cho các hệ thống đã impl: adaptive video 
 
 Claude Code session prompts từ các audit tháng 4 (header/sidebar, course-editor, curriculum, main-content, lesson-content).
 
-### screenshots/ (86 PNG, ~4.7 MB)
+### screenshots (không commit)
 
-Evidence kèm các audit session trong Q1 (curriculum editor, callout, chapter flow, quiz, delivery mode, ...). Không đi kèm markdown cần thiết nào hiện tại; giữ lại làm chứng cứ thiết kế.
+`docs/screenshots/` chứa 86 PNG audit evidence (~4.7 MB). Thư mục này **đã gitignore** (`*.png` + `screenshots/` trong `.gitignore`) nên chỉ tồn tại local — không clone được và không phải một phần của archive chính thức. Có thể xóa local bất cứ khi nào nếu thấy vướng.
 
 ### testing/ (2 file)
 
