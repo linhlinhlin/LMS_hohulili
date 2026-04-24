@@ -18,6 +18,12 @@ import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.s
 import type { OfflineVideoProfileDescriptor } from '../../../../core/models/video-quality';
 import type { ApiResponse } from '../../../../api/types/common.types';
 import { stripCurriculumPrefix } from '../utils/curriculum-labels';
+import {
+  probeVideoFile,
+  estimateProcessingSeconds,
+  type VideoProbeResult,
+} from '../../../../core/utils/video-probe.util';
+import { classifyUploadError, classifyTranscodeError, type UploadErrorInfo } from '../utils/video-upload-errors';
 
 export type EditorMode = 'empty' | 'chapter' | 'lesson';
 export type SectionSurfaceMode = 'closed' | 'create' | 'edit';
@@ -85,6 +91,15 @@ export class CurriculumEditorService {
   readonly sectionVideoFileName = signal<string | null>(null);
   readonly sectionVideoFileSize = signal<number>(0);
   readonly sectionVideoErrorDetail = signal<string | null>(null);
+  readonly sectionVideoError = signal<UploadErrorInfo | null>(null);
+
+  // Local probe metadata (client-side, before/during upload)
+  readonly sectionVideoDurationSec = signal<number | null>(null);
+  readonly sectionVideoWidth = signal<number | null>(null);
+  readonly sectionVideoHeight = signal<number | null>(null);
+  readonly sectionVideoLocalPoster = signal<string | null>(null);
+  readonly sectionVideoProcessingEtaSec = signal<number | null>(null);
+  readonly sectionVideoProcessingStartedAt = signal<number | null>(null);
 
   // File
   readonly selectedFile = signal<File | null>(null);
@@ -366,6 +381,12 @@ export class CurriculumEditorService {
     this.selectedSectionVideoFile.set(null);
     this.sectionVideoFileName.set(null);
     this.sectionVideoFileSize.set(0);
+    this.sectionVideoDurationSec.set(null);
+    this.sectionVideoWidth.set(null);
+    this.sectionVideoHeight.set(null);
+    this.sectionVideoLocalPoster.set(null);
+    this.sectionVideoError.set(null);
+    this.sectionVideoErrorDetail.set(null);
     this.toast.info('Đã hủy tải lên video.');
   }
 
@@ -380,11 +401,28 @@ export class CurriculumEditorService {
     this.sectionVideoFileName.set(file.name);
     this.sectionVideoFileSize.set(file.size);
     this.sectionVideoErrorDetail.set(null);
+    this.sectionVideoError.set(null);
+    this.sectionVideoDurationSec.set(null);
+    this.sectionVideoWidth.set(null);
+    this.sectionVideoHeight.set(null);
+    this.sectionVideoLocalPoster.set(null);
+    this.sectionVideoProcessingEtaSec.set(null);
+    this.sectionVideoProcessingStartedAt.set(null);
     this.markDirty();
+
+    // Kick off client-side probe in parallel with the upload.
+    // Probe is best-effort; failures don't block the pipeline.
+    this.probeLocalVideo(file);
+
     try {
       const asset = await this.uploadVideoAsset(file);
       this.sectionVideoAssetId.set(asset.id);
-      this.sectionVideoProcessingStatus.set(asset.status ?? 'PROCESSING');
+      const initialStatus = asset.status ?? 'PROCESSING';
+      this.sectionVideoProcessingStatus.set(initialStatus);
+      this.sectionVideoProcessingStartedAt.set(Date.now());
+      this.sectionVideoProcessingEtaSec.set(
+        estimateProcessingSeconds(this.sectionVideoDurationSec()),
+      );
       this.scheduleSectionVideoPoll(asset.id);
       this.selectedSectionVideoFile.set(null);
     } catch (err: any) {
@@ -393,17 +431,28 @@ export class CurriculumEditorService {
       this.sectionVideoUploadSpeed.set(null);
       this.sectionVideoUploadEta.set(null);
       this.selectedSectionVideoFile.set(null);
-      const status = err?.status || err?.error?.status;
-      let detail: string;
-      if (status === 403) {
-        detail = 'Không có quyền tải video. Vui lòng đăng nhập lại hoặc kiểm tra quyền tài khoản.';
-      } else if (status === 413) {
-        detail = 'File video quá lớn cho server. Hãy thử file nhỏ hơn.';
-      } else {
-        detail = err?.message || err?.error?.message || 'Lỗi không xác định';
+      const info = classifyUploadError(err);
+      this.sectionVideoError.set(info);
+      this.sectionVideoErrorDetail.set(info.hint);
+      if (info.category !== 'canceled') {
+        this.toast.error(info.title);
       }
-      this.sectionVideoErrorDetail.set(detail);
-      this.toast.error('Tải video thất bại: ' + detail);
+    }
+  }
+
+  private async probeLocalVideo(file: File): Promise<void> {
+    try {
+      const result: VideoProbeResult = await probeVideoFile(file);
+      this.sectionVideoDurationSec.set(result.durationSeconds);
+      this.sectionVideoWidth.set(result.width);
+      this.sectionVideoHeight.set(result.height);
+      this.sectionVideoLocalPoster.set(result.posterDataUrl);
+      // Refresh ETA once we know the duration (if processing already started).
+      if (this.sectionVideoProcessingStatus() === 'PROCESSING' || this.sectionVideoProcessingStatus() === 'PENDING') {
+        this.sectionVideoProcessingEtaSec.set(estimateProcessingSeconds(result.durationSeconds));
+      }
+    } catch {
+      // Probe failed — leave all metadata null; UI will fall back to filename.
     }
   }
 
@@ -430,22 +479,33 @@ export class CurriculumEditorService {
       try {
         const res: ApiResponse<VideoAssetResponse> = await firstValueFrom(this.videoAssetApi.getById(assetId));
         const asset = res.data;
+        const previousStatus = this.sectionVideoProcessingStatus();
         this.sectionVideoProcessingStatus.set(asset.status ?? null);
 
         if (asset.status === 'READY') {
           this.videoPollAttempt = 0;
           this.sectionVideoAvailableOfflineProfiles.set(asset.availableOfflineProfiles ?? []);
+          // Fallback to server metadata if client probe failed.
+          if (this.sectionVideoDurationSec() == null && asset.durationSeconds) {
+            this.sectionVideoDurationSec.set(asset.durationSeconds);
+          }
+          if (this.sectionVideoWidth() == null && asset.width) this.sectionVideoWidth.set(asset.width);
+          if (this.sectionVideoHeight() == null && asset.height) this.sectionVideoHeight.set(asset.height);
           try {
             const playRes = await firstValueFrom(this.videoAssetApi.getPlayUrl(assetId));
             this.sectionVideoUrl.set(playRes.data?.playUrl ?? asset.playbackUrl ?? '');
           } catch {
             this.sectionVideoUrl.set(asset.playbackUrl ?? '');
           }
+          this.notifyVideoCompletion(previousStatus, 'READY');
           return;
         }
         if (asset.status === 'FAILED') {
           this.videoPollAttempt = 0;
-          this.toast.error('Xử lý video thất bại. Bạn có thể thử lại.');
+          const info = classifyTranscodeError(asset.errorMessage);
+          this.sectionVideoError.set(info);
+          this.sectionVideoErrorDetail.set(asset.errorMessage ?? info.hint);
+          this.notifyVideoCompletion(previousStatus, 'FAILED');
           return;
         }
         this.scheduleSectionVideoPoll(assetId);
@@ -453,6 +513,23 @@ export class CurriculumEditorService {
         this.scheduleSectionVideoPoll(assetId);
       }
     }, computedDelay);
+  }
+
+  private notifyVideoCompletion(previousStatus: string | null, nextStatus: 'READY' | 'FAILED'): void {
+    // Only toast on an actual PROCESSING→terminal transition — not when we rehydrate
+    // an already-ready section from server and the first poll already reports READY.
+    const wasInFlight = previousStatus === 'PROCESSING' || previousStatus === 'PENDING' || previousStatus == null;
+    if (!wasInFlight) return;
+
+    const fileName = this.sectionVideoFileName();
+    if (nextStatus === 'READY') {
+      const msg = fileName
+        ? `Video "${fileName}" đã sẵn sàng phát.`
+        : 'Video đã sẵn sàng phát.';
+      this.toast.success(msg);
+    } else {
+      this.toast.error('Xử lý video thất bại. Bạn có thể thử lại.');
+    }
   }
 
   private clearSectionVideoPoll(): void {
@@ -470,6 +547,11 @@ export class CurriculumEditorService {
       await firstValueFrom(this.videoAssetApi.retry(assetId) as any);
       this.sectionVideoProcessingStatus.set('PROCESSING');
       this.sectionVideoErrorDetail.set(null);
+      this.sectionVideoError.set(null);
+      this.sectionVideoProcessingStartedAt.set(Date.now());
+      this.sectionVideoProcessingEtaSec.set(
+        estimateProcessingSeconds(this.sectionVideoDurationSec()),
+      );
       this.scheduleSectionVideoPoll(assetId);
     } catch {
       this.toast.error('Thử lại xử lý video thất bại');
@@ -526,6 +608,22 @@ export class CurriculumEditorService {
     this.sectionVideoType.set(section.videoType ?? null);
     this.sectionStreamVideoUid.set(section.streamVideoUid ?? null);
     this.selectedSectionVideoFile.set(null);
+    // Reset local-only signals when hydrating from server data.
+    this.sectionVideoLocalPoster.set(null);
+    this.sectionVideoFileName.set(null);
+    this.sectionVideoFileSize.set(0);
+    this.sectionVideoProcessingEtaSec.set(null);
+    this.sectionVideoProcessingStartedAt.set(
+      section.videoProcessingStatus === 'PROCESSING' || section.videoProcessingStatus === 'PENDING'
+        ? Date.now()
+        : null,
+    );
+    this.sectionVideoError.set(null);
+    this.sectionVideoErrorDetail.set(null);
+    // Server-side metadata is fetched lazily from videoAssetApi.getById during poll.
+    this.sectionVideoDurationSec.set(null);
+    this.sectionVideoWidth.set(null);
+    this.sectionVideoHeight.set(null);
 
     if (section.videoAssetId) {
       const status = section.videoProcessingStatus;
@@ -534,6 +632,21 @@ export class CurriculumEditorService {
       } else if (status === 'READY' && !section.videoUrl) {
         this.videoAssetApi.getPlayUrl(section.videoAssetId).subscribe({
           next: (res: any) => this.sectionVideoUrl.set(res.data?.playUrl ?? ''),
+          error: () => {},
+        });
+      }
+      // Best-effort: fetch asset metadata so the preview card can show duration + resolution.
+      if (status === 'READY') {
+        this.videoAssetApi.getById(section.videoAssetId).subscribe({
+          next: (res: any) => {
+            const a = res?.data;
+            if (!a) return;
+            if (a.durationSeconds) this.sectionVideoDurationSec.set(a.durationSeconds);
+            if (a.width) this.sectionVideoWidth.set(a.width);
+            if (a.height) this.sectionVideoHeight.set(a.height);
+            if (a.originalFileName) this.sectionVideoFileName.set(a.originalFileName);
+            if (a.sourceFileSize) this.sectionVideoFileSize.set(a.sourceFileSize);
+          },
           error: () => {},
         });
       }
@@ -604,6 +717,16 @@ export class CurriculumEditorService {
     this.selectedSectionVideoFile.set(null);
     this.sectionVideoUploadProgress.set(0);
     this.sectionVideoIsUploading.set(false);
+    this.sectionVideoFileName.set(null);
+    this.sectionVideoFileSize.set(0);
+    this.sectionVideoDurationSec.set(null);
+    this.sectionVideoWidth.set(null);
+    this.sectionVideoHeight.set(null);
+    this.sectionVideoLocalPoster.set(null);
+    this.sectionVideoProcessingEtaSec.set(null);
+    this.sectionVideoProcessingStartedAt.set(null);
+    this.sectionVideoError.set(null);
+    this.sectionVideoErrorDetail.set(null);
 
     this.selectedFile.set(null);
     this.sectionFileUrl.set(null);

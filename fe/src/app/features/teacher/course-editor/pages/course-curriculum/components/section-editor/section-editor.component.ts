@@ -10,6 +10,7 @@ import {
   ElementRef,
   viewChild,
   afterNextRender,
+  HostListener,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -24,6 +25,7 @@ import { environment } from '../../../../../../../../environments/environment';
 import { formatOfflineVideoProfileLabel, type OfflineVideoProfileDescriptor } from '../../../../../../../core/models/video-quality';
 import { QuizVideoPlayerComponent } from '../../../../../../../shared/blocks/video-block/quiz-video-player.component';
 import { BlockRendererComponent } from '../../../../../../../shared/blocks/block-renderer/block-renderer.component';
+import { formatDuration, formatResolution } from '../../../../../../../core/utils/video-probe.util';
 
 type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
 
@@ -221,10 +223,14 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                      [class.video-dropzone--dragover]="isDragOver()"
                      (dragover)="onDragOver($event)"
                      (dragleave)="onDragLeave($event)"
-                     (drop)="onDrop($event)">
+                     (drop)="onDrop($event)"
+                     role="button"
+                     tabindex="0"
+                     aria-label="Vùng tải lên video — kéo thả file hoặc nhấn để chọn">
                   <input type="file" accept="video/mp4,video/quicktime,video/webm,video/x-msvideo,video/x-matroska"
                          (change)="onVideoFileSelected($event)"
-                         class="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
+                         class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                         aria-hidden="true" />
                   <div class="pointer-events-none text-center">
                     <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#0056D2]/10">
                       <lucide-icon name="upload-cloud" [size]="24" class="text-[#0056D2]"></lucide-icon>
@@ -232,82 +238,186 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                     <p class="text-sm font-semibold text-gray-800">
                       {{ isDragOver() ? 'Thả video vào đây' : 'Kéo thả hoặc nhấn để chọn video' }}
                     </p>
-                    <p class="mt-1 text-xs text-gray-500">MP4, MOV, WebM, AVI, MKV — tối đa 5 GB</p>
+                    <p class="mt-1 text-xs text-gray-500">MP4, MOV, WebM, AVI, MKV — tối đa 5 GB · Khuyến nghị H.264 + AAC</p>
                   </div>
                 </div>
               }
 
-              <!-- UPLOADING: progress bar + speed/ETA + cancel -->
+              <!-- UPLOADING + PROCESSING: SOTA layout with poster + metadata + timeline -->
               @if (cfUploadStatus() === 'uploading') {
-                <div class="video-status-card video-status-card--uploading" role="status" aria-live="polite">
-                  <div class="min-w-0 flex-1">
-                    <!-- Upload phase -->
-                    @if (svc.sectionVideoIsUploading()) {
-                      <div class="flex items-center justify-between mb-1">
-                        <div class="flex items-center gap-2">
-                          <p class="text-sm font-semibold text-[#0056D2]">Đang tải lên...</p>
-                          @if (svc.sectionVideoFileName()) {
-                            <span class="text-xs text-slate-500 truncate max-w-[160px]" [title]="svc.sectionVideoFileName()!">{{ svc.sectionVideoFileName() }}</span>
-                          }
+                <div class="video-progress-card"
+                     role="status"
+                     aria-live="polite"
+                     [attr.aria-busy]="true">
+                  <div class="video-progress-card__main">
+                    <!-- Poster thumbnail (client-probed) -->
+                    <div class="video-progress-card__poster">
+                      @if (svc.sectionVideoLocalPoster(); as posterUrl) {
+                        <img [src]="posterUrl" alt="" class="video-progress-card__poster-img" />
+                      } @else {
+                        <div class="video-progress-card__poster-fallback">
+                          <lucide-icon name="film" [size]="28"></lucide-icon>
                         </div>
-                        <div class="flex items-center gap-2">
-                          <span class="text-xs font-semibold text-[#0056D2] tabular-nums">{{ svc.sectionVideoUploadProgress() }}%</span>
-                          <button type="button" (click)="cancelUpload()" title="Hủy tải lên"
-                            class="flex h-6 w-6 items-center justify-center rounded-full text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors">
+                      }
+                      @if (!svc.sectionVideoIsUploading()) {
+                        <div class="video-progress-card__poster-overlay" aria-hidden="true">
+                          <div class="video-processing-spinner video-processing-spinner--lg"></div>
+                        </div>
+                      }
+                    </div>
+
+                    <!-- Meta column -->
+                    <div class="video-progress-card__meta">
+                      <div class="video-progress-card__title-row">
+                        <p class="video-progress-card__filename" [title]="svc.sectionVideoFileName() ?? ''">
+                          {{ svc.sectionVideoFileName() || 'video.mp4' }}
+                        </p>
+                        @if (svc.sectionVideoIsUploading()) {
+                          <button type="button" (click)="cancelUpload()"
+                            class="video-progress-card__cancel"
+                            aria-label="Hủy tải lên">
                             <lucide-icon name="x" [size]="14"></lucide-icon>
                           </button>
+                        }
+                      </div>
+
+                      <div class="video-progress-card__badges">
+                        @if (svc.sectionVideoFileSize()) {
+                          <span class="video-badge">{{ formatFileSize(svc.sectionVideoFileSize()) }}</span>
+                        }
+                        @if (durationLabel(); as d) {
+                          <span class="video-badge"><lucide-icon name="clock" [size]="11" class="mr-1 inline-block"></lucide-icon>{{ d }}</span>
+                        }
+                        @if (resolutionLabel(); as r) {
+                          <span class="video-badge">{{ r }}</span>
+                        }
+                      </div>
+
+                      <!-- Upload phase: precise % bar -->
+                      @if (svc.sectionVideoIsUploading()) {
+                        <div class="video-progress-line">
+                          <p class="video-progress-line__label">
+                            <lucide-icon name="upload-cloud" [size]="13" class="mr-1.5 inline-block text-[#0056D2]"></lucide-icon>
+                            Đang tải lên
+                            <span class="video-progress-line__pct">{{ svc.sectionVideoUploadProgress() }}%</span>
+                          </p>
+                          <div class="video-progress-bar"
+                               role="progressbar"
+                               [attr.aria-valuenow]="svc.sectionVideoUploadProgress()"
+                               aria-valuemin="0" aria-valuemax="100"
+                               [attr.aria-label]="'Tiến trình tải lên: ' + svc.sectionVideoUploadProgress() + '%'">
+                            <div class="video-progress-bar__fill"
+                                 [style.width.%]="svc.sectionVideoUploadProgress()"></div>
+                          </div>
+                          <div class="video-progress-line__stats">
+                            <span>
+                              @if (svc.sectionVideoFileSize()) {
+                                {{ formatFileSize(Math.round(svc.sectionVideoFileSize() * svc.sectionVideoUploadProgress() / 100)) }} / {{ formatFileSize(svc.sectionVideoFileSize()) }}
+                              }
+                            </span>
+                            <span class="flex items-center gap-2">
+                              @if (svc.sectionVideoUploadSpeed(); as sp) { <span>{{ sp }}</span> }
+                              @if (svc.sectionVideoUploadEta(); as eta) { <span>còn {{ eta }}</span> }
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                      <div class="h-2 w-full overflow-hidden rounded-full bg-[#0056D2]/10"
-                           role="progressbar" [attr.aria-valuenow]="svc.sectionVideoUploadProgress()"
-                           aria-valuemin="0" aria-valuemax="100" [attr.aria-label]="'Tiến trình tải lên: ' + svc.sectionVideoUploadProgress() + '%'">
-                        <div class="h-full rounded-full bg-[#0056D2] transition-[width] duration-300 ease-out"
-                             [style.width.%]="svc.sectionVideoUploadProgress()"></div>
-                      </div>
-                      <div class="mt-1.5 flex items-center justify-between text-[11px] text-slate-500 tabular-nums">
-                        <span>
-                          @if (svc.sectionVideoFileSize()) {
-                            {{ formatFileSize(Math.round(svc.sectionVideoFileSize() * svc.sectionVideoUploadProgress() / 100)) }} / {{ formatFileSize(svc.sectionVideoFileSize()) }}
-                          }
-                        </span>
-                        <span class="flex items-center gap-2">
-                          @if (svc.sectionVideoUploadSpeed()) {
-                            <span>{{ svc.sectionVideoUploadSpeed() }}</span>
-                          }
-                          @if (svc.sectionVideoUploadEta()) {
-                            <span>{{ svc.sectionVideoUploadEta() }}</span>
-                          }
-                        </span>
-                      </div>
-                    } @else {
-                      <!-- Processing phase -->
-                      <div class="flex items-center gap-2.5 mb-1">
-                        <div class="video-processing-spinner"></div>
-                        <p class="text-sm font-semibold text-[#0056D2]">Đang xử lý video...</p>
-                      </div>
-                      <div class="h-2 w-full overflow-hidden rounded-full bg-[#0056D2]/10">
-                        <div class="h-full rounded-full bg-[#0056D2] video-processing-bar"></div>
-                      </div>
-                      <p class="mt-2 text-xs text-slate-500">Video đang được tối ưu để phát trực tuyến (3 chất lượng). Bạn có thể đóng và quay lại sau.</p>
-                    }
+                      } @else {
+                        <!-- Processing phase: indeterminate bar + ETA -->
+                        <div class="video-progress-line">
+                          <p class="video-progress-line__label">
+                            <lucide-icon name="sparkles" [size]="13" class="mr-1.5 inline-block text-[#0056D2]"></lucide-icon>
+                            Đang tối ưu video cho phát trực tuyến
+                            @if (processingElapsedPctHint(); as pct) {
+                              <span class="video-progress-line__pct">{{ pct }}%</span>
+                            }
+                          </p>
+                          <div class="video-progress-bar">
+                            @if (processingElapsedPctHint(); as pct) {
+                              <div class="video-progress-bar__fill"
+                                   [style.width.%]="pct"></div>
+                            } @else {
+                              <div class="video-progress-bar__fill video-progress-bar__fill--indeterminate"></div>
+                            }
+                          </div>
+                          <div class="video-progress-line__stats">
+                            <span>{{ processingElapsedLabel() || 'Đang khởi động…' }}</span>
+                            @if (processingEtaLabel(); as eta) {
+                              <span>còn khoảng {{ eta }}</span>
+                            }
+                          </div>
+                        </div>
+                      }
+                    </div>
                   </div>
+
+                  <!-- Phase timeline -->
+                  <ol class="video-phase-timeline" aria-label="Các giai đoạn xử lý">
+                    <li class="video-phase"
+                        [class.video-phase--done]="phaseState('upload') === 'done'"
+                        [class.video-phase--active]="phaseState('upload') === 'active'">
+                      <span class="video-phase__dot">
+                        @if (phaseState('upload') === 'done') {
+                          <lucide-icon name="check" [size]="11"></lucide-icon>
+                        } @else if (phaseState('upload') === 'active') {
+                          <span class="video-phase__spinner"></span>
+                        }
+                      </span>
+                      <span class="video-phase__label">Tải lên</span>
+                    </li>
+                    <li class="video-phase"
+                        [class.video-phase--done]="phaseState('decode') === 'done'"
+                        [class.video-phase--active]="phaseState('decode') === 'active'">
+                      <span class="video-phase__dot">
+                        @if (phaseState('decode') === 'done') {
+                          <lucide-icon name="check" [size]="11"></lucide-icon>
+                        } @else if (phaseState('decode') === 'active') {
+                          <span class="video-phase__spinner"></span>
+                        }
+                      </span>
+                      <span class="video-phase__label">Giải mã</span>
+                    </li>
+                    <li class="video-phase"
+                        [class.video-phase--done]="phaseState('encode') === 'done'"
+                        [class.video-phase--active]="phaseState('encode') === 'active'">
+                      <span class="video-phase__dot">
+                        @if (phaseState('encode') === 'done') {
+                          <lucide-icon name="check" [size]="11"></lucide-icon>
+                        } @else if (phaseState('encode') === 'active') {
+                          <span class="video-phase__spinner"></span>
+                        }
+                      </span>
+                      <span class="video-phase__label">Đóng gói 3 chất lượng</span>
+                    </li>
+                    <li class="video-phase"
+                        [class.video-phase--done]="phaseState('ready') === 'done'">
+                      <span class="video-phase__dot">
+                        @if (phaseState('ready') === 'done') {
+                          <lucide-icon name="check" [size]="11"></lucide-icon>
+                        }
+                      </span>
+                      <span class="video-phase__label">Sẵn sàng phát</span>
+                    </li>
+                  </ol>
+
+                  <p class="video-progress-card__hint">
+                    <lucide-icon name="info" [size]="12" class="mr-1 inline-block opacity-70"></lucide-icon>
+                    Bạn có thể đóng cửa sổ và quay lại sau — hệ thống sẽ thông báo khi video sẵn sàng.
+                  </p>
                 </div>
               }
 
-              <!-- ERROR: upload/processing failed with detail -->
+              <!-- ERROR: categorized card with retry action -->
               @if (cfUploadStatus() === 'error') {
                 <div class="video-status-card video-status-card--error" role="alert">
                   <div class="video-status-card__icon bg-red-100">
-                    <lucide-icon name="alert-triangle" [size]="20" class="text-red-600"></lucide-icon>
+                    <lucide-icon [name]="errorIcon()" [size]="20" class="text-red-600"></lucide-icon>
                   </div>
                   <div class="min-w-0 flex-1">
-                    <p class="text-sm font-semibold text-red-800">Xử lý video thất bại</p>
-                    @if (svc.sectionVideoErrorDetail()) {
-                      <p class="mt-0.5 text-xs text-red-600">{{ svc.sectionVideoErrorDetail() }}</p>
-                    } @else {
-                      <p class="mt-0.5 text-xs text-red-600">Vui lòng thử lại hoặc chọn video khác.</p>
+                    <p class="text-sm font-semibold text-red-800">{{ errorTitle() }}</p>
+                    <p class="mt-0.5 text-xs text-red-600">{{ errorHint() }}</p>
+                    @if (showFormatHelp()) {
+                      <p class="mt-1 text-[11px] text-red-400">Khuyến nghị: MP4 (H.264 video + AAC audio), &lt; 5 GB, &le; 4K</p>
                     }
-                    <p class="mt-1 text-[11px] text-red-400">Định dạng khuyến nghị: MP4 (H.264 + AAC)</p>
                   </div>
                   <div class="flex shrink-0 gap-2">
                     @if (svc.sectionVideoAssetId()) {
@@ -349,14 +459,20 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                     </div>
                     <div class="min-w-0 flex-1">
                       <p class="text-sm font-semibold text-emerald-800">{{ getVideoProcessingCopy() }}</p>
-                      @if (svc.sectionVideoAvailableOfflineProfiles().length) {
-                        <p class="mt-1 text-xs text-emerald-700">
-                          Chất lượng:
-                          @for (profile of svc.sectionVideoAvailableOfflineProfiles(); track $index) {
-                            <span class="inline-block rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 mr-1">{{ formatProfile(profile) }}</span>
-                          }
-                        </p>
-                      }
+                      <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                        @if (durationLabel(); as d) {
+                          <span class="video-done-badge"><lucide-icon name="clock" [size]="10" class="mr-1 inline-block"></lucide-icon>{{ d }}</span>
+                        }
+                        @if (resolutionLabel(); as r) {
+                          <span class="video-done-badge">{{ r }}</span>
+                        }
+                        @if (svc.sectionVideoFileSize()) {
+                          <span class="video-done-badge">{{ formatFileSize(svc.sectionVideoFileSize()) }}</span>
+                        }
+                        @for (profile of svc.sectionVideoAvailableOfflineProfiles(); track $index) {
+                          <span class="video-done-badge video-done-badge--quality">{{ formatProfile(profile) }}</span>
+                        }
+                      </div>
                     </div>
                     <button type="button" (click)="replaceVideo()"
                       class="shrink-0 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
@@ -1048,6 +1164,13 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
       animation: spin 0.8s linear infinite;
       flex-shrink: 0;
     }
+    .video-processing-spinner--lg {
+      width: 28px;
+      height: 28px;
+      border-width: 3px;
+      border-color: rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+    }
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
@@ -1058,6 +1181,261 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
       0%   { width: 30%; opacity: 0.6; }
       50%  { width: 80%; opacity: 1; }
       100% { width: 30%; opacity: 0.6; }
+    }
+
+    /* ── Video Progress Card (SOTA layout) ── */
+    .video-progress-card {
+      border: 1px solid rgba(0, 86, 210, 0.18);
+      background: linear-gradient(180deg, rgba(0, 86, 210, 0.04) 0%, #fff 100%);
+      border-radius: 0.875rem;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+    .video-progress-card__main {
+      display: flex;
+      gap: 0.875rem;
+      align-items: stretch;
+    }
+    .video-progress-card__poster {
+      position: relative;
+      flex-shrink: 0;
+      width: 120px;
+      aspect-ratio: 16 / 9;
+      border-radius: 0.5rem;
+      overflow: hidden;
+      background: rgb(15 23 42);
+    }
+    .video-progress-card__poster-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .video-progress-card__poster-fallback {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgb(148 163 184);
+      background: linear-gradient(135deg, rgb(15 23 42) 0%, rgb(30 41 59) 100%);
+    }
+    .video-progress-card__poster-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .video-progress-card__meta {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .video-progress-card__title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .video-progress-card__filename {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: rgb(15 23 42);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+    .video-progress-card__cancel {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 9999px;
+      border: none;
+      background: transparent;
+      color: rgb(148 163 184);
+      cursor: pointer;
+      transition: background 150ms, color 150ms;
+    }
+    .video-progress-card__cancel:hover {
+      background: rgb(254 242 242);
+      color: rgb(239 68 68);
+    }
+    .video-progress-card__badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+    }
+    .video-badge {
+      font-size: 0.6875rem;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      background: rgb(241 245 249);
+      color: rgb(71 85 105);
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .video-progress-line {
+      margin-top: 0.125rem;
+    }
+    .video-progress-line__label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: rgb(0, 86, 210);
+      display: flex;
+      align-items: center;
+    }
+    .video-progress-line__pct {
+      margin-left: auto;
+      font-variant-numeric: tabular-nums;
+    }
+    .video-progress-bar {
+      margin-top: 0.375rem;
+      height: 6px;
+      width: 100%;
+      overflow: hidden;
+      border-radius: 9999px;
+      background: rgba(0, 86, 210, 0.1);
+    }
+    .video-progress-bar__fill {
+      height: 100%;
+      border-radius: 9999px;
+      background: rgb(0, 86, 210);
+      transition: width 300ms ease-out;
+    }
+    .video-progress-bar__fill--indeterminate {
+      width: 40% !important;
+      animation: indeterminate-slide 1.8s ease-in-out infinite;
+      background: linear-gradient(90deg, rgba(0, 86, 210, 0.4), rgb(0, 86, 210), rgba(0, 86, 210, 0.4));
+    }
+    @keyframes indeterminate-slide {
+      0%   { transform: translateX(-100%); }
+      50%  { transform: translateX(60%); }
+      100% { transform: translateX(260%); }
+    }
+    .video-progress-line__stats {
+      margin-top: 0.375rem;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.6875rem;
+      color: rgb(100 116 139);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Phase Timeline (steps) ── */
+    .video-phase-timeline {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      position: relative;
+      padding-top: 0.25rem;
+    }
+    .video-phase {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.375rem;
+      position: relative;
+      color: rgb(148 163 184);
+    }
+    .video-phase:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 11px;
+      left: calc(50% + 12px);
+      right: calc(-50% + 12px);
+      height: 2px;
+      background: rgb(226 232 240);
+    }
+    .video-phase--done:not(:last-child)::after,
+    .video-phase--active:not(:last-child)::after {
+      background: rgba(0, 86, 210, 0.3);
+    }
+    .video-phase--done:not(:last-child)::after {
+      background: rgb(0, 86, 210);
+    }
+    .video-phase__dot {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid rgb(226 232 240);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgb(148 163 184);
+      position: relative;
+      z-index: 1;
+      transition: border-color 200ms, background 200ms, color 200ms;
+    }
+    .video-phase--active .video-phase__dot {
+      border-color: rgb(0, 86, 210);
+      background: #fff;
+      color: rgb(0, 86, 210);
+      box-shadow: 0 0 0 4px rgba(0, 86, 210, 0.12);
+    }
+    .video-phase--done .video-phase__dot {
+      background: rgb(0, 86, 210);
+      border-color: rgb(0, 86, 210);
+      color: #fff;
+    }
+    .video-phase__spinner {
+      width: 10px;
+      height: 10px;
+      border: 2px solid rgba(0, 86, 210, 0.3);
+      border-top-color: rgb(0, 86, 210);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .video-phase__label {
+      font-size: 0.6875rem;
+      font-weight: 500;
+      text-align: center;
+      line-height: 1.3;
+    }
+    .video-phase--active .video-phase__label,
+    .video-phase--done .video-phase__label {
+      color: rgb(15 23 42);
+    }
+
+    .video-progress-card__hint {
+      font-size: 0.6875rem;
+      color: rgb(100 116 139);
+      display: flex;
+      align-items: center;
+      margin: 0;
+    }
+
+    /* ── Done badges ── */
+    .video-done-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.625rem;
+      font-weight: 600;
+      background: rgb(220 252 231);
+      color: rgb(6 95 70);
+      font-variant-numeric: tabular-nums;
+    }
+    .video-done-badge--quality {
+      background: rgba(0, 86, 210, 0.08);
+      color: rgb(0, 86, 210);
     }
 
     /* ── Quiz Type Cards ── */
@@ -1134,6 +1512,8 @@ export class SectionEditorComponent {
     return stripped.length === 0;
   });
 
+  private readonly originalDocTitle = typeof document !== 'undefined' ? document.title : '';
+
   constructor() {
     // Auto-scroll section editor into view after slide-down animation
     afterNextRender(() => {
@@ -1152,6 +1532,52 @@ export class SectionEditorComponent {
       this.svc.editingSectionId(); // track dependency
       this.fileReplaceMode.set(false);
     });
+
+    // Drive the 1Hz tick timer while we're in the uploading/processing state so
+    // the ETA + elapsed labels refresh without a global setInterval.
+    effect(() => {
+      const isActive = this.cfUploadStatus() === 'uploading';
+      if (isActive && !this.processingTickTimer) {
+        this.processingTickTimer = setInterval(() => this.processingTick.update(v => v + 1), 1000);
+      } else if (!isActive && this.processingTickTimer) {
+        clearInterval(this.processingTickTimer);
+        this.processingTickTimer = null;
+      }
+    });
+
+    // Reflect upload / processing state in the browser tab title so the teacher
+    // can leave the tab and come back when the video is ready.
+    if (typeof document !== 'undefined') {
+      effect(() => {
+        const uploading = this.svc.sectionVideoIsUploading();
+        const status = this.svc.sectionVideoProcessingStatus();
+        const pct = this.svc.sectionVideoUploadProgress();
+        if (uploading) {
+          document.title = `(${pct}%) Đang tải video · ${this.originalDocTitle}`;
+        } else if (status === 'PROCESSING' || status === 'PENDING') {
+          document.title = `⚙ Đang xử lý video · ${this.originalDocTitle}`;
+        } else if (document.title !== this.originalDocTitle) {
+          document.title = this.originalDocTitle;
+        }
+      });
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.processingTickTimer) {
+      clearInterval(this.processingTickTimer);
+      this.processingTickTimer = null;
+    }
+    if (typeof document !== 'undefined' && document.title !== this.originalDocTitle) {
+      document.title = this.originalDocTitle;
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.svc.sectionVideoIsUploading()) {
+      this.cancelUpload();
+    }
   }
 
   toggleExpand(): void {
@@ -1159,6 +1585,7 @@ export class SectionEditorComponent {
   }
 
   readonly cfUploadStatus = computed<CfUploadStatus>(() => {
+    if (this.svc.sectionVideoError()) return 'error';
     if (this.svc.sectionVideoIsUploading()) return 'uploading';
     // No 'staged' state — upload starts immediately on file select (Coursera pattern)
     if (this.svc.sectionVideoAssetId()) {
@@ -1171,6 +1598,114 @@ export class SectionEditorComponent {
     }
     return 'idle';
   });
+
+  // ── Video metadata display ──────────────────────────────────────────
+  readonly durationLabel = computed(() => formatDuration(this.svc.sectionVideoDurationSec()));
+  readonly resolutionLabel = computed(() =>
+    formatResolution(this.svc.sectionVideoWidth(), this.svc.sectionVideoHeight()),
+  );
+
+  // ── Processing ETA + elapsed calculation ────────────────────────────
+  readonly processingTick = signal(0);
+  private processingTickTimer: ReturnType<typeof setInterval> | null = null;
+
+  readonly processingElapsedSec = computed(() => {
+    this.processingTick();
+    const startedAt = this.svc.sectionVideoProcessingStartedAt();
+    if (!startedAt) return 0;
+    return Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+  });
+
+  readonly processingElapsedLabel = computed(() => {
+    const s = this.processingElapsedSec();
+    if (!s) return '';
+    if (s < 60) return `Đã xử lý ${s}s`;
+    const m = Math.floor(s / 60);
+    return `Đã xử lý ${m} phút ${s % 60}s`;
+  });
+
+  readonly processingEtaLabel = computed(() => {
+    const eta = this.svc.sectionVideoProcessingEtaSec();
+    const elapsed = this.processingElapsedSec();
+    if (!eta) return null;
+    const remaining = Math.max(10, eta - elapsed);
+    if (remaining < 60) return `${remaining}s`;
+    const m = Math.ceil(remaining / 60);
+    return `${m} phút`;
+  });
+
+  /** Approximate % for the indeterminate processing bar, derived from elapsed/ETA. */
+  readonly processingElapsedPctHint = computed(() => {
+    const eta = this.svc.sectionVideoProcessingEtaSec();
+    const elapsed = this.processingElapsedSec();
+    if (!eta || eta <= 0) return null;
+    const pct = Math.min(92, Math.round((elapsed / eta) * 100));
+    return pct;
+  });
+
+  /**
+   * Phase state machine derived from upload progress + backend asset status.
+   * Phases: upload → decode → encode → ready.
+   * Since the backend only reports PENDING/PROCESSING/READY, we approximate decode
+   * vs encode using elapsed time: first 30% of ETA is "decode", rest is "encode".
+   */
+  phaseState(phase: 'upload' | 'decode' | 'encode' | 'ready'): 'done' | 'active' | 'pending' {
+    const uploading = this.svc.sectionVideoIsUploading();
+    const uploadPct = this.svc.sectionVideoUploadProgress();
+    const status = this.svc.sectionVideoProcessingStatus();
+
+    if (phase === 'upload') {
+      if (uploading && uploadPct < 100) return 'active';
+      return 'done';
+    }
+    if (phase === 'decode') {
+      if (uploading) return 'pending';
+      if (status === 'READY') return 'done';
+      if (status === 'PENDING' || status == null) return 'active';
+      // PROCESSING: split by elapsed ratio
+      const eta = this.svc.sectionVideoProcessingEtaSec();
+      const elapsed = this.processingElapsedSec();
+      if (eta && elapsed / eta > 0.3) return 'done';
+      return 'active';
+    }
+    if (phase === 'encode') {
+      if (uploading) return 'pending';
+      if (status === 'READY') return 'done';
+      if (status === 'FAILED') return 'pending';
+      if (status === 'PENDING' || status == null) return 'pending';
+      const eta = this.svc.sectionVideoProcessingEtaSec();
+      const elapsed = this.processingElapsedSec();
+      if (eta && elapsed / eta > 0.3) return 'active';
+      return 'pending';
+    }
+    if (phase === 'ready') {
+      return status === 'READY' ? 'done' : 'pending';
+    }
+    return 'pending';
+  }
+
+  // ── Error display helpers ───────────────────────────────────────────
+  errorTitle(): string {
+    return this.svc.sectionVideoError()?.title ?? 'Xử lý video thất bại';
+  }
+  errorHint(): string {
+    return this.svc.sectionVideoError()?.hint ?? this.svc.sectionVideoErrorDetail() ?? 'Vui lòng thử lại hoặc chọn video khác.';
+  }
+  errorIcon(): string {
+    const cat = this.svc.sectionVideoError()?.category;
+    switch (cat) {
+      case 'network': return 'wifi-off';
+      case 'size': return 'hard-drive';
+      case 'format': return 'file-warning';
+      case 'auth': return 'lock';
+      case 'server': return 'server-crash';
+      default: return 'alert-triangle';
+    }
+  }
+  showFormatHelp(): boolean {
+    const cat = this.svc.sectionVideoError()?.category;
+    return cat === 'format' || cat === 'transcode' || cat == null;
+  }
 
   applyTemplate(tpl: LessonTemplate): void {
     this.showTemplatePicker.set(false);
