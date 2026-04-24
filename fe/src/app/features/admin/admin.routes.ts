@@ -74,7 +74,11 @@ export const adminRoutes: Routes = [
         path: 'courses',
         children: [
           {
+            // pathMatch 'full' required — see org-admin.routes.ts for context.
+            // Prevents the empty-path child from swallowing '/courses/review'
+            // and '/courses/:id/preview'. Issue #74.
             path: '',
+            pathMatch: 'full',
             loadComponent: () => import('./presentation/components/course-management.component').then(m => m.CourseManagementComponent),
             title: 'Quản lý khóa học'
           },

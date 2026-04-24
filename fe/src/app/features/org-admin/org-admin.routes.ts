@@ -41,7 +41,12 @@ export const orgAdminRoutes: Routes = [
         path: 'courses',
         children: [
           {
+            // pathMatch 'full' required — without it, this empty-path child
+            // captures any URL under /courses/* via prefix match, silently
+            // shadowing the sibling 'review' and ':courseId/preview' routes.
+            // Issue #74.
             path: '',
+            pathMatch: 'full',
             loadComponent: () => import('../admin/presentation/components/course-management.component').then(m => m.CourseManagementComponent),
             title: 'Khóa học của tổ chức'
           },

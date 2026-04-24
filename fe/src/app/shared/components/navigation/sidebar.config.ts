@@ -273,13 +273,25 @@ const orgAdminMenuItems: SidebarMenuItem[] = [
     label: 'Khóa học',
     route: '/org-admin/courses',
     icon: 'courses',
-    group: 'Quản lý',
-    alsoActiveFor: ['/org-admin/courses/review']
+    exact: true,
+    group: 'Quản lý'
+  },
+  {
+    label: 'Duyệt khóa học',
+    route: '/org-admin/courses/review',
+    icon: 'file-check',
+    group: 'Quản lý'
   },
   {
     label: 'Phân tích',
     route: '/org-admin/analytics',
     icon: 'bar-chart',
+    group: 'Báo cáo'
+  },
+  {
+    label: 'Tổ chức',
+    route: '/org-admin/organization',
+    icon: 'shield',
     group: 'Báo cáo'
   }
 ];
