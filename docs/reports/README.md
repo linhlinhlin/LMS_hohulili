@@ -4,7 +4,9 @@ Thư mục chứa tracker/template **đang sống**. Session reports date-stampe
 
 ## Báo cáo mới nhất
 
-- `2026-04-24-repo-health-audit.md` — Full repo health audit tại checkpoint cấp khoa (disk footprint, code quality, branch hygiene, documentation gaps, open PR list, recommendations)
+- `2026-04-24-session-summary.md` — End-of-session summary: 23 merged PRs, metrics before/after, SOTA patterns applied, admin follow-up checklist
+- `2026-04-24-deep-code-audit.md` — Deep code quality scan: disabled tests, exception patterns, `*ngIf` leaks, god-class detection, Maven dep warnings analysis
+- `2026-04-24-repo-health-audit.md` — Repo/infra health audit tại checkpoint cấp khoa (disk footprint, branch hygiene, documentation gaps, open PR list, recommendations)
 
 ## Đang có
 
