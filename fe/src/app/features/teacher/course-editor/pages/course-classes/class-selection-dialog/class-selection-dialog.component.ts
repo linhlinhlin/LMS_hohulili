@@ -66,7 +66,9 @@ export interface ClassSelectionResult {
                     </div>
                   </div>
                 </div>
-                <mat-icon *ngIf="selectedClassId() === cls.id" class="ml-3 text-[#0056D2]">check_circle</mat-icon>
+                @if (selectedClassId() === cls.id) {
+                  <mat-icon class="ml-3 text-[#0056D2]">check_circle</mat-icon>
+                }
               </div>
             </button>
           }
