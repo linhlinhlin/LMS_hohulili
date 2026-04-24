@@ -3,13 +3,19 @@
     "target": "http://localhost:8088",
     "secure": false,
     "changeOrigin": true,
-    "logLevel": "debug"
+    "logLevel": "info"
+  },
+  "/actuator": {
+    "target": "http://localhost:8088",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "info"
   },
   "/ws": {
     "target": "http://localhost:8088",
     "secure": false,
     "changeOrigin": true,
     "ws": true,
-    "logLevel": "debug"
+    "logLevel": "info"
   }
 }
