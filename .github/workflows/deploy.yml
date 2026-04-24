@@ -109,7 +109,10 @@ jobs:
   deploy:
     name: Deploy Production
     needs: [build-backend, build-frontend]
-    if: github.event.inputs.skip_deploy != 'true'
+    # Gate: only deploy when VM is provisioned & reachable.
+    # Set repo variable DEPLOY_ENABLED=true to resume auto-deploy
+    # after starting the GCP VM (gcloud compute instances start lms-production).
+    if: vars.DEPLOY_ENABLED == 'true' && github.event.inputs.skip_deploy != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment:
