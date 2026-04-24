@@ -1,0 +1,120 @@
+# Dependabot auto-updates
+# Docs: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# Strategy:
+# - Security updates: allowed via Dependabot Security alerts (auto-PR high/critical)
+# - Version updates: weekly, grouped by ecosystem to reduce PR noise
+# - Patch bumps grouped together; major bumps separate for review
+# - Schedule on Monday morning Asia/Ho_Chi_Minh to land in the dev week
+
+version: 2
+
+updates:
+  # ─── Frontend (Angular + related) ───────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/fe"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "Asia/Ho_Chi_Minh"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "frontend"
+    groups:
+      angular:
+        patterns:
+          - "@angular/*"
+          - "@angular-devkit/*"
+      testing:
+        patterns:
+          - "@playwright/*"
+          - "@types/jasmine"
+          - "karma*"
+          - "jasmine*"
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ─── Backend (Maven) ────────────────────────────────────────────────
+  - package-ecosystem: "maven"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "Asia/Ho_Chi_Minh"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "backend"
+    groups:
+      spring:
+        patterns:
+          - "org.springframework*"
+      testing:
+        patterns:
+          - "org.junit*"
+          - "org.mockito*"
+          - "org.assertj*"
+          - "com.tngtech.archunit*"
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ─── GitHub Actions ─────────────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "Asia/Ho_Chi_Minh"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "ci"
+
+  # ─── Docker base images ─────────────────────────────────────────────
+  - package-ecosystem: "docker"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "Asia/Ho_Chi_Minh"
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: "chore(docker)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  - package-ecosystem: "docker"
+    directory: "/fe"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "Asia/Ho_Chi_Minh"
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: "chore(docker)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "docker"
