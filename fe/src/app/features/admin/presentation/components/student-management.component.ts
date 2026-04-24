@@ -35,6 +35,12 @@ export class StudentManagementComponent implements OnInit {
 
   isSystemAdmin = computed(() => this.authService.userRole() === 'admin');
   courseSearchRoute = computed(() => `${getAdminPortalBase(this.authService.userRole())}/courses`);
+  pageTitle = computed(() => this.isSystemAdmin() ? 'Quản lý Học viên' : 'Học viên của tổ chức');
+  pageSubtitle = computed(() =>
+    this.isSystemAdmin()
+      ? 'Quản lý các tài khoản học viên trong hệ thống'
+      : 'Quản lý các tài khoản học viên thuộc tổ chức của bạn'
+  );
 
   // State
   allUsers = signal<AdminUser[]>([]);
