@@ -2,6 +2,10 @@
 
 Thu muc nay chua cac bao cao dieu tra, audit, handoff, va runtime snapshot.
 
+## Bao cao moi nhat
+
+- `2026-04-24-repo-health-audit.md` — Full repo health audit tai checkpoint cap khoa (disk footprint, code quality, branch hygiene, documentation gaps, open PR list, recommendations)
+
 ## Bao cao con gia tri hien hanh
 
 - `PHASE_B_EXECUTION_REPORT_TEMPLATE.md`
