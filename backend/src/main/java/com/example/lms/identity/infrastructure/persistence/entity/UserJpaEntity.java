@@ -110,6 +110,18 @@ public class UserJpaEntity implements UserDetails {
     @Column(name = "must_change_password", nullable = false)
     private boolean mustChangePassword = false;
 
+    // Admin-set account status. `enabled` stays the auth gate (true ⇔ ACTIVE),
+    // but admins need to distinguish BLOCKED from RESTRICTED and attach a reason.
+    // See V118 migration + issue #73.
+    @Column(name = "account_status", nullable = false, length = 16)
+    private String accountStatus = "ACTIVE";
+
+    @Column(name = "status_reason", columnDefinition = "text")
+    private String statusReason;
+
+    @Column(name = "status_updated_at")
+    private Instant statusUpdatedAt;
+
     // Manual Getters/Setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -131,6 +143,15 @@ public class UserJpaEntity implements UserDetails {
     
     public Boolean getEnabled() { return enabled; }
     public void setEnabled(Boolean enabled) { this.enabled = enabled; }
+
+    public String getAccountStatus() { return accountStatus; }
+    public void setAccountStatus(String accountStatus) { this.accountStatus = accountStatus; }
+
+    public String getStatusReason() { return statusReason; }
+    public void setStatusReason(String statusReason) { this.statusReason = statusReason; }
+
+    public Instant getStatusUpdatedAt() { return statusUpdatedAt; }
+    public void setStatusUpdatedAt(Instant statusUpdatedAt) { this.statusUpdatedAt = statusUpdatedAt; }
     
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
