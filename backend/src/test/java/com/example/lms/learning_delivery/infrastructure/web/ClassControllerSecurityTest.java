@@ -105,7 +105,7 @@ class ClassControllerSecurityTest {
 
         assertThatThrownBy(() -> controller.createClass(request, owner))
                 .isInstanceOf(com.example.lms.shared.exception.BusinessRuleException.class)
-                .hasMessageContaining("Quan ly lop");
+                .hasMessageContaining("Quản lý lớp");
     }
 
     @Test
@@ -201,7 +201,7 @@ class ClassControllerSecurityTest {
 
         assertThatThrownBy(() -> controller.getClassesByCourse(courseId, owner))
                 .isInstanceOf(com.example.lms.shared.exception.BusinessRuleException.class)
-                .hasMessageContaining("Quan ly lop");
+                .hasMessageContaining("Quản lý lớp");
     }
 
     @Test
