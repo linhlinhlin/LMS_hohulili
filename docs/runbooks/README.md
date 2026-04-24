@@ -11,6 +11,7 @@ Read this folder when the team needs to:
 
 ## Current runbooks
 
+- `GITHUB_PROFESSIONAL_SETUP_RUNBOOK.md` — one-shot checklist cấu hình repo theo chuẩn SOTA (branch protection, Dependabot, CodeQL, secret scanning, auto-delete, merge strategy)
 - `PRODUCTION_PAUSE_RESUME_RUNBOOK.md` — stop/start the GCP VM between milestones; covers `pg_dump`, deploy-gate variable, cost impact
 - `BRANCH_HYGIENE_RUNBOOK.md` — quarterly prune procedure for local + remote stale branches, tag-before-delete pattern, reflog recovery
 - `GOOGLE_LOGIN_GIS_SETUP_RUNBOOK.md`
