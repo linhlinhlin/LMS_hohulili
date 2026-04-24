@@ -510,12 +510,24 @@ public class UserControllerV3 {
             return forbidden("Bạn không có quyền thay đổi trạng thái người dùng này");
         }
 
-        boolean enabled = "ACTIVE".equalsIgnoreCase(request.getStatus());
-        target.get().setEnabled(enabled);
-        UserJpaEntity saved = userRepository.save(target.get());
+        String rawStatus = request.getStatus() == null ? "" : request.getStatus().trim().toUpperCase(Locale.ROOT);
+        if (!"ACTIVE".equals(rawStatus) && !"BLOCKED".equals(rawStatus) && !"RESTRICTED".equals(rawStatus)) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(
+                    "Trạng thái không hợp lệ. Cho phép: ACTIVE, BLOCKED, RESTRICTED"));
+        }
+
+        UserJpaEntity entity = target.get();
+        boolean enabled = "ACTIVE".equals(rawStatus);
+        entity.setEnabled(enabled);
+        entity.setAccountStatus(rawStatus);
+        // RESTRICTED and BLOCKED both deserve an audit trail entry. ACTIVE clears the reason.
+        entity.setStatusReason(enabled ? null : (request.getReason() == null ? null : request.getReason().trim()));
+        entity.setStatusUpdatedAt(Instant.now());
+        UserJpaEntity saved = userRepository.save(entity);
+
         return ResponseEntity.ok(ApiResponse.success(
                 toResponse(saved),
-                "Trạng thái tài khoản đã cập nhật thành " + request.getStatus()
+                "Trạng thái tài khoản đã cập nhật thành " + rawStatus
         ));
     }
 
@@ -662,6 +674,9 @@ public class UserControllerV3 {
                 .role(user.getRole() != null ? user.getRole().name().toLowerCase(Locale.ROOT) : "student")
                 .isActive(user.isEnabled())
                 .enabled(user.isEnabled())
+                .accountStatus(user.getAccountStatus())
+                .statusReason(user.getStatusReason())
+                .statusUpdatedAt(user.getStatusUpdatedAt() != null ? user.getStatusUpdatedAt().toString() : null)
                 .mustChangePassword(user.isMustChangePassword())
                 .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
                 .updatedAt(user.getUpdatedAt() != null ? user.getUpdatedAt().toString() : null)
@@ -955,6 +970,11 @@ public class UserControllerV3 {
         private String department;
         private boolean isActive;
         private boolean enabled;
+        /** Admin-managed status: ACTIVE, BLOCKED, RESTRICTED. Persisted since V118 (#73). */
+        private String accountStatus;
+        /** Operator note attached to BLOCKED/RESTRICTED transitions. Null when ACTIVE. */
+        private String statusReason;
+        private String statusUpdatedAt;
         private boolean mustChangePassword;
         private String createdAt;
         private String updatedAt;
