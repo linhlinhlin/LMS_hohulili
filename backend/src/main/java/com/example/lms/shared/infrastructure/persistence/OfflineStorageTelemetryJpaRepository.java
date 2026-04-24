@@ -27,15 +27,36 @@ public interface OfflineStorageTelemetryJpaRepository extends JpaRepository<Offl
         Long getRecreateFailedCount();
     }
 
-    @Query("""
-        SELECT e FROM OfflineStorageTelemetryJpaEntity e
-        JOIN UserJpaEntity u ON u.id = e.userId
-        WHERE (:eventType IS NULL OR e.eventType = :eventType)
-          AND (:userId IS NULL OR e.userId = :userId)
-          AND (:search IS NULL OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))
-               OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%')))
-        ORDER BY e.createdAt DESC
-        """)
+    // Native SQL instead of JPQL: Hibernate 6 JPQL parser trips over
+    // LOWER(CONCAT('%', :search, '%')) when :search is bound to NULL, raising
+    // "operator does not exist: text like text" at runtime. Native SQL tolerates
+    // NULL in CONCAT (PostgreSQL concat treats NULL as ''), which is the same
+    // pattern every other query in this repository already uses.
+    // See issue #77 for the production 500 this caused.
+    @Query(
+        value = """
+            SELECT e.*
+            FROM client_offline_storage_telemetry e
+            JOIN users u ON u.id = e.user_id
+            WHERE (:eventType IS NULL OR e.event_type = :eventType)
+              AND (CAST(:userId AS uuid) IS NULL OR e.user_id = CAST(:userId AS uuid))
+              AND (:search IS NULL
+                   OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))
+                   OR LOWER(u.full_name) LIKE LOWER(CONCAT('%', :search, '%')))
+            ORDER BY e.created_at DESC
+            """,
+        countQuery = """
+            SELECT COUNT(*)
+            FROM client_offline_storage_telemetry e
+            JOIN users u ON u.id = e.user_id
+            WHERE (:eventType IS NULL OR e.event_type = :eventType)
+              AND (CAST(:userId AS uuid) IS NULL OR e.user_id = CAST(:userId AS uuid))
+              AND (:search IS NULL
+                   OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))
+                   OR LOWER(u.full_name) LIKE LOWER(CONCAT('%', :search, '%')))
+            """,
+        nativeQuery = true
+    )
     Page<OfflineStorageTelemetryJpaEntity> findFiltered(String eventType, UUID userId, String search, Pageable pageable);
 
     @Query(value = """
