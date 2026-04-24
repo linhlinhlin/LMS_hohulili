@@ -23,6 +23,7 @@ Doc nhom nay khi can cau tra loi ngan, chinh xac, va on dinh cho cac cau hoi kie
 - `COMMIT_CONVENTION.md` — format commit message cho moi contributor (human + agent)
 - `MULTI_AGENT_COLLABORATION.md` — rule cho Claude Code + Codex + agent khac cung work tren repo
 - `AGENT_ONBOARDING.md` — huong dan setup agent moi lam viec trong du an
+- `FRONTEND_GOTCHAS.md` — catalog pitfall FE (Angular 20, PWA, SSR, dev server, deps) kem trieu chung + fix + PR reference
 
 Neu mot reference doc lech voi code thuc te, phai cap nhat lai ngay sau khi xac minh.
 
