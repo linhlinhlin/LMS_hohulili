@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/role.guard';
 import { HomepageLayoutComponent } from './shared/components/layout/homepage-layout/homepage-layout.component';
+import { OfflineFallbackComponent } from './shared/components/offline-fallback/offline-fallback.component';
 
 /**
  * Main Application Routes Configuration
@@ -153,7 +154,7 @@ export const routes: Routes = [
   // ========================================
   {
     path: 'offline',
-    loadComponent: () => import('./shared/components/offline-fallback/offline-fallback.component').then(m => m.OfflineFallbackComponent),
+    component: OfflineFallbackComponent,
     title: 'Ngoáº¡i tuyáº¿n - LMS Maritime'
   },
 

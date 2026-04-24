@@ -1,10 +1,19 @@
-import { NetworkStatusService, ConnectionTier } from './network-status.service';
+import { NetworkStatusService } from './network-status.service';
 
 describe('NetworkStatusService', () => {
   let service: NetworkStatusService;
+  let fetchSpy: jasmine.Spy<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>;
 
   beforeEach(() => {
+    fetchSpy = spyOn(window, 'fetch').and.callFake(async () =>
+      new Response('', { status: 200 }),
+    );
     service = new NetworkStatusService();
+  });
+
+  afterEach(() => {
+    service.ngOnDestroy();
+    fetchSpy.calls.reset();
   });
 
   describe('Initial state', () => {
@@ -96,6 +105,18 @@ describe('NetworkStatusService', () => {
       service.online.set(true);
       service.effectiveBandwidthMbps.set(1000);
       expect(service.connectionTier()).toBe('fast');
+    });
+  });
+
+  describe('offline signal tracking', () => {
+    it('should mark the app as effectively offline after a transport failure', () => {
+      service.online.set(true);
+
+      service.markOfflineFromTransportFailure();
+
+      expect(service.online()).toBeFalse();
+      expect(service.hasRecentOfflineSignal()).toBeTrue();
+      expect(service.isEffectivelyOffline()).toBeTrue();
     });
   });
 });

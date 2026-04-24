@@ -5,7 +5,7 @@ export type ConnectionTransport = 'wifi' | 'ethernet' | 'cellular' | 'unknown';
 
 @Injectable({ providedIn: 'root' })
 export class NetworkStatusService implements OnDestroy {
-  readonly online = signal(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  readonly online = signal(this.getBrowserOnlineHint());
   readonly effectiveBandwidthMbps = signal(2);
   readonly connectionTransport = signal<ConnectionTransport>('unknown');
   readonly saveDataEnabled = signal(false);
@@ -28,16 +28,29 @@ export class NetworkStatusService implements OnDestroy {
 
   readonly connectionLabel = computed(() => {
     switch (this.connectionTier()) {
-      case 'none': return 'Ngoại tuyến';
-      case 'slow': return 'Kết nối chậm';
-      case 'fast': return 'Trực tuyến';
+      case 'none':
+        return 'Ngoại tuyến';
+      case 'slow':
+        return 'Kết nối chậm';
+      case 'fast':
+        return 'Trực tuyến';
     }
   });
 
+  private readonly recentOfflineSignalAt = signal<number | null>(
+    this.getBrowserOnlineHint() ? null : Date.now(),
+  );
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private probeInterval: ReturnType<typeof setInterval> | null = null;
-  private readonly onlineHandler = () => this.debouncedUpdate();
-  private readonly offlineHandler = () => this.debouncedUpdate();
+  private readonly onlineHandler = () => {
+    this.recentOfflineSignalAt.set(null);
+    this.updateStatus();
+    this.probeLatency();
+  };
+  private readonly offlineHandler = () => {
+    this.markOfflineState();
+    this.updateStatus();
+  };
   private readonly connectionChangeHandler = () => this.debouncedUpdate();
   private connectionRef: { removeEventListener?: (type: string, listener: EventListenerOrEventListenerObject) => void } | null = null;
 
@@ -55,14 +68,14 @@ export class NetworkStatusService implements OnDestroy {
 
     this.updateStatus();
 
-    // Only probe when online (avoid waking iOS SW unnecessarily)
-    if (navigator.onLine) {
+    if (this.getBrowserOnlineHint()) {
       this.probeLatency();
     }
 
-    // Periodic re-probe every 2 minutes (was 30s — too aggressive for iOS SW keepalive)
     this.probeInterval = setInterval(() => {
-      if (navigator.onLine) this.probeLatency();
+      if (this.getBrowserOnlineHint()) {
+        this.probeLatency();
+      }
     }, 120_000);
   }
 
@@ -81,97 +94,92 @@ export class NetworkStatusService implements OnDestroy {
     }
   }
 
+  hasRecentOfflineSignal(windowMs = 15_000): boolean {
+    const lastOfflineSignalAt = this.recentOfflineSignalAt();
+    return lastOfflineSignalAt != null && Date.now() - lastOfflineSignalAt <= windowMs;
+  }
+
+  isEffectivelyOffline(windowMs = 15_000): boolean {
+    return !this.getBrowserOnlineHint()
+      || !this.online()
+      || this.hasRecentOfflineSignal(windowMs);
+  }
+
+  markOfflineFromTransportFailure(): void {
+    this.markOfflineState();
+  }
+
   private debouncedUpdate(): void {
     if (this.debounceTimer) clearTimeout(this.debounceTimer);
     this.debounceTimer = setTimeout(() => this.updateStatus(), 150);
   }
 
   private updateStatus(): void {
-    this.online.set(navigator.onLine);
-
+    const browserOnline = this.getBrowserOnlineHint();
     const conn = (navigator as any).connection;
+
     this.connectionTransport.set(this.normalizeConnectionTransport(conn?.type));
     this.saveDataEnabled.set(conn?.saveData === true);
     this.effectiveNetworkType.set(typeof conn?.effectiveType === 'string' ? conn.effectiveType : null);
 
-    if (!navigator.onLine) {
-      this.effectiveBandwidthMbps.set(0);
-    } else if (conn?.downlink != null) {
-      // conn.downlink measures physical link, not app server speed.
-      // Use it as hint but floor at 1.5 to avoid false "slow" on fast localhost.
-      // probeLatency() will correct this with actual measured RTT.
+    if (!browserOnline) {
+      this.markOfflineState();
+      return;
+    }
+
+    this.online.set(true);
+    if (conn?.downlink != null) {
       this.effectiveBandwidthMbps.set(Math.max(conn.downlink, 1.5));
     } else {
       this.effectiveBandwidthMbps.set(2);
     }
   }
 
-  /**
-   * Probe actual latency via network request.
-   *
-   * IMPORTANT: Uses cache: 'no-store' to bypass SW cache and get real network status.
-   * Falls back to API health check if icon probe succeeds (to verify internet connectivity).
-   *
-   * Multi-strategy detection:
-   * 1. Static resource with no-store (bypass SW cache)
-   * 2. If that succeeds, verify with API health endpoint
-   * 3. On iOS: SW can be evicted after ~5min background. Rely on navigator.onLine events (no aggressive probe).
-   */
   private probeLatency(): void {
-    if (!navigator.onLine) return;
+    if (!this.getBrowserOnlineHint()) return;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
-
     const start = performance.now();
 
-    // Use cache: 'no-store' to bypass SW cache and get real network status
     fetch('/icons/icon-192x192.png', {
       method: 'HEAD',
       signal: controller.signal,
-      cache: 'no-store'
+      cache: 'no-store',
     })
-      .then(async () => {
+      .then(async (iconResponse) => {
+        this.ensureSuccessfulProbeResponse(iconResponse);
         clearTimeout(timeoutId);
-        const rtt = performance.now() - start;
 
-        // Verify internet connectivity with API health check
-        // This catches the case where WiFi is connected but no internet
+        const rtt = performance.now() - start;
+        const apiController = new AbortController();
+        const apiTimeoutId = setTimeout(() => apiController.abort(), 3000);
+
         try {
-          const apiController = new AbortController();
-          const apiTimeoutId = setTimeout(() => apiController.abort(), 3000);
-          await fetch('/actuator/health', {
+          const apiResponse = await fetch('/actuator/health', {
             method: 'GET',
             signal: apiController.signal,
-            cache: 'no-store'
+            cache: 'no-store',
           });
-          clearTimeout(apiTimeoutId);
-
-          this.online.set(true);
-          if (rtt > 500) {
-            this.effectiveBandwidthMbps.set(0.5);   // genuinely slow
-          } else if (rtt > 200) {
-            this.effectiveBandwidthMbps.set(1.5);   // moderate
-          } else {
-            this.effectiveBandwidthMbps.set(10);
-          }
+          this.ensureSuccessfulProbeResponse(apiResponse);
+          this.markMeasuredOnlineState(rtt);
         } catch {
-          // API health check failed → WiFi connected but no internet
-          this.online.set(false);
-          this.effectiveBandwidthMbps.set(0);
+          this.markOfflineState();
+        } finally {
+          clearTimeout(apiTimeoutId);
         }
       })
-      .catch((err) => {
+      .catch((error) => {
         clearTimeout(timeoutId);
-        // Only mark offline on genuine network failure, not abort timeout
-        if (err instanceof TypeError) {
-          this.online.set(false);
-          this.effectiveBandwidthMbps.set(0);
-        }
-        // AbortError (timeout 5s) → mark as slow, not offline
-        if (err?.name === 'AbortError') {
+
+        if (error?.name === 'AbortError') {
+          this.online.set(true);
+          this.recentOfflineSignalAt.set(null);
           this.effectiveBandwidthMbps.set(0.3);
+          return;
         }
+
+        this.markOfflineState();
       });
   }
 
@@ -181,5 +189,34 @@ export class NetworkStatusService implements OnDestroy {
     }
 
     return 'unknown';
+  }
+
+  private getBrowserOnlineHint(): boolean {
+    return typeof navigator !== 'undefined' ? navigator.onLine : true;
+  }
+
+  private ensureSuccessfulProbeResponse(response: Response): void {
+    if (!response.ok) {
+      throw new Error(`probe-response-${response.status}`);
+    }
+  }
+
+  private markMeasuredOnlineState(rtt: number): void {
+    this.online.set(true);
+    this.recentOfflineSignalAt.set(null);
+
+    if (rtt > 500) {
+      this.effectiveBandwidthMbps.set(0.5);
+    } else if (rtt > 200) {
+      this.effectiveBandwidthMbps.set(1.5);
+    } else {
+      this.effectiveBandwidthMbps.set(10);
+    }
+  }
+
+  private markOfflineState(): void {
+    this.online.set(false);
+    this.effectiveBandwidthMbps.set(0);
+    this.recentOfflineSignalAt.set(Date.now());
   }
 }

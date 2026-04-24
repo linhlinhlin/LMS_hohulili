@@ -18,6 +18,7 @@ import { QuizApi } from '../../../../api/endpoints/quiz.api';
 import { ToastService } from '../../../../core/services/toast.service';
 import { NetworkStatusService } from '../../../../core/services/network-status.service';
 import { PdfViewerService } from '../../../../shared/services/pdf-viewer.service';
+import { IconComponent } from '../../../../shared/components/icon/icon.component';
 
 /**
  * Lesson Content Component
@@ -29,7 +30,7 @@ import { PdfViewerService } from '../../../../shared/services/pdf-viewer.service
  */
 @Component({
   selector: 'app-lesson-content',
-  imports: [AdaptiveVideoPlayerComponent, YouTubePlayerComponent, CommonModule, FormsModule],
+  imports: [AdaptiveVideoPlayerComponent, YouTubePlayerComponent, CommonModule, FormsModule, IconComponent],
   templateUrl: './lesson-content.component.html',
   styleUrls: ['./lesson-content.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush

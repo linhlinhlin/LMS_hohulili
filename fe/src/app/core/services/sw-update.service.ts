@@ -1,18 +1,68 @@
 import { Injectable, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 import { filter, interval, switchMap } from 'rxjs';
 import { from } from 'rxjs';
 import { ToastService } from './toast.service';
 import { StorageManagerService } from './storage-manager.service';
 import { ConfirmDialogService } from './confirm-dialog.service';
+import { NetworkStatusService } from './network-status.service';
+
+const RUNTIME_CHUNK_FAILURE_MARKERS = [
+  'ChunkLoadError',
+  'Loading chunk',
+  'Failed to fetch dynamically imported module',
+  'Importing a module script failed',
+  'error loading dynamically imported module',
+] as const;
+
+export function isRuntimeChunkLoadFailure(errorLike: unknown): boolean {
+  const message = getRuntimeFailureMessage(errorLike).toLowerCase();
+  return RUNTIME_CHUNK_FAILURE_MARKERS.some((marker) =>
+    message.includes(marker.toLowerCase()),
+  );
+}
+
+function getRuntimeFailureMessage(errorLike: unknown): string {
+  if (typeof errorLike === 'string') {
+    return errorLike;
+  }
+
+  if (!errorLike || typeof errorLike !== 'object') {
+    return '';
+  }
+
+  const record = errorLike as Record<string, unknown>;
+  const message = record['message'];
+  if (typeof message === 'string') {
+    return message;
+  }
+
+  const reason = record['reason'];
+  if (typeof reason === 'string') {
+    return reason;
+  }
+
+  if (reason && typeof reason === 'object') {
+    const nestedMessage = (reason as Record<string, unknown>)['message'];
+    if (typeof nestedMessage === 'string') {
+      return nestedMessage;
+    }
+  }
+
+  return '';
+}
 
 @Injectable({ providedIn: 'root' })
 export class SwUpdateService {
   private readonly swUpdate = inject(SwUpdate, { optional: true });
+  private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly storage = inject(StorageManagerService);
   private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly networkStatus = inject(NetworkStatusService);
   private initialized = false;
+  private runtimeRecoveryTriggered = false;
   private readonly visibilityChangeHandler = async () => {
     if (document.visibilityState !== 'visible') return;
 
@@ -36,13 +86,19 @@ export class SwUpdateService {
     }
   };
   private readonly windowErrorHandler = (event: ErrorEvent) => {
-    const msg = event.message || '';
-    if (msg.includes('ChunkLoadError') || msg.includes('Loading chunk')) {
-      console.warn('[PWA] ChunkLoadError detected, reloading...');
-      if (navigator.onLine) {
-        document.location.reload();
-      }
+    if (!isRuntimeChunkLoadFailure(event)) {
+      return;
     }
+
+    this.handleRuntimeChunkFailure(event);
+  };
+  private readonly unhandledRejectionHandler = (event: PromiseRejectionEvent) => {
+    if (!isRuntimeChunkLoadFailure(event.reason)) {
+      return;
+    }
+
+    event.preventDefault();
+    this.handleRuntimeChunkFailure(event.reason);
   };
 
   initialize(): void {
@@ -61,12 +117,10 @@ export class SwUpdateService {
     if (!this.swUpdate?.isEnabled) return;
     const sw = this.swUpdate;
 
-    // Check for updates every 6 hours (maritime connectivity windows)
     interval(6 * 60 * 60 * 1000).pipe(
       switchMap(() => from(sw.checkForUpdate())),
     ).subscribe();
 
-    // Prompt user when new version ready (prevents data loss during quiz/assignment)
     sw.versionUpdates.pipe(
       filter((evt): evt is VersionReadyEvent => evt.type === 'VERSION_READY'),
     ).subscribe(async () => {
@@ -85,35 +139,26 @@ export class SwUpdateService {
       }
     });
 
-    // Handle unrecoverable state (Angular #42094, iOS SW eviction)
-    // iOS kills SW after ~5min background → unrecoverable fires
-    // NEVER reload offline — it will show browser's "No Connection" page
     sw.unrecoverable.subscribe(async (event) => {
       console.error('[SW] Unrecoverable state:', event.reason);
 
       if (navigator.onLine) {
-        // Clear stale NGSW caches before reload to prevent re-entering unrecoverable
         await this.clearNgswCaches();
         this.toast.error('Ứng dụng gặp lỗi. Đang tải lại...');
         setTimeout(() => document.location.reload(), 1000);
       } else {
-        // Queue reload for when we come back online
         this.toast.info('Ứng dụng sẽ cập nhật khi có kết nối mạng');
         const onlineHandler = () => {
           window.removeEventListener('online', onlineHandler);
-          // Confirm we're truly online with a probe before reload
           fetch('/icons/icon-192x192.png', { method: 'HEAD' })
             .then(() => document.location.reload())
-            .catch(() => { /* still offline, wait more */ });
+            .catch(() => {});
         };
         window.addEventListener('online', onlineHandler);
       }
     });
 
-    // Request persistent storage — critical for iOS (prevents 7-day eviction)
     this.storage.requestPersistence();
-
-    // One-time "offline ready" toast — shows only on first SW install per device
     this.showOfflineReadyToast();
   }
 
@@ -141,63 +186,77 @@ export class SwUpdateService {
     }
   }
 
-  /**
-   * Show a one-time toast when SW first becomes active (all prefetch assets cached).
-   * Uses localStorage flag so it only fires once per device, ever.
-   * navigator.serviceWorker.ready resolves when SW is active = prefetch complete.
-   */
   private showOfflineReadyToast(): void {
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
     try {
       if (localStorage.getItem('pwa-ready-shown')) return;
-    } catch { return; }
+    } catch {
+      return;
+    }
 
     navigator.serviceWorker.ready.then(() => {
       this.toast.success('Sẵn sàng ngoại tuyến — trang web hoạt động kể cả khi mất mạng');
-      try { localStorage.setItem('pwa-ready-shown', '1'); } catch {}
+      try {
+        localStorage.setItem('pwa-ready-shown', '1');
+      } catch {}
     });
   }
 
-  /**
-   * iOS WebKit evicts SW after ~5min background (Apple WebKit policy).
-   * On resume (visibilitychange → visible), check if SW is still alive.
-   * If dead and online → reload to re-register SW and re-cache app shell.
-   * If dead and offline → do nothing (app continues from memory).
-   *
-   * Source: https://webkit.org/blog/14403/updates-to-storage-policy/
-   */
   private setupVisibilityHandler(): void {
     if (typeof document === 'undefined') return;
 
     document.addEventListener('visibilitychange', this.visibilityChangeHandler);
   }
 
-  /**
-   * Angular NGSW's unrecoverable event sometimes does NOT fire for
-   * lazy-loaded chunk mismatches (Angular #42094). Catch ChunkLoadError
-   * globally and reload to get fresh chunks.
-   */
   private setupChunkErrorHandler(): void {
     if (typeof window === 'undefined') return;
 
     window.addEventListener('error', this.windowErrorHandler);
+    window.addEventListener('unhandledrejection', this.unhandledRejectionHandler);
   }
 
-  /**
-   * Clear all NGSW caches before reload to prevent re-entering
-   * unrecoverable state with stale/partial cache.
-   */
   private async clearNgswCaches(): Promise<void> {
     try {
       const cacheNames = await caches.keys();
       await Promise.all(
         cacheNames
-          .filter(name => name.startsWith('ngsw:'))
-          .map(name => caches.delete(name))
+          .filter((name) => name.startsWith('ngsw:'))
+          .map((name) => caches.delete(name)),
       );
-      console.info('[SW] Cleared', cacheNames.filter(n => n.startsWith('ngsw:')).length, 'NGSW caches');
+      console.info('[SW] Cleared', cacheNames.filter((name) => name.startsWith('ngsw:')).length, 'NGSW caches');
     } catch {
       // Cache cleanup failed, continue anyway
     }
+  }
+
+  private handleRuntimeChunkFailure(reason: unknown): void {
+    if (this.runtimeRecoveryTriggered) {
+      return;
+    }
+
+    this.runtimeRecoveryTriggered = true;
+
+    if (this.networkStatus.isEffectivelyOffline()) {
+      this.networkStatus.markOfflineFromTransportFailure();
+      console.warn('[PWA] Runtime chunk request failed while offline, redirecting to offline recovery.', reason);
+      this.toast.info('Bạn đang ngoại tuyến. Đang mở trang ngoại tuyến đã tải xuống.');
+      this.navigateToOfflineRecovery();
+      return;
+    }
+
+    console.warn('[PWA] Runtime chunk load failure detected, reloading app shell.', reason);
+
+    if (typeof navigator === 'undefined' || navigator.onLine) {
+      document.location.reload();
+      return;
+    }
+
+    this.navigateToOfflineRecovery();
+  }
+
+  private navigateToOfflineRecovery(): void {
+    void this.router.navigateByUrl('/offline').catch(() => {
+      document.location.assign('/offline');
+    });
   }
 }

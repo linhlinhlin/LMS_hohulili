@@ -49,14 +49,9 @@ export class OfflineIndicatorComponent {
   private readonly syncService = inject(OfflineSyncService);
   private readonly sessionService = inject(SessionExpiredService);
 
-  // Multi-strategy offline detection:
-  // 1. connectionTier === 'none' (from NetworkStatusService)
-  // 2. navigator.onLine === false (fallback)
   protected readonly isOffline = computed(() => {
     const tier = this.network.connectionTier();
     if (tier === 'none') return true;
-    // Additional safety check: if navigator.onLine is false, treat as offline
-    // even if our probe thinks otherwise
     if (typeof navigator !== 'undefined' && !navigator.onLine) return true;
     return false;
   });
@@ -64,5 +59,4 @@ export class OfflineIndicatorComponent {
   protected readonly isSlow = computed(() => this.network.connectionTier() === 'slow');
   protected readonly pendingSyncCount = computed(() => this.syncService.pendingCount());
   protected readonly hasExpiredBanner = computed(() => this.sessionService.showExpiredBanner());
-
 }

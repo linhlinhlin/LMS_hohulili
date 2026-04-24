@@ -26,7 +26,7 @@
         [class.text-[#0056D2]]="activeTab() === 'overview'" [class.text-slate-500]="activeTab() !== 'overview'"
         [class.hover:text-slate-700]="activeTab() !== 'overview'" (click)="activeTab.set('overview')">
         <span class="flex items-center gap-1.5">
-          <span class="material-symbols-outlined text-[18px]">article</span>
+          <app-icon name="file-text" size="sm"></app-icon>
           Tổng quan
         </span>
         @if (activeTab() === 'overview') {
@@ -38,7 +38,7 @@
         [class.text-[#0056D2]]="activeTab() === 'notes'" [class.text-slate-500]="activeTab() !== 'notes'"
         [class.hover:text-slate-700]="activeTab() !== 'notes'" (click)="activeTab.set('notes')">
         <span class="flex items-center gap-1.5">
-          <span class="material-symbols-outlined text-[18px]">edit_note</span>
+          <app-icon name="edit" size="sm"></app-icon>
           Ghi chú
           @if (lessonNotes().length > 0) {
           <span class="ml-0.5 px-1.5 py-0 text-[10px] font-bold rounded-full bg-slate-100 text-slate-600">
@@ -55,7 +55,7 @@
         [class.text-[#0056D2]]="activeTab() === 'materials'" [class.text-slate-500]="activeTab() !== 'materials'"
         [class.hover:text-slate-700]="activeTab() !== 'materials'" (click)="activeTab.set('materials')">
         <span class="flex items-center gap-1.5">
-          <span class="material-symbols-outlined text-[18px]">folder_open</span>
+          <app-icon name="folder" size="sm"></app-icon>
           Tài liệu
           @if (lesson().attachments && lesson().attachments.length > 0) {
           <span class="ml-0.5 px-1.5 py-0 text-[10px] font-bold rounded-full bg-slate-100 text-slate-600">
@@ -90,7 +90,7 @@
 
       @if (section.type === 'QUIZ') {
       <div class="p-6 border border-amber-200 bg-amber-50 rounded-lg text-center">
-        <span class="material-symbols-outlined text-4xl text-amber-600 mb-2">assignment</span>
+        <app-icon name="file-check" size="xl" class="mb-2 text-amber-600"></app-icon>
         @if (section.title) {
         <h3 class="text-lg font-bold text-slate-800 mb-1">{{ section.title }}</h3>
         }
@@ -118,7 +118,7 @@
           [disabled]="isQuizActionBlocked()"
           class="inline-flex items-center gap-2 px-6 py-2.5 bg-[#0056D2] text-white font-semibold rounded-lg hover:bg-[#004BB5] transition-colors disabled:cursor-not-allowed disabled:opacity-50">
           <span>Làm bài trắc nghiệm</span>
-          <span class="material-symbols-outlined text-base">arrow_forward</span>
+          <app-icon name="arrow-right" size="sm"></app-icon>
         </button>
       </div>
       }
@@ -126,7 +126,7 @@
       @if (section.type === 'ASSIGNMENT' && section.content) {
       <div class="p-4 border border-[#0056D2]/20 bg-[#0056D2]/5 rounded-lg">
         <div class="flex items-center gap-2 mb-3">
-          <span class="material-symbols-outlined text-[#0056D2]">edit_note</span>
+          <app-icon name="edit" size="md" class="text-[#0056D2]"></app-icon>
           <h3 class="text-base font-bold text-slate-800">Bài tập{{ section.title ? ': ' + section.title : '' }}</h3>
         </div>
         <div class="prose prose-slate max-w-none text-sm" [innerHTML]="getSanitizedHtml(section.content)"></div>
@@ -142,7 +142,7 @@
     <!-- Quiz Button (non-section QUIZ lessons) -->
     @if ((hasQuiz() || lesson().lessonType === LessonType.QUIZ) && !hasSections()) {
     <div class="p-6 border border-amber-200 bg-amber-50 rounded-lg text-center mt-6 mb-6">
-      <span class="material-symbols-outlined text-4xl text-amber-600 mb-2">assignment</span>
+      <app-icon name="file-check" size="xl" class="mb-2 text-amber-600"></app-icon>
       @if (quizPresentation(); as quizMeta) {
       <h3 class="text-lg font-bold text-slate-800 mb-1">{{ quizMeta.label }}</h3>
       <div class="mb-3 flex flex-wrap items-center justify-center gap-2">
@@ -168,7 +168,7 @@
         [disabled]="isQuizActionBlocked()"
         class="inline-flex items-center gap-2 px-6 py-2.5 bg-[#0056D2] text-white font-semibold rounded-lg hover:bg-[#004BB5] transition-colors disabled:cursor-not-allowed disabled:opacity-50">
         <span>Làm bài trắc nghiệm</span>
-        <span class="material-symbols-outlined text-base">arrow_forward</span>
+        <app-icon name="arrow-right" size="sm"></app-icon>
       </button>
     </div>
     }
@@ -186,7 +186,7 @@
             (ngModelChange)="newNoteContent.set($event)"></textarea>
           <div class="flex items-center justify-between px-3 py-2 bg-slate-50 border-t border-gray-100">
             <span class="text-[11px] text-slate-400">
-              <span class="material-symbols-outlined text-[13px] align-middle mr-0.5">info</span>
+              <app-icon name="info" size="xs" class="align-middle mr-0.5"></app-icon>
               Ghi chú chỉ hiển thị cho bạn
             </span>
             <button
@@ -238,11 +238,11 @@
               <div class="flex items-center gap-1">
                 <button class="p-1 text-slate-400 hover:text-[#0056D2] rounded transition-colors" title="Chỉnh sửa"
                   (click)="startEditNote(note)">
-                  <span class="material-symbols-outlined text-[16px]">edit</span>
+                  <app-icon name="edit" size="sm"></app-icon>
                 </button>
                 <button class="p-1 text-slate-400 hover:text-red-500 rounded transition-colors" title="Xóa"
                   (click)="deleteNote(note.id)">
-                  <span class="material-symbols-outlined text-[16px]">delete</span>
+                  <app-icon name="trash" size="sm"></app-icon>
                 </button>
               </div>
             </div>
@@ -333,14 +333,14 @@
         <div class="mt-3 flex items-center justify-between px-1">
           @if (isCurrentSectionCompleted()) {
           <span class="flex items-center gap-1.5 text-xs font-semibold text-green-600">
-            <span class="material-symbols-outlined text-sm">check_circle</span>
+            <app-icon name="circle-check" size="sm"></app-icon>
             Đã xem tài liệu
           </span>
           } @else {
           <span class="text-xs text-amber-600 font-medium">Bắt buộc hoàn thành</span>
           <button type="button" (click)="markFileComplete()"
             class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#0056D2] bg-[#0056D2]/5 border border-[#0056D2]/20 rounded-lg hover:bg-[#0056D2]/10 transition-colors">
-            <span class="material-symbols-outlined text-sm">task_alt</span>
+            <app-icon name="circle-check" size="sm"></app-icon>
             Đánh dấu đã xem
           </button>
           }
@@ -389,9 +389,11 @@
             [class.text-red-600]="attachment.fileType.includes('pdf')"
             [class.bg-blue-50]="!attachment.fileType.includes('pdf')"
             [class.text-blue-600]="!attachment.fileType.includes('pdf')">
-            <span class="material-symbols-outlined text-xl">
-              {{ attachment.fileType.includes('pdf') ? 'picture_as_pdf' : 'attach_file' }}
-            </span>
+            @if (attachment.fileType.includes('pdf')) {
+            <app-icon name="file-text" size="md"></app-icon>
+            } @else {
+            <app-icon name="paperclip" size="md"></app-icon>
+            }
           </div>
           <div class="flex-1 min-w-0">
             <div class="text-sm font-semibold text-slate-700 group-hover:text-[#0056D2] truncate">
@@ -403,7 +405,7 @@
           </div>
           <div
             class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 group-hover:bg-[#0056D2] text-slate-500 group-hover:text-white text-xs font-medium rounded-lg transition-colors shrink-0">
-            <span class="material-symbols-outlined text-base">download</span>
+            <app-icon name="download" size="sm"></app-icon>
             Tải xuống
           </div>
         </a>
@@ -411,7 +413,7 @@
       </div>
       } @else {
       <div class="flex flex-col items-center py-12 text-slate-400 text-center">
-        <span class="material-symbols-outlined text-4xl mb-2">folder_open</span>
+        <app-icon name="folder" size="xl" class="mb-2"></app-icon>
         <p class="text-sm font-medium text-slate-500">Chưa có tài liệu đính kèm</p>
         <p class="text-xs text-slate-400 mt-1">Giáo viên chưa thêm tài liệu cho bài học này</p>
       </div>

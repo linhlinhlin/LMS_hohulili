@@ -25,6 +25,7 @@ import { CourseDownloadService } from '../../../core/services/course-download.se
 import { NetworkStatusService } from '../../../core/services/network-status.service';
 import { OfflineSyncService } from '../../../core/services/offline-sync.service';
 import { getOfflineCourseStaleCopy } from '../../../core/utils/offline-course-staleness';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 /**
  * Course Learning Component
@@ -34,7 +35,7 @@ import { getOfflineCourseStaleCopy } from '../../../core/utils/offline-course-st
  */
 @Component({
   selector: 'app-course-learning',
-  imports: [RouterModule, LessonContentComponent, PaymentModalComponent],
+  imports: [RouterModule, LessonContentComponent, PaymentModalComponent, IconComponent],
   templateUrl: './course-learning.component.html',
   styleUrls: ['./course-learning.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush

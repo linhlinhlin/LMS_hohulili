@@ -1,9 +1,10 @@
 import { Component, ChangeDetectionStrategy, inject, computed } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { CourseDownloadService, DownloadableCourse } from '../../../core/services/course-download.service';
+import { CourseDownloadService } from '../../../core/services/course-download.service';
 import { StorageManagerService } from '../../../core/services/storage-manager.service';
-import { NetworkStatusService } from '../../../core/services/network-status.service';
 import { OfflineSyncService } from '../../../core/services/offline-sync.service';
+
+export const OFFLINE_FALLBACK_COURSE_ROUTE_PREFIX = '/student/learn/course';
 
 @Component({
   selector: 'app-offline-fallback',
@@ -60,7 +61,7 @@ import { OfflineSyncService } from '../../../core/services/offline-sync.service'
             </div>
 
             @for (course of downloadedCourses(); track course.id) {
-              <a [routerLink]="['/learn/course', course.id]"
+              <a [routerLink]="[courseRoutePrefix, course.id]"
                  class="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors border-b border-gray-50 last:border-b-0">
                 <div class="flex-shrink-0 w-10 h-10 bg-[#0056D2]/10 rounded-lg flex items-center justify-center">
                   <svg class="w-5 h-5 text-[#0056D2]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -127,6 +128,7 @@ export class OfflineFallbackComponent {
   private readonly storageManager = inject(StorageManagerService);
   private readonly syncService = inject(OfflineSyncService);
 
+  protected readonly courseRoutePrefix = OFFLINE_FALLBACK_COURSE_ROUTE_PREFIX;
   protected readonly downloadedCourses = computed(() => this.courseDownload.downloadedCourses());
   protected readonly downloadCount = computed(() => this.downloadedCourses().length);
   protected readonly pendingSync = computed(() => this.syncService.pendingCount());
