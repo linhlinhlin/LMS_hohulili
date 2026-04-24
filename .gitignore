@@ -142,6 +142,10 @@ graphify-out/
 
 # === Claude Code runtime state ===
 .claude/scheduled_tasks.lock
+.claude/worktrees/
+
+# === DB backups (contains user data; keep local only) ===
+/backups/
 
 # === Playwright test artifacts ===
 fe/test-results/

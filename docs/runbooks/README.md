@@ -11,6 +11,7 @@ Read this folder when the team needs to:
 
 ## Current runbooks
 
+- `PRODUCTION_PAUSE_RESUME_RUNBOOK.md` — stop/start the GCP VM between milestones; covers `pg_dump`, deploy-gate variable, cost impact
 - `GOOGLE_LOGIN_GIS_SETUP_RUNBOOK.md`
 - `PRODUCTION_SMOKE_TEST.md`
 - `DEDICATED_VIDEO_WORKER_RUNBOOK.md`

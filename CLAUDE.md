@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> **Last Updated**: 2026-03-13 | **Version**: 16.0 | **Status**: Production Ready + Full SSR + SEO + WebMCP + Branding (806 tests, 0 failures)
+> **Last Updated**: 2026-04-24 | **Version**: 16.1 | **Status**: Faculty-level milestone checkpoint. Production VM paused on GCP to conserve free-trial credits; CI/CD build jobs still push images to GHCR, deploy job gated by `DEPLOY_ENABLED` repo variable. See [`docs/runbooks/PRODUCTION_PAUSE_RESUME_RUNBOOK.md`](docs/runbooks/PRODUCTION_PAUSE_RESUME_RUNBOOK.md) to resume.
 
 This file provides guidance to Claude Code for working with this repository. **Read this first before any task.**
 
@@ -40,7 +40,9 @@ chmod +x deploy.sh && ./deploy.sh
 
 ## CURRENT SYSTEM STATUS
 
-### Backend: RUNNING (440+ files | 806 tests | 295+ endpoints)
+> **Production VM paused** since 2026-04-24 end of faculty-level milestone. `holilihu.online` is offline. CI build jobs still push images to GHCR; deploy job skipped via `DEPLOY_ENABLED=false`. Latest DB backup: `backups/prod-2026-04-24.dump` (483 KB, `pg_restore` custom format). To resume, follow [`docs/runbooks/PRODUCTION_PAUSE_RESUME_RUNBOOK.md`](docs/runbooks/PRODUCTION_PAUSE_RESUME_RUNBOOK.md).
+
+### Backend: RUNNING locally (440+ files | 806 tests | 295+ endpoints)
 | Component | Port |
 |-----------|------|
 | Spring Boot API | 8088 |
