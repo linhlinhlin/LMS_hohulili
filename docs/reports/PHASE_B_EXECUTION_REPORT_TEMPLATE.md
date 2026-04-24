@@ -173,4 +173,4 @@ Chi dien phan nay neu co loi that.
 - `docs/runbooks/PWA_OFFLINE_RUNBOOK.md`
 - `docs/runbooks/PUBLICATION_REFRESH_RUNBOOK.md`
 - `docs/runbooks/SYNC_CONFLICT_RUNBOOK.md`
-- `docs/reports/2026-03-16-phase-a-final-verification.md`
+- `docs/archive/2026-Q1/reports/2026-03-16-phase-a-final-verification.md`

@@ -1,19 +1,24 @@
-# Plans Guide
+# Plans
 
-Thư mục này chứa plan, design note, và execution note theo từng đợt làm việc.
+Thư mục chứa plan / design note đang trong phase thiết kế hoặc handoff.
+
+## Đang có
+
+_(chưa có plan active — Q1 2026 đã được archive ngày 24-04-2026)._
+
+Khi bắt đầu một plan mới, thêm file theo convention `YYYY-MM-DD-<topic>-design.md` hoặc `YYYY-MM-DD-<topic>.md`.
 
 ## Cách đọc đúng
 
-- đây là tài liệu đang làm hoặc đã làm theo phiên
-- có thể mô tả ý định, triển khai một phần, hoặc công việc đã hoàn tất tại thời điểm ghi
-- không mặc định là source of truth hiện tại
+- Plan ở đây là **đang làm hoặc sắp làm**, không mặc định đã ship.
+- Không coi là runtime truth — truth đi sau implementation + promote sang `reference/` / `runbooks/` / `architecture/`.
 
-## Quy ước tên file
+## Quy ước tên
 
-- `YYYY-MM-DD-*-design.md`: hướng thiết kế, phương án, UX reasoning
-- `YYYY-MM-DD-*.md`: execution plan, checklist, note triển khai
+- `YYYY-MM-DD-<topic>-design.md`: design direction, UX reasoning, alternatives
+- `YYYY-MM-DD-<topic>.md`: execution plan, checklist, handoff
 
-## Quy tắc bảo trì
+## Maintenance
 
-- plan nào trở thành quy ước sống thì promote sang `docs/architecture/`, `docs/reference/`, `docs/runbooks/`, hoặc `docs/testing/`
-- không dùng thư mục này để giữ runtime guidance lâu dài
+- Plan đã ship + ổn định ≥ 2 tuần → promote cốt lõi sang `architecture/` / `reference/` / `runbooks/`, sau đó `git mv` file gốc vào `archive/YYYY-QN/plans/` theo [`DOCUMENTATION_POLICY.md §6`](../reference/DOCUMENTATION_POLICY.md).
+- Lịch sử Q1 2026: [`docs/archive/2026-Q1/plans/`](../archive/2026-Q1/plans/).

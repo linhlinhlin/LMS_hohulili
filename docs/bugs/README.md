@@ -1,16 +1,18 @@
-# Bug Handoffs
+# Bug handoffs
 
-Thư mục này chứa các bug note hoặc handoff bug ở mức đủ chi tiết để team khác có thể reproduce và sửa.
+Bug note / handoff ở mức đủ chi tiết để team khác reproduce + fix.
 
-## Khi nào dùng
+## Đang có
 
-- cần bàn giao bug giữa các agent/team
-- cần lưu reproduce steps, root cause, và dữ liệu test
-- cần giữ một bug mở ở dạng tài liệu ngắn trước khi code fix
+_(chưa có bug mở — các bug resolved Q1 đã archive sang [`docs/archive/2026-Q1/bugs/`](../archive/2026-Q1/bugs/))._
 
-## Lưu ý
+## Khi nào tạo file ở đây
 
-- đây không phải source of truth vận hành
-- bug đã fix xong nên được:
-  - phản ánh vào `CHANGELOG.md` nếu đủ quan trọng
-  - chuyển tri thức sống sang `runbook`, `reference`, hoặc code/test
+- Bàn giao bug giữa agent/team
+- Lưu reproduce steps, root cause, dữ liệu test
+- Giữ một bug ở dạng handoff trước khi code fix
+
+## Lifecycle
+
+- Bug fixed → phản ánh vào `CHANGELOG.md` nếu đáng kể, chuyển knowledge sống sang `runbook/` / `reference/` / code test
+- Sau khi đóng, `git mv` file vào `archive/YYYY-QN/bugs/`

@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> **Last Updated**: 2026-04-24 | **Version**: 16.1 | **Status**: Faculty-level milestone checkpoint. Production VM paused on GCP to conserve free-trial credits; CI/CD build jobs still push images to GHCR, deploy job gated by `DEPLOY_ENABLED` repo variable. See [`docs/runbooks/PRODUCTION_PAUSE_RESUME_RUNBOOK.md`](docs/runbooks/PRODUCTION_PAUSE_RESUME_RUNBOOK.md) to resume.
+> **Last Updated**: 2026-04-24 | **Version**: 16.2 | **Status**: Faculty-level milestone checkpoint. Production VM paused on GCP to conserve free-trial credits; CI/CD build jobs still push images to GHCR, deploy job gated by `DEPLOY_ENABLED` repo variable. See [`docs/runbooks/PRODUCTION_PAUSE_RESUME_RUNBOOK.md`](docs/runbooks/PRODUCTION_PAUSE_RESUME_RUNBOOK.md) to resume. Docs tree reorganized per [`docs/reference/DOCUMENTATION_POLICY.md §6`](docs/reference/DOCUMENTATION_POLICY.md) — Q1 2026 working docs now under [`docs/archive/2026-Q1/`](docs/archive/2026-Q1/README.md); thesis artifacts under [`docs/academic/`](docs/academic/README.md).
 
 This file provides guidance to Claude Code for working with this repository. **Read this first before any task.**
 
