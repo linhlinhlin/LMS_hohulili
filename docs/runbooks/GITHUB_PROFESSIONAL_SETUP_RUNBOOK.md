@@ -183,13 +183,84 @@ Kết quả mong đợi:
 
 ---
 
-## 9. Ongoing hygiene
+## 9. CodeRabbit (AI code review)
+
+[CodeRabbit](https://www.coderabbit.ai/) review từng PR bằng LLM, tận dụng `CLAUDE.md` + `DOCUMENTATION_POLICY.md` + ADR để hiểu context LMS. Config đã có trong repo: [`.coderabbit.yaml`](../../.coderabbit.yaml).
+
+### P0 — Install app (admin only)
+
+1. Mở https://github.com/marketplace/coderabbit → **Set up a plan**
+2. Chọn **Free** (đủ cho public repo + solo maintainer) hoặc **Lite** ($15/mo) nếu muốn cả private repo + higher usage
+3. **Install on**: `linhlinhlin/LMS_hohulili` (chỉ repo này, không All repositories)
+4. Permissions app yêu cầu:
+   - Contents: Read
+   - Issues: Read & Write
+   - Pull requests: Read & Write
+   - Checks: Read & Write
+   - Metadata: Read
+5. Sau khi install, CodeRabbit sẽ tự đọc `.coderabbit.yaml` từ `main`
+
+### P1 — Verify first review
+
+1. Mở 1 PR (hoặc sync PR #116 / #117 / #118) → CodeRabbit bot sẽ comment trong ~60s
+2. Kiểm tra comment format:
+   - Tiếng Việt (vì config `language: vi-VN`)
+   - Có summary ở đầu
+   - Path instructions áp dụng đúng — ví dụ PR sửa `backend/src/main/java/**` phải reference Clean Architecture / DDD rule
+3. Nếu review không khớp: tinh chỉnh `.coderabbit.yaml` → commit → push → thử PR mới
+
+### Commands trong PR (sau khi install)
+
+Comment trong PR để điều khiển bot:
+
+- `@coderabbitai review` — force re-review
+- `@coderabbitai summary` — tái tạo summary
+- `@coderabbitai resolve` — đóng hết thread CodeRabbit mở
+- `@coderabbitai ignore` — skip review PR này
+- `@coderabbitai help` — list commands
+
+### Workflow cùng Claude Code / Codex
+
+CodeRabbit là second opinion độc lập — **không thay thế** Claude/Codex:
+
+- Claude/Codex: implement + self-review + PR draft
+- CodeRabbit: automated static review trên PR (architecture, style, security pattern, dead code)
+- Maintainer: final gate trước merge
+
+### Tuning knobs trong `.coderabbit.yaml`
+
+| Key | Đang set | Thay đổi khi |
+|---|---|---|
+| `reviews.profile` | `chill` | Đổi `assertive` nếu muốn review gắt hơn |
+| `reviews.auto_review.drafts` | `false` | Đổi `true` nếu muốn review draft để tiết kiệm iteration |
+| `reviews.path_filters` | Exclude node_modules, dist, archive, … | Thêm nếu có folder mới không cần review |
+| `reviews.path_instructions` | 10 paths với project-specific rules | Update khi có ADR mới hoặc đổi convention |
+| `knowledge_base.*` | scope `auto` | Đổi `local` nếu không muốn train trên issue/PR data |
+| `early_access` | `false` | Bật nếu muốn thử feature beta |
+
+### Troubleshooting
+
+- **Bot không review**: check PR không phải draft + base branch là `main`/`develop` (theo config)
+- **Review bằng tiếng Anh**: verify `language: vi-VN` ở đầu file
+- **Chạy quá chậm**: reduce `path_instructions` count, exclude path lớn hơn trong `path_filters`
+- **Over-comment nhiễu**: đổi profile `chill` → chill strict hoặc disable tool `ast-grep.essential_rules`
+
+### Reference
+
+- CodeRabbit docs: https://docs.coderabbit.ai/
+- Config options: https://docs.coderabbit.ai/guides/configure-coderabbit
+- Marketplace: https://github.com/marketplace/coderabbit
+
+---
+
+## 10. Ongoing hygiene
 
 ### Weekly
 
 - [ ] Review Dependabot PRs (8:00 Monday Asia/Ho_Chi_Minh per `.github/dependabot.yml`)
 - [ ] Merge security updates trước version updates
 - [ ] Check Dependabot alerts — fix critical/high ngay
+- [ ] Review CodeRabbit summary trên PR trước khi merge
 
 ### Monthly
 
