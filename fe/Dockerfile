@@ -6,7 +6,7 @@
 # syntax=docker/dockerfile:1.4
 
 # ----- Stage 1: Build Angular -----
-FROM node:20-alpine AS build
+FROM node:25-alpine AS build
 WORKDIR /app
 
 # Cache npm dependencies
@@ -20,7 +20,7 @@ COPY . .
 RUN npx ng build --configuration=production && node scripts/fix-ngsw.js
 
 # ----- Stage 2: Node.js SSR + nginx for static assets -----
-FROM node:20-alpine
+FROM node:25-alpine
 
 # Install nginx
 RUN apk add --no-cache nginx && \
