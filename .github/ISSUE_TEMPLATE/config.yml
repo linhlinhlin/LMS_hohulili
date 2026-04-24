@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Câu hỏi vận hành / production
+    url: https://github.com/meiiie/LMS_hohulili/blob/main/docs/runbooks/README.md
+    about: Xem các runbook hiện có trước khi mở issue vận hành mới.
+  - name: Chính sách tài liệu
+    url: https://github.com/meiiie/LMS_hohulili/blob/main/docs/reference/DOCUMENTATION_POLICY.md
+    about: Quy tắc phân loại, promote, archive tài liệu.
