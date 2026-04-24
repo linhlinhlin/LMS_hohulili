@@ -3,6 +3,11 @@ import { Injectable, signal, computed, OnDestroy } from '@angular/core';
 export type ConnectionTier = 'none' | 'slow' | 'fast';
 export type ConnectionTransport = 'wifi' | 'ethernet' | 'cellular' | 'unknown';
 
+const OFFLINE_GRACE_MS = 1_500;
+const RECENT_OFFLINE_WINDOW_MS = 5_000;
+const PROBE_INTERVAL_MS = 120_000;
+const PROBE_TIMEOUT_MS = 4_000;
+
 @Injectable({ providedIn: 'root' })
 export class NetworkStatusService implements OnDestroy {
   readonly online = signal(this.getBrowserOnlineHint());
@@ -41,16 +46,32 @@ export class NetworkStatusService implements OnDestroy {
     this.getBrowserOnlineHint() ? null : Date.now(),
   );
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private offlineGraceTimer: ReturnType<typeof setTimeout> | null = null;
   private probeInterval: ReturnType<typeof setInterval> | null = null;
+
   private readonly onlineHandler = () => {
+    if (this.offlineGraceTimer) {
+      clearTimeout(this.offlineGraceTimer);
+      this.offlineGraceTimer = null;
+    }
     this.recentOfflineSignalAt.set(null);
     this.updateStatus();
     this.probeLatency();
   };
+
+  // Browser 'offline' events are often spurious (Wi-Fi transitions, OS sleep,
+  // VPN toggles). Wait a grace period and verify with a probe before flipping
+  // the UI to the offline state.
   private readonly offlineHandler = () => {
-    this.markOfflineState();
-    this.updateStatus();
+    if (this.offlineGraceTimer) clearTimeout(this.offlineGraceTimer);
+    this.offlineGraceTimer = setTimeout(() => {
+      this.offlineGraceTimer = null;
+      if (!this.getBrowserOnlineHint()) {
+        this.probeLatency();
+      }
+    }, OFFLINE_GRACE_MS);
   };
+
   private readonly connectionChangeHandler = () => this.debouncedUpdate();
   private connectionRef: { removeEventListener?: (type: string, listener: EventListenerOrEventListenerObject) => void } | null = null;
 
@@ -76,7 +97,7 @@ export class NetworkStatusService implements OnDestroy {
       if (this.getBrowserOnlineHint()) {
         this.probeLatency();
       }
-    }, 120_000);
+    }, PROBE_INTERVAL_MS);
   }
 
   ngOnDestroy(): void {
@@ -92,14 +113,17 @@ export class NetworkStatusService implements OnDestroy {
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
     }
+    if (this.offlineGraceTimer) {
+      clearTimeout(this.offlineGraceTimer);
+    }
   }
 
-  hasRecentOfflineSignal(windowMs = 15_000): boolean {
+  hasRecentOfflineSignal(windowMs = RECENT_OFFLINE_WINDOW_MS): boolean {
     const lastOfflineSignalAt = this.recentOfflineSignalAt();
     return lastOfflineSignalAt != null && Date.now() - lastOfflineSignalAt <= windowMs;
   }
 
-  isEffectivelyOffline(windowMs = 15_000): boolean {
+  isEffectivelyOffline(windowMs = RECENT_OFFLINE_WINDOW_MS): boolean {
     return !this.getBrowserOnlineHint()
       || !this.online()
       || this.hasRecentOfflineSignal(windowMs);
@@ -135,50 +159,34 @@ export class NetworkStatusService implements OnDestroy {
     }
   }
 
+  // Single-probe health check against /actuator/health. Previously used a
+  // two-step icon-HEAD + actuator-GET sequence which had a race condition where
+  // the icon succeeded but actuator timed out, showing false-offline state.
+  // In dev, /actuator is proxied to the Spring Boot backend at :8088.
   private probeLatency(): void {
-    if (!this.getBrowserOnlineHint()) return;
+    if (!this.getBrowserOnlineHint()) {
+      this.markOfflineState();
+      return;
+    }
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
     const start = performance.now();
 
-    fetch('/icons/icon-192x192.png', {
-      method: 'HEAD',
+    fetch('/actuator/health', {
+      method: 'GET',
       signal: controller.signal,
       cache: 'no-store',
+      redirect: 'error',
     })
-      .then(async (iconResponse) => {
-        this.ensureSuccessfulProbeResponse(iconResponse);
+      .then((response) => {
         clearTimeout(timeoutId);
-
+        this.ensureSuccessfulProbeResponse(response);
         const rtt = performance.now() - start;
-        const apiController = new AbortController();
-        const apiTimeoutId = setTimeout(() => apiController.abort(), 3000);
-
-        try {
-          const apiResponse = await fetch('/actuator/health', {
-            method: 'GET',
-            signal: apiController.signal,
-            cache: 'no-store',
-          });
-          this.ensureSuccessfulProbeResponse(apiResponse);
-          this.markMeasuredOnlineState(rtt);
-        } catch {
-          this.markOfflineState();
-        } finally {
-          clearTimeout(apiTimeoutId);
-        }
+        this.markMeasuredOnlineState(rtt);
       })
-      .catch((error) => {
+      .catch(() => {
         clearTimeout(timeoutId);
-
-        if (error?.name === 'AbortError') {
-          this.online.set(true);
-          this.recentOfflineSignalAt.set(null);
-          this.effectiveBandwidthMbps.set(0.3);
-          return;
-        }
-
         this.markOfflineState();
       });
   }
