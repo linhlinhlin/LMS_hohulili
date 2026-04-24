@@ -1,0 +1,163 @@
+# CodeRabbit configuration
+# Docs: https://docs.coderabbit.ai/guides/configure-coderabbit
+#
+# Philosophy:
+# - Đọc bằng tiếng Việt (vì team + docs chủ yếu tiếng Việt)
+# - Review bám theo CLAUDE.md + DOCUMENTATION_POLICY.md + ADR trong backend/docs/adr/
+# - Không comment cosmetic — giữ tín hiệu / nhiễu cao
+# - Áp dụng knowledge base từ docs/reference/ để review đúng context LMS
+
+language: "vi-VN"
+
+# ─── Review behavior ──────────────────────────────────────────────────
+reviews:
+  profile: "chill"          # "chill" | "assertive" — chill phù hợp cho solo/small team
+  request_changes_workflow: false
+  high_level_summary: true
+  high_level_summary_placeholder: "@coderabbitai summary"
+  auto_title_placeholder: "@coderabbitai"
+  review_status: true
+  poem: false               # Không cần haiku
+  collapse_walkthrough: false
+
+  auto_review:
+    enabled: true
+    drafts: false           # Không review draft PR để tiết kiệm credit
+    base_branches:
+      - "main"
+      - "develop"
+
+  # Skip review cho path không đáng review
+  path_filters:
+    - "!**/node_modules/**"
+    - "!**/*.min.js"
+    - "!**/*.min.css"
+    - "!fe/dist/**"
+    - "!fe/.angular/**"
+    - "!fe/out-tsc/**"
+    - "!backend/target/**"
+    - "!docs/archive/**"             # archived working docs không cần review
+    - "!**/*.lock"
+    - "!**/package-lock.json"
+    - "!**/*.pb.go"
+    - "!backend/uploads/**"
+    - "!backups/**"
+
+  # Path-specific instructions cho agent biết boundary
+  path_instructions:
+    - path: "backend/src/main/java/**/*.java"
+      instructions: |
+        Tuân thủ Clean Architecture + DDD:
+        - JpaRepository phải target *JpaEntity (KHÔNG dùng domain model) — gây "Not a managed type" error
+        - Domain model (src/main/java/.../*/domain/model/) KHÔNG có @Entity
+        - UseCase ở application/usecase/, controller ở infrastructure/web/
+        - Mapper giữa entity ↔ domain ở infrastructure/persistence/mapper/
+        - @PreAuthorize: ADMIN endpoints phải cho phép cả ORG_ADMIN trừ 3 endpoint system-only
+        - Flag bất kỳ controller nào trả domain model trực tiếp thay vì DTO
+        - Xem backend/docs/adr/ADR-001-clean-architecture.md cho rationale
+
+    - path: "backend/src/main/resources/db/migration/*.sql"
+      instructions: |
+        Flyway migrations:
+        - Chỉ append (không sửa version cũ đã apply lên production)
+        - Migration tạo table cần SET DEFAULT temporarily cho id/created_at (pattern V54/V55)
+        - Schema cuối cùng phản ánh V1__lms_complete_schema.sql (baseline)
+        - Không dùng text[] trong schema validate — Hibernate 6.4 sẽ fail với wrong column type
+
+    - path: "fe/src/app/**/*.ts"
+      instructions: |
+        Angular 20.3 conventions (0 legacy pattern còn):
+        - KHÔNG viết "standalone: true" (default trong Angular 20+)
+        - ChangeDetectionStrategy.OnPush BẮT BUỘC 100%
+        - Dùng inject() thay constructor DI
+        - input() / output() thay @Input / @Output
+        - signal() cho state, computed() cho derived
+        - viewChild() thay @ViewChild
+        - Control flow: @if/@for/@switch — KHÔNG dùng *ngIf/*ngFor/*ngSwitch
+        - CommonModule chỉ import khi dùng pipe (| date, | number, | currency) hoặc [ngClass], [ngStyle]
+        - Template error message + toast dùng tiếng Việt có dấu (theo memory/feedback_vietnamese_diacritics)
+
+    - path: "fe/src/app/core/**"
+      instructions: |
+        Core layer — auth, guards, global services. Rất nhạy cảm:
+        - Thay đổi AuthService / guards cần regression toàn app
+        - base-url interceptor: isPlatformServer() → prepend http://backend:8080 cho SSR
+        - Offline DB schema (lms-offline.db.ts): compound key [userId+*] cho multi-account isolation
+        - Service Worker: sw-wrapper.js là active SW, KHÔNG phải sw.js
+
+    - path: "fe/src/app/features/teacher/**/*.ts"
+      instructions: |
+        Teacher surfaces — course editor, assignments, grading:
+        - UI text tránh jargon kỹ thuật, viết cho giảng viên hiểu (memory/feedback_teacher_language)
+        - Không mock data trong production component (memory/feedback_test_mocks_vs_prod)
+        - Lesson/section shell phải respect publication mode (self-paced vs pinned class)
+
+    - path: ".github/workflows/*.yml"
+      instructions: |
+        Workflow changes impact production deploy:
+        - deploy job must stay gated on vars.DEPLOY_ENABLED
+        - Docker images build on GitHub runners, push to GHCR, SSH deploy vào VM
+        - Không skip CI checks (backend tests, frontend build, compose validate, docker smoke)
+
+    - path: "docs/**/*.md"
+      instructions: |
+        Docs theo DOCUMENTATION_POLICY.md:
+        - Tiếng Việt cho runbook/reference/vận hành
+        - Tiếng Anh cho tên công nghệ, protocol, library
+        - Working docs (plans/, superpowers/, dated reports/) ship xong → promote sang reference/runbooks/ + archive
+        - docs/archive/ là append-only — KHÔNG sửa file trong đó
+
+    - path: "Caddyfile"
+      instructions: |
+        Caddy config cho holilihu.online:
+        - Tránh delete-set collision (header rules)
+        - Defer security headers cho proxied routes (các lần fix trước)
+        - SSL cert auto-issue qua Let's Encrypt, persist trên disk volume
+
+    - path: "deploy.sh"
+      instructions: |
+        Production deploy script — bất kỳ edit nào đều critical:
+        - Luôn dùng --env-file .env.prod (nếu không password sync fail với db)
+        - Không force-recreate trên e2-standard-2 (OOM risk)
+        - Verify postgres password trước backend restart
+
+  # Tools / rules
+  tools:
+    languagetool:
+      enabled: false          # Tắt — nội dung Việt không cần Anh ngữ check
+    markdownlint:
+      enabled: true
+    shellcheck:
+      enabled: true
+    ast-grep:
+      essential_rules: true
+
+  # Labeling automation
+  labeling_instructions:
+    - label: "frontend"
+      instructions: "Áp dụng nếu PR thay đổi fe/src/** hoặc fe/public/**"
+    - label: "backend"
+      instructions: "Áp dụng nếu PR thay đổi backend/src/** hoặc backend/pom.xml"
+    - label: "documentation"
+      instructions: "Áp dụng nếu PR chỉ thay đổi docs/**, *.md, hoặc .github/*.md"
+    - label: "dependencies"
+      instructions: "Áp dụng nếu PR từ Dependabot hoặc thay đổi package.json / pom.xml / lockfile"
+    - label: "breaking-change"
+      instructions: "Áp dụng khi PR sửa signature public API, sửa DB migration đã ship, hoặc sửa auth model"
+
+# ─── Chat (trong PR discussion) ────────────────────────────────────────
+chat:
+  auto_reply: true
+
+# ─── Knowledge base ────────────────────────────────────────────────────
+knowledge_base:
+  opt_out: false
+  learnings:
+    scope: "auto"
+  issues:
+    scope: "auto"
+  pull_requests:
+    scope: "auto"
+
+# ─── Early access features ─────────────────────────────────────────────
+early_access: false
