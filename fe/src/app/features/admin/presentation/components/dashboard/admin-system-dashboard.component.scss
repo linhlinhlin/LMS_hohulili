@@ -92,6 +92,10 @@
 }
 
 .card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-3;
   padding: $spacing-4 $spacing-6;
   border-bottom: 1px solid $border-light;
 }
@@ -432,19 +436,28 @@
   }
 }
 
-/* ===== HEALTH CARD ===== */
-.health-list {
+/* ===== HEALTH CARD =====
+   F-06: replaced 4-row fictional breakdown with single real /actuator/health
+   summary + lastChecked timestamp + manual refresh. */
+.health-summary {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-3;
   padding: $spacing-4 $spacing-6;
 }
 
-.health-item {
+.health-row {
   display: flex;
   align-items: center;
   gap: $spacing-3;
-  padding: $spacing-3 0;
-  border-bottom: 1px solid $border-light;
+  padding: $spacing-3;
+  border-radius: $radius-md;
+  background: $gray-50;
+  transition: background $transition-fast;
 
-  &:last-child { border-bottom: none; }
+  &.health-row-up { background: rgba($success, 0.06); }
+  &.health-row-down { background: rgba($error, 0.06); }
+  &.health-row-unknown { background: rgba($warning, 0.06); }
 }
 
 .health-dot {
@@ -461,22 +474,89 @@
   &.warn { background: $warning; box-shadow: 0 0 0 3px rgba($warning, 0.15); }
 }
 
-.health-name {
+.health-text {
   flex: 1;
-  font-size: $text-sm;
-  font-weight: $font-medium;
-  color: $gray-700;
+  min-width: 0;
 }
 
-.health-status {
+.health-name {
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  color: $text-primary;
+  margin: 0;
+}
+
+.health-meta {
   font-size: $text-xs;
-  font-weight: $font-medium;
-  padding: $spacing-1 $spacing-3;
+  color: $text-muted;
+  margin: 2px 0 0; // 4pt baseline — tight pairing with name above
+  font-variant-numeric: tabular-nums;
+}
+
+.health-badge {
+  font-size: $text-xs;
+  font-weight: $font-bold;
+  padding: $spacing-1 $spacing-2;
   border-radius: $radius-sm;
+  letter-spacing: 0.5px;
 
   &.status-ok { background: $success-light; color: $success; }
   &.status-err { background: $error-light; color: $error; }
-  &.status-warn { background: $warning-light; color: $warning; }
+}
+
+.health-source {
+  font-size: $text-xs;
+  color: $text-muted;
+  margin: 0;
+
+  code {
+    font-family: $font-family-mono;
+    font-size: 11px; // mono fonts run visually larger; nudge down a step
+    background: $gray-100;
+    padding: 2px $spacing-1;
+    border-radius: $radius-sm;
+    color: $gray-700;
+  }
+}
+
+.health-refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: $spacing-8;
+  height: $spacing-8;
+  padding: 0;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  background: white;
+  color: $text-muted;
+  cursor: pointer;
+  transition: background $transition-fast, color $transition-fast, border-color $transition-fast;
+
+  &:hover:not(:disabled) {
+    background: $gray-50;
+    color: $blue-primary;
+    border-color: $blue-primary;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  @include focus-visible;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* ===== SKELETON ===== */
@@ -547,8 +627,9 @@
   .data-table th { padding: $spacing-2 $spacing-3; font-size: $text-xs; }
   .data-table td { padding: $spacing-2 $spacing-3; font-size: $text-sm; }
 
-  .health-list { padding: $spacing-3; }
-  .health-name { font-size: $text-sm; }
+  .health-summary { padding: $spacing-3; }
+  .health-row { padding: $spacing-2 $spacing-3; }
+  .health-source { display: none; }
 
   .table-empty {
     padding: $spacing-8 $spacing-4;
@@ -649,11 +730,13 @@
   }
 
   // Health: compact
-  .health-list { padding: 8px 12px !important; }
-  .health-item { padding: 6px 0 !important; }
+  .health-summary { padding: 8px 12px !important; gap: 6px !important; }
+  .health-row { padding: 4px 8px !important; }
+  .health-refresh { display: none !important; }
+  .health-source { display: none !important; }
 
   // Print colors
-  .badge, .health-dot, .health-status, .metric-value {
+  .badge, .health-dot, .health-badge, .metric-value {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
