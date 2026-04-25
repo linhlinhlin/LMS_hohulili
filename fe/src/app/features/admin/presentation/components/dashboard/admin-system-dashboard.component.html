@@ -51,6 +51,12 @@
       <div class="header-inner">
         <h1 class="page-title">Bảng điều khiển hệ thống</h1>
         <div class="header-actions">
+          <!-- F-P2: shared <app-date-range-toggle> — drives windowed analytics
+               via parent re-fetch. Default 30 ngày. -->
+          <app-date-range-toggle
+            [value]="windowDays()"
+            ariaLabel="Khoảng thời gian báo cáo"
+            (change)="windowDaysChange.emit($event)" />
           <a routerLink="/admin/analytics" class="btn-secondary">Xem báo cáo</a>
           <a routerLink="/admin/users/all" class="btn-primary">Thêm người dùng</a>
         </div>
