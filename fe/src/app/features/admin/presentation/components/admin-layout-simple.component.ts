@@ -17,7 +17,7 @@ import { AiAvailabilityService } from '../../../ai-chat/application/services/ai-
     <div class="min-h-screen flex">
       <!-- Desktop Sidebar -->
       @if (!shouldHideSidebar()) {
-        <div class="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-50">
+        <div class="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-50 lg:w-72">
           <app-sidebar [config]="adminSidebarConfig" [collapsed]="false"></app-sidebar>
         </div>
       }
