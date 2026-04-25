@@ -115,7 +115,10 @@
   overflow-x: auto;
 }
 
-/* ===== ① METRICS STRIP (Stripe pattern) ===== */
+/* ===== ① METRICS STRIP (Stripe pattern) =====
+   Children are <app-kpi-card> components — see shared/components/admin/kpi-card.
+   This strip only owns the outer container shape and divider lines between
+   cards; each card paints its own value / label / trend. */
 .metrics-strip {
   @extend .card;
   display: grid;
@@ -126,8 +129,8 @@
   @include desktop { grid-template-columns: repeat(4, 1fr); }
 }
 
-.metric-cell {
-  padding: $spacing-4 $spacing-6;
+.metrics-strip > app-kpi-card {
+  display: block;
 
   &:nth-child(odd) { border-right: 1px solid $border-light; }
   &:nth-child(-n+2) { border-bottom: 1px solid $border-light; }
@@ -137,59 +140,6 @@
     border-bottom: none !important;
     &:last-child { border-right: none; }
   }
-
-  &.highlight {
-    background: rgba($warning, 0.04);
-  }
-}
-
-.metric-value {
-  // Display rung in 1.125 ladder — number is the focal point of the cell.
-  font-size: $text-2xl;
-  font-weight: $font-bold;
-  color: $text-primary;
-  line-height: $leading-tight;
-  margin: 0 0 $spacing-1;
-
-  &.warning { color: $warning; }
-}
-
-.metric-label {
-  font-size: $text-xs;
-  color: $text-muted;
-  margin: 0;
-}
-
-/* Trend row — number + arrow + delta + period label.
-   F-05: ▲ green / ▼ red / → gray, anatomy borrowed from Stripe / Vercel KPI.
-*/
-.metric-sub {
-  display: inline-flex;
-  align-items: center;
-  gap: $spacing-1;
-  font-size: $text-xs;
-  color: $text-muted;
-  margin: $spacing-1 0 0;
-
-  &.warning-text { color: $warning; }
-}
-
-.trend {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px; // 4pt baseline — visual coupling between arrow + number.
-  font-weight: $font-semibold;
-  font-variant-numeric: tabular-nums;
-
-  &.trend-up { color: $success; }
-  &.trend-down { color: $error; }
-  &.trend-flat { color: $text-muted; }
-}
-
-.trend-arrow {
-  // Glyph rendered via :before to avoid extra DOM. Sizing matches text-xs.
-  font-size: 10px; // visual match for caret next to 12px label
-  line-height: 1;
 }
 
 /* ===== ② CONTENT GRID ===== */
@@ -605,10 +555,8 @@
   .header-inner { padding: $spacing-3; }
   .page-title { font-size: $text-lg; }
 
-  .metric-cell { padding: $spacing-3; }
-  .metric-value { font-size: $text-xl; } // 20px on small screens — keep big numbers legible
-  .metric-label { font-size: $text-xs; }
-  .metric-sub { display: none; }
+  // KPI strip layout only — value / label / sub sizing lives in the
+  // shared kpi-card component (CC-01).
 
   .card-header { padding: $spacing-3 $spacing-4; }
   .card-body { padding: $spacing-4; }
@@ -642,9 +590,7 @@
 // Ultra-small (<340px)
 @media screen and (max-width: 340px) {
   .dashboard-main { padding: $spacing-3 $spacing-2; }
-  .metric-cell { padding: $spacing-2 $spacing-3; }
-  .metric-value { font-size: $text-lg; } // drop one rung on very narrow screens
-  .metric-label { font-size: $text-xs; }
+  // KPI sizing — see kpi-card.component.scss ultra-small media query.
 
   .card-header { padding: $spacing-2 $spacing-3; }
   .card-body { padding: $spacing-2 $spacing-3; }
@@ -685,19 +631,16 @@
     page-break-inside: avoid;
   }
 
-  // Metrics: show sub labels, 4-col always
+  // Metrics: 4-col always, divider between cards.
   .metrics-strip {
     grid-template-columns: repeat(4, 1fr) !important;
     margin-bottom: 10px !important;
   }
-  .metric-cell {
-    padding: 8px 12px !important;
+  .metrics-strip > app-kpi-card {
     border-bottom: none !important;
     border-right: 1px solid $gray-300;
     &:last-child { border-right: none; }
   }
-  .metric-sub { display: block !important; }
-  .metric-value { font-size: 16px !important; }
 
   // Grid: single column
   .content-grid {
@@ -735,8 +678,8 @@
   .health-refresh { display: none !important; }
   .health-source { display: none !important; }
 
-  // Print colors
-  .badge, .health-dot, .health-badge, .metric-value {
+  // Print colors — kpi-card value color comes from the shared component.
+  .badge, .health-dot, .health-badge {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }

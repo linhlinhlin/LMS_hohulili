@@ -1,0 +1,101 @@
+@use '../../../../../styles/variables' as *;
+
+/* Shared KPI card — admin portal (Stripe / Linear / Vercel pattern).
+   Source of truth lives here; per-surface SCSS must NOT redefine these
+   selectors. CC-01 audit 2026-04-25. */
+
+:host {
+  display: block;
+}
+
+.kpi-card {
+  padding: $spacing-4 $spacing-6;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  gap: 2px; // 4pt baseline — tight value↔label coupling
+
+  &.kpi-warning {
+    background: rgba($warning, 0.04);
+  }
+
+  // success / error variants currently only differ on value color + bg tint.
+  // Reserved for status KPIs (e.g. "Đã từ chối" red, "Đã duyệt" green).
+  &.kpi-success {
+    background: rgba($success, 0.04);
+  }
+  &.kpi-error {
+    background: rgba($error, 0.04);
+  }
+}
+
+.kpi-value {
+  // Display rung in 1.125 type ladder — number is the focal point.
+  font-size: $text-2xl;
+  font-weight: $font-bold;
+  color: $text-primary;
+  line-height: $leading-tight;
+  margin: 0 0 $spacing-1;
+  font-variant-numeric: tabular-nums;
+
+  .kpi-warning & { color: $warning; }
+  .kpi-success & { color: $success; }
+  .kpi-error & { color: $error; }
+}
+
+.kpi-label {
+  font-size: $text-xs;
+  color: $text-muted;
+  margin: 0;
+}
+
+.kpi-sub {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-1;
+  font-size: $text-xs;
+  color: $text-muted;
+  margin: $spacing-1 0 0;
+
+  .sub-after-trend {
+    margin-left: $spacing-1;
+  }
+}
+
+.trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-weight: $font-semibold;
+  font-variant-numeric: tabular-nums;
+
+  &.trend-up   { color: $success; }
+  &.trend-down { color: $error; }
+  &.trend-flat { color: $text-muted; }
+}
+
+.trend-arrow {
+  font-size: 10px; // visual match for caret next to 12px label
+  line-height: 1;
+}
+
+/* Mobile — keep big numbers legible, hide sub when space is tight at the
+   strip level. The strip parent decides; the card itself stays self-contained. */
+@media screen and (max-width: $breakpoint-sm) {
+  .kpi-card {
+    padding: $spacing-3;
+  }
+  .kpi-value {
+    font-size: $text-xl;
+  }
+}
+
+@media screen and (max-width: 340px) {
+  .kpi-card {
+    padding: $spacing-2 $spacing-3;
+  }
+  .kpi-value {
+    font-size: $text-lg;
+  }
+}

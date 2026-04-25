@@ -6,6 +6,7 @@ import { SystemHealthService } from '../../../infrastructure/services/system-hea
 import { PendingApproval } from './dashboard.types';
 import { DialogComponent } from '../../../../../shared/components/dialog/dialog.component';
 import { IconComponent, IconName } from '../../../../../shared/components/icon/icon.component';
+import { KpiCardComponent } from '../../../../../shared/components/admin/kpi-card/kpi-card.component';
 
 interface QuickAction {
   id: string;
@@ -27,7 +28,7 @@ const QUICK_ACTIONS: readonly QuickAction[] = [
 
 @Component({
   selector: 'app-admin-system-dashboard',
-  imports: [CommonModule, RouterLink, DialogComponent, IconComponent],
+  imports: [CommonModule, RouterLink, DialogComponent, IconComponent, KpiCardComponent],
   templateUrl: './admin-system-dashboard.component.html',
   styleUrl: './admin-system-dashboard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -58,23 +59,6 @@ export class AdminSystemDashboardComponent implements OnInit {
 
   // Shortcut panel — replaces the redundant "Tổng quan nhanh" card.
   quickActions = computed<readonly QuickAction[]>(() => QUICK_ACTIONS);
-
-  // F-05: classify a growth rate as up / down / flat for trend-arrow rendering.
-  // Stripe / Vercel pattern — same data, but arrow + color give scannability.
-  trendOf(rate: number | null | undefined): 'up' | 'down' | 'flat' {
-    if (rate == null || rate === 0) return 'flat';
-    return rate > 0 ? 'up' : 'down';
-  }
-
-  trendArrow(rate: number | null | undefined): string {
-    const t = this.trendOf(rate);
-    return t === 'up' ? '▲' : t === 'down' ? '▼' : '→';
-  }
-
-  // Always show absolute value next to the arrow — sign is encoded in arrow + color.
-  trendMagnitude(rate: number | null | undefined): number {
-    return Math.abs(rate ?? 0);
-  }
 
   // --- Reject modal state (mirrors org-admin pattern from PR #145) ---
   rejectModalOpen = signal(false);

@@ -55,10 +55,13 @@ $orange-700: #9A3412;
 }
 
 .btn-create {
+  // CC-02 (mega audit 2026-04-25): primary action color unified across the
+  // admin portal to $blue-primary. Orange was reserved for warning states
+  // and didn't belong on a "+ Add admin" CTA.
   display: inline-flex;
   align-items: center;
   padding: 10px $spacing-4;
-  background: $orange-primary;
+  background: $blue-primary;
   color: $text-inverse;
   font-size: $text-sm;
   font-weight: $font-medium;
@@ -68,7 +71,7 @@ $orange-700: #9A3412;
   transition: background $transition-normal;
   white-space: nowrap;
 
-  &:hover { background: $orange-hover; }
+  &:hover { background: $blue-hover; }
 
   svg { width: 16px; height: 16px; margin-right: $spacing-2; }
 }
