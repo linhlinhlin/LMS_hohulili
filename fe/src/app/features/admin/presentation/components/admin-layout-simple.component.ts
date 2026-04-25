@@ -17,8 +17,12 @@ import { AiAvailabilityService } from '../../../ai-chat/application/services/ai-
     <div class="min-h-screen flex">
       <!-- Desktop Sidebar -->
       @if (!shouldHideSidebar()) {
-        <div class="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-50 lg:w-72">
-          <app-sidebar [config]="adminSidebarConfig" [collapsed]="false"></app-sidebar>
+        <div class="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-50"
+             [class.lg:w-16]="isSidebarCollapsed()"
+             [class.lg:w-72]="!isSidebarCollapsed()">
+          <app-sidebar [config]="adminSidebarConfig"
+                       [collapsed]="isSidebarCollapsed()"
+                       (toggleCollapse)="toggleSidebarCollapse()"></app-sidebar>
         </div>
       }
 
@@ -34,7 +38,9 @@ import { AiAvailabilityService } from '../../../ai-chat/application/services/ai-
       }
 
       <!-- Main content + AI Sidebar wrapper -->
-      <div [class]="shouldHideSidebar() ? 'flex flex-1 min-w-0 min-h-screen' : 'lg:pl-72 flex flex-1 min-w-0 min-h-screen'">
+      <div class="flex flex-1 min-w-0 min-h-screen"
+           [class.lg:pl-16]="!shouldHideSidebar() && isSidebarCollapsed()"
+           [class.lg:pl-72]="!shouldHideSidebar() && !isSidebarCollapsed()">
 
         <!-- Main content column -->
         <div class="flex flex-col flex-1 min-w-0">
@@ -277,6 +283,12 @@ export class AdminLayoutSimpleComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   protected isMobileSidebarOpen = signal(false);
 
+  // CC-04 — sidebar collapse parity với teacher / student. Persisted in
+  // localStorage under `admin_sidebar_collapsed` (separate key per portal
+  // so an admin's preference doesn't leak into other portals nếu cùng
+  // user role-switch).
+  protected isSidebarCollapsed = signal(false);
+
   // Sidebar config — use shared config based on user role
   protected get adminSidebarConfig() {
     const role = this.authService.userRole() || 'admin';
@@ -314,6 +326,7 @@ export class AdminLayoutSimpleComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
+    this.loadSidebarCollapsed();
     this.loadAiSidebarState();
     this.loadAiSidebarWidth();
 
@@ -340,6 +353,26 @@ export class AdminLayoutSimpleComponent implements OnInit, OnDestroy {
 
   toggleMobileSidebar(): void {
     this.isMobileSidebarOpen.update(open => !open);
+  }
+
+  toggleSidebarCollapse(): void {
+    this.isSidebarCollapsed.update(v => !v);
+    try {
+      localStorage?.setItem('admin_sidebar_collapsed', this.isSidebarCollapsed().toString());
+    } catch {
+      // Storage may be disabled in private mode — silently ignore.
+    }
+  }
+
+  private loadSidebarCollapsed(): void {
+    try {
+      const saved = localStorage?.getItem('admin_sidebar_collapsed');
+      if (saved !== null && saved !== undefined) {
+        this.isSidebarCollapsed.set(saved === 'true');
+      }
+    } catch {
+      // ignore
+    }
   }
 
   // --- AI Sidebar ---
