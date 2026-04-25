@@ -129,52 +129,57 @@
           </nav>
         </div>
 
-        <!-- System Health -->
+        <!-- System Health — single real status from /actuator/health (F-06).
+             Previous 4-row breakdown (api/db/email/storage) was synthetic —
+             the analytics API never returned those fields. -->
         <div class="card health-card">
           <div class="card-header">
             <h2 class="card-title">Trạng thái hệ thống</h2>
+            <button
+              type="button"
+              class="health-refresh"
+              (click)="refreshHealth()"
+              [disabled]="health.loading()"
+              [attr.aria-label]="'Làm mới trạng thái hệ thống'">
+              <app-icon name="refresh" size="sm" aria-hidden="true" />
+              <span class="sr-only">Làm mới</span>
+            </button>
           </div>
-          <div class="health-list">
-            <div class="health-item">
-              <div class="health-dot" [class.healthy]="analytics().systemHealth.api === 'healthy'"
-                [class.error]="analytics().systemHealth.api !== 'healthy'"></div>
-              <span class="health-name">API Service</span>
-              <span class="health-status"
-                [class.status-ok]="analytics().systemHealth.api === 'healthy'"
-                [class.status-err]="analytics().systemHealth.api !== 'healthy'">
-                {{ analytics().systemHealth.api === 'healthy' ? 'Hoạt động' : 'Lỗi' }}
-              </span>
-            </div>
-            <div class="health-item">
-              <div class="health-dot" [class.healthy]="analytics().systemHealth.database === 'healthy'"
-                [class.error]="analytics().systemHealth.database !== 'healthy'"></div>
-              <span class="health-name">Database</span>
-              <span class="health-status"
-                [class.status-ok]="analytics().systemHealth.database === 'healthy'"
-                [class.status-err]="analytics().systemHealth.database !== 'healthy'">
-                {{ analytics().systemHealth.database === 'healthy' ? 'Hoạt động' : 'Lỗi' }}
-              </span>
-            </div>
-            <div class="health-item">
-              <div class="health-dot" [class.healthy]="analytics().systemHealth.email === 'healthy'"
-                [class.error]="analytics().systemHealth.email !== 'healthy'"></div>
-              <span class="health-name">Email Service</span>
-              <span class="health-status"
-                [class.status-ok]="analytics().systemHealth.email === 'healthy'"
-                [class.status-err]="analytics().systemHealth.email !== 'healthy'">
-                {{ analytics().systemHealth.email === 'healthy' ? 'Hoạt động' : 'Lỗi' }}
-              </span>
-            </div>
-            <div class="health-item">
-              <div class="health-dot" [class.healthy]="analytics().systemHealth.storage === 'healthy'"
-                [class.warn]="analytics().systemHealth.storage !== 'healthy'"></div>
-              <span class="health-name">Bộ nhớ</span>
-              <span class="health-status"
-                [class.status-ok]="analytics().systemHealth.storage === 'healthy'"
-                [class.status-warn]="analytics().systemHealth.storage !== 'healthy'">
-                {{ analytics().systemHealth.storage === 'healthy' ? 'Hoạt động' : 'Cần kiểm tra' }}
-              </span>
-            </div>
+          <div class="health-summary">
+            @if (health.status() === 'unknown') {
+              <div class="health-row health-row-unknown">
+                <div class="health-dot warn"></div>
+                <div class="health-text">
+                  <p class="health-name">Đang kiểm tra...</p>
+                  <p class="health-meta">Đang gọi /actuator/health</p>
+                </div>
+              </div>
+            } @else if (health.status() === 'up') {
+              <div class="health-row health-row-up">
+                <div class="health-dot healthy"></div>
+                <div class="health-text">
+                  <p class="health-name">Hệ thống đang hoạt động</p>
+                  <p class="health-meta">
+                    Cập nhật lúc {{ health.lastChecked() | date:'HH:mm:ss' }}
+                  </p>
+                </div>
+                <span class="health-badge status-ok">UP</span>
+              </div>
+            } @else {
+              <div class="health-row health-row-down">
+                <div class="health-dot error"></div>
+                <div class="health-text">
+                  <p class="health-name">Hệ thống gặp sự cố</p>
+                  <p class="health-meta">
+                    Lần kiểm tra cuối: {{ health.lastChecked() | date:'HH:mm:ss' }}
+                  </p>
+                </div>
+                <span class="health-badge status-err">DOWN</span>
+              </div>
+            }
+            <p class="health-source">
+              Nguồn dữ liệu: <code>GET /actuator/health</code>
+            </p>
           </div>
         </div>
       </div>

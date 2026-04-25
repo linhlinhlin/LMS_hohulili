@@ -1,7 +1,8 @@
-import { Component, input, output, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, input, output, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { SystemAnalytics } from '../../../infrastructure/services/admin.service';
+import { SystemHealthService } from '../../../infrastructure/services/system-health.service';
 import { PendingApproval } from './dashboard.types';
 import { DialogComponent } from '../../../../../shared/components/dialog/dialog.component';
 import { IconComponent, IconName } from '../../../../../shared/components/icon/icon.component';
@@ -31,12 +32,25 @@ const QUICK_ACTIONS: readonly QuickAction[] = [
   styleUrl: './admin-system-dashboard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class AdminSystemDashboardComponent {
+export class AdminSystemDashboardComponent implements OnInit {
+  // F-06: backend health is read from /actuator/health (real ping), not from
+  // the synthetic systemHealth object the analytics API used to imply.
+  protected health = inject(SystemHealthService);
+
   // --- Inputs from parent ---
   analytics = input.required<SystemAnalytics>();
   pendingApprovals = input.required<PendingApproval[]>();
   isLoading = input.required<boolean>();
   isLoadingPending = input.required<boolean>();
+
+  ngOnInit(): void {
+    // Fire and forget — service flips its own loading signal during the probe.
+    this.health.refresh();
+  }
+
+  refreshHealth(): void {
+    this.health.refresh();
+  }
 
   // --- Outputs to parent ---
   courseApproved = output<string>();
