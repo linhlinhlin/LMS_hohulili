@@ -163,9 +163,25 @@ export class StudentManagementComponent implements OnInit {
     });
   }
 
-  // Status action handler
-  onStatusActionChange(user: AdminUser, newStatus: string) {
+  // Status action handler — F-U3 security fix: require confirm modal before
+  // suspending or activating an account. Cancel → loadUsers() re-fetch reverts
+  // the inline-edit dropdown UI.
+  async onStatusActionChange(user: AdminUser, newStatus: string) {
     if (!newStatus) return;
+
+    const isBlock = newStatus === 'BLOCKED';
+    const confirmed = await this.confirmDialog.confirm({
+      title: isBlock ? 'Khóa tài khoản' : 'Kích hoạt tài khoản',
+      message: isBlock
+        ? `Bạn có chắc muốn khóa tài khoản của ${user.name}? Họ sẽ không đăng nhập được cho đến khi mở khóa.`
+        : `Bạn có chắc muốn kích hoạt lại tài khoản của ${user.name}?`,
+      confirmText: isBlock ? 'Khóa tài khoản' : 'Kích hoạt',
+      variant: isBlock ? 'danger' : 'warning'
+    });
+    if (!confirmed) {
+      this.loadUsers();
+      return;
+    }
 
     this.adminService.updateUserStatus(user.id, {
       status: newStatus as UserAccountStatus,

@@ -132,9 +132,26 @@ export class AdminUserManagementComponent implements OnInit {
     });
   }
 
-  // Status action handler
-  onStatusActionChange(user: AdminUser, newStatus: string) {
+  // Status action handler — F-AD2 security fix: require confirm modal before
+  // suspending or activating an admin account. Admins suspending other admins
+  // is the highest-blast-radius action in the portal; the modal makes the
+  // intent explicit and the cancel path re-fetches to revert dropdown UI.
+  async onStatusActionChange(user: AdminUser, newStatus: string) {
     if (!newStatus) return;
+
+    const isBlock = newStatus === 'BLOCKED';
+    const confirmed = await this.confirmDialog.confirm({
+      title: isBlock ? 'Khóa tài khoản Quản trị viên' : 'Kích hoạt tài khoản',
+      message: isBlock
+        ? `Bạn có chắc muốn khóa tài khoản Quản trị viên ${user.name}? Họ sẽ mất quyền truy cập hệ thống cho đến khi được mở khóa.`
+        : `Bạn có chắc muốn kích hoạt lại tài khoản của ${user.name}?`,
+      confirmText: isBlock ? 'Khóa tài khoản' : 'Kích hoạt',
+      variant: isBlock ? 'danger' : 'warning'
+    });
+    if (!confirmed) {
+      this.loadUsers();
+      return;
+    }
 
     this.adminService.updateUserStatus(user.id, {
       status: newStatus as UserAccountStatus,
