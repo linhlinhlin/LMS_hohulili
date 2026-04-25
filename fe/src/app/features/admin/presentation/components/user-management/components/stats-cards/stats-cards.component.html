@@ -1,66 +1,21 @@
 <div class="stats-grid">
-  <!-- Total Users Card -->
-  <div class="stat-card">
-    <div class="stat-card__row">
-      <div class="stat-card__content">
-        <p class="stat-card__label">Tổng người dùng</p>
-        <p class="stat-card__value">{{ state.totalUsers() }}</p>
-        <p class="stat-card__sub">{{ state.activeUsers() }} đang hoạt động</p>
-      </div>
-      <div class="stat-card__icon stat-card__icon--primary">
-        <svg class="icon" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 8v1h1.5a.5.5 0 01.5.5v9a.5.5 0 01-.5.5h-13a.5.5 0 01-.5-.5v-9a.5.5 0 01.5-.5H8v-1a5 5 0 00-5 5v1h9.93z"></path>
-        </svg>
-      </div>
-    </div>
-  </div>
+  <app-kpi-card
+    [value]="state.totalUsers()"
+    label="Tổng người dùng"
+    [sub]="state.activeUsers() + ' đang hoạt động'" />
 
-  <!-- Teachers Card -->
-  <div class="stat-card">
-    <div class="stat-card__row">
-      <div class="stat-card__content">
-        <p class="stat-card__label">Giảng viên</p>
-        <p class="stat-card__value">{{ state.totalTeachers() }}</p>
-        <p class="stat-card__sub">Đang giảng dạy</p>
-      </div>
-      <div class="stat-card__icon stat-card__icon--purple">
-        <svg class="icon" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
-          <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
-        </svg>
-      </div>
-    </div>
-  </div>
+  <app-kpi-card
+    [value]="state.totalTeachers()"
+    label="Giảng viên"
+    sub="Đang giảng dạy" />
 
-  <!-- Students Card -->
-  <div class="stat-card">
-    <div class="stat-card__row">
-      <div class="stat-card__content">
-        <p class="stat-card__label">Học viên</p>
-        <p class="stat-card__value">{{ state.totalStudents() }}</p>
-        <p class="stat-card__sub">Đang học tập</p>
-      </div>
-      <div class="stat-card__icon stat-card__icon--green">
-        <svg class="icon" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"></path>
-        </svg>
-      </div>
-    </div>
-  </div>
+  <app-kpi-card
+    [value]="state.totalStudents()"
+    label="Học viên"
+    sub="Đang học tập" />
 
-  <!-- Admins Card -->
-  <div class="stat-card">
-    <div class="stat-card__row">
-      <div class="stat-card__content">
-        <p class="stat-card__label">Quản trị viên</p>
-        <p class="stat-card__value">{{ state.totalAdmins() }}</p>
-        <p class="stat-card__sub">Quản lý hệ thống</p>
-      </div>
-      <div class="stat-card__icon stat-card__icon--orange">
-        <svg class="icon" fill="currentColor" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
-        </svg>
-      </div>
-    </div>
-  </div>
+  <app-kpi-card
+    [value]="state.totalAdmins()"
+    label="Quản trị viên"
+    sub="Quản lý hệ thống" />
 </div>

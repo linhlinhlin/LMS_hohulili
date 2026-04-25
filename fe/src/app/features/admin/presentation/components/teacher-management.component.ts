@@ -8,6 +8,7 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { getAdminPortalBase } from '../../../../core/utils/portal-route.util';
+import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/kpi-card.component';
 
 /**
  * Teacher Management Component
@@ -16,7 +17,7 @@ import { getAdminPortalBase } from '../../../../core/utils/portal-route.util';
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-teacher-management',
-  imports: [RouterModule, FormsModule],
+  imports: [RouterModule, FormsModule, KpiCardComponent],
   styleUrl: './teacher-management.component.scss',
   templateUrl: './teacher-management.html'
 })
