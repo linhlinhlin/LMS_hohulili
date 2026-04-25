@@ -1,5 +1,5 @@
 import { Component, signal, inject, OnInit, computed, ChangeDetectionStrategy } from '@angular/core';
-import { AdminService, SystemAnalytics } from '../../infrastructure/services/admin.service';
+import { AdminService, SystemAnalytics, PendingCourseSummary } from '../../infrastructure/services/admin.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PendingApproval } from './dashboard/dashboard.types';
@@ -119,20 +119,20 @@ export class AdminComponent implements OnInit {
   private loadPendingApprovals(): void {
     this.isLoadingPending.set(true);
     this.adminService.getPendingCourses().subscribe({
-      next: (response) => {
-        this.pendingApprovals.set(
-          response.data.map(course => ({
-            id: course.id,
-            name: course.title,
-            type: 'course' as const,
-            submittedDate: course.submittedAt || course.createdAt
-          }))
-        );
+      next: (response: { data: PendingCourseSummary[] }) => {
+        const items: PendingApproval[] = response.data.map((course) => ({
+          id: course.id,
+          name: course.title,
+          type: 'course',
+          submittedDate: course.submittedAt || course.createdAt
+        }));
+        this.pendingApprovals.set(items);
         this.isLoadingPending.set(false);
       },
       error: () => {
         this.pendingApprovals.set([]);
         this.isLoadingPending.set(false);
+        this.toast.error('Không thể tải danh sách chờ duyệt. Vui lòng thử lại.');
       }
     });
   }
