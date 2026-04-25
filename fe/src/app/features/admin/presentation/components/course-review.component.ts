@@ -78,6 +78,55 @@ export class CourseReviewComponent implements OnInit {
   previewContent$ = signal<any[]>([]);
   loadingPreview = signal(false);
 
+  // F-CR1 — empty state CTA. Helper to detect whether the current view is
+  // empty because of an applied filter (so we offer to clear it) versus
+  // genuinely no data (no CTA — there's nothing to clear).
+  hasActiveFilter = computed(() => {
+    return this.statusFilter !== '' || this.searchKeyword.trim() !== '';
+  });
+
+  emptyStateTitle = computed(() => {
+    if (this.statusFilter === 'PENDING') return 'Không có khóa học chờ duyệt';
+    if (this.statusFilter === 'APPROVED') return 'Chưa có khóa học nào được duyệt';
+    if (this.statusFilter === 'REJECTED') return 'Chưa có khóa học bị từ chối';
+    if (this.statusFilter === 'DRAFT') return 'Chưa có khóa học nháp';
+    return 'Không tìm thấy khóa học nào';
+  });
+
+  emptyStateDescription = computed(() => {
+    if (this.hasActiveFilter()) {
+      return 'Thử điều chỉnh từ khóa tìm kiếm hoặc chọn bộ lọc khác.';
+    }
+    return 'Khi giảng viên gửi khóa học mới, danh sách sẽ hiển thị ở đây.';
+  });
+
+  clearFilters(): void {
+    this.searchKeyword = '';
+    this.statusFilter = '';
+    this.currentPage = 1;
+    this.loadCourses();
+  }
+
+  // F-CR3 — SLA badge.
+  // Days since the teacher submitted for review. Reviewer sees urgency at a
+  // glance instead of clicking into each row.
+  getSlaDays(course: CourseListItem): number {
+    if (!course.submittedAt) return 0;
+    const submitted = new Date(course.submittedAt).getTime();
+    if (Number.isNaN(submitted)) return 0;
+    const diffMs = Date.now() - submitted;
+    return Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+  }
+
+  // < 3 days = ok (gray), 3-7 = watch (amber), > 7 = overdue (red).
+  // Thresholds picked from internal SLA discussion — easy to tune later.
+  getSlaUrgency(course: CourseListItem): 'ok' | 'watch' | 'overdue' {
+    const days = this.getSlaDays(course);
+    if (days >= 7) return 'overdue';
+    if (days >= 3) return 'watch';
+    return 'ok';
+  }
+
   ngOnInit() {
     this.loadCourses();
   }

@@ -165,7 +165,8 @@
                   <th>Khóa học</th>
                   <th>Giảng viên</th>
                   <th>Trạng thái</th>
-                  <th>Giá / Học viên</th>
+                  <th>Giá</th>
+                  <th>Học viên</th>
                   <th class="col-actions">Thao tác</th>
                 </tr>
               </thead>
@@ -221,7 +222,9 @@
                     </td>
                     <td>
                       <div class="price-text">{{ course.price ? formatCurrency(course.price) : 'Miễn phí' }}</div>
-                      <div class="students-text">{{ course.enrolledCount || 0 }} học viên</div>
+                    </td>
+                    <td>
+                      <div class="students-text">{{ course.enrolledCount || 0 }}</div>
                     </td>
                     <td>
                       <div class="action-btns">
