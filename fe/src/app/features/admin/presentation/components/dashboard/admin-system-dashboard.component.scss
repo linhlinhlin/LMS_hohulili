@@ -17,6 +17,11 @@
   max-width: 1400px;
   margin: 0 auto;
   padding: $spacing-4 $spacing-6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-4;
+  flex-wrap: wrap;
 }
 
 .page-title {
@@ -25,6 +30,50 @@
   color: $text-primary;
   margin: 0;
   line-height: $leading-tight;
+}
+
+.header-actions {
+  display: flex;
+  gap: $spacing-2;
+  flex-shrink: 0;
+}
+
+/* Header action buttons — primary "Thêm người dùng" + secondary "Xem báo cáo".
+   Stripe/Linear/Vercel pattern: 1 prominent primary action top-right. */
+.btn-primary,
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-2 $spacing-4;
+  min-height: 40px; // WCAG 2.2 SC 2.5.8 touch target
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  border-radius: $radius-md;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background $transition-fast, border-color $transition-fast, color $transition-fast;
+  white-space: nowrap;
+
+  @include focus-visible;
+}
+
+.btn-primary {
+  background: $blue-primary;
+  color: white;
+  border: 1px solid $blue-primary;
+
+  &:hover { background: $blue-hover; border-color: $blue-hover; }
+  &:active { background: $blue-pressed; border-color: $blue-pressed; }
+}
+
+.btn-secondary {
+  background: white;
+  color: $text-primary;
+  border: 1px solid $border-default;
+
+  &:hover { background: $gray-50; border-color: $border-dark; }
+  &:active { background: $gray-100; }
 }
 
 /* ===== MAIN ===== */
@@ -124,56 +173,75 @@
   }
 }
 
-/* ===== SUMMARY CARD =====
-   Replaces the old "Activity feed" card whose timestamps were synthetic
-   (`new Date()`) and the revenue chart whose 30-day series came from
-   `dailyAvg + Math.sin(...)`. Both are restored when the backend exposes
-   real time-series endpoints.
-*/
-.summary-card { overflow: hidden; }
+/* ===== QUICK ACTIONS CARD =====
+   Replaces the old "Tổng quan nhanh" card that duplicated KPI strip counts
+   (F-02 in audit 2026-04-25). Shortcut panel pattern from Stripe / Linear /
+   Vercel — gives admins an obvious next action on page load. */
+.actions-card { overflow: hidden; }
 
-.summary-list {
-  padding: $spacing-4 $spacing-5;
-  max-height: 400px;
-  overflow-y: auto;
-
-  &::-webkit-scrollbar { width: 4px; }
-  &::-webkit-scrollbar-track { background: transparent; }
-  &::-webkit-scrollbar-thumb { background: $gray-300; border-radius: 2px; }
-  scrollbar-width: thin;
-  scrollbar-color: $gray-300 transparent;
-}
-
-.summary-item {
+.actions-list {
   display: flex;
-  gap: $spacing-3;
-  padding: $spacing-3 0;
-  border-bottom: 1px solid $border-light;
-
-  &:last-child { border-bottom: none; }
+  flex-direction: column;
+  padding: $spacing-2;
 }
 
-.summary-dot {
-  width: 8px;
-  height: 8px;
-  background: $blue-primary;
-  border-radius: 50%;
-  margin-top: 5px;
+.action-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-3;
+  padding: $spacing-3;
+  border-radius: $radius-md;
+  color: $text-primary;
+  text-decoration: none;
+  transition: background $transition-fast;
+  min-height: 56px; // WCAG 2.2 SC 2.5.8 — comfortable touch target
+
+  &:hover { background: $gray-50; }
+  &:focus-visible {
+    outline: 2px solid $blue-primary;
+    outline-offset: -2px;
+  }
+
+  &:hover .action-chevron { color: $blue-primary; transform: translateX(2px); }
+}
+
+.action-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: $radius-md;
+  background: rgba($blue-primary, 0.08);
+  color: $blue-primary;
   flex-shrink: 0;
 }
 
-.summary-message {
+.action-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   flex: 1;
-  font-size: $text-sm;
-  color: $gray-700;
-  margin: 0;
+  min-width: 0;
 }
 
-.summary-empty {
+.action-label {
   font-size: $text-sm;
+  font-weight: $font-semibold;
+  color: $text-primary;
+  line-height: $leading-tight;
+}
+
+.action-desc {
+  font-size: $text-xs;
   color: $text-muted;
-  margin: 0;
-  padding: $spacing-3 0;
+  line-height: $leading-normal;
+}
+
+.action-chevron {
+  color: $gray-400;
+  flex-shrink: 0;
+  transition: transform $transition-fast, color $transition-fast;
 }
 
 /* ===== DATA TABLE ===== */
@@ -401,7 +469,15 @@
   .card-body { padding: $spacing-3 $spacing-4; }
   .card-title { font-size: $text-sm; }
 
-  .summary-list { padding: $spacing-3; max-height: 300px; }
+  .actions-list { padding: $spacing-2; }
+  .action-item { padding: $spacing-2 $spacing-3; min-height: 52px; }
+  .action-icon { width: 36px; height: 36px; }
+  .action-label { font-size: 13px; }
+  .action-desc { font-size: 11px; }
+
+  .header-inner { flex-wrap: wrap; }
+  .header-actions { width: 100%; }
+  .btn-primary, .btn-secondary { flex: 1; min-height: 44px; }
 
   .data-table th { padding: 8px $spacing-3; font-size: 10px; }
   .data-table td { padding: 8px $spacing-3; font-size: 13px; }
@@ -479,16 +555,20 @@
     margin-bottom: 10px !important;
   }
 
-  // Hide: actions, skeleton
+  // Hide: actions, skeleton, header buttons
   .action-btns { display: none !important; }
+  .header-actions { display: none !important; }
   .skeleton-strip, .skeleton-card { display: none !important; }
 
-  // Summary: expand all
-  .summary-list {
-    max-height: none !important;
-    overflow: visible !important;
+  // Quick actions: expand all
+  .actions-list {
     padding: 8px 12px !important;
   }
+  .action-item {
+    padding: 6px 8px !important;
+    min-height: auto !important;
+  }
+  .action-chevron { display: none !important; }
 
   // Table: condensed
   .data-table th { padding: 6px 8px !important; font-size: 10px !important; }

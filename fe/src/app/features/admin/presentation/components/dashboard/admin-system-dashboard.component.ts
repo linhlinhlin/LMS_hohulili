@@ -1,17 +1,32 @@
-import { Component, input, output, computed, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, input, output, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { SystemAnalytics } from '../../../infrastructure/services/admin.service';
 import { PendingApproval } from './dashboard.types';
 import { DialogComponent } from '../../../../../shared/components/dialog/dialog.component';
+import { IconComponent, IconName } from '../../../../../shared/components/icon/icon.component';
 
-interface QuickSummaryItem {
+interface QuickAction {
   id: string;
-  message: string;
+  label: string;
+  description: string;
+  route: string;
+  icon: IconName;
 }
+
+// Static list — routes verified against fe/src/app/features/admin/admin.routes.ts.
+// Replaces the old "Tổng quan nhanh" card which duplicated KPI strip counts
+// (F-02 in audit 2026-04-25). Pattern follows Stripe/Linear shortcut panels.
+const QUICK_ACTIONS: readonly QuickAction[] = [
+  { id: 'add-user',    label: 'Thêm người dùng',  description: 'Tạo tài khoản giảng viên hoặc học viên',      route: '/admin/users/all',   icon: 'users' },
+  { id: 'categories',  label: 'Quản lý danh mục', description: 'Thêm, sửa, xóa danh mục khóa học',             route: '/admin/categories',  icon: 'tag' },
+  { id: 'analytics',   label: 'Xem báo cáo',      description: 'Phân tích học viên, doanh thu, tăng trưởng',   route: '/admin/analytics',   icon: 'bar-chart' },
+  { id: 'settings',    label: 'Cấu hình hệ thống', description: 'Thiết lập thanh toán, bảo mật, thông báo',    route: '/admin/settings',    icon: 'settings' },
+];
 
 @Component({
   selector: 'app-admin-system-dashboard',
-  imports: [CommonModule, DialogComponent],
+  imports: [CommonModule, RouterLink, DialogComponent, IconComponent],
   templateUrl: './admin-system-dashboard.component.html',
   styleUrl: './admin-system-dashboard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -27,18 +42,8 @@ export class AdminSystemDashboardComponent {
   courseApproved = output<string>();
   courseRejected = output<{ id: string; reason: string }>();
 
-  // Snapshot summary derived from analytics counts. Replaces the previous
-  // "Hoạt động gần đây" feed which faked timestamps via `new Date()` —
-  // misleading because none of these items represent a real activity log.
-  quickSummary = computed<QuickSummaryItem[]>(() => {
-    const a = this.analytics();
-    const items: QuickSummaryItem[] = [];
-    if (a.pendingCourses > 0) items.push({ id: 'pending', message: `${a.pendingCourses} khóa học đang chờ duyệt` });
-    if (a.totalEnrollments > 0) items.push({ id: 'enrollments', message: `${a.totalEnrollments} lượt đăng ký khóa học` });
-    if (a.totalStudents > 0) items.push({ id: 'students', message: `${a.totalStudents} học viên trong hệ thống` });
-    if (a.totalCourses > 0) items.push({ id: 'courses', message: `${a.totalCourses} khóa học đã tạo` });
-    return items;
-  });
+  // Shortcut panel — replaces the redundant "Tổng quan nhanh" card.
+  quickActions = computed<readonly QuickAction[]>(() => QUICK_ACTIONS);
 
   // --- Reject modal state (mirrors org-admin pattern from PR #145) ---
   rejectModalOpen = signal(false);
