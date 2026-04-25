@@ -115,5 +115,20 @@ public interface UserJpaRepository extends JpaRepository<UserJpaEntity, UUID> {
             @Param("search") String search,
             Pageable pageable
     );
+
+    // === Windowed analytics queries (half-open [from, to)) ===
+
+    @Query("SELECT COUNT(u) FROM UserJpaEntity u WHERE u.createdAt >= :from AND u.createdAt < :to")
+    long countByCreatedAtBetween(@Param("from") java.time.Instant from, @Param("to") java.time.Instant to);
+
+    @Query("SELECT COUNT(u) FROM UserJpaEntity u WHERE u.organizationId = :orgId")
+    long countByOrganizationId(@Param("orgId") UUID orgId);
+
+    @Query("SELECT COUNT(u) FROM UserJpaEntity u WHERE u.organizationId = :orgId AND u.createdAt >= :from AND u.createdAt < :to")
+    long countByOrganizationIdAndCreatedAtBetween(
+            @Param("orgId") UUID orgId,
+            @Param("from") java.time.Instant from,
+            @Param("to") java.time.Instant to
+    );
 }
 

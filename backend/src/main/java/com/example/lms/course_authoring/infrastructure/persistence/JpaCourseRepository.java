@@ -214,4 +214,19 @@ public interface JpaCourseRepository extends JpaRepository<CourseJpaEntity, UUID
 
     @Query("SELECT c.id FROM CourseJpaEntity c WHERE c.teacherId IN :teacherIds")
     List<UUID> findCourseIdsByTeacherIdIn(@Param("teacherIds") Collection<UUID> teacherIds);
+
+    // === Windowed analytics queries (half-open [from, to)) ===
+
+    @Query("SELECT COUNT(c) FROM CourseJpaEntity c WHERE c.createdAt >= :from AND c.createdAt < :to")
+    long countByCreatedAtBetween(
+            @Param("from") java.time.Instant from,
+            @Param("to") java.time.Instant to
+    );
+
+    @Query("SELECT COUNT(c) FROM CourseJpaEntity c WHERE c.teacherId IN :teacherIds AND c.createdAt >= :from AND c.createdAt < :to")
+    long countByTeacherIdInAndCreatedAtBetween(
+            @Param("teacherIds") Collection<UUID> teacherIds,
+            @Param("from") java.time.Instant from,
+            @Param("to") java.time.Instant to
+    );
 }
