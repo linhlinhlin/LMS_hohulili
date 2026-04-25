@@ -63,12 +63,24 @@
         <div class="metric-cell">
           <p class="metric-value">{{ analytics().totalUsers | number }}</p>
           <p class="metric-label">Tổng người dùng</p>
-          <p class="metric-sub">+{{ analytics().userGrowth.growthRate || 0 }}% so với tháng trước</p>
+          <p class="metric-sub">
+            <span class="trend" [class]="'trend-' + trendOf(analytics().userGrowth.growthRate)" aria-hidden="true">
+              <span class="trend-arrow">{{ trendArrow(analytics().userGrowth.growthRate) }}</span>
+              <span>{{ trendMagnitude(analytics().userGrowth.growthRate) }}%</span>
+            </span>
+            <span>so với tháng trước</span>
+          </p>
         </div>
         <div class="metric-cell">
           <p class="metric-value">{{ analytics().revenue | number:'1.0-0' }}đ</p>
           <p class="metric-label">Doanh thu tháng này</p>
-          <p class="metric-sub">+{{ analytics().revenueGrowth }}% so với tháng trước</p>
+          <p class="metric-sub">
+            <span class="trend" [class]="'trend-' + trendOf(analytics().revenueGrowth)" aria-hidden="true">
+              <span class="trend-arrow">{{ trendArrow(analytics().revenueGrowth) }}</span>
+              <span>{{ trendMagnitude(analytics().revenueGrowth) }}%</span>
+            </span>
+            <span>so với tháng trước</span>
+          </p>
         </div>
         <div class="metric-cell highlight">
           <p class="metric-value warning">{{ analytics().pendingCourses | number }}</p>
@@ -78,7 +90,13 @@
         <div class="metric-cell">
           <p class="metric-value">{{ analytics().totalCourses | number }}</p>
           <p class="metric-label">Tổng khóa học</p>
-          <p class="metric-sub">{{ analytics().approvedCourses }} đã duyệt</p>
+          <p class="metric-sub">
+            <span class="trend" [class]="'trend-' + trendOf(analytics().courseGrowth)" aria-hidden="true">
+              <span class="trend-arrow">{{ trendArrow(analytics().courseGrowth) }}</span>
+              <span>{{ trendMagnitude(analytics().courseGrowth) }}%</span>
+            </span>
+            <span>· {{ analytics().approvedCourses }} đã duyệt</span>
+          </p>
         </div>
       </div>
 
@@ -174,10 +192,15 @@
             </div>
           } @else if (pendingApprovals().length === 0) {
             <div class="table-empty">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p>Không có khóa học nào đang chờ duyệt</p>
+              <p class="empty-title">Hàng đợi đã sạch</p>
+              <p class="empty-desc">Khi giảng viên nộp khóa học mới, khóa đó sẽ hiện ở đây để bạn duyệt.</p>
+              <a routerLink="/admin/courses" class="empty-cta">
+                Xem tất cả khóa học
+                <app-icon name="arrow-right" size="sm" aria-hidden="true" />
+              </a>
             </div>
           } @else {
             <table class="data-table">
