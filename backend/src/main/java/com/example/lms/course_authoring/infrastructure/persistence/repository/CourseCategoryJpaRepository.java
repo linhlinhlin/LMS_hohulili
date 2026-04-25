@@ -1,8 +1,10 @@
 package com.example.lms.course_authoring.infrastructure.persistence.repository;
 
 import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseCategoryJpaEntity;
+import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity.CourseStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -44,9 +46,9 @@ public interface CourseCategoryJpaRepository extends JpaRepository<CourseCategor
      * not visible to learners and would inflate the number misleadingly.
      */
     @Query("SELECT c.categoryId, COUNT(c) " +
-            "FROM com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity c " +
+            "FROM CourseJpaEntity c " +
             "WHERE c.categoryId IS NOT NULL " +
-            "  AND c.status = com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity.CourseStatus.APPROVED " +
+            "  AND c.status = :status " +
             "GROUP BY c.categoryId")
-    List<Object[]> countApprovedCoursesByCategory();
+    List<Object[]> countCoursesByCategoryGroupedByStatus(@Param("status") CourseStatus status);
 }

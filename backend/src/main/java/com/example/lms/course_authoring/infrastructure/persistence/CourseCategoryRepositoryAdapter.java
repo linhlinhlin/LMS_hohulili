@@ -3,6 +3,7 @@ package com.example.lms.course_authoring.infrastructure.persistence;
 import com.example.lms.course_authoring.domain.model.CourseCategory;
 import com.example.lms.course_authoring.domain.repository.CourseCategoryRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseCategoryJpaEntity;
+import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity.CourseStatus;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.CourseCategoryJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -68,7 +69,7 @@ public class CourseCategoryRepositoryAdapter implements CourseCategoryRepository
     @Override
     public Map<UUID, Long> countApprovedCoursesByCategory() {
         Map<UUID, Long> result = new HashMap<>();
-        for (Object[] row : jpaRepo.countApprovedCoursesByCategory()) {
+        for (Object[] row : jpaRepo.countCoursesByCategoryGroupedByStatus(CourseStatus.APPROVED)) {
             if (row == null || row.length < 2 || row[0] == null || row[1] == null) continue;
             result.put((UUID) row[0], ((Number) row[1]).longValue());
         }
