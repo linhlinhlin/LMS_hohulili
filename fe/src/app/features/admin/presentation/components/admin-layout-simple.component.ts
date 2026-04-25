@@ -27,14 +27,14 @@ import { AiAvailabilityService } from '../../../ai-chat/application/services/ai-
         <div class="fixed inset-0 z-50 lg:hidden"
           (click)="toggleMobileSidebar()">
           <div class="fixed inset-0 bg-black bg-opacity-50"></div>
-          <div class="fixed inset-y-0 left-0 w-64 bg-white shadow-lg">
+          <div class="fixed inset-y-0 left-0 w-72 bg-white shadow-lg">
             <app-sidebar [config]="adminSidebarConfig" [collapsed]="false"></app-sidebar>
           </div>
         </div>
       }
 
       <!-- Main content + AI Sidebar wrapper -->
-      <div [class]="shouldHideSidebar() ? 'flex flex-1 min-w-0 min-h-screen' : 'lg:pl-64 flex flex-1 min-w-0 min-h-screen'">
+      <div [class]="shouldHideSidebar() ? 'flex flex-1 min-w-0 min-h-screen' : 'lg:pl-72 flex flex-1 min-w-0 min-h-screen'">
 
         <!-- Main content column -->
         <div class="flex flex-col flex-1 min-w-0">
@@ -146,7 +146,7 @@ import { AiAvailabilityService } from '../../../ai-chat/application/services/ai-
       width: 100%;
     }
 
-    .lg\\:pl-64 {
+    .lg\\:pl-72 {
       transition: padding-left 0.3s ease;
     }
 
