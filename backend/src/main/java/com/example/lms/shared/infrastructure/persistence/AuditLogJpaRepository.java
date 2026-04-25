@@ -8,11 +8,19 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
+
 @Repository
 public interface AuditLogJpaRepository extends JpaRepository<AuditLogJpaEntity, Long> {
 
     Page<AuditLogJpaEntity> findAllByOrderByChangedAtDesc(Pageable pageable);
 
+    /**
+     * Existing simple filter (table + action) preserved for backwards
+     * compatibility. New callers should prefer {@link #search(String, String,
+     * Instant, Instant, String, String, Pageable)} which also supports
+     * date-range and actor-identity filtering (issues #187, #188).
+     */
     @Query("SELECT a FROM AuditLogJpaEntity a WHERE " +
             "(:tableName IS NULL OR a.tableName = :tableName) AND " +
             "(:action IS NULL OR a.action = :action) " +
@@ -20,6 +28,27 @@ public interface AuditLogJpaRepository extends JpaRepository<AuditLogJpaEntity, 
     Page<AuditLogJpaEntity> findFiltered(
             @Param("tableName") String tableName,
             @Param("action") String action,
+            Pageable pageable
+    );
+
+    /**
+     * Combined filter used by {@code SearchAuditLogUseCase}.
+     *
+     * <p>Date range is half-open {@code [from, to)} — the boundary instant on
+     * {@code to} is excluded so two adjacent windows do not double-count
+     * (matches {@code GetWindowedAnalyticsUseCase}).
+     */
+    @Query("SELECT a FROM AuditLogJpaEntity a " +
+            "WHERE (:tableName IS NULL OR a.tableName = :tableName) " +
+            "  AND (:action IS NULL OR a.action = :action) " +
+            "  AND (:from IS NULL OR a.changedAt >= :from) " +
+            "  AND (:to IS NULL OR a.changedAt < :to) " +
+            "ORDER BY a.changedAt DESC")
+    Page<AuditLogJpaEntity> search(
+            @Param("tableName") String tableName,
+            @Param("action") String action,
+            @Param("from") Instant from,
+            @Param("to") Instant to,
             Pageable pageable
     );
 }
