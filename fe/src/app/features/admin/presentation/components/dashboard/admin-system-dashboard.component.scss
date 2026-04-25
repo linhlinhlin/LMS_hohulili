@@ -92,19 +92,22 @@
 }
 
 .card-header {
-  padding: $spacing-4 $spacing-5;
+  padding: $spacing-4 $spacing-6;
   border-bottom: 1px solid $border-light;
 }
 
 .card-title {
-  font-size: $text-base;
+  // H3 in 1.125 type ladder — bumps from $text-base (16) so card titles
+  // sit one rung above body and stay below H1 page title (24).
+  font-size: $text-lg;
   font-weight: $font-semibold;
   color: $text-primary;
   margin: 0;
 }
 
 .card-body {
-  padding: $spacing-5;
+  // Card padding 24px — Carbon / Polaris default for content cards.
+  padding: $spacing-6;
   overflow-x: auto;
 }
 
@@ -113,14 +116,14 @@
   @extend .card;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  margin-bottom: $spacing-5;
+  margin-bottom: $spacing-6;
   overflow: hidden;
 
   @include desktop { grid-template-columns: repeat(4, 1fr); }
 }
 
 .metric-cell {
-  padding: $spacing-3 $spacing-5;
+  padding: $spacing-4 $spacing-6;
 
   &:nth-child(odd) { border-right: 1px solid $border-light; }
   &:nth-child(-n+2) { border-bottom: 1px solid $border-light; }
@@ -137,11 +140,12 @@
 }
 
 .metric-value {
-  font-size: $text-xl;
+  // Display rung in 1.125 ladder — number is the focal point of the cell.
+  font-size: $text-2xl;
   font-weight: $font-bold;
   color: $text-primary;
-  line-height: 1.2;
-  margin: 0 0 2px;
+  line-height: $leading-tight;
+  margin: 0 0 $spacing-1;
 
   &.warning { color: $warning; }
 }
@@ -152,12 +156,36 @@
   margin: 0;
 }
 
+/* Trend row — number + arrow + delta + period label.
+   F-05: ▲ green / ▼ red / → gray, anatomy borrowed from Stripe / Vercel KPI.
+*/
 .metric-sub {
-  font-size: 11px;
-  color: $gray-400;
-  margin: 1px 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-1;
+  font-size: $text-xs;
+  color: $text-muted;
+  margin: $spacing-1 0 0;
 
   &.warning-text { color: $warning; }
+}
+
+.trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px; // 4pt baseline — visual coupling between arrow + number.
+  font-weight: $font-semibold;
+  font-variant-numeric: tabular-nums;
+
+  &.trend-up { color: $success; }
+  &.trend-down { color: $error; }
+  &.trend-flat { color: $text-muted; }
+}
+
+.trend-arrow {
+  // Glyph rendered via :before to avoid extra DOM. Sizing matches text-xs.
+  font-size: 10px; // visual match for caret next to 12px label
+  line-height: 1;
 }
 
 /* ===== ② CONTENT GRID ===== */
@@ -165,7 +193,7 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: $spacing-4;
-  margin-bottom: $spacing-5;
+  margin-bottom: $spacing-6;
   min-width: 0;
 
   &.grid-2-1 {
@@ -257,12 +285,12 @@
 
 .data-table th {
   text-align: left;
-  font-size: 12px;
+  font-size: $text-xs;
   font-weight: $font-semibold;
   color: $gray-500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  padding: 10px $spacing-4;
+  padding: $spacing-3 $spacing-4;
 }
 
 .data-table td {
@@ -285,7 +313,9 @@
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 10px;
+  // Tag-style padding — vertical 2px on 4pt baseline keeps badges compact
+  // next to body text; horizontal $spacing-3 (12px) gives breathing room.
+  padding: 2px $spacing-3;
   border-radius: $radius-sm;
   font-size: $text-xs;
   font-weight: $font-medium;
@@ -301,30 +331,27 @@
   gap: $spacing-2;
 }
 
-.btn-approve {
-  padding: 4px $spacing-3;
+.btn-approve,
+.btn-reject {
+  padding: $spacing-1 $spacing-3;
   font-size: $text-xs;
   font-weight: $font-medium;
-  background: $blue-primary;
-  color: white;
   border: none;
   border-radius: $radius-sm;
   cursor: pointer;
   transition: background $transition-normal;
+}
+
+.btn-approve {
+  background: $blue-primary;
+  color: white;
 
   &:hover { background: $blue-hover; }
 }
 
 .btn-reject {
-  padding: 4px $spacing-3;
-  font-size: $text-xs;
-  font-weight: $font-medium;
   background: $gray-100;
   color: $gray-600;
-  border: none;
-  border-radius: $radius-sm;
-  cursor: pointer;
-  transition: background $transition-normal;
 
   &:hover { background: $gray-200; }
 }
@@ -341,8 +368,9 @@
 }
 
 .spinner {
-  width: 32px;
-  height: 32px;
+  width: $spacing-8;
+  height: $spacing-8;
+  // 3px stroke — keeps the ring visible at 32px without going thin or chunky.
   border: 3px solid $gray-200;
   border-top-color: $blue-primary;
   border-radius: 50%;
@@ -351,28 +379,62 @@
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* Empty state — Carbon Inform + Inspire + Activate pattern.
+   F-11: previous version only had icon + line. Added title, description, CTA. */
 .table-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  padding: $spacing-12 0;
+  padding: $spacing-12 $spacing-6;
   color: $gray-400;
+  gap: $spacing-3;
 
-  svg {
-    width: 48px;
-    height: 48px;
-    margin: 0 auto $spacing-3;
-    display: block;
+  .empty-icon {
+    width: $spacing-12;
+    height: $spacing-12;
+    color: $gray-300;
   }
 
-  p {
+  .empty-title {
+    font-size: $text-base;
+    font-weight: $font-semibold;
+    color: $text-primary;
+    margin: 0;
+  }
+
+  .empty-desc {
     font-size: $text-sm;
     color: $text-muted;
     margin: 0;
+    max-width: 360px;
+    line-height: $leading-normal;
+  }
+
+  .empty-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-2;
+    margin-top: $spacing-2;
+    padding: $spacing-2 $spacing-4;
+    min-height: 40px;
+    font-size: $text-sm;
+    font-weight: $font-semibold;
+    color: $blue-primary;
+    background: rgba($blue-primary, 0.06);
+    border: 1px solid rgba($blue-primary, 0.2);
+    border-radius: $radius-md;
+    text-decoration: none;
+    transition: background $transition-fast, border-color $transition-fast;
+
+    &:hover { background: rgba($blue-primary, 0.1); border-color: rgba($blue-primary, 0.3); }
+    @include focus-visible;
   }
 }
 
 /* ===== HEALTH CARD ===== */
 .health-list {
-  padding: $spacing-4 $spacing-5;
+  padding: $spacing-4 $spacing-6;
 }
 
 .health-item {
@@ -386,6 +448,9 @@
 }
 
 .health-dot {
+  // 10px dot + 3px halo — small visual indicator, intentionally off-grid for
+  // optical balance against text-sm baseline. Halo (box-shadow spread) gives
+  // status badge prominence without fattening the dot itself.
   width: 10px;
   height: 10px;
   border-radius: 50%;
@@ -406,7 +471,7 @@
 .health-status {
   font-size: $text-xs;
   font-weight: $font-medium;
-  padding: 3px 10px;
+  padding: $spacing-1 $spacing-3;
   border-radius: $radius-sm;
 
   &.status-ok { background: $success-light; color: $success; }
@@ -420,13 +485,13 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   overflow: hidden;
-  margin-bottom: $spacing-5;
+  margin-bottom: $spacing-6;
 
   @include desktop { grid-template-columns: repeat(4, 1fr); }
 }
 
 .skeleton-cell {
-  padding: $spacing-3 $spacing-5;
+  padding: $spacing-4 $spacing-6;
 
   &:nth-child(odd) { border-right: 1px solid $border-light; }
   &:nth-child(-n+2) { border-bottom: 1px solid $border-light; }
@@ -440,50 +505,55 @@
 
 .skeleton-card {
   @extend .card;
-  padding: $spacing-5;
+  padding: $spacing-6;
 }
 
-.sk { background: $gray-200; border-radius: 4px; }
-.sk-light { background: $gray-100; border-radius: 4px; }
+.sk { background: $gray-200; border-radius: $radius-sm; }
+.sk-light { background: $gray-100; border-radius: $radius-sm; }
 
 /* ===== RESPONSIVE ===== */
 
 // Tablet
 @media screen and (max-width: $breakpoint-md) {
-  .dashboard-main { padding: $spacing-5 $spacing-4; }
+  .dashboard-main { padding: $spacing-6 $spacing-4; }
   .header-inner { padding: $spacing-3 $spacing-4; }
 }
 
 // Mobile
 @media screen and (max-width: $breakpoint-sm) {
-  .dashboard-main { padding: $spacing-3 $spacing-3; }
+  .dashboard-main { padding: $spacing-3; }
   .header-inner { padding: $spacing-3; }
   .page-title { font-size: $text-lg; }
 
-  .metric-cell { padding: 10px $spacing-3; }
-  .metric-value { font-size: 17px; }
-  .metric-label { font-size: 11px; }
+  .metric-cell { padding: $spacing-3; }
+  .metric-value { font-size: $text-xl; } // 20px on small screens — keep big numbers legible
+  .metric-label { font-size: $text-xs; }
   .metric-sub { display: none; }
 
   .card-header { padding: $spacing-3 $spacing-4; }
-  .card-body { padding: $spacing-3 $spacing-4; }
-  .card-title { font-size: $text-sm; }
+  .card-body { padding: $spacing-4; }
+  .card-title { font-size: $text-base; } // bumps body to 16, leaves space below 20 H2
 
   .actions-list { padding: $spacing-2; }
   .action-item { padding: $spacing-2 $spacing-3; min-height: 52px; }
   .action-icon { width: 36px; height: 36px; }
-  .action-label { font-size: 13px; }
-  .action-desc { font-size: 11px; }
+  .action-label { font-size: $text-sm; }
+  .action-desc { font-size: $text-xs; }
 
   .header-inner { flex-wrap: wrap; }
   .header-actions { width: 100%; }
   .btn-primary, .btn-secondary { flex: 1; min-height: 44px; }
 
-  .data-table th { padding: 8px $spacing-3; font-size: 10px; }
-  .data-table td { padding: 8px $spacing-3; font-size: 13px; }
+  .data-table th { padding: $spacing-2 $spacing-3; font-size: $text-xs; }
+  .data-table td { padding: $spacing-2 $spacing-3; font-size: $text-sm; }
 
   .health-list { padding: $spacing-3; }
-  .health-name { font-size: 13px; }
+  .health-name { font-size: $text-sm; }
+
+  .table-empty {
+    padding: $spacing-8 $spacing-4;
+    .empty-icon { width: $spacing-10; height: $spacing-10; }
+  }
 
   .content-grid { gap: $spacing-3; margin-bottom: $spacing-3; }
 }
@@ -491,9 +561,9 @@
 // Ultra-small (<340px)
 @media screen and (max-width: 340px) {
   .dashboard-main { padding: $spacing-3 $spacing-2; }
-  .metric-cell { padding: 8px 10px; }
-  .metric-value { font-size: 16px; }
-  .metric-label { font-size: 10px; }
+  .metric-cell { padding: $spacing-2 $spacing-3; }
+  .metric-value { font-size: $text-lg; } // drop one rung on very narrow screens
+  .metric-label { font-size: $text-xs; }
 
   .card-header { padding: $spacing-2 $spacing-3; }
   .card-body { padding: $spacing-2 $spacing-3; }

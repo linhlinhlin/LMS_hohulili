@@ -45,6 +45,23 @@ export class AdminSystemDashboardComponent {
   // Shortcut panel — replaces the redundant "Tổng quan nhanh" card.
   quickActions = computed<readonly QuickAction[]>(() => QUICK_ACTIONS);
 
+  // F-05: classify a growth rate as up / down / flat for trend-arrow rendering.
+  // Stripe / Vercel pattern — same data, but arrow + color give scannability.
+  trendOf(rate: number | null | undefined): 'up' | 'down' | 'flat' {
+    if (rate == null || rate === 0) return 'flat';
+    return rate > 0 ? 'up' : 'down';
+  }
+
+  trendArrow(rate: number | null | undefined): string {
+    const t = this.trendOf(rate);
+    return t === 'up' ? '▲' : t === 'down' ? '▼' : '→';
+  }
+
+  // Always show absolute value next to the arrow — sign is encoded in arrow + color.
+  trendMagnitude(rate: number | null | undefined): number {
+    return Math.abs(rate ?? 0);
+  }
+
   // --- Reject modal state (mirrors org-admin pattern from PR #145) ---
   rejectModalOpen = signal(false);
   private pendingRejectId = signal<string | null>(null);
