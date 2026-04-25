@@ -1,5 +1,7 @@
 package com.example.lms.course_authoring.infrastructure.web;
 
+import com.example.lms.course_authoring.admin.application.dto.WindowedAnalyticsResponse;
+import com.example.lms.course_authoring.admin.application.usecase.GetWindowedAnalyticsUseCase;
 import com.example.lms.course_authoring.application.usecase.ApproveCourseUseCase;
 import com.example.lms.course_authoring.application.usecase.RejectCourseUseCase;
 import com.example.lms.course_authoring.domain.model.Course;
@@ -56,6 +58,7 @@ public class AdminCoursesControllerV3 {
     private final ApproveCourseUseCase approveCourseUseCase;
     private final RejectCourseUseCase rejectCourseUseCase;
     private final CourseReviewEventJpaRepository reviewEventRepository;
+    private final GetWindowedAnalyticsUseCase getWindowedAnalyticsUseCase;
 
     @Operation(summary = "Get all courses with pagination and filtering")
     @GetMapping("/all")
@@ -254,6 +257,18 @@ public class AdminCoursesControllerV3 {
                 .totalRevenue(totalRevenue)
                 .monthlyRevenue(monthlyRevenue)
                 .build();
+    }
+
+    @Operation(summary = "Get windowed analytics (7/30/90 days) for the admin dashboard date-range toggle")
+    @GetMapping("/analytics/window")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
+    public ResponseEntity<ApiResponse<WindowedAnalyticsResponse>> getWindowedAnalytics(
+            @RequestParam int days,
+            @AuthenticationPrincipal UserJpaEntity currentUser
+    ) {
+        UUID organizationId = isOrgAdmin(currentUser) ? currentUser.getOrganizationId() : null;
+        WindowedAnalyticsResponse analytics = getWindowedAnalyticsUseCase.execute(days, organizationId);
+        return ResponseEntity.ok(ApiResponse.success(analytics, "Dữ liệu phân tích theo khung thời gian"));
     }
 
     @Operation(summary = "Approve a course")

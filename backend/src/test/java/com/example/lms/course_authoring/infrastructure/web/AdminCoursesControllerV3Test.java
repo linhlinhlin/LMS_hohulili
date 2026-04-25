@@ -1,9 +1,10 @@
 package com.example.lms.course_authoring.infrastructure.web;
 
+import com.example.lms.course_authoring.admin.application.usecase.GetWindowedAnalyticsUseCase;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
-import com.example.lms.course_authoring.infrastructure.persistence.entity.CategoryJpaEntity;
-import com.example.lms.course_authoring.infrastructure.persistence.repository.CategoryJpaRepository;
+import com.example.lms.course_authoring.infrastructure.persistence.repository.CourseCategoryJpaRepository;
+import com.example.lms.course_authoring.infrastructure.persistence.repository.CourseReviewEventJpaRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
@@ -40,11 +41,13 @@ class AdminCoursesControllerV3Test {
 
     @Mock private CourseRepository courseRepository;
     @Mock private UserJpaRepository userRepository;
-    @Mock private CategoryJpaRepository categoryRepository;
+    @Mock private CourseCategoryJpaRepository categoryRepository;
     @Mock private JpaEnrollmentRepository enrollmentRepository;
     @Mock private PaymentTransactionJpaRepository paymentTransactionRepository;
     @Mock private com.example.lms.course_authoring.application.usecase.ApproveCourseUseCase approveCourseUseCase;
     @Mock private com.example.lms.course_authoring.application.usecase.RejectCourseUseCase rejectCourseUseCase;
+    @Mock private CourseReviewEventJpaRepository reviewEventRepository;
+    @Mock private GetWindowedAnalyticsUseCase getWindowedAnalyticsUseCase;
 
     @InjectMocks private AdminCoursesControllerV3 controller;
 
