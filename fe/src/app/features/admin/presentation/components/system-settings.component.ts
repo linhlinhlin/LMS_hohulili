@@ -8,6 +8,11 @@ import { ToastService } from '../../../../core/services/toast.service';
   selector: 'app-system-settings',
   imports: [FormsModule],
   templateUrl: './system-settings.component.html',
+  // CC-03 (mega audit 2026-04-25): consistency with admin-analytics fix —
+  // settings page renders OK without the SCSS today (template uses Tailwind
+  // utility classes), but wiring up the stylesheet now prevents future
+  // surprises if the template grows custom classes.
+  styleUrl: './system-settings.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SystemSettingsComponent implements OnInit {

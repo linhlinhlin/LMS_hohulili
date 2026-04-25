@@ -48,10 +48,14 @@ $purple-bg: #FAF5FF;
 }
 
 .btn-create {
+  // CC-02 (mega audit 2026-04-25): primary action color unified across the
+  // admin portal to $blue-primary. Purple drifted in early but Atlassian
+  // Color Foundations limits brand to one primary; semantic colors stay for
+  // status / destructive only.
   display: inline-flex;
   align-items: center;
   padding: $spacing-2 $spacing-4;
-  background: $purple;
+  background: $blue-primary;
   color: white;
   font-size: $text-sm;
   font-weight: $font-medium;
@@ -60,7 +64,7 @@ $purple-bg: #FAF5FF;
   cursor: pointer;
   transition: background $transition-normal;
 
-  &:hover { background: $purple-hover; }
+  &:hover { background: $blue-hover; }
 
   svg { margin-right: $spacing-2; }
 }

@@ -58,46 +58,29 @@
     </div>
 
     <div class="dashboard-main">
-      <!-- ① Metrics Strip (Stripe pattern — 4 cells, no icons) -->
+      <!-- ① Metrics Strip (Stripe pattern — 4 cells, no icons).
+           Migrated to shared <app-kpi-card> per CC-01 (mega audit 2026-04-25)
+           — same visual contract as before, but every other admin surface now
+           consumes the same component instead of bespoke .metric-cell markup. -->
       <div class="metrics-strip">
-        <div class="metric-cell">
-          <p class="metric-value">{{ analytics().totalUsers | number }}</p>
-          <p class="metric-label">Tổng người dùng</p>
-          <p class="metric-sub">
-            <span class="trend" [class]="'trend-' + trendOf(analytics().userGrowth.growthRate)" aria-hidden="true">
-              <span class="trend-arrow">{{ trendArrow(analytics().userGrowth.growthRate) }}</span>
-              <span>{{ trendMagnitude(analytics().userGrowth.growthRate) }}%</span>
-            </span>
-            <span>so với tháng trước</span>
-          </p>
-        </div>
-        <div class="metric-cell">
-          <p class="metric-value">{{ analytics().revenue | number:'1.0-0' }}đ</p>
-          <p class="metric-label">Doanh thu tháng này</p>
-          <p class="metric-sub">
-            <span class="trend" [class]="'trend-' + trendOf(analytics().revenueGrowth)" aria-hidden="true">
-              <span class="trend-arrow">{{ trendArrow(analytics().revenueGrowth) }}</span>
-              <span>{{ trendMagnitude(analytics().revenueGrowth) }}%</span>
-            </span>
-            <span>so với tháng trước</span>
-          </p>
-        </div>
-        <div class="metric-cell highlight">
-          <p class="metric-value warning">{{ analytics().pendingCourses | number }}</p>
-          <p class="metric-label">Khóa học chờ duyệt</p>
-          <p class="metric-sub warning-text">Cần xử lý</p>
-        </div>
-        <div class="metric-cell">
-          <p class="metric-value">{{ analytics().totalCourses | number }}</p>
-          <p class="metric-label">Tổng khóa học</p>
-          <p class="metric-sub">
-            <span class="trend" [class]="'trend-' + trendOf(analytics().courseGrowth)" aria-hidden="true">
-              <span class="trend-arrow">{{ trendArrow(analytics().courseGrowth) }}</span>
-              <span>{{ trendMagnitude(analytics().courseGrowth) }}%</span>
-            </span>
-            <span>· {{ analytics().approvedCourses }} đã duyệt</span>
-          </p>
-        </div>
+        <app-kpi-card
+          [value]="analytics().totalUsers | number"
+          label="Tổng người dùng"
+          [trend]="analytics().userGrowth.growthRate" />
+        <app-kpi-card
+          [value]="(analytics().revenue | number:'1.0-0') + 'đ'"
+          label="Doanh thu tháng này"
+          [trend]="analytics().revenueGrowth" />
+        <app-kpi-card
+          [value]="analytics().pendingCourses | number"
+          label="Khóa học chờ duyệt"
+          variant="warning"
+          sub="Cần xử lý" />
+        <app-kpi-card
+          [value]="analytics().totalCourses | number"
+          label="Tổng khóa học"
+          [trend]="analytics().courseGrowth"
+          [sub]="'· ' + analytics().approvedCourses + ' đã duyệt'" />
       </div>
 
       <!--

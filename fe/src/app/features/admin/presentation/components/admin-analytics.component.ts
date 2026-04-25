@@ -8,6 +8,10 @@ import { AuthService } from '../../../../core/services/auth.service';
   selector: 'app-admin-analytics',
   imports: [],
   templateUrl: './admin-analytics.component.html',
+  // CC-03 (mega audit 2026-04-25): styleUrl was missing — main SCSS never
+  // loaded so .stat-icon stretched to full content width (1136×1136).
+  // Same root-cause class as PR #168 / F-ST1.
+  styleUrl: './admin-analytics.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AdminAnalyticsComponent implements OnInit {
