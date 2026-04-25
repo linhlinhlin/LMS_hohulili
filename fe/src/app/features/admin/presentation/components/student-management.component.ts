@@ -16,6 +16,10 @@ import { getAdminPortalBase } from '../../../../core/utils/portal-route.util';
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-student-management',
   imports: [RouterModule, FormsModule],
+  // F-ST1 hotfix: was missing — main SCSS file never loaded so .stat-icon
+  // had no width/height constraint and stretched to 1136×1136, making the
+  // page unusable. Mirrors teacher-management.component.ts:20.
+  styleUrl: './student-management.component.scss',
   styles: [`
     select.role-select {
       cursor: pointer;
