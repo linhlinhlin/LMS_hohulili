@@ -205,6 +205,67 @@ class SearchAuditLogUseCaseTest {
     }
 
     @Nested
+    @DisplayName("Actor filter (issue #188)")
+    class ActorFilterTests {
+
+        @Test
+        @DisplayName("Forwards actorEmail filter to port unchanged for case-insensitive LIKE in adapter")
+        void forwardsActorEmail() {
+            stubEmptyPage();
+
+            useCase.execute(new AuditLogQuery(null, null, null, null, "ORGADMIN@maritime.edu", null, 0, 20));
+
+            ArgumentCaptor<AuditLogQuery> captor = ArgumentCaptor.forClass(AuditLogQuery.class);
+            verify(port).search(captor.capture());
+            // Use case must NOT lowercase here — that is the adapter / SQL's job.
+            // Forwarding the user-entered casing keeps display consistent if the
+            // FE echoes the filter back into a chip / breadcrumb.
+            assertThat(captor.getValue().actorEmail()).isEqualTo("ORGADMIN@maritime.edu");
+        }
+
+        @Test
+        @DisplayName("Forwards actorName filter (Vietnamese diacritics preserved)")
+        void forwardsActorNameWithDiacritics() {
+            stubEmptyPage();
+
+            useCase.execute(new AuditLogQuery(null, null, null, null, null, "Nguyễn Lan Hương", 0, 20));
+
+            ArgumentCaptor<AuditLogQuery> captor = ArgumentCaptor.forClass(AuditLogQuery.class);
+            verify(port).search(captor.capture());
+            assertThat(captor.getValue().actorName()).isEqualTo("Nguyễn Lan Hương");
+        }
+
+        @Test
+        @DisplayName("Both actorEmail and actorName can be applied simultaneously")
+        void supportsBothActorFilters() {
+            stubEmptyPage();
+
+            useCase.execute(new AuditLogQuery(null, null, null, null, "huong@", "Hương", 0, 20));
+
+            ArgumentCaptor<AuditLogQuery> captor = ArgumentCaptor.forClass(AuditLogQuery.class);
+            verify(port).search(captor.capture());
+            AuditLogQuery sent = captor.getValue();
+            assertThat(sent.actorEmail()).isEqualTo("huong@");
+            assertThat(sent.actorName()).isEqualTo("Hương");
+        }
+
+        @Test
+        @DisplayName("Actor filter does not interfere with default 7-day window")
+        void actorFilterStillGetsDefaultWindow() {
+            stubEmptyPage();
+
+            useCase.execute(new AuditLogQuery(null, null, null, null, "admin@", null, 0, 20));
+
+            ArgumentCaptor<AuditLogQuery> captor = ArgumentCaptor.forClass(AuditLogQuery.class);
+            verify(port).search(captor.capture());
+            AuditLogQuery sent = captor.getValue();
+            assertThat(sent.from()).isEqualTo(NOW.minus(7, ChronoUnit.DAYS));
+            assertThat(sent.to()).isEqualTo(NOW);
+            assertThat(sent.actorEmail()).isEqualTo("admin@");
+        }
+    }
+
+    @Nested
     @DisplayName("getById")
     class GetByIdTests {
 

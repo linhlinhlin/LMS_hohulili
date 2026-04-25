@@ -39,6 +39,8 @@ public class AuditLogQueryAdapter implements AuditLogQueryPort {
                 query.action(),
                 query.from(),
                 query.to(),
+                query.actorEmail(),
+                query.actorName(),
                 PageRequest.of(query.page(), query.size())
         );
 

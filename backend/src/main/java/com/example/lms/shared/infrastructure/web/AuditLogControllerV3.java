@@ -36,8 +36,9 @@ public class AuditLogControllerV3 {
     @Transactional(readOnly = true)
     @Operation(
             summary = "Lấy danh sách nhật ký kiểm toán (phân trang)",
-            description = "Hỗ trợ lọc theo bảng, hành động và khoảng thời gian (from/to ISO-8601, "
-                    + "mặc định 7 ngày gần nhất, tối đa 365 ngày)."
+            description = "Hỗ trợ lọc theo bảng, hành động, khoảng thời gian (from/to ISO-8601, "
+                    + "mặc định 7 ngày gần nhất, tối đa 365 ngày) và actor "
+                    + "(actorEmail, actorName — LIKE không phân biệt hoa thường)."
     )
     public ResponseEntity<ApiResponse<Map<String, Object>>> getAuditLogs(
             @RequestParam(defaultValue = "0") int page,
@@ -45,10 +46,12 @@ public class AuditLogControllerV3 {
             @RequestParam(required = false) String table,
             @RequestParam(required = false) String action,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
+            @RequestParam(required = false) String actorEmail,
+            @RequestParam(required = false) String actorName
     ) {
         AuditLogQuery query = new AuditLogQuery(
-                table, action, from, to, null, null, page, size
+                table, action, from, to, actorEmail, actorName, page, size
         );
         Page<AuditLogEntryDto> logs = searchAuditLogUseCase.execute(query);
 
@@ -80,6 +83,8 @@ public class AuditLogControllerV3 {
         map.put("oldData", entry.oldData());
         map.put("newData", entry.newData());
         map.put("changedBy", entry.changedBy() != null ? entry.changedBy().toString() : null);
+        map.put("actorEmail", entry.actorEmail());
+        map.put("actorName", entry.actorName());
         map.put("changedAt", entry.changedAt() != null ? entry.changedAt().toString() : null);
         return map;
     }

@@ -37,18 +37,34 @@ public interface AuditLogJpaRepository extends JpaRepository<AuditLogJpaEntity, 
      * <p>Date range is half-open {@code [from, to)} — the boundary instant on
      * {@code to} is excluded so two adjacent windows do not double-count
      * (matches {@code GetWindowedAnalyticsUseCase}).
+     *
+     * <p>Actor filtering joins {@code users} on {@code changed_by = u.id} and
+     * does a case-insensitive {@code LIKE} on email and full name. When an
+     * actor filter is set, rows whose {@code changed_by} does not resolve to a
+     * user are excluded automatically (the JOIN drops them); when no actor
+     * filter is set the LEFT JOIN keeps system-generated rows.
      */
     @Query("SELECT a FROM AuditLogJpaEntity a " +
+            "LEFT JOIN com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity u " +
+            "  ON u.id = a.changedBy " +
             "WHERE (:tableName IS NULL OR a.tableName = :tableName) " +
             "  AND (:action IS NULL OR a.action = :action) " +
             "  AND (:from IS NULL OR a.changedAt >= :from) " +
             "  AND (:to IS NULL OR a.changedAt < :to) " +
+            "  AND (:actorEmail IS NULL " +
+            "       OR (u.email IS NOT NULL " +
+            "           AND LOWER(u.email) LIKE LOWER(CONCAT('%', :actorEmail, '%')))) " +
+            "  AND (:actorName IS NULL " +
+            "       OR (u.fullName IS NOT NULL " +
+            "           AND LOWER(u.fullName) LIKE LOWER(CONCAT('%', :actorName, '%')))) " +
             "ORDER BY a.changedAt DESC")
     Page<AuditLogJpaEntity> search(
             @Param("tableName") String tableName,
             @Param("action") String action,
             @Param("from") Instant from,
             @Param("to") Instant to,
+            @Param("actorEmail") String actorEmail,
+            @Param("actorName") String actorName,
             Pageable pageable
     );
 }
