@@ -569,6 +569,18 @@ public class AdminCoursesControllerV3 {
     }
 
     private Page<Course> queryCourses(String status, String search, PageRequest pageable) {
+        // Issue #191 (F-C1): the "Chờ duyệt" KPI on /admin/courses is sourced
+        // from `pendingCourses = countReviewQueue()` which includes BOTH
+        // strictly-PENDING courses AND APPROVED courses with a
+        // PENDING_REVIEW draft change. Routing `status=PENDING` filters
+        // through `findReviewQueue` keeps the table count and the KPI in
+        // lock-step — clicking "Chờ duyệt" can no longer return an empty
+        // page when the strip says "10".
+        if (isPendingReviewFilter(status)) {
+            return search != null && !search.isBlank()
+                    ? filterByTitle(courseRepository.findReviewQueue(pageable), search)
+                    : courseRepository.findReviewQueue(pageable);
+        }
         if (status != null && !status.isBlank() && search != null && !search.isBlank()) {
             try {
                 Course.CourseStatus courseStatus = Course.CourseStatus.valueOf(status.toUpperCase(Locale.ROOT));
@@ -595,6 +607,14 @@ public class AdminCoursesControllerV3 {
         if (teacherIds == null || teacherIds.isEmpty()) {
             return Page.empty(pageable);
         }
+        // Issue #191 (F-C1): see queryCourses — same alignment for the
+        // ORG_ADMIN path so org-scoped KPI and table stay consistent.
+        if (isPendingReviewFilter(status)) {
+            Page<Course> reviewQueue = courseRepository.findReviewQueueByTeacherIds(teacherIds, pageable);
+            return search != null && !search.isBlank()
+                    ? filterByTitle(reviewQueue, search)
+                    : reviewQueue;
+        }
         if (status != null && !status.isBlank() && search != null && !search.isBlank()) {
             try {
                 Course.CourseStatus courseStatus = Course.CourseStatus.valueOf(status.toUpperCase(Locale.ROOT));
@@ -615,6 +635,32 @@ public class AdminCoursesControllerV3 {
             return courseRepository.findByTeacherIdsAndTitleContaining(teacherIds, search, pageable);
         }
         return courseRepository.findByTeacherIds(teacherIds, pageable);
+    }
+
+    /**
+     * "Chờ duyệt" is a *review queue* concept, not a strict status. It covers
+     * courses with {@code status = PENDING} as well as previously-APPROVED
+     * courses whose draft has been resubmitted ({@code draft_change_status =
+     * PENDING_REVIEW}). Both surfaces (KPI strip + table filter) must agree
+     * on this definition (issue #191).
+     */
+    private boolean isPendingReviewFilter(String status) {
+        return status != null && "PENDING".equalsIgnoreCase(status.trim());
+    }
+
+    /**
+     * Title-substring filter applied client-side to a review-queue page. The
+     * review queue is a native query that already aggregates two predicates;
+     * adding a third LIKE branch in SQL would duplicate the count query and
+     * is not worth the complexity for an admin filter against ≤ 100 rows.
+     */
+    private Page<Course> filterByTitle(Page<Course> page, String search) {
+        String needle = search.toLowerCase(Locale.ROOT);
+        List<Course> filtered = page.getContent().stream()
+                .filter(c -> c.getTitle() != null
+                        && c.getTitle().toLowerCase(Locale.ROOT).contains(needle))
+                .collect(Collectors.toList());
+        return new PageImpl<>(filtered, page.getPageable(), filtered.size());
     }
 
     private Page<Course> loadAndFilterOrgScopedCourses(
