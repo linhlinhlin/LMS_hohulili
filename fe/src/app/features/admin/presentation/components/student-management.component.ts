@@ -7,6 +7,7 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { getAdminPortalBase } from '../../../../core/utils/portal-route.util';
+import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/kpi-card.component';
 
 /**
  * Student Management Component
@@ -15,7 +16,7 @@ import { getAdminPortalBase } from '../../../../core/utils/portal-route.util';
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-student-management',
-  imports: [RouterModule, FormsModule],
+  imports: [RouterModule, FormsModule, KpiCardComponent],
   // F-ST1 hotfix: was missing — main SCSS file never loaded so .stat-icon
   // had no width/height constraint and stretched to 1136×1136, making the
   // page unusable. Mirrors teacher-management.component.ts:20.

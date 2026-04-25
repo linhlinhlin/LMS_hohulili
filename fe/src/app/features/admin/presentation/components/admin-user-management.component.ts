@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } from '../../infrastructure/services/admin.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
+import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/kpi-card.component';
 /**
  * Admin User Management Component
  * SOTA Design: Coursera-inspired with role change, status actions
@@ -12,7 +13,7 @@ import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.s
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-user-management',
-  imports: [RouterModule, FormsModule],
+  imports: [RouterModule, FormsModule, KpiCardComponent],
   templateUrl: './admin-user-management.component.html',
   styleUrl: './admin-user-management.component.scss'
 })

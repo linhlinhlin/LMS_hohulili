@@ -14,65 +14,28 @@
       </div>
     </div>
 
-    <!-- Stats Cards -->
+    <!-- Stats Cards — migrated to shared <app-kpi-card> per CC-01. -->
     <div class="stats-strip">
-      <div class="stat-card">
-        <div class="stat-card-inner">
-          <div>
-            <p class="stat-label">Tổng Học viên</p>
-            <p class="stat-value">{{ totalStudents() }}</p>
-            <p class="stat-sub">{{ activeStudents() }} đang hoạt động</p>
-          </div>
-          <div class="stat-icon icon-primary">
-            <svg fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z"></path>
-            </svg>
-          </div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card-inner">
-          <div>
-            <p class="stat-label">Đã đăng ký</p>
-            <p class="stat-value">{{ totalEnrollments() }}</p>
-            <p class="stat-sub">Lượt đăng ký khóa học</p>
-          </div>
-          <div class="stat-icon icon-success">
-            <svg fill="currentColor" viewBox="0 0 20 20">
-              <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
-              <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" clip-rule="evenodd"></path>
-            </svg>
-          </div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card-inner">
-          <div>
-            <p class="stat-label">Bị khóa</p>
-            <p class="stat-value">{{ blockedStudents() }}</p>
-            <p class="stat-sub">Tài khoản bị khóa</p>
-          </div>
-          <div class="stat-icon icon-error">
-            <svg fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z" clip-rule="evenodd"></path>
-            </svg>
-          </div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card-inner">
-          <div>
-            <p class="stat-label">Mới trong tuần</p>
-            <p class="stat-value">{{ newThisWeek() }}</p>
-            <p class="stat-sub">Đăng ký mới</p>
-          </div>
-          <div class="stat-icon icon-primary">
-            <svg fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
-            </svg>
-          </div>
-        </div>
-      </div>
+      <app-kpi-card
+        [value]="totalStudents()"
+        label="Tổng Học viên"
+        [sub]="activeStudents() + ' đang hoạt động'" />
+
+      <app-kpi-card
+        [value]="totalEnrollments()"
+        label="Đã đăng ký"
+        sub="Lượt đăng ký khóa học" />
+
+      <app-kpi-card
+        [value]="blockedStudents()"
+        label="Bị khóa"
+        sub="Tài khoản bị khóa"
+        variant="error" />
+
+      <app-kpi-card
+        [value]="newThisWeek()"
+        label="Mới trong tuần"
+        sub="Đăng ký mới" />
     </div>
 
     <!-- Search & Filter -->
