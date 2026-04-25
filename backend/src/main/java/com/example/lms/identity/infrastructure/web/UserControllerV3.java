@@ -115,6 +115,10 @@ public class UserControllerV3 {
         }
 
         Page<UserResponse> response = users.map(this::toResponse);
+        // Issue #190 (F-T1): hydrate coursesCreated for TEACHER rows so the
+        // teacher-management KPI strip ("Đang dạy", "Khóa học") shows real
+        // numbers instead of zeros. Batched to a single SQL aggregate.
+        enrichTeacherCourseCounts(response.getContent());
         return ResponseEntity.ok(ApiResponse.success(response, "Danh sách người dùng"));
     }
 
@@ -135,6 +139,7 @@ public class UserControllerV3 {
             page = userRepository.findAll(PageRequest.of(0, 1000));
         }
         List<UserResponse> response = page.getContent().stream().map(this::toResponse).toList();
+        enrichTeacherCourseCounts(response);
         return ResponseEntity.ok(ApiResponse.success(response, "Danh sách tất cả người dùng"));
     }
 
@@ -210,6 +215,7 @@ public class UserControllerV3 {
             }
             return r;
         });
+        enrichTeacherCourseCounts(response.getContent());
         return ResponseEntity.ok(ApiResponse.success(response, "Tìm thấy người dùng"));
     }
 
@@ -250,6 +256,7 @@ public class UserControllerV3 {
                     return r;
                 })
                 .toList();
+        enrichTeacherCourseCounts(response);
         return ResponseEntity.ok(ApiResponse.success(response, "Danh sách giảng viên"));
     }
 
@@ -696,6 +703,50 @@ public class UserControllerV3 {
                 .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
                 .updatedAt(user.getUpdatedAt() != null ? user.getUpdatedAt().toString() : null)
                 .build();
+    }
+
+    // === Enrichment Helpers ===
+
+    /**
+     * Hydrate {@code coursesCreated} on every TEACHER row in the page using a
+     * single batched aggregate. Other roles are ignored (they get the default
+     * 0). Mutates the responses in place — the page wrapper is left untouched.
+     *
+     * <p>Implements the data side of issue #190 (F-T1) so the teacher
+     * management KPI strip ("Đang dạy", "Khóa học") shows real numbers
+     * instead of the static zeros the FE was previously summing.
+     */
+    private void enrichTeacherCourseCounts(java.util.Collection<UserResponse> rows) {
+        if (rows == null || rows.isEmpty()) return;
+
+        java.util.Set<UUID> teacherIds = rows.stream()
+                .filter(r -> "teacher".equalsIgnoreCase(r.getRole()))
+                .map(r -> {
+                    try {
+                        return UUID.fromString(r.getId());
+                    } catch (IllegalArgumentException ex) {
+                        return null;
+                    }
+                })
+                .filter(java.util.Objects::nonNull)
+                .collect(java.util.stream.Collectors.toCollection(java.util.HashSet::new));
+        if (teacherIds.isEmpty()) return;
+
+        java.util.Map<UUID, Long> counts = new java.util.HashMap<>(teacherIds.size());
+        for (Object[] row : courseRepository.countCoursesByTeacherIds(teacherIds)) {
+            if (row == null || row.length < 2 || row[0] == null || row[1] == null) continue;
+            counts.put((UUID) row[0], ((Number) row[1]).longValue());
+        }
+
+        for (UserResponse r : rows) {
+            if (!"teacher".equalsIgnoreCase(r.getRole())) continue;
+            try {
+                UUID id = UUID.fromString(r.getId());
+                r.setCoursesCreated(counts.getOrDefault(id, 0L).intValue());
+            } catch (IllegalArgumentException ex) {
+                // Leave default 0 if id is somehow malformed.
+            }
+        }
     }
 
     // === Business Guard Helpers ===
