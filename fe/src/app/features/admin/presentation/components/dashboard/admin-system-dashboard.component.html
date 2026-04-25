@@ -16,35 +16,14 @@
           </div>
         }
       </div>
-      <!-- Chart + feed skeleton -->
-      <div class="content-grid grid-2-1">
-        <div class="skeleton-card animate-pulse" style="min-height:440px">
-          <div class="sk" style="height:16px;width:240px;margin-bottom:16px"></div>
-          <div class="sk-light" style="height:360px;width:100%"></div>
-        </div>
-        <div class="skeleton-card animate-pulse" style="min-height:440px">
-          <div class="sk" style="height:16px;width:160px;margin-bottom:16px"></div>
-          @for (_ of [1,2,3,4,5]; track $index) {
-            <div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #f3f4f6">
-              <div class="sk" style="height:8px;width:8px;border-radius:50%;margin-top:4px;flex-shrink:0"></div>
-              <div style="flex:1">
-                <div class="sk-light" style="height:14px;width:90%;margin-bottom:4px"></div>
-                <div class="sk-light" style="height:10px;width:60%"></div>
-              </div>
-            </div>
-          }
-        </div>
-      </div>
-      <!-- Table + health skeleton -->
+      <!-- Summary + table skeleton -->
       <div class="content-grid grid-2-1">
         <div class="skeleton-card animate-pulse" style="min-height:280px">
-          <div class="sk" style="height:16px;width:180px;margin-bottom:16px"></div>
-          @for (_ of [1,2,3]; track $index) {
-            <div style="display:flex;gap:16px;padding:12px 0;border-bottom:1px solid #f3f4f6">
-              <div class="sk-light" style="height:14px;flex:2"></div>
-              <div class="sk-light" style="height:14px;flex:1"></div>
-              <div class="sk-light" style="height:14px;flex:1"></div>
-              <div class="sk-light" style="height:14px;flex:1"></div>
+          <div class="sk" style="height:16px;width:160px;margin-bottom:16px"></div>
+          @for (_ of [1,2,3,4]; track $index) {
+            <div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #f3f4f6">
+              <div class="sk" style="height:8px;width:8px;border-radius:50%;margin-top:4px;flex-shrink:0"></div>
+              <div class="sk-light" style="height:14px;width:90%"></div>
             </div>
           }
         </div>
@@ -96,87 +75,29 @@
         </div>
       </div>
 
-      <!-- ② Revenue Chart + Activity Feed -->
-      <div class="content-grid grid-2-1">
-        <div class="card chart-card">
-          <div class="card-header">
-            <h2 class="card-title">Tổng quan doanh thu (30 ngày)</h2>
-          </div>
-          <div class="chart-area">
-            <app-revenue-chart [revenueData]="revenueChartData()" />
-          </div>
-        </div>
+      <!--
+        Biểu đồ doanh thu 30 ngày trước đây dựng từ dailyAvg + Math.sin(...)
+        → dữ liệu synthetic hiển thị như số liệu thật. Sẽ khôi phục khi
+        backend expose endpoint daily revenue (cùng pattern với org-admin
+        dashboard sau PR #145 / issue #75).
+      -->
 
-        <div class="card activity-card">
-          <div class="card-header">
-            <h2 class="card-title">Hoạt động gần đây</h2>
-          </div>
-          <div class="activity-list">
-            @for (activity of recentActivities(); track activity.id) {
-              <div class="activity-item">
-                <div class="activity-dot"></div>
-                <div class="activity-content">
-                  <p class="activity-message">{{ activity.message }}</p>
-                  <p class="activity-time">{{ activity.timestamp | date:'short' }}</p>
-                </div>
-              </div>
-            }
-          </div>
-        </div>
-      </div>
-
-      <!-- ③ Pending Approvals + System Health -->
+      <!-- ② Quick summary + System Health -->
       <div class="content-grid grid-2-1">
-        <!-- Pending Approvals Table -->
-        <div class="card">
+        <div class="card summary-card">
           <div class="card-header">
-            <h2 class="card-title">Danh sách chờ duyệt</h2>
+            <h2 class="card-title">Tổng quan nhanh</h2>
           </div>
-          <div class="card-body">
-            @if (isLoadingPending()) {
-              <div class="table-loading">
-                <div class="spinner"></div>
-                <span>Đang tải...</span>
-              </div>
-            } @else if (pendingApprovals().length === 0) {
-              <div class="table-empty">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p>Không có khóa học nào đang chờ duyệt</p>
-              </div>
+          <div class="summary-list">
+            @if (quickSummary().length === 0) {
+              <p class="summary-empty">Chưa có dữ liệu để tổng hợp.</p>
             } @else {
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Tên</th>
-                    <th>Loại</th>
-                    <th>Ngày gửi</th>
-                    <th>Hành động</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (approval of pendingApprovals(); track approval.id) {
-                    <tr>
-                      <td>{{ approval.name }}</td>
-                      <td>
-                        @if (approval.type === 'course') {
-                          <span class="badge badge-primary">Khóa học</span>
-                        } @else {
-                          <span class="badge badge-purple">Giảng viên</span>
-                        }
-                      </td>
-                      <td class="date-text">{{ formatDate(approval.submittedDate) }}</td>
-                      <td>
-                        <div class="action-btns">
-                          <button class="btn-approve" (click)="approveCourse(approval.id)">Duyệt</button>
-                          <button class="btn-reject" (click)="rejectCourse(approval.id)">Từ chối</button>
-                        </div>
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
+              @for (item of quickSummary(); track item.id) {
+                <div class="summary-item">
+                  <div class="summary-dot"></div>
+                  <p class="summary-message">{{ item.message }}</p>
+                </div>
+              }
             }
           </div>
         </div>
@@ -230,6 +151,102 @@
           </div>
         </div>
       </div>
+
+      <!-- ③ Pending Approvals (full-width) -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Danh sách chờ duyệt</h2>
+        </div>
+        <div class="card-body">
+          @if (isLoadingPending()) {
+            <div class="table-loading">
+              <div class="spinner"></div>
+              <span>Đang tải...</span>
+            </div>
+          } @else if (pendingApprovals().length === 0) {
+            <div class="table-empty">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p>Không có khóa học nào đang chờ duyệt</p>
+            </div>
+          } @else {
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Tên</th>
+                  <th>Loại</th>
+                  <th>Ngày gửi</th>
+                  <th>Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (approval of pendingApprovals(); track approval.id) {
+                  <tr>
+                    <td>{{ approval.name }}</td>
+                    <td>
+                      @if (approval.type === 'course') {
+                        <span class="badge badge-primary">Khóa học</span>
+                      } @else {
+                        <span class="badge badge-purple">Giảng viên</span>
+                      }
+                    </td>
+                    <td class="date-text">{{ formatDate(approval.submittedDate) }}</td>
+                    <td>
+                      <div class="action-btns">
+                        <button class="btn-approve" (click)="approveCourse(approval.id)">Duyệt</button>
+                        <button class="btn-reject" (click)="openRejectModal(approval.id, approval.name)">Từ chối</button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </div>
+      </div>
     </div>
   </div>
 }
+
+<!-- Reject course modal -->
+<app-dialog
+  [open]="rejectModalOpen()"
+  title="Từ chối khóa học"
+  [subtitle]="pendingRejectName()"
+  size="md"
+  variant="danger"
+  role="alertdialog"
+  [busy]="rejecting()"
+  (close)="closeRejectModal()">
+
+  <div class="reject-form">
+    <label class="reject-label" for="reject-reason-system">
+      Lý do từ chối <span class="required">*</span>
+    </label>
+    <textarea
+      id="reject-reason-system"
+      class="reject-textarea"
+      rows="4"
+      placeholder="Mô tả chi tiết lý do từ chối khóa học này (tối thiểu 10 ký tự)..."
+      [value]="rejectReason()"
+      (input)="rejectReason.set($any($event.target).value)"
+    ></textarea>
+    @if (rejectReason().trim().length > 0 && !rejectReasonValid()) {
+      <p class="reject-hint error">Lý do cần ít nhất 10 ký tự.</p>
+    } @else {
+      <p class="reject-hint">{{ rejectReason().trim().length }}/10 ký tự tối thiểu</p>
+    }
+  </div>
+
+  <div dialogFooter>
+    <button type="button" class="btn-cancel" [disabled]="rejecting()" (click)="closeRejectModal()">Hủy</button>
+    <button
+      type="button"
+      class="btn-confirm-reject"
+      [disabled]="!rejectReasonValid() || rejecting()"
+      (click)="confirmReject()">
+      Từ chối khóa học
+    </button>
+  </div>
+</app-dialog>

@@ -1,12 +1,17 @@
-import { Component, input, output, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, input, output, computed, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SystemAnalytics } from '../../../infrastructure/services/admin.service';
-import { RevenueChartComponent, RevenueData } from './components/revenue-chart.component';
 import { PendingApproval } from './dashboard.types';
+import { DialogComponent } from '../../../../../shared/components/dialog/dialog.component';
+
+interface QuickSummaryItem {
+  id: string;
+  message: string;
+}
 
 @Component({
   selector: 'app-admin-system-dashboard',
-  imports: [CommonModule, RevenueChartComponent],
+  imports: [CommonModule, DialogComponent],
   templateUrl: './admin-system-dashboard.component.html',
   styleUrl: './admin-system-dashboard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -22,44 +27,51 @@ export class AdminSystemDashboardComponent {
   courseApproved = output<string>();
   courseRejected = output<{ id: string; reason: string }>();
 
-  // --- Derived state (ADMIN only) ---
-  revenueChartData = computed<RevenueData>(() => {
-    const dailyAvg = (this.analytics().monthlyRevenue || 0) / 30;
-    const labels: string[] = [];
-    const data: number[] = [];
-    const today = new Date();
-
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
-      labels.push(`${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`);
-      data.push(Math.max(0, Math.floor(dailyAvg + Math.sin(i * 0.7) * dailyAvg * 0.3)));
-    }
-    return { labels, data };
-  });
-
-  recentActivities = computed(() => {
+  // Snapshot summary derived from analytics counts. Replaces the previous
+  // "Hoạt động gần đây" feed which faked timestamps via `new Date()` —
+  // misleading because none of these items represent a real activity log.
+  quickSummary = computed<QuickSummaryItem[]>(() => {
     const a = this.analytics();
-    const items: { id: number; message: string; timestamp: Date }[] = [];
-    let seq = 1;
-    if (a.pendingCourses > 0) items.push({ id: seq++, message: `${a.pendingCourses} khóa học đang chờ duyệt`, timestamp: new Date() });
-    if (a.totalEnrollments > 0) items.push({ id: seq++, message: `${a.totalEnrollments} lượt đăng ký khóa học`, timestamp: new Date() });
-    if (a.totalStudents > 0) items.push({ id: seq++, message: `${a.totalStudents} học viên trong hệ thống`, timestamp: new Date() });
-    if (a.totalCourses > 0) items.push({ id: seq++, message: `${a.totalCourses} khóa học đã tạo`, timestamp: new Date() });
-    if (items.length === 0) items.push({ id: 1, message: 'Chưa có hoạt động nào', timestamp: new Date() });
+    const items: QuickSummaryItem[] = [];
+    if (a.pendingCourses > 0) items.push({ id: 'pending', message: `${a.pendingCourses} khóa học đang chờ duyệt` });
+    if (a.totalEnrollments > 0) items.push({ id: 'enrollments', message: `${a.totalEnrollments} lượt đăng ký khóa học` });
+    if (a.totalStudents > 0) items.push({ id: 'students', message: `${a.totalStudents} học viên trong hệ thống` });
+    if (a.totalCourses > 0) items.push({ id: 'courses', message: `${a.totalCourses} khóa học đã tạo` });
     return items;
   });
+
+  // --- Reject modal state (mirrors org-admin pattern from PR #145) ---
+  rejectModalOpen = signal(false);
+  private pendingRejectId = signal<string | null>(null);
+  pendingRejectName = signal('');
+  rejectReason = signal('');
+  rejecting = signal(false);
+  rejectReasonValid = computed(() => this.rejectReason().trim().length >= 10);
 
   // --- Actions ---
   approveCourse(courseId: string): void {
     this.courseApproved.emit(courseId);
   }
 
-  rejectCourse(courseId: string): void {
-    const reason = prompt('Nhập lý do từ chối khóa học:');
-    if (reason?.trim()) {
-      this.courseRejected.emit({ id: courseId, reason: reason.trim() });
-    }
+  openRejectModal(courseId: string, courseName: string): void {
+    this.pendingRejectId.set(courseId);
+    this.pendingRejectName.set(courseName);
+    this.rejectReason.set('');
+    this.rejectModalOpen.set(true);
+  }
+
+  closeRejectModal(): void {
+    this.rejectModalOpen.set(false);
+    this.pendingRejectId.set(null);
+    this.pendingRejectName.set('');
+    this.rejectReason.set('');
+  }
+
+  confirmReject(): void {
+    const id = this.pendingRejectId();
+    if (!id || !this.rejectReasonValid() || this.rejecting()) return;
+    this.courseRejected.emit({ id, reason: this.rejectReason().trim() });
+    this.closeRejectModal();
   }
 
   formatDate(dateString: string): string {

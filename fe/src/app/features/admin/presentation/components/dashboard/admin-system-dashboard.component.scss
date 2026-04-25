@@ -124,18 +124,15 @@
   }
 }
 
-/* ===== CHART CARD ===== */
-.chart-card { overflow: hidden; }
+/* ===== SUMMARY CARD =====
+   Replaces the old "Activity feed" card whose timestamps were synthetic
+   (`new Date()`) and the revenue chart whose 30-day series came from
+   `dailyAvg + Math.sin(...)`. Both are restored when the backend exposes
+   real time-series endpoints.
+*/
+.summary-card { overflow: hidden; }
 
-.chart-area {
-  padding: $spacing-5;
-  min-height: 400px;
-}
-
-/* ===== ACTIVITY CARD ===== */
-.activity-card { overflow: hidden; }
-
-.activity-list {
+.summary-list {
   padding: $spacing-4 $spacing-5;
   max-height: 400px;
   overflow-y: auto;
@@ -147,7 +144,7 @@
   scrollbar-color: $gray-300 transparent;
 }
 
-.activity-item {
+.summary-item {
   display: flex;
   gap: $spacing-3;
   padding: $spacing-3 0;
@@ -156,7 +153,7 @@
   &:last-child { border-bottom: none; }
 }
 
-.activity-dot {
+.summary-dot {
   width: 8px;
   height: 8px;
   background: $blue-primary;
@@ -165,18 +162,18 @@
   flex-shrink: 0;
 }
 
-.activity-content { flex: 1; min-width: 0; }
-
-.activity-message {
+.summary-message {
+  flex: 1;
   font-size: $text-sm;
   color: $gray-700;
-  margin: 0 0 2px;
+  margin: 0;
 }
 
-.activity-time {
-  font-size: $text-xs;
-  color: $gray-400;
+.summary-empty {
+  font-size: $text-sm;
+  color: $text-muted;
   margin: 0;
+  padding: $spacing-3 0;
 }
 
 /* ===== DATA TABLE ===== */
@@ -404,8 +401,7 @@
   .card-body { padding: $spacing-3 $spacing-4; }
   .card-title { font-size: $text-sm; }
 
-  .chart-area { padding: $spacing-3; min-height: 300px; }
-  .activity-list { padding: $spacing-3; max-height: 300px; }
+  .summary-list { padding: $spacing-3; max-height: 300px; }
 
   .data-table th { padding: 8px $spacing-3; font-size: 10px; }
   .data-table td { padding: 8px $spacing-3; font-size: 13px; }
@@ -483,13 +479,12 @@
     margin-bottom: 10px !important;
   }
 
-  // Hide: chart (complex for print), actions, skeleton
-  .chart-card { display: none !important; }
+  // Hide: actions, skeleton
   .action-btns { display: none !important; }
   .skeleton-strip, .skeleton-card { display: none !important; }
 
-  // Activity: expand all
-  .activity-list {
+  // Summary: expand all
+  .summary-list {
     max-height: none !important;
     overflow: visible !important;
     padding: 8px 12px !important;
@@ -511,5 +506,105 @@
   .badge, .health-dot, .health-status, .metric-value {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+}
+
+/* ===== REJECT MODAL =====
+   Mirrors org-admin dashboard reject form (PR #145) so both portals
+   present an identical confirm UX backed by shared <app-dialog>.
+*/
+.reject-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reject-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #0f172a;
+
+  .required {
+    color: #dc2626;
+    margin-left: 2px;
+  }
+}
+
+.reject-textarea {
+  width: 100%;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #0f172a;
+  background: #f8fafc;
+  resize: vertical;
+  transition: border-color 0.15s;
+  font-family: inherit;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: #0056D2;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.08);
+  }
+
+  &::placeholder {
+    color: #94a3b8;
+  }
+}
+
+.reject-hint {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+
+  &.error {
+    color: #dc2626;
+  }
+}
+
+.btn-cancel {
+  padding: 8px 16px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+
+  &:hover:not(:disabled) {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btn-confirm-reject {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 8px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+
+  &:hover:not(:disabled) {
+    background: #b91c1c;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 }
