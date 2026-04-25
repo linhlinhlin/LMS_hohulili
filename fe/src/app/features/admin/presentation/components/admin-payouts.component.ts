@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiClient } from '../../../../api/client/api-client';
 import { AuthService, UserRole } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/kpi-card.component';
 
 interface PayoutListItem {
     id: string;
@@ -22,7 +23,7 @@ interface PayoutListItem {
 
 @Component({
     selector: 'app-admin-payouts',
-    imports: [FormsModule],
+    imports: [FormsModule, KpiCardComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styleUrl: './admin-payouts.component.scss',
     template: `
@@ -31,6 +32,29 @@ interface PayoutListItem {
         <div class="page-header">
           <h1 class="page-title">Quản lý rút tiền</h1>
           <p class="page-desc">Duyệt và xử lý các yêu cầu rút tiền của giảng viên theo đúng phạm vi quản trị.</p>
+        </div>
+
+        <!-- F-P1: KPI strip — 4 count cards per status. Counts only for now;
+             aggregate amounts cần BE endpoint riêng (defer to BE issue). -->
+        <div class="kpi-strip">
+          <app-kpi-card
+            [value]="pendingCount()"
+            label="Chờ duyệt"
+            [variant]="pendingCount() > 0 ? 'warning' : 'default'"
+            sub="Cần xử lý" />
+          <app-kpi-card
+            [value]="approvedCount()"
+            label="Đã duyệt"
+            sub="Chờ chuyển khoản" />
+          <app-kpi-card
+            [value]="completedCount()"
+            label="Hoàn thành"
+            variant="success"
+            sub="Đã chuyển khoản" />
+          <app-kpi-card
+            [value]="rejectedCount()"
+            label="Đã từ chối"
+            sub="Tổng yêu cầu bị từ chối" />
         </div>
 
         <div class="tab-bar">
@@ -70,11 +94,12 @@ interface PayoutListItem {
               <p class="state-text">Đang tải...</p>
             </div>
           } @else if (payouts().length === 0) {
-            <div class="state-box">
+            <div class="state-box state-box-empty">
               <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
               </svg>
-              <p class="empty-text">Không có yêu cầu nào trong trạng thái này</p>
+              <p class="empty-title">{{ emptyTitle() }}</p>
+              <p class="empty-desc">{{ emptyDesc() }}</p>
             </div>
           } @else {
             <div class="table-scroll">
@@ -293,7 +318,38 @@ export class AdminPayoutsComponent implements OnInit {
     currentPage = signal(0);
     hasMore = signal(false);
     pendingCount = signal(0);
+    // F-P1: per-status totals — counts only for now (amount sum cần BE
+    // aggregate endpoint, defer).
+    approvedCount = signal(0);
+    completedCount = signal(0);
+    rejectedCount = signal(0);
     copyFeedback = signal(false);
+
+    // F-P3: Carbon empty-states — Inform + Inspire + Activate. Activate
+    // CTA chỉ thêm khi user thực sự có thể act (e.g., teacher list link).
+    // Hiện tại mỗi tab map sang 1 message rõ; không CTA vì không có action
+    // ý nghĩa cho admin trên empty payout queue.
+    emptyTitle = computed(() => {
+      switch (this.activeStatus()) {
+        case 'PENDING':   return 'Hàng đợi đã sạch';
+        case 'APPROVED':  return 'Chưa có yêu cầu nào được duyệt';
+        case 'COMPLETED': return 'Chưa có giao dịch hoàn thành';
+        case 'REJECTED':  return 'Chưa có yêu cầu nào bị từ chối';
+        case 'CANCELLED': return 'Chưa có yêu cầu nào bị hủy';
+        default:          return 'Không có yêu cầu nào trong trạng thái này';
+      }
+    });
+
+    emptyDesc = computed(() => {
+      switch (this.activeStatus()) {
+        case 'PENDING':   return 'Khi giảng viên gửi yêu cầu rút tiền, yêu cầu sẽ hiện ở đây để bạn duyệt.';
+        case 'APPROVED':  return 'Khi bạn duyệt một yêu cầu, yêu cầu sẽ chuyển sang đây để chờ chuyển khoản.';
+        case 'COMPLETED': return 'Khi bạn xác nhận đã chuyển khoản, giao dịch sẽ chuyển sang đây.';
+        case 'REJECTED':  return 'Yêu cầu bị từ chối sẽ hiển thị tại đây cùng lý do để giảng viên xem lại.';
+        case 'CANCELLED': return 'Yêu cầu giảng viên tự hủy sẽ hiển thị tại đây.';
+        default:          return '';
+      }
+    });
 
     approveTarget = signal<PayoutListItem | null>(null);
     rejectTarget = signal<PayoutListItem | null>(null);
@@ -312,7 +368,7 @@ export class AdminPayoutsComponent implements OnInit {
 
     ngOnInit(): void {
         this.loadPayouts();
-        this.loadPendingCount();
+        this.loadStatusCounts();
     }
 
     changeStatus(status: string): void {
@@ -339,12 +395,25 @@ export class AdminPayoutsComponent implements OnInit {
         });
     }
 
-    private loadPendingCount(): void {
-        this.api.getWithResponse<any>('/api/v3/admin/revenue/payouts?status=PENDING&page=0&size=1')
-            .subscribe({
-                next: (response) => this.pendingCount.set(response.data?.totalElements ?? 0),
+    // F-P1: count payouts in each status. We piggy-back on the existing
+    // paged endpoint by asking for `size=1` and reading `totalElements`
+    // — no aggregate endpoint needed yet. If the count signals end up
+    // hot-path enough to matter, swap to a single GET /payouts/counts.
+    private loadStatusCounts(): void {
+        const setters: Record<string, (n: number) => void> = {
+            PENDING:   n => this.pendingCount.set(n),
+            APPROVED:  n => this.approvedCount.set(n),
+            COMPLETED: n => this.completedCount.set(n),
+            REJECTED:  n => this.rejectedCount.set(n),
+        };
+        for (const status of Object.keys(setters)) {
+            this.api.getWithResponse<any>(
+                `/api/v3/admin/revenue/payouts?status=${status}&page=0&size=1`
+            ).subscribe({
+                next: (response) => setters[status](response.data?.totalElements ?? 0),
                 error: () => {}
             });
+        }
     }
 
     prevPage(): void {
@@ -388,7 +457,7 @@ export class AdminPayoutsComponent implements OnInit {
                 this.approveTarget.set(null);
                 this.toast.success('Đã duyệt yêu cầu rút tiền');
                 this.loadPayouts();
-                this.loadPendingCount();
+                this.loadStatusCounts();
             },
             error: (error) => this.toast.error('Lỗi: ' + (error?.error?.message || 'Không thể duyệt'))
         });
@@ -407,7 +476,7 @@ export class AdminPayoutsComponent implements OnInit {
                 this.rejectTarget.set(null);
                 this.toast.success('Đã từ chối yêu cầu rút tiền');
                 this.loadPayouts();
-                this.loadPendingCount();
+                this.loadStatusCounts();
             },
             error: (error) => this.toast.error('Lỗi: ' + (error?.error?.message || 'Không thể từ chối'))
         });
