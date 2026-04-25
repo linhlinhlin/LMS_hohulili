@@ -99,6 +99,45 @@ export class UserManagementState {
   isLoadingUsers = signal(false);
   isDeletingUser = signal(false);
 
+  // Bulk selection state — CC-06 (mega audit). Set keyed by user id; cleared
+  // on every page change / load / successful bulk action.
+  selectedUserIds = signal<Set<string>>(new Set());
+  selectedCount = computed(() => this.selectedUserIds().size);
+
+  isSelected(userId: string): boolean {
+    return this.selectedUserIds().has(userId);
+  }
+
+  toggleSelection(userId: string): void {
+    const next = new Set(this.selectedUserIds());
+    next.has(userId) ? next.delete(userId) : next.add(userId);
+    this.selectedUserIds.set(next);
+  }
+
+  toggleSelectAll(): void {
+    const visibleIds = this.filteredUsers().map(u => u.id);
+    const current = this.selectedUserIds();
+    const allSelected = visibleIds.length > 0 && visibleIds.every(id => current.has(id));
+    if (allSelected) {
+      const next = new Set(current);
+      visibleIds.forEach(id => next.delete(id));
+      this.selectedUserIds.set(next);
+    } else {
+      this.selectedUserIds.set(new Set([...current, ...visibleIds]));
+    }
+  }
+
+  allVisibleSelected = computed(() => {
+    const visible = this.filteredUsers();
+    if (visible.length === 0) return false;
+    const selected = this.selectedUserIds();
+    return visible.every(u => selected.has(u.id));
+  });
+
+  clearSelection(): void {
+    this.selectedUserIds.set(new Set());
+  }
+
   // Role checks
   /** True if current user is ADMIN (not ORG_ADMIN) */
   readonly isSystemAdmin = computed(() => this.authService.userRole() === 'admin');
@@ -175,6 +214,7 @@ export class UserManagementState {
           }));
 
           this._localUsers.set(normalizedUsers);
+          this.clearSelection();
 
           if (response.pagination) {
             this.pagination.set({

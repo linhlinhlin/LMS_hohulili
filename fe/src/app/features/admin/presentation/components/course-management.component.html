@@ -138,17 +138,6 @@
         </div>
       </div>
 
-      @if (selectedCount() > 0) {
-        <div class="bulk-bar">
-          <div class="bulk-label">Đã chọn {{ selectedCount() }} khóa học</div>
-          <div class="bulk-actions">
-            <button class="btn-bulk-approve" (click)="bulkApprove()">Duyệt ({{ selectedCount() }})</button>
-            <button class="btn-bulk-reject" (click)="openBulkRejectModal()">Từ chối ({{ selectedCount() }})</button>
-            <button class="btn-bulk-clear" (click)="clearSelection()">Bỏ chọn</button>
-          </div>
-        </div>
-      }
-
       <div class="table-card">
         @if (courses().length > 0) {
           <div class="table-scroll">
@@ -401,17 +390,47 @@
   size="md"
   variant="danger"
   (close)="closeBulkRejectModal()">
-  <textarea class="modal-textarea textarea-danger"
+  <!-- Reason taxonomy — picking a preset seeds the textarea so reviewers
+       stay consistent across batches. "Lý do khác" clears the field. -->
+  <fieldset class="reject-preset-fieldset">
+    <legend class="reject-preset-legend">Chọn lý do mẫu</legend>
+    <div class="reject-preset-grid">
+      @for (preset of REJECT_REASON_PRESETS; track preset.key) {
+        <label class="reject-preset-option"
+               [class.is-active]="selectedRejectPreset() === preset.key">
+          <input type="radio"
+                 name="bulkRejectPreset"
+                 [value]="preset.key"
+                 [checked]="selectedRejectPreset() === preset.key"
+                 (change)="onSelectRejectPreset(preset.key)" />
+          <span>{{ preset.label }}</span>
+        </label>
+      }
+    </div>
+  </fieldset>
+  <label class="modal-field-label" for="bulk-reject-textarea">Lý do từ chối *</label>
+  <textarea id="bulk-reject-textarea"
+            class="modal-textarea textarea-danger"
             [ngModel]="bulkRejectReason()"
             (ngModelChange)="bulkRejectReason.set($event)"
             name="bulkRejectReason"
-            rows="4"
+            rows="5"
             placeholder="Vui lòng giải thích lý do từ chối..."></textarea>
   <div dialogFooter>
     <button class="btn-cancel" (click)="closeBulkRejectModal()">Hủy</button>
     <button class="btn-danger" (click)="confirmBulkReject()" [disabled]="!bulkRejectReason().trim()">Từ chối ({{ selectedCount() }})</button>
   </div>
 </app-dialog>
+
+<!-- Bulk action bar — slides up from bottom while selectedCount > 0.
+     Per audit guidance, bulk approve is NOT exposed (too high stakes); only
+     bulk reject with reason taxonomy + clear are available here. -->
+<app-bulk-action-bar
+  [selectedCount]="selectedCount()"
+  [actions]="bulkActions()"
+  countLabel="khóa học đã chọn"
+  (actionClick)="onBulkAction($event)"
+  (clear)="clearSelection()" />
 
 <app-dialog
   [open]="showRevokeModal()"

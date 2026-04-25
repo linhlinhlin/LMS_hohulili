@@ -1,0 +1,53 @@
+<!--
+  Slide-up sticky bar. The wrapper stays mounted so the slide animation runs
+  on entry/exit; visibility is driven by the .is-visible modifier class.
+-->
+<div class="bulk-bar"
+     [class.is-visible]="isVisible()"
+     role="region"
+     aria-label="Thanh thao tác hàng loạt"
+     [attr.aria-hidden]="isVisible() ? null : 'true'">
+  <div class="bulk-bar-inner">
+    <!-- Selection count — announced to SR via aria-live on parent region. -->
+    <div class="bulk-count" aria-live="polite">
+      <span class="bulk-count-value">{{ selectedCount() }}</span>
+      <span class="bulk-count-label">{{ countLabel() }}</span>
+    </div>
+
+    <span class="bulk-divider" aria-hidden="true"></span>
+
+    <!-- Action buttons. -->
+    <div class="bulk-actions">
+      @for (action of actions(); track action.key) {
+        <button type="button"
+                class="bulk-action-btn"
+                [class.is-danger]="action.variant === 'danger'"
+                [disabled]="action.disabled || !isVisible()"
+                [attr.aria-label]="action.ariaLabel || action.label"
+                [attr.tabindex]="isVisible() ? null : -1"
+                (click)="onAction(action)">
+          @if (action.icon) {
+            <svg class="bulk-action-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path [attr.d]="action.icon"></path>
+            </svg>
+          }
+          <span>{{ action.label }}</span>
+        </button>
+      }
+    </div>
+
+    <!-- Trailing clear / dismiss. -->
+    <button type="button"
+            class="bulk-clear-btn"
+            [attr.tabindex]="isVisible() ? null : -1"
+            [attr.aria-label]="clearLabel()"
+            (click)="onClear()">
+      <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+        <path fill-rule="evenodd"
+              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+              clip-rule="evenodd"></path>
+      </svg>
+      <span>{{ clearLabel() }}</span>
+    </button>
+  </div>
+</div>

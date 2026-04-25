@@ -43,3 +43,11 @@
 <app-bulk-import-modal
   (startImport)="startBulkImport()"
   (downloadTemplate)="downloadTemplate()" />
+
+<!-- Bulk action bar — slides up from bottom while selectedCount > 0. -->
+<app-bulk-action-bar
+  [selectedCount]="state.selectedCount()"
+  [actions]="bulkActions()"
+  countLabel="người dùng đã chọn"
+  (actionClick)="onBulkAction($event)"
+  (clear)="state.clearSelection()" />

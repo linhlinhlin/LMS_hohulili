@@ -258,6 +258,22 @@ $purple-bg: #FAF5FF;
 
   &:last-child { border-bottom: none; }
   &:hover { background: $gray-50; }
+
+  &.row-selected { background: rgba($blue-primary, 0.04); }
+}
+
+/* Bulk select column — CC-06 */
+.col-checkbox {
+  width: 40px;
+  padding-right: 0;
+  text-align: center;
+}
+
+.row-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: $blue-primary;
 }
 
 /* ===== TABLE: TEACHER INFO CELL ===== */

@@ -85,6 +85,13 @@
           <table class="data-table">
             <thead>
               <tr>
+                <th class="col-checkbox">
+                  <input type="checkbox"
+                         class="row-checkbox"
+                         [checked]="allVisibleSelected()"
+                         (change)="toggleSelectAll()"
+                         aria-label="Chọn tất cả quản trị viên đang hiển thị" />
+                </th>
                 <th>Quản trị viên</th>
                 <th>Vai trò</th>
                 <th>Trạng thái</th>
@@ -95,7 +102,15 @@
             </thead>
             <tbody>
               @for (admin of filteredAdmins(); track admin.id) {
-                <tr>
+                <tr [class.row-selected]="isSelected(admin.id)">
+                  <!-- Bulk select -->
+                  <td class="col-checkbox">
+                    <input type="checkbox"
+                           class="row-checkbox"
+                           [checked]="isSelected(admin.id)"
+                           (change)="toggleSelection(admin.id)"
+                           [attr.aria-label]="'Chọn ' + admin.name" />
+                  </td>
                   <!-- User Info -->
                   <td>
                     <div class="user-cell">
@@ -172,6 +187,14 @@
     </div>
   </div>
 </div>
+
+<!-- Bulk action bar — slides up from bottom while selectedCount > 0. -->
+<app-bulk-action-bar
+  [selectedCount]="selectedCount()"
+  [actions]="bulkActions()"
+  countLabel="quản trị viên đã chọn"
+  (actionClick)="onBulkAction($event)"
+  (clear)="clearSelection()" />
 
 <!-- Create Admin Modal -->
 @if (showCreateModal()) {
