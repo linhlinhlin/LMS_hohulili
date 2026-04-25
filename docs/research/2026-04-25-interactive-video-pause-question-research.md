@@ -4,9 +4,15 @@
 >
 > **Stack hiện tại**: Spring Boot 3.2 + Angular 20.3 + PostgreSQL 16 + **Cloudflare Stream** cho video + PWA offline (IndexedDB Dexie v6). Có `adaptive-video-player.component.ts` với `(timeupdate)/(pause)/(seeking)` hooks + `WatchedSegmentsTracker` service.
 >
-> **Phương pháp**: research subagent web survey 12 platform + license/architecture/maintenance evaluation H5P sâu + Quiz.com deep-dive + SOTA architecture patterns (cuepoint storage, state machine, anti-skip, branching, xAPI, offline) + UX reference catalog.
+> **Phương pháp**: research subagent web survey 12 platform + license/architecture/maintenance evaluation H5P sâu + Quiz.com deep-dive (xác minh qua source code bundle) + SOTA architecture patterns (cuepoint storage, state machine, anti-skip, branching, xAPI, offline) + UX reference catalog.
 >
-> **TL;DR**: H5P **NO-GO** (license GPL-3.0 + jQuery iframe stack mismatch + HLS-incompatible với Cloudflare Stream + maintenance stagnant). Quiz.com **không phải interactive video platform** (quiz có video bên cạnh, không có auto-pause). **Khuyến nghị: build in-house** trên CF Stream + Angular player hiện có. ~2 sprint MVP, ~600 LOC FE + ~400 LOC BE.
+> **TL;DR (updated 2026-04-25 sau correction Quiz.com)**:
+> - H5P **NO-GO** (license GPL-3.0 + jQuery iframe stack mismatch + HLS-incompatible với Cloudflare Stream + maintenance stagnant)
+> - Quiz.com **CÓ** media-pause-and-answer pattern, nhưng là **single-clip-per-question** (1 short clip + 1 question per slide, không phải multi-cuepoint timeline). Pattern này là (a). Edpuzzle/PlayPosit là (b) multi-cuepoint timeline.
+> - **2 MVP path khả thi**: MVP A = single-clip pattern (1 sprint, value cao cho audio/video identification — phù hợp Maritime: Morse code, ship horns, VHF call signs), MVP B = multi-cuepoint timeline Edpuzzle-style (2-3 sprint, phù hợp video bài giảng dài)
+> - **Khuyến nghị**: build pattern (a) MVP A trước, (b) MVP B sau. **Shared infrastructure** — schema design từ đầu để cuepoint = array (length 1 = pattern a, length N = pattern b)
+>
+> **CORRECTION (added 2026-04-25 sau user feedback)**: Research ban đầu kết luận Quiz.com KHÔNG có pause-point engine — sai. User correct lại từ direct experience. Re-research bằng cách inspect Quiz.com Next.js bundle (`_app-da1e697acc4a8dc9.js`) verify pattern (a). Xem **§11 — Correction note** ở cuối doc.
 
 ---
 
@@ -443,9 +449,82 @@ Sprint 3 (polish + UX):
 
 ---
 
-**Research completed**: 2026-04-25 14:00 ICT.
-**Methodology**: research subagent web survey + license analysis + UX pattern catalog + stack-fit evaluation.
-**Recommended next step**: 
-1. Review meeting với @Nguyễn Hùng + team xác nhận build in-house
-2. Mở feature issue `feat(learning): interactive video pause-point questions (research → MVP)` với roadmap §9
-3. BE PR đầu tiên: V75 migration + Cuepoint entity skeleton (Sprint 1 kickoff)
+## 11. Correction note — Quiz.com (2026-04-25 16:00)
+
+User feedback: research ban đầu kết luận **Quiz.com KHÔNG có pause-point engine — sai**. User mô tả từ direct experience pattern: "Đây là bài nhạc gì → nhạc phát 4 giây → dừng → user trả lời → tiếp tục".
+
+Re-research bằng cách inspect Quiz.com Next.js bundle (`_app-da1e697acc4a8dc9.js`, 592KB, fetched 2026-04-25):
+
+### 11.1 Bằng chứng từ source code
+
+- **8 slide types**: `Buttons, Checkboxes, Reorder, Range, Location, Pinpoint, Type answer, Info slide` (không có "Audio Quiz" / "Video Quiz" riêng)
+- **State machine**:
+  ```
+  load slide → show question → show media → wait for media
+    → youtube end 1 → youtube end 2 → show answers → wait for answer
+    → show correct answer → ...
+  ```
+- `mediaSource` field per slide — format `youtube/{videoId}`, `giphy/`, `street/` (Google Street View)
+- **KHÔNG có** `mediaStart` / `mediaEnd` / `trimStart` / `trimEnd` / `setTimeout(pause,N)` — Quiz.com KHÔNG tự cắt video. Creator phải dùng pre-trimmed YouTube clip hoặc YouTube `?start=&end=` URL params.
+- Music quiz examples public: [quiz.com/tag/music/](https://quiz.com/tag/music/), live samples confirm pattern.
+
+### 11.2 Đặc điểm pattern Quiz.com vs Edpuzzle
+
+| | Quiz.com | Edpuzzle/PlayPosit |
+|---|---|---|
+| **Pattern** | (a) **Single-clip-per-question** | (b) **Multi-cuepoint timeline** |
+| Media unit | 1 short clip + 1 Q per slide | 1 long video + N Q tại N timestamps |
+| Cuepoint engine | Không có — single play→ENDED→next | Bắt buộc — state machine quản nhiều cuepoints |
+| User-config trim | Không (rely YouTube short clip) | Có (multi stop-points + start/end) |
+| Use case | Music quiz, movie quiz, kahoot-style | Khóa học video, classroom homework |
+
+### 11.3 Updated verdict + implication
+
+Quiz.com là **(a) single-clip-per-question** — đơn giản hơn Edpuzzle nhiều. Không cần cuepoint engine, chỉ cần:
+- HTML5 `<audio>`/`<video>` hoặc YouTube IFrame embed với `playerVars: {start, end}`
+- State machine: `showQuestion → playMedia → onEnded() → showAnswers → waitForAnswer → showResult`
+- Optional `setTimeout` fallback nếu media không emit `ended`
+
+### 11.4 Maritime use cases cho pattern (a) — value cao
+
+- "Identify this VHF call sign" (audio clip)
+- "Recognize this ship horn pattern" (audio)
+- "Name this navigational signal sound" (audio)
+- "Identify this Morse code message" (audio)
+- "What does this radar signature show?" (video clip)
+
+→ **MVP A** ship được trong **1 sprint**, value cao cho domain maritime.
+
+### 11.5 Khuyến nghị final (REVISED)
+
+**Build pattern (a) MVP A trước, (b) MVP B sau. Shared infrastructure.**
+
+Schema design ngay từ đầu để cuepoint = `[{timestamp, questionId, action}]` array:
+- Pattern (a) = array length 1, timestamp = end-of-clip
+- Pattern (b) = array length N
+
+→ Cùng entity `MediaQuestionGroup`, cùng player engine, khác chỉ ở UI editor + question bundling.
+
+### 11.6 Revised roadmap
+
+- **Sprint 1 (MVP A — single-clip)**: V75 migration với cuepoint array support; `MediaClipQuestion` entity + simple player (single clip + auto-advance on `ended`); maritime use case ship được ngay.
+- **Sprint 2-3 (MVP B — multi-cuepoint timeline)**: Generalize cuepoint array (length N), add timeline editor UI, anti-skip seek, branching seek; Edpuzzle-style use case (video bài giảng dài).
+- **Sprint 4 (polish)**: pre-pause glow warning, feedback animations, mobile bottom-sheet, a11y.
+
+### 11.7 Sources mới (correction)
+
+- [Quiz.com homepage](https://quiz.com/) — slide types
+- [Quiz.com video quizzes](https://quiz.com/tag/video/) — confirms video category
+- [Quiz.com music quizzes](https://quiz.com/tag/music/) — confirms music category
+- [Sample music video quiz](https://quiz.com/1e87e5b2-92ad-4c80-869d-d16a183dd471/) — live example
+- [Sample soundtrack quiz](https://quiz.com/5fe905dd-9098-4422-bf9d-c59be4aca0c5/) — live example
+- Quiz.com Next.js bundle `_app-da1e697acc4a8dc9.js` (592KB, fetched 2026-04-25) — authoritative source. Key strings: `SLIDE_TYPE_NAMES`, `"show media"`, `"wait for media"`, `"youtube end 1"`, `"youtube end 2"`, `mediaSource`, `Pinpoint`.
+
+---
+
+**Research completed**: 2026-04-25 14:00 ICT (initial), 16:00 ICT (Quiz.com correction).
+**Methodology**: research subagent web survey + license analysis + UX pattern catalog + stack-fit evaluation + **source code bundle inspection** (Quiz.com correction).
+**Recommended next step (REVISED)**:
+1. Review meeting với @Nguyễn Hùng + team xác nhận build in-house — confirm 2-MVP roadmap (a → b)
+2. Update feature issue #170 với MVP A/B sequencing mới
+3. Sprint 1 BE PR đầu tiên: V75 migration với cuepoint array support (length 1 cho MVP A) + `MediaClipQuestion` entity skeleton
