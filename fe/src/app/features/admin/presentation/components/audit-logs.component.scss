@@ -13,12 +13,51 @@
 }
 
 /* ===== HEADER ===== */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-3;
+  margin-bottom: $spacing-6;
+  flex-wrap: wrap;
+}
+
 .page-title {
   font-size: $text-2xl;
   font-weight: $font-bold;
   color: $text-primary;
-  margin: 0 0 $spacing-6;
+  margin: 0;
   line-height: $leading-tight;
+}
+
+/* F-L4 — CSV export button. Audit-only consumers expect a quick "current
+   page" download to drop into a SOC2 / ISO 27001 evidence folder. */
+.btn-export {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-2;
+  padding: $spacing-2 $spacing-4;
+  min-height: 40px;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  color: white;
+  background: $blue-primary;
+  border: 1px solid $blue-primary;
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: background $transition-fast, border-color $transition-fast;
+
+  &:hover:not(:disabled) {
+    background: $blue-hover;
+    border-color: $blue-hover;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  @include focus-visible;
 }
 
 /* ===== FILTER BAR ===== */

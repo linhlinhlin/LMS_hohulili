@@ -1,6 +1,14 @@
 <div class="audit-page">
   <div class="audit-inner">
-    <h1 class="page-title">Nhật ký kiểm toán</h1>
+    <div class="page-header">
+      <h1 class="page-title">Nhật ký kiểm toán</h1>
+      <button (click)="exportCsvCurrentPage()" class="btn-export" [disabled]="logs().length === 0" title="Xuất các dòng đang hiển thị ra CSV">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        Xuất CSV
+      </button>
+    </div>
 
     <!-- Filters -->
     <div class="filter-bar">
@@ -9,19 +17,19 @@
           <label class="filter-label">Bảng</label>
           <select [(ngModel)]="tableFilter" (ngModelChange)="onFilterChange()" class="filter-select">
             <option value="">Tất cả</option>
-            <option value="courses">courses</option>
-            <option value="users">users</option>
-            <option value="enrollments">enrollments</option>
-            <option value="submissions">submissions</option>
+            <option value="courses">Khóa học</option>
+            <option value="users">Người dùng</option>
+            <option value="enrollments">Đăng ký học</option>
+            <option value="submissions">Bài nộp</option>
           </select>
         </div>
         <div class="filter-group">
           <label class="filter-label">Hành động</label>
           <select [(ngModel)]="actionFilter" (ngModelChange)="onFilterChange()" class="filter-select">
             <option value="">Tất cả</option>
-            <option value="INSERT">INSERT</option>
-            <option value="UPDATE">UPDATE</option>
-            <option value="DELETE">DELETE</option>
+            <option value="INSERT">Thêm mới</option>
+            <option value="UPDATE">Cập nhật</option>
+            <option value="DELETE">Xoá</option>
           </select>
         </div>
       </div>
@@ -44,10 +52,10 @@
           @for (log of logs(); track log.id) {
             <tr>
               <td class="cell-id">{{ log.id }}</td>
-              <td class="cell-table-name">{{ log.tableName }}</td>
+              <td class="cell-table-name" [title]="log.tableName">{{ getTableLabel(log.tableName) }}</td>
               <td>
-                <span class="badge" [class]="getActionClass(log.action)">
-                  {{ log.action }}
+                <span class="badge" [class]="getActionClass(log.action)" [title]="log.action">
+                  {{ getActionLabel(log.action) }}
                 </span>
               </td>
               <td class="cell-record-id">{{ log.recordId | slice:0:8 }}...</td>
