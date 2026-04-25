@@ -142,6 +142,14 @@
                       <span [class]="getCourseStatusClass(course)">
                         {{ getCourseStatusText(course) }}
                       </span>
+                      @if (canReviewCourse(course) && course.submittedAt) {
+                        <div
+                          class="sla-badge"
+                          [class]="'sla-' + getSlaUrgency(course)"
+                          [title]="'Đã chờ ' + getSlaDays(course) + ' ngày kể từ ngày nộp'">
+                          ⏱ Chờ {{ getSlaDays(course) }} ngày
+                        </div>
+                      }
                     </td>
                     <td class="col-center">
                       <div class="action-btns">
@@ -195,8 +203,10 @@
           </div>
         } @else {
           <app-empty-state
-            title="Không tìm thấy khóa học nào"
-            description="Thử điều chỉnh từ khóa tìm kiếm hoặc chọn bộ lọc khác."
+            [title]="emptyStateTitle()"
+            [description]="emptyStateDescription()"
+            [actionLabel]="hasActiveFilter() ? 'Xóa bộ lọc' : ''"
+            (actionClick)="clearFilters()"
             variant="compact">
             <svg icon fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
