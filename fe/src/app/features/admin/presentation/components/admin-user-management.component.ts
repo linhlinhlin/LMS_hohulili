@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } from '../../infrastructure/services/admin.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
+import { ConfirmStatusChangeService } from '../../services/confirm-status-change.service';
 import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/kpi-card.component';
 /**
  * Admin User Management Component
@@ -21,6 +22,7 @@ export class AdminUserManagementComponent implements OnInit {
   private adminService = inject(AdminService);
   private toast = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
+  private confirmStatus = inject(ConfirmStatusChangeService);
 
   // State
   allUsers = signal<AdminUser[]>([]);
@@ -136,18 +138,11 @@ export class AdminUserManagementComponent implements OnInit {
   // suspending or activating an admin account. Admins suspending other admins
   // is the highest-blast-radius action in the portal; the modal makes the
   // intent explicit and the cancel path re-fetches to revert dropdown UI.
+  // Modal copy + variant lives in ConfirmStatusChangeService (DRY — issue #195).
   async onStatusActionChange(user: AdminUser, newStatus: string) {
     if (!newStatus) return;
 
-    const isBlock = newStatus === 'BLOCKED';
-    const confirmed = await this.confirmDialog.confirm({
-      title: isBlock ? 'Khóa tài khoản Quản trị viên' : 'Kích hoạt tài khoản',
-      message: isBlock
-        ? `Bạn có chắc muốn khóa tài khoản Quản trị viên ${user.name}? Họ sẽ mất quyền truy cập hệ thống cho đến khi được mở khóa.`
-        : `Bạn có chắc muốn kích hoạt lại tài khoản của ${user.name}?`,
-      confirmText: isBlock ? 'Khóa tài khoản' : 'Kích hoạt',
-      variant: isBlock ? 'danger' : 'warning'
-    });
+    const confirmed = await this.confirmStatus.confirm(user, newStatus as UserAccountStatus, 'admin');
     if (!confirmed) {
       this.loadUsers();
       return;
