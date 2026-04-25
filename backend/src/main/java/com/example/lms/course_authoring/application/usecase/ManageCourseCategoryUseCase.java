@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -23,6 +24,15 @@ public class ManageCourseCategoryUseCase {
 
     public List<CourseCategory> getActiveTree() {
         return categoryRepo.findAllActiveTree();
+    }
+
+    /**
+     * Returns a map of {@code categoryId → number of APPROVED courses} for
+     * populating the {@code courseCount} field on category DTOs (issue #189).
+     * Categories absent from the map have zero published courses.
+     */
+    public Map<UUID, Long> getApprovedCourseCountsByCategory() {
+        return categoryRepo.countApprovedCoursesByCategory();
     }
 
     @Transactional

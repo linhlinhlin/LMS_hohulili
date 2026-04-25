@@ -30,4 +30,23 @@ public interface CourseCategoryJpaRepository extends JpaRepository<CourseCategor
     Optional<CourseCategoryJpaEntity> findByCode(String code);
 
     Optional<CourseCategoryJpaEntity> findBySlug(String slug);
+
+    /**
+     * Count APPROVED courses per category (issue #189, F-CAT2).
+     *
+     * <p>Returns rows of {@code [categoryId, count]} so the application layer
+     * can populate a {@code Map<UUID, Long>} in O(1) lookup. Categories with
+     * zero published courses are simply absent from the result and default to
+     * 0 in the map.
+     *
+     * <p>Domain rule: only {@code APPROVED} courses count toward the
+     * category's public-facing badge — DRAFT / PENDING / REJECTED courses are
+     * not visible to learners and would inflate the number misleadingly.
+     */
+    @Query("SELECT c.categoryId, COUNT(c) " +
+            "FROM com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity c " +
+            "WHERE c.categoryId IS NOT NULL " +
+            "  AND c.status = com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity.CourseStatus.APPROVED " +
+            "GROUP BY c.categoryId")
+    List<Object[]> countApprovedCoursesByCategory();
 }

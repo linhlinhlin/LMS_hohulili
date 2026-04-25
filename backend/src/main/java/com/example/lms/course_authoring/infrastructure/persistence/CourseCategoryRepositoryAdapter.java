@@ -65,6 +65,16 @@ public class CourseCategoryRepositoryAdapter implements CourseCategoryRepository
     @Override
     public boolean existsByPrefix(String prefix) { return jpaRepo.existsByPrefix(prefix); }
 
+    @Override
+    public Map<UUID, Long> countApprovedCoursesByCategory() {
+        Map<UUID, Long> result = new HashMap<>();
+        for (Object[] row : jpaRepo.countApprovedCoursesByCategory()) {
+            if (row == null || row.length < 2 || row[0] == null || row[1] == null) continue;
+            result.put((UUID) row[0], ((Number) row[1]).longValue());
+        }
+        return result;
+    }
+
     // --- Mapping ---
 
     private CourseCategory toDomain(CourseCategoryJpaEntity e) {
