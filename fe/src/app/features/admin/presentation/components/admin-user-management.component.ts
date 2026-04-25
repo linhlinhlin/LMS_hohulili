@@ -116,7 +116,16 @@ export class AdminUserManagementComponent implements OnInit {
   }
 
   // Role change handler
+  // Issue #194 (F-AD2 followup): block demoting the only remaining SYSTEM_ADMIN
+  // before showing the confirm modal. The check runs against the in-memory
+  // `adminUsers` signal because the dropdown lives on this surface.
   async onRoleChange(userId: string, newRole: string) {
+    const target = this.adminUsers().find(u => u.id === userId);
+    if (target && !this.confirmStatus.validateRoleChange(target, newRole, this.adminUsers())) {
+      this.loadUsers();
+      return;
+    }
+
     const confirmed = await this.confirmDialog.confirm({
       title: 'Thay đổi vai trò',
       message: `Bạn có chắc muốn thay đổi vai trò người dùng này thành ${this.getRoleLabel(newRole)}?`,
@@ -163,6 +172,12 @@ export class AdminUserManagementComponent implements OnInit {
   }
 
   async revokeAdmin(admin: AdminUser) {
+    // Issue #194: same sole-system-admin gate as onRoleChange — revoking is
+    // a demote in disguise (ADMIN -> STUDENT).
+    if (!this.confirmStatus.validateRoleChange(admin, 'STUDENT', this.adminUsers())) {
+      return;
+    }
+
     const confirmed = await this.confirmDialog.confirm({
       title: 'Thu hồi quyền Admin',
       message: `Bạn có chắc muốn thu hồi quyền Admin của ${admin.name}? Họ sẽ trở thành Học viên.`,
