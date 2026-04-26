@@ -44,4 +44,31 @@ describe('formatRelativeTimeVN', () => {
     const t = new Date(NOW + 60_000).toISOString();
     expect(formatRelativeTimeVN(t, NOW)).toBe('vừa xong');
   });
+
+  // P2.1 — boundary edge cases (sub-agent review feedback)
+  it('boundary 60s exact — "1 phút trước"', () => {
+    const t = new Date(NOW - 60_000).toISOString();
+    expect(formatRelativeTimeVN(t, NOW)).toBe('1 phút trước');
+  });
+
+  it('boundary 60s - 1ms — "vừa xong"', () => {
+    const t = new Date(NOW - 59_999).toISOString();
+    expect(formatRelativeTimeVN(t, NOW)).toBe('vừa xong');
+  });
+
+  it('boundary 3600s (1 giờ) exact — "1 giờ trước"', () => {
+    const t = new Date(NOW - 3_600_000).toISOString();
+    expect(formatRelativeTimeVN(t, NOW)).toBe('1 giờ trước');
+  });
+
+  it('boundary 86400s (1 ngày) exact — "1 ngày trước"', () => {
+    const t = new Date(NOW - 86_400_000).toISOString();
+    expect(formatRelativeTimeVN(t, NOW)).toBe('1 ngày trước');
+  });
+
+  it('boundary 30 ngày exact — fallback full date', () => {
+    const t = new Date(NOW - 30 * 86_400_000).toISOString();
+    const result = formatRelativeTimeVN(t, NOW);
+    expect(result).toMatch(/\d{1,2}\/\d{1,2}\/\d{4}/);
+  });
 });

@@ -60,4 +60,11 @@ export class KpiCardComponent {
   trendMag = computed(() => trendMagnitude(this.trend()));
   hasTrend = computed(() => this.trend() !== undefined && this.trend() !== null);
   isClickable = computed(() => !!this.route());
+
+  // Explicit aria-label cho screen reader: "Mở chi tiết: {label} ({value})"
+  // thay vì để assistive tech tự ghép value + label + sub line — clearer
+  // intent rằng link sẽ mở report tương ứng. Chỉ render khi clickable.
+  ariaLabelFull = computed(() =>
+    this.isClickable() ? `Mở chi tiết: ${this.label()} (${this.value()})` : undefined
+  );
 }
