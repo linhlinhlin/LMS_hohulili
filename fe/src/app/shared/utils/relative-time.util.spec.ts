@@ -71,4 +71,16 @@ describe('formatRelativeTimeVN', () => {
     const result = formatRelativeTimeVN(t, NOW);
     expect(result).toMatch(/\d{1,2}\/\d{1,2}\/\d{4}/);
   });
+
+  // Union type — accept Date instance trực tiếp (admin.service convert
+  // ISO -> Date, template render dùng Date không phải ISO string)
+  it('accept Date instance trực tiếp (không cần convert ISO)', () => {
+    const date = new Date(NOW - 5 * 60_000);
+    expect(formatRelativeTimeVN(date, NOW)).toBe('5 phút trước');
+  });
+
+  it('Date >= 30 ngày fallback toLocaleDateString vi-VN', () => {
+    const date = new Date(NOW - 60 * 86_400_000);
+    expect(formatRelativeTimeVN(date, NOW)).toMatch(/\d{1,2}\/\d{1,2}\/\d{4}/);
+  });
 });

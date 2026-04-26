@@ -185,8 +185,12 @@ export class UserManagementState {
     }
 
     if (this.statusFilter()) {
-      const isActive = this.statusFilter() === 'active';
-      users = users.filter(user => user.isActive === isActive);
+      // Filter F-U1 — enum-based match `accountStatus` (ACTIVE/BLOCKED/
+      // RESTRICTED) thay vì legacy `isActive` boolean. BE param ignored
+      // (UserControllerV3 không filter status), client-side filter từ
+      // `_localUsers()` page hiện tại.
+      const filter = this.statusFilter();
+      users = users.filter(user => user.accountStatus === filter);
     }
 
     return users;
@@ -546,7 +550,7 @@ export class UserManagementState {
   getStatusLabel(status: string): string {
     switch (status) {
       case 'ACTIVE': return 'Hoạt động';
-      case 'BLOCKED': return 'Đã khóa';
+      case 'BLOCKED': return 'Bị khóa';
       case 'RESTRICTED': return 'Hạn chế';
       default: return 'Không xác định';
     }
