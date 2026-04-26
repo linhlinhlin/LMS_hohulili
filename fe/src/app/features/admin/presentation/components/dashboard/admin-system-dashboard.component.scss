@@ -34,7 +34,8 @@
 
 .header-actions {
   display: flex;
-  gap: $spacing-2;
+  align-items: center;  // align date-range toggle (40px) with buttons (40px)
+  gap: $spacing-3;       // bumped from spacing-2 to give the toggle breathing room
   flex-shrink: 0;
 }
 

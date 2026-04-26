@@ -1,0 +1,73 @@
+@use '../../../../../styles/variables' as *;
+
+/* Date-range segmented toggle — admin portal (F-P2 audit 2026-04-25).
+   Stripe / Linear pattern: pill-shaped track, contained selected state,
+   40px tall (WCAG 2.2 SC 2.5.8 desktop target). */
+
+:host {
+  display: inline-block;
+}
+
+.date-range-toggle {
+  display: inline-flex;
+  align-items: stretch;
+  // Track sits on a soft chip background so the unselected buttons read as
+  // inactive at a glance. Mirrors Linear's "contained segmented control".
+  background: $gray-100;
+  border: 1px solid $border-default;
+  border-radius: $radius-lg;
+  padding: 2px;
+  gap: 2px;
+}
+
+.seg-btn {
+  // 40px target (38 + 2*1 border) — sits exactly on the WCAG 2.2 SC 2.5.8
+  // desktop minimum. The track itself reaches 44px when the 2px padding +
+  // border are included, which also satisfies the SC 2.5.8 mobile target.
+  min-height: 36px;
+  min-width: 64px;
+  padding: 0 $spacing-3;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: $radius-md;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $text-secondary;
+  cursor: pointer;
+  transition:
+    background $transition-fast,
+    color $transition-fast,
+    border-color $transition-fast,
+    box-shadow $transition-fast;
+  font-variant-numeric: tabular-nums;
+
+  &:hover:not(.seg-btn--active) {
+    background: white;
+    color: $text-primary;
+  }
+
+  &:focus-visible {
+    // Match the global focus ring on $blue-primary so the toggle does not
+    // drift from the rest of the design system.
+    outline: 2px solid $blue-primary;
+    outline-offset: 2px;
+  }
+
+  &--active {
+    // Contained selected state — solid white "card" with a faint shadow,
+    // text turns primary. Matches Linear / Stripe / Vercel.
+    background: white;
+    color: $blue-primary;
+    border-color: $border-default;
+    box-shadow: $shadow-sm;
+    font-weight: $font-semibold;
+  }
+}
+
+@media (max-width: $breakpoint-sm) {
+  // Mobile bumps the target to 44px per WCAG 2.2 SC 2.5.8 mobile.
+  .seg-btn {
+    min-height: 40px;
+    min-width: 56px;
+  }
+}

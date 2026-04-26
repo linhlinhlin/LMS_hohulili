@@ -332,18 +332,60 @@ textarea.form-input {
   }
 }
 
-/* ===== EMPTY STATE ===== */
+/* ===== EMPTY STATE (F-CAT3 — Carbon Inform + Inspire + Activate) ===== */
 .empty-panel {
   @extend .card;
-  padding: $spacing-12;
+  padding: $spacing-12 $spacing-6;
   text-align: center;
-  color: $text-disabled;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-3;
+}
 
-  p {
-    font-size: $text-sm;
-    margin: 0;
+.empty-illustration {
+  width: 96px;
+  height: 96px;
+  margin-bottom: $spacing-2;
+}
 
-    & + p { margin-top: $spacing-1; }
+.empty-title {
+  font-size: $text-lg;
+  font-weight: $font-semibold;
+  color: $text-primary;
+  margin: 0;
+}
+
+.empty-desc {
+  font-size: $text-sm;
+  color: $text-secondary;
+  margin: 0;
+  max-width: 36ch;       // keep the line length comfortable
+  line-height: $leading-normal;
+}
+
+.empty-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: $spacing-3;
+  padding: 0 $spacing-4;
+  min-height: 40px;       // WCAG 2.2 SC 2.5.8 desktop target
+  background: $blue-primary;
+  color: $text-inverse;
+  border: 1px solid $blue-primary;
+  border-radius: $radius-md;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  cursor: pointer;
+  transition:
+    background $transition-fast,
+    box-shadow $transition-fast;
+
+  &:hover { background: #004BB5; }   // matches design-token hover
+  &:focus-visible {
+    outline: 2px solid $blue-primary;
+    outline-offset: 2px;
   }
 }
 
@@ -466,6 +508,131 @@ textarea.form-input {
   cursor: pointer;
 
   &:hover { color: $gray-700; }
+}
+
+/* ===== DRAG-DROP (issue #199, F-CAT1) ===== */
+
+/* Drag handle visible on every row — keeps row click→select working because
+   the handle owns its own cursor + only the handle initiates the drag. */
+.drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: $gray-400;
+  font-size: 12px;
+  line-height: 1;
+  cursor: grab;
+  user-select: none;
+  flex-shrink: 0;
+  border-radius: $radius-sm;
+  transition: color $transition-fast, background $transition-fast;
+
+  &:hover {
+    color: $gray-700;
+    background: $gray-100;
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+/* Sub-list container: gives the drop-zone a visible footprint even when the
+   parent has zero children, so the user knows where to drop. */
+.tree-sub-list {
+  min-height: 32px;
+  border-radius: $radius-md;
+  transition: background $transition-fast, outline-color $transition-fast;
+  outline: 1px dashed transparent;
+  outline-offset: -2px;
+}
+
+/* Hint text shown inside an empty sub-list. */
+.tree-sub-empty {
+  padding: $spacing-2 $spacing-3;
+  padding-left: 40px;
+  font-size: $text-xs;
+  color: $text-disabled;
+  font-style: italic;
+}
+
+/* Hard-disable visual: red dashed outline on hover when the dragged item
+   would create a level-3 grandchild. Mirrored from the predicate. */
+.drop-zone-invalid {
+  outline-color: $error;
+  background: rgba($error, 0.04);
+
+  .tree-sub-empty {
+    color: $error;
+  }
+}
+
+/* CDK preview while dragging — shadow + slight tilt so the user sees the
+   floating clone clearly. */
+.cdk-drag-preview {
+  background: white;
+  border: 1px solid $border-default;
+  border-radius: $radius-lg;
+  box-shadow:
+    0 5px 5px -3px rgba(0, 0, 0, 0.2),
+    0 8px 10px 1px rgba(0, 0, 0, 0.14),
+    0 3px 14px 2px rgba(0, 0, 0, 0.12);
+  padding: $spacing-2 $spacing-3;
+  font-size: $text-sm;
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+}
+
+/* Placeholder where the dragged item will land. */
+.cdk-drag-placeholder {
+  opacity: 0.35;
+  background: rgba($blue-primary, 0.08);
+  border: 1px dashed $blue-primary;
+  border-radius: $radius-md;
+}
+
+/* Smooth animation for siblings shifting around the drag preview. */
+.cdk-drag-animating,
+.tree-sub-list.cdk-drop-list-dragging .tree-sub-item:not(.cdk-drag-placeholder),
+.tree-root-list.cdk-drop-list-dragging .tree-group:not(.cdk-drag-placeholder) {
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+/* While dragging, dim non-target lists subtly. */
+.cdk-drop-list-receiving {
+  background: rgba($blue-primary, 0.04);
+  outline-color: rgba($blue-primary, 0.5);
+}
+
+/* ===== TOAST (drag-drop feedback) ===== */
+.toast {
+  margin-top: $spacing-3;
+  padding: $spacing-3 $spacing-4;
+  border-radius: $radius-md;
+  background: $success;
+  color: white;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  box-shadow: $shadow-sm;
+  animation: toast-slide-in 200ms ease-out;
+
+  &.toast-error {
+    background: $error;
+  }
+}
+
+@keyframes toast-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ===== SKELETON ===== */

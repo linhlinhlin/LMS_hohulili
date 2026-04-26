@@ -13,4 +13,7 @@ public interface OrganizationJpaRepository extends JpaRepository<OrganizationJpa
     Optional<OrganizationJpaEntity> findByCode(String code);
 
     boolean existsByCode(String code);
+
+    /** Count organizations with {@code enabled = true} (issue #200, F-ORG-1). */
+    long countByEnabledTrue();
 }

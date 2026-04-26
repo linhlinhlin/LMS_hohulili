@@ -17,6 +17,16 @@ export class OrganizationService {
     );
   }
 
+  /**
+   * Aggregate stats over all organizations — KPI strip on /admin/organizations
+   * (issue #200, F-ORG-1). ADMIN role only.
+   */
+  getStats(): Observable<OrganizationStats> {
+    return this.api.get<ApiResponse<OrganizationStats>>(ORGANIZATION_ENDPOINTS.STATS).pipe(
+      map(res => res.data)
+    );
+  }
+
   getOrganization(id: string): Observable<Organization> {
     return this.api.get<ApiResponse<Organization>>(ORGANIZATION_ENDPOINTS.BY_ID(id)).pipe(
       map(res => res.data)
@@ -126,4 +136,11 @@ export interface OrgPaymentConfig {
   teacherSharePct: number;
   orgSharePct: number;
   minPayoutAmount: number;
+}
+
+export interface OrganizationStats {
+  totalOrgs: number;
+  activeOrgs: number;
+  totalMembers: number;
+  activeInvites: number;
 }

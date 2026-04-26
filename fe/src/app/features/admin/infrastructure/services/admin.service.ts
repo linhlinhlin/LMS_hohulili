@@ -57,6 +57,27 @@ export interface SystemAnalytics {
   unreadMessages: number;
 }
 
+/**
+ * Windowed analytics response from `/api/v3/admin/courses/analytics/window`
+ * (PR #171). Compares this window vs an equal-length prior window.
+ *
+ * `growthRate` is null when `lastWindow === 0` and `thisWindow > 0` — the
+ * BE deliberately returns null instead of `+Infinity` so the FE can render
+ * an em-dash or "+∞" rather than a misleading 0 %.
+ */
+export interface WindowedAnalytics {
+  windowDays: number;
+  totalUsers: number;
+  totalCourses: number;
+  totalEnrollments: number;
+  revenue: number;
+  userGrowth: { thisWindow: number; lastWindow: number; growthRate: number | null };
+  revenueGrowth: number | null;
+  courseGrowth: { thisWindow: number; lastWindow: number; growthRate: number | null };
+  windowStart: string;
+  windowEnd: string;
+}
+
 export interface PendingCourseSummary {
   id: string;
   code: string;
@@ -345,6 +366,22 @@ export class AdminService {
     );
   }
 
+  /**
+   * Fetch windowed analytics for the dashboard date-range toggle (F-P2).
+   * BE accepts `days` ∈ {7, 30, 90}; any other value yields HTTP 400.
+   * Use this in place of `getSystemAnalytics()` whenever the surface wants
+   * deltas — the legacy endpoint only returns running totals.
+   */
+  getCoursesAnalyticsWindow(days: number): Observable<WindowedAnalytics> {
+    return this.apiClient.getWithResponse<WindowedAnalytics>(
+      ADMIN_ENDPOINTS.ANALYTICS_WINDOW,
+      { params: { days } },
+    ).pipe(
+      map(response => response.data),
+      catchError(error => throwError(() => error)),
+    );
+  }
+
   getPendingCourses(params: any = {}): Observable<{ data: PendingCourseSummary[]; pagination: any }> {
     this._isLoading.next(true);
     return this.apiClient.getWithResponse<any>(ADMIN_ENDPOINTS.PENDING_COURSES, { params }).pipe(
@@ -502,6 +539,29 @@ export class AdminService {
   reorderCourseCategories(orderedIds: string[]): Observable<void> {
     return this.apiClient.putWithResponse<void>(ADMIN_ENDPOINTS.COURSE_CATEGORIES_REORDER, orderedIds).pipe(
       map(() => undefined)
+    );
+  }
+
+  /**
+   * Drag-drop move endpoint (issue #199, F-CAT1).
+   * Single call covers reorder-within-level + reparent-to-different-level.
+   * Returns the full updated tree so caller can replace local state without
+   * an additional GET round-trip.
+   *
+   * @param id           moving category id
+   * @param newParentId  destination parent id, or {@code null} to promote to root
+   * @param newSortOrder zero-based position within the destination collection
+   */
+  moveCourseCategory(
+    id: string,
+    newParentId: string | null,
+    newSortOrder: number
+  ): Observable<import('../../../../api/types/course.types').CourseCategoryDTO[]> {
+    return this.apiClient.patchWithResponse<import('../../../../api/types/course.types').CourseCategoryDTO[]>(
+      `${ADMIN_ENDPOINTS.COURSE_CATEGORIES}/${id}/move`,
+      { newParentId, newSortOrder }
+    ).pipe(
+      map(res => res.data || [])
     );
   }
 

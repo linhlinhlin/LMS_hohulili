@@ -165,6 +165,21 @@ public interface JpaCourseRepository extends JpaRepository<CourseJpaEntity, UUID
 
     long countByTeacherId(UUID teacherId);
 
+    /**
+     * Batch counterpart to {@link #countByTeacherId(UUID)} — returns rows of
+     * {@code [teacherId, count]} for every teacher referenced in the input
+     * set. Used by the admin teacher list to populate the per-teacher
+     * "Khóa học" KPI without N+1 queries (issue #190, F-T1).
+     *
+     * <p>Teachers with zero courses do NOT appear in the result; the caller
+     * must default them to 0.
+     */
+    @Query("SELECT c.teacherId, COUNT(c) " +
+            "FROM CourseJpaEntity c " +
+            "WHERE c.teacherId IN :teacherIds " +
+            "GROUP BY c.teacherId")
+    java.util.List<Object[]> countCoursesByTeacherIds(@Param("teacherIds") Collection<UUID> teacherIds);
+
     long countByStatus(CourseJpaEntity.CourseStatus status);
 
     @Query(value = "SELECT * FROM courses c WHERE unaccent(LOWER(c.title)) LIKE unaccent(LOWER(CONCAT('%', :search, '%')))", nativeQuery = true)

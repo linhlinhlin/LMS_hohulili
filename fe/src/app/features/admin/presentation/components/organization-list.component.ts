@@ -1,13 +1,14 @@
 import { Component, signal, inject, OnInit, ChangeDetectionStrategy, computed } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { OrganizationService } from '../../infrastructure/services/organization.service';
+import { OrganizationService, OrganizationStats } from '../../infrastructure/services/organization.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { Organization } from '../../../../shared/types/user.types';
+import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/kpi-card.component';
 
 @Component({
   selector: 'app-organization-list',
-  imports: [RouterModule],
+  imports: [RouterModule, KpiCardComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './organization-list.component.html',
   styleUrl: './organization-list.component.scss',
@@ -18,6 +19,7 @@ export class OrganizationListComponent implements OnInit {
   private authService = inject(AuthService);
 
   organizations = signal<Organization[]>([]);
+  stats = signal<OrganizationStats | null>(null);
   isLoading = signal(true);
   showCreateForm = signal(false);
   isCreating = signal(false);
@@ -25,6 +27,9 @@ export class OrganizationListComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadOrganizations();
+    if (this.canCreateOrganizations()) {
+      this.loadStats();
+    }
   }
 
   loadOrganizations(): void {
@@ -37,6 +42,20 @@ export class OrganizationListComponent implements OnInit {
       error: () => {
         this.toast.error('Không thể tải danh sách tổ chức');
         this.isLoading.set(false);
+      }
+    });
+  }
+
+  /**
+   * Load aggregate KPI stats. Only ADMIN role can call /stats endpoint —
+   * ORG_ADMIN sees their own org list scoped, doesn't need fleet-wide stats.
+   * Fail silently if endpoint not authorized — KPI strip just doesn't render.
+   */
+  private loadStats(): void {
+    this.orgService.getStats().subscribe({
+      next: (stats) => this.stats.set(stats),
+      error: () => {
+        // Silent fail: KPI strip simply hidden via @if(stats())
       }
     });
   }
