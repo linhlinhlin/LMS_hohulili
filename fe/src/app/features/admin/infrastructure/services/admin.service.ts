@@ -542,6 +542,29 @@ export class AdminService {
     );
   }
 
+  /**
+   * Drag-drop move endpoint (issue #199, F-CAT1).
+   * Single call covers reorder-within-level + reparent-to-different-level.
+   * Returns the full updated tree so caller can replace local state without
+   * an additional GET round-trip.
+   *
+   * @param id           moving category id
+   * @param newParentId  destination parent id, or {@code null} to promote to root
+   * @param newSortOrder zero-based position within the destination collection
+   */
+  moveCourseCategory(
+    id: string,
+    newParentId: string | null,
+    newSortOrder: number
+  ): Observable<import('../../../../api/types/course.types').CourseCategoryDTO[]> {
+    return this.apiClient.patchWithResponse<import('../../../../api/types/course.types').CourseCategoryDTO[]>(
+      `${ADMIN_ENDPOINTS.COURSE_CATEGORIES}/${id}/move`,
+      { newParentId, newSortOrder }
+    ).pipe(
+      map(res => res.data || [])
+    );
+  }
+
   // ============================================
   // COURSE TAGS
   // ============================================
