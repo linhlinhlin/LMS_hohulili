@@ -1,6 +1,7 @@
-import { Component, input, output, signal, computed, inject, ChangeDetectionStrategy, ViewEncapsulation, OnInit, OnDestroy, effect } from '@angular/core';
+import { Component, input, output, signal, computed, inject, ChangeDetectionStrategy, ViewEncapsulation, OnInit, OnDestroy, effect, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
-import { RouterModule, Router, RouterLinkActive, NavigationEnd } from '@angular/router';
+import { RouterModule, Router, ActivatedRoute, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { OrganizationContextService } from '../../../core/services/organization-context.service';
@@ -17,6 +18,9 @@ export interface SidebarMenuItem {
   exact?: boolean;
   group?: string;
   alsoActiveFor?: string[]; // Extra URL prefixes that should highlight this item
+  /** Phase 3 PR 2 (#239): query params cho deep-link nav (org-scoped tabs).
+   *  Active state khớp via routerLinkActiveOptions queryParams subset. */
+  queryParams?: { [key: string]: string };
 }
 
 export interface SidebarConfig {
@@ -38,6 +42,8 @@ export interface SidebarConfig {
 export class SidebarComponent implements OnInit, OnDestroy {
   protected authService = inject(AuthService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private destroyRef = inject(DestroyRef);
   private orgContextService = inject(OrganizationContextService);
 
   config = input.required<SidebarConfig>();
@@ -94,6 +100,37 @@ export class SidebarComponent implements OnInit, OnDestroy {
     return this.config().role === 'admin' ? '/admin/organizations' : null;
   });
 
+  // ---------------------------------------------------------------------
+  // Phase 3 PR 2 (#239): org-scoped nav items — render thay system nav khi
+  // user đang trong org context. Mirror các tab của org-detail page (Phase 2
+  // PR #236) — mỗi item deep-link tới ?tab=X. Pattern GitHub mode switch.
+  // ---------------------------------------------------------------------
+  protected orgScopedNavItems = computed<SidebarMenuItem[]>(() => {
+    const org = this.currentOrg();
+    if (!org) return [];
+    const baseRoute = this.config().role === 'admin'
+      ? `/admin/organizations/${org.id}`
+      : '/org-admin/organization';
+    return [
+      { label: 'Tổng quan',          route: baseRoute, icon: 'home',      queryParams: { tab: 'overview' } },
+      { label: 'Thành viên',         route: baseRoute, icon: 'users',     queryParams: { tab: 'members' } },
+      { label: 'Lời mời',            route: baseRoute, icon: 'mail',      queryParams: { tab: 'invites' } },
+      { label: 'Thống kê',           route: baseRoute, icon: 'bar-chart', queryParams: { tab: 'stats' } },
+      { label: 'Cấu hình doanh thu', route: baseRoute, icon: 'briefcase', queryParams: { tab: 'payment-config' } },
+      { label: 'Cài đặt',            route: baseRoute, icon: 'settings',  queryParams: { tab: 'settings' } },
+    ];
+  });
+
+  /** Track ?tab= từ URL để compute active state cho org-scoped nav.
+   *  Default 'overview' khi không có query param (khớp org-detail default). */
+  protected currentTab = signal<string>('overview');
+
+  /** Active state cho org-scoped item: tab match (default overview if absent). */
+  protected isOrgItemActive(item: SidebarMenuItem): boolean {
+    const tab = item.queryParams?.['tab'];
+    return !!tab && tab === this.currentTab();
+  }
+
   constructor() {
     // Khi orgId từ URL thay đổi → fetch org info (skip nếu đã cache đúng id).
     // Cleanup: onCleanup() unsubscribe khi effect re-run (URL thay đổi nhanh)
@@ -129,6 +166,15 @@ export class SidebarComponent implements OnInit, OnDestroy {
     ).subscribe((e: NavigationEnd) => {
       this.currentUrl.set(e.urlAfterRedirects.split('?')[0]);
     });
+
+    // Phase 3 PR 2 (#239): track ?tab= cho org-scoped nav active state.
+    // takeUntilDestroyed cleanup khi component destroy.
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(params => {
+        const tab = params.get('tab');
+        this.currentTab.set(tab && tab.length > 0 ? tab : 'overview');
+      });
   }
 
   ngOnDestroy(): void {
