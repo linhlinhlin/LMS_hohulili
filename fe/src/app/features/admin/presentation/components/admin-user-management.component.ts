@@ -11,6 +11,7 @@ import { ConfirmStatusChangeService } from '../../services/confirm-status-change
 import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/kpi-card.component';
 import { BulkActionBarComponent, BulkAction } from '../../../../shared/components/admin/bulk-action-bar/bulk-action-bar.component';
 import { KebabMenuComponent, KebabAction } from '../../../../shared/components/admin/kebab-menu/kebab-menu.component';
+import { formatRelativeTimeVN } from '../../../../shared/utils/relative-time.util';
 /**
  * Admin User Management Component
  * SOTA Design: Coursera-inspired with role change, status actions
@@ -417,6 +418,12 @@ export class AdminUserManagementComponent implements OnInit {
     return d.toLocaleDateString('vi-VN', {
       day: '2-digit', month: '2-digit', year: 'numeric'
     });
+  }
+
+  // Cột "Hoạt động cuối" — relative time (Linear/GitHub/Stripe pattern,
+  // đồng bộ users/all PR #224). Tooltip [title] giữ ISO timestamp gốc.
+  formatRelativeTime(input: Date | string | null | undefined): string {
+    return formatRelativeTimeVN(input);
   }
 
   getDefaultAvatar(email: string): string {

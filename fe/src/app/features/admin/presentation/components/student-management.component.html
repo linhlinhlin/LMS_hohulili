@@ -150,9 +150,15 @@
                       {{ student.coursesEnrolled || 0 }} khóa học
                     </button>
                   </td>
-                  <!-- Last Login -->
+                  <!-- Last Login — relative time (Linear/GitHub/Stripe pattern,
+                       đồng bộ users/all PR #224). cursor-help + title chỉ khi
+                       có lastLogin (tránh hand cursor + tooltip rỗng). -->
                   <td>
-                    <span class="date-text">{{ student.lastLogin ? formatDateValue(student.lastLogin) : 'Chưa đăng nhập' }}</span>
+                    <span class="date-text"
+                          [class.cursor-help]="student.lastLogin"
+                          [attr.title]="student.lastLogin || null">
+                      {{ student.lastLogin ? formatRelativeTime(student.lastLogin) : 'Chưa đăng nhập' }}
+                    </span>
                   </td>
                   <!-- Actions — CC-10: shared kebab replaces inline status
                        select + delete icon. -->
