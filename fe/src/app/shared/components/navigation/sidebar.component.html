@@ -53,12 +53,14 @@
         </div>
     }
 
-    <!-- Phase 3 PR 2 (#239): switch nav khi inOrgContext — render org-scoped
-         items (Tổng quan, Thành viên, Lời mời...) thay system nav. Pattern
-         GitHub mode switch. Khi exit context → trở lại system nav. -->
-    @if (inOrgContext()) {
+    <!-- Phase 3 PR 2 (#239): switch nav khi inOrgScopedMode — render
+         org-scoped items thay system nav. Mode switch CHỈ áp dụng admin role
+         (org-admin giữ system nav để tránh stuck không thấy /org-admin/*
+         dashboard/teachers/...). Pattern GitHub mode switch. -->
+    @if (inOrgScopedMode()) {
         <nav class="sidebar-nav sidebar-nav--org-scoped" aria-label="Điều hướng tổ chức">
-            @for (item of orgScopedNavItems(); track item.queryParams!['tab']) {
+            <div class="nav-group-title">Quản lý tổ chức</div>
+            @for (item of orgScopedNavItems(); track item.label) {
                 <div class="nav-item-container">
                     <a [routerLink]="item.route" [queryParams]="item.queryParams"
                        [class.active]="isOrgItemActive(item)"

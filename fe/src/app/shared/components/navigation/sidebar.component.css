@@ -720,20 +720,9 @@
 
 /* =====================================================================
    Phase 3 PR 2 (#239): org-scoped nav mode
-   ===================================================================== */
+   Group title rendered as semantic HTML (.nav-group-title) thay pseudo-
+   element — better screen reader support. Reuse existing nav-group-title
+   styles từ system nav (cùng visual treatment). */
 .sidebar-nav--org-scoped {
-  /* Light visual cue rằng đang ở org context — subtle border-top thay
-     vì group title (org-scoped chỉ có 1 group đơn giản). */
   position: relative;
-}
-
-.sidebar-nav--org-scoped::before {
-  content: 'Quản lý tổ chức';
-  display: block;
-  padding: 4px 12px 8px 12px;
-  font-size: 10px;
-  font-weight: 600;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }

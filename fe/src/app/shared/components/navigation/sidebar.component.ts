@@ -1,7 +1,6 @@
-import { Component, input, output, signal, computed, inject, ChangeDetectionStrategy, ViewEncapsulation, OnInit, OnDestroy, effect, DestroyRef } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Component, input, output, signal, computed, inject, ChangeDetectionStrategy, ViewEncapsulation, OnInit, OnDestroy, effect } from '@angular/core';
 
-import { RouterModule, Router, ActivatedRoute, RouterLinkActive, NavigationEnd } from '@angular/router';
+import { RouterModule, Router, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { OrganizationContextService } from '../../../core/services/organization-context.service';
@@ -42,8 +41,6 @@ export interface SidebarConfig {
 export class SidebarComponent implements OnInit, OnDestroy {
   protected authService = inject(AuthService);
   private router = inject(Router);
-  private route = inject(ActivatedRoute);
-  private destroyRef = inject(DestroyRef);
   private orgContextService = inject(OrganizationContextService);
 
   config = input.required<SidebarConfig>();
@@ -125,6 +122,13 @@ export class SidebarComponent implements OnInit, OnDestroy {
    *  Default 'overview' khi không có query param (khớp org-detail default). */
   protected currentTab = signal<string>('overview');
 
+  /** Phase 3 PR 2 (#239): mode-switch CHỈ apply cho admin role. Org-admin
+   *  giữ system nav (vì /org-admin/* nav đã org-scoped, không cần switch
+   *  thêm — tránh org-admin "stuck" không thấy /org-admin/dashboard etc.). */
+  protected inOrgScopedMode = computed(() =>
+    this.inOrgContext() && this.config().role === 'admin'
+  );
+
   /** Active state cho org-scoped item: tab match (default overview if absent). */
   protected isOrgItemActive(item: SidebarMenuItem): boolean {
     const tab = item.queryParams?.['tab'];
@@ -161,20 +165,31 @@ export class SidebarComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    // Initialize từ current URL trước khi NavigationEnd emit lần đầu.
+    this.applyUrl(this.router.url);
+
     this.routerSub = this.router.events.pipe(
       filter(e => e instanceof NavigationEnd)
     ).subscribe((e: NavigationEnd) => {
-      this.currentUrl.set(e.urlAfterRedirects.split('?')[0]);
+      this.applyUrl(e.urlAfterRedirects);
     });
+  }
 
-    // Phase 3 PR 2 (#239): track ?tab= cho org-scoped nav active state.
-    // takeUntilDestroyed cleanup khi component destroy.
-    this.route.queryParamMap
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(params => {
-        const tab = params.get('tab');
-        this.currentTab.set(tab && tab.length > 0 ? tab : 'overview');
-      });
+  /** Phase 3 PR 2 (#239): parse URL trực tiếp thay vì inject ActivatedRoute
+   *  (sidebar render trong layout, ActivatedRoute scope của layout có thể
+   *  không track child route's queryParam reliably). URL string parse là
+   *  source of truth bulletproof — hoạt động với mọi route nesting depth. */
+  private applyUrl(fullUrl: string): void {
+    const queryStart = fullUrl.indexOf('?');
+    const path = queryStart >= 0 ? fullUrl.substring(0, queryStart) : fullUrl;
+    this.currentUrl.set(path);
+    if (queryStart >= 0) {
+      const params = new URLSearchParams(fullUrl.substring(queryStart + 1));
+      const tab = params.get('tab');
+      this.currentTab.set(tab && tab.length > 0 ? tab : 'overview');
+    } else {
+      this.currentTab.set('overview');
+    }
   }
 
   ngOnDestroy(): void {
