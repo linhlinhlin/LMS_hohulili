@@ -271,10 +271,141 @@
               </button>
             </div>
 
-            <!-- Right-pane body (preview iframe + decision panel comes in commit 2) -->
-            <div class="detail-body">
-              <p class="detail-placeholder">Khu vực xem trước và quyết định sẽ được thêm ở commit kế tiếp.</p>
+            <!-- Right-pane body: meta + preview iframe + history -->
+            <div class="detail-body" #detailBody>
+
+              <!-- Description (truncated to 4 lines) -->
+              @if (course.description) {
+                <p class="detail-description">{{ course.description }}</p>
+              }
+
+              <!-- Stats row -->
+              @let adminCourse = asAdminCourse(course);
+              <div class="detail-stats">
+                <div class="stat-card">
+                  <div class="stat-value">{{ course.sectionsCount || 0 }}</div>
+                  <div class="stat-label">Chương</div>
+                </div>
+                @if (adminCourse?.lessonsCount !== undefined) {
+                  <div class="stat-card">
+                    <div class="stat-value">{{ adminCourse?.lessonsCount }}</div>
+                    <div class="stat-label">Bài học</div>
+                  </div>
+                }
+                @if (adminCourse?.assignmentsCount !== undefined) {
+                  <div class="stat-card">
+                    <div class="stat-value">{{ adminCourse?.assignmentsCount }}</div>
+                    <div class="stat-label">Bài tập</div>
+                  </div>
+                }
+                @if (adminCourse?.enrolledCount !== undefined) {
+                  <div class="stat-card">
+                    <div class="stat-value">{{ adminCourse?.enrolledCount }}</div>
+                    <div class="stat-label">Học viên</div>
+                  </div>
+                }
+              </div>
+
+              <!-- Dates -->
+              <div class="detail-dates">
+                @if (course.submittedAt) {
+                  <p><strong>Ngày gửi:</strong> {{ course.submittedAt | date:'dd/MM/yyyy HH:mm' }}</p>
+                }
+                @if (adminCourse?.approvedAt) {
+                  <p><strong>Ngày duyệt:</strong> {{ adminCourse?.approvedAt | date:'dd/MM/yyyy HH:mm' }}</p>
+                }
+                @if (adminCourse?.rejectionReason) {
+                  <div class="rejection-banner">
+                    @if (latestRejectionCategory()) {
+                      <span class="rejection-category-pill">
+                        {{ getRejectionCategoryLabel(latestRejectionCategory()) }}
+                      </span>
+                    }
+                    <strong>Lý do từ chối trước đó:</strong>
+                    <span>{{ adminCourse?.rejectionReason }}</span>
+                  </div>
+                }
+              </div>
+
+              <!-- Embedded preview iframe -->
+              <div class="preview-frame-wrap" aria-label="Xem trước nội dung khóa học">
+                <h3 class="section-title">Xem trước nội dung</h3>
+                @if (previewSafeUrl(); as src) {
+                  <iframe
+                    class="preview-frame"
+                    [src]="src"
+                    title="Xem trước khóa học"
+                    loading="lazy"
+                    referrerpolicy="same-origin"></iframe>
+                }
+              </div>
+
+              <!-- Review history -->
+              <div class="history-section">
+                <h3 class="section-title">Lịch sử phê duyệt</h3>
+
+                @if (loadingHistory()) {
+                  <div class="history-loading">
+                    <span class="history-loading-spinner" aria-hidden="true"></span>
+                    Đang tải lịch sử...
+                  </div>
+                } @else if (reviewHistory().length === 0) {
+                  <p class="history-empty">Chưa có sự kiện phê duyệt nào.</p>
+                } @else {
+                  <div class="history-timeline">
+                    <span class="history-line" aria-hidden="true"></span>
+                    @for (event of reviewHistory(); track event.id) {
+                      <div class="history-item">
+                        <span class="history-dot"
+                              [attr.data-action]="event.action"
+                              aria-hidden="true"></span>
+                        <div class="history-event">
+                          <div class="history-event-head">
+                            <span class="history-action" [class]="getActionColor(event.action)">
+                              {{ getActionText(event.action) }}
+                            </span>
+                            @if (getRejectionCategoryLabel(event.rejectionCategory)) {
+                              <span class="history-category-pill">
+                                {{ getRejectionCategoryLabel(event.rejectionCategory) }}
+                              </span>
+                            }
+                            @if (event.reviewerName) {
+                              <span class="history-reviewer">bởi {{ event.reviewerName }}</span>
+                            }
+                            <span class="history-date">{{ formatDateTime(event.createdAt) }}</span>
+                          </div>
+                          @if (event.comment) {
+                            <p class="history-comment">{{ event.comment }}</p>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
             </div>
+
+            <!-- Decision footer (sticky) — only shown when course is reviewable -->
+            @if (canReviewCourse(course)) {
+              <div class="decision-bar" role="group" aria-label="Hành động phê duyệt">
+                <div class="decision-actions">
+                  <button type="button"
+                          class="btn-approve"
+                          (click)="approveCourse(course.id)"
+                          [disabled]="approving() === course.id">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    @if (approving() === course.id) { Đang duyệt... } @else { Phê duyệt }
+                  </button>
+                  <button type="button"
+                          class="btn-reject"
+                          (click)="showRejectModal(course)">
+                    Từ chối
+                  </button>
+                </div>
+              </div>
+            }
           }
         </div>
       </section>
@@ -292,16 +423,20 @@
       [busy]="rejecting()"
       (close)="closeRejectModal()">
 
-      <label class="reject-field-label" for="reject-category">Danh mục <span class="reject-required">*</span></label>
-      <select id="reject-category"
-              class="reject-select"
-              [(ngModel)]="rejectCategory">
+      <fieldset class="reject-radio-group">
+        <legend class="reject-field-label">Lý do <span class="reject-required">*</span></legend>
         @for (option of rejectionCategoryOptions; track option.value) {
-          <option [value]="option.value">{{ option.label }}</option>
+          <label class="reject-radio-item" [class.selected]="rejectCategory === option.value">
+            <input type="radio"
+                   name="reject-category"
+                   [value]="option.value"
+                   [(ngModel)]="rejectCategory" />
+            <span class="reject-radio-text">{{ option.label }}</span>
+          </label>
         }
-      </select>
+      </fieldset>
 
-      <label class="reject-field-label" for="reject-comment">Chi tiết <span class="reject-required">*</span></label>
+      <label class="reject-field-label" for="reject-comment">Chi tiết bổ sung <span class="reject-required">*</span></label>
       <textarea
         id="reject-comment"
         class="reject-textarea"
