@@ -55,6 +55,8 @@ const EMPTY_ANALYTICS: SystemAnalytics = {
         [pendingApprovals]="pendingApprovals()"
         [isLoading]="isLoading()"
         [isLoadingPending]="isLoadingPending()"
+        [windowDays]="windowDays()"
+        (windowDaysChange)="onWindowDaysChange($event)"
         (courseApproved)="onCourseApproved($event)"
         (courseRejected)="onCourseRejected($event)" />
     }
@@ -156,15 +158,15 @@ export class AdminComponent implements OnInit {
       next: (data) => {
         this.analytics.set(data);
         this.isLoading.set(false);
-        // F-P2: piggy-back the windowed fetch on initial load so the
-        // strip values reflect the selected window from frame 1 instead
-        // of flashing legacy "this month" totals.
-        if (this.isSystemAdmin()) {
-          this.adminService.getCoursesAnalyticsWindow(this.windowDays()).subscribe({
-            next: (w) => this.applyWindowedAnalytics(w),
-            error: () => {},
-          });
-        }
+        // F-P2 / F-OA-3: piggy-back the windowed fetch on initial load so
+        // the strip values reflect the selected window from frame 1 instead
+        // of flashing legacy "this month" totals. BE returns org-scoped
+        // counts for ORG_ADMIN automatically (GetWindowedAnalyticsUseCase
+        // checks the JWT's organizationId).
+        this.adminService.getCoursesAnalyticsWindow(this.windowDays()).subscribe({
+          next: (w) => this.applyWindowedAnalytics(w),
+          error: () => {},
+        });
       },
       error: () => {
         this.loadError.set(true);

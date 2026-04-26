@@ -1,0 +1,129 @@
+@use '../../../../../styles/variables' as *;
+
+/* Shared action card — admin portal (Stripe / Linear / Vercel pattern).
+   Sibling of <app-kpi-card>. Source of truth lives here; per-surface SCSS
+   must NOT redefine these selectors. F-OA-1 audit 2026-04-26. */
+
+:host {
+  display: block;
+}
+
+.action-card {
+  display: flex;
+  flex-direction: column;
+  padding: $spacing-5 $spacing-6;
+  background: white;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  box-shadow: $shadow-sm;
+  text-decoration: none;
+  transition:
+    border-color $transition-normal,
+    box-shadow $transition-normal,
+    transform $transition-fast;
+  cursor: pointer;
+
+  &:hover {
+    box-shadow: $shadow-md;
+  }
+
+  // Keyboard focus — same ring contract as the rest of the design system.
+  // Don't rely on the global mixin here because the card swaps display kind
+  // (`<a>` block) and we want a slightly larger offset to clear the shadow.
+  &:focus-visible {
+    outline: 2px solid $blue-primary;
+    outline-offset: 2px;
+  }
+
+  // Accent-driven hover borders + CTA tint. Border colour follows the
+  // semantic token so the card feels related to the metric it represents
+  // (orange for "needs attention", blue for "navigate", green for "healthy").
+  &.accent-primary {
+    .action-link { color: $blue-primary; }
+    &:hover { border-color: $blue-primary; }
+  }
+
+  &.accent-warning {
+    .action-link { color: $warning; }
+    &:hover { border-color: $warning; }
+  }
+
+  &.accent-success {
+    .action-link { color: $success; }
+    &:hover { border-color: $success; }
+  }
+
+  &.accent-error {
+    .action-link { color: $error; }
+    &:hover { border-color: $error; }
+  }
+}
+
+.action-value {
+  // Display rung — focal number, large + bold + tabular-nums so digits do
+  // not wobble across cards in the strip.
+  font-size: $text-3xl;
+  font-weight: $font-bold;
+  color: $text-primary;
+  line-height: 1;
+  margin: 0 0 $spacing-1;
+  font-variant-numeric: tabular-nums;
+}
+
+.action-label {
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $text-secondary;
+  margin: 0;
+}
+
+.action-link {
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  margin: $spacing-1 0 0;
+  // Color set by accent rule above.
+}
+
+/* ===== RESPONSIVE ===== */
+@media screen and (max-width: $breakpoint-sm) {
+  .action-card {
+    padding: $spacing-4;
+  }
+  .action-value {
+    font-size: $text-2xl;
+  }
+}
+
+@media screen and (max-width: 340px) {
+  .action-card {
+    padding: $spacing-3;
+  }
+  .action-value {
+    font-size: $text-xl;
+  }
+  .action-label {
+    font-size: 13px;
+  }
+}
+
+/* ===== PRINT ===== */
+@media print {
+  .action-card {
+    box-shadow: none !important;
+    border: 1px solid $gray-300 !important;
+    border-radius: 2px !important;
+    padding: 10px 12px !important;
+    cursor: default;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .action-link {
+    display: none !important;
+  }
+
+  .action-value {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

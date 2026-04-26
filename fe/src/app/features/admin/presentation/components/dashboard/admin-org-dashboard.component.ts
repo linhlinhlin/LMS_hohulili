@@ -7,10 +7,12 @@ import { PendingApproval } from './dashboard.types';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { getAdminPortalBase } from '../../../../../core/utils/portal-route.util';
 import { DialogComponent } from '../../../../../shared/components/dialog/dialog.component';
+import { ActionCardComponent } from '../../../../../shared/components/admin/action-card/action-card.component';
+import { DateRangeToggleComponent } from '../../../../../shared/components/admin/date-range-toggle/date-range-toggle.component';
 
 @Component({
   selector: 'app-admin-org-dashboard',
-  imports: [CommonModule, RouterModule, DialogComponent],
+  imports: [CommonModule, RouterModule, DialogComponent, ActionCardComponent, DateRangeToggleComponent],
   templateUrl: './admin-org-dashboard.component.html',
   styleUrl: './admin-org-dashboard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -23,10 +25,14 @@ export class AdminOrgDashboardComponent {
   pendingApprovals = input.required<PendingApproval[]>();
   isLoading = input.required<boolean>();
   isLoadingPending = input.required<boolean>();
+  // F-OA-3: parent owns the selected window so navigation back to the
+  // dashboard preserves the choice (mirrors system dashboard pattern).
+  windowDays = input<number>(30);
 
   // --- Outputs to parent ---
   courseApproved = output<string>();
   courseRejected = output<{ id: string; reason: string }>();
+  windowDaysChange = output<number>();
 
   // --- Derived state (ORG_ADMIN only) ---
   pendingCount = computed(() => this.analytics().pendingCourses);

@@ -49,6 +49,14 @@
       <div class="header-inner">
         <h1 class="page-title">Bảng điều khiển quản lý</h1>
         <div class="header-actions">
+          <!-- F-OA-3: shared <app-date-range-toggle> — drives windowed
+               analytics via parent re-fetch. BE endpoint is org-scoped for
+               ORG_ADMIN per buildOrgScoped path in GetWindowedAnalyticsUseCase
+               (PR #145 + #171). Default 30 ngày. -->
+          <app-date-range-toggle
+            [value]="windowDays()"
+            ariaLabel="Khoảng thời gian báo cáo"
+            (change)="windowDaysChange.emit($event)" />
           <a [routerLink]="portalBase() + '/analytics'" class="btn-secondary">Xem analytics</a>
           <a [routerLink]="portalBase() + '/organization'" class="btn-primary">Mời thành viên</a>
         </div>
@@ -56,22 +64,28 @@
     </div>
 
     <div class="dashboard-main">
+      <!-- F-OA-1: shared <app-action-card> — replaces bespoke
+           .action-card.accent-{warning,primary,success} markup. Same visual
+           contract; one component for the whole admin portal (CC-01). -->
       <div class="action-grid">
-        <a [routerLink]="portalBase() + '/courses/review'" class="action-card accent-warning">
-          <p class="action-value">{{ pendingCount() | number }}</p>
-          <p class="action-label">Khóa học chờ duyệt</p>
-          <p class="action-link warning-text">Xem danh sách →</p>
-        </a>
-        <a [routerLink]="portalBase() + '/users/students'" class="action-card accent-primary">
-          <p class="action-value">{{ newStudentsThisMonth() | number }}</p>
-          <p class="action-label">Học viên mới tháng này</p>
-          <p class="action-link primary-text">Quản lý →</p>
-        </a>
-        <a [routerLink]="portalBase() + '/courses'" class="action-card accent-success">
-          <p class="action-value">{{ activeCourseCount() | number }}</p>
-          <p class="action-label">Khóa học đang hoạt động</p>
-          <p class="action-link success-text">Xem tất cả →</p>
-        </a>
+        <app-action-card
+          [value]="pendingCount() | number"
+          label="Khóa học chờ duyệt"
+          linkLabel="Xem danh sách"
+          [routerLink]="portalBase() + '/courses/review'"
+          accent="warning" />
+        <app-action-card
+          [value]="newStudentsThisMonth() | number"
+          label="Học viên mới tháng này"
+          linkLabel="Quản lý"
+          [routerLink]="portalBase() + '/users/students'"
+          accent="primary" />
+        <app-action-card
+          [value]="activeCourseCount() | number"
+          label="Khóa học đang hoạt động"
+          linkLabel="Xem tất cả"
+          [routerLink]="portalBase() + '/courses'"
+          accent="success" />
       </div>
 
       <div class="content-grid">
