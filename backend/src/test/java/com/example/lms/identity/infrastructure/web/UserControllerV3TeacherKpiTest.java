@@ -81,7 +81,7 @@ class UserControllerV3TeacherKpiTest {
                 .thenReturn(teacherACountRow);
 
         ResponseEntity<ApiResponse<Page<UserControllerV3.UserResponse>>> response =
-                controller.getUsers(1, 10, null, null, null, admin);
+                controller.getUsers(1, 10, null, null, null, null, admin);
 
         @SuppressWarnings("ConstantConditions")
         List<UserControllerV3.UserResponse> rows = response.getBody().getData().getContent();
@@ -107,7 +107,7 @@ class UserControllerV3TeacherKpiTest {
                 .thenReturn(new PageImpl<>(users));
         when(courseRepository.countCoursesByTeacherIds(any())).thenReturn(List.of());
 
-        controller.getUsers(1, 10, null, null, null, admin);
+        controller.getUsers(1, 10, null, null, null, null, admin);
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Collection<UUID>> captor = ArgumentCaptor.forClass(Collection.class);
@@ -124,7 +124,7 @@ class UserControllerV3TeacherKpiTest {
         when(userRepository.findAll(any(PageRequest.class)))
                 .thenReturn(new PageImpl<>(users));
 
-        controller.getUsers(1, 10, null, null, null, admin);
+        controller.getUsers(1, 10, null, null, null, null, admin);
 
         verify(courseRepository, never()).countCoursesByTeacherIds(any());
     }

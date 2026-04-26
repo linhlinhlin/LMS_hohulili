@@ -5,6 +5,8 @@ import com.example.lms.identity.domain.model.User;
 import com.example.lms.identity.domain.valueobject.PasswordPolicy;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
+import com.example.lms.identity.infrastructure.persistence.OrganizationJpaRepository;
+import com.example.lms.identity.infrastructure.persistence.entity.OrganizationJpaEntity;
 import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity;
 import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
@@ -58,6 +60,7 @@ public class UserControllerV3 {
     private final PasswordEncoder passwordEncoder;
     private final JpaEnrollmentRepository enrollmentRepository;
     private final JpaCourseRepository courseRepository;
+    private final OrganizationJpaRepository organizationRepository;
 
     @Operation(summary = "Get all users with pagination and filtering")
     @GetMapping
@@ -68,6 +71,10 @@ public class UserControllerV3 {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String role,
             @RequestParam(required = false) String status,
+            // Issue #229: ADMIN có thể filter user theo tổ chức cụ thể.
+            // ORG_ADMIN auto-scoped tới organization của họ — param này
+            // bị ignore cho ORG_ADMIN role (security: không cho cross-org).
+            @RequestParam(required = false) UUID organizationId,
             @org.springframework.security.core.annotation.AuthenticationPrincipal UserJpaEntity currentUser
     ) {
         PageRequest pageable = PageRequest.of(Math.max(0, page - 1), limit);
@@ -89,20 +96,16 @@ public class UserControllerV3 {
 
         Page<UserJpaEntity> users;
 
-        // ORG_ADMIN: filter to users within their organization
+        // ORG_ADMIN: filter to users within their organization (organizationId
+        // param từ FE bị ignore — auto-scope to own org, security boundary).
         if (isOrgAdmin(currentUser)) {
             UUID orgId = currentUser.getOrganizationId();
-            if (hasRole && hasSearch) {
-                users = userRepository.searchByOrganizationIdAndRoleAndKeyword(orgId, roleEnum, search, pageable);
-            } else if (hasRole) {
-                users = userRepository.findByOrganizationIdAndRole(orgId, roleEnum, pageable);
-            } else if (hasSearch) {
-                users = userRepository.searchByOrganizationIdAndKeyword(orgId, search, pageable);
-            } else {
-                users = userRepository.findByOrganizationId(orgId, pageable);
-            }
+            users = queryUsersInOrg(orgId, roleEnum, search, hasRole, hasSearch, pageable);
+        } else if (organizationId != null) {
+            // ADMIN with org filter (#229): scope to selected organization
+            users = queryUsersInOrg(organizationId, roleEnum, search, hasRole, hasSearch, pageable);
         } else {
-            // ADMIN: sees all users (unchanged)
+            // ADMIN: sees all users across orgs (unchanged behavior)
             if (hasRole && hasSearch) {
                 users = userRepository.searchUsersByRole(roleEnum, search, pageable);
             } else if (hasRole) {
@@ -114,12 +117,49 @@ public class UserControllerV3 {
             }
         }
 
-        Page<UserResponse> response = users.map(this::toResponse);
+        // Issue #229: batch lookup org names cho mọi user trong page có
+        // organizationId (avoid N+1 query). System ADMIN không thuộc org
+        // sẽ có organizationId=null và không cần lookup.
+        Map<UUID, String> orgNameMap = buildOrgNameMap(users.getContent());
+        Page<UserResponse> response = users.map(u -> toResponse(u, orgNameMap));
+
         // Issue #190 (F-T1): hydrate coursesCreated for TEACHER rows so the
         // teacher-management KPI strip ("Đang dạy", "Khóa học") shows real
         // numbers instead of zeros. Batched to a single SQL aggregate.
         enrichTeacherCourseCounts(response.getContent());
         return ResponseEntity.ok(ApiResponse.success(response, "Danh sách người dùng"));
+    }
+
+    /**
+     * Issue #229: 4-branch query helper cho org-scoped user list. Tránh
+     * duplicate logic giữa ORG_ADMIN auto-scope và ADMIN explicit filter.
+     */
+    private Page<UserJpaEntity> queryUsersInOrg(UUID orgId, UserJpaEntity.UserRole roleEnum,
+                                                  String search, boolean hasRole, boolean hasSearch,
+                                                  Pageable pageable) {
+        if (hasRole && hasSearch) {
+            return userRepository.searchByOrganizationIdAndRoleAndKeyword(orgId, roleEnum, search, pageable);
+        } else if (hasRole) {
+            return userRepository.findByOrganizationIdAndRole(orgId, roleEnum, pageable);
+        } else if (hasSearch) {
+            return userRepository.searchByOrganizationIdAndKeyword(orgId, search, pageable);
+        }
+        return userRepository.findByOrganizationId(orgId, pageable);
+    }
+
+    /**
+     * Issue #229: batch lookup org names cho 1 page user — tránh N+1 query
+     * khi convert per-row toResponse. Trả empty map nếu không user nào
+     * có organizationId (vd page chỉ có system ADMIN).
+     */
+    private Map<UUID, String> buildOrgNameMap(Collection<UserJpaEntity> users) {
+        Set<UUID> orgIds = users.stream()
+                .map(UserJpaEntity::getOrganizationId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (orgIds.isEmpty()) return Map.of();
+        return organizationRepository.findAllById(orgIds).stream()
+                .collect(Collectors.toMap(OrganizationJpaEntity::getId, OrganizationJpaEntity::getName));
     }
 
     @Operation(summary = "Get all users (capped at 1000)")
@@ -672,6 +712,18 @@ public class UserControllerV3 {
     }
 
     private UserResponse toResponse(UserJpaEntity user) {
+        return toResponse(user, Map.of());
+    }
+
+    /**
+     * Issue #229: overload accept pre-built `orgNameMap` để emit org info.
+     * System ADMIN có `organizationId=null` -> trả về null (FE hiển thị
+     * badge "Hệ thống" cho row không thuộc org). ORG_ADMIN/TEACHER/STUDENT
+     * thuộc org cụ thể -> orgName tra từ map (đã batch query 1 lần ở
+     * caller, tránh N+1).
+     */
+    private UserResponse toResponse(UserJpaEntity user, Map<UUID, String> orgNameMap) {
+        UUID orgId = user.getOrganizationId();
         return UserResponse.builder()
                 .id(user.getId().toString())
                 .username(user.getDisplayName())
@@ -687,10 +739,23 @@ public class UserControllerV3 {
                 .mustChangePassword(user.isMustChangePassword())
                 .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
                 .updatedAt(user.getUpdatedAt() != null ? user.getUpdatedAt().toString() : null)
+                .organizationId(orgId != null ? orgId.toString() : null)
+                .organizationName(orgId != null ? orgNameMap.get(orgId) : null)
                 .build();
     }
 
     private UserResponse toResponse(User user) {
+        // Issue #229: domain User overload — caller (single-user endpoint
+        // create/update) thường lookup org riêng nếu cần. Helper trả về
+        // organizationId dạng UUID string nhưng KHÔNG resolve org name
+        // (caller có thể gọi `organizationRepository.findById` nếu cần).
+        UUID orgId = user.getOrganizationId();
+        String orgName = null;
+        if (orgId != null) {
+            orgName = organizationRepository.findById(orgId)
+                    .map(OrganizationJpaEntity::getName)
+                    .orElse(null);
+        }
         return UserResponse.builder()
                 .id(user.getId().value().toString())
                 .username(user.getUsername())
@@ -702,6 +767,8 @@ public class UserControllerV3 {
                 .enabled(user.isEnabled())
                 .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
                 .updatedAt(user.getUpdatedAt() != null ? user.getUpdatedAt().toString() : null)
+                .organizationId(orgId != null ? orgId.toString() : null)
+                .organizationName(orgName)
                 .build();
     }
 
@@ -1033,6 +1100,12 @@ public class UserControllerV3 {
         private int loginCount;
         private int coursesCreated;
         private int coursesEnrolled;
+        /** Issue #229: organization scoping for multi-org admin management.
+         *  null cho system ADMIN (không thuộc org nào) — FE hiển thị "Hệ thống". */
+        private String organizationId;
+        /** Issue #229: tên tổ chức tra cứu batch (avoid N+1) tại UserControllerV3.
+         *  null đồng nghĩa với organizationId=null hoặc org đã bị xóa (orphan). */
+        private String organizationName;
     }
 
     @Data @NoArgsConstructor @AllArgsConstructor

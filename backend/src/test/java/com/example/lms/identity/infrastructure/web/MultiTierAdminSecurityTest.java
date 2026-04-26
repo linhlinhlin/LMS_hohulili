@@ -4,6 +4,8 @@ import com.example.lms.identity.application.usecase.UpdateUserUseCaseV3;
 import com.example.lms.identity.domain.model.User;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
+import com.example.lms.identity.infrastructure.persistence.OrganizationJpaRepository;
+import com.example.lms.identity.infrastructure.persistence.entity.OrganizationJpaEntity;
 import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +47,7 @@ class MultiTierAdminSecurityTest {
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private JpaEnrollmentRepository enrollmentRepository;
     @Mock private JpaCourseRepository courseRepository;
+    @Mock private OrganizationJpaRepository organizationRepository;
 
     @InjectMocks private UserControllerV3 controller;
 
@@ -623,6 +626,63 @@ class MultiTierAdminSecurityTest {
             ResponseEntity<?> response = controller.searchUsers("STUDENT", "student", 1, 10, teacher);
 
             assertThat(response.getStatusCode().value()).isEqualTo(403);
+        }
+    }
+
+    // =============================================
+    // Get Users — multi-org boundary tests (#229)
+    // =============================================
+
+    @Nested
+    @DisplayName("Get Users - ORG_ADMIN cross-org boundary (#229)")
+    class GetUsersOrgScopeTests {
+
+        @Test
+        @DisplayName("ORG_ADMIN gửi organizationId param khác org của họ -> param bị ignore, vẫn scope to own org")
+        void orgAdminCannotCrossOrgFilter() {
+            UUID otherOrgId = UUID.randomUUID();
+            // Mock UserJpaRepository.findByOrganizationId được gọi với own orgId,
+            // KHÔNG phải otherOrgId. Nếu logic sai, test sẽ fail vì stub không match.
+            org.springframework.data.domain.Page<UserJpaEntity> emptyPage =
+                    new org.springframework.data.domain.PageImpl<>(java.util.List.of());
+            when(userRepository.findByOrganizationId(eq(organizationId), any())).thenReturn(emptyPage);
+
+            // Act: ORG_ADMIN cố gắng filter sang org khác
+            controller.getUsers(1, 10, null, null, null, otherOrgId, orgAdmin);
+
+            // Assert: query was made with own organizationId, NOT otherOrgId
+            verify(userRepository).findByOrganizationId(eq(organizationId), any());
+            verify(userRepository, never()).findByOrganizationId(eq(otherOrgId), any());
+        }
+
+        @Test
+        @DisplayName("ADMIN system gửi organizationId param -> scope to that org")
+        void systemAdminCanFilterByOrg() {
+            UUID targetOrgId = UUID.randomUUID();
+            org.springframework.data.domain.Page<UserJpaEntity> emptyPage =
+                    new org.springframework.data.domain.PageImpl<>(java.util.List.of());
+            when(userRepository.findByOrganizationId(eq(targetOrgId), any())).thenReturn(emptyPage);
+
+            // Act: ADMIN filter to specific org
+            controller.getUsers(1, 10, null, null, null, targetOrgId, systemAdmin);
+
+            // Assert: query was made with targetOrgId
+            verify(userRepository).findByOrganizationId(eq(targetOrgId), any());
+        }
+
+        @Test
+        @DisplayName("ADMIN system không gửi organizationId -> findAll cross-org")
+        void systemAdminWithoutOrgFilterSeesAll() {
+            org.springframework.data.domain.Page<UserJpaEntity> emptyPage =
+                    new org.springframework.data.domain.PageImpl<>(java.util.List.of());
+            when(userRepository.findAll(any(org.springframework.data.domain.Pageable.class))).thenReturn(emptyPage);
+
+            // Act
+            controller.getUsers(1, 10, null, null, null, null, systemAdmin);
+
+            // Assert: cross-org findAll, không scope by orgId
+            verify(userRepository).findAll(any(org.springframework.data.domain.Pageable.class));
+            verify(userRepository, never()).findByOrganizationId(any(), any());
         }
     }
 

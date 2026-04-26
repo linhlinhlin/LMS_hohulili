@@ -4,6 +4,8 @@ import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } from '../../infrastructure/services/admin.service';
+import { OrganizationService } from '../../infrastructure/services/organization.service';
+import { Organization } from '../../../../shared/types/user.types';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -25,6 +27,7 @@ import { formatRelativeTimeVN } from '../../../../shared/utils/relative-time.uti
 })
 export class AdminUserManagementComponent implements OnInit {
   private adminService = inject(AdminService);
+  private organizationService = inject(OrganizationService);
   private toast = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
   private authService = inject(AuthService);
@@ -32,9 +35,12 @@ export class AdminUserManagementComponent implements OnInit {
 
   // State
   allUsers = signal<AdminUser[]>([]);
+  organizations = signal<Organization[]>([]);  // #229: cho dropdown filter org
   isLoading = signal(false);
   searchQuery = signal('');
   statusFilter = signal('');
+  // Issue #229: '' = tất cả, 'system' = ADMIN không thuộc org, UUID = org cụ thể
+  orgFilter = signal('');
   showCreateModal = signal(false);
   newAdminName = signal('');
   newAdminEmail = signal('');
@@ -78,6 +84,7 @@ export class AdminUserManagementComponent implements OnInit {
     let admins = this.adminUsers();
     const query = this.searchQuery().toLowerCase();
     const status = this.statusFilter();
+    const org = this.orgFilter();
 
     if (query) {
       admins = admins.filter(a =>
@@ -88,6 +95,16 @@ export class AdminUserManagementComponent implements OnInit {
 
     if (status) {
       admins = admins.filter(a => a.accountStatus === status);
+    }
+
+    // Issue #229: org filter — 'system' = system ADMIN không có organizationId,
+    // UUID = scope tới org cụ thể. '' = không filter, hiển thị tất cả.
+    if (org) {
+      if (org === 'system') {
+        admins = admins.filter(a => !a.organizationId);
+      } else {
+        admins = admins.filter(a => a.organizationId === org);
+      }
     }
 
     return admins;
@@ -105,6 +122,7 @@ export class AdminUserManagementComponent implements OnInit {
 
   ngOnInit() {
     this.loadUsers();
+    this.loadOrganizations();
   }
 
   loadUsers() {
@@ -116,6 +134,15 @@ export class AdminUserManagementComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: () => this.isLoading.set(false)
+    });
+  }
+
+  // Issue #229: load organizations cho filter dropdown. Silent fail nếu
+  // endpoint lỗi — page vẫn dùng được không có org filter.
+  private loadOrganizations() {
+    this.organizationService.listOrganizations().subscribe({
+      next: (orgs) => this.organizations.set(orgs),
+      error: () => this.organizations.set([])
     });
   }
 
@@ -293,6 +320,12 @@ export class AdminUserManagementComponent implements OnInit {
 
   onStatusFilterChange(value: string) {
     this.statusFilter.set(value);
+  }
+
+  // Issue #229: org filter handler — '' = tất cả, 'system' = ADMIN không
+  // thuộc org, UUID = scope tới org cụ thể.
+  onOrgFilterChange(value: string) {
+    this.orgFilter.set(value);
   }
 
   openCreateModal() {

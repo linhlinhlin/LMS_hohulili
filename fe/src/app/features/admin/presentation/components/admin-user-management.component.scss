@@ -356,6 +356,17 @@ $orange-700: #9A3412;
 .badge-warning { background: $warning-light; color: $warning; }
 .badge-default { background: $gray-100; color: $gray-800; }
 
+/* Issue #229: org scoping badges — phân biệt visual giữa system ADMIN
+   ("Hệ thống" gray) và ORG_ADMIN thuộc tổ chức (org name blue tint). */
+.badge-system {
+  background: $gray-100;
+  color: $gray-700;
+}
+.badge-org {
+  background: rgba($blue-primary, 0.1);
+  color: $blue-hover;
+}
+
 .status-dot {
   width: 6px;
   height: 6px;
