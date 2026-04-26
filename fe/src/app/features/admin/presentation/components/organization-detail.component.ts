@@ -1,4 +1,5 @@
-import { Component, signal, inject, OnInit, ChangeDetectionStrategy, computed } from '@angular/core';
+import { Component, signal, inject, OnInit, ChangeDetectionStrategy, computed, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { OrganizationService, OrgPaymentConfig } from '../../infrastructure/services/organization.service';
@@ -25,6 +26,7 @@ const VALID_TABS: ReadonlySet<Tab> = new Set([
 export class OrganizationDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
   private orgService = inject(OrganizationService);
   private toast = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
@@ -92,11 +94,19 @@ export class OrganizationDetailComponent implements OnInit {
   ];
 
   // Phase 2 (#235): multi-tenant signals — type badge variant + label + isDefault.
+  // Fallback dùng khi BE corruption / legacy data trả type=null hoặc value không
+  // map (BE đã có parseType warn fallback PARTNER, FE phản ánh chung).
+  private readonly orgTypeFallback = { label: 'Đối tác', cssClass: 'badge-org-type badge-org-type--partner' };
   readonly orgTypeMeta: Record<OrganizationType, { label: string; cssClass: string }> = {
     PLATFORM: { label: 'Nền tảng', cssClass: 'badge-org-type badge-org-type--platform' },
     PARTNER:  { label: 'Đối tác',  cssClass: 'badge-org-type badge-org-type--partner' },
     INTERNAL: { label: 'Nội bộ',   cssClass: 'badge-org-type badge-org-type--internal' }
   };
+  /** Phase 2 (#235): null-safe lookup cho header + overview info card. */
+  orgTypeBadge = computed(() => {
+    const type = this.org()?.type;
+    return (type && this.orgTypeMeta[type]) || this.orgTypeFallback;
+  });
 
   private orgId = '';
 
@@ -107,14 +117,17 @@ export class OrganizationDetailComponent implements OnInit {
       this.toast.error('Không tìm thấy tổ chức để quản lý');
       return;
     }
-    // Phase 2 (#235): deep-link tab restore từ query param. Sub Subscribe để
-    // pick up cả navigation trong cùng route (back/forward, share link).
-    this.route.queryParamMap.subscribe(params => {
-      const requested = params.get('tab') as Tab | null;
-      if (requested && VALID_TABS.has(requested)) {
-        this.activeTab.set(requested);
-      }
-    });
+    // Phase 2 (#235): deep-link tab restore từ query param. takeUntilDestroyed
+    // giải phóng subscription khi component destroy — tránh leak trên admin
+    // route navigation. Pick up cả back/forward + share link.
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(params => {
+        const requested = params.get('tab') as Tab | null;
+        if (requested && VALID_TABS.has(requested)) {
+          this.activeTab.set(requested);
+        }
+      });
     this.loadAll();
     this.loadPaymentConfig();
   }

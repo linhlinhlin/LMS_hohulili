@@ -34,8 +34,9 @@
           <div class="header-meta">
             <span class="org-code">{{ org()!.code }}</span>
             <span class="dot-separator">&middot;</span>
-            <!-- Phase 2 (#235): type badge multi-tenant signal (PLATFORM/PARTNER/INTERNAL) -->
-            <span [ngClass]="orgTypeMeta[org()!.type].cssClass">{{ orgTypeMeta[org()!.type].label }}</span>
+            <!-- Phase 2 (#235): type badge multi-tenant signal (PLATFORM/PARTNER/INTERNAL).
+                 orgTypeBadge() null-safe fallback PARTNER cho legacy/corrupt data. -->
+            <span [ngClass]="orgTypeBadge().cssClass">{{ orgTypeBadge().label }}</span>
             <span class="dot-separator">&middot;</span>
             @if (org()!.enabled) {
               <span class="badge badge--active">Hoạt động</span>
@@ -126,7 +127,7 @@
               <div class="overview-info-row">
                 <dt>Loại tổ chức</dt>
                 <dd>
-                  <span [ngClass]="orgTypeMeta[org()!.type].cssClass">{{ orgTypeMeta[org()!.type].label }}</span>
+                  <span [ngClass]="orgTypeBadge().cssClass">{{ orgTypeBadge().label }}</span>
                   @if (org()!.isDefault) {
                     <span class="overview-info-note">— tổ chức nền tảng mặc định</span>
                   }
