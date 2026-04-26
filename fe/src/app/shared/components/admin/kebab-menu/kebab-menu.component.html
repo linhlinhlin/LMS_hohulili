@@ -1,0 +1,54 @@
+<!--
+  Kebab menu trigger + popover panel. The host element is `position:
+  relative` so the absolute-positioned panel docks to the trigger's
+  bottom-right corner without touching layout outside the row.
+-->
+<button #trigger
+        type="button"
+        class="kebab-trigger"
+        [class.is-open]="isOpen()"
+        [disabled]="disabled()"
+        [attr.aria-haspopup]="'menu'"
+        [attr.aria-expanded]="isOpen()"
+        [attr.aria-label]="triggerAriaLabel()"
+        (click)="onTriggerClick($event)"
+        (keydown)="onTriggerKeydown($event)">
+  <!-- Three vertical dots (kebab). -->
+  <svg class="kebab-icon"
+       viewBox="0 0 20 20"
+       fill="currentColor"
+       aria-hidden="true">
+    <path d="M10 6a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM10 11.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM10 17a1.5 1.5 0 110-3 1.5 1.5 0 010 3z"/>
+  </svg>
+</button>
+
+@if (isOpen()) {
+  <div #panel
+       class="kebab-panel"
+       role="menu"
+       [attr.aria-label]="menuAriaLabel()"
+       (click)="$event.stopPropagation()">
+    @for (action of actions(); track action.key; let i = $index) {
+      <button type="button"
+              role="menuitem"
+              class="kebab-item"
+              [class.is-danger]="action.variant === 'danger'"
+              [class.is-disabled]="action.disabled"
+              [disabled]="action.disabled"
+              [attr.tabindex]="i === activeIndex() ? 0 : -1"
+              [attr.aria-label]="action.ariaLabel || action.label"
+              (click)="onItemClick(action, $event)"
+              (keydown)="onItemKeydown($event, i)">
+        @if (action.icon) {
+          <svg class="kebab-item-icon"
+               viewBox="0 0 20 20"
+               fill="currentColor"
+               aria-hidden="true">
+            <path [attr.d]="action.icon" [attr.fill-rule]="'evenodd'" [attr.clip-rule]="'evenodd'"></path>
+          </svg>
+        }
+        <span class="kebab-item-label">{{ action.label }}</span>
+      </button>
+    }
+  </div>
+}
