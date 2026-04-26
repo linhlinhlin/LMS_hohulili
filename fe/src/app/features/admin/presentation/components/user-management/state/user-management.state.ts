@@ -550,7 +550,7 @@ export class UserManagementState {
   getStatusLabel(status: string): string {
     switch (status) {
       case 'ACTIVE': return 'Hoạt động';
-      case 'BLOCKED': return 'Đã khóa';
+      case 'BLOCKED': return 'Bị khóa';
       case 'RESTRICTED': return 'Hạn chế';
       default: return 'Không xác định';
     }

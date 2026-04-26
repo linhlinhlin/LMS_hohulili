@@ -167,9 +167,12 @@ import { formatRelativeTimeVN } from '../../../../../../../shared/utils/relative
                     </span>
                   </td>
                   <!-- Hoạt động cuối — Linear / GitHub / Stripe pattern:
-                       relative time + tooltip ISO. Đồng bộ dashboard PR #222. -->
-                  <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600 cursor-help"
-                      [title]="user.lastLogin || ''">
+                       relative time + tooltip ISO. Đồng bộ dashboard PR #222.
+                       cursor-help + title chỉ khi có lastLogin (tránh tooltip
+                       rỗng + hand cursor confusing trên cell "Chưa đăng nhập"). -->
+                  <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600"
+                      [class.cursor-help]="user.lastLogin"
+                      [attr.title]="user.lastLogin || null">
                     {{ user.lastLogin ? formatRelativeTime(user.lastLogin) : 'Chưa đăng nhập' }}
                   </td>
                   <!-- Thống kê -->
