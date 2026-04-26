@@ -26,13 +26,16 @@
           <option [value]="roleOpt.value">{{ roleOpt.label }}</option>
         }
       </select>
-      <!-- Status Filter -->
+      <!-- Status Filter — enum-based (ACTIVE/BLOCKED/RESTRICTED) thay vì
+           legacy 'active'/'inactive' boolean để filter granular hơn (F-U1).
+           Khớp `accountStatus` field trên `AdminUser`. -->
       <select [value]="state.statusFilter()"
               (change)="state.onStatusFilterChange($any($event.target).value)"
               class="filter-select">
         <option value="">Tất cả trạng thái</option>
-        <option value="active">Đang hoạt động</option>
-        <option value="inactive">Không hoạt động</option>
+        <option value="ACTIVE">Đang hoạt động</option>
+        <option value="BLOCKED">Bị khóa</option>
+        <option value="RESTRICTED">Hạn chế</option>
       </select>
     </div>
   </div>

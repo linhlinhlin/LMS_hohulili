@@ -1,20 +1,28 @@
 /**
- * Format an ISO timestamp as a Vietnamese relative time phrase
+ * Format a timestamp as a Vietnamese relative time phrase
  * (Linear / GitHub / Stripe pattern). Falls back to localized date for
  * timestamps older than 30 days so admins still see absolute dates for
  * archival data without needing tooltip hover.
  *
+ * Accepts ISO string, `Date` instance, hoặc null/undefined. FE service
+ * thường convert ISO -> Date (xem `admin.service.ts:885`), template render
+ * có thể nhận Date trực tiếp — union type tránh boilerplate ở call site.
+ *
  * Usage:
  *   formatRelativeTimeVN('2026-04-26T10:30:00Z') -> "5 phút trước"
+ *   formatRelativeTimeVN(new Date()) -> "vừa xong"
  *   formatRelativeTimeVN('2026-03-01T10:30:00Z') -> "01/03/2026"
  *
  * Future timestamps (clock skew between client + server) collapse to
  * "vừa xong" rather than "in 3 minutes" — admins do not expect to see
  * future-dated audit records on the dashboard.
  */
-export function formatRelativeTimeVN(iso: string | null | undefined, now: number = Date.now()): string {
-  if (!iso) return '';
-  const then = new Date(iso).getTime();
+export function formatRelativeTimeVN(
+  input: string | Date | null | undefined,
+  now: number = Date.now(),
+): string {
+  if (!input) return '';
+  const then = input instanceof Date ? input.getTime() : new Date(input).getTime();
   if (Number.isNaN(then)) return '';
 
   const diffMs = now - then;
@@ -34,5 +42,6 @@ export function formatRelativeTimeVN(iso: string | null | undefined, now: number
     return `${weeks} tuần trước`;
   }
 
-  return new Date(iso).toLocaleDateString('vi-VN');
+  const fallbackDate = input instanceof Date ? input : new Date(input);
+  return fallbackDate.toLocaleDateString('vi-VN');
 }

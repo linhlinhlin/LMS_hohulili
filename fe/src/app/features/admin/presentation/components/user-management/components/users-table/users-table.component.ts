@@ -5,6 +5,7 @@ import { UserManagementState } from '../../state/user-management.state';
 import { AdminUser } from '../../../../../infrastructure/services/admin.service';
 import { exportToCsv } from '../../../../../../../shared/utils/csv-export';
 import { KebabMenuComponent, KebabAction } from '../../../../../../../shared/components/admin/kebab-menu/kebab-menu.component';
+import { formatRelativeTimeVN } from '../../../../../../../shared/utils/relative-time.util';
 
 @Component({
   selector: 'app-users-table',
@@ -165,9 +166,11 @@ import { KebabMenuComponent, KebabAction } from '../../../../../../../shared/com
                       {{ state.getStatusLabel(user.accountStatus) }}
                     </span>
                   </td>
-                  <!-- Hoạt động cuối -->
-                  <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600">
-                    {{ user.lastLogin ? state.formatDate(user.lastLogin) : 'Chưa đăng nhập' }}
+                  <!-- Hoạt động cuối — Linear / GitHub / Stripe pattern:
+                       relative time + tooltip ISO. Đồng bộ dashboard PR #222. -->
+                  <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600 cursor-help"
+                      [title]="user.lastLogin || ''">
+                    {{ user.lastLogin ? formatRelativeTime(user.lastLogin) : 'Chưa đăng nhập' }}
                   </td>
                   <!-- Thống kê -->
                   <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600">
@@ -259,6 +262,14 @@ export class UsersTableComponent {
   readonly state = inject(UserManagementState);
 
   statusAction = output<{ user: AdminUser; status: string }>();
+
+  // Cột "Hoạt động cuối" — relative time (Linear / GitHub / Stripe pattern).
+  // Tooltip [title] giữ ISO timestamp cho tra cứu chính xác.
+  // AdminUser.lastLogin là `Date | null` (admin.service:885 convert ISO->Date),
+  // util accept union nên truyền thẳng Date.
+  formatRelativeTime(input: Date | string | null | undefined): string {
+    return formatRelativeTimeVN(input);
+  }
 
   onStatusAction(user: AdminUser, status: string): void {
     if (status) {

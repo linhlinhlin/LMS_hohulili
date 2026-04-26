@@ -1,4 +1,7 @@
 <div class="stats-grid">
+  <!-- "Tổng người dùng" KHÔNG drill-down vì current page là /admin/users/all.
+       Còn 3 card breakdown role -> drill-down filter view tương ứng
+       (Stripe / Coursera / Vercel pattern, đồng bộ dashboard PR #222). -->
   <app-kpi-card
     [value]="state.totalUsers()"
     label="Tổng người dùng"
@@ -7,15 +10,18 @@
   <app-kpi-card
     [value]="state.totalTeachers()"
     label="Giảng viên"
-    sub="Đang giảng dạy" />
+    sub="Đang giảng dạy"
+    route="/admin/users/teachers" />
 
   <app-kpi-card
     [value]="state.totalStudents()"
     label="Học viên"
-    sub="Đang học tập" />
+    sub="Đang học tập"
+    route="/admin/users/students" />
 
   <app-kpi-card
     [value]="state.totalAdmins()"
     label="Quản trị viên"
-    sub="Quản lý hệ thống" />
+    sub="Quản lý hệ thống"
+    route="/admin/users/admins" />
 </div>
