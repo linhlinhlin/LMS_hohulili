@@ -13,4 +13,12 @@ import { DialogComponent } from '../../../../../../../shared/components/dialog/d
 })
 export class CreateUserModalComponent {
   readonly state = inject(UserManagementState);
+
+  // Shopify "or import products" pattern — admin đang tạo 1 user nhận ra
+  // mình cần thêm hàng loạt → 1 click switch sang bulk import flow,
+  // không phải đóng modal rồi tìm nút Import Excel trên list page.
+  onSwitchToBulkImport(): void {
+    this.state.closeCreateUserModal();
+    this.state.openBulkImportModal();
+  }
 }

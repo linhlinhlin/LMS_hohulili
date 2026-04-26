@@ -57,8 +57,12 @@
             [value]="windowDays()"
             ariaLabel="Khoảng thời gian báo cáo"
             (change)="windowDaysChange.emit($event)" />
-          <a routerLink="/admin/analytics" class="btn-secondary">Xem báo cáo</a>
-          <a routerLink="/admin/users/all" class="btn-primary">Thêm người dùng</a>
+          <a routerLink="/admin/users/all"
+             [queryParams]="{ action: 'create' }"
+             class="btn-primary">
+            <app-icon name="plus" size="sm" aria-hidden="true" />
+            Thêm người dùng
+          </a>
         </div>
       </div>
     </div>
@@ -67,26 +71,32 @@
       <!-- ① Metrics Strip (Stripe pattern — 4 cells, no icons).
            Migrated to shared <app-kpi-card> per CC-01 (mega audit 2026-04-25)
            — same visual contract as before, but every other admin surface now
-           consumes the same component instead of bespoke .metric-cell markup. -->
+           consumes the same component instead of bespoke .metric-cell markup.
+           Mỗi card có [route] drill-down (Stripe / Coursera / Vercel pattern):
+           click vào KPI → mở report tương ứng. -->
       <div class="metrics-strip">
         <app-kpi-card
           [value]="analytics().totalUsers | number"
           label="Tổng người dùng"
-          [trend]="analytics().userGrowth.growthRate" />
+          [trend]="analytics().userGrowth.growthRate"
+          route="/admin/users/all" />
         <app-kpi-card
-          [value]="(analytics().revenue | number:'1.0-0') + 'đ'"
+          [value]="(analytics().revenue | number:'1.0-0') + ' ₫'"
           label="Doanh thu tháng này"
-          [trend]="analytics().revenueGrowth" />
+          [trend]="analytics().revenueGrowth"
+          route="/admin/payouts" />
         <app-kpi-card
           [value]="analytics().pendingCourses | number"
           label="Khóa học chờ duyệt"
-          variant="warning"
-          sub="Cần xử lý" />
+          [variant]="analytics().pendingCourses > 0 ? 'warning' : 'default'"
+          [sub]="analytics().pendingCourses > 0 ? 'Cần xử lý' : 'Đã xử lý hết'"
+          route="/admin/courses/review" />
         <app-kpi-card
           [value]="analytics().totalCourses | number"
           label="Tổng khóa học"
           [trend]="analytics().courseGrowth"
-          [sub]="'· ' + analytics().approvedCourses + ' đã duyệt'" />
+          [sub]="'· ' + analytics().approvedCourses + ' đã duyệt'"
+          route="/admin/courses" />
       </div>
 
       <!--
@@ -96,26 +106,83 @@
         dashboard sau PR #145 / issue #75).
       -->
 
-      <!-- ② Quick actions + System Health -->
+      <!-- ② Pending Approvals + System Health
+           SOTA pattern (Stripe Failed Payments, Linear Inbox, Jira Security
+           Recommendations): action queue prioritized ngay sau KPI strip.
+           "Quick Actions" card cũ đã bỏ — duplicate sidebar (0/12 SOTA
+           platforms khảo sát có pattern đó). Sidebar đã expose all routes. -->
       <div class="content-grid grid-2-1">
-        <div class="card actions-card">
+        <div class="card pending-card">
           <div class="card-header">
-            <h2 class="card-title">Hành động nhanh</h2>
+            <h2 class="card-title">
+              Danh sách chờ duyệt
+              @if (analytics().pendingCourses > 0) {
+                <span class="count-badge" aria-label="số yêu cầu chờ duyệt">
+                  {{ analytics().pendingCourses | number }}
+                </span>
+              }
+            </h2>
           </div>
-          <nav class="actions-list" aria-label="Lối tắt quản trị">
-            @for (action of quickActions(); track action.id) {
-              <a [routerLink]="action.route" class="action-item">
-                <div class="action-icon">
-                  <app-icon [name]="action.icon" size="md" aria-hidden="true" />
-                </div>
-                <div class="action-text">
-                  <span class="action-label">{{ action.label }}</span>
-                  <span class="action-desc">{{ action.description }}</span>
-                </div>
-                <app-icon name="chevron-right" size="sm" class="action-chevron" aria-hidden="true" />
-              </a>
+          <div class="card-body">
+            @if (isLoadingPending()) {
+              <div class="table-loading">
+                <div class="spinner"></div>
+                <span>Đang tải...</span>
+              </div>
+            } @else if (pendingApprovals().length === 0) {
+              <div class="table-empty">
+                <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p class="empty-title">Hàng đợi đã sạch</p>
+                <p class="empty-desc">Khi giảng viên nộp khóa học mới, khóa đó sẽ hiện ở đây để bạn duyệt.</p>
+                <a routerLink="/admin/courses" class="empty-cta">
+                  Xem tất cả khóa học
+                  <app-icon name="arrow-right" size="sm" aria-hidden="true" />
+                </a>
+              </div>
+            } @else {
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Tên</th>
+                    <th>Loại</th>
+                    <th>Ngày gửi</th>
+                    <th>Hành động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (approval of visiblePendingApprovals(); track approval.id) {
+                    <tr>
+                      <td>{{ approval.name }}</td>
+                      <td>
+                        @if (approval.type === 'course') {
+                          <span class="badge badge-primary">Khóa học</span>
+                        } @else {
+                          <span class="badge badge-purple">Giảng viên</span>
+                        }
+                      </td>
+                      <td class="date-text" [title]="approval.submittedDate">
+                        {{ formatRelativeTime(approval.submittedDate) }}
+                      </td>
+                      <td>
+                        <div class="action-btns">
+                          <button class="btn-approve" (click)="approveCourse(approval.id)">Duyệt</button>
+                          <button class="btn-reject" (click)="openRejectModal(approval.id, approval.name)">Từ chối</button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+              @if (hasMorePending()) {
+                <a routerLink="/admin/courses/review" class="view-all-link">
+                  Xem tất cả {{ analytics().pendingCourses | number }} yêu cầu
+                  <app-icon name="arrow-right" size="sm" aria-hidden="true" />
+                </a>
+              }
             }
-          </nav>
+          </div>
         </div>
 
         <!-- System Health — single real status from /actuator/health (F-06).
@@ -170,65 +237,6 @@
               Nguồn dữ liệu: <code>GET /actuator/health</code>
             </p>
           </div>
-        </div>
-      </div>
-
-      <!-- ③ Pending Approvals (full-width) -->
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">Danh sách chờ duyệt</h2>
-        </div>
-        <div class="card-body">
-          @if (isLoadingPending()) {
-            <div class="table-loading">
-              <div class="spinner"></div>
-              <span>Đang tải...</span>
-            </div>
-          } @else if (pendingApprovals().length === 0) {
-            <div class="table-empty">
-              <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p class="empty-title">Hàng đợi đã sạch</p>
-              <p class="empty-desc">Khi giảng viên nộp khóa học mới, khóa đó sẽ hiện ở đây để bạn duyệt.</p>
-              <a routerLink="/admin/courses" class="empty-cta">
-                Xem tất cả khóa học
-                <app-icon name="arrow-right" size="sm" aria-hidden="true" />
-              </a>
-            </div>
-          } @else {
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Tên</th>
-                  <th>Loại</th>
-                  <th>Ngày gửi</th>
-                  <th>Hành động</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (approval of pendingApprovals(); track approval.id) {
-                  <tr>
-                    <td>{{ approval.name }}</td>
-                    <td>
-                      @if (approval.type === 'course') {
-                        <span class="badge badge-primary">Khóa học</span>
-                      } @else {
-                        <span class="badge badge-purple">Giảng viên</span>
-                      }
-                    </td>
-                    <td class="date-text">{{ formatDate(approval.submittedDate) }}</td>
-                    <td>
-                      <div class="action-btns">
-                        <button class="btn-approve" (click)="approveCourse(approval.id)">Duyệt</button>
-                        <button class="btn-reject" (click)="openRejectModal(approval.id, approval.name)">Từ chối</button>
-                      </div>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          }
         </div>
       </div>
     </div>

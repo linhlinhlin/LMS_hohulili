@@ -5,27 +5,10 @@ import { SystemAnalytics } from '../../../infrastructure/services/admin.service'
 import { SystemHealthService } from '../../../infrastructure/services/system-health.service';
 import { PendingApproval } from './dashboard.types';
 import { DialogComponent } from '../../../../../shared/components/dialog/dialog.component';
-import { IconComponent, IconName } from '../../../../../shared/components/icon/icon.component';
+import { IconComponent } from '../../../../../shared/components/icon/icon.component';
 import { KpiCardComponent } from '../../../../../shared/components/admin/kpi-card/kpi-card.component';
 import { DateRangeToggleComponent } from '../../../../../shared/components/admin/date-range-toggle/date-range-toggle.component';
-
-interface QuickAction {
-  id: string;
-  label: string;
-  description: string;
-  route: string;
-  icon: IconName;
-}
-
-// Static list — routes verified against fe/src/app/features/admin/admin.routes.ts.
-// Replaces the old "Tổng quan nhanh" card which duplicated KPI strip counts
-// (F-02 in audit 2026-04-25). Pattern follows Stripe/Linear shortcut panels.
-const QUICK_ACTIONS: readonly QuickAction[] = [
-  { id: 'add-user',    label: 'Thêm người dùng',  description: 'Tạo tài khoản giảng viên hoặc học viên',      route: '/admin/users/all',   icon: 'users' },
-  { id: 'categories',  label: 'Quản lý danh mục', description: 'Thêm, sửa, xóa danh mục khóa học',             route: '/admin/categories',  icon: 'tag' },
-  { id: 'analytics',   label: 'Xem báo cáo',      description: 'Phân tích học viên, doanh thu, tăng trưởng',   route: '/admin/analytics',   icon: 'bar-chart' },
-  { id: 'settings',    label: 'Cấu hình hệ thống', description: 'Thiết lập thanh toán, bảo mật, thông báo',    route: '/admin/settings',    icon: 'settings' },
-];
+import { formatRelativeTimeVN } from '../../../../../shared/utils/relative-time.util';
 
 @Component({
   selector: 'app-admin-system-dashboard',
@@ -62,9 +45,6 @@ export class AdminSystemDashboardComponent implements OnInit {
   courseRejected = output<{ id: string; reason: string }>();
   windowDaysChange = output<number>();
 
-  // Shortcut panel — replaces the redundant "Tổng quan nhanh" card.
-  quickActions = computed<readonly QuickAction[]>(() => QUICK_ACTIONS);
-
   // --- Reject modal state (mirrors org-admin pattern from PR #145) ---
   rejectModalOpen = signal(false);
   private pendingRejectId = signal<string | null>(null);
@@ -99,7 +79,23 @@ export class AdminSystemDashboardComponent implements OnInit {
     this.closeRejectModal();
   }
 
-  formatDate(dateString: string): string {
-    return new Date(dateString).toLocaleDateString('vi-VN');
+  // Linear / GitHub / Stripe pattern — relative time cho recent items, full
+  // date cho archival data. Tooltip giữ ISO timestamp cho tra cứu chính xác.
+  formatRelativeTime(dateString: string): string {
+    return formatRelativeTimeVN(dateString);
   }
+
+  // Pending Approvals dashboard widget chỉ hiển thị 5 yêu cầu đầu tiên
+  // (Stripe Failed Payments / Vercel "Top deployments" pattern). Footer
+  // CTA dẫn tới /admin/courses/review nếu còn yêu cầu chờ. Phân trang
+  // đầy đủ thuộc về list page, không phải dashboard widget.
+  protected readonly DASHBOARD_PENDING_LIMIT = 5;
+
+  visiblePendingApprovals = computed(() =>
+    this.pendingApprovals().slice(0, this.DASHBOARD_PENDING_LIMIT)
+  );
+
+  hasMorePending = computed(() =>
+    this.analytics().pendingCourses > this.visiblePendingApprovals().length
+  );
 }

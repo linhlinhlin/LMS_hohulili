@@ -1,4 +1,5 @@
 import { Component, computed, inject, OnInit, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import * as XLSX from 'xlsx';
@@ -54,6 +55,7 @@ export class UserManagementRefactoredComponent implements OnInit {
   private toastService = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
   private authService = inject(AuthService);
+  private route = inject(ActivatedRoute);
 
   // CC-06 — bulk actions for the all-users surface. "Khóa" disables when
   // the current user is in the selection (F-AD2 self-suspend defence-in-depth).
@@ -129,6 +131,12 @@ export class UserManagementRefactoredComponent implements OnInit {
 
   ngOnInit(): void {
     this.state.loadUsers(1);
+    // Cho phép dashboard điều hướng `?action=create` mở modal tạo user ngay,
+    // thay vì user phải tìm nút "Thêm" trên list page (Stripe/Vercel pattern:
+    // primary CTA trên dashboard mở action surface, không chỉ navigate).
+    if (this.route.snapshot.queryParamMap.get('action') === 'create') {
+      this.state.openCreateUserModal();
+    }
   }
 
   onStatusAction(event: { user: AdminUser; status: string }): void {

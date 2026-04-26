@@ -14,6 +14,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px; // 4pt baseline — tight value↔label coupling
+  text-decoration: none; // anchor variant inherits — không underline
 
   &.kpi-warning {
     background: rgba($warning, 0.04);
@@ -26,6 +27,34 @@
   }
   &.kpi-error {
     background: rgba($error, 0.04);
+  }
+}
+
+/* Drill-down KPI — Stripe / Coursera / Vercel pattern: KPI cards là entry
+   point vào report tương ứng. Hover lift + cursor pointer report
+   affordance; KHÔNG dùng background-tint mạnh (giữ visual consistency
+   với KPI strip). */
+.kpi-clickable {
+  cursor: pointer;
+  transition: background-color $transition-fast, box-shadow $transition-fast;
+
+  &:hover {
+    background-color: $gray-50;
+  }
+
+  &.kpi-warning:hover {
+    background-color: rgba($warning, 0.08);
+  }
+  &.kpi-success:hover {
+    background-color: rgba($success, 0.08);
+  }
+  &.kpi-error:hover {
+    background-color: rgba($error, 0.08);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $blue-primary;
+    outline-offset: -2px;
   }
 }
 

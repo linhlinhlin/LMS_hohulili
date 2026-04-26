@@ -39,15 +39,17 @@
   flex-shrink: 0;
 }
 
-/* Header action buttons — primary "Thêm người dùng" + secondary "Xem báo cáo".
-   Stripe/Linear/Vercel pattern: 1 prominent primary action top-right. */
-.btn-primary,
-.btn-secondary {
+/* Header primary CTA — Stripe/Vercel pattern: single primary action với
+   leading icon ("+ Thêm..."), 40px tall (WCAG 2.2 SC 2.5.8). "Xem báo cáo"
+   secondary đã bỏ — duplicate sidebar nav (cùng anti-pattern Quick Actions
+   audit 2026-04-26). KPI cards click drill-down replace nhu cầu shortcut. */
+.btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: $spacing-2;
   padding: $spacing-2 $spacing-4;
-  min-height: 40px; // WCAG 2.2 SC 2.5.8 touch target
+  min-height: 40px;
   font-size: $text-sm;
   font-weight: $font-semibold;
   border-radius: $radius-md;
@@ -55,26 +57,14 @@
   cursor: pointer;
   transition: background $transition-fast, border-color $transition-fast, color $transition-fast;
   white-space: nowrap;
-
-  @include focus-visible;
-}
-
-.btn-primary {
   background: $blue-primary;
   color: white;
   border: 1px solid $blue-primary;
 
   &:hover { background: $blue-hover; border-color: $blue-hover; }
   &:active { background: $blue-pressed; border-color: $blue-pressed; }
-}
 
-.btn-secondary {
-  background: white;
-  color: $text-primary;
-  border: 1px solid $border-default;
-
-  &:hover { background: $gray-50; border-color: $border-dark; }
-  &:active { background: $gray-100; }
+  @include focus-visible;
 }
 
 /* ===== MAIN ===== */
@@ -108,6 +98,25 @@
   font-weight: $font-semibold;
   color: $text-primary;
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-2;
+}
+
+/* Inbox-style count badge — Linear "Inbox 12" / GitHub "Notifications (5)" /
+   Stripe "Disputes (3)" pattern. Hiển thị ngay sau title khi pendingCourses>0,
+   ẩn khi=0 để empty state trông sạch. Color đồng bộ KPI #3 warning amber. */
+.count-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px $spacing-2;
+  background: rgba($warning, 0.12);
+  color: $warning;
+  border-radius: 999px;
+  font-size: $text-xs;
+  font-weight: $font-semibold;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
 }
 
 .card-body {
@@ -156,76 +165,12 @@
   }
 }
 
-/* ===== QUICK ACTIONS CARD =====
-   Replaces the old "Tổng quan nhanh" card that duplicated KPI strip counts
-   (F-02 in audit 2026-04-25). Shortcut panel pattern from Stripe / Linear /
-   Vercel — gives admins an obvious next action on page load. */
-.actions-card { overflow: hidden; }
-
-.actions-list {
-  display: flex;
-  flex-direction: column;
-  padding: $spacing-2;
-}
-
-.action-item {
-  display: flex;
-  align-items: center;
-  gap: $spacing-3;
-  padding: $spacing-3;
-  border-radius: $radius-md;
-  color: $text-primary;
-  text-decoration: none;
-  transition: background $transition-fast;
-  min-height: 56px; // WCAG 2.2 SC 2.5.8 — comfortable touch target
-
-  &:hover { background: $gray-50; }
-  &:focus-visible {
-    outline: 2px solid $blue-primary;
-    outline-offset: -2px;
-  }
-
-  &:hover .action-chevron { color: $blue-primary; transform: translateX(2px); }
-}
-
-.action-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: $radius-md;
-  background: rgba($blue-primary, 0.08);
-  color: $blue-primary;
-  flex-shrink: 0;
-}
-
-.action-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  min-width: 0;
-}
-
-.action-label {
-  font-size: $text-sm;
-  font-weight: $font-semibold;
-  color: $text-primary;
-  line-height: $leading-tight;
-}
-
-.action-desc {
-  font-size: $text-xs;
-  color: $text-muted;
-  line-height: $leading-normal;
-}
-
-.action-chevron {
-  color: $gray-400;
-  flex-shrink: 0;
-  transition: transform $transition-fast, color $transition-fast;
-}
+/* ===== PENDING APPROVALS CARD =====
+   Promoted to primary action queue position (sau KPI strip), thay thế
+   "Quick Actions" card cũ vốn duplicate sidebar — pattern không có ở 0/12
+   SOTA admin dashboard khảo sát (Stripe Failed Payments, Linear Inbox,
+   Jira Security Recommendations đều inbox-first thay vì shortcut panel). */
+.pending-card { overflow: hidden; }
 
 /* ===== DATA TABLE ===== */
 .data-table {
@@ -262,7 +207,41 @@
   &:hover { background: $gray-50; }
 }
 
-.date-text { color: $text-muted; }
+.date-text {
+  color: $text-muted;
+  // Tooltip cursor giúp user biết hover xem full timestamp ISO
+  cursor: help;
+}
+
+/* Footer "Xem tất cả N yêu cầu" — Stripe "View all" / Vercel "Show all"
+   pattern khi widget chỉ render top 5. Subtle blue link, icon arrow trượt
+   nhẹ khi hover. Chỉ render khi `analytics.pendingCourses > visible.length`. */
+.view-all-link {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-2;
+  margin: $spacing-3 $spacing-4 0;
+  padding: $spacing-2 0;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $blue-primary;
+  text-decoration: none;
+  border-top: 1px solid $border-light;
+  width: calc(100% - #{$spacing-4} * 2);
+  justify-content: flex-end;
+  transition: color $transition-fast;
+
+  app-icon {
+    transition: transform $transition-fast;
+  }
+
+  &:hover {
+    color: $blue-hover;
+    app-icon { transform: translateX(2px); }
+  }
+
+  @include focus-visible;
+}
 
 /* Badges */
 .badge {
@@ -341,13 +320,13 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: $spacing-12 $spacing-6;
+  padding: $spacing-8 $spacing-6;
   color: $gray-400;
   gap: $spacing-3;
 
   .empty-icon {
-    width: $spacing-12;
-    height: $spacing-12;
+    width: $spacing-10;
+    height: $spacing-10;
     color: $gray-300;
   }
 
@@ -563,15 +542,9 @@
   .card-body { padding: $spacing-4; }
   .card-title { font-size: $text-base; } // bumps body to 16, leaves space below 20 H2
 
-  .actions-list { padding: $spacing-2; }
-  .action-item { padding: $spacing-2 $spacing-3; min-height: 52px; }
-  .action-icon { width: 36px; height: 36px; }
-  .action-label { font-size: $text-sm; }
-  .action-desc { font-size: $text-xs; }
-
   .header-inner { flex-wrap: wrap; }
   .header-actions { width: 100%; }
-  .btn-primary, .btn-secondary { flex: 1; min-height: 44px; }
+  .btn-primary { flex: 1; min-height: 44px; }
 
   .data-table th { padding: $spacing-2 $spacing-3; font-size: $text-xs; }
   .data-table td { padding: $spacing-2 $spacing-3; font-size: $text-sm; }
@@ -654,16 +627,6 @@
   .action-btns { display: none !important; }
   .header-actions { display: none !important; }
   .skeleton-strip, .skeleton-card { display: none !important; }
-
-  // Quick actions: expand all
-  .actions-list {
-    padding: 8px 12px !important;
-  }
-  .action-item {
-    padding: 6px 8px !important;
-    min-height: auto !important;
-  }
-  .action-chevron { display: none !important; }
 
   // Table: condensed
   .data-table th { padding: 6px 8px !important; font-size: 10px !important; }

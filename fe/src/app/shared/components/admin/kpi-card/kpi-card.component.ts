@@ -1,4 +1,5 @@
 import { Component, input, computed, ChangeDetectionStrategy } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { trendOf, trendArrow, trendMagnitude } from '../../../utils/trend.util';
 
 /**
@@ -23,7 +24,7 @@ export type KpiVariant = 'default' | 'warning' | 'success' | 'error';
 
 @Component({
   selector: 'app-kpi-card',
-  imports: [],
+  imports: [RouterLink],
   templateUrl: './kpi-card.component.html',
   styleUrl: './kpi-card.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -47,9 +48,23 @@ export class KpiCardComponent {
 
   variant = input<KpiVariant>('default');
 
+  // Drill-down route — Stripe / Coursera / Vercel pattern: KPI cards là entry
+  // point vào report tương ứng. Khi truyền route, card render thành `<a>`
+  // với hover state cursor-pointer; bỏ trống → render `<div>` như cũ
+  // (backward-compat cho mọi surface chưa wire drill-down).
+  route = input<string | undefined>(undefined);
+
   // Computed presentation
   trendKind = computed(() => trendOf(this.trend()));
   trendArrowGlyph = computed(() => trendArrow(this.trend()));
   trendMag = computed(() => trendMagnitude(this.trend()));
   hasTrend = computed(() => this.trend() !== undefined && this.trend() !== null);
+  isClickable = computed(() => !!this.route());
+
+  // Explicit aria-label cho screen reader: "Mở chi tiết: {label} ({value})"
+  // thay vì để assistive tech tự ghép value + label + sub line — clearer
+  // intent rằng link sẽ mở report tương ứng. Chỉ render khi clickable.
+  ariaLabelFull = computed(() =>
+    this.isClickable() ? `Mở chi tiết: ${this.label()} (${this.value()})` : undefined
+  );
 }

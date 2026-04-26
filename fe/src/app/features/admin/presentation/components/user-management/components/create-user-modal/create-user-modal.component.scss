@@ -142,6 +142,52 @@
   font-weight: $font-semibold;
 }
 
+/* ===== BULK IMPORT HINT =====
+   Shopify "or import products" pattern — subtle alt-action ngay trong modal
+   tạo 1 user. Switch flow 1-click thay vì đóng modal + tìm nút Import Excel
+   trên list page. */
+.bulk-import-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-2;
+  padding-top: $spacing-3;
+  border-top: 1px dashed $border-light;
+  margin-top: $spacing-2;
+}
+
+.hint-icon {
+  width: 16px;
+  height: 16px;
+  color: $text-muted;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.hint-text {
+  font-size: $text-xs;
+  color: $text-muted;
+  margin: 0;
+  line-height: $leading-normal;
+}
+
+.hint-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: $spacing-1;
+  font: inherit;
+  color: $blue-primary;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+
+  &:hover {
+    color: $blue-hover;
+  }
+
+  @include focus-visible;
+}
+
 /* ===== MODAL FOOTER ===== */
 .modal-footer {
   display: flex;
