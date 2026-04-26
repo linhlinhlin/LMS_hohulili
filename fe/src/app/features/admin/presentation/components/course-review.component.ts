@@ -1,7 +1,16 @@
-import { Component, signal, inject, OnInit, ChangeDetectionStrategy, computed } from '@angular/core';
+import {
+  Component,
+  signal,
+  inject,
+  OnInit,
+  ChangeDetectionStrategy,
+  computed,
+  effect
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import {
   AdminService,
   AdminCourseSummary,
@@ -23,6 +32,9 @@ type ReviewableCourseState =
 
 type CourseListItem = AdminCourseSummary | PendingCourseSummary;
 
+/** Mobile-only switch: which pane fills the viewport. Desktop ignores this. */
+type MobilePane = 'queue' | 'detail';
+
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-course-review',
@@ -36,6 +48,7 @@ export class CourseReviewComponent implements OnInit {
   private toast = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
   private authService = inject(AuthService);
+  private sanitizer = inject(DomSanitizer);
 
   courses = signal<CourseListItem[]>([]);
   loading = signal(false);
@@ -53,16 +66,22 @@ export class CourseReviewComponent implements OnInit {
   rejectComment = '';
   rejectCategory: CourseRejectionCategory = 'INSUFFICIENT_CONTENT';
   readonly rejectionCategoryOptions = COURSE_REJECTION_CATEGORIES;
-  selectedCourse: CourseListItem | null = null;
+  /** Course being targeted by the reject modal (independent of right-pane selection). */
+  rejectTargetCourse: CourseListItem | null = null;
 
-  detailModalOpen = signal(false);
-  courseDetails: any = null;
-  loadingDetails = signal(false);
+  // F-CR2 — selected course for the right preview pane.
+  selectedCourseId = signal<string | null>(null);
+  /** Convenience derived signal — the full course object behind `selectedCourseId`. */
+  selectedCourse = computed<CourseListItem | null>(() => {
+    const id = this.selectedCourseId();
+    if (!id) return null;
+    return this.courses().find(c => c.id === id) ?? null;
+  });
 
   reviewHistory = signal<ReviewEvent[]>([]);
   loadingHistory = signal(false);
 
-  /** Newest rejection category (from history) — used to enrich rejection banner in detail modal. */
+  /** Newest rejection category (from history) — used to enrich the rejection banner in the right pane. */
   latestRejectionCategory = computed<CourseRejectionCategory | null>(() => {
     const history = this.reviewHistory();
     for (let i = history.length - 1; i >= 0; i--) {
@@ -74,9 +93,8 @@ export class CourseReviewComponent implements OnInit {
     return null;
   });
 
-  showPreview = signal(false);
-  previewContent$ = signal<any[]>([]);
-  loadingPreview = signal(false);
+  // Mobile pane switch (queue vs detail). Desktop layout shows both side-by-side.
+  mobilePane = signal<MobilePane>('queue');
 
   // F-CR1 — empty state CTA. Helper to detect whether the current view is
   // empty because of an applied filter (so we offer to clear it) versus
@@ -99,6 +117,27 @@ export class CourseReviewComponent implements OnInit {
     }
     return 'Khi giảng viên gửi khóa học mới, danh sách sẽ hiển thị ở đây.';
   });
+
+  /** SafeResourceUrl for the right-pane preview iframe — re-derived when selection changes. */
+  previewSafeUrl = computed<SafeResourceUrl | null>(() => {
+    const course = this.selectedCourse();
+    if (!course) return null;
+    const base = getAdminPortalBase(this.authService.userRole());
+    // `?embed=1` is a marker the preview component can later consume to hide its own chrome.
+    return this.sanitizer.bypassSecurityTrustResourceUrl(`${base}/courses/${course.id}/preview?embed=1`);
+  });
+
+  constructor() {
+    // Keep history in sync with the selected course.
+    effect(() => {
+      const id = this.selectedCourseId();
+      if (id) {
+        this.loadReviewHistory(id);
+      } else {
+        this.reviewHistory.set([]);
+      }
+    });
+  }
 
   clearFilters(): void {
     this.searchKeyword = '';
@@ -151,8 +190,10 @@ export class CourseReviewComponent implements OnInit {
     if (this.statusFilter === 'PENDING') {
       this.adminService.getPendingCourses(params).subscribe({
         next: (response) => {
-          this.courses.set(response.data || []);
+          const list = response.data || [];
+          this.courses.set(list);
           this.totalItems = response.pagination?.totalElements || response.pagination?.totalItems || 0;
+          this.autoSelectFirst(list);
           this.loading.set(false);
         },
         error: () => {
@@ -165,8 +206,10 @@ export class CourseReviewComponent implements OnInit {
 
     this.adminService.getAllCourses(params).subscribe({
       next: (response) => {
-        this.courses.set(response.data || []);
+        const list = response.data || [];
+        this.courses.set(list);
         this.totalItems = response.pagination?.totalElements || response.pagination?.totalItems || 0;
+        this.autoSelectFirst(list);
         this.loading.set(false);
       },
       error: () => {
@@ -176,16 +219,29 @@ export class CourseReviewComponent implements OnInit {
     });
   }
 
-  previewContent(courseId: string) {
-    this.router.navigateByUrl(`${getAdminPortalBase(this.authService.userRole())}/courses/${courseId}/preview`);
+  /** Auto-select the first item if nothing selected or selection no longer in list. */
+  private autoSelectFirst(list: CourseListItem[]): void {
+    const current = this.selectedCourseId();
+    if (current && list.some(c => c.id === current)) {
+      return;
+    }
+    this.selectedCourseId.set(list.length > 0 ? list[0].id : null);
   }
 
-  viewDetails(course: CourseListItem) {
-    this.selectedCourse = course;
-    this.courseDetails = course;
-    this.detailModalOpen.set(true);
-    this.showPreview.set(false);
-    this.loadReviewHistory(course.id);
+  /** Click a row → load right pane + (mobile only) flip to detail tab. */
+  selectCourse(course: CourseListItem): void {
+    this.selectedCourseId.set(course.id);
+    this.mobilePane.set('detail');
+  }
+
+  /** Mobile back-to-queue button. */
+  showMobileQueue(): void {
+    this.mobilePane.set('queue');
+  }
+
+  /** Open the standalone preview surface (full chrome) — kept for accessibility / deep dive. */
+  previewContentFull(courseId: string) {
+    this.router.navigateByUrl(`${getAdminPortalBase(this.authService.userRole())}/courses/${courseId}/preview`);
   }
 
   loadReviewHistory(courseId: string) {
@@ -197,10 +253,6 @@ export class CourseReviewComponent implements OnInit {
       },
       error: () => this.loadingHistory.set(false)
     });
-  }
-
-  togglePreview() {
-    this.showPreview.update(v => !v);
   }
 
   getActionText(action: string): string {
@@ -246,30 +298,6 @@ export class CourseReviewComponent implements OnInit {
     });
   }
 
-  closeDetailModal() {
-    this.detailModalOpen.set(false);
-    this.courseDetails = null;
-    this.selectedCourse = null;
-  }
-
-  approveCourseFromModal() {
-    if (!this.courseDetails) {
-      return;
-    }
-    const courseId = this.courseDetails.id;
-    this.closeDetailModal();
-    this.approveCourse(courseId);
-  }
-
-  showRejectModalFromDetail() {
-    if (!this.courseDetails) {
-      return;
-    }
-    const course = this.courseDetails;
-    this.closeDetailModal();
-    this.showRejectModal(course);
-  }
-
   async approveCourse(id: string) {
     const confirmed = await this.confirmDialog.confirm({
       title: 'Duyệt khóa học',
@@ -286,9 +314,6 @@ export class CourseReviewComponent implements OnInit {
       next: (response) => {
         this.toast.success(response.message || 'Đã duyệt khóa học thành công');
         this.approving.set(null);
-        if (this.detailModalOpen()) {
-          this.closeDetailModal();
-        }
         this.loadCourses();
       },
       error: (err) => {
@@ -299,7 +324,7 @@ export class CourseReviewComponent implements OnInit {
   }
 
   showRejectModal(course: CourseListItem) {
-    this.selectedCourse = course;
+    this.rejectTargetCourse = course;
     this.rejectComment = '';
     this.rejectCategory = 'INSUFFICIENT_CONTENT';
     this.rejectModalOpen.set(true);
@@ -307,33 +332,31 @@ export class CourseReviewComponent implements OnInit {
 
   closeRejectModal() {
     this.rejectModalOpen.set(false);
-    this.selectedCourse = null;
+    this.rejectTargetCourse = null;
     this.rejectComment = '';
     this.rejectCategory = 'INSUFFICIENT_CONTENT';
   }
 
   confirmReject() {
-    if (!this.rejectComment.trim()) {
-      this.toast.warning('Vui lòng nhập chi tiết lý do từ chối');
+    const trimmed = this.rejectComment.trim();
+    if (trimmed.length < 10) {
+      this.toast.warning('Vui lòng nhập tối thiểu 10 ký tự cho lý do từ chối');
       return;
     }
 
-    if (!this.selectedCourse) {
+    if (!this.rejectTargetCourse) {
       return;
     }
 
     this.rejecting.set(true);
-    this.adminService.rejectCourse(this.selectedCourse.id, {
-      reason: this.rejectComment.trim(),
+    this.adminService.rejectCourse(this.rejectTargetCourse.id, {
+      reason: trimmed,
       category: this.rejectCategory
     }).subscribe({
       next: (response) => {
         this.toast.success(response.message || 'Đã từ chối khóa học');
         this.rejecting.set(false);
         this.closeRejectModal();
-        if (this.detailModalOpen()) {
-          this.closeDetailModal();
-        }
         this.loadCourses();
       },
       error: (err) => {
@@ -403,6 +426,11 @@ export class CourseReviewComponent implements OnInit {
   canReviewCourse(course: ReviewableCourseState): boolean {
     const status = this.getWorkflowStatus(course);
     return status === 'pending' || status === 'pending_changes';
+  }
+
+  /** Type-guard helper — narrows `CourseListItem` to the richer `AdminCourseSummary` shape. */
+  asAdminCourse(course: CourseListItem | null): AdminCourseSummary | null {
+    return course && 'createdAt' in course ? (course as AdminCourseSummary) : null;
   }
 
   getDisplayEnd(): number {
