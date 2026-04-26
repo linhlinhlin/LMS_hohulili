@@ -6,12 +6,14 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { Organization, OrganizationInvite, OrgMember } from '../../../../shared/types/user.types';
+import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/kpi-card.component';
+import { KebabMenuComponent, KebabAction } from '../../../../shared/components/admin/kebab-menu/kebab-menu.component';
 
 type Tab = 'members' | 'invites' | 'settings' | 'payment-config';
 
 @Component({
   selector: 'app-organization-detail',
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, KpiCardComponent, KebabMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './organization-detail.component.html',
   styleUrl: './organization-detail.component.scss',
@@ -58,6 +60,20 @@ export class OrganizationDetailComponent implements OnInit {
   });
 
   activeInvites = computed(() => this.invites().filter(i => i.status === 'ACTIVE'));
+
+  // ---------------------------------------------------------------------
+  // F-OA-4: KPI strip — surfaces aggregate org health (member count, role
+  // breakdown, active invites) above the tab bar. Mirrors the kpi-card
+  // pattern used by every other admin surface (CC-01).
+  // ---------------------------------------------------------------------
+  totalMembers = computed(() => this.members().length);
+  activeMembers = computed(() => this.members().filter(m => m.enabled).length);
+  teacherCount = computed(() =>
+    this.members().filter(m => m.role?.toUpperCase() === 'TEACHER').length
+  );
+  studentCount = computed(() =>
+    this.members().filter(m => m.role?.toUpperCase() === 'STUDENT').length
+  );
 
   readonly tabs = [
     { key: 'members' as Tab, label: 'Thành viên' },
@@ -311,6 +327,90 @@ export class OrganizationDetailComponent implements OnInit {
     navigator.clipboard.writeText(code).then(() => {
       this.toast.success('Đã sao chép mã mời vào clipboard');
     });
+  }
+
+  // ---------------------------------------------------------------------
+  // F-OA-4: Per-row kebab menus — replaces the inline "Xóa" / "Thu hồi"
+  // text buttons that were the only row action. Mirrors admin-shared kebab
+  // pattern (PR #219) — every admin table now uses the same overflow
+  // surface.
+  // ---------------------------------------------------------------------
+  memberRowActions(member: OrgMember): KebabAction[] {
+    const actions: KebabAction[] = [];
+
+    if (this.canEditMember(member)) {
+      actions.push({
+        key: 'edit-token',
+        label: 'Chỉnh thời hạn token',
+        ariaLabel: `Chỉnh thời hạn token cho ${member.fullName}`,
+        // pencil
+        icon: 'M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z',
+      });
+    }
+
+    if (this.canRemoveMember(member)) {
+      actions.push({
+        key: 'remove',
+        label: 'Xóa khỏi tổ chức',
+        variant: 'danger',
+        ariaLabel: `Xóa ${member.fullName} khỏi tổ chức`,
+        // trash
+        icon: 'M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z',
+      });
+    }
+
+    return actions;
+  }
+
+  onMemberRowAction(member: OrgMember, key: string): void {
+    switch (key) {
+      case 'edit-token':
+        this.editingTokenMemberId.set(member.id);
+        break;
+      case 'remove':
+        this.removeMember(member);
+        break;
+    }
+  }
+
+  inviteRowActions(invite: OrganizationInvite): KebabAction[] {
+    const actions: KebabAction[] = [];
+
+    if (invite.code) {
+      actions.push({
+        key: 'copy',
+        label: 'Sao chép mã',
+        ariaLabel: `Sao chép mã mời ${invite.code}`,
+        // copy
+        icon: 'M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z',
+      });
+    }
+
+    if (invite.status === 'ACTIVE') {
+      actions.push({
+        key: 'revoke',
+        label: 'Thu hồi lời mời',
+        variant: 'danger',
+        ariaLabel: invite.type === 'CODE'
+          ? `Thu hồi mã mời ${invite.code}`
+          : `Thu hồi lời mời gửi đến ${invite.email}`,
+        // x-circle
+        icon: 'M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z',
+      });
+    }
+
+    return actions;
+  }
+
+  onInviteRowAction(invite: OrganizationInvite, key: string): void {
+    switch (key) {
+      case 'copy':
+        if (invite.code) this.copyCode(invite.code);
+        break;
+      case 'revoke':
+        this.revokeInvite(invite);
+        break;
+    }
   }
 
   getRoleBadgeClass(role: string): string {
