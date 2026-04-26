@@ -34,6 +34,7 @@ public class PublicApiEndpointMatcher {
             "/api/v3/course-categories",
             "/api/v3/course-categories/**",
             "/api/v3/course-tags",
+            "/api/v3/organizations/default",
             "/uploads/**",
             "/api/v3/student/certificates/*/verify",
             "/api/v3/certificates/verify/*",
