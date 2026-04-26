@@ -10,6 +10,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { ConfirmStatusChangeService } from '../../services/confirm-status-change.service';
 import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/kpi-card.component';
 import { BulkActionBarComponent, BulkAction } from '../../../../shared/components/admin/bulk-action-bar/bulk-action-bar.component';
+import { KebabMenuComponent, KebabAction } from '../../../../shared/components/admin/kebab-menu/kebab-menu.component';
 /**
  * Admin User Management Component
  * SOTA Design: Coursera-inspired with role change, status actions
@@ -17,7 +18,7 @@ import { BulkActionBarComponent, BulkAction } from '../../../../shared/component
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-user-management',
-  imports: [RouterModule, FormsModule, KpiCardComponent, BulkActionBarComponent],
+  imports: [RouterModule, FormsModule, KpiCardComponent, BulkActionBarComponent, KebabMenuComponent],
   templateUrl: './admin-user-management.component.html',
   styleUrl: './admin-user-management.component.scss'
 })
@@ -158,6 +159,77 @@ export class AdminUserManagementComponent implements OnInit {
 
   clearSelection(): void {
     this.selectedUserIds.set(new Set());
+  }
+
+  // --- Per-row kebab menu (CC-10) ---
+  // Replaces the inline `<select>` Trạng thái + Thu hồi icon button per row.
+  // Status pill stays as a read-only badge in the cell next to the kebab.
+  // Actions surface: Kích hoạt / Khóa / Hạn chế / Đổi vai trò → STUDENT
+  // (= "Thu hồi quyền Admin"). Disabled flags mirror per-row guards
+  // (e.g. cannot block self).
+  rowActions(admin: AdminUser): KebabAction[] {
+    const selfId = this.authService.currentUser()?.id;
+    const isSelf = !!selfId && admin.id === selfId;
+    const status = admin.accountStatus;
+    const items: KebabAction[] = [];
+
+    if (status !== 'ACTIVE') {
+      items.push({
+        key: 'status:ACTIVE',
+        label: 'Kích hoạt',
+        ariaLabel: `Kích hoạt tài khoản ${admin.name}`,
+        icon: 'M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z',
+      });
+    }
+    if (status !== 'BLOCKED') {
+      items.push({
+        key: 'status:BLOCKED',
+        label: 'Khóa',
+        variant: 'danger',
+        disabled: isSelf,
+        ariaLabel: isSelf
+          ? 'Không thể khóa tài khoản của chính bạn'
+          : `Khóa tài khoản ${admin.name}`,
+        icon: 'M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z',
+      });
+    }
+    if (status !== 'RESTRICTED') {
+      items.push({
+        key: 'status:RESTRICTED',
+        label: 'Hạn chế',
+        ariaLabel: `Hạn chế tài khoản ${admin.name}`,
+        icon: 'M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z',
+      });
+    }
+    items.push({
+      key: 'revoke',
+      label: 'Thu hồi quyền Admin',
+      variant: 'danger',
+      disabled: isSelf,
+      ariaLabel: isSelf
+        ? 'Không thể thu hồi quyền của chính bạn'
+        : `Thu hồi quyền Admin của ${admin.name}`,
+      icon: 'M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z',
+    });
+
+    return items;
+  }
+
+  /**
+   * Per-row kebab dispatch. `key` is one of:
+   *   - "status:ACTIVE" / "status:BLOCKED" / "status:RESTRICTED"
+   *   - "revoke" (demote ADMIN → STUDENT — same gate as the previous icon
+   *     button: blocks demoting the only remaining SYSTEM_ADMIN).
+   */
+  onRowAction(admin: AdminUser, key: string): void {
+    if (key === 'revoke') {
+      this.revokeAdmin(admin);
+      return;
+    }
+    if (key.startsWith('status:')) {
+      const newStatus = key.slice('status:'.length);
+      this.onStatusActionChange(admin, newStatus);
+    }
   }
 
   // --- Bulk action dispatcher ---

@@ -4,10 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { UserManagementState } from '../../state/user-management.state';
 import { AdminUser } from '../../../../../infrastructure/services/admin.service';
 import { exportToCsv } from '../../../../../../../shared/utils/csv-export';
+import { KebabMenuComponent, KebabAction } from '../../../../../../../shared/components/admin/kebab-menu/kebab-menu.component';
 
 @Component({
   selector: 'app-users-table',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, KebabMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
     select.role-select {
@@ -139,33 +140,19 @@ import { exportToCsv } from '../../../../../../../shared/utils/csv-export';
                       </span>
                     }
                   </td>
-                  <!-- Thao tác -->
+                  <!-- Thao tác — CC-10: shared kebab consolidates the inline
+                       status select + delete icon into a single overflow
+                       menu. Per-row guards (status/delete privileges) gate
+                       which actions appear in the menu. -->
                   <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                    <div class="flex items-center justify-center space-x-1">
-                      @if (state.canChangeStatus(user)) {
-                        <select (change)="onStatusAction(user, $any($event.target).value); $any($event.target).value = ''"
-                                class="text-xs px-2 py-1 border border-gray-300 rounded bg-white cursor-pointer hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0056D2]"
-                                title="Thay đổi trạng thái">
-                          <option value="" disabled selected>Trạng thái</option>
-                          @if (user.accountStatus !== 'ACTIVE') {
-                            <option value="ACTIVE">Kích hoạt</option>
-                          }
-                          @if (user.accountStatus !== 'BLOCKED') {
-                            <option value="BLOCKED">Khóa</option>
-                          }
-                          @if (user.accountStatus !== 'RESTRICTED') {
-                            <option value="RESTRICTED">Hạn chế</option>
-                          }
-                        </select>
-                      }
-                      @if (state.canDeleteUser(user)) {
-                        <button (click)="state.deleteUser(user.id)"
-                                class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                                title="Vô hiệu hóa tài khoản">
-                          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                          </svg>
-                        </button>
+                    <div class="flex items-center justify-center">
+                      @if (rowActionsFor(user).length > 0) {
+                        <app-kebab-menu
+                          [actions]="rowActionsFor(user)"
+                          [triggerAriaLabel]="'Mở menu thao tác cho ' + user.name"
+                          (actionClick)="onRowAction(user, $event)" />
+                      } @else {
+                        <span class="text-xs text-gray-400">—</span>
                       }
                     </div>
                   </td>
@@ -276,6 +263,69 @@ export class UsersTableComponent {
   onStatusAction(user: AdminUser, status: string): void {
     if (status) {
       this.statusAction.emit({ user, status });
+    }
+  }
+
+  /**
+   * Per-row kebab actions for the all-users surface. Honours the same
+   * guards the previous inline controls did:
+   *  - status changes only when `state.canChangeStatus(user)`
+   *  - Vô hiệu hóa only when `state.canDeleteUser(user)` (ADMIN only)
+   * If neither permission is granted (e.g. ORG_ADMIN viewing an ADMIN row)
+   * the kebab is suppressed entirely — the cell renders an em-dash.
+   */
+  rowActionsFor(user: AdminUser): KebabAction[] {
+    const items: KebabAction[] = [];
+    const status = user.accountStatus;
+
+    if (this.state.canChangeStatus(user)) {
+      if (status !== 'ACTIVE') {
+        items.push({
+          key: 'status:ACTIVE',
+          label: 'Kích hoạt',
+          ariaLabel: `Kích hoạt tài khoản ${user.name}`,
+          icon: 'M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z',
+        });
+      }
+      if (status !== 'BLOCKED') {
+        items.push({
+          key: 'status:BLOCKED',
+          label: 'Khóa',
+          variant: 'danger',
+          ariaLabel: `Khóa tài khoản ${user.name}`,
+          icon: 'M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z',
+        });
+      }
+      if (status !== 'RESTRICTED') {
+        items.push({
+          key: 'status:RESTRICTED',
+          label: 'Hạn chế',
+          ariaLabel: `Hạn chế tài khoản ${user.name}`,
+          icon: 'M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z',
+        });
+      }
+    }
+
+    if (this.state.canDeleteUser(user)) {
+      items.push({
+        key: 'delete',
+        label: 'Vô hiệu hóa tài khoản',
+        variant: 'danger',
+        ariaLabel: `Vô hiệu hóa tài khoản ${user.name}`,
+        icon: 'M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z',
+      });
+    }
+
+    return items;
+  }
+
+  onRowAction(user: AdminUser, key: string): void {
+    if (key === 'delete') {
+      this.state.deleteUser(user.id);
+      return;
+    }
+    if (key.startsWith('status:')) {
+      this.statusAction.emit({ user, status: key.slice('status:'.length) });
     }
   }
 
