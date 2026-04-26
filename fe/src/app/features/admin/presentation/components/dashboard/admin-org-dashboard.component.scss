@@ -17,6 +17,11 @@
   max-width: 1400px;
   margin: 0 auto;
   padding: $spacing-4 $spacing-6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-4;
+  flex-wrap: wrap;
 }
 
 .page-title {
@@ -25,6 +30,51 @@
   color: $text-primary;
   margin: 0;
   line-height: $leading-tight;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-3;
+  flex-shrink: 0;
+}
+
+/* Header action buttons — primary "Mời thành viên" + secondary "Xem analytics".
+   Mirrors admin-system-dashboard pattern (PR #159). Stripe/Linear convention. */
+.btn-primary,
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-2 $spacing-4;
+  min-height: 40px; // WCAG 2.2 SC 2.5.8 touch target
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  border-radius: $radius-md;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background $transition-fast, border-color $transition-fast, color $transition-fast;
+  white-space: nowrap;
+
+  @include focus-visible;
+}
+
+.btn-primary {
+  background: $blue-primary;
+  color: white;
+  border: 1px solid $blue-primary;
+
+  &:hover { background: $blue-hover; border-color: $blue-hover; }
+  &:active { background: $blue-pressed; border-color: $blue-pressed; }
+}
+
+.btn-secondary {
+  background: white;
+  color: $text-primary;
+  border: 1px solid $border-default;
+
+  &:hover { background: $gray-50; border-color: $border-dark; }
+  &:active { background: $gray-100; }
 }
 
 /* ===== MAIN ===== */
@@ -402,6 +452,20 @@
     font-size: $text-lg;
   }
 
+  .header-inner {
+    flex-wrap: wrap;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    flex: 1;
+    min-height: 44px; // iOS 44pt touch target
+  }
+
   .action-grid {
     grid-template-columns: 1fr;
     gap: $spacing-3;
@@ -555,6 +619,10 @@
   }
 
   .action-btns {
+    display: none !important;
+  }
+
+  .header-actions {
     display: none !important;
   }
 
