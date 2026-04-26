@@ -1,0 +1,8 @@
+<a
+  [routerLink]="routerLink()"
+  class="action-card"
+  [class]="'accent-' + accent()">
+  <p class="action-value">{{ value() }}</p>
+  <p class="action-label">{{ label() }}</p>
+  <p class="action-link">{{ linkLabel() }} <span aria-hidden="true">→</span></p>
+</a>
