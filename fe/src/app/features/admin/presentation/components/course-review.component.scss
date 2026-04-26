@@ -1,8 +1,10 @@
 @use '../../../../../styles/variables' as *;
 
 /* =============================================
-   Course Review Admin Page
-   Design system: tab-chip pills, data table, modals
+   Course Review Admin Page — 2-pane layout (F-CR2)
+   Coursera Partner / Open edX Studio pattern.
+   Left = queue (40%) · Right = preview + decision (60%).
+   Stacks vertically on mobile with tab switcher.
    ============================================= */
 
 /* ===== PAGE LAYOUT ===== */
@@ -12,9 +14,12 @@
 }
 
 .review-inner {
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: $spacing-6;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 /* ===== HEADER BAR ===== */
@@ -100,7 +105,7 @@
   align-items: center;
   gap: $spacing-2;
   flex-wrap: wrap;
-  margin-bottom: $spacing-5;
+  margin-bottom: $spacing-4;
   padding-bottom: $spacing-4;
   border-bottom: 1px solid $border-default;
 }
@@ -139,96 +144,729 @@
   }
 }
 
-/* ===== TABLE CARD ===== */
-.table-card {
+/* ===== MOBILE PANE SWITCH (queue / detail) ===== */
+.mobile-pane-switch {
+  display: none; // hidden on desktop — shown via media query
+  gap: $spacing-2;
+  margin-bottom: $spacing-3;
+}
+
+.mobile-pane-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-2;
+  padding: $spacing-2 $spacing-3;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  background: $bg-surface;
+  color: $text-primary;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  cursor: pointer;
+  transition: all $transition-normal;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  &.active {
+    background: $blue-primary;
+    color: $text-inverse;
+    border-color: $blue-primary;
+  }
+}
+
+.mobile-pane-count {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 6px;
+  height: 18px;
+  border-radius: $radius-full;
+  background: rgba(0, 0, 0, 0.08);
+  font-size: 11px;
+  font-weight: $font-semibold;
+
+  .mobile-pane-tab.active & {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* ===== 2-PANE WORKSPACE ===== */
+.review-workspace {
+  display: grid;
+  grid-template-columns: minmax(320px, 40%) 1fr;
+  gap: $spacing-4;
+  flex: 1;
+  min-height: 0; // allow children to shrink + scroll
+}
+
+.queue-pane,
+.detail-pane {
+  min-width: 0; // grid items default to min-content; this allows them to shrink
+}
+
+/* ===== QUEUE CARD (left pane) ===== */
+.queue-card {
   background: $bg-surface;
   border-radius: $radius-md;
   border: 1px solid $border-default;
   box-shadow: $shadow-sm;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: calc(100vh - 220px);
 }
 
-.table-scroll {
-  overflow-x: auto;
+.queue-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  flex: 1;
 }
 
-/* ===== DATA TABLE ===== */
-.data-table {
+.queue-item {
+  display: flex;
+  gap: $spacing-3;
   width: 100%;
-  border-collapse: collapse;
-}
-
-.data-table thead tr {
-  background: $gray-50;
-  border-bottom: 1px solid $border-default;
-}
-
-.data-table th {
-  text-align: left;
-  font-size: 12px;
-  font-weight: $font-semibold;
-  color: $gray-500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   padding: $spacing-3 $spacing-4;
-  white-space: nowrap;
-}
-
-.data-table td {
-  padding: $spacing-3 $spacing-4;
-  font-size: $text-sm;
-  vertical-align: middle;
+  border: none;
+  border-left: 3px solid transparent;
   border-bottom: 1px solid $border-light;
+  background: $bg-surface;
+  text-align: left;
+  cursor: pointer;
+  transition: background $transition-fast, border-color $transition-fast;
+
+  &:hover {
+    background: $gray-50;
+  }
+
+  &.selected {
+    background: rgba($blue-primary, 0.06);
+    border-left-color: $blue-primary;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $blue-primary;
+    outline-offset: -2px;
+  }
 }
 
-.data-table tbody tr {
-  transition: background $transition-fast;
+.queue-thumb {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: $radius-sm;
+  object-fit: cover;
+  background: $gray-100;
+}
 
-  &:last-child td {
-    border-bottom: none;
-  }
+.queue-thumb--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $gray-400;
+}
+
+.queue-body {
+  flex: 1;
+  min-width: 0; // truncation
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.queue-title {
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  color: $text-primary;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.queue-teacher {
+  font-size: $text-xs;
+  color: $text-muted;
+  @include truncate;
+}
+
+.queue-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-1;
+  margin-top: 2px;
+}
+
+.queue-submitted {
+  font-size: 11px;
+  color: $text-disabled;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== DETAIL CARD (right pane) ===== */
+.detail-card {
+  background: $bg-surface;
+  border-radius: $radius-md;
+  border: 1px solid $border-default;
+  box-shadow: $shadow-sm;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: calc(100vh - 220px);
+  overflow: hidden;
+}
+
+.mobile-back {
+  display: none; // hidden on desktop, shown on mobile via media query
+  align-items: center;
+  gap: $spacing-1;
+  padding: $spacing-2 $spacing-3;
+  margin: $spacing-3 $spacing-3 0;
+  background: transparent;
+  border: 1px solid $border-default;
+  border-radius: $radius-sm;
+  color: $text-primary;
+  font-size: $text-sm;
+  cursor: pointer;
+  align-self: flex-start;
 
   &:hover {
     background: $gray-50;
   }
 }
 
-/* Column alignment */
-.col-center {
+.detail-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: $spacing-12 $spacing-6;
+  color: $text-muted;
+
+  svg {
+    color: $gray-300;
+    margin-bottom: $spacing-3;
+  }
+
+  h3 {
+    margin: 0 0 $spacing-2;
+    font-size: $text-base;
+    font-weight: $font-semibold;
+    color: $text-primary;
+  }
+
+  p {
+    margin: 0;
+    font-size: $text-sm;
+    max-width: 28rem;
+  }
+}
+
+.detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $spacing-3;
+  padding: $spacing-4 $spacing-5;
+  border-bottom: 1px solid $border-default;
+  background: $bg-surface;
+  flex-shrink: 0;
+}
+
+.detail-head-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.detail-head-title {
+  margin: 0 0 4px;
+  font-size: $text-lg;
+  font-weight: $font-bold;
+  color: $text-primary;
+  line-height: 1.3;
+}
+
+.detail-head-meta {
+  margin: 0;
+  font-size: $text-xs;
+  color: $text-muted;
+}
+
+.detail-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: $spacing-2 $spacing-5;
+  border-bottom: 1px solid $border-light;
+  background: $gray-50;
+  flex-shrink: 0;
+}
+
+.btn-link {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-1;
+  background: none;
+  border: none;
+  padding: $spacing-1 0;
+  font-size: $text-xs;
+  color: $blue-primary;
+  cursor: pointer;
+  font-weight: $font-medium;
+
+  &:hover {
+    color: $blue-hover;
+    text-decoration: underline;
+  }
+}
+
+.detail-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: $spacing-5;
+}
+
+.detail-placeholder {
+  margin: 0;
+  padding: $spacing-12 $spacing-6;
+  text-align: center;
+  font-size: $text-sm;
+  color: $text-disabled;
+  border: 2px dashed $border-default;
+  border-radius: $radius-md;
+}
+
+/* ===== DETAIL BODY: meta + preview + history ===== */
+.detail-description {
+  margin: 0 0 $spacing-4;
+  font-size: $text-sm;
+  color: $gray-700;
+  line-height: $leading-normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.detail-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: $spacing-2;
+  margin-bottom: $spacing-4;
+}
+
+.stat-card {
+  background: rgba($blue-primary, 0.05);
+  border-radius: $radius-md;
+  padding: $spacing-3;
   text-align: center;
 }
 
-.col-status {
-  text-align: center;
+.stat-value {
+  font-size: $text-lg;
+  font-weight: $font-bold;
+  color: $blue-primary;
+  line-height: 1.2;
+  margin-bottom: 2px;
+  font-variant-numeric: tabular-nums;
 }
 
-.col-actions {
-  text-align: center;
+.stat-label {
+  font-size: $text-xs;
+  color: $text-secondary;
 }
 
-/* Cell content styles */
-.course-title {
+.detail-dates {
+  margin-bottom: $spacing-4;
+  font-size: $text-sm;
+  color: $text-secondary;
+
+  p {
+    margin: 0 0 $spacing-1;
+    &:last-child { margin-bottom: 0; }
+  }
+
+  strong {
+    color: $text-primary;
+    font-weight: $font-semibold;
+  }
+}
+
+.rejection-banner {
+  margin-top: $spacing-3;
+  padding: $spacing-3;
+  background: $error-light;
+  border-radius: $radius-sm;
+  border-left: 3px solid $error;
+
+  strong {
+    color: $error;
+    display: block;
+    margin: $spacing-1 0 4px;
+    font-size: $text-xs;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  span {
+    color: $error;
+    font-size: $text-sm;
+    line-height: 1.5;
+  }
+}
+
+.rejection-category-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  font-size: $text-xs;
+  font-weight: $font-semibold;
+  color: $error;
+  background: $bg-surface;
+  border: 1px solid rgba($error, 0.35);
+  border-radius: $radius-full;
+}
+
+.section-title {
+  margin: 0 0 $spacing-3;
+  font-size: $text-sm;
   font-weight: $font-semibold;
   color: $text-primary;
-  @include truncate;
-  max-width: 300px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.course-code {
-  font-size: $text-xs;
-  color: $text-muted;
-  margin-top: 2px;
+/* ===== EMBEDDED PREVIEW IFRAME ===== */
+.preview-frame-wrap {
+  margin-bottom: $spacing-5;
+  padding-top: $spacing-4;
+  border-top: 1px solid $border-default;
 }
 
-.teacher-name {
+.preview-frame {
+  width: 100%;
+  height: 480px;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  background: $bg-page;
+  display: block;
+}
+
+/* ===== REVIEW HISTORY (right pane) ===== */
+.history-section {
+  padding-top: $spacing-4;
+  border-top: 1px solid $border-default;
+}
+
+.history-loading {
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+  padding: $spacing-2 0;
+  font-size: 13px;
+  color: $text-secondary;
+}
+
+.history-loading-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid $gray-300;
+  border-top-color: $blue-primary;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+.history-empty {
+  margin: 0;
+  font-size: 13px;
+  color: $text-disabled;
+}
+
+.history-timeline {
+  position: relative;
+  padding-left: 24px;
+}
+
+.history-line {
+  position: absolute;
+  left: 7px;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: $border-default;
+}
+
+.history-item {
+  position: relative;
+  padding-bottom: $spacing-3;
+
+  &:last-child {
+    padding-bottom: 0;
+  }
+}
+
+.history-dot {
+  position: absolute;
+  left: -20px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid $bg-surface;
+  background: $gray-400;
+
+  &[data-action='APPROVED']          { background: $success; }
+  &[data-action='REJECTED']          { background: $error; }
+  &[data-action='REVOKED']           { background: #ea580c; }
+  &[data-action='SUBMITTED']         { background: $blue-primary; }
+  &[data-action='RESUBMITTED']       { background: $blue-primary; }
+  &[data-action='CHANGES_REQUESTED'] { background: #d97706; }
+}
+
+.history-event {
+  font-size: 13px;
+}
+
+.history-event-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.history-action {
+  font-weight: $font-semibold;
+}
+
+.history-category-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: $font-medium;
+  color: #991b1b;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: $radius-full;
+}
+
+.history-reviewer {
+  color: $text-secondary;
+}
+
+.history-date {
+  color: $text-disabled;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.history-comment {
+  margin: 4px 0 0;
+  padding: 6px 10px;
+  color: $gray-600;
+  line-height: 1.4;
+  background: $gray-50;
+  border: 1px solid $gray-100;
+  border-radius: $radius-sm;
+  white-space: pre-line;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ===== DECISION BAR (sticky right-pane footer) ===== */
+.decision-bar {
+  flex-shrink: 0;
+  padding: $spacing-3 $spacing-5;
+  background: $bg-surface;
+  border-top: 1px solid $border-default;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.04);
+}
+
+/* Anti-skip review checkbox */
+.read-confirm {
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+  padding: $spacing-2 $spacing-3;
+  margin-bottom: $spacing-2;
+  border: 1px solid $border-default;
+  border-radius: $radius-sm;
+  background: $gray-50;
   font-size: $text-sm;
   color: $text-primary;
+  cursor: pointer;
+  transition: background $transition-fast, border-color $transition-fast;
+
+  &:hover:not(.met) {
+    background: $bg-surface;
+    border-color: $blue-primary;
+  }
+
+  &.met {
+    background: $success-light;
+    border-color: $success;
+    cursor: default;
+
+    .read-confirm-text {
+      color: $success;
+      font-weight: $font-medium;
+    }
+  }
+
+  input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    flex-shrink: 0;
+    accent-color: $blue-primary;
+    cursor: pointer;
+
+    &:disabled {
+      cursor: default;
+    }
+  }
 }
 
-.teacher-email {
+.read-confirm-text {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+  flex-wrap: wrap;
+}
+
+.read-confirm-met {
+  font-size: $text-xs;
+  color: $success;
+  font-weight: $font-semibold;
+}
+
+.read-confirm-hint {
+  margin: 0 0 $spacing-3;
+  padding: 0 $spacing-1;
   font-size: $text-xs;
   color: $text-muted;
-  margin-top: 2px;
+}
+
+.decision-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-3;
+
+  .btn-approve {
+    flex: 1;
+  }
+}
+
+.btn-approve {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-2;
+  padding: $spacing-3 $spacing-4;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  border: none;
+  border-radius: $radius-md;
+  background: $success;
+  color: $text-inverse;
+  cursor: pointer;
+  transition: opacity $transition-normal, transform $transition-fast;
+
+  &:hover:not(:disabled) {
+    opacity: 0.92;
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $success;
+    outline-offset: 2px;
+  }
+}
+
+.btn-reject {
+  padding: $spacing-3 $spacing-4;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  border: 1px solid rgba($error, 0.4);
+  border-radius: $radius-md;
+  background: $bg-surface;
+  color: $error;
+  cursor: pointer;
+  transition: background $transition-fast, border-color $transition-fast;
+
+  &:hover {
+    background: $error-light;
+    border-color: $error;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $error;
+    outline-offset: 2px;
+  }
+}
+
+/* ===== REJECT MODAL — RADIO GROUP ===== */
+.reject-radio-group {
+  border: none;
+  padding: 0;
+  margin: 0 0 $spacing-3;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.reject-radio-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+  padding: $spacing-2 $spacing-3;
+  border: 1px solid $border-default;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: background $transition-fast, border-color $transition-fast;
+
+  &:hover {
+    background: $gray-50;
+  }
+
+  &.selected {
+    background: rgba($blue-primary, 0.05);
+    border-color: $blue-primary;
+  }
+
+  input[type='radio'] {
+    margin: 0;
+    flex-shrink: 0;
+    accent-color: $blue-primary;
+  }
+}
+
+.reject-radio-text {
+  font-size: $text-sm;
+  color: $text-primary;
 }
 
 /* ===== STATUS BADGES ===== */
@@ -268,93 +906,60 @@
   }
 }
 
-/* ===== ACTION BUTTONS ===== */
-.action-btns {
-  display: flex;
+/* ===== SLA BADGE (F-CR3) ===== */
+.sla-badge {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: $spacing-2;
-  flex-wrap: wrap;
-}
-
-.btn-action {
-  padding: $spacing-1 $spacing-3;
-  font-size: $text-xs;
+  gap: 2px;
+  font-size: 11px;
   font-weight: $font-medium;
-  border: none;
+  padding: 2px $spacing-2;
   border-radius: $radius-sm;
-  cursor: pointer;
-  transition: background $transition-normal;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  &.sla-ok {
+    background: $gray-100;
+    color: $gray-600;
   }
-}
-
-.btn-preview {
-  background: $blue-primary;
-  color: $text-inverse;
-
-  &:hover {
-    background: $blue-hover;
+  &.sla-watch {
+    background: $warning-light;
+    color: $warning;
   }
-}
-
-.btn-detail {
-  background: rgba($blue-primary, 0.05);
-  color: $blue-primary;
-
-  &:hover {
-    background: rgba($blue-primary, 0.1);
-  }
-}
-
-.btn-approve {
-  background: $success-light;
-  color: $success;
-
-  &:hover {
-    background: $success-light;
-  }
-}
-
-.btn-reject {
-  background: $error-light;
-  color: $error;
-
-  &:hover {
+  &.sla-overdue {
     background: $error-light;
+    color: $error;
+    font-weight: $font-semibold;
   }
 }
 
-/* ===== PAGINATION ===== */
+/* ===== PAGINATION (queue footer) ===== */
 .pagination-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: $spacing-3 $spacing-4;
+  padding: $spacing-2 $spacing-3;
   border-top: 1px solid $border-default;
   background: $gray-50;
-  flex-wrap: wrap;
-  gap: $spacing-3;
+  flex-shrink: 0;
+  gap: $spacing-2;
 }
 
 .pagination-info {
-  font-size: $text-sm;
+  font-size: $text-xs;
   color: $text-secondary;
+  font-variant-numeric: tabular-nums;
 }
 
 .pagination-controls {
   display: flex;
   align-items: center;
-  gap: $spacing-2;
+  gap: $spacing-1;
 }
 
 .btn-page {
-  padding: $spacing-1 $spacing-3;
-  font-size: $text-sm;
+  padding: 4px $spacing-2;
+  font-size: $text-xs;
   border: 1px solid $border-default;
   border-radius: $radius-sm;
   background: $bg-surface;
@@ -373,18 +978,16 @@
 }
 
 .page-indicator {
-  font-size: $text-sm;
+  font-size: $text-xs;
   color: $text-secondary;
-  padding: $spacing-1 $spacing-3;
+  padding: 0 $spacing-1;
+  font-variant-numeric: tabular-nums;
 }
 
-/* ===== SKELETON LOADING ===== */
-.skeleton-row {
+/* ===== SKELETON LOADING (queue items) ===== */
+.queue-item--skeleton {
+  pointer-events: none;
   animation: skeleton-pulse 1.4s ease-in-out infinite;
-
-  td {
-    padding: $spacing-3 $spacing-4;
-  }
 }
 
 .sk {
@@ -392,45 +995,33 @@
   border-radius: $radius-sm;
 }
 
-.sk-title {
-  height: 14px;
-  width: 65%;
-  margin-bottom: $spacing-2;
+.sk-thumb {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: $radius-sm;
 }
 
-.sk-subtitle {
-  height: 10px;
-  width: 40%;
+.sk-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sk-title {
+  height: 14px;
+  width: 70%;
 }
 
 .sk-text {
-  height: 12px;
+  height: 10px;
   width: 50%;
-  margin-bottom: $spacing-2;
 }
 
 .sk-text-sm {
-  height: 10px;
+  height: 9px;
   width: 35%;
-}
-
-.sk-badge {
-  height: 22px;
-  width: 64px;
-  border-radius: $radius-full;
-  margin: 0 auto;
-}
-
-.sk-actions {
-  display: flex;
-  gap: $spacing-2;
-  justify-content: center;
-}
-
-.sk-btn {
-  height: 24px;
-  width: 56px;
-  border-radius: $radius-sm;
 }
 
 @keyframes skeleton-pulse {
@@ -459,513 +1050,21 @@
   }
 }
 
-/* ===== EMPTY STATE ===== */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: $spacing-16 $spacing-6;
-  text-align: center;
-
-  svg {
-    color: $gray-300;
-    margin-bottom: $spacing-3;
-  }
-}
-
-.empty-text {
-  font-size: $text-sm;
-  color: $text-muted;
-  margin: 0;
-}
-
-/* ===== MODAL BACKDROP ===== */
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: $z-modal-backdrop;
-  padding: $spacing-4;
-
-  &.modal-backdrop-upper {
-    z-index: $z-popover;
-  }
-}
-
-/* ===== MODAL PANEL ===== */
-.modal-panel {
-  background: $bg-surface;
-  border-radius: $radius-lg;
-  box-shadow: $shadow-2xl;
-  display: flex;
-  flex-direction: column;
-  max-height: 90vh;
-  z-index: $z-modal;
-
-  &.modal-lg {
-    width: 100%;
-    max-width: 900px;
-  }
-
-  &.modal-sm {
-    width: 100%;
-    max-width: 480px;
-  }
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: $spacing-4 $spacing-6;
-  border-bottom: 1px solid $border-default;
-  flex-shrink: 0;
-}
-
-.modal-title {
-  font-size: $text-lg;
-  font-weight: $font-semibold;
-  color: $text-primary;
-  margin: 0;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  color: $text-disabled;
-  cursor: pointer;
-  padding: $spacing-1;
-  display: flex;
-  align-items: center;
-  border-radius: $radius-sm;
-  transition: color $transition-fast, background $transition-fast;
-
-  &:hover {
-    color: $text-secondary;
-    background: $gray-100;
-  }
-}
-
-.modal-body {
-  padding: $spacing-6;
-  overflow-y: auto;
-  flex: 1;
-}
-
-.modal-footer {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: $spacing-3;
-  padding: $spacing-4 $spacing-6;
-  border-top: 1px solid $border-default;
-  background: $gray-50;
-  flex-shrink: 0;
-}
-
-/* ===== MODAL BUTTONS ===== */
-.btn-secondary {
-  padding: $spacing-2 $spacing-4;
-  font-size: $text-sm;
-  font-weight: $font-medium;
-  border: 1px solid $border-default;
-  border-radius: $radius-md;
-  background: $bg-surface;
-  color: $text-primary;
-  cursor: pointer;
-  transition: background $transition-fast;
-
-  &:hover {
-    background: $bg-hover;
-  }
-}
-
-.btn-success {
-  padding: $spacing-2 $spacing-4;
-  font-size: $text-sm;
-  font-weight: $font-medium;
-  border: none;
-  border-radius: $radius-md;
-  background: $success;
-  color: $text-inverse;
-  cursor: pointer;
-  transition: background $transition-normal;
-
-  &:hover {
-    background: $success;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
-
-.btn-danger {
-  padding: $spacing-2 $spacing-4;
-  font-size: $text-sm;
-  font-weight: $font-medium;
-  border: none;
-  border-radius: $radius-md;
-  background: $error;
-  color: $text-inverse;
-  cursor: pointer;
-  transition: background $transition-normal;
-
-  &:hover {
-    background: $error;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
-
-/* ===== DETAIL MODAL CONTENT ===== */
-.detail-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: $spacing-4;
-  margin-bottom: $spacing-5;
-}
-
-.detail-heading-left {
-  flex: 1;
-  min-width: 0;
-}
-
-.detail-title {
-  font-size: $text-xl;
-  font-weight: $font-bold;
-  color: $text-primary;
-  margin: 0 0 $spacing-2;
-}
-
-.detail-code {
-  font-size: $text-sm;
-  color: $text-muted;
-  margin: 0;
-}
-
-.detail-description {
-  font-size: $text-sm;
-  color: $gray-700;
-  line-height: $leading-normal;
-  margin: 0 0 $spacing-5;
-}
-
-/* Teacher info card */
-.info-card {
-  background: $gray-50;
-  border-radius: $radius-md;
-  padding: $spacing-4;
-  margin-bottom: $spacing-5;
-}
-
-.info-card-title {
-  font-size: $text-sm;
-  font-weight: $font-semibold;
-  color: $text-primary;
-  margin: 0 0 $spacing-2;
-}
-
-.info-card-body {
-  font-size: $text-sm;
-  color: $gray-700;
-
-  p {
-    margin: 0 0 $spacing-1;
-    &:last-child { margin-bottom: 0; }
-  }
-}
-
-/* Stats grid */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: $spacing-4;
-  margin-bottom: $spacing-5;
-}
-
-.stat-card {
-  border-radius: $radius-md;
-  padding: $spacing-4;
-  text-align: center;
-}
-
-.stat-primary {
-  background: rgba($blue-primary, 0.05);
-}
-
-.stat-success {
-  background: $success-light;
-}
-
-.stat-info {
-  background: $info-light;
-}
-
-.stat-value {
-  font-size: $text-xl;
-  font-weight: $font-bold;
-  line-height: 1.2;
-  margin: 0 0 2px;
-}
-
-.stat-primary .stat-value { color: $blue-primary; }
-.stat-success .stat-value { color: $success; }
-.stat-info .stat-value { color: $info; }
-
-.stat-label {
-  font-size: $text-sm;
-  color: $text-secondary;
-}
-
-/* Dates section */
-.detail-dates {
-  border-top: 1px solid $border-default;
-  padding-top: $spacing-4;
-  font-size: $text-sm;
-  color: $text-secondary;
-
-  p {
-    margin: 0 0 $spacing-1;
-    &:last-child { margin-bottom: 0; }
-  }
-}
-
-.rejection-reason {
-  margin-top: $spacing-3;
-  padding: $spacing-3;
-  background: $error-light;
-  border: 1px solid $error-light;
-  border-radius: $radius-sm;
-
-  strong {
-    color: $error;
-  }
-
-  span {
-    color: $error;
-  }
-}
-
-.rejection-category-pill {
-  display: inline-flex;
-  align-items: center;
-  margin-bottom: $spacing-2;
-  padding: 2px 10px;
-  font-size: $text-xs;
-  font-weight: $font-semibold;
-  color: $error;
-  background: #fff;
-  border: 1px solid rgba($error, 0.35);
-  border-radius: $radius-full;
-}
-
-/* ===== DETAIL MODAL — Meta row (teacher card + stats) ===== */
-.detail-meta-row {
-  display: flex;
-  gap: $spacing-4;
-  flex-wrap: wrap;
-  margin-bottom: $spacing-4;
-}
-
-.detail-teacher-card {
-  flex: 1;
-  min-width: 200px;
-  margin-bottom: 0;
-}
-
-.detail-stats {
-  display: flex;
-  gap: $spacing-2;
-  flex-wrap: wrap;
-  align-items: flex-start;
-}
-
-.detail-dates--compact {
-  margin-bottom: $spacing-4;
-}
-
-/* ===== DETAIL MODAL — Preview CTA ===== */
-.detail-preview-cta {
-  margin-bottom: $spacing-4;
-}
-
-.detail-preview-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: $spacing-2;
-  width: 100%;
-  padding: 10px $spacing-4;
-  font-size: $text-sm;
-  font-weight: $font-medium;
-  color: $text-inverse;
-  background: $blue-primary;
-  border: none;
-  border-radius: $radius-sm;
-  cursor: pointer;
-  transition: background $transition-normal;
-
-  &:hover {
-    background: $blue-hover;
-  }
-}
-
-/* ===== DETAIL MODAL — Review history timeline ===== */
-.history-section {
-  border-top: 1px solid $border-default;
-  padding-top: $spacing-4;
-}
-
-.history-title {
-  font-size: $text-sm;
-  font-weight: $font-semibold;
-  color: $gray-700;
-  margin: 0 0 $spacing-3;
-}
-
-.history-loading {
-  display: flex;
-  align-items: center;
-  gap: $spacing-2;
-  padding: $spacing-2 0;
-  font-size: 13px;
-  color: $text-secondary;
-}
-
-.history-loading-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid $gray-300;
-  border-top-color: $blue-primary;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  flex-shrink: 0;
-}
-
-.history-empty {
-  margin: 0;
-  padding: $spacing-2 0;
-  font-size: 13px;
-  color: $text-disabled;
-}
-
-.history-timeline {
-  position: relative;
-  padding-left: 24px;
-}
-
-.history-line {
-  position: absolute;
-  left: 7px;
-  top: 4px;
-  bottom: 4px;
-  width: 2px;
-  background: $border-default;
-}
-
-.history-item {
-  position: relative;
-  padding-bottom: $spacing-4;
-
-  &:last-child {
-    padding-bottom: 0;
-  }
-}
-
-.history-dot {
-  position: absolute;
-  left: -20px;
-  top: 2px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 2px solid #fff;
-  background: $gray-400;
-
-  &[data-action='APPROVED']       { background: $success; }
-  &[data-action='REJECTED']       { background: $error; }
-  &[data-action='REVOKED']        { background: #ea580c; }
-  &[data-action='SUBMITTED']      { background: $blue-primary; }
-  &[data-action='RESUBMITTED']    { background: $blue-primary; }
-  &[data-action='CHANGES_REQUESTED'] { background: #d97706; }
-}
-
-.history-event {
-  font-size: 13px;
-}
-
-.history-event-head {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.history-action {
-  font-weight: $font-semibold;
-}
-
-.history-category-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 1px 8px;
-  font-size: 11px;
-  font-weight: $font-medium;
-  color: #991b1b;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: $radius-full;
-}
-
-.history-reviewer {
-  color: $text-secondary;
-}
-
-.history-date {
-  color: $text-disabled;
-  font-size: 12px;
-}
-
-.history-comment {
-  margin: 4px 0 0;
-  padding: 6px 10px;
-  color: $gray-600;
-  line-height: 1.4;
-  background: $gray-50;
-  border: 1px solid $gray-100;
-  border-radius: $radius-sm;
-  white-space: pre-line;
-}
-
-/* ===== REJECT MODAL (Phase 3 — structured category + reason) ===== */
-.reject-subtitle {
-  margin: 0 0 $spacing-4;
-  color: $text-secondary;
-  font-size: $text-sm;
-  line-height: 1.55;
-}
-
+/* ===== REJECT MODAL FIELDS (shared) ===== */
 .reject-field-label {
   display: block;
   margin: $spacing-3 0 $spacing-2;
   font-size: $text-sm;
   font-weight: 600;
   color: $text-primary;
+
+  &:first-of-type {
+    margin-top: 0;
+  }
 }
 
 .reject-required {
-  color: #dc2626;
+  color: $error;
   margin-left: 2px;
 }
 
@@ -976,7 +1075,7 @@
   padding: $spacing-2 $spacing-3;
   font-size: $text-sm;
   color: $text-primary;
-  background: #fff;
+  background: $bg-surface;
   outline: none;
   font-family: inherit;
   transition: border-color $transition-normal, box-shadow $transition-normal;
@@ -985,13 +1084,6 @@
     border-color: $blue-primary;
     box-shadow: 0 0 0 3px rgba($blue-primary, 0.1);
   }
-}
-
-.reject-hint {
-  margin: $spacing-2 0 0;
-  color: $text-secondary;
-  font-size: $text-xs;
-  text-align: right;
 }
 
 .reject-textarea {
@@ -1017,15 +1109,82 @@
   }
 }
 
-/* ===== RESPONSIVE: Tablet ===== */
+.reject-hint {
+  margin: $spacing-2 0 0;
+  color: $text-secondary;
+  font-size: $text-xs;
+  text-align: right;
+}
+
+.reject-hint-warn {
+  color: $error;
+  font-weight: $font-medium;
+}
+
+/* ===== SHARED MODAL BUTTONS (used by reject modal) ===== */
+.btn-secondary {
+  padding: $spacing-2 $spacing-4;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  background: $bg-surface;
+  color: $text-primary;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: $bg-hover;
+  }
+}
+
+.btn-danger {
+  padding: $spacing-2 $spacing-4;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  border: none;
+  border-radius: $radius-md;
+  background: $error;
+  color: $text-inverse;
+  cursor: pointer;
+  transition: opacity $transition-normal;
+
+  &:hover:not(:disabled) {
+    opacity: 0.9;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+/* =============================================
+   RESPONSIVE — Tablet (≤1024px): narrower left pane
+   ============================================= */
+@media screen and (max-width: $breakpoint-lg) {
+  .review-workspace {
+    grid-template-columns: minmax(280px, 30%) 1fr;
+  }
+
+  .queue-card,
+  .detail-card {
+    max-height: calc(100vh - 200px);
+  }
+}
+
+/* =============================================
+   RESPONSIVE — Mobile (≤768px): stacked + tab switch
+   ============================================= */
 @media screen and (max-width: $breakpoint-md) {
   .review-inner {
-    padding: $spacing-5 $spacing-4;
+    padding: $spacing-4 $spacing-3;
   }
 
   .header-bar {
     flex-direction: column;
     align-items: flex-start;
+    gap: $spacing-3;
   }
 
   .search-box {
@@ -1036,82 +1195,66 @@
     width: 100%;
   }
 
-  .filter-bar {
-    gap: $spacing-2;
+  // Mobile tab switcher takes over: only one pane visible at a time.
+  .mobile-pane-switch {
+    display: flex;
   }
 
-  .action-btns {
-    flex-direction: column;
-    gap: $spacing-1;
-  }
-
-  .pagination-bar {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .modal-panel.modal-lg {
-    max-width: 100%;
-  }
-}
-
-/* ===== RESPONSIVE: Mobile ===== */
-@media screen and (max-width: $breakpoint-sm) {
-  .review-inner {
-    padding: $spacing-3;
-  }
-
-  .page-title {
-    font-size: $text-lg;
-  }
-
-  .tab-chip {
-    padding: 6px $spacing-3;
-    font-size: $text-xs;
-  }
-
-  .data-table th {
-    padding: 8px $spacing-3;
-    font-size: 10px;
-  }
-
-  .data-table td {
-    padding: 8px $spacing-3;
-    font-size: 13px;
-  }
-
-  .course-title {
-    max-width: 160px;
-  }
-
-  .modal-body {
-    padding: $spacing-4;
-  }
-
-  .modal-header,
-  .modal-footer {
-    padding: $spacing-3 $spacing-4;
-  }
-
-  .detail-title {
-    font-size: $text-lg;
-  }
-
-  .stats-grid {
+  .review-workspace {
     grid-template-columns: 1fr;
   }
 
-  .detail-heading {
+  .queue-pane,
+  .detail-pane {
+    display: none;
+  }
+
+  .review-page[data-mobile-pane='queue'] .queue-pane {
+    display: block;
+  }
+
+  .review-page[data-mobile-pane='detail'] .detail-pane {
+    display: block;
+  }
+
+  .queue-card,
+  .detail-card {
+    max-height: none;
+    height: auto;
+    min-height: calc(100vh - 280px);
+  }
+
+  .mobile-back {
+    display: inline-flex;
+  }
+
+  .detail-head {
     flex-direction: column;
     gap: $spacing-2;
+    padding: $spacing-3 $spacing-4;
+  }
+
+  .detail-body {
+    padding: $spacing-3;
+  }
+
+  .preview-frame {
+    height: 320px;
+  }
+
+  .decision-bar {
+    padding: $spacing-3 $spacing-4;
+  }
+
+  .decision-actions {
+    .btn-approve,
+    .btn-reject {
+      flex: 1;
+    }
   }
 }
 
-/* ===== RESPONSIVE: Ultra-small (<340px) ===== */
+/* ===== Ultra-small (<340px) ===== */
 @media screen and (max-width: 340px) {
   .review-inner {
     padding: $spacing-3 $spacing-2;
@@ -1124,20 +1267,6 @@
   .tab-chip {
     padding: 5px $spacing-2;
     font-size: 11px;
-  }
-
-  .data-table th {
-    padding: 6px $spacing-2;
-    font-size: 9px;
-  }
-
-  .data-table td {
-    padding: 6px $spacing-2;
-    font-size: 12px;
-  }
-
-  .modal-body {
-    padding: $spacing-3;
   }
 }
 
@@ -1157,80 +1286,24 @@
     max-width: 100% !important;
   }
 
-  .page-title {
-    font-size: 18px !important;
-  }
-
-  /* Hide non-printable elements */
   .filter-bar,
   .search-box,
-  .action-btns,
+  .mobile-pane-switch,
   .pagination-bar,
-  .modal-backdrop {
+  .detail-actions-row,
+  .mobile-back {
     display: none !important;
   }
 
-  /* Table: clean for print */
-  .table-card {
+  .review-workspace {
+    display: block;
+  }
+
+  .queue-card,
+  .detail-card {
     box-shadow: none !important;
     border: 1px solid $gray-300 !important;
-    border-radius: 2px !important;
-    break-inside: avoid;
+    max-height: none !important;
     page-break-inside: avoid;
-  }
-
-  .data-table th {
-    padding: 6px 8px !important;
-    font-size: 10px !important;
-  }
-
-  .data-table td {
-    padding: 6px 8px !important;
-    font-size: 12px !important;
-  }
-
-  .data-table tbody tr {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-
-  /* Print colors */
-  .status-badge {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* ===== SLA BADGE (F-CR3) =====
-   Sits below the status pill on PENDING rows so reviewers see urgency
-   without opening detail. Color encodes time-since-submission band. */
-.sla-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  margin-top: $spacing-1;
-  font-size: $text-xs;
-  font-weight: $font-medium;
-  padding: 2px $spacing-2;
-  border-radius: $radius-sm;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-
-  &.sla-ok {
-    background: $gray-100;
-    color: $gray-600;
-  }
-  &.sla-watch {
-    background: $warning-light;
-    color: $warning;
-  }
-  &.sla-overdue {
-    background: $error-light;
-    color: $error;
-    font-weight: $font-semibold;
   }
 }
