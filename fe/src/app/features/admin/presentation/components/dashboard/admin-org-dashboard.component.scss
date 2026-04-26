@@ -108,7 +108,10 @@
   padding: $spacing-5;
 }
 
-/* ===== ACTION CARDS ===== */
+/* ===== ACTION CARDS =====
+   Visual contract lives in <app-action-card> (F-OA-1, PR for issue #210).
+   Only the grid container stays here — card rules removed to avoid drift.
+   Skeleton loader placeholder still owns its own selector below. */
 .action-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -117,63 +120,6 @@
 
   @media screen and (max-width: $breakpoint-sm) {
     grid-template-columns: 1fr;
-  }
-}
-
-.action-card {
-  @extend .card;
-  padding: $spacing-5 $spacing-6;
-  text-decoration: none;
-  transition: border-color $transition-normal, box-shadow $transition-normal;
-  cursor: pointer;
-
-  &:hover {
-    box-shadow: $shadow-md;
-  }
-
-  &.accent-warning:hover {
-    border-color: $warning;
-  }
-
-  &.accent-primary:hover {
-    border-color: $blue-primary;
-  }
-
-  &.accent-success:hover {
-    border-color: $success;
-  }
-}
-
-.action-value {
-  font-size: $text-3xl;
-  font-weight: $font-bold;
-  color: $text-primary;
-  line-height: 1;
-  margin: 0 0 $spacing-1;
-}
-
-.action-label {
-  font-size: $text-sm;
-  font-weight: $font-medium;
-  color: $text-secondary;
-  margin: 0;
-}
-
-.action-link {
-  font-size: $text-xs;
-  font-weight: $font-medium;
-  margin: $spacing-1 0 0;
-
-  &.warning-text {
-    color: $warning;
-  }
-
-  &.primary-text {
-    color: $blue-primary;
-  }
-
-  &.success-text {
-    color: $success;
   }
 }
 
@@ -471,13 +417,8 @@
     gap: $spacing-3;
   }
 
-  .action-card {
-    padding: $spacing-4;
-  }
-
-  .action-value {
-    font-size: $text-2xl;
-  }
+  // .action-card / .action-value mobile rules now live inside
+  // <app-action-card> (matches breakpoint-sm media query there).
 
   .card-header {
     padding: $spacing-3 $spacing-4;
@@ -529,17 +470,8 @@
     padding: $spacing-3 $spacing-2;
   }
 
-  .action-card {
-    padding: $spacing-3;
-  }
-
-  .action-value {
-    font-size: $text-xl;
-  }
-
-  .action-label {
-    font-size: 13px;
-  }
+  // .action-card / .action-value / .action-label ultra-small rules now live
+  // inside <app-action-card> (matches its 340px media query).
 
   .stat-box {
     padding: $spacing-3;
@@ -584,7 +516,6 @@
   }
 
   .card,
-  .action-card,
   .stat-box {
     box-shadow: none !important;
     border: 1px solid $gray-300 !important;
@@ -599,14 +530,8 @@
     margin-bottom: 10px !important;
   }
 
-  .action-card {
-    padding: 10px 12px !important;
-    cursor: default;
-  }
-
-  .action-link {
-    display: none !important;
-  }
+  // .action-card / .action-link print rules now live inside
+  // <app-action-card> (own @media print block).
 
   .content-grid {
     grid-template-columns: 1fr !important;
@@ -665,8 +590,7 @@
     font-size: 16px !important;
   }
 
-  .stat-value,
-  .action-value {
+  .stat-value {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }

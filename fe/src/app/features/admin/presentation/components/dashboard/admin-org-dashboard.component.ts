@@ -7,10 +7,11 @@ import { PendingApproval } from './dashboard.types';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { getAdminPortalBase } from '../../../../../core/utils/portal-route.util';
 import { DialogComponent } from '../../../../../shared/components/dialog/dialog.component';
+import { ActionCardComponent } from '../../../../../shared/components/admin/action-card/action-card.component';
 
 @Component({
   selector: 'app-admin-org-dashboard',
-  imports: [CommonModule, RouterModule, DialogComponent],
+  imports: [CommonModule, RouterModule, DialogComponent, ActionCardComponent],
   templateUrl: './admin-org-dashboard.component.html',
   styleUrl: './admin-org-dashboard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
