@@ -16,6 +16,8 @@ public class Organization {
     private String description;
     private boolean enabled;
     private int tokenExpiryDays;
+    private OrganizationType type;
+    private boolean isDefault;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -23,6 +25,7 @@ public class Organization {
 
     public Organization(UUID id, String name, String code, String description,
                         boolean enabled, int tokenExpiryDays,
+                        OrganizationType type, boolean isDefault,
                         Instant createdAt, Instant updatedAt) {
         this.id = Objects.requireNonNull(id);
         this.name = Objects.requireNonNull(name, "Tên tổ chức không được null");
@@ -30,8 +33,21 @@ public class Organization {
         this.description = description;
         this.enabled = enabled;
         this.tokenExpiryDays = tokenExpiryDays;
+        this.type = type != null ? type : OrganizationType.PARTNER;
+        this.isDefault = isDefault;
         this.createdAt = createdAt != null ? createdAt : Instant.now();
         this.updatedAt = updatedAt;
+    }
+
+    /**
+     * Issue #231: backward-compat constructor cho call sites cũ chưa biết
+     * về OrganizationType. Defaults type=PARTNER, isDefault=false.
+     */
+    public Organization(UUID id, String name, String code, String description,
+                        boolean enabled, int tokenExpiryDays,
+                        Instant createdAt, Instant updatedAt) {
+        this(id, name, code, description, enabled, tokenExpiryDays,
+             OrganizationType.PARTNER, false, createdAt, updatedAt);
     }
 
     public static Organization create(String name, String code, String description, int tokenExpiryDays) {
@@ -40,7 +56,9 @@ public class Organization {
         }
         return new Organization(
             UUID.randomUUID(), name, code.toUpperCase(), description,
-            true, tokenExpiryDays, Instant.now(), null
+            true, tokenExpiryDays,
+            OrganizationType.PARTNER, false,
+            Instant.now(), null
         );
     }
 
@@ -71,6 +89,11 @@ public class Organization {
         }
     }
 
+    /** Issue #231: phân biệt PLATFORM org (system) vs PARTNER (external). */
+    public boolean isPlatform() {
+        return type == OrganizationType.PLATFORM;
+    }
+
     // Getters
     public UUID getId() { return id; }
     public String getName() { return name; }
@@ -78,6 +101,8 @@ public class Organization {
     public String getDescription() { return description; }
     public boolean isEnabled() { return enabled; }
     public int getTokenExpiryDays() { return tokenExpiryDays; }
+    public OrganizationType getType() { return type; }
+    public boolean isDefault() { return isDefault; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 

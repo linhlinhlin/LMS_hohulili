@@ -72,6 +72,20 @@ public class OrganizationControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(listOrganizationsUseCase.execute()));
     }
 
+    /**
+     * Issue #231 (Phase 1): trả về org nền tảng default (HoLiLiHu Org).
+     * Public endpoint (không cần auth) — dùng cho registration flow để
+     * client biết home org của user đăng ký cá nhân + branding header.
+     */
+    @GetMapping("/default")
+    @Operation(summary = "Tổ chức mặc định (PLATFORM)")
+    public ResponseEntity<ApiResponse<OrganizationResponse>> getDefaultOrganization() {
+        return orgRepo.findDefault()
+                .map(org -> ResponseEntity.ok(ApiResponse.success(OrganizationResponse.from(org))))
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ApiResponse.error("Không tìm thấy tổ chức mặc định")));
+    }
+
     @GetMapping("/stats")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Thống kê tổ chức (ADMIN only)")

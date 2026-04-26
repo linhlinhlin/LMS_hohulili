@@ -7,6 +7,7 @@ import com.example.lms.identity.application.dto.VerifiedGoogleIdentity;
 import com.example.lms.identity.application.port.GoogleIdentityVerifierPort;
 import com.example.lms.identity.application.port.TokenService;
 import com.example.lms.identity.domain.model.ExternalIdentityProvider;
+import com.example.lms.identity.domain.model.Organization;
 import com.example.lms.identity.domain.model.Role;
 import com.example.lms.identity.domain.model.User;
 import com.example.lms.identity.domain.model.UserExternalIdentity;
@@ -133,9 +134,16 @@ public class AuthenticateWithGoogleUseCase {
                 throw new DomainException("INVITE_INVALID", e.getMessage());
             }
         } else {
-            organizationRepository.findByCode("WIII")
-                    .filter(org -> org.isEnabled())
-                    .ifPresent(org -> user.assignToOrganization(org.getId()));
+            // Issue #231 (Phase 1): default to platform org via findDefault()
+            // (HoLiLiHu Org PLATFORM type). Throw nếu không tìm thấy — Phase 1
+            // enforce mọi user phải thuộc 1 org, không silent fail.
+            Organization defaultOrg = organizationRepository.findDefault()
+                    .filter(Organization::isEnabled)
+                    .or(() -> organizationRepository.findByCode("HOLILIHU")
+                            .filter(Organization::isEnabled))
+                    .orElseThrow(() -> new IllegalStateException(
+                            "Không tìm thấy tổ chức nền tảng mặc định — V119 migration phải được apply"));
+            user.assignToOrganization(defaultOrg.getId());
         }
 
         return user;

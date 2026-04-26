@@ -48,4 +48,9 @@ public class OrganizationRepositoryAdapter implements OrganizationRepository {
     public long count() {
         return jpaRepo.count();
     }
+
+    @Override
+    public Optional<Organization> findDefault() {
+        return jpaRepo.findByIsDefaultTrue().map(mapper::toDomain);
+    }
 }

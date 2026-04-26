@@ -41,7 +41,10 @@ public class RegisterUserUseCaseV2 {
     private final AcceptInviteUseCase acceptInviteUseCase;
     private final OrganizationRepository organizationRepository;
 
-    private static final String DEFAULT_ORG_CODE = "WIII";
+    // Issue #231 (Phase 1): default org code đã đổi WIII -> HOLILIHU (V119
+    // migration). Dùng `findDefault()` thay hardcode để tránh fragility nếu
+    // sau này admin rename code lần nữa.
+    private static final String LEGACY_DEFAULT_ORG_CODE = "HOLILIHU";
 
     @Transactional
     public AuthResponse execute(RegisterUserCommand command) {
@@ -86,16 +89,18 @@ public class RegisterUserUseCaseV2 {
                 throw new ValidationException("inviteCode", e.getMessage());
             }
         } else {
-            // Default: assign to Wiii Org — log warning if not found
-            Organization defaultOrg = organizationRepository.findByCode(DEFAULT_ORG_CODE)
+            // Issue #231 (Phase 1): default to platform org via findDefault()
+            // (PLATFORM type + is_default=true). Fallback findByCode cho
+            // legacy compat nếu migration chưa apply (dev/staging old).
+            // Phase 1 enforce mọi user thuộc 1 org -> throw nếu không tìm
+            // thấy default org (data inconsistency, không cho silent fail).
+            Organization defaultOrg = organizationRepository.findDefault()
                     .filter(Organization::isEnabled)
-                    .orElse(null);
-            if (defaultOrg != null) {
-                user.assignToOrganization(defaultOrg.getId());
-            } else {
-                log.warn("Default organization '{}' not found or disabled — user {} will have no org",
-                        DEFAULT_ORG_CODE, command.email());
-            }
+                    .or(() -> organizationRepository.findByCode(LEGACY_DEFAULT_ORG_CODE)
+                            .filter(Organization::isEnabled))
+                    .orElseThrow(() -> new IllegalStateException(
+                            "Không tìm thấy tổ chức nền tảng mặc định — V119 migration phải được apply"));
+            user.assignToOrganization(defaultOrg.getId());
         }
 
         // Save using domain repository
