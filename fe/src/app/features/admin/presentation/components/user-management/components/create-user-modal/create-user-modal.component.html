@@ -59,6 +59,18 @@
         </p>
       </div>
     </div>
+
+    <div class="bulk-import-hint">
+      <svg class="hint-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+      </svg>
+      <p class="hint-text">
+        Cần thêm nhiều người dùng cùng lúc?
+        <button type="button" class="hint-link" (click)="onSwitchToBulkImport()">
+          Nhập từ file Excel
+        </button>
+      </p>
+    </div>
   </form>
 
   <div dialogFooter>
