@@ -1,11 +1,10 @@
-import { Component, input, output, signal, computed, inject, ChangeDetectionStrategy, ViewEncapsulation, OnInit, OnDestroy, effect, DestroyRef } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Component, input, output, signal, computed, inject, ChangeDetectionStrategy, ViewEncapsulation, OnInit, OnDestroy, effect } from '@angular/core';
 
 import { RouterModule, Router, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
+import { OrganizationContextService } from '../../../core/services/organization-context.service';
 import { Organization, OrganizationType, UserRole } from '../../../shared/types/user.types';
-import { OrganizationService } from '../../../features/admin/infrastructure/services/organization.service';
 import { IconComponent, IconName } from '../icon/icon.component';
 import { getPortalLandingRoute } from '../../../core/utils/portal-route.util';
 
@@ -39,8 +38,7 @@ export interface SidebarConfig {
 export class SidebarComponent implements OnInit, OnDestroy {
   protected authService = inject(AuthService);
   private router = inject(Router);
-  private orgService = inject(OrganizationService);
-  private destroyRef = inject(DestroyRef);
+  private orgContextService = inject(OrganizationContextService);
 
   config = input.required<SidebarConfig>();
   collapsed = input(false);
@@ -61,8 +59,10 @@ export class SidebarComponent implements OnInit, OnDestroy {
     // Admin org detail: /admin/organizations/{uuid}/...
     const adminMatch = url.match(/^\/admin\/organizations\/([0-9a-f-]{8,})/i);
     if (adminMatch) return adminMatch[1];
-    // Org-admin route /org-admin/organization — orgId implicit từ JWT
-    if (url.startsWith('/org-admin/organization')) {
+    // Org-admin route /org-admin/organization — exact match để tránh false-
+    // positive với bất kỳ route nào prefix `/org-admin/organization*` future
+    // (e.g., /org-admin/organization-policies). orgId implicit từ JWT.
+    if (url === '/org-admin/organization') {
       return this.authService.currentUserSignal()?.organizationId ?? null;
     }
     return null;
@@ -96,6 +96,8 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   constructor() {
     // Khi orgId từ URL thay đổi → fetch org info (skip nếu đã cache đúng id).
+    // Cleanup: onCleanup() unsubscribe khi effect re-run (URL thay đổi nhanh)
+    // hoặc component destroy. Không cần takeUntilDestroyed vì effect tự dispose.
     effect((onCleanup) => {
       const orgId = this.orgIdFromUrl();
       if (!orgId) {
@@ -105,19 +107,18 @@ export class SidebarComponent implements OnInit, OnDestroy {
       }
       if (this.currentOrg()?.id === orgId) return;
       this.isLoadingOrg.set(true);
-      const sub = this.orgService.getOrganization(orgId)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-          next: (org) => {
-            this.currentOrg.set(org);
-            this.isLoadingOrg.set(false);
-          },
-          error: () => {
-            // Silent fail — block ẩn nếu fetch lỗi (404/403/network).
-            this.currentOrg.set(null);
-            this.isLoadingOrg.set(false);
-          }
-        });
+      const sub = this.orgContextService.getOrganization(orgId).subscribe({
+        next: (org) => {
+          this.currentOrg.set(org);
+          this.isLoadingOrg.set(false);
+        },
+        error: (err) => {
+          // Silent fail UI (block ẩn) nhưng log để debug fetch error.
+          console.warn('[sidebar] org context fetch failed', orgId, err);
+          this.currentOrg.set(null);
+          this.isLoadingOrg.set(false);
+        }
+      });
       onCleanup(() => sub.unsubscribe());
     });
   }
