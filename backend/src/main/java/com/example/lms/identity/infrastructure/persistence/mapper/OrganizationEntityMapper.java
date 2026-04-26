@@ -3,8 +3,10 @@ package com.example.lms.identity.infrastructure.persistence.mapper;
 import com.example.lms.identity.domain.model.Organization;
 import com.example.lms.identity.domain.model.OrganizationType;
 import com.example.lms.identity.infrastructure.persistence.entity.OrganizationJpaEntity;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 public class OrganizationEntityMapper {
 
@@ -40,12 +42,14 @@ public class OrganizationEntityMapper {
         return entity;
     }
 
-    /** Issue #231: tolerant parse — bad data fallback PARTNER thay vì throw. */
+    /** Issue #231: tolerant parse — bad data fallback PARTNER thay vì throw.
+     *  Log warn để DBA biết có corruption (sub-agent review #232 P1). */
     private OrganizationType parseType(String raw) {
         if (raw == null || raw.isBlank()) return OrganizationType.PARTNER;
         try {
             return OrganizationType.valueOf(raw.trim().toUpperCase());
         } catch (IllegalArgumentException ex) {
+            log.warn("Organization type corruption: invalid value='{}', fallback PARTNER", raw);
             return OrganizationType.PARTNER;
         }
     }

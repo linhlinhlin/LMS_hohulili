@@ -60,6 +60,20 @@ WHERE organization_id IS NULL;
 --
 -- Sau backfill bước 3, không còn null nào. Nếu vẫn còn (data
 -- inconsistency), ALTER sẽ fail và Flyway rollback migration.
+--
+-- Idempotent guard: nếu cột đã NOT NULL (rerun migration), skip
+-- ALTER để tránh confusion log. PG ALTER SET NOT NULL bản thân
+-- là idempotent runtime, nhưng DO $$ block document intent rõ.
 -- ============================================================
-ALTER TABLE users
-    ALTER COLUMN organization_id SET NOT NULL;
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = current_schema()
+          AND table_name = 'users'
+          AND column_name = 'organization_id'
+          AND is_nullable = 'YES'
+    ) THEN
+        ALTER TABLE users ALTER COLUMN organization_id SET NOT NULL;
+    END IF;
+END $$;
