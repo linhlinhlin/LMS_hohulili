@@ -5,7 +5,9 @@ import {
   OnInit,
   ChangeDetectionStrategy,
   computed,
-  effect
+  effect,
+  ElementRef,
+  viewChild
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -96,6 +98,18 @@ export class CourseReviewComponent implements OnInit {
   // Mobile pane switch (queue vs detail). Desktop layout shows both side-by-side.
   mobilePane = signal<MobilePane>('queue');
 
+  // F-CR2 — anti-skip review (Coursera UX).
+  // Approve disabled until reviewer confirms they've read the content.
+  // Two ways to satisfy: (a) scroll the detail body to within 32px of the
+  // bottom, or (b) tick the checkbox manually. Either flips this signal
+  // to true and stays true until the reviewer changes selection.
+  hasReadFully = signal(false);
+  /** Two-way bound to the checkbox — kept separate so unchecking doesn't
+   *  re-disable the button if the user already scrolled. */
+  readConfirmed = signal(false);
+
+  detailBodyRef = viewChild<ElementRef<HTMLElement>>('detailBody');
+
   // F-CR1 — empty state CTA. Helper to detect whether the current view is
   // empty because of an applied filter (so we offer to clear it) versus
   // genuinely no data (no CTA — there's nothing to clear).
@@ -128,16 +142,43 @@ export class CourseReviewComponent implements OnInit {
   });
 
   constructor() {
-    // Keep history in sync with the selected course.
+    // Keep history in sync + reset anti-skip state whenever selection changes.
     effect(() => {
       const id = this.selectedCourseId();
       if (id) {
         this.loadReviewHistory(id);
+        // Fresh course → reviewer must scroll/confirm again.
+        this.hasReadFully.set(false);
+        this.readConfirmed.set(false);
       } else {
         this.reviewHistory.set([]);
       }
     });
   }
+
+  /**
+   * Scroll handler on the detail body — flips hasReadFully → true once
+   * the reviewer reaches the bottom (within 32px tolerance for touch
+   * fling overshoot). Once true, stays true for this selection.
+   */
+  onDetailScroll(event: Event): void {
+    if (this.hasReadFully()) {
+      return; // already satisfied — no need to recompute
+    }
+    const target = event.target as HTMLElement;
+    const distanceFromBottom = target.scrollHeight - target.scrollTop - target.clientHeight;
+    if (distanceFromBottom <= 32) {
+      this.hasReadFully.set(true);
+    }
+  }
+
+  /** Combined gate — approve enabled only when read confirmed AND not already approving. */
+  canApprove = computed<boolean>(() => {
+    const course = this.selectedCourse();
+    if (!course) return false;
+    if (this.approving() === course.id) return false;
+    return this.hasReadFully() || this.readConfirmed();
+  });
 
   clearFilters(): void {
     this.searchKeyword = '';

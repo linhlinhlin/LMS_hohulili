@@ -272,7 +272,7 @@
             </div>
 
             <!-- Right-pane body: meta + preview iframe + history -->
-            <div class="detail-body" #detailBody>
+            <div class="detail-body" #detailBody (scroll)="onDetailScroll($event)">
 
               <!-- Description (truncated to 4 lines) -->
               @if (course.description) {
@@ -388,11 +388,31 @@
             <!-- Decision footer (sticky) — only shown when course is reviewable -->
             @if (canReviewCourse(course)) {
               <div class="decision-bar" role="group" aria-label="Hành động phê duyệt">
+
+                <!-- Anti-skip review: must scroll OR tick checkbox to enable approve. -->
+                <label class="read-confirm" [class.met]="hasReadFully() || readConfirmed()">
+                  <input type="checkbox"
+                         [checked]="readConfirmed() || hasReadFully()"
+                         [disabled]="hasReadFully()"
+                         (change)="readConfirmed.set($any($event.target).checked)"
+                         aria-describedby="read-confirm-hint" />
+                  <span class="read-confirm-text">
+                    Tôi đã đọc hết nội dung khóa học
+                    @if (hasReadFully()) {
+                      <span class="read-confirm-met">✓ đã xác nhận</span>
+                    }
+                  </span>
+                </label>
+                <p id="read-confirm-hint" class="read-confirm-hint">
+                  Cuộn đến cuối nội dung hoặc tích vào ô để bật nút Phê duyệt.
+                </p>
+
                 <div class="decision-actions">
                   <button type="button"
                           class="btn-approve"
                           (click)="approveCourse(course.id)"
-                          [disabled]="approving() === course.id">
+                          [disabled]="!canApprove()"
+                          [attr.aria-disabled]="!canApprove()">
                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                     </svg>
