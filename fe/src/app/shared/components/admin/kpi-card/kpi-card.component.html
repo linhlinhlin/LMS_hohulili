@@ -3,13 +3,14 @@
   <p class="kpi-label">{{ label() }}</p>
   @if (hasTrend() || sub()) {
     <p class="kpi-sub">
-      @if (hasTrend()) {
+      @if (hasTrend() && trendKind() !== 'flat') {
         <span class="trend" [class]="'trend-' + trendKind()" aria-hidden="true">
           <span class="trend-arrow">{{ trendArrowGlyph() }}</span>
           <span>{{ trendMag() }}%</span>
         </span>
-      }
-      @if (trendLabel() && hasTrend()) {
+        <span>{{ trendLabel() }}</span>
+      } @else if (hasTrend()) {
+        <span class="trend trend-flat" aria-hidden="true">—</span>
         <span>{{ trendLabel() }}</span>
       }
       @if (sub()) {

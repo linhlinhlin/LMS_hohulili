@@ -5,27 +5,9 @@ import { SystemAnalytics } from '../../../infrastructure/services/admin.service'
 import { SystemHealthService } from '../../../infrastructure/services/system-health.service';
 import { PendingApproval } from './dashboard.types';
 import { DialogComponent } from '../../../../../shared/components/dialog/dialog.component';
-import { IconComponent, IconName } from '../../../../../shared/components/icon/icon.component';
+import { IconComponent } from '../../../../../shared/components/icon/icon.component';
 import { KpiCardComponent } from '../../../../../shared/components/admin/kpi-card/kpi-card.component';
 import { DateRangeToggleComponent } from '../../../../../shared/components/admin/date-range-toggle/date-range-toggle.component';
-
-interface QuickAction {
-  id: string;
-  label: string;
-  description: string;
-  route: string;
-  icon: IconName;
-}
-
-// Static list — routes verified against fe/src/app/features/admin/admin.routes.ts.
-// Replaces the old "Tổng quan nhanh" card which duplicated KPI strip counts
-// (F-02 in audit 2026-04-25). Pattern follows Stripe/Linear shortcut panels.
-const QUICK_ACTIONS: readonly QuickAction[] = [
-  { id: 'add-user',    label: 'Thêm người dùng',  description: 'Tạo tài khoản giảng viên hoặc học viên',      route: '/admin/users/all',   icon: 'users' },
-  { id: 'categories',  label: 'Quản lý danh mục', description: 'Thêm, sửa, xóa danh mục khóa học',             route: '/admin/categories',  icon: 'tag' },
-  { id: 'analytics',   label: 'Xem báo cáo',      description: 'Phân tích học viên, doanh thu, tăng trưởng',   route: '/admin/analytics',   icon: 'bar-chart' },
-  { id: 'settings',    label: 'Cấu hình hệ thống', description: 'Thiết lập thanh toán, bảo mật, thông báo',    route: '/admin/settings',    icon: 'settings' },
-];
 
 @Component({
   selector: 'app-admin-system-dashboard',
@@ -61,9 +43,6 @@ export class AdminSystemDashboardComponent implements OnInit {
   courseApproved = output<string>();
   courseRejected = output<{ id: string; reason: string }>();
   windowDaysChange = output<number>();
-
-  // Shortcut panel — replaces the redundant "Tổng quan nhanh" card.
-  quickActions = computed<readonly QuickAction[]>(() => QUICK_ACTIONS);
 
   // --- Reject modal state (mirrors org-admin pattern from PR #145) ---
   rejectModalOpen = signal(false);

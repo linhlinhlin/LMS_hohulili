@@ -556,12 +556,12 @@
 }
 
 .sidebar-admin .sidebar-logo {
-  background: linear-gradient(to bottom right, #dc2626, #b91c1c);
+  background: #0056D2;
 }
 
 .sidebar-admin .nav-item.active {
-  background-color: #fef2f2;
-  color: #b91c1c;
+  background-color: #EFF6FF;
+  color: #0056D2;
   font-weight: 600;
 }
 
