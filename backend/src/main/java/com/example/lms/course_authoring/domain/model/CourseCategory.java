@@ -95,6 +95,33 @@ public class CourseCategory {
 
     public void reorder(int sortOrder) { this.sortOrder = sortOrder; }
 
+    /**
+     * Atomically moves this category to a new parent (or to root) and updates
+     * its sort order in the destination collection. Used by the admin
+     * drag-drop UI (issue #199, F-CAT1).
+     *
+     * <p>Domain rules enforced here:
+     * <ul>
+     *   <li>{@code newParentId == null} → promote to root.</li>
+     *   <li>{@code newParentId == this.id} → rejected: a category cannot be
+     *       its own parent (would create a cycle).</li>
+     * </ul>
+     *
+     * <p>Max-depth-2 enforcement and "destination parent must itself be a
+     * root" checks live in the use case (it has the repository handle to
+     * resolve the destination).
+     *
+     * @param newParentId target parent id, or {@code null} to promote to root
+     * @param sortOrder   zero-based position within the destination collection
+     */
+    public void moveTo(UUID newParentId, int sortOrder) {
+        if (newParentId != null && newParentId.equals(this.id)) {
+            throw new IllegalArgumentException("Danh muc khong the la cha cua chinh no");
+        }
+        this.parentId = newParentId;
+        this.sortOrder = sortOrder;
+    }
+
     public void addChild(CourseCategory child) { this.children.add(child); }
 
     // --- Getters ---

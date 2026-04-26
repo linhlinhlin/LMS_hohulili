@@ -1,7 +1,9 @@
 package com.example.lms.course_authoring.infrastructure.web;
 
 import com.example.lms.course_authoring.application.usecase.ManageCourseCategoryUseCase;
+import com.example.lms.course_authoring.application.usecase.MoveCategoryUseCase;
 import com.example.lms.course_authoring.domain.model.CourseCategory;
+import jakarta.validation.constraints.Min;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,6 +28,7 @@ import java.util.UUID;
 public class CourseCategoryControllerV3 {
 
     private final ManageCourseCategoryUseCase useCase;
+    private final MoveCategoryUseCase moveCategoryUseCase;
 
     // --- Public (cached) ---
 
@@ -98,6 +101,34 @@ public class CourseCategoryControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(null, "Da sap xep lai"));
     }
 
+    /**
+     * Drag-drop reorder + reparent endpoint (issue #199, F-CAT1).
+     *
+     * <p>Single endpoint covers all four FE drag operations:
+     * <ul>
+     *   <li>Reorder within same level (parent unchanged, sortOrder changes).</li>
+     *   <li>Promote sub-category to root ({@code newParentId == null}).</li>
+     *   <li>Demote root to sub-category (only if root has no children).</li>
+     *   <li>Reparent sub-category to a different root.</li>
+     * </ul>
+     *
+     * <p>Returns the full updated tree so the FE can replace its local state
+     * without an extra round-trip.
+     */
+    @Operation(summary = "Move (reorder + reparent) a category")
+    @PatchMapping("/admin/course-categories/{id}/move")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
+    @CacheEvict(value = "courseCategories", allEntries = true)
+    public ResponseEntity<ApiResponse<List<CourseCategoryDTO>>> move(
+            @PathVariable UUID id,
+            @Valid @RequestBody MoveCategoryRequest req) {
+        var tree = moveCategoryUseCase.execute(id, req.newParentId(), req.newSortOrder());
+        Map<UUID, Long> counts = useCase.getApprovedCourseCountsByCategory();
+        return ResponseEntity.ok(ApiResponse.success(
+                tree.stream().map(c -> toDTO(c, counts)).toList(),
+                "Da chuyen danh muc"));
+    }
+
     // --- DTOs ---
 
     /**
@@ -131,6 +162,15 @@ public class CourseCategoryControllerV3 {
             String description,
             @Size(max = 50) String icon,
             @Size(max = 10) String prefix
+    ) {}
+
+    /**
+     * Drag-drop move payload (issue #199, F-CAT1). {@code newParentId} is
+     * nullable — null means promote to root.
+     */
+    public record MoveCategoryRequest(
+            UUID newParentId,
+            @Min(0) int newSortOrder
     ) {}
 
     private CourseCategoryDTO toDTO(CourseCategory c, Map<UUID, Long> counts) {
