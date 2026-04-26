@@ -6,9 +6,15 @@
         <p class="loading-text">Đang tải thông tin tổ chức...</p>
       </div>
     } @else if (org()) {
-      <!-- Header -->
+      <!--
+        F-OA-4: Page header — back link now binds to backRoute() computed
+        signal (was hardcoded /admin/organizations, broke for ORG_ADMIN
+        landing on /org-admin/organization). Trailing primary action group
+        gives "Mời thành viên" prominence at the top-right (Linear / Stripe
+        pattern) instead of forcing the user to switch tabs first.
+      -->
       <div class="page-header">
-        <a routerLink="/admin/organizations" class="btn-back" title="Quay lại danh sách">
+        <a [routerLink]="backRoute()" class="btn-back" title="Quay lại">
           <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
           </svg>
@@ -27,9 +33,44 @@
               <span class="badge badge--disabled">Vô hiệu</span>
             }
             <span class="dot-separator">&middot;</span>
-            <span>Token: {{ org()!.tokenExpiryDays }} ngày</span>
+            <span>Token mặc định: {{ org()!.tokenExpiryDays }} ngày</span>
           </div>
         </div>
+        <div class="header-actions">
+          <button type="button" class="btn-primary" (click)="activeTab.set('invites')">
+            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+            </svg>
+            Mời thành viên
+          </button>
+        </div>
+      </div>
+
+      <!--
+        F-OA-4 KPI strip — surfaces aggregate org health (Total / Active /
+        Teachers / Students). Mirrors the kpi-card pattern shipped to every
+        other admin surface (CC-01 audit). No decorative icons inside the
+        cards — value + label only, per the audit's icon ban.
+      -->
+      <div class="kpi-strip">
+        <app-kpi-card
+          label="Tổng thành viên"
+          [value]="totalMembers()"
+          [sub]="activeMembers() + ' đang hoạt động'" />
+        <app-kpi-card
+          label="Giảng viên"
+          [value]="teacherCount()"
+          variant="success"
+          sub="thuộc tổ chức" />
+        <app-kpi-card
+          label="Học viên"
+          [value]="studentCount()"
+          sub="thuộc tổ chức" />
+        <app-kpi-card
+          label="Lời mời còn hiệu lực"
+          [value]="activeInvites().length"
+          [variant]="activeInvites().length > 0 ? 'warning' : 'default'"
+          sub="chưa hết hạn" />
       </div>
 
       <!-- Tabs -->
@@ -142,13 +183,18 @@
                         </span>
                       }
                     </td>
+                    <!--
+                      F-OA-4: Per-row kebab — was a single-purpose "Xóa"
+                      text button. Kebab unifies all row actions (edit
+                      token, remove) under one overflow surface, matches
+                      every other admin table (PR #219 ripple).
+                    -->
                     <td>
-                      @if (canRemoveMember(member)) {
-                        <button (click)="removeMember(member)"
-                                class="btn-danger-text"
-                                title="Xóa khỏi tổ chức">
-                          Xóa
-                        </button>
+                      @if (memberRowActions(member).length > 0) {
+                        <app-kebab-menu
+                          [actions]="memberRowActions(member)"
+                          [triggerAriaLabel]="'Mở menu thao tác cho ' + member.fullName"
+                          (actionClick)="onMemberRowAction(member, $event)" />
                       }
                     </td>
                   </tr>
@@ -302,11 +348,17 @@
                       }
                     </td>
                     <td class="date-text">{{ invite.expiresAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                    <!--
+                      F-OA-4: Per-row kebab consolidates "Sao chép mã" +
+                      "Thu hồi" so the row action surface matches every
+                      other admin table.
+                    -->
                     <td>
-                      @if (invite.status === 'ACTIVE') {
-                        <button (click)="revokeInvite(invite)" class="btn-danger-text">
-                          Thu hồi
-                        </button>
+                      @if (inviteRowActions(invite).length > 0) {
+                        <app-kebab-menu
+                          [actions]="inviteRowActions(invite)"
+                          [triggerAriaLabel]="invite.code ? 'Mở menu thao tác cho mã ' + invite.code : 'Mở menu thao tác cho lời mời ' + invite.email"
+                          (actionClick)="onInviteRowAction(invite, $event)" />
                       }
                     </td>
                   </tr>

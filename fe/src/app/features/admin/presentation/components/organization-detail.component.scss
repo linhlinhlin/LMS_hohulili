@@ -20,6 +20,44 @@
   margin-bottom: $spacing-6;
 }
 
+/* F-OA-4: Trailing primary action group sits right of the header. flex:0 so
+   the actions stay snug to the right edge regardless of header-info width. */
+.header-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+  margin-left: auto;
+}
+
+/* F-OA-4: KPI strip — mirrors organization-list. Cards stack on mobile,
+   2-up on tablet, 4-up on desktop. Shared kpi-card owns the visual
+   contract; this grid only handles layout + the shared card chrome
+   (border + shadow) since the kpi-card itself has no border/shadow by
+   default (it inherits from the wrapping surface in admin dashboards). */
+.kpi-strip {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $spacing-4;
+  margin-bottom: $spacing-6;
+
+  app-kpi-card {
+    background: $bg-surface;
+    border-radius: $radius-xl;
+    border: 1px solid $border-default;
+    box-shadow: $shadow-sm;
+    overflow: hidden;
+  }
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
 .btn-back {
   padding: $spacing-2;
   border-radius: $radius-xl;
@@ -1006,6 +1044,18 @@
     flex-wrap: wrap;
   }
 
+  /* F-OA-4: When the header wraps, the action group should occupy the full
+     row instead of squeezing onto a tiny right-aligned column. */
+  .header-actions {
+    margin-left: 0;
+    width: 100%;
+
+    .btn-primary {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
   .header-meta {
     flex-wrap: wrap;
     gap: $spacing-2;
@@ -1113,11 +1163,13 @@
   .btn-danger-text,
   .btn-icon-xs,
   .btn-token-display,
+  .header-actions,
   .invite-actions,
   .new-code-banner,
   .tab-bar,
   .config-actions,
-  .settings-actions {
+  .settings-actions,
+  app-kebab-menu {
     display: none !important;
   }
 
