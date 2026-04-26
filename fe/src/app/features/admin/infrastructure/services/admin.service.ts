@@ -135,6 +135,10 @@ export interface AdminUser {
   coursesEnrolled?: number; // For STUDENT
   totalSpent?: number;
   permissions: string[];
+  // Issue #229: organization scoping multi-org admin management.
+  // null cho system ADMIN (không thuộc org nào — FE hiển thị "Hệ thống").
+  organizationId?: string;
+  organizationName?: string;
 }
 
 // Backend User interface - matches AdminUserDTO from backend
@@ -154,6 +158,10 @@ export interface BackendUser {
   coursesEnrolled?: number; // For STUDENT
   createdAt: string;
   updatedAt?: string;
+  // Issue #229: BE expose org info từ UserResponse#229.
+  // null cho system ADMIN không thuộc org.
+  organizationId?: string;
+  organizationName?: string;
 }
 
 // Create User Request
@@ -887,7 +895,10 @@ export class AdminService {
       coursesCreated: backendUser.coursesCreated ?? 0,
       coursesCooped: backendUser.coursesCooped ?? 0,
       coursesEnrolled: backendUser.coursesEnrolled ?? 0,
-      permissions: this.getPermissionsForRole(backendUser.role)
+      permissions: this.getPermissionsForRole(backendUser.role),
+      // Issue #229: forward org info từ BE (null cho system ADMIN)
+      organizationId: backendUser.organizationId,
+      organizationName: backendUser.organizationName
     };
   }
 

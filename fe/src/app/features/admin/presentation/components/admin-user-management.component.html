@@ -56,6 +56,16 @@
           <option value="BLOCKED">Bị khóa</option>
           <option value="RESTRICTED">Hạn chế</option>
         </select>
+        <!-- Issue #229: Filter theo tổ chức cho multi-org admin management.
+             'system' option lọc system ADMIN không thuộc org nào. -->
+        <select [value]="orgFilter()" (change)="onOrgFilterChange($any($event.target).value)"
+                class="filter-select" aria-label="Lọc theo tổ chức">
+          <option value="">Tất cả tổ chức</option>
+          <option value="system">Hệ thống (không thuộc tổ chức)</option>
+          @for (org of organizations(); track org.id) {
+            <option [value]="org.id">{{ org.name }}</option>
+          }
+        </select>
       </div>
       <div class="filter-summary">
         <p class="filter-summary-text">
@@ -94,6 +104,8 @@
                 </th>
                 <th>Quản trị viên</th>
                 <th>Vai trò</th>
+                <!-- Issue #229: column "Tổ chức" multi-org admin scoping. -->
+                <th>Tổ chức</th>
                 <th>Trạng thái</th>
                 <th>Hoạt động cuối</th>
                 <th>Đăng nhập</th>
@@ -130,6 +142,16 @@
                       <option value="TEACHER">Giảng viên</option>
                       <option value="ADMIN">Quản trị viên</option>
                     </select>
+                  </td>
+                  <!-- Issue #229: Tổ chức column — badge "Hệ thống" cho
+                       system ADMIN không thuộc org, badge org name cho
+                       ORG_ADMIN thuộc tổ chức cụ thể. -->
+                  <td>
+                    @if (admin.organizationName) {
+                      <span class="badge badge-org">{{ admin.organizationName }}</span>
+                    } @else {
+                      <span class="badge badge-system">Hệ thống</span>
+                    }
                   </td>
                   <!-- Status -->
                   <td>
