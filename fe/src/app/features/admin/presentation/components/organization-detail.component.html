@@ -6,6 +6,28 @@
         <p class="loading-text">Đang tải thông tin tổ chức...</p>
       </div>
     } @else if (org()) {
+      <!-- Phase 3 PR 3 (#241): breadcrumb — Linear/Stripe/GitHub pattern.
+           3 levels: Tổ chức (admin) hoặc Trang chủ (org-admin) → Org Name
+           (current, no link) → active tab. Click level 1 = back to list. -->
+      <nav class="breadcrumb" aria-label="Đường dẫn">
+        <ol class="breadcrumb-list">
+          <li class="breadcrumb-item">
+            <a [routerLink]="backRoute()" class="breadcrumb-link">{{ breadcrumbRootLabel() }}</a>
+          </li>
+          <li class="breadcrumb-item breadcrumb-separator" aria-hidden="true">/</li>
+          <li class="breadcrumb-item">
+            <span class="breadcrumb-current"
+                  [attr.aria-current]="activeTabLabel() ? null : 'page'">{{ org()!.name }}</span>
+          </li>
+          @if (activeTabLabel()) {
+            <li class="breadcrumb-item breadcrumb-separator" aria-hidden="true">/</li>
+            <li class="breadcrumb-item">
+              <span class="breadcrumb-current breadcrumb-tab" aria-current="page">{{ activeTabLabel() }}</span>
+            </li>
+          }
+        </ol>
+      </nav>
+
       <!--
         F-OA-4: Page header — back link now binds to backRoute() computed
         signal (was hardcoded /admin/organizations, broke for ORG_ADMIN

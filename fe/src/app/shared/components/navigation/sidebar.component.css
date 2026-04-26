@@ -726,3 +726,67 @@
 .sidebar-nav--org-scoped {
   position: relative;
 }
+
+/* =====================================================================
+   Phase 3 PR 3 (#241): animation + polish
+   Sidebar nav switch fade transition — runs khi @if(inOrgScopedMode)
+   flips, new <nav> element mounts → animation triggers từ initial state.
+   Skip for users prefer-reduced-motion. */
+.sidebar-nav {
+  animation: sidebar-nav-fade-in 200ms ease-out;
+}
+
+@keyframes sidebar-nav-fade-in {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-nav {
+    animation: none;
+  }
+  .sidebar-org-default-star {
+    animation: none !important;
+  }
+}
+
+/* Active org-scoped item — left border indicator (subtle accent) */
+.sidebar-nav--org-scoped .nav-item.active {
+  position: relative;
+}
+.sidebar-nav--org-scoped .nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  background: #0056D2;
+  border-radius: 0 3px 3px 0;
+}
+
+/* Org context block hover elevation — subtle interactive feel */
+.sidebar-org-context {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.sidebar-org-context:hover {
+  border-color: rgba(0, 86, 210, 0.25);
+  box-shadow: 0 1px 3px rgba(0, 86, 210, 0.06);
+}
+
+/* Default star subtle pulse — dùng cho HoLiLiHu Org indicator */
+.sidebar-org-default-star {
+  display: inline-block;
+  animation: default-star-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes default-star-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
