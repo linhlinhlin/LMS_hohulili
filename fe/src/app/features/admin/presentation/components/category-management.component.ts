@@ -143,9 +143,40 @@ import { CourseCategoryDTO, CourseTagDTO } from '../../../../api/types/course.ty
                 </div>
               </div>
             } @else {
-              <div class="empty-panel">
-                <p>Chọn một danh mục từ danh sách bên trái để chỉnh sửa</p>
-                <p>hoặc nhấn "Danh mục gốc" để tạo mới</p>
+              <!-- F-CAT3 (epic #186): Carbon empty-state pattern
+                   Inform + Inspire + Activate.
+                   - Illustration: layered tag icon stack signals "danh mục
+                     có nhiều cấp" without a brand icon (kpi-card rule).
+                   - Inspire copy explains what the user can do here.
+                   - Activate CTA fires the same handler as the sidebar
+                     "+ Danh mục gốc" button — single source of truth. -->
+              <div class="empty-panel" role="status" aria-live="polite">
+                <svg
+                  class="empty-illustration"
+                  viewBox="0 0 96 96"
+                  fill="none"
+                  aria-hidden="true">
+                  <!-- Stacked tag illustration: back tag (muted), front tag (primary tint). -->
+                  <rect x="14" y="22" width="52" height="36" rx="6"
+                        fill="#E5E7EB" stroke="#D1D5DB" stroke-width="2"/>
+                  <circle cx="22" cy="32" r="3" fill="#9CA3AF"/>
+                  <rect x="26" y="36" width="36" height="4" rx="2" fill="#D1D5DB"/>
+                  <rect x="26" y="44" width="22" height="4" rx="2" fill="#D1D5DB"/>
+                  <!-- Front tag, slightly offset, primary tint. -->
+                  <rect x="28" y="36" width="52" height="36" rx="6"
+                        fill="#E0EAFD" stroke="#0056D2" stroke-width="2"/>
+                  <circle cx="36" cy="46" r="3" fill="#0056D2"/>
+                  <rect x="40" y="50" width="36" height="4" rx="2" fill="#0056D2" fill-opacity="0.4"/>
+                  <rect x="40" y="58" width="22" height="4" rx="2" fill="#0056D2" fill-opacity="0.3"/>
+                </svg>
+                <h3 class="empty-title">Chọn danh mục để xem chi tiết</h3>
+                <p class="empty-desc">
+                  Bạn có thể chỉnh sửa tên, mã, mô tả, hoặc thêm danh mục con
+                  trực tiếp tại đây.
+                </p>
+                <button type="button" class="empty-cta" (click)="startCreateRoot()">
+                  + Tạo danh mục mới
+                </button>
               </div>
             }
           }

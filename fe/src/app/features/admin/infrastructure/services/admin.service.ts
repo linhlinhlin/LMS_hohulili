@@ -57,6 +57,27 @@ export interface SystemAnalytics {
   unreadMessages: number;
 }
 
+/**
+ * Windowed analytics response from `/api/v3/admin/courses/analytics/window`
+ * (PR #171). Compares this window vs an equal-length prior window.
+ *
+ * `growthRate` is null when `lastWindow === 0` and `thisWindow > 0` — the
+ * BE deliberately returns null instead of `+Infinity` so the FE can render
+ * an em-dash or "+∞" rather than a misleading 0 %.
+ */
+export interface WindowedAnalytics {
+  windowDays: number;
+  totalUsers: number;
+  totalCourses: number;
+  totalEnrollments: number;
+  revenue: number;
+  userGrowth: { thisWindow: number; lastWindow: number; growthRate: number | null };
+  revenueGrowth: number | null;
+  courseGrowth: { thisWindow: number; lastWindow: number; growthRate: number | null };
+  windowStart: string;
+  windowEnd: string;
+}
+
 export interface PendingCourseSummary {
   id: string;
   code: string;
@@ -342,6 +363,22 @@ export class AdminService {
       catchError(error => {
         return throwError(() => error);
       })
+    );
+  }
+
+  /**
+   * Fetch windowed analytics for the dashboard date-range toggle (F-P2).
+   * BE accepts `days` ∈ {7, 30, 90}; any other value yields HTTP 400.
+   * Use this in place of `getSystemAnalytics()` whenever the surface wants
+   * deltas — the legacy endpoint only returns running totals.
+   */
+  getCoursesAnalyticsWindow(days: number): Observable<WindowedAnalytics> {
+    return this.apiClient.getWithResponse<WindowedAnalytics>(
+      ADMIN_ENDPOINTS.ANALYTICS_WINDOW,
+      { params: { days } },
+    ).pipe(
+      map(response => response.data),
+      catchError(error => throwError(() => error)),
     );
   }
 

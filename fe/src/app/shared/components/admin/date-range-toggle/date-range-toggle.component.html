@@ -1,0 +1,18 @@
+<div
+  class="date-range-toggle"
+  role="radiogroup"
+  [attr.aria-label]="ariaLabel()"
+  (keydown)="onKeydown($event)">
+  @for (btn of buttons(); track btn.days) {
+    <button
+      type="button"
+      class="seg-btn"
+      [class.seg-btn--active]="btn.days === value()"
+      role="radio"
+      [attr.aria-checked]="btn.days === value()"
+      [tabindex]="btn.days === value() ? 0 : -1"
+      (click)="onSelect(btn.days)">
+      {{ btn.label }}
+    </button>
+  }
+</div>

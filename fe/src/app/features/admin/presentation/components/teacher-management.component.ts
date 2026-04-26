@@ -6,6 +6,7 @@ import { forkJoin } from 'rxjs';
 import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } from '../../infrastructure/services/admin.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
+import { ConfirmStatusChangeService } from '../../services/confirm-status-change.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { getAdminPortalBase } from '../../../../core/utils/portal-route.util';
 import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/kpi-card.component';
@@ -25,6 +26,7 @@ export class TeacherManagementComponent implements OnInit {
   private adminService = inject(AdminService);
   private toast = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
+  private confirmStatus = inject(ConfirmStatusChangeService);
   private authService = inject(AuthService);
 
   isSystemAdmin = computed(() => this.authService.userRole() === 'admin');
@@ -155,18 +157,11 @@ export class TeacherManagementComponent implements OnInit {
   // Status action handler — F-U3/F-AD2 security fix: require confirm modal
   // before suspending or activating an account. Cancel → loadUsers() re-fetch
   // reverts the inline-edit dropdown UI to the previous value.
+  // Modal copy lives in ConfirmStatusChangeService (DRY — issue #195).
   async onStatusActionChange(user: AdminUser, newStatus: string) {
     if (!newStatus) return;
 
-    const isBlock = newStatus === 'BLOCKED';
-    const confirmed = await this.confirmDialog.confirm({
-      title: isBlock ? 'Khóa tài khoản' : 'Kích hoạt tài khoản',
-      message: isBlock
-        ? `Bạn có chắc muốn khóa tài khoản của ${user.name}? Họ sẽ không đăng nhập được cho đến khi mở khóa.`
-        : `Bạn có chắc muốn kích hoạt lại tài khoản của ${user.name}?`,
-      confirmText: isBlock ? 'Khóa tài khoản' : 'Kích hoạt',
-      variant: isBlock ? 'danger' : 'warning'
-    });
+    const confirmed = await this.confirmStatus.confirm(user, newStatus as UserAccountStatus, 'teacher');
     if (!confirmed) {
       this.loadUsers();
       return;

@@ -4,6 +4,7 @@ import { ApiClient } from '../../../../api/client/api-client';
 import { AuthService, UserRole } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/kpi-card.component';
+import { DateRangeToggleComponent } from '../../../../shared/components/admin/date-range-toggle/date-range-toggle.component';
 
 interface PayoutListItem {
     id: string;
@@ -23,15 +24,26 @@ interface PayoutListItem {
 
 @Component({
     selector: 'app-admin-payouts',
-    imports: [FormsModule, KpiCardComponent],
+    imports: [FormsModule, KpiCardComponent, DateRangeToggleComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styleUrl: './admin-payouts.component.scss',
     template: `
     <div class="payouts-page">
       <div class="page-inner">
         <div class="page-header">
-          <h1 class="page-title">Quản lý rút tiền</h1>
-          <p class="page-desc">Duyệt và xử lý các yêu cầu rút tiền của giảng viên theo đúng phạm vi quản trị.</p>
+          <div class="page-header-text">
+            <h1 class="page-title">Quản lý rút tiền</h1>
+            <p class="page-desc">Duyệt và xử lý các yêu cầu rút tiền của giảng viên theo đúng phạm vi quản trị.</p>
+          </div>
+          <!-- F-P2: shared date-range toggle — placeholder until the BE
+               windowed payouts endpoint ships. We hold the value in
+               component state so the segmented selector reflects user
+               intent; once the BE lands, swap the no-op handler with the
+               re-fetch path. -->
+          <app-date-range-toggle
+            [value]="windowDays()"
+            ariaLabel="Khoảng thời gian thống kê"
+            (change)="onWindowDaysChange($event)" />
         </div>
 
         <!-- F-P1: KPI strip — 4 count cards per status. Counts only for now;
@@ -318,6 +330,10 @@ export class AdminPayoutsComponent implements OnInit {
     currentPage = signal(0);
     hasMore = signal(false);
     pendingCount = signal(0);
+    // F-P2: window selector. UI-only for now — BE issue tracks an aggregate
+    // "payouts in the last N days" endpoint. Currently the strip counts use
+    // status-paged size=1 totalElements which is window-independent.
+    windowDays = signal<number>(30);
     // F-P1: per-status totals — counts only for now (amount sum cần BE
     // aggregate endpoint, defer).
     approvedCount = signal(0);
@@ -375,6 +391,13 @@ export class AdminPayoutsComponent implements OnInit {
         this.activeStatus.set(status);
         this.currentPage.set(0);
         this.loadPayouts();
+    }
+
+    onWindowDaysChange(days: number): void {
+        // Placeholder — BE doesn't accept a window param on
+        // /api/v3/admin/revenue/payouts yet. Once that lands, pipe `days`
+        // into loadPayouts() + loadStatusCounts() as a query param.
+        this.windowDays.set(days);
     }
 
     private loadPayouts(): void {

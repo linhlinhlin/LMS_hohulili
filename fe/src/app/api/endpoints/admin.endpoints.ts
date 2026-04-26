@@ -8,6 +8,8 @@ export const ADMIN_ENDPOINTS = {
   ANALYTICS: '/api/v3/admin/courses/analytics',
   USER_ANALYTICS: '/api/v3/admin/courses/analytics',
   COURSE_ANALYTICS: '/api/v3/admin/courses/analytics',
+  // F-08 / PR #171 — windowed analytics (days = 7 | 30 | 90).
+  ANALYTICS_WINDOW: '/api/v3/admin/courses/analytics/window',
 
   // === Course Management ===
   PENDING_COURSES: '/api/v3/admin/courses/pending',

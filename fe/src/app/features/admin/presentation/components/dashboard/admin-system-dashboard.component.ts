@@ -7,6 +7,7 @@ import { PendingApproval } from './dashboard.types';
 import { DialogComponent } from '../../../../../shared/components/dialog/dialog.component';
 import { IconComponent, IconName } from '../../../../../shared/components/icon/icon.component';
 import { KpiCardComponent } from '../../../../../shared/components/admin/kpi-card/kpi-card.component';
+import { DateRangeToggleComponent } from '../../../../../shared/components/admin/date-range-toggle/date-range-toggle.component';
 
 interface QuickAction {
   id: string;
@@ -28,7 +29,7 @@ const QUICK_ACTIONS: readonly QuickAction[] = [
 
 @Component({
   selector: 'app-admin-system-dashboard',
-  imports: [CommonModule, RouterLink, DialogComponent, IconComponent, KpiCardComponent],
+  imports: [CommonModule, RouterLink, DialogComponent, IconComponent, KpiCardComponent, DateRangeToggleComponent],
   templateUrl: './admin-system-dashboard.component.html',
   styleUrl: './admin-system-dashboard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -43,6 +44,9 @@ export class AdminSystemDashboardComponent implements OnInit {
   pendingApprovals = input.required<PendingApproval[]>();
   isLoading = input.required<boolean>();
   isLoadingPending = input.required<boolean>();
+  // F-P2: parent owns the selected window so navigation back to the
+  // dashboard preserves the choice.
+  windowDays = input<number>(30);
 
   ngOnInit(): void {
     // Fire and forget — service flips its own loading signal during the probe.
@@ -56,6 +60,7 @@ export class AdminSystemDashboardComponent implements OnInit {
   // --- Outputs to parent ---
   courseApproved = output<string>();
   courseRejected = output<{ id: string; reason: string }>();
+  windowDaysChange = output<number>();
 
   // Shortcut panel — replaces the redundant "Tổng quan nhanh" card.
   quickActions = computed<readonly QuickAction[]>(() => QUICK_ACTIONS);

@@ -332,18 +332,60 @@ textarea.form-input {
   }
 }
 
-/* ===== EMPTY STATE ===== */
+/* ===== EMPTY STATE (F-CAT3 — Carbon Inform + Inspire + Activate) ===== */
 .empty-panel {
   @extend .card;
-  padding: $spacing-12;
+  padding: $spacing-12 $spacing-6;
   text-align: center;
-  color: $text-disabled;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-3;
+}
 
-  p {
-    font-size: $text-sm;
-    margin: 0;
+.empty-illustration {
+  width: 96px;
+  height: 96px;
+  margin-bottom: $spacing-2;
+}
 
-    & + p { margin-top: $spacing-1; }
+.empty-title {
+  font-size: $text-lg;
+  font-weight: $font-semibold;
+  color: $text-primary;
+  margin: 0;
+}
+
+.empty-desc {
+  font-size: $text-sm;
+  color: $text-secondary;
+  margin: 0;
+  max-width: 36ch;       // keep the line length comfortable
+  line-height: $leading-normal;
+}
+
+.empty-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: $spacing-3;
+  padding: 0 $spacing-4;
+  min-height: 40px;       // WCAG 2.2 SC 2.5.8 desktop target
+  background: $blue-primary;
+  color: $text-inverse;
+  border: 1px solid $blue-primary;
+  border-radius: $radius-md;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  cursor: pointer;
+  transition:
+    background $transition-fast,
+    box-shadow $transition-fast;
+
+  &:hover { background: #004BB5; }   // matches design-token hover
+  &:focus-visible {
+    outline: 2px solid $blue-primary;
+    outline-offset: 2px;
   }
 }
 
