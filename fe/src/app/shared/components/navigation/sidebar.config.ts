@@ -193,8 +193,14 @@ const allAdminMenuItems: SidebarMenuItem[] = [
     route: '/admin/users',
     icon: 'users',
     group: 'Quản lý',
+    // Children theo role hierarchy descending (All -> Admins -> Teachers ->
+    // Students) cho navigation affordance đồng bộ KPI drill-down PR #224.
+    // 'Quản trị viên' route /admin/users/admins được systemAdminGuard chặn
+    // ORG_ADMIN ở route layer; ORG_ADMIN dùng `orgAdminSidebarConfig`
+    // riêng nên không thấy item này (no FE filter cần thiết).
     children: [
       { label: 'Tất cả', route: '/admin/users/all', icon: 'users' },
+      { label: 'Quản trị viên', route: '/admin/users/admins', icon: 'shield' },
       { label: 'Giảng viên', route: '/admin/users/teachers', icon: 'briefcase' },
       { label: 'Học viên', route: '/admin/users/students', icon: 'graduation-cap' }
     ]
