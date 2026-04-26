@@ -19,6 +19,40 @@
         </button>
     </div>
 
+    <!-- Phase 3 PR 1 (#237): Org context block — auto-render khi user trong
+         org detail page. Pattern: GitHub org context bar, Linear workspace
+         switcher. Ẩn khi sidebar collapsed để tiết kiệm space. -->
+    @if (inOrgContext() && !collapsed()) {
+        <div class="sidebar-org-context" role="complementary" aria-label="Đang xem tổ chức">
+            <div class="sidebar-org-context-header">
+                <div class="sidebar-org-avatar"
+                     [class.sidebar-org-avatar--platform]="currentOrg()!.type === 'PLATFORM'"
+                     [class.sidebar-org-avatar--partner]="currentOrg()!.type === 'PARTNER'"
+                     [class.sidebar-org-avatar--internal]="currentOrg()!.type === 'INTERNAL'">
+                    {{ orgAvatarLabel() }}
+                </div>
+                <div class="sidebar-org-info">
+                    <div class="sidebar-org-name" [title]="currentOrg()!.name">
+                        {{ currentOrg()!.name }}
+                        @if (currentOrg()!.isDefault) {
+                            <span class="sidebar-org-default-star" aria-label="Tổ chức nền tảng" title="Tổ chức nền tảng">⭐</span>
+                        }
+                    </div>
+                    <div class="sidebar-org-meta">
+                        <span [class]="orgTypeBadge().cssClass">{{ orgTypeBadge().label }}</span>
+                        <span class="sidebar-org-code">{{ currentOrg()!.code }}</span>
+                    </div>
+                </div>
+            </div>
+            @if (orgListBackRoute()) {
+                <a [routerLink]="orgListBackRoute()" class="sidebar-org-back">
+                    <app-icon name="chevron-left" size="xs"/>
+                    <span>Danh sách tổ chức</span>
+                </a>
+            }
+        </div>
+    }
+
     <!-- Navigation Menu -->
     <nav class="sidebar-nav">
         @for (item of config().menuItems; track item.route; let i = $index) {
