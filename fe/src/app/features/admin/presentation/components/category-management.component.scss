@@ -147,6 +147,16 @@
   color: $error;
 }
 
+/* CC-10: per-row kebab wrapper. Pushes the kebab to the right edge of
+   the row and stops the click from bubbling into selectCategory(). The
+   trigger itself is sized by the shared component. */
+.tree-item-actions {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
 /* Sub-category item */
 .tree-sub-item {
   display: flex;
