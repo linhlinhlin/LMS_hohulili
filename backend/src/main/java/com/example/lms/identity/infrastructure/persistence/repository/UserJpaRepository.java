@@ -130,5 +130,9 @@ public interface UserJpaRepository extends JpaRepository<UserJpaEntity, UUID> {
             @Param("from") java.time.Instant from,
             @Param("to") java.time.Instant to
     );
+
+    /** Count members across all organizations (issue #200, F-ORG-1). */
+    @Query("SELECT COUNT(u) FROM UserJpaEntity u WHERE u.organizationId IS NOT NULL")
+    long countByOrganizationIdIsNotNull();
 }
 

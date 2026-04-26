@@ -20,6 +20,25 @@
   margin-bottom: $spacing-6;
 }
 
+/* ===== KPI STRIP =====
+   F-ORG-1: 4 cards top, mirrors dashboard / users family pattern.
+   Uses shared <app-kpi-card> so visual contract is consistent.
+*/
+.kpi-strip {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $spacing-4;
+  margin-bottom: $spacing-6;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
 .page-header-text {
   h1 {
     font-size: $text-2xl;

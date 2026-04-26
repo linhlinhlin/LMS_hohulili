@@ -69,8 +69,20 @@ public interface OrganizationInviteJpaRepository extends JpaRepository<Organizat
     @Query("""
         UPDATE OrganizationInviteJpaEntity i
         SET i.status = 'EXPIRED'
-        WHERE i.status = 'ACTIVE'
+          WHERE i.status = 'ACTIVE'
           AND i.expiresAt <= :now
         """)
     int markExpiredInvites(@Param("now") Instant now);
+
+    /**
+     * Count active (status=ACTIVE, not expired) invites across all
+     * organizations. Powers `/admin/organizations/stats` KPI strip
+     * (issue #200, F-ORG-1).
+     */
+    @Query("""
+        SELECT COUNT(i) FROM OrganizationInviteJpaEntity i
+        WHERE i.status = 'ACTIVE'
+          AND i.expiresAt > :now
+        """)
+    long countActiveInvites(@Param("now") Instant now);
 }

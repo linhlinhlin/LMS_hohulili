@@ -4,6 +4,8 @@ import com.example.lms.identity.application.dto.*;
 import com.example.lms.identity.application.usecase.*;
 import com.example.lms.identity.domain.model.Organization;
 import com.example.lms.identity.domain.repository.OrganizationRepository;
+import com.example.lms.identity.infrastructure.persistence.OrganizationInviteJpaRepository;
+import com.example.lms.identity.infrastructure.persistence.OrganizationJpaRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.shared.exception.EntityNotFoundException;
@@ -21,6 +23,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +49,8 @@ public class OrganizationControllerV3 {
     private final ListInvitesUseCase listInvitesUseCase;
     private final RevokeInviteUseCase revokeInviteUseCase;
     private final UserJpaRepository userJpaRepo;
+    private final OrganizationJpaRepository orgJpaRepo;
+    private final OrganizationInviteJpaRepository inviteJpaRepo;
 
     // ==================== Organization CRUD ====================
 
@@ -65,6 +70,19 @@ public class OrganizationControllerV3 {
                     .orElse(ResponseEntity.ok(ApiResponse.success(List.of())));
         }
         return ResponseEntity.ok(ApiResponse.success(listOrganizationsUseCase.execute()));
+    }
+
+    @GetMapping("/stats")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Thống kê tổ chức (ADMIN only)")
+    public ResponseEntity<ApiResponse<OrganizationStatsResponse>> getStats() {
+        OrganizationStatsResponse stats = new OrganizationStatsResponse(
+                orgJpaRepo.count(),
+                orgJpaRepo.countByEnabledTrue(),
+                userJpaRepo.countByOrganizationIdIsNotNull(),
+                inviteJpaRepo.countActiveInvites(Instant.now())
+        );
+        return ResponseEntity.ok(ApiResponse.success(stats));
     }
 
     @GetMapping("/{id}")

@@ -1,5 +1,6 @@
 export const ORGANIZATION_ENDPOINTS = {
   BASE: '/api/v3/organizations',
+  STATS: '/api/v3/organizations/stats',
   BY_ID: (id: string) => `/api/v3/organizations/${id}`,
   MEMBERS: (id: string) => `/api/v3/organizations/${id}/members`,
   REMOVE_MEMBER: (id: string, userId: string) => `/api/v3/organizations/${id}/members/${userId}`,
