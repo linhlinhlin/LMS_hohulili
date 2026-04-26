@@ -1,0 +1,170 @@
+@use '../../../../../styles/variables' as *;
+
+/* Shared kebab-menu — admin portal (CC-10 in 2026-04-25 mega audit).
+   Per-row overflow action surface that replaces inline-edit selects + 5–7
+   icon-button stripes. WAI-ARIA Authoring Practices §3.16 menu-button
+   pattern.
+
+   Trigger lives inline with the row's actions cell; panel pops to the
+   bottom-right of the trigger via local stacking context. */
+
+:host {
+  position: relative;
+  display: inline-block;
+  /* High enough to layer over `:hover` row backgrounds and badges within
+     the same cell, low enough to stay under modal backdrops (z-100+) and
+     toast surfaces. */
+  z-index: 5;
+}
+
+/* When open, lift the host above sibling rows so the panel tucks above
+   adjacent row hover states without clipping. */
+:host:has(.kebab-trigger.is-open) {
+  z-index: 20;
+}
+
+.kebab-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* WCAG 2.5.5 (touch target ≥ 24×24, AA compliant via inset). */
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: $radius-md;
+  color: $gray-500;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+
+  &:hover:not(:disabled) {
+    background: $gray-100;
+    color: $gray-700;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $blue-primary;
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  &.is-open {
+    background: $gray-100;
+    color: $gray-800;
+    border-color: $gray-200;
+  }
+}
+
+.kebab-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.kebab-panel {
+  position: absolute;
+  top: calc(100% + #{$spacing-1});
+  right: 0;
+  min-width: 200px;
+  max-width: 280px;
+  padding: $spacing-1 0;
+  background: $bg-surface;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  box-shadow: $shadow-lg;
+  z-index: $z-dropdown;
+
+  /* Slide-down + fade-in microinteraction matches admin portal modals. */
+  animation: kebab-pop 0.12s ease-out;
+  transform-origin: top right;
+}
+
+@keyframes kebab-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.kebab-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+  width: 100%;
+  /* Touch-friendly hit area: ~40px tall × full panel width. */
+  padding: $spacing-2 $spacing-3;
+  background: transparent;
+  border: none;
+  color: $text-primary;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.1s ease, color 0.1s ease;
+
+  &:hover:not(:disabled) {
+    background: $gray-50;
+  }
+
+  &:focus-visible {
+    outline: none;
+    background: $blue-light;
+    color: $blue-pressed;
+    /* Inset focus ring so it stays clear of the panel border without
+       breaking the menu rectangle. */
+    box-shadow: inset 0 0 0 2px $blue-primary;
+  }
+
+  &.is-disabled,
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  &.is-danger {
+    color: $error;
+
+    &:hover:not(:disabled) {
+      background: $error-light;
+      color: $error;
+    }
+
+    &:focus-visible {
+      background: $error-light;
+      color: $error;
+      box-shadow: inset 0 0 0 2px $error;
+    }
+  }
+}
+
+.kebab-item-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.kebab-item-label {
+  flex: 1 1 auto;
+}
+
+/* Mobile tweak — keep the panel readable on narrow tables. */
+@media screen and (max-width: $breakpoint-sm) {
+  .kebab-panel {
+    min-width: 180px;
+    max-width: calc(100vw - #{$spacing-6});
+  }
+
+  .kebab-item {
+    padding: $spacing-3 $spacing-3;
+  }
+}

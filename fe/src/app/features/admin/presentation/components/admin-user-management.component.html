@@ -151,31 +151,15 @@
                       {{ admin.loginCount || 0 }} lần
                     </div>
                   </td>
-                  <!-- Actions -->
+                  <!-- Actions — CC-10: replaced inline status select + revoke
+                       icon button with shared kebab menu. Status pill
+                       column above remains read-only. -->
                   <td class="actions-cell">
                     <div class="actions-row">
-                      <!-- Status Actions -->
-                      <select (change)="onStatusActionChange(admin, $any($event.target).value); $any($event.target).value = ''"
-                              class="action-select">
-                        <option value="" disabled selected>Trạng thái</option>
-                        @if (admin.accountStatus !== 'ACTIVE') {
-                          <option value="ACTIVE">Kích hoạt</option>
-                        }
-                        @if (admin.accountStatus !== 'BLOCKED') {
-                          <option value="BLOCKED">Khóa</option>
-                        }
-                        @if (admin.accountStatus !== 'RESTRICTED') {
-                          <option value="RESTRICTED">Hạn chế</option>
-                        }
-                      </select>
-                      <!-- Revoke Admin -->
-                      <button (click)="revokeAdmin(admin)"
-                              class="btn-icon-danger"
-                              title="Thu hồi quyền Admin">
-                        <svg fill="currentColor" viewBox="0 0 20 20">
-                          <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path>
-                        </svg>
-                      </button>
+                      <app-kebab-menu
+                        [actions]="rowActions(admin)"
+                        [triggerAriaLabel]="'Mở menu thao tác cho ' + admin.name"
+                        (actionClick)="onRowAction(admin, $event)" />
                     </div>
                   </td>
                 </tr>

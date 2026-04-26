@@ -11,6 +11,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { getAdminPortalBase } from '../../../../core/utils/portal-route.util';
 import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/kpi-card.component';
 import { BulkActionBarComponent, BulkAction } from '../../../../shared/components/admin/bulk-action-bar/bulk-action-bar.component';
+import { KebabMenuComponent, KebabAction } from '../../../../shared/components/admin/kebab-menu/kebab-menu.component';
 
 /**
  * Teacher Management Component
@@ -19,7 +20,7 @@ import { BulkActionBarComponent, BulkAction } from '../../../../shared/component
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-teacher-management',
-  imports: [RouterModule, FormsModule, KpiCardComponent, BulkActionBarComponent],
+  imports: [RouterModule, FormsModule, KpiCardComponent, BulkActionBarComponent, KebabMenuComponent],
   styleUrl: './teacher-management.component.scss',
   templateUrl: './teacher-management.html'
 })
@@ -164,6 +165,65 @@ export class TeacherManagementComponent implements OnInit {
 
   clearSelection(): void {
     this.selectedUserIds.set(new Set());
+  }
+
+  // --- Per-row kebab menu (CC-10) ---
+  // Replaces the inline `<select>` Trạng thái + Vô hiệu hóa icon button.
+  // Status pill stays as a read-only badge in its own column. The kebab
+  // surfaces Kích hoạt / Khóa / Hạn chế and (system-admin only) Vô hiệu
+  // hóa tài khoản.
+  rowActions(teacher: AdminUser): KebabAction[] {
+    const status = teacher.accountStatus;
+    const items: KebabAction[] = [];
+
+    if (status !== 'ACTIVE') {
+      items.push({
+        key: 'status:ACTIVE',
+        label: 'Kích hoạt',
+        ariaLabel: `Kích hoạt tài khoản ${teacher.name}`,
+        icon: 'M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z',
+      });
+    }
+    if (status !== 'BLOCKED') {
+      items.push({
+        key: 'status:BLOCKED',
+        label: 'Khóa',
+        variant: 'danger',
+        ariaLabel: `Khóa tài khoản ${teacher.name}`,
+        icon: 'M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z',
+      });
+    }
+    if (status !== 'RESTRICTED') {
+      items.push({
+        key: 'status:RESTRICTED',
+        label: 'Hạn chế',
+        ariaLabel: `Hạn chế tài khoản ${teacher.name}`,
+        icon: 'M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z',
+      });
+    }
+    // System admin gets the destructive Vô hiệu hóa lever; ORG_ADMIN does
+    // not (mirrors the per-row icon button gate that was here before).
+    if (this.isSystemAdmin()) {
+      items.push({
+        key: 'delete',
+        label: 'Vô hiệu hóa tài khoản',
+        variant: 'danger',
+        ariaLabel: `Vô hiệu hóa tài khoản ${teacher.name}`,
+        icon: 'M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z',
+      });
+    }
+
+    return items;
+  }
+
+  onRowAction(teacher: AdminUser, key: string): void {
+    if (key === 'delete') {
+      this.deleteUser(teacher.id);
+      return;
+    }
+    if (key.startsWith('status:')) {
+      this.onStatusActionChange(teacher, key.slice('status:'.length));
+    }
   }
 
   // --- Bulk action dispatcher ---

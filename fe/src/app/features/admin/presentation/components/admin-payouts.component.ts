@@ -5,6 +5,7 @@ import { AuthService, UserRole } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/kpi-card.component';
 import { DateRangeToggleComponent } from '../../../../shared/components/admin/date-range-toggle/date-range-toggle.component';
+import { KebabMenuComponent, KebabAction } from '../../../../shared/components/admin/kebab-menu/kebab-menu.component';
 
 interface PayoutListItem {
     id: string;
@@ -24,7 +25,7 @@ interface PayoutListItem {
 
 @Component({
     selector: 'app-admin-payouts',
-    imports: [FormsModule, KpiCardComponent, DateRangeToggleComponent],
+    imports: [FormsModule, KpiCardComponent, DateRangeToggleComponent, KebabMenuComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styleUrl: './admin-payouts.component.scss',
     template: `
@@ -181,22 +182,18 @@ interface PayoutListItem {
                           </span>
                         }
                       </td>
+                      <!-- CC-10: per-row kebab replaces 1–2 inline buttons.
+                           Pending → Duyệt + Từ chối. Approved + system admin
+                           → Xác nhận đã CK. Approved + ORG_ADMIN → wait
+                           label (no kebab needed). -->
                       <td class="col-center">
                         <div class="action-cell">
-                          @if (payout.status === 'PENDING') {
-                            <button (click)="openApprove(payout)" class="btn-action btn-approve-action">
-                              Duyệt
-                            </button>
-                            <button (click)="openReject(payout)" class="btn-action btn-reject-action">
-                              Từ chối
-                            </button>
-                          }
-                          @if (payout.status === 'APPROVED' && isSystemAdmin()) {
-                            <button (click)="complete(payout)" class="btn-action btn-complete-action">
-                              Xác nhận đã CK
-                            </button>
-                          }
-                          @if (payout.status === 'APPROVED' && !isSystemAdmin()) {
+                          @if (rowActions(payout).length > 0) {
+                            <app-kebab-menu
+                              [actions]="rowActions(payout)"
+                              [triggerAriaLabel]="'Mở menu thao tác cho yêu cầu của ' + payout.teacherName"
+                              (actionClick)="onRowAction(payout, $event)" />
+                          } @else if (payout.status === 'APPROVED' && !isSystemAdmin()) {
                             <span class="action-wait">Chờ admin hoàn tất</span>
                           }
                         </div>
@@ -450,6 +447,55 @@ export class AdminPayoutsComponent implements OnInit {
         if (this.hasMore()) {
             this.currentPage.update(page => page + 1);
             this.loadPayouts();
+        }
+    }
+
+    /**
+     * CC-10: per-row kebab actions.
+     * - PENDING: Duyệt + Từ chối (anyone with admin role; BE enforces auth).
+     * - APPROVED + system ADMIN: Xác nhận đã CK.
+     * - APPROVED + ORG_ADMIN: empty (template renders the "Chờ admin" label).
+     * - COMPLETED / REJECTED / CANCELLED: empty (no actions left).
+     */
+    rowActions(payout: PayoutListItem): KebabAction[] {
+        const items: KebabAction[] = [];
+        if (payout.status === 'PENDING') {
+            items.push({
+                key: 'approve',
+                label: 'Duyệt',
+                ariaLabel: `Duyệt yêu cầu của ${payout.teacherName}`,
+                icon: 'M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z',
+            });
+            items.push({
+                key: 'reject',
+                label: 'Từ chối',
+                variant: 'danger',
+                ariaLabel: `Từ chối yêu cầu của ${payout.teacherName}`,
+                icon: 'M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z',
+            });
+        }
+        if (payout.status === 'APPROVED' && this.isSystemAdmin()) {
+            items.push({
+                key: 'complete',
+                label: 'Xác nhận đã CK',
+                ariaLabel: `Xác nhận đã chuyển khoản cho ${payout.teacherName}`,
+                icon: 'M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z',
+            });
+        }
+        return items;
+    }
+
+    onRowAction(payout: PayoutListItem, key: string): void {
+        switch (key) {
+            case 'approve':
+                this.openApprove(payout);
+                break;
+            case 'reject':
+                this.openReject(payout);
+                break;
+            case 'complete':
+                this.complete(payout);
+                break;
         }
     }
 

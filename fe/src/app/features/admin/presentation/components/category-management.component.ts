@@ -8,10 +8,11 @@ import {
 } from '@angular/cdk/drag-drop';
 import { AdminService } from '../../infrastructure/services/admin.service';
 import { CourseCategoryDTO, CourseTagDTO } from '../../../../api/types/course.types';
+import { KebabMenuComponent, KebabAction } from '../../../../shared/components/admin/kebab-menu/kebab-menu.component';
 
 @Component({
   selector: 'app-category-management',
-  imports: [CommonModule, FormsModule, DragDropModule],
+  imports: [CommonModule, FormsModule, DragDropModule, KebabMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './category-management.component.scss',
   template: `
@@ -74,6 +75,19 @@ import { CourseCategoryDTO, CourseTagDTO } from '../../../../api/types/course.ty
                       @if (!root.active) {
                         <span class="tree-item-hidden">Ẩn</span>
                       }
+                      <!-- CC-10: per-row kebab. Replaces the implicit
+                           "click row to select then operate from right
+                           panel" gesture with an explicit overflow
+                           surface (Đổi tên / Thêm danh mục con / Ẩn or
+                           Kích hoạt). The wrapper stops click bubbling so
+                           toggling the menu does not also re-select the
+                           row underneath. -->
+                      <span class="tree-item-actions" (click)="$event.stopPropagation()">
+                        <app-kebab-menu
+                          [actions]="rootActions(root)"
+                          [triggerAriaLabel]="'Mở menu thao tác cho danh mục ' + root.name"
+                          (actionClick)="onCategoryAction(root, $event)" />
+                      </span>
                     </div>
 
                     <!-- Sub-category drop list (always present so the user can
@@ -103,6 +117,14 @@ import { CourseCategoryDTO, CourseTagDTO } from '../../../../api/types/course.ty
                             @if (!sub.active) {
                               <span class="tree-item-hidden">Ẩn</span>
                             }
+                            <!-- CC-10: kebab. Sub-category cannot host
+                                 children (level-2 cap), so no "Thêm con". -->
+                            <span class="tree-item-actions" (click)="$event.stopPropagation()">
+                              <app-kebab-menu
+                                [actions]="subActions(sub)"
+                                [triggerAriaLabel]="'Mở menu thao tác cho danh mục ' + sub.name"
+                                (actionClick)="onCategoryAction(sub, $event)" />
+                            </span>
                           </div>
                         } @empty {
                           <div class="tree-sub-empty">Thả vào đây để thêm danh mục con</div>
@@ -449,6 +471,93 @@ export class CategoryManagementComponent implements OnInit {
         this.cancelEdit();
       }
     });
+  }
+
+  // --- Per-row kebab menu (CC-10) ---
+  // Roots get the full action set (rename, add subcategory, hide/activate).
+  // Subs cannot host children (level-2 cap) so the "add sub" entry is
+  // suppressed. The active/inactive state flips between Ẩn (hide) and
+  // Kích hoạt (re-activate) so the danger styling matches user intent.
+
+  rootActions(root: CourseCategoryDTO): KebabAction[] {
+    const isHidden = !root.active;
+    return [
+      {
+        key: 'rename',
+        label: 'Đổi tên / chỉnh sửa',
+        ariaLabel: `Chỉnh sửa danh mục ${root.name}`,
+        icon: 'M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z',
+      },
+      {
+        key: 'add-sub',
+        label: 'Thêm danh mục con',
+        ariaLabel: `Thêm danh mục con dưới ${root.name}`,
+        icon: 'M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z',
+      },
+      isHidden
+        ? {
+            key: 'activate',
+            label: 'Kích hoạt',
+            ariaLabel: `Kích hoạt danh mục ${root.name}`,
+            icon: 'M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z',
+          }
+        : {
+            key: 'hide',
+            label: 'Ẩn danh mục',
+            variant: 'danger',
+            ariaLabel: `Ẩn danh mục ${root.name}`,
+            icon: 'M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z',
+          },
+    ];
+  }
+
+  subActions(sub: CourseCategoryDTO): KebabAction[] {
+    const isHidden = !sub.active;
+    return [
+      {
+        key: 'rename',
+        label: 'Đổi tên / chỉnh sửa',
+        ariaLabel: `Chỉnh sửa danh mục ${sub.name}`,
+        icon: 'M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z',
+      },
+      isHidden
+        ? {
+            key: 'activate',
+            label: 'Kích hoạt',
+            ariaLabel: `Kích hoạt danh mục ${sub.name}`,
+            icon: 'M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z',
+          }
+        : {
+            key: 'hide',
+            label: 'Ẩn danh mục',
+            variant: 'danger',
+            ariaLabel: `Ẩn danh mục ${sub.name}`,
+            icon: 'M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z',
+          },
+    ];
+  }
+
+  onCategoryAction(category: CourseCategoryDTO, key: string): void {
+    switch (key) {
+      case 'rename':
+        // Same flow as click-to-select: opens the right edit panel with
+        // the category's current values seeded in the form.
+        this.selectCategory(category);
+        break;
+      case 'add-sub':
+        // Roots only — uses the existing add-sub plumbing so a follow-up
+        // create call gets parentId set.
+        this.startCreateSub(category);
+        break;
+      case 'hide':
+      case 'activate':
+        // Both routes call deleteCourseCategory which is the BE soft-
+        // delete / re-activate toggle. We seed selectedCategory first so
+        // toggleActive has a target.
+        this.selectedCategory.set(category);
+        this.toggleActive();
+        break;
+    }
   }
 
   private resetForm(): void {
