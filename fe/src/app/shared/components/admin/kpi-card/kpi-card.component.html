@@ -1,21 +1,45 @@
-<div class="kpi-card" [class]="'kpi-' + variant()">
-  <p class="kpi-value">{{ value() }}</p>
-  <p class="kpi-label">{{ label() }}</p>
-  @if (hasTrend() || sub()) {
-    <p class="kpi-sub">
-      @if (hasTrend() && trendKind() !== 'flat') {
-        <span class="trend" [class]="'trend-' + trendKind()" aria-hidden="true">
-          <span class="trend-arrow">{{ trendArrowGlyph() }}</span>
-          <span>{{ trendMag() }}%</span>
-        </span>
-        <span>{{ trendLabel() }}</span>
-      } @else if (hasTrend()) {
-        <span class="trend trend-flat" aria-hidden="true">—</span>
-        <span>{{ trendLabel() }}</span>
-      }
-      @if (sub()) {
-        <span [class.sub-after-trend]="hasTrend()">{{ sub() }}</span>
-      }
-    </p>
-  }
-</div>
+@if (isClickable()) {
+  <a [routerLink]="route()" class="kpi-card kpi-clickable" [class]="'kpi-' + variant()">
+    <p class="kpi-value">{{ value() }}</p>
+    <p class="kpi-label">{{ label() }}</p>
+    @if (hasTrend() || sub()) {
+      <p class="kpi-sub">
+        @if (hasTrend() && trendKind() !== 'flat') {
+          <span class="trend" [class]="'trend-' + trendKind()" aria-hidden="true">
+            <span class="trend-arrow">{{ trendArrowGlyph() }}</span>
+            <span>{{ trendMag() }}%</span>
+          </span>
+          <span>{{ trendLabel() }}</span>
+        } @else if (hasTrend()) {
+          <span class="trend trend-flat" aria-hidden="true">—</span>
+          <span>{{ trendLabel() }}</span>
+        }
+        @if (sub()) {
+          <span [class.sub-after-trend]="hasTrend()">{{ sub() }}</span>
+        }
+      </p>
+    }
+  </a>
+} @else {
+  <div class="kpi-card" [class]="'kpi-' + variant()">
+    <p class="kpi-value">{{ value() }}</p>
+    <p class="kpi-label">{{ label() }}</p>
+    @if (hasTrend() || sub()) {
+      <p class="kpi-sub">
+        @if (hasTrend() && trendKind() !== 'flat') {
+          <span class="trend" [class]="'trend-' + trendKind()" aria-hidden="true">
+            <span class="trend-arrow">{{ trendArrowGlyph() }}</span>
+            <span>{{ trendMag() }}%</span>
+          </span>
+          <span>{{ trendLabel() }}</span>
+        } @else if (hasTrend()) {
+          <span class="trend trend-flat" aria-hidden="true">—</span>
+          <span>{{ trendLabel() }}</span>
+        }
+        @if (sub()) {
+          <span [class.sub-after-trend]="hasTrend()">{{ sub() }}</span>
+        }
+      </p>
+    }
+  </div>
+}

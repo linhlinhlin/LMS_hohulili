@@ -98,6 +98,25 @@
   font-weight: $font-semibold;
   color: $text-primary;
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-2;
+}
+
+/* Inbox-style count badge — Linear "Inbox 12" / GitHub "Notifications (5)" /
+   Stripe "Disputes (3)" pattern. Hiển thị ngay sau title khi pendingCourses>0,
+   ẩn khi=0 để empty state trông sạch. Color đồng bộ KPI #3 warning amber. */
+.count-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px $spacing-2;
+  background: rgba($warning, 0.12);
+  color: $warning;
+  border-radius: 999px;
+  font-size: $text-xs;
+  font-weight: $font-semibold;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
 }
 
 .card-body {
@@ -188,7 +207,41 @@
   &:hover { background: $gray-50; }
 }
 
-.date-text { color: $text-muted; }
+.date-text {
+  color: $text-muted;
+  // Tooltip cursor giúp user biết hover xem full timestamp ISO
+  cursor: help;
+}
+
+/* Footer "Xem tất cả N yêu cầu" — Stripe "View all" / Vercel "Show all"
+   pattern khi widget chỉ render top 5. Subtle blue link, icon arrow trượt
+   nhẹ khi hover. Chỉ render khi `analytics.pendingCourses > visible.length`. */
+.view-all-link {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-2;
+  margin: $spacing-3 $spacing-4 0;
+  padding: $spacing-2 0;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $blue-primary;
+  text-decoration: none;
+  border-top: 1px solid $border-light;
+  width: calc(100% - #{$spacing-4} * 2);
+  justify-content: flex-end;
+  transition: color $transition-fast;
+
+  app-icon {
+    transition: transform $transition-fast;
+  }
+
+  &:hover {
+    color: $blue-hover;
+    app-icon { transform: translateX(2px); }
+  }
+
+  @include focus-visible;
+}
 
 /* Badges */
 .badge {

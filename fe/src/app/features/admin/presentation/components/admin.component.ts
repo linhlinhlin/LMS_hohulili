@@ -177,7 +177,10 @@ export class AdminComponent implements OnInit {
 
   private loadPendingApprovals(): void {
     this.isLoadingPending.set(true);
-    this.adminService.getPendingCourses().subscribe({
+    // Dashboard widget hiển thị top 5 (Stripe Failed Payments / Vercel Top
+    // Deployments pattern) — phân trang đầy đủ thuộc về `/admin/courses/review`.
+    // Tổng số cần xử lý lấy từ `analytics().pendingCourses` (KPI strip).
+    this.adminService.getPendingCourses({ page: 0, size: 5 }).subscribe({
       next: (response: { data: PendingCourseSummary[] }) => {
         const items: PendingApproval[] = response.data.map((course) => ({
           id: course.id,
