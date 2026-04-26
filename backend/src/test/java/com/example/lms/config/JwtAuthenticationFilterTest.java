@@ -101,6 +101,35 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
+    @DisplayName("default organization endpoint is public for registration bootstrap")
+    void defaultOrganizationEndpointIsPublic() throws Exception {
+        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(
+                jwtService,
+                userDetailsService,
+                new PublicApiEndpointMatcher(),
+                testObjectMapper()
+        );
+
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v3/organizations/default");
+        request.addHeader("Authorization", "Bearer invalid-token");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        AtomicBoolean chainCalled = new AtomicBoolean(false);
+        FilterChain chain = (req, res) -> {
+            chainCalled.set(true);
+            ((MockHttpServletResponse) res).setStatus(200);
+        };
+
+        given(jwtService.extractUsername("invalid-token"))
+                .willThrow(new SignatureException("JWT signature does not match locally computed signature."));
+
+        filter.doFilter(request, response, chain);
+
+        assertThat(chainCalled.get()).isTrue();
+        assertThat(response.getStatus()).isEqualTo(200);
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
+    @Test
     @DisplayName("valid bearer token still authenticates optional-auth public routes")
     void validBearerStillAuthenticatesPublicRoute() throws Exception {
         JwtAuthenticationFilter filter = new JwtAuthenticationFilter(
