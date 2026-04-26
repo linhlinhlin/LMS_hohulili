@@ -23,9 +23,20 @@
           {{ org()!.code.substring(0, 2) }}
         </div>
         <div class="header-info">
-          <h1 class="header-title">{{ org()!.name }}</h1>
+          <h1 class="header-title">
+            {{ org()!.name }}
+            <!-- Phase 2 (#235): default org indicator — surfaces HoLiLiHu Org sau khi
+                 Phase 1 split type/isDefault. Title attribute giải thích cho user. -->
+            @if (org()!.isDefault) {
+              <span class="default-star" title="Tổ chức nền tảng — không thể xóa" aria-label="Tổ chức nền tảng">⭐</span>
+            }
+          </h1>
           <div class="header-meta">
             <span class="org-code">{{ org()!.code }}</span>
+            <span class="dot-separator">&middot;</span>
+            <!-- Phase 2 (#235): type badge multi-tenant signal (PLATFORM/PARTNER/INTERNAL).
+                 orgTypeBadge() null-safe fallback PARTNER cho legacy/corrupt data. -->
+            <span [ngClass]="orgTypeBadge().cssClass">{{ orgTypeBadge().label }}</span>
             <span class="dot-separator">&middot;</span>
             @if (org()!.enabled) {
               <span class="badge badge--active">Hoạt động</span>
@@ -37,7 +48,7 @@
           </div>
         </div>
         <div class="header-actions">
-          <button type="button" class="btn-primary" (click)="activeTab.set('invites')">
+          <button type="button" class="btn-primary" (click)="selectTab('invites')">
             <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
             </svg>
@@ -75,11 +86,15 @@
 
       <!-- Tabs -->
       <div class="tab-bar">
-        <nav class="tab-nav">
+        <nav class="tab-nav" role="tablist" aria-label="Phần quản lý tổ chức">
           @for (tab of tabs; track tab.key) {
-            <button (click)="activeTab.set(tab.key)"
+            <button (click)="selectTab(tab.key)"
                     class="tab-btn"
-                    [class.tab-btn--active]="activeTab() === tab.key">
+                    [class.tab-btn--active]="activeTab() === tab.key"
+                    role="tab"
+                    [attr.aria-selected]="activeTab() === tab.key"
+                    [attr.aria-controls]="'panel-' + tab.key"
+                    [id]="'tab-' + tab.key">
               {{ tab.label }}
               @if (tab.key === 'members' && members().length > 0) {
                 <span class="tab-count" [class.tab-count--active]="activeTab() === 'members'" [class.tab-count--default]="activeTab() !== 'members'">
@@ -96,9 +111,101 @@
         </nav>
       </div>
 
+      <!-- ==================== OVERVIEW TAB (Phase 2 #235) ==================== -->
+      @if (activeTab() === 'overview') {
+        <div role="tabpanel" id="panel-overview" aria-labelledby="tab-overview" class="overview-grid">
+          <!-- Org info card — surfaces multi-tenant metadata (type, isDefault, code).
+               SOTA: Linear / Stripe org settings landing pattern. -->
+          <div class="card card-body overview-info-card">
+            <div class="overview-info-header">
+              <h3>Thông tin tổ chức</h3>
+              <button type="button" class="btn-link" (click)="selectTab('settings')">
+                Chỉnh sửa
+              </button>
+            </div>
+            <dl class="overview-info-list">
+              <div class="overview-info-row">
+                <dt>Loại tổ chức</dt>
+                <dd>
+                  <span [ngClass]="orgTypeBadge().cssClass">{{ orgTypeBadge().label }}</span>
+                  @if (org()!.isDefault) {
+                    <span class="overview-info-note">— tổ chức nền tảng mặc định</span>
+                  }
+                </dd>
+              </div>
+              <div class="overview-info-row">
+                <dt>Mã định danh</dt>
+                <dd><code class="overview-info-code">{{ org()!.code }}</code></dd>
+              </div>
+              <div class="overview-info-row">
+                <dt>Trạng thái</dt>
+                <dd>
+                  @if (org()!.enabled) {
+                    <span class="badge badge--active">Hoạt động</span>
+                  } @else {
+                    <span class="badge badge--disabled">Vô hiệu</span>
+                  }
+                </dd>
+              </div>
+              <div class="overview-info-row">
+                <dt>Token mặc định</dt>
+                <dd>{{ org()!.tokenExpiryDays }} ngày</dd>
+              </div>
+              <div class="overview-info-row">
+                <dt>Mô tả</dt>
+                <dd>{{ org()!.description || '—' }}</dd>
+              </div>
+              <div class="overview-info-row">
+                <dt>Tạo lúc</dt>
+                <dd>{{ org()!.createdAt | date:'dd/MM/yyyy HH:mm' }}</dd>
+              </div>
+              @if (org()!.updatedAt) {
+                <div class="overview-info-row">
+                  <dt>Cập nhật gần nhất</dt>
+                  <dd>{{ org()!.updatedAt | date:'dd/MM/yyyy HH:mm' }}</dd>
+                </div>
+              }
+            </dl>
+          </div>
+
+          <!-- Quick actions card — primary CTAs cho landing tab -->
+          <div class="card card-body overview-actions-card">
+            <h3>Hành động nhanh</h3>
+            <button type="button" class="overview-action-btn" (click)="selectTab('invites')">
+              <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+              </svg>
+              <div>
+                <div class="overview-action-title">Mời thành viên</div>
+                <div class="overview-action-sub">Tạo mã mời hoặc gửi email</div>
+              </div>
+            </button>
+            <button type="button" class="overview-action-btn" (click)="selectTab('payment-config')">
+              <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <div>
+                <div class="overview-action-title">Cấu hình doanh thu</div>
+                <div class="overview-action-sub">Tỷ lệ chia nền tảng / giảng viên / tổ chức</div>
+              </div>
+            </button>
+            <button type="button" class="overview-action-btn" (click)="selectTab('settings')">
+              <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
+              <div>
+                <div class="overview-action-title">Cài đặt tổ chức</div>
+                <div class="overview-action-sub">Tên, mô tả, thời hạn token</div>
+              </div>
+            </button>
+          </div>
+        </div>
+      }
+
       <!-- ==================== MEMBERS TAB ==================== -->
       @if (activeTab() === 'members') {
-        <div class="card card-overflow">
+        <div role="tabpanel" id="panel-members" aria-labelledby="tab-members" class="card card-overflow">
           <div class="table-scroll">
             <table class="data-table">
               <thead>
@@ -221,6 +328,7 @@
 
       <!-- ==================== INVITES TAB ==================== -->
       @if (activeTab() === 'invites') {
+        <div role="tabpanel" id="panel-invites" aria-labelledby="tab-invites">
         <!-- Create Invite Actions -->
         <div class="card invite-actions">
           <h3>Tạo lời mời mới</h3>
@@ -381,11 +489,42 @@
             </table>
           </div>
         </div>
+        </div>
+      }
+
+      <!-- ==================== STATS TAB (Phase 2 #235) ==================== -->
+      @if (activeTab() === 'stats') {
+        <div role="tabpanel" id="panel-stats" aria-labelledby="tab-stats" class="card card-body stats-empty">
+          <div class="stats-empty-icon">
+            <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+          </div>
+          <h3 class="stats-empty-title">Bảng điều khiển thống kê đang phát triển</h3>
+          <p class="stats-empty-desc">
+            Phase tiếp theo sẽ trực quan hóa: tăng trưởng thành viên, tỷ lệ sử dụng lời mời,
+            doanh thu khóa học, hoạt động đăng ký theo tuần.
+          </p>
+          <div class="stats-placeholder-grid">
+            <div class="stats-placeholder-card">
+              <div class="stats-placeholder-label">Tăng trưởng thành viên</div>
+              <div class="stats-placeholder-bar"></div>
+            </div>
+            <div class="stats-placeholder-card">
+              <div class="stats-placeholder-label">Sử dụng lời mời</div>
+              <div class="stats-placeholder-bar"></div>
+            </div>
+            <div class="stats-placeholder-card">
+              <div class="stats-placeholder-label">Doanh thu khóa học</div>
+              <div class="stats-placeholder-bar"></div>
+            </div>
+          </div>
+        </div>
       }
 
       <!-- ==================== PAYMENT CONFIG TAB ==================== -->
       @if (activeTab() === 'payment-config') {
-        <div class="config-section">
+        <div role="tabpanel" id="panel-payment-config" aria-labelledby="tab-payment-config" class="config-section">
           @if (isLoadingConfig()) {
             <div class="loading-center">
               <div class="loading-spinner-sm"></div>
@@ -518,7 +657,7 @@
 
       <!-- ==================== SETTINGS TAB ==================== -->
       @if (activeTab() === 'settings') {
-        <div class="card card-body settings-card">
+        <div role="tabpanel" id="panel-settings" aria-labelledby="tab-settings" class="card card-body settings-card">
           <h3>Cài đặt tổ chức</h3>
           <div class="settings-fields">
             <div>

@@ -1,15 +1,20 @@
-import { Component, signal, inject, OnInit, ChangeDetectionStrategy, computed } from '@angular/core';
+import { Component, signal, inject, OnInit, ChangeDetectionStrategy, computed, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { RouterModule, ActivatedRoute } from '@angular/router';
+import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { OrganizationService, OrgPaymentConfig } from '../../infrastructure/services/organization.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { AuthService } from '../../../../core/services/auth.service';
-import { Organization, OrganizationInvite, OrgMember } from '../../../../shared/types/user.types';
+import { Organization, OrganizationInvite, OrgMember, OrganizationType } from '../../../../shared/types/user.types';
 import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/kpi-card.component';
 import { KebabMenuComponent, KebabAction } from '../../../../shared/components/admin/kebab-menu/kebab-menu.component';
 
-type Tab = 'members' | 'invites' | 'settings' | 'payment-config';
+type Tab = 'overview' | 'members' | 'invites' | 'settings' | 'payment-config' | 'stats';
+
+const VALID_TABS: ReadonlySet<Tab> = new Set([
+  'overview', 'members', 'invites', 'settings', 'payment-config', 'stats'
+]);
 
 @Component({
   selector: 'app-organization-detail',
@@ -20,6 +25,8 @@ type Tab = 'members' | 'invites' | 'settings' | 'payment-config';
 })
 export class OrganizationDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
   private orgService = inject(OrganizationService);
   private toast = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
@@ -30,7 +37,9 @@ export class OrganizationDetailComponent implements OnInit {
   members = signal<OrgMember[]>([]);
   invites = signal<OrganizationInvite[]>([]);
   isLoading = signal(true);
-  activeTab = signal<Tab>('members');
+  // Phase 2 (#235): default 'overview' — landing card cho org info + multi-tenant
+  // signals (type, isDefault). Deep-link via query param ?tab=members|invites...
+  activeTab = signal<Tab>('overview');
 
   isCreatingInvite = signal(false);
   isSendingEmail = signal(false);
@@ -76,11 +85,28 @@ export class OrganizationDetailComponent implements OnInit {
   );
 
   readonly tabs = [
+    { key: 'overview' as Tab, label: 'Tổng quan' },
     { key: 'members' as Tab, label: 'Thành viên' },
     { key: 'invites' as Tab, label: 'Lời mời' },
-    { key: 'settings' as Tab, label: 'Cài đặt' },
-    { key: 'payment-config' as Tab, label: 'Cấu hình doanh thu' }
+    { key: 'stats' as Tab, label: 'Thống kê' },
+    { key: 'payment-config' as Tab, label: 'Cấu hình doanh thu' },
+    { key: 'settings' as Tab, label: 'Cài đặt' }
   ];
+
+  // Phase 2 (#235): multi-tenant signals — type badge variant + label + isDefault.
+  // Fallback dùng khi BE corruption / legacy data trả type=null hoặc value không
+  // map (BE đã có parseType warn fallback PARTNER, FE phản ánh chung).
+  private readonly orgTypeFallback = { label: 'Đối tác', cssClass: 'badge-org-type badge-org-type--partner' };
+  readonly orgTypeMeta: Record<OrganizationType, { label: string; cssClass: string }> = {
+    PLATFORM: { label: 'Nền tảng', cssClass: 'badge-org-type badge-org-type--platform' },
+    PARTNER:  { label: 'Đối tác',  cssClass: 'badge-org-type badge-org-type--partner' },
+    INTERNAL: { label: 'Nội bộ',   cssClass: 'badge-org-type badge-org-type--internal' }
+  };
+  /** Phase 2 (#235): null-safe lookup cho header + overview info card. */
+  orgTypeBadge = computed(() => {
+    const type = this.org()?.type;
+    return (type && this.orgTypeMeta[type]) || this.orgTypeFallback;
+  });
 
   private orgId = '';
 
@@ -91,8 +117,30 @@ export class OrganizationDetailComponent implements OnInit {
       this.toast.error('Không tìm thấy tổ chức để quản lý');
       return;
     }
+    // Phase 2 (#235): deep-link tab restore từ query param. takeUntilDestroyed
+    // giải phóng subscription khi component destroy — tránh leak trên admin
+    // route navigation. Pick up cả back/forward + share link.
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(params => {
+        const requested = params.get('tab') as Tab | null;
+        if (requested && VALID_TABS.has(requested)) {
+          this.activeTab.set(requested);
+        }
+      });
     this.loadAll();
     this.loadPaymentConfig();
+  }
+
+  /** Phase 2 (#235): chuyển tab + sync URL query param để deep-link / share. */
+  selectTab(tab: Tab): void {
+    this.activeTab.set(tab);
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    });
   }
 
   private loadAll(): void {

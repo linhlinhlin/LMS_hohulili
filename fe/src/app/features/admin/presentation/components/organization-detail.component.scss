@@ -1149,6 +1149,248 @@
   }
 }
 
+/* =====================================================================
+   Phase 2 (#235): multi-tenant signals + Overview + Stats
+   ===================================================================== */
+
+/* Type badge (PLATFORM / PARTNER / INTERNAL) — sits cùng row với status
+   badge ở header, dùng cùng visual contract (rounded pill, 11/13px text). */
+.badge-org-type {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+}
+.badge-org-type--platform {
+  background: rgba(0, 86, 210, 0.08);
+  color: #0056D2;
+  border-color: rgba(0, 86, 210, 0.2);
+}
+.badge-org-type--partner {
+  background: rgba(124, 58, 237, 0.08);
+  color: #6D28D9;
+  border-color: rgba(124, 58, 237, 0.2);
+}
+.badge-org-type--internal {
+  background: #f3f4f6;
+  color: #4b5563;
+  border-color: #e5e7eb;
+}
+
+/* Default org indicator next to title — surface HoLiLiHu Org */
+.default-star {
+  font-size: 0.85em;
+  margin-left: 6px;
+  cursor: help;
+}
+
+/* Overview tab — landing layout (info card + quick actions card) */
+.overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: $spacing-6;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.overview-info-card {
+  .overview-info-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: $spacing-4;
+
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #111827;
+    }
+  }
+
+  .btn-link {
+    background: none;
+    border: none;
+    color: #0056D2;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+
+    &:hover { background: rgba(0, 86, 210, 0.06); }
+    &:focus-visible { outline: 2px solid #0056D2; outline-offset: 2px; }
+  }
+}
+
+.overview-info-list {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(140px, max-content) 1fr;
+  gap: $spacing-3 $spacing-4;
+}
+
+.overview-info-row {
+  display: contents;
+
+  dt {
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  dd {
+    margin: 0;
+    color: #111827;
+    font-size: 14px;
+    word-break: break-word;
+  }
+}
+
+.overview-info-code {
+  background: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+.overview-info-note {
+  color: #6b7280;
+  font-size: 12px;
+  margin-left: 6px;
+}
+
+.overview-actions-card {
+  h3 {
+    margin: 0 0 $spacing-4 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+  }
+}
+
+.overview-action-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-3;
+  width: 100%;
+  padding: $spacing-3;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: $radius-lg;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-bottom: $spacing-2;
+
+  &:hover {
+    border-color: #0056D2;
+    background: rgba(0, 86, 210, 0.02);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #0056D2;
+    outline-offset: 2px;
+  }
+
+  .icon {
+    width: 20px;
+    height: 20px;
+    color: #0056D2;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  &:last-child { margin-bottom: 0; }
+}
+
+.overview-action-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 2px;
+}
+
+.overview-action-sub {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* Stats tab — empty/coming-soon SOTA pattern (Linear/Stripe placeholder) */
+.stats-empty {
+  text-align: center;
+  padding: $spacing-8 $spacing-6;
+}
+
+.stats-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: rgba(0, 86, 210, 0.08);
+  color: #0056D2;
+  margin-bottom: $spacing-4;
+
+  .icon-lg { width: 28px; height: 28px; }
+}
+
+.stats-empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 $spacing-2 0;
+}
+
+.stats-empty-desc {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 auto $spacing-6 auto;
+  max-width: 540px;
+  line-height: 1.6;
+}
+
+.stats-placeholder-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $spacing-3;
+  max-width: 720px;
+  margin: 0 auto;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stats-placeholder-card {
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: $radius-lg;
+  padding: $spacing-4;
+  text-align: left;
+}
+
+.stats-placeholder-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  margin-bottom: $spacing-2;
+}
+
+.stats-placeholder-bar {
+  height: 48px;
+  background: linear-gradient(90deg, rgba(0, 86, 210, 0.08), rgba(0, 86, 210, 0.03));
+  border-radius: 6px;
+}
+
 /* ===== PRINT ===== */
 @media print {
   .org-detail-page {
@@ -1163,12 +1405,14 @@
   .btn-danger-text,
   .btn-icon-xs,
   .btn-token-display,
+  .btn-link,
   .header-actions,
   .invite-actions,
   .new-code-banner,
   .tab-bar,
   .config-actions,
   .settings-actions,
+  .overview-actions-card,
   app-kebab-menu {
     display: none !important;
   }
