@@ -16,6 +16,16 @@
       }
     </div>
 
+    @if (stats(); as s) {
+      <!-- KPI strip — F-ORG-1, mirrors dashboard / users family pattern via shared kpi-card -->
+      <div class="kpi-strip">
+        <app-kpi-card label="Tổng tổ chức" [value]="s.totalOrgs" />
+        <app-kpi-card label="Đang hoạt động" [value]="s.activeOrgs" variant="success" />
+        <app-kpi-card label="Thành viên" [value]="s.totalMembers" sub="trong các tổ chức" />
+        <app-kpi-card label="Lời mời còn hiệu lực" [value]="s.activeInvites" sub="chưa hết hạn" />
+      </div>
+    }
+
     <!-- Create Form (inline card) -->
     @if (canCreateOrganizations() && showCreateForm()) {
       <div class="create-form-card">
@@ -93,7 +103,9 @@
                   <div class="org-meta">
                     <span class="org-code">{{ org.code }}</span>
                     <span class="dot-separator">&middot;</span>
-                    <span>Token: {{ org.tokenExpiryDays }} ngày</span>
+                    <span title="Thời hạn token đăng nhập của thành viên trong tổ chức">
+                      Hạn token: {{ org.tokenExpiryDays }} ngày
+                    </span>
                   </div>
                 </div>
               </div>
