@@ -1,9 +1,11 @@
-import { Component, input, output, signal, computed, inject, ChangeDetectionStrategy, ViewEncapsulation, OnInit, OnDestroy } from '@angular/core';
+import { Component, input, output, signal, computed, inject, ChangeDetectionStrategy, ViewEncapsulation, OnInit, OnDestroy, effect, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { RouterModule, Router, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
-import { UserRole } from '../../../shared/types/user.types';
+import { Organization, OrganizationType, UserRole } from '../../../shared/types/user.types';
+import { OrganizationService } from '../../../features/admin/infrastructure/services/organization.service';
 import { IconComponent, IconName } from '../icon/icon.component';
 import { getPortalLandingRoute } from '../../../core/utils/portal-route.util';
 
@@ -37,6 +39,8 @@ export interface SidebarConfig {
 export class SidebarComponent implements OnInit, OnDestroy {
   protected authService = inject(AuthService);
   private router = inject(Router);
+  private orgService = inject(OrganizationService);
+  private destroyRef = inject(DestroyRef);
 
   config = input.required<SidebarConfig>();
   collapsed = input(false);
@@ -45,6 +49,78 @@ export class SidebarComponent implements OnInit, OnDestroy {
   // Reactive URL tracking — for alsoActiveFor matching (OnPush safe)
   private currentUrl = signal(this.router.url.split('?')[0]);
   private routerSub?: Subscription;
+
+  // ---------------------------------------------------------------------
+  // Phase 3 PR 1 (#237): org context awareness — auto-detect khi user trong
+  // org detail page (/admin/organizations/:id hoặc /org-admin/organization)
+  // và fetch org info để render compact context block ở top sidebar.
+  // Pattern: GitHub org context bar, Linear workspace switcher.
+  // ---------------------------------------------------------------------
+  private readonly orgIdFromUrl = computed<string | null>(() => {
+    const url = this.currentUrl();
+    // Admin org detail: /admin/organizations/{uuid}/...
+    const adminMatch = url.match(/^\/admin\/organizations\/([0-9a-f-]{8,})/i);
+    if (adminMatch) return adminMatch[1];
+    // Org-admin route /org-admin/organization — orgId implicit từ JWT
+    if (url.startsWith('/org-admin/organization')) {
+      return this.authService.currentUserSignal()?.organizationId ?? null;
+    }
+    return null;
+  });
+
+  protected currentOrg = signal<Organization | null>(null);
+  protected isLoadingOrg = signal(false);
+  protected inOrgContext = computed(() => !!this.currentOrg() && this.orgIdFromUrl() === this.currentOrg()!.id);
+
+  /** Null-safe type meta (consistent với org-detail Phase 2). */
+  private readonly orgTypeFallback = { label: 'Đối tác', cssClass: 'sidebar-org-type sidebar-org-type--partner' };
+  private readonly orgTypeMeta: Record<OrganizationType, { label: string; cssClass: string }> = {
+    PLATFORM: { label: 'Nền tảng', cssClass: 'sidebar-org-type sidebar-org-type--platform' },
+    PARTNER:  { label: 'Đối tác',  cssClass: 'sidebar-org-type sidebar-org-type--partner' },
+    INTERNAL: { label: 'Nội bộ',   cssClass: 'sidebar-org-type sidebar-org-type--internal' }
+  };
+  protected orgTypeBadge = computed(() => {
+    const type = this.currentOrg()?.type;
+    return (type && this.orgTypeMeta[type]) || this.orgTypeFallback;
+  });
+
+  /** 2-letter avatar từ org code (consistent với org-detail header). */
+  protected orgAvatarLabel = computed(() => {
+    const code = this.currentOrg()?.code ?? '';
+    return code.substring(0, 2).toUpperCase();
+  });
+
+  protected orgListBackRoute = computed(() => {
+    return this.config().role === 'admin' ? '/admin/organizations' : null;
+  });
+
+  constructor() {
+    // Khi orgId từ URL thay đổi → fetch org info (skip nếu đã cache đúng id).
+    effect((onCleanup) => {
+      const orgId = this.orgIdFromUrl();
+      if (!orgId) {
+        this.currentOrg.set(null);
+        this.isLoadingOrg.set(false);
+        return;
+      }
+      if (this.currentOrg()?.id === orgId) return;
+      this.isLoadingOrg.set(true);
+      const sub = this.orgService.getOrganization(orgId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (org) => {
+            this.currentOrg.set(org);
+            this.isLoadingOrg.set(false);
+          },
+          error: () => {
+            // Silent fail — block ẩn nếu fetch lỗi (404/403/network).
+            this.currentOrg.set(null);
+            this.isLoadingOrg.set(false);
+          }
+        });
+      onCleanup(() => sub.unsubscribe());
+    });
+  }
 
   ngOnInit(): void {
     this.routerSub = this.router.events.pipe(
