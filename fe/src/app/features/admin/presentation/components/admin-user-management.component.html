@@ -138,9 +138,13 @@
                       {{ getStatusLabel(admin.accountStatus) }}
                     </span>
                   </td>
-                  <!-- Last Login -->
-                  <td class="date-text">
-                    {{ admin.lastLogin ? formatDateValue(admin.lastLogin) : 'Chưa đăng nhập' }}
+                  <!-- Last Login — relative time (Linear/GitHub/Stripe pattern,
+                       đồng bộ users/all PR #224). cursor-help + title chỉ khi
+                       có lastLogin (tránh hand cursor + tooltip rỗng). -->
+                  <td class="date-text"
+                      [class.cursor-help]="admin.lastLogin"
+                      [attr.title]="admin.lastLogin || null">
+                    {{ admin.lastLogin ? formatRelativeTime(admin.lastLogin) : 'Chưa đăng nhập' }}
                   </td>
                   <!-- Login Count -->
                   <td>
@@ -213,7 +217,7 @@
         </div>
         <div class="modal-footer">
           <button (click)="closeCreateModal()" class="btn-secondary">Hủy</button>
-          <button (click)="createAdmin()" [disabled]="!newAdminName() || !newAdminEmail()" class="btn-orange">
+          <button (click)="createAdmin()" [disabled]="!newAdminName() || !newAdminEmail()" class="btn-primary">
             Thêm quản trị viên
           </button>
         </div>

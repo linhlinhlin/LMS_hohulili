@@ -659,17 +659,20 @@ $purple-bg: #FAF5FF;
   &:hover { background: $gray-50; }
 }
 
-.btn-purple {
+/* F-T2 (CC-02): primary CTA modal footer — đồng bộ blue token thay
+   `$purple` cũ. Purple ngoài design token primary, tạo inconsistency
+   cross-portal. Mọi admin surface phải dùng `$blue-primary`. */
+.btn-primary {
   padding: $spacing-2 $spacing-4;
   font-size: $text-sm;
   color: white;
-  background: $purple;
+  background: $blue-primary;
   border: none;
   border-radius: $radius-sm;
   cursor: pointer;
   transition: background $transition-normal;
 
-  &:hover { background: $purple-hover; }
+  &:hover { background: $blue-hover; }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 

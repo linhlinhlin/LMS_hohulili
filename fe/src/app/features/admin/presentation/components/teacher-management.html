@@ -158,9 +158,15 @@
                           }
                         </button>
                       </td>
-                      <!-- Last Login -->
+                      <!-- Last Login — relative time (Linear/GitHub/Stripe pattern,
+                           đồng bộ users/all PR #224). cursor-help + title chỉ khi
+                           có lastLogin (tránh hand cursor + tooltip rỗng). -->
                       <td>
-                        <span class="date-text">{{ teacher.lastLogin ? formatDateValue(teacher.lastLogin) : 'Chưa đăng nhập' }}</span>
+                        <span class="date-text"
+                              [class.cursor-help]="teacher.lastLogin"
+                              [attr.title]="teacher.lastLogin || null">
+                          {{ teacher.lastLogin ? formatRelativeTime(teacher.lastLogin) : 'Chưa đăng nhập' }}
+                        </span>
                       </td>
                       <!-- Actions — CC-10: shared kebab replaces inline
                            status select + delete icon. -->
@@ -212,7 +218,7 @@
             </div>
             <div class="modal-footer">
               <button (click)="closeCreateModal()" class="btn-secondary">Hủy</button>
-              <button (click)="createTeacher()" [disabled]="!newTeacherName() || !newTeacherEmail()" class="btn-purple">
+              <button (click)="createTeacher()" [disabled]="!newTeacherName() || !newTeacherEmail()" class="btn-primary">
                 Thêm giảng viên
               </button>
             </div>

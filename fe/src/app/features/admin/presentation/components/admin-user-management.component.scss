@@ -609,17 +609,20 @@ $orange-700: #9A3412;
   &:hover { background: $gray-50; }
 }
 
-.btn-orange {
+/* F-AD1 (CC-02): primary CTA modal footer — đồng bộ blue token thay
+   `$orange-primary` cũ. Red/orange chỉ dành cho semantic destructive
+   (CLAUDE.md design token), không phải primary action. */
+.btn-primary {
   padding: $spacing-2 $spacing-4;
   font-size: $text-sm;
   color: $text-inverse;
-  background: $orange-primary;
+  background: $blue-primary;
   border: none;
   border-radius: $radius-sm;
   cursor: pointer;
   transition: background $transition-normal;
 
-  &:hover { background: $orange-hover; }
+  &:hover { background: $blue-hover; }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
