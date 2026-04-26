@@ -143,12 +143,18 @@
                       <option value="ADMIN">Quản trị viên</option>
                     </select>
                   </td>
-                  <!-- Issue #229: Tổ chức column — badge "Hệ thống" cho
-                       system ADMIN không thuộc org, badge org name cho
-                       ORG_ADMIN thuộc tổ chức cụ thể. -->
+                  <!-- Issue #229: Tổ chức column — 3 trạng thái:
+                       - organizationName != null -> badge org name (blue)
+                       - organizationId != null nhưng organizationName null -> orphan
+                         (org đã bị xóa) -> badge "(Tổ chức bị xóa)" gray
+                       - cả 2 null -> system ADMIN -> badge "Hệ thống" gray.
+                       Phân biệt orphan vs system tránh confusion (sub-agent
+                       review P1b PR #230). -->
                   <td>
                     @if (admin.organizationName) {
                       <span class="badge badge-org">{{ admin.organizationName }}</span>
+                    } @else if (admin.organizationId) {
+                      <span class="badge badge-system">(Tổ chức bị xóa)</span>
                     } @else {
                       <span class="badge badge-system">Hệ thống</span>
                     }
