@@ -1,0 +1,195 @@
+@use '../../../../../styles/variables' as *;
+
+/* Shared bulk-action bar — admin portal (Linear / GitHub / Stripe pattern).
+   CC-06 in 2026-04-25 mega audit. Slides up from the bottom edge of the
+   viewport when the parent surface has at least one row selected.
+
+   The bar is rendered unconditionally (slide animation needs both states
+   present) and toggled via the .is-visible modifier. Pointer + keyboard
+   focus are gated by [disabled] / [tabindex=-1] on each button while the
+   bar is collapsed. */
+
+:host {
+  display: contents;
+}
+
+.bulk-bar {
+  position: fixed;
+  bottom: $spacing-6;
+  left: 50%;
+  transform: translate(-50%, calc(100% + #{$spacing-6}));
+  z-index: 60; // above sticky table headers; below modal backdrop (z-100+).
+  pointer-events: none; // pass through clicks while collapsed.
+  transition: transform 0.18s ease-out, opacity 0.18s ease-out;
+  opacity: 0;
+  width: max-content;
+  max-width: calc(100vw - #{$spacing-8});
+
+  &.is-visible {
+    transform: translate(-50%, 0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.bulk-bar-inner {
+  display: flex;
+  align-items: center;
+  gap: $spacing-3;
+  padding: $spacing-2 $spacing-3 $spacing-2 $spacing-4;
+  background: $gray-900;
+  color: white;
+  border-radius: $radius-full;
+  box-shadow: $shadow-2xl;
+  font-size: $text-sm;
+  line-height: $leading-tight;
+}
+
+.bulk-count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: $spacing-1;
+  font-weight: $font-medium;
+  white-space: nowrap;
+
+  .bulk-count-value {
+    font-weight: $font-semibold;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .bulk-count-label {
+    color: rgba(255, 255, 255, 0.72);
+    font-size: $text-xs;
+  }
+}
+
+.bulk-divider {
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.18);
+  flex-shrink: 0;
+}
+
+.bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-1;
+  flex-wrap: wrap;
+}
+
+.bulk-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-1;
+  padding: $spacing-1 $spacing-3;
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #60a5fa; // light-blue contrast against $gray-900
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  &.is-danger {
+    color: #fca5a5; // red-300, readable on dark bg
+
+    &:hover:not(:disabled) {
+      background: rgba(220, 38, 38, 0.18);
+      color: #fecaca; // red-200 on hover
+    }
+  }
+}
+
+.bulk-action-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.bulk-clear-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-1;
+  padding: $spacing-1 $spacing-2;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+  margin-left: $spacing-1;
+
+  svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #60a5fa;
+    outline-offset: 2px;
+  }
+}
+
+/* Mobile bottom-sheet variant.
+   The bar grows to the full width minus a small inset and the actions wrap
+   onto a second row if needed. The clear button stays at the trailing edge. */
+@media screen and (max-width: $breakpoint-sm) {
+  .bulk-bar {
+    bottom: $spacing-3;
+    left: $spacing-3;
+    right: $spacing-3;
+    transform: translateY(calc(100% + #{$spacing-3}));
+    width: auto;
+    max-width: none;
+
+    &.is-visible {
+      transform: translateY(0);
+    }
+  }
+
+  .bulk-bar-inner {
+    border-radius: $radius-lg; // softer pill for full-width sheet
+    padding: $spacing-2 $spacing-3;
+    gap: $spacing-2;
+    flex-wrap: wrap;
+  }
+
+  .bulk-divider {
+    display: none;
+  }
+
+  .bulk-actions {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+  }
+
+  .bulk-action-btn span {
+    // Hide labels — keep icons only on very narrow screens.
+    @media (max-width: 380px) {
+      display: none;
+    }
+  }
+}

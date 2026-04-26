@@ -8,7 +8,9 @@ import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.s
 import { ConfirmStatusChangeService } from '../../services/confirm-status-change.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { getAdminPortalBase } from '../../../../core/utils/portal-route.util';
+import { forkJoin } from 'rxjs';
 import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/kpi-card.component';
+import { BulkActionBarComponent, BulkAction } from '../../../../shared/components/admin/bulk-action-bar/bulk-action-bar.component';
 
 /**
  * Student Management Component
@@ -17,7 +19,7 @@ import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/k
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-student-management',
-  imports: [RouterModule, FormsModule, KpiCardComponent],
+  imports: [RouterModule, FormsModule, KpiCardComponent, BulkActionBarComponent],
   // F-ST1 hotfix: was missing — main SCSS file never loaded so .stat-icon
   // had no width/height constraint and stretched to 1136×1136, making the
   // page unusable. Mirrors teacher-management.component.ts:20.
@@ -64,6 +66,26 @@ export class StudentManagementComponent implements OnInit {
   studentCourses = signal<any[]>([]);
   isLoadingCourses = signal(false);
 
+  // Bulk selection state — CC-06.
+  selectedUserIds = signal<Set<string>>(new Set());
+  selectedCount = computed(() => this.selectedUserIds().size);
+
+  bulkActions = computed<BulkAction[]>(() => [
+    {
+      key: 'block',
+      label: 'Khóa',
+      variant: 'danger',
+      ariaLabel: 'Khóa các tài khoản học viên đã chọn',
+      icon: 'M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z',
+    },
+    {
+      key: 'activate',
+      label: 'Kích hoạt',
+      ariaLabel: 'Kích hoạt các tài khoản học viên đã chọn',
+      icon: 'M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z',
+    },
+  ]);
+
   // Computed - filter for students (UserRole.STUDENT = 'student')
   studentUsers = computed(() => this.allUsers().filter(u => u.role === 'student'));
 
@@ -105,9 +127,87 @@ export class StudentManagementComponent implements OnInit {
     this.adminService.getUsers({ page: 1, limit: 200, role: 'STUDENT' }).subscribe({
       next: (response) => {
         this.allUsers.set(response.data || []);
+        this.clearSelection();
         this.isLoading.set(false);
       },
       error: () => this.isLoading.set(false)
+    });
+  }
+
+  // --- Bulk selection helpers (CC-06) ---
+
+  isSelected(userId: string): boolean {
+    return this.selectedUserIds().has(userId);
+  }
+
+  toggleSelection(userId: string): void {
+    const next = new Set(this.selectedUserIds());
+    next.has(userId) ? next.delete(userId) : next.add(userId);
+    this.selectedUserIds.set(next);
+  }
+
+  toggleSelectAll(): void {
+    const visibleIds = this.filteredStudents().map(s => s.id);
+    const current = this.selectedUserIds();
+    const allSelected = visibleIds.length > 0 && visibleIds.every(id => current.has(id));
+    if (allSelected) {
+      const next = new Set(current);
+      visibleIds.forEach(id => next.delete(id));
+      this.selectedUserIds.set(next);
+    } else {
+      this.selectedUserIds.set(new Set([...current, ...visibleIds]));
+    }
+  }
+
+  allVisibleSelected = computed(() => {
+    const visible = this.filteredStudents();
+    if (visible.length === 0) return false;
+    const selected = this.selectedUserIds();
+    return visible.every(s => selected.has(s.id));
+  });
+
+  clearSelection(): void {
+    this.selectedUserIds.set(new Set());
+  }
+
+  // --- Bulk action dispatcher ---
+
+  async onBulkAction(key: string): Promise<void> {
+    const ids = Array.from(this.selectedUserIds());
+    if (ids.length === 0) return;
+    if (key === 'block') await this.bulkUpdateStatus(ids, UserAccountStatus.BLOCKED);
+    else if (key === 'activate') await this.bulkUpdateStatus(ids, UserAccountStatus.ACTIVE);
+  }
+
+  private async bulkUpdateStatus(userIds: string[], status: UserAccountStatus): Promise<void> {
+    const isBlock = status === UserAccountStatus.BLOCKED;
+    const confirmed = await this.confirmDialog.confirm({
+      title: isBlock ? 'Khóa tài khoản hàng loạt' : 'Kích hoạt tài khoản hàng loạt',
+      message: isBlock
+        ? `Bạn có chắc muốn khóa ${userIds.length} tài khoản học viên đã chọn? Họ sẽ không đăng nhập được cho đến khi mở khóa.`
+        : `Bạn có chắc muốn kích hoạt lại ${userIds.length} tài khoản học viên đã chọn?`,
+      confirmText: isBlock ? `Khóa ${userIds.length} tài khoản` : `Kích hoạt ${userIds.length} tài khoản`,
+      variant: isBlock ? 'danger' : 'warning'
+    });
+    if (!confirmed) return;
+
+    const requests = userIds.map(id =>
+      this.adminService.updateUserStatus(id, { status, reason: '' })
+    );
+
+    forkJoin(requests).subscribe({
+      next: () => {
+        this.toast.success(
+          isBlock
+            ? `Đã khóa ${userIds.length} tài khoản học viên`
+            : `Đã kích hoạt ${userIds.length} tài khoản học viên`
+        );
+        this.loadUsers();
+      },
+      error: () => {
+        this.toast.error('Một số tài khoản không thể cập nhật. Vui lòng thử lại.');
+        this.loadUsers();
+      }
     });
   }
 

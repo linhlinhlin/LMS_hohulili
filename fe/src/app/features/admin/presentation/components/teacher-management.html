@@ -85,6 +85,13 @@
               <table class="data-table">
                 <thead>
                   <tr>
+                    <th class="col-checkbox">
+                      <input type="checkbox"
+                             class="row-checkbox"
+                             [checked]="allVisibleSelected()"
+                             (change)="toggleSelectAll()"
+                             aria-label="Chọn tất cả giảng viên đang hiển thị" />
+                    </th>
                     <th>Giảng viên</th>
                     <th>Vai trò</th>
                     <th>Trạng thái</th>
@@ -95,7 +102,15 @@
                 </thead>
                 <tbody>
                   @for (teacher of filteredTeachers(); track teacher.id) {
-                    <tr>
+                    <tr [class.row-selected]="isSelected(teacher.id)">
+                      <!-- Bulk select -->
+                      <td class="col-checkbox">
+                        <input type="checkbox"
+                               class="row-checkbox"
+                               [checked]="isSelected(teacher.id)"
+                               (change)="toggleSelection(teacher.id)"
+                               [attr.aria-label]="'Chọn ' + teacher.name" />
+                      </td>
                       <!-- User Info -->
                       <td>
                         <div class="teacher-cell">
@@ -405,3 +420,11 @@
         </div>
       </div>
     }
+
+    <!-- Bulk action bar — slides up from bottom while selectedCount > 0. -->
+    <app-bulk-action-bar
+      [selectedCount]="selectedCount()"
+      [actions]="bulkActions()"
+      countLabel="giảng viên đã chọn"
+      (actionClick)="onBulkAction($event)"
+      (clear)="clearSelection()" />

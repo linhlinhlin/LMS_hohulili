@@ -78,6 +78,14 @@ import { exportToCsv } from '../../../../../../../shared/utils/csv-export';
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider w-10">
+                  <input type="checkbox"
+                         class="w-4 h-4 cursor-pointer"
+                         style="accent-color: #0056D2"
+                         [checked]="state.allVisibleSelected()"
+                         (change)="state.toggleSelectAll()"
+                         aria-label="Chọn tất cả người dùng đang hiển thị" />
+                </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Người dùng</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Vai trò</th>
                 <th class="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">Thao tác</th>
@@ -88,7 +96,17 @@ import { exportToCsv } from '../../../../../../../shared/utils/csv-export';
             </thead>
             <tbody class="bg-white divide-y divide-gray-100">
               @for (user of state.filteredUsers(); track user.id) {
-                <tr class="hover:bg-gray-50 transition-colors">
+                <tr class="hover:bg-gray-50 transition-colors"
+                    [class.bg-blue-50]="state.isSelected(user.id)">
+                  <!-- Bulk select -->
+                  <td class="px-4 py-4 whitespace-nowrap text-center">
+                    <input type="checkbox"
+                           class="w-4 h-4 cursor-pointer"
+                           style="accent-color: #0056D2"
+                           [checked]="state.isSelected(user.id)"
+                           (change)="state.toggleSelection(user.id)"
+                           [attr.aria-label]="'Chọn ' + user.name" />
+                  </td>
                   <!-- Người dùng -->
                   <td class="px-6 py-4 whitespace-nowrap">
                     <div class="flex items-center">

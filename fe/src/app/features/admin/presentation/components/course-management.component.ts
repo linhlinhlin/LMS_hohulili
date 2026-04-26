@@ -9,10 +9,11 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { exportToCsv } from '../../../../shared/utils/csv-export';
 import { getAdminPortalBase } from '../../../../core/utils/portal-route.util';
 import { DialogComponent } from '../../../../shared/components/dialog/dialog.component';
+import { BulkActionBarComponent, BulkAction } from '../../../../shared/components/admin/bulk-action-bar/bulk-action-bar.component';
 
 @Component({
   selector: 'app-course-management',
-  imports: [RouterModule, FormsModule, DialogComponent],
+  imports: [RouterModule, FormsModule, DialogComponent, BulkActionBarComponent],
   templateUrl: './course-management.component.html',
   styleUrl: './course-management.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -83,6 +84,48 @@ export class CourseManagementComponent implements OnInit {
 
   showBulkRejectModal = signal(false);
   bulkRejectReason = signal('');
+
+  // Reject reason taxonomy — picks one of these (Inspire / Coursera /
+  // Udemy review pattern) and the chosen text becomes the seed of the
+  // freeform reason field. Keeps reviewers consistent across batches.
+  readonly REJECT_REASON_PRESETS = [
+    { key: 'INSUFFICIENT_CONTENT', label: 'Nội dung chưa đủ phong phú', text: 'Nội dung khóa học chưa đáp ứng yêu cầu tối thiểu về độ phong phú và đầy đủ. Vui lòng bổ sung tài liệu, video, bài tập và đánh giá để học viên có trải nghiệm học tập trọn vẹn.' },
+    { key: 'POOR_QUALITY', label: 'Chất lượng video / âm thanh thấp', text: 'Chất lượng video, âm thanh hoặc tài liệu chưa đạt chuẩn. Vui lòng kiểm tra ánh sáng, âm thanh, hình ảnh và đảm bảo tất cả tài liệu đều rõ ràng.' },
+    { key: 'COPYRIGHT', label: 'Vi phạm bản quyền', text: 'Khóa học có sử dụng nội dung không có quyền hợp pháp. Vui lòng thay thế bằng tài liệu do bạn sở hữu hoặc có giấy phép sử dụng.' },
+    { key: 'METADATA', label: 'Thông tin / mô tả không đầy đủ', text: 'Tiêu đề, mô tả, danh mục hoặc mục tiêu học tập chưa rõ ràng. Vui lòng cập nhật thông tin chi tiết để học viên dễ dàng tìm và lựa chọn.' },
+    { key: 'OTHER', label: 'Lý do khác', text: '' },
+  ] as const;
+
+  selectedRejectPreset = signal<string>('INSUFFICIENT_CONTENT');
+
+  // CC-06 — bulk action bar. Per audit guidance, bulk approve is NOT exposed
+  // (too high stakes; reviewers must inspect each course individually). Only
+  // "Reject" with reason taxonomy + Clear are surfaced.
+  bulkActions = computed<BulkAction[]>(() => [
+    {
+      key: 'reject',
+      label: 'Từ chối',
+      variant: 'danger',
+      ariaLabel: 'Từ chối các khóa học đã chọn',
+      icon: 'M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z',
+    },
+  ]);
+
+  onBulkAction(key: string): void {
+    if (key === 'reject') {
+      this.openBulkRejectModal();
+    }
+  }
+
+  onSelectRejectPreset(presetKey: string): void {
+    this.selectedRejectPreset.set(presetKey);
+    const preset = this.REJECT_REASON_PRESETS.find(p => p.key === presetKey);
+    if (preset && preset.text) {
+      this.bulkRejectReason.set(preset.text);
+    } else if (presetKey === 'OTHER') {
+      this.bulkRejectReason.set('');
+    }
+  }
 
   pendingVisibleCourses = computed(() =>
     this.courses().filter(course => this.canReviewCourse(course))

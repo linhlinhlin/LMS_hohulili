@@ -2,11 +2,14 @@ import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } 
 
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { AdminService, AdminUser, UserAccountStatus, UpdateUserStatusRequest } from '../../infrastructure/services/admin.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { ConfirmStatusChangeService } from '../../services/confirm-status-change.service';
 import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/kpi-card.component';
+import { BulkActionBarComponent, BulkAction } from '../../../../shared/components/admin/bulk-action-bar/bulk-action-bar.component';
 /**
  * Admin User Management Component
  * SOTA Design: Coursera-inspired with role change, status actions
@@ -14,7 +17,7 @@ import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/k
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-user-management',
-  imports: [RouterModule, FormsModule, KpiCardComponent],
+  imports: [RouterModule, FormsModule, KpiCardComponent, BulkActionBarComponent],
   templateUrl: './admin-user-management.component.html',
   styleUrl: './admin-user-management.component.scss'
 })
@@ -22,6 +25,7 @@ export class AdminUserManagementComponent implements OnInit {
   private adminService = inject(AdminService);
   private toast = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
+  private authService = inject(AuthService);
   private confirmStatus = inject(ConfirmStatusChangeService);
 
   // State
@@ -32,6 +36,38 @@ export class AdminUserManagementComponent implements OnInit {
   showCreateModal = signal(false);
   newAdminName = signal('');
   newAdminEmail = signal('');
+
+  // Bulk selection state — CC-06 (mega audit). Set keyed by user id so we
+  // skip toUpperCase/toLowerCase normalization concerns. Selection is
+  // cleared after every successful bulk action and on every loadUsers().
+  selectedUserIds = signal<Set<string>>(new Set());
+  selectedCount = computed(() => this.selectedUserIds().size);
+
+  // Bulk action descriptors — derived so disabled states stay reactive to
+  // selection changes (e.g. "Khóa" disables when the current admin is in
+  // the selection — F-AD2 self-suspend block).
+  bulkActions = computed<BulkAction[]>(() => {
+    const selfId = this.authService.currentUser()?.id;
+    const selectedHasSelf = !!selfId && this.selectedUserIds().has(selfId);
+    return [
+      {
+        key: 'block',
+        label: 'Khóa',
+        variant: 'danger',
+        disabled: selectedHasSelf,
+        ariaLabel: selectedHasSelf
+          ? 'Không thể khóa tài khoản của chính bạn'
+          : 'Khóa các tài khoản đã chọn',
+        icon: 'M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z',
+      },
+      {
+        key: 'activate',
+        label: 'Kích hoạt',
+        ariaLabel: 'Kích hoạt các tài khoản đã chọn',
+        icon: 'M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z',
+      },
+    ];
+  });
 
   // Computed - filter for admins (ADMIN + ORG_ADMIN)
   adminUsers = computed(() => this.allUsers().filter(u => u.role === 'admin' || u.role === 'org_admin'));
@@ -74,9 +110,107 @@ export class AdminUserManagementComponent implements OnInit {
     this.adminService.getUsers({ page: 1, limit: 1000 }).subscribe({
       next: (response) => {
         this.allUsers.set(response.data || []);
+        this.clearSelection();
         this.isLoading.set(false);
       },
       error: () => this.isLoading.set(false)
+    });
+  }
+
+  // --- Bulk selection helpers ---
+
+  isSelected(userId: string): boolean {
+    return this.selectedUserIds().has(userId);
+  }
+
+  toggleSelection(userId: string): void {
+    const next = new Set(this.selectedUserIds());
+    if (next.has(userId)) {
+      next.delete(userId);
+    } else {
+      next.add(userId);
+    }
+    this.selectedUserIds.set(next);
+  }
+
+  toggleSelectAll(): void {
+    const visibleIds = this.filteredAdmins().map(a => a.id);
+    const current = this.selectedUserIds();
+    const allSelected = visibleIds.length > 0 && visibleIds.every(id => current.has(id));
+    if (allSelected) {
+      // Drop only the visible rows from the selection — preserves any
+      // off-page selections (here we paginate client-side so this is moot
+      // but keeps the helper consistent with the wider users surface).
+      const next = new Set(current);
+      visibleIds.forEach(id => next.delete(id));
+      this.selectedUserIds.set(next);
+    } else {
+      this.selectedUserIds.set(new Set([...current, ...visibleIds]));
+    }
+  }
+
+  allVisibleSelected = computed(() => {
+    const visible = this.filteredAdmins();
+    if (visible.length === 0) return false;
+    const selected = this.selectedUserIds();
+    return visible.every(a => selected.has(a.id));
+  });
+
+  clearSelection(): void {
+    this.selectedUserIds.set(new Set());
+  }
+
+  // --- Bulk action dispatcher ---
+
+  async onBulkAction(key: string): Promise<void> {
+    const ids = Array.from(this.selectedUserIds());
+    if (ids.length === 0) return;
+
+    if (key === 'block') {
+      await this.bulkUpdateStatus(ids, UserAccountStatus.BLOCKED);
+    } else if (key === 'activate') {
+      await this.bulkUpdateStatus(ids, UserAccountStatus.ACTIVE);
+    }
+  }
+
+  private async bulkUpdateStatus(userIds: string[], status: UserAccountStatus): Promise<void> {
+    // Self-suspend safety net — also enforced via disabled action button so
+    // this branch is defence-in-depth. Mirrors the F-AD2 confirm guard in
+    // the per-row inline-edit dropdown.
+    const selfId = this.authService.currentUser()?.id;
+    if (status === UserAccountStatus.BLOCKED && selfId && userIds.includes(selfId)) {
+      this.toast.error('Không thể khóa tài khoản của chính bạn.');
+      return;
+    }
+
+    const isBlock = status === UserAccountStatus.BLOCKED;
+    const confirmed = await this.confirmDialog.confirm({
+      title: isBlock ? 'Khóa tài khoản hàng loạt' : 'Kích hoạt tài khoản hàng loạt',
+      message: isBlock
+        ? `Bạn có chắc muốn khóa ${userIds.length} tài khoản Quản trị viên đã chọn? Họ sẽ mất quyền truy cập hệ thống cho đến khi được mở khóa.`
+        : `Bạn có chắc muốn kích hoạt lại ${userIds.length} tài khoản đã chọn?`,
+      confirmText: isBlock ? `Khóa ${userIds.length} tài khoản` : `Kích hoạt ${userIds.length} tài khoản`,
+      variant: isBlock ? 'danger' : 'warning'
+    });
+    if (!confirmed) return;
+
+    const requests = userIds.map(id =>
+      this.adminService.updateUserStatus(id, { status, reason: '' })
+    );
+
+    forkJoin(requests).subscribe({
+      next: () => {
+        this.toast.success(
+          isBlock
+            ? `Đã khóa ${userIds.length} tài khoản thành công`
+            : `Đã kích hoạt ${userIds.length} tài khoản thành công`
+        );
+        this.loadUsers();
+      },
+      error: () => {
+        this.toast.error('Một số tài khoản không thể cập nhật. Vui lòng thử lại.');
+        this.loadUsers();
+      }
     });
   }
 

@@ -322,6 +322,24 @@ $orange-700: #9A3412;
   }
 }
 
+/* Bulk select column — CC-06 */
+.col-checkbox {
+  width: 40px;
+  padding-right: 0;
+  text-align: center;
+}
+
+.row-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: $blue-primary;
+}
+
+.data-table tbody tr.row-selected {
+  background: rgba($blue-primary, 0.04);
+}
+
 /* Status badges */
 .badge {
   display: inline-flex;
