@@ -17,6 +17,9 @@ export interface SidebarMenuItem {
   exact?: boolean;
   group?: string;
   alsoActiveFor?: string[]; // Extra URL prefixes that should highlight this item
+  /** Phase 3 PR 2 (#239): query params cho deep-link nav (org-scoped tabs).
+   *  Active state khớp via routerLinkActiveOptions queryParams subset. */
+  queryParams?: { [key: string]: string };
 }
 
 export interface SidebarConfig {
@@ -94,6 +97,44 @@ export class SidebarComponent implements OnInit, OnDestroy {
     return this.config().role === 'admin' ? '/admin/organizations' : null;
   });
 
+  // ---------------------------------------------------------------------
+  // Phase 3 PR 2 (#239): org-scoped nav items — render thay system nav khi
+  // user đang trong org context. Mirror các tab của org-detail page (Phase 2
+  // PR #236) — mỗi item deep-link tới ?tab=X. Pattern GitHub mode switch.
+  // ---------------------------------------------------------------------
+  protected orgScopedNavItems = computed<SidebarMenuItem[]>(() => {
+    const org = this.currentOrg();
+    if (!org) return [];
+    const baseRoute = this.config().role === 'admin'
+      ? `/admin/organizations/${org.id}`
+      : '/org-admin/organization';
+    return [
+      { label: 'Tổng quan',          route: baseRoute, icon: 'home',      queryParams: { tab: 'overview' } },
+      { label: 'Thành viên',         route: baseRoute, icon: 'users',     queryParams: { tab: 'members' } },
+      { label: 'Lời mời',            route: baseRoute, icon: 'mail',      queryParams: { tab: 'invites' } },
+      { label: 'Thống kê',           route: baseRoute, icon: 'bar-chart', queryParams: { tab: 'stats' } },
+      { label: 'Cấu hình doanh thu', route: baseRoute, icon: 'briefcase', queryParams: { tab: 'payment-config' } },
+      { label: 'Cài đặt',            route: baseRoute, icon: 'settings',  queryParams: { tab: 'settings' } },
+    ];
+  });
+
+  /** Track ?tab= từ URL để compute active state cho org-scoped nav.
+   *  Default 'overview' khi không có query param (khớp org-detail default). */
+  protected currentTab = signal<string>('overview');
+
+  /** Phase 3 PR 2 (#239): mode-switch CHỈ apply cho admin role. Org-admin
+   *  giữ system nav (vì /org-admin/* nav đã org-scoped, không cần switch
+   *  thêm — tránh org-admin "stuck" không thấy /org-admin/dashboard etc.). */
+  protected inOrgScopedMode = computed(() =>
+    this.inOrgContext() && this.config().role === 'admin'
+  );
+
+  /** Active state cho org-scoped item: tab match (default overview if absent). */
+  protected isOrgItemActive(item: SidebarMenuItem): boolean {
+    const tab = item.queryParams?.['tab'];
+    return !!tab && tab === this.currentTab();
+  }
+
   constructor() {
     // Khi orgId từ URL thay đổi → fetch org info (skip nếu đã cache đúng id).
     // Cleanup: onCleanup() unsubscribe khi effect re-run (URL thay đổi nhanh)
@@ -124,11 +165,31 @@ export class SidebarComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    // Initialize từ current URL trước khi NavigationEnd emit lần đầu.
+    this.applyUrl(this.router.url);
+
     this.routerSub = this.router.events.pipe(
       filter(e => e instanceof NavigationEnd)
     ).subscribe((e: NavigationEnd) => {
-      this.currentUrl.set(e.urlAfterRedirects.split('?')[0]);
+      this.applyUrl(e.urlAfterRedirects);
     });
+  }
+
+  /** Phase 3 PR 2 (#239): parse URL trực tiếp thay vì inject ActivatedRoute
+   *  (sidebar render trong layout, ActivatedRoute scope của layout có thể
+   *  không track child route's queryParam reliably). URL string parse là
+   *  source of truth bulletproof — hoạt động với mọi route nesting depth. */
+  private applyUrl(fullUrl: string): void {
+    const queryStart = fullUrl.indexOf('?');
+    const path = queryStart >= 0 ? fullUrl.substring(0, queryStart) : fullUrl;
+    this.currentUrl.set(path);
+    if (queryStart >= 0) {
+      const params = new URLSearchParams(fullUrl.substring(queryStart + 1));
+      const tab = params.get('tab');
+      this.currentTab.set(tab && tab.length > 0 ? tab : 'overview');
+    } else {
+      this.currentTab.set('overview');
+    }
   }
 
   ngOnDestroy(): void {

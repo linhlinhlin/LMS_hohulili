@@ -53,7 +53,29 @@
         </div>
     }
 
-    <!-- Navigation Menu -->
+    <!-- Phase 3 PR 2 (#239): switch nav khi inOrgScopedMode — render
+         org-scoped items thay system nav. Mode switch CHỈ áp dụng admin role
+         (org-admin giữ system nav để tránh stuck không thấy /org-admin/*
+         dashboard/teachers/...). Pattern GitHub mode switch. -->
+    @if (inOrgScopedMode()) {
+        <nav class="sidebar-nav sidebar-nav--org-scoped" aria-label="Điều hướng tổ chức">
+            <div class="nav-group-title">Quản lý tổ chức</div>
+            @for (item of orgScopedNavItems(); track item.label) {
+                <div class="nav-item-container">
+                    <a [routerLink]="item.route" [queryParams]="item.queryParams"
+                       [class.active]="isOrgItemActive(item)"
+                       class="nav-item">
+                        <div class="nav-icon" [class]="getIconClasses(item)">
+                            <app-icon [name]="item.icon" size="sm"/>
+                        </div>
+                        <span class="nav-label">{{ item.label }}</span>
+                        <span class="nav-tooltip" aria-hidden="true">{{ item.label }}</span>
+                    </a>
+                </div>
+            }
+        </nav>
+    } @else {
+    <!-- Navigation Menu (system mode) -->
     <nav class="sidebar-nav">
         @for (item of config().menuItems; track item.route; let i = $index) {
         @if (shouldShowGroupTitle(i)) {
@@ -109,6 +131,7 @@
         </div>
         }
     </nav>
+    }
 
     <!-- Footer: User Menu (Claude/GitHub/Linear pattern) -->
     <div class="sidebar-footer">
