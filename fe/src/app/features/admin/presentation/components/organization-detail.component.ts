@@ -93,6 +93,14 @@ export class OrganizationDetailComponent implements OnInit {
     { key: 'settings' as Tab, label: 'Cài đặt' }
   ];
 
+  // Phase 3 PR 3 (#241): breadcrumb derive — Tổ chức/Trang chủ → Org Name → Tab.
+  activeTabLabel = computed(() =>
+    this.tabs.find(t => t.key === this.activeTab())?.label ?? ''
+  );
+  breadcrumbRootLabel = computed(() =>
+    this.authService.userRole() === 'admin' ? 'Tổ chức' : 'Trang chủ'
+  );
+
   // Phase 2 (#235): multi-tenant signals — type badge variant + label + isDefault.
   // Fallback dùng khi BE corruption / legacy data trả type=null hoặc value không
   // map (BE đã có parseType warn fallback PARTNER, FE phản ánh chung).

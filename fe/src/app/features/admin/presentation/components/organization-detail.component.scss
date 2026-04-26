@@ -1150,6 +1150,76 @@
 }
 
 /* =====================================================================
+   Phase 3 PR 3 (#241): breadcrumb (Linear/Stripe/GitHub pattern)
+   ===================================================================== */
+.breadcrumb {
+  margin-bottom: $spacing-3;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.breadcrumb-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.breadcrumb-separator {
+  color: #d1d5db;
+  font-weight: 400;
+  user-select: none;
+}
+
+.breadcrumb-link {
+  color: #6b7280;
+  text-decoration: none;
+  padding: 2px 6px;
+  margin: 0 -6px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+
+  &:hover {
+    color: #0056D2;
+    background: rgba(0, 86, 210, 0.06);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #0056D2;
+    outline-offset: 1px;
+  }
+}
+
+.breadcrumb-current {
+  color: #111827;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 280px;
+}
+
+.breadcrumb-tab {
+  color: #4b5563;
+  font-weight: 400;
+}
+
+@media (max-width: 640px) {
+  .breadcrumb-current {
+    max-width: 160px;
+  }
+}
+
+/* =====================================================================
    Phase 2 (#235): multi-tenant signals + Overview + Stats
    ===================================================================== */
 
@@ -1181,11 +1251,25 @@
   border-color: #e5e7eb;
 }
 
-/* Default org indicator next to title — surface HoLiLiHu Org */
+/* Default org indicator next to title — surface HoLiLiHu Org.
+   Phase 3 PR 3 (#241): subtle pulse animation cho visual delight. */
 .default-star {
   font-size: 0.85em;
   margin-left: 6px;
   cursor: help;
+  display: inline-block;
+  animation: default-star-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes default-star-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .default-star {
+    animation: none;
+  }
 }
 
 /* Overview tab — landing layout (info card + quick actions card) */
@@ -1406,6 +1490,7 @@
   .btn-icon-xs,
   .btn-token-display,
   .btn-link,
+  .breadcrumb,
   .header-actions,
   .invite-actions,
   .new-code-banner,
