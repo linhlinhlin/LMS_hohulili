@@ -42,6 +42,10 @@ export interface RegisterRequest {
 }
 
 // Organization types
+// Issue #231 (Phase 1): type + isDefault cho multi-tenant scoping.
+// PLATFORM = HoLiLiHu Org nền tảng, PARTNER = đối tác, INTERNAL = nội bộ.
+export type OrganizationType = 'PLATFORM' | 'PARTNER' | 'INTERNAL';
+
 export interface Organization {
   id: string;
   name: string;
@@ -49,6 +53,8 @@ export interface Organization {
   description: string | null;
   enabled: boolean;
   tokenExpiryDays: number;
+  type: OrganizationType;
+  isDefault: boolean;
   createdAt: string;
   updatedAt: string | null;
 }

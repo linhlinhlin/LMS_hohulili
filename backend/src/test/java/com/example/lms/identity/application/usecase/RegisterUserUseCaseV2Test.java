@@ -3,6 +3,8 @@ package com.example.lms.identity.application.usecase;
 import com.example.lms.identity.application.dto.AuthResponse;
 import com.example.lms.identity.application.dto.RegisterUserCommand;
 import com.example.lms.identity.application.port.TokenService;
+import com.example.lms.identity.domain.model.Organization;
+import com.example.lms.identity.domain.model.OrganizationType;
 import com.example.lms.identity.domain.model.Role;
 import com.example.lms.identity.domain.model.User;
 import com.example.lms.identity.domain.repository.UserRepository;
@@ -21,6 +23,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
@@ -84,6 +88,24 @@ class RegisterUserUseCaseV2Test {
         );
     }
 
+    /** Issue #231 Phase 1: helper tạo PLATFORM default org cho test mock.
+     *  Mọi test register-without-invite dùng `findDefault()` → cần stub
+     *  để useCase không throw IllegalStateException. */
+    private Organization platformDefaultOrg() {
+        return new Organization(
+            UUID.randomUUID(),
+            "HoLiLiHu Org",
+            "HOLILIHU",
+            "Tổ chức nền tảng",
+            true,
+            30,
+            OrganizationType.PLATFORM,
+            true,
+            Instant.now(),
+            null
+        );
+    }
+
     @Nested
     @DisplayName("Happy Path Tests")
     class HappyPathTests {
@@ -94,6 +116,7 @@ class RegisterUserUseCaseV2Test {
             // Given
             when(userRepository.existsByUsername(anyString())).thenReturn(false);
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
+            when(organizationRepository.findDefault()).thenReturn(Optional.of(platformDefaultOrg()));
             when(passwordEncoder.encode(anyString())).thenReturn(ENCODED_PASSWORD);
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
             when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString(), any())).thenReturn(ACCESS_TOKEN);
@@ -116,6 +139,7 @@ class RegisterUserUseCaseV2Test {
             // Given
             when(userRepository.existsByUsername(anyString())).thenReturn(false);
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
+            when(organizationRepository.findDefault()).thenReturn(Optional.of(platformDefaultOrg()));
             when(passwordEncoder.encode("Password123!")).thenReturn(ENCODED_PASSWORD);
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
             when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString(), any())).thenReturn(ACCESS_TOKEN);
@@ -138,6 +162,7 @@ class RegisterUserUseCaseV2Test {
             // Given
             when(userRepository.existsByUsername(anyString())).thenReturn(false);
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
+            when(organizationRepository.findDefault()).thenReturn(Optional.of(platformDefaultOrg()));
             when(passwordEncoder.encode(anyString())).thenReturn(ENCODED_PASSWORD);
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
             when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString(), any())).thenReturn(ACCESS_TOKEN);
@@ -165,6 +190,7 @@ class RegisterUserUseCaseV2Test {
 
             when(userRepository.existsByUsername("hacker")).thenReturn(false);
             when(userRepository.existsByEmail("hacker@test.com")).thenReturn(false);
+            when(organizationRepository.findDefault()).thenReturn(Optional.of(platformDefaultOrg()));
             when(passwordEncoder.encode("securePass99")).thenReturn("encoded-pw");
 
             User savedUser = User.createNew(
@@ -197,6 +223,7 @@ class RegisterUserUseCaseV2Test {
 
             when(userRepository.existsByUsername("orguser")).thenReturn(false);
             when(userRepository.existsByEmail("orguser@test.com")).thenReturn(false);
+            when(organizationRepository.findDefault()).thenReturn(Optional.of(platformDefaultOrg()));
             when(passwordEncoder.encode("securePass99")).thenReturn("encoded-pw");
 
             User savedUser = User.createNew(
@@ -229,6 +256,7 @@ class RegisterUserUseCaseV2Test {
 
             when(userRepository.existsByUsername("newuser")).thenReturn(false);
             when(userRepository.existsByEmail("newuser@test.com")).thenReturn(false);
+            when(organizationRepository.findDefault()).thenReturn(Optional.of(platformDefaultOrg()));
             when(passwordEncoder.encode("securePass99")).thenReturn("encoded-pw");
 
             User savedUser = User.createNew(
@@ -324,6 +352,7 @@ class RegisterUserUseCaseV2Test {
             // Given
             when(userRepository.existsByUsername(anyString())).thenReturn(false);
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
+            when(organizationRepository.findDefault()).thenReturn(Optional.of(platformDefaultOrg()));
             when(passwordEncoder.encode("Password123!")).thenReturn(ENCODED_PASSWORD);
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
             when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString(), any())).thenReturn(ACCESS_TOKEN);
@@ -342,6 +371,7 @@ class RegisterUserUseCaseV2Test {
             // Given
             when(userRepository.existsByUsername(anyString())).thenReturn(false);
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
+            when(organizationRepository.findDefault()).thenReturn(Optional.of(platformDefaultOrg()));
             when(passwordEncoder.encode(anyString())).thenReturn(ENCODED_PASSWORD);
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
             when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString(), any())).thenReturn(ACCESS_TOKEN);

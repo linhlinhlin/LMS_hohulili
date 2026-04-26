@@ -27,6 +27,16 @@ public class OrganizationJpaEntity {
     @Column(name = "token_expiry_days", nullable = false)
     private Integer tokenExpiryDays = 30;
 
+    /** Issue #231 (V119): PLATFORM | PARTNER | INTERNAL — phân biệt
+     *  org nền tảng vs đối tác cho multi-tenant scoping. */
+    @Column(name = "type", nullable = false, length = 32)
+    private String type = "PARTNER";
+
+    /** Issue #231 (V119): chỉ 1 org có is_default=true (partial unique
+     *  index ở DB). Default org là home cho user đăng ký cá nhân. */
+    @Column(name = "is_default", nullable = false)
+    private Boolean isDefault = false;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
 
@@ -53,6 +63,12 @@ public class OrganizationJpaEntity {
 
     public Integer getTokenExpiryDays() { return tokenExpiryDays; }
     public void setTokenExpiryDays(Integer tokenExpiryDays) { this.tokenExpiryDays = tokenExpiryDays; }
+
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
+
+    public Boolean getIsDefault() { return isDefault; }
+    public void setIsDefault(Boolean isDefault) { this.isDefault = isDefault; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

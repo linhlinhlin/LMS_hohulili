@@ -7,6 +7,7 @@ import com.example.lms.identity.application.port.GoogleIdentityVerifierPort;
 import com.example.lms.identity.application.port.TokenService;
 import com.example.lms.identity.domain.model.ExternalIdentityProvider;
 import com.example.lms.identity.domain.model.Organization;
+import com.example.lms.identity.domain.model.OrganizationType;
 import com.example.lms.identity.domain.model.Role;
 import com.example.lms.identity.domain.model.User;
 import com.example.lms.identity.domain.model.UserExternalIdentity;
@@ -134,11 +135,13 @@ class AuthenticateWithGoogleUseCaseTest {
         UUID orgId = UUID.randomUUID();
         Organization defaultOrg = new Organization(
                 orgId,
-                "WIII",
-                "WIII",
-                "Default organization",
+                "HoLiLiHu Org",
+                "HOLILIHU",
+                "Tổ chức nền tảng",
                 true,
                 30,
+                OrganizationType.PLATFORM,
+                true,
                 Instant.now(),
                 null
         );
@@ -150,7 +153,7 @@ class AuthenticateWithGoogleUseCaseTest {
         when(userRepository.findByEmail("cadet@example.com")).thenReturn(Optional.empty());
         when(userRepository.existsByUsername("cadet@example.com")).thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("encoded-google-only-password");
-        when(organizationRepository.findByCode("WIII")).thenReturn(Optional.of(defaultOrg));
+        when(organizationRepository.findDefault()).thenReturn(Optional.of(defaultOrg));
         when(organizationRepository.findById(orgId)).thenReturn(Optional.of(defaultOrg));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(tokenService.generateAccessToken(any(UUID.class), anyString(), anyString(), eq(orgId)))
@@ -252,6 +255,6 @@ class AuthenticateWithGoogleUseCaseTest {
         assertThat(savedUser.getOrganizationId()).isEqualTo(invitedOrgId);
         assertThat(response.user().organizationId()).isEqualTo(invitedOrgId);
         verify(acceptInviteUseCase).acceptForNewUser("INVITE-2026");
-        verify(organizationRepository, never()).findByCode("WIII");
+        verify(organizationRepository, never()).findDefault();
     }
 }

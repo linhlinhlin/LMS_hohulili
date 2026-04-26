@@ -16,4 +16,7 @@ public interface OrganizationJpaRepository extends JpaRepository<OrganizationJpa
 
     /** Count organizations with {@code enabled = true} (issue #200, F-ORG-1). */
     long countByEnabledTrue();
+
+    /** Issue #231 (Phase 1): tìm default platform org. */
+    Optional<OrganizationJpaEntity> findByIsDefaultTrue();
 }

@@ -18,6 +18,16 @@ export class OrganizationService {
   }
 
   /**
+   * Issue #231 (Phase 1): trả về org nền tảng default (HoLiLiHu Org).
+   * Dùng cho registration flow + branding header.
+   */
+  getDefault(): Observable<Organization> {
+    return this.api.get<ApiResponse<Organization>>(`${ORGANIZATION_ENDPOINTS.BASE}/default`).pipe(
+      map(res => res.data)
+    );
+  }
+
+  /**
    * Aggregate stats over all organizations — KPI strip on /admin/organizations
    * (issue #200, F-ORG-1). ADMIN role only.
    */
