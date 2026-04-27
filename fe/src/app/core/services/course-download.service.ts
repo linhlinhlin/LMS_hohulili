@@ -403,9 +403,26 @@ export class CourseDownloadService {
                     section.videoType,
                   );
                   sectionsChanged = true;
+                } else {
+                  // descriptor.downloadUrl null → adaptive HLS hoặc no MP4 rendition
+                  // Log để user biết video này không support offline
+                  console.warn('[CourseDownload] Section video không có downloadUrl (likely adaptive HLS, no MP4 rendition):', {
+                    sectionId: section.id,
+                    sectionTitle: section.title,
+                    videoSourceKind: section.videoSourceKind,
+                    videoType: section.videoType,
+                  });
                 }
-              } catch {
-                // Section video download failure is non-fatal
+              } catch (videoErr) {
+                // Surface error để debug — silent swallow trước đây ẩn root cause
+                // (mobile vs PC behavior diff). User sẽ biết video nào fail + lý do.
+                console.error('[CourseDownload] Section video download FAILED:', {
+                  sectionId: section.id,
+                  sectionTitle: section.title,
+                  lessonId: lesson.id,
+                  error: videoErr instanceof Error ? videoErr.message : String(videoErr),
+                  stack: videoErr instanceof Error ? videoErr.stack : undefined,
+                });
               }
             }
 
@@ -413,8 +430,12 @@ export class CourseDownloadService {
               try {
                 section.fileOfflineUri = await this.fileService.downloadSectionFile(section.fileUrl, section.id);
                 sectionsChanged = true;
-              } catch {
-                // Section file download failure is non-fatal
+              } catch (fileErr) {
+                console.error('[CourseDownload] Section file download FAILED:', {
+                  sectionId: section.id,
+                  fileUrl: section.fileUrl,
+                  error: fileErr instanceof Error ? fileErr.message : String(fileErr),
+                });
               }
             }
           }
