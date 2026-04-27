@@ -711,8 +711,16 @@ export class LearningService {
         const data = response?.data;
         if (data) {
           const lessonDetail = this.mapLessonResponse(data);
+          // Preserve offline-only fields (videoOfflineUri) from current state.
+          // SWR refresh only updates content, MUST NOT wipe local-cache info
+          // because server doesn't know about user's downloaded videos.
+          // Without this preservation, video player falls back to raw
+          // videoUrl → network → 504 timeout (production bug 2026-04-28).
+          const current = this.currentLesson();
+          if (current?.id === lessonId) {
+            this.mergeOfflineFields(lessonDetail, current);
+          }
           this.lessonCache.set(lessonId, { detail: lessonDetail, cachedAt: Date.now() });
-          // Only update if this is still the current lesson
           if (this.currentLesson()?.id === lessonId) {
             this.lessonState.set({
               currentLesson: lessonDetail,
@@ -724,6 +732,26 @@ export class LearningService {
       },
       // Silently ignore errors — stale local data is already showing
     });
+  }
+
+  /**
+   * Merge offline-only fields từ existing state vào fresh API data.
+   * Server không biết về local cache nên không trả `videoOfflineUri`.
+   * Preserve để video player vẫn dùng cached video sau SWR refresh.
+   */
+  private mergeOfflineFields(target: LessonDetail, source: LessonDetail): void {
+    if (source.videoOfflineUri && !target.videoOfflineUri) {
+      target.videoOfflineUri = source.videoOfflineUri;
+    }
+    if (target.sections && source.sections) {
+      const sourceById = new Map(source.sections.map(s => [s.id, s]));
+      target.sections.forEach(section => {
+        const localSection = sourceById.get(section.id);
+        if (localSection?.videoOfflineUri && !section.videoOfflineUri) {
+          section.videoOfflineUri = localSection.videoOfflineUri;
+        }
+      });
+    }
   }
 
   /**
