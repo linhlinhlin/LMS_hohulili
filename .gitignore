@@ -153,3 +153,4 @@ playwright-report/
 
 # === Local test fixtures (ad-hoc, không cần track) ===
 /test-import-*.docx
+docs/academic/defense-2026-04-28/
