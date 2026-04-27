@@ -51,20 +51,21 @@ public interface AuditLogJpaRepository extends JpaRepository<AuditLogJpaEntity, 
             "  AND (:action IS NULL OR a.action = :action) " +
             "  AND (:from IS NULL OR a.changedAt >= :from) " +
             "  AND (:to IS NULL OR a.changedAt < :to) " +
-            "  AND (:actorEmail IS NULL " +
-            "       OR (u.email IS NOT NULL " +
-            "           AND LOWER(u.email) LIKE LOWER(CONCAT('%', :actorEmail, '%')))) " +
-            "  AND (:actorName IS NULL " +
-            "       OR (u.fullName IS NOT NULL " +
-            "           AND LOWER(u.fullName) LIKE LOWER(CONCAT('%', :actorName, '%')))) " +
+            "  AND (:actorEmailPattern IS NULL " +
+            "       OR (u.email IS NOT NULL AND LOWER(u.email) LIKE :actorEmailPattern)) " +
+            "  AND (:actorNamePattern IS NULL " +
+            "       OR (u.fullName IS NOT NULL AND LOWER(u.fullName) LIKE :actorNamePattern)) " +
             "ORDER BY a.changedAt DESC")
     Page<AuditLogJpaEntity> search(
             @Param("tableName") String tableName,
             @Param("action") String action,
             @Param("from") Instant from,
             @Param("to") Instant to,
-            @Param("actorEmail") String actorEmail,
-            @Param("actorName") String actorName,
+            // Phase 8: pre-built lowercase LIKE pattern thay CONCAT() trong JPQL
+            // → PostgreSQL JDBC bind explicit String, không infer bytea.
+            // Adapter responsible: actorEmail != null ? "%" + actorEmail.toLowerCase() + "%" : null
+            @Param("actorEmailPattern") String actorEmailPattern,
+            @Param("actorNamePattern") String actorNamePattern,
             Pageable pageable
     );
 }

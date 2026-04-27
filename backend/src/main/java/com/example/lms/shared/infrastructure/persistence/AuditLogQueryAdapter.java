@@ -34,18 +34,26 @@ public class AuditLogQueryAdapter implements AuditLogQueryPort {
 
     @Override
     public Page<AuditLogEntryDto> search(AuditLogQuery query) {
+        // Phase 8: pre-build lowercase LIKE pattern → JPQL/PostgreSQL bind String
+        // explicit thay vì infer bytea từ CONCAT() (DB log "function lower(bytea)
+        // does not exist" recurring error).
         Page<AuditLogJpaEntity> rawPage = auditLogRepository.search(
                 query.tableName(),
                 query.action(),
                 query.from(),
                 query.to(),
-                query.actorEmail(),
-                query.actorName(),
+                toLikePattern(query.actorEmail()),
+                toLikePattern(query.actorName()),
                 PageRequest.of(query.page(), query.size())
         );
 
         Map<UUID, UserJpaEntity> actors = batchLoadActors(rawPage);
         return rawPage.map(entity -> toDto(entity, actors));
+    }
+
+    private static String toLikePattern(String value) {
+        if (value == null || value.isBlank()) return null;
+        return "%" + value.toLowerCase() + "%";
     }
 
     @Override

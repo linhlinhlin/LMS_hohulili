@@ -7,6 +7,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Type;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.*;
 
@@ -101,7 +102,8 @@ public class EnrollmentJpaEntity {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public static class LessonProgressData {
+    public static class LessonProgressData implements Serializable {
+        private static final long serialVersionUID = 1L;
         private String status; // LOCKED, UNLOCKED, COMPLETED
         private Integer watchSeconds;
         private Double grade;
