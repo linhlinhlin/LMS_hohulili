@@ -1745,7 +1745,22 @@ export class SectionEditorComponent {
     // Trade-off: intentional "clear all content" won't propagate to save —
     // user must delete the section instead. Safer than silent data loss.
     const editor = this.tiptapEditor();
-    if (editor && this.svc.sectionEditorType() === 'TEXT') {
+    const editorType = this.svc.sectionEditorType();
+
+    // DIAGNOSTIC (2026-04-27 — remove sau root cause identified): capture
+    // exact state at save time để debug data loss.
+    console.warn('[DIAG-onSave]', {
+      editorType,
+      hasEditorRef: !!editor,
+      editorEmpty: editor?.editor?.isEmpty,
+      editorHTML_preview: editor?.editor?.getHTML?.()?.substring(0, 100),
+      sectionTitle: this.svc.sectionTitle(),
+      sectionContentLen: this.svc.sectionContent()?.length ?? 0,
+      sectionContentPreview: this.svc.sectionContent()?.substring(0, 100),
+      editingSectionId: this.svc.editingSectionId(),
+    });
+
+    if (editor && editorType === 'TEXT') {
       const freshHtml = editor.getCurrentHTML();
       const currentSignal = this.svc.sectionContent();
       if (freshHtml && freshHtml !== currentSignal) {
@@ -1756,7 +1771,6 @@ export class SectionEditorComponent {
         // content (>7 chars rules out '<p></p>' default empty doc). Trust the
         // signal — wiping it would cause silent data loss as happened to
         // section dc5675f0 in production (2026-04-27 ~15:40 UTC).
-        // Log for diagnostics so we can detect frequency post-fix.
         console.warn('[section-editor] Editor empty but signal has content',
           { signalLen: currentSignal.length, sectionId: this.svc.editingSectionId() });
       }
