@@ -36,17 +36,11 @@ spring:
       hibernate:
         format_sql: false
         dialect.native_param_markers: false
-        # Hypersistence Utils: Custom ObjectMapper with JavaTimeModule for JSONB
-        hypersistence.utils.jackson.object.mapper: com.example.lms.config.HibernateJsonConfig
-        # Phase 8 Level 3: Jackson-based JSON clone — bypasses Java Serializable
-        # requirement for POJOs stored trong @Type(JsonType.class) fields.
-        # Eliminates NonSerializableObjectException class of bugs entirely.
-        #
-        # ⚠️ DO NOT REMOVE THIS LINE without first verifying all JSONB POJOs
-        # (LessonProgressData, RubricCriterion, AttemptItem etc.) implement
-        # java.io.Serializable. Removing → fallback ObjectMapperJsonSerializer
-        # (default) → bug pattern returns. See JsonbSerializableTest.java.
-        hypersistence.utils.json.serializer: com.example.lms.config.JacksonCloneJsonSerializer
+        # Hypersistence-utils config (custom ObjectMapper + JsonSerializer for Phase 8 L3)
+        # is loaded from classpath: backend/src/main/resources/hypersistence-utils.properties
+        # NOT from this YAML — hypersistence reads only from its own properties file +
+        # System properties + Hibernate Environment, NOT from spring.jpa.properties.*.
+        # See JsonbSerializableTest.java (Layer 2) for the build-time guard.
   flyway:
     enabled: true
     baseline-on-migrate: true  # Required for existing databases
