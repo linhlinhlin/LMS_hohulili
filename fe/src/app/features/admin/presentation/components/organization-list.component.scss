@@ -531,6 +531,150 @@
   }
 }
 
+/* =====================================================================
+   Issue #254 (Phase 4): filter bar + type badge + default star
+   ===================================================================== */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: $spacing-3;
+  margin-bottom: $spacing-4;
+  flex-wrap: wrap;
+}
+
+.filter-search {
+  flex: 1;
+  min-width: 240px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.filter-icon {
+  position: absolute;
+  left: 12px;
+  width: 16px;
+  height: 16px;
+  color: #6b7280;
+  pointer-events: none;
+}
+
+.filter-search-input {
+  flex: 1;
+  height: 38px;
+  padding: 0 12px 0 36px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+  color: #111827;
+  transition: border-color 0.15s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #0056D2;
+    box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.1);
+  }
+
+  &::placeholder { color: #9ca3af; }
+}
+
+.filter-type-select {
+  height: 38px;
+  padding: 0 32px 0 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+  color: #111827;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  min-width: 160px;
+
+  &:focus {
+    outline: none;
+    border-color: #0056D2;
+    box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.1);
+  }
+}
+
+.filter-clear {
+  background: none;
+  border: 1px solid #e5e7eb;
+  color: #6b7280;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: #0056D2;
+    color: #0056D2;
+    background: rgba(0, 86, 210, 0.04);
+  }
+}
+
+/* Type badges — consistent với Phase 2 org-detail. Inline trong org-meta. */
+.badge-org-type {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+  line-height: 1.4;
+}
+.badge-org-type--platform {
+  background: rgba(0, 86, 210, 0.08);
+  color: #0056D2;
+  border-color: rgba(0, 86, 210, 0.2);
+}
+.badge-org-type--partner {
+  background: rgba(124, 58, 237, 0.08);
+  color: #6D28D9;
+  border-color: rgba(124, 58, 237, 0.2);
+}
+.badge-org-type--internal {
+  background: #f3f4f6;
+  color: #4b5563;
+  border-color: #e5e7eb;
+}
+
+/* Default org indicator pulse — reuse Phase 3 keyframe */
+.default-star {
+  font-size: 0.85em;
+  margin-left: 4px;
+  cursor: help;
+  display: inline-block;
+  animation: default-star-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes default-star-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .default-star {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .filter-search { min-width: 0; }
+  .filter-type-select { width: 100%; }
+}
+
 /* ===== PRINT ===== */
 @media print {
   .org-list-page {
@@ -540,6 +684,7 @@
   .page-header .btn-primary,
   .create-form-card,
   .btn-close,
+  .filter-bar,
   .chevron-icon {
     display: none !important;
   }

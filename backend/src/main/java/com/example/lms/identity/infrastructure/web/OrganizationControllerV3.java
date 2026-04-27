@@ -58,9 +58,12 @@ public class OrganizationControllerV3 {
     @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Danh sách tổ chức")
     public ResponseEntity<ApiResponse<List<OrganizationResponse>>> listOrganizations(
-            @AuthenticationPrincipal UserJpaEntity currentUser) {
+            @AuthenticationPrincipal UserJpaEntity currentUser,
+            /** Issue #254 (Phase 4): optional type filter (PLATFORM/PARTNER/INTERNAL).
+             *  ADMIN dùng cho org list, ORG_ADMIN bypass — chỉ thấy 1 org của mình. */
+            @RequestParam(required = false) String type) {
         if (isOrgAdmin(currentUser)) {
-            // ORG_ADMIN: only sees own org
+            // ORG_ADMIN: only sees own org (type filter bỏ qua — chỉ 1 org)
             if (currentUser.getOrganizationId() == null) {
                 return ResponseEntity.ok(ApiResponse.success(List.of()));
             }
@@ -69,7 +72,7 @@ public class OrganizationControllerV3 {
                             List.of(OrganizationResponse.from(org)))))
                     .orElse(ResponseEntity.ok(ApiResponse.success(List.of())));
         }
-        return ResponseEntity.ok(ApiResponse.success(listOrganizationsUseCase.execute()));
+        return ResponseEntity.ok(ApiResponse.success(listOrganizationsUseCase.execute(type)));
     }
 
     /**
@@ -117,7 +120,8 @@ public class OrganizationControllerV3 {
     public ResponseEntity<ApiResponse<OrganizationResponse>> createOrganization(
             @Valid @RequestBody CreateOrgRequest request) {
         OrganizationResponse response = createOrganizationUseCase.execute(
-                request.name(), request.code(), request.description(), request.tokenExpiryDays());
+                request.name(), request.code(), request.description(),
+                request.tokenExpiryDays(), request.type());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response, "Tạo tổ chức thành công"));
     }
 
@@ -348,7 +352,10 @@ public class OrganizationControllerV3 {
         @NotBlank String name,
         @NotBlank @Size(min = 2, max = 50) String code,
         String description,
-        @Min(7) @Max(1095) int tokenExpiryDays
+        @Min(7) @Max(1095) int tokenExpiryDays,
+        /** Issue #254 (Phase 4): optional type — null/empty fallback PARTNER.
+         *  PLATFORM rejected ở use case (V119 partial unique HoLiLiHu only). */
+        String type
     ) {
         public CreateOrgRequest {
             if (tokenExpiryDays == 0) tokenExpiryDays = 30;
