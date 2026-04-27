@@ -20,6 +20,7 @@ import {
 import { getLessonTypeFromTitle, LessonType } from '../models/lesson-types.enum';
 import { CourseDownloadService } from '../../../core/services/course-download.service';
 import { NetworkStatusService } from '../../../core/services/network-status.service';
+import { offlineDb, getCurrentUserId } from '../../../core/db/lms-offline.db';
 
 /**
  * Learning Service
@@ -653,14 +654,30 @@ export class LearningService {
       error: null
     }));
 
-    this.fetchLessonFromApi(lessonId);
+    // Fire-and-forget: fetchLessonFromApi is now async (pre-reads offline
+    // metadata before API call) but still subscribes internally for state.
+    void this.fetchLessonFromApi(lessonId);
   }
 
   /**
    * Fetch lesson from API and update state.
    * Shared by both API-first and background refresh flows.
+   *
+   * Pre-loads offline metadata từ IndexedDB (videoOfflineUri at lesson- và
+   * section-level) trước khi fire API request. Khi API trả về fresh data,
+   * `mergeOfflineFields` re-injects `videoOfflineUri` để video player vẫn
+   * dùng cached video thay vì raw `videoUrl`. Same preservation pattern as
+   * `backgroundRefreshLesson` (commit eeb6420f) — extended here cho FIRST
+   * load case (no in-memory state) khi user vừa mở lesson sau khi đã
+   * download course → IndexedDB có offline URIs nhưng `currentLesson()`
+   * còn null. Without this, video player falls back to raw videoUrl →
+   * network → 504 timeout (production bug 2026-04-28).
    */
-  private fetchLessonFromApi(lessonId: string): void {
+  private async fetchLessonFromApi(lessonId: string): Promise<void> {
+    // Pre-load offline metadata so we can merge into the API response below.
+    // Read happens BEFORE subscribe so we don't race the network request.
+    const offlineData = await this.loadOfflineDataForLesson(lessonId);
+
     this.lessonApi.getLessonById(lessonId).subscribe({
       next: (response) => {
         const data = response?.data;
@@ -674,6 +691,15 @@ export class LearningService {
         }
 
         const lessonDetail = this.mapLessonResponse(data);
+
+        // Preserve offline-only fields (videoOfflineUri) from IndexedDB.
+        // Server doesn't know about user's downloaded videos, so fresh API
+        // response has `videoOfflineUri = undefined`. Merge re-attaches the
+        // local URIs so the video player can keep using the cached file.
+        if (offlineData) {
+          this.mergeOfflineFields(lessonDetail, offlineData);
+        }
+
         this.lessonCache.set(lessonId, { detail: lessonDetail, cachedAt: Date.now() });
 
         this.lessonState.set({
@@ -696,6 +722,33 @@ export class LearningService {
         }));
       }
     });
+  }
+
+  /**
+   * Read minimal offline metadata (videoOfflineUri at lesson + section
+   * level) từ IndexedDB shaped như a `LessonDetail` so it can be passed
+   * directly to `mergeOfflineFields(target, source)`. Returns `null` when
+   * the lesson hasn't been downloaded or IndexedDB read fails — caller
+   * handles `null` by skipping the merge.
+   */
+  private async loadOfflineDataForLesson(lessonId: string): Promise<LessonDetail | null> {
+    try {
+      const userId = getCurrentUserId();
+      const offline = await offlineDb.lessons.get([userId, lessonId]);
+      if (!offline) return null;
+      // Construct minimal LessonDetail-shaped object — only fields used
+      // by `mergeOfflineFields`. Rest cast through Partial → LessonDetail
+      // to keep TS happy without duplicating the full mapping logic.
+      return {
+        videoOfflineUri: offline.videoOfflineUri,
+        sections: (offline.sections || []).map(s => ({
+          id: s.id,
+          videoOfflineUri: s.videoOfflineUri,
+        } as any)),
+      } as Partial<LessonDetail> as LessonDetail;
+    } catch {
+      return null;
+    }
   }
 
   /**
