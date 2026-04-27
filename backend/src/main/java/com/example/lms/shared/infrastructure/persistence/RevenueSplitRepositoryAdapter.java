@@ -1,5 +1,6 @@
 package com.example.lms.shared.infrastructure.persistence;
 
+import com.example.lms.shared.domain.model.OrgRevenueAggregate;
 import com.example.lms.shared.domain.model.RevenueSplit;
 import com.example.lms.shared.domain.repository.RevenueSplitRepository;
 import com.example.lms.shared.infrastructure.persistence.entity.RevenueSplitJpaEntity;
@@ -10,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -52,6 +54,38 @@ public class RevenueSplitRepositoryAdapter implements RevenueSplitRepository {
     @Override
     public long countDistinctCoursesByTeacherId(UUID teacherId) {
         return jpaRepo.countDistinctCoursesByTeacherId(teacherId);
+    }
+
+    // ==================== Issue #260 (Phase 4 PR 4): cross-org aggregates ====================
+
+    @Override
+    public BigDecimal sumGrossRevenueAll() {
+        return jpaRepo.sumGrossRevenueAll();
+    }
+
+    @Override
+    public BigDecimal sumPlatformAmountAll() {
+        return jpaRepo.sumPlatformAmountAll();
+    }
+
+    @Override
+    public BigDecimal sumTeacherAmountAll() {
+        return jpaRepo.sumTeacherAmountAll();
+    }
+
+    @Override
+    public BigDecimal sumOrgAmountAll() {
+        return jpaRepo.sumOrgAmountAll();
+    }
+
+    @Override
+    public List<OrgRevenueAggregate> findTopOrgsByRevenue(int limit) {
+        return jpaRepo.findTopOrgsByRevenue(limit).stream()
+                .map(row -> new OrgRevenueAggregate(
+                        (UUID) row[0],
+                        (BigDecimal) row[1]
+                ))
+                .toList();
     }
 
     private RevenueSplitJpaEntity toEntity(RevenueSplit s) {
