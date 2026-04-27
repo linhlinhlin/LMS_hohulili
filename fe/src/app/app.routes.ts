@@ -6,7 +6,7 @@ import { OfflineFallbackComponent } from './shared/components/offline-fallback/o
 /**
  * Main Application Routes Configuration
  *
- * Cáº¥u trÃºc routing Ä‘Æ¡n giáº£n vÃ  chuyÃªn nghiá»‡p:
+ * Cấu trúc routing đơn giản và chuyên nghiệp:
  * - Public routes (homepage layout)
  * - Role-based routes (teacher, student, admin)
  * - Other authenticated routes
@@ -27,17 +27,17 @@ export const routes: Routes = [
   {
     path: 'pwa-repair',
     loadComponent: () => import('./shared/components/pwa-repair/pwa-repair.component').then(m => m.PwaRepairComponent),
-    title: 'KhÃ´i phá»¥c PWA - LMS Maritime',
+    title: 'Khôi phục PWA - LMS Maritime',
   },
   {
     path: 'reset-sw',
     loadComponent: () => import('./shared/components/pwa-repair/pwa-repair.component').then(m => m.PwaRepairComponent),
-    title: 'KhÃ´i phá»¥c PWA - LMS Maritime',
+    title: 'Khôi phục PWA - LMS Maritime',
   },
   {
     path: 'clear-site-data',
     loadComponent: () => import('./shared/components/clear-site-data/clear-site-data.component').then(m => m.ClearSiteDataComponent),
-    title: 'LÃ m sáº¡ch dá»¯ liá»‡u trÃ¬nh duyá»‡t - LMS Maritime',
+    title: 'Làm sạch dữ liệu trình duyệt - LMS Maritime',
   },
 
   // ========================================
@@ -50,14 +50,14 @@ export const routes: Routes = [
       {
         path: '',
         loadComponent: () => import('./features/home/home-simple.component').then(m => m.HomeSimpleComponent),
-        title: 'Trang chá»§ - LMS Maritime'
+        title: 'Trang chủ - LMS Maritime'
       },
       {
         path: 'courses',
         loadComponent: () => import('./features/courses/courses.component').then(m => m.CoursesComponent),
-        title: 'KhÃ³a há»c - LMS Maritime'
+        title: 'Khóa học - LMS Maritime'
       },
-      // Category routes â†’ redirect to /courses?category={slug} (real API data)
+      // Category routes → redirect to /courses?category={slug} (real API data)
       { path: 'courses/safety', redirectTo: '/courses?category=safety', pathMatch: 'full' },
       { path: 'courses/navigation', redirectTo: '/courses?category=navigation', pathMatch: 'full' },
       { path: 'courses/engineering', redirectTo: '/courses?category=engineering', pathMatch: 'full' },
@@ -75,29 +75,29 @@ export const routes: Routes = [
           return isUUID;
         }],
         loadComponent: () => import('./features/courses/course-detail.component').then(m => m.CourseDetailComponent),
-        title: 'Chi tiáº¿t khÃ³a há»c - LMS Maritime'
+        title: 'Chi tiết khóa học - LMS Maritime'
       },
-      // Fallback for unknown /courses/{slug} â†’ redirect to courses listing
+      // Fallback for unknown /courses/{slug} → redirect to courses listing
       { path: 'courses/:slug', redirectTo: '/courses', pathMatch: 'full' },
       {
         path: 'about',
         loadComponent: () => import('./features/about/about.component').then(m => m.AboutComponent),
-        title: 'Giá»›i thiá»‡u - LMS Maritime'
+        title: 'Giới thiệu - LMS Maritime'
       },
       {
         path: 'contact',
         loadComponent: () => import('./features/contact/contact.component').then(m => m.ContactComponent),
-        title: 'LiÃªn há»‡ - LMS Maritime'
+        title: 'Liên hệ - LMS Maritime'
       },
       {
         path: 'privacy',
         loadComponent: () => import('./features/privacy/privacy-policy.component').then(m => m.PrivacyPolicyComponent),
-        title: 'ChÃ­nh sÃ¡ch báº£o máº­t - LMS Maritime'
+        title: 'Chính sách bảo mật - LMS Maritime'
       },
       {
         path: 'terms',
         loadComponent: () => import('./features/terms/terms-of-service.component').then(m => m.TermsOfServiceComponent),
-        title: 'Äiá»u khoáº£n sá»­ dá»¥ng - LMS Maritime'
+        title: 'Điều khoản sử dụng - LMS Maritime'
       }
     ]
   },
@@ -107,19 +107,19 @@ export const routes: Routes = [
   // ROLE-BASED ROUTES (Separate Route Files)
   // ========================================
 
-  // Teacher Routes - Sá»­ dá»¥ng route file riÃªng
+  // Teacher Routes - Sử dụng route file riêng
   {
     path: 'teacher',
     loadChildren: () => import('./features/teacher/teacher.routes').then(m => m.teacherRoutes)
   },
 
-  // Student Routes - Sá»­ dá»¥ng route file riÃªng
+  // Student Routes - Sử dụng route file riêng
   {
     path: 'student',
     loadChildren: () => import('./features/student/student.routes').then(m => m.studentRoutes)
   },
 
-  // Admin Routes - Sá»­ dá»¥ng route file riÃªng
+  // Admin Routes - Sử dụng route file riêng
   {
     path: 'admin',
     loadChildren: () => import('./features/admin/admin.routes').then(m => m.adminRoutes)
@@ -133,7 +133,7 @@ export const routes: Routes = [
   // OTHER AUTHENTICATED ROUTES
   // ========================================
 
-  // Sprint 220b: ai-chat full-page route removed â€” AI chat is now an iframe widget
+  // Sprint 220b: ai-chat full-page route removed — AI chat is now an iframe widget
 
   // Payment Result Pages (public - no auth required for callback handling)
   {
@@ -145,7 +145,7 @@ export const routes: Routes = [
   {
     path: 'refund-policy',
     loadComponent: () => import('./features/payment/refund-policy.component').then(m => m.RefundPolicyComponent),
-    title: 'ChÃ­nh sÃ¡ch hoÃ n tiá»n - LMS Maritime'
+    title: 'Chính sách hoàn tiền - LMS Maritime'
   },
 
 
@@ -155,7 +155,7 @@ export const routes: Routes = [
   {
     path: 'offline',
     component: OfflineFallbackComponent,
-    title: 'Ngoáº¡i tuyáº¿n - LMS Maritime'
+    title: 'Ngoại tuyến - LMS Maritime'
   },
 
   // ========================================
