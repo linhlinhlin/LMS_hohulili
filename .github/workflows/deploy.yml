@@ -61,7 +61,7 @@ jobs:
 
       - name: Build & push backend
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./backend
           push: true
@@ -94,7 +94,7 @@ jobs:
 
       - name: Build & push frontend
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./fe
           push: true
