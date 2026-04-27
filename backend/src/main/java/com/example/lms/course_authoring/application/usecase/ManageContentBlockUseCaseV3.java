@@ -72,7 +72,19 @@ public class ManageContentBlockUseCaseV3 {
             throw new EntityNotFoundException("ContentBlock", blockId);
         }
 
-        ContentBlock updatedBlock = existingBlock.withData(data);
+        // SOTA defensive: partial-update MERGE semantics (RFC 7396 JSON Merge Patch).
+        // Trước đây replace toàn bộ data Map, gây silent data loss khi FE bug
+        // gửi minimal payload (e.g., NGSW cache lệch giữa versions).
+        // Section dc5675f0 (2026-04-27) bị wipe title vì FE gửi {content: ""} only.
+        // Merge approach: existing data + FE override → preserve fields FE không gửi.
+        // KHÔNG có downside: FE intent muốn clear content vẫn pass through (set "").
+        Map<String, Object> mergedData = new java.util.LinkedHashMap<>();
+        if (existingBlock.getData() != null) {
+            mergedData.putAll(existingBlock.getData());
+        }
+        mergedData.putAll(data);
+
+        ContentBlock updatedBlock = existingBlock.withData(mergedData);
         List<ContentBlock> updated = new ArrayList<>(blocks);
         updated.set(blockIndex, updatedBlock);
         lessonRepository.saveContentBlocks(lessonId, updated);
