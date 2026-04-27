@@ -1,11 +1,14 @@
 package com.example.lms.identity.application.usecase;
 
-import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
-import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
+import com.example.lms.identity.domain.model.Role;
+import com.example.lms.identity.domain.model.User;
+import com.example.lms.identity.domain.repository.UserRepository;
+import com.example.lms.shared.domain.valueobject.UserId;
 import com.example.lms.shared.exception.EntityNotFoundException;
 import com.example.lms.shared.exception.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,30 +24,35 @@ import java.util.UUID;
  *  - Không demote chính mình (caller != target)
  *  - Demote về TEACHER mặc định (nếu cần STUDENT, ADMIN có thể edit
  *    qua user role CRUD generic sau)
+ *
+ * Clean architecture: dùng domain UserRepository (port), không phụ thuộc
+ * UserJpaRepository (infrastructure adapter) — pass ArchUnit
+ * useCasesShouldNotDependOnInfrastructure.
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class PromoteOrgAdminUseCase {
 
-    private final UserJpaRepository userRepo;
+    @Qualifier("newUserRepositoryAdapter")
+    private final UserRepository userRepo;
 
     @Transactional
     public void promote(UUID orgId, UUID userId, UUID actorId) {
-        UserJpaEntity user = findMember(orgId, userId);
+        User user = findMember(orgId, userId);
 
-        if (user.getRole() == UserJpaEntity.UserRole.ADMIN) {
+        if (user.getRole() == Role.ADMIN) {
             throw new ValidationException("role",
                 "Không thể bổ nhiệm Quản trị viên hệ thống thành ORG_ADMIN — vai trò ADMIN bảo toàn ngoài org scope");
         }
 
-        if (user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN) {
+        if (user.getRole() == Role.ORG_ADMIN) {
             // Idempotent — already ORG_ADMIN, không thay đổi
             log.info("Promote no-op: user={} already ORG_ADMIN of org={}", userId, orgId);
             return;
         }
 
-        user.setRole(UserJpaEntity.UserRole.ORG_ADMIN);
+        user.changeRole(Role.ORG_ADMIN);
         userRepo.save(user);
         log.info("Promoted user={} → ORG_ADMIN of org={} by actor={}", userId, orgId, actorId);
     }
@@ -56,20 +64,20 @@ public class PromoteOrgAdminUseCase {
                 "Không thể hạ cấp chính mình. Hãy nhờ Quản trị viên hệ thống thực hiện nếu cần.");
         }
 
-        UserJpaEntity user = findMember(orgId, userId);
+        User user = findMember(orgId, userId);
 
-        if (user.getRole() != UserJpaEntity.UserRole.ORG_ADMIN) {
+        if (user.getRole() != Role.ORG_ADMIN) {
             throw new ValidationException("role",
                 "Người dùng không phải ORG_ADMIN của tổ chức này — không thể hạ cấp");
         }
 
-        user.setRole(UserJpaEntity.UserRole.TEACHER);
+        user.changeRole(Role.TEACHER);
         userRepo.save(user);
         log.info("Demoted user={} ORG_ADMIN → TEACHER of org={} by actor={}", userId, orgId, actorId);
     }
 
-    private UserJpaEntity findMember(UUID orgId, UUID userId) {
-        UserJpaEntity user = userRepo.findById(userId)
+    private User findMember(UUID orgId, UUID userId) {
+        User user = userRepo.findById(UserId.of(userId))
                 .orElseThrow(() -> new EntityNotFoundException("Người dùng", userId));
         if (!orgId.equals(user.getOrganizationId())) {
             throw new EntityNotFoundException("Thành viên trong tổ chức", userId);
