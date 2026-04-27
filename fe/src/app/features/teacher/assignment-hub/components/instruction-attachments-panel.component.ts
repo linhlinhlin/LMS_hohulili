@@ -53,7 +53,7 @@ interface UploadingFile {
           <h3 class="iap-title">Tệp đính kèm hướng dẫn</h3>
           <p class="iap-subtitle">PDF, Word, Excel, hình ảnh — học viên có thể tải xuống.</p>
         </div>
-        <button type="button" class="iap-add-btn" (click)="filePicker()?.nativeElement?.click()">
+        <button type="button" class="iap-add-btn" (click)="filePickerRef()?.nativeElement?.click()">
           <lucide-icon name="paperclip" [size]="16"></lucide-icon>
           <span>Đính kèm</span>
         </button>
@@ -65,14 +65,14 @@ interface UploadingFile {
         (dragover)="onDragOver($event)"
         (dragleave)="onDragLeave($event)"
         (drop)="onDrop($event)"
-        (click)="filePicker()?.nativeElement?.click()">
+        (click)="filePickerRef()?.nativeElement?.click()">
         <lucide-icon name="upload-cloud" [size]="24"></lucide-icon>
         <p>Kéo thả tệp vào đây, hoặc <span class="iap-link">chọn từ máy</span></p>
         <p class="iap-hint">Tối đa 100MB/tệp · PDF · DOCX · XLSX · JPG · PNG</p>
       </div>
 
       <input
-        #filePicker
+        #filePickerEl
         type="file"
         multiple
         class="iap-input-hidden"
@@ -209,7 +209,7 @@ export class InstructionAttachmentsPanelComponent {
   readonly attachments = signal<InstructionAttachment[]>([]);
   readonly uploading = signal<UploadingFile[]>([]);
   readonly isDragOver = signal(false);
-  readonly filePicker = viewChild<ElementRef<HTMLInputElement>>('filePicker');
+  readonly filePickerRef = viewChild<ElementRef<HTMLInputElement>>('filePickerEl');
 
   // 100 MB max — matches BE policy. Larger files use multipart upload automatically.
   private static readonly MAX_FILE_SIZE = 100 * 1024 * 1024;
