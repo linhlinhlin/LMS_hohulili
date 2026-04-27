@@ -387,8 +387,16 @@ export class CourseDetailComponent implements OnInit {
 
   private updateSeo(course: ExtendedCourse): void {
     const description = course.description?.slice(0, 160) || course.title;
-    this.seo.setPageMeta(course.title, description, course.thumbnail);
+    // Fallback og:image to default if course thumbnail missing — avoid empty social shares
+    const ogImage = course.thumbnail || 'https://holilihu.online/og-image.png';
+    this.seo.setPageMeta(course.title, description, ogImage, `https://holilihu.online/courses/${course.id}`);
     this.seo.setCanonical(`https://holilihu.online/courses/${course.id}`);
+    // SEO Phase 6: BreadcrumbList Trang chủ → Khóa học → {tên}
+    this.seo.setBreadcrumb([
+      { name: 'Trang chủ', url: 'https://holilihu.online/' },
+      { name: 'Khóa học', url: 'https://holilihu.online/courses' },
+      { name: course.title }
+    ]);
     this.injectCourseJsonLd(course);
   }
 

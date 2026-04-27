@@ -34,6 +34,11 @@ export class PrivacyPolicyComponent implements OnInit, OnDestroy {
       'https://holilihu.online/privacy'
     );
     this.seo.setCanonical('https://holilihu.online/privacy');
+    // SEO Phase 6: BreadcrumbList
+    this.seo.setBreadcrumb([
+      { name: 'Trang chủ', url: 'https://holilihu.online/' },
+      { name: 'Chính sách bảo mật' }
+    ]);
 
     if (isPlatformBrowser(this.platformId)) {
       this.updateActiveSection();

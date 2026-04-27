@@ -74,4 +74,25 @@ export class SeoService {
   setIndexable(): void {
     this.meta.updateTag({ name: 'robots', content: 'index, follow' });
   }
+
+  /**
+   * SEO Phase 6: BreadcrumbList JSON-LD — giúp Google hiểu page hierarchy
+   * → tăng khả năng hiển thị sitelinks dưới SERP entry chính.
+   *
+   * @param items Mảng từ root → current page. Last item KHÔNG có URL (current).
+   *   Example: [{ name: 'Trang chủ', url: 'https://...' }, { name: 'Khóa học' }]
+   */
+  setBreadcrumb(items: Array<{ name: string; url?: string }>): void {
+    const itemListElement = items.map((item, idx) => ({
+      '@type': 'ListItem',
+      position: idx + 1,
+      name: item.name,
+      ...(item.url ? { item: item.url } : {})
+    }));
+    this.setJsonLd('breadcrumb-jsonld', {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement
+    });
+  }
 }

@@ -35,6 +35,11 @@ export class TermsOfServiceComponent implements OnInit, OnDestroy {
       'https://holilihu.online/terms'
     );
     this.seo.setCanonical('https://holilihu.online/terms');
+    // SEO Phase 6: BreadcrumbList
+    this.seo.setBreadcrumb([
+      { name: 'Trang chủ', url: 'https://holilihu.online/' },
+      { name: 'Điều khoản sử dụng' }
+    ]);
 
     if (isPlatformBrowser(this.platformId)) {
       this.updateActiveSection();

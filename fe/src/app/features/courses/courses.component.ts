@@ -241,6 +241,11 @@ export class CoursesComponent implements OnInit {
       'https://holilihu.online/courses'
     );
     this.seo.setCanonical('https://holilihu.online/courses');
+    // SEO Phase 6: BreadcrumbList → tăng khả năng sitelinks
+    this.seo.setBreadcrumb([
+      { name: 'Trang chủ', url: 'https://holilihu.online/' },
+      { name: 'Khóa học' }
+    ]);
 
     // Preload enrolled courses for logged-in students to enable isEnrolled check
     if (this.authService.isAuthenticated() && this.authService.userRole() === 'student') {

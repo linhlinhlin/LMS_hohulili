@@ -189,5 +189,10 @@ export class AboutComponent implements OnInit {
       'https://holilihu.online/about'
     );
     this.seo.setCanonical('https://holilihu.online/about');
+    // SEO Phase 6: BreadcrumbList
+    this.seo.setBreadcrumb([
+      { name: 'Trang chủ', url: 'https://holilihu.online/' },
+      { name: 'Giới thiệu' }
+    ]);
   }
 }

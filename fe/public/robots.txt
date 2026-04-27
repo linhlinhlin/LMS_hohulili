@@ -1,3 +1,9 @@
+# =============================================================================
+# robots.txt — LMS Maritime (https://holilihu.online)
+# Last updated: 2026-04-27 (SEO Phase 6)
+# =============================================================================
+
+# General crawlers (Google, Bing, Yandex, etc.)
 User-agent: *
 Allow: /
 Disallow: /api/
@@ -10,4 +16,106 @@ Disallow: /offline
 Disallow: /reset-sw
 Disallow: /clear-site-data
 
+# =============================================================================
+# AI bots — chính sách 2026-04 (Phase 6 SEO)
+# =============================================================================
+# Strategy: ALLOW real-time browsing bots (user benefit), ALLOW training bots
+# (maritime education content is public good — wider AI distribution helps
+# students). Update if content licensing changes.
+#
+# Reference: https://platform.openai.com/docs/bots
+#            https://darkvisitors.com/agents
+
+# OpenAI ChatGPT (real-time browsing on user request)
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /teacher/
+Disallow: /student/
+Disallow: /auth/
+Disallow: /payment/
+
+# OpenAI GPTBot (training crawler)
+User-agent: GPTBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /teacher/
+Disallow: /student/
+Disallow: /auth/
+Disallow: /payment/
+
+# OpenAI SearchBot (search index)
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /teacher/
+Disallow: /student/
+Disallow: /auth/
+Disallow: /payment/
+
+# Anthropic Claude
+User-agent: ClaudeBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /teacher/
+Disallow: /student/
+Disallow: /auth/
+Disallow: /payment/
+
+User-agent: anthropic-ai
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /teacher/
+Disallow: /student/
+Disallow: /auth/
+Disallow: /payment/
+
+# Google Gemini / Bard training (separate from Googlebot search)
+User-agent: Google-Extended
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /teacher/
+Disallow: /student/
+Disallow: /auth/
+Disallow: /payment/
+
+# Perplexity AI
+User-agent: PerplexityBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /teacher/
+Disallow: /student/
+Disallow: /auth/
+Disallow: /payment/
+
+# You.com
+User-agent: YouBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /teacher/
+Disallow: /student/
+Disallow: /auth/
+Disallow: /payment/
+
+# Common Crawl (used by many AI training datasets)
+User-agent: CCBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /teacher/
+Disallow: /student/
+Disallow: /auth/
+Disallow: /payment/
+
+# =============================================================================
+# Sitemaps
+# =============================================================================
 Sitemap: https://holilihu.online/sitemap.xml

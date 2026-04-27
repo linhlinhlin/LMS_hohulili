@@ -28,6 +28,11 @@ export class ContactComponent implements OnInit {
       'https://holilihu.online/contact'
     );
     this.seo.setCanonical('https://holilihu.online/contact');
+    // SEO Phase 6: BreadcrumbList
+    this.seo.setBreadcrumb([
+      { name: 'Trang chủ', url: 'https://holilihu.online/' },
+      { name: 'Liên hệ' }
+    ]);
   }
 
   formData = {
