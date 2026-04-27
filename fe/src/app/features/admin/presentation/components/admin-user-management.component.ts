@@ -14,6 +14,7 @@ import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/k
 import { BulkActionBarComponent, BulkAction } from '../../../../shared/components/admin/bulk-action-bar/bulk-action-bar.component';
 import { KebabMenuComponent, KebabAction } from '../../../../shared/components/admin/kebab-menu/kebab-menu.component';
 import { formatRelativeTimeVN } from '../../../../shared/utils/relative-time.util';
+import { initialsAvatar } from '../../../../shared/utils/avatar.util';
 /**
  * Admin User Management Component
  * SOTA Design: Coursera-inspired with role change, status actions
@@ -460,7 +461,7 @@ export class AdminUserManagementComponent implements OnInit {
   }
 
   getDefaultAvatar(email: string): string {
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(email)}&background=f97316&color=fff`;
+    return initialsAvatar(email, '#f97316', '#ffffff');
   }
 
   getStatusBadgeClass(status: string): string {

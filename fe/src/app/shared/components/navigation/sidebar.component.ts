@@ -7,6 +7,7 @@ import { OrganizationContextService } from '../../../core/services/organization-
 import { Organization, OrganizationType, UserRole } from '../../../shared/types/user.types';
 import { IconComponent, IconName } from '../icon/icon.component';
 import { getPortalLandingRoute } from '../../../core/utils/portal-route.util';
+import { initialsAvatar } from '../../utils/avatar.util';
 
 export interface SidebarMenuItem {
   label: string;
@@ -210,8 +211,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
     const user = this.authService.currentUserSignal();
     const avatar = user?.avatar;
     if (avatar) return avatar;
-    const name = encodeURIComponent(this.userName() || 'U');
-    return `https://ui-avatars.com/api/?name=${name}&background=0056D2&color=ffffff&size=80&bold=true`;
+    return initialsAvatar(this.userName() || 'U', '#0056D2', '#ffffff', 80);
   });
 
   protected profileRoute = computed(() => {

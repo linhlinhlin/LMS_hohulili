@@ -7,6 +7,7 @@ import { PresignedUploadService } from '../../core/services/presigned-upload.ser
 import { AUTH_ENDPOINTS } from '../../api/endpoints/auth.endpoints';
 import { ApiResponse } from '../../api/types/common.types';
 import { ImageCropperComponent, ImageCroppedEvent, ImageTransform, LoadedImage } from 'ngx-image-cropper';
+import { initialsAvatar } from '../../shared/utils/avatar.util';
 
 @Component({
   selector: 'app-student-profile',
@@ -505,8 +506,7 @@ export class StudentProfileComponent implements OnInit {
   avatarDisplay = computed(() => {
     const url = this.avatarUrl();
     if (url) return url;
-    const name = encodeURIComponent(this.fullName() || 'U');
-    return `https://ui-avatars.com/api/?name=${name}&background=0056D2&color=ffffff&size=160&bold=true`;
+    return initialsAvatar(this.fullName() || 'U', '#0056D2', '#ffffff', 160);
   });
 
   // Edit profile state

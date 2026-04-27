@@ -4,6 +4,7 @@ import { AdminService, AdminUser, CreateUserRequest, UpdateUserRequest } from '.
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../../core/services/confirm-dialog.service';
 import { AuthService } from '../../../../../../core/services/auth.service';
+import { initialsAvatar } from '../../../../../../shared/utils/avatar.util';
 
 export interface PaginationInfo {
   page: number;
@@ -558,7 +559,7 @@ export class UserManagementState {
 
   getDefaultAvatar(email: string): string {
     const name = email.split('@')[0];
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0056D2&color=ffffff&size=150`;
+    return initialsAvatar(name, '#0056D2', '#ffffff', 150);
   }
 
   formatDate(date: Date): string {

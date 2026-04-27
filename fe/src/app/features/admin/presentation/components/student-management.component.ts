@@ -13,6 +13,7 @@ import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/k
 import { BulkActionBarComponent, BulkAction } from '../../../../shared/components/admin/bulk-action-bar/bulk-action-bar.component';
 import { KebabMenuComponent, KebabAction } from '../../../../shared/components/admin/kebab-menu/kebab-menu.component';
 import { formatRelativeTimeVN } from '../../../../shared/utils/relative-time.util';
+import { initialsAvatar } from '../../../../shared/utils/avatar.util';
 
 /**
  * Student Management Component
@@ -445,7 +446,7 @@ export class StudentManagementComponent implements OnInit {
   }
 
   getDefaultAvatar(email: string): string {
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(email)}&background=4f46e5&color=fff`;
+    return initialsAvatar(email, '#4f46e5', '#ffffff');
   }
 
   getStatusBadgeClass(status: string): string {

@@ -64,6 +64,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
         <div class="editor-card__body editor-stack">
           @if (!isPreviewMode()) {
             <app-tiptap-editor
+              #tiptapEditor
               [ngModel]="svc.sectionContent()"
               (ngModelChange)="svc.sectionContent.set($event); svc.markDirty()"
               placeholder="Nhập nội dung bài học chi tiết tại đây..."
@@ -182,6 +183,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                         (click)="toggleExpand()">Mở rộng</button>
               </div>
               <app-tiptap-editor
+                #tiptapEditor
                 [ngModel]="svc.sectionContent()"
                 (ngModelChange)="svc.sectionContent.set($event); svc.markDirty()"
                 placeholder="Gõ / để xem danh sách lệnh nhanh..."
@@ -1492,6 +1494,7 @@ export class SectionEditorComponent {
   readonly saved = output<void>();
 
   readonly editorPanel = viewChild<ElementRef>('editorPanel');
+  readonly tiptapEditor = viewChild<TiptapEditorComponent>('tiptapEditor');
   readonly isExpanded = signal(false);
   readonly isPreviewMode = signal(false);
   readonly videoSourceTab = signal<'upload' | 'youtube'>('upload');
@@ -1508,6 +1511,14 @@ export class SectionEditorComponent {
   readonly isContentEmpty = computed(() => {
     const content = this.svc.sectionContent();
     if (!content) return true;
+    // Treat structural-only content as non-empty (callout shells, images,
+    // videos, tables, code blocks). The naive strip-tags check would return
+    // empty for `<div data-callout-type="info"><p></p></div>` and re-show
+    // the template picker over user's content. Match the same media tags
+    // that tiptap-editor.hasNonTextContent() recognizes.
+    const hasStructural = /<(img|video|iframe|table|hr|pre|details|summary)\b/i.test(content)
+      || /\bdata-(callout-type|youtube-video)\b/i.test(content);
+    if (hasStructural) return false;
     const stripped = content.replace(/<[^>]*>/g, '').trim();
     return stripped.length === 0;
   });
@@ -1721,6 +1732,21 @@ export class SectionEditorComponent {
   }
 
   async onSave(): Promise<void> {
+    // SOTA pattern (Tiptap docs 2026, Notion/Coda): treat editor instance as
+    // source of truth. Read fresh HTML directly here instead of relying on
+    // [ngModel] propagation, which can lag by a microtask after slash-command
+    // template insertions, emoji composition, or programmatic insertContent
+    // calls. Without this flush, sectionContent() may still hold the stale
+    // value when onSave runs synchronously after the user clicks "Save"
+    // immediately following a callout/template insert — resulting in empty
+    // content saved to DB despite the user clearly typing rich content.
+    const editor = this.tiptapEditor();
+    if (editor && this.svc.sectionEditorType() === 'TEXT') {
+      const freshHtml = editor.getCurrentHTML();
+      if (freshHtml !== this.svc.sectionContent()) {
+        this.svc.sectionContent.set(freshHtml);
+      }
+    }
     const success = await this.svc.saveSection(this.lessonId(), this.courseId());
     if (success) this.saved.emit();
   }

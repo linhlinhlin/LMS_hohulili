@@ -1211,6 +1211,49 @@ export class TiptapEditorComponent implements ControlValueAccessor, OnDestroy {
     this.editor?.destroy();
   }
 
+  /**
+   * Read fresh HTML directly from editor at save time.
+   * Bypasses [ngModel] propagation which can lag by a microtask after slash
+   * command insertions, emoji composition, or paste events. Pattern from
+   * Tiptap docs (2026): treat the Editor instance as the source of truth.
+   *
+   * Returns '' if document is structurally empty (Tiptap's isEmpty heuristic).
+   * Returns serialized HTML otherwise.
+   */
+  getCurrentHTML(): string {
+    if (!this.editor) return '';
+    if (this.editor.isEmpty) return '';
+    return this.editor.getHTML();
+  }
+
+  /**
+   * Returns true if the editor doc is structurally non-empty even if the
+   * stripped text would look empty (e.g. only contains an image, video,
+   * callout shell, etc.). Used to override the strip-tags isEmpty check
+   * which incorrectly treats media-only content as empty.
+   */
+  hasNonTextContent(): boolean {
+    if (!this.editor) return false;
+    if (this.editor.isEmpty) return false;
+    const json = this.editor.getJSON();
+    return this.docHasMedia(json);
+  }
+
+  private docHasMedia(node: any): boolean {
+    if (!node) return false;
+    const mediaTypes = new Set([
+      'image', 'resizableImage', 'video', 'youtube',
+      'callout', 'details', 'detailsSummary', 'detailsContent',
+      'table', 'tableRow', 'tableCell', 'tableHeader',
+      'codeBlock', 'horizontalRule',
+    ]);
+    if (mediaTypes.has(node.type)) return true;
+    if (Array.isArray(node.content)) {
+      return node.content.some((c: any) => this.docHasMedia(c));
+    }
+    return false;
+  }
+
   // ── ControlValueAccessor ──
 
   writeValue(value: string): void {
