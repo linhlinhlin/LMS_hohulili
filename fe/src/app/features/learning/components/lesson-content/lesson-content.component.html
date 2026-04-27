@@ -76,17 +76,45 @@
       @if (activeTab() === 'overview') {
       @if (currentSection(); as section) {
       <div class="space-y-5 text-slate-800 text-[15px] leading-relaxed max-w-none pb-6">
-        @if (section.type === 'TEXT' && section.content) {
-        <div class="prose prose-slate max-w-none" #textContent [innerHTML]="getSanitizedHtml(section.content)"></div>
-        @if (readingProgress() > 0 && readingProgress() < 100) { <div
-          class="flex items-center gap-2 text-xs text-slate-400 mt-4">
-          <div class="flex-1 h-1 bg-slate-100 rounded-full">
-            <div class="h-full bg-green-500 rounded-full transition-all" [style.width.%]="readingProgress()"></div>
+        @if (section.type === 'TEXT') {
+          @if (section.content) {
+          <div class="prose prose-slate max-w-none" #textContent [innerHTML]="getSanitizedHtml(section.content)"></div>
+          @if (readingProgress() > 0 && readingProgress() < 100) {
+          <div class="flex items-center gap-2 text-xs text-slate-400 mt-4">
+            <div class="flex-1 h-1 bg-slate-100 rounded-full">
+              <div class="h-full bg-green-500 rounded-full transition-all" [style.width.%]="readingProgress()"></div>
+            </div>
+            <span>{{ readingProgress() | number:'1.0-0' }}% đã đọc</span>
           </div>
-          <span>{{ readingProgress() | number:'1.0-0' }}% đã đọc</span>
-      </div>
-      }
-      }
+          }
+          } @else {
+          <div class="flex flex-col items-center justify-center py-12 text-slate-400 border border-dashed border-slate-200 rounded-lg">
+            <app-icon name="file-text" size="xl" class="mb-3 opacity-40"></app-icon>
+            <p class="text-sm font-medium text-slate-500">Phần này chưa có nội dung văn bản</p>
+            <p class="text-xs text-slate-400 mt-1">Giảng viên sẽ bổ sung nội dung sớm.</p>
+          </div>
+          }
+        }
+
+        @if (section.type === 'VIDEO') {
+        <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          <div class="flex items-center gap-2">
+            <app-icon name="play-circle" size="md" class="text-[#0056D2]"></app-icon>
+            <span class="font-medium">Bài giảng video</span>
+          </div>
+          <p class="mt-1 text-xs text-slate-500">Video được phát ở khung phía trên. Hãy xem hết để hoàn thành phần này.</p>
+        </div>
+        }
+
+        @if (section.type === 'FILE') {
+        <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          <div class="flex items-center gap-2">
+            <app-icon name="paperclip" size="md" class="text-[#0056D2]"></app-icon>
+            <span class="font-medium">Tài liệu đính kèm</span>
+          </div>
+          <p class="mt-1 text-xs text-slate-500">Mở tài liệu ở khung phía trên hoặc tải xuống từ tab "Tài liệu".</p>
+        </div>
+        }
 
       @if (section.type === 'QUIZ') {
       <div class="p-6 border border-amber-200 bg-amber-50 rounded-lg text-center">
