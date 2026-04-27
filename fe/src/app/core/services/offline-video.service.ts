@@ -53,7 +53,7 @@ export class OfflineVideoService {
       const response = await fetch(videoUrl);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      await this.cacheVideoResponse(`/offline-video/${lessonId}`, response, lessonId);
+      await this.cacheVideoResponse(`/offline-video/${lessonId}`, response, lessonId, videoUrl);
 
       const userId = getCurrentUserId();
       const existingLesson = await offlineDb.lessons.get([userId, lessonId]);
@@ -89,7 +89,7 @@ export class OfflineVideoService {
       const response = await fetch(videoUrl);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      await this.cacheVideoResponse(`/offline-video/${sectionId}`, response, sectionId);
+      await this.cacheVideoResponse(`/offline-video/${sectionId}`, response, sectionId, videoUrl);
       this.clearDownloadProgress(sectionId);
 
       const userId = getCurrentUserId();
@@ -325,13 +325,13 @@ export class OfflineVideoService {
     cacheKey: string,
     response: Response,
     progressKey: string,
+    videoUrl: string,
   ): Promise<void> {
     const contentLength = Number(response.headers.get('content-length')) || 0;
     const contentType = response.headers.get('content-type') || 'video/mp4';
     const cache = await caches.open(`offline-videos:${getCurrentUserId()}`);
-    const reader = response.body?.getReader();
 
-    if (!reader) {
+    if (!response.body) {
       const blob = await response.blob();
       await cache.put(cacheKey, new Response(blob, {
         headers: {
@@ -343,7 +343,85 @@ export class OfflineVideoService {
       return;
     }
 
+    // Primary path: stream chunks directly to Cache API.
+    // Browser writes incrementally — RAM peak ~ a few MB, critical for
+    // mobile devices with limited memory (iPhone 8/SE, low-end Android).
+    try {
+      await this.cacheViaStream(cacheKey, response, progressKey, cache, contentType, contentLength);
+      return;
+    } catch (streamErr) {
+      // Chrome (desktop) occasionally throws NetworkError on cache.put(stream)
+      // when the underlying HTTP/2 stream hiccups. Response body has been
+      // partially consumed at this point — must re-fetch to recover.
+      console.warn('[OfflineVideo] Stream cache.put failed, falling back to buffered re-fetch:', {
+        cacheKey,
+        error: streamErr instanceof Error ? streamErr.message : String(streamErr),
+      });
+    }
+
+    // Fallback: re-fetch and buffer as blob.
+    // RAM cost = full video size, so apply size guard to protect mobile.
+    const SAFE_BUFFER_LIMIT = 500 * 1024 * 1024; // 500MB
+    if (contentLength > 0 && contentLength > SAFE_BUFFER_LIMIT) {
+      throw new Error(
+        `Video too large for buffered fallback (${Math.round(contentLength / 1024 / 1024)}MB > 500MB). ` +
+        `Streaming path failed; cannot safely retry without risking OOM.`,
+      );
+    }
+
+    const retry = await fetch(videoUrl);
+    if (!retry.ok) throw new Error(`HTTP ${retry.status} on retry`);
+
+    const reader = retry.body?.getReader();
+    if (!reader) {
+      const blob = await retry.blob();
+      await cache.put(cacheKey, new Response(blob, {
+        headers: {
+          'Content-Type': contentType,
+          'Content-Length': String(contentLength || blob.size),
+          'Accept-Ranges': 'bytes',
+        },
+      }));
+      return;
+    }
+
+    const chunks: Uint8Array[] = [];
     let received = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      received += value.length;
+      if (contentLength > 0) {
+        this.downloadProgress.update(map => {
+          const next = new Map(map);
+          next.set(progressKey, Math.round((received / contentLength) * 100));
+          return next;
+        });
+      }
+    }
+
+    const blob = new Blob(chunks as BlobPart[], { type: contentType });
+    await cache.put(cacheKey, new Response(blob, {
+      headers: {
+        'Content-Type': contentType,
+        'Content-Length': String(received),
+        'Accept-Ranges': 'bytes',
+      },
+    }));
+  }
+
+  private async cacheViaStream(
+    cacheKey: string,
+    response: Response,
+    progressKey: string,
+    cache: Cache,
+    contentType: string,
+    contentLength: number,
+  ): Promise<void> {
+    const reader = response.body!.getReader();
+    let received = 0;
+
     const progressStream = new ReadableStream({
       pull: async (controller) => {
         const { done, value } = await reader.read();
@@ -368,8 +446,6 @@ export class OfflineVideoService {
       },
     });
 
-    // Stream directly to Cache API — the browser writes chunks to disk
-    // incrementally instead of accumulating the entire video in RAM.
     await cache.put(cacheKey, new Response(progressStream, {
       headers: {
         'Content-Type': contentType,
@@ -378,8 +454,7 @@ export class OfflineVideoService {
       },
     }));
 
-    // When Content-Length was unknown (rare — most CDNs include it),
-    // re-cache with the actual size so Range requests work correctly.
+    // When Content-Length was unknown, re-cache with actual size so Range requests work.
     if (contentLength === 0 && received > 0) {
       const existing = await cache.match(cacheKey);
       if (existing) {
