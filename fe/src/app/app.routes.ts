@@ -74,21 +74,33 @@ export const routes: Routes = [
       // matched fallback courses/:slug → redirect /courses). UrlMatcher
       // deterministic: chỉ match đúng 2 segments [courses, {valid-uuid}].
       {
+        // UrlMatcher accept both: [courses, uuid] (root level) hoặc [uuid]
+        // (nếu Angular nested routing đã strip 'courses' từ parent).
+        // Either way validate UUID format trước khi match.
         matcher: (segments) => {
-          if (segments.length !== 2 || segments[0].path !== 'courses') return null;
-          const idSeg = segments[1];
-          const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idSeg.path);
-          if (!isUUID) return null;
-          return {
-            consumed: segments,
-            posParams: { id: idSeg }
-          };
+          const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          let idSeg;
+          let consumed;
+          if (segments.length === 2 && segments[0].path === 'courses' && UUID.test(segments[1].path)) {
+            idSeg = segments[1];
+            consumed = segments;
+          } else if (segments.length === 1 && UUID.test(segments[0].path)) {
+            // Nested case: parent stripped 'courses' segment
+            idSeg = segments[0];
+            consumed = segments;
+          } else {
+            return null;
+          }
+          return { consumed, posParams: { id: idSeg } };
         },
         loadComponent: () => import('./features/courses/course-detail.component').then(m => m.CourseDetailComponent),
         title: 'Chi tiết khóa học - LMS Maritime'
       },
-      // Fallback for unknown /courses/{slug} → redirect to courses listing
-      { path: 'courses/:slug', redirectTo: '/courses', pathMatch: 'full' },
+      // (Removed Phase 7) `path: 'courses/:slug', redirectTo: '/courses'`
+      // catch-all được loại bỏ — empirically nó match TRƯỚC route course
+      // detail UrlMatcher dù được đặt sau (Angular nested routing quirk).
+      // Hệ quả: /courses/{uuid} bị redirect 302 về /courses listing.
+      // Now: invalid /courses/{slug} → fallback wildcard ở root level.
       {
         path: 'about',
         loadComponent: () => import('./features/about/about.component').then(m => m.AboutComponent),
