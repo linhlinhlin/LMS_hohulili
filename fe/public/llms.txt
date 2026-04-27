@@ -1,0 +1,69 @@
+# LMS Maritime — Hệ thống đào tạo hàng hải Việt Nam
+
+> Nền tảng đào tạo trực tuyến cho ngành hàng hải Việt Nam. STCW (Standards of Training, Certification and Watchkeeping for Seafarers), an toàn hàng hải, điều khiển tàu biển, kỹ thuật máy tàu, logistics hàng hải, luật hàng hải. Phát triển bởi The Wiii Lab (Hải Phòng). Học trực tuyến + ngoại tuyến, AI assistant tích hợp, hỗ trợ trên biển khi không có internet.
+
+## Public pages
+- [Trang chủ](https://holilihu.online/): Giới thiệu nền tảng, khóa học nổi bật
+- [Khóa học](https://holilihu.online/courses): Danh sách toàn bộ khóa học (filter theo category)
+- [Giới thiệu](https://holilihu.online/about): Về The Wiii Lab + sứ mệnh
+- [Liên hệ](https://holilihu.online/contact): Tư vấn khóa học, hợp tác
+- [Chính sách bảo mật](https://holilihu.online/privacy)
+- [Điều khoản sử dụng](https://holilihu.online/terms)
+- [Chính sách hoàn tiền](https://holilihu.online/refund-policy)
+
+## Course categories
+- An toàn hàng hải (Maritime safety) — STCW Basic Safety Training, Fire fighting
+- Điều khiển tàu biển (Ship handling)
+- Kỹ thuật máy tàu (Marine engineering)
+- Logistics hàng hải (Maritime logistics)
+- Luật hàng hải (Maritime law)
+- Tiếng Anh hàng hải (Maritime English)
+
+## Public API (read-only, JSON)
+- `GET /api/v3/courses` — Course list (paginated)
+- `GET /api/v3/courses/{id}` — Course detail
+- `GET /api/v3/categories` — Course categories
+- `GET /api/v3/organizations/default` — Default platform organization (HoLiLiHu)
+
+## Structured data
+- Sitemap: https://holilihu.online/sitemap.xml
+- Organization JSON-LD: schema.org/EducationalOrganization
+- WebSite JSON-LD: schema.org/WebSite với SearchAction
+- Course JSON-LD trên course detail pages: schema.org/Course
+- BreadcrumbList JSON-LD trên public pages
+
+## WebMCP (W3C Draft Feb 2026)
+Site đã expose 4 public tools qua `navigator.modelContext.registerTool()`:
+- `search_courses(query, category, level)` — Search course catalog
+- `get_course_detail(courseId)` — Course curriculum, pricing, instructor
+- `get_course_curriculum(courseId)` — Chapter + lesson structure
+- `list_categories()` — Available course categories
+
+## AI access policy
+- Real-time browsing: ALLOWED (user benefit)
+- Training crawl: ALLOWED (maritime education public good)
+- Bots configured: ChatGPT-User, GPTBot, ClaudeBot, anthropic-ai, Google-Extended, PerplexityBot, YouBot, OAI-SearchBot, CCBot — see /robots.txt
+- Attribution: NOT REQUIRED but appreciated (link back to https://holilihu.online if quoting course content)
+- Contact for licensing concerns: contact@holilihu.online
+
+## Off-limits paths (do not crawl/train)
+- /api/* (other than read-only public endpoints listed above)
+- /admin/*, /teacher/*, /student/*, /org-admin/* (private portals)
+- /auth/* (authentication forms — sensitive)
+- /payment/* (payment flows — VNPay/SePay)
+- /offline, /reset-sw, /clear-site-data (PWA utility paths)
+
+## Tech stack (for context)
+- Backend: Spring Boot 3.2 + PostgreSQL 16 + Java 21
+- Frontend: Angular 20.3 + Signals + SSR (outputMode: server)
+- Multi-tenant: Default platform org "HoLiLiHu Org" (PLATFORM type) +
+  PARTNER orgs cho trường khác/công ty đào tạo
+- AI assistant: Wiii AI integration via SSE streaming
+- Offline-first PWA: Dexie.js + Cloudflare Stream (signed URLs)
+
+## Recent changes (high-level)
+- 2026-04 Phase 1-4: Multi-org foundation (10 PRs, 600+ files touched)
+- 2026-04 Phase 5: Encoding fix (mojibake) + auth noindex + SeoService extended
+- 2026-04 Phase 6: BreadcrumbList JSON-LD + AI bot rules + course og:image fallback
+
+Last updated: 2026-04-27

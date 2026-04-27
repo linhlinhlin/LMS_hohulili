@@ -1,0 +1,76 @@
+{
+  "$schema": "https://github.com/AISafety/ai-policy/raw/main/schema.json",
+  "version": "1.0",
+  "site": "https://holilihu.online",
+  "owner": {
+    "name": "The Wiii Lab",
+    "contact": "contact@holilihu.online",
+    "location": "Hải Phòng, Vietnam"
+  },
+  "policy": {
+    "ai_access": "allow",
+    "real_time_browsing": "allow",
+    "training_crawl": "allow",
+    "search_indexing": "allow",
+    "model_context_protocol": "allow"
+  },
+  "attribution": {
+    "required": false,
+    "preferred": "Link back to https://holilihu.online when quoting course content"
+  },
+  "off_limits_paths": [
+    "/api/*",
+    "/admin/*",
+    "/teacher/*",
+    "/student/*",
+    "/org-admin/*",
+    "/auth/*",
+    "/payment/*",
+    "/offline",
+    "/reset-sw",
+    "/clear-site-data"
+  ],
+  "public_api_paths": [
+    "/api/v3/courses",
+    "/api/v3/courses/{id}",
+    "/api/v3/categories",
+    "/api/v3/organizations/default"
+  ],
+  "structured_data": {
+    "sitemap": "https://holilihu.online/sitemap.xml",
+    "robots": "https://holilihu.online/robots.txt",
+    "llms_txt": "https://holilihu.online/llms.txt",
+    "schemas": [
+      "schema.org/EducationalOrganization",
+      "schema.org/WebSite",
+      "schema.org/Course",
+      "schema.org/BreadcrumbList"
+    ]
+  },
+  "webmcp": {
+    "enabled": true,
+    "tools": [
+      {
+        "name": "search_courses",
+        "description": "Search course catalog by query, category, level"
+      },
+      {
+        "name": "get_course_detail",
+        "description": "Get full course detail by ID"
+      },
+      {
+        "name": "get_course_curriculum",
+        "description": "Get chapter + lesson structure"
+      },
+      {
+        "name": "list_categories",
+        "description": "List available course categories"
+      }
+    ]
+  },
+  "rate_limits": {
+    "general": "600 req/min per IP",
+    "ai_bots": "60 req/min per User-Agent (recommended)"
+  },
+  "last_updated": "2026-04-27"
+}
