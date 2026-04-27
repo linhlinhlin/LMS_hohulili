@@ -60,6 +60,35 @@ public class AssignmentDTOs {
         private String createdAt;
         private String updatedAt;
         private Double maxScore;
-        // attachments etc...
+        /** Teacher uploaded standalone files (PDF/Word/sample) — pattern Google Classroom. */
+        private List<InstructionAttachment> instructionAttachments;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class InstructionAttachment {
+        private String id;
+        private String fileName;
+        private String fileUrl;
+        private Long fileSize;
+        private String fileType;
+        private String storageKey;
+        private Integer displayOrder;
+        private String uploadedAt;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CreateInstructionAttachmentRequest {
+        private String fileName;
+        private String fileUrl;
+        private String storageKey;
+        private Long fileSize;
+        private String fileType;
+        private Integer displayOrder;
     }
 }

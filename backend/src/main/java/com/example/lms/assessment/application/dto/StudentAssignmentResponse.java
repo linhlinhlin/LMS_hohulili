@@ -1,6 +1,7 @@
 package com.example.lms.assessment.application.dto;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -31,5 +32,7 @@ public record StudentAssignmentResponse(
     String content,       // Submitted text content
     UUID submissionId,    // Submission ID if exists
     boolean allowLateSubmission,
-    Integer maxAttempts
+    Integer maxAttempts,
+    /** Teacher uploaded standalone files dính kèm assignment (Google Classroom pattern). */
+    List<AssignmentDTOs.InstructionAttachment> instructionAttachments
 ) {}

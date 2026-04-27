@@ -44,6 +44,15 @@ public class AssignmentAttachmentJpaEntity {
     @Column(name = "uploaded_by")
     private UUID uploadedBy;
 
+    /**
+     * Display order cho instruction attachments (submission_id IS NULL).
+     * Không relevant cho student submission attachments — luôn 0 cho rows đó.
+     * Auto-assign khi insert mới (= count + 1 trong same assignment).
+     */
+    @Column(name = "display_order", nullable = false)
+    @Builder.Default
+    private Integer displayOrder = 0;
+
     @CreationTimestamp
     @Column(name = "uploaded_at", updatable = false)
     private Instant uploadedAt;

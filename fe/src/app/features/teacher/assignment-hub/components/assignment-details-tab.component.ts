@@ -23,6 +23,7 @@ import { environment } from '../../../../../environments/environment';
 import { ClassService } from '../../../../state/class.service';
 import { validateMaxScore } from '../../assignments/utils/assignment-validators';
 import { DialogComponent } from '../../../../shared/components/dialog/dialog.component';
+import { InstructionAttachmentsPanelComponent } from './instruction-attachments-panel.component';
 
 type AssignmentStatus = 'pending' | 'published' | 'closed';
 
@@ -41,7 +42,7 @@ type AssignmentStatus = 'pending' | 'published' | 'closed';
  */
 @Component({
   selector: 'app-assignment-details-tab',
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, DistributionSelectorComponent, TiptapEditorComponent, DialogComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, DistributionSelectorComponent, TiptapEditorComponent, DialogComponent, InstructionAttachmentsPanelComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bg-slate-50 -mx-4 sm:-mx-6 -my-6 px-4 sm:px-6 py-6 min-h-[60vh]">
@@ -219,6 +220,9 @@ type AssignmentStatus = 'pending' | 'published' | 'closed';
                   <label class="block text-xs font-medium text-gray-600 mb-2">Hướng dẫn thực hiện</label>
                   <app-tiptap-editor formControlName="instructions" placeholder="Hướng dẫn chi tiết..." [height]="200" [uploadFn]="editorUploadFn"></app-tiptap-editor>
                 </div>
+                @if (assignment()?.id) {
+                  <app-instruction-attachments-panel [assignmentId]="assignment()!.id"></app-instruction-attachments-panel>
+                }
               </div>
             </section>
 

@@ -1,9 +1,12 @@
 package com.example.lms.assessment.application.usecase;
 
+import com.example.lms.assessment.application.dto.AssignmentDTOs.InstructionAttachment;
 import com.example.lms.assessment.application.dto.StudentAssignmentResponse;
 import com.example.lms.assessment.application.port.StudentAssessmentAccessPort;
 import com.example.lms.assessment.application.port.StudentAssignmentQueryPort;
 import com.example.lms.assessment.application.port.StudentAssignmentQueryPort.*;
+import com.example.lms.assessment.infrastructure.persistence.entity.AssignmentAttachmentJpaEntity;
+import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentAttachmentJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +30,7 @@ public class GetStudentAssignmentsUseCase {
 
     private final StudentAssignmentQueryPort queryPort;
     private final StudentAssessmentAccessPort accessPort;
+    private final AssignmentAttachmentJpaRepository attachmentRepository;
 
     @Transactional(readOnly = true)
     public List<StudentAssignmentResponse> execute(UUID studentId) {
@@ -63,12 +67,39 @@ public class GetStudentAssignmentsUseCase {
         // 4. Get student's submissions (batch query)
         Map<UUID, SubmissionInfo> submissionByAssignment = queryPort.findLatestSubmissionsByStudent(studentId);
 
+        // 4b. Batch load instruction attachments (Google Classroom-style)
+        Map<UUID, List<InstructionAttachment>> attachmentsByAssignment =
+                loadInstructionAttachments(assignments.stream().map(AssignmentSummary::id).toList());
+
         // 5. Map to response DTOs
         return assignments.stream()
-                .map(a -> mapToResponse(a, submissionByAssignment.get(a.id())))
+                .map(a -> mapToResponse(a, submissionByAssignment.get(a.id()),
+                        attachmentsByAssignment.getOrDefault(a.id(), List.of())))
                 .sorted(Comparator.comparing(StudentAssignmentResponse::dueDate,
                         Comparator.nullsLast(Comparator.naturalOrder())))
                 .collect(Collectors.toList());
+    }
+
+    private Map<UUID, List<InstructionAttachment>> loadInstructionAttachments(List<UUID> assignmentIds) {
+        if (assignmentIds.isEmpty()) return Map.of();
+        return attachmentRepository.findInstructionAttachmentsByAssignmentIds(assignmentIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        AssignmentAttachmentJpaEntity::getAssignmentId,
+                        Collectors.mapping(this::toAttachmentDto, Collectors.toList())));
+    }
+
+    private InstructionAttachment toAttachmentDto(AssignmentAttachmentJpaEntity e) {
+        return InstructionAttachment.builder()
+                .id(e.getId().toString())
+                .fileName(e.getFileName())
+                .fileUrl(e.getFileUrl())
+                .fileSize(e.getFileSize())
+                .fileType(e.getFileType())
+                .storageKey(e.getStorageKey())
+                .displayOrder(e.getDisplayOrder())
+                .uploadedAt(e.getUploadedAt() != null ? e.getUploadedAt().toString() : null)
+                .build();
     }
 
     /**
@@ -84,6 +115,8 @@ public class GetStudentAssignmentsUseCase {
                 .map(assignment -> {
                     SubmissionInfo submission = queryPort.findSubmission(assignmentId, studentId).orElse(null);
 
+                    List<InstructionAttachment> attachments = loadInstructionAttachments(List.of(assignmentId))
+                            .getOrDefault(assignmentId, List.of());
                     return mapToResponse(
                             new AssignmentSummary(
                                     assignment.id(), assignment.title(), assignment.description(),
@@ -91,13 +124,14 @@ public class GetStudentAssignmentsUseCase {
                                     assignment.deliveryMode(), assignment.dueDate(),
                                     assignment.maxScore(), assignment.allowLateSubmission(), assignment.maxAttempts(),
                                     assignment.distributionType(), assignment.classId(), assignment.className()),
-                            submission);
+                            submission, attachments);
                 });
     }
 
     private StudentAssignmentResponse mapToResponse(
             AssignmentSummary assignment,
-            SubmissionInfo submission) {
+            SubmissionInfo submission,
+            List<InstructionAttachment> instructionAttachments) {
 
         String status;
         boolean isLate = false;
@@ -168,7 +202,8 @@ public class GetStudentAssignmentsUseCase {
                 content,
                 submissionId,
                 Boolean.TRUE.equals(assignment.allowLateSubmission()),
-                assignment.maxAttempts()
+                assignment.maxAttempts(),
+                instructionAttachments
         );
     }
 }

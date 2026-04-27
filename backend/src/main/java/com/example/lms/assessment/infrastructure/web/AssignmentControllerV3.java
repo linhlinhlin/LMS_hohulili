@@ -1,11 +1,14 @@
 package com.example.lms.assessment.infrastructure.web;
 
 import com.example.lms.assessment.application.dto.AssignmentDTOs.AssignmentDetail;
+import com.example.lms.assessment.application.dto.AssignmentDTOs.CreateInstructionAttachmentRequest;
+import com.example.lms.assessment.application.dto.AssignmentDTOs.InstructionAttachment;
 import com.example.lms.assessment.application.dto.CreateAssignmentCommand;
 import com.example.lms.assessment.application.usecase.CreateAssignmentUseCaseV3;
 import com.example.lms.assessment.application.usecase.DeleteAssignmentUseCaseV3;
 import com.example.lms.assessment.application.usecase.GetAssignmentsByCourseUseCase;
 import com.example.lms.assessment.application.usecase.GetTeacherAssignmentsSummaryUseCase;
+import com.example.lms.assessment.application.usecase.ManageAssignmentInstructionAttachmentsUseCase;
 import com.example.lms.assessment.application.usecase.UpdateAssignmentUseCaseV3;
 import com.example.lms.assessment.infrastructure.persistence.entity.AssignmentJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentAllocationJpaRepository;
@@ -62,6 +65,7 @@ public class AssignmentControllerV3 {
     private final CreateAssignmentUseCaseV3 createAssignmentUseCaseV3;
     private final DeleteAssignmentUseCaseV3 deleteAssignmentUseCaseV3;
     private final UpdateAssignmentUseCaseV3 updateAssignmentUseCaseV3;
+    private final ManageAssignmentInstructionAttachmentsUseCase instructionAttachmentsUseCase;
     private final JpaCourseRepository courseJpaRepository;
     private final JpaLearningClassRepository classRepository;
     private final JpaEnrollmentRepository enrollmentRepository;
@@ -220,6 +224,48 @@ public class AssignmentControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(null, "Assignment deleted"));
     }
 
+    // ── Instruction attachments (Google Classroom-style standalone files) ───
+
+    @PostMapping("/{id}/instruction-attachments")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @Operation(summary = "Đính kèm file hướng dẫn vào assignment (sau khi presigned upload xong)")
+    public ResponseEntity<ApiResponse<InstructionAttachment>> addInstructionAttachment(
+            @PathVariable UUID id,
+            @Valid @RequestBody CreateInstructionAttachmentRequest req,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        AssignmentJpaEntity assignment = assignmentRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Bài tập", id));
+        verifyAssignmentOwnership(assignment, user);
+        InstructionAttachment saved = instructionAttachmentsUseCase.add(id, user.getId(), req);
+        return ResponseEntity.ok(ApiResponse.success(saved, "Đã đính kèm tệp"));
+    }
+
+    @GetMapping("/{id}/instruction-attachments")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @Operation(summary = "Liệt kê tất cả file hướng dẫn của assignment")
+    public ResponseEntity<ApiResponse<List<InstructionAttachment>>> listInstructionAttachments(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        AssignmentJpaEntity assignment = assignmentRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Bài tập", id));
+        verifyAssignmentOwnership(assignment, user);
+        return ResponseEntity.ok(ApiResponse.success(instructionAttachmentsUseCase.list(id)));
+    }
+
+    @DeleteMapping("/{id}/instruction-attachments/{attachmentId}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @Operation(summary = "Xóa một file hướng dẫn")
+    public ResponseEntity<ApiResponse<Void>> deleteInstructionAttachment(
+            @PathVariable UUID id,
+            @PathVariable UUID attachmentId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        AssignmentJpaEntity assignment = assignmentRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Bài tập", id));
+        verifyAssignmentOwnership(assignment, user);
+        instructionAttachmentsUseCase.delete(id, attachmentId);
+        return ResponseEntity.ok(ApiResponse.success(null, "Đã xóa tệp đính kèm"));
+    }
+
     public record CreateAssignmentRequest(
             @NotBlank(message = "Title is required")
             String title,
@@ -305,6 +351,7 @@ public class AssignmentControllerV3 {
                 .createdAt(assignment.getCreatedAt() != null ? assignment.getCreatedAt().toString() : null)
                 .updatedAt(assignment.getUpdatedAt() != null ? assignment.getUpdatedAt().toString() : null)
                 .maxScore(assignment.getMaxScore() != null ? assignment.getMaxScore().doubleValue() : 100.0)
+                .instructionAttachments(instructionAttachmentsUseCase.list(assignment.getId()))
                 .build();
     }
 

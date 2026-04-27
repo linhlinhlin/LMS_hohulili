@@ -86,6 +86,17 @@ export interface AssignmentDetail {
     fileName: string;
     fileUrl: string;
   }[];
+  /** Teacher uploaded standalone instruction files (Google Classroom pattern). */
+  instructionAttachments?: {
+    id: string;
+    fileName: string;
+    fileUrl: string;
+    fileSize: number | null;
+    fileType: string | null;
+    storageKey: string | null;
+    displayOrder: number;
+    uploadedAt: string | null;
+  }[];
 }
 
 export interface SubmissionSummary {
