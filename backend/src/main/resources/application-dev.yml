@@ -36,6 +36,8 @@ spring:
         order_updates: true             # Group updates by entity type
         # Hypersistence Utils: Custom ObjectMapper with JavaTimeModule for JSONB
         hypersistence.utils.jackson.object.mapper: com.example.lms.config.HibernateJsonConfig
+        # Phase 8 Level 3: Jackson-based JSON clone (bypass Java Serializable req)
+        hypersistence.utils.json.serializer: com.example.lms.config.JacksonCloneJsonSerializer
     # CRITICAL: Disable Open Session In View anti-pattern
     # Reference: Netflix/Google explicitly disable this
     open-in-view: false

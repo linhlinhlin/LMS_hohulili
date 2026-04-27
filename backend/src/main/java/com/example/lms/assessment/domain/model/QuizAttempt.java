@@ -3,6 +3,7 @@ package com.example.lms.assessment.domain.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -151,7 +152,8 @@ public class QuizAttempt {
     public Double getMaxScore() { return maxScore; }
     public Boolean getIsPassed() { return isPassed; }
 
-    public static class AttemptItem {
+    public static class AttemptItem implements Serializable {
+        private static final long serialVersionUID = 1L;
         private UUID questionId;
         private String selectedOption;
         private Map<String, Object> studentAnswer;
