@@ -69,38 +69,16 @@ export const routes: Routes = [
       { path: 'courses/logistics', redirectTo: '/courses?category=logistics', pathMatch: 'full' },
       { path: 'courses/law', redirectTo: '/courses?category=law', pathMatch: 'full' },
       { path: 'courses/certificates', redirectTo: '/courses?category=certificates', pathMatch: 'full' },
-      // Course Detail — Phase 7 fix: dùng UrlMatcher thay canMatch.
-      // canMatch + path: 'courses/:id' empirically không hoạt động (route
-      // matched fallback courses/:slug → redirect /courses). UrlMatcher
-      // deterministic: chỉ match đúng 2 segments [courses, {valid-uuid}].
+      // Course Detail — simple path matching, component handle UUID validation.
+      // Trước đây canMatch/UrlMatcher đều có vấn đề trong SSR context (route
+      // không match → fall through redirect hoặc Angular SSR bail). Đơn giản
+      // hóa: path: 'courses/:id' luôn match, component fetch course → nếu
+      // 404/invalid UUID → toast error.
       {
-        // UrlMatcher accept both: [courses, uuid] (root level) hoặc [uuid]
-        // (nếu Angular nested routing đã strip 'courses' từ parent).
-        // Either way validate UUID format trước khi match.
-        matcher: (segments) => {
-          const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-          let idSeg;
-          let consumed;
-          if (segments.length === 2 && segments[0].path === 'courses' && UUID.test(segments[1].path)) {
-            idSeg = segments[1];
-            consumed = segments;
-          } else if (segments.length === 1 && UUID.test(segments[0].path)) {
-            // Nested case: parent stripped 'courses' segment
-            idSeg = segments[0];
-            consumed = segments;
-          } else {
-            return null;
-          }
-          return { consumed, posParams: { id: idSeg } };
-        },
+        path: 'courses/:id',
         loadComponent: () => import('./features/courses/course-detail.component').then(m => m.CourseDetailComponent),
         title: 'Chi tiết khóa học - LMS Maritime'
       },
-      // (Removed Phase 7) `path: 'courses/:slug', redirectTo: '/courses'`
-      // catch-all được loại bỏ — empirically nó match TRƯỚC route course
-      // detail UrlMatcher dù được đặt sau (Angular nested routing quirk).
-      // Hệ quả: /courses/{uuid} bị redirect 302 về /courses listing.
-      // Now: invalid /courses/{slug} → fallback wildcard ở root level.
       {
         path: 'about',
         loadComponent: () => import('./features/about/about.component').then(m => m.AboutComponent),
