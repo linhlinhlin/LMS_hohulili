@@ -340,6 +340,12 @@ export class GoogleSigninButtonComponent implements AfterViewInit {
   async ngAfterViewInit(): Promise<void> {
     this.destroyRef.onDestroy(() => { this.destroyed = true; });
 
+    // SEO Phase 7: skip Google IDS init during SSR — script loads window.google
+    // which doesn't exist on Node.js. Browser hydration sẽ re-run lifecycle.
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     try {
       const config = await firstValueFrom(this.googleIdentityService.getConfig());
       if (this.destroyed) {

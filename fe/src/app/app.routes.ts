@@ -54,6 +54,11 @@ export const routes: Routes = [
       },
       {
         path: 'courses',
+        // pathMatch: 'full' để chỉ match /courses chính xác — không match
+        // /courses/{uuid} (sẽ rơi vào course detail route bên dưới).
+        // Không set 'full' = mặc định 'prefix' = match cả /courses/{anything}
+        // → CoursesComponent render cho cả course detail URLs (SSR bug Phase 7).
+        pathMatch: 'full',
         loadComponent: () => import('./features/courses/courses.component').then(m => m.CoursesComponent),
         title: 'Khóa học - LMS Maritime'
       },

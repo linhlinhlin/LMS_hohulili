@@ -34,8 +34,11 @@ export const serverRoutes: ServerRoute[] = [
     renderMode: RenderMode.Server
   },
   {
+    // SEO Phase 7: switch from Client → Server để noindex meta tag bake vào
+    // static HTML từ đầu (Google bot fetch lần đầu không cần execute JS).
+    // GoogleSigninButton.ngAfterViewInit có platform guard skip trên server.
     path: 'auth/login',
-    renderMode: RenderMode.Client
+    renderMode: RenderMode.Server
   },
   {
     path: 'teacher',

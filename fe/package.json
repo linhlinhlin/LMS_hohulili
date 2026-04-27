@@ -4,7 +4,8 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build && node scripts/fix-ngsw.js",
+    "build": "node scripts/generate-sitemap-courses.mjs && ng build && node scripts/fix-ngsw.js",
+    "build:sitemap": "node scripts/generate-sitemap-courses.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "test:coverage": "ng test --code-coverage",

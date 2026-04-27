@@ -119,3 +119,4 @@ Disallow: /payment/
 # Sitemaps
 # =============================================================================
 Sitemap: https://holilihu.online/sitemap.xml
+Sitemap: https://holilihu.online/sitemap-courses.xml
