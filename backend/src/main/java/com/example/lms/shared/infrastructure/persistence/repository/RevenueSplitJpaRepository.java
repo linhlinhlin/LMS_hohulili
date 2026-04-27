@@ -41,4 +41,30 @@ public interface RevenueSplitJpaRepository
 
     @Query("SELECT COUNT(DISTINCT r.courseId) FROM RevenueSplitJpaEntity r WHERE r.teacherId = :teacherId")
     long countDistinctCoursesByTeacherId(@Param("teacherId") UUID teacherId);
+
+    // ==================== Issue #260 (Phase 4 PR 4): cross-org aggregates ====================
+
+    @Query("SELECT COALESCE(SUM(r.grossAmount), 0) FROM RevenueSplitJpaEntity r")
+    BigDecimal sumGrossRevenueAll();
+
+    @Query("SELECT COALESCE(SUM(r.platformAmount), 0) FROM RevenueSplitJpaEntity r")
+    BigDecimal sumPlatformAmountAll();
+
+    @Query("SELECT COALESCE(SUM(r.teacherAmount), 0) FROM RevenueSplitJpaEntity r")
+    BigDecimal sumTeacherAmountAll();
+
+    @Query("SELECT COALESCE(SUM(r.orgAmount), 0) FROM RevenueSplitJpaEntity r")
+    BigDecimal sumOrgAmountAll();
+
+    /** Top N orgs by gross revenue. Returns Object[] {orgId UUID, total BigDecimal}.
+     *  Skip rows where org_id IS NULL (individual users / default org gross). */
+    @Query(value = """
+        SELECT r.org_id AS orgId, SUM(r.gross_amount) AS total
+        FROM revenue_splits r
+        WHERE r.org_id IS NOT NULL
+        GROUP BY r.org_id
+        ORDER BY total DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+    java.util.List<Object[]> findTopOrgsByRevenue(@Param("limit") int limit);
 }

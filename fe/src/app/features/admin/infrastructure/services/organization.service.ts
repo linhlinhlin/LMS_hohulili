@@ -40,6 +40,13 @@ export class OrganizationService {
     );
   }
 
+  /** Issue #260 (Phase 4 PR 4): cross-org revenue dashboard. ADMIN only. */
+  getCrossOrgRevenue(): Observable<CrossOrgRevenueResponse> {
+    return this.api.get<ApiResponse<CrossOrgRevenueResponse>>('/api/v3/organizations/stats/revenue').pipe(
+      map(res => res.data)
+    );
+  }
+
   getOrganization(id: string): Observable<Organization> {
     return this.api.get<ApiResponse<Organization>>(ORGANIZATION_ENDPOINTS.BY_ID(id)).pipe(
       map(res => res.data)
@@ -172,4 +179,22 @@ export interface OrganizationStats {
   activeOrgs: number;
   totalMembers: number;
   activeInvites: number;
+}
+
+/** Issue #260 (Phase 4 PR 4): cross-org revenue aggregate. */
+export interface TopOrgRevenue {
+  orgId: string;
+  name: string;
+  code: string;
+  type: OrganizationType;
+  isDefault: boolean;
+  totalRevenue: number;
+}
+
+export interface CrossOrgRevenueResponse {
+  totalGrossRevenue: number;
+  totalPlatformFees: number;
+  totalTeacherPayouts: number;
+  totalOrgPayouts: number;
+  topOrgs: TopOrgRevenue[];
 }

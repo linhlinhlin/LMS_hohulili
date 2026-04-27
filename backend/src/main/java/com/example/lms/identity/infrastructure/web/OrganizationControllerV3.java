@@ -49,6 +49,7 @@ public class OrganizationControllerV3 {
     private final ListInvitesUseCase listInvitesUseCase;
     private final RevokeInviteUseCase revokeInviteUseCase;
     private final PromoteOrgAdminUseCase promoteOrgAdminUseCase;
+    private final GetCrossOrgRevenueUseCase getCrossOrgRevenueUseCase;
     private final UserJpaRepository userJpaRepo;
     private final OrganizationJpaRepository orgJpaRepo;
     private final OrganizationInviteJpaRepository inviteJpaRepo;
@@ -101,6 +102,14 @@ public class OrganizationControllerV3 {
                 inviteJpaRepo.countActiveInvites(Instant.now())
         );
         return ResponseEntity.ok(ApiResponse.success(stats));
+    }
+
+    /** Issue #260 (Phase 4 PR 4): cross-org revenue aggregate cho admin dashboard. */
+    @GetMapping("/stats/revenue")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Cross-org revenue dashboard (ADMIN only)")
+    public ResponseEntity<ApiResponse<com.example.lms.identity.application.dto.CrossOrgRevenueResponse>> getCrossOrgRevenue() {
+        return ResponseEntity.ok(ApiResponse.success(getCrossOrgRevenueUseCase.execute()));
     }
 
     @GetMapping("/{id}")

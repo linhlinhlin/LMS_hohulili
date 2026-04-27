@@ -1,6 +1,6 @@
 import { Component, signal, inject, OnInit, ChangeDetectionStrategy, computed, effect } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { OrganizationService, OrganizationStats } from '../../infrastructure/services/organization.service';
+import { OrganizationService, OrganizationStats, CrossOrgRevenueResponse } from '../../infrastructure/services/organization.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { Organization, OrganizationType } from '../../../../shared/types/user.types';
@@ -23,6 +23,8 @@ export class OrganizationListComponent implements OnInit {
 
   organizations = signal<Organization[]>([]);
   stats = signal<OrganizationStats | null>(null);
+  // Issue #260 (Phase 4 PR 4): cross-org revenue aggregate (ADMIN only).
+  revenueStats = signal<CrossOrgRevenueResponse | null>(null);
   isLoading = signal(true);
   showCreateForm = signal(false);
   isCreating = signal(false);
@@ -105,7 +107,24 @@ export class OrganizationListComponent implements OnInit {
     this.loadOrganizations();
     if (this.canCreateOrganizations()) {
       this.loadStats();
+      this.loadRevenueStats();
     }
+  }
+
+  /** Issue #260 (Phase 4 PR 4): load cross-org revenue. Silent fail nếu 403. */
+  private loadRevenueStats(): void {
+    this.orgService.getCrossOrgRevenue().subscribe({
+      next: (revenue) => this.revenueStats.set(revenue),
+      error: () => {
+        // Silent fail — section ẩn nếu endpoint không authorized hoặc lỗi
+      }
+    });
+  }
+
+  /** Format VND currency cho revenue cards. Vietnamese locale. */
+  formatVnd(amount: number | undefined | null): string {
+    if (amount === null || amount === undefined) return '0 ₫';
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(amount);
   }
 
   loadOrganizations(): void {

@@ -675,6 +675,176 @@
   .filter-type-select { width: 100%; }
 }
 
+/* =====================================================================
+   Issue #260 (Phase 4 PR 4): cross-org revenue dashboard
+   ===================================================================== */
+.revenue-section {
+  margin-bottom: $spacing-6;
+  padding: $spacing-5;
+  background: white;
+  border: 1px solid $border-default;
+  border-radius: $radius-xl;
+  box-shadow: $shadow-sm;
+}
+
+.revenue-header {
+  margin-bottom: $spacing-4;
+}
+
+.revenue-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 4px 0;
+}
+
+.revenue-subtitle {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.revenue-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: $spacing-3;
+  margin-bottom: $spacing-5;
+
+  @media (max-width: 1024px) { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 640px) { grid-template-columns: 1fr; }
+}
+
+.revenue-card {
+  padding: $spacing-3 $spacing-4;
+  background: #f9fafb;
+  border: 1px solid $border-default;
+  border-radius: $radius-lg;
+  transition: border-color 0.15s ease;
+
+  &:hover {
+    border-color: rgba(0, 86, 210, 0.25);
+  }
+}
+
+.revenue-card--gross {
+  background: linear-gradient(135deg, rgba(0, 86, 210, 0.04), rgba(0, 86, 210, 0.01));
+  border-color: rgba(0, 86, 210, 0.2);
+}
+
+.revenue-card-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.revenue-card-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+.revenue-card--gross .revenue-card-value {
+  color: #0056D2;
+}
+
+/* Top orgs ranking */
+.top-orgs-card {
+  background: #fafafa;
+  border: 1px solid $border-default;
+  border-radius: $radius-lg;
+  padding: $spacing-4;
+}
+
+.top-orgs-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 $spacing-3 0;
+}
+
+.top-orgs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.top-org-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-3;
+  padding: $spacing-3;
+  background: white;
+  border: 1px solid transparent;
+  border-radius: $radius-md;
+  text-decoration: none;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: rgba(0, 86, 210, 0.25);
+    background: rgba(0, 86, 210, 0.02);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #0056D2;
+    outline-offset: 2px;
+  }
+}
+
+.top-org-rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(0, 86, 210, 0.08);
+  color: #0056D2;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.top-org-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.top-org-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-org-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.top-org-code {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.top-org-revenue {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0056D2;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* ===== PRINT ===== */
 @media print {
   .org-list-page {

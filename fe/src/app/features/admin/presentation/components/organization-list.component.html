@@ -26,6 +26,61 @@
       </div>
     }
 
+    <!-- Issue #260 (Phase 4 PR 4): Cross-org revenue dashboard (ADMIN only) -->
+    @if (revenueStats(); as rev) {
+      <section class="revenue-section" aria-labelledby="revenue-heading">
+        <div class="revenue-header">
+          <h2 id="revenue-heading" class="revenue-title">Tổng quan doanh thu (toàn nền tảng)</h2>
+          <p class="revenue-subtitle">Aggregate doanh thu từ V83 revenue_splits ledger — all-time</p>
+        </div>
+        <div class="revenue-cards">
+          <div class="revenue-card revenue-card--gross">
+            <div class="revenue-card-label">Tổng doanh thu (gross)</div>
+            <div class="revenue-card-value">{{ formatVnd(rev.totalGrossRevenue) }}</div>
+          </div>
+          <div class="revenue-card">
+            <div class="revenue-card-label">Phí nền tảng</div>
+            <div class="revenue-card-value">{{ formatVnd(rev.totalPlatformFees) }}</div>
+          </div>
+          <div class="revenue-card">
+            <div class="revenue-card-label">Trả giảng viên</div>
+            <div class="revenue-card-value">{{ formatVnd(rev.totalTeacherPayouts) }}</div>
+          </div>
+          <div class="revenue-card">
+            <div class="revenue-card-label">Trả tổ chức</div>
+            <div class="revenue-card-value">{{ formatVnd(rev.totalOrgPayouts) }}</div>
+          </div>
+        </div>
+
+        @if (rev.topOrgs.length > 0) {
+          <div class="top-orgs-card">
+            <h3 class="top-orgs-title">Top {{ rev.topOrgs.length }} tổ chức theo doanh thu</h3>
+            <div class="top-orgs-list">
+              @for (org of rev.topOrgs; track org.orgId; let i = $index) {
+                <a [routerLink]="['/admin/organizations', org.orgId]" class="top-org-row">
+                  <span class="top-org-rank">#{{ i + 1 }}</span>
+                  <div class="top-org-info">
+                    <div class="top-org-name">
+                      {{ org.name }}
+                      @if (org.isDefault) {
+                        <span class="default-star" title="Tổ chức nền tảng" aria-label="Tổ chức nền tảng">⭐</span>
+                      }
+                    </div>
+                    <div class="top-org-meta">
+                      <span [class]="typeMetaFor(org.type).cssClass">{{ typeMetaFor(org.type).label }}</span>
+                      <span class="dot-separator">&middot;</span>
+                      <span class="top-org-code">{{ org.code }}</span>
+                    </div>
+                  </div>
+                  <span class="top-org-revenue">{{ formatVnd(org.totalRevenue) }}</span>
+                </a>
+              }
+            </div>
+          </div>
+        }
+      </section>
+    }
+
     <!-- Create Form (inline card) -->
     @if (canCreateOrganizations() && showCreateForm()) {
       <div class="create-form-card">
