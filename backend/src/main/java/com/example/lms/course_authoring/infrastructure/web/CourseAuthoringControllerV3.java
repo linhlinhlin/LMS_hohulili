@@ -357,6 +357,12 @@ return ResponseEntity.ok(ApiResponse.success(block, "Tạo phần học thành c
             return ResponseEntity.status(ex.getStatusCode())
                     .body(ApiResponse.error(ex.getReason()));
         }
+        // DIAGNOSTIC (2026-04-27): Log FULL payload từ FE để debug data loss bug.
+        // Section dc5675f0 stored as `{"content": ""}` after user save — cần biết
+        // FE gửi thực sự gì. Remove sau khi root cause identified.
+        log.warn("[DIAG-section-update] lessonId={} sectionId={} payloadKeys={} payloadJson={}",
+                lessonId, sectionId, payload.keySet(),
+                payloadJson != null ? payloadJson.substring(0, Math.min(500, payloadJson.length())) : "null");
         // Process file upload and inject URL into payload
         if (file != null && !file.isEmpty()) {
             log.debug("Received file for update: {}", file.getOriginalFilename());
