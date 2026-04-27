@@ -1747,8 +1747,18 @@ export class SectionEditorComponent {
     const editor = this.tiptapEditor();
     if (editor && this.svc.sectionEditorType() === 'TEXT') {
       const freshHtml = editor.getCurrentHTML();
-      if (freshHtml && freshHtml !== this.svc.sectionContent()) {
+      const currentSignal = this.svc.sectionContent();
+      if (freshHtml && freshHtml !== currentSignal) {
+        // Forward path: editor has fresh content not yet synced to signal
         this.svc.sectionContent.set(freshHtml);
+      } else if (!freshHtml && currentSignal && currentSignal.length > 7) {
+        // Race condition guard: editor reports empty but signal has substantial
+        // content (>7 chars rules out '<p></p>' default empty doc). Trust the
+        // signal — wiping it would cause silent data loss as happened to
+        // section dc5675f0 in production (2026-04-27 ~15:40 UTC).
+        // Log for diagnostics so we can detect frequency post-fix.
+        console.warn('[section-editor] Editor empty but signal has content',
+          { signalLen: currentSignal.length, sectionId: this.svc.editingSectionId() });
       }
     }
     const success = await this.svc.saveSection(this.lessonId(), this.courseId());
