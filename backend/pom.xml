@@ -24,7 +24,7 @@
          - springdoc 2.8.x needs Spring Framework 6.2 (for
            LiteWebJarsResourceResolver) which Spring Boot 3.2 doesn't ship.
          Bump only after upgrading Spring Boot (PR #131 hold). -->
-    <springdoc.version>2.5.0</springdoc.version>
+    <springdoc.version>3.0.3</springdoc.version>
     <jjwt.version>0.13.0</jjwt.version>
     <lombok.version>1.18.46</lombok.version>
   </properties>
