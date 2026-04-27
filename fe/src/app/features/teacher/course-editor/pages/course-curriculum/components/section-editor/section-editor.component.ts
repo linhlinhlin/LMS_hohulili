@@ -1735,15 +1735,19 @@ export class SectionEditorComponent {
     // SOTA pattern (Tiptap docs 2026, Notion/Coda): treat editor instance as
     // source of truth. Read fresh HTML directly here instead of relying on
     // [ngModel] propagation, which can lag by a microtask after slash-command
-    // template insertions, emoji composition, or programmatic insertContent
-    // calls. Without this flush, sectionContent() may still hold the stale
-    // value when onSave runs synchronously after the user clicks "Save"
-    // immediately following a callout/template insert — resulting in empty
-    // content saved to DB despite the user clearly typing rich content.
+    // template insertions, emoji composition, or programmatic insertContent.
+    //
+    // FORWARD-ONLY flush (regression guard 2026-04-27): only update signal
+    // when editor reports NON-EMPTY content. If editor reports empty but
+    // signal has content, that's a race/init bug — keep signal value.
+    // Wiping good signal with empty editor caused production data loss
+    // (section dc5675f0: content "" trong DB despite user having rich HTML).
+    // Trade-off: intentional "clear all content" won't propagate to save —
+    // user must delete the section instead. Safer than silent data loss.
     const editor = this.tiptapEditor();
     if (editor && this.svc.sectionEditorType() === 'TEXT') {
       const freshHtml = editor.getCurrentHTML();
-      if (freshHtml !== this.svc.sectionContent()) {
+      if (freshHtml && freshHtml !== this.svc.sectionContent()) {
         this.svc.sectionContent.set(freshHtml);
       }
     }
