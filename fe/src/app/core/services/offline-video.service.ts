@@ -330,17 +330,6 @@ export class OfflineVideoService {
     const contentType = response.headers.get('content-type') || 'video/mp4';
     const cache = await caches.open(`offline-videos:${getCurrentUserId()}`);
 
-    // Reject oversized videos before consuming bandwidth — buffer path holds the full
-    // payload in RAM until cache.put resolves, so we cap at 500MB to protect mobile devices
-    // (iPhone 8/SE, low-end Android with 2-3GB RAM).
-    const SAFE_BUFFER_LIMIT = 500 * 1024 * 1024;
-    if (contentLength > 0 && contentLength > SAFE_BUFFER_LIMIT) {
-      throw new Error(
-        `Video too large to cache (${Math.round(contentLength / 1024 / 1024)}MB > 500MB). ` +
-        `Reduce quality or skip download.`,
-      );
-    }
-
     if (!response.body) {
       const blob = await response.blob();
       await cache.put(cacheKey, new Response(blob, {
@@ -353,14 +342,47 @@ export class OfflineVideoService {
       return;
     }
 
-    // Read chunks once with progress tracking, then cache.put as a blob.
-    // We do NOT pipe a ReadableStream into cache.put: Chrome desktop throws
-    // NetworkError when the underlying HTTP/2 stream hiccups, and the previous
-    // re-fetch fallback paid 2x bandwidth. Buffering trades transient RAM
-    // (~ video size, GC'd after cache.put) for a single fetch + cross-browser
-    // reliability. See docs/architecture/STREAMING_PWA_ROADMAP.md Phase D for
-    // the planned IDB-chunk migration that removes this trade-off.
-    const reader = response.body.getReader();
+    // Path selection — Chromium desktop has a known cache.put(stream) NetworkError
+    // race with HTTP/2 lifecycle, so we buffer-then-put on those clients (PCs have
+    // RAM to spare). All other clients keep the original streaming path so RAM peak
+    // stays at ~ a few MB — critical for weak mobile devices (iPhone SE/8, low-end
+    // Android, 2GB iPads). Phase D in STREAMING_PWA_ROADMAP.md will remove this
+    // branch by migrating to IDB chunked storage (Google Kino pattern).
+    if (this.shouldUseBufferPath()) {
+      await this.cacheViaBuffer(cacheKey, response, progressKey, cache, contentType, contentLength);
+    } else {
+      await this.cacheViaStream(cacheKey, response, progressKey, cache, contentType, contentLength);
+    }
+  }
+
+  private shouldUseBufferPath(): boolean {
+    if (typeof navigator === 'undefined') return false;
+    const ua = navigator.userAgent;
+    const isChromium = /Chrome\/|Edg\//.test(ua);
+    const isMobile = /Mobile|Android|iPhone|iPad|iPod/.test(ua);
+    return isChromium && !isMobile;
+  }
+
+  private async cacheViaBuffer(
+    cacheKey: string,
+    response: Response,
+    progressKey: string,
+    cache: Cache,
+    contentType: string,
+    contentLength: number,
+  ): Promise<void> {
+    // Buffer path: read chunks once with progress tracking, then cache.put as blob.
+    // 1x network fetch, RAM peak ~ video size briefly. Used on Chromium desktop
+    // where cache.put(ReadableStream) is unreliable.
+    const SAFE_BUFFER_LIMIT = 500 * 1024 * 1024;
+    if (contentLength > 0 && contentLength > SAFE_BUFFER_LIMIT) {
+      throw new Error(
+        `Video too large to cache (${Math.round(contentLength / 1024 / 1024)}MB > 500MB). ` +
+        `Reduce quality or skip download.`,
+      );
+    }
+
+    const reader = response.body!.getReader();
     const chunks: Uint8Array[] = [];
     let received = 0;
 
@@ -386,6 +408,64 @@ export class OfflineVideoService {
         'Accept-Ranges': 'bytes',
       },
     }));
+  }
+
+  private async cacheViaStream(
+    cacheKey: string,
+    response: Response,
+    progressKey: string,
+    cache: Cache,
+    contentType: string,
+    contentLength: number,
+  ): Promise<void> {
+    // Stream path: pipe response body chunks directly into Cache API.
+    // Browser writes to disk incrementally → RAM peak ~ a few MB.
+    // Used on mobile/iOS/Safari/Firefox where cache.put(stream) is reliable.
+    const reader = response.body!.getReader();
+    let received = 0;
+
+    const progressStream = new ReadableStream({
+      pull: async (controller) => {
+        const { done, value } = await reader.read();
+        if (done) {
+          controller.close();
+          return;
+        }
+        received += value.length;
+        controller.enqueue(value);
+        if (contentLength > 0) {
+          this.downloadProgress.update(map => {
+            const next = new Map(map);
+            next.set(progressKey, Math.round((received / contentLength) * 100));
+            return next;
+          });
+        }
+      },
+      cancel: () => reader.cancel(),
+    });
+
+    await cache.put(cacheKey, new Response(progressStream, {
+      headers: {
+        'Content-Type': contentType,
+        ...(contentLength > 0 ? { 'Content-Length': String(contentLength) } : {}),
+        'Accept-Ranges': 'bytes',
+      },
+    }));
+
+    // When Content-Length was unknown, re-cache with actual size so Range works.
+    if (contentLength === 0 && received > 0) {
+      const existing = await cache.match(cacheKey);
+      if (existing) {
+        const blob = await existing.blob();
+        await cache.put(cacheKey, new Response(blob, {
+          headers: {
+            'Content-Type': contentType,
+            'Content-Length': String(received),
+            'Accept-Ranges': 'bytes',
+          },
+        }));
+      }
+    }
   }
 
   private async ensureOfflineReady(optional = false): Promise<boolean> {
