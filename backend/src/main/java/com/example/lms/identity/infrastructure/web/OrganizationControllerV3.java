@@ -48,6 +48,7 @@ public class OrganizationControllerV3 {
     private final SendEmailInviteUseCase sendEmailInviteUseCase;
     private final ListInvitesUseCase listInvitesUseCase;
     private final RevokeInviteUseCase revokeInviteUseCase;
+    private final PromoteOrgAdminUseCase promoteOrgAdminUseCase;
     private final UserJpaRepository userJpaRepo;
     private final OrganizationJpaRepository orgJpaRepo;
     private final OrganizationInviteJpaRepository inviteJpaRepo;
@@ -271,6 +272,33 @@ public class OrganizationControllerV3 {
         result.put("effectiveExpiryDays", request.tokenExpiryDays() != null ? request.tokenExpiryDays() : org.getTokenExpiryDays());
         log.info("Token config updated: userId={} orgId={} days={} by={}", userId, id, request.tokenExpiryDays(), currentUser.getId());
         return ResponseEntity.ok(ApiResponse.success(result, "Đã cập nhật cấu hình token"));
+    }
+
+    // ==================== Org Admin Promote/Demote (Phase 4 #258) ====================
+
+    /** Issue #258: bổ nhiệm member thành ORG_ADMIN. ADMIN-only — ORG_ADMIN
+     *  KHÔNG có quyền promote member khác (security boundary). */
+    @PostMapping("/{id}/admins/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Bổ nhiệm thành viên làm ORG_ADMIN (ADMIN only)")
+    public ResponseEntity<ApiResponse<String>> promoteOrgAdmin(
+            @PathVariable UUID id,
+            @PathVariable UUID userId,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        promoteOrgAdminUseCase.promote(id, userId, currentUser.getId());
+        return ResponseEntity.ok(ApiResponse.success("Đã bổ nhiệm Quản trị viên tổ chức"));
+    }
+
+    /** Issue #258: hạ cấp ORG_ADMIN xuống TEACHER. ADMIN-only. */
+    @DeleteMapping("/{id}/admins/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Hạ cấp ORG_ADMIN xuống Giảng viên (ADMIN only)")
+    public ResponseEntity<ApiResponse<String>> demoteOrgAdmin(
+            @PathVariable UUID id,
+            @PathVariable UUID userId,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        promoteOrgAdminUseCase.demote(id, userId, currentUser.getId());
+        return ResponseEntity.ok(ApiResponse.success("Đã hạ cấp xuống Giảng viên"));
     }
 
     // ==================== Invite Management ====================

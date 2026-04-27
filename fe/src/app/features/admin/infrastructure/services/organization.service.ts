@@ -79,6 +79,20 @@ export class OrganizationService {
     );
   }
 
+  /** Issue #258 (Phase 4 PR 3): bổ nhiệm member thành ORG_ADMIN. ADMIN-only. */
+  promoteOrgAdmin(orgId: string, userId: string): Observable<string> {
+    return this.api.post<ApiResponse<string>>(`/api/v3/organizations/${orgId}/admins/${userId}`, {}).pipe(
+      map(res => res.data)
+    );
+  }
+
+  /** Issue #258 (Phase 4 PR 3): hạ cấp ORG_ADMIN xuống Giảng viên. ADMIN-only. */
+  demoteOrgAdmin(orgId: string, userId: string): Observable<string> {
+    return this.api.delete<ApiResponse<string>>(`/api/v3/organizations/${orgId}/admins/${userId}`).pipe(
+      map(res => res.data)
+    );
+  }
+
   // Invites
   createInviteCode(orgId: string, data: { maxUses?: number; expiryDays?: number }): Observable<OrganizationInvite> {
     return this.api.post<ApiResponse<OrganizationInvite>>(ORGANIZATION_ENDPOINTS.INVITE_CODE(orgId), data).pipe(

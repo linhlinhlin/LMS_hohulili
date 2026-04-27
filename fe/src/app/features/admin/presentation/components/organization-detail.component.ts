@@ -390,9 +390,13 @@ export class OrganizationDetailComponent implements OnInit {
   // text buttons that were the only row action. Mirrors admin-shared kebab
   // pattern (PR #219) — every admin table now uses the same overflow
   // surface.
+  // Phase 4 PR 3 (#258): thêm promote/demote ORG_ADMIN actions (ADMIN-only).
   // ---------------------------------------------------------------------
   memberRowActions(member: OrgMember): KebabAction[] {
     const actions: KebabAction[] = [];
+    const role = member.role?.toUpperCase();
+    const isAdmin = this.authService.userRole() === 'admin';
+    const currentUserId = this.authService.currentUser()?.id;
 
     if (this.canEditMember(member)) {
       actions.push({
@@ -402,6 +406,27 @@ export class OrganizationDetailComponent implements OnInit {
         // pencil
         icon: 'M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z',
       });
+    }
+
+    // Issue #258: Promote/demote ORG_ADMIN — ADMIN role only (boundary)
+    if (isAdmin && role !== 'ADMIN') {
+      if (role === 'ORG_ADMIN' && member.id !== currentUserId) {
+        actions.push({
+          key: 'demote-org-admin',
+          label: 'Hạ cấp xuống Giảng viên',
+          ariaLabel: `Hạ cấp ${member.fullName} xuống Giảng viên`,
+          // arrow-down
+          icon: 'M16 17l-4 4-4-4m8-5l-4 4-4-4m8-5l-4 4-4-4',
+        });
+      } else if (role !== 'ORG_ADMIN') {
+        actions.push({
+          key: 'promote-org-admin',
+          label: 'Bổ nhiệm Quản trị viên tổ chức',
+          ariaLabel: `Bổ nhiệm ${member.fullName} làm Quản trị viên tổ chức`,
+          // shield
+          icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+        });
+      }
     }
 
     if (this.canRemoveMember(member)) {
@@ -423,10 +448,56 @@ export class OrganizationDetailComponent implements OnInit {
       case 'edit-token':
         this.editingTokenMemberId.set(member.id);
         break;
+      case 'promote-org-admin':
+        this.promoteOrgAdmin(member);
+        break;
+      case 'demote-org-admin':
+        this.demoteOrgAdmin(member);
+        break;
       case 'remove':
         this.removeMember(member);
         break;
     }
+  }
+
+  /** Issue #258 (Phase 4 PR 3): bổ nhiệm thành ORG_ADMIN sau confirm. */
+  async promoteOrgAdmin(member: OrgMember): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Bổ nhiệm Quản trị viên tổ chức',
+      message: `Bổ nhiệm "${member.fullName}" làm Quản trị viên của tổ chức này? Họ sẽ có quyền quản lý thành viên + lời mời.`,
+      variant: 'info',
+      confirmText: 'Bổ nhiệm',
+      cancelText: 'Hủy'
+    });
+    if (!confirmed) return;
+
+    this.orgService.promoteOrgAdmin(this.orgId, member.id).subscribe({
+      next: () => {
+        this.toast.success('Đã bổ nhiệm Quản trị viên tổ chức', `"${member.fullName}" giờ là ORG_ADMIN`);
+        this.loadMembers();
+      },
+      error: (err) => this.toast.error(err.error?.message || 'Không thể bổ nhiệm')
+    });
+  }
+
+  /** Issue #258 (Phase 4 PR 3): hạ cấp ORG_ADMIN xuống Giảng viên sau confirm. */
+  async demoteOrgAdmin(member: OrgMember): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Hạ cấp Quản trị viên',
+      message: `Hạ cấp "${member.fullName}" xuống Giảng viên? Họ sẽ mất quyền quản lý tổ chức.`,
+      variant: 'warning',
+      confirmText: 'Hạ cấp',
+      cancelText: 'Hủy'
+    });
+    if (!confirmed) return;
+
+    this.orgService.demoteOrgAdmin(this.orgId, member.id).subscribe({
+      next: () => {
+        this.toast.success('Đã hạ cấp', `"${member.fullName}" giờ là Giảng viên`);
+        this.loadMembers();
+      },
+      error: (err) => this.toast.error(err.error?.message || 'Không thể hạ cấp')
+    });
   }
 
   inviteRowActions(invite: OrganizationInvite): KebabAction[] {
