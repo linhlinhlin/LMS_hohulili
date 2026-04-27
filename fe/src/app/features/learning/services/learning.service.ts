@@ -65,8 +65,17 @@ export class LearningService {
   // New signals for progress tracking
   private courseProgress = signal<{ completedLessonIds: string[] } | null>(null);
 
-  // Lesson cache for performance
-  private lessonCache = new Map<string, LessonDetail>();
+  // Lesson cache for performance.
+  // Stores `cachedAt` timestamp so we can apply TTL (SWR pattern).
+  // Pattern: TanStack Query `staleTime` — data older than TTL is shown
+  // immediately (instant render) but triggers background revalidation.
+  private lessonCache = new Map<string, { detail: LessonDetail; cachedAt: number }>();
+
+  // Stale-time before considering a cached lesson worth re-fetching when the
+  // tab regains focus or visibility changes. 30s — long enough to avoid
+  // refetch storms on rapid Alt-Tab, short enough that a teacher's edit
+  // shows up within ~30s of the student returning to the tab.
+  private static readonly LESSON_STALE_MS = 30_000;
 
   // Cache of lesson sections from /content endpoint (lessonId -> SectionContent[])
   private lessonSectionsCache = new Map<string, SectionContent[]>();
@@ -81,6 +90,35 @@ export class LearningService {
 
   /** Current selected lesson */
   currentLesson = computed(() => this.lessonState().currentLesson);
+
+  constructor() {
+    // Refetch-on-focus pattern (TanStack Query / SWR default).
+    // When the student switches back to this tab/window, silently refresh
+    // the currently visible lesson if its cache entry is older than
+    // LESSON_STALE_MS. Lets a teacher's edit propagate within ~30s of the
+    // student returning to the tab — without a full F5.
+    if (typeof document === 'undefined' || typeof window === 'undefined') {
+      return; // SSR: no-op
+    }
+    const refreshIfStale = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (!this.network.online()) return;
+      const lessonId = this.currentLesson()?.id;
+      if (!lessonId) return;
+      const cached = this.lessonCache.get(lessonId);
+      if (!cached) return;
+      const age = Date.now() - cached.cachedAt;
+      if (age > LearningService.LESSON_STALE_MS) {
+        this.backgroundRefreshLesson(lessonId);
+      }
+    };
+    document.addEventListener('visibilitychange', refreshIfStale);
+    window.addEventListener('focus', refreshIfStale);
+    this.destroyRef.onDestroy(() => {
+      document.removeEventListener('visibilitychange', refreshIfStale);
+      window.removeEventListener('focus', refreshIfStale);
+    });
+  }
 
   /** Is loading course data */
   isLoadingCourse = computed(() => this.courseState().loading);
@@ -552,7 +590,7 @@ export class LearningService {
             }] : []),
       };
 
-      this.lessonCache.set(lessonId, lessonDetail);
+      this.lessonCache.set(lessonId, { detail: lessonDetail, cachedAt: Date.now() });
       this.lessonState.set({ currentLesson: lessonDetail, loading: false, error: null });
       this.updateLastAccessedLesson(lessonId);
     } catch {
@@ -570,15 +608,21 @@ export class LearningService {
    * For downloaded courses, IndexedDB read is instant (no spinner).
    */
   loadLesson(lessonId: string): void {
-    // 1. Check memory cache first (instant)
+    // 1. Check memory cache first (instant). SWR pattern: serve cached data
+    // immediately, but if entry is older than LESSON_STALE_MS, kick off a
+    // silent background refetch so teacher edits propagate without F5.
     const cached = this.lessonCache.get(lessonId);
     if (cached) {
       this.lessonState.set({
-        currentLesson: cached,
+        currentLesson: cached.detail,
         loading: false,
         error: null
       });
       this.updateLastAccessedLesson(lessonId);
+      const age = Date.now() - cached.cachedAt;
+      if (age > LearningService.LESSON_STALE_MS && this.network.online()) {
+        this.backgroundRefreshLesson(lessonId);
+      }
       return;
     }
 
@@ -630,7 +674,7 @@ export class LearningService {
         }
 
         const lessonDetail = this.mapLessonResponse(data);
-        this.lessonCache.set(lessonId, lessonDetail);
+        this.lessonCache.set(lessonId, { detail: lessonDetail, cachedAt: Date.now() });
 
         this.lessonState.set({
           currentLesson: lessonDetail,
@@ -667,7 +711,7 @@ export class LearningService {
         const data = response?.data;
         if (data) {
           const lessonDetail = this.mapLessonResponse(data);
-          this.lessonCache.set(lessonId, lessonDetail);
+          this.lessonCache.set(lessonId, { detail: lessonDetail, cachedAt: Date.now() });
           // Only update if this is still the current lesson
           if (this.currentLesson()?.id === lessonId) {
             this.lessonState.set({
