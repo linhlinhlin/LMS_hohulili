@@ -377,7 +377,7 @@ export class ExampleComponent {
 
 **Testing**: JUnit 5, Mockito, AssertJ, ArchUnit
 
-**Deploy**: Docker multi-stage (Node.js SSR + nginx), Caddy auto-HTTPS, GCP Compute Engine (e2-medium, asia-southeast1-b)
+**Deploy**: Docker multi-stage (Node.js SSR + nginx), Caddy auto-HTTPS, GCP Compute Engine (e2-standard-2, asia-southeast1-c — migrated từ -b 2026-04-27 do zone capacity exhausted)
 
 **SSR/SEO**: Full Angular SSR via `outputMode: "server"`, Node.js:4000 + nginx reverse proxy, CSR fallback on 502. robots.txt, sitemap.xml, JSON-LD, Open Graph, centralized SeoService
 

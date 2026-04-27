@@ -14,7 +14,7 @@
 
 ```bash
 # Run pg_dump inside the db container on the VM
-gcloud compute ssh lms-production --zone=asia-southeast1-b \
+gcloud compute ssh lms-production --zone=asia-southeast1-c \
   --ssh-key-file=~/.ssh/google_compute_engine \
   --command="cd /home/Admin/LMS_hohulili && \
     docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod \
@@ -23,20 +23,20 @@ gcloud compute ssh lms-production --zone=asia-southeast1-b \
       -f /tmp/prod-backup.dump"
 
 # Copy dump from container → VM host
-gcloud compute ssh lms-production --zone=asia-southeast1-b \
+gcloud compute ssh lms-production --zone=asia-southeast1-c \
   --ssh-key-file=~/.ssh/google_compute_engine \
   --command="cd /home/Admin/LMS_hohulili && \
     CID=\$(docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod ps -q db) && \
     docker cp \$CID:/tmp/prod-backup.dump /tmp/prod-backup.dump"
 
 # Pull to local machine
-gcloud compute scp --zone=asia-southeast1-b \
+gcloud compute scp --zone=asia-southeast1-c \
   --ssh-key-file=~/.ssh/google_compute_engine \
   lms-production:/tmp/prod-backup.dump \
   "./backups/prod-$(date +%Y-%m-%d).dump"
 
 # Clean up VM
-gcloud compute ssh lms-production --zone=asia-southeast1-b \
+gcloud compute ssh lms-production --zone=asia-southeast1-c \
   --ssh-key-file=~/.ssh/google_compute_engine \
   --command="rm -f /tmp/prod-backup.dump && \
     cd /home/Admin/LMS_hohulili && \
@@ -68,7 +68,7 @@ Build images still get pushed to GHCR on every `main` push, ready for the next d
 ### 1.3 Stop the VM
 
 ```bash
-gcloud compute instances stop lms-production --zone=asia-southeast1-b
+gcloud compute instances stop lms-production --zone=asia-southeast1-c
 gcloud compute instances list --format="table(name,zone.basename(),status)"
 # Expected: STATUS = TERMINATED
 ```
@@ -82,7 +82,7 @@ The 30 GB `pd-balanced` disk and the static IP (`35.187.245.201`) remain reserve
 ### 2.1 Start the VM
 
 ```bash
-gcloud compute instances start lms-production --zone=asia-southeast1-b
+gcloud compute instances start lms-production --zone=asia-southeast1-c
 gcloud compute instances list --format="table(name,zone.basename(),status,networkInterfaces[0].accessConfigs[0].natIP)"
 # Expected: STATUS = RUNNING, natIP = 35.187.245.201
 ```
@@ -131,20 +131,20 @@ Only do this if the running database needs to be replaced with a backup — e.g.
 
 ```bash
 # Copy dump up to VM
-gcloud compute scp --zone=asia-southeast1-b \
+gcloud compute scp --zone=asia-southeast1-c \
   --ssh-key-file=~/.ssh/google_compute_engine \
   ./backups/prod-YYYY-MM-DD.dump \
   lms-production:/tmp/prod-backup.dump
 
 # Copy from VM host into db container
-gcloud compute ssh lms-production --zone=asia-southeast1-b \
+gcloud compute ssh lms-production --zone=asia-southeast1-c \
   --ssh-key-file=~/.ssh/google_compute_engine \
   --command="cd /home/Admin/LMS_hohulili && \
     CID=\$(docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod ps -q db) && \
     docker cp /tmp/prod-backup.dump \$CID:/tmp/prod-backup.dump"
 
 # Restore (drops existing objects first)
-gcloud compute ssh lms-production --zone=asia-southeast1-b \
+gcloud compute ssh lms-production --zone=asia-southeast1-c \
   --ssh-key-file=~/.ssh/google_compute_engine \
   --command="cd /home/Admin/LMS_hohulili && \
     docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod \
@@ -156,7 +156,7 @@ gcloud compute ssh lms-production --zone=asia-southeast1-b \
 Restart the backend to pick up any structural changes:
 
 ```bash
-gcloud compute ssh lms-production --zone=asia-southeast1-b \
+gcloud compute ssh lms-production --zone=asia-southeast1-c \
   --ssh-key-file=~/.ssh/google_compute_engine \
   --command="cd /home/Admin/LMS_hohulili && \
     docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod restart backend"
@@ -182,3 +182,4 @@ Three months of pause ≈ $21 — comfortably inside the $300 Google Cloud free 
 | Date | Action | Actor | Notes |
 |---|---|---|---|
 | 2026-04-24 | First pause at end of faculty-level milestone. Backup: `backups/prod-2026-04-24.dump` (483 KB). | S135 | Video upload SOTA (`1c73a74a`) + deploy gate (`f3b0e318`) shipped just before pause. |
+| 2026-04-27 | Resume sau Multi-Org Track Phase 1+4 ship (10 PRs, commit `8c6a804e`). **Migrated zone -b → -c** do `ZONE_RESOURCE_POOL_EXHAUSTED` 30+ phút retry không pass. Snapshot disk → tạo disk + VM mới ở -c → reattach static IP `35.187.245.201`. Updated `DEPLOY_KNOWN_HOSTS` secret (host keys regen on first boot of new VM). | S136 | Báo cáo TTTN VIMARU 28/04. Latest deploy `8c6a804e` (Phase 4 PR 4 cross-org revenue dashboard). All 6 containers healthy, 8GB RAM (e2-standard-2). |
