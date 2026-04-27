@@ -126,9 +126,9 @@
         </div>
       }
 
-      <!-- Org List -->
+      <!-- Org List (paginated #256) -->
       <div class="org-grid">
-        @for (org of filteredOrganizations(); track org.id) {
+        @for (org of paginatedOrganizations(); track org.id) {
           <a [routerLink]="['/admin/organizations', org.id]" class="org-card">
             <div class="org-card-row">
               <div class="org-card-left">
@@ -195,6 +195,16 @@
           </div>
         }
       </div>
+
+      <!-- Pagination (#256) — chỉ render khi có hơn 1 trang -->
+      @if (paginationInfo().totalPages > 1) {
+        <app-pagination
+          [currentPage]="currentPage()"
+          [totalPages]="paginationInfo().totalPages"
+          [totalItems]="paginationInfo().totalItems"
+          [itemsPerPage]="pageSize"
+          (pageChange)="onPageChange($event)" />
+      }
     }
   </div>
 </div>

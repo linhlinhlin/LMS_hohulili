@@ -1,16 +1,17 @@
-import { Component, signal, inject, OnInit, ChangeDetectionStrategy, computed } from '@angular/core';
+import { Component, signal, inject, OnInit, ChangeDetectionStrategy, computed, effect } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { OrganizationService, OrganizationStats } from '../../infrastructure/services/organization.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { Organization, OrganizationType } from '../../../../shared/types/user.types';
 import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/kpi-card.component';
+import { PaginationComponent } from '../../../../shared/components/pagination/pagination.component';
 
 type TypeFilterValue = 'ALL' | OrganizationType;
 
 @Component({
   selector: 'app-organization-list',
-  imports: [RouterModule, KpiCardComponent],
+  imports: [RouterModule, KpiCardComponent, PaginationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './organization-list.component.html',
   styleUrl: './organization-list.component.scss',
@@ -43,6 +44,37 @@ export class OrganizationListComponent implements OnInit {
       return true;
     });
   });
+
+  // Issue #256 (Phase 4 PR 2): pagination — FE-side slice trên filteredOrganizations.
+  // List size hiện < 100, BE pagination defer khi list grow. PaginationComponent
+  // 1-based currentPage. pageSize 12 khớp grid card layout.
+  currentPage = signal<number>(1);
+  readonly pageSize = 12;
+
+  paginationInfo = computed(() => {
+    const total = this.filteredOrganizations().length;
+    const totalPages = Math.max(1, Math.ceil(total / this.pageSize));
+    return { totalItems: total, totalPages };
+  });
+
+  paginatedOrganizations = computed(() => {
+    const items = this.filteredOrganizations();
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return items.slice(start, start + this.pageSize);
+  });
+
+  constructor() {
+    // Reset về page 1 khi filter/search thay đổi (UX: user expects fresh view).
+    effect(() => {
+      this.typeFilter();
+      this.searchQuery();
+      this.currentPage.set(1);
+    });
+  }
+
+  onPageChange(page: number): void {
+    this.currentPage.set(page);
+  }
 
   /** Type badge meta (consistent với org-detail Phase 2). */
   readonly typeMeta: Record<OrganizationType, { label: string; cssClass: string }> = {
