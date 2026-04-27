@@ -144,7 +144,8 @@ public class CourseQueryControllerV3 {
             @PathVariable UUID courseId,
             @AuthenticationPrincipal UserJpaEntity currentUser
     ) {
-        CourseDetailResponse publishedDetail = shouldPreferDraftCourseView(currentUser)
+        CourseDetailResponse publishedDetail = (shouldPreferDraftCourseView(currentUser)
+                || isCourseOwnerOrCoTeacher(courseId, currentUser))
                 ? null
                 : getPublishedCourseDetail(courseId, currentUser);
         if (publishedDetail != null) {
@@ -198,7 +199,8 @@ public class CourseQueryControllerV3 {
             @PathVariable UUID courseId,
             @AuthenticationPrincipal UserJpaEntity currentUser
     ) {
-        List<ChapterResponse> publishedChapters = shouldPreferDraftCourseView(currentUser)
+        List<ChapterResponse> publishedChapters = (shouldPreferDraftCourseView(currentUser)
+                || isCourseOwnerOrCoTeacher(courseId, currentUser))
                 ? null
                 : getPublishedCourseContent(courseId, currentUser);
         if (publishedChapters != null) {
@@ -880,6 +882,27 @@ public class CourseQueryControllerV3 {
 
     private boolean shouldPreferDraftCourseView(UserJpaEntity user) {
         return isSystemAdminRole(user) || isOrgAdminRole(user);
+    }
+
+    /**
+     * Course OWNER (teacher) cũng xem được draft live data của khóa học mình
+     * dạy — pattern Coursera/Udemy/Canvas: teacher preview phải show pending
+     * draft changes để verify trước khi submit duyệt. Nếu không, teacher edit
+     * xong nhưng preview vẫn hiện published snapshot cũ → confusing UX.
+     *
+     * Returns true nếu user là teacher chính của course HOẶC co-teacher
+     * (assigned in classes tab) — match permission của edit endpoint.
+     */
+    private boolean isCourseOwnerOrCoTeacher(UUID courseId, UserJpaEntity user) {
+        if (user == null) return false;
+        return courseRepository.findById(courseId)
+                .map(course -> {
+                    if (course.getTeacherId() != null && course.getTeacherId().equals(user.getId())) {
+                        return true;
+                    }
+                    return classTeacherJpaRepository.existsByTeacherIdAndCourseId(user.getId(), courseId);
+                })
+                .orElse(false);
     }
 
     private String resolveReviewState(Course course) {
