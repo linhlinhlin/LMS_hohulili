@@ -5,9 +5,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.hypersistence.utils.hibernate.type.util.JsonSerializer;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Phase 8 Level 3 — bypass Java {@link java.io.Serializable} requirement cho JSONB
@@ -84,32 +96,59 @@ public class JacksonCloneJsonSerializer implements JsonSerializer {
             return null;
         }
 
-        // Fast path: immutable JSON primitives — no clone needed.
+        // Fast path: immutable values — return as-is, không cần clone.
+        // Bao gồm primitives wrapper + UUID + java.time types phổ biến trong
+        // JSONB POJO của LMS (Instant cho timestamps, LocalDate cho due dates).
         if (object instanceof String || object instanceof Number ||
-            object instanceof Boolean || object instanceof Character) {
+            object instanceof Boolean || object instanceof Character ||
+            object instanceof UUID ||
+            object instanceof Instant || object instanceof LocalDate ||
+            object instanceof LocalDateTime || object instanceof OffsetDateTime ||
+            object instanceof ZonedDateTime) {
             return object;
         }
 
-        try {
-            // Round-trip serialize → deserialize. Bypasses Java Serializable.
-            // Type erased generics: deserialize back to source class.
-            byte[] bytes = objectMapper.writeValueAsBytes(object);
+        // ─── Collections & Maps: clone item-by-item ───────────────────────
+        // Lý do: Java type erasure khiến `objectMapper.readValue(bytes,
+        // Collection<Object>.class)` deserialize POJO elements → LinkedHashMap
+        // (Jackson default cho `Object`). Khi consumer cast `(ContentBlock) item`
+        // → ClassCastException. Bug đã hit production trên POST /api/v3/questions
+        // (Hibernate MERGE trên Lesson.contentBlocks gọi deepCopy → ClassCast).
+        //
+        // Fix: iterate từng element, recursive clone — mỗi item dùng concrete
+        // `getClass()` của chính nó trong Jackson readValue → preserve type.
+        // Trade-off: O(N) Jackson round-trips thay vì 1, nhưng correctness > perf
+        // và JSONB collections trong LMS thường nhỏ (< 100 items).
 
-            if (object instanceof Map) {
-                // Preserve LinkedHashMap ordering when source is LinkedHashMap
-                Class<?> mapClass = object instanceof LinkedHashMap
-                        ? LinkedHashMap.class
-                        : Map.class;
-                return (T) objectMapper.readValue(bytes,
-                        objectMapper.getTypeFactory().constructMapLikeType(
-                                mapClass, Object.class, Object.class));
+        if (object instanceof List<?> list) {
+            List<Object> copy = new ArrayList<>(list.size());
+            for (Object item : list) {
+                copy.add(clone(item));
             }
-            if (object instanceof Collection) {
-                return (T) objectMapper.readValue(bytes,
-                        objectMapper.getTypeFactory().constructCollectionLikeType(
-                                object.getClass(), Object.class));
+            return (T) copy;
+        }
+        if (object instanceof Set<?> set) {
+            Set<Object> copy = (set instanceof LinkedHashSet)
+                    ? new LinkedHashSet<>(set.size())
+                    : new HashSet<>(set.size());
+            for (Object item : set) {
+                copy.add(clone(item));
             }
-            // POJO — concrete class
+            return (T) copy;
+        }
+        if (object instanceof Map<?, ?> map) {
+            Map<Object, Object> copy = (map instanceof LinkedHashMap)
+                    ? new LinkedHashMap<>(map.size())
+                    : new HashMap<>(map.size());
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                copy.put(clone(entry.getKey()), clone(entry.getValue()));
+            }
+            return (T) copy;
+        }
+
+        // ─── POJO (single instance) — Jackson round-trip preserves field types ───
+        try {
+            byte[] bytes = objectMapper.writeValueAsBytes(object);
             return (T) objectMapper.readValue(bytes, object.getClass());
         } catch (Exception ex) {
             log.error("JacksonCloneJsonSerializer failed to clone object of type {}: {}",
