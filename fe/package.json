@@ -94,7 +94,7 @@
     "ngx-image-cropper": "^9.1.6",
     "ngx-tiptap": "^14.0.1",
     "rxjs": "~7.8.0",
-    "shaka-player": "^4.16.18",
+    "shaka-player": "^5.1.1",
     "tslib": "^2.3.0",
     "video.js": "^8.23.4",
     "xlsx": "file:vendor/xlsx-0.20.3.tgz"
