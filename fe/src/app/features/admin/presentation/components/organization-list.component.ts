@@ -3,8 +3,10 @@ import { RouterModule } from '@angular/router';
 import { OrganizationService, OrganizationStats } from '../../infrastructure/services/organization.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
-import { Organization } from '../../../../shared/types/user.types';
+import { Organization, OrganizationType } from '../../../../shared/types/user.types';
 import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/kpi-card.component';
+
+type TypeFilterValue = 'ALL' | OrganizationType;
 
 @Component({
   selector: 'app-organization-list',
@@ -24,6 +26,48 @@ export class OrganizationListComponent implements OnInit {
   showCreateForm = signal(false);
   isCreating = signal(false);
   canCreateOrganizations = computed(() => this.authService.userRole() === 'admin');
+
+  // Issue #254 (Phase 4): client-side filter + search.
+  typeFilter = signal<TypeFilterValue>('ALL');
+  searchQuery = signal<string>('');
+
+  /** Filter + search applied trên list đã load. */
+  filteredOrganizations = computed(() => {
+    const filter = this.typeFilter();
+    const query = this.searchQuery().trim().toLowerCase();
+    return this.organizations().filter(org => {
+      if (filter !== 'ALL' && org.type !== filter) return false;
+      if (query && !org.name.toLowerCase().includes(query) && !org.code.toLowerCase().includes(query)) {
+        return false;
+      }
+      return true;
+    });
+  });
+
+  /** Type badge meta (consistent với org-detail Phase 2). */
+  readonly typeMeta: Record<OrganizationType, { label: string; cssClass: string }> = {
+    PLATFORM: { label: 'Nền tảng', cssClass: 'badge-org-type badge-org-type--platform' },
+    PARTNER:  { label: 'Đối tác',  cssClass: 'badge-org-type badge-org-type--partner' },
+    INTERNAL: { label: 'Nội bộ',   cssClass: 'badge-org-type badge-org-type--internal' }
+  };
+  private readonly typeFallback = { label: 'Đối tác', cssClass: 'badge-org-type badge-org-type--partner' };
+  typeMetaFor(type: OrganizationType | undefined): { label: string; cssClass: string } {
+    return (type && this.typeMeta[type]) || this.typeFallback;
+  }
+
+  /** Type options cho filter dropdown — All + 3 enum values. */
+  readonly typeFilterOptions: Array<{ value: TypeFilterValue; label: string }> = [
+    { value: 'ALL', label: 'Tất cả loại' },
+    { value: 'PLATFORM', label: 'Nền tảng' },
+    { value: 'PARTNER', label: 'Đối tác' },
+    { value: 'INTERNAL', label: 'Nội bộ' }
+  ];
+
+  /** Type options cho create form — PLATFORM bị ẩn (reserved cho HoLiLiHu). */
+  readonly typeCreateOptions: Array<{ value: OrganizationType; label: string }> = [
+    { value: 'PARTNER',  label: 'Đối tác — tổ chức ngoài' },
+    { value: 'INTERNAL', label: 'Nội bộ — đơn vị nội bộ' }
+  ];
 
   ngOnInit(): void {
     this.loadOrganizations();
@@ -60,7 +104,22 @@ export class OrganizationListComponent implements OnInit {
     });
   }
 
-  createOrg(name: string, code: string, description: string, tokenExpiryDays: number): void {
+  setTypeFilter(value: string): void {
+    this.typeFilter.set(value as TypeFilterValue);
+  }
+
+  setSearchQuery(value: string): void {
+    this.searchQuery.set(value);
+  }
+
+  clearFilters(): void {
+    this.typeFilter.set('ALL');
+    this.searchQuery.set('');
+  }
+
+  hasActiveFilters = computed(() => this.typeFilter() !== 'ALL' || this.searchQuery().trim().length > 0);
+
+  createOrg(name: string, code: string, description: string, tokenExpiryDays: number, type: string): void {
     if (!this.canCreateOrganizations()) {
       this.showCreateForm.set(false);
       this.toast.warning('ORG_ADMIN chỉ có thể quản lý tổ chức hiện tại, không thể tạo tổ chức mới');
@@ -77,7 +136,8 @@ export class OrganizationListComponent implements OnInit {
       name: name.trim(),
       code: code.trim().toUpperCase(),
       description: description.trim() || undefined,
-      tokenExpiryDays: tokenExpiryDays || 30
+      tokenExpiryDays: tokenExpiryDays || 30,
+      type: (type as OrganizationType) || 'PARTNER'
     }).subscribe({
       next: (org) => {
         this.showCreateForm.set(false);

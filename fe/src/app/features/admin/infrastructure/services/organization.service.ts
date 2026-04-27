@@ -4,15 +4,18 @@ import { map } from 'rxjs/operators';
 import { ApiClient } from '../../../../api/client/api-client';
 import { ORGANIZATION_ENDPOINTS, INVITE_ENDPOINTS } from '../../../../api/endpoints/organization.endpoints';
 import { ApiResponse } from '../../../../api/types/common.types';
-import { Organization, OrganizationInvite, OrgMember } from '../../../../shared/types/user.types';
+import { Organization, OrganizationInvite, OrganizationType, OrgMember } from '../../../../shared/types/user.types';
 
 @Injectable({ providedIn: 'root' })
 export class OrganizationService {
   private api = inject(ApiClient);
 
   // Organization CRUD
-  listOrganizations(): Observable<Organization[]> {
-    return this.api.get<ApiResponse<Organization[]>>(ORGANIZATION_ENDPOINTS.BASE).pipe(
+  /** Issue #254 (Phase 4): optional type filter (PLATFORM/PARTNER/INTERNAL).
+   *  ADMIN only — ORG_ADMIN bypass server-side, chỉ thấy org của mình. */
+  listOrganizations(typeFilter?: OrganizationType): Observable<Organization[]> {
+    const options = typeFilter ? { params: { type: typeFilter } } : {};
+    return this.api.get<ApiResponse<Organization[]>>(ORGANIZATION_ENDPOINTS.BASE, options).pipe(
       map(res => res.data)
     );
   }
@@ -43,7 +46,9 @@ export class OrganizationService {
     );
   }
 
-  createOrganization(data: { name: string; code: string; description?: string; tokenExpiryDays?: number }): Observable<Organization> {
+  /** Issue #254 (Phase 4): type field optional (default PARTNER server-side).
+   *  PLATFORM bị reject — chỉ HoLiLiHu Org được phép. */
+  createOrganization(data: { name: string; code: string; description?: string; tokenExpiryDays?: number; type?: OrganizationType }): Observable<Organization> {
     return this.api.post<ApiResponse<Organization>>(ORGANIZATION_ENDPOINTS.BASE, data).pipe(
       map(res => res.data)
     );

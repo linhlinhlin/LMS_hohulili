@@ -51,13 +51,19 @@ public class Organization {
     }
 
     public static Organization create(String name, String code, String description, int tokenExpiryDays) {
+        return create(name, code, description, tokenExpiryDays, OrganizationType.PARTNER);
+    }
+
+    /** Issue #254 (Phase 4): factory với type explicit cho admin create flow. */
+    public static Organization create(String name, String code, String description,
+                                       int tokenExpiryDays, OrganizationType type) {
         if (tokenExpiryDays < 7 || tokenExpiryDays > 1095) {
             throw new IllegalArgumentException("Token expiry days phải từ 7 đến 1095");
         }
         return new Organization(
             UUID.randomUUID(), name, code.toUpperCase(), description,
             true, tokenExpiryDays,
-            OrganizationType.PARTNER, false,
+            type != null ? type : OrganizationType.PARTNER, false,
             Instant.now(), null
         );
     }
