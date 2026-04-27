@@ -7,6 +7,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Type;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -57,7 +58,8 @@ public class AssignmentRubricJpaEntity {
     @AllArgsConstructor
     @Builder
     @EqualsAndHashCode
-    public static class RubricCriterion {
+    public static class RubricCriterion implements Serializable {
+        private static final long serialVersionUID = 1L;
         private String name;
         private String description;
         private Double maxPoints;
@@ -70,7 +72,8 @@ public class AssignmentRubricJpaEntity {
     @AllArgsConstructor
     @Builder
     @EqualsAndHashCode
-    public static class RubricLevel {
+    public static class RubricLevel implements Serializable {
+        private static final long serialVersionUID = 1L;
         private String label;
         private String description;
         private Double points;
