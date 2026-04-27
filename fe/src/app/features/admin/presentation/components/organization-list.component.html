@@ -108,16 +108,18 @@
             </svg>
             <input #searchInput type="search" placeholder="Tìm theo tên hoặc mã tổ chức..."
                    class="filter-search-input"
+                   [value]="searchQuery()"
                    (input)="setSearchQuery(searchInput.value)">
           </div>
           <select #typeSelect class="filter-type-select"
+                  [value]="typeFilter()"
                   (change)="setTypeFilter(typeSelect.value)">
             @for (opt of typeFilterOptions; track opt.value) {
-              <option [value]="opt.value" [selected]="opt.value === typeFilter()">{{ opt.label }}</option>
+              <option [value]="opt.value">{{ opt.label }}</option>
             }
           </select>
           @if (hasActiveFilters()) {
-            <button type="button" class="filter-clear" (click)="clearFilters(); searchInput.value=''; typeSelect.value='ALL'">
+            <button type="button" class="filter-clear" (click)="clearFilters()">
               Xóa bộ lọc
             </button>
           }
