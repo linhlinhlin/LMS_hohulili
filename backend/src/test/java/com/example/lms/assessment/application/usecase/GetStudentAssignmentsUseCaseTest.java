@@ -27,6 +27,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
@@ -45,6 +46,9 @@ class GetStudentAssignmentsUseCaseTest {
     @Mock
     private StudentAssessmentAccessPort accessPort;
 
+    @Mock
+    private com.example.lms.assessment.infrastructure.persistence.repository.AssignmentAttachmentJpaRepository attachmentRepository;
+
     @InjectMocks
     private GetStudentAssignmentsUseCase useCase;
 
@@ -56,6 +60,8 @@ class GetStudentAssignmentsUseCaseTest {
         lenient().when(accessPort.filterAccessibleAssignmentIds(anyList(), eq(studentId)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         lenient().when(accessPort.canAccessAssignment(any(UUID.class), eq(studentId))).thenReturn(true);
+        lenient().when(attachmentRepository.findInstructionAttachmentsByAssignmentIds(anyCollection()))
+                .thenReturn(java.util.List.of());
     }
 
     private AssignmentSummary summary(UUID assignmentId, String title, Instant dueDate) {

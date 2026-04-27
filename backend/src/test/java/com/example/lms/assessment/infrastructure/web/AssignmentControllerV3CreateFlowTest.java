@@ -54,6 +54,7 @@ class AssignmentControllerV3CreateFlowTest {
     @Mock private JpaCourseRepository courseJpaRepository;
     @Mock private JpaLearningClassRepository classRepository;
     @Mock private JpaEnrollmentRepository enrollmentRepository;
+    @Mock private com.example.lms.assessment.application.usecase.ManageAssignmentInstructionAttachmentsUseCase instructionAttachmentsUseCase;
 
     @InjectMocks
     private AssignmentControllerV3 controller;
