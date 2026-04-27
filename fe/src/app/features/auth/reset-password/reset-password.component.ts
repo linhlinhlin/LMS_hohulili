@@ -3,6 +3,7 @@ import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } 
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ApiClient } from '../../../api/client/api-client';
 import { AUTH_ENDPOINTS } from '../../../api/endpoints/auth.endpoints';
+import { SeoService } from '../../../core/services/seo.service';
 import { firstValueFrom, timeout } from 'rxjs';
 
 type ResetPasswordForm = {
@@ -479,6 +480,7 @@ export class ResetPasswordComponent implements OnInit {
   private router = inject(Router);
   private fb = inject(FormBuilder);
   private apiClient = inject(ApiClient);
+  private seo = inject(SeoService);
 
   readonly token = signal<string | null>(null);
   readonly isLoading = signal(false);
@@ -493,6 +495,8 @@ export class ResetPasswordComponent implements OnInit {
   }) as FormGroup<ResetPasswordForm>;
 
   ngOnInit(): void {
+    // SEO Phase 5: token-bearing reset link should not be indexed
+    this.seo.setNoindex();
     this.token.set(this.route.snapshot.queryParamMap.get('token'));
   }
 

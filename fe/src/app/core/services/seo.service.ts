@@ -58,4 +58,20 @@ export class SeoService {
   removeJsonLd(id: string): void {
     this.document.getElementById(id)?.remove();
   }
+
+  /**
+   * SEO Phase 5: ngăn search engines index 1 page (auth, account-only pages).
+   * Default robots meta của index.html không có noindex → index by default.
+   * Gọi method này trong ngOnInit của các page private (login, register,
+   * forgot-password). Khi user navigate sang page khác, nhớ gọi
+   * `setIndexable()` để revert (hoặc setPageMeta sẽ override gián tiếp).
+   */
+  setNoindex(): void {
+    this.meta.updateTag({ name: 'robots', content: 'noindex, nofollow' });
+  }
+
+  /** SEO Phase 5: revert noindex — cho phép Google index page bình thường. */
+  setIndexable(): void {
+    this.meta.updateTag({ name: 'robots', content: 'index, follow' });
+  }
 }

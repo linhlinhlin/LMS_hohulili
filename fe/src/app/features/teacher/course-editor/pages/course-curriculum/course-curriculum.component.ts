@@ -1,4 +1,4 @@
-﻿import { Component, DestroyRef, inject, signal, computed, effect, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { Component, DestroyRef, inject, signal, computed, effect, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
 import { untracked } from '@angular/core';

@@ -1,4 +1,4 @@
-﻿import { Component, signal, computed, inject, OnInit, DestroyRef, ChangeDetectionStrategy, HostListener, effect, untracked } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, DestroyRef, ChangeDetectionStrategy, HostListener, effect, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';

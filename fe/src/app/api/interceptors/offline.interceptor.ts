@@ -320,7 +320,7 @@ async function buildOfflineMutationResponse(
     if (persisted) {
       return {
         success: true,
-        message: 'ÄÃ£ lÆ°u hoÃ n thÃ nh pháº§n há»c ngoáº¡i tuyáº¿n, sáº½ Ä‘á»“ng bá»™ khi cÃ³ máº¡ng',
+        message: 'Đã lưu hoàn thành phần học ngoại tuyến, sẽ đồng bộ khi có mạng',
         data: persisted,
         _offline: true,
       };
@@ -342,7 +342,7 @@ async function buildOfflineMutationResponse(
     if (persisted) {
       return {
         success: true,
-        message: 'ÄÃ£ lÆ°u hoÃ n thÃ nh bÃ i há»c ngoáº¡i tuyáº¿n, sáº½ Ä‘á»“ng bá»™ khi cÃ³ máº¡ng',
+        message: 'Đã lưu hoàn thành bài học ngoại tuyến, sẽ đồng bộ khi có mạng',
         data: persisted,
         _offline: true,
       };

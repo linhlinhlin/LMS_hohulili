@@ -23,6 +23,7 @@ import { getPortalRootRoute, mapAdminPortalPathForRole } from '../../../core/uti
 import { isNewUser } from '../../../core/utils/auth.util';
 import { GoogleSigninButtonComponent } from '../components/google-signin-button.component';
 import { OrganizationService } from '../../admin/infrastructure/services/organization.service';
+import { SeoService } from '../../../core/services/seo.service';
 
 type LoginStep = 'identify' | 'password' | 'google' | 'register';
 
@@ -54,6 +55,7 @@ export class LoginComponent {
   private fb = inject(FormBuilder);
   private injector = inject(Injector);
   private orgService = inject(OrganizationService);
+  private seo = inject(SeoService);
 
   identifyForm: FormGroup<IdentifyForm>;
   passwordForm: FormGroup<PasswordForm>;
@@ -117,6 +119,9 @@ export class LoginComponent {
   });
 
   constructor() {
+    // SEO Phase 5: auth pages should not be indexed (login form, no public content)
+    this.seo.setNoindex();
+
     const prefilledEmail = this.route.snapshot.queryParamMap.get('email')?.trim() || '';
     const message = this.route.snapshot.queryParamMap.get('message')?.trim() || '';
     const errorParam = this.route.snapshot.queryParamMap.get('error')?.trim() || '';

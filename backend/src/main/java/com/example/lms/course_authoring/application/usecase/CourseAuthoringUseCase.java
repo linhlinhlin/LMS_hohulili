@@ -116,13 +116,13 @@ public class CourseAuthoringUseCase {
             java.math.BigDecimal salePrice = request.getSalePrice();
 
             if (price == null || price.compareTo(java.math.BigDecimal.ZERO) <= 0) {
-                throw new BusinessRuleException("INVALID_PRICE", "KhÃ³a há»c tráº£ phÃ­ pháº£i cÃ³ giÃ¡ lá»›n hÆ¡n 0.");
+                throw new BusinessRuleException("INVALID_PRICE", "Khóa học trả phí phải có giá lớn hơn 0.");
             }
 
             if (salePrice != null
                     && salePrice.compareTo(java.math.BigDecimal.ZERO) > 0
                     && salePrice.compareTo(price) >= 0) {
-                throw new BusinessRuleException("INVALID_SALE_PRICE", "GiÃ¡ khuyáº¿n mÃ£i pháº£i nhá» hÆ¡n giÃ¡ gá»‘c.");
+                throw new BusinessRuleException("INVALID_SALE_PRICE", "Giá khuyến mãi phải nhỏ hơn giá gốc.");
             }
         }
 

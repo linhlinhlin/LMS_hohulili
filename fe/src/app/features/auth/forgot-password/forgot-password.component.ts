@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { FormBuilder, FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ApiClient } from '../../../api/client/api-client';
 import { AUTH_ENDPOINTS } from '../../../api/endpoints/auth.endpoints';
+import { SeoService } from '../../../core/services/seo.service';
 
 type ForgotPasswordForm = {
   email: FormControl<string>;
@@ -398,6 +399,7 @@ type ForgotPasswordForm = {
 export class ForgotPasswordComponent {
   private fb = inject(FormBuilder);
   private apiClient = inject(ApiClient);
+  private seo = inject(SeoService);
 
   forgotPasswordForm: FormGroup<ForgotPasswordForm>;
   readonly emailSent = signal(false);
@@ -406,6 +408,8 @@ export class ForgotPasswordComponent {
   readonly errorMessage = signal('');
 
   constructor() {
+    // SEO Phase 5: account recovery page should not be indexed
+    this.seo.setNoindex();
     this.forgotPasswordForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]]
     }) as FormGroup<ForgotPasswordForm>;

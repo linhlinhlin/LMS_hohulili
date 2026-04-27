@@ -1,4 +1,4 @@
-﻿import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';

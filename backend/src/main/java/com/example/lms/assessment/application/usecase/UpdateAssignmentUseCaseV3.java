@@ -51,7 +51,7 @@ public class UpdateAssignmentUseCaseV3 {
             try {
                 assignment.changeStatus(Assignment.AssignmentStatus.valueOf(command.status().toUpperCase()));
             } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Tráº¡ng thÃ¡i bÃ i táº­p khÃ´ng há»£p lá»‡: " + command.status());
+                throw new IllegalArgumentException("Trạng thái bài tập không hợp lệ: " + command.status());
             }
         }
 

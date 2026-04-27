@@ -86,7 +86,7 @@ public class TeacherStudentControllerV3 {
                 : teacherCourseIds;
         if (courseIds.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.success(
-                    new PageImpl<>(Collections.emptyList(), pageable, 0), "Danh sĂ¡ch há»c viĂªn"));
+                    new PageImpl<>(Collections.emptyList(), pageable, 0), "Danh sĂ¡ch học viĂªn"));
         }
 
         // Get enrollments via learningClass.courseId (1 batch query)

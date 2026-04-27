@@ -25,10 +25,10 @@ public class UpdateChapterUseCase {
     @Transactional
     public ChapterResponse execute(UpdateChapterCommand command) {
         Course course = courseRepository.findById(command.courseId())
-                .orElseThrow(() -> new EntityNotFoundException("KhÃ³a há»c", command.courseId()));
+                .orElseThrow(() -> new EntityNotFoundException("Khóa học", command.courseId()));
 
         if (!course.isOwnedBy(command.userId()) && !command.isAdmin()) {
-            throw new UnauthorizedException("chá»‰nh sá»­a chÆ°Æ¡ng trong", "khÃ³a há»c nÃ y");
+            throw new UnauthorizedException("chỉnh sửa chương trong", "khóa học này");
         }
 
         courseDraftMutationUseCase.requireEditableCourse(command.courseId());

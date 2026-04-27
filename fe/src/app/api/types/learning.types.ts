@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Learning Types
  * Types for student learning experience, video lessons, progress tracking
  * PostgreSQL Tables: courses, chapters, lessons, sections, video_progress, bookmarks

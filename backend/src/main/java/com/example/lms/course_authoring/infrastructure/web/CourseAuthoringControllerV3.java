@@ -81,7 +81,7 @@ public class CourseAuthoringControllerV3 {
             isAdmin
         );
         UUID chapterId = createChapterUseCase.execute(command);
-        return ResponseEntity.ok(ApiResponse.success(chapterId, "Táº¡o chÆ°Æ¡ng thÃ nh cÃ´ng"));
+        return ResponseEntity.ok(ApiResponse.success(chapterId, "Tạo chương thành công"));
     }
 
     @Operation(summary = "Create a new lesson in a chapter")
@@ -106,7 +106,7 @@ public class CourseAuthoringControllerV3 {
             request.isFree()
         );
         UUID lessonId = createLessonUseCase.execute(command);
-        return ResponseEntity.ok(ApiResponse.success(lessonId, "Táº¡o bÃ i há»c thÃ nh cÃ´ng"));
+        return ResponseEntity.ok(ApiResponse.success(lessonId, "Tạo bài học thành công"));
     }
 
     @Operation(summary = "Update a chapter")
@@ -126,7 +126,7 @@ public class CourseAuthoringControllerV3 {
             isAdminRole(user)
         );
         ChapterResponse response = updateChapterUseCase.execute(command);
-        return ResponseEntity.ok(ApiResponse.success(response, "Cáº­p nháº­t chÆ°Æ¡ng thÃ nh cÃ´ng"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Cập nhật chương thành công"));
     }
 
     @Operation(summary = "Delete a chapter")
@@ -139,7 +139,7 @@ public class CourseAuthoringControllerV3 {
     ) {
         boolean isAdmin = isAdminRole(user);
         deleteChapterUseCase.execute(courseId, chapterId, user.getId(), isAdmin);
-        return ResponseEntity.ok(ApiResponse.success(null, "XÃ³a chÆ°Æ¡ng thÃ nh cÃ´ng"));
+        return ResponseEntity.ok(ApiResponse.success(null, "Xóa chương thành công"));
     }
 
     @Operation(summary = "Update a lesson")
@@ -167,7 +167,7 @@ public class CourseAuthoringControllerV3 {
             isAdminRole(user)
         );
         LessonResponse response = updateLessonUseCase.execute(command);
-        return ResponseEntity.ok(ApiResponse.success(response, "Cáº­p nháº­t bÃ i há»c thÃ nh cÃ´ng"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Cập nhật bài học thành công"));
     }
 
     @Operation(summary = "Delete a lesson")
@@ -186,7 +186,7 @@ public class CourseAuthoringControllerV3 {
                         .map(com.example.lms.course_authoring.infrastructure.persistence.entity.LessonJpaEntity::getChapterId)
                         .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Lesson", lessonId));
         deleteLessonUseCase.execute(courseId, resolvedChapterId, lessonId, user.getId(), isAdmin);
-        return ResponseEntity.ok(ApiResponse.success(null, "XÃ³a bÃ i há»c thÃ nh cÃ´ng"));
+        return ResponseEntity.ok(ApiResponse.success(null, "Xóa bài học thành công"));
     }
 
     // ================================================================================================
@@ -214,9 +214,9 @@ public class CourseAuthoringControllerV3 {
             }
             chapterJpaRepository.saveAll(chapters);
             courseDraftMutationUseCase.markCourseChanged(courseId);
-            return ResponseEntity.ok(ApiResponse.success(null, "ÄÃ£ sáº¯p xáº¿p láº¡i chÆ°Æ¡ng"));
+            return ResponseEntity.ok(ApiResponse.success(null, "Đã sắp xếp lại chương"));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("Äá»‹nh dáº¡ng UUID khÃ´ng há»£p lá»‡"));
+            return ResponseEntity.badRequest().body(ApiResponse.error("Định dạng UUID không hợp lệ"));
         }
     }
 
@@ -241,9 +241,9 @@ public class CourseAuthoringControllerV3 {
             }
             lessonJpaRepository.saveAll(lessons);
             courseDraftMutationUseCase.markCourseChangedByChapter(chapterId);
-            return ResponseEntity.ok(ApiResponse.success(null, "ÄÃ£ sáº¯p xáº¿p láº¡i bÃ i há»c"));
+            return ResponseEntity.ok(ApiResponse.success(null, "Đã sắp xếp lại bài học"));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("Äá»‹nh dáº¡ng UUID khÃ´ng há»£p lá»‡"));
+            return ResponseEntity.badRequest().body(ApiResponse.error("Định dạng UUID không hợp lệ"));
         }
     }
 
@@ -266,9 +266,9 @@ public class CourseAuthoringControllerV3 {
                 if (block != null) reordered.add(block);
             }
             manageContentBlockUseCase.saveBlocks(lessonId, reordered);
-            return ResponseEntity.ok(ApiResponse.success(null, "ÄÃ£ sáº¯p xáº¿p láº¡i pháº§n há»c"));
+            return ResponseEntity.ok(ApiResponse.success(null, "Đã sắp xếp lại phần học"));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("Äá»‹nh dáº¡ng UUID khÃ´ng há»£p lá»‡"));
+            return ResponseEntity.badRequest().body(ApiResponse.error("Định dạng UUID không hợp lệ"));
         }
     }
 
@@ -337,7 +337,7 @@ public class CourseAuthoringControllerV3 {
             scheduleAsyncPreviewConversion(block.getId().toString(), lessonId, convBytes, convName, user.getId());
         }
 
-return ResponseEntity.ok(ApiResponse.success(block, "Táº¡o pháº§n há»c thÃ nh cÃ´ng"));
+return ResponseEntity.ok(ApiResponse.success(block, "Tạo phần học thành công"));
     }
 
     @Operation(summary = "Update a section (content block)")
@@ -398,7 +398,7 @@ return ResponseEntity.ok(ApiResponse.success(block, "Táº¡o pháº§n há»c
             scheduleAsyncPreviewConversion(sectionId, lessonId, convBytes2, convName2, user.getId());
         }
 
-return ResponseEntity.ok(ApiResponse.success(block, "Cáº­p nháº­t pháº§n há»c thÃ nh cÃ´ng"));
+return ResponseEntity.ok(ApiResponse.success(block, "Cập nhật phần học thành công"));
     }
 
     @Operation(summary = "Delete a section (content block)")
@@ -411,7 +411,7 @@ return ResponseEntity.ok(ApiResponse.success(block, "Cáº­p nháº­t pháº§
     ) {
         boolean isAdmin = isAdminRole(user);
         manageContentBlockUseCase.deleteBlock(lessonId, sectionId, user.getId(), isAdmin);
-        return ResponseEntity.ok(ApiResponse.success(null, "XÃ³a pháº§n há»c thÃ nh cÃ´ng"));
+        return ResponseEntity.ok(ApiResponse.success(null, "Xóa phần học thành công"));
     }
 
     @Operation(summary = "Update course details")
@@ -449,7 +449,7 @@ return ResponseEntity.ok(ApiResponse.success(block, "Cáº­p nháº­t pháº§
             isAdminRole(user)
         );
         com.example.lms.course_authoring.application.dto.CourseResponse response = updateCourseUseCase.execute(command);
-        return ResponseEntity.ok(ApiResponse.success(response, "Cáº­p nháº­t khÃ³a há»c thÃ nh cÃ´ng"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Cập nhật khóa học thành công"));
     }
     
     // --- Helpers ---
@@ -459,7 +459,7 @@ return ResponseEntity.ok(ApiResponse.success(block, "Cáº­p nháº­t pháº§
             return objectMapper.readValue(payloadJson, new TypeReference<>() {});
         } catch (IOException ex) {
             log.warn("Invalid multipart section payload", ex);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Payload pháº§n há»c khÃ´ng há»£p lá»‡");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Payload phần học không hợp lệ");
         }
     }
 
@@ -721,14 +721,14 @@ return ResponseEntity.ok(ApiResponse.success(block, "Cáº­p nháº­t pháº§
 
     // Request DTOs
     public record CreateChapterRequest(
-        @NotBlank(message = "TiÃªu Ä‘á» khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng")
+        @NotBlank(message = "Tiêu đề không được để trống")
         String title,
         String description,
         Integer orderIndex
     ) {}
 
     public record CreateLessonRequest(
-        @NotBlank(message = "TiÃªu Ä‘á» khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng")
+        @NotBlank(message = "Tiêu đề không được để trống")
         String title,
         String description,
         String type,
@@ -759,7 +759,7 @@ return ResponseEntity.ok(ApiResponse.success(block, "Cáº­p nháº­t pháº§
     ) {}
 
     public record UpdateCourseRequest(
-        @jakarta.validation.constraints.Size(max = 255, message = "TiÃªu Ä‘á» khÃ´ng Ä‘Æ°á»£c quÃ¡ 255 kÃ½ tá»±") String title,
+        @jakarta.validation.constraints.Size(max = 255, message = "Tiêu đề không được quá 255 ký tự") String title,
         String description,
         String thumbnailUrl,
         UUID categoryId,
@@ -769,29 +769,29 @@ return ResponseEntity.ok(ApiResponse.success(block, "Cáº­p nháº­t pháº§
         String benefits,
         String introVideoUrl,
         UUID introVideoAssetId,
-        @jakarta.validation.constraints.Min(value = 0, message = "Sá»‘ tÃ­n chá»‰ pháº£i >= 0") @jakarta.validation.constraints.Max(value = 30, message = "Sá»‘ tÃ­n chá»‰ pháº£i <= 30") Integer credits,
+        @jakarta.validation.constraints.Min(value = 0, message = "Số tín chỉ phải >= 0") @jakarta.validation.constraints.Max(value = 30, message = "Số tín chỉ phải <= 30") Integer credits,
         String visibility,
         String priceType,
-        @jakarta.validation.constraints.DecimalMin(value = "0", message = "GiÃ¡ pháº£i >= 0") java.math.BigDecimal price,
-        @jakarta.validation.constraints.DecimalMin(value = "0", message = "GiÃ¡ khuyáº¿n mÃ£i pháº£i >= 0") java.math.BigDecimal salePrice,
+        @jakarta.validation.constraints.DecimalMin(value = "0", message = "Giá phải >= 0") java.math.BigDecimal price,
+        @jakarta.validation.constraints.DecimalMin(value = "0", message = "Giá khuyến mãi phải >= 0") java.math.BigDecimal salePrice,
         String deliveryMode,
         Boolean allowOfflineDownload
     ) {}
 
     public record ReorderChaptersRequest(
-        @NotBlank(message = "MÃ£ khÃ³a há»c khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng") String courseId,
-        @jakarta.validation.constraints.NotEmpty(message = "Danh sÃ¡ch ID khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng") java.util.List<String> orderedIds
+        @NotBlank(message = "Mã khóa học không được để trống") String courseId,
+        @jakarta.validation.constraints.NotEmpty(message = "Danh sách ID không được để trống") java.util.List<String> orderedIds
     ) {}
 
     public record ReorderLessonsRequest(
-        @NotBlank(message = "MÃ£ khÃ³a há»c khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng") String courseId,
-        @NotBlank(message = "MÃ£ chÆ°Æ¡ng khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng") String chapterId,
-        @jakarta.validation.constraints.NotEmpty(message = "Danh sÃ¡ch ID khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng") java.util.List<String> orderedIds
+        @NotBlank(message = "Mã khóa học không được để trống") String courseId,
+        @NotBlank(message = "Mã chương không được để trống") String chapterId,
+        @jakarta.validation.constraints.NotEmpty(message = "Danh sách ID không được để trống") java.util.List<String> orderedIds
     ) {}
 
     public record ReorderSectionsRequest(
-        @NotBlank(message = "MÃ£ bÃ i há»c khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng") String lessonId,
-        @jakarta.validation.constraints.NotEmpty(message = "Danh sÃ¡ch ID khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng") java.util.List<String> orderedIds
+        @NotBlank(message = "Mã bài học không được để trống") String lessonId,
+        @jakarta.validation.constraints.NotEmpty(message = "Danh sách ID không được để trống") java.util.List<String> orderedIds
     ) {}
 }
 

@@ -148,7 +148,7 @@ public class CourseQueryControllerV3 {
                 ? null
                 : getPublishedCourseDetail(courseId, currentUser);
         if (publishedDetail != null) {
-            return ResponseEntity.ok(ApiResponse.success(publishedDetail, "ThÃ´ng tin khÃ³a há»c"));
+            return ResponseEntity.ok(ApiResponse.success(publishedDetail, "Thông tin khóa học"));
         }
 
         // Fallback to direct DB query — with access check for unpublished/private courses
@@ -202,7 +202,7 @@ public class CourseQueryControllerV3 {
                 ? null
                 : getPublishedCourseContent(courseId, currentUser);
         if (publishedChapters != null) {
-            return ResponseEntity.ok(ApiResponse.success(publishedChapters, "Ná»™i dung khÃ³a há»c"));
+            return ResponseEntity.ok(ApiResponse.success(publishedChapters, "Nội dung khóa học"));
         }
 
         // Access check for unpublished/private courses

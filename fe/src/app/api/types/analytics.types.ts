@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Analytics Types
  * Types for student analytics, learning patterns, performance tracking
  * PostgreSQL Tables: quiz_attempts, assignments, enrollments, video_progress

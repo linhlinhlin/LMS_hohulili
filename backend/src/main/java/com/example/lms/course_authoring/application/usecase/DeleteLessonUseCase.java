@@ -27,10 +27,10 @@ public class DeleteLessonUseCase {
     @Transactional
     public void execute(UUID courseId, UUID chapterId, UUID lessonId, UUID userId, boolean isAdmin) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new EntityNotFoundException("KhÃ³a há»c", courseId));
+                .orElseThrow(() -> new EntityNotFoundException("Khóa học", courseId));
 
         if (!course.isOwnedBy(userId) && !isAdmin) {
-            throw new UnauthorizedException("xÃ³a bÃ i há»c trong", "khÃ³a há»c nÃ y");
+            throw new UnauthorizedException("xóa bài học trong", "khóa học này");
         }
 
         courseDraftMutationUseCase.requireEditableCourse(courseId);

@@ -301,7 +301,7 @@ public class SyncUseCase {
                 }
                 if (enrollment == null) {
                     conflicts.add(new SyncResponse.Conflict("progress",
-                            lessonId.toString(), "KhÃ´ng tÃ¬m tháº¥y Ä‘Äƒng kÃ½ há»c Ä‘á»ƒ gá»™p tiáº¿n trÃ¬nh pháº§n há»c"));
+                            lessonId.toString(), "Không tìm thấy đăng ký học để gộp tiến trình phần học"));
                     return false;
                 }
 

@@ -1,4 +1,4 @@
-﻿import { Component, OnInit, OnDestroy, signal, inject, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, inject, computed, ChangeDetectionStrategy } from '@angular/core';
 
 import { ActivatedRoute, Router } from '@angular/router';
 import { QuizApi } from '../../../api/endpoints/quiz.api';

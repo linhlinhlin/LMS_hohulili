@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Dashboard Types
  * Types for admin, teacher, and student dashboards
  * PostgreSQL Tables: users, courses, enrollments, assignments

@@ -436,7 +436,7 @@ public class StudentEnrollmentControllerV3 {
                 && existingProgress.getCompletedSections().contains(sectionId)) {
             return ResponseEntity.ok(ApiResponse.success(
                 buildSectionCompletionResponse(lessonIdStr, sectionId, existingProgress),
-                "ÄÃ£ hoÃ n thÃ nh pháº§n há»c"
+                "Đã hoàn thành phần học"
             ));
         }
 
@@ -446,7 +446,7 @@ public class StudentEnrollmentControllerV3 {
             savedEnrollment = saveSectionCompletionWithRetry(studentId, courseId, lessonIdStr, sectionId, enrollment);
         } catch (ObjectOptimisticLockingFailureException ex) {
             return ResponseEntity.status(409).body(ApiResponse.error(
-                "Tiáº¿n Ä‘á»™ pháº§n há»c vá»«a Ä‘Æ°á»£c cáº­p nháº­t á»Ÿ phiÃªn khÃ¡c. Vui lÃ²ng thá»­ láº¡i Ä‘á»ƒ Ä‘á»“ng bá»™ dá»¯ liá»‡u má»›i nháº¥t."
+                "Tiến độ phần học vừa được cập nhật ở phiên khác. Vui lòng thử lại để đồng bộ dữ liệu mới nhất."
             ));
         }
 
@@ -456,7 +456,7 @@ public class StudentEnrollmentControllerV3 {
 
         return ResponseEntity.ok(ApiResponse.success(
             buildSectionCompletionResponse(lessonIdStr, sectionId, savedProgress),
-            "ÄÃ£ hoÃ n thÃ nh pháº§n há»c"
+            "Đã hoàn thành phần học"
         ));
         
 

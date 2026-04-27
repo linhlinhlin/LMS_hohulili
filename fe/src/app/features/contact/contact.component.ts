@@ -1,8 +1,9 @@
-import { Component, signal, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ToastService } from '../../core/services/toast.service';
+import { SeoService } from '../../core/services/seo.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -10,12 +11,24 @@ import { ToastService } from '../../core/services/toast.service';
   imports: [FormsModule, RouterModule],
   templateUrl: './contact.component.html',
 })
-export class ContactComponent {
+export class ContactComponent implements OnInit {
   private toast = inject(ToastService);
+  private seo = inject(SeoService);
 
   isSubmitting = signal(false);
   submitMessage = signal('');
   isSuccess = signal(false);
+
+  ngOnInit(): void {
+    // SEO Phase 5: surface contact page meta cho search engines + share previews
+    this.seo.setPageMeta(
+      'Liên hệ',
+      'Liên hệ The Wiii Lab — đội ngũ vận hành LMS Maritime hỗ trợ tư vấn khóa học hàng hải, hợp tác doanh nghiệp/trường học/chính phủ.',
+      'https://holilihu.online/og-image.png',
+      'https://holilihu.online/contact'
+    );
+    this.seo.setCanonical('https://holilihu.online/contact');
+  }
 
   formData = {
     name: '',

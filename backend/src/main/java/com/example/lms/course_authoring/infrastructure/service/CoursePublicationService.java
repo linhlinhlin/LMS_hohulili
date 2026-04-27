@@ -109,7 +109,7 @@ public class CoursePublicationService {
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getDraftContent(UUID courseId) {
         courseRepository.findByIdWithContent(courseId)
-                .orElseThrow(() -> new EntityNotFoundException("KhÃ³a há»c", courseId));
+                .orElseThrow(() -> new EntityNotFoundException("Khóa học", courseId));
         return buildCourseContent(courseId);
     }
 
