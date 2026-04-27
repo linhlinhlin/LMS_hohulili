@@ -69,16 +69,21 @@ export const routes: Routes = [
       { path: 'courses/logistics', redirectTo: '/courses?category=logistics', pathMatch: 'full' },
       { path: 'courses/law', redirectTo: '/courses?category=law', pathMatch: 'full' },
       { path: 'courses/certificates', redirectTo: '/courses?category=certificates', pathMatch: 'full' },
-      // Course Detail - Must come BEFORE category fallback to properly match UUIDs
-      // Uses canMatch guard to distinguish UUID from category name
+      // Course Detail — Phase 7 fix: dùng UrlMatcher thay canMatch.
+      // canMatch + path: 'courses/:id' empirically không hoạt động (route
+      // matched fallback courses/:slug → redirect /courses). UrlMatcher
+      // deterministic: chỉ match đúng 2 segments [courses, {valid-uuid}].
       {
-        path: 'courses/:id',
-        canMatch: [(route, segments) => {
-          // UUID pattern: 8-4-4-4-12 hex digits (e.g., 82701937-2199-48c7-9314-abc123def456)
-          const id = segments[1]?.path || '';
-          const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-          return isUUID;
-        }],
+        matcher: (segments) => {
+          if (segments.length !== 2 || segments[0].path !== 'courses') return null;
+          const idSeg = segments[1];
+          const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idSeg.path);
+          if (!isUUID) return null;
+          return {
+            consumed: segments,
+            posParams: { id: idSeg }
+          };
+        },
         loadComponent: () => import('./features/courses/course-detail.component').then(m => m.CourseDetailComponent),
         title: 'Chi tiết khóa học - LMS Maritime'
       },
