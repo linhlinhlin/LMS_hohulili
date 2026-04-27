@@ -1,4 +1,6 @@
 import { Component, input, output, model, signal, computed, ChangeDetectionStrategy, inject, effect, ElementRef, viewChild, AfterViewInit } from '@angular/core';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -381,6 +383,51 @@ export class LessonContentComponent implements AfterViewInit {
   getSanitizedHtml(content: string | undefined | null): any {
     if (!content || content === 'undefined' || content === 'null') return '';
     return this.sanitizer.bypassSecurityTrustHtml(content);
+  }
+
+  /**
+   * Tiptap Mathematics extension serializes math as empty containers:
+   *   `<span data-type="inline-math" data-latex="E=mc^2"></span>`
+   *   `<div data-type="block-math" data-latex="\int_a^b ..."></div>`
+   *
+   * The editor renders these via NodeView (KaTeX) inside the editor instance,
+   * but when the same HTML is shown to students via `[innerHTML]`, no NodeView
+   * runs — the spans/divs stay empty. This effect queries the host after each
+   * content change and renders KaTeX manually.
+   *
+   * Idempotent via `data-katex-rendered` flag so unrelated signal changes
+   * don't trigger redundant re-renders. Flag wipes when Angular replaces
+   * innerHTML for new content.
+   */
+  private hostEl = inject(ElementRef);
+  private mathRenderEffect = effect(() => {
+    // Tracks: section content, lesson content fallback, active tab
+    void this.currentSection()?.content;
+    void this.lesson()?.content;
+    void this.activeTab();
+    queueMicrotask(() => this.renderMathInHost());
+  });
+
+  private renderMathInHost(): void {
+    const root: HTMLElement | undefined = this.hostEl?.nativeElement;
+    if (!root) return;
+    const nodes = root.querySelectorAll<HTMLElement>(
+      '[data-type="inline-math"]:not([data-katex-rendered]), [data-type="block-math"]:not([data-katex-rendered])',
+    );
+    nodes.forEach((el) => {
+      const latex = el.getAttribute('data-latex') || '';
+      const displayMode = el.getAttribute('data-type') === 'block-math';
+      try {
+        katex.render(latex, el, {
+          displayMode,
+          throwOnError: false,
+          strict: 'ignore',
+        });
+      } catch {
+        el.textContent = `[Lỗi công thức: ${latex}]`;
+      }
+      el.setAttribute('data-katex-rendered', '1');
+    });
   }
 
   /** Reading progress percent (0-100) for current TEXT section */

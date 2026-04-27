@@ -50,6 +50,8 @@ const ICONS = {
   safety: '<svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>',
   exercise: '<svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/><line x1="9" y1="11" x2="13" y2="11"/></svg>',
   readMore: '<svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg>',
+  mathInline: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16"/><path d="M4 6c4 0 4 6 8 6s4-6 8-6"/><path d="M4 18c4 0 4-6 8-6s4 6 8 6"/></svg>',
+  mathBlock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8"/><path d="M8 9c2 0 2 3 4 3s2-3 4-3"/><path d="M8 15c2 0 2-3 4-3s2 3 4 3"/></svg>',
 };
 
 // ── Slash Command Items ──
@@ -215,6 +217,24 @@ export function getSlashCommandItems(): SlashCommandItem[] {
       icon: ICONS.code,
       aliases: ['ma nguon', 'pre'],
       command: (editor) => editor.chain().focus().toggleCodeBlock().run(),
+    },
+    {
+      id: 'mathInline',
+      title: 'Công thức inline',
+      description: 'Công thức toán LaTeX trong câu (ví dụ: $E=mc^2$)',
+      category: 'Media',
+      icon: ICONS.mathInline,
+      aliases: ['math', 'cong thuc', 'latex', 'inline math', 'toan'],
+      command: (editor) => (editor as any).chain().focus().insertInlineMath({ latex: 'E=mc^2' }).run(),
+    },
+    {
+      id: 'mathBlock',
+      title: 'Công thức khối',
+      description: 'Công thức toán LaTeX hiển thị block (căn giữa, lớn)',
+      category: 'Media',
+      icon: ICONS.mathBlock,
+      aliases: ['math block', 'cong thuc khoi', 'latex block', 'phuong trinh'],
+      command: (editor) => (editor as any).chain().focus().insertBlockMath({ latex: '\\int_{a}^{b} f(x)\\,dx' }).run(),
     },
 
     // ── Mẫu bài giảng (C4L) ──

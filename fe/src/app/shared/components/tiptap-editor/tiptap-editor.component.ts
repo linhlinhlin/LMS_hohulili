@@ -32,6 +32,8 @@ import { Superscript } from '@tiptap/extension-superscript';
 import { CharacterCount } from '@tiptap/extension-character-count';
 import { Details, DetailsContent, DetailsSummary } from '@tiptap/extension-details';
 import { common, createLowlight } from 'lowlight';
+import { Mathematics } from '@tiptap/extension-mathematics';
+import 'katex/dist/katex.min.css';
 import { Callout, type CalloutType } from './callout-node';
 import { SlashCommands, getSlashCommandItems, type SlashCommandItem } from './slash-commands';
 import { PasteHandler, fixLegacyVideoTags } from './paste-handler';
@@ -1123,6 +1125,12 @@ export class TiptapEditorComponent implements ControlValueAccessor, OnDestroy {
         Superscript,
         CharacterCount,
         Callout,
+        // KaTeX math: inline `$E=mc^2$` + block `$$\int_a^b f(x)dx$$`.
+        // throwOnError: false → render đỏ thông báo lỗi syntax thay vì
+        // throw exception phá editor. Pattern Notion/Discord/GitLab.
+        Mathematics.configure({
+          katexOptions: { throwOnError: false, strict: 'ignore' },
+        }),
         Details,
         DetailsSummary,
         DetailsContent,
