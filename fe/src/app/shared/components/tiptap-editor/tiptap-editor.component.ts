@@ -33,7 +33,8 @@ import { CharacterCount } from '@tiptap/extension-character-count';
 import { Details, DetailsContent, DetailsSummary } from '@tiptap/extension-details';
 import { common, createLowlight } from 'lowlight';
 import { Mathematics } from '@tiptap/extension-mathematics';
-import 'katex/dist/katex.min.css';
+// KaTeX CSS loaded globally via angular.json styles[] — esbuild can't bundle
+// .woff/.woff2/.ttf font references from TS CSS imports. Pattern Angular docs.
 import { Callout, type CalloutType } from './callout-node';
 import { SlashCommands, getSlashCommandItems, type SlashCommandItem } from './slash-commands';
 import { PasteHandler, fixLegacyVideoTags } from './paste-handler';

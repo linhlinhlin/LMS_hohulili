@@ -1,6 +1,6 @@
 import { Component, input, output, model, signal, computed, ChangeDetectionStrategy, inject, effect, ElementRef, viewChild, AfterViewInit } from '@angular/core';
 import katex from 'katex';
-import 'katex/dist/katex.min.css';
+// KaTeX CSS loaded globally via angular.json styles[]; do NOT import here.
 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
