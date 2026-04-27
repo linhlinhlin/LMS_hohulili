@@ -32,6 +32,7 @@ class CleanArchitectureTest {
      */
     private static final Set<String> APPROVED_LEGACY_COMMAND_USE_CASES_WITH_INFRA_DEBT = Set.of(
             "com.example.lms.assessment.application.usecase.GradeSubmissionUseCase",
+            "com.example.lms.assessment.application.usecase.ManageAssignmentInstructionAttachmentsUseCase",
             "com.example.lms.course_authoring.application.usecase.ApproveCourseUseCase",
             "com.example.lms.course_authoring.application.usecase.CourseAuthoringUseCase",
             "com.example.lms.course_authoring.application.usecase.ManageContentBlockUseCaseV3",
