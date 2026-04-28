@@ -1718,12 +1718,30 @@ export class SectionEditorComponent {
     return cat === 'format' || cat === 'transcode' || cat == null;
   }
 
+  /**
+   * Apply lesson template — append at cursor (Notion/Google Docs UX) thay vì
+   * replace toàn bộ. Trước đây silent-replace gây silent data loss (section
+   * dc5675f0 bị wipe nhiều lần). Closes #280.
+   *
+   * Branch:
+   *  - Editor empty → set content (initial scaffolding usage)
+   *  - Editor has content → insertContent at cursor (append, preserve existing)
+   */
   applyTemplate(tpl: LessonTemplate): void {
     this.showTemplatePicker.set(false);
-    if (tpl.content) {
+    if (!tpl.content) return;
+
+    const editorRef = this.tiptapEditor();
+    const editor = editorRef?.editor;
+
+    if (editor && !editor.isEmpty) {
+      // Append at cursor — match Notion/Tiptap default UX, no destructive replace.
+      editor.commands.insertContent(tpl.content);
+    } else {
+      // Empty editor: full set is fine (initial scaffolding).
       this.svc.sectionContent.set(tpl.content);
-      this.svc.markDirty();
     }
+    this.svc.markDirty();
   }
 
   onTitleChange(value: string): void {
