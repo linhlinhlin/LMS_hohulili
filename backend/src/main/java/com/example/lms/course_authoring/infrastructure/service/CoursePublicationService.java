@@ -188,7 +188,7 @@ public class CoursePublicationService {
         detail.put("salePrice", course.getSalePrice());
         detail.put("allowOfflineDownload", course.isAllowOfflineDownload());
         detail.put("contentVersion", course.getContentVersion());
-        detail.put("chapterCount", course.getChapters() != null ? course.getChapters().size() : 0);
+        detail.put("chapterCount", (int) chapterRepository.countByCourseId(course.getId()));
         detail.put("createdAt", course.getCreatedAt() != null ? course.getCreatedAt().toString() : null);
         detail.put("updatedAt", course.getUpdatedAt() != null ? course.getUpdatedAt().toString() : null);
         applyIntroVideoAssetView(detail, course.getIntroVideoAssetId());

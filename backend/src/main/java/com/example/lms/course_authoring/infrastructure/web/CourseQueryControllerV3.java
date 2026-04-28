@@ -131,8 +131,15 @@ public class CourseQueryControllerV3 {
                                 row -> (Long) row[1]
                         ));
 
+        Map<UUID, Long> chapterCountMap = courseIds.isEmpty() ? Map.of() :
+                chapterRepository.countByCourseIds(new ArrayList<>(courseIds)).stream()
+                        .collect(Collectors.toMap(
+                                row -> (UUID) row[0],
+                                row -> (Long) row[1]
+                        ));
+
         Page<CourseSummaryResponse> response = courses.map(course ->
-                toSummaryBatch(course, teacherNameMap, categoryNameMap, enrollmentCountMap));
+                toSummaryBatch(course, teacherNameMap, categoryNameMap, enrollmentCountMap, chapterCountMap));
         return ResponseEntity.ok(ApiResponse.success(response, "Danh sách khóa học"));
     }
 
@@ -744,7 +751,8 @@ public class CourseQueryControllerV3 {
             Course course,
             Map<UUID, String> teacherNameMap,
             Map<UUID, String> categoryNameMap,
-            Map<UUID, Long> enrollmentCountMap
+            Map<UUID, Long> enrollmentCountMap,
+            Map<UUID, Long> chapterCountMap
     ) {
         String teacherName = course.getTeacherId() != null ? teacherNameMap.getOrDefault(course.getTeacherId(), "") : "";
         String categoryName = course.getCategoryId() != null ? categoryNameMap.get(course.getCategoryId()) : null;
@@ -764,6 +772,7 @@ public class CourseQueryControllerV3 {
                 .salePrice(course.getSalePrice())
                 .allowOfflineDownload(course.isAllowOfflineDownload())
                 .enrolledCount(enrollmentCountMap.getOrDefault(course.getId(), 0L).intValue())
+                .chapterCount(chapterCountMap.getOrDefault(course.getId(), 0L).intValue())
                 .build();
     }
 
@@ -824,7 +833,7 @@ public class CourseQueryControllerV3 {
                 .contentVersion(course.getContentVersion())
                 .enrolledCount(enrolledCount)
                 // Counts & timestamps
-                .chapterCount(course.getChapters() != null ? course.getChapters().size() : 0)
+                .chapterCount((int) chapterRepository.countByCourseId(course.getId()))
                 .createdAt(course.getCreatedAt() != null ? course.getCreatedAt().toString() : null)
                 .updatedAt(course.getUpdatedAt() != null ? course.getUpdatedAt().toString() : null)
                 .build();
@@ -1438,6 +1447,7 @@ public class CourseQueryControllerV3 {
         private java.math.BigDecimal salePrice;
         private Boolean allowOfflineDownload;
         private Integer enrolledCount;
+        private Integer chapterCount;
     }
 
     @lombok.Builder
