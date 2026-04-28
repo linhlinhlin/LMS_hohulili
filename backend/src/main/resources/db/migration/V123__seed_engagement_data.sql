@@ -34,7 +34,10 @@ $fn$ LANGUAGE sql IMMUTABLE;
 
 CREATE OR REPLACE FUNCTION fn_seed_v123_int(seed TEXT, low INT, high INT)
 RETURNS INT AS $fn$
-    SELECT GREATEST(low, LEAST(high, low + (fn_seed_v123_rand(seed) * GREATEST(1, high - low + 1))::int));
+    SELECT low + LEAST(
+        GREATEST(0, high - low),
+        floor(fn_seed_v123_rand(seed) * GREATEST(1, high - low + 1))::int
+    );
 $fn$ LANGUAGE sql IMMUTABLE;
 
 -- =====================================================================
@@ -256,10 +259,10 @@ DECLARE
     v_inserted BIGINT := 0;
     v_announcements JSONB := '[
       {"title":"Chào mừng các bạn đến với khóa học","content":"Khóa học sẽ kéo dài 8 tuần, kết hợp lý thuyết và thực hành. Vui lòng đọc syllabus và tham gia buổi định hướng đầu tuần.","priority":"NORMAL","day_offset":-60},
-      {"title":"Lịch thực hành mô phỏng","content":"Buổi thực hành mô phỏng sẽ diễn ra tuần sau tại phòng simulator. Mang theo đồng phục đầy đủ và đăng ký nhóm trước thứ Sáu.","priority":"HIGH","day_offset":-45},
-      {"title":"Nhắc nộp bài tập lập kế hoạch","content":"Bài tập tuần này hạn chót Chủ nhật 23:59. Bài nộp muộn sẽ bị trừ 10% mỗi ngày. Liên hệ giảng viên nếu có vấn đề.","priority":"HIGH","day_offset":-30},
+      {"title":"Lịch thực hành mô phỏng","content":"Buổi thực hành mô phỏng sẽ diễn ra tuần sau tại phòng simulator. Mang theo đồng phục đầy đủ và đăng ký nhóm trước thứ Sáu.","priority":"IMPORTANT","day_offset":-45},
+      {"title":"Nhắc nộp bài tập lập kế hoạch","content":"Bài tập tuần này hạn chót Chủ nhật 23:59. Bài nộp muộn sẽ bị trừ 10% mỗi ngày. Liên hệ giảng viên nếu có vấn đề.","priority":"IMPORTANT","day_offset":-30},
       {"title":"Cập nhật tài liệu STCW mới","content":"Các bạn có thể tải tài liệu STCW phiên bản 2026 trên LMS. Đặc biệt chương 4-5 có thay đổi quan trọng về competency requirements.","priority":"NORMAL","day_offset":-20},
-      {"title":"Chuẩn bị thi cuối khóa","content":"Thi cuối khóa diễn ra trong 2 tuần. Ôn tập trọng tâm: 6 chương đầu, format 20 trắc nghiệm + 1 tình huống. Pass 60/100.","priority":"URGENT","day_offset":-10},
+      {"title":"Chuẩn bị thi cuối khóa","content":"Thi cuối khóa diễn ra trong 2 tuần. Ôn tập trọng tâm: 6 chương đầu, format 20 trắc nghiệm + 1 tình huống. Pass 60/100.","priority":"IMPORTANT","day_offset":-10},
       {"title":"Buổi review điểm và phản hồi","content":"Sau khi có kết quả thi, sẽ có buổi review điểm online qua Zoom. Lịch sẽ thông báo cụ thể qua notification.","priority":"NORMAL","day_offset":-3}
     ]'::jsonb;
 BEGIN
@@ -326,9 +329,8 @@ BEGIN
         v_seed := v_pair.announcement_id::text || ':' || v_pair.user_id::text;
 
         v_read_pct := CASE v_pair.priority
-            WHEN 'URGENT' THEN 0.85
-            WHEN 'HIGH'   THEN 0.70
-            ELSE               0.60
+            WHEN 'IMPORTANT' THEN 0.75
+            ELSE                  0.60
         END;
 
         IF fn_seed_v123_rand(v_seed || ':r') < v_read_pct THEN
@@ -377,7 +379,7 @@ BEGIN
         JOIN learning_classes lc ON lc.course_id = a.course_id
         JOIN enrollments e       ON e.class_id = lc.id
         JOIN courses c           ON c.id = a.course_id
-        WHERE e.status = 'ACTIVE' AND a.priority IN ('HIGH','URGENT')
+        WHERE e.status = 'ACTIVE' AND a.priority = 'IMPORTANT'
         LIMIT 60
     LOOP
         v_seed := 'notif:ann:' || v_row.ann_id::text || ':' || v_row.user_id::text;
