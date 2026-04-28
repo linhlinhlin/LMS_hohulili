@@ -65,10 +65,17 @@ BEGIN
         )
     );
 
-    -- Preserve V125 rich text block, prepend video block.
-    SELECT COALESCE(content_blocks, '[]'::jsonb)
+    -- Preserve V125 rich text blocks while removing any prior V126 video block.
+    -- This keeps manual dry-runs/Flyway repairs idempotent instead of stacking duplicates.
+    SELECT COALESCE(jsonb_agg(block ORDER BY ord), '[]'::jsonb)
     INTO v_existing_blocks
-    FROM lessons WHERE id = v_lesson_id;
+    FROM jsonb_array_elements(
+        COALESCE((SELECT content_blocks FROM lessons WHERE id = v_lesson_id), '[]'::jsonb)
+    ) WITH ORDINALITY AS existing(block, ord)
+    WHERE NOT (
+        block ->> 'type' = 'video'
+        AND block -> 'data' ->> 'fileId' = v_video_asset_id
+    );
 
     UPDATE lessons
     SET video_url        = v_video_url,
@@ -97,6 +104,18 @@ DECLARE
     v_position_roll INT;
     v_inserted INT := 0;
 BEGIN
+    -- Mirror the lesson guard from §1 so dry-runs on partial/stale seed DBs
+    -- never create orphan progress rows for the stable lesson UUID.
+    IF NOT EXISTS (
+        SELECT 1 FROM lessons l
+        JOIN chapters ch ON ch.id = l.chapter_id
+        JOIN courses co  ON co.id = ch.course_id
+        WHERE l.id = v_lesson_id AND co.code = 'SAF-101'
+    ) THEN
+        RAISE NOTICE 'V126 §2: target lesson not found in SAF-101, skipping video_progress.';
+        RETURN;
+    END IF;
+
     -- Pick top 8 SAF-101 enrolled students (deterministic order).
     FOR v_student IN
         SELECT DISTINCT e.student_id,
@@ -160,15 +179,21 @@ BEGIN
     FROM lessons l
     JOIN chapters ch ON ch.id = l.chapter_id
     JOIN courses c   ON c.id  = ch.course_id
+    CROSS JOIN LATERAL jsonb_array_elements(COALESCE(l.content_blocks, '[]'::jsonb)) block
     WHERE c.code = 'SAF-101'
-      AND l.content_blocks::text LIKE '%d2dac2c3-a54c-4cd3-bf5b-f89685d0d603%';
+      AND l.id = '7b959a5c-25c6-4742-9c5b-c1e20901849c'
+      AND block ->> 'type' = 'video'
+      AND block -> 'data' ->> 'fileId' = 'd2dac2c3-a54c-4cd3-bf5b-f89685d0d603';
 
     SELECT COUNT(*) INTO v_lesson_with_url
     FROM lessons l
     JOIN chapters ch ON ch.id = l.chapter_id
     JOIN courses c   ON c.id  = ch.course_id
+    CROSS JOIN LATERAL jsonb_array_elements(COALESCE(l.content_blocks, '[]'::jsonb)) block
     WHERE c.code = 'SAF-101'
-      AND l.content_blocks::text LIKE '%f2a2a8a0-f595-45b6-97d3-e22196dc91c6.mp4%';
+      AND l.id = '7b959a5c-25c6-4742-9c5b-c1e20901849c'
+      AND block ->> 'type' = 'video'
+      AND block -> 'data' ->> 'url' = 'https://holilihu.online/uploads/videos/f2a2a8a0-f595-45b6-97d3-e22196dc91c6.mp4';
 
     SELECT COUNT(*) INTO v_progress_rows
     FROM video_progress vp
