@@ -260,7 +260,7 @@ class CourseAuthoringControllerV3Test {
                   "type": "VIDEO",
                   "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
                 }
-                """.formatted(lessonId),
+                """.formatted(lessonId).getBytes(StandardCharsets.UTF_8),
                 null,
                 user
         );
@@ -298,7 +298,7 @@ class CourseAuthoringControllerV3Test {
                   "type": "VIDEO",
                   "videoUrl": "%s"
                 }
-                """.formatted(lessonId, legacyUrl),
+                """.formatted(lessonId, legacyUrl).getBytes(StandardCharsets.UTF_8),
                 null,
                 user
         );
@@ -306,6 +306,62 @@ class CourseAuthoringControllerV3Test {
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
         verify(manageContentBlockUseCase).getBlocks(lessonId);
         verify(manageContentBlockUseCase).updateBlock(eq(lessonId), eq(sectionId), anyMap(), eq(userId), eq(false));
+    }
+
+    @Test
+    @DisplayName("Should preserve Vietnamese diacritics khi multipart parse — UTF-8 forced (#277)")
+    void shouldPreserveVietnameseDiacriticsInSectionPayload() {
+        UUID lessonId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        String sectionId = "vn-section";
+
+        UserJpaEntity user = new UserJpaEntity();
+        user.setId(userId);
+        user.setRole(UserJpaEntity.UserRole.TEACHER);
+
+        // Full Vietnamese diacritic set + maritime context — lock behavior cho
+        // regression: nếu future ai đó đổi parseSectionPayload về String, test
+        // này sẽ fail (mojibake "Hàng" → "H?ng" trong captured payload).
+        String vnTitle = "Hàng Hải Địa Văn";
+        String vnContent = "<h2>Hàng hải địa văn</h2><p>Đây là nội dung tiếng Việt: ăâđêôơưáàảãạéèẻẽẹíìỉĩịóòỏõọúùủũụýỳỷỹỵ</p>";
+
+        // TEXT type → enforceVideoSectionAuthoringPolicy skip getBlocks call.
+        when(manageContentBlockUseCase.updateBlock(eq(lessonId), eq(sectionId), anyMap(), eq(userId), eq(false)))
+                .thenReturn(ContentBlock.of(sectionId, "TEXT", Map.of("title", vnTitle, "content", vnContent)));
+
+        // Build JSON với UTF-8 bytes — như FE Blob 'application/json; charset=utf-8'.
+        String json = """
+                {
+                  "lessonId": "%s",
+                  "title": "%s",
+                  "type": "TEXT",
+                  "content": "<h2>Hàng hải địa văn</h2><p>Đây là nội dung tiếng Việt: ăâđêôơưáàảãạéèẻẽẹíìỉĩịóòỏõọúùủũụýỳỷỹỵ</p>"
+                }
+                """.formatted(lessonId, vnTitle);
+
+        var response = controller.updateSection(
+                lessonId,
+                sectionId,
+                json.getBytes(StandardCharsets.UTF_8),
+                null,
+                user
+        );
+
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+
+        // Capture payload Map → assert Vietnamese diacritics preserved bit-by-bit.
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Object>> payloadCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(manageContentBlockUseCase)
+                .updateBlock(eq(lessonId), eq(sectionId), payloadCaptor.capture(), eq(userId), eq(false));
+        Map<String, Object> captured = payloadCaptor.getValue();
+
+        assertThat((String) captured.get("title")).isEqualTo(vnTitle);
+        assertThat((String) captured.get("content"))
+                .contains("Hàng hải địa văn")
+                .contains("Đây là nội dung")
+                .contains("ăâđêôơưáàảãạ")
+                .doesNotContain("?");  // Mojibake check — UTF-8 → Latin1 produces '?' replacements.
     }
 
     @Test
@@ -516,7 +572,7 @@ class CourseAuthoringControllerV3Test {
                   "videoType": "CLOUDFLARE",
                   "cfObjectKey": "videos/legacy.mp4"
                 }
-                """.formatted(lessonId, assetId),
+                """.formatted(lessonId, assetId).getBytes(StandardCharsets.UTF_8),
                 null,
                 user
         );
@@ -552,7 +608,7 @@ class CourseAuthoringControllerV3Test {
                   "type": "VIDEO",
                   "streamVideoUid": "manual-stream-uid"
                 }
-                """.formatted(lessonId),
+                """.formatted(lessonId).getBytes(StandardCharsets.UTF_8),
                 null,
                 user
         );
@@ -590,7 +646,7 @@ class CourseAuthoringControllerV3Test {
                   "type": "VIDEO",
                   "streamVideoUid": "%s"
                 }
-                """.formatted(lessonId, legacyStreamUid),
+                """.formatted(lessonId, legacyStreamUid).getBytes(StandardCharsets.UTF_8),
                 null,
                 user
         );
