@@ -202,7 +202,10 @@ export class CurriculumEditorService {
 
       const payload = this.buildSectionPayload(type);
       const formData = new FormData();
-      formData.append('data', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+      // NOTE: charset=utf-8 explicit để tránh BE multipart parse Vietnamese
+      // diacritics như Latin1 (HTTP RFC 7231 default). Belt + suspenders với
+      // BE fix trong parseSectionPayload(byte[]). See #277.
+      formData.append('data', new Blob([JSON.stringify(payload)], { type: 'application/json; charset=utf-8' }));
 
       if (type === 'FILE' && this.selectedFile()) {
         formData.append('file', this.selectedFile()!);

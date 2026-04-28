@@ -260,7 +260,7 @@ class CourseAuthoringControllerV3Test {
                   "type": "VIDEO",
                   "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
                 }
-                """.formatted(lessonId),
+                """.formatted(lessonId).getBytes(StandardCharsets.UTF_8),
                 null,
                 user
         );
@@ -298,7 +298,7 @@ class CourseAuthoringControllerV3Test {
                   "type": "VIDEO",
                   "videoUrl": "%s"
                 }
-                """.formatted(lessonId, legacyUrl),
+                """.formatted(lessonId, legacyUrl).getBytes(StandardCharsets.UTF_8),
                 null,
                 user
         );
@@ -516,7 +516,7 @@ class CourseAuthoringControllerV3Test {
                   "videoType": "CLOUDFLARE",
                   "cfObjectKey": "videos/legacy.mp4"
                 }
-                """.formatted(lessonId, assetId),
+                """.formatted(lessonId, assetId).getBytes(StandardCharsets.UTF_8),
                 null,
                 user
         );
@@ -552,7 +552,7 @@ class CourseAuthoringControllerV3Test {
                   "type": "VIDEO",
                   "streamVideoUid": "manual-stream-uid"
                 }
-                """.formatted(lessonId),
+                """.formatted(lessonId).getBytes(StandardCharsets.UTF_8),
                 null,
                 user
         );
@@ -590,7 +590,7 @@ class CourseAuthoringControllerV3Test {
                   "type": "VIDEO",
                   "streamVideoUid": "%s"
                 }
-                """.formatted(lessonId, legacyStreamUid),
+                """.formatted(lessonId, legacyStreamUid).getBytes(StandardCharsets.UTF_8),
                 null,
                 user
         );

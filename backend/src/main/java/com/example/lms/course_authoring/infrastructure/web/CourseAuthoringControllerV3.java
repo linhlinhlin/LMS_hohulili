@@ -282,13 +282,13 @@ public class CourseAuthoringControllerV3 {
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<com.example.lms.shared.domain.model.ContentBlock>> addSection(
             @PathVariable UUID lessonId,
-            @RequestPart("data") String payloadJson,
+            @RequestPart("data") byte[] payloadBytes,
             @RequestPart(value = "file", required = false) org.springframework.web.multipart.MultipartFile file,
             @AuthenticationPrincipal UserJpaEntity user
     ) {
         final Map<String, Object> payload;
         try {
-            payload = parseSectionPayload(payloadJson);
+            payload = parseSectionPayload(payloadBytes);
         } catch (ResponseStatusException ex) {
             return ResponseEntity.status(ex.getStatusCode())
                     .body(ApiResponse.error(ex.getReason()));
@@ -346,23 +346,19 @@ return ResponseEntity.ok(ApiResponse.success(block, "Tạo phần học thành c
     public ResponseEntity<ApiResponse<com.example.lms.shared.domain.model.ContentBlock>> updateSection(
             @PathVariable UUID lessonId,
             @PathVariable String sectionId,
-            @RequestPart("data") String payloadJson,
+            @RequestPart("data") byte[] payloadBytes,
             @RequestPart(value = "file", required = false) org.springframework.web.multipart.MultipartFile file,
             @AuthenticationPrincipal UserJpaEntity user
     ) {
         final Map<String, Object> payload;
         try {
-            payload = parseSectionPayload(payloadJson);
+            payload = parseSectionPayload(payloadBytes);
         } catch (ResponseStatusException ex) {
             return ResponseEntity.status(ex.getStatusCode())
                     .body(ApiResponse.error(ex.getReason()));
         }
-        // DIAGNOSTIC (2026-04-27): Log FULL payload từ FE để debug data loss bug.
-        // Section dc5675f0 stored as `{"content": ""}` after user save — cần biết
-        // FE gửi thực sự gì. Remove sau khi root cause identified.
-        log.warn("[DIAG-section-update] lessonId={} sectionId={} payloadKeys={} payloadJson={}",
-                lessonId, sectionId, payload.keySet(),
-                payloadJson != null ? payloadJson.substring(0, Math.min(500, payloadJson.length())) : "null");
+        // Diagnostic log của #267 era đã removed — root cause #277 (multipart
+        // UTF-8 encoding) đã identified và fix qua parseSectionPayload(byte[]).
         // Process file upload and inject URL into payload
         if (file != null && !file.isEmpty()) {
             log.debug("Received file for update: {}", file.getOriginalFilename());
@@ -460,9 +456,24 @@ return ResponseEntity.ok(ApiResponse.success(block, "Cập nhật phần học t
     
     // --- Helpers ---
 
-    private Map<String, Object> parseSectionPayload(String payloadJson) {
+    /**
+     * Parse multipart "data" part as JSON với UTF-8 forced.
+     *
+     * <p>Spring {@code @RequestPart("data") String} dùng StringHttpMessageConverter,
+     * mà default charset cho {@code application/*} (no explicit charset) là
+     * ISO-8859-1 per HTTP RFC 7231. JSON content UTF-8 sẽ bị decode như Latin1
+     * → mojibake Vietnamese diacritics ({@code Hàng Hải} → {@code H?ng H?i}).</p>
+     *
+     * <p>Nhận {@code byte[]} thay vì {@code String} → Jackson
+     * {@link ObjectMapper#readValue(byte[], TypeReference)} parse trực tiếp với
+     * UTF-8 (Jackson default per JSON RFC 8259), bỏ qua charset declaration của
+     * client. Defensive với mọi multipart client.</p>
+     *
+     * @see <a href="https://github.com/spring-projects/spring-framework/issues/22788">Spring multipart UTF-8 quirk</a>
+     */
+    private Map<String, Object> parseSectionPayload(byte[] payloadBytes) {
         try {
-            return objectMapper.readValue(payloadJson, new TypeReference<>() {});
+            return objectMapper.readValue(payloadBytes, new TypeReference<>() {});
         } catch (IOException ex) {
             log.warn("Invalid multipart section payload", ex);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Payload phần học không hợp lệ");
