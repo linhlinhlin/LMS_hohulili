@@ -40,7 +40,10 @@ $fn$ LANGUAGE sql IMMUTABLE;
 
 CREATE OR REPLACE FUNCTION fn_seed_v122_int(seed TEXT, low INT, high INT)
 RETURNS INT AS $fn$
-    SELECT low + (fn_seed_v122_rand(seed) * GREATEST(1, high - low + 1))::int;
+    SELECT low + LEAST(
+        GREATEST(0, high - low),
+        floor(fn_seed_v122_rand(seed) * GREATEST(1, high - low + 1))::int
+    );
 $fn$ LANGUAGE sql IMMUTABLE;
 
 -- Triangular distribution (sum of 2 uniforms) — approximate normal cluster
