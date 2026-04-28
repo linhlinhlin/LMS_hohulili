@@ -11,6 +11,8 @@ Read this folder when the team needs to:
 
 ## Current runbooks
 
+- `CODEX_AUDIT_PROD_OPS_RUNBOOK.md` - Codex workflow cho audit/spec issue, production discovery, local Docker, Browser Use và handoff cho Claude/maintainer
+
 - `GITHUB_PROFESSIONAL_SETUP_RUNBOOK.md` — one-shot checklist cấu hình repo theo chuẩn SOTA (branch protection, Dependabot, CodeQL, secret scanning, auto-delete, merge strategy)
 - `PRODUCTION_PAUSE_RESUME_RUNBOOK.md` — stop/start the GCP VM between milestones; covers `pg_dump`, deploy-gate variable, cost impact
 - `BRANCH_HYGIENE_RUNBOOK.md` — quarterly prune procedure for local + remote stale branches, tag-before-delete pattern, reflog recovery
@@ -47,6 +49,13 @@ If the team is doing general production validation:
 
 1. `PRODUCTION_SMOKE_TEST.md`
 2. the runbook for the specific surface being changed
+
+If the team is using Codex for audit/spec issue/prod ops:
+
+1. `CODEX_AUDIT_PROD_OPS_RUNBOOK.md`
+2. `PRODUCTION_PAUSE_RESUME_RUNBOOK.md`
+3. `PRODUCTION_SURFACES.md`
+4. the runbook for the specific surface being audited
 
 If the team is rolling out or debugging production video:
 
