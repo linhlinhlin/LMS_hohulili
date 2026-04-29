@@ -199,17 +199,29 @@ export class QuizVideoPlayerComponent {
     // Priority 1: Adaptive streaming via VideoAsset
     if (assetId) {
       try {
-        const res: any = await firstValueFrom(this.videoAssetApi.getPlayUrl(assetId, 'hls'));
-        const data = res?.data ?? res;
-        if (data?.playUrl) {
-          return { kind: 'adaptive', url: data.playUrl };
+        // Pre-validate asset status BEFORE attempting playback. Loading a dead
+        // asset (DELETED/FAILED) hoặc not-ready (PENDING/PROCESSING) gây Shaka
+        // retry loop → MediaSource reopen cycle → Chrome STATUS_BREAKPOINT crash.
+        const assetRes: any = await firstValueFrom(this.videoAssetApi.getById(assetId));
+        const asset = assetRes?.data ?? assetRes;
+        if (asset?.status === 'READY') {
+          const res: any = await firstValueFrom(this.videoAssetApi.getPlayUrl(assetId, 'hls'));
+          const data = res?.data ?? res;
+          if (data?.playUrl) {
+            return { kind: 'adaptive', url: data.playUrl };
+          }
         }
+        // Asset exists but not READY → return null, caller sets isProcessing UI.
+        // KHÔNG fall through to rawUrl vì rawUrl thường là playback URL của
+        // chính asset đó (cũng dead).
+        return null;
       } catch {
-        // Asset not ready or endpoint failed — fall through to raw URL
+        // Network error trên getById/getPlayUrl — fall through to raw URL is OK
+        // vì có thể section đã có rawUrl backup (e.g., legacy data).
       }
     }
 
-    // Priority 2: Raw URL fallback
+    // Priority 2: Raw URL fallback (cho YouTube hoặc legacy non-asset videos)
     if (rawUrl) {
       const isManifest = rawUrl.includes('.m3u8') || rawUrl.includes('.mpd');
       return { kind: isManifest ? 'adaptive' : 'native', url: rawUrl };
@@ -246,12 +258,15 @@ export class QuizVideoPlayerComponent {
         rebufferingGoal: 8,
         bufferBehind: 30,
         segmentPrefetchLimit: 2,
+        // Conservative retry: dead/stale assets từng gây Chrome STATUS_BREAKPOINT
+        // crash khi Shaka retry 4× × MediaSource reopen cycle. 2 attempts đủ cho
+        // transient network errors, không hammer BE on permanent 4xx.
         retryParameters: {
           baseDelay: 1_000,
           backoffFactor: 2,
           fuzzFactor: 0.5,
-          maxAttempts: 4,
-          timeout: 30_000,
+          maxAttempts: 2,
+          timeout: 12_000,
         },
       },
     });
