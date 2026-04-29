@@ -387,4 +387,117 @@ describe('WiiiContextService - operator preview/apply flows', () => {
       button.remove();
     }
   });
+
+  // ── Wiii Pointy V1 — read-only tutor primitives ──
+
+  describe('Wiii Pointy actions', () => {
+    afterEach(() => {
+      // Clean up any cursor / overlay nodes injected by handlers.
+      for (const id of [
+        'wiii-pointy-cursor',
+        'wiii-pointy-overlay',
+        'wiii-pointy-tooltip',
+      ]) {
+        const node = document.getElementById(id);
+        node?.remove();
+      }
+      document.querySelectorAll('[data-wiii-test]').forEach((el) => el.remove());
+    });
+
+    it('ui.highlight succeeds when the selector resolves and reports describeTarget', async () => {
+      const target = document.createElement('button');
+      target.setAttribute('data-wiii-id', 'continue-lesson');
+      target.setAttribute('data-wiii-test', 'pointy');
+      target.textContent = 'Tiếp tục học';
+      document.body.appendChild(target);
+
+      const result = await (service as any).handleActionRequest('ui.highlight', {
+        selector: '[data-wiii-id="continue-lesson"]',
+        message: 'Đây là nút tiếp tục.',
+        duration_ms: 1500,
+      });
+
+      expect(result.success).toBeTrue();
+      expect(result.data?.summary).toContain('continue-lesson');
+      // The cursor SVG must have been mounted by the handler.
+      expect(document.getElementById('wiii-pointy-cursor')).not.toBeNull();
+      expect(document.getElementById('wiii-pointy-overlay')).not.toBeNull();
+    });
+
+    it('ui.highlight fails closed when the selector is missing', async () => {
+      const result = await (service as any).handleActionRequest('ui.highlight', {
+        selector: '[data-wiii-id="nope"]',
+      });
+      expect(result.success).toBeFalse();
+      expect(result.error).toContain('selector_not_found');
+    });
+
+    it('ui.scroll_to invokes scrollIntoView on the resolved target', async () => {
+      const target = document.createElement('section');
+      target.setAttribute('data-wiii-id', 'profile-card');
+      target.setAttribute('data-wiii-test', 'pointy');
+      document.body.appendChild(target);
+      const spy = spyOn(target, 'scrollIntoView');
+
+      const result = await (service as any).handleActionRequest('ui.scroll_to', {
+        selector: '[data-wiii-id="profile-card"]',
+        block: 'center',
+      });
+
+      expect(result.success).toBeTrue();
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('ui.show_tour completes all steps with present selectors and reports counters', async () => {
+      const a = document.createElement('div');
+      a.setAttribute('data-wiii-id', 'tour-a');
+      a.setAttribute('data-wiii-test', 'pointy');
+      a.style.height = '20px';
+      const b = document.createElement('div');
+      b.setAttribute('data-wiii-id', 'tour-b');
+      b.setAttribute('data-wiii-test', 'pointy');
+      b.style.height = '20px';
+      document.body.appendChild(a);
+      document.body.appendChild(b);
+
+      const result = await (service as any).handleActionRequest('ui.show_tour', {
+        steps: [
+          { selector: '[data-wiii-id="tour-a"]', message: 'A', duration_ms: 5 },
+          { selector: '[data-wiii-id="tour-b"]', message: 'B', duration_ms: 5 },
+        ],
+      });
+
+      expect(result.success).toBeTrue();
+      expect(result.data?.completed_steps).toBe(2);
+      expect(result.data?.total_steps).toBe(2);
+      expect(result.data?.cancelled).toBeFalse();
+      expect(result.data?.missing_selectors).toEqual([]);
+    });
+
+    it('ui.show_tour collects missing selectors without aborting', async () => {
+      const present = document.createElement('div');
+      present.setAttribute('data-wiii-id', 'tour-present');
+      present.setAttribute('data-wiii-test', 'pointy');
+      document.body.appendChild(present);
+
+      const result = await (service as any).handleActionRequest('ui.show_tour', {
+        steps: [
+          { selector: '[data-wiii-id="tour-present"]', message: 'p', duration_ms: 5 },
+          { selector: '[data-wiii-id="tour-missing"]', message: 'm', duration_ms: 5 },
+        ],
+      });
+
+      expect(result.success).toBeTrue();
+      expect(result.data?.completed_steps).toBe(1);
+      expect(result.data?.missing_selectors).toEqual(['[data-wiii-id="tour-missing"]']);
+    });
+
+    it('ui.show_tour rejects an empty / malformed steps array', async () => {
+      const result = await (service as any).handleActionRequest('ui.show_tour', {
+        steps: [],
+      });
+      expect(result.success).toBeFalse();
+      expect(result.error).toBe('invalid_tour_steps');
+    });
+  });
 });

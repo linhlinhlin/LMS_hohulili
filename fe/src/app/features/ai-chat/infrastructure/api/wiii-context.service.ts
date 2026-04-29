@@ -23,6 +23,22 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { LessonApi } from '../../../../api/client/lesson.api';
 import { QuizApi } from '../../../../api/endpoints/quiz.api';
 import { CurriculumSelectionService } from '../../../teacher/course-editor/services/curriculum-selection.service';
+import {
+  POINTY_ACTION_HIGHLIGHT,
+  POINTY_ACTION_SCROLL_TO,
+  POINTY_ACTION_SHOW_TOUR,
+  describeTarget,
+  hideCursor,
+  hideSpotlight,
+  moveCursorToRect,
+  resolvePointySelector,
+  runTour,
+  showSpotlight,
+  type HighlightParams,
+  type ScrollToParams,
+  type ShowTourParams,
+  type TourStep,
+} from '../pointy';
 
 /** AI course generation progress event (from Wiii → LMS) */
 export interface CourseProgressEvent {
@@ -507,6 +523,71 @@ export class WiiiContextService implements OnDestroy {
         roles: ['student', 'teacher', 'admin'],
         surface: 'host_page',
         result_schema: { type: 'object', properties: { image: { type: 'string' } } },
+      },
+      // Wiii Pointy V1 — read-only tutor primitives. No auto-click, no auto-fill.
+      // Vendored handlers in `../pointy/`. Quiz answer options must NOT be highlighted
+      // (pedagogical guardrail enforced server-side via `lms-pointy-tutor` skill).
+      {
+        name: POINTY_ACTION_HIGHLIGHT,
+        input_schema: {
+          type: 'object',
+          properties: {
+            selector: { type: 'string' },
+            message: { type: 'string' },
+            duration_ms: { type: 'number' },
+          },
+          required: ['selector'],
+        },
+        requires_confirmation: false,
+        mutates_state: false,
+        permission: 'use:tools',
+        description:
+          'Trỏ và làm nổi bật một phần tử trên trang để hướng dẫn người dùng. Không tự click — chỉ chỉ đường.',
+        roles: ['student', 'teacher', 'admin'],
+        surface: 'host_page',
+        result_schema: { type: 'object', properties: { summary: { type: 'string' } } },
+      },
+      {
+        name: POINTY_ACTION_SCROLL_TO,
+        input_schema: {
+          type: 'object',
+          properties: {
+            selector: { type: 'string' },
+            block: { type: 'string' },
+          },
+          required: ['selector'],
+        },
+        requires_confirmation: false,
+        mutates_state: false,
+        permission: 'use:tools',
+        description: 'Cuộn trang đến một phần tử cụ thể.',
+        roles: ['student', 'teacher', 'admin'],
+        surface: 'host_page',
+        result_schema: { type: 'object', properties: { summary: { type: 'string' } } },
+      },
+      {
+        name: POINTY_ACTION_SHOW_TOUR,
+        input_schema: {
+          type: 'object',
+          properties: {
+            steps: { type: 'array' },
+            start_at: { type: 'number' },
+          },
+          required: ['steps'],
+        },
+        requires_confirmation: false,
+        mutates_state: false,
+        permission: 'use:tools',
+        description: 'Chạy hướng dẫn nhiều bước; mỗi bước trỏ + highlight một element kèm tooltip.',
+        roles: ['student', 'teacher', 'admin'],
+        surface: 'host_page',
+        result_schema: {
+          type: 'object',
+          properties: {
+            completed_steps: { type: 'number' },
+            total_steps: { type: 'number' },
+          },
+        },
       },
     ];
 
@@ -1359,6 +1440,85 @@ export class WiiiContextService implements OnDestroy {
     return { success: true, data: { opened: true, action } };
   }
 
+  // ── Wiii Pointy V1 handlers (vendored — see fe/src/app/features/ai-chat/infrastructure/pointy) ──
+
+  private handlePointyHighlight(
+    params: HighlightParams,
+  ): { success: boolean; data?: Record<string, unknown>; error?: string } {
+    const selector = String(params?.selector || '').trim();
+    if (!selector) {
+      return { success: false, error: 'missing_selector' };
+    }
+    const target = resolvePointySelector(selector);
+    if (!target) {
+      return { success: false, error: `selector_not_found:${selector}` };
+    }
+    if (typeof (target as HTMLElement).scrollIntoView === 'function') {
+      (target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    moveCursorToRect(target.getBoundingClientRect(), { duration_ms: 600 });
+    showSpotlight(target, {
+      message: params.message,
+      duration_ms: params.duration_ms,
+    });
+    return {
+      success: true,
+      data: { summary: `Đã trỏ vào ${describeTarget(target)}` },
+    };
+  }
+
+  private handlePointyScrollTo(
+    params: ScrollToParams,
+  ): { success: boolean; data?: Record<string, unknown>; error?: string } {
+    const selector = String(params?.selector || '').trim();
+    if (!selector) {
+      return { success: false, error: 'missing_selector' };
+    }
+    const target = resolvePointySelector(selector);
+    if (!target) {
+      return { success: false, error: `selector_not_found:${selector}` };
+    }
+    if (typeof (target as HTMLElement).scrollIntoView === 'function') {
+      (target as HTMLElement).scrollIntoView({
+        behavior: 'smooth',
+        block: params.block || 'center',
+      });
+    }
+    return {
+      success: true,
+      data: { summary: `Đã cuộn tới ${describeTarget(target)}` },
+    };
+  }
+
+  private async handlePointyShowTour(
+    params: ShowTourParams,
+  ): Promise<{ success: boolean; data?: Record<string, unknown>; error?: string }> {
+    const rawSteps = Array.isArray(params?.steps) ? params.steps : [];
+    const steps: TourStep[] = rawSteps.filter(
+      (step): step is TourStep =>
+        !!step && typeof step.selector === 'string' && typeof step.message === 'string',
+    );
+    if (steps.length === 0) {
+      return { success: false, error: 'invalid_tour_steps' };
+    }
+    const result = await runTour(steps, { startAt: params.start_at });
+    // Defensive cleanup if the tour completed without a follow-up call.
+    if (result.completed_steps === result.total_steps && !result.cancelled) {
+      hideSpotlight();
+      hideCursor();
+    }
+    return {
+      success: true,
+      data: {
+        summary: `Tour ${result.completed_steps}/${result.total_steps} bước.`,
+        completed_steps: result.completed_steps,
+        total_steps: result.total_steps,
+        missing_selectors: result.missing_selectors,
+        cancelled: result.cancelled,
+      },
+    };
+  }
+
   private async handleActionRequest(
     action: string,
     params: Record<string, unknown>,
@@ -1366,6 +1526,12 @@ export class WiiiContextService implements OnDestroy {
     switch (action) {
       case 'capture_screenshot':
         return this.captureScreenshot(String(params['selector'] || 'main'));
+      case POINTY_ACTION_HIGHLIGHT:
+        return this.handlePointyHighlight(params as unknown as HighlightParams);
+      case POINTY_ACTION_SCROLL_TO:
+        return this.handlePointyScrollTo(params as unknown as ScrollToParams);
+      case POINTY_ACTION_SHOW_TOUR:
+        return this.handlePointyShowTour(params as unknown as ShowTourParams);
       case 'navigation.go_to': {
         const target = String(params['target'] || '').trim();
         const route = String(params['route'] || '').trim();
