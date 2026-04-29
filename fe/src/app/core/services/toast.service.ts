@@ -20,6 +20,9 @@ export class ToastService {
   private toasts = signal<Toast[]>([]);
   readonly toasts$ = this.toasts.asReadonly();
 
+  private static readonly DEDUP_WINDOW_MS = 3000;
+  private recentEntries = new Map<string, number>();
+
   success(titleOrMessage: string, messageOrOptions?: string | ToastOptions, options?: ToastOptions): void {
     const { message, opts } = this.parseArgs(titleOrMessage, messageOrOptions, options);
     this.show({ message, type: 'success', duration: opts?.duration || 3000 });
@@ -66,6 +69,20 @@ export class ToastService {
   }
 
   private show(toast: Omit<Toast, 'id'>): void {
+    const dedupKey = `${toast.type}:${toast.message}`;
+    const now = Date.now();
+    const lastShownAt = this.recentEntries.get(dedupKey) ?? 0;
+    if (now - lastShownAt < ToastService.DEDUP_WINDOW_MS) {
+      return;
+    }
+    this.recentEntries.set(dedupKey, now);
+    if (this.recentEntries.size > 50) {
+      const cutoff = now - ToastService.DEDUP_WINDOW_MS;
+      for (const [key, ts] of this.recentEntries) {
+        if (ts < cutoff) this.recentEntries.delete(key);
+      }
+    }
+
     const id = crypto.randomUUID();
     const newToast = { ...toast, id };
     this.toasts.update(toasts => [...toasts, newToast]);
