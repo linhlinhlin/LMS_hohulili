@@ -69,6 +69,17 @@
   line-height: $leading-normal;
 }
 
+.subtitle-separator {
+  display: inline-block;
+  margin: 0 6px;
+  color: $border-dark;
+}
+
+.tab-count {
+  margin-left: 4px;
+  opacity: 0.85;
+}
+
 /* ===== SECTION HEADER (tabs + search) ===== */
 .section-header {
   display: flex;
@@ -401,22 +412,11 @@
   justify-content: flex-end;
 }
 
-.action-link {
-  font-size: $text-sm;
-  font-weight: $font-medium;
-  color: $blue-primary;
-  text-decoration: none;
-  transition: color $transition-normal;
-
-  @include focus-visible;
-
-  &:hover {
-    color: $blue-hover;
-    text-decoration: underline;
-  }
-}
-
+/* Action buttons: cùng style cho cả <a> và <button> để consistent. */
 .action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 4px 12px;
   border: 1px solid $blue-primary;
   border-radius: $radius-sm;
@@ -424,8 +424,10 @@
   color: $blue-primary;
   font-size: $text-xs;
   font-weight: $font-semibold;
+  text-decoration: none;
   cursor: pointer;
   transition: all $transition-normal;
+  white-space: nowrap;
 
   @include focus-visible;
 
@@ -602,6 +604,7 @@
   }
 
   .students-table {
-    min-width: 640px;
+    /* 7 columns: name + email + progress + 2 dates + status + actions */
+    min-width: 880px;
   }
 }

@@ -3,7 +3,12 @@ import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { CourseApi } from '../../../api/client/course.api';
-import { StudentApi, StudentEnrollmentStatus, StudentSummary } from '../../../api/client/student.api';
+import {
+  StudentApi,
+  StudentEnrollmentStatus,
+  StudentStatusCounts,
+  StudentSummary
+} from '../../../api/client/student.api';
 import { CourseSummary } from '../../../api/types/course.types';
 import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 
@@ -43,6 +48,11 @@ export class StudentManagementComponent {
   pageIndex = signal(1);
   totalElements = signal(0);
   coursePageIndex = signal(1);
+  /**
+   * Counts theo enrollment status cho course đang chọn — fetch riêng từ
+   * BE qua `getTeacherStudentCounts()`. Null khi chưa load hoặc lỗi.
+   */
+  studentCounts = signal<StudentStatusCounts | null>(null);
 
   private studentSearchTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -93,6 +103,23 @@ export class StudentManagementComponent {
   }
 
   // ===== TAB HELPERS =====
+  /**
+   * Tab count từ BE (`studentCounts` signal).
+   * Trả về null khi đang loading → template hiện label-only,
+   * tránh flicker "(0)" sai dữ liệu.
+   */
+  getStudentTabCount(key: StudentTabKey): number | null {
+    const counts = this.studentCounts();
+    if (!counts) return null;
+    switch (key) {
+      case '': return counts.total;
+      case 'ACTIVE': return counts.active;
+      case 'COMPLETED': return counts.completed;
+      case 'SUSPENDED': return counts.suspended;
+      default: return null;
+    }
+  }
+
   setStudentStatus(status: StudentTabKey) {
     this.status = status;
     this.applyFilters();
@@ -210,16 +237,30 @@ export class StudentManagementComponent {
   viewCourseStudents(course: CourseSummary) {
     this.selectedCourse.set(course);
     this.pageIndex.set(1);
+    this.studentCounts.set(null); // reset trước khi fetch counts mới
     this.loadStudents();
+    this.loadStudentCounts(course.id);
   }
 
   backToCourses() {
     this.selectedCourse.set(null);
     this.students.set([]);
     this.totalElements.set(0);
+    this.studentCounts.set(null);
     this.pageIndex.set(1);
     this.keyword = '';
     this.status = '';
+  }
+
+  /**
+   * Fetch tab counts riêng — không block render chính.
+   * Lỗi (nếu có) silent fail: tabs hiện label-only, không phá UX.
+   */
+  private loadStudentCounts(courseId: string) {
+    this.studentApi.getTeacherStudentCounts(courseId).subscribe({
+      next: (counts) => this.studentCounts.set(counts),
+      error: () => this.studentCounts.set(null)
+    });
   }
 
   applyFilters() {
@@ -246,8 +287,10 @@ export class StudentManagementComponent {
   }
 
   onReload() {
-    if (this.selectedCourse()) {
+    const course = this.selectedCourse();
+    if (course) {
       this.loadStudents();
+      this.loadStudentCounts(course.id);
       return;
     }
     this.loadData();

@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { Observable, forkJoin } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ApiClient } from './api-client';
 import { ApiResponse, Page as ApiPage, PaginationInfo } from '../types/common.types';
@@ -100,6 +101,13 @@ export interface StudentFilters {
   progressMin?: number;
   progressMax?: number;
   search?: string;
+}
+
+export interface StudentStatusCounts {
+  total: number;
+  active: number;
+  completed: number;
+  suspended: number;
 }
 
 const DEFAULT_ANALYTICS: StudentAnalytics = {
@@ -266,6 +274,33 @@ export class StudentApi {
           } as ApiResponse<StudentSummary[]>;
         })
       );
+  }
+
+  /**
+   * Lấy counts theo enrollment status cho 1 course.
+   *
+   * Fire 4 parallel requests (size=1) để lấy `totalElements` per status —
+   * source of truth cho tab counts + subtitle breakdown stats.
+   *
+   * Lý do dùng forkJoin: BE chưa có endpoint dedicated `/counts`. Khi
+   * scale lên hàng nghìn students, nên migrate sang BE endpoint trả về
+   * `{total, active, completed, suspended}` trong 1 query.
+   */
+  getTeacherStudentCounts(courseId: string): Observable<StudentStatusCounts> {
+    const fetchCount = (status?: StudentEnrollmentStatus): Observable<number> => {
+      const params: Record<string, string | number> = { courseId, page: 0, size: 1 };
+      if (status) params['status'] = status;
+      return this.api
+        .getWithResponse<ApiPage<unknown>>(STUDENT_ENDPOINTS.TEACHER_STUDENTS, { params })
+        .pipe(map((res) => Number(res?.data?.totalElements ?? 0)));
+    };
+
+    return forkJoin({
+      total: fetchCount(),
+      active: fetchCount('ACTIVE'),
+      completed: fetchCount('COMPLETED'),
+      suspended: fetchCount('SUSPENDED')
+    });
   }
 
   /**
