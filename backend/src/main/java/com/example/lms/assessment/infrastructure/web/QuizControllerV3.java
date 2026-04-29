@@ -443,8 +443,14 @@ public class QuizControllerV3 {
     public ResponseEntity<ApiResponse<Void>> publishQuiz(
             @PathVariable UUID quizId,
             @AuthenticationPrincipal UserJpaEntity user) {
-        quizManagementUseCase.publishQuiz(quizId, user.getId(), user.getRole().name());
-        return ResponseEntity.ok(ApiResponse.success(null));
+        try {
+            quizManagementUseCase.publishQuiz(quizId, user.getId(), user.getRole().name());
+            return ResponseEntity.ok(ApiResponse.success(null));
+        } catch (IllegalStateException ex) {
+            // Quiz validation failure (vd: empty quiz, archived). Return 400 với
+            // clear message thay vì 500 generic. See Quiz.publish() validation.
+            return ResponseEntity.badRequest().body(ApiResponse.error(ex.getMessage()));
+        }
     }
 
     @DeleteMapping("/{quizId}")

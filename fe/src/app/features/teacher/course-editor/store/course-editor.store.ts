@@ -35,11 +35,31 @@ export class CourseEditorStore {
     // Course Readiness Checklist (Canvas/Coursera pattern, mode-aware)
     readonly readinessChecklist = computed(() => {
         const tree = this.courseTree();
-        if (!tree) return { score: 0, total: 6, items: [] as { label: string; done: boolean; critical: boolean }[], canPublish: false };
+        if (!tree) return {
+            score: 0, total: 6,
+            items: [] as { label: string; done: boolean; critical: boolean }[],
+            canPublish: false,
+            emptyQuizLessons: [] as string[]
+        };
 
         const hasLessonWithContent = tree.chapters?.some(ch =>
             ch.lessons?.some(lesson => lessonHasCanonicalContent(lesson))
         ) ?? false;
+
+        // Find lessons that contain QUIZ sections with no questions — those will be invisible to students
+        const emptyQuizLessons: string[] = [];
+        for (const chapter of tree.chapters ?? []) {
+            for (const lesson of chapter.lessons ?? []) {
+                const hasEmptyQuizSection = (lesson.sections ?? []).some(section =>
+                    (section.type ?? '').toUpperCase() === 'QUIZ'
+                    && (section.quizData?.questions?.length ?? 0) === 0
+                );
+                if (hasEmptyQuizSection) {
+                    emptyQuizLessons.push(lesson.title || 'Bài học chưa đặt tên');
+                }
+            }
+        }
+        const hasNoEmptyQuizzes = emptyQuizLessons.length === 0;
 
         const items: { label: string; done: boolean; critical: boolean }[] = [
             { label: 'Tên khóa học', done: !!tree.title?.trim(), critical: true },
@@ -48,6 +68,7 @@ export class CourseEditorStore {
             { label: 'Danh mục', done: !!tree.categoryId, critical: true },
             { label: 'Ít nhất 1 chương', done: (tree.chapters?.length || 0) > 0, critical: true },
             { label: 'Ít nhất 1 bài học có nội dung', done: hasLessonWithContent, critical: true },
+            { label: 'Bài kiểm tra đều có câu hỏi', done: hasNoEmptyQuizzes, critical: true },
             { label: 'Giá khóa học', done: tree.priceType !== 'PAID' || (tree.price != null && tree.price > 0), critical: false },
             { label: 'Video giới thiệu', done: !!tree.introVideoAssetId || !!tree.introVideoUrl, critical: false },
         ];
@@ -59,7 +80,7 @@ export class CourseEditorStore {
 
         const done = items.filter(i => i.done).length;
         const canPublish = items.filter(i => i.critical).every(i => i.done);
-        return { score: done, total: items.length, items, canPublish };
+        return { score: done, total: items.length, items, canPublish, emptyQuizLessons };
     });
 
     readonly readinessPercent = computed(() => {

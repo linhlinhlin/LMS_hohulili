@@ -18,6 +18,7 @@ import { QuestionBankApi } from '../../../api/endpoints/question-bank.api';
 import { QuestionBankDTO, BankQuestionDTO } from '../../../api/types/question-bank.types';
 import { BlockRendererComponent } from '../../../shared/blocks/block-renderer/block-renderer.component';
 import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
+import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
   selector: 'app-quiz-edit',
@@ -39,6 +40,7 @@ export class QuizEditComponent implements OnInit {
   private readonly questionApi = inject(QuestionApi);
   private readonly questionBankApi = inject(QuestionBankApi);
   private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly loading = signal(true);
@@ -395,10 +397,29 @@ export class QuizEditComponent implements OnInit {
       );
 
       await this.loadQuizData();
+      this.toast.success('Đã lưu thay đổi');
+      await this.maybePromptPublish();
     } catch {
       this.error.set('Không thể lưu thay đổi bài kiểm tra');
     } finally {
       this.saving.set(false);
+    }
+  }
+
+  private async maybePromptPublish(): Promise<void> {
+    const status = (this.quiz()?.status || '').toUpperCase();
+    if (status !== 'DRAFT' || !this.canPublish()) {
+      return;
+    }
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Phát hành ngay?',
+      message: 'Bài kiểm tra đang ở trạng thái Bản nháp nên học viên chưa nhìn thấy. Bạn có muốn phát hành ngay bây giờ không?',
+      confirmText: 'Phát hành',
+      cancelText: 'Để sau',
+      variant: 'info'
+    });
+    if (confirmed) {
+      this.onPublish();
     }
   }
 
@@ -601,16 +622,34 @@ export class QuizEditComponent implements OnInit {
     };
   }
 
+  readonly canPublish = computed(() => this.questionCount() > 0);
+  readonly publishBlockedReason = computed(() =>
+    this.canPublish() ? '' : 'Cần ít nhất 1 câu hỏi trước khi phát hành'
+  );
+
   onPublish(): void {
     const quizId = this.quizId();
     if (!quizId) return;
+    if (!this.canPublish()) {
+      this.toast.warning('Chưa thể phát hành', this.publishBlockedReason());
+      return;
+    }
     this.saving.set(true);
     this.quizApi.publishQuiz(quizId).subscribe({
       next: () => {
         this.quiz.update(q => q ? { ...q, status: 'PUBLISHED' } : q);
         this.saving.set(false);
+        this.toast.success('Đã phát hành', 'Học viên đã có thể nhìn thấy bài kiểm tra này.');
       },
-      error: () => { this.error.set('Không thể xuất bản'); this.saving.set(false); }
+      error: (err) => {
+        this.saving.set(false);
+        const beMessage = err?.error?.message || err?.error?.error;
+        const msg = typeof beMessage === 'string' && beMessage.trim().length > 0
+          ? beMessage
+          : 'Không thể phát hành bài kiểm tra';
+        this.error.set(msg);
+        this.toast.error('Phát hành thất bại', msg);
+      }
     });
   }
 

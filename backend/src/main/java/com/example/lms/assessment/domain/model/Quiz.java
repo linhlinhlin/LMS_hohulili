@@ -252,10 +252,22 @@ public class Quiz {
 
     /**
      * Publish the quiz, making it available to students.
+     *
+     * <p>Validation: quiz phải có ≥1 question. Empty quiz nếu publish sẽ
+     * silent-fail trong student endpoint filter (Quiz::isPublished pass nhưng
+     * questionCount=0 → empty answer list → bad UX). Match Canvas LMS /
+     * Coursera pattern: empty quiz cannot be published.</p>
+     *
+     * @throws IllegalStateException nếu quiz ARCHIVED hoặc không có question
      */
     public void publish() {
         if (this.status == QuizStatus.ARCHIVED) {
             throw new IllegalStateException("Không thể phát hành bài kiểm tra đã lưu trữ");
+        }
+        if (this.questions == null || this.questions.isEmpty()) {
+            throw new IllegalStateException(
+                "Bài kiểm tra cần ít nhất 1 câu hỏi trước khi phát hành. Hãy thêm câu hỏi rồi thử lại."
+            );
         }
         this.status = QuizStatus.PUBLISHED;
         this.updatedAt = Instant.now();

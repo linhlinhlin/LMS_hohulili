@@ -245,7 +245,11 @@ export class CourseEditorHeaderComponent {
         const checklist = this.readinessChecklist();
         if (!checklist.canPublish) {
             const missing = checklist.items.filter(i => i.critical && !i.done).map(i => i.label);
-            this.toast.warning('Chưa đủ điều kiện xuất bản. Thiếu: ' + missing.join(', '));
+            const offendingQuizLessons = checklist.emptyQuizLessons ?? [];
+            const detail = offendingQuizLessons.length > 0
+                ? ` Bài kiểm tra trống ở các bài học: ${offendingQuizLessons.slice(0, 3).join(', ')}${offendingQuizLessons.length > 3 ? '...' : ''}.`
+                : '';
+            this.toast.warning('Chưa đủ điều kiện xuất bản. Thiếu: ' + missing.join(', ') + '.' + detail);
             return;
         }
 
