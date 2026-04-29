@@ -89,6 +89,9 @@ import { stripCurriculumPrefix } from '../../../../utils/curriculum-labels';
       background: rgb(245 158 11);
       animation: pulse-dot 1.4s ease-in-out infinite;
     }
+    .unsaved-hint--cascade {
+      color: rgb(0 86 210);
+    }
     @keyframes pulse-dot {
       0%, 100% { opacity: 0.55; }
       50% { opacity: 1; }
@@ -233,16 +236,23 @@ import { stripCurriculumPrefix } from '../../../../utils/curriculum-labels';
       }
 
       <div class="lesson-footer">
-        @if (isDirty()) {
-          <span class="unsaved-hint">
-            <span class="unsaved-hint__dot"></span>
-            Có thay đổi chưa lưu
+        @if (saveStatusHint(); as hint) {
+          <span class="unsaved-hint" [class.unsaved-hint--cascade]="hint.cascade">
+            @if (hint.cascade) {
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            } @else {
+              <span class="unsaved-hint__dot"></span>
+            }
+            {{ hint.label }}
           </span>
         }
         <button
           type="button"
           (click)="saveClicked.emit()"
           [disabled]="isSaving() || !title().trim()"
+          [title]="saveButtonTooltip()"
           class="editor-primary-button"
         >
           @if (isSaving()) {
@@ -255,7 +265,7 @@ import { stripCurriculumPrefix } from '../../../../utils/curriculum-labels';
               ></path>
             </svg>
           }
-          Lưu thay đổi
+          {{ saveButtonLabel() }}
         </button>
       </div>
     </div>
@@ -274,6 +284,33 @@ export class LessonEditorComponent {
   readonly isDirty = input(false);
 
   readonly title = signal('');
+
+  // SOTA save UX (Notion / Linear / Canvas pattern): button label + status
+  // hint reflect cascade behavior — khi section editor đang dirty, "Lưu
+  // thay đổi" sẽ save section trước rồi save lesson. Honest UI = label
+  // hiển thị đúng những gì sẽ được lưu, không silently skip.
+  readonly hasDirtySection = computed(() =>
+    this.editorSvc.isSectionSurfaceOpen() && this.editorSvc.isDirty()
+  );
+  readonly saveButtonLabel = computed(() =>
+    this.hasDirtySection() ? 'Lưu mục + bài học' : 'Lưu thay đổi'
+  );
+  readonly saveButtonTooltip = computed(() => {
+    if (this.hasDirtySection()) {
+      return 'Lưu nội dung mục đang sửa, sau đó lưu bài học';
+    }
+    return this.isDirty() ? 'Lưu các thay đổi của bài học' : 'Không có thay đổi cần lưu';
+  });
+  readonly saveStatusHint = computed(() => {
+    const sectionDirty = this.hasDirtySection();
+    if (sectionDirty) {
+      return { label: 'Có thay đổi trong mục đang sửa', cascade: true };
+    }
+    if (this.isDirty()) {
+      return { label: 'Có thay đổi chưa lưu', cascade: false };
+    }
+    return null;
+  });
 
   readonly quizTimeLimit = input(30);
   readonly quizPassingScore = input(60);

@@ -1272,6 +1272,22 @@ export class CourseCurriculumComponent implements OnDestroy {
         return;
       }
       const chapterId = lessonContext.chapter.id;
+
+      // SOTA cascade save (Notion/Linear/Canvas pattern): nếu section editor
+      // đang mở với dirty changes, save section TRƯỚC. Trước đây user click
+      // "Lưu thay đổi" trong khi đang edit section sẽ mất sửa (BE wipe TEXT
+      // block qua mergeTextContent — đã fix BE #296). FE-side cascade là
+      // defensive layer thứ 2 + UX honest: nút "Lưu thay đổi" thực sự lưu
+      // MỌI thay đổi visible thay vì silently skip section work.
+      if (this.editorSvc.isSectionSurfaceOpen() && this.editorSvc.isDirty()) {
+        const sectionSaved = await this.editorSvc.saveSection(lesson.id, courseId);
+        if (!sectionSaved) {
+          this.isSaving.set(false);
+          this.store.markUnsaved();
+          return;
+        }
+      }
+
       const lessonType = this.getLessonType(lesson);
       const normalizedLessonTitle = stripCurriculumPrefix(this.lessonTitle.trim(), 'lesson');
       const updateData: any = {
@@ -1282,7 +1298,15 @@ export class CourseCurriculumComponent implements OnDestroy {
       };
 
       if (lessonType === 'LECTURE') {
-        updateData.content = this.lessonContent;
+        // DDD contract: lesson aggregate quản lý metadata; sections aggregate
+        // quản lý content. Chỉ gửi lesson-level content cho legacy layout
+        // (lesson chưa có sections proper). Modern lessons có sections, BE
+        // sẽ ignore content field (#296), nhưng FE không gửi để giữ payload
+        // sạch và contract rõ ràng.
+        const hasModernSections = (lesson.sections?.length ?? 0) > 0;
+        if (!hasModernSections) {
+          updateData.content = this.lessonContent;
+        }
         updateData.videoUrl = this.lessonVideoUrl;
       }
 
@@ -1309,7 +1333,10 @@ export class CourseCurriculumComponent implements OnDestroy {
 
       const lessonUpdates: Partial<LessonDraftDTO> = { title: normalizedLessonTitle };
       if (lessonType === 'LECTURE') {
-        lessonUpdates.content = this.lessonContent;
+        const hasModernSections = (lesson.sections?.length ?? 0) > 0;
+        if (!hasModernSections) {
+          lessonUpdates.content = this.lessonContent;
+        }
         lessonUpdates.videoUrl = this.lessonVideoUrl;
       } else if (lessonType === 'QUIZ') {
         lessonUpdates.quizTimeLimit = this.quizTimeLimit();
