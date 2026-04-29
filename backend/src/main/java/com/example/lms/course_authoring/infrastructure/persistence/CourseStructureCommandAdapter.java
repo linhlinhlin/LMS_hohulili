@@ -81,8 +81,31 @@ public class CourseStructureCommandAdapter implements CourseStructureCommandPort
         if (data.isPreview() != null) {
             lesson.setIsFree(data.isPreview());
         }
+        // Legacy support only: chỉ mutate contentBlocks khi lesson chưa có
+        // section structure (legacy single-text-content layout).
+        //
+        // Bug fix: mergeTextContent OVERWRITES TEXT block đầu tiên với chỉ
+        // {"content": data.content()} — wipe sạch title, isRequired, và mọi
+        // metadata khác. Khi user edit section, click nút "Lưu thay đổi"
+        // (lesson save) thay vì "Cập nhật" (section save), this.lessonContent
+        // FE gửi stale/empty → BE wipe section TEXT đầu tiên → user mất sửa
+        // sau F5 reload.
+        //
+        // Modern lessons với contentBlocks proper (≥2 blocks hoặc 1 block
+        // không phải TEXT) phải dùng section endpoints để quản lý nội dung.
+        // Đây là contract đúng theo DDD: lesson chỉ quản lý metadata
+        // (title, type, videoUrl), sections quản lý content.
         if (data.content() != null) {
-            lesson.setContentBlocks(mergeTextContent(lesson.getContentBlocks(), data.content()));
+            List<ContentBlock> existing = lesson.getContentBlocks();
+            boolean isLegacyLayout = existing == null
+                    || existing.isEmpty()
+                    || (existing.size() == 1
+                        && "TEXT".equalsIgnoreCase(existing.get(0).getType()));
+            if (isLegacyLayout) {
+                lesson.setContentBlocks(mergeTextContent(existing, data.content()));
+            }
+            // Modern multi-section lesson: silently ignore lesson-level content
+            // field. Sections persist via /sections/{sectionId} endpoint.
         }
 
         var savedLesson = lessonJpaRepository.save(lesson);
@@ -197,7 +220,16 @@ public class CourseStructureCommandAdapter implements CourseStructureCommandPort
         for (int i = 0; i < blocks.size(); i++) {
             ContentBlock block = blocks.get(i);
             if ("TEXT".equalsIgnoreCase(block.getType())) {
-                blocks.set(i, ContentBlock.of(block.getId(), "TEXT", Map.of("content", content)));
+                // Preserve existing data fields (title, isRequired, etc.); chỉ
+                // override "content" field. Trước đây Map.of("content", content)
+                // wipe sạch metadata → bug data loss. Defensive với cả legacy
+                // path nếu legacy block đã có thêm fields.
+                Map<String, Object> mergedData = new java.util.LinkedHashMap<>();
+                if (block.getData() != null) {
+                    mergedData.putAll(block.getData());
+                }
+                mergedData.put("content", content);
+                blocks.set(i, ContentBlock.of(block.getId(), "TEXT", mergedData));
                 return blocks;
             }
         }
