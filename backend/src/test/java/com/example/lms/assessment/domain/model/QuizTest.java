@@ -89,10 +89,11 @@ class QuizTest {
     class LifecycleTests {
 
         @Test
-        @DisplayName("Should publish DRAFT quiz")
+        @DisplayName("Should publish DRAFT quiz with at least one question")
         void shouldPublishDraftQuiz() {
             // Given
             Quiz quiz = Quiz.create(lessonId, "Quiz 1", "desc", null);
+            quiz.addQuestion(UUID.randomUUID(), 1);
 
             // When
             quiz.publish();
@@ -100,6 +101,18 @@ class QuizTest {
             // Then
             assertThat(quiz.getStatus()).isEqualTo(Quiz.QuizStatus.PUBLISHED);
             assertThat(quiz.isPublished()).isTrue();
+        }
+
+        @Test
+        @DisplayName("Should throw publish when quiz has no questions")
+        void shouldThrowPublishWhenEmpty() {
+            // Given
+            Quiz quiz = Quiz.create(lessonId, "Quiz 1", "desc", null);
+
+            // When/Then
+            assertThatThrownBy(quiz::publish)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("ít nhất 1 câu hỏi");
         }
 
         @Test
@@ -120,6 +133,7 @@ class QuizTest {
         void shouldArchiveAnyQuiz() {
             // Given
             Quiz quiz = Quiz.create(lessonId, "Quiz 1", "desc", null);
+            quiz.addQuestion(UUID.randomUUID(), 1);
             quiz.publish();
 
             // When
@@ -154,10 +168,11 @@ class QuizTest {
         void shouldThrowAddQuestionToPublishedQuiz() {
             // Given
             Quiz quiz = Quiz.create(lessonId, "Quiz 1", "desc", null);
+            quiz.addQuestion(UUID.randomUUID(), 1);
             quiz.publish();
 
             // When/Then
-            assertThatThrownBy(() -> quiz.addQuestion(UUID.randomUUID(), 1))
+            assertThatThrownBy(() -> quiz.addQuestion(UUID.randomUUID(), 2))
                 .isInstanceOf(IllegalStateException.class);
         }
 
@@ -201,6 +216,7 @@ class QuizTest {
             Quiz draft = Quiz.create(lessonId, "Quiz 1", "d", null);
             assertThat(draft.isEditable()).isTrue();
 
+            draft.addQuestion(UUID.randomUUID(), 1);
             draft.publish();
             assertThat(draft.isEditable()).isFalse();
         }

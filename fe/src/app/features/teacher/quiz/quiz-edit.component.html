@@ -22,7 +22,12 @@
               <h1 class="text-sm font-semibold text-gray-900 truncate">{{ quiz()?.title || 'Bài kiểm tra' }}</h1>
               <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold" [ngClass]="getStatusBadgeClass()">{{ quizStatusLabel() }}</span>
             </div>
-            <p class="text-[11px] text-gray-400 truncate mt-0.5">{{ quiz()?.courseTitle }} · {{ questionCount() }} câu hỏi</p>
+            <p class="text-[11px] text-gray-400 truncate mt-0.5">
+              {{ quiz()?.courseTitle }} · {{ questionCount() }} câu hỏi
+              @if (quiz()?.status?.toUpperCase() === 'DRAFT' && !canPublish()) {
+                <span class="ml-1 text-amber-600">· Cần thêm câu hỏi để phát hành</span>
+              }
+            </p>
           </div>
         </div>
 
@@ -45,9 +50,11 @@
             {{ saving() ? 'Đang lưu...' : 'Lưu' }}
           </button>
           @if (quiz()?.status?.toUpperCase() === 'DRAFT') {
-            <button type="button" (click)="onPublish()" [disabled]="saving()"
-                    class="rounded-lg bg-[#0056D2] px-3.5 py-1.5 text-sm font-medium text-white hover:bg-[#004BB5] transition-colors disabled:opacity-50">
-              Xuất bản
+            <button type="button" (click)="onPublish()"
+                    [disabled]="saving() || !canPublish()"
+                    [title]="publishBlockedReason()"
+                    class="rounded-lg bg-[#0056D2] px-3.5 py-1.5 text-sm font-medium text-white hover:bg-[#004BB5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              Phát hành
             </button>
           } @else if (quiz()?.status?.toUpperCase() === 'PUBLISHED') {
             <button type="button" (click)="onUnpublish()" [disabled]="saving()"
