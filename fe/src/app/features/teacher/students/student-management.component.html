@@ -28,27 +28,13 @@
 
     <!-- ===== COURSE PICKER VIEW ===== -->
     @if (!selectedCourse()) {
-      <!-- Tabs + filters -->
+      <!-- Toolbar: chỉ search (course status tabs đã bỏ — chỉ hiện APPROVED/PUBLISHED) -->
       <div class="section-header">
-        <div class="flex flex-wrap items-center gap-2" role="tablist" aria-label="Lọc khóa học theo trạng thái">
-          @for (tab of courseTabItems; track tab.key) {
-            <button
-              type="button"
-              role="tab"
-              [attr.aria-selected]="courseStatusFilter() === tab.key"
-              class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors"
-              [class.bg-[#0056D2]]="courseStatusFilter() === tab.key"
-              [class.text-white]="courseStatusFilter() === tab.key"
-              [class.border-[#0056D2]]="courseStatusFilter() === tab.key"
-              [class.bg-white]="courseStatusFilter() !== tab.key"
-              [class.text-gray-700]="courseStatusFilter() !== tab.key"
-              [class.border-gray-200]="courseStatusFilter() !== tab.key"
-              [class.hover:border-gray-300]="courseStatusFilter() !== tab.key"
-              (click)="setCourseStatusFilter(tab.key)">
-              {{ tab.label }} ({{ getCourseTabCount(tab.key) }})
-            </button>
+        <p class="section-hint">
+          @if (!loading() && filteredCourses().length > 0) {
+            {{ courseTotal() }} khóa học đang hoạt động
           }
-        </div>
+        </p>
         <div class="search-wrapper">
           <svg class="search-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.2-5.2M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/>
@@ -94,22 +80,32 @@
         </div>
       }
 
-      <!-- Empty: chưa có khóa học -->
-      @if (!loading() && !error() && courses().length === 0) {
+      <!-- Empty: chưa có khóa học APPROVED nào -->
+      @if (!loading() && !error() && filteredCourses().length === 0 && !courseKeyword()) {
         <div class="empty-state">
           <div class="empty-state-icon">
             <svg width="40" height="40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
             </svg>
           </div>
-          <h3 class="empty-state-title">Chưa có khóa học</h3>
-          <p class="empty-state-text">Tạo khóa học đầu tiên để bắt đầu giảng dạy và quản lý học viên</p>
-          <a routerLink="/teacher/course-creation" class="retry-link">Tạo khóa học mới &rarr;</a>
+          <h3 class="empty-state-title">Chưa có khóa học đang hoạt động</h3>
+          <p class="empty-state-text">
+            @if (courses().length === 0) {
+              Tạo khóa học đầu tiên để bắt đầu giảng dạy và quản lý học viên
+            } @else {
+              Khóa học cần được duyệt và xuất bản để có học viên ghi danh. Hãy hoàn thiện và gửi duyệt khóa học của bạn.
+            }
+          </p>
+          @if (courses().length === 0) {
+            <a routerLink="/teacher/course-creation" class="retry-link">Tạo khóa học mới &rarr;</a>
+          } @else {
+            <a routerLink="/teacher/courses" class="retry-link">Đi tới Khóa học của tôi &rarr;</a>
+          }
         </div>
       }
 
-      <!-- Empty: filter không khớp -->
-      @if (!loading() && !error() && courses().length > 0 && filteredCourses().length === 0) {
+      <!-- Empty: search không khớp -->
+      @if (!loading() && !error() && filteredCourses().length === 0 && courseKeyword()) {
         <div class="empty-state">
           <div class="empty-state-icon">
             <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,8 +113,8 @@
             </svg>
           </div>
           <h3 class="empty-state-title">Không tìm thấy khóa học phù hợp</h3>
-          <p class="empty-state-text">Thử bỏ bộ lọc hoặc tìm với từ khóa khác</p>
-          <button type="button" class="retry-link" (click)="clearCourseFilters()">Xóa bộ lọc</button>
+          <p class="empty-state-text">Thử với từ khóa khác hoặc xóa bộ lọc</p>
+          <button type="button" class="retry-link" (click)="clearCourseSearch()">Xóa tìm kiếm</button>
         </div>
       }
 
@@ -167,16 +163,8 @@
                   </div>
                 </div>
 
-                <!-- Status + action -->
+                <!-- Action: chỉ enrolled count + arrow (không cần status badge — đã filter APPROVED) -->
                 <div class="course-actions">
-                  <span
-                    class="status-badge"
-                    [class.badge-approved]="isApprovedStatus(course.status)"
-                    [class.badge-pending]="course.status === 'PENDING'"
-                    [class.badge-draft]="course.status === 'DRAFT'"
-                    [class.badge-rejected]="course.status === 'REJECTED'">
-                    {{ getStatusLabel(course.status) }}
-                  </span>
                   <span class="course-date">{{ formatDate(course.updatedAt || course.createdAt) }}</span>
                   <span class="card-arrow" aria-hidden="true">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -189,25 +177,15 @@
           }
         </div>
 
-        <!-- Pagination -->
-        @if (courseTotal() > coursePageSize()) {
-          <div class="pagination-bar">
-            <div class="page-size-selector">
-              <span>Hiển thị</span>
-              <select [ngModel]="coursePageSize()" (ngModelChange)="onCoursePageSizeChange($event)" aria-label="Số khóa học mỗi trang">
-                <option [ngValue]="5">5</option>
-                <option [ngValue]="10">10</option>
-                <option [ngValue]="20">20</option>
-                <option [ngValue]="50">50</option>
-              </select>
-              <span>khóa học / trang</span>
-            </div>
-            <div class="page-navigation">
-              <button type="button" class="page-btn" [disabled]="coursePageIndex() <= 1" (click)="prevCoursePage()">Trước</button>
-              <span class="page-info">Trang {{ coursePageIndex() }} / {{ courseTotalPages() }}</span>
-              <button type="button" class="page-btn" [disabled]="coursePageIndex() >= courseTotalPages()" (click)="nextCoursePage()">Sau</button>
-            </div>
-          </div>
+        <!-- Pagination: dùng shared component đồng bộ với admin/users-table và public/courses -->
+        @if (courseTotalPages() > 1) {
+          <app-pagination
+            class="pagination-shared"
+            [currentPage]="coursePageIndex()"
+            [totalPages]="courseTotalPages()"
+            [totalItems]="courseTotal()"
+            [itemsPerPage]="coursePageSize"
+            (pageChange)="goToCoursePage($event)" />
         }
       }
     } @else {
@@ -364,25 +342,15 @@
             </table>
           </div>
 
-          <!-- Pagination -->
-          @if (total() > pageSize()) {
-            <div class="pagination-bar">
-              <div class="page-size-selector">
-                <span>Hiển thị</span>
-                <select [ngModel]="pageSize()" (ngModelChange)="onStudentPageSizeChange($event)" aria-label="Số học viên mỗi trang">
-                  <option [ngValue]="5">5</option>
-                  <option [ngValue]="10">10</option>
-                  <option [ngValue]="20">20</option>
-                  <option [ngValue]="50">50</option>
-                </select>
-                <span>học viên / trang</span>
-              </div>
-              <div class="page-navigation">
-                <button type="button" class="page-btn" [disabled]="pageIndex() <= 1" (click)="prevPage()">Trước</button>
-                <span class="page-info">Trang {{ pageIndex() }} / {{ totalPages() }}</span>
-                <button type="button" class="page-btn" [disabled]="pageIndex() >= totalPages()" (click)="nextPage()">Sau</button>
-              </div>
-            </div>
+          <!-- Pagination: dùng shared component đồng bộ -->
+          @if (totalPages() > 1) {
+            <app-pagination
+              class="pagination-shared"
+              [currentPage]="pageIndex()"
+              [totalPages]="totalPages()"
+              [totalItems]="total()"
+              [itemsPerPage]="studentPageSize"
+              (pageChange)="goToPage($event)" />
           }
         }
       </div>

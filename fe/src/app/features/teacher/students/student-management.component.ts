@@ -5,13 +5,23 @@ import { Router, RouterModule } from '@angular/router';
 import { CourseApi } from '../../../api/client/course.api';
 import { StudentApi, StudentEnrollmentStatus, StudentSummary } from '../../../api/client/student.api';
 import { CourseSummary } from '../../../api/types/course.types';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 
-type CourseTabKey = '' | 'APPROVED' | 'PENDING' | 'DRAFT';
 type StudentTabKey = '' | StudentEnrollmentStatus;
+
+const COURSE_PAGE_SIZE = 10;
+const STUDENT_PAGE_SIZE = 10;
+
+/**
+ * SOTA reference (Coursera/Udemy/Canvas/Moodle): Quản lý học viên chỉ nên
+ * liệt kê khóa học đã APPROVED/PUBLISHED. Course DRAFT/PENDING chưa publish
+ * không thể có học viên ghi danh → hiển thị chúng làm rối UI.
+ */
+const VISIBLE_COURSE_STATUSES = new Set(['APPROVED', 'PUBLISHED']);
 
 @Component({
   selector: 'app-student-management',
-  imports: [RouterModule, FormsModule, CommonModule, NgOptimizedImage],
+  imports: [RouterModule, FormsModule, CommonModule, NgOptimizedImage, PaginationComponent],
   templateUrl: './student-management.component.html',
   styleUrls: ['./student-management.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -25,28 +35,22 @@ export class StudentManagementComponent {
   keyword = '';
   status: StudentTabKey = '';
   courseKeyword = signal('');
-  courseStatusFilter = signal<CourseTabKey>('');
   students = signal<StudentSummary[]>([]);
   courses = signal<CourseSummary[]>([]);
   error = signal('');
   loading = signal(false);
   selectedCourse = signal<CourseSummary | null>(null);
   pageIndex = signal(1);
-  pageSize = signal(10);
   totalElements = signal(0);
   coursePageIndex = signal(1);
-  coursePageSize = signal(10);
 
   private studentSearchTimer: ReturnType<typeof setTimeout> | null = null;
 
-  // ===== TAB CONFIG =====
-  readonly courseTabItems: { key: CourseTabKey; label: string }[] = [
-    { key: '', label: 'Tất cả' },
-    { key: 'APPROVED', label: 'Đã duyệt' },
-    { key: 'PENDING', label: 'Chờ duyệt' },
-    { key: 'DRAFT', label: 'Nháp' }
-  ];
+  // ===== CONSTANTS =====
+  readonly coursePageSize = COURSE_PAGE_SIZE;
+  readonly studentPageSize = STUDENT_PAGE_SIZE;
 
+  // ===== TAB CONFIG (student enrollment status only) =====
   readonly studentTabItems: { key: StudentTabKey; label: string }[] = [
     { key: '', label: 'Tất cả' },
     { key: 'ACTIVE', label: 'Đang học' },
@@ -55,56 +59,48 @@ export class StudentManagementComponent {
   ];
 
   // ===== COMPUTED =====
+  /**
+   * Course list cho Quản lý học viên: chỉ APPROVED/PUBLISHED, sort theo
+   * enrolledCount DESC (course nhiều học viên lên đầu — Coursera pattern).
+   */
   filteredCourses = computed(() => {
     const kw = this.courseKeyword().trim().toLowerCase();
-    const filter = this.courseStatusFilter();
-    return this.courses().filter((course) => {
-      const matchesKeyword =
-        !kw || course.title.toLowerCase().includes(kw) || (course.code || '').toLowerCase().includes(kw);
-      const matchesStatus =
-        !filter || course.status === filter || (filter === 'APPROVED' && course.status === 'PUBLISHED');
-      return matchesKeyword && matchesStatus;
-    });
+    return this.courses()
+      .filter((course) => VISIBLE_COURSE_STATUSES.has(course.status))
+      .filter((course) => {
+        if (!kw) return true;
+        return (
+          course.title.toLowerCase().includes(kw) ||
+          (course.code || '').toLowerCase().includes(kw)
+        );
+      })
+      .sort((a, b) => (b.enrolledCount ?? 0) - (a.enrolledCount ?? 0));
   });
 
   pagedCourses = computed(() => {
-    const start = (this.coursePageIndex() - 1) * this.coursePageSize();
-    return this.filteredCourses().slice(start, start + this.coursePageSize());
+    const start = (this.coursePageIndex() - 1) * this.coursePageSize;
+    return this.filteredCourses().slice(start, start + this.coursePageSize);
   });
 
   courseTotal = computed(() => this.filteredCourses().length);
-  courseTotalPages = computed(() => Math.max(1, Math.ceil(this.courseTotal() / this.coursePageSize())));
+  courseTotalPages = computed(() => Math.max(1, Math.ceil(this.courseTotal() / this.coursePageSize)));
   paged = computed(() => this.students());
   total = computed(() => this.totalElements());
-  totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.pageSize())));
+  totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.studentPageSize)));
 
   constructor() {
     this.loadData();
   }
 
   // ===== TAB HELPERS =====
-  getCourseTabCount(key: CourseTabKey): number {
-    if (!key) return this.courses().length;
-    return this.courses().filter((c) => {
-      if (key === 'APPROVED') return c.status === 'APPROVED' || c.status === 'PUBLISHED';
-      return c.status === key;
-    }).length;
-  }
-
-  setCourseStatusFilter(status: CourseTabKey) {
-    this.courseStatusFilter.set(status);
-    this.coursePageIndex.set(1);
-  }
-
   setStudentStatus(status: StudentTabKey) {
     this.status = status;
     this.applyFilters();
   }
 
   // ===== FILTER ACTIONS =====
-  clearCourseFilters() {
+  clearCourseSearch() {
     this.courseKeyword.set('');
-    this.courseStatusFilter.set('');
     this.coursePageIndex.set(1);
   }
 
@@ -151,7 +147,7 @@ export class StudentManagementComponent {
 
     const params: { page: number; size: number; courseId: string; status?: string; search?: string } = {
       page: this.pageIndex() - 1,
-      size: this.pageSize(),
+      size: this.studentPageSize,
       courseId: course.id
     };
 
@@ -175,22 +171,6 @@ export class StudentManagementComponent {
   }
 
   // ===== STATUS HELPERS =====
-  isApprovedStatus(status?: string): boolean {
-    return status === 'APPROVED' || status === 'PUBLISHED';
-  }
-
-  getStatusLabel(status?: string): string {
-    const labels: Record<string, string> = {
-      PUBLISHED: 'Đã duyệt',
-      APPROVED: 'Đã duyệt',
-      PENDING: 'Chờ duyệt',
-      DRAFT: 'Nháp',
-      REJECTED: 'Bị từ chối',
-      ARCHIVED: 'Lưu trữ'
-    };
-    return labels[status || ''] || status || 'Không xác định';
-  }
-
   getStudentStatusLabel(status: StudentEnrollmentStatus): string {
     const labels: Record<StudentEnrollmentStatus, string> = {
       ACTIVE: 'Đang học',
@@ -253,25 +233,8 @@ export class StudentManagementComponent {
     this.loadStudents();
   }
 
-  nextPage() { this.goToPage(this.pageIndex() + 1); }
-  prevPage() { this.goToPage(this.pageIndex() - 1); }
-
-  onStudentPageSizeChange(value: number) {
-    this.pageSize.set(Number(value));
-    this.pageIndex.set(1);
-    this.loadStudents();
-  }
-
   goToCoursePage(page: number) {
     this.coursePageIndex.set(Math.min(Math.max(1, page), this.courseTotalPages()));
-  }
-
-  nextCoursePage() { this.goToCoursePage(this.coursePageIndex() + 1); }
-  prevCoursePage() { this.goToCoursePage(this.coursePageIndex() - 1); }
-
-  onCoursePageSizeChange(value: number) {
-    this.coursePageSize.set(Number(value));
-    this.coursePageIndex.set(1);
   }
 
   trackById(_index: number, student: StudentSummary): string {
