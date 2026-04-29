@@ -499,5 +499,90 @@ describe('WiiiContextService - operator preview/apply flows', () => {
       expect(result.success).toBeFalse();
       expect(result.error).toBe('invalid_tour_steps');
     });
+
+    it('ui.scroll_to fails closed when the selector is missing', async () => {
+      const result = await (service as any).handleActionRequest('ui.scroll_to', {
+        selector: '[data-wiii-id="nope-scroll"]',
+      });
+      expect(result.success).toBeFalse();
+      expect(result.error).toContain('selector_not_found');
+    });
+
+    it('ui.scroll_to honours explicit block argument when provided', async () => {
+      const target = document.createElement('section');
+      target.setAttribute('data-wiii-id', 'block-start');
+      target.setAttribute('data-wiii-test', 'pointy');
+      document.body.appendChild(target);
+      const spy = spyOn(target, 'scrollIntoView');
+
+      const result = await (service as any).handleActionRequest('ui.scroll_to', {
+        selector: '[data-wiii-id="block-start"]',
+        block: 'start',
+      });
+
+      expect(result.success).toBeTrue();
+      expect(spy).toHaveBeenCalledWith(jasmine.objectContaining({ block: 'start' }));
+    });
+
+    it('ui.highlight reuses the same cursor node across consecutive calls', async () => {
+      const a = document.createElement('button');
+      a.setAttribute('data-wiii-id', 'reuse-a');
+      a.setAttribute('data-wiii-test', 'pointy');
+      const b = document.createElement('button');
+      b.setAttribute('data-wiii-id', 'reuse-b');
+      b.setAttribute('data-wiii-test', 'pointy');
+      document.body.appendChild(a);
+      document.body.appendChild(b);
+
+      await (service as any).handleActionRequest('ui.highlight', {
+        selector: '[data-wiii-id="reuse-a"]',
+        message: 'A',
+        duration_ms: 1000,
+      });
+      await (service as any).handleActionRequest('ui.highlight', {
+        selector: '[data-wiii-id="reuse-b"]',
+        message: 'B',
+        duration_ms: 1000,
+      });
+
+      const cursors = document.querySelectorAll('#wiii-pointy-cursor');
+      expect(cursors.length).toBe(1);
+    });
+
+    it('ui.highlight summary falls back to text when target has no id or aria-label', async () => {
+      const target = document.createElement('button');
+      target.setAttribute('data-wiii-test', 'pointy');
+      target.textContent = 'Khám phá khóa học';
+      document.body.appendChild(target);
+
+      const result = await (service as any).handleActionRequest('ui.highlight', {
+        selector: 'button[data-wiii-test="pointy"]',
+      });
+
+      expect(result.success).toBeTrue();
+      expect(String(result.data?.summary)).toContain('Khám phá khóa học');
+    });
+
+    it('ui.show_tour cancels in flight when a new tour starts', async () => {
+      const a = document.createElement('div');
+      a.setAttribute('data-wiii-id', 'concurrent-a');
+      a.setAttribute('data-wiii-test', 'pointy');
+      const b = document.createElement('div');
+      b.setAttribute('data-wiii-id', 'concurrent-b');
+      b.setAttribute('data-wiii-test', 'pointy');
+      document.body.appendChild(a);
+      document.body.appendChild(b);
+
+      const long = (service as any).handleActionRequest('ui.show_tour', {
+        steps: [{ selector: '[data-wiii-id="concurrent-a"]', message: 'A', duration_ms: 200 }],
+      });
+      const second = await (service as any).handleActionRequest('ui.show_tour', {
+        steps: [{ selector: '[data-wiii-id="concurrent-b"]', message: 'B', duration_ms: 5 }],
+      });
+      const first = await long;
+
+      expect(first.data?.cancelled).toBeTrue();
+      expect(second.data?.cancelled).toBeFalse();
+    });
   });
 });
