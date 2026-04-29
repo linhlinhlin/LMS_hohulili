@@ -17,7 +17,24 @@
           </h1>
           <p class="page-subtitle">
             @if (selectedCourse()) {
-              {{ total() }} học viên đang ghi danh
+              @let counts = studentCounts();
+              @if (counts) {
+                <span>{{ counts.total }} ghi danh</span>
+                @if (counts.completed > 0) {
+                  <span class="subtitle-separator">&middot;</span>
+                  <span>{{ counts.completed }} hoàn thành</span>
+                }
+                @if (counts.active > 0) {
+                  <span class="subtitle-separator">&middot;</span>
+                  <span>{{ counts.active }} đang học</span>
+                }
+                @if (counts.suspended > 0) {
+                  <span class="subtitle-separator">&middot;</span>
+                  <span>{{ counts.suspended }} tạm khóa</span>
+                }
+              } @else {
+                {{ total() }} học viên đang ghi danh
+              }
             } @else {
               Theo dõi tiến độ học viên theo từng khóa học
             }
@@ -207,7 +224,8 @@
                 [class.border-gray-200]="status !== tab.key"
                 [class.hover:border-gray-300]="status !== tab.key"
                 (click)="setStudentStatus(tab.key)">
-                {{ tab.label }}{{ tab.key === '' ? ' (' + total() + ')' : '' }}
+                @let count = getStudentTabCount(tab.key);
+                {{ tab.label }}@if (count !== null) { <span class="tab-count">({{ count }})</span> }
               </button>
             }
           </div>
@@ -235,7 +253,8 @@
                   <th>Học viên</th>
                   <th>Email</th>
                   <th>Tiến độ</th>
-                  <th class="th-center">Khóa học</th>
+                  <th>Ngày ghi danh</th>
+                  <th>Hoạt động gần nhất</th>
                   <th class="th-center">Trạng thái</th>
                   <th class="th-right">Thao tác</th>
                 </tr>
@@ -243,7 +262,7 @@
               <tbody>
                 @for (i of [1, 2, 3]; track i) {
                   <tr>
-                    <td colspan="6"><div class="skeleton-row"></div></td>
+                    <td colspan="7"><div class="skeleton-row"></div></td>
                   </tr>
                 }
               </tbody>
@@ -296,7 +315,8 @@
                   <th>Học viên</th>
                   <th>Email</th>
                   <th>Tiến độ</th>
-                  <th class="th-center">Khóa học</th>
+                  <th>Ngày ghi danh</th>
+                  <th>Hoạt động gần nhất</th>
                   <th class="th-center">Trạng thái</th>
                   <th class="th-right">Thao tác</th>
                 </tr>
@@ -306,7 +326,7 @@
                   <tr>
                     <td>
                       <div class="student-cell">
-                        <div class="student-avatar" [attr.aria-hidden]="true">{{ getInitials(s.name) }}</div>
+                        <div class="student-avatar" aria-hidden="true">{{ getInitials(s.name) }}</div>
                         <span class="student-name">{{ s.name }}</span>
                       </div>
                     </td>
@@ -319,7 +339,8 @@
                         <span class="progress-text">{{ s.progress }}%</span>
                       </div>
                     </td>
-                    <td class="cell-center">{{ s.completedCourses }}/{{ s.totalCourses }}</td>
+                    <td class="cell-muted">{{ formatDate(s.enrolledAt) || '—' }}</td>
+                    <td class="cell-muted">{{ formatDate(s.lastAccessed) || 'Chưa truy cập' }}</td>
                     <td class="cell-center">
                       <span
                         class="status-badge"
@@ -332,8 +353,8 @@
                     </td>
                     <td class="cell-right">
                       <div class="action-buttons">
-                        <a [routerLink]="['/teacher/students', s.id]" class="action-link">Chi tiết</a>
-                        <button type="button" class="action-btn" (click)="sendMessage(s.id)">Nhắn tin</button>
+                        <a [routerLink]="['/teacher/students', s.id]" class="action-btn" [attr.aria-label]="'Xem chi tiết học viên ' + s.name">Chi tiết</a>
+                        <button type="button" class="action-btn" [attr.aria-label]="'Nhắn tin cho ' + s.name" (click)="sendMessage(s.id)">Nhắn tin</button>
                       </div>
                     </td>
                   </tr>
