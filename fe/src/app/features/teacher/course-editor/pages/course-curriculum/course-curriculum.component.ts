@@ -1272,6 +1272,39 @@ export class CourseCurriculumComponent implements OnDestroy {
         return;
       }
       const chapterId = lessonContext.chapter.id;
+
+      // SOTA cascade save (Notion/Linear/Canvas pattern): nếu section editor
+      // đang mở với dirty changes, save section TRƯỚC. Trước đây user click
+      // "Lưu thay đổi" trong khi đang edit section sẽ mất sửa (BE wipe TEXT
+      // block qua mergeTextContent — đã fix BE #296). FE-side cascade là
+      // defensive layer thứ 2 + UX honest: nút "Lưu thay đổi" thực sự lưu
+      // MỌI thay đổi visible thay vì silently skip section work.
+      let sectionWasSaved = false;
+      if (this.editorSvc.isSectionSurfaceOpen() && this.editorSvc.isDirty()) {
+        const sectionSaved = await this.editorSvc.saveSection(lesson.id, courseId);
+        if (!sectionSaved) {
+          this.isSaving.set(false);
+          this.store.markUnsaved();
+          return;
+        }
+        sectionWasSaved = true;
+      }
+
+      // Skip no-op lesson PUT khi không có thay đổi lesson-level (chỉ section
+      // changed). Tránh wasteful round-trip + giữ updatedAt timestamp ổn định.
+      // Nếu chỉ section dirty, cascade save xong là kết thúc hợp lý.
+      if (!this.editorDirty() && sectionWasSaved) {
+        this.refreshEditorBaselineWithOptions(true);
+        this.toast.success('Đã lưu mục');
+        return;
+      }
+      if (!this.editorDirty() && !sectionWasSaved) {
+        // Không có thay đổi nào → user click có thể nhầm. Báo nhẹ rồi return.
+        this.toast.info('Không có thay đổi để lưu');
+        this.store.markSaved();
+        return;
+      }
+
       const lessonType = this.getLessonType(lesson);
       const normalizedLessonTitle = stripCurriculumPrefix(this.lessonTitle.trim(), 'lesson');
       const updateData: any = {
@@ -1282,11 +1315,36 @@ export class CourseCurriculumComponent implements OnDestroy {
       };
 
       if (lessonType === 'LECTURE') {
-        updateData.content = this.lessonContent;
+        // DDD contract: lesson aggregate quản lý metadata; sections aggregate
+        // quản lý content. Chỉ gửi lesson-level content cho legacy layout
+        // (lesson chưa có sections proper). Modern lessons có sections, BE
+        // sẽ ignore content field (#296), nhưng FE không gửi để giữ payload
+        // sạch và contract rõ ràng.
+        const hasModernSections = (lesson.sections?.length ?? 0) > 0;
+        if (!hasModernSections) {
+          updateData.content = this.lessonContent;
+        }
         updateData.videoUrl = this.lessonVideoUrl;
       }
 
-      await firstValueFrom(this.lessonApi.updateLesson(lesson.id, updateData));
+      try {
+        await firstValueFrom(this.lessonApi.updateLesson(lesson.id, updateData));
+      } catch (lessonErr: any) {
+        // Cascade partial-success UX: section đã lưu thành công nhưng lesson
+        // PUT fail. User cần biết rõ trạng thái để không nhầm lẫn.
+        const beMsg = lessonErr?.error?.message || lessonErr?.message || 'lỗi không xác định';
+        if (sectionWasSaved) {
+          this.toast.warning(
+            'Đã lưu mục, nhưng lưu bài học thất bại',
+            `${beMsg}. Hãy thử lại — nội dung mục đã an toàn.`
+          );
+        } else {
+          this.toast.error('Cập nhật bài học thất bại: ' + beMsg);
+        }
+        this.store.markUnsaved();
+        this.isSaving.set(false);
+        return;
+      }
 
       if (lessonType === 'QUIZ') {
         const quizId = await this.resolveQuizIdForLesson(lesson.id);
@@ -1309,7 +1367,10 @@ export class CourseCurriculumComponent implements OnDestroy {
 
       const lessonUpdates: Partial<LessonDraftDTO> = { title: normalizedLessonTitle };
       if (lessonType === 'LECTURE') {
-        lessonUpdates.content = this.lessonContent;
+        const hasModernSections = (lesson.sections?.length ?? 0) > 0;
+        if (!hasModernSections) {
+          lessonUpdates.content = this.lessonContent;
+        }
         lessonUpdates.videoUrl = this.lessonVideoUrl;
       } else if (lessonType === 'QUIZ') {
         lessonUpdates.quizTimeLimit = this.quizTimeLimit();
@@ -1323,9 +1384,16 @@ export class CourseCurriculumComponent implements OnDestroy {
       }
       this.store.updateLessonLocal(chapterId, lesson.id, lessonUpdates);
       this.refreshEditorBaselineWithOptions(true);
+      this.toast.success(sectionWasSaved ? 'Đã lưu mục + bài học' : 'Đã lưu bài học');
     } catch (err: any) {
+      // Lesson PUT đã succeed (caught riêng phía trên), error này là từ
+      // quiz/assignment settings PUT downstream. Lesson metadata vẫn an toàn.
       this.store.markUnsaved();
-      this.toast.error('Cập nhật bài học thất bại: ' + (err?.error?.message || err?.message || ''));
+      const beMsg = err?.error?.message || err?.message || 'lỗi không xác định';
+      this.toast.warning(
+        'Đã lưu bài học, nhưng cập nhật cấu hình thất bại',
+        `${beMsg}. Hãy thử lại để đồng bộ cấu hình.`
+      );
     } finally {
       this.isSaving.set(false);
     }
