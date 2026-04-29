@@ -1,176 +1,390 @@
-<div class="student-management-container">
-  <!-- Header -->
-  <div class="page-header">
-    <div class="header-left">
-      <h1 class="page-title">Quản lý học viên</h1>
-      <p class="page-subtitle">Theo dõi tiến độ và thành tích của học viên</p>
-    </div>
-  </div>
-
-  <!-- Search & Filters -->
-  <div class="filters-card">
-    <div class="search-wrapper">
-      <app-icon name="magnifying-glass" size="sm" class="search-icon" />
-      <input 
-        class="search-input" 
-        placeholder="Tìm kiếm theo tên hoặc email..."
-        [(ngModel)]="keyword"
-        (input)="applyFilters()" />
-    </div>
-
-    <div class="filters-row">
-      <select class="filter-select" [(ngModel)]="selectedCourse" (change)="applyFilters()">
-        <option value="">Tất cả khóa học</option>
-        @for (course of courses(); track course.id) {
-          <option [value]="course.id">{{ course.title }}</option>
-        }
-      </select>
-
-      <select class="filter-select" [(ngModel)]="status" (change)="applyFilters()">
-        <option value="">Tất cả trạng thái</option>
-        <option value="active">Đang học</option>
-        <option value="inactive">Không hoạt động</option>
-        <option value="suspended">Tạm khóa</option>
-      </select>
-
-      <div class="results-count">
-        <strong>{{ total() }}</strong> học viên
-      </div>
-    </div>
-  </div>
-
-  <!-- Students Table -->
-  <div class="table-card">
-    @if (loading()) {
-      <div class="loading-state">
-        <app-icon name="arrow-path" size="xl" class="spin" />
-        <p>Đang tải danh sách học viên...</p>
-      </div>
-    }
-
-    @if (error() && !loading()) {
-      <div class="error-state">
-        <app-icon name="exclamation-circle" size="xl" />
-        <p>{{ error() }}</p>
-        <app-button variant="ghost" (clicked)="onReload()">
-          <app-icon name="arrow-path" size="sm" />
-          Thử lại
-        </app-button>
-      </div>
-    }
-
-    @if (!loading() && !error() && paged().length === 0) {
-      <div class="empty-state">
-        <app-icon name="users" size="xl" />
-        <h3>Không tìm thấy học viên</h3>
-        <p>Thử điều chỉnh bộ lọc hoặc tìm kiếm với từ khóa khác</p>
-      </div>
-    }
-
-    @if (!loading() && !error() && paged().length > 0) {
-      <div class="table-container">
-        <table class="students-table">
-          <thead>
-            <tr>
-              <th>Học viên</th>
-              <th class="text-center">Tiến độ</th>
-              <th class="text-center">Điểm TB</th>
-              <th class="text-center">Trạng thái</th>
-              <th class="text-right">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (student of paged(); track student.id) {
-              <tr>
-                <td>
-                  <div class="student-info">
-                    <div class="student-avatar">
-                      {{ getInitials(student.name) }}
-                    </div>
-                    <div class="student-details">
-                      <div class="student-name">{{ student.name }}</div>
-                      <div class="student-email">{{ student.email }}</div>
-                    </div>
-                  </div>
-                </td>
-                <td class="text-center">
-                  <div class="progress-cell">
-                    <span class="progress-text">{{ student.progress }}%</span>
-                    <app-progress-bar 
-                      [progress]="student.progress" 
-                      [thin]="true" 
-                    />
-                  </div>
-                </td>
-                <td class="text-center">
-                  <span 
-                    class="grade-badge"
-                    [class.grade-excellent]="student.averageGrade >= 8"
-                    [class.grade-good]="student.averageGrade >= 6 && student.averageGrade < 8"
-                    [class.grade-poor]="student.averageGrade < 6">
-                    {{ student.averageGrade.toFixed(1) }}
-                  </span>
-                </td>
-                <td class="text-center">
-                  <app-badge 
-                    [variant]="getStatusVariant(student.status)" 
-                    size="sm">
-                    {{ getStatusLabel(student.status) }}
-                  </app-badge>
-                </td>
-                <td class="text-right">
-                  <div class="action-buttons">
-                    <app-button 
-                      variant="ghost" 
-                      size="sm"
-                      [routerLink]="['/teacher/students', student.id]">
-                      <app-icon name="document-text" size="xs" />
-                      Chi tiết
-                    </app-button>
-                    <app-button 
-                      variant="ghost" 
-                      size="sm"
-                      (clicked)="sendMessage(student.id)">
-                      <app-icon name="bell" size="xs" />
-                      Nhắn tin
-                    </app-button>
-                  </div>
-                </td>
-              </tr>
+<div class="students-container">
+  <div class="main-content">
+    <!-- ===== HEADER ===== -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="title-section">
+          @if (selectedCourse()) {
+            <button type="button" class="back-link" (click)="backToCourses()">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/>
+              </svg>
+              Quay lại danh sách khóa học
+            </button>
+          }
+          <h1 class="page-title">
+            {{ selectedCourse() ? selectedCourse()!.title : 'Quản lý học viên' }}
+          </h1>
+          <p class="page-subtitle">
+            @if (selectedCourse()) {
+              {{ total() }} học viên đang ghi danh
+            } @else {
+              Theo dõi tiến độ học viên theo từng khóa học
             }
-          </tbody>
-        </table>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== COURSE PICKER VIEW ===== -->
+    @if (!selectedCourse()) {
+      <!-- Tabs + filters -->
+      <div class="section-header">
+        <div class="flex flex-wrap items-center gap-2" role="tablist" aria-label="Lọc khóa học theo trạng thái">
+          @for (tab of courseTabItems; track tab.key) {
+            <button
+              type="button"
+              role="tab"
+              [attr.aria-selected]="courseStatusFilter() === tab.key"
+              class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors"
+              [class.bg-[#0056D2]]="courseStatusFilter() === tab.key"
+              [class.text-white]="courseStatusFilter() === tab.key"
+              [class.border-[#0056D2]]="courseStatusFilter() === tab.key"
+              [class.bg-white]="courseStatusFilter() !== tab.key"
+              [class.text-gray-700]="courseStatusFilter() !== tab.key"
+              [class.border-gray-200]="courseStatusFilter() !== tab.key"
+              [class.hover:border-gray-300]="courseStatusFilter() !== tab.key"
+              (click)="setCourseStatusFilter(tab.key)">
+              {{ tab.label }} ({{ getCourseTabCount(tab.key) }})
+            </button>
+          }
+        </div>
+        <div class="search-wrapper">
+          <svg class="search-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.2-5.2M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/>
+          </svg>
+          <input
+            type="search"
+            class="search-input"
+            placeholder="Tìm tên hoặc mã khóa học..."
+            aria-label="Tìm khóa học"
+            [ngModel]="courseKeyword()"
+            (input)="onCourseSearchInput($event)" />
+        </div>
       </div>
 
-      <!-- Pagination -->
-      <div class="pagination-bar">
-        <div class="page-size-selector">
-          <span>Hiển thị</span>
-          <select [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange($event)">
-            <option [ngValue]="5">5</option>
-            <option [ngValue]="10">10</option>
-            <option [ngValue]="20">20</option>
-          </select>
-          <span>mỗi trang</span>
+      <!-- Loading: skeleton -->
+      @if (loading()) {
+        <div class="courses-list">
+          @for (i of [1, 2, 3]; track i) {
+            <div class="course-card">
+              <div class="course-card-body">
+                <div class="course-thumbnail skeleton-thumb"></div>
+                <div class="course-metadata">
+                  <div class="skeleton-line w60"></div>
+                  <div class="skeleton-line w40"></div>
+                </div>
+              </div>
+            </div>
+          }
         </div>
-        
-        <div class="page-navigation">
-          <app-button 
-            variant="ghost" 
-            size="sm"
-            [disabled]="pageIndex() <= 1"
-            (clicked)="prevPage()">
-            Trước
-          </app-button>
-          <span class="page-info">Trang {{ pageIndex() }} / {{ totalPages() }}</span>
-          <app-button 
-            variant="ghost" 
-            size="sm"
-            [disabled]="pageIndex() >= totalPages()"
-            (clicked)="nextPage()">
-            Sau
-          </app-button>
+      }
+
+      <!-- Error -->
+      @if (!loading() && error()) {
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
+            </svg>
+          </div>
+          <h3 class="empty-state-title">Không thể tải dữ liệu</h3>
+          <p class="empty-state-text">{{ error() }}</p>
+          <button type="button" class="retry-link" (click)="onReload()">Thử lại</button>
         </div>
+      }
+
+      <!-- Empty: chưa có khóa học -->
+      @if (!loading() && !error() && courses().length === 0) {
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <svg width="40" height="40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
+            </svg>
+          </div>
+          <h3 class="empty-state-title">Chưa có khóa học</h3>
+          <p class="empty-state-text">Tạo khóa học đầu tiên để bắt đầu giảng dạy và quản lý học viên</p>
+          <a routerLink="/teacher/course-creation" class="retry-link">Tạo khóa học mới &rarr;</a>
+        </div>
+      }
+
+      <!-- Empty: filter không khớp -->
+      @if (!loading() && !error() && courses().length > 0 && filteredCourses().length === 0) {
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-5.2-5.2M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/>
+            </svg>
+          </div>
+          <h3 class="empty-state-title">Không tìm thấy khóa học phù hợp</h3>
+          <p class="empty-state-text">Thử bỏ bộ lọc hoặc tìm với từ khóa khác</p>
+          <button type="button" class="retry-link" (click)="clearCourseFilters()">Xóa bộ lọc</button>
+        </div>
+      }
+
+      <!-- Course cards -->
+      @if (!loading() && !error() && filteredCourses().length > 0) {
+        <div class="courses-list">
+          @for (course of pagedCourses(); track course.id) {
+            <button
+              type="button"
+              class="course-card"
+              [attr.aria-label]="'Xem học viên khóa: ' + course.title"
+              (click)="viewCourseStudents(course)">
+              <div class="course-card-body">
+                <!-- Thumbnail -->
+                <div class="course-thumbnail">
+                  @if (course.thumbnailUrl) {
+                    <img
+                      [ngSrc]="course.thumbnailUrl"
+                      width="160"
+                      height="90"
+                      [alt]="course.title"
+                      class="thumbnail-image"
+                      (error)="onThumbError($event)" />
+                  } @else {
+                    <div class="thumbnail-placeholder">
+                      <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
+                      </svg>
+                    </div>
+                  }
+                </div>
+
+                <!-- Metadata -->
+                <div class="course-metadata">
+                  <h3 class="course-title">{{ course.title }}</h3>
+                  <div class="course-meta">
+                    @if (course.code) {
+                      <span class="meta-code">{{ course.code }}</span>
+                      <span class="separator">&middot;</span>
+                    }
+                    <span>{{ course.enrolledCount || 0 }} học viên</span>
+                    @if (course.lessonCount) {
+                      <span class="separator">&middot;</span>
+                      <span>{{ course.lessonCount }} bài học</span>
+                    }
+                  </div>
+                </div>
+
+                <!-- Status + action -->
+                <div class="course-actions">
+                  <span
+                    class="status-badge"
+                    [class.badge-approved]="isApprovedStatus(course.status)"
+                    [class.badge-pending]="course.status === 'PENDING'"
+                    [class.badge-draft]="course.status === 'DRAFT'"
+                    [class.badge-rejected]="course.status === 'REJECTED'">
+                    {{ getStatusLabel(course.status) }}
+                  </span>
+                  <span class="course-date">{{ formatDate(course.updatedAt || course.createdAt) }}</span>
+                  <span class="card-arrow" aria-hidden="true">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                    </svg>
+                  </span>
+                </div>
+              </div>
+            </button>
+          }
+        </div>
+
+        <!-- Pagination -->
+        @if (courseTotal() > coursePageSize()) {
+          <div class="pagination-bar">
+            <div class="page-size-selector">
+              <span>Hiển thị</span>
+              <select [ngModel]="coursePageSize()" (ngModelChange)="onCoursePageSizeChange($event)" aria-label="Số khóa học mỗi trang">
+                <option [ngValue]="5">5</option>
+                <option [ngValue]="10">10</option>
+                <option [ngValue]="20">20</option>
+                <option [ngValue]="50">50</option>
+              </select>
+              <span>khóa học / trang</span>
+            </div>
+            <div class="page-navigation">
+              <button type="button" class="page-btn" [disabled]="coursePageIndex() <= 1" (click)="prevCoursePage()">Trước</button>
+              <span class="page-info">Trang {{ coursePageIndex() }} / {{ courseTotalPages() }}</span>
+              <button type="button" class="page-btn" [disabled]="coursePageIndex() >= courseTotalPages()" (click)="nextCoursePage()">Sau</button>
+            </div>
+          </div>
+        }
+      }
+    } @else {
+      <!-- ===== STUDENT LIST VIEW ===== -->
+      <div class="students-panel">
+        <div class="section-header">
+          <div class="flex flex-wrap items-center gap-2" role="tablist" aria-label="Lọc học viên theo trạng thái">
+            @for (tab of studentTabItems; track tab.key) {
+              <button
+                type="button"
+                role="tab"
+                [attr.aria-selected]="status === tab.key"
+                class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors"
+                [class.bg-[#0056D2]]="status === tab.key"
+                [class.text-white]="status === tab.key"
+                [class.border-[#0056D2]]="status === tab.key"
+                [class.bg-white]="status !== tab.key"
+                [class.text-gray-700]="status !== tab.key"
+                [class.border-gray-200]="status !== tab.key"
+                [class.hover:border-gray-300]="status !== tab.key"
+                (click)="setStudentStatus(tab.key)">
+                {{ tab.label }}{{ tab.key === '' ? ' (' + total() + ')' : '' }}
+              </button>
+            }
+          </div>
+          <div class="search-wrapper">
+            <svg class="search-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.2-5.2M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/>
+            </svg>
+            <input
+              type="search"
+              class="search-input"
+              placeholder="Tìm tên hoặc email học viên..."
+              aria-label="Tìm học viên"
+              [(ngModel)]="keyword"
+              (keyup.enter)="applyFilters()"
+              (input)="onStudentSearchInput($event)" />
+          </div>
+        </div>
+
+        <!-- Loading: skeleton table rows -->
+        @if (loading()) {
+          <div class="table-card">
+            <table class="students-table">
+              <thead>
+                <tr>
+                  <th>Học viên</th>
+                  <th>Email</th>
+                  <th>Tiến độ</th>
+                  <th class="th-center">Khóa học</th>
+                  <th class="th-center">Trạng thái</th>
+                  <th class="th-right">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (i of [1, 2, 3]; track i) {
+                  <tr>
+                    <td colspan="6"><div class="skeleton-row"></div></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        <!-- Error -->
+        @if (!loading() && error()) {
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
+              </svg>
+            </div>
+            <h3 class="empty-state-title">Không thể tải danh sách học viên</h3>
+            <p class="empty-state-text">{{ error() }}</p>
+            <button type="button" class="retry-link" (click)="onReload()">Thử lại</button>
+          </div>
+        }
+
+        <!-- Empty -->
+        @if (!loading() && !error() && paged().length === 0) {
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <svg width="40" height="40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 014-4h4a4 4 0 014 4v2h-3m-5-9a4 4 0 100-8 4 4 0 000 8zm8 0a3 3 0 100-6 3 3 0 000 6z"/>
+              </svg>
+            </div>
+            <h3 class="empty-state-title">Không có học viên</h3>
+            <p class="empty-state-text">
+              @if (keyword || status) {
+                Thử bỏ bộ lọc hoặc tìm với từ khóa khác
+              } @else {
+                Khóa học này chưa có học viên ghi danh
+              }
+            </p>
+            @if (keyword || status) {
+              <button type="button" class="retry-link" (click)="clearStudentFilters()">Xóa bộ lọc</button>
+            }
+          </div>
+        }
+
+        <!-- Student table -->
+        @if (!loading() && !error() && paged().length > 0) {
+          <div class="table-card">
+            <table class="students-table">
+              <thead>
+                <tr>
+                  <th>Học viên</th>
+                  <th>Email</th>
+                  <th>Tiến độ</th>
+                  <th class="th-center">Khóa học</th>
+                  <th class="th-center">Trạng thái</th>
+                  <th class="th-right">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (s of paged(); track trackById($index, s)) {
+                  <tr>
+                    <td>
+                      <div class="student-cell">
+                        <div class="student-avatar" [attr.aria-hidden]="true">{{ getInitials(s.name) }}</div>
+                        <span class="student-name">{{ s.name }}</span>
+                      </div>
+                    </td>
+                    <td class="cell-muted">{{ s.email }}</td>
+                    <td>
+                      <div class="progress-cell">
+                        <div class="progress-track" [attr.aria-label]="'Tiến độ ' + s.progress + '%'" role="progressbar" [attr.aria-valuenow]="s.progress" aria-valuemin="0" aria-valuemax="100">
+                          <div class="progress-fill" [style.width.%]="s.progress"></div>
+                        </div>
+                        <span class="progress-text">{{ s.progress }}%</span>
+                      </div>
+                    </td>
+                    <td class="cell-center">{{ s.completedCourses }}/{{ s.totalCourses }}</td>
+                    <td class="cell-center">
+                      <span
+                        class="status-badge"
+                        [class.badge-active]="s.status === 'ACTIVE'"
+                        [class.badge-completed]="s.status === 'COMPLETED'"
+                        [class.badge-suspended]="s.status === 'SUSPENDED'"
+                        [class.badge-muted]="s.status === 'DROPPED' || s.status === 'EXPIRED'">
+                        {{ getStudentStatusLabel(s.status) }}
+                      </span>
+                    </td>
+                    <td class="cell-right">
+                      <div class="action-buttons">
+                        <a [routerLink]="['/teacher/students', s.id]" class="action-link">Chi tiết</a>
+                        <button type="button" class="action-btn" (click)="sendMessage(s.id)">Nhắn tin</button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          @if (total() > pageSize()) {
+            <div class="pagination-bar">
+              <div class="page-size-selector">
+                <span>Hiển thị</span>
+                <select [ngModel]="pageSize()" (ngModelChange)="onStudentPageSizeChange($event)" aria-label="Số học viên mỗi trang">
+                  <option [ngValue]="5">5</option>
+                  <option [ngValue]="10">10</option>
+                  <option [ngValue]="20">20</option>
+                  <option [ngValue]="50">50</option>
+                </select>
+                <span>học viên / trang</span>
+              </div>
+              <div class="page-navigation">
+                <button type="button" class="page-btn" [disabled]="pageIndex() <= 1" (click)="prevPage()">Trước</button>
+                <span class="page-info">Trang {{ pageIndex() }} / {{ totalPages() }}</span>
+                <button type="button" class="page-btn" [disabled]="pageIndex() >= totalPages()" (click)="nextPage()">Sau</button>
+              </div>
+            </div>
+          }
+        }
       </div>
     }
   </div>
