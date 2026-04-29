@@ -188,7 +188,6 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                 (ngModelChange)="svc.sectionContent.set($event); svc.markDirty()"
                 placeholder="Gõ / để xem danh sách lệnh nhanh..."
                 [height]="280"
-                [maxHeight]="420"
                 [uploadFn]="editorUploadFn"
                 [videoUploadFn]="editorVideoUploadFn">
               </app-tiptap-editor>
