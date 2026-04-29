@@ -273,6 +273,7 @@
   border-radius: $radius-full;
   min-width: 72px;
   text-align: center;
+  white-space: nowrap;
 
   &.badge-active {
     background: #ECFDF5;
@@ -329,6 +330,7 @@
     font-weight: $font-bold;
     text-transform: uppercase;
     letter-spacing: 0.04em;
+    white-space: nowrap;
 
     &.th-center { text-align: center; }
     &.th-right { text-align: right; }

@@ -1,0 +1,498 @@
+@use '../../../../styles/variables' as *;
+
+/* ===== CONTAINER ===== */
+.student-detail-container {
+  display: block;
+  background: #FAFAFA;
+  min-height: 100vh;
+}
+
+.main-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-4;
+}
+
+/* ===== HEADER ===== */
+.page-header {
+  margin-bottom: $spacing-2;
+}
+
+.title-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: $blue-primary;
+  margin-bottom: $spacing-2;
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  text-decoration: none;
+  transition: color $transition-normal;
+
+  @include focus-visible;
+
+  &:hover {
+    color: $blue-hover;
+    text-decoration: underline;
+  }
+}
+
+.page-title {
+  margin: 0 0 4px;
+  font-size: 28px;
+  font-weight: $font-bold;
+  color: #1F1F1F;
+  line-height: 1.2;
+}
+
+.page-subtitle {
+  margin: 0;
+  font-size: $text-sm;
+  color: #636363;
+  line-height: $leading-normal;
+}
+
+/* ===== PROFILE CARD ===== */
+.profile-card {
+  background: white;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  box-shadow: $shadow-sm;
+  padding: $spacing-6;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) 2fr;
+  gap: $spacing-6;
+  align-items: center;
+}
+
+.profile-info {
+  display: flex;
+  align-items: center;
+  gap: $spacing-4;
+  min-width: 0;
+}
+
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: $radius-full;
+  background: $blue-primary;
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: $font-bold;
+  flex-shrink: 0;
+}
+
+.profile-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-name {
+  margin: 0 0 4px;
+  font-size: $text-xl;
+  font-weight: $font-semibold;
+  color: $text-primary;
+  @include truncate;
+}
+
+.profile-email {
+  margin: 0 0 $spacing-2;
+  font-size: $text-sm;
+  color: $text-secondary;
+  @include truncate;
+}
+
+.profile-meta {
+  margin: 0 0 4px;
+  font-size: $text-xs;
+  color: $text-muted;
+
+  strong {
+    color: $text-primary;
+    font-weight: $font-medium;
+  }
+}
+
+.profile-side {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-4;
+}
+
+/* ===== STATS GRID ===== */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $spacing-3;
+}
+
+.stat-card {
+  text-align: center;
+  padding: $spacing-3;
+  background: $gray-50;
+  border-radius: $radius-md;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: $font-bold;
+  line-height: 1.2;
+
+  &.stat-primary  { color: $blue-primary; }
+  &.stat-success  { color: $success; }
+  &.stat-info     { color: $info; }
+}
+
+.stat-label {
+  margin-top: 4px;
+  font-size: $text-xs;
+  color: $text-muted;
+  font-weight: $font-medium;
+}
+
+/* ===== STATUS + ACTIONS ===== */
+.profile-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-3;
+  flex-wrap: wrap;
+}
+
+.actions-group {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-2;
+}
+
+/* ===== STATUS BADGE (per PAGE_UX_STANDARD §6) ===== */
+.status-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: $font-medium;
+  padding: 3px 10px;
+  border-radius: $radius-full;
+  min-width: 72px;
+  text-align: center;
+  white-space: nowrap;
+
+  &.badge-active     { background: #ECFDF5; color: #059669; }
+  &.badge-completed  { background: $info-light; color: $info; }
+  &.badge-suspended  { background: #FEF2F2; color: #DC2626; }
+  &.badge-muted      { background: $gray-100; color: $gray-500; }
+}
+
+/* ===== ACTION BUTTONS (cùng style cho <a> + <button>) ===== */
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  border: 1px solid $blue-primary;
+  border-radius: $radius-sm;
+  background: white;
+  color: $blue-primary;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all $transition-normal;
+  white-space: nowrap;
+
+  @include focus-visible;
+
+  &:hover {
+    background: $blue-primary;
+    color: white;
+  }
+}
+
+/* ===== SECTION CARD (course progress, tabs) ===== */
+.section-card {
+  background: white;
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  box-shadow: $shadow-sm;
+  padding: $spacing-6;
+}
+
+.section-title {
+  margin: 0 0 $spacing-4;
+  font-size: $text-lg;
+  font-weight: $font-semibold;
+  color: $text-primary;
+}
+
+/* ===== COURSE PROGRESS LIST ===== */
+.course-progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-3;
+}
+
+.course-progress-card {
+  border: 1px solid $border-default;
+  border-radius: $radius-md;
+  padding: $spacing-3 $spacing-4;
+  transition: border-color $transition-normal;
+
+  &:hover {
+    border-color: $blue-primary;
+  }
+}
+
+.course-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: $spacing-3;
+  margin-bottom: $spacing-2;
+}
+
+.course-progress-title {
+  margin: 0;
+  font-size: $text-sm;
+  font-weight: $font-semibold;
+  color: $text-primary;
+  @include truncate;
+}
+
+.course-progress-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-4;
+  font-size: $text-xs;
+  color: $text-secondary;
+}
+
+.meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  strong {
+    color: $text-primary;
+    font-weight: $font-semibold;
+  }
+}
+
+/* ===== PROGRESS BAR ===== */
+.progress-cell {
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+}
+
+.progress-track {
+  width: 96px;
+  height: 6px;
+  background: $gray-200;
+  border-radius: $radius-full;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: $blue-primary;
+  border-radius: $radius-full;
+  transition: width $transition-slow;
+}
+
+.progress-text {
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  color: $text-secondary;
+  min-width: 36px;
+}
+
+/* ===== TABS ===== */
+.tabs-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-2;
+  margin-bottom: $spacing-4;
+  padding-bottom: $spacing-3;
+  border-bottom: 1px solid $border-default;
+}
+
+.tab-content {
+  /* Cho child components đặt margin/padding tự do */
+}
+
+/* ===== EMPTY STATE (per PAGE_UX_STANDARD §7) ===== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  background: white;
+  border-radius: $radius-md;
+  border: 1px dashed $border-dark;
+  text-align: center;
+}
+
+.empty-state-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $gray-400;
+  margin-bottom: $spacing-3;
+}
+
+.empty-state-title {
+  font-size: 15px;
+  font-weight: $font-semibold;
+  color: $gray-700;
+  margin: 0 0 6px;
+}
+
+.empty-state-text {
+  font-size: 13px;
+  color: #636363;
+  margin: 0 0 $spacing-4;
+  max-width: 320px;
+}
+
+.retry-link {
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: $blue-primary;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+
+  @include focus-visible;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+/* ===== SKELETON (per PAGE_UX_STANDARD §8) ===== */
+.skeleton-thumb {
+  background: $gray-100 !important;
+  animation: pulse 1.5s ease-in-out infinite;
+  width: 80px;
+  height: 80px;
+  border-radius: $radius-full;
+  flex-shrink: 0;
+}
+
+.skeleton-line {
+  height: 14px;
+  background: $gray-100;
+  border-radius: $radius-sm;
+  animation: pulse 1.5s ease-in-out infinite;
+  margin-bottom: 8px;
+
+  &.w60 { width: 60%; }
+  &.w40 { width: 40%; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: $breakpoint-md) {
+  .main-content {
+    padding: 24px 16px;
+  }
+
+  .profile-grid {
+    grid-template-columns: 1fr;
+    gap: $spacing-4;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: $breakpoint-sm) {
+  .main-content {
+    padding: 16px 12px;
+  }
+
+  .page-title {
+    font-size: 20px;
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+  }
+
+  .profile-card,
+  .section-card {
+    padding: $spacing-4;
+  }
+
+  .profile-info {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .profile-avatar {
+    width: 64px;
+    height: 64px;
+    font-size: 20px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-card {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    text-align: left;
+    padding: $spacing-2 $spacing-3;
+  }
+
+  .stat-value {
+    font-size: $text-lg;
+  }
+
+  .profile-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions-group {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .action-btn {
+    width: 100%;
+  }
+
+  .course-progress-meta {
+    gap: $spacing-2;
+  }
+}

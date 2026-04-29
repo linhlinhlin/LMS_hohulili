@@ -1,0 +1,219 @@
+<div class="student-detail-container">
+  <div class="main-content">
+    <!-- ===== HEADER ===== -->
+    <div class="page-header">
+      <div class="title-section">
+        <a routerLink="/teacher/students" class="back-link">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/>
+          </svg>
+          Quay lại danh sách
+        </a>
+        <h1 class="page-title">
+          {{ student()?.name || 'Chi tiết học viên' }}
+        </h1>
+        @if (student()) {
+          <p class="page-subtitle">{{ student()!.email }}</p>
+        }
+      </div>
+    </div>
+
+    <!-- ===== ERROR STATE ===== -->
+    @if (error() && !student()) {
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
+          </svg>
+        </div>
+        <h3 class="empty-state-title">Không thể tải dữ liệu</h3>
+        <p class="empty-state-text">{{ error() }}</p>
+        <button type="button" class="retry-link" (click)="onReload()">Thử lại</button>
+      </div>
+    }
+
+    <!-- ===== LOADING SKELETON ===== -->
+    @if (!student() && !error()) {
+      <div class="profile-card">
+        <div class="profile-grid">
+          <div class="profile-info">
+            <div class="profile-avatar skeleton-thumb"></div>
+            <div class="profile-text">
+              <div class="skeleton-line w60"></div>
+              <div class="skeleton-line w40"></div>
+              <div class="skeleton-line w60"></div>
+            </div>
+          </div>
+          <div class="profile-stats">
+            @for (i of [1, 2, 3]; track i) {
+              <div class="stat-card">
+                <div class="skeleton-line w40"></div>
+                <div class="skeleton-line w60"></div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- ===== PROFILE CARD ===== -->
+    @if (student()) {
+      <div class="profile-card">
+        <div class="profile-grid">
+          <!-- Identity -->
+          <div class="profile-info">
+            <div class="profile-avatar" aria-hidden="true">{{ getInitials(student()!.name) }}</div>
+            <div class="profile-text">
+              <h2 class="profile-name">{{ student()!.name }}</h2>
+              <p class="profile-email">{{ student()!.email }}</p>
+              <p class="profile-meta">
+                <span>Ngày ghi danh: <strong>{{ formatDate(student()!.enrolledAt) || '—' }}</strong></span>
+              </p>
+              <p class="profile-meta">
+                <span>Hoạt động gần nhất: <strong>{{ formatDate(student()!.lastAccessed) || 'Chưa truy cập' }}</strong></span>
+              </p>
+            </div>
+          </div>
+
+          <!-- Stats + Status + Actions -->
+          <div class="profile-side">
+            <!-- 3 stats: Tiến độ, Điểm TB, Số khóa học (bỏ completedCourses/totalCourses misleading) -->
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-value stat-primary">{{ student()!.progress }}%</div>
+                <div class="stat-label">Tiến độ trung bình</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value stat-success">{{ student()!.averageGrade.toFixed(1) }}</div>
+                <div class="stat-label">Điểm trung bình</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value stat-info">{{ courseProgress().length }}</div>
+                <div class="stat-label">Khóa đang học</div>
+              </div>
+            </div>
+
+            <div class="profile-actions">
+              <span
+                class="status-badge"
+                [class.badge-active]="student()!.status === 'ACTIVE'"
+                [class.badge-completed]="student()!.status === 'COMPLETED'"
+                [class.badge-suspended]="student()!.status === 'SUSPENDED'"
+                [class.badge-muted]="student()!.status === 'DROPPED' || student()!.status === 'EXPIRED'">
+                {{ getStatusText(student()!.status) }}
+              </span>
+              <div class="actions-group">
+                <button type="button" class="action-btn" [attr.aria-label]="'Nhắn tin cho ' + student()!.name" (click)="sendMessage()">
+                  Nhắn tin
+                </button>
+                <button type="button" class="action-btn" [attr.aria-label]="'Xuất báo cáo cho ' + student()!.name" (click)="exportReport()">
+                  Xuất báo cáo
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- ===== COURSE PROGRESS ===== -->
+    @if (student()) {
+      <div class="section-card">
+        <h3 class="section-title">Tiến độ khóa học</h3>
+
+        @if (courseProgress().length > 0) {
+          <div class="course-progress-list">
+            @for (course of courseProgress(); track course.courseId) {
+              <div class="course-progress-card">
+                <div class="course-progress-header">
+                  <h4 class="course-progress-title">{{ course.courseTitle }}</h4>
+                  <span
+                    class="status-badge"
+                    [class.badge-active]="course.status === 'in-progress'"
+                    [class.badge-completed]="course.status === 'completed'"
+                    [class.badge-muted]="course.status === 'dropped'">
+                    {{ getCourseStatusText(course.status) }}
+                  </span>
+                </div>
+                <div class="course-progress-meta">
+                  <div class="progress-cell">
+                    <div class="progress-track" role="progressbar" [attr.aria-valuenow]="course.progress" aria-valuemin="0" aria-valuemax="100" [attr.aria-label]="'Tiến độ ' + course.progress + '%'">
+                      <div class="progress-fill" [style.width.%]="course.progress"></div>
+                    </div>
+                    <span class="progress-text">{{ course.progress }}%</span>
+                  </div>
+                  <span class="meta-item">{{ course.completedLessons }}/{{ course.totalLessons }} bài học</span>
+                  @if (course.grade !== null && course.grade !== undefined) {
+                    <span class="meta-item">Điểm: <strong>{{ course.grade.toFixed(1) }}</strong></span>
+                  }
+                  <span class="meta-item">Tham gia: {{ formatDate(course.enrolledAt) }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <svg width="40" height="40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
+              </svg>
+            </div>
+            <h3 class="empty-state-title">Chưa tham gia khóa học</h3>
+            <p class="empty-state-text">Học viên này chưa ghi danh khóa học nào</p>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ===== TABS SECTION ===== -->
+    @if (student()) {
+      <div class="section-card">
+        <div class="tabs-bar" role="tablist" aria-label="Nội dung chi tiết học viên">
+          @for (tab of tabItems; track tab.key) {
+            <button
+              type="button"
+              role="tab"
+              [attr.aria-selected]="activeTab() === tab.key"
+              class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors"
+              [class.bg-[#0056D2]]="activeTab() === tab.key"
+              [class.text-white]="activeTab() === tab.key"
+              [class.border-[#0056D2]]="activeTab() === tab.key"
+              [class.bg-white]="activeTab() !== tab.key"
+              [class.text-gray-700]="activeTab() !== tab.key"
+              [class.border-gray-200]="activeTab() !== tab.key"
+              [class.hover:border-gray-300]="activeTab() !== tab.key"
+              (click)="activeTab.set(tab.key)">
+              {{ tab.label }}
+            </button>
+          }
+        </div>
+
+        <div class="tab-content">
+          @if (activeTab() === 'assignments') {
+            <app-student-assignments
+              #studentAssignments
+              [studentId]="studentId"
+              [studentName]="student()!.name"
+              (assignTask)="openAssignTaskModal()"
+              (removeAssignment)="onRemoveAssignment($event)" />
+          }
+
+          @if (activeTab() === 'messages') {
+            <app-messages-tab
+              [studentId]="studentId"
+              [studentName]="student()!.name" />
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+@if (showAssignTaskModal()) {
+  <app-assign-task-modal
+    [studentId]="studentId"
+    [studentName]="student()!.name"
+    [studentCourseIds]="getStudentCourseIds()"
+    (confirm)="onAssignTaskConfirm($event)"
+    (cancel)="closeAssignTaskModal()" />
+}
