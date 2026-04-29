@@ -237,18 +237,24 @@ export class CurriculumEditorService {
           });
         }
       } else {
-        await firstValueFrom(this.sectionApi.updateSection(lessonId, this.editingSectionId()!, formData));
+        const res: any = await firstValueFrom(this.sectionApi.updateSection(lessonId, this.editingSectionId()!, formData));
+        // BE trả ApiResponse<ContentBlock> = { data: { id, type, data: {...flat fields...} } }.
+        // Trước đây updateSectionLocal dùng FE payload — local sẽ drift nếu BE merge
+        // thay đổi fields (e.g., partial-update merge giữ lại stale fields). Giờ dùng
+        // BE response làm source of truth, fallback FE payload khi BE không trả field.
+        const block = res?.data ?? res;
+        const beData = (block?.data && typeof block.data === 'object') ? block.data : {};
         this.store.updateSectionLocal(lessonId, this.editingSectionId()!, {
-          title: payload['title'] || '',
-          type: type,
-          content: payload['content'],
-          videoAssetId: payload['videoAssetId'],
-          videoUrl: payload['videoUrl'],
-          videoType: payload['videoType'],
-          streamVideoUid: payload['streamVideoUid'],
-          isRequired: payload['isRequired'] ?? false,
-          completionThreshold: payload['completionThreshold'],
-          quizData: payload['quizData'],
+          title: (beData['title'] as string) ?? payload['title'] ?? '',
+          type: (block?.type ? String(block.type).toUpperCase() : type),
+          content: (beData['content'] as string) ?? payload['content'],
+          videoAssetId: (beData['videoAssetId'] as string) ?? payload['videoAssetId'],
+          videoUrl: (beData['videoUrl'] as string) ?? payload['videoUrl'],
+          videoType: (beData['videoType'] as string) ?? payload['videoType'],
+          streamVideoUid: (beData['streamVideoUid'] as string) ?? payload['streamVideoUid'],
+          isRequired: (beData['isRequired'] as boolean) ?? payload['isRequired'] ?? false,
+          completionThreshold: (beData['completionThreshold'] as number) ?? payload['completionThreshold'],
+          quizData: beData['quizData'] ?? payload['quizData'],
         } as any);
       }
 
