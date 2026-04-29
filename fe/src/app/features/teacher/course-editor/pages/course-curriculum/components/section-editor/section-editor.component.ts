@@ -649,6 +649,13 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                 </div>
               }
 
+              @if (svc.sectionFileUrl() && getFileExtension(svc.sectionFileUrl()!) === 'pdf' && !svc.safePdfUrl() && svc.sectionPreviewStatus() !== 'PROCESSING' && svc.sectionPreviewStatus() !== 'FAILED') {
+                <div class="flex items-start gap-2.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+                  <lucide-icon name="info" [size]="16" class="mt-0.5 shrink-0 text-slate-500"></lucide-icon>
+                  <p class="text-xs text-slate-600">TÃ i liá»‡u PDF gá»‘c khÃ´ng tá»± má»Ÿ trong khung chá»‰nh sá»­a Ä‘á»ƒ trÃ¡nh crash Chrome PDF viewer. DÃ¹ng nÃºt táº£i xuá»‘ng/má»Ÿ á»Ÿ trÃªn náº¿u cáº§n xem tÃ i liá»‡u.</p>
+                </div>
+              }
+
               <!-- PDF preview iframe (READY) -->
               @if (svc.safePdfUrl()) {
                 <div>

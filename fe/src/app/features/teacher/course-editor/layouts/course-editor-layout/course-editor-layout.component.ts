@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, computed, signal, effect, untracked, ChangeDetectionStrategy, DestroyRef } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 
 import { RouterOutlet, RouterModule, ActivatedRoute, Router, NavigationEnd } from '@angular/router';
 import { CourseEditorSidebarComponent } from '../../components/sidebar/sidebar.component';
@@ -8,7 +8,7 @@ import { CourseRejectionBannerComponent } from '../../components/rejection-banne
 import { CourseEditorStore } from '../../store/course-editor.store';
 import { CurriculumSelectionService } from '../../services/curriculum-selection.service';
 import { AuthService } from '../../../../../core/services/auth.service';
-import { filter, take, map } from 'rxjs/operators';
+import { distinctUntilChanged, filter, take, map } from 'rxjs/operators';
 
 
 @Component({
@@ -180,7 +180,8 @@ export class CourseEditorLayoutComponent implements OnInit {
   constructor() {
     // Auto-collapse/expand sidebar based on active route
     this.router.events.pipe(
-      filter((e): e is NavigationEnd => e instanceof NavigationEnd)
+      filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe(e => {
       const url = e.urlAfterRedirects;
       this.updateSidebarForRoute(url);
@@ -284,10 +285,12 @@ export class CourseEditorLayoutComponent implements OnInit {
     this.updateActiveTab(this.router.url);
 
     this.getRouteId().pipe(
-      take(1),
-      filter((id): id is string => !!id)
+      filter((id): id is string => !!id),
+      distinctUntilChanged(),
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe(id => {
-      this.store.loadCourse(id);
+      this.resetRouteScopedEditorState();
+      this.store.loadCourse(id, true);
     });
   }
 
@@ -320,6 +323,12 @@ export class CourseEditorLayoutComponent implements OnInit {
 
   private getCurrentQueryParams(url: string): URLSearchParams {
     return new URLSearchParams(this.router.parseUrl(url).queryParams as Record<string, string>);
+  }
+
+  private resetRouteScopedEditorState(): void {
+    this.lastSyncedCurriculumSelectionKey = null;
+    this.selectionService.clearSelection();
+    this.store.resetEditorState();
   }
 
 }
