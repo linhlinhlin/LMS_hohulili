@@ -38,7 +38,8 @@ export type SectionQuizAssessmentType = 'PRACTICE' | 'ASSESSMENT' | 'EXAM';
  * All editor sub-components inject this service to read/write
  * the active editing context without direct parent-child coupling.
  *
- * Scoped to the course-editor route via `providedIn: 'root'`.
+ * Scoped to the course-editor route by `courseEditorRoutes.providers`.
+ * The root provider remains only as a compatibility fallback for tests/legacy callers.
  * Selection hierarchy delegates to CurriculumSelectionService.
  */
 @Injectable({ providedIn: 'root' })
@@ -667,10 +668,9 @@ export class CurriculumEditorService {
     if (section.type === 'FILE') {
       this.sectionPreviewStatus.set(section.previewStatus ?? null);
       const previewUrl = section.previewPdfUrl ?? null;
-      const fileUrl = section.fileUrl ?? null;
-      const urlToPreview = previewUrl ?? (fileUrl?.toLowerCase().endsWith('.pdf') ? fileUrl : null);
-      if (urlToPreview) {
-        this.safePdfUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(urlToPreview));
+      const canEmbedPreview = !!previewUrl && (!section.previewStatus || section.previewStatus === 'READY');
+      if (canEmbedPreview) {
+        this.safePdfUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(previewUrl));
       } else {
         this.safePdfUrl.set(null);
       }

@@ -24,6 +24,7 @@ export class CourseEditorStore {
     // Auto-save status
     readonly saveStatus = signal<SaveStatus>('saved');
     private autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+    private activeLoadToken = 0;
 
     // Selectors
     readonly chapters = computed(() => this.courseTree()?.chapters || []);
@@ -105,6 +106,8 @@ export class CourseEditorStore {
     }
 
     loadCourse(courseId: string, forceRefresh = false) {
+        const loadToken = ++this.activeLoadToken;
+
         // Check cache first - return immediately if valid AND not forced
         if (!forceRefresh) {
             const cached = this.courseCache.get(courseId);
@@ -118,12 +121,18 @@ export class CourseEditorStore {
         this.isLoading.set(true);
         this.error.set(null);
         this.service.getCourseDraft(courseId)
-            .pipe(finalize(() => this.isLoading.set(false)))
+            .pipe(finalize(() => {
+                if (loadToken === this.activeLoadToken) {
+                    this.isLoading.set(false);
+                }
+            }))
             .subscribe({
                 next: (data) => {
+                    if (loadToken !== this.activeLoadToken) return;
                     this.setCourseTreeState(data);
                 },
                 error: (err: any) => {
+                    if (loadToken !== this.activeLoadToken) return;
                     const message = err?.error?.message || err?.message || 'Không thể tải khóa học';
                     this.error.set(message);
                     this.toast.error(message);
@@ -453,5 +462,16 @@ export class CourseEditorStore {
             clearTimeout(this.autoSaveTimer);
             this.autoSaveTimer = null;
         }
+    }
+
+    resetEditorState() {
+        this.activeLoadToken++;
+        this.cancelAutoSave();
+        this.courseTree.set(null);
+        this.error.set(null);
+        this.isLoading.set(false);
+        this.isSaving.set(false);
+        this.saveStatus.set('saved');
+        this.courseCache.clear();
     }
 }

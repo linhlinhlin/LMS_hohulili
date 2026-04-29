@@ -3,6 +3,8 @@ import { CanActivateFn, Router, Routes } from '@angular/router';
 import { of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { CourseAuthoringService } from './services/course-authoring.service';
+import { CurriculumEditorService } from './services/curriculum-editor.service';
+import { CurriculumSelectionService } from './services/curriculum-selection.service';
 import { CourseEditorStore } from './store/course-editor.store';
 
 const instructorLedClassesGuard: CanActivateFn = (route) => {
@@ -34,6 +36,11 @@ const instructorLedClassesGuard: CanActivateFn = (route) => {
 export const courseEditorRoutes: Routes = [
     {
         path: '',
+        providers: [
+            CourseEditorStore,
+            CurriculumSelectionService,
+            CurriculumEditorService
+        ],
         loadComponent: () => import('./layouts/course-editor-layout/course-editor-layout.component')
             .then(m => m.CourseEditorLayoutComponent),
         children: [
