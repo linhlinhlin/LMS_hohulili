@@ -121,7 +121,9 @@ import {
   WifiOff,
   HardDrive,
   FileWarning,
-  ServerCrash
+  ServerCrash,
+  Check,
+  Sparkles
 } from 'lucide-angular';
 
 function isLocalBrowserRuntime(): boolean {
@@ -300,7 +302,9 @@ export const appConfig: ApplicationConfig = {
       WifiOff,
       HardDrive,
       FileWarning,
-      ServerCrash
+      ServerCrash,
+      Check,
+      Sparkles
     }))
   ]
 };
