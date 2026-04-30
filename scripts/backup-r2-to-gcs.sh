@@ -60,7 +60,7 @@ acl = private
 [gcs]
 type = google cloud storage
 project_number = the-wiii-lab
-service_account_credentials = /etc/gcs-backup-sa.json
+service_account_file = /etc/gcs-backup-sa.json
 location = asia-southeast1
 storage_class = STANDARD
 EOF
