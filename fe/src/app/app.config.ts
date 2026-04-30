@@ -117,7 +117,11 @@ import {
   PencilLine,
   Library,
   Sheet,
-  Presentation
+  Presentation,
+  WifiOff,
+  HardDrive,
+  FileWarning,
+  ServerCrash
 } from 'lucide-angular';
 
 function isLocalBrowserRuntime(): boolean {
@@ -292,7 +296,11 @@ export const appConfig: ApplicationConfig = {
       PencilLine,
       Library,
       Sheet,
-      Presentation
+      Presentation,
+      WifiOff,
+      HardDrive,
+      FileWarning,
+      ServerCrash
     }))
   ]
 };
