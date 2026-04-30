@@ -104,6 +104,25 @@ public class R2VideoStorageService {
         }
     }
 
+    /**
+     * Read object size + content-type without transferring the body.
+     * Used by the playback controller's HEAD handler so the browser can probe
+     * range support without following a presigned-GET redirect (which would
+     * fail SigV4 because presigned URLs are method-bound).
+     */
+    public ObjectMetadata head(String storageKey) {
+        var resp = r2Client.headObject(HeadObjectRequest.builder()
+                .bucket(videoBucket)
+                .key(storageKey)
+                .build());
+        return new ObjectMetadata(
+                resp.contentLength() == null ? 0L : resp.contentLength(),
+                resp.contentType()
+        );
+    }
+
+    public record ObjectMetadata(long size, String contentType) {}
+
     public void downloadToFile(String storageKey, Path destination) throws IOException {
         if (destination.getParent() != null) {
             Files.createDirectories(destination.getParent());

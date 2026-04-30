@@ -31,4 +31,13 @@ public class AdaptiveVideoPlaybackCacheService {
     public String createObjectRedirect(String storageKey, Duration ttl) {
         return videoBinaryStorageService.createReadUrl(storageKey, ttl);
     }
+
+    /**
+     * Probe object metadata (size + content-type) without transferring body.
+     * Not cached — HEAD response varies per request and is cheap on R2.
+     */
+    public com.example.lms.shared.infrastructure.service.R2VideoStorageService.ObjectMetadata
+            headObject(String storageKey) throws IOException {
+        return videoBinaryStorageService.head(storageKey);
+    }
 }
