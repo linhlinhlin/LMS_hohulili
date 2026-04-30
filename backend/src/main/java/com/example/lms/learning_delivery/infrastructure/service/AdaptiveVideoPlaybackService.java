@@ -98,6 +98,18 @@ public class AdaptiveVideoPlaybackService {
         return redirectUrl;
     }
 
+    /**
+     * Probe object size + content-type for HEAD requests.
+     * Avoids redirecting HEAD to a presigned-GET URL (R2 rejects with 403 because
+     * AWS SigV4 binds the signature to the HTTP method).
+     */
+    public com.example.lms.shared.infrastructure.service.R2VideoStorageService.ObjectMetadata
+            headObject(UUID assetId, String token, String storageKey) throws IOException {
+        validateClaims(token, assetId, null);
+        ensureStorageKeyAllowed(assetId, storageKey);
+        return adaptiveVideoPlaybackCacheService.headObject(storageKey);
+    }
+
     private VideoPlaybackTokenService.PlaybackClaims validateClaims(String token, UUID assetId, String expectedFormat) {
         VideoPlaybackTokenService.PlaybackClaims claims = videoPlaybackTokenService.parseAndValidate(token);
         if (!assetId.equals(claims.assetId())) {

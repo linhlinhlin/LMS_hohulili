@@ -129,6 +129,34 @@ public class VideoBinaryStorageService {
         return localStorageService.map(service -> service.exists(storageKey)).orElse(false);
     }
 
+    /**
+     * Return object size + content-type (HEAD without body transfer).
+     * Falls back through R2 video bucket → R2 general bucket → local FS.
+     */
+    public R2VideoStorageService.ObjectMetadata head(String storageKey) throws IOException {
+        if (r2VideoStorageService.isPresent()) {
+            return r2VideoStorageService.get().head(storageKey);
+        }
+        if (r2StorageService.isPresent()) {
+            // Fallback: probe via getObject HEAD-like call (R2StorageService doesn't expose head)
+            // For minimal change, materialise to temp file and read length.
+            Path tempFile = Files.createTempFile("video-head-", suffixFromStorageKey(storageKey));
+            try {
+                r2StorageService.get().downloadToFile(storageKey, tempFile);
+                return new R2VideoStorageService.ObjectMetadata(Files.size(tempFile), Files.probeContentType(tempFile));
+            } finally {
+                Files.deleteIfExists(tempFile);
+            }
+        }
+        if (localStorageService.isPresent()) {
+            Path local = Path.of("uploads").resolve(storageKey);
+            if (Files.exists(local)) {
+                return new R2VideoStorageService.ObjectMetadata(Files.size(local), Files.probeContentType(local));
+            }
+        }
+        throw new IOException("No storage backend configured to head object");
+    }
+
     public void delete(String storageKey) {
         if (r2VideoStorageService.isPresent()) {
             r2VideoStorageService.get().delete(storageKey);

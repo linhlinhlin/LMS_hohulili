@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -64,5 +65,32 @@ public class AdaptiveVideoPlaybackController {
         return ResponseEntity.status(HttpStatus.FOUND)
                 .header(HttpHeaders.LOCATION, URI.create(redirectUrl).toString())
                 .build();
+    }
+
+    /**
+     * Handle HEAD probes from the player (range support detection) WITHOUT
+     * redirecting to a presigned-GET URL. R2 rejects HEAD on a GET-bound
+     * presigned URL with 403 because AWS SigV4 binds the signature to the
+     * exact HTTP method.
+     *
+     * Instead we issue a single HeadObject against R2 ourselves and echo the
+     * size + content-type to the client — cheaper than a redirect (no client
+     * round-trip to R2) and method-safe.
+     */
+    @RequestMapping(value = "/{assetId}/adaptive/{token}/object", method = RequestMethod.HEAD)
+    public ResponseEntity<Void> headObject(
+            @PathVariable UUID assetId,
+            @PathVariable String token,
+            @RequestParam String key
+    ) throws IOException {
+        var meta = adaptiveVideoPlaybackService.headObject(assetId, token, key);
+        ResponseEntity.BodyBuilder builder = ResponseEntity.ok()
+                .contentLength(meta.size())
+                .header(HttpHeaders.ACCEPT_RANGES, "bytes")
+                .header(HttpHeaders.CACHE_CONTROL, "private, max-age=30");
+        if (meta.contentType() != null && !meta.contentType().isBlank()) {
+            builder.contentType(MediaType.parseMediaType(meta.contentType()));
+        }
+        return builder.build();
     }
 }
