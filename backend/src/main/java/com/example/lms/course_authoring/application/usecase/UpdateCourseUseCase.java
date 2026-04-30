@@ -112,16 +112,31 @@ public class UpdateCourseUseCase {
 
         course.incrementContentVersion();
 
-        // Save course
+        // First save: persist URL columns and basic info.
         course = courseRepository.save(course);
 
-        // Link uploaded files to this course so cleanup scheduler doesn't treat them as orphans.
-        // No-op for external URLs (e.g. YouTube intro video) — port silently skips when no file_attachment matches.
+        // Link uploaded files and capture the matched file_attachments.id, then persist
+        // the FK on the course so PostgreSQL ON DELETE RESTRICT can physically prevent
+        // the cleanup scheduler from deleting a still-referenced file.
+        // No-op for external URLs (e.g. YouTube) — port returns empty when no match.
+        boolean attachmentChanged = false;
         if (command.thumbnailUrl() != null) {
-            fileManagementPort.linkFileByUrl(command.thumbnailUrl(), course.getId(), "COURSE");
+            var matched = fileManagementPort.linkFileByUrl(command.thumbnailUrl(), course.getId(), "COURSE");
+            if (matched.isPresent()) {
+                course.setThumbnailAttachmentId(matched.get());
+                attachmentChanged = true;
+            }
         }
         if (command.introVideoUrl() != null) {
-            fileManagementPort.linkFileByUrl(command.introVideoUrl(), course.getId(), "COURSE");
+            var matched = fileManagementPort.linkFileByUrl(command.introVideoUrl(), course.getId(), "COURSE");
+            if (matched.isPresent()) {
+                course.setIntroVideoAttachmentId(matched.get());
+                attachmentChanged = true;
+            }
+        }
+        // Re-save only if any FK was set, to avoid an unnecessary UPDATE round-trip.
+        if (attachmentChanged) {
+            course = courseRepository.save(course);
         }
 
         return CourseResponse.from(course);

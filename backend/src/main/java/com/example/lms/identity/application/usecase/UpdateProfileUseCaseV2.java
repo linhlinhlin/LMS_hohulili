@@ -53,13 +53,18 @@ public class UpdateProfileUseCaseV2 {
             user.updateAvatarUrl(command.avatarUrl());
         }
 
-        // Save updated user
+        // First save: persist avatarUrl + profile fields.
         User updatedUser = userRepository.save(user);
 
-        // Link uploaded avatar so cleanup scheduler doesn't treat it as orphan.
-        // No-op for external avatars (Google profile picture etc.).
+        // Link the uploaded avatar and capture file_attachments.id, then store on user
+        // so FK ON DELETE RESTRICT prevents cleanup deletion. No-op for external URLs
+        // (e.g. Google profile picture) where the port returns empty.
         if (command.avatarUrl() != null) {
-            fileManagementPort.linkFileByUrl(command.avatarUrl(), userId, "USER");
+            var matched = fileManagementPort.linkFileByUrl(command.avatarUrl(), userId, "USER");
+            if (matched.isPresent()) {
+                updatedUser.setAvatarAttachmentId(matched.get());
+                updatedUser = userRepository.save(updatedUser);
+            }
         }
 
         log.info("Profile updated successfully (V2) for user: {}", userId);

@@ -3,6 +3,7 @@ package com.example.lms.shared.application.port;
 import com.example.lms.shared.domain.model.ContentBlock;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -17,11 +18,16 @@ public interface FileManagementPort {
     void linkFilesToEntity(List<ContentBlock> blocks, UUID entityId, String entityType);
 
     /**
-     * Links a single file (looked up by its public URL) to an entity.
-     * Required for entities that store a single URL column instead of EditorJS content
-     * (course thumbnails, course intro videos, user avatars, assignment submissions, etc.).
-     * Without this link, {@code file_attachments.entity_id} stays NULL and
-     * {@code UploadCleanupScheduler} treats the file as orphan and deletes it after 7 days.
+     * Links a single file (looked up by its public URL) to an entity and returns the
+     * matched {@code file_attachments.id}. The caller persists this id on the consumer
+     * entity (e.g. {@code courses.thumbnail_attachment_id}) so the FK ON DELETE RESTRICT
+     * constraint physically prevents the cleanup scheduler from deleting a referenced file.
+     *
+     * Returns {@link Optional#empty()} when:
+     * <ul>
+     *   <li>{@code url}/{@code entityId}/{@code entityType} is null/blank, or</li>
+     *   <li>no {@code file_attachments} row matches the URL (external URL, e.g. YouTube).</li>
+     * </ul>
      */
-    void linkFileByUrl(String url, UUID entityId, String entityType);
+    Optional<UUID> linkFileByUrl(String url, UUID entityId, String entityType);
 }

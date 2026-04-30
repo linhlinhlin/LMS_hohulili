@@ -128,19 +128,17 @@ public class FileManagementService implements FileManagementPort {
 
     @Override
     @Transactional
-    public void linkFileByUrl(String url, UUID entityId, String entityType) {
+    public Optional<UUID> linkFileByUrl(String url, UUID entityId, String entityType) {
         if (url == null || url.isBlank() || entityId == null || entityType == null) {
-            return;
+            return Optional.empty();
         }
-        fileRepository.findByFileUrl(url).ifPresentOrElse(
-            file -> {
-                file.setEntityId(entityId);
-                file.setEntityType(entityType);
-                fileRepository.save(file);
-                log.info("Linked file {} to {} {}", file.getId(), entityType, entityId);
-            },
-            () -> log.debug("No file_attachment found for url={} (external URL or already deleted)", url)
-        );
+        return fileRepository.findByFileUrl(url).map(file -> {
+            file.setEntityId(entityId);
+            file.setEntityType(entityType);
+            FileAttachmentJpaEntity saved = fileRepository.save(file);
+            log.info("Linked file {} to {} {}", saved.getId(), entityType, entityId);
+            return saved.getId();
+        });
     }
 
     private boolean isVideoFolder(String folder) {

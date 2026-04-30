@@ -18,17 +18,31 @@ public interface FileAttachmentJpaRepository extends JpaRepository<FileAttachmen
     Optional<FileAttachmentJpaEntity> findByFileName(String fileName);
 
     /**
-     * Find true orphan attachments — entity_id NULL and old enough to be eligible for cleanup.
+     * Find true orphan attachments — old enough to be eligible for cleanup AND not referenced
+     * by any consumer entity FK column.
      *
-     * Records tagged with {@code entity_type = 'PENDING_LINK_REVIEW'} are explicitly excluded
-     * via the {@code entity_id IS NULL} predicate (the tactical backfill sets entity_id to the
-     * uploader id alongside the sentinel type, so they no longer match here).
-     * This is defensive: even if a future change repopulates entity_id back to NULL on those
-     * rows, the additional {@code entity_type} filter below keeps them protected.
+     * The query is REFERENTIAL rather than date-based: it explicitly checks every consumer
+     * column ({@code courses.thumbnail_attachment_id}, {@code courses.intro_video_attachment_id},
+     * {@code users.avatar_attachment_id}, {@code assignment_submissions.file_attachment_id},
+     * {@code video_assets.source_attachment_id}) so a file in active use cannot be deleted
+     * even if its {@code entity_id} got accidentally cleared. PostgreSQL ON DELETE RESTRICT
+     * adds a second physical safety layer at the table level.
+     *
+     * Records tagged with {@code entity_type = 'PENDING_LINK_REVIEW'} are excluded as a
+     * legacy safeguard from the V129 tactical backfill — they will be reviewed manually
+     * before deletion. The age cutoff caps how aggressively cleanup runs.
      */
-    @Query("SELECT f FROM FileAttachmentJpaEntity f " +
-           "WHERE f.entityId IS NULL " +
-           "AND (f.entityType IS NULL OR f.entityType <> 'PENDING_LINK_REVIEW') " +
-           "AND f.uploadedAt < :cutoff")
+    @Query(value = """
+        SELECT * FROM file_attachments f
+        WHERE f.uploaded_at < :cutoff
+          AND (f.entity_type IS NULL OR f.entity_type <> 'PENDING_LINK_REVIEW')
+          AND f.deleted_at IS NULL
+          AND NOT EXISTS (SELECT 1 FROM courses c                WHERE c.thumbnail_attachment_id   = f.id)
+          AND NOT EXISTS (SELECT 1 FROM courses c                WHERE c.intro_video_attachment_id = f.id)
+          AND NOT EXISTS (SELECT 1 FROM users u                  WHERE u.avatar_attachment_id      = f.id)
+          AND NOT EXISTS (SELECT 1 FROM assignment_submissions s WHERE s.file_attachment_id        = f.id)
+          AND NOT EXISTS (SELECT 1 FROM video_assets v           WHERE v.source_attachment_id      = f.id)
+        """,
+        nativeQuery = true)
     List<FileAttachmentJpaEntity> findOrphanedBefore(@Param("cutoff") Instant cutoff);
 }

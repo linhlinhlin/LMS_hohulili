@@ -33,6 +33,8 @@ public class Course extends AggregateRoot {
     private String introVideoUrl;
     private UUID introVideoAssetId;
     private String thumbnailUrl;
+    private UUID thumbnailAttachmentId;
+    private UUID introVideoAttachmentId;
     private Integer credits;
     private Visibility visibility = Visibility.PUBLIC;
     private PriceType priceType = PriceType.FREE;
@@ -112,6 +114,20 @@ public class Course extends AggregateRoot {
         ensureEditable();
         this.thumbnailUrl = thumbnailUrl; // No validation for now
         markDraftChanged();
+    }
+
+    /**
+     * Set FK to file_attachments(id) for the thumbnail.
+     * Called by use case after {@code linkFileByUrl} resolves the matching upload record.
+     * The FK ON DELETE RESTRICT prevents the cleanup scheduler from removing a still-referenced file.
+     */
+    public void setThumbnailAttachmentId(UUID attachmentId) {
+        this.thumbnailAttachmentId = attachmentId;
+    }
+
+    /** See {@link #setThumbnailAttachmentId}. */
+    public void setIntroVideoAttachmentId(UUID attachmentId) {
+        this.introVideoAttachmentId = attachmentId;
     }
 
     /**
@@ -474,6 +490,8 @@ public class Course extends AggregateRoot {
     public String getIntroVideoUrl() { return introVideoUrl; }
     public UUID getIntroVideoAssetId() { return introVideoAssetId; }
     public String getThumbnailUrl() { return thumbnailUrl; }
+    public UUID getThumbnailAttachmentId() { return thumbnailAttachmentId; }
+    public UUID getIntroVideoAttachmentId() { return introVideoAttachmentId; }
     public Integer getCredits() { return credits; }
     public Visibility getVisibility() { return visibility; }
     public PriceType getPriceType() { return priceType; }

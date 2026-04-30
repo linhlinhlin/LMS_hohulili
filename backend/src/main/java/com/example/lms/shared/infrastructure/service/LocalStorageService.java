@@ -14,13 +14,18 @@ import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
 /**
- * Local filesystem storage service for dev environment.
- * Activates when Cloudflare R2 is disabled (default).
- * Files are stored in uploads/{folder}/{uuid}.{ext} and served via WebConfig.
+ * Local filesystem storage service — DEV ONLY.
+ *
+ * SOTA hardening (Phase 6+7): activated only when {@code cloudflare.r2.enabled=false}
+ * is EXPLICIT (no longer {@code matchIfMissing=true}). A production env that forgot to
+ * set the R2 credentials will now fail fast at boot with "no storage service configured"
+ * instead of silently falling back to ephemeral container disk.
+ *
+ * Files are stored in {@code uploads/{folder}/{uuid}.{ext}} and served via WebConfig.
  */
 @Service
 @Slf4j
-@ConditionalOnProperty(name = "cloudflare.r2.enabled", havingValue = "false", matchIfMissing = true)
+@ConditionalOnProperty(name = "cloudflare.r2.enabled", havingValue = "false")
 public class LocalStorageService {
 
     @Value("${app.storage.local.base-path:uploads}")

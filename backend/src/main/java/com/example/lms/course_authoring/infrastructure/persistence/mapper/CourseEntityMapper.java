@@ -41,6 +41,8 @@ public class CourseEntityMapper {
         entity.setPrice(domain.getPrice());
         entity.setSalePrice(domain.getSalePrice());
         entity.setThumbnailUrl(domain.getThumbnailUrl());
+        entity.setThumbnailAttachmentId(domain.getThumbnailAttachmentId());
+        entity.setIntroVideoAttachmentId(domain.getIntroVideoAttachmentId());
         entity.setDeliveryMode(mapDeliveryModeToEntity(domain.getDeliveryMode()));
         entity.setAllowOfflineDownload(domain.isAllowOfflineDownload());
         entity.setContentVersion(domain.getContentVersion());
@@ -144,6 +146,8 @@ public class CourseEntityMapper {
             setField(course, "price", entity.getPrice());
             setField(course, "salePrice", entity.getSalePrice());
             setField(course, "thumbnailUrl", entity.getThumbnailUrl());
+            setField(course, "thumbnailAttachmentId", entity.getThumbnailAttachmentId());
+            setField(course, "introVideoAttachmentId", entity.getIntroVideoAttachmentId());
             setField(course, "deliveryMode", mapDeliveryModeToDomain(entity.getDeliveryMode()));
             setField(course, "allowOfflineDownload", entity.isAllowOfflineDownload());
             setField(course, "contentVersion", entity.getContentVersion());

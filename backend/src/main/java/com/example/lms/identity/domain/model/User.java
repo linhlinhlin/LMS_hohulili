@@ -23,6 +23,7 @@ public class User {
     private UUID organizationId;
     private Integer tokenExpiryDays;
     private String avatarUrl;
+    private UUID avatarAttachmentId;
     private Instant createdAt;
     private Instant updatedAt;
     private boolean mustChangePassword;
@@ -71,6 +72,15 @@ public class User {
 
     public void updateAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
+        this.updatedAt = Instant.now();
+    }
+
+    /**
+     * Set FK to file_attachments(id) for the avatar.
+     * FK ON DELETE RESTRICT prevents the cleanup scheduler from removing a still-referenced file.
+     */
+    public void setAvatarAttachmentId(UUID attachmentId) {
+        this.avatarAttachmentId = attachmentId;
         this.updatedAt = Instant.now();
     }
     
@@ -131,6 +141,7 @@ public class User {
     public UUID getOrganizationId() { return organizationId; }
     public Integer getTokenExpiryDays() { return tokenExpiryDays; }
     public String getAvatarUrl() { return avatarUrl; }
+    public UUID getAvatarAttachmentId() { return avatarAttachmentId; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public boolean isMustChangePassword() { return mustChangePassword; }
@@ -169,6 +180,7 @@ public class User {
         private UUID organizationId;
         private Integer tokenExpiryDays;
         private String avatarUrl;
+        private UUID avatarAttachmentId;
         private Instant createdAt;
         private Instant updatedAt;
         private boolean mustChangePassword;
@@ -183,6 +195,7 @@ public class User {
         public Builder organizationId(UUID organizationId) { this.organizationId = organizationId; return this; }
         public Builder tokenExpiryDays(Integer tokenExpiryDays) { this.tokenExpiryDays = tokenExpiryDays; return this; }
         public Builder avatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; return this; }
+        public Builder avatarAttachmentId(UUID avatarAttachmentId) { this.avatarAttachmentId = avatarAttachmentId; return this; }
         public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
         public Builder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
         public Builder mustChangePassword(boolean mustChangePassword) { this.mustChangePassword = mustChangePassword; return this; }
@@ -191,6 +204,7 @@ public class User {
             User user = new User(id, username, email, password, fullName, role, enabled, organizationId, createdAt, updatedAt);
             user.tokenExpiryDays = this.tokenExpiryDays;
             user.avatarUrl = this.avatarUrl;
+            user.avatarAttachmentId = this.avatarAttachmentId;
             user.mustChangePassword = this.mustChangePassword;
             return user;
         }
