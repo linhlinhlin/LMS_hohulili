@@ -97,6 +97,27 @@ if [ "$JWT_SECRET_VALUE" = "CHANGE_ME_256_BIT_SECRET" ] || [ -z "$JWT_SECRET_VAL
   exit 1
 fi
 
+# SOTA storage guard: production MUST use R2. LocalStorage fallback is dev-only.
+# After the V129 migration LocalStorageService no longer matchIfMissing=true, so
+# launching backend without these credentials will hard-fail at boot. Catch it
+# here before image rebuild + container restart wastes time.
+if [ "$CLOUDFLARE_R2_ENABLED_VALUE" != "true" ]; then
+  echo "ERROR: CLOUDFLARE_R2_ENABLED must be 'true' in production."
+  echo "  Local filesystem storage is dev-only. Production requires Cloudflare R2."
+  echo "  See docs/runbooks/R2_STORAGE_RUNBOOK.md (Phase 6+7)."
+  exit 1
+fi
+if [ -z "$CLOUDFLARE_R2_ACCOUNT_ID_VALUE" ] || [ -z "$CLOUDFLARE_R2_ACCESS_KEY_VALUE" ] || [ -z "$CLOUDFLARE_R2_SECRET_KEY_VALUE" ]; then
+  echo "ERROR: CLOUDFLARE_R2_ENABLED=true but one or more R2 credentials are missing."
+  echo "  Required: CLOUDFLARE_R2_ACCOUNT_ID, CLOUDFLARE_R2_ACCESS_KEY, CLOUDFLARE_R2_SECRET_KEY."
+  exit 1
+fi
+if [ -z "$CLOUDFLARE_R2_BUCKET_VALUE" ] || [ -z "$CLOUDFLARE_R2_VIDEO_BUCKET_VALUE" ] || [ -z "$CLOUDFLARE_R2_PUBLIC_URL_VALUE" ]; then
+  echo "ERROR: R2 buckets / public URL not configured."
+  echo "  Required: CLOUDFLARE_R2_BUCKET, CLOUDFLARE_R2_VIDEO_BUCKET, CLOUDFLARE_R2_PUBLIC_URL."
+  exit 1
+fi
+
 if [ "$WIII_WEBHOOK_ENABLED_VALUE" = "true" ]; then
   if [ -z "$WIII_WEBHOOK_URL_VALUE" ] || [ -z "$WIII_WEBHOOK_SECRET_VALUE" ] || [ -z "$WIII_SERVICE_TOKEN_VALUE" ] || [ -z "$WIII_TOKEN_EXCHANGE_URL_VALUE" ]; then
     echo "ERROR: WIII_WEBHOOK_ENABLED=true but one or more Wiii variables are missing."
