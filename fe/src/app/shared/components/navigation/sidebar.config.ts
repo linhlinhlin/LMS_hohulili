@@ -252,6 +252,12 @@ const allAdminMenuItems: SidebarMenuItem[] = [
     route: '/admin/offline-storage',
     icon: 'download',
     group: 'Hệ thống'
+  },
+  {
+    label: 'Quản lý Storage',
+    route: '/admin/storage',
+    icon: 'folder',
+    group: 'Hệ thống'
   }
 ];
 
