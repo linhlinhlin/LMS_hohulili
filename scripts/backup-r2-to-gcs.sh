@@ -60,12 +60,12 @@ acl = private
 [gcs]
 type = google cloud storage
 project_number = the-wiii-lab
-service_account_file = /etc/gcs-backup-sa.json
+service_account_file = $HOME/.gcs-backup-sa.json
 location = asia-southeast1
 storage_class = STANDARD
 EOF
   chmod 600 "$RCLONE_CONFIG"
-  log "rclone config written. Provide /etc/gcs-backup-sa.json (service account JSON)"
+  log "rclone config written. Provide $HOME/.gcs-backup-sa.json (service account JSON)"
 }
 
 run_backup() {
