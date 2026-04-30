@@ -34,6 +34,13 @@ export class WatchedSegmentsTracker implements OnDestroy {
 
   startTracking(lessonId: string, sectionId: string, duration: number, completionThreshold?: number): void {
     this.stopTracking();
+    // Reject Infinity/NaN/<=0: a dynamic-MPD live stream reports
+    // video.duration = Infinity, and Math.ceil(Infinity) = Infinity, which
+    // serializes to JSON null and trips backend `@Positive int` → 400.
+    // If we don't have a real duration, we can't track watched percent anyway.
+    if (!Number.isFinite(duration) || duration <= 0) {
+      return;
+    }
     this.currentConfig = { lessonId, sectionId, duration: Math.ceil(duration), completionThreshold };
     this.segments.clear();
     this.lastSyncedSegments.clear();

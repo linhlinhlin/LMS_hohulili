@@ -59,6 +59,13 @@ public class ShakaPackagerService {
             command.add("hls/master.m3u8");
             command.add("--mpd_output");
             command.add("dash/manifest.mpd");
+            // Force static MPD for VOD content. Without this, Shaka Packager v3.4+
+            // emits `type="dynamic"` with `minimumUpdatePeriod` for live-profile MPDs
+            // even when content is finite. Players (Shaka, dash.js) then treat it as
+            // live: video.duration → Infinity, current time keeps advancing past
+            // EOF, and the watched-segments tracker sends Infinity → JSON null →
+            // backend `@Positive int` validation rejects with 400 (issue 2026-04-30).
+            command.add("--generate_static_live_mpd");
 
             runCommand(command, outputDir);
 
