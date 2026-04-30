@@ -5,6 +5,7 @@ import com.example.lms.course_authoring.application.dto.CourseResponse;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
 import com.example.lms.learning_delivery.domain.repository.EnrollmentRepositoryPort;
+import com.example.lms.shared.application.port.FileManagementPort;
 import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.exception.EntityNotFoundException;
 import com.example.lms.shared.exception.UnauthorizedException;
@@ -22,6 +23,7 @@ public class UpdateCourseUseCase {
     private final CourseRepository courseRepository;
     private final EnrollmentRepositoryPort enrollmentRepository;
     private final CourseDraftMutationUseCase courseDraftMutationUseCase;
+    private final FileManagementPort fileManagementPort;
 
     @Transactional
     public CourseResponse execute(UpdateCourseCommand command) {
@@ -112,6 +114,15 @@ public class UpdateCourseUseCase {
 
         // Save course
         course = courseRepository.save(course);
+
+        // Link uploaded files to this course so cleanup scheduler doesn't treat them as orphans.
+        // No-op for external URLs (e.g. YouTube intro video) — port silently skips when no file_attachment matches.
+        if (command.thumbnailUrl() != null) {
+            fileManagementPort.linkFileByUrl(command.thumbnailUrl(), course.getId(), "COURSE");
+        }
+        if (command.introVideoUrl() != null) {
+            fileManagementPort.linkFileByUrl(command.introVideoUrl(), course.getId(), "COURSE");
+        }
 
         return CourseResponse.from(course);
     }

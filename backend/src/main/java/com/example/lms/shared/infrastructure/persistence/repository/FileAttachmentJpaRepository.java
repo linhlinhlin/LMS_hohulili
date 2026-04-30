@@ -17,6 +17,18 @@ public interface FileAttachmentJpaRepository extends JpaRepository<FileAttachmen
 
     Optional<FileAttachmentJpaEntity> findByFileName(String fileName);
 
-    @Query("SELECT f FROM FileAttachmentJpaEntity f WHERE f.entityId IS NULL AND f.uploadedAt < :cutoff")
+    /**
+     * Find true orphan attachments — entity_id NULL and old enough to be eligible for cleanup.
+     *
+     * Records tagged with {@code entity_type = 'PENDING_LINK_REVIEW'} are explicitly excluded
+     * via the {@code entity_id IS NULL} predicate (the tactical backfill sets entity_id to the
+     * uploader id alongside the sentinel type, so they no longer match here).
+     * This is defensive: even if a future change repopulates entity_id back to NULL on those
+     * rows, the additional {@code entity_type} filter below keeps them protected.
+     */
+    @Query("SELECT f FROM FileAttachmentJpaEntity f " +
+           "WHERE f.entityId IS NULL " +
+           "AND (f.entityType IS NULL OR f.entityType <> 'PENDING_LINK_REVIEW') " +
+           "AND f.uploadedAt < :cutoff")
     List<FileAttachmentJpaEntity> findOrphanedBefore(@Param("cutoff") Instant cutoff);
 }

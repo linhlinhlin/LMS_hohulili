@@ -5,6 +5,7 @@ import com.example.lms.shared.infrastructure.persistence.repository.FileAttachme
 import com.example.lms.shared.infrastructure.persistence.repository.UploadSessionJpaRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,22 @@ public class UploadCleanupScheduler {
     private final java.util.Optional<R2StorageService> r2StorageService;
     private final java.util.Optional<R2VideoStorageService> r2VideoStorageService;
     private final java.util.Optional<LocalStorageService> localStorageService;
+
+    /**
+     * Operations toggle for orphan attachment cleanup. Default true to preserve dev behaviour.
+     * In production, set {@code APP_CLEANUP_ORPHAN_ATTACHMENTS_ENABLED=false} as a kill switch
+     * if the cleanup query is suspected of deleting referenced files.
+     */
+    @Value("${app.cleanup.orphan-attachments.enabled:true}")
+    private boolean orphanCleanupEnabled;
+
+    /**
+     * Retention window for orphan attachments before they are eligible for deletion.
+     * Increased from the legacy 7 days to 30 days to give downstream entity-link flows
+     * sufficient time to mark attachments as referenced.
+     */
+    @Value("${app.cleanup.orphan-attachments.retention-days:30}")
+    private int orphanRetentionDays;
 
     @Autowired
     public UploadCleanupScheduler(
@@ -67,15 +84,40 @@ public class UploadCleanupScheduler {
     }
 
     /**
-     * Daily 3AM: clean orphaned file_attachments where entityId IS NULL and age > 7 days.
+     * Daily 3AM: clean orphaned file_attachments where entity_id IS NULL and age > retention window.
+     *
+     * Defense in depth — three layers:
+     *   1. {@code orphanCleanupEnabled} env kill-switch.
+     *   2. Retention window default 30 days (was 7 — too aggressive).
+     *   3. Repository query excludes the {@code PENDING_LINK_REVIEW} sentinel which protects
+     *      attachments that are awaiting proper entity linkage (set by tactical SQL backfill
+     *      when the original entity-link bug was discovered).
+     *
+     * Each candidate is logged BEFORE deletion so the action can be audited / reverted from logs.
      */
     @Scheduled(cron = "0 0 3 * * *")
     @Transactional
     public void cleanOrphanedAttachments() {
-        Instant cutoff = Instant.now().minus(7, ChronoUnit.DAYS);
+        if (!orphanCleanupEnabled) {
+            log.info("[Cleanup] Orphan attachment cleanup disabled via app.cleanup.orphan-attachments.enabled=false");
+            return;
+        }
+
+        Instant cutoff = Instant.now().minus(orphanRetentionDays, ChronoUnit.DAYS);
         var orphans = fileAttachmentRepository.findOrphanedBefore(cutoff);
 
-        if (orphans.isEmpty()) return;
+        if (orphans.isEmpty()) {
+            log.info("[Cleanup] No orphaned attachments older than {} days", orphanRetentionDays);
+            return;
+        }
+
+        log.warn("[Cleanup] About to delete {} orphan attachments (cutoff={}). Listing each for audit:",
+                orphans.size(), cutoff);
+        for (var a : orphans) {
+            log.warn("[Cleanup]   - id={} category={} fileName={} url={} uploadedBy={} uploadedAt={}",
+                    a.getId(), a.getFileCategory(), a.getFileName(), a.getFileUrl(),
+                    a.getUploadedBy(), a.getUploadedAt());
+        }
 
         int count = 0;
         for (var attachment : orphans) {

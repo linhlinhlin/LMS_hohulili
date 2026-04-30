@@ -10,6 +10,7 @@ import com.example.lms.assessment.infrastructure.persistence.repository.Assignme
 import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentJpaRepository;
 import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentSubmissionJpaRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
+import com.example.lms.shared.application.port.FileManagementPort;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -41,6 +42,7 @@ public class StudentAssignmentControllerV3 {
     private final AssignmentSubmissionJpaRepository submissionRepository;
     private final AssignmentJpaRepository assignmentRepository;
     private final AssignmentAttachmentJpaRepository attachmentRepository;
+    private final FileManagementPort fileManagementPort;
 
     @Operation(summary = "Danh sach bai tap cua hoc vien")
     @GetMapping
@@ -149,9 +151,16 @@ public class StudentAssignmentControllerV3 {
                         .fileType(att.mimeType())
                         .uploadedBy(user.getId())
                         .build());
+                // Link each attachment so cleanup scheduler doesn't delete it.
+                fileManagementPort.linkFileByUrl(att.fileUrl(), submission.getId(), "SUBMISSION");
             }
             log.info("Saved {} attachments for submission {} (assignment {})",
                     request.attachments().size(), submission.getId(), id);
+        }
+
+        // Also link the primary file (legacy single-file submission flow).
+        if (primaryFileUrl != null) {
+            fileManagementPort.linkFileByUrl(primaryFileUrl, submission.getId(), "SUBMISSION");
         }
 
         return ResponseEntity.ok(ApiResponse.success(
