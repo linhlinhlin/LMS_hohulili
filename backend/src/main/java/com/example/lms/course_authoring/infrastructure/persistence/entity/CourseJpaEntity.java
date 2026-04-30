@@ -122,6 +122,12 @@ public class CourseJpaEntity {
     @Column(name = "thumbnail_url", length = 500)
     private String thumbnailUrl;
 
+    @Column(name = "thumbnail_attachment_id")
+    private UUID thumbnailAttachmentId;
+
+    @Column(name = "intro_video_attachment_id")
+    private UUID introVideoAttachmentId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "delivery_mode", nullable = false)
     private DeliveryMode deliveryMode = DeliveryMode.SELF_PACED;
@@ -193,6 +199,10 @@ public class CourseJpaEntity {
     public void setSalePrice(BigDecimal salePrice) { this.salePrice = salePrice; }
     public String getThumbnailUrl() { return thumbnailUrl; }
     public void setThumbnailUrl(String thumbnailUrl) { this.thumbnailUrl = thumbnailUrl; }
+    public UUID getThumbnailAttachmentId() { return thumbnailAttachmentId; }
+    public void setThumbnailAttachmentId(UUID thumbnailAttachmentId) { this.thumbnailAttachmentId = thumbnailAttachmentId; }
+    public UUID getIntroVideoAttachmentId() { return introVideoAttachmentId; }
+    public void setIntroVideoAttachmentId(UUID introVideoAttachmentId) { this.introVideoAttachmentId = introVideoAttachmentId; }
     public DeliveryMode getDeliveryMode() { return deliveryMode; }
     public void setDeliveryMode(DeliveryMode deliveryMode) { this.deliveryMode = deliveryMode; }
     public boolean isAllowOfflineDownload() { return allowOfflineDownload; }

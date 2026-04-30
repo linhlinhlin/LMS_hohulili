@@ -151,16 +151,22 @@ public class StudentAssignmentControllerV3 {
                         .fileType(att.mimeType())
                         .uploadedBy(user.getId())
                         .build());
-                // Link each attachment so cleanup scheduler doesn't delete it.
+                // Link each attachment. We don't persist their FK on the parent submission
+                // (only one file_attachment_id column), but the link prevents orphan cleanup.
                 fileManagementPort.linkFileByUrl(att.fileUrl(), submission.getId(), "SUBMISSION");
             }
             log.info("Saved {} attachments for submission {} (assignment {})",
                     request.attachments().size(), submission.getId(), id);
         }
 
-        // Also link the primary file (legacy single-file submission flow).
+        // Link the primary file and persist the FK on the submission row so the cleanup
+        // scheduler's referential check + Postgres ON DELETE RESTRICT both protect it.
         if (primaryFileUrl != null) {
-            fileManagementPort.linkFileByUrl(primaryFileUrl, submission.getId(), "SUBMISSION");
+            var matched = fileManagementPort.linkFileByUrl(primaryFileUrl, submission.getId(), "SUBMISSION");
+            if (matched.isPresent()) {
+                submission.setFileAttachmentId(matched.get());
+                submissionRepository.save(submission);
+            }
         }
 
         return ResponseEntity.ok(ApiResponse.success(

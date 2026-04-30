@@ -107,6 +107,9 @@ public class UserJpaEntity implements UserDetails {
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
 
+    @Column(name = "avatar_attachment_id")
+    private UUID avatarAttachmentId;
+
     @Column(name = "must_change_password", nullable = false)
     private boolean mustChangePassword = false;
 
@@ -167,6 +170,9 @@ public class UserJpaEntity implements UserDetails {
 
     public String getAvatarUrl() { return avatarUrl; }
     public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
+
+    public UUID getAvatarAttachmentId() { return avatarAttachmentId; }
+    public void setAvatarAttachmentId(UUID avatarAttachmentId) { this.avatarAttachmentId = avatarAttachmentId; }
 
     public boolean isMustChangePassword() { return mustChangePassword; }
     public void setMustChangePassword(boolean mustChangePassword) { this.mustChangePassword = mustChangePassword; }

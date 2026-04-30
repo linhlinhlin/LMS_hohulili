@@ -48,6 +48,9 @@ public class AssignmentSubmissionJpaEntity {
     @Column(name = "file_name")
     private String fileName;
 
+    @Column(name = "file_attachment_id")
+    private UUID fileAttachmentId;
+
     @Column
     private Double grade;
 
