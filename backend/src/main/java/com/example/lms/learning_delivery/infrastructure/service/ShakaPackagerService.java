@@ -71,6 +71,28 @@ public class ShakaPackagerService {
                     ))
                     .toList();
 
+            // Validate: every declared video input MUST have produced segments.
+            // Shaka Packager has been observed (2026-04-30) to exit 0 yet silently
+            // skip writing segments cho 1+ quality tier — manifest references those
+            // segments → student playback fails với 404. Fail fast at packaging
+            // stage instead of letting incomplete output reach R2 + DB mark READY.
+            for (PackagerInput input : inputs) {
+                String profileSlug = slugify(input.profile());
+                Path segmentDir = outputDir.resolve("segments").resolve(profileSlug);
+                long segmentCount = Files.walk(segmentDir)
+                        .filter(Files::isRegularFile)
+                        .filter(p -> p.toString().endsWith(".m4s"))
+                        .count();
+                if (segmentCount == 0) {
+                    throw new IOException("Shaka Packager produced 0 segments for profile '"
+                            + input.profile() + "' (input=" + input.sourcePath().getFileName()
+                            + "). Output dir tree dump: "
+                            + packagedFiles.stream()
+                                .map(PackagedFile::relativePath)
+                                .toList());
+                }
+            }
+
             return new PackageOutput(
                     outputDir,
                     "hls/master.m3u8",
@@ -117,9 +139,13 @@ public class ShakaPackagerService {
         boolean finished = process.waitFor(PROCESS_TIMEOUT_MINUTES, java.util.concurrent.TimeUnit.MINUTES);
         if (!finished) {
             process.destroyForcibly();
-            throw new IOException("Shaka Packager timed out after " + PROCESS_TIMEOUT_MINUTES + " minutes");
+            throw new IOException("Shaka Packager timed out after " + PROCESS_TIMEOUT_MINUTES + " minutes\nOutput:\n" + output);
         }
         int exitCode = process.exitValue();
+        // Always log packager output — even on exit 0. Shaka may print warnings about
+        // dropped streams (issue 2026-04-30: silent SAVER/STANDARD segment skip leading
+        // to 404 on student playback). Without this log we have zero visibility.
+        log.info("[VideoAsset] Shaka Packager exit={}, output:\n{}", exitCode, output);
         if (exitCode != 0) {
             throw new IOException("Shaka Packager failed (" + exitCode + "): " + output);
         }
