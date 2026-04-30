@@ -79,6 +79,19 @@
         "maxAge": "30d",
         "strategy": "performance"
       }
+    },
+    {
+      "name": "video-playback-bypass",
+      "_comment": "Defense-in-depth: explicit freshness + short timeout cho video-assets endpoints. Trước đây không match dataGroup nào (pass-through), nhưng add explicit để: (1) ensure NGSW không bao giờ cache responses (manifest có JWT expire), (2) tránh stale 5xx replay sau server-side fix. Issue 2026-04-30: 504 cached state blocked playback sau khi backend đã fix.",
+      "urls": [
+        "/api/v3/video-assets/**"
+      ],
+      "cacheConfig": {
+        "maxSize": 1,
+        "maxAge": "10s",
+        "strategy": "freshness",
+        "timeout": "2s"
+      }
     }
   ],
   "navigationUrls": [

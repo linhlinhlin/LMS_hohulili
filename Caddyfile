@@ -23,7 +23,14 @@ holilihu.online {
     handle @adaptivePlayback {
         import edge_response_headers
         reverse_proxy backend:8080 {
-            header_down Cache-Control "private, max-age=30"
+            # No caching for adaptive playback responses.
+            # 1) Manifests + segments contain JWT-signed URLs that expire (60s-4h).
+            # 2) Previous setting `private, max-age=30` cached 5xx errors at the
+            #    browser layer, so users hit stale 504/403 for 30s after the
+            #    server-side fix had already deployed (incident 2026-04-30).
+            # Trade-off: lose minor browser cache hit rate (segments rarely
+            #    re-fetched anyway), gain immediate recovery from transient errors.
+            header_down Cache-Control "no-store, must-revalidate"
             header_down -Pragma
             header_down -Expires
         }
