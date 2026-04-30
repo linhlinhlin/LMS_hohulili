@@ -4,6 +4,7 @@ import com.example.lms.identity.application.dto.UpdateProfileCommand;
 import com.example.lms.identity.application.dto.UserResponse;
 import com.example.lms.identity.domain.model.User;
 import com.example.lms.identity.domain.repository.UserRepository;
+import com.example.lms.shared.application.port.FileManagementPort;
 import com.example.lms.shared.domain.valueobject.Email;
 import com.example.lms.shared.domain.valueobject.UserId;
 import com.example.lms.shared.exception.EntityNotFoundException;
@@ -26,6 +27,7 @@ public class UpdateProfileUseCaseV2 {
 
     @Qualifier("newUserRepositoryAdapter")
     private final UserRepository userRepository;
+    private final FileManagementPort fileManagementPort;
 
     @Transactional
     public UserResponse execute(UUID userId, UpdateProfileCommand command) {
@@ -53,6 +55,12 @@ public class UpdateProfileUseCaseV2 {
 
         // Save updated user
         User updatedUser = userRepository.save(user);
+
+        // Link uploaded avatar so cleanup scheduler doesn't treat it as orphan.
+        // No-op for external avatars (Google profile picture etc.).
+        if (command.avatarUrl() != null) {
+            fileManagementPort.linkFileByUrl(command.avatarUrl(), userId, "USER");
+        }
 
         log.info("Profile updated successfully (V2) for user: {}", userId);
 
