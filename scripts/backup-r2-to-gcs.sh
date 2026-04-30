@@ -63,6 +63,7 @@ project_number = the-wiii-lab
 service_account_file = $HOME/.gcs-backup-sa.json
 location = asia-southeast1
 storage_class = STANDARD
+bucket_policy_only = true
 EOF
   chmod 600 "$RCLONE_CONFIG"
   log "rclone config written. Provide $HOME/.gcs-backup-sa.json (service account JSON)"
