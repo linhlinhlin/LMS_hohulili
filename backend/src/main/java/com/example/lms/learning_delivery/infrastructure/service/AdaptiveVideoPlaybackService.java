@@ -323,7 +323,14 @@ public class AdaptiveVideoPlaybackService {
     }
 
     private String urlEncode(String value) {
-        return URLEncoder.encode(value, StandardCharsets.UTF_8);
+        // Preserve `$` literal: DASH template variables ($Number$, $Time$, $Bandwidth$,
+        // $RepresentationID$, $SubNumber$ per ISO/IEC 23009-1 §5.3.9.4.4) must survive
+        // the manifest rewrite so the player can substitute them before issuing the
+        // request. Encoding `$` → `%24` makes Shaka/dash.js fail to recognize the
+        // template, send the request with literal `%24Number%24.m4s`, and R2 returns
+        // 404 (no such object). `$` is a sub-delim per RFC 3986 §2.2 and is legal
+        // unencoded in query strings, so this is spec-safe.
+        return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("%24", "$");
     }
 
     public record PlaybackSession(

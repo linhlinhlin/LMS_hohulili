@@ -173,6 +173,42 @@ class AdaptiveVideoPlaybackServiceTest {
     }
 
     @Test
+    @DisplayName("renderDashManifest preserves $Number$ template in /object?key= so player can substitute")
+    void renderDashManifestPreservesTemplateVariablesInObjectQuery() throws Exception {
+        // Regression: production bug 2026-04-30. `urlEncode` encoded $Number$ → %24Number%24
+        // so Shaka couldn't substitute → request URL had literal %24Number%24.m4s → R2 404.
+        // Backend has no media-domain edge auth → falls back to /object?key= path. That
+        // path is the one that broke; the media-domain path was already correct.
+        UUID assetId = UUID.randomUUID();
+        String token = "play-token";
+        String manifestKey = "video-packages/" + assetId + "/dash/manifest.mpd";
+
+        VideoAssetJpaEntity asset = VideoAssetJpaEntity.builder()
+                .id(assetId)
+                .status("READY")
+                .adaptivePackagingStatus("READY")
+                .dashManifestStorageKey(manifestKey)
+                .build();
+
+        when(videoAssetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(videoPlaybackTokenService.parseAndValidate(token)).thenReturn(
+                new VideoPlaybackTokenService.PlaybackClaims(assetId, UUID.randomUUID(), "dash")
+        );
+        when(adaptiveVideoPlaybackCacheService.readManifest(manifestKey)).thenReturn("""
+                <MPD>
+                  <Representation initialization="segments/saver/init.mp4" media="segments/saver/$Number$.m4s" />
+                </MPD>
+                """);
+
+        String rewritten = service.renderDashManifest(assetId, token);
+
+        assertThat(rewritten)
+                .contains("/object?key=")
+                .contains("$Number$.m4s")
+                .doesNotContain("%24Number%24");
+    }
+
+    @Test
     @DisplayName("resolveObjectRedirect returns a short-lived signed storage URL")
     void resolveObjectRedirectUsesVideoStorageReadUrl() {
         UUID assetId = UUID.randomUUID();
