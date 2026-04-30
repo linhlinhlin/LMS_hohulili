@@ -154,6 +154,12 @@ export const adminRoutes: Routes = [
         canActivate: [systemAdminGuard],
         title: 'Giám sát bộ nhớ ngoại tuyến'
       },
+      {
+        path: 'storage',
+        loadComponent: () => import('./presentation/components/admin-storage.component').then(m => m.AdminStorageComponent),
+        canActivate: [systemAdminGuard],
+        title: 'Quản lý Storage (R2)'
+      },
 
       // Profile — reuse shared profile component
       {

@@ -1,0 +1,106 @@
+<div class="storage-page">
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">Quản lý Storage</h1>
+      <p class="page-subtitle">Cloudflare R2 — sức khỏe bucket, hàng đợi review file orphan</p>
+    </div>
+    <button type="button" class="refresh-btn" (click)="refresh()" [disabled]="loadingHealth()">
+      <span aria-hidden="true">↻</span>
+      <span>Làm mới</span>
+    </button>
+  </header>
+
+  @if (loadingHealth() && !health()) {
+    <div class="loading">Đang tải trạng thái storage…</div>
+  } @else if (health(); as h) {
+    <section class="kpi-strip" aria-label="Sức khỏe storage">
+      <app-kpi-card
+        label="R2 hoạt động"
+        [value]="bothBucketsReachable() ? 'BÌNH THƯỜNG' : 'CẢNH BÁO'"
+        [variant]="bothBucketsReachable() ? 'success' : 'error'"
+        [sub]="'Kiểm tra: ' + formatDate(h.checkedAt)" />
+
+      <app-kpi-card
+        label="Bucket công khai"
+        [value]="(h.publicBucket.objectCount ?? 0) | number"
+        [sub]="h.publicBucket.name + ' · ' + formatBytes(h.publicBucket.totalBytes) + (h.publicBucket.truncated ? '+' : '')"
+        [variant]="h.publicBucket.reachable ? 'default' : 'error'" />
+
+      <app-kpi-card
+        label="Bucket video riêng"
+        [value]="(h.videoBucket.objectCount ?? 0) | number"
+        [sub]="h.videoBucket.name + ' · ' + formatBytes(h.videoBucket.totalBytes) + (h.videoBucket.truncated ? '+' : '')"
+        [variant]="h.videoBucket.reachable ? 'default' : 'error'" />
+
+      <app-kpi-card
+        label="File chờ review"
+        [value]="(h.db.currentOrphans ?? 0) | number"
+        [sub]="(h.db.totalAttachments | number) + ' tổng file'"
+        [variant]="(h.db.currentOrphans ?? 0) > 0 ? 'warning' : 'default'" />
+    </section>
+
+    @if (h.publicBucket.error || h.videoBucket.error) {
+      <div class="alert alert-error" role="alert">
+        <strong>Có lỗi kết nối R2:</strong>
+        @if (h.publicBucket.error) { <div>· {{ h.publicBucket.name }}: {{ h.publicBucket.error }}</div> }
+        @if (h.videoBucket.error) { <div>· {{ h.videoBucket.name }}: {{ h.videoBucket.error }}</div> }
+      </div>
+    }
+  }
+
+  <section class="pending-section" aria-labelledby="pending-heading">
+    <header class="section-header">
+      <h2 id="pending-heading" class="section-title">Hàng đợi review thủ công</h2>
+      <span class="section-count">{{ pending().length }}</span>
+    </header>
+
+    <p class="section-help">
+      File chưa được liên kết với bài đăng nào (orphan). Xem lại trước khi release để cleanup
+      tự động xóa khỏi storage. <strong>Không thể hoàn tác sau khi release.</strong>
+    </p>
+
+    @if (loadingPending()) {
+      <div class="loading">Đang tải…</div>
+    } @else if (pending().length === 0) {
+      <div class="empty-state">
+        <p>Không có file nào trong hàng đợi review.</p>
+      </div>
+    } @else {
+      <div class="table-wrapper">
+        <table class="pending-table">
+          <thead>
+            <tr>
+              <th scope="col">Tên file</th>
+              <th scope="col">Loại</th>
+              <th scope="col">Kích thước</th>
+              <th scope="col">Tải lên</th>
+              <th scope="col" class="action-col">Hành động</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of pending(); track item.id) {
+              <tr>
+                <td class="filename">
+                  <a [href]="item.fileUrl" target="_blank" rel="noopener">{{ item.originalName }}</a>
+                  <div class="filename-sub">{{ item.fileName }}</div>
+                </td>
+                <td><span class="category-badge">{{ item.category }}</span></td>
+                <td>{{ formatBytes(item.size) }}</td>
+                <td class="muted">{{ formatDate(item.uploadedAt) }}</td>
+                <td class="action-col">
+                  <button
+                    type="button"
+                    class="release-btn"
+                    [disabled]="releasingId() === item.id"
+                    (click)="release(item)">
+                    {{ releasingId() === item.id ? 'Đang xử lý…' : 'Release' }}
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</div>
