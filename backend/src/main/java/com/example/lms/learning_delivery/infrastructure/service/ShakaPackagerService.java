@@ -62,34 +62,43 @@ public class ShakaPackagerService {
 
             runCommand(command, outputDir);
 
-            List<PackagedFile> packagedFiles = Files.walk(outputDir)
-                    .filter(Files::isRegularFile)
-                    .sorted()
-                    .map(path -> new PackagedFile(
-                            outputDir.relativize(path).toString().replace('\\', '/'),
-                            path
-                    ))
-                    .toList();
+            List<PackagedFile> packagedFiles;
+            try (var stream = Files.walk(outputDir)) {
+                packagedFiles = stream
+                        .filter(Files::isRegularFile)
+                        .sorted()
+                        .map(path -> new PackagedFile(
+                                outputDir.relativize(path).toString().replace('\\', '/'),
+                                path
+                        ))
+                        .toList();
+            }
 
-            // Validate: every declared video input MUST have produced segments.
+            // Defensive logging — trước fail-fast ta dump toàn bộ tree để biết Shaka thực sự ghi gì.
+            log.info("[VideoAsset] Shaka local output tree ({} files): {}",
+                    packagedFiles.size(),
+                    packagedFiles.stream().map(PackagedFile::relativePath).toList());
+
+            // Validate: every declared video input MUST have produced segments + init.mp4.
             // Shaka Packager has been observed (2026-04-30) to exit 0 yet silently
-            // skip writing segments cho 1+ quality tier — manifest references those
-            // segments → student playback fails với 404. Fail fast at packaging
-            // stage instead of letting incomplete output reach R2 + DB mark READY.
+            // skip writing segments cho 1+ quality tier. Without strict validation
+            // pipeline marks adaptive_packaging_status=READY → student playback fails.
             for (PackagerInput input : inputs) {
                 String profileSlug = slugify(input.profile());
                 Path segmentDir = outputDir.resolve("segments").resolve(profileSlug);
-                long segmentCount = Files.walk(segmentDir)
-                        .filter(Files::isRegularFile)
-                        .filter(p -> p.toString().endsWith(".m4s"))
-                        .count();
-                if (segmentCount == 0) {
-                    throw new IOException("Shaka Packager produced 0 segments for profile '"
-                            + input.profile() + "' (input=" + input.sourcePath().getFileName()
-                            + "). Output dir tree dump: "
-                            + packagedFiles.stream()
-                                .map(PackagedFile::relativePath)
-                                .toList());
+
+                long segmentCount;
+                long initCount;
+                try (var stream = Files.walk(segmentDir)) {
+                    var files = stream.filter(Files::isRegularFile).toList();
+                    segmentCount = files.stream().filter(p -> p.toString().endsWith(".m4s")).count();
+                    initCount = files.stream().filter(p -> p.toString().endsWith("init.mp4")).count();
+                }
+                if (segmentCount == 0 || initCount == 0) {
+                    throw new IOException("Shaka Packager incomplete output for profile '"
+                            + input.profile() + "': segments=" + segmentCount + ", init=" + initCount
+                            + " (input=" + input.sourcePath().getFileName()
+                            + "). Tree: " + packagedFiles.stream().map(PackagedFile::relativePath).toList());
                 }
             }
 
