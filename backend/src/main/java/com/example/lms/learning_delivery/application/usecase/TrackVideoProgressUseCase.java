@@ -5,8 +5,12 @@ import com.example.lms.learning_delivery.domain.model.VideoProgress;
 import com.example.lms.learning_delivery.domain.repository.LearningEventRepository;
 import com.example.lms.learning_delivery.domain.repository.VideoProgressRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
 import java.util.Map;
@@ -18,11 +22,37 @@ public class TrackVideoProgressUseCase {
 
     private final VideoProgressRepository videoProgressRepository;
     private final LearningEventRepository learningEventRepository;
+    private final PlatformTransactionManager transactionManager;
 
-    @Transactional
     public VideoProgressDTO trackSegments(UUID studentId, UUID lessonId, String sectionId,
                                            int durationSeconds, int fromSecond, int toSecond,
                                            double lastPosition, Double completionThreshold) {
+        // FE WatchedSegmentsTracker fires multiple parallel POSTs (one per
+        // contiguous range) for the same (student, section). The previous
+        // findByStudentAndSection→save flow was a Read-Modify-Write race:
+        // both requests see no row, both call create()+save(), the second
+        // INSERT trips the unique constraint (student_id, section_id) → 500.
+        //
+        // Retry on DataIntegrityViolationException with a fresh tx — the
+        // failed tx is poisoned (cannot reuse), and on retry the row exists
+        // so we take the UPDATE branch. TransactionTemplate (vs a self-call
+        // through @Transactional) avoids Spring's self-invocation gotcha
+        // where AOP doesn't apply to method calls within the same bean.
+        TransactionTemplate tx = new TransactionTemplate(transactionManager);
+        tx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+
+        try {
+            return tx.execute(status -> doTrackSegments(studentId, lessonId, sectionId,
+                    durationSeconds, fromSecond, toSecond, lastPosition, completionThreshold));
+        } catch (DataIntegrityViolationException duplicate) {
+            return tx.execute(status -> doTrackSegments(studentId, lessonId, sectionId,
+                    durationSeconds, fromSecond, toSecond, lastPosition, completionThreshold));
+        }
+    }
+
+    private VideoProgressDTO doTrackSegments(UUID studentId, UUID lessonId, String sectionId,
+                                              int durationSeconds, int fromSecond, int toSecond,
+                                              double lastPosition, Double completionThreshold) {
         VideoProgress vp = videoProgressRepository.findByStudentAndSection(studentId, sectionId)
                 .orElseGet(() -> VideoProgress.create(studentId, lessonId, sectionId, durationSeconds));
 
@@ -35,7 +65,6 @@ public class TrackVideoProgressUseCase {
 
         VideoProgress saved = videoProgressRepository.save(vp);
 
-        // Log completion event
         if (saved.isCompleted()) {
             learningEventRepository.save(LearningEvent.create(
                     studentId, lessonId, sectionId,
