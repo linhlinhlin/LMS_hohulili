@@ -280,7 +280,19 @@ export class QuizVideoPlayerComponent {
       this.isLoading.set(false);
     });
 
-    await player.load(manifestUrl);
+    try {
+      await player.load(manifestUrl);
+    } catch (hlsError) {
+      // Shaka HLS support occasionally trips on multivariant manifests with
+      // I-frame playlists; DASH is the canonical fallback from the same
+      // Shaka Packager output. Mirrors adaptive-video-player.component.ts.
+      const assetId = this.videoAssetId();
+      if (!assetId) throw hlsError;
+      const dashRes: any = await firstValueFrom(this.videoAssetApi.getPlayUrl(assetId, 'dash'));
+      const dashUrl = (dashRes?.data ?? dashRes)?.playUrl;
+      if (!dashUrl || dashUrl === manifestUrl) throw hlsError;
+      await player.load(dashUrl);
+    }
     this.shakaPlayer = player;
     this.syncQuality(player);
     this.isLoading.set(false);
