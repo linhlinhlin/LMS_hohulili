@@ -164,6 +164,7 @@ import { stripCurriculumPrefix } from '../../../../utils/curriculum-labels';
           [sections]="lesson().sections || []"
           [activeSectionId]="editorSvc.editingSectionId()"
           (createSection)="createSection.emit($event)"
+          (batchVideoUpload)="batchVideoUpload.emit()"
           (editSection)="editSection.emit($event)"
           (deleteSection)="deleteSection.emit($event)"
           (dropSection)="dropSection.emit($event)"
@@ -335,6 +336,7 @@ export class LessonEditorComponent {
   readonly backClicked = output<void>();
 
   readonly createSection = output<string>();
+  readonly batchVideoUpload = output<void>();
   readonly editSection = output<SectionDraftDTO>();
   readonly deleteSection = output<string>();
   readonly dropSection = output<CdkDragDrop<SectionDraftDTO[]>>();
