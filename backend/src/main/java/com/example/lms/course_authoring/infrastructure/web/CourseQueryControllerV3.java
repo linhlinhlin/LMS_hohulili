@@ -412,6 +412,17 @@ public class CourseQueryControllerV3 {
             @PathVariable UUID lessonId,
             @AuthenticationPrincipal UserJpaEntity currentUser
     ) {
+        // Authors (teacher owner, ADMIN, ORG_ADMIN) get the live draft so the
+        // /preview surface reflects unsaved-since-publish changes (e.g. new
+        // sections added in the editor). Students/learners get the published
+        // snapshot below. Without this branch, sidebar reads draft (N sections)
+        // but lesson detail returns published snapshot (older N-1 sections),
+        // and clicking the new section leaves currentSection() null → blank
+        // video frame (issue 2026-04-30: YouTube section invisible in preview).
+        if (shouldPreferDraftLessonView(lessonId, currentUser)) {
+            return loadDraftLessonDetail(lessonId, currentUser);
+        }
+
         try {
             LessonDetailResponse publishedLesson = getPublishedLessonDetail(lessonId, currentUser);
             if (publishedLesson != null) {
@@ -421,6 +432,31 @@ public class CourseQueryControllerV3 {
             // Published path failed — fall through to draft query
         }
 
+        return loadDraftLessonDetail(lessonId, currentUser);
+    }
+
+    private boolean shouldPreferDraftLessonView(UUID lessonId, UserJpaEntity currentUser) {
+        if (currentUser == null) {
+            return false;
+        }
+        if (isSystemAdminRole(currentUser) || isOrgAdminRole(currentUser)) {
+            return true;
+        }
+        if (currentUser.getRole() != UserJpaEntity.UserRole.TEACHER) {
+            return false;
+        }
+        // Teacher only sees draft for courses they own. Avoids leaking another
+        // teacher's unpublished work-in-progress.
+        return lessonRepository.findById(lessonId)
+                .flatMap(lesson -> chapterRepository.findById(lesson.getChapterId()))
+                .flatMap(chapter -> courseRepository.findById(chapter.getCourseId()))
+                .map(course -> course.getTeacherId() != null
+                        && course.getTeacherId().equals(currentUser.getId()))
+                .orElse(false);
+    }
+
+    private ResponseEntity<ApiResponse<LessonDetailResponse>> loadDraftLessonDetail(
+            UUID lessonId, UserJpaEntity currentUser) {
         // Query chain: Lesson -> Chapter -> Course (3 indexed queries, no nested loops)
         return lessonRepository.findById(lessonId)
                 .flatMap(lesson -> chapterRepository.findById(lesson.getChapterId())
