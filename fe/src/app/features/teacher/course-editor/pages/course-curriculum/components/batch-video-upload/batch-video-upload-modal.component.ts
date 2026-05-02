@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -32,7 +33,7 @@ import {
 @Component({
   selector: 'app-batch-video-upload-modal',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BatchUploadPreviewTreeComponent],
+  imports: [BatchUploadPreviewTreeComponent, NgTemplateOutlet],
   template: `
     @if (isOpen()) {
       <div

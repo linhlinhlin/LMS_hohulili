@@ -239,6 +239,7 @@ export class LectureSectionsPanelComponent {
   activeSectionId = input<string | null>(null);
 
   createSection = output<SectionEditorType>();
+  batchVideoUpload = output<void>();
   editSection = output<SectionDraftDTO>();
   deleteSection = output<string>();
   dropSection = output<CdkDragDrop<SectionDraftDTO[]>>();
