@@ -11,6 +11,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.SimpleTransactionStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +28,7 @@ class TrackVideoProgressUseCaseTest {
 
     @Mock private VideoProgressRepository videoProgressRepository;
     @Mock private LearningEventRepository learningEventRepository;
+    @Mock private PlatformTransactionManager transactionManager;
 
     private TrackVideoProgressUseCase useCase;
 
@@ -34,7 +38,13 @@ class TrackVideoProgressUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        useCase = new TrackVideoProgressUseCase(videoProgressRepository, learningEventRepository);
+        // TransactionTemplate calls getTransaction() / commit(), so stub them
+        // to behave like a no-op tx that always commits cleanly. Tests assert
+        // repository interactions, not tx semantics.
+        lenient().when(transactionManager.getTransaction(any()))
+                .thenReturn(new SimpleTransactionStatus());
+        useCase = new TrackVideoProgressUseCase(
+                videoProgressRepository, learningEventRepository, transactionManager);
     }
 
     @Test
@@ -51,6 +61,29 @@ class TrackVideoProgressUseCaseTest {
         assertThat(result.progressPercent()).isEqualTo(30.0);
         assertThat(result.completed()).isFalse();
         verify(videoProgressRepository).save(any());
+    }
+
+    @Test
+    @DisplayName("trackSegments retries with fresh tx after duplicate-key race (parallel POSTs)")
+    void trackSegmentsRetriesAfterDuplicateKeyRace() {
+        // Regression: production 2026-04-30. FE WatchedSegmentsTracker fires
+        // multiple parallel POSTs (one per range). Both see no row → both
+        // create()+save() → 2nd INSERT trips unique (student_id, section_id)
+        // → 500. Fix: retry with REQUIRES_NEW tx so the 2nd attempt sees the
+        // row inserted by the 1st and takes the UPDATE branch.
+        VideoProgress existing = VideoProgress.create(studentId, lessonId, sectionId, 100);
+        when(videoProgressRepository.findByStudentAndSection(studentId, sectionId))
+                .thenReturn(Optional.empty())              // 1st attempt: no row
+                .thenReturn(Optional.of(existing));        // 2nd attempt: row now exists
+        when(videoProgressRepository.save(any()))
+                .thenThrow(new DataIntegrityViolationException("dup key (student_id, section_id)"))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        var result = useCase.trackSegments(studentId, lessonId, sectionId, 100, 0, 30, 30.0, null);
+
+        assertThat(result.watchedSeconds()).isEqualTo(30);
+        verify(videoProgressRepository, times(2)).findByStudentAndSection(studentId, sectionId);
+        verify(videoProgressRepository, times(2)).save(any());
     }
 
     @Test
