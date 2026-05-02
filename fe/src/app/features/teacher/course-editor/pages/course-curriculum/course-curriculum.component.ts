@@ -34,6 +34,8 @@ import { ChapterEditorComponent } from './components/chapter-editor/chapter-edit
 import { LessonEditorComponent } from './components/lesson-editor/lesson-editor.component';
 import { CurriculumEditorService } from '../../services/curriculum-editor.service';
 import { QuizPackageModalsComponent } from './components/quiz-package-modals/quiz-package-modals.component';
+import { BatchVideoUploadModalComponent } from './components/batch-video-upload/batch-video-upload-modal.component';
+import type { BatchTargetLesson } from './components/batch-video-upload/batch-video-upload.types';
 import { buildCurriculumLabel, stripCurriculumPrefix } from '../../utils/curriculum-labels';
 
 type SectionQuizAssessmentType = 'PRACTICE' | 'ASSESSMENT' | 'EXAM';
@@ -48,7 +50,8 @@ type LessonComposerType = 'LECTURE' | 'QUIZ' | 'ASSIGNMENT';
     DragDropModule,
     ChapterEditorComponent,
     LessonEditorComponent,
-    QuizPackageModalsComponent
+    QuizPackageModalsComponent,
+    BatchVideoUploadModalComponent
   ],
   styleUrl: './course-curriculum.component.scss',
   providers: [],
@@ -133,6 +136,36 @@ export class CourseCurriculumComponent implements OnDestroy {
   // Selection signals
   selectedChapterId = this.selectionService.selectedChapterId;
   selectedLessonId = this.selectionService.selectedLessonId;
+
+  /** Batch video upload modal state — modal singleton, service holds upload state across open/close. */
+  isBatchUploadModalOpen = signal(false);
+
+  /** Flatten course tree → list lessons with chapter context cho batch modal scope filter. */
+  batchUploadAvailableLessons = computed<BatchTargetLesson[]>(() => {
+    const tree = this.store.courseTree();
+    if (!tree) return [];
+    const result: BatchTargetLesson[] = [];
+    for (const ch of tree.chapters) {
+      for (const l of ch.lessons) {
+        result.push({
+          id: l.id,
+          chapterId: ch.id,
+          title: stripCurriculumPrefix(l.title || '', 'lesson') || l.title || '',
+          orderIndex: l.orderIndex ?? 0,
+          existingSectionCount: (l.sections ?? []).length,
+        });
+      }
+    }
+    return result;
+  });
+
+  openBatchVideoUploadModal(): void {
+    this.isBatchUploadModalOpen.set(true);
+  }
+
+  closeBatchVideoUploadModal(): void {
+    this.isBatchUploadModalOpen.set(false);
+  }
   selectedLesson = this.selectionService.selectedLesson;
   selectedSectionId = this.selectionService.selectedSectionId; // [NEW]
   selectedSection = this.selectionService.selectedSection; // [NEW]

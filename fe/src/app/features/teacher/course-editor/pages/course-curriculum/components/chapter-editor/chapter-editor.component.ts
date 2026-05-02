@@ -69,12 +69,20 @@ type LessonComposerType = 'LECTURE' | 'QUIZ' | 'ASSIGNMENT';
         <div style="display: flex; justify-content: space-between; align-items: center">
           <label class="editor-label">Bài học ({{ lessons().length }})</label>
           @if (lessons().length > 0 && !showLessonComposer()) {
-            <button type="button" (click)="addLesson.emit()" class="add-lesson-header-btn">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-              </svg>
-              Thêm bài học
-            </button>
+            <div style="display: flex; gap: 0.5rem; align-items: center">
+              <button type="button" (click)="batchVideoUpload.emit()" class="add-lesson-header-btn" title="Upload nhiều video, tự động chia vào các bài">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+                Upload nhiều video
+              </button>
+              <button type="button" (click)="addLesson.emit()" class="add-lesson-header-btn">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Thêm bài học
+              </button>
+            </div>
           }
         </div>
 
@@ -421,6 +429,7 @@ export class ChapterEditorComponent {
   readonly saveClicked = output<void>();
   readonly lessonClicked = output<LessonDraftDTO>();
   readonly addLesson = output<void>();
+  readonly batchVideoUpload = output<void>();
   readonly lessonDraftTitleChange = output<string>();
   readonly lessonDraftTypeChange = output<LessonComposerType>();
   readonly createLesson = output<void>();
