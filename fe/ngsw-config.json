@@ -100,5 +100,6 @@
     "!/api/**",
     "!/actuator/**"
   ],
-  "navigationRequestStrategy": "performance"
+  "_comment_navigation": "freshness (network-first) over performance (cache-first): HTML carries response headers (CSP, Cache-Control, security policy). With cache-first, server-side header policy changes never reach already-installed users — they keep enforcing the CSP/policy frozen at SW install time. Trade-off: ~30-100ms HTML latency vs always-correct security policy. CSP cache-stale bug 2026-05-02 (YouTube iframe API blocked by old CSP cached pre-fix) made the case for freshness.",
+  "navigationRequestStrategy": "freshness"
 }
