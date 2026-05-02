@@ -78,6 +78,7 @@
         (saveClicked)="saveChapter()"
         (lessonClicked)="selectLessonFromChapter($event)"
         (addLesson)="requestAddLessonForCurrentChapter()"
+        (batchVideoUpload)="openBatchVideoUploadModal()"
         (lessonDraftTitleChange)="onLessonComposerTitleChange($event)"
         (lessonDraftTypeChange)="onLessonComposerTypeChange($event)"
         (createLesson)="createLessonFromComposer()"
@@ -150,3 +151,13 @@
 
   <!-- Quiz Package Modals (decomposed) -->
   <app-quiz-package-modals></app-quiz-package-modals>
+
+  <!-- Batch Video Upload Modal -->
+  <app-batch-video-upload-modal
+    [isOpen]="isBatchUploadModalOpen()"
+    [courseId]="store.courseTree()?.id ?? ''"
+    [currentChapterId]="selectedChapterId()"
+    [currentLessonId]="selectedLessonId()"
+    [availableLessons]="batchUploadAvailableLessons()"
+    (closed)="closeBatchVideoUploadModal()">
+  </app-batch-video-upload-modal>
