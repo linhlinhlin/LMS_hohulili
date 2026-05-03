@@ -584,12 +584,26 @@ export class BatchVideoUploadService {
 
         if (asset?.status === 'READY') {
           this.updateItemStatus(item.id, 'READY');
+          // Propagate status update vào store cho main content auto-refresh
+          // (lecture-sections-panel hiển thị videoProcessingStatus per row)
+          if (item.sectionId) {
+            this.store.updateSectionLocal(item.lessonId, item.sectionId, {
+              videoProcessingStatus: 'READY',
+            } as any);
+            this.forceSyncSelectionForLesson(item.lessonId);
+          }
         } else if (asset?.status === 'FAILED') {
           this.markItemFailed(item.id, asset.errorMessage || 'Backend xử lý thất bại');
+          if (item.sectionId) {
+            this.store.updateSectionLocal(item.lessonId, item.sectionId, {
+              videoProcessingStatus: 'FAILED',
+            } as any);
+            this.forceSyncSelectionForLesson(item.lessonId);
+          }
         } else if (attempts >= POLL_MAX_ATTEMPTS) {
           this.markItemFailed(
             item.id,
-            'Quá thời gian chờ xử lý (10 phút). Backend có thể đang quá tải.'
+            'Quá thời gian chờ xử lý (60 phút). Backend có thể đang quá tải.'
           );
         }
       });
