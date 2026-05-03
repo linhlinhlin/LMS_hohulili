@@ -22,10 +22,13 @@ import java.util.stream.Collectors;
  * The DTO surfaces both pinned counts (classes explicitly tied to a snapshot) and
  * effective counts (pinned + auto-followers on the latest snapshot) so the UI can
  * show "X lớp ghim, +Y lớp theo bản mới" without a second round-trip.
+ *
+ * Naming convention: prefixed Get* per CleanArchitectureTest CQRS read-side
+ * exemption — query handlers may access JPA directly for performance.
  */
 @Service
 @RequiredArgsConstructor
-public class ListCoursePublicationsUseCase {
+public class GetCoursePublicationsUseCase {
 
     private final CoursePublicationJpaRepository publicationRepository;
     private final JpaLearningClassRepository classRepository;

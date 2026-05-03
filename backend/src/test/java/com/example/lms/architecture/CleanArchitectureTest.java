@@ -34,6 +34,7 @@ class CleanArchitectureTest {
             "com.example.lms.assessment.application.usecase.GradeSubmissionUseCase",
             "com.example.lms.assessment.application.usecase.ManageAssignmentInstructionAttachmentsUseCase",
             "com.example.lms.course_authoring.application.usecase.ApproveCourseUseCase",
+            "com.example.lms.course_authoring.application.usecase.BulkAdoptPublicationUseCase",
             "com.example.lms.course_authoring.application.usecase.CourseAuthoringUseCase",
             "com.example.lms.course_authoring.application.usecase.ManageContentBlockUseCaseV3",
             "com.example.lms.course_authoring.application.usecase.RejectCourseUseCase",

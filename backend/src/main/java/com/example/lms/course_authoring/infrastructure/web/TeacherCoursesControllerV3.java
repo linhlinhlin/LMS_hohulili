@@ -46,7 +46,7 @@ public class TeacherCoursesControllerV3 {
     private final AdaptiveVideoPlaybackService adaptiveVideoPlaybackService;
     private final com.example.lms.learning_delivery.infrastructure.persistence.ClassTeacherJpaRepository classTeacherJpaRepository;
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.CourseReviewEventJpaRepository reviewEventRepository;
-    private final com.example.lms.course_authoring.application.usecase.ListCoursePublicationsUseCase listCoursePublicationsUseCase;
+    private final com.example.lms.course_authoring.application.usecase.GetCoursePublicationsUseCase getCoursePublicationsUseCase;
     private final com.example.lms.course_authoring.application.usecase.BulkAdoptPublicationUseCase bulkAdoptPublicationUseCase;
 
     @GetMapping("/my-courses")
@@ -364,7 +364,7 @@ public class TeacherCoursesControllerV3 {
             @AuthenticationPrincipal UserJpaEntity user) {
         verifyCourseOwnership(courseId, user);
 
-        var views = listCoursePublicationsUseCase.execute(courseId);
+        var views = getCoursePublicationsUseCase.execute(courseId);
         if (views.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.success(java.util.List.of(), "Khóa học chưa có bản phát hành nào"));
         }
