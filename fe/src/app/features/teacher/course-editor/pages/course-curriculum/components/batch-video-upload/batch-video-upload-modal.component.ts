@@ -185,45 +185,75 @@ import {
           <p class="text-xs text-gray-400 mt-3">MP4, MOV, MKV, WebM · Tối đa 5GB / file</p>
         </div>
 
-        <fieldset class="border border-gray-200 rounded-xl p-4 space-y-2.5">
-          <legend class="text-xs font-semibold text-gray-700 px-2 uppercase tracking-wide">Phạm vi phân bổ</legend>
-          @for (opt of scopeOptions; track opt.value) {
-            <label class="flex items-start gap-2.5 text-sm cursor-pointer hover:bg-slate-50 -mx-2 px-2 py-1 rounded-md">
-              <input
-                type="radio"
-                name="scope"
-                [value]="opt.value"
-                [checked]="selectedScope() === opt.value"
-                (change)="selectedScope.set(opt.value)"
-                class="mt-1 accent-[#0056D2]"
-              />
-              <div class="min-w-0">
-                <div class="font-medium text-gray-900">{{ opt.label }}</div>
-                <div class="text-xs text-gray-500">{{ scopeHint(opt.value) }}</div>
-              </div>
-            </label>
-          }
-        </fieldset>
+        <!-- Smart context line: cho user biết video sẽ đi đâu mà không phải tự cấu hình -->
+        <div class="rounded-xl bg-slate-50 border border-slate-200 px-4 py-3 text-sm text-gray-700">
+          <div class="flex items-start gap-2">
+            <lucide-icon name="info" [size]="16" class="text-[#0056D2] flex-shrink-0 mt-0.5"></lucide-icon>
+            <div class="min-w-0">
+              <p>{{ defaultDistributionDescription() }}</p>
+              <p class="text-xs text-gray-500 mt-0.5">Bạn có thể xem trước và xếp lại trước khi tải lên.</p>
+            </div>
+          </div>
+        </div>
 
-        <fieldset class="border border-gray-200 rounded-xl p-4 space-y-2.5">
-          <legend class="text-xs font-semibold text-gray-700 px-2 uppercase tracking-wide">Cách phân bổ mặc định</legend>
-          @for (opt of strategyOptions; track opt.value) {
-            <label class="flex items-start gap-2.5 text-sm cursor-pointer hover:bg-slate-50 -mx-2 px-2 py-1 rounded-md">
-              <input
-                type="radio"
-                name="strategy"
-                [value]="opt.value"
-                [checked]="selectedStrategy() === opt.value"
-                (change)="selectedStrategy.set(opt.value)"
-                class="mt-1 accent-[#0056D2]"
-              />
-              <div class="min-w-0">
-                <div class="font-medium text-gray-900">{{ opt.label }}</div>
-                <div class="text-xs text-gray-500">{{ opt.hint }}</div>
-              </div>
-            </label>
+        <!-- Advanced (collapsed by default) — chỉ hiện khi có >1 bài để chia -->
+        @if (hasScopeChoices()) {
+          <button
+            type="button"
+            (click)="showAdvanced.set(!showAdvanced())"
+            class="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#0056D2]"
+          >
+            <lucide-icon
+              [name]="showAdvanced() ? 'chevron-up' : 'chevron-down'"
+              [size]="14"
+            ></lucide-icon>
+            Tuỳ chỉnh nâng cao
+          </button>
+
+          @if (showAdvanced()) {
+            <fieldset class="border border-gray-200 rounded-xl p-4 space-y-2">
+              <legend class="text-xs font-semibold text-gray-700 px-2 uppercase tracking-wide">Chia video vào đâu?</legend>
+              @for (opt of visibleScopeOptions(); track opt.value) {
+                <label class="flex items-start gap-2.5 text-sm cursor-pointer hover:bg-slate-50 -mx-2 px-2 py-1.5 rounded-md">
+                  <input
+                    type="radio"
+                    name="scope"
+                    [value]="opt.value"
+                    [checked]="selectedScope() === opt.value"
+                    (change)="selectedScope.set(opt.value)"
+                    class="mt-1 accent-[#0056D2]"
+                  />
+                  <div class="min-w-0">
+                    <div class="font-medium text-gray-900">{{ opt.label }}</div>
+                    <div class="text-xs text-gray-500">{{ opt.description }}</div>
+                  </div>
+                </label>
+              }
+            </fieldset>
+
+            @if (selectedScope() !== 'CURRENT_LESSON') {
+              <fieldset class="border border-gray-200 rounded-xl p-4 space-y-2">
+                <legend class="text-xs font-semibold text-gray-700 px-2 uppercase tracking-wide">Cách chia</legend>
+                @for (opt of strategyOptions; track opt.value) {
+                  <label class="flex items-start gap-2.5 text-sm cursor-pointer hover:bg-slate-50 -mx-2 px-2 py-1.5 rounded-md">
+                    <input
+                      type="radio"
+                      name="strategy"
+                      [value]="opt.value"
+                      [checked]="selectedStrategy() === opt.value"
+                      (change)="selectedStrategy.set(opt.value)"
+                      class="mt-1 accent-[#0056D2]"
+                    />
+                    <div class="min-w-0">
+                      <div class="font-medium text-gray-900">{{ opt.label }}</div>
+                      <div class="text-xs text-gray-500">{{ opt.hint }}</div>
+                    </div>
+                  </label>
+                }
+              </fieldset>
+            }
           }
-        </fieldset>
+        }
       </div>
     </ng-template>
 
@@ -315,23 +345,96 @@ export class BatchVideoUploadModalComponent {
   readonly dragHover = signal(false);
   readonly selectedScope = signal<BatchScope>('CURRENT_CHAPTER');
   readonly selectedStrategy = signal<DistributionStrategy>('EVEN');
+  readonly showAdvanced = signal(false);
 
-  protected readonly scopeOptions: { value: BatchScope; label: string }[] = [
-    { value: 'CURRENT_LESSON', label: 'Bài hiện tại' },
-    { value: 'CURRENT_CHAPTER', label: 'Tất cả bài trong chương hiện tại' },
-    { value: 'ENTIRE_COURSE', label: 'Tất cả bài trong khoá' },
-  ];
-
+  /** Strategy "SINGLE_LESSON" KHÔNG hiện trong UI vì trùng nghĩa với scope=CURRENT_LESSON. */
   protected readonly strategyOptions: { value: DistributionStrategy; label: string; hint: string }[] = [
-    { value: 'EVEN', label: 'Chia đều', hint: 'Ví dụ: 23 video / 4 bài → [6, 6, 6, 5]' },
-    { value: 'PREFIX', label: 'Theo tiền tố tên file', hint: '"01_intro" → bài 1, "02_drill" → bài 2' },
-    { value: 'SINGLE_LESSON', label: 'Tất cả vào 1 bài', hint: 'Tất cả video vào bài đầu của phạm vi' },
+    {
+      value: 'EVEN',
+      label: 'Chia đều mỗi bài',
+      hint: 'Mỗi bài nhận số video xấp xỉ nhau. Bài đầu nhận thêm 1 nếu không chia hết.',
+    },
+    {
+      value: 'PREFIX',
+      label: 'Theo số đầu tên file',
+      hint: 'Tự nhận diện file đặt tên dạng "01_xx", "02_yy". Nếu không có quy tắc → tự chia đều.',
+    },
   ];
 
   readonly lessonsWithVideoCount = computed(() => {
     const items = this.svc.items();
     const ids = new Set(items.map((i) => i.lessonId));
     return ids.size;
+  });
+
+  /** Lessons trong chapter hiện tại — dùng để compute scope choices. */
+  private readonly lessonsInChapter = computed<BatchTargetLesson[]>(() => {
+    const chapterId = this.currentChapterId();
+    if (!chapterId) return this.availableLessons();
+    return this.availableLessons().filter((l) => l.chapterId === chapterId);
+  });
+
+  /**
+   * Smart adaptive: chỉ show scope picker nếu thực sự có >1 lựa chọn ý nghĩa.
+   * Khoá có 1 chương 1 bài → 3 options đều = 1 bài → ẩn picker hoàn toàn.
+   */
+  readonly hasScopeChoices = computed(() => {
+    const chapterCount = this.lessonsInChapter().length;
+    const courseCount = this.availableLessons().length;
+    // Có ý nghĩa nếu: (a) chapter có >1 bài, hoặc (b) khoá có nhiều chapter
+    return chapterCount > 1 || courseCount > chapterCount;
+  });
+
+  /** Filter scope options chỉ show ones có ý nghĩa cho khoá hiện tại. */
+  readonly visibleScopeOptions = computed(() => {
+    const chapterCount = this.lessonsInChapter().length;
+    const courseCount = this.availableLessons().length;
+    const options: { value: BatchScope; label: string; description: string }[] = [];
+
+    options.push({
+      value: 'CURRENT_LESSON',
+      label: 'Chỉ bài đang mở',
+      description: 'Tất cả video gộp vào 1 bài',
+    });
+
+    if (chapterCount > 1) {
+      options.push({
+        value: 'CURRENT_CHAPTER',
+        label: `${chapterCount} bài trong chương hiện tại`,
+        description: 'Chia video cho các bài thuộc chương này',
+      });
+    }
+    if (courseCount > chapterCount) {
+      options.push({
+        value: 'ENTIRE_COURSE',
+        label: `${courseCount} bài trong cả khoá`,
+        description: 'Chia video cho mọi bài của khoá',
+      });
+    }
+    return options;
+  });
+
+  /**
+   * Context line (Hick's Law: tell user upfront what default behavior is).
+   * Adaptive theo state thực tế của khoá.
+   */
+  readonly defaultDistributionDescription = computed<string>(() => {
+    const chapterCount = this.lessonsInChapter().length;
+    const courseCount = this.availableLessons().length;
+
+    if (courseCount === 0) {
+      return 'Chưa có bài học nào để chia video. Vui lòng tạo bài trước.';
+    }
+    if (chapterCount === 1 && courseCount === 1) {
+      return 'Tất cả video sẽ được thêm vào bài hiện tại.';
+    }
+    if (this.selectedScope() === 'CURRENT_LESSON') {
+      return 'Tất cả video sẽ vào bài đang mở.';
+    }
+    if (this.selectedScope() === 'ENTIRE_COURSE') {
+      return `Video sẽ được chia đều vào ${courseCount} bài của khoá.`;
+    }
+    return `Video sẽ được chia đều vào ${chapterCount} bài trong chương hiện tại.`;
   });
 
   /**
@@ -438,11 +541,30 @@ export class BatchVideoUploadModalComponent {
         this.svc.reset();
       }
     });
-  }
 
-  protected scopeHint(scope: BatchScope): string {
-    const lessons = this.computeLessonsForScope(scope);
-    return `(${lessons.length} bài)`;
+    /**
+     * Smart default scope auto-select khi modal mở:
+     *  - Vào từ section editor (có currentLessonId, không nhiều bài) → CURRENT_LESSON
+     *  - Vào từ chapter editor + có >1 bài trong chương → CURRENT_CHAPTER
+     *  - Else → ENTIRE_COURSE (rare)
+     * Tránh user phải tự chọn cho 80% trường hợp.
+     */
+    effect(() => {
+      if (!this.isOpen()) return;
+      const chapterCount = this.lessonsInChapter().length;
+      const courseCount = this.availableLessons().length;
+
+      if (courseCount <= 1) {
+        // Khoá chỉ 1 bài → chỉ có 1 lựa chọn ý nghĩa
+        this.selectedScope.set('CURRENT_LESSON');
+      } else if (chapterCount > 1) {
+        this.selectedScope.set('CURRENT_CHAPTER');
+      } else if (this.currentLessonId()) {
+        this.selectedScope.set('CURRENT_LESSON');
+      } else {
+        this.selectedScope.set('ENTIRE_COURSE');
+      }
+    });
   }
 
   protected onBackdropClick(event: MouseEvent): void {
