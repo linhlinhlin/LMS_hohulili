@@ -107,6 +107,70 @@ public class ManageContentBlockUseCaseV3 {
     }
 
     /**
+     * Move a content block (section) from one lesson to another.
+     * Pattern reference: Notion block move, Coursera Studio "Move To" lesson dialog.
+     *
+     * Atomic: both lessons are saved in one transaction. A failure mid-way rolls
+     * the source lesson back so we never lose the block — the worst observable
+     * outcome is the move silently failing and the user retrying.
+     *
+     * Idempotent on equal source/target lesson — no-op early exit prevents the
+     * round-trip write that the optimistic UI would happily request.
+     *
+     * Same-course constraint: cross-course moves break enrollment ownership and
+     * payment scoping, so we reject early with AccessDenied. Teachers wanting to
+     * "move" content cross-course should clone instead.
+     */
+    @Transactional
+    public void moveSection(String sectionId, UUID fromLessonId, UUID toLessonId, Integer targetIndex, UUID userId, boolean isAdmin) {
+        if (fromLessonId.equals(toLessonId)) {
+            return;
+        }
+
+        verifyOwnership(fromLessonId, userId, isAdmin);
+        verifyOwnership(toLessonId, userId, isAdmin);
+        // requireEditable* returns the Course — capture both to assert same-course in one go.
+        var fromCourse = courseDraftMutationUseCase.requireEditableCourseByLesson(fromLessonId);
+        var toCourse = courseDraftMutationUseCase.requireEditableCourseByLesson(toLessonId);
+        if (!fromCourse.getId().equals(toCourse.getId())) {
+            throw new AccessDeniedException("Không thể chuyển nội dung sang bài học của khoá học khác");
+        }
+
+        List<ContentBlock> sourceBlocks = lessonRepository.getContentBlocks(fromLessonId)
+                .orElseThrow(() -> new EntityNotFoundException("Lesson", fromLessonId));
+
+        ContentBlock movedBlock = null;
+        int sourceIdx = -1;
+        for (int i = 0; i < sourceBlocks.size(); i++) {
+            if (sourceBlocks.get(i).getId().equals(sectionId)) {
+                movedBlock = sourceBlocks.get(i);
+                sourceIdx = i;
+                break;
+            }
+        }
+        if (movedBlock == null) {
+            throw new EntityNotFoundException("ContentBlock", sectionId);
+        }
+
+        List<ContentBlock> newSource = new ArrayList<>(sourceBlocks);
+        newSource.remove(sourceIdx);
+
+        List<ContentBlock> targetBlocks = lessonRepository.getContentBlocks(toLessonId)
+                .orElseThrow(() -> new EntityNotFoundException("Lesson", toLessonId));
+        List<ContentBlock> newTarget = new ArrayList<>(targetBlocks);
+
+        int insertAt = (targetIndex == null || targetIndex < 0 || targetIndex > newTarget.size())
+                ? newTarget.size()
+                : targetIndex;
+        newTarget.add(insertAt, movedBlock);
+
+        lessonRepository.saveContentBlocks(fromLessonId, newSource);
+        lessonRepository.saveContentBlocks(toLessonId, newTarget);
+        courseDraftMutationUseCase.markCourseChangedByLesson(fromLessonId);
+        courseDraftMutationUseCase.markCourseChangedByLesson(toLessonId);
+    }
+
+    /**
      * Patch specific fields in a ContentBlock's data map (async conversion updates).
      * Does NOT require ownership check — called from background thread after save.
      */

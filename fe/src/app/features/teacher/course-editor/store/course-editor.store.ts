@@ -220,6 +220,57 @@ export class CourseEditorStore {
         });
     }
 
+    /**
+     * Move a section to a different lesson (Notion block-move / Coursera "Move To" pattern).
+     * targetIndex null = append at the end of target lesson.
+     * Optimistic: applies the local mutation immediately, rolls back on API error.
+     */
+    moveSectionToLessonOptimistic(sectionId: string, fromLessonId: string, toLessonId: string, targetIndex: number | null = null) {
+        if (fromLessonId === toLessonId) return;
+        const currentTree = this.courseTree();
+        if (!currentTree) return;
+
+        const oldChapters = currentTree.chapters;
+
+        let movedSection: any = null;
+        const stripped = oldChapters.map(ch => ({
+            ...ch,
+            lessons: ch.lessons.map(l => {
+                if (l.id !== fromLessonId) return l;
+                const sections = l.sections || [];
+                const idx = sections.findIndex(s => s.id === sectionId);
+                if (idx < 0) return l;
+                movedSection = sections[idx];
+                const next = [...sections.slice(0, idx), ...sections.slice(idx + 1)];
+                return { ...l, sections: next };
+            })
+        }));
+
+        if (!movedSection) return;
+
+        const newChapters = stripped.map(ch => ({
+            ...ch,
+            lessons: ch.lessons.map(l => {
+                if (l.id !== toLessonId) return l;
+                const sections = l.sections || [];
+                const insertAt = (targetIndex == null || targetIndex < 0 || targetIndex > sections.length)
+                    ? sections.length
+                    : targetIndex;
+                const next = [...sections.slice(0, insertAt), movedSection, ...sections.slice(insertAt)];
+                return { ...l, sections: next };
+            })
+        }));
+
+        this.setCourseTreeState({ ...currentTree, chapters: newChapters });
+
+        this.service.moveSection(sectionId, fromLessonId, toLessonId, targetIndex).subscribe({
+            error: (err: any) => {
+                this.setCourseTreeState({ ...currentTree, chapters: oldChapters });
+                this.toast.error('Chuyển nội dung thất bại' + (err?.error?.message ? ': ' + err.error.message : ''));
+            }
+        });
+    }
+
     updateLessonLocal(chapterId: string, lessonId: string, updates: Partial<LessonDraftDTO>) {
         const currentTree = this.courseTree();
         if (!currentTree) return;

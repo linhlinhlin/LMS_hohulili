@@ -247,6 +247,32 @@ public class CourseAuthoringControllerV3 {
         }
     }
 
+    @Operation(summary = "Move a section (content block) to a different lesson within the same course")
+    @PatchMapping("/sections/move")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public ResponseEntity<ApiResponse<Void>> moveSection(
+            @Valid @RequestBody MoveSectionRequest request,
+            @AuthenticationPrincipal UserJpaEntity user
+    ) {
+        try {
+            UUID fromLessonId = UUID.fromString(request.fromLessonId());
+            UUID toLessonId = UUID.fromString(request.toLessonId());
+            verifyOwnershipByLesson(fromLessonId, user);
+            verifyOwnershipByLesson(toLessonId, user);
+            manageContentBlockUseCase.moveSection(
+                    request.sectionId(),
+                    fromLessonId,
+                    toLessonId,
+                    request.targetIndex(),
+                    user.getId(),
+                    isAdminRole(user)
+            );
+            return ResponseEntity.ok(ApiResponse.success(null, "Đã chuyển nội dung sang bài học khác"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Định dạng UUID không hợp lệ"));
+        }
+    }
+
     @Operation(summary = "Reorder sections (content blocks) in a lesson")
     @PatchMapping("/sections/reorder")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
@@ -809,6 +835,14 @@ return ResponseEntity.ok(ApiResponse.success(block, "Cập nhật phần học t
     public record ReorderSectionsRequest(
         @NotBlank(message = "Mã bài học không được để trống") String lessonId,
         @jakarta.validation.constraints.NotEmpty(message = "Danh sách ID không được để trống") java.util.List<String> orderedIds
+    ) {}
+
+    public record MoveSectionRequest(
+        @NotBlank(message = "Mã mục không được để trống") String sectionId,
+        @NotBlank(message = "Mã bài học nguồn không được để trống") String fromLessonId,
+        @NotBlank(message = "Mã bài học đích không được để trống") String toLessonId,
+        /** Optional 0-based insertion index in the target lesson. Null = append. */
+        Integer targetIndex
     ) {}
 }
 
