@@ -166,7 +166,7 @@ import {
           class="border-2 border-dashed border-gray-300 rounded-xl px-8 py-10 text-center hover:border-[#0056D2] transition-colors"
         >
           <div class="mx-auto w-12 h-12 rounded-full bg-[#0056D2]/10 flex items-center justify-center mb-3">
-            <lucide-icon name="cloud-upload" [size]="24" class="text-[#0056D2]"></lucide-icon>
+            <lucide-icon name="upload-cloud" [size]="24" class="text-[#0056D2]"></lucide-icon>
           </div>
           <p class="text-sm font-medium text-gray-900">Kéo thả nhiều video vào đây</p>
           <p class="text-xs text-gray-500 mt-1">hoặc</p>
@@ -379,7 +379,7 @@ export class BatchVideoUploadModalComponent {
       {
         label: 'Đang xử lý',
         count: p.processingCount,
-        icon: 'cog',
+        icon: 'settings',
         containerClass: 'border-amber-200 bg-amber-50',
         iconClass: 'text-amber-600',
         numberClass: 'text-amber-700',
@@ -388,7 +388,7 @@ export class BatchVideoUploadModalComponent {
       {
         label: 'Sẵn sàng',
         count: p.readyCount,
-        icon: 'check-circle-2',
+        icon: 'check-circle',
         containerClass: 'border-emerald-200 bg-emerald-50',
         iconClass: 'text-emerald-600',
         numberClass: 'text-emerald-700',
