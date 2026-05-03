@@ -106,15 +106,10 @@
         </div>
         }
 
-        @if (section.type === 'FILE') {
-        <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-          <div class="flex items-center gap-2">
-            <app-icon name="paperclip" size="md" class="text-[#0056D2]"></app-icon>
-            <span class="font-medium">Tài liệu đính kèm</span>
-          </div>
-          <p class="mt-1 text-xs text-slate-500">Mở tài liệu ở khung phía trên hoặc tải xuống từ tab "Tài liệu".</p>
-        </div>
-        }
+<!-- FILE notification card removed: the unified file card below already serves both
+            "this is a document" affordance and the action — the old card pointed to a
+            "khung phía trên" that didn't always exist. -->
+
 
       @if (section.type === 'QUIZ') {
       <div class="p-6 border border-amber-200 bg-amber-50 rounded-lg text-center">
@@ -315,66 +310,99 @@
       </div>
       }
 
-      <!-- FILE SECTION (Inline Preview) -->
+      <!-- FILE SECTION — unified card (Coursera Resources / Notion file embed pattern) -->
       @if (section.type === 'FILE' && section.fileUrl) {
-      <div class="space-y-3">
-        <!-- PDF Viewer -->
-        @if (safePdfUrl()) {
-        <div #pdfContainer class="relative w-full border border-gray-200 rounded-lg overflow-hidden bg-slate-100 shadow-sm group">
-
-          <!-- PDF Toolbar (Floating/Sticky) -->
-          <div class="absolute top-4 right-4 z-20 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <button (click)="togglePdfFullscreen()"
-              class="flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-md border border-gray-200 text-slate-700 text-xs font-bold rounded-lg shadow-sm hover:bg-white hover:text-[#0056D2] transition-all"
-              title="Xem toàn màn hình">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
-              <span>Toàn màn hình</span>
-            </button>
-            <button (click)="openPdfInNewTab()"
-              class="flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-md border border-gray-200 text-slate-700 text-xs font-bold rounded-lg shadow-sm hover:bg-white hover:text-[#0056D2] transition-all"
-              title="Mở trong tab mới">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-              <span>Mở tab mới</span>
-            </button>
-          </div>
-
-          <iframe [src]="safePdfUrl()" class="w-full h-[520px] md:h-[680px]" frameborder="0" loading="lazy"></iframe>
-        </div>
-        }
-
-        <!-- Download card for non-PDF formats (DOCX, XLSX, PPTX, etc.) -->
-        @if (!safePdfUrl()) {
-        <a [href]="section.fileUrl" download target="_blank" rel="noopener noreferrer"
-           class="flex items-center gap-4 p-4 border border-gray-200 rounded-xl hover:border-[#0056D2] hover:bg-blue-50/20 transition-all bg-white">
-          <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 text-slate-500">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        @let ext = fileExtension(section.fileUrl);
+        @let typeMeta = fileTypeMeta(ext);
+        @let displayName = fileDisplayName(section);
+      <article class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <!-- Header: file identity + primary action -->
+        <header class="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+               [class]="typeMeta.bgClass + ' ' + typeMeta.textClass">
+            <app-icon [name]="ext === 'pdf' ? 'file-text' : 'paperclip'" size="md"></app-icon>
           </div>
           <div class="min-w-0 flex-1">
-            <p class="text-sm font-semibold text-slate-800 truncate">Tải xuống tài liệu</p>
-            <p class="text-xs text-slate-500 mt-0.5">Nhấn để tải về máy</p>
+            <p class="text-sm font-semibold text-slate-800 truncate" [title]="displayName">{{ displayName }}</p>
+            <p class="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5">
+              <span class="font-medium">{{ typeMeta.label }}</span>
+              @if (ext) {
+                <span class="text-slate-300" aria-hidden="true">·</span>
+                <span class="uppercase tabular-nums">.{{ ext }}</span>
+              }
+            </p>
           </div>
-        </a>
+          <a [href]="section.fileUrl" download target="_blank" rel="noopener noreferrer"
+             class="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-[#0056D2] hover:bg-[#004BB5] rounded-lg transition-colors shrink-0"
+             [attr.aria-label]="'Tải xuống ' + displayName">
+            <app-icon name="download" size="sm"></app-icon>
+            <span class="hidden sm:inline">Tải xuống</span>
+          </a>
+        </header>
+
+        <!-- Preview area: PDF iframe, or fallback message for unsupported types -->
+        @if (safePdfUrl()) {
+          <div #pdfContainer class="relative w-full bg-slate-100 group">
+            <iframe [src]="safePdfUrl()"
+                    class="w-full h-[520px] md:h-[680px] block"
+                    frameborder="0" loading="lazy"
+                    [title]="'Xem trước ' + displayName"></iframe>
+            <!-- Floating toolbar (PDF-only actions) -->
+            <div class="absolute top-3 right-3 z-10 flex items-center gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+              <button type="button" (click)="togglePdfFullscreen()"
+                class="flex items-center gap-1.5 px-3 py-1.5 bg-white/95 backdrop-blur border border-gray-200 text-slate-700 text-xs font-semibold rounded-lg shadow-sm hover:text-[#0056D2] transition-colors"
+                title="Xem toàn màn hình" aria-label="Xem toàn màn hình">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                <span class="hidden sm:inline">Toàn màn hình</span>
+              </button>
+              <button type="button" (click)="openPdfInNewTab()"
+                class="flex items-center gap-1.5 px-3 py-1.5 bg-white/95 backdrop-blur border border-gray-200 text-slate-700 text-xs font-semibold rounded-lg shadow-sm hover:text-[#0056D2] transition-colors"
+                title="Mở trong tab mới" aria-label="Mở trong tab mới">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                <span class="hidden sm:inline">Tab mới</span>
+              </button>
+            </div>
+          </div>
+        } @else if (isImageFile(ext)) {
+          <!-- Native image preview -->
+          <div class="bg-slate-100 flex items-center justify-center">
+            <img [src]="section.fileUrl" [alt]="displayName"
+                 class="max-w-full max-h-[520px] md:max-h-[680px] object-contain block"
+                 loading="lazy" />
+          </div>
+        } @else if (ext === 'pdf') {
+          <!-- PDF requested but preview URL not ready (still converting / failed) -->
+          <div class="px-4 py-5 text-center bg-slate-50/60 text-sm text-slate-600">
+            <app-icon name="info" size="sm" class="text-slate-400 align-middle mr-1"></app-icon>
+            Đang chuẩn bị bản xem trước. Bấm <strong>"Tải xuống"</strong> để xem ngay nếu cần.
+          </div>
+        } @else {
+          <!-- Generic fallback: DOCX, XLSX, PPT, ZIP, unknown -->
+          <div class="px-4 py-5 text-center bg-slate-50/60 text-sm text-slate-600">
+            <app-icon name="info" size="sm" class="text-slate-400 align-middle mr-1"></app-icon>
+            Trình duyệt không hỗ trợ xem trước định dạng này. Bấm <strong>"Tải xuống"</strong> để mở bằng ứng dụng phù hợp.
+          </div>
         }
 
-        <!-- Mark file as read (sequential progression) -->
+        <!-- Footer: completion control (only when section is required) -->
         @if (section.isRequired) {
-        <div class="mt-3 flex items-center justify-between px-1">
-          @if (isCurrentSectionCompleted()) {
-          <span class="flex items-center gap-1.5 text-xs font-semibold text-green-600">
-            <app-icon name="circle-check" size="sm"></app-icon>
-            Đã xem tài liệu
-          </span>
-          } @else {
-          <span class="text-xs text-amber-600 font-medium">Bắt buộc hoàn thành</span>
-          <button type="button" (click)="markFileComplete()"
-            class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#0056D2] bg-[#0056D2]/5 border border-[#0056D2]/20 rounded-lg hover:bg-[#0056D2]/10 transition-colors">
-            <app-icon name="circle-check" size="sm"></app-icon>
-            Đánh dấu đã xem
-          </button>
-          }
-        </div>
+          <footer class="px-4 py-2.5 border-t border-gray-100 bg-slate-50/50 flex items-center justify-between">
+            @if (isCurrentSectionCompleted()) {
+              <span class="flex items-center gap-1.5 text-xs font-semibold text-green-600">
+                <app-icon name="circle-check" size="sm"></app-icon>
+                Đã xem tài liệu
+              </span>
+            } @else {
+              <span class="text-xs text-amber-600 font-medium">Bắt buộc hoàn thành</span>
+              <button type="button" (click)="markFileComplete()"
+                class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#0056D2] bg-white border border-[#0056D2]/20 rounded-lg hover:bg-[#0056D2]/5 transition-colors">
+                <app-icon name="circle-check" size="sm"></app-icon>
+                Đánh dấu đã xem
+              </button>
+            }
+          </footer>
         }
-      </div>
+      </article>
       }
       }
 
