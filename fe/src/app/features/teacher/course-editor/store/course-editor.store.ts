@@ -223,17 +223,54 @@ export class CourseEditorStore {
     /**
      * Move a section to a different lesson (Notion block-move / Coursera "Move To" pattern).
      * targetIndex null = append at the end of target lesson.
-     * Optimistic: applies the local mutation immediately, rolls back on API error.
+     *
+     * Concurrency-safe: rollback reverses the SPECIFIC move via {@link applySectionMove},
+     * not by restoring a captured oldChapters snapshot. Two concurrent moves that both
+     * capture-then-restore would clobber each other; reversing per-move keeps each one
+     * independently undoable regardless of intervening state.
      */
     moveSectionToLessonOptimistic(sectionId: string, fromLessonId: string, toLessonId: string, targetIndex: number | null = null) {
         if (fromLessonId === toLessonId) return;
         const currentTree = this.courseTree();
         if (!currentTree) return;
 
-        const oldChapters = currentTree.chapters;
+        // Snapshot the original position so rollback can put the section back in the exact
+        // slot it came from, not just at the end of the source lesson.
+        let originalIndex = -1;
+        for (const ch of currentTree.chapters) {
+            for (const l of ch.lessons) {
+                if (l.id !== fromLessonId) continue;
+                const idx = (l.sections ?? []).findIndex(s => s.id === sectionId);
+                if (idx >= 0) {
+                    originalIndex = idx;
+                }
+            }
+        }
+        if (originalIndex < 0) return;
 
-        let movedSection: any = null;
-        const stripped = oldChapters.map(ch => ({
+        const moved = this.applySectionMove(fromLessonId, toLessonId, sectionId, targetIndex);
+        if (!moved) return;
+
+        this.service.moveSection(sectionId, fromLessonId, toLessonId, targetIndex).subscribe({
+            error: (err: any) => {
+                // Reverse the move: pull the section back from target to original slot in source.
+                this.applySectionMove(toLessonId, fromLessonId, sectionId, originalIndex);
+                this.toast.error('Chuyển nội dung thất bại' + (err?.error?.message ? ': ' + err.error.message : ''));
+            }
+        });
+    }
+
+    /**
+     * Pure helper: read latest tree, remove section from its current lesson, insert into target.
+     * Returns true if the section was found and moved, false otherwise (e.g. another concurrent
+     * move already removed it). Caller decides whether to roll back or report.
+     */
+    private applySectionMove(fromLessonId: string, toLessonId: string, sectionId: string, targetIndex: number | null): boolean {
+        const currentTree = this.courseTree();
+        if (!currentTree) return false;
+
+        let movedSection: SectionDraftDTO | null = null;
+        const stripped = currentTree.chapters.map(ch => ({
             ...ch,
             lessons: ch.lessons.map(l => {
                 if (l.id !== fromLessonId) return l;
@@ -241,14 +278,13 @@ export class CourseEditorStore {
                 const idx = sections.findIndex(s => s.id === sectionId);
                 if (idx < 0) return l;
                 movedSection = sections[idx];
-                const next = [...sections.slice(0, idx), ...sections.slice(idx + 1)];
-                return { ...l, sections: next };
+                return { ...l, sections: [...sections.slice(0, idx), ...sections.slice(idx + 1)] };
             })
         }));
 
-        if (!movedSection) return;
+        if (!movedSection) return false;
 
-        const newChapters = stripped.map(ch => ({
+        const finalChapters = stripped.map(ch => ({
             ...ch,
             lessons: ch.lessons.map(l => {
                 if (l.id !== toLessonId) return l;
@@ -256,19 +292,12 @@ export class CourseEditorStore {
                 const insertAt = (targetIndex == null || targetIndex < 0 || targetIndex > sections.length)
                     ? sections.length
                     : targetIndex;
-                const next = [...sections.slice(0, insertAt), movedSection, ...sections.slice(insertAt)];
-                return { ...l, sections: next };
+                return { ...l, sections: [...sections.slice(0, insertAt), movedSection!, ...sections.slice(insertAt)] };
             })
         }));
 
-        this.setCourseTreeState({ ...currentTree, chapters: newChapters });
-
-        this.service.moveSection(sectionId, fromLessonId, toLessonId, targetIndex).subscribe({
-            error: (err: any) => {
-                this.setCourseTreeState({ ...currentTree, chapters: oldChapters });
-                this.toast.error('Chuyển nội dung thất bại' + (err?.error?.message ? ': ' + err.error.message : ''));
-            }
-        });
+        this.setCourseTreeState({ ...currentTree, chapters: finalChapters });
+        return true;
     }
 
     updateLessonLocal(chapterId: string, lessonId: string, updates: Partial<LessonDraftDTO>) {

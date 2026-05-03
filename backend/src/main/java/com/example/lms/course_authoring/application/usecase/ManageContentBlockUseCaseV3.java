@@ -123,12 +123,15 @@ public class ManageContentBlockUseCaseV3 {
      */
     @Transactional
     public void moveSection(String sectionId, UUID fromLessonId, UUID toLessonId, Integer targetIndex, UUID userId, boolean isAdmin) {
+        // Validate access BEFORE the idempotent short-circuit. A bare same-lesson
+        // request from an unauthorized caller would otherwise return 200 OK and
+        // leak that the endpoint (and possibly the lesson) exists.
+        verifyOwnership(fromLessonId, userId, isAdmin);
         if (fromLessonId.equals(toLessonId)) {
             return;
         }
-
-        verifyOwnership(fromLessonId, userId, isAdmin);
         verifyOwnership(toLessonId, userId, isAdmin);
+
         // requireEditable* returns the Course — capture both to assert same-course in one go.
         var fromCourse = courseDraftMutationUseCase.requireEditableCourseByLesson(fromLessonId);
         var toCourse = courseDraftMutationUseCase.requireEditableCourseByLesson(toLessonId);

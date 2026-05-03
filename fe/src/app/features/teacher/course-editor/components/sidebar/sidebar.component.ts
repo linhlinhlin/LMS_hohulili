@@ -1100,20 +1100,41 @@ export class CourseEditorSidebarComponent implements OnDestroy {
   }
 
   /**
+   * Memoized map from lessonId → list of OTHER expanded lessons' drop list IDs.
+   *
+   * Recomputed only when chapters or the expand-state set change. Returning a
+   * fresh array on every template render call would force `cdkDropListConnectedTo`
+   * to tear down and re-attach drop list links every change-detection cycle,
+   * leaking listeners and thrashing CDK's internal registry.
+   */
+  private otherExpandedDropListIdsByLessonId = computed<Map<string, string[]>>(() => {
+    const expanded = this.expandedLessons();
+    const allIds: string[] = [];
+    for (const chapter of this.store.chapters()) {
+      for (const lesson of chapter.lessons) {
+        if (expanded.has(lesson.id)) {
+          allIds.push(this.sectionsDropListId(lesson.id));
+        }
+      }
+    }
+    const map = new Map<string, string[]>();
+    for (const chapter of this.store.chapters()) {
+      for (const lesson of chapter.lessons) {
+        if (!expanded.has(lesson.id)) continue;
+        const selfId = this.sectionsDropListId(lesson.id);
+        map.set(lesson.id, allIds.filter(id => id !== selfId));
+      }
+    }
+    return map;
+  });
+
+  /**
    * Drop list IDs for all OTHER lessons currently expanded in the sidebar.
    * Collapsed lessons aren't connectable because their drop list isn't rendered —
    * teacher must expand the target lesson first to drop into it.
    */
   otherExpandedSectionDropListIds(currentLessonId: string): string[] {
-    const ids: string[] = [];
-    for (const chapter of this.store.chapters()) {
-      for (const lesson of chapter.lessons) {
-        if (lesson.id === currentLessonId) continue;
-        if (!this.isLessonExpanded(lesson.id)) continue;
-        ids.push(this.sectionsDropListId(lesson.id));
-      }
-    }
-    return ids;
+    return this.otherExpandedDropListIdsByLessonId().get(currentLessonId) ?? [];
   }
 
   private parseLessonIdFromDropListId(dropListId: string | null | undefined): string | null {
