@@ -7,6 +7,7 @@ import { VideoAssetApi } from '../../../../../../../api/client/video-asset.api';
 import { PresignedUploadService, UploadEvent } from '../../../../../../../core/services/presigned-upload.service';
 import { ToastService } from '../../../../../../../core/services/toast.service';
 import { CourseEditorStore } from '../../../../store/course-editor.store';
+import { CurriculumSelectionService } from '../../../../services/curriculum-selection.service';
 import {
   DistributableLesson,
   distributeByFilenamePrefix,
@@ -60,6 +61,7 @@ export class BatchVideoUploadService {
   private readonly sectionApi = inject(SectionApi);
   private readonly lessonApi = inject(LessonApi);
   private readonly store = inject(CourseEditorStore);
+  private readonly selectionService = inject(CurriculumSelectionService);
   private readonly toast = inject(ToastService);
 
   readonly mode = signal<BatchMode>('IDLE');
@@ -502,7 +504,20 @@ export class BatchVideoUploadService {
       }
 
       // ─── Step 4: PROCESSING (polling) hoặc READY ───
-      this.updateItemStatus(itemId, asset?.status === 'READY' ? 'READY' : 'PROCESSING');
+      if (asset?.status === 'READY') {
+        this.updateItemStatus(itemId, 'READY');
+      } else {
+        // Set processingStartedAt + ETA estimate cho UI per-item progress
+        const processingPosition = this.computeProcessingQueuePosition(itemId);
+        const etaSec = this.estimateProcessingEtaSec(initial.file.size, processingPosition);
+        this.updateItem(itemId, {
+          status: 'PROCESSING',
+          processingStartedAt: Date.now(),
+          processingEtaSec: etaSec,
+        });
+      }
+      // Force sync selection ref ngay cả khi component effect bị editorDirty guard skip
+      this.forceSyncSelectionForLesson(initial.lessonId);
     } catch (err: any) {
       this.markItemFailed(itemId, this.formatError(err));
     } finally {
@@ -651,6 +666,53 @@ export class BatchVideoUploadService {
 
   private markItemFailed(itemId: string, errorMessage: string): void {
     this.updateItem(itemId, { status: 'FAILED', errorMessage });
+  }
+
+  /**
+   * ETA xử lý ước lượng (giây) dựa trên file size:
+   *   bitrate giả định 5 Mbps → file_size_bits / 5e6 = duration giây
+   *   processing time = duration / 6.2 (measured 6.2x realtime trên prod)
+   *   plus queue offset: backend max 2 concurrent → mỗi vị trí queue thêm ~60s
+   * Min 30s, max 60min (clamp với POLL_MAX_ATTEMPTS).
+   */
+  private estimateProcessingEtaSec(fileSizeBytes: number, queuePosition: number): number {
+    const ASSUMED_BITRATE_BPS = 5_000_000;
+    const REALTIME_FACTOR = 6.2;
+    const QUEUE_OFFSET_PER_POSITION_SEC = 60;
+    const durationSec = (fileSizeBytes * 8) / ASSUMED_BITRATE_BPS;
+    const processSec = durationSec / REALTIME_FACTOR;
+    const queueSec = Math.max(0, queuePosition - 1) * QUEUE_OFFSET_PER_POSITION_SEC;
+    const total = Math.round(processSec + queueSec);
+    return Math.max(30, Math.min(total, 60 * 60));
+  }
+
+  /** Vị trí trong PROCESSING queue (1-based) tính từ items hiện đang PROCESSING. */
+  private computeProcessingQueuePosition(itemId: string): number {
+    const list = this.items();
+    let pos = 1;
+    for (const item of list) {
+      if (item.id === itemId) return pos;
+      if (item.status === 'PROCESSING') pos++;
+    }
+    return pos;
+  }
+
+  /**
+   * Force sync selectedLesson reference với courseTree mới nhất.
+   * Cần thiết vì component effect (course-curriculum:540) skip sync khi
+   * editorDirty=true → batch upload không update visible content cho user.
+   */
+  private forceSyncSelectionForLesson(lessonId: string): void {
+    if (this.selectionService.selectedLessonId() !== lessonId) return;
+    const tree = this.store.courseTree();
+    if (!tree) return;
+    for (const chapter of tree.chapters) {
+      const found = chapter.lessons.find((l) => l.id === lessonId);
+      if (found) {
+        this.selectionService.syncLessonReference(chapter, found);
+        return;
+      }
+    }
   }
 
   private formatError(err: any): string {

@@ -6,7 +6,7 @@ import {
   moveItemInArray,
   transferArrayItem,
 } from '@angular/cdk/drag-drop';
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, computed, input, output, signal } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
 import { BatchTargetLesson, BatchVideoItem } from './batch-video-upload.types';
 
@@ -143,9 +143,21 @@ import { BatchTargetLesson, BatchVideoItem } from './batch-video-upload.types';
                     </div>
                   }
                   @if (item.status === 'PROCESSING' || item.status === 'ASSET_CREATING' || item.status === 'SECTION_CREATING') {
-                    <div class="mt-1.5 h-1 bg-amber-100 rounded-full overflow-hidden relative">
-                      <div class="absolute inset-0 batch-stripe-animate"></div>
+                    <div class="mt-1.5 flex items-center gap-2">
+                      <div class="flex-1 h-1 bg-amber-100 rounded-full overflow-hidden relative">
+                        @if (etaPctFor(item); as pct) {
+                          <div class="h-full bg-amber-500 transition-all duration-500 rounded-full" [style.width.%]="pct"></div>
+                        } @else {
+                          <div class="absolute inset-0 batch-stripe-animate"></div>
+                        }
+                      </div>
+                      @if (etaPctFor(item); as pct) {
+                        <span class="text-[11px] font-medium text-amber-700 tabular-nums w-9 text-right">{{ pct }}%</span>
+                      }
                     </div>
+                    @if (etaLabelFor(item); as label) {
+                      <p class="mt-0.5 text-[11px] text-gray-500 truncate">{{ label }}</p>
+                    }
                   }
                   @if (item.status === 'FAILED' && item.errorMessage) {
                     <div class="mt-1 text-xs text-red-600 truncate" [title]="item.errorMessage">
@@ -235,10 +247,30 @@ import { BatchTargetLesson, BatchVideoItem } from './batch-video-upload.types';
     }
   `],
 })
-export class BatchUploadPreviewTreeComponent {
+export class BatchUploadPreviewTreeComponent implements OnDestroy {
   readonly lessons = input.required<BatchTargetLesson[]>();
   readonly items = input.required<BatchVideoItem[]>();
   readonly showCreateLessonButton = input(true);
+
+  /**
+   * Tick signal mỗi 2s để re-derive elapsed/ETA per item.
+   * Mirror pattern section-editor.component.ts:1686 processingTick.
+   */
+  private readonly tick = signal(0);
+  private tickInterval: ReturnType<typeof setInterval> | null = null;
+
+  ngOnDestroy(): void {
+    if (this.tickInterval) {
+      clearInterval(this.tickInterval);
+      this.tickInterval = null;
+    }
+  }
+
+  constructor() {
+    // Start tick chỉ khi có item PROCESSING/ASSET/SECTION (avoid background CPU
+    // khi không cần). Stop khi không còn.
+    this.tickInterval = setInterval(() => this.tick.update((v) => v + 1), 2_000);
+  }
 
   readonly itemMoved = output<{ itemId: string; targetLessonId: string; targetIndex: number }>();
   readonly removeRequested = output<string>();
@@ -280,6 +312,43 @@ export class BatchUploadPreviewTreeComponent {
 
   queuePositionFor(itemId: string): number | null {
     return this.pendingOrder().get(itemId) ?? null;
+  }
+
+  /**
+   * % progress hint cho item đang PROCESSING (heuristic dựa trên elapsedSec / etaSec).
+   * Cap 92% để tránh "ready false alarm" khi heuristic chạy hơn ETA thực.
+   * Returns null nếu không có ETA hoặc chưa start processing.
+   */
+  etaPctFor(item: BatchVideoItem): number | null {
+    this.tick(); // re-eval mỗi tick
+    const startedAt = item.processingStartedAt;
+    const etaSec = item.processingEtaSec;
+    if (!startedAt || !etaSec || etaSec <= 0) return null;
+    const elapsedSec = Math.floor((Date.now() - startedAt) / 1000);
+    return Math.min(92, Math.round((elapsedSec / etaSec) * 100));
+  }
+
+  /**
+   * Label "Đã xử lý X · còn ~Y" cho UI per-item.
+   * Trả empty nếu chưa start hoặc chưa có ETA.
+   */
+  etaLabelFor(item: BatchVideoItem): string | null {
+    this.tick();
+    const startedAt = item.processingStartedAt;
+    const etaSec = item.processingEtaSec;
+    if (!startedAt) return null;
+    const elapsedSec = Math.floor((Date.now() - startedAt) / 1000);
+    const elapsedLabel = this.formatDuration(elapsedSec);
+    if (!etaSec) return `Đã xử lý ${elapsedLabel}`;
+    const remaining = Math.max(10, etaSec - elapsedSec);
+    return `Đã xử lý ${elapsedLabel} · còn ~${this.formatDuration(remaining)}`;
+  }
+
+  private formatDuration(seconds: number): string {
+    if (seconds < 60) return seconds + ' giây';
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return s > 0 ? `${m} phút ${s}s` : `${m} phút`;
   }
 
   isExistingExpanded(lessonId: string): boolean {
