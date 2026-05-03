@@ -48,6 +48,17 @@ type SectionEditorType = 'TEXT' | 'VIDEO' | 'FILE' | 'QUIZ';
       border-color: rgba(0, 86, 210, 0.4);
       background: rgba(0, 86, 210, 0.04);
     }
+    /* Secondary action: less prominent, subtler border. Primary action ("Thêm
+       mục") giữ default style — visual hierarchy rõ giữa 2 actions. */
+    .add-content-btn--secondary {
+      color: rgb(71 85 105);
+      border-color: rgb(226 232 240);
+    }
+    .add-content-btn--secondary:hover {
+      color: rgb(0 86 210);
+      border-color: rgba(0, 86, 210, 0.3);
+      background: rgba(0, 86, 210, 0.04);
+    }
     .add-content-dropdown {
       position: absolute;
       top: calc(100% + 4px);

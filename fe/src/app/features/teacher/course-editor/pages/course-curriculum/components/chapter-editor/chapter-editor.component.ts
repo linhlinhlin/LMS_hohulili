@@ -70,7 +70,7 @@ type LessonComposerType = 'LECTURE' | 'QUIZ' | 'ASSIGNMENT';
           <label class="editor-label">Bài học ({{ lessons().length }})</label>
           @if (lessons().length > 0 && !showLessonComposer()) {
             <div style="display: flex; gap: 0.5rem; align-items: center">
-              <button type="button" (click)="batchVideoUpload.emit()" class="add-lesson-header-btn" title="Tải lên nhiều video, tự động chia vào các bài">
+              <button type="button" (click)="batchVideoUpload.emit()" class="add-lesson-header-btn add-lesson-header-btn--secondary" title="Tải lên nhiều video, tự động chia vào các bài">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                 </svg>
@@ -245,6 +245,15 @@ type LessonComposerType = 'LECTURE' | 'QUIZ' | 'ASSIGNMENT';
     }
     .add-lesson-header-btn:hover {
       border-color: rgba(0, 86, 210, 0.4);
+      background: rgba(0, 86, 210, 0.04);
+    }
+    .add-lesson-header-btn--secondary {
+      color: rgb(71 85 105);
+      border-color: rgb(226 232 240);
+    }
+    .add-lesson-header-btn--secondary:hover {
+      color: rgb(0 86 210);
+      border-color: rgba(0, 86, 210, 0.3);
       background: rgba(0, 86, 210, 0.04);
     }
     .lesson-composer {

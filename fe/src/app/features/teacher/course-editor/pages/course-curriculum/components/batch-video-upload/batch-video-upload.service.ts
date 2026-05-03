@@ -1,5 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { firstValueFrom, forkJoin, of } from 'rxjs';
+import { Subscription, firstValueFrom, forkJoin, of } from 'rxjs';
 import { catchError, filter, take, tap } from 'rxjs/operators';
 import { LessonApi } from '../../../../../../../api/client/lesson.api';
 import { SectionApi } from '../../../../../../../api/client/section.api';
@@ -82,6 +82,11 @@ export class BatchVideoUploadService {
   private pollTimerHandle: ReturnType<typeof setTimeout> | null = null;
   private pollAttemptsByAsset = new Map<string, number>();
   private lessonsAwaitingReorder = new Set<string>();
+  /**
+   * Active upload subscriptions per item (cho cancel mid-upload).
+   * Set khi upload bắt đầu, xoá khi upload xong (bất kỳ lý do gì).
+   */
+  private activeUploadSubs = new Map<string, Subscription>();
 
   /**
    * Khởi tạo batch từ files đã pick.
@@ -243,11 +248,30 @@ export class BatchVideoUploadService {
     this.pumpQueue();
   }
 
-  /** Retry 1 file đã fail. Reset status về PENDING + kick queue. */
+  /**
+   * Retry 1 file đã FAILED. Idempotent: không reset attachmentId/videoAssetId/sectionId
+   * để runItemPipeline skip steps đã hoàn thành (tránh duplicate sections trong DB).
+   *
+   * Trường hợp đặc biệt: nếu item đã có videoAssetId VÀ sectionId → fail xảy ra ở
+   * polling stage (backend transcode failed). Gọi BE retry endpoint để re-trigger
+   * ingest job, không tạo asset/section mới.
+   */
   retryItem(itemId: string): void {
+    const item = this.items().find((i) => i.id === itemId);
+    if (!item || item.status !== 'FAILED') return;
+
+    // Case 1: Failed AFTER section creation (transcoding failed) → trigger BE retry
+    if (item.videoAssetId && item.sectionId) {
+      void this.retryBackendTranscode(itemId, item.videoAssetId);
+      return;
+    }
+
+    // Case 2: Failed BEFORE section creation → reset to PENDING, pipeline picks up
+    // from where it stopped (idempotent — checks attachmentId/videoAssetId before
+    // each step).
     this.items.update((list) =>
       list.map((i) =>
-        i.id === itemId && i.status === 'FAILED'
+        i.id === itemId
           ? { ...i, status: 'PENDING' as BatchItemStatus, errorMessage: undefined, uploadProgress: 0 }
           : i
       )
@@ -255,12 +279,45 @@ export class BatchVideoUploadService {
     this.pumpQueue();
   }
 
-  /** Reset state. Không cancel in-flight uploads (chúng sẽ no-op khi update state). */
+  /**
+   * Cancel UPLOADING in-flight: abort XHR via subscription unsubscribe.
+   * PresignedUploadService cancel-on-unsubscribe per their internal XHR handling.
+   * Item chuyển sang FAILED với lý do "Đã huỷ".
+   */
+  cancelItem(itemId: string): void {
+    const item = this.items().find((i) => i.id === itemId);
+    if (!item) return;
+    if (item.status !== 'UPLOADING' && item.status !== 'ASSET_CREATING') return;
+
+    const sub = this.activeUploadSubs.get(itemId);
+    if (sub) {
+      sub.unsubscribe();
+      this.activeUploadSubs.delete(itemId);
+    }
+    this.markItemFailed(itemId, 'Đã huỷ');
+  }
+
+  private async retryBackendTranscode(itemId: string, assetId: string): Promise<void> {
+    this.updateItem(itemId, { status: 'PROCESSING', errorMessage: undefined });
+    this.pollAttemptsByAsset.delete(assetId);
+    try {
+      await firstValueFrom(this.videoAssetApi.retry(assetId));
+      this.ensurePollingLoop();
+    } catch (err: any) {
+      this.markItemFailed(itemId, this.formatError(err));
+    }
+  }
+
+  /** Reset state. Cancel mọi in-flight uploads để không leak subscription. */
   reset(): void {
     if (this.pollTimerHandle) {
       clearTimeout(this.pollTimerHandle);
       this.pollTimerHandle = null;
     }
+    for (const sub of this.activeUploadSubs.values()) {
+      sub.unsubscribe();
+    }
+    this.activeUploadSubs.clear();
     this.pollAttemptsByAsset.clear();
     this.lessonsAwaitingReorder.clear();
     this.inFlightCount = 0;
@@ -344,84 +401,119 @@ export class BatchVideoUploadService {
     this.maybeCompleteBatch();
   }
 
+  /**
+   * Idempotent pipeline: 4 steps, mỗi step skip nếu output đã tồn tại trong item state.
+   * Tránh duplicate sections nếu retry xảy ra giữa pipeline (vd: fail ở step 3 →
+   * không re-upload + re-register asset).
+   *
+   * Step state machine:
+   *   !attachmentId → UPLOADING (upload to R2)
+   *   !videoAssetId → ASSET_CREATING (register backend)
+   *   !sectionId    → SECTION_CREATING (POST lesson section)
+   *   else          → PROCESSING (poll until READY) hoặc READY (nếu BE đã READY)
+   */
   private async runItemPipeline(itemId: string): Promise<void> {
     try {
-      const item = this.items().find((i) => i.id === itemId);
-      if (!item) return;
+      const initial = this.items().find((i) => i.id === itemId);
+      if (!initial) return;
 
-      // Step 1: Upload to R2 via presigned URL
-      const uploadResult = await firstValueFrom(
-        this.presignedUpload.upload(item.file, 'videos').pipe(
-          tap((event: UploadEvent) => {
-            if (event.type === 'progress') {
-              this.updateItemProgress(itemId, event.progress);
-            }
-          }),
-          filter((event: UploadEvent) => event.type === 'complete'),
-          take(1)
-        )
-      );
+      // ─── Step 1: Upload to R2 (skip nếu đã có attachmentId) ───
+      let attachmentId = initial.attachmentId;
+      if (!attachmentId) {
+        const uploadResult = await this.runUploadStep(itemId, initial.file);
+        attachmentId = uploadResult.id;
+        this.updateItem(itemId, { attachmentId });
+      }
 
-      this.updateItem(itemId, { attachmentId: uploadResult.id });
+      // ─── Step 2: Register video asset (skip nếu đã có videoAssetId) ───
       this.updateItemStatus(itemId, 'ASSET_CREATING');
+      let videoAssetId = this.items().find((i) => i.id === itemId)?.videoAssetId;
+      let asset: any = null;
 
-      // Step 2: Register video asset (triggers backend ingest queue)
-      const assetRes: any = await firstValueFrom(
-        this.videoAssetApi.createFromUpload(uploadResult.id, item.file.name)
-      );
-      const asset = assetRes?.data ?? assetRes;
-      if (!asset?.id) {
-        throw new Error('Backend không trả videoAssetId');
+      if (!videoAssetId) {
+        const assetRes: any = await firstValueFrom(
+          this.videoAssetApi.createFromUpload(attachmentId, initial.file.name)
+        );
+        asset = assetRes?.data ?? assetRes;
+        if (!asset?.id) throw new Error('Backend không trả videoAssetId');
+        videoAssetId = asset.id;
+        this.updateItem(itemId, { videoAssetId });
+      } else {
+        // Asset đã tồn tại — fetch hiện tại để biết status (READY/PROCESSING/FAILED)
+        const assetRes: any = await firstValueFrom(this.videoAssetApi.getById(videoAssetId));
+        asset = assetRes?.data ?? assetRes;
       }
 
-      this.updateItem(itemId, { videoAssetId: asset.id });
+      // ─── Step 3: Create section (skip nếu đã có sectionId) ───
       this.updateItemStatus(itemId, 'SECTION_CREATING');
+      const current = this.items().find((i) => i.id === itemId);
+      let sectionId = current?.sectionId;
 
-      // Step 3: Create section in lesson with videoAssetId
-      const currentTitle = this.items().find((i) => i.id === itemId)?.sectionTitle ?? extractFilenameTitle(item.file.name);
-      const sectionPayload = {
-        title: currentTitle,
-        type: 'VIDEO',
-        isRequired: false,
-        videoAssetId: asset.id,
-        videoType: 'ADAPTIVE_R2',
-      };
-      const formData = new FormData();
-      formData.append(
-        'data',
-        new Blob([JSON.stringify(sectionPayload)], { type: 'application/json; charset=utf-8' })
-      );
+      if (!sectionId) {
+        const currentTitle = current?.sectionTitle ?? extractFilenameTitle(initial.file.name);
+        const sectionPayload = {
+          title: currentTitle,
+          type: 'VIDEO',
+          isRequired: false,
+          videoAssetId,
+          videoType: 'ADAPTIVE_R2',
+        };
+        const formData = new FormData();
+        formData.append(
+          'data',
+          new Blob([JSON.stringify(sectionPayload)], { type: 'application/json; charset=utf-8' })
+        );
 
-      const sectionRes: any = await firstValueFrom(this.sectionApi.createSection(item.lessonId, formData));
-      const created = sectionRes?.data ?? sectionRes;
-      if (!created?.id) {
-        throw new Error('Backend không trả sectionId');
+        const sectionRes: any = await firstValueFrom(this.sectionApi.createSection(initial.lessonId, formData));
+        const created = sectionRes?.data ?? sectionRes;
+        if (!created?.id) throw new Error('Backend không trả sectionId');
+
+        sectionId = created.id;
+        this.updateItem(itemId, { sectionId });
+        this.lessonsAwaitingReorder.add(initial.lessonId);
+
+        this.store.addSectionLocal(initial.lessonId, {
+          id: created.id,
+          title: created.title || currentTitle,
+          type: 'VIDEO',
+          videoAssetId,
+          videoProcessingStatus: asset?.status,
+          videoType: 'ADAPTIVE_R2',
+          orderIndex: created.orderIndex ?? 0,
+          isRequired: false,
+          availableOfflineProfiles: [],
+        } as any);
       }
 
-      this.updateItem(itemId, { sectionId: created.id });
-      this.lessonsAwaitingReorder.add(item.lessonId);
-
-      // Update local store optimistically
-      this.store.addSectionLocal(item.lessonId, {
-        id: created.id,
-        title: created.title || currentTitle,
-        type: 'VIDEO',
-        videoAssetId: asset.id,
-        videoProcessingStatus: asset.status,
-        videoType: 'ADAPTIVE_R2',
-        orderIndex: created.orderIndex ?? 0,
-        isRequired: false,
-        availableOfflineProfiles: [],
-      } as any);
-
-      // Step 4: Move to PROCESSING (backend transcoding) — wait via polling
-      this.updateItemStatus(itemId, asset.status === 'READY' ? 'READY' : 'PROCESSING');
+      // ─── Step 4: PROCESSING (polling) hoặc READY ───
+      this.updateItemStatus(itemId, asset?.status === 'READY' ? 'READY' : 'PROCESSING');
     } catch (err: any) {
       this.markItemFailed(itemId, this.formatError(err));
     } finally {
+      this.activeUploadSubs.delete(itemId);
       this.inFlightCount = Math.max(0, this.inFlightCount - 1);
       this.pumpQueue();
     }
+  }
+
+  /**
+   * Wrap upload Observable thành Promise + lưu Subscription để cancel.
+   * Không dùng firstValueFrom trực tiếp vì cần access subscription handle.
+   */
+  private runUploadStep(itemId: string, file: File): Promise<{ id: string; url: string; key: string }> {
+    return new Promise((resolve, reject) => {
+      const sub = this.presignedUpload.upload(file, 'videos').subscribe({
+        next: (event: UploadEvent) => {
+          if (event.type === 'progress') {
+            this.updateItemProgress(itemId, event.progress);
+          } else if (event.type === 'complete') {
+            resolve({ id: event.id, url: event.url, key: event.key });
+          }
+        },
+        error: (err) => reject(err),
+      });
+      this.activeUploadSubs.set(itemId, sub);
+    });
   }
 
   private ensurePollingLoop(): void {

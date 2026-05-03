@@ -36,13 +36,41 @@ import { BatchTargetLesson, BatchVideoItem } from './batch-video-upload.types';
               <lucide-icon name="book-open" [size]="14" class="text-slate-400 flex-shrink-0"></lucide-icon>
               <span class="text-sm font-medium text-gray-900 truncate">{{ lesson.title }}</span>
               @if (lesson.existingSectionCount > 0) {
-                <span class="text-xs text-gray-500 flex-shrink-0">— đã có {{ lesson.existingSectionCount }} mục, sẽ thêm video mới vào sau cùng</span>
+                <button
+                  type="button"
+                  (click)="toggleExistingExpanded(lesson.id)"
+                  class="text-xs text-gray-500 hover:text-[#0056D2] inline-flex items-center gap-0.5 flex-shrink-0"
+                >
+                  — đã có {{ lesson.existingSectionCount }} mục
+                  <lucide-icon
+                    [name]="isExistingExpanded(lesson.id) ? 'chevron-up' : 'chevron-down'"
+                    [size]="12"
+                  ></lucide-icon>
+                </button>
               }
             </div>
             <span class="text-xs font-medium text-gray-600 flex-shrink-0 ml-3">
-              {{ lessonItems.length }} video
+              + {{ lessonItems.length }} video mới
             </span>
           </div>
+
+          @if (isExistingExpanded(lesson.id) && lesson.existingSections; as existing) {
+            <div class="bg-slate-50/30 border-b border-gray-100">
+              @for (section of existing; track section.id) {
+                <div class="px-3 py-1.5 flex items-center gap-3 text-xs text-gray-500">
+                  <span class="w-4 flex-shrink-0"></span>
+                  <span class="w-9 h-9 rounded-md bg-slate-100 flex items-center justify-center flex-shrink-0">
+                    <lucide-icon name="check" [size]="14" class="text-slate-400"></lucide-icon>
+                  </span>
+                  <span class="flex-1 truncate text-gray-600">{{ section.title }}</span>
+                  <span class="flex-shrink-0 text-[10px] uppercase tracking-wide text-slate-400">{{ sectionTypeLabel(section.type) }}</span>
+                </div>
+              }
+              <div class="px-3 py-1 text-[11px] text-center text-slate-400 italic border-t border-slate-100">
+                Video mới sẽ được thêm vào dưới đây
+              </div>
+            </div>
+          }
 
           <div
             cdkDropList
@@ -141,6 +169,17 @@ import { BatchTargetLesson, BatchVideoItem } from './batch-video-upload.types';
                       <lucide-icon name="rotate-cw" [size]="14"></lucide-icon>
                     </button>
                   }
+                  @if (item.status === 'UPLOADING' || item.status === 'ASSET_CREATING') {
+                    <button
+                      type="button"
+                      (click)="cancelRequested.emit(item.id)"
+                      class="text-gray-400 hover:text-red-600 hover:bg-red-50 rounded p-1"
+                      aria-label="Huỷ tải lên"
+                      title="Huỷ tải lên"
+                    >
+                      <lucide-icon name="x" [size]="14"></lucide-icon>
+                    </button>
+                  }
                   @if (item.status === 'PENDING' || item.status === 'FAILED') {
                     <button
                       type="button"
@@ -204,8 +243,12 @@ export class BatchUploadPreviewTreeComponent {
   readonly itemMoved = output<{ itemId: string; targetLessonId: string; targetIndex: number }>();
   readonly removeRequested = output<string>();
   readonly retryRequested = output<string>();
+  readonly cancelRequested = output<string>();
   readonly titleChanged = output<{ itemId: string; title: string }>();
   readonly newLessonRequested = output<void>();
+
+  /** Lessons có existingSections expanded — user click "X mục có sẵn" để toggle. */
+  readonly expandedExistingFor = signal<Set<string>>(new Set());
 
   readonly editingId = signal<string | null>(null);
 
@@ -237,6 +280,27 @@ export class BatchUploadPreviewTreeComponent {
 
   queuePositionFor(itemId: string): number | null {
     return this.pendingOrder().get(itemId) ?? null;
+  }
+
+  isExistingExpanded(lessonId: string): boolean {
+    return this.expandedExistingFor().has(lessonId);
+  }
+
+  toggleExistingExpanded(lessonId: string): void {
+    const next = new Set(this.expandedExistingFor());
+    if (next.has(lessonId)) next.delete(lessonId);
+    else next.add(lessonId);
+    this.expandedExistingFor.set(next);
+  }
+
+  sectionTypeLabel(type: string): string {
+    switch ((type || '').toUpperCase()) {
+      case 'VIDEO': return 'video';
+      case 'TEXT': return 'văn bản';
+      case 'FILE': return 'tệp';
+      case 'QUIZ': return 'trắc nghiệm';
+      default: return type || '';
+    }
   }
 
   isDraggable(item: BatchVideoItem): boolean {

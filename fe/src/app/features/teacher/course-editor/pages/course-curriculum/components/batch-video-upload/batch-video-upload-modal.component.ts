@@ -230,15 +230,20 @@ import {
     <!-- ============ PREVIEW Stage ============ -->
     <ng-template #previewStage>
       <div class="space-y-4">
-        <div class="flex items-center justify-between text-xs">
+        <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
           <span class="text-gray-500">Kéo thả để xếp lại video giữa các bài. Click tên để sửa tiêu đề.</span>
-          <button
-            type="button"
-            (click)="onChangeStrategy()"
-            class="text-[#0056D2] hover:underline font-medium"
-          >
-            Đổi cách phân bổ
-          </button>
+          <label class="inline-flex items-center gap-2 text-gray-600">
+            <span class="font-medium">Cách phân bổ:</span>
+            <select
+              [value]="selectedStrategy()"
+              (change)="onStrategyChanged($any($event.target).value)"
+              class="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-900 focus:border-[#0056D2] focus:outline-none focus:ring-1 focus:ring-[#0056D2]"
+            >
+              @for (opt of strategyOptions; track opt.value) {
+                <option [value]="opt.value">{{ opt.label }}</option>
+              }
+            </select>
+          </label>
         </div>
         <app-batch-upload-preview-tree
           [lessons]="svc.availableLessons()"
@@ -290,6 +295,7 @@ import {
           [showCreateLessonButton]="false"
           (removeRequested)="svc.removeItem($event)"
           (retryRequested)="svc.retryItem($event)"
+          (cancelRequested)="svc.cancelItem($event)"
         />
       </div>
     </ng-template>
@@ -491,11 +497,12 @@ export class BatchVideoUploadModalComponent {
     this.requestClose();
   }
 
-  protected onChangeStrategy(): void {
-    const next: DistributionStrategy =
-      this.selectedStrategy() === 'EVEN' ? 'PREFIX' : this.selectedStrategy() === 'PREFIX' ? 'SINGLE_LESSON' : 'EVEN';
-    this.selectedStrategy.set(next);
-    this.svc.redistribute(next);
+  protected onStrategyChanged(value: string): void {
+    const valid: DistributionStrategy[] = ['EVEN', 'PREFIX', 'SINGLE_LESSON'];
+    if (!valid.includes(value as DistributionStrategy)) return;
+    const strategy = value as DistributionStrategy;
+    this.selectedStrategy.set(strategy);
+    this.svc.redistribute(strategy);
   }
 
   protected async onNewLessonRequested(): Promise<void> {
