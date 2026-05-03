@@ -147,12 +147,18 @@ export class CourseCurriculumComponent implements OnDestroy {
     const result: BatchTargetLesson[] = [];
     for (const ch of tree.chapters) {
       for (const l of ch.lessons) {
+        const sections = l.sections ?? [];
         result.push({
           id: l.id,
           chapterId: ch.id,
           title: stripCurriculumPrefix(l.title || '', 'lesson') || l.title || '',
           orderIndex: l.orderIndex ?? 0,
-          existingSectionCount: (l.sections ?? []).length,
+          existingSectionCount: sections.length,
+          existingSections: sections.map((s) => ({
+            id: s.id,
+            title: stripCurriculumPrefix(s.title || '', 'section') || s.title || '',
+            type: s.type || '',
+          })),
         });
       }
     }

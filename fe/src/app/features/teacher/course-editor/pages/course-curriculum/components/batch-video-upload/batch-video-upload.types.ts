@@ -39,6 +39,13 @@ export interface BatchVideoItem {
   errorMessage?: string;
 }
 
+export interface ExistingSectionSummary {
+  id: string;
+  title: string;
+  /** SectionType: TEXT | VIDEO | FILE | QUIZ — dùng cho hiển thị type badge */
+  type: string;
+}
+
 export interface BatchTargetLesson {
   id: string;
   chapterId: string;
@@ -47,6 +54,12 @@ export interface BatchTargetLesson {
   orderIndex: number;
   /** Số section đã có sẵn trong lesson — dùng để hiển thị "thêm vào X mục có sẵn" */
   existingSectionCount: number;
+  /**
+   * Sections đã có sẵn trong lesson — hiển thị faded ở đầu lesson group cho user
+   * thấy context đầy đủ (mirror sidebar pattern). Optional vì có thể không cần
+   * load trong một số luồng (vd: scope=ENTIRE_COURSE với hàng nghìn lessons).
+   */
+  existingSections?: ExistingSectionSummary[];
 }
 
 export interface BatchUploadConfig {

@@ -177,6 +177,7 @@ import { stripCurriculumPrefix } from '../../../../utils/curriculum-labels';
             [courseId]="courseId()"
             (saved)="sectionSaved.emit()"
             (closed)="sectionClosed.emit()"
+            (batchVideoUpload)="batchVideoUpload.emit()"
           >
           </app-section-editor>
         }
