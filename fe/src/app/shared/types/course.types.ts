@@ -340,6 +340,8 @@ export interface ClassSummary {
   scheduleType: ScheduleType;
   semester?: string;
   versionMode?: 'PINNED' | 'FOLLOW_LATEST';
+  /** UUID of the publication this class is pinned to (null = follow latest) */
+  courseVersionId?: string | null;
   publicationNumber?: number;
   latestPublicationNumber?: number;
   updateAvailable?: boolean;

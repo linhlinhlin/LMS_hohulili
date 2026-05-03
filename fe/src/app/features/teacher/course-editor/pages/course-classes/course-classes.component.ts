@@ -15,6 +15,8 @@ import { ClassDialogComponent } from './class-dialog/class-dialog.component';
 import { Page } from '../../../../../api/types/common.types';
 import { AddStudentDrawerComponent } from './class-students/add-student-drawer/add-student-drawer.component';
 import { ClassTeachersDrawerComponent } from './class-teachers/class-teachers-drawer.component';
+import { VersionPickerDrawerComponent } from './version-picker/version-picker-drawer.component';
+import { VersionHistoryDrawerComponent } from './version-picker/version-history-drawer.component';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { CourseEditorStore } from '../../store/course-editor.store';
@@ -39,7 +41,9 @@ import { getInitials, formatVietnameseDate } from '../../../../../core/utils/for
     MatIconModule,
     AddStudentDrawerComponent,
     ClassTeachersDrawerComponent,
-    ClassSelectionDialogComponent
+    ClassSelectionDialogComponent,
+    VersionPickerDrawerComponent,
+    VersionHistoryDrawerComponent
   ],
   templateUrl: './course-classes.component.html',
   styleUrl: './course-classes.component.scss',
@@ -83,6 +87,13 @@ export class CourseClassesComponent {
   // Co-teacher Drawer State
   isTeacherDrawerOpen = signal(false);
   teacherDrawerClassId = signal('');
+
+  // Version Picker State (per-class)
+  isVersionPickerOpen = signal(false);
+  versionPickerClass = signal<ClassSummary | null>(null);
+
+  // Version History State (course-level, bulk adopt)
+  isVersionHistoryOpen = signal(false);
 
   // Paid Unenrolled Students (Option B)
   paidUnenrolledStudents = signal<any[]>([]);
@@ -311,6 +322,32 @@ export class CourseClassesComponent {
   manageTeachers(cls: ClassSummary) {
     this.teacherDrawerClassId.set(cls.id);
     this.isTeacherDrawerOpen.set(true);
+  }
+
+  // ============ Actions: Version Management ============
+
+  openVersionPicker(cls: ClassSummary) {
+    this.versionPickerClass.set(cls);
+    this.isVersionPickerOpen.set(true);
+  }
+
+  closeVersionPicker() {
+    this.isVersionPickerOpen.set(false);
+    // Defer clearing class data so the drawer's exit animation has the data still in scope
+    setTimeout(() => this.versionPickerClass.set(null), 400);
+  }
+
+  openVersionHistory() {
+    this.isVersionHistoryOpen.set(true);
+  }
+
+  closeVersionHistory() {
+    this.isVersionHistoryOpen.set(false);
+  }
+
+  /** Called after version picker or history bulk adopt — refresh class list to reflect new pin state */
+  onVersionAdopted() {
+    this.loadClasses();
   }
 
   // ============ Actions: Filters ============

@@ -337,7 +337,7 @@ public class ClassControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(response, "Thông tin lớp học"));
     }
 
-    @Operation(summary = "Adopt a published course release for this class")
+    @Operation(summary = "Adopt a published course release for this class (or unpin to follow latest)")
     @PostMapping("/{classId}/adopt-publication")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> adoptPublication(
@@ -347,6 +347,32 @@ public class ClassControllerV3 {
     ) {
         var context = resolveOwnedClassContext(UUID.fromString(classId), user);
         ensureInstructorLedCourse(context.course());
+
+        boolean followLatest = request != null
+                && "FOLLOW_LATEST".equalsIgnoreCase(request.getMode());
+
+        var learningClass = context.learningClass();
+
+        if (followLatest) {
+            // Unpin: class will resolve to latest publication automatically (CoursePublicationService:99-106)
+            learningClass.setCourseVersionId(null);
+            learningClass.setVersionMode(LearningClassJpaEntity.VersionMode.FOLLOW_LATEST);
+            classJpaRepository.save(learningClass);
+
+            var latest = coursePublicationJpaRepository
+                    .findTopByCourseIdOrderByPublicationNumberDesc(context.course().getId())
+                    .orElse(null);
+
+            Map<String, Object> unpinResult = new java.util.LinkedHashMap<>();
+            unpinResult.put("classId", learningClass.getId().toString());
+            unpinResult.put("courseVersionId", null);
+            unpinResult.put("publicationNumber", latest != null ? latest.getPublicationNumber() : null);
+            unpinResult.put("versionMode", LearningClassJpaEntity.VersionMode.FOLLOW_LATEST.name());
+            String message = latest != null
+                    ? "Lớp đã chuyển sang theo bản mới nhất (v" + latest.getPublicationNumber() + ")."
+                    : "Lớp sẽ theo bản mới nhất khi khóa học được phát hành.";
+            return ResponseEntity.ok(ApiResponse.success(unpinResult, message));
+        }
 
         UUID publicationId = null;
         if (request != null && request.getPublicationId() != null && !request.getPublicationId().isBlank()) {
@@ -366,7 +392,6 @@ public class ClassControllerV3 {
             throw new AccessDeniedException("Bạn không thể áp dụng phiên bản của khóa học khác.");
         }
 
-        var learningClass = context.learningClass();
         learningClass.setCourseVersionId(resolvedPublication.getId());
         learningClass.setVersionMode(LearningClassJpaEntity.VersionMode.PINNED);
         classJpaRepository.save(learningClass);
@@ -603,6 +628,8 @@ public class ClassControllerV3 {
     @AllArgsConstructor
     public static class AdoptPublicationRequest {
         private String publicationId;
+        /** "PINNED" (default) or "FOLLOW_LATEST". When FOLLOW_LATEST, publicationId is ignored. */
+        private String mode;
     }
 
     // === Ownership Helpers ===

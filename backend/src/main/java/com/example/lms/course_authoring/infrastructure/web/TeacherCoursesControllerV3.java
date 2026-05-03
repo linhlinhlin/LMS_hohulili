@@ -46,6 +46,8 @@ public class TeacherCoursesControllerV3 {
     private final AdaptiveVideoPlaybackService adaptiveVideoPlaybackService;
     private final com.example.lms.learning_delivery.infrastructure.persistence.ClassTeacherJpaRepository classTeacherJpaRepository;
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.CourseReviewEventJpaRepository reviewEventRepository;
+    private final com.example.lms.course_authoring.application.usecase.GetCoursePublicationsUseCase getCoursePublicationsUseCase;
+    private final com.example.lms.course_authoring.application.usecase.BulkAdoptPublicationUseCase bulkAdoptPublicationUseCase;
 
     @GetMapping("/my-courses")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
@@ -348,6 +350,69 @@ public class TeacherCoursesControllerV3 {
             );
             draft.setIntroVideoUrl(playUrl);
         });
+    }
+
+    // ================================================================================================
+    // Publication Version Management (Coursera Sessions / edX Course Runs pattern)
+    // ================================================================================================
+
+    @GetMapping("/{courseId}/publications")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @Operation(summary = "List all publications (versions) of a course with adoption metrics")
+    public ResponseEntity<ApiResponse<java.util.List<java.util.Map<String, Object>>>> listPublications(
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        verifyCourseOwnership(courseId, user);
+
+        var views = getCoursePublicationsUseCase.execute(courseId);
+        if (views.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.success(java.util.List.of(), "Khóa học chưa có bản phát hành nào"));
+        }
+
+        var payload = views.stream().map(view -> {
+            java.util.Map<String, Object> row = new java.util.LinkedHashMap<>();
+            row.put("id", view.id().toString());
+            row.put("publicationNumber", view.publicationNumber());
+            row.put("contentVersion", view.contentVersion());
+            row.put("publishedAt", view.publishedAt() != null ? view.publishedAt().toString() : null);
+            row.put("publishedById", view.publishedById() != null ? view.publishedById().toString() : null);
+            row.put("publishedByName", view.publishedByName());
+            row.put("releaseNotes", view.releaseNotes());
+            row.put("pinnedClassCount", view.pinnedClassCount());
+            row.put("effectiveClassCount", view.effectiveClassCount());
+            row.put("isLatest", view.isLatest());
+            return row;
+        }).toList();
+
+        return ResponseEntity.ok(ApiResponse.success(payload, "Danh sách phiên bản khóa học"));
+    }
+
+    @PostMapping("/{courseId}/publications/{publicationId}/adopt-all")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @Operation(summary = "Bulk pin classes to a publication (Coursera bulk session promotion)")
+    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> bulkAdoptPublication(
+            @PathVariable UUID courseId,
+            @PathVariable UUID publicationId,
+            @RequestBody(required = false) java.util.Map<String, String> body,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        verifyCourseOwnership(courseId, user);
+
+        String rawScope = body != null ? body.getOrDefault("scope", "OPEN_ONLY") : "OPEN_ONLY";
+        var scope = "ALL".equalsIgnoreCase(rawScope)
+                ? com.example.lms.course_authoring.application.usecase.BulkAdoptPublicationUseCase.Scope.ALL
+                : com.example.lms.course_authoring.application.usecase.BulkAdoptPublicationUseCase.Scope.OPEN_ONLY;
+
+        var result = bulkAdoptPublicationUseCase.execute(courseId, publicationId, scope, user.getId());
+
+        java.util.Map<String, Object> payload = new java.util.LinkedHashMap<>();
+        payload.put("publicationId", result.publicationId().toString());
+        payload.put("publicationNumber", result.publicationNumber());
+        payload.put("scope", result.scope().name());
+        payload.put("affectedClassCount", result.affectedClassCount());
+        payload.put("totalClassCount", result.totalClassCount());
+        payload.put("skippedClassNames", result.skippedClassNames());
+        return ResponseEntity.ok(ApiResponse.success(payload,
+                "Đã đẩy phiên bản v" + result.publicationNumber() + " cho " + result.affectedClassCount() + " lớp"));
     }
 
     private CourseDTOs.TeacherCourseResponse mapEntityToResponse(

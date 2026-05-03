@@ -4,6 +4,7 @@ import com.example.lms.course_authoring.infrastructure.persistence.entity.Course
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -13,4 +14,6 @@ public interface CoursePublicationJpaRepository extends JpaRepository<CoursePubl
     Optional<CoursePublicationJpaEntity> findTopByCourseIdOrderByPublicationNumberDesc(UUID courseId);
 
     long countByCourseId(UUID courseId);
+
+    List<CoursePublicationJpaEntity> findByCourseIdOrderByPublicationNumberDesc(UUID courseId);
 }
