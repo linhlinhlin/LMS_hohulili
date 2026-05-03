@@ -204,16 +204,19 @@
                             <!-- Version badge -->
                             <span class="flex items-center gap-1 mt-1">
                                 @if (cls.publicationNumber) {
-                                <span class="px-1 py-0.5 text-[9px] font-bold bg-slate-100 text-slate-500 border border-slate-200 rounded tabular-nums">
+                                <span class="px-1 py-0.5 text-[9px] font-bold bg-slate-100 text-slate-500 border border-slate-200 rounded tabular-nums"
+                                      title="Lớp đang gắn với bản phát hành v{{ cls.publicationNumber }} của khoá học. Học viên thấy nội dung của bản này.">
                                     v{{ cls.publicationNumber }}
                                 </span>
                                 } @else {
-                                <span class="px-1 py-0.5 text-[9px] font-bold bg-amber-50 text-amber-600 border border-amber-200 rounded">
+                                <span class="px-1 py-0.5 text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200 rounded cursor-help"
+                                      title="Khoá học chưa được xuất bản. Học viên trong lớp này sẽ KHÔNG thấy nội dung. Bấm 'Xuất bản' ở đầu trang để công bố nội dung khoá.">
                                     Chưa phát hành
                                 </span>
                                 }
                                 @if (cls.updateAvailable) {
-                                <span class="px-1 py-0.5 text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200 rounded">
+                                <span class="px-1 py-0.5 text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200 rounded"
+                                      title="Khoá học có bản phát hành mới hơn (v{{ cls.latestPublicationNumber }}). Có thể nâng cấp lớp này để dùng nội dung mới.">
                                     v{{ cls.latestPublicationNumber }} mới
                                 </span>
                                 }
