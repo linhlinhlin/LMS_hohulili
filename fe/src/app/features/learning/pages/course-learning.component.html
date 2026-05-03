@@ -303,7 +303,6 @@
         [completedSections]="completedSections()"
         [isOfflinePackageStale]="course()?.isOfflinePackage === true && course()?.isStale === true"
         [staleReason]="course()?.staleReason ?? null"
-        [(activeTab)]="activeTab"
         (sectionIndexChange)="onSectionIndexChange($event)"
         (markComplete)="onMarkComplete()"
         (videoEnded)="onVideoEnded()"

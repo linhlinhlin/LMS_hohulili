@@ -21,18 +21,22 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { NetworkStatusService } from '../../../../core/services/network-status.service';
 import { PdfViewerService } from '../../../../shared/services/pdf-viewer.service';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
+import { SideDrawerComponent } from '../../../../shared/components/side-drawer/side-drawer.component';
 
 /**
  * Lesson Content Component
- * 
- * Displays the main content of a lesson including:
- * - Video player (if video URL exists)
- * - HTML content
- * - Attachments list
+ *
+ * SOTA single-column layout (Coursera/edX/Khan Academy hybrid):
+ * - Lesson media (video / file preview / quiz CTA / assignment) renders inline
+ *   without tab navigation — content is always visible.
+ * - Personal notes are accessible via a floating button → side drawer, so a
+ *   student can write while watching without losing the content view.
+ * - Lesson-level attachments are NOT a separate surface; teachers attach files
+ *   as `section.type === 'FILE'` which the unified file card already shows.
  */
 @Component({
   selector: 'app-lesson-content',
-  imports: [AdaptiveVideoPlayerComponent, YouTubePlayerComponent, CommonModule, FormsModule, IconComponent],
+  imports: [AdaptiveVideoPlayerComponent, YouTubePlayerComponent, CommonModule, FormsModule, IconComponent, SideDrawerComponent],
   templateUrl: './lesson-content.component.html',
   styleUrls: ['./lesson-content.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -61,14 +65,21 @@ export class LessonContentComponent implements AfterViewInit {
   readonly newNoteContent = signal('');
   readonly isSavingNote = signal(false);
 
-  /** Load notes when switching to notes tab */
+  /** Load notes when the side drawer opens (Coursera/edX pattern — notes are
+   *  a secondary surface, fetched on demand). */
   private loadNotesEffect = effect(() => {
     const lesson = this.lesson();
-    const tab = this.activeTab();
-    if (tab === 'notes' && lesson?.courseId) {
+    const open = this.notesDrawerOpen();
+    if (open && lesson?.courseId) {
       this.loadNotes();
     }
   });
+
+  /** Side drawer state for the notes panel — floating button toggles it. */
+  readonly notesDrawerOpen = signal(false);
+
+  openNotesDrawer(): void { this.notesDrawerOpen.set(true); }
+  closeNotesDrawer(): void { this.notesDrawerOpen.set(false); }
 
   private loadNotes(): void {
     const lesson = this.lesson();
@@ -177,8 +188,9 @@ export class LessonContentComponent implements AfterViewInit {
   readonly videoEnded = output<void>();
   readonly goToQuiz = output<void>();
 
-  // Active tab for content view
-  readonly activeTab = model<'overview' | 'notes' | 'materials'>('overview');
+  // (Removed `activeTab` model — content always renders, notes moved to side
+  // drawer per Coursera/edX SOTA. No tab navigation = no need to track an
+  // active surface.)
 
   // Computed signals for derived state
   readonly hasSections = computed(() => {
@@ -475,10 +487,11 @@ export class LessonContentComponent implements AfterViewInit {
    */
   private hostEl = inject(ElementRef);
   private mathRenderEffect = effect(() => {
-    // Tracks: section content, lesson content fallback, active tab
+    // Tracks: section content + lesson content fallback. The old tab tracker
+    // was needed because tab switches re-mounted the prose div; with the new
+    // single-column layout, there's no tab to track.
     void this.currentSection()?.content;
     void this.lesson()?.content;
-    void this.activeTab();
     queueMicrotask(() => this.renderMathInHost());
   });
 
@@ -693,15 +706,6 @@ export class LessonContentComponent implements AfterViewInit {
       'LAB': 'Thực hành'
     };
     return labels[this.lesson().lessonType as string] || 'Bài học';
-  }
-
-  // Format file size
-  formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
   previousSection(): void {

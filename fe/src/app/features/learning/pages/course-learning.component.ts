@@ -73,8 +73,8 @@ export class CourseLearningComponent implements OnInit {
   showMobileSidebar = signal(false);
   error = signal<string | null>(null);
 
-  // Active content tab
-  activeTab = signal<'overview' | 'notes' | 'materials'>('overview');
+  // (Removed `activeTab` — content is single-column inline now, notes drawer
+  // toggles inside `app-lesson-content`. No parent state to lift.)
 
   // Video progress tracking for 75% rule
   canCompleteCurrentLesson = signal<boolean>(true); // Default true for non-video lessons
