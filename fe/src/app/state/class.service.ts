@@ -27,6 +27,17 @@ export interface AdoptResult {
     versionMode: 'PINNED' | 'FOLLOW_LATEST';
 }
 
+export interface ClassStudentRow {
+    enrollmentId: string;
+    studentId: string;
+    studentName: string | null;
+    studentEmail: string | null;
+    status: 'ACTIVE' | 'DROPPED' | 'COMPLETED' | string;
+    completionPercent: number;
+    enrolledAt: string | null;
+    lastAccessedAt: string | null;
+}
+
 export interface BulkAdoptResult {
     publicationId: string;
     publicationNumber: number;
@@ -95,9 +106,27 @@ export class ClassService {
             .pipe(map(() => void 0));
     }
 
-    getClassStudents(classId: string): Observable<any[]> {
-        return this.http.get<ApiResponse<any[]>>(`${this.API_URL}/classes/${classId}/students`)
-            .pipe(map(response => response.data));
+    getClassStudents(classId: string): Observable<ClassStudentRow[]> {
+        // BE wraps the roster in PageResponse<ClassStudentResponse> — extract content[].
+        return this.http.get<ApiResponse<{ content: any[] } | any[]>>(`${this.API_URL}/classes/${classId}/students`)
+            .pipe(map(response => {
+                const data = response.data;
+                const rows = Array.isArray(data) ? data : (data?.content ?? []);
+                return rows.map(this.mapClassStudentRow);
+            }));
+    }
+
+    private mapClassStudentRow(row: any): ClassStudentRow {
+        return {
+            enrollmentId: row?.enrollmentId ?? row?.id ?? '',
+            studentId: row?.studentId ?? '',
+            studentName: row?.studentName ?? row?.fullName ?? null,
+            studentEmail: row?.studentEmail ?? row?.email ?? null,
+            status: row?.status ?? 'ACTIVE',
+            completionPercent: typeof row?.completionPercent === 'number' ? row.completionPercent : 0,
+            enrolledAt: row?.enrolledAt ?? null,
+            lastAccessedAt: row?.lastAccessedAt ?? null
+        };
     }
 
     removeStudentFromClass(classId: string, studentId: string): Observable<void> {

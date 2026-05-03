@@ -1,27 +1,19 @@
 import { Component, inject, signal, computed, input, output, resource, effect, ChangeDetectionStrategy } from '@angular/core';
 
 import { firstValueFrom } from 'rxjs';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTabsModule } from '@angular/material/tabs';
-import { ClassService } from '../../../../../../../state/class.service';
+import { ClassService, ClassStudentRow } from '../../../../../../../state/class.service';
 import { SideDrawerComponent } from '../../../../../../../shared/components/side-drawer/side-drawer.component';
 import { ConfirmDialogService } from '../../../../../../../core/services/confirm-dialog.service';
 import { ToastService } from '../../../../../../../core/services/toast.service';
 
-interface EnrolledStudent {
-    id: string;
-    email: string;
-    fullName: string;
-    enrolledAt: string;
-    status?: string;
-}
-
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-add-student-drawer',
-    imports: [ReactiveFormsModule, MatIconModule, MatButtonModule, MatTabsModule, SideDrawerComponent],
+    imports: [FormsModule, ReactiveFormsModule, MatIconModule, MatButtonModule, MatTabsModule, SideDrawerComponent],
     template: `
     <app-side-drawer 
         [isOpen]="isOpen()" 
@@ -32,27 +24,45 @@ interface EnrolledStudent {
       
       <div class="space-y-6">
         <mat-tab-group [selectedIndex]="activeTabIndex()" (selectedIndexChange)="onTabChange($event)">
-          <!-- Tab 1: Danh sách học viên hiện tại -->
+          <!-- Tab 1: Danh sách học viên hiện tại — Canvas/Coursera roster pattern -->
           <mat-tab label="Danh sách học viên">
             <div class="pt-6 space-y-4">
-                <!-- Header Stats -->
-                <div class="flex items-center justify-between px-4 py-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <div class="flex items-center gap-2">
-                        <mat-icon class="text-slate-500">groups</mat-icon>
-                        <span class="text-sm font-bold text-slate-700">Tổng số học viên</span>
+                <!-- Header Stats: total + active + completed (Canvas People summary) -->
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="px-3 py-2.5 bg-slate-50 rounded-lg border border-slate-100">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Tổng số</p>
+                        <p class="text-lg font-black text-slate-900 tabular-nums">{{ enrolledStudents().length }}</p>
                     </div>
-                    <span class="text-lg font-black text-[#0056D2]">{{ enrolledStudents().length }}</span>
+                    <div class="px-3 py-2.5 bg-emerald-50 rounded-lg border border-emerald-100">
+                        <p class="text-[10px] font-bold text-emerald-700 uppercase tracking-wide">Đang học</p>
+                        <p class="text-lg font-black text-emerald-700 tabular-nums">{{ activeCount() }}</p>
+                    </div>
+                    <div class="px-3 py-2.5 bg-blue-50 rounded-lg border border-blue-100">
+                        <p class="text-[10px] font-bold text-[#0056D2] uppercase tracking-wide">Hoàn thành</p>
+                        <p class="text-lg font-black text-[#0056D2] tabular-nums">{{ completedCount() }}</p>
+                    </div>
                 </div>
+
+                <!-- Search filter (when 5+ students — progressive disclosure) -->
+                @if (enrolledStudents().length >= 5) {
+                    <div class="relative">
+                        <mat-icon class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">search</mat-icon>
+                        <input type="text" [(ngModel)]="rosterFilter"
+                               (input)="onFilterChange()"
+                               class="w-full pl-10 pr-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#0056D2]/20 focus:border-[#0056D2] outline-none transition-all"
+                               placeholder="Tìm theo tên hoặc email...">
+                    </div>
+                }
 
                 <!-- Loading State -->
                 @if (isLoadingStudents()) {
                     <div class="flex flex-col items-center justify-center py-12 gap-3">
-                        <div class="w-10 h-10 border-4 border-[#0056D2] border-t-transparent rounded-full animate-spin"></div>
+                        <div class="w-10 h-10 border-4 border-[#0056D2] border-t-transparent rounded-full animate-spin" aria-hidden="true"></div>
                         <p class="text-sm text-gray-500">Đang tải danh sách...</p>
                     </div>
                 }
 
-                <!-- Empty State -->
+                <!-- Empty State (true zero) -->
                 @if (!isLoadingStudents() && enrolledStudents().length === 0) {
                     <div class="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
                         <mat-icon class="text-5xl text-gray-300 mb-3">person_off</mat-icon>
@@ -61,35 +71,63 @@ interface EnrolledStudent {
                     </div>
                 }
 
-                <!-- Student List -->
-                @if (!isLoadingStudents() && enrolledStudents().length > 0) {
-                    <div class="max-h-[400px] overflow-y-auto space-y-2 pr-1">
-                        @for (student of enrolledStudents(); track student.id; let i = $index) {
-                            <div class="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl hover:border-[#0056D2]/20 hover:shadow-sm transition-all group">
+                <!-- Empty State (filter no match) -->
+                @if (!isLoadingStudents() && enrolledStudents().length > 0 && filteredStudents().length === 0) {
+                    <div class="text-center py-8 bg-gray-50 rounded-xl border border-gray-100">
+                        <p class="text-sm text-gray-500">Không tìm thấy học viên khớp <strong>"{{ rosterFilter }}"</strong></p>
+                        <button type="button" (click)="clearFilter()" class="text-xs text-[#0056D2] font-bold hover:underline mt-1">Xoá bộ lọc</button>
+                    </div>
+                }
+
+                <!-- Student List — SOTA: avatar + name/email + status pill + progress bar + last activity -->
+                @if (!isLoadingStudents() && filteredStudents().length > 0) {
+                    <div class="max-h-[460px] overflow-y-auto space-y-2 pr-1">
+                        @for (student of filteredStudents(); track student.enrollmentId) {
+                            <article class="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl hover:border-[#0056D2]/30 hover:shadow-sm transition-all group">
                                 <!-- Avatar -->
-                                <div class="w-10 h-10 bg-[#0056D2] rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                                    {{ getInitials(student.fullName || student.email) }}
-                                </div>
-                                
-                                <!-- Info -->
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-bold text-gray-800 truncate">{{ student.fullName || 'Chưa cập nhật' }}</p>
-                                    <p class="text-xs text-gray-500 truncate">{{ student.email }}</p>
+                                <div class="w-10 h-10 bg-[#0056D2] rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+                                     [attr.aria-label]="'Ảnh đại diện ' + (student.studentName || student.studentEmail || 'học viên')">
+                                    {{ getInitials(student.studentName || student.studentEmail) }}
                                 </div>
 
-                                <!-- Enrolled Date -->
-                                <div class="text-right hidden sm:block">
-                                    <p class="text-[10px] text-gray-400 uppercase">Ghi danh</p>
-                                    <p class="text-xs font-medium text-gray-600">{{ formatDate(student.enrolledAt) }}</p>
+                                <!-- Main info column -->
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 mb-0.5">
+                                        <p class="text-sm font-bold text-gray-900 truncate">{{ student.studentName || 'Chưa cập nhật' }}</p>
+                                        <span class="px-1.5 py-0.5 text-[9px] font-bold rounded uppercase tracking-wide flex-shrink-0"
+                                              [class]="statusBadgeClass(student.status)"
+                                              [attr.title]="statusLabel(student.status)">
+                                            {{ statusLabel(student.status) }}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 truncate mb-1.5">{{ student.studentEmail || '—' }}</p>
+
+                                    <!-- Progress + last activity row -->
+                                    <div class="flex items-center gap-3 text-[10px] text-gray-500">
+                                        <div class="flex items-center gap-1.5 flex-1 min-w-0">
+                                            <div class="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden max-w-[120px]">
+                                                <div class="h-full rounded-full transition-all"
+                                                     [style.width.%]="student.completionPercent"
+                                                     [class]="progressBarClass(student.completionPercent)"></div>
+                                            </div>
+                                            <span class="font-semibold tabular-nums" [class.text-emerald-600]="student.completionPercent >= 100">
+                                                {{ student.completionPercent }}%
+                                            </span>
+                                        </div>
+                                        <span class="hidden sm:inline truncate" [title]="'Truy cập cuối: ' + relativeTime(student.lastAccessedAt)">
+                                            {{ relativeTime(student.lastAccessedAt) }}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <!-- Remove Button -->
-                                <button (click)="removeStudent(student)" 
-                                        class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                                        title="Xóa học viên">
+                                <button type="button" (click)="removeStudent(student)"
+                                        class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all"
+                                        [attr.aria-label]="'Xóa ' + (student.studentName || student.studentEmail) + ' khỏi lớp'"
+                                        title="Xóa khỏi lớp">
                                     <mat-icon class="text-lg">person_remove</mat-icon>
                                 </button>
-                            </div>
+                            </article>
                         }
                     </div>
                 }
@@ -261,11 +299,27 @@ export class AddStudentDrawerComponent {
     isLoading = signal(false);
     manualError = signal('');
     isLoadingStudents = signal(false);
-    enrolledStudents = signal<EnrolledStudent[]>([]);
+    enrolledStudents = signal<ClassStudentRow[]>([]);
+
+    /** Roster filter (search by name or email) — only shown when 5+ students. */
+    rosterFilter = '';
+    private rosterFilterSig = signal('');
 
     selectedFile = signal<File | null>(null);
     isDragging = signal(false);
     actionError = signal('');
+
+    activeCount = computed(() => this.enrolledStudents().filter(s => s.status === 'ACTIVE').length);
+    completedCount = computed(() => this.enrolledStudents().filter(s => s.status === 'COMPLETED').length);
+
+    filteredStudents = computed(() => {
+        const q = this.rosterFilterSig().trim().toLowerCase();
+        if (!q) return this.enrolledStudents();
+        return this.enrolledStudents().filter(s =>
+            (s.studentName ?? '').toLowerCase().includes(q)
+            || (s.studentEmail ?? '').toLowerCase().includes(q)
+        );
+    });
 
     // Resource API for Excel Validation
     validationResource = resource<any, any>({
@@ -315,7 +369,7 @@ export class AddStudentDrawerComponent {
         }
     }
 
-    getInitials(name: string): string {
+    getInitials(name: string | null | undefined): string {
         if (!name) return '?';
         const parts = name.split(' ').filter(p => p);
         if (parts.length >= 2) {
@@ -324,7 +378,7 @@ export class AddStudentDrawerComponent {
         return name.substring(0, 2).toUpperCase();
     }
 
-    formatDate(dateStr: string): string {
+    formatDate(dateStr: string | null | undefined): string {
         if (!dateStr) return '-';
         try {
             const date = new Date(dateStr);
@@ -334,10 +388,62 @@ export class AddStudentDrawerComponent {
         }
     }
 
-    async removeStudent(student: EnrolledStudent) {
+    /** Vietnamese relative time ("3 ngày trước", "Vừa xong", "Chưa truy cập") — Canvas People activity column pattern. */
+    relativeTime(dateStr: string | null | undefined): string {
+        if (!dateStr) return 'Chưa truy cập';
+        const then = new Date(dateStr).getTime();
+        if (Number.isNaN(then)) return 'Chưa truy cập';
+        const diffMin = Math.floor((Date.now() - then) / 60_000);
+        if (diffMin < 1) return 'Vừa xong';
+        if (diffMin < 60) return diffMin + ' phút trước';
+        const diffHour = Math.floor(diffMin / 60);
+        if (diffHour < 24) return diffHour + ' giờ trước';
+        const diffDay = Math.floor(diffHour / 24);
+        if (diffDay < 30) return diffDay + ' ngày trước';
+        const diffMonth = Math.floor(diffDay / 30);
+        if (diffMonth < 12) return diffMonth + ' tháng trước';
+        return Math.floor(diffMonth / 12) + ' năm trước';
+    }
+
+    statusLabel(status: string | null | undefined): string {
+        switch (status) {
+            case 'ACTIVE': return 'Đang học';
+            case 'COMPLETED': return 'Hoàn thành';
+            case 'DROPPED': return 'Đã rời';
+            default: return status || 'Khác';
+        }
+    }
+
+    statusBadgeClass(status: string | null | undefined): string {
+        switch (status) {
+            case 'ACTIVE': return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+            case 'COMPLETED': return 'bg-blue-50 text-[#0056D2] border border-blue-200';
+            case 'DROPPED': return 'bg-gray-100 text-gray-600 border border-gray-200';
+            default: return 'bg-slate-100 text-slate-600 border border-slate-200';
+        }
+    }
+
+    progressBarClass(percent: number): string {
+        if (percent >= 100) return 'bg-emerald-500';
+        if (percent >= 60) return 'bg-[#0056D2]';
+        if (percent > 0) return 'bg-amber-400';
+        return 'bg-gray-300';
+    }
+
+    onFilterChange() {
+        this.rosterFilterSig.set(this.rosterFilter);
+    }
+
+    clearFilter() {
+        this.rosterFilter = '';
+        this.rosterFilterSig.set('');
+    }
+
+    async removeStudent(student: ClassStudentRow) {
+        const displayName = student.studentName || student.studentEmail || 'học viên';
         const confirmed = await this.confirmDialog.confirm({
             title: 'Xóa học viên',
-            message: `Bạn chắc chắn muốn xóa học viên "${student.fullName || student.email}" khỏi lớp?`,
+            message: `Bạn chắc chắn muốn xóa học viên "${displayName}" khỏi lớp?`,
             variant: 'danger',
             confirmText: 'Xóa',
             cancelText: 'Hủy'
@@ -346,7 +452,7 @@ export class AddStudentDrawerComponent {
 
         this.isLoading.set(true);
         try {
-            await firstValueFrom(this.classService.removeStudentFromClass(this.classId(), student.id));
+            await firstValueFrom(this.classService.removeStudentFromClass(this.classId(), student.studentId));
             this.loadEnrolledStudents();
             this.onSaved.emit();
         } catch (err: any) {
@@ -367,6 +473,8 @@ export class AddStudentDrawerComponent {
         this.selectedFile.set(null);
         this.isLoading.set(false);
         this.activeTabIndex.set(0);
+        this.rosterFilter = '';
+        this.rosterFilterSig.set('');
     }
 
     saveManual() {

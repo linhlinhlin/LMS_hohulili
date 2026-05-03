@@ -432,10 +432,10 @@ public class ClassControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(enrollmentId, "Đã thêm học viên vào lớp"));
     }
 
-    @Operation(summary = "Get students in class")
+    @Operation(summary = "Get students in class (enriched roster: name + email + progress)")
     @GetMapping("/{classId}/students")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
-    public ResponseEntity<ApiResponse<PageResponse<EnrollmentResponse>>> getClassStudents(
+    public ResponseEntity<ApiResponse<PageResponse<com.example.lms.learning_delivery.application.dto.ClassStudentResponse>>> getClassStudents(
             @PathVariable String classId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "1000") int size,
@@ -443,7 +443,7 @@ public class ClassControllerV3 {
     ) {
         var context = resolveOwnedClassContext(UUID.fromString(classId), user);
         ensureInstructorLedCourse(context.course());
-        PageResponse<EnrollmentResponse> students = getClassStudentsUseCase.execute(
+        PageResponse<com.example.lms.learning_delivery.application.dto.ClassStudentResponse> students = getClassStudentsUseCase.execute(
                 UUID.fromString(classId),
                 PageRequest.of(page, size)
         );
