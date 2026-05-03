@@ -144,7 +144,7 @@ import {
                   (click)="onCloseAndContinue()"
                   class="px-4 py-1.5 text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg"
                 >
-                  {{ svc.mode() === 'COMPLETE' ? 'Đóng' : 'Đóng — chạy nền' }}
+                  {{ svc.mode() === 'COMPLETE' ? 'Đóng' : 'Thu nhỏ — chạy nền' }}
                 </button>
               }
             </div>
@@ -527,7 +527,7 @@ export class BatchVideoUploadModalComponent {
       case 'PREVIEW':
         return 'Kéo thả để xếp lại, click tên để sửa, sau đó bấm "Bắt đầu tải lên"';
       case 'UPLOADING':
-        return 'Có thể đóng tab — tải lên vẫn chạy nền';
+        return 'Có thể đóng modal — tải lên vẫn chạy nền (cần giữ tab này mở)';
       case 'COMPLETE':
         return 'Tất cả video đã được xử lý';
       default:

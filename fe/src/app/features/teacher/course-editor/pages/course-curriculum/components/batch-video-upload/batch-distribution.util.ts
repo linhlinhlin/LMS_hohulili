@@ -111,3 +111,33 @@ export function extractFilenameTitle(filename: string): string {
   if (lastDot <= 0) return trimmed;
   return trimmed.substring(0, lastDot);
 }
+
+/**
+ * Detect filename "máy tự sinh" (export, VID_001, IMG_1234, recording-...)
+ * không có ý nghĩa cho học viên. Match → nên đổi thành "Video N".
+ *
+ * Quy tắc: tên (không extension) chỉ gồm prefix kỹ thuật + số/ký tự ngẫu nhiên.
+ */
+export function isGenericFilename(filename: string): boolean {
+  const stripped = extractFilenameTitle(filename).toLowerCase();
+  return /^(export|vid|img|mov|video|recording|untitled|new|file|clip|temp|tmp|untitled-?\d*)[-_\s]?[\w\d-]*$/i.test(
+    stripped
+  );
+}
+
+/**
+ * Smart section title:
+ *  - Filename "có ý nghĩa" (vd "Bài 1 Giới thiệu", "intro-safety") → giữ tên
+ *  - Filename "máy tự sinh" (vd "export-1777613145929", "VID_001") → "Video N"
+ *
+ * positionInLesson: vị trí video MỚI trong lesson (1-based, đã tính
+ * existingSectionCount). VD: lesson có 4 mục có sẵn, video mới đầu tiên
+ * → positionInLesson = 5 → "Video 5".
+ */
+export function smartSectionTitle(filename: string, positionInLesson: number): string {
+  const stripped = extractFilenameTitle(filename);
+  if (stripped.length < 3 || isGenericFilename(filename)) {
+    return `Video ${positionInLesson}`;
+  }
+  return stripped;
+}

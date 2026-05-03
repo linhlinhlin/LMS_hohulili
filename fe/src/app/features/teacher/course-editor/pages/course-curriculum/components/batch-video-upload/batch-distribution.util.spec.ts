@@ -3,6 +3,8 @@ import {
   distributeByFilenamePrefix,
   distributeEvenly,
   extractFilenameTitle,
+  isGenericFilename,
+  smartSectionTitle,
 } from './batch-distribution.util';
 
 const FOUR_LESSONS: DistributableLesson[] = [
@@ -221,5 +223,65 @@ describe('extractFilenameTitle', () => {
 
   it('Vietnamese diacritics preserved', () => {
     expect(extractFilenameTitle('Bài giảng số 1.mp4')).toBe('Bài giảng số 1');
+  });
+});
+
+describe('isGenericFilename', () => {
+  it('detect "export-..." (camera export pattern)', () => {
+    expect(isGenericFilename('export-1777613145929.mp4')).toBe(true);
+  });
+
+  it('detect "VID_001.mov" (camera default)', () => {
+    expect(isGenericFilename('VID_001.mov')).toBe(true);
+  });
+
+  it('detect "IMG_1234.mp4"', () => {
+    expect(isGenericFilename('IMG_1234.mp4')).toBe(true);
+  });
+
+  it('detect "recording-2026-01-15.webm"', () => {
+    expect(isGenericFilename('recording-2026-01-15.webm')).toBe(true);
+  });
+
+  it('detect "untitled.mp4"', () => {
+    expect(isGenericFilename('untitled.mp4')).toBe(true);
+  });
+
+  it('detect "video.mp4" minimal', () => {
+    expect(isGenericFilename('video.mp4')).toBe(true);
+  });
+
+  it('KHÔNG detect tên tiếng Việt có ý nghĩa', () => {
+    expect(isGenericFilename('Bài 1 An toàn hàng hải.mp4')).toBe(false);
+    expect(isGenericFilename('Giới thiệu khoá học.mp4')).toBe(false);
+  });
+
+  it('KHÔNG detect tên English có ý nghĩa', () => {
+    expect(isGenericFilename('intro-to-safety.mp4')).toBe(false);
+    expect(isGenericFilename('chapter-1-overview.mov')).toBe(false);
+    expect(isGenericFilename('SOLAS-Lecture.mp4')).toBe(false);
+  });
+});
+
+describe('smartSectionTitle', () => {
+  it('máy tự sinh → "Video N"', () => {
+    expect(smartSectionTitle('export-1777613145929.mp4', 5)).toBe('Video 5');
+    expect(smartSectionTitle('VID_001.mov', 1)).toBe('Video 1');
+  });
+
+  it('tên có ý nghĩa → giữ nguyên (không extension)', () => {
+    expect(smartSectionTitle('Bài 1 An toàn hàng hải.mp4', 5)).toBe('Bài 1 An toàn hàng hải');
+    expect(smartSectionTitle('intro-to-safety.mov', 3)).toBe('intro-to-safety');
+  });
+
+  it('tên quá ngắn (< 3 ký tự) → "Video N"', () => {
+    expect(smartSectionTitle('a.mp4', 7)).toBe('Video 7');
+    expect(smartSectionTitle('xx.mp4', 2)).toBe('Video 2');
+  });
+
+  it('positionInLesson tính từ existing sections', () => {
+    // Bài có 4 mục có sẵn, video mới đầu → "Video 5"
+    expect(smartSectionTitle('export-x.mp4', 5)).toBe('Video 5');
+    expect(smartSectionTitle('export-y.mp4', 6)).toBe('Video 6');
   });
 });
