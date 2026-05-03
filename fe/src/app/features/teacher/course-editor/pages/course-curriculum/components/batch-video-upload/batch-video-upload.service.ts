@@ -12,6 +12,7 @@ import {
   distributeByFilenamePrefix,
   distributeEvenly,
   extractFilenameTitle,
+  smartSectionTitle,
 } from './batch-distribution.util';
 import {
   BatchAggregateProgress,
@@ -25,7 +26,15 @@ import {
 
 const UPLOAD_CONCURRENCY = 3;
 const POLL_INTERVAL_MS = 5_000;
-const POLL_MAX_ATTEMPTS = 120; // 120 × 5s = 10 min cap per item before auto-fail
+/**
+ * 720 × 5s = 60 min cap per item.
+ * Tăng từ 120 (10 min) → 720 vì backend max 2 concurrent transcode + video lớn
+ * (1+ GB) có thể chờ trong queue 15-20 phút trước khi tới lượt. False timeout
+ * gây user confusion (BE actually still processing).
+ * 60 min cover được mọi case practical (nếu BE thật sự stuck >60min, có vấn đề
+ * thực sự cần investigate manual).
+ */
+const POLL_MAX_ATTEMPTS = 720;
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024 * 1024; // 5GB per file (matches single-section limit)
 
 /**
@@ -111,12 +120,16 @@ export class BatchVideoUploadService {
     const distribution = this.runDistribution(validFiles, distributable, config.strategy);
 
     for (const [lessonId, lessonFiles] of distribution.entries()) {
+      const existingCount = lessons.find((l) => l.id === lessonId)?.existingSectionCount ?? 0;
+      // 1-based position trong lesson, kể cả existing sections.
+      // Vd: lesson có 4 mục, video mới đầu → "Video 5"
+      let positionInLesson = existingCount + 1;
       for (const file of lessonFiles) {
         items.push({
           id: this.generateLocalId(),
           file,
           lessonId,
-          sectionTitle: extractFilenameTitle(file.name),
+          sectionTitle: smartSectionTitle(file.name, positionInLesson++),
           status: 'PENDING',
           uploadProgress: 0,
         });
@@ -151,12 +164,15 @@ export class BatchVideoUploadService {
     const titleByFile = new Map(currentItems.map((i) => [i.file, i.sectionTitle]));
 
     for (const [lessonId, lessonFiles] of distribution.entries()) {
+      const existingCount = this.availableLessons().find((l) => l.id === lessonId)?.existingSectionCount ?? 0;
+      let positionInLesson = existingCount + 1;
       for (const file of lessonFiles) {
         newItems.push({
           id: this.generateLocalId(),
           file,
           lessonId,
-          sectionTitle: titleByFile.get(file) ?? extractFilenameTitle(file.name),
+          // Preserve user-edited titles. Else apply smart naming.
+          sectionTitle: titleByFile.get(file) ?? smartSectionTitle(file.name, positionInLesson++),
           status: 'PENDING',
           uploadProgress: 0,
         });
