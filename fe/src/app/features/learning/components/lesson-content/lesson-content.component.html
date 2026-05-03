@@ -20,60 +20,12 @@
     </h1>
     }
 
-    <!-- Tab Bar -->
-    <div class="flex items-center gap-0.5 border-b border-gray-200 mb-0 mt-2">
-      <button class="relative px-3 py-2 text-sm font-medium transition-colors"
-        [class.text-[#0056D2]]="activeTab() === 'overview'" [class.text-slate-500]="activeTab() !== 'overview'"
-        [class.hover:text-slate-700]="activeTab() !== 'overview'" (click)="activeTab.set('overview')">
-        <span class="flex items-center gap-1.5">
-          <app-icon name="file-text" size="sm"></app-icon>
-          Tổng quan
-        </span>
-        @if (activeTab() === 'overview') {
-        <span class="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0056D2] rounded-t"></span>
-        }
-      </button>
-
-      <button class="relative px-3 py-2 text-sm font-medium transition-colors"
-        [class.text-[#0056D2]]="activeTab() === 'notes'" [class.text-slate-500]="activeTab() !== 'notes'"
-        [class.hover:text-slate-700]="activeTab() !== 'notes'" (click)="activeTab.set('notes')">
-        <span class="flex items-center gap-1.5">
-          <app-icon name="edit" size="sm"></app-icon>
-          Ghi chú
-          @if (lessonNotes().length > 0) {
-          <span class="ml-0.5 px-1.5 py-0 text-[10px] font-bold rounded-full bg-slate-100 text-slate-600">
-            {{ lessonNotes().length }}
-          </span>
-          }
-        </span>
-        @if (activeTab() === 'notes') {
-        <span class="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0056D2] rounded-t"></span>
-        }
-      </button>
-
-      <button class="relative px-3 py-2 text-sm font-medium transition-colors"
-        [class.text-[#0056D2]]="activeTab() === 'materials'" [class.text-slate-500]="activeTab() !== 'materials'"
-        [class.hover:text-slate-700]="activeTab() !== 'materials'" (click)="activeTab.set('materials')">
-        <span class="flex items-center gap-1.5">
-          <app-icon name="folder" size="sm"></app-icon>
-          Tài liệu
-          @if (lesson().attachments && lesson().attachments.length > 0) {
-          <span class="ml-0.5 px-1.5 py-0 text-[10px] font-bold rounded-full bg-slate-100 text-slate-600">
-            {{ lesson().attachments.length }}
-          </span>
-          }
-        </span>
-        @if (activeTab() === 'materials') {
-        <span class="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0056D2] rounded-t"></span>
-        }
-      </button>
-    </div>
-
-    <!-- Tab Content Container -->
+    <!-- Single-column layout (Coursera/edX/Khan Academy hybrid) — no tab nav.
+         Content always renders. Personal notes live in a side drawer toggled
+         by the floating button at bottom-right. The lesson-attachments tab
+         was removed because section.type === 'FILE' already surfaces every
+         attachment via the unified file card below. -->
     <div class="pt-6">
-
-      <!-- --- TAB: OVERVIEW --- -->
-      @if (activeTab() === 'overview') {
       @if (currentSection(); as section) {
       <div class="space-y-5 text-slate-800 text-[15px] leading-relaxed max-w-none pb-6">
         @if (section.type === 'TEXT') {
@@ -96,19 +48,10 @@
           }
         }
 
-        @if (section.type === 'VIDEO') {
-        <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-          <div class="flex items-center gap-2">
-            <app-icon name="play-circle" size="md" class="text-[#0056D2]"></app-icon>
-            <span class="font-medium">Bài giảng video</span>
-          </div>
-          <p class="mt-1 text-xs text-slate-500">Video được phát ở khung phía trên. Hãy xem hết để hoàn thành phần này.</p>
-        </div>
-        }
+<!-- VIDEO + FILE notification cards removed: the actual video player and the
+            unified file card already render the content; pointing students to a
+            "khung phía trên" they were already looking at was AI-slop chatter. -->
 
-<!-- FILE notification card removed: the unified file card below already serves both
-            "this is a document" affordance and the action — the old card pointed to a
-            "khung phía trên" that didn't always exist. -->
 
 
       @if (section.type === 'QUIZ') {
@@ -195,93 +138,9 @@
       </button>
     </div>
     }
-    }
 
-    <!-- --- TAB: NOTES (Ghi chú) --- -->
-    @if (activeTab() === 'notes') {
-    <div class="pb-3">
-      <!-- New Note Input -->
-      <div class="mb-3">
-        <div
-          class="border border-gray-200 rounded-lg overflow-hidden focus-within:border-[#0056D2] focus-within:ring-1 focus-within:ring-[#0056D2] transition-all">
-          <textarea class="w-full px-4 py-3 text-sm text-slate-800 placeholder-slate-400 resize-none outline-none"
-            rows="3" placeholder="Viết ghi chú cho bài học này..." [ngModel]="newNoteContent()"
-            (ngModelChange)="newNoteContent.set($event)"></textarea>
-          <div class="flex items-center justify-between px-3 py-2 bg-slate-50 border-t border-gray-100">
-            <span class="text-[11px] text-slate-400">
-              <app-icon name="info" size="xs" class="align-middle mr-0.5"></app-icon>
-              Ghi chú chỉ hiển thị cho bạn
-            </span>
-            <button
-              class="px-4 py-1.5 bg-[#0056D2] text-white text-xs font-semibold rounded-lg hover:bg-[#004BB5] transition-colors disabled:opacity-40 disabled:pointer-events-none"
-              [disabled]="!newNoteContent().trim() || isSavingNote()" (click)="createNote()">
-              @if (isSavingNote()) {
-              <span class="flex items-center gap-1">
-                <span class="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                Đang lưu
-              </span>
-              } @else {
-              Lưu ghi chú
-              }
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Notes List -->
-      @if (isLoadingNotes()) {
-      <div class="flex items-center justify-center py-4 text-slate-400">
-        <div class="w-6 h-6 border-2 border-slate-200 border-t-[#0056D2] rounded-full animate-spin mr-3"></div>
-        <span class="text-sm">Đang tải ghi chú...</span>
-      </div>
-      } @else if (lessonNotes().length === 0) {
-      
-      } @else {
-      <div class="space-y-3 mb-6">
-        @for (note of lessonNotes(); track note.id) {
-        <div class="border border-gray-200 rounded-lg bg-white hover:border-gray-300 transition-colors">
-          @if (editingNoteId() === note.id) {
-          <div class="p-4">
-            <textarea
-              class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg outline-none focus:border-[#0056D2] focus:ring-1 focus:ring-[#0056D2] resize-none"
-              rows="4" [ngModel]="editingNoteContent()" (ngModelChange)="editingNoteContent.set($event)"></textarea>
-            <div class="flex items-center justify-end gap-2 mt-3">
-              <button class="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-700 font-medium transition-colors"
-                (click)="cancelEditNote()">Hủy</button>
-              <button
-                class="px-4 py-1.5 bg-[#0056D2] text-white text-xs font-semibold rounded-lg hover:bg-[#004BB5] transition-colors disabled:opacity-40"
-                [disabled]="isSavingNote()" (click)="saveEditNote()">Cập nhật</button>
-            </div>
-          </div>
-          } @else {
-          <div class="p-4">
-            <p class="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{{ note.content }}</p>
-            <div class="flex items-center justify-between mt-3 pt-2 border-t border-gray-50">
-              <span class="text-[11px] text-slate-400">{{ note.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
-              <div class="flex items-center gap-1">
-                <button class="p-1 text-slate-400 hover:text-[#0056D2] rounded transition-colors" title="Chỉnh sửa"
-                  (click)="startEditNote(note)">
-                  <app-icon name="edit" size="sm"></app-icon>
-                </button>
-                <button class="p-1 text-slate-400 hover:text-red-500 rounded transition-colors" title="Xóa"
-                  (click)="deleteNote(note.id)">
-                  <app-icon name="trash" size="sm"></app-icon>
-                </button>
-              </div>
-            </div>
-          </div>
-          }
-        </div>
-        }
-      </div>
-      }
-    </div>
-    }
-
-    <!-- --- MEDIA PREVIEW AREA (Video / File) --- -->
-    <!-- Resized to 80% (max-w-[920px]) and only on Overview/Notes tabs -->
-    @if (activeTab() === 'overview' || activeTab() === 'notes') {
-    <div class="mb-4 max-w-[920px] mx-auto w-full transition-all duration-300">
+    <!-- Media area: video / file unified card. Always visible — no tab gate. -->
+    <div class="mb-4 max-w-[920px] mx-auto w-full">
       @if (currentSection(); as section) {
       <!-- VIDEO SECTION -->
       @if (section.type === 'VIDEO') {
@@ -430,53 +289,109 @@
       </div>
       }
     </div>
-    }
 
-    <!-- --- TAB: MATERIALS --- -->
-    @if (activeTab() === 'materials') {
-    <div class="pb-8">
-      @if (lesson().attachments && lesson().attachments.length > 0) {
-      <div class="space-y-3">
-        @for (attachment of lesson().attachments; track attachment.id) {
-        <a [href]="attachment.fileUrl" download target="_blank" rel="noopener noreferrer"
-          class="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:border-[#0056D2] hover:bg-blue-50/20 transition-all bg-white group">
-          <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-            [class.bg-red-50]="attachment.fileType.includes('pdf')"
-            [class.text-red-600]="attachment.fileType.includes('pdf')"
-            [class.bg-blue-50]="!attachment.fileType.includes('pdf')"
-            [class.text-blue-600]="!attachment.fileType.includes('pdf')">
-            @if (attachment.fileType.includes('pdf')) {
-            <app-icon name="file-text" size="md"></app-icon>
+  </div> <!-- end content container -->
+</div> <!-- end Reading Area -->
+
+<!-- Floating notes button (Coursera-style affordance) — anchored bottom-right.
+     Sits ABOVE the page's bottom navigation bar (which uses bottom-0 + z-30):
+     z-40 keeps the button on top, and bottom-24 (96px) clears the ~70px nav
+     plus the iOS home-indicator safe zone. -->
+<button type="button"
+        (click)="openNotesDrawer()"
+        class="fixed bottom-24 right-4 sm:right-6 z-40 flex items-center gap-2 pl-3.5 pr-4 py-2.5 bg-[#0056D2] hover:bg-[#004BB5] text-white text-sm font-semibold rounded-full shadow-lg hover:shadow-xl transition-all"
+        aria-label="Mở ghi chú cá nhân">
+  <app-icon name="edit" size="sm"></app-icon>
+  <span>Ghi chú</span>
+  @if (lessonNotes().length > 0) {
+    <span class="ml-0.5 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-white/20 tabular-nums">
+      {{ lessonNotes().length }}
+    </span>
+  }
+</button>
+
+<!-- Notes side drawer — secondary surface for personal notes, fetched on open. -->
+<app-side-drawer
+    [isOpen]="notesDrawerOpen()"
+    title="Ghi chú cá nhân"
+    subtitle="Chỉ hiển thị cho bạn"
+    width="440px"
+    (onClose)="closeNotesDrawer()">
+
+  <div class="space-y-4">
+    <!-- New Note Input -->
+    <div class="border border-gray-200 rounded-lg overflow-hidden focus-within:border-[#0056D2] focus-within:ring-1 focus-within:ring-[#0056D2] transition-all">
+      <textarea class="w-full px-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 resize-none outline-none"
+                rows="3" placeholder="Viết ghi chú cho bài học này..."
+                [ngModel]="newNoteContent()" (ngModelChange)="newNoteContent.set($event)"></textarea>
+      <div class="flex items-center justify-end px-2.5 py-1.5 bg-slate-50 border-t border-gray-100">
+        <button type="button"
+                class="px-3 py-1.5 bg-[#0056D2] text-white text-xs font-semibold rounded-md hover:bg-[#004BB5] transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                [disabled]="!newNoteContent().trim() || isSavingNote()"
+                (click)="createNote()">
+          @if (isSavingNote()) {
+            <span class="flex items-center gap-1">
+              <span class="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true"></span>
+              Đang lưu
+            </span>
+          } @else {
+            Lưu ghi chú
+          }
+        </button>
+      </div>
+    </div>
+
+    <!-- Notes List -->
+    @if (isLoadingNotes()) {
+      <div class="flex items-center justify-center py-6 text-slate-400">
+        <div class="w-5 h-5 border-2 border-slate-200 border-t-[#0056D2] rounded-full animate-spin mr-2.5" aria-hidden="true"></div>
+        <span class="text-sm">Đang tải ghi chú…</span>
+      </div>
+    } @else if (lessonNotes().length === 0) {
+      <div class="text-center py-8 text-slate-400">
+        <app-icon name="edit" size="lg" class="mb-2 opacity-40"></app-icon>
+        <p class="text-sm font-medium text-slate-500">Chưa có ghi chú nào</p>
+        <p class="text-xs text-slate-400 mt-1">Viết ghi chú đầu tiên để ghi nhớ điểm chính của bài học.</p>
+      </div>
+    } @else {
+      <div class="space-y-2.5">
+        @for (note of lessonNotes(); track note.id) {
+          <article class="border border-gray-200 rounded-lg bg-white hover:border-gray-300 transition-colors">
+            @if (editingNoteId() === note.id) {
+              <div class="p-3">
+                <textarea class="w-full px-3 py-2 text-sm border border-gray-200 rounded-md outline-none focus:border-[#0056D2] focus:ring-1 focus:ring-[#0056D2] resize-none"
+                          rows="4" [ngModel]="editingNoteContent()" (ngModelChange)="editingNoteContent.set($event)"></textarea>
+                <div class="flex items-center justify-end gap-2 mt-2.5">
+                  <button type="button" class="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-700 font-medium transition-colors"
+                          (click)="cancelEditNote()">Huỷ</button>
+                  <button type="button" class="px-3 py-1.5 bg-[#0056D2] text-white text-xs font-semibold rounded-md hover:bg-[#004BB5] transition-colors disabled:opacity-40"
+                          [disabled]="isSavingNote()" (click)="saveEditNote()">Cập nhật</button>
+                </div>
+              </div>
             } @else {
-            <app-icon name="paperclip" size="md"></app-icon>
+              <div class="p-3">
+                <p class="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{{ note.content }}</p>
+                <div class="flex items-center justify-between mt-2.5 pt-2 border-t border-gray-50">
+                  <span class="text-[11px] text-slate-400 tabular-nums">{{ note.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+                  <div class="flex items-center gap-1">
+                    <button type="button" class="p-1 text-slate-400 hover:text-[#0056D2] rounded transition-colors"
+                            title="Chỉnh sửa" aria-label="Chỉnh sửa ghi chú"
+                            (click)="startEditNote(note)">
+                      <app-icon name="edit" size="sm"></app-icon>
+                    </button>
+                    <button type="button" class="p-1 text-slate-400 hover:text-red-500 rounded transition-colors"
+                            title="Xoá" aria-label="Xoá ghi chú"
+                            (click)="deleteNote(note.id)">
+                      <app-icon name="trash" size="sm"></app-icon>
+                    </button>
+                  </div>
+                </div>
+              </div>
             }
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="text-sm font-semibold text-slate-700 group-hover:text-[#0056D2] truncate">
-              {{ attachment.originalFileName }}
-            </div>
-            @if (attachment.fileSize) {
-            <div class="text-xs text-slate-400 mt-0.5">{{ formatFileSize(attachment.fileSize) }}</div>
-            }
-          </div>
-          <div
-            class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 group-hover:bg-[#0056D2] text-slate-500 group-hover:text-white text-xs font-medium rounded-lg transition-colors shrink-0">
-            <app-icon name="download" size="sm"></app-icon>
-            Tải xuống
-          </div>
-        </a>
+          </article>
         }
       </div>
-      } @else {
-      <div class="flex flex-col items-center py-12 text-slate-400 text-center">
-        <app-icon name="folder" size="xl" class="mb-2"></app-icon>
-        <p class="text-sm font-medium text-slate-500">Chưa có tài liệu đính kèm</p>
-        <p class="text-xs text-slate-400 mt-1">Giáo viên chưa thêm tài liệu cho bài học này</p>
-      </div>
-      }
-    </div>
     }
-
-  </div> <!-- end Tab Content Container -->
-</div> <!-- end Reading Area -->
+  </div>
+</app-side-drawer>
 </div>
