@@ -293,11 +293,13 @@
   </div> <!-- end content container -->
 </div> <!-- end Reading Area -->
 
-<!-- Floating notes button (Coursera-style affordance) — anchored bottom-right,
-     always reachable while watching content. Opens the side drawer. -->
+<!-- Floating notes button (Coursera-style affordance) — anchored bottom-right.
+     Sits ABOVE the page's bottom navigation bar (which uses bottom-0 + z-30):
+     z-40 keeps the button on top, and bottom-24 (96px) clears the ~70px nav
+     plus the iOS home-indicator safe zone. -->
 <button type="button"
         (click)="openNotesDrawer()"
-        class="fixed bottom-6 right-6 z-30 flex items-center gap-2 pl-3.5 pr-4 py-2.5 bg-[#0056D2] hover:bg-[#004BB5] text-white text-sm font-semibold rounded-full shadow-lg hover:shadow-xl transition-all"
+        class="fixed bottom-24 right-4 sm:right-6 z-40 flex items-center gap-2 pl-3.5 pr-4 py-2.5 bg-[#0056D2] hover:bg-[#004BB5] text-white text-sm font-semibold rounded-full shadow-lg hover:shadow-xl transition-all"
         aria-label="Mở ghi chú cá nhân">
   <app-icon name="edit" size="sm"></app-icon>
   <span>Ghi chú</span>

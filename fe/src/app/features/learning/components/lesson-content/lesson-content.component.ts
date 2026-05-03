@@ -81,19 +81,31 @@ export class LessonContentComponent implements AfterViewInit {
   openNotesDrawer(): void { this.notesDrawerOpen.set(true); }
   closeNotesDrawer(): void { this.notesDrawerOpen.set(false); }
 
+  /**
+   * Race-guard token: each loadNotes() bumps it; only the most recent in-flight
+   * call is allowed to write to the signal. Without this, switching lessons
+   * while an earlier fetch is still pending could clobber the new lesson's
+   * notes with the stale lesson's filtered results.
+   */
+  private notesLoadToken = 0;
+
   private loadNotes(): void {
     const lesson = this.lesson();
     if (!lesson?.courseId) return;
+    const token = ++this.notesLoadToken;
     this.isLoadingNotes.set(true);
     this.noteApi.listNotes(lesson.courseId).subscribe({
       next: (res: any) => {
+        if (token !== this.notesLoadToken) return; // stale response — ignore
         const allNotes: NoteResponse[] = res?.data || res || [];
-        // Filter notes for this specific lesson
         const filtered = allNotes.filter(n => n.lessonId === lesson.id);
         this.lessonNotes.set(filtered);
         this.isLoadingNotes.set(false);
       },
-      error: () => this.isLoadingNotes.set(false)
+      error: () => {
+        if (token !== this.notesLoadToken) return;
+        this.isLoadingNotes.set(false);
+      }
     });
   }
 
