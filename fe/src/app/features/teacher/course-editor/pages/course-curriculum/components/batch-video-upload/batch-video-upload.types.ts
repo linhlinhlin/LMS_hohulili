@@ -37,6 +37,18 @@ export interface BatchVideoItem {
   sectionId?: string;
   /** Set khi status === 'FAILED' — message để show trong UI */
   errorMessage?: string;
+  /**
+   * Timestamp (ms) khi status transition vào PROCESSING.
+   * Dùng để compute elapsedSec + ETA progress hint per item (mirror pattern
+   * section-editor.component.ts:1689 processingElapsedSec).
+   */
+  processingStartedAt?: number;
+  /**
+   * Ước lượng thời gian xử lý (giây) tính từ file size:
+   *   estimate = (size_bits / avg_bitrate_5Mbps) / realtime_factor_6.2x
+   * Plus queue position offset. Set khi pipeline transition vào PROCESSING.
+   */
+  processingEtaSec?: number;
 }
 
 export interface ExistingSectionSummary {
