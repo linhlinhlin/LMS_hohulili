@@ -52,7 +52,7 @@ import { BatchTargetLesson, BatchVideoItem } from './batch-video-upload.types';
             (cdkDropListDropped)="onDrop($event)"
             class="min-h-[56px]"
           >
-            @for (item of lessonItems; track item.id; let i = $index) {
+            @for (item of lessonItems; track item.id) {
               <div
                 cdkDrag
                 [cdkDragData]="item.id"
