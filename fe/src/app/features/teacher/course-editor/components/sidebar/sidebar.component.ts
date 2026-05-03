@@ -182,6 +182,44 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
       font-size: 0.625rem;
       opacity: 0.5;
     }
+    /* Section drag handle: hidden grip that reveals on row hover (mirror lesson pattern) */
+    .sidebar-section-row__handle {
+      flex-shrink: 0;
+      width: 0.875rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+      opacity: 0;
+      transition: opacity 160ms ease 200ms;
+      color: rgb(148 163 184);
+    }
+    .sidebar-section-row:hover .sidebar-section-row__handle,
+    .sidebar-section-row--selected .sidebar-section-row__handle {
+      opacity: 0.7;
+      transition-delay: 0ms;
+    }
+    .sidebar-section-row__handle:active { cursor: grabbing; }
+    @media (pointer: coarse) {
+      .sidebar-section-row__handle { opacity: 0.45; transition-delay: 0ms; }
+    }
+
+    /* Empty drop zone for an expanded lesson with no sections — gives the user a target */
+    .sidebar-sections__empty {
+      margin: 0.25rem 0;
+      padding: 0.5rem 0.625rem;
+      font-size: 0.6875rem;
+      color: rgb(148 163 184);
+      font-style: italic;
+      border: 1px dashed rgb(226 232 240);
+      border-radius: 0.375rem;
+      text-align: center;
+    }
+    .cdk-drop-list-receiving .sidebar-sections__empty {
+      border-color: rgb(0 86 210);
+      color: rgb(0 86 210);
+      background: rgba(0, 86, 210, 0.04);
+    }
 
     /* CDK Drag overrides */
     .cdk-drag-preview { border-radius: 0.5rem; }
@@ -619,17 +657,43 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                                           </div>
                                       </div>
 
-                                      <!-- SECTIONS (L3) — clean list, click to select -->
-                                      @if (isLessonExpanded(lesson.id) && lesson.sections.length) {
-                                        <div class="sidebar-sections">
+                                      <!-- SECTIONS (L3) — drag within lesson + cross-lesson via CDK connected drop lists
+                                           (Notion blocks + Coursera Studio "Move To" patterns combined). -->
+                                      @if (isLessonExpanded(lesson.id)) {
+                                        <div class="sidebar-sections"
+                                             [id]="sectionsDropListId(lesson.id)"
+                                             cdkDropList
+                                             cdkDropListLockAxis="y"
+                                             [cdkDropListData]="lesson.sections"
+                                             [cdkDropListConnectedTo]="otherExpandedSectionDropListIds(lesson.id)"
+                                             (cdkDropListDropped)="dropSection($event, lesson.id)">
+                                          @if (!lesson.sections.length) {
+                                            <!-- Empty drop zone so user can drag a section IN to an empty lesson -->
+                                            <p class="sidebar-sections__empty">Kéo mục vào đây để chuyển sang bài này</p>
+                                          }
                                           @for (section of lesson.sections; track section.id; let secIdx = $index) {
-                                            <button class="sidebar-section-row"
+                                            <div class="sidebar-section-row"
                                                  [class.sidebar-section-row--selected]="selectedSectionId() === section.id"
-                                                 (click)="selectSection(chapter, lesson, section); $event.stopPropagation()">
+                                                 cdkDrag [cdkDragData]="section"
+                                                 [cdkDragStartDelay]="isTouchDevice ? 150 : 0"
+                                                 (click)="selectSection(chapter, lesson, section); $event.stopPropagation()"
+                                                 [attr.role]="'button'"
+                                                 [attr.tabindex]="0"
+                                                 (keydown.enter)="selectSection(chapter, lesson, section); $event.stopPropagation()"
+                                                 (keydown.space)="selectSection(chapter, lesson, section); $event.preventDefault(); $event.stopPropagation()">
+                                              <div *cdkDragPreview class="bg-white shadow-lg rounded-md px-2 py-1 border border-[#0056D2] text-[11px] font-medium text-slate-700 max-w-[240px] line-clamp-1">
+                                                {{ sectionLabel(secIdx) }} {{ getSectionDisplayTitle(section.title) }}
+                                              </div>
+                                              <div *cdkDragPlaceholder class="h-0.5 bg-[#0056D2] rounded-full mx-2 my-0.5"></div>
+                                              <span cdkDragHandle class="sidebar-section-row__handle"
+                                                    (click)="$event.stopPropagation()"
+                                                    [attr.aria-label]="'Kéo để sắp xếp lại ' + getSectionDisplayTitle(section.title)">
+                                                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+                                              </span>
                                               <span class="sidebar-section-row__num">{{ sectionLabel(secIdx) }}</span>
                                               <span class="sidebar-section-row__title">{{ getSectionDisplayTitle(section.title) }}</span>
                                               <span class="sidebar-section-row__type">{{ section.type === 'TEXT' ? 'văn bản' : section.type === 'VIDEO' ? 'video' : section.type === 'FILE' ? 'tệp' : section.type === 'QUIZ' ? 'trắc nghiệm' : section.type }}</span>
-                                            </button>
+                                            </div>
                                           }
                                         </div>
                                       }
@@ -996,19 +1060,86 @@ export class CourseEditorSidebarComponent implements OnDestroy {
     });
   }
 
+  /**
+   * Drop handler for sidebar sections. Routes to:
+   * - within-lesson reorder when both containers match (existing behavior)
+   * - cross-lesson move when the drop target is a different lesson's drop list
+   *   (CDK connected drop lists — IDs encoded by `sectionsDropListId`)
+   */
   dropSection(event: CdkDragDrop<SectionDraftDTO[]>, lessonId: string) {
-    if (event.previousIndex === event.currentIndex) return;
-    let lesson: LessonDraftDTO | undefined;
-    for (const ch of this.store.chapters()) {
-      const l = ch.lessons.find(ls => ls.id === lessonId);
-      if (l) { lesson = l; break; }
+    const sameContainer = event.previousContainer === event.container;
+
+    if (sameContainer) {
+      if (event.previousIndex === event.currentIndex) return;
+      let lesson: LessonDraftDTO | undefined;
+      for (const ch of this.store.chapters()) {
+        const l = ch.lessons.find(ls => ls.id === lessonId);
+        if (l) { lesson = l; break; }
+      }
+      if (!lesson?.sections) return;
+      const sections = [...lesson.sections];
+      moveItemInArray(sections, event.previousIndex, event.currentIndex);
+      requestAnimationFrame(() => {
+        this.store.reorderSectionsOptimistic(lessonId, sections.map(s => s.id));
+      });
+      return;
     }
-    if (!lesson?.sections) return;
-    const sections = [...lesson.sections];
-    moveItemInArray(sections, event.previousIndex, event.currentIndex);
+
+    // Cross-lesson move
+    const fromLessonId = this.parseLessonIdFromDropListId(event.previousContainer.id);
+    const sectionId = (event.item.data as SectionDraftDTO | undefined)?.id;
+    if (!fromLessonId || !sectionId || fromLessonId === lessonId) return;
+    const targetIndex = event.currentIndex;
     requestAnimationFrame(() => {
-      this.store.reorderSectionsOptimistic(lessonId, sections.map(s => s.id));
+      this.store.moveSectionToLessonOptimistic(sectionId, fromLessonId, lessonId, targetIndex);
     });
+  }
+
+  sectionsDropListId(lessonId: string): string {
+    return 'sidebar-sections-' + lessonId;
+  }
+
+  /**
+   * Memoized map from lessonId → list of OTHER expanded lessons' drop list IDs.
+   *
+   * Recomputed only when chapters or the expand-state set change. Returning a
+   * fresh array on every template render call would force `cdkDropListConnectedTo`
+   * to tear down and re-attach drop list links every change-detection cycle,
+   * leaking listeners and thrashing CDK's internal registry.
+   */
+  private otherExpandedDropListIdsByLessonId = computed<Map<string, string[]>>(() => {
+    const expanded = this.expandedLessons();
+    const allIds: string[] = [];
+    for (const chapter of this.store.chapters()) {
+      for (const lesson of chapter.lessons) {
+        if (expanded.has(lesson.id)) {
+          allIds.push(this.sectionsDropListId(lesson.id));
+        }
+      }
+    }
+    const map = new Map<string, string[]>();
+    for (const chapter of this.store.chapters()) {
+      for (const lesson of chapter.lessons) {
+        if (!expanded.has(lesson.id)) continue;
+        const selfId = this.sectionsDropListId(lesson.id);
+        map.set(lesson.id, allIds.filter(id => id !== selfId));
+      }
+    }
+    return map;
+  });
+
+  /**
+   * Drop list IDs for all OTHER lessons currently expanded in the sidebar.
+   * Collapsed lessons aren't connectable because their drop list isn't rendered —
+   * teacher must expand the target lesson first to drop into it.
+   */
+  otherExpandedSectionDropListIds(currentLessonId: string): string[] {
+    return this.otherExpandedDropListIdsByLessonId().get(currentLessonId) ?? [];
+  }
+
+  private parseLessonIdFromDropListId(dropListId: string | null | undefined): string | null {
+    if (!dropListId || !dropListId.startsWith('sidebar-sections-')) return null;
+    return dropListId.slice('sidebar-sections-'.length);
   }
 
   // --- Modal handlers ---

@@ -414,6 +414,15 @@ export class CourseAuthoringService {
         });
     }
 
+    moveSection(sectionId: string, fromLessonId: string, toLessonId: string, targetIndex?: number | null): Observable<void> {
+        return this.http.patch<void>(`${this.baseUrl}/courses/sections/move`, {
+            sectionId,
+            fromLessonId,
+            toLessonId,
+            targetIndex: targetIndex ?? null
+        });
+    }
+
     // --- Updates ---
 
     updateCourseInfo(courseId: string, data: Partial<{
