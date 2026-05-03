@@ -46,8 +46,8 @@ public class TeacherCoursesControllerV3 {
     private final AdaptiveVideoPlaybackService adaptiveVideoPlaybackService;
     private final com.example.lms.learning_delivery.infrastructure.persistence.ClassTeacherJpaRepository classTeacherJpaRepository;
     private final com.example.lms.course_authoring.infrastructure.persistence.repository.CourseReviewEventJpaRepository reviewEventRepository;
-    private final com.example.lms.course_authoring.infrastructure.persistence.repository.CoursePublicationJpaRepository coursePublicationJpaRepository;
-    private final com.example.lms.learning_delivery.infrastructure.persistence.JpaLearningClassRepository learningClassJpaRepository;
+    private final com.example.lms.course_authoring.application.usecase.ListCoursePublicationsUseCase listCoursePublicationsUseCase;
+    private final com.example.lms.course_authoring.application.usecase.BulkAdoptPublicationUseCase bulkAdoptPublicationUseCase;
 
     @GetMapping("/my-courses")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
@@ -357,58 +357,34 @@ public class TeacherCoursesControllerV3 {
     // ================================================================================================
 
     @GetMapping("/{courseId}/publications")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @Operation(summary = "List all publications (versions) of a course with adoption metrics")
     public ResponseEntity<ApiResponse<java.util.List<java.util.Map<String, Object>>>> listPublications(
             @PathVariable UUID courseId,
             @AuthenticationPrincipal UserJpaEntity user) {
         verifyCourseOwnership(courseId, user);
 
-        var publications = coursePublicationJpaRepository.findByCourseIdOrderByPublicationNumberDesc(courseId);
-        if (publications.isEmpty()) {
+        var views = listCoursePublicationsUseCase.execute(courseId);
+        if (views.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.success(java.util.List.of(), "Khóa học chưa có bản phát hành nào"));
         }
 
-        var classes = learningClassJpaRepository.findByCourseId(courseId);
-        var pinCountMap = new java.util.HashMap<UUID, Integer>();
-        int unpinnedCount = 0;
-        for (var cls : classes) {
-            if (cls.getCourseVersionId() != null) {
-                pinCountMap.merge(cls.getCourseVersionId(), 1, Integer::sum);
-            } else {
-                unpinnedCount++;
-            }
-        }
-
-        var publisherIds = publications.stream()
-                .map(com.example.lms.course_authoring.infrastructure.persistence.entity.CoursePublicationJpaEntity::getPublishedById)
-                .filter(java.util.Objects::nonNull)
-                .collect(java.util.stream.Collectors.toSet());
-        var publisherNames = publisherIds.isEmpty()
-                ? java.util.Map.<UUID, String>of()
-                : userRepository.findAllById(publisherIds).stream()
-                        .collect(java.util.stream.Collectors.toMap(UserJpaEntity::getId, UserJpaEntity::getFullName));
-
-        UUID latestId = publications.get(0).getId();
-        var result = new java.util.ArrayList<java.util.Map<String, Object>>();
-        for (var pub : publications) {
+        var payload = views.stream().map(view -> {
             java.util.Map<String, Object> row = new java.util.LinkedHashMap<>();
-            row.put("id", pub.getId().toString());
-            row.put("publicationNumber", pub.getPublicationNumber());
-            row.put("contentVersion", pub.getContentVersion());
-            row.put("publishedAt", pub.getPublishedAt() != null ? pub.getPublishedAt().toString() : null);
-            row.put("publishedById", pub.getPublishedById() != null ? pub.getPublishedById().toString() : null);
-            row.put("publishedByName", pub.getPublishedById() != null ? publisherNames.get(pub.getPublishedById()) : null);
-            row.put("releaseNotes", pub.getReleaseNotes());
-            int pinCount = pinCountMap.getOrDefault(pub.getId(), 0);
-            row.put("pinnedClassCount", pinCount);
-            row.put("isLatest", pub.getId().equals(latestId));
-            // Latest also serves the unpinned classes (they auto-follow latest)
-            row.put("effectiveClassCount", pub.getId().equals(latestId) ? pinCount + unpinnedCount : pinCount);
-            result.add(row);
-        }
+            row.put("id", view.id().toString());
+            row.put("publicationNumber", view.publicationNumber());
+            row.put("contentVersion", view.contentVersion());
+            row.put("publishedAt", view.publishedAt() != null ? view.publishedAt().toString() : null);
+            row.put("publishedById", view.publishedById() != null ? view.publishedById().toString() : null);
+            row.put("publishedByName", view.publishedByName());
+            row.put("releaseNotes", view.releaseNotes());
+            row.put("pinnedClassCount", view.pinnedClassCount());
+            row.put("effectiveClassCount", view.effectiveClassCount());
+            row.put("isLatest", view.isLatest());
+            return row;
+        }).toList();
 
-        return ResponseEntity.ok(ApiResponse.success(result, "Danh sách phiên bản khóa học"));
+        return ResponseEntity.ok(ApiResponse.success(payload, "Danh sách phiên bản khóa học"));
     }
 
     @PostMapping("/{courseId}/publications/{publicationId}/adopt-all")
@@ -421,44 +397,22 @@ public class TeacherCoursesControllerV3 {
             @AuthenticationPrincipal UserJpaEntity user) {
         verifyCourseOwnership(courseId, user);
 
-        var publication = coursePublicationJpaRepository.findById(publicationId)
-                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("CoursePublication", publicationId));
-        if (!publication.getCourseId().equals(courseId)) {
-            throw new org.springframework.security.access.AccessDeniedException(
-                    "Phiên bản này không thuộc khóa học hiện tại");
-        }
+        String rawScope = body != null ? body.getOrDefault("scope", "OPEN_ONLY") : "OPEN_ONLY";
+        var scope = "ALL".equalsIgnoreCase(rawScope)
+                ? com.example.lms.course_authoring.application.usecase.BulkAdoptPublicationUseCase.Scope.ALL
+                : com.example.lms.course_authoring.application.usecase.BulkAdoptPublicationUseCase.Scope.OPEN_ONLY;
 
-        String scope = body != null ? body.getOrDefault("scope", "OPEN_ONLY") : "OPEN_ONLY";
-        boolean openOnly = !"ALL".equalsIgnoreCase(scope);
+        var result = bulkAdoptPublicationUseCase.execute(courseId, publicationId, scope, user.getId());
 
-        var classes = openOnly
-                ? learningClassJpaRepository.findOpenByCourseId(courseId)
-                : learningClassJpaRepository.findByCourseId(courseId);
-
-        int affected = 0;
-        var skipped = new java.util.ArrayList<String>();
-        for (var cls : classes) {
-            if (publicationId.equals(cls.getCourseVersionId())
-                    && cls.getVersionMode() == com.example.lms.learning_delivery.infrastructure.persistence.entity.LearningClassJpaEntity.VersionMode.PINNED) {
-                skipped.add(cls.getName() + " (đã ghim sẵn)");
-                continue;
-            }
-            cls.setCourseVersionId(publicationId);
-            cls.setVersionMode(com.example.lms.learning_delivery.infrastructure.persistence.entity.LearningClassJpaEntity.VersionMode.PINNED);
-            learningClassJpaRepository.save(cls);
-            affected++;
-        }
-
-        long totalClassCount = learningClassJpaRepository.countByCourseId(courseId);
-        java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
-        result.put("publicationId", publicationId.toString());
-        result.put("publicationNumber", publication.getPublicationNumber());
-        result.put("scope", openOnly ? "OPEN_ONLY" : "ALL");
-        result.put("affectedClassCount", affected);
-        result.put("totalClassCount", totalClassCount);
-        result.put("skippedClassNames", skipped);
-        return ResponseEntity.ok(ApiResponse.success(result,
-                "Đã đẩy phiên bản v" + publication.getPublicationNumber() + " cho " + affected + " lớp"));
+        java.util.Map<String, Object> payload = new java.util.LinkedHashMap<>();
+        payload.put("publicationId", result.publicationId().toString());
+        payload.put("publicationNumber", result.publicationNumber());
+        payload.put("scope", result.scope().name());
+        payload.put("affectedClassCount", result.affectedClassCount());
+        payload.put("totalClassCount", result.totalClassCount());
+        payload.put("skippedClassNames", result.skippedClassNames());
+        return ResponseEntity.ok(ApiResponse.success(payload,
+                "Đã đẩy phiên bản v" + result.publicationNumber() + " cho " + result.affectedClassCount() + " lớp"));
     }
 
     private CourseDTOs.TeacherCourseResponse mapEntityToResponse(

@@ -1,6 +1,8 @@
-import { Component, ChangeDetectionStrategy, inject, input, output, signal, effect, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, input, output, signal, effect, computed, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { firstValueFrom } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject, firstValueFrom } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { SideDrawerComponent } from '../../../../../../shared/components/side-drawer/side-drawer.component';
 import { ToastService } from '../../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../../core/services/confirm-dialog.service';
@@ -129,6 +131,7 @@ export class VersionHistoryDrawerComponent {
   private classService = inject(ClassService);
   private toast = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
+  private destroyRef = inject(DestroyRef);
 
   isOpen = input.required<boolean>();
   courseId = input.required<string>();
@@ -142,30 +145,42 @@ export class VersionHistoryDrawerComponent {
 
   latestPublication = computed(() => this.publications().find(p => p.isLatest) ?? null);
   totalEffective = computed(() => {
+    // Latest serves both pinned + auto-followers, older only their pinned. Sum gives total class-version pairs in use.
     return this.publications().reduce((sum, p) => sum + p.effectiveClassCount, 0);
   });
 
+  /** switchMap cancels stale loads when reopening on a different course. */
+  private readonly loadTrigger$ = new Subject<string>();
+
   constructor() {
+    this.loadTrigger$
+      .pipe(
+        switchMap(courseId => this.classService.listPublications(courseId)),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: pubs => {
+          this.publications.set(pubs);
+          this.isLoading.set(false);
+        },
+        error: () => {
+          this.publications.set([]);
+          this.isLoading.set(false);
+          this.toast.error('Không thể tải lịch sử phiên bản');
+        }
+      });
+
     effect(() => {
       if (this.isOpen() && this.courseId()) {
-        this.load();
+        this.isLoading.set(true);
+        this.loadTrigger$.next(this.courseId());
       }
     });
   }
 
-  private load() {
+  private reload() {
     this.isLoading.set(true);
-    this.classService.listPublications(this.courseId()).subscribe({
-      next: (pubs) => {
-        this.publications.set(pubs);
-        this.isLoading.set(false);
-      },
-      error: () => {
-        this.publications.set([]);
-        this.isLoading.set(false);
-        this.toast.error('Không thể tải lịch sử phiên bản');
-      }
-    });
+    this.loadTrigger$.next(this.courseId());
   }
 
   async bulkAdopt(pub: PublicationSummary) {
@@ -185,7 +200,7 @@ export class VersionHistoryDrawerComponent {
       const skipNote = skipped > 0 ? ` (bỏ qua ${skipped} lớp đã ghim sẵn)` : '';
       this.toast.success(`Đã đẩy v${pub.publicationNumber} cho ${result?.affectedClassCount ?? 0} lớp${skipNote}`);
       this.bulkAdopted.emit();
-      this.load();
+      this.reload();
     } catch (err: any) {
       this.toast.error('Đẩy phiên bản thất bại: ' + (err?.error?.message || err?.message || 'Lỗi không xác định'));
     } finally {

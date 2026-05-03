@@ -1,9 +1,10 @@
-import { Component, ChangeDetectionStrategy, inject, input, output, signal, effect, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, input, output, signal, effect, computed, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { firstValueFrom } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject, firstValueFrom } from 'rxjs';
+import { switchMap, takeUntil } from 'rxjs/operators';
 import { SideDrawerComponent } from '../../../../../../shared/components/side-drawer/side-drawer.component';
 import { ToastService } from '../../../../../../core/services/toast.service';
-import { ConfirmDialogService } from '../../../../../../core/services/confirm-dialog.service';
 import { ClassService, PublicationSummary } from '../../../../../../state/class.service';
 
 type Mode = 'FOLLOW_LATEST' | 'PINNED';
@@ -52,8 +53,8 @@ type Mode = 'FOLLOW_LATEST' | 'PINNED';
 
         @if (!isLoading() && publications().length > 0) {
           <!-- Mode selector -->
-          <fieldset class="space-y-2">
-            <legend class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-2">Chế độ phiên bản</legend>
+          <fieldset class="space-y-2" role="radiogroup" aria-labelledby="vpd-mode-legend">
+            <legend id="vpd-mode-legend" class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-2">Chế độ phiên bản</legend>
 
             <!-- FOLLOW_LATEST -->
             <label class="block rounded-xl border-2 p-4 cursor-pointer transition-all"
@@ -63,15 +64,17 @@ type Mode = 'FOLLOW_LATEST' | 'PINNED';
                    [class.hover:border-slate-300]="selectedMode() !== 'FOLLOW_LATEST'">
               <div class="flex items-start gap-3">
                 <input type="radio" name="mode" value="FOLLOW_LATEST"
+                       id="vpd-mode-follow"
                        [checked]="selectedMode() === 'FOLLOW_LATEST'"
                        (change)="selectedMode.set('FOLLOW_LATEST')"
+                       aria-describedby="vpd-mode-follow-desc"
                        class="mt-0.5 w-4 h-4 text-[#0056D2] focus:ring-[#0056D2]">
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2">
                     <span class="text-sm font-semibold text-slate-900">Theo bản mới nhất</span>
                     <span class="px-1.5 py-0.5 text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded">Khuyên dùng</span>
                   </div>
-                  <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                  <p id="vpd-mode-follow-desc" class="text-xs text-slate-500 mt-1 leading-relaxed">
                     Lớp luôn hiển thị bản phát hành mới nhất. Phù hợp với lớp mới mở hoặc khoá học đang phát triển. Hiện tại: <strong>v{{ latestPublication()?.publicationNumber }}</strong>.
                   </p>
                 </div>
@@ -86,12 +89,14 @@ type Mode = 'FOLLOW_LATEST' | 'PINNED';
                    [class.hover:border-slate-300]="selectedMode() !== 'PINNED'">
               <div class="flex items-start gap-3">
                 <input type="radio" name="mode" value="PINNED"
+                       id="vpd-mode-pinned"
                        [checked]="selectedMode() === 'PINNED'"
                        (change)="selectedMode.set('PINNED')"
+                       aria-describedby="vpd-mode-pinned-desc"
                        class="mt-0.5 w-4 h-4 text-[#0056D2] focus:ring-[#0056D2]">
                 <div class="flex-1 min-w-0">
                   <span class="text-sm font-semibold text-slate-900">Ghim phiên bản cụ thể</span>
-                  <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                  <p id="vpd-mode-pinned-desc" class="text-xs text-slate-500 mt-1 leading-relaxed">
                     Khoá lớp vào một bản nhất định. Phù hợp khi học viên đang học giữa kỳ — bản mới sẽ không tự đẩy vào lớp này.
                   </p>
                 </div>
@@ -151,10 +156,13 @@ type Mode = 'FOLLOW_LATEST' | 'PINNED';
           Huỷ
         </button>
         <button (click)="apply()"
+                type="button"
                 [disabled]="!canApply() || isSaving()"
+                [attr.title]="disabledReason()"
+                [attr.aria-disabled]="!canApply() || isSaving()"
                 class="px-4 py-2 text-sm font-semibold bg-[#0056D2] text-white rounded-lg hover:bg-[#004BB5] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
           @if (isSaving()) {
-            <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+            <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
             </svg>
@@ -168,7 +176,7 @@ type Mode = 'FOLLOW_LATEST' | 'PINNED';
 export class VersionPickerDrawerComponent {
   private classService = inject(ClassService);
   private toast = inject(ToastService);
-  private confirmDialog = inject(ConfirmDialogService);
+  private destroyRef = inject(DestroyRef);
 
   isOpen = input.required<boolean>();
   classId = input.required<string>();
@@ -198,11 +206,45 @@ export class VersionPickerDrawerComponent {
     return pickedId !== null && pickedId !== this.currentPublicationId();
   });
 
+  /** Why disabled — surfaced in the button title attr so screen readers + hover hint match. */
+  disabledReason = computed(() => {
+    if (this.isSaving()) return 'Đang lưu thay đổi...';
+    if (this.canApply()) return null;
+    if (this.selectedMode() === 'FOLLOW_LATEST') {
+      return 'Lớp đã ở chế độ theo bản mới nhất';
+    }
+    if (!this.selectedPublicationId()) {
+      return 'Chọn một phiên bản trong danh sách';
+    }
+    return 'Lớp đã ghim ở phiên bản này';
+  });
+
+  /** Cancel any in-flight load when a new open arrives — prevents stale data overwriting fresh load. */
+  private readonly loadTrigger$ = new Subject<string>();
+
   constructor() {
+    this.loadTrigger$
+      .pipe(
+        switchMap(courseId => this.classService.listPublications(courseId)),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: pubs => {
+          this.publications.set(pubs);
+          this.isLoading.set(false);
+        },
+        error: () => {
+          this.publications.set([]);
+          this.isLoading.set(false);
+          this.toast.error('Không thể tải danh sách phiên bản');
+        }
+      });
+
     effect(() => {
       if (this.isOpen() && this.courseId()) {
-        this.loadPublications();
-        // Initialize selection from current state
+        this.isLoading.set(true);
+        this.loadTrigger$.next(this.courseId());
+        // Seed selection from current pin state so opening shows what's actually applied.
         const currentPub = this.currentPublicationId();
         if (currentPub) {
           this.selectedMode.set('PINNED');
@@ -211,21 +253,6 @@ export class VersionPickerDrawerComponent {
           this.selectedMode.set('FOLLOW_LATEST');
           this.selectedPublicationId.set(null);
         }
-      }
-    });
-  }
-
-  private loadPublications() {
-    this.isLoading.set(true);
-    this.classService.listPublications(this.courseId()).subscribe({
-      next: (pubs) => {
-        this.publications.set(pubs);
-        this.isLoading.set(false);
-      },
-      error: () => {
-        this.publications.set([]);
-        this.isLoading.set(false);
-        this.toast.error('Không thể tải danh sách phiên bản');
       }
     });
   }
