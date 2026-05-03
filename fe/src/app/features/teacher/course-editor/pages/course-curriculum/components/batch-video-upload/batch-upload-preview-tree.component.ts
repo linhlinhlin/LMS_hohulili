@@ -60,7 +60,7 @@ import { BatchTargetLesson, BatchVideoItem } from './batch-video-upload.types';
                 <div class="px-3 py-1.5 flex items-center gap-3 text-xs text-gray-500">
                   <span class="w-4 flex-shrink-0"></span>
                   <span class="w-9 h-9 rounded-md bg-slate-100 flex items-center justify-center flex-shrink-0">
-                    <lucide-icon name="check" [size]="14" class="text-slate-400"></lucide-icon>
+                    <lucide-icon name="check-circle" [size]="14" class="text-slate-400"></lucide-icon>
                   </span>
                   <span class="flex-1 truncate text-gray-600">{{ section.title }}</span>
                   <span class="flex-shrink-0 text-[10px] uppercase tracking-wide text-slate-400">{{ sectionTypeLabel(section.type) }}</span>
@@ -166,7 +166,7 @@ import { BatchTargetLesson, BatchVideoItem } from './batch-video-upload.types';
                       aria-label="Thử lại"
                       title="Thử lại"
                     >
-                      <lucide-icon name="rotate-cw" [size]="14"></lucide-icon>
+                      <lucide-icon name="refresh-cw" [size]="14"></lucide-icon>
                     </button>
                   }
                   @if (item.status === 'UPLOADING' || item.status === 'ASSET_CREATING') {
@@ -353,11 +353,11 @@ export class BatchUploadPreviewTreeComponent {
         return 'upload-cloud';
       case 'ASSET_CREATING':
       case 'SECTION_CREATING':
-        return 'cog';
+        return 'settings';
       case 'PROCESSING':
-        return 'cog';
+        return 'settings';
       case 'READY':
-        return 'check-circle-2';
+        return 'check-circle';
       case 'FAILED':
         return 'alert-circle';
     }
