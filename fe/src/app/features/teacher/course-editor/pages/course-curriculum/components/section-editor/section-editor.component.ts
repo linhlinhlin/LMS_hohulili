@@ -242,6 +242,15 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                     <p class="mt-1 text-xs text-gray-500">MP4, MOV, WebM, AVI, MKV — tối đa 5 GB · Khuyến nghị H.264 + AAC</p>
                   </div>
                 </div>
+
+                <p class="mt-3 text-center text-xs text-gray-500">
+                  Có nhiều video?
+                  <button type="button"
+                          (click)="batchVideoUpload.emit()"
+                          class="ml-1 font-medium text-[#0056D2] hover:underline pointer-events-auto">
+                    Tải lên hàng loạt cùng lúc →
+                  </button>
+                </p>
               }
 
               <!-- UPLOADING + PROCESSING: SOTA layout with poster + metadata + timeline -->
@@ -1548,6 +1557,7 @@ export class SectionEditorComponent {
 
   readonly closed = output<void>();
   readonly saved = output<void>();
+  readonly batchVideoUpload = output<void>();
 
   readonly editorPanel = viewChild<ElementRef>('editorPanel');
   readonly tiptapEditor = viewChild<TiptapEditorComponent>('tiptapEditor');

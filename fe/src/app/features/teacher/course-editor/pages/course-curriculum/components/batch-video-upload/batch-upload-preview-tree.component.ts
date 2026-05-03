@@ -36,7 +36,7 @@ import { BatchTargetLesson, BatchVideoItem } from './batch-video-upload.types';
               <lucide-icon name="book-open" [size]="14" class="text-slate-400 flex-shrink-0"></lucide-icon>
               <span class="text-sm font-medium text-gray-900 truncate">{{ lesson.title }}</span>
               @if (lesson.existingSectionCount > 0) {
-                <span class="text-xs text-gray-500 flex-shrink-0">({{ lesson.existingSectionCount }} mục có sẵn)</span>
+                <span class="text-xs text-gray-500 flex-shrink-0">— đã có {{ lesson.existingSectionCount }} mục, sẽ thêm video mới vào sau cùng</span>
               }
             </div>
             <span class="text-xs font-medium text-gray-600 flex-shrink-0 ml-3">
@@ -147,7 +147,7 @@ import { BatchTargetLesson, BatchVideoItem } from './batch-video-upload.types';
                       (click)="removeRequested.emit(item.id)"
                       class="text-gray-400 hover:text-red-600 hover:bg-red-50 rounded p-1"
                       aria-label="Xoá khỏi danh sách"
-                      title="Xoá"
+                      title="Xoá khỏi danh sách"
                     >
                       <lucide-icon name="x" [size]="14"></lucide-icon>
                     </button>

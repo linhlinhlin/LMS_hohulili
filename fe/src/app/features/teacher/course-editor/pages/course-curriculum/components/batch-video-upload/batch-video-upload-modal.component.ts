@@ -135,7 +135,7 @@ import {
                   class="px-4 py-1.5 text-sm font-semibold text-white bg-[#0056D2] hover:bg-[#004BB8] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
                 >
                   <lucide-icon name="upload-cloud" [size]="14"></lucide-icon>
-                  Bắt đầu upload
+                  Bắt đầu tải lên
                 </button>
               }
               @if (svc.mode() === 'UPLOADING' || svc.mode() === 'COMPLETE') {
@@ -405,20 +405,20 @@ export class BatchVideoUploadModalComponent {
       case 'PREVIEW':
         return 'Xem trước phân bổ video';
       case 'UPLOADING':
-        return 'Đang upload video';
+        return 'Đang tải lên video';
       case 'COMPLETE':
         return 'Hoàn thành';
       default:
-        return 'Upload nhiều video';
+        return 'Tải lên nhiều video';
     }
   });
 
   protected readonly headerSubtitle = computed(() => {
     switch (this.svc.mode()) {
       case 'PREVIEW':
-        return 'Kéo thả để xếp lại, click tên để sửa, sau đó bấm "Bắt đầu upload"';
+        return 'Kéo thả để xếp lại, click tên để sửa, sau đó bấm "Bắt đầu tải lên"';
       case 'UPLOADING':
-        return 'Có thể đóng tab — upload vẫn chạy nền';
+        return 'Có thể đóng tab — tải lên vẫn chạy nền';
       case 'COMPLETE':
         return 'Tất cả video đã được xử lý';
       default:
