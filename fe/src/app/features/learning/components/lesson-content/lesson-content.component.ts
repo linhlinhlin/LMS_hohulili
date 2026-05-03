@@ -303,15 +303,23 @@ export class LessonContentComponent implements AfterViewInit {
       case 'webp':
         return { label: 'Hình ảnh', bgClass: 'bg-purple-50', textClass: 'text-purple-600' };
       default:
-        return { label: ext ? ext.toUpperCase() : 'Tệp', bgClass: 'bg-slate-100', textClass: 'text-slate-600' };
+        // Unknown extension — keep the chip neutral to avoid surfacing technical jargon
+        // ("JSON" / "XML" / "EPUB") to non-technical teachers. The .{ext} subtitle still
+        // shows the raw extension for anyone who needs to know.
+        return { label: 'Tệp', bgClass: 'bg-slate-100', textClass: 'text-slate-600' };
     }
   }
 
-  /** True only when the file family has no in-browser preview path (DOCX, XLSX, ZIP, ...). */
+  /** True for image families we can render inline via native <img>. */
+  isImageFile(ext: string): boolean {
+    return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext);
+  }
+
+  /** True only when there is no in-browser preview path (DOCX, XLSX, ZIP, ...). */
   isNonPreviewableFile(ext: string): boolean {
     if (!ext) return true;
     if (ext === 'pdf') return false;
-    if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) return false;
+    if (this.isImageFile(ext)) return false;
     return true;
   }
 

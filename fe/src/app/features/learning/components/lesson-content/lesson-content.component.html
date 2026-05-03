@@ -315,7 +315,6 @@
         @let ext = fileExtension(section.fileUrl);
         @let typeMeta = fileTypeMeta(ext);
         @let displayName = fileDisplayName(section);
-        @let nonPreviewable = isNonPreviewableFile(ext);
       <article class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
         <!-- Header: file identity + primary action -->
         <header class="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
@@ -364,7 +363,21 @@
               </button>
             </div>
           </div>
-        } @else if (nonPreviewable) {
+        } @else if (isImageFile(ext)) {
+          <!-- Native image preview -->
+          <div class="bg-slate-100 flex items-center justify-center">
+            <img [src]="section.fileUrl" [alt]="displayName"
+                 class="max-w-full max-h-[520px] md:max-h-[680px] object-contain block"
+                 loading="lazy" />
+          </div>
+        } @else if (ext === 'pdf') {
+          <!-- PDF requested but preview URL not ready (still converting / failed) -->
+          <div class="px-4 py-5 text-center bg-slate-50/60 text-sm text-slate-600">
+            <app-icon name="info" size="sm" class="text-slate-400 align-middle mr-1"></app-icon>
+            Đang chuẩn bị bản xem trước. Bấm <strong>"Tải xuống"</strong> để xem ngay nếu cần.
+          </div>
+        } @else {
+          <!-- Generic fallback: DOCX, XLSX, PPT, ZIP, unknown -->
           <div class="px-4 py-5 text-center bg-slate-50/60 text-sm text-slate-600">
             <app-icon name="info" size="sm" class="text-slate-400 align-middle mr-1"></app-icon>
             Trình duyệt không hỗ trợ xem trước định dạng này. Bấm <strong>"Tải xuống"</strong> để mở bằng ứng dụng phù hợp.
