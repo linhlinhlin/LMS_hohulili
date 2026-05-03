@@ -7,6 +7,35 @@ import { map } from 'rxjs/operators';
 
 import { environment } from '../../environments/environment';
 
+export interface PublicationSummary {
+    id: string;
+    publicationNumber: number;
+    contentVersion: number;
+    publishedAt: string | null;
+    publishedById: string | null;
+    publishedByName: string | null;
+    releaseNotes: string | null;
+    pinnedClassCount: number;
+    effectiveClassCount: number;
+    isLatest: boolean;
+}
+
+export interface AdoptResult {
+    classId: string;
+    courseVersionId: string | null;
+    publicationNumber: number | null;
+    versionMode: 'PINNED' | 'FOLLOW_LATEST';
+}
+
+export interface BulkAdoptResult {
+    publicationId: string;
+    publicationNumber: number;
+    scope: 'OPEN_ONLY' | 'ALL';
+    affectedClassCount: number;
+    totalClassCount: number;
+    skippedClassNames: string[];
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -92,6 +121,45 @@ export class ClassService {
             .pipe(map(() => void 0));
     }
 
+    // ============ Version Management (Coursera Sessions / edX Course Runs pattern) ============
+
+    listPublications(courseId: string): Observable<PublicationSummary[]> {
+        return this.http.get<ApiResponse<any[]>>(`${this.API_URL}/teacher/courses/${courseId}/publications`)
+            .pipe(map(response => (response.data || []).map((p: any) => ({
+                id: p.id,
+                publicationNumber: p.publicationNumber,
+                contentVersion: p.contentVersion,
+                publishedAt: p.publishedAt,
+                publishedById: p.publishedById,
+                publishedByName: p.publishedByName,
+                releaseNotes: p.releaseNotes,
+                pinnedClassCount: p.pinnedClassCount ?? 0,
+                effectiveClassCount: p.effectiveClassCount ?? 0,
+                isLatest: p.isLatest === true
+            }) as PublicationSummary)));
+    }
+
+    adoptPublication(classId: string, publicationId: string): Observable<AdoptResult> {
+        return this.http.post<ApiResponse<AdoptResult>>(
+            `${this.API_URL}/classes/${classId}/adopt-publication`,
+            { publicationId, mode: 'PINNED' }
+        ).pipe(map(response => response.data));
+    }
+
+    followLatestPublication(classId: string): Observable<AdoptResult> {
+        return this.http.post<ApiResponse<AdoptResult>>(
+            `${this.API_URL}/classes/${classId}/adopt-publication`,
+            { mode: 'FOLLOW_LATEST' }
+        ).pipe(map(response => response.data));
+    }
+
+    bulkAdoptPublication(courseId: string, publicationId: string, scope: 'OPEN_ONLY' | 'ALL' = 'OPEN_ONLY'): Observable<BulkAdoptResult> {
+        return this.http.post<ApiResponse<BulkAdoptResult>>(
+            `${this.API_URL}/teacher/courses/${courseId}/publications/${publicationId}/adopt-all`,
+            { scope }
+        ).pipe(map(response => response.data));
+    }
+
     private mapClassSummary(item: any): ClassSummary {
         return {
             id: item?.id ?? '',
@@ -106,6 +174,7 @@ export class ClassService {
             scheduleType: item?.scheduleType ?? (item?.semester ? 'SEMESTER' : 'CUSTOM'),
             semester: item?.semester ?? '',
             versionMode: item?.versionMode ?? 'PINNED',
+            courseVersionId: item?.courseVersionId ?? null,
             publicationNumber: item?.publicationNumber ?? null,
             status: item?.status,
             latestPublicationNumber: item?.latestPublicationNumber ?? null,

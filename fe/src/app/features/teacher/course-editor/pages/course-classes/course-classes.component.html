@@ -6,13 +6,24 @@
             <h2 class="text-base font-semibold text-slate-900">Quản lý lớp học</h2>
             <p class="text-xs text-slate-500 mt-0.5">Tạo và quản lý các lớp học trong khóa học.</p>
         </div>
-        <button (click)="openCreateDialog()"
-            class="editor-primary-button">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Tạo lớp mới
-        </button>
+        <div class="flex items-center gap-2">
+            <button (click)="openVersionHistory()"
+                type="button"
+                class="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-[#0056D2] hover:bg-[#0056D2]/5 rounded-lg transition-colors flex items-center gap-1.5"
+                title="Xem lịch sử phiên bản và đẩy bản mới cho nhiều lớp cùng lúc">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Lịch sử phiên bản
+            </button>
+            <button (click)="openCreateDialog()"
+                class="editor-primary-button">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Tạo lớp mới
+            </button>
+        </div>
     </div>
 
     <!-- PAID UNENROLLED STUDENTS BANNER -->
@@ -201,26 +212,41 @@
                                 <span class="font-semibold text-purple-700">Tùy chỉnh</span>
                             }
                             <span class="block tabular-nums mt-0.5">{{ cls.startDate | date:'dd/MM/yyyy' }} – {{ cls.endDate | date:'dd/MM/yyyy' }}</span>
-                            <!-- Version badge -->
-                            <span class="flex items-center gap-1 mt-1">
-                                @if (cls.publicationNumber) {
-                                <span class="px-1 py-0.5 text-[9px] font-bold bg-slate-100 text-slate-500 border border-slate-200 rounded tabular-nums"
-                                      title="Lớp đang gắn với bản phát hành v{{ cls.publicationNumber }} của khoá học. Học viên thấy nội dung của bản này.">
-                                    v{{ cls.publicationNumber }}
-                                </span>
+                            <!-- Version badge: 4 distinct states -->
+                            <button type="button"
+                                    (click)="openVersionPicker(cls)"
+                                    class="inline-flex items-center gap-1 mt-1 group focus:outline-none focus:ring-2 focus:ring-[#0056D2]/40 rounded"
+                                    [attr.aria-label]="'Quản lý phiên bản cho lớp ' + cls.name">
+                                @if (!cls.latestPublicationNumber) {
+                                    <!-- State A: Course never published → student sees nothing -->
+                                    <span class="px-1 py-0.5 text-[9px] font-bold bg-red-50 text-red-700 border border-red-200 rounded group-hover:bg-red-100"
+                                          title="Khoá học chưa từng được xuất bản. Học viên trong lớp này KHÔNG thấy nội dung. Bấm 'Xuất bản' ở đầu trang để công bố.">
+                                        Khoá chưa phát hành
+                                    </span>
+                                } @else if (!cls.publicationNumber) {
+                                    <!-- State B: Has publication, class auto-follows latest (NORMAL) -->
+                                    <span class="px-1 py-0.5 text-[9px] font-bold bg-blue-50 text-[#0056D2] border border-blue-200 rounded group-hover:bg-blue-100"
+                                          title="Lớp tự động theo bản mới nhất (v{{ cls.latestPublicationNumber }}). Phù hợp lớp mới mở. Bấm để ghim phiên bản cụ thể nếu cần ổn định nội dung giữa kỳ.">
+                                        Theo bản mới (v{{ cls.latestPublicationNumber }})
+                                    </span>
+                                } @else if (cls.updateAvailable) {
+                                    <!-- State D: Pinned to older + newer exists -->
+                                    <span class="px-1 py-0.5 text-[9px] font-bold bg-slate-100 text-slate-700 border border-slate-200 rounded tabular-nums group-hover:bg-slate-200"
+                                          title="Lớp đang ghim ở v{{ cls.publicationNumber }}. Khoá học đã có bản v{{ cls.latestPublicationNumber }} mới hơn — bấm để cập nhật.">
+                                        v{{ cls.publicationNumber }}
+                                    </span>
+                                    <span class="px-1 py-0.5 text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded animate-pulse"
+                                          title="Có bản v{{ cls.latestPublicationNumber }} mới hơn">
+                                        v{{ cls.latestPublicationNumber }} mới
+                                    </span>
                                 } @else {
-                                <span class="px-1 py-0.5 text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200 rounded cursor-help"
-                                      title="Khoá học chưa được xuất bản. Học viên trong lớp này sẽ KHÔNG thấy nội dung. Bấm 'Xuất bản' ở đầu trang để công bố nội dung khoá.">
-                                    Chưa phát hành
-                                </span>
+                                    <!-- State C: Pinned to latest -->
+                                    <span class="px-1 py-0.5 text-[9px] font-bold bg-slate-100 text-slate-600 border border-slate-200 rounded tabular-nums group-hover:bg-slate-200"
+                                          title="Lớp đang ghim ở v{{ cls.publicationNumber }} (bản mới nhất). Bấm để đổi sang bản khác hoặc chuyển sang chế độ tự theo bản mới.">
+                                        v{{ cls.publicationNumber }}
+                                    </span>
                                 }
-                                @if (cls.updateAvailable) {
-                                <span class="px-1 py-0.5 text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200 rounded"
-                                      title="Khoá học có bản phát hành mới hơn (v{{ cls.latestPublicationNumber }}). Có thể nâng cấp lớp này để dùng nội dung mới.">
-                                    v{{ cls.latestPublicationNumber }} mới
-                                </span>
-                                }
-                            </span>
+                            </button>
                         </div>
                     </td>
 
@@ -329,4 +355,26 @@
 <app-class-teachers-drawer [isOpen]="isTeacherDrawerOpen()" (isOpenChange)="isTeacherDrawerOpen.set($event)"
     [classId]="teacherDrawerClassId()" (onSaved)="loadClasses()">
 </app-class-teachers-drawer>
+
+<!-- Version Picker Drawer (per-class) -->
+@if (versionPickerClass(); as vpc) {
+<app-version-picker-drawer
+    [isOpen]="isVersionPickerOpen()"
+    [classId]="vpc.id"
+    [className]="vpc.name"
+    [courseId]="courseId()"
+    [currentPublicationId]="vpc.courseVersionId ?? null"
+    [currentVersionMode]="vpc.versionMode ?? 'PINNED'"
+    (closeRequested)="closeVersionPicker()"
+    (saved)="onVersionAdopted()">
+</app-version-picker-drawer>
+}
+
+<!-- Version History Drawer (course-level, bulk adopt) -->
+<app-version-history-drawer
+    [isOpen]="isVersionHistoryOpen()"
+    [courseId]="courseId()"
+    (closeRequested)="closeVersionHistory()"
+    (bulkAdopted)="onVersionAdopted()">
+</app-version-history-drawer>
 </div>
