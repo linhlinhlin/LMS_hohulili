@@ -260,6 +260,72 @@ export class LessonContentComponent implements AfterViewInit {
     }
   }
 
+  /** Display name for the file: prefer the section title (teacher-named), fall back to the URL filename. */
+  fileDisplayName(section: { title?: string | null; fileUrl?: string | null }): string {
+    const fromUrl = this.extractFileNameFromUrl(section?.fileUrl ?? null);
+    const title = (section?.title ?? '').trim();
+    return title || fromUrl || 'Tài liệu';
+  }
+
+  /** Lowercase extension (e.g. "pdf", "docx") without the dot, or empty string. */
+  fileExtension(fileUrl: string | null | undefined): string {
+    if (!fileUrl) return '';
+    const cleaned = fileUrl.split(/[?#]/)[0];
+    const lastSegment = cleaned.split('/').pop() ?? '';
+    const dotIdx = lastSegment.lastIndexOf('.');
+    if (dotIdx <= 0 || dotIdx === lastSegment.length - 1) return '';
+    return lastSegment.slice(dotIdx + 1).toLowerCase();
+  }
+
+  /** Returns Vietnamese label + Tailwind classes per file family. */
+  fileTypeMeta(ext: string): { label: string; bgClass: string; textClass: string } {
+    switch (ext) {
+      case 'pdf':
+        return { label: 'PDF', bgClass: 'bg-red-50', textClass: 'text-red-600' };
+      case 'doc':
+      case 'docx':
+        return { label: 'Word', bgClass: 'bg-blue-50', textClass: 'text-blue-600' };
+      case 'xls':
+      case 'xlsx':
+      case 'csv':
+        return { label: 'Excel', bgClass: 'bg-emerald-50', textClass: 'text-emerald-600' };
+      case 'ppt':
+      case 'pptx':
+        return { label: 'PowerPoint', bgClass: 'bg-orange-50', textClass: 'text-orange-600' };
+      case 'zip':
+      case 'rar':
+      case '7z':
+        return { label: 'Tệp nén', bgClass: 'bg-amber-50', textClass: 'text-amber-700' };
+      case 'png':
+      case 'jpg':
+      case 'jpeg':
+      case 'gif':
+      case 'webp':
+        return { label: 'Hình ảnh', bgClass: 'bg-purple-50', textClass: 'text-purple-600' };
+      default:
+        return { label: ext ? ext.toUpperCase() : 'Tệp', bgClass: 'bg-slate-100', textClass: 'text-slate-600' };
+    }
+  }
+
+  /** True only when the file family has no in-browser preview path (DOCX, XLSX, ZIP, ...). */
+  isNonPreviewableFile(ext: string): boolean {
+    if (!ext) return true;
+    if (ext === 'pdf') return false;
+    if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) return false;
+    return true;
+  }
+
+  private extractFileNameFromUrl(url: string | null): string {
+    if (!url) return '';
+    try {
+      const cleaned = url.split(/[?#]/)[0];
+      const lastSegment = cleaned.split('/').pop() ?? '';
+      return decodeURIComponent(lastSegment);
+    } catch {
+      return '';
+    }
+  }
+
   readonly canGoPreviousSection = computed(() => this.sectionIndex() > 0);
 
   readonly canGoNextSection = computed(() => {
