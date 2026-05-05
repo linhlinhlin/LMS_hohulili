@@ -1,0 +1,121 @@
+<div class="editor-card" style="margin-top: 0.5rem">
+  <!-- Header -->
+  <button
+    type="button"
+    class="editor-card__header"
+    style="display:flex; align-items:center; justify-content:space-between; width:100%; border:none; background:none; cursor:pointer; padding: 0.75rem 1rem; text-align:left"
+    (click)="isExpanded.update(v => !v)"
+    [attr.aria-expanded]="isExpanded()"
+  >
+    <div style="display:flex; align-items:center; gap:0.5rem">
+      <svg style="width:1rem;height:1rem;color:rgb(0 86 210)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+      </svg>
+      <span class="editor-label" style="margin:0; cursor:pointer">Tiêu chuẩn ánh xạ</span>
+      @if (selectedCount() > 0) {
+        <span style="padding:0.125rem 0.5rem; border-radius:9999px; background:rgb(0 86 210); color:white; font-size:0.6875rem; font-weight:600">
+          {{ selectedCount() }}
+        </span>
+      }
+    </div>
+    <svg
+      style="width:1rem;height:1rem;color:rgb(148 163 184);transition:transform 150ms"
+      [style.transform]="isExpanded() ? 'rotate(180deg)' : 'rotate(0deg)'"
+      fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+    </svg>
+  </button>
+
+  @if (isExpanded()) {
+    <div style="border-top:1px solid rgb(226 232 240); padding: 0.75rem 1rem">
+      <p style="font-size:0.8125rem; color:rgb(100 116 139); margin-bottom:0.75rem">
+        Gắn bài học này với các tiêu chuẩn quốc tế hàng hải
+      </p>
+
+      <!-- Standard tabs -->
+      @if (isLoadingStandards()) {
+        <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem">
+          @for (i of [1,2,3,4]; track i) {
+            <div style="height:2rem;width:4rem;border-radius:9999px;background:rgb(226 232 240);animation:pulse 1.5s ease-in-out infinite"></div>
+          }
+        </div>
+      } @else {
+        <div style="display:flex; flex-wrap:wrap; gap:0.375rem; margin-bottom:0.75rem" role="tablist" aria-label="Chọn nhóm tiêu chuẩn">
+          @for (std of standards(); track std.id) {
+            <button
+              type="button"
+              role="tab"
+              [attr.aria-selected]="selectedStandardId() === std.id"
+              (click)="selectStandard(std.id)"
+              style="padding:0.25rem 0.75rem; border-radius:9999px; border:1px solid; font-size:0.8125rem; font-weight:500; cursor:pointer; transition: all 150ms"
+              [style.background]="selectedStandardId() === std.id ? 'rgb(0 86 210)' : 'white'"
+              [style.color]="selectedStandardId() === std.id ? 'white' : 'rgb(71 85 105)'"
+              [style.border-color]="selectedStandardId() === std.id ? 'rgb(0 86 210)' : 'rgb(203 213 225)'"
+            >
+              {{ std.code }}
+            </button>
+          }
+        </div>
+      }
+
+      <!-- Competency checklist -->
+      @if (isLoadingCompetencies()) {
+        <div style="display:flex;flex-direction:column;gap:0.5rem">
+          @for (i of [1,2,3,4,5]; track i) {
+            <div style="height:1.75rem;border-radius:0.375rem;background:rgb(241 245 249);animation:pulse 1.5s ease-in-out infinite"></div>
+          }
+        </div>
+      } @else if (competencies().length === 0) {
+        <p style="font-size:0.8125rem;color:rgb(148 163 184);text-align:center;padding:1rem 0">
+          Không có mục tiêu năng lực
+        </p>
+      } @else {
+        <div style="display:flex;flex-direction:column;gap:0.25rem;max-height:14rem;overflow-y:auto" role="group" [attr.aria-label]="'Danh sách tiêu chuẩn ' + selectedStandardId()">
+          @for (comp of competencies(); track comp.id) {
+            <label
+              style="display:flex;align-items:flex-start;gap:0.625rem;padding:0.375rem 0.5rem;border-radius:0.375rem;cursor:pointer;transition:background 100ms"
+              [style.background]="isSelected(comp.id) ? 'rgb(239 246 255)' : 'transparent'"
+            >
+              <input
+                type="checkbox"
+                [checked]="isSelected(comp.id)"
+                (change)="toggleCompetency(comp.id)"
+                style="margin-top:0.125rem;accent-color:rgb(0 86 210);cursor:pointer;flex-shrink:0"
+                [attr.aria-label]="'Ánh xạ ' + comp.code + ': ' + comp.title"
+              />
+              <span>
+                <span style="font-size:0.8125rem;font-weight:600;color:rgb(0 86 210)">{{ comp.code }}</span>
+                <span style="font-size:0.8125rem;color:rgb(51 65 85);margin-left:0.375rem">{{ comp.title }}</span>
+                @if (comp.category) {
+                  <span style="margin-left:0.375rem;font-size:0.6875rem;color:rgb(148 163 184)">({{ comp.category }})</span>
+                }
+              </span>
+            </label>
+          }
+        </div>
+      }
+
+      <!-- Warning > 5 -->
+      @if (showWarning()) {
+        <div style="display:flex;align-items:flex-start;gap:0.5rem;margin-top:0.625rem;padding:0.5rem 0.75rem;border-radius:0.375rem;background:rgb(255 251 235);border:1px solid rgb(253 230 138)">
+          <svg style="width:0.875rem;height:0.875rem;color:rgb(217 119 6);flex-shrink:0;margin-top:0.125rem" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+          </svg>
+          <span style="font-size:0.75rem;color:rgb(146 64 14)">{{ warningText() }}</span>
+        </div>
+      }
+
+      <!-- Save indicator -->
+      @if (isSaving()) {
+        <p style="font-size:0.75rem;color:rgb(100 116 139);margin-top:0.5rem;text-align:right">
+          <svg style="display:inline;width:0.75rem;height:0.75rem;animation:spin 1s linear infinite" fill="none" viewBox="0 0 24 24">
+            <circle style="opacity:0.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path style="opacity:0.75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          Đang lưu...
+        </p>
+      }
+    </div>
+  }
+</div>
