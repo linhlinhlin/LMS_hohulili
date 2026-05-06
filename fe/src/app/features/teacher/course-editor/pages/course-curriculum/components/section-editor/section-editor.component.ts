@@ -2489,7 +2489,12 @@ export class SectionEditorComponent {
   }
 
   private isH5PFile(file: File): boolean {
-    return file.name.toLowerCase().endsWith('.h5p') || file.type === 'application/h5p';
+    const name = file.name.toLowerCase();
+    return name.endsWith('.h5p')
+      || name.endsWith('.zip')
+      || file.type === 'application/h5p'
+      || file.type === 'application/zip'
+      || file.type === 'application/x-zip-compressed';
   }
 
   private downloadJsonFile(payload: unknown, filename: string): void {
