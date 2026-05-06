@@ -8,13 +8,13 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.UUID;
 
 @RestController
@@ -56,15 +56,27 @@ public class AdaptiveVideoPlaybackController {
     }
 
     @GetMapping("/{assetId}/adaptive/{token}/object")
-    public ResponseEntity<Void> redirectObject(
+    public ResponseEntity<byte[]> getObject(
             @PathVariable UUID assetId,
             @PathVariable String token,
-            @RequestParam String key
-    ) {
-        String redirectUrl = adaptiveVideoPlaybackService.resolveObjectRedirect(assetId, token, key);
-        return ResponseEntity.status(HttpStatus.FOUND)
-                .header(HttpHeaders.LOCATION, URI.create(redirectUrl).toString())
-                .build();
+            @RequestParam String key,
+            @RequestHeader(value = HttpHeaders.RANGE, required = false) String rangeHeader
+    ) throws IOException {
+        var object = adaptiveVideoPlaybackService.readObject(assetId, token, key, rangeHeader);
+        HttpStatus status = object.contentRange() == null ? HttpStatus.OK : HttpStatus.PARTIAL_CONTENT;
+        ResponseEntity.BodyBuilder builder = ResponseEntity.status(status)
+                .contentLength(object.contentLength())
+                .header(HttpHeaders.ACCEPT_RANGES, "bytes")
+                .header(HttpHeaders.CACHE_CONTROL, "private, max-age=30");
+
+        if (object.contentRange() != null && !object.contentRange().isBlank()) {
+            builder.header(HttpHeaders.CONTENT_RANGE, object.contentRange());
+        }
+        if (object.contentType() != null && !object.contentType().isBlank()) {
+            builder.contentType(MediaType.parseMediaType(object.contentType()));
+        }
+
+        return builder.body(object.bytes());
     }
 
     /**

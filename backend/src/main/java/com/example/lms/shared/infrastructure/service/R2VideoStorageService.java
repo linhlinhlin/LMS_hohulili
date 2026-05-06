@@ -123,6 +123,29 @@ public class R2VideoStorageService {
 
     public record ObjectMetadata(long size, String contentType) {}
 
+    public ObjectBytes read(String storageKey, String rangeHeader) {
+        GetObjectRequest.Builder request = GetObjectRequest.builder()
+                .bucket(videoBucket)
+                .key(storageKey);
+
+        String normalizedRange = normalizeRangeHeader(rangeHeader);
+        if (normalizedRange != null) {
+            request.range(normalizedRange);
+        }
+
+        ResponseBytes<GetObjectResponse> response = r2Client.getObjectAsBytes(request.build());
+        byte[] bytes = response.asByteArray();
+        GetObjectResponse metadata = response.response();
+        return new ObjectBytes(
+                bytes,
+                bytes.length,
+                metadata.contentType(),
+                metadata.contentRange()
+        );
+    }
+
+    public record ObjectBytes(byte[] bytes, long contentLength, String contentType, String contentRange) {}
+
     public void downloadToFile(String storageKey, Path destination) throws IOException {
         if (destination.getParent() != null) {
             Files.createDirectories(destination.getParent());
@@ -196,6 +219,18 @@ public class R2VideoStorageService {
                         .build())
                 .build();
         return r2Presigner.presignUploadPart(request).url().toString();
+    }
+
+    private String normalizeRangeHeader(String rangeHeader) {
+        if (rangeHeader == null || rangeHeader.isBlank()) {
+            return null;
+        }
+        String value = rangeHeader.trim();
+        if (!value.startsWith("bytes=") || value.contains(",")) {
+            return null;
+        }
+        String spec = value.substring("bytes=".length());
+        return spec.matches("(\\d+-\\d*|-\\d+)") ? value : null;
     }
 
     public void completeMultipartUpload(String storageKey, String uploadId, List<CompletedUploadPart> parts) {

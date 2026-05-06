@@ -40,4 +40,9 @@ public class AdaptiveVideoPlaybackCacheService {
             headObject(String storageKey) throws IOException {
         return videoBinaryStorageService.head(storageKey);
     }
+
+    public com.example.lms.shared.infrastructure.service.R2VideoStorageService.ObjectBytes
+            readObject(String storageKey, String rangeHeader) throws IOException {
+        return videoBinaryStorageService.readObject(storageKey, rangeHeader);
+    }
 }

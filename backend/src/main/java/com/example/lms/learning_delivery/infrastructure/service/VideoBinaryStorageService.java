@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -157,6 +158,27 @@ public class VideoBinaryStorageService {
         throw new IOException("No storage backend configured to head object");
     }
 
+    public R2VideoStorageService.ObjectBytes readObject(String storageKey, String rangeHeader) throws IOException {
+        if (r2VideoStorageService.isPresent()) {
+            return r2VideoStorageService.get().read(storageKey, rangeHeader);
+        }
+
+        Path tempFile = Files.createTempFile("video-object-", suffixFromStorageKey(storageKey));
+        try {
+            if (r2StorageService.isPresent()) {
+                r2StorageService.get().downloadToFile(storageKey, tempFile);
+                return readLocalObject(tempFile, rangeHeader);
+            }
+            if (localStorageService.isPresent()) {
+                localStorageService.get().downloadToFile(storageKey, tempFile);
+                return readLocalObject(tempFile, rangeHeader);
+            }
+            throw new IOException("No storage backend configured to read generated object");
+        } finally {
+            Files.deleteIfExists(tempFile);
+        }
+    }
+
     public void delete(String storageKey) {
         if (r2VideoStorageService.isPresent()) {
             r2VideoStorageService.get().delete(storageKey);
@@ -210,6 +232,66 @@ public class VideoBinaryStorageService {
         }
         return storageKey.substring(storageKey.lastIndexOf('.'));
     }
+
+    private R2VideoStorageService.ObjectBytes readLocalObject(Path file, String rangeHeader) throws IOException {
+        byte[] allBytes = Files.readAllBytes(file);
+        String contentType = Files.probeContentType(file);
+        ByteRange range = parseByteRange(rangeHeader, allBytes.length);
+        if (range == null) {
+            return new R2VideoStorageService.ObjectBytes(allBytes, allBytes.length, contentType, null);
+        }
+
+        byte[] bytes = Arrays.copyOfRange(allBytes, (int) range.start(), (int) range.end() + 1);
+        String contentRange = "bytes " + range.start() + "-" + range.end() + "/" + allBytes.length;
+        return new R2VideoStorageService.ObjectBytes(bytes, bytes.length, contentType, contentRange);
+    }
+
+    private ByteRange parseByteRange(String rangeHeader, long size) throws IOException {
+        if (rangeHeader == null || rangeHeader.isBlank()) {
+            return null;
+        }
+        String value = rangeHeader.trim();
+        if (!value.startsWith("bytes=") || value.contains(",")) {
+            return null;
+        }
+
+        String spec = value.substring("bytes=".length());
+        int dashIndex = spec.indexOf('-');
+        if (dashIndex < 0) {
+            return null;
+        }
+
+        String startPart = spec.substring(0, dashIndex).trim();
+        String endPart = spec.substring(dashIndex + 1).trim();
+        if (startPart.isBlank() && endPart.isBlank()) {
+            return null;
+        }
+
+        try {
+            long start;
+            long end;
+            if (startPart.isBlank()) {
+                long suffixLength = Long.parseLong(endPart);
+                if (suffixLength <= 0) {
+                    return null;
+                }
+                start = Math.max(0, size - suffixLength);
+                end = size - 1;
+            } else {
+                start = Long.parseLong(startPart);
+                end = endPart.isBlank() ? size - 1 : Long.parseLong(endPart);
+            }
+
+            if (start < 0 || end < start || start >= size) {
+                throw new IOException("Invalid Range header for video object");
+            }
+            return new ByteRange(start, Math.min(end, size - 1));
+        } catch (NumberFormatException exception) {
+            return null;
+        }
+    }
+
+    private record ByteRange(long start, long end) {}
 
     public record SourceBinary(
             Path path,
