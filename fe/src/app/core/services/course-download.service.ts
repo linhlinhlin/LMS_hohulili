@@ -1165,6 +1165,7 @@ export class CourseDownloadService {
         videoType: section.videoType,
         streamVideoUid: section.streamVideoUid,
         videoSourceKind,
+        interactiveVideoSpec: section.interactiveVideoSpec ?? null,
         fileUrl: section.fileUrl || section.downloadUrl,
         fileName: section.fileName,
         sortOrder: section.sortOrder ?? index,

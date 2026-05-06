@@ -88,6 +88,7 @@
     "gsap": "^3.13.0",
     "html2canvas": "^1.4.1",
     "idb": "^8.0.3",
+    "jszip": "^3.10.1",
     "katex": "^0.16.27",
     "lowlight": "^3.3.0",
     "lucide-angular": "^0.544.0",

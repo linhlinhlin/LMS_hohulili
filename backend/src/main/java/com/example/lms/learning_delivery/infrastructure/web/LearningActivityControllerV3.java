@@ -72,6 +72,25 @@ public class LearningActivityControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(null, "Đã ghi nhận tiến độ đọc"));
     }
 
+    @Operation(summary = "Record interactive video event")
+    @PostMapping("/interactive-video/events")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Void>> recordInteractiveVideoEvent(
+            @AuthenticationPrincipal UserJpaEntity currentUser,
+            @Valid @RequestBody InteractiveVideoEventRequest request) {
+        UUID studentId = currentUser.getId();
+        useCase.recordInteractiveVideoEvent(
+                studentId,
+                request.lessonId(),
+                request.sectionId(),
+                request.interactionId(),
+                request.action(),
+                request.videoTimeSeconds(),
+                request.data()
+        );
+        return ResponseEntity.ok(ApiResponse.success(null, "Đã ghi nhận tương tác video"));
+    }
+
     @Operation(summary = "Get continue-where-you-left-off data (includes courseId)")
     @GetMapping("/continue")
     @PreAuthorize("isAuthenticated()")

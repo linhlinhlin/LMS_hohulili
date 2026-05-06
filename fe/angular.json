@@ -38,6 +38,11 @@
               "extend",
               "fuzzysort",
               "es-toolkit/compat/isEqual",
+              "jszip",
+              "lie",
+              "pako",
+              "readable-stream",
+              "setimmediate",
               "shaka-player/dist/shaka-player.compiled"
             ],
             "server": "src/main.server.ts",

@@ -145,10 +145,15 @@ function shouldEnableViewTransitions(): boolean {
 }
 
 // ✅ FIXED: Factory function to setup global state when app initializes
+function canUseLocalStorage(): boolean {
+  return typeof localStorage !== 'undefined'
+    && typeof localStorage.getItem === 'function';
+}
+
 function initializeApp(authService: AuthService): () => Promise<void> {
   return () => {
     // ✅ Guard against SSR context where localStorage doesn't exist
-    if (typeof localStorage === 'undefined') {
+    if (!canUseLocalStorage()) {
       return Promise.resolve();
     }
 

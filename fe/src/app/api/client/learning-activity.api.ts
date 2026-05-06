@@ -16,6 +16,15 @@ export interface ReadingProgressRequest {
   scrollPercent: number;
 }
 
+export interface InteractiveVideoEventRequest {
+  lessonId: string;
+  sectionId: string | null;
+  interactionId: string;
+  action: string;
+  videoTimeSeconds: number;
+  data?: Record<string, unknown>;
+}
+
 export interface ContinueWhereLeftOffResponse {
   lessonId: string;
   sectionId: string | null;
@@ -38,6 +47,10 @@ export class LearningActivityApi {
 
   recordReadingProgress(request: ReadingProgressRequest): Observable<any> {
     return this.api.post(LEARNING_ACTIVITY_ENDPOINTS.READING_PROGRESS, request);
+  }
+
+  recordInteractiveVideoEvent(request: InteractiveVideoEventRequest): Observable<any> {
+    return this.api.post(LEARNING_ACTIVITY_ENDPOINTS.INTERACTIVE_VIDEO_EVENTS, request);
   }
 
   getContinueWhereLeftOff(): Observable<any> {

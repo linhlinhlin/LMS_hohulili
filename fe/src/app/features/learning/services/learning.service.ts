@@ -21,6 +21,7 @@ import { getLessonTypeFromTitle, LessonType } from '../models/lesson-types.enum'
 import { CourseDownloadService } from '../../../core/services/course-download.service';
 import { NetworkStatusService } from '../../../core/services/network-status.service';
 import { offlineDb, getCurrentUserId } from '../../../core/db/lms-offline.db';
+import type { InteractiveVideoSpec } from '../../../api/types/interactive-video.types';
 
 /**
  * Learning Service
@@ -410,6 +411,8 @@ export class LearningService {
       duration: section.duration,
       orderIndex: section.orderIndex ?? 0,
       isRequired: section.isRequired ?? false,
+      completionThreshold: section.completionThreshold,
+      interactiveVideoSpec: this.normalizeInteractiveVideoSpec(section.interactiveVideoSpec),
       quizData: section.quizData ? {
         quizType: section.quizData.quizType,
         countsTowardCertificate: section.quizData.countsTowardCertificate,
@@ -430,6 +433,69 @@ export class LearningService {
           : [],
       } : undefined,
     };
+  }
+
+  private normalizeInteractiveVideoSpec(value: unknown): InteractiveVideoSpec | null {
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+
+    const record = value as Record<string, unknown>;
+    const timeline = Array.isArray(record['timeline']) ? record['timeline'] : [];
+    if (timeline.length === 0 && record['enabled'] !== true) {
+      return null;
+    }
+
+    return {
+      version: 1,
+      enabled: record['enabled'] !== false,
+      timeline: timeline
+        .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
+        .map((item, index) => ({
+          id: typeof item['id'] === 'string' && item['id'].length > 0 ? item['id'] : `interaction-${index + 1}`,
+          type: this.normalizeInteractiveVideoInteractionType(item['type']),
+          atSeconds: this.toNumber(item['atSeconds'] ?? item['at'] ?? item['time'], 0),
+          endSeconds: item['endSeconds'] == null ? null : this.toNumber(item['endSeconds'], 0),
+          title: typeof item['title'] === 'string' ? item['title'] : null,
+          body: typeof item['body'] === 'string' ? item['body'] : (typeof item['prompt'] === 'string' ? item['prompt'] : null),
+          pause: item['pause'] !== false,
+          required: item['required'] === true,
+          choices: Array.isArray(item['choices'])
+            ? item['choices']
+                .filter((choice): choice is Record<string, unknown> => !!choice && typeof choice === 'object')
+                .map((choice, choiceIndex) => ({
+                  id: typeof choice['id'] === 'string' && choice['id'].length > 0 ? choice['id'] : `choice-${choiceIndex + 1}`,
+                  label: typeof choice['label'] === 'string'
+                    ? choice['label']
+                    : (typeof choice['text'] === 'string' ? choice['text'] : `Lua chon ${choiceIndex + 1}`),
+                  feedback: typeof choice['feedback'] === 'string' ? choice['feedback'] : null,
+                  isCorrect: choice['isCorrect'] === true,
+                  targetTimeSeconds: choice['targetTimeSeconds'] == null ? null : this.toNumber(choice['targetTimeSeconds'], 0),
+                  targetInteractionId: typeof choice['targetInteractionId'] === 'string' ? choice['targetInteractionId'] : null,
+                }))
+            : [],
+        }))
+        .sort((a, b) => a.atSeconds - b.atSeconds),
+    };
+  }
+
+  private normalizeInteractiveVideoInteractionType(rawType: unknown): InteractiveVideoSpec['timeline'][number]['type'] {
+    const type = typeof rawType === 'string' ? rawType.toLowerCase() : 'checkpoint';
+    if (type === 'single_choice' || type === 'branch' || type === 'hotspot') {
+      return type;
+    }
+    return 'checkpoint';
+  }
+
+  private toNumber(value: unknown, fallback: number): number {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+    if (typeof value === 'string' && value.trim().length > 0) {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    }
+    return fallback;
   }
 
   private applyLessonOfflineVideoFallback(

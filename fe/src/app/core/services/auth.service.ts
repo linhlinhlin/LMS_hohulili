@@ -138,7 +138,9 @@ export class AuthService {
           const merged = { ...current, ...updatedUser };
           this.currentUserSubject.next(merged);
           this._currentUser.set(merged);
-          localStorage.setItem(this.userKey, JSON.stringify(merged));
+          if (this.canUseLocalStorage()) {
+            localStorage.setItem(this.userKey, JSON.stringify(merged));
+          }
         }
       })
     );
@@ -165,7 +167,7 @@ export class AuthService {
       error: () => {}
     });
 
-    if (typeof localStorage !== 'undefined') {
+    if (this.canUseLocalStorage()) {
       localStorage.removeItem(this.tokenKey);
       localStorage.removeItem(this.refreshTokenKey);
       localStorage.removeItem(this.userKey);
@@ -251,14 +253,14 @@ export class AuthService {
   }
 
   private setTokens(accessToken: string, refreshToken: string): void {
-    if (typeof localStorage !== 'undefined') {
+    if (this.canUseLocalStorage()) {
       localStorage.setItem(this.tokenKey, accessToken);
       localStorage.setItem(this.refreshTokenKey, refreshToken);
     }
   }
 
   getToken(): string | null {
-    if (typeof localStorage === 'undefined') {
+    if (!this.canUseLocalStorage()) {
       return null;
     }
     return localStorage.getItem(this.tokenKey);
@@ -274,13 +276,13 @@ export class AuthService {
 
   private setUser(user: User): void {
     const normalizedUser = this.normalizeUser(user);
-    if (typeof localStorage !== 'undefined') {
+    if (this.canUseLocalStorage()) {
       localStorage.setItem(this.userKey, JSON.stringify(normalizedUser));
     }
   }
 
   getSavedUser(): User | null {
-    if (typeof localStorage === 'undefined') {
+    if (!this.canUseLocalStorage()) {
       return null;
     }
     const userStr = localStorage.getItem(this.userKey);
@@ -358,7 +360,7 @@ export class AuthService {
   }
 
   refreshToken(): Observable<AuthResponse> {
-    if (typeof localStorage === 'undefined') {
+    if (!this.canUseLocalStorage()) {
       return throwError(() => new Error('Cannot refresh token in SSR context'));
     }
 
@@ -372,5 +374,12 @@ export class AuthService {
       }),
       tap(data => this.applyAuthenticatedSession(data))
     );
+  }
+
+  private canUseLocalStorage(): boolean {
+    return typeof localStorage !== 'undefined'
+      && typeof localStorage.getItem === 'function'
+      && typeof localStorage.setItem === 'function'
+      && typeof localStorage.removeItem === 'function';
   }
 }

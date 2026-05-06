@@ -299,6 +299,7 @@ public class CoursePublicationService {
             section.put("isRequired", asBoolean(data.get("isRequired"), false));
             section.put("completionThreshold", asDouble(data.get("completionThreshold"), 50.0));
             section.put("quizData", buildSectionQuizData(data, questionMap));
+            section.put("interactiveVideoSpec", normalizeInteractiveVideoSpec(data.get("interactiveVideoSpec")));
             applyVideoAssetView(section, data, resolveVideoAssetView(videoAssets, data.get("videoAssetId")), videoType);
             sections.add(section);
         }
@@ -712,6 +713,21 @@ public class CoursePublicationService {
             return explicitType;
         }
         return streamVideoUid != null ? "CLOUDFLARE" : null;
+    }
+
+    private Map<String, Object> normalizeInteractiveVideoSpec(Object value) {
+        Map<String, Object> spec = asMap(value);
+        if (spec == null || spec.isEmpty()) {
+            return null;
+        }
+
+        Map<String, Object> normalized = new LinkedHashMap<>(spec);
+        normalized.putIfAbsent("version", 1);
+        Object timeline = normalized.get("timeline");
+        if (!(timeline instanceof List<?>)) {
+            normalized.put("timeline", List.of());
+        }
+        return normalized;
     }
 
     private String resolveTeacherName(UUID teacherId) {

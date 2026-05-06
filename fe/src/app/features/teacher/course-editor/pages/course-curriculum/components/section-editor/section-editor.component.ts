@@ -20,12 +20,25 @@ import { CurriculumEditorService, SectionQuizAssessmentType } from '../../../../
 import { TiptapEditorComponent } from '../../../../../../../shared/components/tiptap-editor/tiptap-editor.component';
 import { createTiptapUploadFn, createTiptapVideoUploadFn } from '../../../../../../../shared/components/tiptap-editor/tiptap-upload';
 import { PresignedUploadService } from '../../../../../../../core/services/presigned-upload.service';
+import { ToastService } from '../../../../../../../core/services/toast.service';
 import { LESSON_TEMPLATES, type LessonTemplate } from '../../../../../../../shared/components/tiptap-editor/lesson-templates';
 import { environment } from '../../../../../../../../environments/environment';
 import { formatOfflineVideoProfileLabel, type OfflineVideoProfileDescriptor } from '../../../../../../../core/models/video-quality';
 import { QuizVideoPlayerComponent } from '../../../../../../../shared/blocks/video-block/quiz-video-player.component';
 import { BlockRendererComponent } from '../../../../../../../shared/blocks/block-renderer/block-renderer.component';
 import { formatDuration, formatResolution } from '../../../../../../../core/utils/video-probe.util';
+import type {
+  InteractiveVideoInteraction,
+  InteractiveVideoInteractionType,
+  InteractiveVideoSpec,
+} from '../../../../../../../api/types/interactive-video.types';
+import { buildInteractiveVideoSpec } from '../../../../utils/interactive-video-authoring';
+import {
+  exportInteractiveVideoBundle,
+  exportInteractiveVideoH5PPackage,
+  importInteractiveVideoH5PPackage,
+  importInteractiveVideoBundle,
+} from '../../../../utils/interactive-video-interoperability';
 
 type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
 
@@ -452,14 +465,16 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                     <div class="overflow-hidden rounded-xl border border-slate-200 bg-black" style="max-height: 280px; aspect-ratio: 16/9;">
                       <app-quiz-video-player
                         [videoAssetId]="svc.sectionVideoAssetId()"
-                        [rawVideoUrl]="svc.sectionVideoUrl()">
+                        [rawVideoUrl]="svc.sectionVideoUrl()"
+                        [interactiveVideoSpec]="interactiveVideoPreviewSpec()">
                       </app-quiz-video-player>
                     </div>
                   } @else if (svc.sectionVideoUrl()) {
-                    <div class="overflow-hidden rounded-xl border border-slate-200 bg-black">
-                      <video [src]="svc.sectionVideoUrl()" controls preload="metadata"
-                             controlsList="nodownload"
-                             class="w-full" style="max-height: 280px;"></video>
+                    <div class="overflow-hidden rounded-xl border border-slate-200 bg-black" style="max-height: 280px; aspect-ratio: 16/9;">
+                      <app-quiz-video-player
+                        [rawVideoUrl]="svc.sectionVideoUrl()"
+                        [interactiveVideoSpec]="interactiveVideoPreviewSpec()">
+                      </app-quiz-video-player>
                     </div>
                   }
 
@@ -540,6 +555,210 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                 }
               </div>
             }
+
+            <div class="rounded-xl border border-slate-200 bg-white">
+              <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+                <div class="flex min-w-0 items-center gap-2.5">
+                  <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0056D2]/10 text-[#0056D2]">
+                    <lucide-icon name="mouse-pointer-click" [size]="16"></lucide-icon>
+                  </div>
+                  <div class="min-w-0">
+                    <h4 class="text-sm font-semibold text-slate-900">Video tương tác</h4>
+                    <p class="text-xs text-slate-500">
+                      {{ svc.sectionInteractiveVideoInteractionCount() }} điểm tương tác
+                    </p>
+                  </div>
+                </div>
+                <label class="inline-flex cursor-pointer select-none items-center gap-2 text-sm font-semibold text-slate-700">
+                  <input type="checkbox"
+                    [ngModel]="svc.sectionInteractiveVideoEnabled()"
+                    (ngModelChange)="svc.setInteractiveVideoEnabled($event)"
+                    class="h-4 w-4 rounded text-[#0056D2] focus:ring-[#0056D2]" />
+                  Bật
+                </label>
+              </div>
+
+              @if (svc.sectionInteractiveVideoEnabled()) {
+                <div class="border-b border-slate-100 px-4 py-3">
+                  <div class="flex flex-wrap gap-2">
+                    <button type="button"
+                      (click)="svc.addInteractiveVideoInteraction('checkpoint')"
+                      class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
+                      <lucide-icon name="pause-circle" [size]="13"></lucide-icon>
+                      Điểm dừng
+                    </button>
+                    <button type="button"
+                      (click)="svc.addInteractiveVideoInteraction('single_choice')"
+                      class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
+                      <lucide-icon name="circle-help" [size]="13"></lucide-icon>
+                      Câu hỏi
+                    </button>
+                    <button type="button"
+                      (click)="svc.addInteractiveVideoInteraction('branch')"
+                      class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
+                      <lucide-icon name="git-branch" [size]="13"></lucide-icon>
+                      Rẽ nhánh
+                    </button>
+                    <input #interactiveImportInput type="file"
+                      accept="application/json,.json,.h5p,application/h5p,application/zip"
+                      class="hidden"
+                      (change)="onInteractiveImportSelected($event)" />
+                    <button type="button"
+                      (click)="interactiveImportInput.click()"
+                      class="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
+                      <lucide-icon name="upload" [size]="13"></lucide-icon>
+                      Nhập JSON/H5P
+                    </button>
+                    <button type="button"
+                      (click)="exportInteractiveVideoJson()"
+                      [disabled]="!interactiveVideoPreviewSpec()"
+                      class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5 disabled:cursor-not-allowed disabled:opacity-50">
+                      <lucide-icon name="download" [size]="13"></lucide-icon>
+                      Xuất JSON
+                    </button>
+                    <button type="button"
+                      (click)="exportInteractiveVideoH5P()"
+                      [disabled]="!interactiveVideoPreviewSpec()"
+                      class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5 disabled:cursor-not-allowed disabled:opacity-50">
+                      <lucide-icon name="package" [size]="13"></lucide-icon>
+                      Xuất H5P
+                    </button>
+                  </div>
+                </div>
+
+                @if (svc.sectionInteractiveVideoTimeline().length === 0) {
+                  <div class="px-4 py-6 text-center">
+                    <lucide-icon name="list-plus" [size]="30" class="mx-auto text-slate-300"></lucide-icon>
+                    <p class="mt-2 text-sm font-medium text-slate-500">Chưa có điểm tương tác</p>
+                  </div>
+                } @else {
+                  <div class="space-y-3 p-4">
+                    @for (interaction of svc.sectionInteractiveVideoTimeline(); track interaction.id; let idx = $index) {
+                      <div class="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+                        <div class="flex flex-wrap items-center gap-2">
+                          <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#0056D2]/10 text-xs font-bold text-[#0056D2] tabular-nums">
+                            {{ idx + 1 }}
+                          </span>
+                          <div class="min-w-[10rem] flex-1">
+                            <select
+                              [ngModel]="interaction.type"
+                              (ngModelChange)="onInteractiveTypeChange(interaction.id, $event)"
+                              class="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm font-medium text-slate-700 focus:border-[#0056D2] focus:ring-[#0056D2]">
+                              @for (type of interactiveVideoTypes; track type) {
+                                <option [ngValue]="type">{{ getInteractiveTypeLabel(type) }}</option>
+                              }
+                            </select>
+                          </div>
+                          <div class="flex items-center gap-1.5">
+                            <label class="text-xs font-medium text-slate-500">Giây</label>
+                            <input type="number" min="0" step="1"
+                              [ngModel]="interaction.atSeconds"
+                              (ngModelChange)="onInteractiveTimeChange(interaction.id, $event)"
+                              class="w-24 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm tabular-nums focus:border-[#0056D2] focus:ring-[#0056D2]" />
+                          </div>
+                          <button type="button"
+                            (click)="svc.removeInteractiveVideoInteraction(interaction.id)"
+                            class="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600"
+                            aria-label="Xóa điểm tương tác">
+                            <lucide-icon name="trash-2" [size]="14"></lucide-icon>
+                          </button>
+                        </div>
+
+                        <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                          <div>
+                            <label class="mb-1.5 block text-xs font-medium text-slate-600">Tiêu đề</label>
+                            <input type="text"
+                              [ngModel]="interaction.title"
+                              (ngModelChange)="svc.updateInteractiveVideoInteraction(interaction.id, { title: $event })"
+                              class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-[#0056D2]" />
+                          </div>
+                          <div class="flex flex-wrap items-end gap-4">
+                            <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                              <input type="checkbox"
+                                [ngModel]="interaction.pause !== false"
+                                (ngModelChange)="svc.updateInteractiveVideoInteraction(interaction.id, { pause: $event })"
+                                class="h-4 w-4 rounded text-[#0056D2] focus:ring-[#0056D2]" />
+                              Tạm dừng
+                            </label>
+                            <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                              <input type="checkbox"
+                                [ngModel]="interaction.required === true"
+                                (ngModelChange)="svc.updateInteractiveVideoInteraction(interaction.id, { required: $event })"
+                                class="h-4 w-4 rounded text-[#0056D2] focus:ring-[#0056D2]" />
+                              Bắt buộc
+                            </label>
+                          </div>
+                        </div>
+
+                        <div class="mt-3">
+                          <label class="mb-1.5 block text-xs font-medium text-slate-600">Nội dung</label>
+                          <textarea rows="2"
+                            [ngModel]="interaction.body"
+                            (ngModelChange)="svc.updateInteractiveVideoInteraction(interaction.id, { body: $event })"
+                            class="w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-[#0056D2]"></textarea>
+                        </div>
+
+                        @if (isChoiceInteraction(interaction)) {
+                          <div class="mt-3 rounded-lg border border-slate-200 bg-white">
+                            <div class="flex items-center justify-between gap-2 border-b border-slate-100 px-3 py-2">
+                              <span class="text-xs font-semibold uppercase text-slate-500">Lựa chọn</span>
+                              <button type="button"
+                                (click)="svc.addInteractiveVideoChoice(interaction.id)"
+                                class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-[#0056D2] hover:bg-[#0056D2]/5">
+                                <lucide-icon name="plus" [size]="12"></lucide-icon>
+                                Thêm
+                              </button>
+                            </div>
+                            <div class="divide-y divide-slate-100">
+                              @for (choice of interaction.choices || []; track choice.id; let choiceIdx = $index) {
+                                <div class="grid gap-2 px-3 py-2 sm:grid-cols-[minmax(0,1fr)_7rem_minmax(8rem,10rem)_auto]">
+                                  <input type="text"
+                                    [ngModel]="choice.label"
+                                    (ngModelChange)="svc.updateInteractiveVideoChoice(interaction.id, choice.id, { label: $event })"
+                                    class="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-[#0056D2]"
+                                    [attr.aria-label]="'Lựa chọn ' + (choiceIdx + 1)" />
+                                  @if (interaction.type === 'branch') {
+                                    <input type="number" min="0" step="1"
+                                      [ngModel]="choice.targetTimeSeconds ?? interaction.atSeconds"
+                                      (ngModelChange)="onInteractiveChoiceTargetChange(interaction.id, choice.id, $event)"
+                                      class="rounded-lg border border-slate-200 px-3 py-2 text-sm tabular-nums focus:border-[#0056D2] focus:ring-[#0056D2]"
+                                      aria-label="Giây đích" />
+                                    <select
+                                      [ngModel]="choice.targetInteractionId ?? ''"
+                                      (ngModelChange)="onInteractiveChoiceTargetInteractionChange(interaction.id, choice.id, $event)"
+                                      class="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm text-slate-700 focus:border-[#0056D2] focus:ring-[#0056D2]"
+                                      aria-label="Điểm đích">
+                                      <option [ngValue]="''">Theo giây</option>
+                                      @for (target of getInteractiveBranchTargets(interaction.id); track target.id) {
+                                        <option [ngValue]="target.id">{{ target.atSeconds }}s · {{ target.title || target.id }}</option>
+                                      }
+                                    </select>
+                                  } @else {
+                                    <label class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-2 text-xs font-medium text-slate-600">
+                                      <input type="checkbox"
+                                        [ngModel]="choice.isCorrect === true"
+                                        (ngModelChange)="svc.updateInteractiveVideoChoice(interaction.id, choice.id, { isCorrect: $event })"
+                                        class="h-3.5 w-3.5 rounded text-[#0056D2] focus:ring-[#0056D2]" />
+                                      Đúng
+                                    </label>
+                                  }
+                                  <button type="button"
+                                    (click)="svc.removeInteractiveVideoChoice(interaction.id, choice.id)"
+                                    class="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600"
+                                    aria-label="Xóa lựa chọn">
+                                    <lucide-icon name="x" [size]="14"></lucide-icon>
+                                  </button>
+                                </div>
+                              }
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+              }
+            </div>
 
           </div>
         }
@@ -1551,6 +1770,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
 export class SectionEditorComponent {
   readonly svc = inject(CurriculumEditorService);
   private readonly http = inject(HttpClient);
+  private readonly toast = inject(ToastService);
 
   readonly lessonId = input.required<string>();
   readonly courseId = input.required<string>();
@@ -1572,8 +1792,15 @@ export class SectionEditorComponent {
   readonly editorUploadFn = createTiptapUploadFn(this.http, environment.apiUrl, this.presignedUpload ?? undefined);
   readonly editorVideoUploadFn = this.presignedUpload ? createTiptapVideoUploadFn(this.presignedUpload) : null;
   readonly quizTypes: SectionQuizAssessmentType[] = ['PRACTICE', 'ASSESSMENT', 'EXAM'];
+  readonly interactiveVideoTypes: InteractiveVideoInteractionType[] = ['checkpoint', 'single_choice', 'branch'];
   readonly lessonTemplates = LESSON_TEMPLATES;
   readonly showTemplatePicker = signal(true);
+  readonly interactiveVideoPreviewSpec = computed(() =>
+    buildInteractiveVideoSpec(
+      this.svc.sectionInteractiveVideoEnabled(),
+      this.svc.sectionInteractiveVideoTimeline(),
+    ),
+  );
   readonly isContentEmpty = computed(() => {
     const content = this.svc.sectionContent();
     if (!content) return true;
@@ -2133,6 +2360,172 @@ export class SectionEditorComponent {
     this.svc.sectionVideoUrl.set(url);
     this.svc.sectionVideoType.set('YOUTUBE');
     this.svc.markDirty();
+  }
+
+  onInteractiveTypeChange(
+    interactionId: string,
+    type: InteractiveVideoInteractionType,
+  ): void {
+    this.svc.updateInteractiveVideoInteractionType(interactionId, type);
+  }
+
+  onInteractiveTimeChange(interactionId: string, value: unknown): void {
+    this.svc.updateInteractiveVideoInteraction(interactionId, {
+      atSeconds: this.toNonNegativeInteger(value),
+    });
+  }
+
+  onInteractiveChoiceTargetChange(
+    interactionId: string,
+    choiceId: string,
+    value: unknown,
+  ): void {
+    this.svc.updateInteractiveVideoChoice(interactionId, choiceId, {
+      targetTimeSeconds: this.toNonNegativeInteger(value),
+      targetInteractionId: null,
+    });
+  }
+
+  onInteractiveChoiceTargetInteractionChange(
+    interactionId: string,
+    choiceId: string,
+    value: string,
+  ): void {
+    this.svc.updateInteractiveVideoChoice(interactionId, choiceId, {
+      targetInteractionId: value || null,
+      targetTimeSeconds: value ? null : undefined,
+    });
+  }
+
+  async onInteractiveImportSelected(event: Event): Promise<void> {
+    const inputElement = event.target as HTMLInputElement;
+    const file = inputElement.files?.[0];
+    inputElement.value = '';
+    if (!file) {
+      return;
+    }
+
+    try {
+      const spec = await this.readInteractiveImportSpec(file);
+      if (!spec || spec.timeline.length === 0) {
+        this.toast.error('Tệp nhập không có dữ liệu video tương tác hợp lệ.');
+        return;
+      }
+
+      this.svc.sectionInteractiveVideoEnabled.set(spec.enabled !== false);
+      this.svc.sectionInteractiveVideoTimeline.set(spec.timeline);
+      this.svc.markDirty();
+      this.toast.success(`Đã nhập ${spec.timeline.length} điểm tương tác.`);
+    } catch {
+      this.toast.error('Không thể đọc tệp video tương tác.');
+    }
+  }
+
+  exportInteractiveVideoJson(): void {
+    const spec = this.interactiveVideoPreviewSpec();
+    if (!spec) {
+      this.toast.error('Chưa có dữ liệu video tương tác để xuất.');
+      return;
+    }
+
+    try {
+      const bundle = exportInteractiveVideoBundle(spec, this.svc.sectionVideoUrl());
+      this.downloadJsonFile(bundle, this.getInteractiveExportFileName('json'));
+      this.toast.success('Đã xuất JSON video tương tác.');
+    } catch {
+      this.toast.error('Không thể xuất JSON video tương tác.');
+    }
+  }
+
+  async exportInteractiveVideoH5P(): Promise<void> {
+    const spec = this.interactiveVideoPreviewSpec();
+    if (!spec) {
+      this.toast.error('Chưa có dữ liệu video tương tác để xuất.');
+      return;
+    }
+
+    try {
+      const blob = await exportInteractiveVideoH5PPackage(spec, this.svc.sectionVideoUrl(), {
+        title: this.svc.sectionTitle(),
+        language: 'vi',
+      });
+      this.downloadBlobFile(blob, this.getInteractiveExportFileName('h5p'));
+      this.toast.success('Đã xuất H5P video tương tác.');
+    } catch {
+      this.toast.error('Không thể xuất H5P video tương tác.');
+    }
+  }
+
+  isChoiceInteraction(interaction: InteractiveVideoInteraction): boolean {
+    return interaction.type === 'single_choice' || interaction.type === 'branch';
+  }
+
+  getInteractiveBranchTargets(sourceInteractionId: string): InteractiveVideoInteraction[] {
+    return this.svc.sectionInteractiveVideoTimeline()
+      .filter(interaction => interaction.id !== sourceInteractionId)
+      .sort((a, b) => a.atSeconds - b.atSeconds);
+  }
+
+  getInteractiveTypeLabel(type: InteractiveVideoInteractionType): string {
+    switch (type) {
+      case 'single_choice': return 'Câu hỏi';
+      case 'branch': return 'Rẽ nhánh';
+      case 'hotspot': return 'Hotspot';
+      default: return 'Điểm dừng';
+    }
+  }
+
+  private toNonNegativeInteger(value: unknown): number {
+    const next = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(next) ? Math.max(0, Math.round(next)) : 0;
+  }
+
+  private async readInteractiveImportSpec(file: File): Promise<InteractiveVideoSpec | null> {
+    if (this.isH5PFile(file)) {
+      return importInteractiveVideoH5PPackage(await file.arrayBuffer());
+    }
+
+    return importInteractiveVideoBundle(JSON.parse(await file.text()));
+  }
+
+  private isH5PFile(file: File): boolean {
+    const name = file.name.toLowerCase();
+    return name.endsWith('.h5p')
+      || name.endsWith('.zip')
+      || file.type === 'application/h5p'
+      || file.type === 'application/zip'
+      || file.type === 'application/x-zip-compressed';
+  }
+
+  private downloadJsonFile(payload: unknown, filename: string): void {
+    this.downloadBlobFile(
+      new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }),
+      filename,
+    );
+  }
+
+  private downloadBlobFile(blob: Blob, filename: string): void {
+    if (typeof document === 'undefined' || typeof URL === 'undefined') {
+      return;
+    }
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private getInteractiveExportFileName(extension: 'json' | 'h5p'): string {
+    const base = (this.svc.sectionTitle() || 'interactive-video')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 64);
+    return `${base || 'interactive-video'}-holilihu-v1.${extension}`;
   }
 
   getYouTubeEmbedUrl(videoId: string): SafeResourceUrl {
