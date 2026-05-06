@@ -23,6 +23,7 @@ import { OfflineSyncService } from '../../../../core/services/offline-sync.servi
 import { HeartbeatTracker } from '../../services/heartbeat-tracker.service';
 import { WatchedSegmentsTracker } from '../../services/watched-segments-tracker.service';
 import { InteractiveVideoOverlayComponent } from '../../../../shared/blocks/video-block/interactive-video-overlay.component';
+import { buildInteractiveVideoAnalyticsProjection } from '../../../../core/utils/interactive-video-analytics';
 import type {
   InteractiveVideoChoice,
   InteractiveVideoInteraction,
@@ -801,9 +802,8 @@ export class AdaptiveVideoPlayerComponent {
   ): Promise<void> {
     const videoTimeSeconds = this.videoElement()?.nativeElement?.currentTime ?? interaction.atSeconds;
     const occurredAt = new Date();
-    const payload = {
-      lessonId: this.lessonId(),
-      sectionId: this.getTrackingSectionId(),
+    const sectionId = this.getTrackingSectionId();
+    const runtimeEvent: InteractiveVideoRuntimeEvent = {
       interactionId: interaction.id,
       action,
       videoTimeSeconds,
@@ -811,16 +811,29 @@ export class AdaptiveVideoPlayerComponent {
         interactionType: interaction.type,
         ...data,
       },
+    };
+    const analyticsProjection = buildInteractiveVideoAnalyticsProjection({
+      lessonId: this.lessonId(),
+      sectionId,
+      interaction,
+      event: runtimeEvent,
+      occurredAtIso: occurredAt.toISOString(),
+    });
+    const payload = {
+      lessonId: this.lessonId(),
+      sectionId,
+      interactionId: interaction.id,
+      action,
+      videoTimeSeconds,
+      data: {
+        ...runtimeEvent.data,
+        analyticsProjection,
+      },
       occurredAt: occurredAt.toISOString(),
       entityId: interaction.id,
     };
 
-    this.interactiveEvent.emit({
-      interactionId: interaction.id,
-      action,
-      videoTimeSeconds,
-      data: payload.data,
-    });
+    this.interactiveEvent.emit({ ...runtimeEvent, data: payload.data });
 
     if (this.isBrowserOnline()) {
       try {

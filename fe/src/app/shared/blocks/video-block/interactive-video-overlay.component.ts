@@ -2,8 +2,11 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
+  ElementRef,
   input,
   output,
+  viewChild,
 } from '@angular/core';
 import type {
   InteractiveVideoChoice,
@@ -17,8 +20,15 @@ import type {
   template: `
     <div class="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 px-4">
       <section
+        #panel
+        role="dialog"
+        tabindex="-1"
         class="w-full max-w-xl rounded-lg border border-white/10 bg-white p-4 text-slate-900 shadow-2xl sm:p-5"
-        aria-live="polite">
+        aria-live="polite"
+        aria-modal="true"
+        [attr.aria-labelledby]="interaction().title ? titleId() : null"
+        [attr.aria-describedby]="interaction().body ? bodyId() : null"
+        (keydown.escape)="onEscape()">
         <div class="mb-3 flex items-center justify-between gap-3">
           <span class="rounded-full bg-[#0056D2]/10 px-2.5 py-1 text-[11px] font-semibold text-[#0056D2]">
             {{ interactionLabel() }}
@@ -31,13 +41,13 @@ import type {
         </div>
 
         @if (interaction().title) {
-          <h3 class="text-base font-bold leading-tight text-slate-900 sm:text-lg">
+          <h3 [id]="titleId()" class="text-base font-bold leading-tight text-slate-900 sm:text-lg">
             {{ interaction().title }}
           </h3>
         }
 
         @if (interaction().body) {
-          <p class="mt-2 text-sm leading-relaxed text-slate-600">
+          <p [id]="bodyId()" class="mt-2 text-sm leading-relaxed text-slate-600">
             {{ interaction().body }}
           </p>
         }
@@ -55,6 +65,7 @@ import type {
                 [class.text-slate-700]="selectedChoiceId() !== choice.id"
                 [class.hover:border-[#0056D2]]="selectedChoiceId() !== choice.id"
                 [class.hover:bg-slate-50]="selectedChoiceId() !== choice.id"
+                [attr.aria-pressed]="selectedChoiceId() === choice.id"
                 (click)="choiceSelected.emit(choice)">
                 {{ choice.label }}
               </button>
@@ -84,11 +95,21 @@ import type {
 export class InteractiveVideoOverlayComponent {
   readonly interaction = input.required<InteractiveVideoInteraction>();
   readonly selectedChoiceId = input<string | null>(null);
+  private readonly panel = viewChild<ElementRef<HTMLElement>>('panel');
 
   readonly choiceSelected = output<InteractiveVideoChoice>();
   readonly continueRequested = output<void>();
 
   readonly hasChoices = computed(() => (this.interaction().choices?.length ?? 0) > 0);
+  readonly titleId = computed(() => `interactive-video-title-${this.interaction().id}`);
+  readonly bodyId = computed(() => `interactive-video-body-${this.interaction().id}`);
+
+  constructor() {
+    effect(() => {
+      this.interaction().id;
+      queueMicrotask(() => this.panel()?.nativeElement.focus());
+    });
+  }
 
   readonly feedback = computed(() => {
     const selectedId = this.selectedChoiceId();
@@ -117,4 +138,10 @@ export class InteractiveVideoOverlayComponent {
         return 'Điểm dừng';
     }
   });
+
+  onEscape(): void {
+    if (!this.requiresChoiceBeforeContinue()) {
+      this.continueRequested.emit();
+    }
+  }
 }

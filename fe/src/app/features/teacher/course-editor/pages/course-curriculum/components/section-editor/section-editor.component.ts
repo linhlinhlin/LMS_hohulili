@@ -20,6 +20,7 @@ import { CurriculumEditorService, SectionQuizAssessmentType } from '../../../../
 import { TiptapEditorComponent } from '../../../../../../../shared/components/tiptap-editor/tiptap-editor.component';
 import { createTiptapUploadFn, createTiptapVideoUploadFn } from '../../../../../../../shared/components/tiptap-editor/tiptap-upload';
 import { PresignedUploadService } from '../../../../../../../core/services/presigned-upload.service';
+import { ToastService } from '../../../../../../../core/services/toast.service';
 import { LESSON_TEMPLATES, type LessonTemplate } from '../../../../../../../shared/components/tiptap-editor/lesson-templates';
 import { environment } from '../../../../../../../../environments/environment';
 import { formatOfflineVideoProfileLabel, type OfflineVideoProfileDescriptor } from '../../../../../../../core/models/video-quality';
@@ -31,6 +32,10 @@ import type {
   InteractiveVideoInteractionType,
 } from '../../../../../../../api/types/interactive-video.types';
 import { buildInteractiveVideoSpec } from '../../../../utils/interactive-video-authoring';
+import {
+  exportInteractiveVideoBundle,
+  importInteractiveVideoBundle,
+} from '../../../../utils/interactive-video-interoperability';
 
 type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
 
@@ -591,6 +596,23 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                       <lucide-icon name="git-branch" [size]="13"></lucide-icon>
                       Rẽ nhánh
                     </button>
+                    <input #interactiveImportInput type="file"
+                      accept="application/json,.json"
+                      class="hidden"
+                      (change)="onInteractiveImportSelected($event)" />
+                    <button type="button"
+                      (click)="interactiveImportInput.click()"
+                      class="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
+                      <lucide-icon name="upload" [size]="13"></lucide-icon>
+                      Nhập JSON
+                    </button>
+                    <button type="button"
+                      (click)="exportInteractiveVideoJson()"
+                      [disabled]="!interactiveVideoPreviewSpec()"
+                      class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5 disabled:cursor-not-allowed disabled:opacity-50">
+                      <lucide-icon name="download" [size]="13"></lucide-icon>
+                      Xuất JSON
+                    </button>
                   </div>
                 </div>
 
@@ -679,7 +701,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                             </div>
                             <div class="divide-y divide-slate-100">
                               @for (choice of interaction.choices || []; track choice.id; let choiceIdx = $index) {
-                                <div class="grid gap-2 px-3 py-2 sm:grid-cols-[minmax(0,1fr)_7rem_auto]">
+                                <div class="grid gap-2 px-3 py-2 sm:grid-cols-[minmax(0,1fr)_7rem_minmax(8rem,10rem)_auto]">
                                   <input type="text"
                                     [ngModel]="choice.label"
                                     (ngModelChange)="svc.updateInteractiveVideoChoice(interaction.id, choice.id, { label: $event })"
@@ -691,6 +713,16 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                                       (ngModelChange)="onInteractiveChoiceTargetChange(interaction.id, choice.id, $event)"
                                       class="rounded-lg border border-slate-200 px-3 py-2 text-sm tabular-nums focus:border-[#0056D2] focus:ring-[#0056D2]"
                                       aria-label="Giây đích" />
+                                    <select
+                                      [ngModel]="choice.targetInteractionId ?? ''"
+                                      (ngModelChange)="onInteractiveChoiceTargetInteractionChange(interaction.id, choice.id, $event)"
+                                      class="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm text-slate-700 focus:border-[#0056D2] focus:ring-[#0056D2]"
+                                      aria-label="Điểm đích">
+                                      <option [ngValue]="''">Theo giây</option>
+                                      @for (target of getInteractiveBranchTargets(interaction.id); track target.id) {
+                                        <option [ngValue]="target.id">{{ target.atSeconds }}s · {{ target.title || target.id }}</option>
+                                      }
+                                    </select>
                                   } @else {
                                     <label class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-2 text-xs font-medium text-slate-600">
                                       <input type="checkbox"
@@ -1728,6 +1760,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
 export class SectionEditorComponent {
   readonly svc = inject(CurriculumEditorService);
   private readonly http = inject(HttpClient);
+  private readonly toast = inject(ToastService);
 
   readonly lessonId = input.required<string>();
   readonly courseId = input.required<string>();
@@ -2339,11 +2372,70 @@ export class SectionEditorComponent {
   ): void {
     this.svc.updateInteractiveVideoChoice(interactionId, choiceId, {
       targetTimeSeconds: this.toNonNegativeInteger(value),
+      targetInteractionId: null,
     });
+  }
+
+  onInteractiveChoiceTargetInteractionChange(
+    interactionId: string,
+    choiceId: string,
+    value: string,
+  ): void {
+    this.svc.updateInteractiveVideoChoice(interactionId, choiceId, {
+      targetInteractionId: value || null,
+      targetTimeSeconds: value ? null : undefined,
+    });
+  }
+
+  async onInteractiveImportSelected(event: Event): Promise<void> {
+    const inputElement = event.target as HTMLInputElement;
+    const file = inputElement.files?.[0];
+    inputElement.value = '';
+    if (!file) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(await file.text());
+      const spec = importInteractiveVideoBundle(parsed);
+      if (!spec || spec.timeline.length === 0) {
+        this.toast.error('Tệp JSON không có dữ liệu video tương tác hợp lệ.');
+        return;
+      }
+
+      this.svc.sectionInteractiveVideoEnabled.set(spec.enabled !== false);
+      this.svc.sectionInteractiveVideoTimeline.set(spec.timeline);
+      this.svc.markDirty();
+      this.toast.success(`Đã nhập ${spec.timeline.length} điểm tương tác.`);
+    } catch {
+      this.toast.error('Không thể đọc tệp JSON video tương tác.');
+    }
+  }
+
+  exportInteractiveVideoJson(): void {
+    const spec = this.interactiveVideoPreviewSpec();
+    if (!spec) {
+      this.toast.error('Chưa có dữ liệu video tương tác để xuất.');
+      return;
+    }
+
+    try {
+      const bundle = exportInteractiveVideoBundle(spec, this.svc.sectionVideoUrl());
+      this.downloadJsonFile(bundle, this.getInteractiveExportFileName());
+      this.toast.success('Đã xuất JSON video tương tác.');
+    } catch {
+      this.toast.error('Không thể xuất JSON video tương tác.');
+    }
   }
 
   isChoiceInteraction(interaction: InteractiveVideoInteraction): boolean {
     return interaction.type === 'single_choice' || interaction.type === 'branch';
+  }
+
+  getInteractiveBranchTargets(sourceInteractionId: string): InteractiveVideoInteraction[] {
+    return this.svc.sectionInteractiveVideoTimeline()
+      .filter(interaction => interaction.id !== sourceInteractionId)
+      .sort((a, b) => a.atSeconds - b.atSeconds);
   }
 
   getInteractiveTypeLabel(type: InteractiveVideoInteractionType): string {
@@ -2358,6 +2450,31 @@ export class SectionEditorComponent {
   private toNonNegativeInteger(value: unknown): number {
     const next = typeof value === 'number' ? value : Number(value);
     return Number.isFinite(next) ? Math.max(0, Math.round(next)) : 0;
+  }
+
+  private downloadJsonFile(payload: unknown, filename: string): void {
+    if (typeof document === 'undefined' || typeof URL === 'undefined') {
+      return;
+    }
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private getInteractiveExportFileName(): string {
+    const base = (this.svc.sectionTitle() || 'interactive-video')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 64);
+    return `${base || 'interactive-video'}-holilihu-v1.json`;
   }
 
   getYouTubeEmbedUrl(videoId: string): SafeResourceUrl {

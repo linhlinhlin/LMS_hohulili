@@ -70,15 +70,19 @@ Supported initial interaction types:
 - Teacher authoring is available in Course Editor -> Curriculum -> VIDEO section -> "Video tương tác".
 - The authoring panel supports checkpoints, single-choice prompts, and time-based branch choices for Spec V1.
 - Teacher preview reuses the learner overlay inside the editor's video preview without recording learning events.
+- Teacher authoring can import/export HoliLihu JSON bundles with an H5P Interactive Video parameter subset for interoperability.
+- Branch choices can target another interaction node, not only a raw timestamp, which gives the first graph-authoring baseline.
+- Learner event payloads include xAPI Video Profile and Caliper-style analytics projections for later LRS/warehouse export.
+- The runtime overlay has dialog semantics, ARIA labels, keyboard escape handling for non-required prompts, and focus handoff.
 - SSR route extraction is protected from partial `localStorage` shims.
 
 ## Non-Goals For This Slice
 
-- H5P import/export.
+- Full `.h5p` package zip import/export.
 - Quiz-grade integration.
 - Advanced visual novel state graphs.
 - SCORM/xAPI LRS export.
 
 ## Next Phase
 
-Add import/export adapters for H5P/xAPI-compatible interchange, richer interaction analytics, and advanced branching graph authoring.
+Add full `.h5p` package zip import/export, richer teacher analytics dashboards, graded quiz integration, and a visual graph canvas for large branching scenarios.
