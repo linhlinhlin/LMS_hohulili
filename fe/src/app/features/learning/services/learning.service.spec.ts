@@ -312,6 +312,46 @@ describe('LearningService — videoOfflineUri preservation', () => {
     });
   });
 
+  describe('Interactive video section mapping', () => {
+    it('normalizes timeline aliases and keeps interactions sorted by time', () => {
+      const section = (service as any).mapSectionContent({
+        id: 'iv-section',
+        title: 'Interactive section',
+        type: 'VIDEO',
+        interactiveVideoSpec: {
+          enabled: true,
+          timeline: [
+            {
+              id: 'branch-later',
+              type: 'branch',
+              time: '30',
+              prompt: 'Choose the next path',
+              choices: [{ text: 'Review checkpoint', targetInteractionId: 'check-earlier' }],
+            },
+            {
+              id: 'check-earlier',
+              type: 'single_choice',
+              atSeconds: 10,
+              choices: [{ label: 'Correct answer', isCorrect: true }],
+            },
+          ],
+        },
+      }) as SectionContent;
+
+      expect(section.interactiveVideoSpec?.version).toBe(1);
+      expect(section.interactiveVideoSpec?.enabled).toBeTrue();
+      expect(section.interactiveVideoSpec?.timeline.map(item => item.id))
+        .toEqual(['check-earlier', 'branch-later']);
+      expect(section.interactiveVideoSpec?.timeline[1].atSeconds).toBe(30);
+      expect(section.interactiveVideoSpec?.timeline[1].body).toBe('Choose the next path');
+      expect(section.interactiveVideoSpec?.timeline[1].choices?.[0]).toEqual(jasmine.objectContaining({
+        id: 'choice-1',
+        label: 'Review checkpoint',
+        targetInteractionId: 'check-earlier',
+      }));
+    });
+  });
+
   describe('Test 5: fetchLessonFromApi merges from IndexedDB on fresh load', () => {
     /**
      * NOTE: Test này depends on sub-agent A's pending fix — apply

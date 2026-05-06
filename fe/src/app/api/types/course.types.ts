@@ -144,6 +144,7 @@ export interface SectionSummary {
   duration?: number;
   orderIndex: number;
   isRequired?: boolean;
+  interactiveVideoSpec?: import('./interactive-video.types').InteractiveVideoSpec | null;
   availableOfflineProfiles?: Array<{
     id: 'SAVER' | 'STANDARD' | 'HIGH' | 'ORIGINAL' | string;
     label: string;

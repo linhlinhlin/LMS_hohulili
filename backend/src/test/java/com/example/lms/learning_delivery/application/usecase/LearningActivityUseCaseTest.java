@@ -88,6 +88,37 @@ class LearningActivityUseCaseTest {
     }
 
     @Test
+    @DisplayName("recordInteractiveVideoEvent saves interaction metadata")
+    void recordInteractiveVideoEventSavesEvent() {
+        when(learningEventRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        useCase.recordInteractiveVideoEvent(
+                studentId,
+                lessonId,
+                sectionId,
+                "iv-1",
+                "answered",
+                42.5,
+                Map.of("choiceId", "choice-a", "isCorrect", true)
+        );
+
+        ArgumentCaptor<LearningEvent> captor = ArgumentCaptor.forClass(LearningEvent.class);
+        verify(learningEventRepository).save(captor.capture());
+
+        LearningEvent saved = captor.getValue();
+        assertThat(saved.getEventType()).isEqualTo(LearningEvent.EventType.INTERACTIVE_VIDEO);
+        assertThat(saved.getStudentId()).isEqualTo(studentId);
+        assertThat(saved.getLessonId()).isEqualTo(lessonId);
+        assertThat(saved.getSectionId()).isEqualTo(sectionId);
+        assertThat(saved.getEventData())
+                .containsEntry("interactionId", "iv-1")
+                .containsEntry("action", "answered")
+                .containsEntry("videoTimeSeconds", 42.5);
+        assertThat(saved.getEventData().get("data"))
+                .isEqualTo(Map.of("choiceId", "choice-a", "isCorrect", true));
+    }
+
+    @Test
     @DisplayName("getContinueWhereLeftOff returns enrollment-based DTO when progress exists")
     void getContinueWhereLeftOffFromEnrollment() {
         UUID courseId = UUID.randomUUID();

@@ -62,7 +62,7 @@ export class OfflineDeviceSettingsService {
   }
 
   private readSettings(): OfflineDeviceSettings {
-    if (typeof localStorage === 'undefined') {
+    if (!this.canUseLocalStorage()) {
       return DEFAULT_SETTINGS;
     }
 
@@ -86,11 +86,17 @@ export class OfflineDeviceSettingsService {
   }
 
   private persist(settings: OfflineDeviceSettings): void {
-    if (typeof localStorage === 'undefined') {
+    if (!this.canUseLocalStorage()) {
       return;
     }
 
     localStorage.setItem(OFFLINE_DEVICE_SETTINGS_KEY, JSON.stringify(settings));
+  }
+
+  private canUseLocalStorage(): boolean {
+    return typeof localStorage !== 'undefined'
+      && typeof localStorage.getItem === 'function'
+      && typeof localStorage.setItem === 'function';
   }
 
   private normalizeVideoQuality(value: unknown): VideoQuality {

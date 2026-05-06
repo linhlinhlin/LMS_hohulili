@@ -153,6 +153,7 @@
           [videoAssetId]="section.videoAssetId || null" [videoSourceKind]="section.videoSourceKind || null"
           [rawVideoUrl]="section.videoUrl || null" [streamVideoUid]="section.streamVideoUid || null"
           [offlineVideoUrl]="resolveSectionOfflineVideoUrl(section)"
+          [interactiveVideoSpec]="section.interactiveVideoSpec || null"
           [completionThreshold]="section.completionThreshold" (videoEnded)="onVideoEnd()" />
         }
         <!-- Thin progress bar at top -->
@@ -275,6 +276,7 @@
         <app-adaptive-video-player [lessonId]="lesson().id" [sectionId]="null"
           [rawVideoUrl]="lesson().videoUrl || null" [streamVideoUid]="lesson().streamVideoUid || null"
           [offlineVideoUrl]="lesson().videoOfflineUri || null"
+          [interactiveVideoSpec]="null"
           [posterUrl]="lesson().thumbnail || null" (videoEnded)="onVideoEnd()" />
         }
         <div class="absolute top-0 left-0 right-0 h-[3px] bg-white/10 z-10">

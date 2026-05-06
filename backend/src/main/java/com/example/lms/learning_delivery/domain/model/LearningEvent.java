@@ -8,7 +8,7 @@ public class LearningEvent {
 
     public enum EventType {
         PLAY, PAUSE, SEEK, COMPLETE, SECTION_VIEW, LESSON_COMPLETE,
-        HEARTBEAT, READING_PROGRESS
+        HEARTBEAT, READING_PROGRESS, INTERACTIVE_VIDEO
     }
 
     private UUID id;

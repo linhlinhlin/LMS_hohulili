@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  Injector,
   computed,
   effect,
   inject,
@@ -16,9 +17,18 @@ import { environment } from '../../../../../environments/environment';
 import { getCurrentUserId } from '../../../../core/db/lms-offline.db';
 import { VideoProgressApi } from '../../../../api/client/video-progress.api';
 import { SectionApi } from '../../../../api/client/section.api';
+import { LearningActivityApi } from '../../../../api/client/learning-activity.api';
 import { QoETrackerService } from '../../../../core/services/qoe-tracker.service';
+import { OfflineSyncService } from '../../../../core/services/offline-sync.service';
 import { HeartbeatTracker } from '../../services/heartbeat-tracker.service';
 import { WatchedSegmentsTracker } from '../../services/watched-segments-tracker.service';
+import { InteractiveVideoOverlayComponent } from './interactive-video-overlay.component';
+import type {
+  InteractiveVideoChoice,
+  InteractiveVideoInteraction,
+  InteractiveVideoRuntimeEvent,
+  InteractiveVideoSpec,
+} from '../../../../api/types/interactive-video.types';
 
 type ResolvedVideoSource =
   | { kind: 'native'; url: string }
@@ -27,7 +37,7 @@ type ResolvedVideoSource =
 @Component({
   selector: 'app-adaptive-video-player',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [],
+  imports: [InteractiveVideoOverlayComponent],
   template: `
     <div class="relative h-full w-full bg-black" data-testid="adaptive-video-player"
          (click)="showQualityMenu() && showQualityMenu.set(false)">
@@ -114,6 +124,13 @@ type ResolvedVideoSource =
           Mạng yếu, hệ thống đang ưu tiên phát ổn định
         </div>
       }
+      @if (activeInteraction(); as interaction) {
+        <app-interactive-video-overlay
+          [interaction]="interaction"
+          [selectedChoiceId]="selectedChoiceId()"
+          (choiceSelected)="onInteractiveChoice($event)"
+          (continueRequested)="onInteractiveContinue()" />
+      }
     </div>
   `,
 })
@@ -124,6 +141,8 @@ export class AdaptiveVideoPlayerComponent {
   private readonly heartbeat = inject(HeartbeatTracker);
   private readonly qoe = inject(QoETrackerService);
   private readonly videoProgressApi = inject(VideoProgressApi);
+  private readonly learningActivityApi = inject(LearningActivityApi);
+  private readonly injector = inject(Injector);
 
   readonly lessonId = input.required<string>();
   readonly sectionId = input<string | null>(null);
@@ -134,8 +153,10 @@ export class AdaptiveVideoPlayerComponent {
   readonly offlineVideoUrl = input<string | null>(null);
   readonly posterUrl = input<string | null>(null);
   readonly completionThreshold = input<number | undefined>(undefined);
+  readonly interactiveVideoSpec = input<InteractiveVideoSpec | null>(null);
 
   readonly videoEnded = output<void>();
+  readonly interactiveEvent = output<InteractiveVideoRuntimeEvent>();
 
   private readonly videoElement = viewChild<ElementRef<HTMLVideoElement>>('videoElement');
   private readonly sourceLoadToken = signal(0);
@@ -146,6 +167,8 @@ export class AdaptiveVideoPlayerComponent {
   readonly showQualityMenu = signal(false);
   readonly isAutoQuality = signal(true);
   readonly availableQualities = signal<Array<{ height: number; bandwidth: number }>>([]);
+  readonly activeInteraction = signal<InteractiveVideoInteraction | null>(null);
+  readonly selectedChoiceId = signal<string | null>(null);
   readonly showNetworkHint = computed(() => {
     const metrics = this.qoe.metrics();
     const rebufferCount = metrics?.rebufferCount ?? 0;
@@ -162,6 +185,8 @@ export class AdaptiveVideoPlayerComponent {
   private offlineBlobUrl: string | null = null;
   private attemptedOfflineBlobFallback = false;
   private readonly offlineBlobFallbackLimitBytes = 220 * 1024 * 1024;
+  private readonly shownInteractionIds = new Set<string>();
+  private readonly completedInteractionIds = new Set<string>();
 
   constructor() {
     effect(() => {
@@ -174,6 +199,7 @@ export class AdaptiveVideoPlayerComponent {
         this.rawVideoUrl() ?? '',
         this.streamVideoUid() ?? '',
         this.offlineVideoUrl() ?? '',
+        this.interactiveVideoSpec()?.timeline.length ?? 0,
       ].join('|');
 
       if (!videoRef || !sourceKey) {
@@ -213,6 +239,7 @@ export class AdaptiveVideoPlayerComponent {
       return;
     }
     this.tracker.recordSecond(video.currentTime);
+    this.evaluateInteractiveTimeline(video);
   }
 
   onPlay(): void {
@@ -267,6 +294,7 @@ export class AdaptiveVideoPlayerComponent {
     this.qualityLabel.set(null);
     this.startupRecorded = false;
     this.attemptedOfflineBlobFallback = false;
+    this.resetInteractiveRuntime();
     this.revokeOfflineBlobUrl();
     this.qoe.startSession(this.lessonId());
 
@@ -649,6 +677,198 @@ export class AdaptiveVideoPlayerComponent {
     this.totalPlayTimeMs = 0;
     this.playbackStartedAtMs = null;
     this.startupRecorded = false;
+  }
+
+  onInteractiveChoice(choice: InteractiveVideoChoice): void {
+    const interaction = this.activeInteraction();
+    if (!interaction) {
+      return;
+    }
+
+    this.selectedChoiceId.set(choice.id);
+    const action = interaction.type === 'branch' ? 'branch_taken' : 'answered';
+    void this.recordInteractiveEvent(interaction, action, {
+      choiceId: choice.id,
+      isCorrect: choice.isCorrect === true,
+      targetTimeSeconds: choice.targetTimeSeconds ?? null,
+      targetInteractionId: choice.targetInteractionId ?? null,
+    });
+
+    if (interaction.type === 'branch') {
+      this.jumpToInteractiveChoiceTarget(choice);
+    }
+  }
+
+  onInteractiveContinue(): void {
+    const interaction = this.activeInteraction();
+    if (!interaction) {
+      return;
+    }
+
+    this.completedInteractionIds.add(interaction.id);
+    void this.recordInteractiveEvent(interaction, 'continued', {
+      choiceId: this.selectedChoiceId(),
+    });
+    this.activeInteraction.set(null);
+    this.selectedChoiceId.set(null);
+
+    const video = this.videoElement()?.nativeElement;
+    if (video?.paused) {
+      void video.play().catch(() => {});
+    }
+  }
+
+  private evaluateInteractiveTimeline(video: HTMLVideoElement): void {
+    if (this.activeInteraction()) {
+      return;
+    }
+
+    const spec = this.interactiveVideoSpec();
+    if (!spec || spec.enabled === false || !Array.isArray(spec.timeline) || spec.timeline.length === 0) {
+      return;
+    }
+
+    const currentTime = video.currentTime;
+    const dueInteraction = spec.timeline.find(interaction => {
+      if (this.completedInteractionIds.has(interaction.id)) {
+        return false;
+      }
+      if (currentTime < interaction.atSeconds) {
+        return false;
+      }
+
+      const endSeconds = interaction.endSeconds ?? interaction.atSeconds + 5;
+      return interaction.required === true || currentTime <= endSeconds;
+    });
+
+    if (!dueInteraction) {
+      return;
+    }
+
+    this.activeInteraction.set(dueInteraction);
+    this.selectedChoiceId.set(null);
+    if (dueInteraction.pause !== false) {
+      video.pause();
+    }
+
+    if (!this.shownInteractionIds.has(dueInteraction.id)) {
+      this.shownInteractionIds.add(dueInteraction.id);
+      void this.recordInteractiveEvent(dueInteraction, 'shown');
+    }
+  }
+
+  private jumpToInteractiveChoiceTarget(choice: InteractiveVideoChoice): void {
+    const video = this.videoElement()?.nativeElement;
+    if (!video) {
+      return;
+    }
+
+    const active = this.activeInteraction();
+    if (active) {
+      this.completedInteractionIds.add(active.id);
+    }
+    this.activeInteraction.set(null);
+    this.selectedChoiceId.set(null);
+
+    const targetTime = choice.targetTimeSeconds ?? this.resolveTargetInteractionTime(choice.targetInteractionId);
+    if (typeof targetTime === 'number' && Number.isFinite(targetTime)) {
+      video.currentTime = Math.max(0, targetTime);
+    }
+    void video.play().catch(() => {});
+  }
+
+  private resolveTargetInteractionTime(targetInteractionId: string | null | undefined): number | null {
+    if (!targetInteractionId) {
+      return null;
+    }
+
+    return this.interactiveVideoSpec()?.timeline
+      ?.find(interaction => interaction.id === targetInteractionId)
+      ?.atSeconds ?? null;
+  }
+
+  private resetInteractiveRuntime(): void {
+    this.activeInteraction.set(null);
+    this.selectedChoiceId.set(null);
+    this.shownInteractionIds.clear();
+    this.completedInteractionIds.clear();
+  }
+
+  private async recordInteractiveEvent(
+    interaction: InteractiveVideoInteraction,
+    action: InteractiveVideoRuntimeEvent['action'],
+    data: Record<string, unknown> = {},
+  ): Promise<void> {
+    const videoTimeSeconds = this.videoElement()?.nativeElement?.currentTime ?? interaction.atSeconds;
+    const occurredAt = new Date();
+    const payload = {
+      lessonId: this.lessonId(),
+      sectionId: this.getTrackingSectionId(),
+      interactionId: interaction.id,
+      action,
+      videoTimeSeconds,
+      data: {
+        interactionType: interaction.type,
+        ...data,
+      },
+      occurredAt: occurredAt.toISOString(),
+      entityId: interaction.id,
+    };
+
+    this.interactiveEvent.emit({
+      interactionId: interaction.id,
+      action,
+      videoTimeSeconds,
+      data: payload.data,
+    });
+
+    if (this.isBrowserOnline()) {
+      try {
+        await firstValueFrom(this.learningActivityApi.recordInteractiveVideoEvent(payload));
+        return;
+      } catch {
+        // Queue below so reconnect can replay the event.
+      }
+    }
+
+    await this.queueInteractiveEventOffline(payload, interaction.id, occurredAt);
+  }
+
+  private isBrowserOnline(): boolean {
+    return typeof navigator === 'undefined' ? true : navigator.onLine !== false;
+  }
+
+  private canUseOfflineQueue(): boolean {
+    return typeof window !== 'undefined'
+      && typeof localStorage !== 'undefined'
+      && typeof localStorage.getItem === 'function'
+      && typeof indexedDB !== 'undefined';
+  }
+
+  private async queueInteractiveEventOffline(
+    payload: unknown,
+    interactionId: string,
+    occurredAt: Date,
+  ): Promise<void> {
+    if (!this.canUseOfflineQueue()) {
+      return;
+    }
+
+    try {
+      const offlineSync = this.injector.get(OfflineSyncService);
+      await offlineSync.queueOperation(
+        'learningEvent',
+        'CREATE',
+        '/api/v3/learning-activity/interactive-video/events',
+        payload,
+        {
+          entityId: interactionId,
+          occurredAt,
+        },
+      );
+    } catch {
+      // Interactive tracking must never interrupt playback.
+    }
   }
 
   private accumulatePlayTime(): void {

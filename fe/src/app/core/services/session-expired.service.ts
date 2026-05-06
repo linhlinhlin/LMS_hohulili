@@ -78,7 +78,7 @@ export class SessionExpiredService {
   }
 
   getRefreshTokenExpiry(): Date | null {
-    if (typeof localStorage === 'undefined') return null;
+    if (!this.canUseLocalStorage()) return null;
     const token = localStorage.getItem('lms_refresh_token');
     if (!token) return null;
 
@@ -94,7 +94,12 @@ export class SessionExpiredService {
   }
 
   private hasStoredTokens(): boolean {
-    if (typeof localStorage === 'undefined') return false;
+    if (!this.canUseLocalStorage()) return false;
     return !!localStorage.getItem('lms_access_token');
+  }
+
+  private canUseLocalStorage(): boolean {
+    return typeof localStorage !== 'undefined'
+      && typeof localStorage.getItem === 'function';
   }
 }

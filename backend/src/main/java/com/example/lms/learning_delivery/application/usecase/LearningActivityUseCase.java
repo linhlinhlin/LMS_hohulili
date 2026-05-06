@@ -77,6 +77,30 @@ public class LearningActivityUseCase {
     }
 
     /**
+     * Record a learner interaction from the native interactive-video runtime.
+     * The payload is intentionally xAPI/Caliper-friendly without coupling this
+     * domain use case to those standards yet.
+     */
+    @Transactional
+    public void recordInteractiveVideoEvent(UUID studentId, UUID lessonId, String sectionId,
+                                            String interactionId, String action,
+                                            double videoTimeSeconds, Map<String, Object> data) {
+        Map<String, Object> eventData = new java.util.LinkedHashMap<>();
+        eventData.put("interactionId", interactionId);
+        eventData.put("action", action);
+        eventData.put("videoTimeSeconds", videoTimeSeconds);
+        eventData.put("data", data != null ? data : Map.of());
+
+        learningEventRepository.save(LearningEvent.create(
+                studentId,
+                lessonId,
+                sectionId,
+                LearningEvent.EventType.INTERACTIVE_VIDEO,
+                eventData
+        ));
+    }
+
+    /**
      * Get "continue where you left off" data.
      *
      * SOTA (Canvas/Coursera): Uses enrollment.lastAccessedAt + progress.lastActivity
@@ -156,6 +180,15 @@ public class LearningActivityUseCase {
             UUID lessonId,
             String sectionId,
             double scrollPercent
+    ) {}
+
+    public record InteractiveVideoEventRequest(
+            UUID lessonId,
+            String sectionId,
+            String interactionId,
+            String action,
+            double videoTimeSeconds,
+            Map<String, Object> data
     ) {}
 
     public record ContinueWhereLeftOffDTO(

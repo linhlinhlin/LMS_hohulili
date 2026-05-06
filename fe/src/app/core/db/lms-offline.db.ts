@@ -4,6 +4,7 @@ import type {
   VideoQuality,
   VideoSourceKind,
 } from '../models/video-quality';
+import type { InteractiveVideoSpec } from '../../api/types/interactive-video.types';
 
 export const OFFLINE_DB_NAME = 'lms-maritime-offline';
 const OFFLINE_DB_ACTIVE_NAME_KEY = 'lms_offline_active_db_name';
@@ -122,6 +123,7 @@ export interface OfflineLessonSection {
   streamVideoUid?: string;
   videoOfflineUri?: string;
   videoSourceKind?: VideoSourceKind;
+  interactiveVideoSpec?: InteractiveVideoSpec | null;
   downloadedVideoProfileId?: OfflineVideoProfileId | null;
   downloadedVideoProfileLabel?: string | null;
   downloadedVideoResolution?: string | null;
@@ -204,7 +206,7 @@ export interface OfflineQuizAttempt {
 // ─── Sync Queue ──────────────────────────────────────────────────────
 
 export type SyncOperationType = 'CREATE' | 'UPDATE' | 'DELETE';
-export type SyncEntityType = 'progress' | 'submission' | 'quizAttempt' | 'videoProgress';
+export type SyncEntityType = 'progress' | 'submission' | 'quizAttempt' | 'videoProgress' | 'learningEvent';
 
 export interface SyncQueueItem {
   id?: number;
@@ -275,7 +277,7 @@ export interface DownloadCheckpoint {
  * Falls back to '__anonymous__' if no user is logged in.
  */
 export function getCurrentUserId(): string {
-  if (typeof localStorage === 'undefined') return '__anonymous__';
+  if (!canUseLocalStorage()) return '__anonymous__';
   const userStr = localStorage.getItem('lms_user');
   if (!userStr) return '__anonymous__';
   try {
@@ -457,7 +459,10 @@ type OfflineStorageHealthListener = (snapshot: OfflineStorageHealthSnapshot) => 
 type OfflineStorageTelemetryListener = (events: OfflineStorageTelemetryEvent[]) => void;
 
 function canUseLocalStorage(): boolean {
-  return typeof localStorage !== 'undefined';
+  return typeof localStorage !== 'undefined'
+    && typeof localStorage.getItem === 'function'
+    && typeof localStorage.setItem === 'function'
+    && typeof localStorage.removeItem === 'function';
 }
 
 function normalizeOfflineDbName(name: unknown): string {

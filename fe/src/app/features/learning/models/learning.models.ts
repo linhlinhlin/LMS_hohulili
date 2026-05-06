@@ -6,6 +6,7 @@
  */
 
 import { LessonType } from './lesson-types.enum';
+import type { InteractiveVideoSpec } from '../../../api/types/interactive-video.types';
 
 /**
  * Course Overview
@@ -80,6 +81,7 @@ export interface SectionContent {
   orderIndex: number;
   isRequired: boolean;
   completionThreshold?: number;
+  interactiveVideoSpec?: InteractiveVideoSpec | null;
   quizData?: SectionQuizData;
 }
 
