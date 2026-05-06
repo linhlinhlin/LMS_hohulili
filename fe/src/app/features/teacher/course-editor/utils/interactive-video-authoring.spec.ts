@@ -20,6 +20,28 @@ describe('interactive-video-authoring', () => {
     expect(created.pause).toBeTrue();
   });
 
+  it('places the first interaction inside short videos instead of hard-coding 30s', () => {
+    const created = createInteractiveVideoInteraction([], 'checkpoint', {
+      durationSeconds: 15,
+    });
+
+    expect(created.atSeconds).toBe(8);
+  });
+
+  it('keeps later generated interactions inside the known video duration', () => {
+    const existing: InteractiveVideoInteraction[] = [
+      { id: 'a', type: 'checkpoint', atSeconds: 6, pause: true, required: false },
+      { id: 'b', type: 'checkpoint', atSeconds: 12, pause: true, required: false },
+    ];
+
+    const created = createInteractiveVideoInteraction(existing, 'branch', {
+      durationSeconds: 15,
+    });
+
+    expect(created.atSeconds).toBeLessThan(15);
+    expect(created.atSeconds).toBeGreaterThanOrEqual(0);
+  });
+
   it('builds a sorted spec when enabled and returns null when disabled', () => {
     const timeline: InteractiveVideoInteraction[] = [
       { id: 'later', type: 'checkpoint', atSeconds: 90, title: 'Later', pause: true },

@@ -194,20 +194,14 @@ export class CurriculumEditorService {
   }
 
   setInteractiveVideoEnabled(enabled: boolean): void {
-    if (enabled && this.sectionVideoType() === 'YOUTUBE') {
-      this.toast.error('Video tương tác hiện chỉ hỗ trợ video tải lên. YouTube chỉ dùng để nhúng và theo dõi tiến độ.');
-      return;
-    }
     this.sectionInteractiveVideoEnabled.set(enabled);
     this.markDirty();
   }
 
   addInteractiveVideoInteraction(type: InteractiveVideoInteractionType): void {
-    if (this.sectionVideoType() === 'YOUTUBE') {
-      this.toast.error('Hãy dùng video tải lên để thêm điểm dừng, câu hỏi hoặc rẽ nhánh.');
-      return;
-    }
-    const next = createInteractiveVideoInteraction(this.sectionInteractiveVideoTimeline(), type);
+    const next = createInteractiveVideoInteraction(this.sectionInteractiveVideoTimeline(), type, {
+      durationSeconds: this.sectionVideoDurationSec(),
+    });
     this.sectionInteractiveVideoTimeline.update(timeline => [...timeline, next]);
     this.sectionInteractiveVideoEnabled.set(true);
     this.markDirty();
@@ -729,11 +723,6 @@ export class CurriculumEditorService {
   private validateInteractiveVideoAuthoring(): boolean {
     if (!this.sectionInteractiveVideoEnabled()) {
       return true;
-    }
-
-    if (this.sectionVideoType() === 'YOUTUBE') {
-      this.toast.error('Video YouTube chưa hỗ trợ điểm dừng, câu hỏi hoặc rẽ nhánh. Hãy tắt Video tương tác hoặc chuyển sang video tải lên.');
-      return false;
     }
 
     const timeline = this.sectionInteractiveVideoTimeline();

@@ -147,7 +147,9 @@
       <div class="relative aspect-video w-full rounded-lg overflow-hidden shadow-sm bg-black border border-gray-100 mb-6">
         @if (!section.streamVideoUid && isYouTubeUrl(section.videoUrl || lesson().videoUrl)) {
         <app-youtube-player [videoUrl]="(section.videoUrl || lesson().videoUrl)!" [lessonId]="lesson().id" [sectionId]="section.id"
-          [completionThreshold]="section.completionThreshold" (videoEnded)="onVideoEnd()" />
+          [completionThreshold]="section.completionThreshold"
+          [interactiveVideoSpec]="section.interactiveVideoSpec || null"
+          (videoEnded)="onVideoEnd()" />
         } @else {
         <app-adaptive-video-player [lessonId]="lesson().id" [sectionId]="section.id"
           [videoAssetId]="section.videoAssetId || null" [videoSourceKind]="section.videoSourceKind || null"

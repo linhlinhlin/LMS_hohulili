@@ -1,0 +1,27 @@
+.interactive-flow-node {
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.interactive-flow-node:hover {
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+.interactive-flow-node[aria-current='true'] {
+  border-color: #0056d2;
+  box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.14);
+}
+
+.interactive-timeline-dot {
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.interactive-timeline-dot:hover {
+  transform: translate(-50%, -50%) scale(1.08);
+  box-shadow: 0 8px 18px rgba(0, 86, 210, 0.22);
+}

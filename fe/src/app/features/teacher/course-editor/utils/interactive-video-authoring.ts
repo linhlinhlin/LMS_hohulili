@@ -6,6 +6,12 @@ import type {
 } from '../../../../api/types/interactive-video.types';
 
 const DEFAULT_OFFSET_SECONDS = 30;
+const MIN_DURATION_AWARE_OFFSET_SECONDS = 2;
+
+interface CreateInteractiveVideoInteractionOptions {
+  durationSeconds?: number | null;
+  preferredSeconds?: number | null;
+}
 
 export function buildInteractiveVideoSpec(
   enabled: boolean,
@@ -57,8 +63,9 @@ export function normalizeInteractiveVideoSpec(value: unknown): InteractiveVideoS
 export function createInteractiveVideoInteraction(
   timeline: InteractiveVideoInteraction[],
   type: InteractiveVideoInteractionType = 'checkpoint',
+  options: CreateInteractiveVideoInteractionOptions = {},
 ): InteractiveVideoInteraction {
-  const atSeconds = getNextInteractionTimeSeconds(timeline);
+  const atSeconds = getNextInteractionTimeSeconds(timeline, options);
 
   return {
     id: createAuthoringId('iv'),
@@ -182,13 +189,41 @@ function normalizeInteractiveVideoChoice(value: unknown): InteractiveVideoChoice
   };
 }
 
-function getNextInteractionTimeSeconds(timeline: InteractiveVideoInteraction[]): number {
+function getNextInteractionTimeSeconds(
+  timeline: InteractiveVideoInteraction[],
+  options: CreateInteractiveVideoInteractionOptions,
+): number {
+  const maxSeconds = normalizeDurationSeconds(options.durationSeconds);
+  if (options.preferredSeconds != null) {
+    return clampToVideoDuration(toNonNegativeNumber(options.preferredSeconds, 0), maxSeconds);
+  }
+
   if (timeline.length === 0) {
+    if (maxSeconds != null) {
+      return clampToVideoDuration(Math.round(maxSeconds * 0.5), maxSeconds);
+    }
     return DEFAULT_OFFSET_SECONDS;
   }
 
   const latest = Math.max(...timeline.map(item => toNonNegativeNumber(item.atSeconds, 0)));
-  return latest + DEFAULT_OFFSET_SECONDS;
+  if (maxSeconds == null) {
+    return latest + DEFAULT_OFFSET_SECONDS;
+  }
+
+  const durationAwareOffset = Math.min(
+    DEFAULT_OFFSET_SECONDS,
+    Math.max(MIN_DURATION_AWARE_OFFSET_SECONDS, Math.round(maxSeconds * 0.2)),
+  );
+  const next = latest + durationAwareOffset;
+  if (next < maxSeconds) {
+    return next;
+  }
+
+  const sortedTimes = timeline
+    .map(item => clampToVideoDuration(item.atSeconds, maxSeconds))
+    .sort((a, b) => a - b);
+  const candidate = findLargestTimelineGapMidpoint(sortedTimes, maxSeconds);
+  return clampToVideoDuration(candidate, maxSeconds);
 }
 
 function normalizeInteractionType(value: unknown): InteractiveVideoInteractionType {
@@ -224,6 +259,45 @@ function toNonNegativeNumber(value: unknown, fallback: number): number {
     return Math.max(0, fallback);
   }
   return Math.max(0, Math.round(next));
+}
+
+function normalizeDurationSeconds(value: number | null | undefined): number | null {
+  if (value == null || !Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+  return Math.max(1, Math.round(value));
+}
+
+function clampToVideoDuration(value: number, maxSeconds: number | null): number {
+  const safe = toNonNegativeNumber(value, 0);
+  if (maxSeconds == null) {
+    return safe;
+  }
+  const upperBound = Math.max(0, maxSeconds - 1);
+  return Math.min(upperBound, safe);
+}
+
+function findLargestTimelineGapMidpoint(sortedTimes: number[], maxSeconds: number): number {
+  let bestStart = 0;
+  let bestEnd = maxSeconds;
+  let bestGap = -1;
+  const points = [0, ...sortedTimes, maxSeconds];
+
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const start = points[i];
+    const end = points[i + 1];
+    const gap = end - start;
+    if (gap > bestGap) {
+      bestGap = gap;
+      bestStart = start;
+      bestEnd = end;
+    }
+  }
+
+  if (bestGap <= 1) {
+    return maxSeconds;
+  }
+  return Math.round(bestStart + bestGap / 2);
 }
 
 function createAuthoringId(prefix: string): string {
