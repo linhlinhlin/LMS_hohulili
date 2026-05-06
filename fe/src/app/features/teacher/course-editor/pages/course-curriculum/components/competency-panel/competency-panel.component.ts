@@ -127,6 +127,10 @@ export class CompetencyPanelComponent implements OnInit, OnDestroy {
     this.saveSubject.next(this.selectedIds());
   }
 
+  toggleExpanded(): void {
+    this.isExpanded.update((v) => !v);
+  }
+
   isSelected(id: string): boolean {
     return this.selectedIds().includes(id);
   }

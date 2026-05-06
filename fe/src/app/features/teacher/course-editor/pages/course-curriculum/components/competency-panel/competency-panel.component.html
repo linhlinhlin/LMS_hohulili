@@ -4,7 +4,7 @@
     type="button"
     class="editor-card__header"
     style="display:flex; align-items:center; justify-content:space-between; width:100%; border:none; background:none; cursor:pointer; padding: 0.75rem 1rem; text-align:left"
-    (click)="isExpanded.update(v => !v)"
+    (click)="toggleExpanded()"
     [attr.aria-expanded]="isExpanded()"
   >
     <div style="display:flex; align-items:center; gap:0.5rem">
