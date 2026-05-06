@@ -14,6 +14,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -225,5 +226,30 @@ class AdaptiveVideoPlaybackServiceTest {
         String redirectUrl = service.resolveObjectRedirect(assetId, token, storageKey);
 
         assertThat(redirectUrl).isEqualTo("https://signed.example/segment.m4s");
+    }
+
+    @Test
+    @DisplayName("readObject validates the playback token and reads same-origin bytes")
+    void readObjectValidatesTokenAndReadsBytes() throws Exception {
+        UUID assetId = UUID.randomUUID();
+        String token = "play-token";
+        String storageKey = "video-packages/" + assetId + "/segments/standard/1.m4s";
+        String rangeHeader = "bytes=0-1023";
+        var objectBytes = new com.example.lms.shared.infrastructure.service.R2VideoStorageService.ObjectBytes(
+                new byte[]{1, 2, 3},
+                3,
+                "video/iso.segment",
+                "bytes 0-2/10"
+        );
+
+        when(videoPlaybackTokenService.parseAndValidate(token)).thenReturn(
+                new VideoPlaybackTokenService.PlaybackClaims(assetId, UUID.randomUUID(), "hls")
+        );
+        when(adaptiveVideoPlaybackCacheService.readObject(storageKey, rangeHeader)).thenReturn(objectBytes);
+
+        var result = service.readObject(assetId, token, storageKey, rangeHeader);
+
+        assertThat(result).isSameAs(objectBytes);
+        verify(adaptiveVideoPlaybackCacheService).readObject(storageKey, rangeHeader);
     }
 }

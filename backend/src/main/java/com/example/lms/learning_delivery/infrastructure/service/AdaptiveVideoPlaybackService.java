@@ -110,6 +110,13 @@ public class AdaptiveVideoPlaybackService {
         return adaptiveVideoPlaybackCacheService.headObject(storageKey);
     }
 
+    public com.example.lms.shared.infrastructure.service.R2VideoStorageService.ObjectBytes
+            readObject(UUID assetId, String token, String storageKey, String rangeHeader) throws IOException {
+        validateClaims(token, assetId, null);
+        ensureStorageKeyAllowed(assetId, storageKey);
+        return adaptiveVideoPlaybackCacheService.readObject(storageKey, rangeHeader);
+    }
+
     private VideoPlaybackTokenService.PlaybackClaims validateClaims(String token, UUID assetId, String expectedFormat) {
         VideoPlaybackTokenService.PlaybackClaims claims = videoPlaybackTokenService.parseAndValidate(token);
         if (!assetId.equals(claims.assetId())) {
