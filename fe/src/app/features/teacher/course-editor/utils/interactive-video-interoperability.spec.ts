@@ -1,6 +1,8 @@
 import {
   exportInteractiveVideoBundle,
+  exportInteractiveVideoH5PPackage,
   importInteractiveVideoBundle,
+  readInteractiveVideoH5PPackage,
 } from './interactive-video-interoperability';
 import { buildInteractiveVideoAnalyticsProjection } from '../../../../core/utils/interactive-video-analytics';
 import type {
@@ -84,6 +86,24 @@ describe('interactive-video-interoperability', () => {
     expect(spec?.timeline[0].atSeconds).toBe(33);
     expect(spec?.timeline[0].choices?.[0].label).toBe('Maintain course');
     expect(spec?.timeline[0].choices?.[0].feedback).toBe('Correct.');
+  });
+
+  it('exports a Shaka-safe H5P package boundary and imports it losslessly', async () => {
+    const spec: InteractiveVideoSpec = { version: 1, enabled: true, timeline };
+
+    const blob = await exportInteractiveVideoH5PPackage(spec, 'https://cdn.example/video.mpd', {
+      title: 'Bridge handling',
+      language: 'vi',
+      authorName: 'Teacher',
+    });
+    const imported = await readInteractiveVideoH5PPackage(blob);
+
+    expect(blob.type).toBe('application/h5p');
+    expect(imported?.importedFrom).toBe('holilihu-sidecar');
+    expect(imported?.h5pDefinition?.mainLibrary).toBe('H5P.InteractiveVideo');
+    expect(imported?.h5pDefinition?.language).toBe('vi');
+    expect(imported?.h5pParameters?.interactiveVideo.video?.files?.[0].mime).toBe('application/dash+xml');
+    expect(imported?.spec.timeline[0].choices?.[0].targetTimeSeconds).toBe(120);
   });
 
   it('builds xAPI and Caliper projection metadata for event payloads', () => {

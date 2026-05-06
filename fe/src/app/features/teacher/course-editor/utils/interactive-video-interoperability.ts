@@ -4,11 +4,74 @@ import type {
 } from '../../../../api/types/interactive-video.types';
 import { normalizeInteractiveVideoSpec, sortInteractiveVideoTimeline } from './interactive-video-authoring';
 
+type H5PZipInput = Blob | ArrayBuffer | Uint8Array;
+
+interface ZipFileEntry {
+  async(type: 'string'): Promise<string>;
+}
+
+interface ZipArchive {
+  file(path: string): ZipFileEntry | null;
+  file(path: string, data: string): ZipArchive;
+  folder(path: string): ZipArchive | null;
+  generateAsync(options: {
+    type: 'blob';
+    compression?: 'STORE' | 'DEFLATE';
+    compressionOptions?: { level: number };
+    mimeType?: string;
+  }): Promise<Blob>;
+}
+
+interface JSZipConstructor {
+  new(): ZipArchive;
+  loadAsync(data: H5PZipInput, options?: { checkCRC32?: boolean }): Promise<ZipArchive>;
+}
+
+const H5P_MAIN_LIBRARY = {
+  machineName: 'H5P.InteractiveVideo',
+  majorVersion: 1,
+  minorVersion: 27,
+} as const;
+
+const H5P_INTERACTION_DEPENDENCIES = [
+  { machineName: 'H5P.MultiChoice', majorVersion: 1, minorVersion: 16 },
+  { machineName: 'H5P.Text', majorVersion: 1, minorVersion: 1 },
+] as const;
+
 export interface InteractiveVideoInterchangeBundle {
   format: 'holilihu.interactive-video.v1';
   exportedAt: string;
   spec: InteractiveVideoSpec;
   h5pParameters: H5PInteractiveVideoParameters;
+}
+
+export interface H5PPackageExportOptions {
+  title?: string | null;
+  language?: string | null;
+  authorName?: string | null;
+  source?: string | null;
+}
+
+export interface H5PPackageDefinition {
+  title: string;
+  mainLibrary: string;
+  language: string;
+  preloadedDependencies: Array<{
+    machineName: string;
+    majorVersion: number;
+    minorVersion: number;
+  }>;
+  embedTypes: Array<'div' | 'iframe'>;
+  authors?: Array<{ name: string; role: 'Author' }>;
+  source?: string;
+  license?: 'U';
+}
+
+export interface InteractiveVideoH5PPackageImportResult {
+  spec: InteractiveVideoSpec;
+  h5pDefinition: H5PPackageDefinition | null;
+  h5pParameters: H5PInteractiveVideoParameters | null;
+  importedFrom: 'holilihu-sidecar' | 'h5p-content';
 }
 
 export interface H5PInteractiveVideoParameters {
@@ -77,6 +140,72 @@ export function importInteractiveVideoBundle(value: unknown): InteractiveVideoSp
     timeline: sortInteractiveVideoTimeline(
       h5pInteractions.map((interaction, index) => fromH5PInteraction(interaction, index)),
     ),
+  };
+}
+
+export async function exportInteractiveVideoH5PPackage(
+  spec: InteractiveVideoSpec,
+  videoUrl: string | null,
+  options: H5PPackageExportOptions = {},
+): Promise<Blob> {
+  const JSZip = await loadJsZip();
+  const zip = new JSZip();
+  const bundle = exportInteractiveVideoBundle(spec, videoUrl);
+  const h5pDefinition = buildH5PPackageDefinition(bundle.spec, options);
+  const contentFolder = zip.folder('content');
+  if (!contentFolder) {
+    throw new Error('Unable to create H5P content folder.');
+  }
+
+  zip.file('h5p.json', toPrettyJson(h5pDefinition));
+  contentFolder.file('content.json', toPrettyJson(bundle.h5pParameters));
+  contentFolder.file('holilihu-interactive-video.json', toPrettyJson(bundle));
+
+  return zip.generateAsync({
+    type: 'blob',
+    compression: 'DEFLATE',
+    compressionOptions: { level: 6 },
+    mimeType: 'application/h5p',
+  });
+}
+
+export async function importInteractiveVideoH5PPackage(
+  input: H5PZipInput,
+): Promise<InteractiveVideoSpec | null> {
+  return (await readInteractiveVideoH5PPackage(input))?.spec ?? null;
+}
+
+export async function readInteractiveVideoH5PPackage(
+  input: H5PZipInput,
+): Promise<InteractiveVideoH5PPackageImportResult | null> {
+  const JSZip = await loadJsZip();
+  const zip = await JSZip.loadAsync(input, { checkCRC32: true });
+  const h5pDefinition = toH5PPackageDefinition(await readJsonEntry(zip, 'h5p.json'));
+  const nativeBundle = await readJsonEntry(zip, 'content/holilihu-interactive-video.json');
+  const nativeSpec = importInteractiveVideoBundle(nativeBundle);
+  const h5pContent = await readJsonEntry(zip, 'content/content.json')
+    ?? await readJsonEntry(zip, 'content.json');
+  const h5pParameters = toH5PParameters(h5pContent);
+
+  if (nativeSpec) {
+    return {
+      spec: nativeSpec,
+      h5pDefinition,
+      h5pParameters,
+      importedFrom: 'holilihu-sidecar',
+    };
+  }
+
+  const h5pSpec = importInteractiveVideoBundle(h5pContent);
+  if (!h5pSpec) {
+    return null;
+  }
+
+  return {
+    spec: h5pSpec,
+    h5pDefinition,
+    h5pParameters,
+    importedFrom: 'h5p-content',
   };
 }
 
@@ -205,6 +334,100 @@ function getH5PInteractions(value: unknown): H5PInteractiveVideoInteraction[] {
   return Array.isArray(interactions) ? interactions : [];
 }
 
+function buildH5PPackageDefinition(
+  spec: InteractiveVideoSpec,
+  options: H5PPackageExportOptions,
+): H5PPackageDefinition {
+  const authorName = toText(options.authorName);
+  return {
+    title: toText(options.title) ?? spec.timeline[0]?.title ?? 'HoliLihu Interactive Video',
+    mainLibrary: H5P_MAIN_LIBRARY.machineName,
+    language: normalizeLanguage(options.language),
+    preloadedDependencies: [
+      H5P_MAIN_LIBRARY,
+      ...H5P_INTERACTION_DEPENDENCIES,
+    ].map(dependency => ({ ...dependency })),
+    embedTypes: ['div'],
+    authors: authorName ? [{ name: authorName, role: 'Author' }] : undefined,
+    source: toText(options.source) ?? undefined,
+    license: 'U',
+  };
+}
+
+async function readJsonEntry(zip: ZipArchive, path: string): Promise<unknown | null> {
+  const file = zip.file(path);
+  if (!file) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(await file.async('string'));
+  } catch {
+    return null;
+  }
+}
+
+function toH5PPackageDefinition(value: unknown): H5PPackageDefinition | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const source = value as Partial<H5PPackageDefinition>;
+  const title = toText(source.title);
+  const mainLibrary = toText(source.mainLibrary);
+  if (!title || !mainLibrary) {
+    return null;
+  }
+
+  return {
+    title,
+    mainLibrary,
+    language: normalizeLanguage(source.language),
+    preloadedDependencies: Array.isArray(source.preloadedDependencies)
+      ? source.preloadedDependencies
+          .map(toH5PDependency)
+          .filter((dependency): dependency is H5PPackageDefinition['preloadedDependencies'][number] => !!dependency)
+      : [],
+    embedTypes: Array.isArray(source.embedTypes)
+      ? source.embedTypes.filter((type): type is 'div' | 'iframe' => type === 'div' || type === 'iframe')
+      : ['div'],
+    authors: Array.isArray(source.authors)
+      ? source.authors
+          .map(author => ({ name: toText(author.name), role: author.role }))
+          .filter((author): author is { name: string; role: 'Author' } =>
+            !!author.name && author.role === 'Author',
+          )
+      : undefined,
+    source: toText(source.source) ?? undefined,
+    license: source.license === 'U' ? 'U' : undefined,
+  };
+}
+
+function toH5PDependency(value: unknown): H5PPackageDefinition['preloadedDependencies'][number] | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const source = value as Record<string, unknown>;
+  const machineName = toText(source['machineName']);
+  const majorVersion = toNumber(source['majorVersion'], Number.NaN);
+  const minorVersion = toNumber(source['minorVersion'], Number.NaN);
+  if (!machineName || !Number.isFinite(majorVersion) || !Number.isFinite(minorVersion)) {
+    return null;
+  }
+
+  return { machineName, majorVersion, minorVersion };
+}
+
+function toH5PParameters(value: unknown): H5PInteractiveVideoParameters | null {
+  return getH5PInteractions(value).length > 0 ? value as H5PInteractiveVideoParameters : null;
+}
+
+async function loadJsZip(): Promise<JSZipConstructor> {
+  const module = await import('jszip') as unknown as { default?: JSZipConstructor } & JSZipConstructor;
+  return module.default ?? module;
+}
+
 function readH5PFeedback(answer: Record<string, unknown>): string | null {
   const feedback = answer['tipsAndFeedback'];
   if (!feedback || typeof feedback !== 'object') {
@@ -228,6 +451,15 @@ function inferMimeType(url: string): string | undefined {
   if (clean.endsWith('.m3u8')) return 'application/x-mpegURL';
   if (clean.endsWith('.mpd')) return 'application/dash+xml';
   return undefined;
+}
+
+function normalizeLanguage(value: unknown): string {
+  const language = toText(value);
+  return language && /^[a-z]{2,3}(-[A-Z]{2})?$/.test(language) ? language : 'und';
+}
+
+function toPrettyJson(value: unknown): string {
+  return `${JSON.stringify(value, null, 2)}\n`;
 }
 
 function toText(value: unknown): string | null {

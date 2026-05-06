@@ -30,10 +30,13 @@ import { formatDuration, formatResolution } from '../../../../../../../core/util
 import type {
   InteractiveVideoInteraction,
   InteractiveVideoInteractionType,
+  InteractiveVideoSpec,
 } from '../../../../../../../api/types/interactive-video.types';
 import { buildInteractiveVideoSpec } from '../../../../utils/interactive-video-authoring';
 import {
   exportInteractiveVideoBundle,
+  exportInteractiveVideoH5PPackage,
+  importInteractiveVideoH5PPackage,
   importInteractiveVideoBundle,
 } from '../../../../utils/interactive-video-interoperability';
 
@@ -597,14 +600,14 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                       Rẽ nhánh
                     </button>
                     <input #interactiveImportInput type="file"
-                      accept="application/json,.json"
+                      accept="application/json,.json,.h5p,application/h5p,application/zip"
                       class="hidden"
                       (change)="onInteractiveImportSelected($event)" />
                     <button type="button"
                       (click)="interactiveImportInput.click()"
                       class="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
                       <lucide-icon name="upload" [size]="13"></lucide-icon>
-                      Nhập JSON
+                      Nhập JSON/H5P
                     </button>
                     <button type="button"
                       (click)="exportInteractiveVideoJson()"
@@ -612,6 +615,13 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                       class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5 disabled:cursor-not-allowed disabled:opacity-50">
                       <lucide-icon name="download" [size]="13"></lucide-icon>
                       Xuất JSON
+                    </button>
+                    <button type="button"
+                      (click)="exportInteractiveVideoH5P()"
+                      [disabled]="!interactiveVideoPreviewSpec()"
+                      class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5 disabled:cursor-not-allowed disabled:opacity-50">
+                      <lucide-icon name="package" [size]="13"></lucide-icon>
+                      Xuất H5P
                     </button>
                   </div>
                 </div>
@@ -2396,10 +2406,9 @@ export class SectionEditorComponent {
     }
 
     try {
-      const parsed = JSON.parse(await file.text());
-      const spec = importInteractiveVideoBundle(parsed);
+      const spec = await this.readInteractiveImportSpec(file);
       if (!spec || spec.timeline.length === 0) {
-        this.toast.error('Tệp JSON không có dữ liệu video tương tác hợp lệ.');
+        this.toast.error('Tệp nhập không có dữ liệu video tương tác hợp lệ.');
         return;
       }
 
@@ -2408,7 +2417,7 @@ export class SectionEditorComponent {
       this.svc.markDirty();
       this.toast.success(`Đã nhập ${spec.timeline.length} điểm tương tác.`);
     } catch {
-      this.toast.error('Không thể đọc tệp JSON video tương tác.');
+      this.toast.error('Không thể đọc tệp video tương tác.');
     }
   }
 
@@ -2421,10 +2430,29 @@ export class SectionEditorComponent {
 
     try {
       const bundle = exportInteractiveVideoBundle(spec, this.svc.sectionVideoUrl());
-      this.downloadJsonFile(bundle, this.getInteractiveExportFileName());
+      this.downloadJsonFile(bundle, this.getInteractiveExportFileName('json'));
       this.toast.success('Đã xuất JSON video tương tác.');
     } catch {
       this.toast.error('Không thể xuất JSON video tương tác.');
+    }
+  }
+
+  async exportInteractiveVideoH5P(): Promise<void> {
+    const spec = this.interactiveVideoPreviewSpec();
+    if (!spec) {
+      this.toast.error('Chưa có dữ liệu video tương tác để xuất.');
+      return;
+    }
+
+    try {
+      const blob = await exportInteractiveVideoH5PPackage(spec, this.svc.sectionVideoUrl(), {
+        title: this.svc.sectionTitle(),
+        language: 'vi',
+      });
+      this.downloadBlobFile(blob, this.getInteractiveExportFileName('h5p'));
+      this.toast.success('Đã xuất H5P video tương tác.');
+    } catch {
+      this.toast.error('Không thể xuất H5P video tương tác.');
     }
   }
 
@@ -2452,12 +2480,30 @@ export class SectionEditorComponent {
     return Number.isFinite(next) ? Math.max(0, Math.round(next)) : 0;
   }
 
+  private async readInteractiveImportSpec(file: File): Promise<InteractiveVideoSpec | null> {
+    if (this.isH5PFile(file)) {
+      return importInteractiveVideoH5PPackage(await file.arrayBuffer());
+    }
+
+    return importInteractiveVideoBundle(JSON.parse(await file.text()));
+  }
+
+  private isH5PFile(file: File): boolean {
+    return file.name.toLowerCase().endsWith('.h5p') || file.type === 'application/h5p';
+  }
+
   private downloadJsonFile(payload: unknown, filename: string): void {
+    this.downloadBlobFile(
+      new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }),
+      filename,
+    );
+  }
+
+  private downloadBlobFile(blob: Blob, filename: string): void {
     if (typeof document === 'undefined' || typeof URL === 'undefined') {
       return;
     }
 
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -2466,7 +2512,7 @@ export class SectionEditorComponent {
     URL.revokeObjectURL(url);
   }
 
-  private getInteractiveExportFileName(): string {
+  private getInteractiveExportFileName(extension: 'json' | 'h5p'): string {
     const base = (this.svc.sectionTitle() || 'interactive-video')
       .toLowerCase()
       .normalize('NFD')
@@ -2474,7 +2520,7 @@ export class SectionEditorComponent {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
       .slice(0, 64);
-    return `${base || 'interactive-video'}-holilihu-v1.json`;
+    return `${base || 'interactive-video'}-holilihu-v1.${extension}`;
   }
 
   getYouTubeEmbedUrl(videoId: string): SafeResourceUrl {
