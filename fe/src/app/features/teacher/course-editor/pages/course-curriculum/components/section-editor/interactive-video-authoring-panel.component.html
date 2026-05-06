@@ -120,14 +120,21 @@
         </div>
 
         <div class="mb-4 rounded-xl border border-slate-200 bg-white px-3 py-3">
-          <div class="relative h-10">
+          <div #timelineRail class="relative h-10">
             <div class="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-slate-100"></div>
             @for (node of interactiveVideoFlowNodes(); track node.id) {
               <button type="button"
-                class="interactive-timeline-dot absolute top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white bg-[#0056D2] text-[10px] font-bold text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0056D2] focus-visible:ring-offset-2"
+                class="interactive-timeline-dot absolute top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 touch-none items-center justify-center rounded-full border border-white bg-[#0056D2] text-[10px] font-bold text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0056D2] focus-visible:ring-offset-2"
                 [style.left.%]="getTimelinePercent(node.atSeconds)"
+                [attr.aria-current]="timelineDraggingInteractionId() === node.id ? 'true' : null"
                 [attr.aria-label]="'Chỉnh điểm ' + node.index + ' tại ' + node.timeLabel"
-                (click)="scrollInteractiveNodeIntoView(node.id)">
+                [attr.title]="'Kéo để đổi thời điểm · ' + node.timeLabel"
+                (click)="onTimelineDotClick(node)"
+                (keydown)="onFlowNodeKeydown($event, node)"
+                (pointerdown)="onTimelineDotPointerDown($event, node)"
+                (pointermove)="onTimelineDotPointerMove($event)"
+                (pointerup)="onTimelineDotPointerUp($event)"
+                (pointercancel)="onTimelineDotPointerCancel()">
                 {{ node.index }}
               </button>
             }

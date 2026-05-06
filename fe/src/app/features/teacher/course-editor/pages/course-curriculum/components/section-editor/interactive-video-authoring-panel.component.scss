@@ -1,3 +1,8 @@
+:host :where(input, textarea)::placeholder {
+  color: #94a3b8;
+  opacity: 1;
+}
+
 .interactive-flow-node {
   transition:
     border-color 160ms ease,
@@ -16,9 +21,16 @@
 }
 
 .interactive-timeline-dot {
+  cursor: grab;
   transition:
     transform 140ms ease,
     box-shadow 140ms ease;
+}
+
+.interactive-timeline-dot[aria-current='true'] {
+  cursor: grabbing;
+  transform: translate(-50%, -50%) scale(1.08);
+  box-shadow: 0 8px 18px rgba(0, 86, 210, 0.22);
 }
 
 .interactive-timeline-dot:hover {

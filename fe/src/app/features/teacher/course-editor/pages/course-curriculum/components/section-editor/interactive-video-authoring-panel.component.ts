@@ -2,10 +2,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  ElementRef,
   inject,
   input,
   output,
   signal,
+  viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
@@ -70,6 +72,9 @@ export class InteractiveVideoAuthoringPanelComponent {
   readonly interactiveVideoTypes: InteractiveVideoInteractionType[] = ['checkpoint', 'single_choice', 'branch'];
   readonly draggingInteractionId = signal<string | null>(null);
   readonly dropTargetInteractionId = signal<string | null>(null);
+  readonly timelineDraggingInteractionId = signal<string | null>(null);
+  readonly timelineRail = viewChild<ElementRef<HTMLElement>>('timelineRail');
+  private suppressNextTimelineClick = false;
 
   readonly isYoutubeSource = computed(() => this.sourceKind() === 'youtube');
   readonly previewSpec = computed<InteractiveVideoSpec | null>(() =>
@@ -308,13 +313,61 @@ export class InteractiveVideoAuthoringPanelComponent {
   }
 
   getTimelinePercent(seconds: number): number {
-    const max = this.maxInteractiveTimeSeconds();
-    if (max == null || max <= 0) {
-      const timeline = this.svc.sectionInteractiveVideoTimeline();
-      const latest = Math.max(1, ...timeline.map(item => item.atSeconds));
-      return Math.min(100, Math.max(0, (seconds / latest) * 100));
+    const max = this.getTimelineScaleMaxSeconds();
+    if (max <= 0) {
+      return 0;
     }
     return Math.min(100, Math.max(0, (seconds / max) * 100));
+  }
+
+  onTimelineDotClick(node: InteractiveVideoFlowNode): void {
+    if (this.suppressNextTimelineClick) {
+      this.suppressNextTimelineClick = false;
+      return;
+    }
+    this.scrollInteractiveNodeIntoView(node.id);
+  }
+
+  onTimelineDotPointerDown(event: PointerEvent, node: InteractiveVideoFlowNode): void {
+    if (event.button !== 0) {
+      return;
+    }
+    this.timelineDraggingInteractionId.set(node.id);
+    this.suppressNextTimelineClick = false;
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+  }
+
+  onTimelineDotPointerMove(event: PointerEvent): void {
+    const interactionId = this.timelineDraggingInteractionId();
+    if (!interactionId) {
+      return;
+    }
+
+    const nextSeconds = this.getTimelineSecondsFromPointer(event);
+    const current = this.svc.sectionInteractiveVideoTimeline()
+      .find(item => item.id === interactionId);
+    if (!current || current.atSeconds === nextSeconds) {
+      return;
+    }
+
+    this.suppressNextTimelineClick = true;
+    this.svc.updateInteractiveVideoInteraction(interactionId, {
+      atSeconds: nextSeconds,
+    });
+  }
+
+  onTimelineDotPointerUp(event: PointerEvent): void {
+    const target = event.currentTarget as HTMLElement;
+    if (this.timelineDraggingInteractionId()) {
+      if (target.hasPointerCapture(event.pointerId)) {
+        target.releasePointerCapture(event.pointerId);
+      }
+    }
+    this.timelineDraggingInteractionId.set(null);
+  }
+
+  onTimelineDotPointerCancel(): void {
+    this.timelineDraggingInteractionId.set(null);
   }
 
   nudgeInteractiveTime(interactionId: string, deltaSeconds: number): void {
@@ -553,6 +606,23 @@ export class InteractiveVideoAuthoringPanelComponent {
     const next = this.toNonNegativeInteger(value);
     const max = this.maxInteractiveTimeSeconds();
     return max == null ? next : Math.min(max, next);
+  }
+
+  private getTimelineSecondsFromPointer(event: PointerEvent): number {
+    const rail = this.timelineRail()?.nativeElement;
+    if (!rail) {
+      return 0;
+    }
+
+    const rect = rail.getBoundingClientRect();
+    const ratio = rect.width <= 0
+      ? 0
+      : Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+    return this.clampInteractiveTime(Math.round(ratio * this.getTimelineScaleMaxSeconds()));
+  }
+
+  private getTimelineScaleMaxSeconds(): number {
+    return this.maxInteractiveTimeSeconds() ?? Math.max(30, this.getLastTimelineSecond());
   }
 
   private getLastTimelineSecond(): number {
