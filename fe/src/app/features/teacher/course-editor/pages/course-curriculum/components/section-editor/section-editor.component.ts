@@ -592,16 +592,47 @@ interface InteractiveVideoFlowNode {
                     </p>
                   </div>
                 </div>
-                <label class="inline-flex cursor-pointer select-none items-center gap-2 text-sm font-semibold text-slate-700">
-                  <input type="checkbox"
-                    [ngModel]="svc.sectionInteractiveVideoEnabled()"
-                    (ngModelChange)="svc.setInteractiveVideoEnabled($event)"
-                    class="h-4 w-4 rounded text-[#0056D2] focus:ring-[#0056D2]" />
-                  Bật
-                </label>
+                <div class="flex flex-wrap items-center gap-2">
+                  <span [class]="interactiveVideoCompatibilityBadgeClass()">
+                    {{ interactiveVideoCompatibilityLabel() }}
+                  </span>
+                  <label class="inline-flex select-none items-center gap-2 text-sm font-semibold"
+                    [class.cursor-pointer]="canAuthorInteractiveVideo()"
+                    [class.cursor-not-allowed]="!canAuthorInteractiveVideo()"
+                    [class.text-slate-700]="canAuthorInteractiveVideo()"
+                    [class.text-slate-400]="!canAuthorInteractiveVideo()">
+                    <input type="checkbox"
+                      [ngModel]="svc.sectionInteractiveVideoEnabled()"
+                      (ngModelChange)="onInteractiveVideoEnabledChange($event)"
+                      [disabled]="!canAuthorInteractiveVideo()"
+                      class="h-4 w-4 rounded text-[#0056D2] focus:ring-[#0056D2] disabled:cursor-not-allowed disabled:opacity-50" />
+                    Bật
+                  </label>
+                </div>
               </div>
 
-              @if (svc.sectionInteractiveVideoEnabled()) {
+              @if (!canAuthorInteractiveVideo()) {
+                <div class="border-b border-amber-100 bg-amber-50/70 px-4 py-3">
+                  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div class="flex min-w-0 gap-2.5">
+                      <lucide-icon name="alert-triangle" [size]="16" class="mt-0.5 shrink-0 text-amber-600"></lucide-icon>
+                      <div class="min-w-0">
+                        <p class="text-sm font-semibold text-amber-900">YouTube đang ở chế độ nhúng</p>
+                        <p class="mt-1 text-xs leading-relaxed text-amber-800">
+                          Điểm dừng, câu hỏi và rẽ nhánh cần video tải lên để đồng bộ thời điểm, tạm dừng và chuyển nhánh chính xác.
+                        </p>
+                      </div>
+                    </div>
+                    <button type="button"
+                      (click)="switchVideoTab('upload')"
+                      class="shrink-0 rounded-lg border border-amber-200 bg-white px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-50">
+                      Chuyển sang Tải lên
+                    </button>
+                  </div>
+                </div>
+              }
+
+              @if (svc.sectionInteractiveVideoEnabled() && canAuthorInteractiveVideo()) {
                 <div class="border-b border-slate-100 px-4 py-3">
                   <div class="flex flex-col gap-3">
                     <div class="flex flex-wrap items-center gap-2">
@@ -781,6 +812,7 @@ interface InteractiveVideoFlowNode {
                                 <option [ngValue]="type">{{ getInteractiveTypeLabel(type) }}</option>
                               }
                             </select>
+                            <p class="mt-1 text-[11px] leading-snug text-slate-500">{{ getInteractiveTypeHint(interaction.type) }}</p>
                           </div>
                           <div class="flex items-center gap-1.5">
                             <label class="text-xs font-medium text-slate-500">Thời điểm</label>
@@ -789,6 +821,9 @@ interface InteractiveVideoFlowNode {
                               (ngModelChange)="onInteractiveTimeChange(interaction.id, $event)"
                               class="w-24 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm tabular-nums focus:border-[#0056D2] focus:ring-[#0056D2]" />
                             <span class="text-xs font-medium text-slate-400">giây</span>
+                            <span class="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold tabular-nums text-slate-500 ring-1 ring-slate-200">
+                              {{ formatInteractiveTimeLabel(interaction.atSeconds) }}
+                            </span>
                           </div>
                           <button type="button"
                             (click)="svc.removeInteractiveVideoInteraction(interaction.id)"
@@ -847,18 +882,28 @@ interface InteractiveVideoFlowNode {
                             </div>
                             <div class="divide-y divide-slate-100">
                               @for (choice of interaction.choices || []; track choice.id; let choiceIdx = $index) {
-                                <div class="grid gap-2 px-3 py-2 sm:grid-cols-[minmax(0,1fr)_7rem_minmax(8rem,10rem)_auto]">
-                                  <input type="text"
-                                    [ngModel]="choice.label"
-                                    (ngModelChange)="svc.updateInteractiveVideoChoice(interaction.id, choice.id, { label: $event })"
-                                    placeholder="Nội dung lựa chọn"
-                                    class="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-[#0056D2]"
-                                    [attr.aria-label]="'Lựa chọn ' + (choiceIdx + 1)" />
+                                <div [class]="getInteractiveChoiceRowClass(interaction.type)">
+                                  <div class="space-y-2">
+                                    <input type="text"
+                                      [ngModel]="choice.label"
+                                      (ngModelChange)="svc.updateInteractiveVideoChoice(interaction.id, choice.id, { label: $event })"
+                                      placeholder="Nội dung lựa chọn"
+                                      class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-[#0056D2]"
+                                      [attr.aria-label]="'Lựa chọn ' + (choiceIdx + 1)" />
+                                    @if (interaction.type === 'single_choice') {
+                                      <input type="text"
+                                        [ngModel]="choice.feedback || ''"
+                                        (ngModelChange)="svc.updateInteractiveVideoChoice(interaction.id, choice.id, { feedback: $event })"
+                                        placeholder="Phản hồi sau khi chọn (không bắt buộc)"
+                                        class="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:border-[#0056D2] focus:ring-[#0056D2]"
+                                        [attr.aria-label]="'Phản hồi cho lựa chọn ' + (choiceIdx + 1)" />
+                                    }
+                                  </div>
                                   @if (interaction.type === 'branch') {
                                     <input type="number" min="0" step="1"
                                       [ngModel]="choice.targetTimeSeconds ?? interaction.atSeconds"
                                       (ngModelChange)="onInteractiveChoiceTargetChange(interaction.id, choice.id, $event)"
-                                      placeholder="Giây đích"
+                                      placeholder="Nhảy tới giây"
                                       class="rounded-lg border border-slate-200 px-3 py-2 text-sm tabular-nums focus:border-[#0056D2] focus:ring-[#0056D2]"
                                       aria-label="Giây đích" />
                                     <select
@@ -868,7 +913,7 @@ interface InteractiveVideoFlowNode {
                                       aria-label="Điểm đích">
                                       <option [ngValue]="''">Theo giây</option>
                                       @for (target of getInteractiveBranchTargets(interaction.id); track target.id) {
-                                        <option [ngValue]="target.id">{{ target.atSeconds }}s · {{ target.title || target.id }}</option>
+                                        <option [ngValue]="target.id">{{ formatInteractiveBranchTargetLabel(target) }}</option>
                                       }
                                     </select>
                                   } @else {
@@ -1933,12 +1978,28 @@ export class SectionEditorComponent {
   readonly interactiveVideoTypes: InteractiveVideoInteractionType[] = ['checkpoint', 'single_choice', 'branch'];
   readonly lessonTemplates = LESSON_TEMPLATES;
   readonly showTemplatePicker = signal(true);
-  readonly interactiveVideoPreviewSpec = computed(() =>
-    buildInteractiveVideoSpec(
+  readonly isYoutubeVideoSource = computed(() =>
+    this.videoSourceTab() === 'youtube' || this.svc.sectionVideoType() === 'YOUTUBE',
+  );
+  readonly canAuthorInteractiveVideo = computed(() => !this.isYoutubeVideoSource());
+  readonly interactiveVideoCompatibilityLabel = computed(() =>
+    this.canAuthorInteractiveVideo() ? 'Hỗ trợ tương tác' : 'YouTube chỉ nhúng',
+  );
+  readonly interactiveVideoCompatibilityBadgeClass = computed(() =>
+    this.canAuthorInteractiveVideo()
+      ? 'inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200'
+      : 'inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700 ring-1 ring-amber-200',
+  );
+  readonly interactiveVideoPreviewSpec = computed(() => {
+    if (!this.canAuthorInteractiveVideo()) {
+      return null;
+    }
+
+    return buildInteractiveVideoSpec(
       this.svc.sectionInteractiveVideoEnabled(),
       this.svc.sectionInteractiveVideoTimeline(),
-    ),
-  );
+    );
+  });
   readonly interactiveVideoFlowNodes = computed<InteractiveVideoFlowNode[]>(() =>
     this.buildInteractiveVideoFlowNodes(this.svc.sectionInteractiveVideoTimeline()),
   );
@@ -2468,6 +2529,9 @@ export class SectionEditorComponent {
     // User switching tabs to explore is not the same as replacing video
     this.svc.sectionVideoType.set(tab === 'youtube' ? 'YOUTUBE' : null);
     this.videoSourceTab.set(tab);
+    if (tab === 'youtube' && this.svc.sectionInteractiveVideoEnabled()) {
+      this.toast.warning('YouTube chưa chạy điểm dừng, câu hỏi hoặc rẽ nhánh. Dữ liệu tương tác vẫn được giữ nếu bạn quay lại video tải lên.');
+    }
   }
 
   // ── Video: replace flow ──────────────────────────────────────────────
@@ -2510,6 +2574,17 @@ export class SectionEditorComponent {
     this.svc.sectionVideoUrl.set(url);
     this.svc.sectionVideoType.set('YOUTUBE');
     this.svc.markDirty();
+    if (this.svc.sectionInteractiveVideoEnabled()) {
+      this.toast.warning('YouTube chỉ hỗ trợ nhúng video. Hãy dùng video tải lên để chạy video tương tác.');
+    }
+  }
+
+  onInteractiveVideoEnabledChange(enabled: boolean): void {
+    if (enabled && !this.canAuthorInteractiveVideo()) {
+      this.toast.error('Video tương tác hiện chỉ hỗ trợ video tải lên. YouTube chỉ dùng để nhúng và theo dõi tiến độ.');
+      return;
+    }
+    this.svc.setInteractiveVideoEnabled(enabled);
   }
 
   onInteractiveTypeChange(
@@ -2625,6 +2700,19 @@ export class SectionEditorComponent {
     }
   }
 
+  getInteractiveTypeHint(type: InteractiveVideoInteractionType): string {
+    switch (type) {
+      case 'single_choice':
+        return 'Dừng video để hỏi nhanh và phản hồi theo lựa chọn.';
+      case 'branch':
+        return 'Cho học viên chọn đường đi tiếp theo trong video.';
+      case 'hotspot':
+        return 'Dành cho vùng bấm trên video khi nhập từ gói tương tác.';
+      default:
+        return 'Tạm dừng video tại mốc này để nhấn mạnh nội dung.';
+    }
+  }
+
   getInteractiveNodeDomId(interactionId: string): string {
     return `interactive-node-${interactionId}`;
   }
@@ -2636,6 +2724,22 @@ export class SectionEditorComponent {
 
     document.getElementById(this.getInteractiveNodeDomId(interactionId))
       ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  formatInteractiveTimeLabel(seconds: number | null | undefined): string {
+    return this.formatInteractiveFlowTime(seconds);
+  }
+
+  formatInteractiveBranchTargetLabel(target: InteractiveVideoInteraction): string {
+    const title = target.title?.trim() || this.getInteractiveTypeLabel(target.type);
+    return `${this.formatInteractiveFlowTime(target.atSeconds)} · ${title}`;
+  }
+
+  getInteractiveChoiceRowClass(type: InteractiveVideoInteractionType): string {
+    const base = 'grid gap-2 px-3 py-2';
+    return type === 'branch'
+      ? `${base} sm:grid-cols-[minmax(0,1fr)_7rem_minmax(8rem,10rem)_auto]`
+      : `${base} sm:grid-cols-[minmax(0,1fr)_8rem_auto]`;
   }
 
   private buildInteractiveVideoFlowNodes(
@@ -2694,7 +2798,7 @@ export class SectionEditorComponent {
       return {
         id: choice.id,
         label,
-        metaLabel: choice.isCorrect ? 'Đúng' : 'Nhiễu',
+        metaLabel: choice.isCorrect ? 'Đúng' : 'Chưa đúng',
         toneClass: choice.isCorrect
           ? 'flex items-center gap-2 rounded-md bg-emerald-50 px-2 py-1 text-xs text-emerald-700 ring-1 ring-emerald-100'
           : 'flex items-center gap-2 rounded-md bg-white px-2 py-1 text-xs text-slate-600 ring-1 ring-slate-200',
@@ -2706,6 +2810,7 @@ export class SectionEditorComponent {
     switch (type) {
       case 'single_choice': return 'help-circle';
       case 'branch': return 'shuffle';
+      case 'hotspot': return 'mouse-pointer-2';
       default: return 'pause';
     }
   }
@@ -2717,6 +2822,8 @@ export class SectionEditorComponent {
         return `${base} border-sky-200`;
       case 'branch':
         return `${base} border-amber-200`;
+      case 'hotspot':
+        return `${base} border-teal-200`;
       default:
         return `${base} border-slate-200`;
     }
@@ -2729,6 +2836,8 @@ export class SectionEditorComponent {
         return `${base} bg-sky-50 text-sky-700`;
       case 'branch':
         return `${base} bg-amber-50 text-amber-700`;
+      case 'hotspot':
+        return `${base} bg-teal-50 text-teal-700`;
       default:
         return `${base} bg-slate-100 text-slate-600`;
     }
