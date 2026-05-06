@@ -584,19 +584,19 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                     <button type="button"
                       (click)="svc.addInteractiveVideoInteraction('checkpoint')"
                       class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
-                      <lucide-icon name="pause-circle" [size]="13"></lucide-icon>
+                      <lucide-icon name="pause" [size]="13"></lucide-icon>
                       Điểm dừng
                     </button>
                     <button type="button"
                       (click)="svc.addInteractiveVideoInteraction('single_choice')"
                       class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
-                      <lucide-icon name="circle-help" [size]="13"></lucide-icon>
+                      <lucide-icon name="help-circle" [size]="13"></lucide-icon>
                       Câu hỏi
                     </button>
                     <button type="button"
                       (click)="svc.addInteractiveVideoInteraction('branch')"
                       class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
-                      <lucide-icon name="git-branch" [size]="13"></lucide-icon>
+                      <lucide-icon name="shuffle" [size]="13"></lucide-icon>
                       Rẽ nhánh
                     </button>
                     <input #interactiveImportInput type="file"
@@ -620,7 +620,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                       (click)="exportInteractiveVideoH5P()"
                       [disabled]="!interactiveVideoPreviewSpec()"
                       class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5 disabled:cursor-not-allowed disabled:opacity-50">
-                      <lucide-icon name="package" [size]="13"></lucide-icon>
+                      <lucide-icon name="archive" [size]="13"></lucide-icon>
                       Xuất H5P
                     </button>
                   </div>
@@ -628,7 +628,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
 
                 @if (svc.sectionInteractiveVideoTimeline().length === 0) {
                   <div class="px-4 py-6 text-center">
-                    <lucide-icon name="list-plus" [size]="30" class="mx-auto text-slate-300"></lucide-icon>
+                    <lucide-icon name="plus-circle" [size]="30" class="mx-auto text-slate-300"></lucide-icon>
                     <p class="mt-2 text-sm font-medium text-slate-500">Chưa có điểm tương tác</p>
                   </div>
                 } @else {
