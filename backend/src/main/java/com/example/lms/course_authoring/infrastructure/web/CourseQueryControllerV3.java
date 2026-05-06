@@ -762,6 +762,7 @@ public class CourseQueryControllerV3 {
                     section.setStreamVideoUid(null);
                     section.setFileUrl(null);
                     section.setQuizData(null);
+                    section.setInteractiveVideoSpec(null);
                 }
             }
         }
@@ -1077,6 +1078,7 @@ public class CourseQueryControllerV3 {
                     .orderIndex(safeInt(data.get("orderIndex"), 0))
                     .isRequired(safeBool(data.get("isRequired"), false))
                     .quizData(showContent ? buildSectionQuizData(data, questionMap) : null)
+                    .interactiveVideoSpec(showContent ? normalizeInteractiveVideoSpec(data.get("interactiveVideoSpec")) : null)
                     .build();
             if (showContent) {
                 applyVideoAssetView(response, data, resolveVideoAssetView(videoAssets, data.get("videoAssetId")), videoType);
@@ -1232,6 +1234,21 @@ public class CourseQueryControllerV3 {
             normalized.put("questions", normalizeLegacySectionQuizQuestions(quizData.get("questions")));
         }
 
+        return normalized;
+    }
+
+    private Map<String, Object> normalizeInteractiveVideoSpec(Object value) {
+        Map<String, Object> spec = asMap(value);
+        if (spec == null || spec.isEmpty()) {
+            return null;
+        }
+
+        Map<String, Object> normalized = new LinkedHashMap<>(spec);
+        normalized.putIfAbsent("version", 1);
+        Object timeline = normalized.get("timeline");
+        if (!(timeline instanceof List<?>)) {
+            normalized.put("timeline", List.of());
+        }
         return normalized;
     }
 
@@ -1589,6 +1606,7 @@ public class CourseQueryControllerV3 {
         private Boolean isRequired;
         private List<Map<String, Object>> availableOfflineProfiles;
         private Map<String, Object> quizData;
+        private Map<String, Object> interactiveVideoSpec;
     }
 
     @lombok.Builder

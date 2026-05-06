@@ -383,6 +383,36 @@ class CourseQueryControllerV3ContractTest {
     }
 
     @Test
+    @DisplayName("section response preserves interactive video spec from published snapshots")
+    void sectionResponsePreservesInteractiveVideoSpec() {
+        Map<String, Object> interaction = Map.of(
+                "id", "iv-1",
+                "type", "single_choice",
+                "atSeconds", 30,
+                "choices", List.of(Map.of(
+                        "id", "choice-1",
+                        "label", "Continue",
+                        "isCorrect", true
+                ))
+        );
+        Map<String, Object> interactiveSpec = Map.of(
+                "version", 1,
+                "enabled", true,
+                "timeline", List.of(interaction)
+        );
+        CourseQueryControllerV3.SectionResponse section = CourseQueryControllerV3.SectionResponse.builder()
+                .id("section-1")
+                .title("Interactive video")
+                .type("VIDEO")
+                .interactiveVideoSpec(interactiveSpec)
+                .build();
+
+        assertThat(section.getInteractiveVideoSpec()).isNotNull();
+        assertThat(section.getInteractiveVideoSpec()).containsEntry("enabled", true);
+        assertThat((List<?>) section.getInteractiveVideoSpec().get("timeline")).hasSize(1);
+    }
+
+    @Test
     @DisplayName("published lesson detail falls back to persisted lesson video when publication snapshot predates lesson videoUrl support")
     void getLessonByIdHydratesLegacyPublishedLessonLevelVideo() {
         UUID courseId = approvedPaidCourse.getId();
