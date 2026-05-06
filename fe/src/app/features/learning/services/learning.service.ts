@@ -1,4 +1,4 @@
-import { Injectable, signal, computed, inject, DestroyRef } from '@angular/core';
+import { Injectable, signal, computed, inject, DestroyRef, Signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin, of, Observable, Subscription } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
@@ -81,6 +81,7 @@ export class LearningService {
 
   // Cache of lesson sections from /content endpoint (lessonId -> SectionContent[])
   private lessonSectionsCache = new Map<string, SectionContent[]>();
+  private lessonCompletedSignalCache = new Map<string, Signal<boolean>>();
 
   // Public computed signals for components to consume
 
@@ -156,7 +157,12 @@ export class LearningService {
 
   /** Check if a specific lesson is completed */
   isLessonCompleted = (lessonId: string) => {
-    return computed(() => {
+    const cached = this.lessonCompletedSignalCache.get(lessonId);
+    if (cached) {
+      return cached;
+    }
+
+    const completed = computed(() => {
       // Check both progress state and sections state
       const fromProgress = this.completedLessons().has(lessonId);
       const fromSections = this.sections().some(section =>
@@ -164,6 +170,9 @@ export class LearningService {
       );
       return fromProgress || fromSections;
     });
+
+    this.lessonCompletedSignalCache.set(lessonId, completed);
+    return completed;
   };
 
   /** Get current lesson index in the flat list */
@@ -234,6 +243,7 @@ export class LearningService {
   loadCourse(courseId: string): void {
     // Clear lesson cache when switching courses
     this.lessonCache.clear();
+    this.lessonCompletedSignalCache.clear();
     this.currentCourseId = courseId;
 
     // Download-First: if course is downloaded, show local data instantly
