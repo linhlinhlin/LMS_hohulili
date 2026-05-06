@@ -42,6 +42,29 @@ import {
 
 type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
 
+interface InteractiveVideoFlowChoice {
+  id: string;
+  label: string;
+  metaLabel: string;
+  toneClass: string;
+}
+
+interface InteractiveVideoFlowNode {
+  id: string;
+  index: number;
+  type: InteractiveVideoInteractionType;
+  typeLabel: string;
+  title: string;
+  atSeconds: number;
+  timeLabel: string;
+  iconName: string;
+  nodeClass: string;
+  badgeClass: string;
+  choices: InteractiveVideoFlowChoice[];
+  required: boolean;
+  pause: boolean;
+}
+
 /**
  * Section Editor — inline panel replacing the old 25-input modal.
  *
@@ -632,6 +655,88 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                   </div>
                 </div>
 
+                @if (interactiveVideoFlowNodes().length > 0) {
+                  <div class="border-b border-slate-100 bg-slate-50/50 p-4">
+                    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <h5 class="text-sm font-semibold text-slate-900">Sơ đồ luồng</h5>
+                        <div class="mt-1 flex flex-wrap gap-1.5 text-[11px] font-semibold text-slate-500">
+                          <span class="rounded-full bg-white px-2 py-0.5 ring-1 ring-slate-200">{{ interactiveVideoFlowStats().total }} điểm</span>
+                          <span class="rounded-full bg-white px-2 py-0.5 ring-1 ring-slate-200">{{ interactiveVideoFlowStats().questions }} câu hỏi</span>
+                          <span class="rounded-full bg-white px-2 py-0.5 ring-1 ring-slate-200">{{ interactiveVideoFlowStats().branches }} rẽ nhánh</span>
+                          <span class="rounded-full bg-white px-2 py-0.5 ring-1 ring-slate-200">{{ interactiveVideoFlowStats().required }} bắt buộc</span>
+                        </div>
+                      </div>
+                      <span class="inline-flex items-center gap-1 rounded-full bg-[#0056D2]/5 px-2.5 py-1 text-xs font-semibold text-[#0056D2]">
+                        <lucide-icon name="layers" [size]="13"></lucide-icon>
+                        Timeline
+                      </span>
+                    </div>
+
+                    <div class="overflow-x-auto pb-1">
+                      <div class="flex min-w-max items-stretch gap-3">
+                        @for (node of interactiveVideoFlowNodes(); track node.id; let isLast = $last) {
+                          <div class="flex items-stretch gap-3">
+                            <div [class]="node.nodeClass">
+                              <div class="flex items-start justify-between gap-2">
+                                <div class="min-w-0">
+                                  <div class="flex items-center gap-1.5">
+                                    <span [class]="node.badgeClass">
+                                      <lucide-icon [name]="node.iconName" [size]="12"></lucide-icon>
+                                      {{ node.typeLabel }}
+                                    </span>
+                                    <span class="text-[11px] font-bold tabular-nums text-slate-400">#{{ node.index }}</span>
+                                  </div>
+                                  <p class="mt-2 line-clamp-2 text-sm font-semibold text-slate-900">{{ node.title }}</p>
+                                </div>
+                                <button type="button"
+                                  (click)="scrollInteractiveNodeIntoView(node.id)"
+                                  class="shrink-0 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-500 hover:border-[#0056D2]/40 hover:text-[#0056D2]">
+                                  Chỉnh
+                                </button>
+                              </div>
+
+                              <div class="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] font-medium text-slate-500">
+                                <span class="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 ring-1 ring-slate-200">
+                                  <lucide-icon name="clock" [size]="11"></lucide-icon>
+                                  {{ node.timeLabel }}
+                                </span>
+                                @if (node.pause) {
+                                  <span class="rounded-full bg-white px-2 py-0.5 ring-1 ring-slate-200">Tạm dừng</span>
+                                }
+                                @if (node.required) {
+                                  <span class="rounded-full bg-amber-50 px-2 py-0.5 text-amber-700 ring-1 ring-amber-200">Bắt buộc</span>
+                                }
+                              </div>
+
+                              @if (node.choices.length > 0) {
+                                <div class="mt-3 max-h-32 space-y-1 overflow-y-auto">
+                                  @for (choice of node.choices; track choice.id) {
+                                    <div [class]="choice.toneClass">
+                                      <span class="min-w-0 flex-1 truncate">{{ choice.label }}</span>
+                                      <span class="shrink-0 text-[10px] font-semibold">{{ choice.metaLabel }}</span>
+                                    </div>
+                                  }
+                                </div>
+                              } @else {
+                                <div class="mt-3 rounded-lg bg-white px-2.5 py-2 text-xs font-medium text-slate-500 ring-1 ring-slate-200">
+                                  Tiếp tục theo timeline
+                                </div>
+                              }
+                            </div>
+
+                            @if (!isLast) {
+                              <div class="flex w-8 items-center justify-center text-slate-300">
+                                <lucide-icon name="arrow-right" [size]="18"></lucide-icon>
+                              </div>
+                            }
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+
                 @if (svc.sectionInteractiveVideoTimeline().length === 0) {
                   <div class="px-4 py-5">
                     <div class="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-4 text-center">
@@ -662,7 +767,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                 } @else {
                   <div class="space-y-3 p-4">
                     @for (interaction of svc.sectionInteractiveVideoTimeline(); track interaction.id; let idx = $index) {
-                      <div class="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+                      <div [attr.id]="getInteractiveNodeDomId(interaction.id)" class="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
                         <div class="flex flex-wrap items-center gap-2">
                           <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#0056D2]/10 text-xs font-bold text-[#0056D2] tabular-nums">
                             {{ idx + 1 }}
@@ -1834,6 +1939,18 @@ export class SectionEditorComponent {
       this.svc.sectionInteractiveVideoTimeline(),
     ),
   );
+  readonly interactiveVideoFlowNodes = computed<InteractiveVideoFlowNode[]>(() =>
+    this.buildInteractiveVideoFlowNodes(this.svc.sectionInteractiveVideoTimeline()),
+  );
+  readonly interactiveVideoFlowStats = computed(() => {
+    const nodes = this.interactiveVideoFlowNodes();
+    return {
+      total: nodes.length,
+      branches: nodes.filter(node => node.type === 'branch').length,
+      questions: nodes.filter(node => node.type === 'single_choice').length,
+      required: nodes.filter(node => node.required).length,
+    };
+  });
   readonly isContentEmpty = computed(() => {
     const content = this.svc.sectionContent();
     if (!content) return true;
@@ -2506,6 +2623,122 @@ export class SectionEditorComponent {
       case 'hotspot': return 'Hotspot';
       default: return 'Điểm dừng';
     }
+  }
+
+  getInteractiveNodeDomId(interactionId: string): string {
+    return `interactive-node-${interactionId}`;
+  }
+
+  scrollInteractiveNodeIntoView(interactionId: string): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    document.getElementById(this.getInteractiveNodeDomId(interactionId))
+      ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  private buildInteractiveVideoFlowNodes(
+    timeline: InteractiveVideoInteraction[],
+  ): InteractiveVideoFlowNode[] {
+    const sorted = [...timeline].sort((a, b) => a.atSeconds - b.atSeconds);
+    const byId = new Map(sorted.map(interaction => [interaction.id, interaction]));
+
+    return sorted.map((interaction, index) => ({
+      id: interaction.id,
+      index: index + 1,
+      type: interaction.type,
+      typeLabel: this.getInteractiveTypeLabel(interaction.type),
+      title: interaction.title?.trim() || this.getInteractiveTypeLabel(interaction.type),
+      atSeconds: interaction.atSeconds,
+      timeLabel: this.formatInteractiveFlowTime(interaction.atSeconds),
+      iconName: this.getInteractiveFlowIconName(interaction.type),
+      nodeClass: this.getInteractiveFlowNodeClass(interaction.type),
+      badgeClass: this.getInteractiveFlowBadgeClass(interaction.type),
+      choices: this.buildInteractiveFlowChoices(interaction, byId),
+      required: interaction.required === true,
+      pause: interaction.pause !== false,
+    }));
+  }
+
+  private buildInteractiveFlowChoices(
+    interaction: InteractiveVideoInteraction,
+    byId: Map<string, InteractiveVideoInteraction>,
+  ): InteractiveVideoFlowChoice[] {
+    if (!this.isChoiceInteraction(interaction)) {
+      return [];
+    }
+
+    return (interaction.choices ?? []).map((choice, index) => {
+      const label = choice.label?.trim() || `Lựa chọn ${index + 1}`;
+
+      if (interaction.type === 'branch') {
+        const target = choice.targetInteractionId ? byId.get(choice.targetInteractionId) : null;
+        const missingTarget = Boolean(choice.targetInteractionId && !target);
+        return {
+          id: choice.id,
+          label,
+          metaLabel: missingTarget
+            ? 'Mất đích'
+            : target
+              ? `${this.formatInteractiveFlowTime(target.atSeconds)} · ${target.title?.trim() || this.getInteractiveTypeLabel(target.type)}`
+              : choice.targetTimeSeconds == null
+                ? 'Theo timeline'
+                : this.formatInteractiveFlowTime(choice.targetTimeSeconds),
+          toneClass: missingTarget
+            ? 'flex items-center gap-2 rounded-md bg-red-50 px-2 py-1 text-xs text-red-700 ring-1 ring-red-100'
+            : 'flex items-center gap-2 rounded-md bg-white px-2 py-1 text-xs text-slate-600 ring-1 ring-slate-200',
+        };
+      }
+
+      return {
+        id: choice.id,
+        label,
+        metaLabel: choice.isCorrect ? 'Đúng' : 'Nhiễu',
+        toneClass: choice.isCorrect
+          ? 'flex items-center gap-2 rounded-md bg-emerald-50 px-2 py-1 text-xs text-emerald-700 ring-1 ring-emerald-100'
+          : 'flex items-center gap-2 rounded-md bg-white px-2 py-1 text-xs text-slate-600 ring-1 ring-slate-200',
+      };
+    });
+  }
+
+  private getInteractiveFlowIconName(type: InteractiveVideoInteractionType): string {
+    switch (type) {
+      case 'single_choice': return 'help-circle';
+      case 'branch': return 'shuffle';
+      default: return 'pause';
+    }
+  }
+
+  private getInteractiveFlowNodeClass(type: InteractiveVideoInteractionType): string {
+    const base = 'w-64 rounded-xl border bg-white p-3 shadow-sm';
+    switch (type) {
+      case 'single_choice':
+        return `${base} border-sky-200`;
+      case 'branch':
+        return `${base} border-amber-200`;
+      default:
+        return `${base} border-slate-200`;
+    }
+  }
+
+  private getInteractiveFlowBadgeClass(type: InteractiveVideoInteractionType): string {
+    const base = 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold';
+    switch (type) {
+      case 'single_choice':
+        return `${base} bg-sky-50 text-sky-700`;
+      case 'branch':
+        return `${base} bg-amber-50 text-amber-700`;
+      default:
+        return `${base} bg-slate-100 text-slate-600`;
+    }
+  }
+
+  private formatInteractiveFlowTime(seconds: number | null | undefined): string {
+    const safeSeconds = this.toNonNegativeInteger(seconds ?? 0);
+    const minutes = Math.floor(safeSeconds / 60);
+    const rest = safeSeconds % 60;
+    return `${minutes}:${rest.toString().padStart(2, '0')}`;
   }
 
   private toNonNegativeInteger(value: unknown): number {
