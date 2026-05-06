@@ -194,11 +194,19 @@ export class CurriculumEditorService {
   }
 
   setInteractiveVideoEnabled(enabled: boolean): void {
+    if (enabled && this.sectionVideoType() === 'YOUTUBE') {
+      this.toast.error('Video tương tác hiện chỉ hỗ trợ video tải lên. YouTube chỉ dùng để nhúng và theo dõi tiến độ.');
+      return;
+    }
     this.sectionInteractiveVideoEnabled.set(enabled);
     this.markDirty();
   }
 
   addInteractiveVideoInteraction(type: InteractiveVideoInteractionType): void {
+    if (this.sectionVideoType() === 'YOUTUBE') {
+      this.toast.error('Hãy dùng video tải lên để thêm điểm dừng, câu hỏi hoặc rẽ nhánh.');
+      return;
+    }
     const next = createInteractiveVideoInteraction(this.sectionInteractiveVideoTimeline(), type);
     this.sectionInteractiveVideoTimeline.update(timeline => [...timeline, next]);
     this.sectionInteractiveVideoEnabled.set(true);
@@ -723,9 +731,20 @@ export class CurriculumEditorService {
       return true;
     }
 
+    if (this.sectionVideoType() === 'YOUTUBE') {
+      this.toast.error('Video YouTube chưa hỗ trợ điểm dừng, câu hỏi hoặc rẽ nhánh. Hãy tắt Video tương tác hoặc chuyển sang video tải lên.');
+      return false;
+    }
+
     const timeline = this.sectionInteractiveVideoTimeline();
     if (timeline.length === 0) {
       this.toast.error('Hãy thêm ít nhất một điểm tương tác hoặc tắt Video tương tác.');
+      return false;
+    }
+
+    const durationSeconds = this.sectionVideoDurationSec();
+    if (durationSeconds && timeline.some(interaction => interaction.atSeconds > durationSeconds)) {
+      this.toast.error('Có điểm tương tác nằm sau thời lượng video. Hãy chỉnh lại thời điểm.');
       return false;
     }
 
@@ -735,6 +754,27 @@ export class CurriculumEditorService {
     );
     if (invalidChoiceInteraction) {
       this.toast.error('Câu hỏi và rẽ nhánh cần ít nhất 2 lựa chọn có nội dung.');
+      return false;
+    }
+
+    const questionWithoutCorrectAnswer = timeline.find(interaction =>
+      interaction.type === 'single_choice'
+      && !(interaction.choices ?? []).some(choice => choice.isCorrect === true),
+    );
+    if (questionWithoutCorrectAnswer) {
+      this.toast.error('Mỗi câu hỏi cần một đáp án đúng.');
+      return false;
+    }
+
+    const interactionIds = new Set(timeline.map(interaction => interaction.id));
+    const branchWithMissingTarget = timeline.find(interaction =>
+      interaction.type === 'branch'
+      && (interaction.choices ?? []).some(choice =>
+        Boolean(choice.targetInteractionId) && !interactionIds.has(choice.targetInteractionId!),
+      ),
+    );
+    if (branchWithMissingTarget) {
+      this.toast.error('Có nhánh đang trỏ tới điểm tương tác không còn tồn tại.');
       return false;
     }
 
