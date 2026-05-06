@@ -22,7 +22,7 @@ import { QoETrackerService } from '../../../../core/services/qoe-tracker.service
 import { OfflineSyncService } from '../../../../core/services/offline-sync.service';
 import { HeartbeatTracker } from '../../services/heartbeat-tracker.service';
 import { WatchedSegmentsTracker } from '../../services/watched-segments-tracker.service';
-import { InteractiveVideoOverlayComponent } from './interactive-video-overlay.component';
+import { InteractiveVideoOverlayComponent } from '../../../../shared/blocks/video-block/interactive-video-overlay.component';
 import type {
   InteractiveVideoChoice,
   InteractiveVideoInteraction,

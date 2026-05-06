@@ -69,6 +69,7 @@ Supported initial interaction types:
 - Adaptive video player evaluates timeline interactions, pauses when needed, records events online, and queues them offline when browser storage is available.
 - Teacher authoring is available in Course Editor -> Curriculum -> VIDEO section -> "Video tương tác".
 - The authoring panel supports checkpoints, single-choice prompts, and time-based branch choices for Spec V1.
+- Teacher preview reuses the learner overlay inside the editor's video preview without recording learning events.
 - SSR route extraction is protected from partial `localStorage` shims.
 
 ## Non-Goals For This Slice
@@ -80,4 +81,4 @@ Supported initial interaction types:
 
 ## Next Phase
 
-Add teacher preview against the real lesson video, then import/export adapters for H5P/xAPI-compatible interchange.
+Add import/export adapters for H5P/xAPI-compatible interchange, richer interaction analytics, and advanced branching graph authoring.

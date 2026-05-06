@@ -10,6 +10,12 @@ import {
 } from '@angular/core';
 import { VideoAssetApi } from '../../../api/client/video-asset.api';
 import { firstValueFrom } from 'rxjs';
+import { InteractiveVideoOverlayComponent } from './interactive-video-overlay.component';
+import type {
+  InteractiveVideoChoice,
+  InteractiveVideoInteraction,
+  InteractiveVideoSpec,
+} from '../../../api/types/interactive-video.types';
 
 type ResolvedSource =
   | { kind: 'native'; url: string }
@@ -25,7 +31,7 @@ type ResolvedSource =
 @Component({
   selector: 'app-quiz-video-player',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [],
+  imports: [InteractiveVideoOverlayComponent],
   template: `
     <div class="relative w-full bg-black rounded-lg overflow-hidden"
          (click)="showQualityMenu() && showQualityMenu.set(false)">
@@ -39,6 +45,7 @@ type ResolvedSource =
         class="w-full"
         style="max-height: 400px;"
         [class.opacity-0]="isLoading() && !error() && !isProcessing()"
+        (timeupdate)="onTimeUpdate()"
         (error)="onVideoError()">
         Trình duyệt không hỗ trợ phát video.
       </video>
@@ -106,6 +113,14 @@ type ResolvedSource =
           </button>
         }
       </div>
+
+      @if (activeInteraction(); as interaction) {
+        <app-interactive-video-overlay
+          [interaction]="interaction"
+          [selectedChoiceId]="selectedChoiceId()"
+          (choiceSelected)="onInteractiveChoice($event)"
+          (continueRequested)="onInteractiveContinue()" />
+      }
     </div>
   `
 })
@@ -114,6 +129,7 @@ export class QuizVideoPlayerComponent {
 
   readonly videoAssetId = input<string | null>(null);
   readonly rawVideoUrl = input<string | null>(null);
+  readonly interactiveVideoSpec = input<InteractiveVideoSpec | null>(null);
 
   private readonly videoElement = viewChild<ElementRef<HTMLVideoElement>>('videoElement');
 
@@ -124,9 +140,13 @@ export class QuizVideoPlayerComponent {
   readonly showQualityMenu = signal(false);
   readonly isAutoQuality = signal(true);
   readonly availableQualities = signal<Array<{ height: number; bandwidth: number }>>([]);
+  readonly activeInteraction = signal<InteractiveVideoInteraction | null>(null);
+  readonly selectedChoiceId = signal<string | null>(null);
 
   private shakaPlayer: any = null;
   private loadToken = 0;
+  private readonly shownInteractionIds = new Set<string>();
+  private readonly completedInteractionIds = new Set<string>();
 
   constructor() {
     effect(() => {
@@ -138,6 +158,11 @@ export class QuizVideoPlayerComponent {
 
       // Trigger reload when inputs change
       void this.loadVideoSource(assetId, rawUrl);
+    });
+
+    effect(() => {
+      this.interactiveVideoSpec();
+      this.resetInteractiveRuntime();
     });
   }
 
@@ -155,12 +180,49 @@ export class QuizVideoPlayerComponent {
     }
   }
 
+  onTimeUpdate(): void {
+    const video = this.videoElement()?.nativeElement;
+    if (!video) {
+      return;
+    }
+    this.evaluateInteractiveTimeline(video);
+  }
+
+  onInteractiveChoice(choice: InteractiveVideoChoice): void {
+    const interaction = this.activeInteraction();
+    if (!interaction) {
+      return;
+    }
+
+    this.selectedChoiceId.set(choice.id);
+    if (interaction.type === 'branch') {
+      this.jumpToInteractiveChoiceTarget(choice);
+    }
+  }
+
+  onInteractiveContinue(): void {
+    const interaction = this.activeInteraction();
+    if (!interaction) {
+      return;
+    }
+
+    this.completedInteractionIds.add(interaction.id);
+    this.activeInteraction.set(null);
+    this.selectedChoiceId.set(null);
+
+    const video = this.videoElement()?.nativeElement;
+    if (video?.paused) {
+      void video.play().catch(() => {});
+    }
+  }
+
   private async loadVideoSource(assetId: string | null, rawUrl: string | null): Promise<void> {
     const videoEl = this.videoElement()?.nativeElement;
     if (!videoEl) return;
 
     const token = ++this.loadToken;
     await this.destroyShakaPlayer();
+    this.resetInteractiveRuntime();
     this.error.set(null);
     this.isProcessing.set(false);
     this.isLoading.set(true);
@@ -337,6 +399,77 @@ export class QuizVideoPlayerComponent {
       this.shakaPlayer?.configure?.('abr.enabled', true);
       this.isAutoQuality.set(true);
     }
+  }
+
+  private evaluateInteractiveTimeline(video: HTMLVideoElement): void {
+    if (this.activeInteraction()) {
+      return;
+    }
+
+    const spec = this.interactiveVideoSpec();
+    if (!spec || spec.enabled === false || !Array.isArray(spec.timeline) || spec.timeline.length === 0) {
+      return;
+    }
+
+    const currentTime = video.currentTime;
+    const dueInteraction = spec.timeline.find(interaction => {
+      if (this.completedInteractionIds.has(interaction.id)) {
+        return false;
+      }
+      if (currentTime < interaction.atSeconds) {
+        return false;
+      }
+      return interaction.endSeconds == null || currentTime <= interaction.endSeconds;
+    });
+
+    if (!dueInteraction) {
+      return;
+    }
+
+    this.activeInteraction.set(dueInteraction);
+    this.selectedChoiceId.set(null);
+    if (dueInteraction.pause !== false) {
+      video.pause();
+    }
+
+    this.shownInteractionIds.add(dueInteraction.id);
+  }
+
+  private jumpToInteractiveChoiceTarget(choice: InteractiveVideoChoice): void {
+    const video = this.videoElement()?.nativeElement;
+    if (!video) {
+      return;
+    }
+
+    const active = this.activeInteraction();
+    if (active) {
+      this.completedInteractionIds.add(active.id);
+    }
+    this.activeInteraction.set(null);
+    this.selectedChoiceId.set(null);
+
+    const targetTime = choice.targetTimeSeconds ?? this.resolveTargetInteractionTime(choice.targetInteractionId);
+    if (typeof targetTime === 'number' && Number.isFinite(targetTime)) {
+      video.currentTime = Math.max(0, targetTime);
+    }
+    void video.play().catch(() => {});
+  }
+
+  private resolveTargetInteractionTime(targetInteractionId: string | null | undefined): number | null {
+    if (!targetInteractionId) {
+      return null;
+    }
+
+    return this.interactiveVideoSpec()?.timeline
+      ?.find(interaction => interaction.id === targetInteractionId)
+      ?.atSeconds ?? null;
+  }
+
+  private resetInteractiveRuntime(): void {
+    this.activeInteraction.set(null);
+    this.selectedChoiceId.set(null);
+    this.shownInteractionIds.clear();
+    this.completedInteractionIds.clear();
   }
 
   private async destroyShakaPlayer(): Promise<void> {

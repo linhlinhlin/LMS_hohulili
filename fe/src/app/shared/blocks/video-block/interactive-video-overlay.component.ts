@@ -1,8 +1,14 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  output,
+} from '@angular/core';
 import type {
   InteractiveVideoChoice,
   InteractiveVideoInteraction,
-} from '../../../../api/types/interactive-video.types';
+} from '../../../api/types/interactive-video.types';
 
 @Component({
   selector: 'app-interactive-video-overlay',
@@ -19,7 +25,7 @@ import type {
           </span>
           @if (interaction().required) {
             <span class="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
-              Bat buoc
+              Bắt buộc
             </span>
           }
         </div>
@@ -68,7 +74,7 @@ import type {
             class="rounded-lg bg-[#0056D2] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#004BB5] disabled:cursor-not-allowed disabled:opacity-50"
             [disabled]="requiresChoiceBeforeContinue()"
             (click)="continueRequested.emit()">
-            Tiep tuc
+            Tiếp tục
           </button>
         </div>
       </section>
@@ -102,13 +108,13 @@ export class InteractiveVideoOverlayComponent {
   readonly interactionLabel = computed(() => {
     switch (this.interaction().type) {
       case 'single_choice':
-        return 'Cau hoi';
+        return 'Câu hỏi';
       case 'branch':
-        return 'Lua chon nhanh';
+        return 'Lựa chọn nhanh';
       case 'hotspot':
-        return 'Diem tuong tac';
+        return 'Điểm tương tác';
       default:
-        return 'Diem dung';
+        return 'Điểm dừng';
     }
   });
 }

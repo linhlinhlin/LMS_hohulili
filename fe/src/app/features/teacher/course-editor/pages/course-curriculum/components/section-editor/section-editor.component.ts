@@ -30,6 +30,7 @@ import type {
   InteractiveVideoInteraction,
   InteractiveVideoInteractionType,
 } from '../../../../../../../api/types/interactive-video.types';
+import { buildInteractiveVideoSpec } from '../../../../utils/interactive-video-authoring';
 
 type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
 
@@ -456,14 +457,16 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                     <div class="overflow-hidden rounded-xl border border-slate-200 bg-black" style="max-height: 280px; aspect-ratio: 16/9;">
                       <app-quiz-video-player
                         [videoAssetId]="svc.sectionVideoAssetId()"
-                        [rawVideoUrl]="svc.sectionVideoUrl()">
+                        [rawVideoUrl]="svc.sectionVideoUrl()"
+                        [interactiveVideoSpec]="interactiveVideoPreviewSpec()">
                       </app-quiz-video-player>
                     </div>
                   } @else if (svc.sectionVideoUrl()) {
-                    <div class="overflow-hidden rounded-xl border border-slate-200 bg-black">
-                      <video [src]="svc.sectionVideoUrl()" controls preload="metadata"
-                             controlsList="nodownload"
-                             class="w-full" style="max-height: 280px;"></video>
+                    <div class="overflow-hidden rounded-xl border border-slate-200 bg-black" style="max-height: 280px; aspect-ratio: 16/9;">
+                      <app-quiz-video-player
+                        [rawVideoUrl]="svc.sectionVideoUrl()"
+                        [interactiveVideoSpec]="interactiveVideoPreviewSpec()">
+                      </app-quiz-video-player>
                     </div>
                   }
 
@@ -1749,6 +1752,12 @@ export class SectionEditorComponent {
   readonly interactiveVideoTypes: InteractiveVideoInteractionType[] = ['checkpoint', 'single_choice', 'branch'];
   readonly lessonTemplates = LESSON_TEMPLATES;
   readonly showTemplatePicker = signal(true);
+  readonly interactiveVideoPreviewSpec = computed(() =>
+    buildInteractiveVideoSpec(
+      this.svc.sectionInteractiveVideoEnabled(),
+      this.svc.sectionInteractiveVideoTimeline(),
+    ),
+  );
   readonly isContentEmpty = computed(() => {
     const content = this.svc.sectionContent();
     if (!content) return true;
