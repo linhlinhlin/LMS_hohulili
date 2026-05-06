@@ -194,20 +194,14 @@ export class CurriculumEditorService {
   }
 
   setInteractiveVideoEnabled(enabled: boolean): void {
-    if (enabled && this.sectionVideoType() === 'YOUTUBE') {
-      this.toast.error('Video tương tác hiện chỉ hỗ trợ video tải lên. YouTube chỉ dùng để nhúng và theo dõi tiến độ.');
-      return;
-    }
     this.sectionInteractiveVideoEnabled.set(enabled);
     this.markDirty();
   }
 
   addInteractiveVideoInteraction(type: InteractiveVideoInteractionType): void {
-    if (this.sectionVideoType() === 'YOUTUBE') {
-      this.toast.error('Hãy dùng video tải lên để thêm điểm dừng, câu hỏi hoặc rẽ nhánh.');
-      return;
-    }
-    const next = createInteractiveVideoInteraction(this.sectionInteractiveVideoTimeline(), type);
+    const next = createInteractiveVideoInteraction(this.sectionInteractiveVideoTimeline(), type, {
+      durationSeconds: this.sectionVideoDurationSec(),
+    });
     this.sectionInteractiveVideoTimeline.update(timeline => [...timeline, next]);
     this.sectionInteractiveVideoEnabled.set(true);
     this.markDirty();
@@ -731,11 +725,6 @@ export class CurriculumEditorService {
       return true;
     }
 
-    if (this.sectionVideoType() === 'YOUTUBE') {
-      this.toast.error('Video YouTube chưa hỗ trợ điểm dừng, câu hỏi hoặc rẽ nhánh. Hãy tắt Video tương tác hoặc chuyển sang video tải lên.');
-      return false;
-    }
-
     const timeline = this.sectionInteractiveVideoTimeline();
     if (timeline.length === 0) {
       this.toast.error('Hãy thêm ít nhất một điểm tương tác hoặc tắt Video tương tác.');
@@ -743,8 +732,19 @@ export class CurriculumEditorService {
     }
 
     const durationSeconds = this.sectionVideoDurationSec();
-    if (durationSeconds && timeline.some(interaction => interaction.atSeconds > durationSeconds)) {
+    const maxInteractiveSeconds = durationSeconds
+      ? Math.max(0, Math.round(durationSeconds) - 1)
+      : null;
+    if (maxInteractiveSeconds != null && timeline.some(interaction => interaction.atSeconds > maxInteractiveSeconds)) {
       this.toast.error('Có điểm tương tác nằm sau thời lượng video. Hãy chỉnh lại thời điểm.');
+      return false;
+    }
+    if (maxInteractiveSeconds != null && timeline.some(interaction =>
+      (interaction.choices ?? []).some(choice =>
+        choice.targetTimeSeconds != null && choice.targetTimeSeconds > maxInteractiveSeconds,
+      ),
+    )) {
+      this.toast.error('Có nhánh rẽ tới thời điểm nằm sau thời lượng video. Hãy chỉnh lại điểm đích.');
       return false;
     }
 
