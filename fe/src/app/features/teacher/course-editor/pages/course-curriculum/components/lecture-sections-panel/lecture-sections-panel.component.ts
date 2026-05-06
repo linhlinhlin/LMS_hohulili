@@ -320,14 +320,18 @@ export class LectureSectionsPanelComponent {
         if (!section.content) return 'Chưa có nội dung';
         return this.stripHtml(section.content).slice(0, 80) || 'Chưa có nội dung';
       case 'VIDEO':
+      {
+        const interactionCount = section.interactiveVideoSpec?.timeline?.length ?? 0;
+        const suffix = interactionCount > 0 ? ` · ${interactionCount} tương tác` : '';
         if (section.videoAssetId) {
           const status = section.videoProcessingStatus;
           if (status === 'PROCESSING') return 'Đang xử lý video...';
           if (status === 'FAILED') return 'Xử lý video thất bại';
-          return 'Video đã tải lên';
+          return `Video đã tải lên${suffix}`;
         }
-        if (section.videoUrl) return 'Video từ URL';
-        return 'Chưa có video';
+        if (section.videoUrl) return `Video từ URL${suffix}`;
+        return interactionCount > 0 ? `${interactionCount} tương tác` : 'Chưa có video';
+      }
       case 'FILE':
         if (section.fileUrl) {
           const name = section.fileUrl.split('/').pop() || 'Tài liệu';

@@ -26,6 +26,10 @@ import { formatOfflineVideoProfileLabel, type OfflineVideoProfileDescriptor } fr
 import { QuizVideoPlayerComponent } from '../../../../../../../shared/blocks/video-block/quiz-video-player.component';
 import { BlockRendererComponent } from '../../../../../../../shared/blocks/block-renderer/block-renderer.component';
 import { formatDuration, formatResolution } from '../../../../../../../core/utils/video-probe.util';
+import type {
+  InteractiveVideoInteraction,
+  InteractiveVideoInteractionType,
+} from '../../../../../../../api/types/interactive-video.types';
 
 type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
 
@@ -540,6 +544,176 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                 }
               </div>
             }
+
+            <div class="rounded-xl border border-slate-200 bg-white">
+              <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+                <div class="flex min-w-0 items-center gap-2.5">
+                  <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0056D2]/10 text-[#0056D2]">
+                    <lucide-icon name="mouse-pointer-click" [size]="16"></lucide-icon>
+                  </div>
+                  <div class="min-w-0">
+                    <h4 class="text-sm font-semibold text-slate-900">Video tương tác</h4>
+                    <p class="text-xs text-slate-500">
+                      {{ svc.sectionInteractiveVideoInteractionCount() }} điểm tương tác
+                    </p>
+                  </div>
+                </div>
+                <label class="inline-flex cursor-pointer select-none items-center gap-2 text-sm font-semibold text-slate-700">
+                  <input type="checkbox"
+                    [ngModel]="svc.sectionInteractiveVideoEnabled()"
+                    (ngModelChange)="svc.setInteractiveVideoEnabled($event)"
+                    class="h-4 w-4 rounded text-[#0056D2] focus:ring-[#0056D2]" />
+                  Bật
+                </label>
+              </div>
+
+              @if (svc.sectionInteractiveVideoEnabled()) {
+                <div class="border-b border-slate-100 px-4 py-3">
+                  <div class="flex flex-wrap gap-2">
+                    <button type="button"
+                      (click)="svc.addInteractiveVideoInteraction('checkpoint')"
+                      class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
+                      <lucide-icon name="pause-circle" [size]="13"></lucide-icon>
+                      Điểm dừng
+                    </button>
+                    <button type="button"
+                      (click)="svc.addInteractiveVideoInteraction('single_choice')"
+                      class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
+                      <lucide-icon name="circle-help" [size]="13"></lucide-icon>
+                      Câu hỏi
+                    </button>
+                    <button type="button"
+                      (click)="svc.addInteractiveVideoInteraction('branch')"
+                      class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
+                      <lucide-icon name="git-branch" [size]="13"></lucide-icon>
+                      Rẽ nhánh
+                    </button>
+                  </div>
+                </div>
+
+                @if (svc.sectionInteractiveVideoTimeline().length === 0) {
+                  <div class="px-4 py-6 text-center">
+                    <lucide-icon name="list-plus" [size]="30" class="mx-auto text-slate-300"></lucide-icon>
+                    <p class="mt-2 text-sm font-medium text-slate-500">Chưa có điểm tương tác</p>
+                  </div>
+                } @else {
+                  <div class="space-y-3 p-4">
+                    @for (interaction of svc.sectionInteractiveVideoTimeline(); track interaction.id; let idx = $index) {
+                      <div class="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+                        <div class="flex flex-wrap items-center gap-2">
+                          <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#0056D2]/10 text-xs font-bold text-[#0056D2] tabular-nums">
+                            {{ idx + 1 }}
+                          </span>
+                          <div class="min-w-[10rem] flex-1">
+                            <select
+                              [ngModel]="interaction.type"
+                              (ngModelChange)="onInteractiveTypeChange(interaction.id, $event)"
+                              class="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm font-medium text-slate-700 focus:border-[#0056D2] focus:ring-[#0056D2]">
+                              @for (type of interactiveVideoTypes; track type) {
+                                <option [ngValue]="type">{{ getInteractiveTypeLabel(type) }}</option>
+                              }
+                            </select>
+                          </div>
+                          <div class="flex items-center gap-1.5">
+                            <label class="text-xs font-medium text-slate-500">Giây</label>
+                            <input type="number" min="0" step="1"
+                              [ngModel]="interaction.atSeconds"
+                              (ngModelChange)="onInteractiveTimeChange(interaction.id, $event)"
+                              class="w-24 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm tabular-nums focus:border-[#0056D2] focus:ring-[#0056D2]" />
+                          </div>
+                          <button type="button"
+                            (click)="svc.removeInteractiveVideoInteraction(interaction.id)"
+                            class="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600"
+                            aria-label="Xóa điểm tương tác">
+                            <lucide-icon name="trash-2" [size]="14"></lucide-icon>
+                          </button>
+                        </div>
+
+                        <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                          <div>
+                            <label class="mb-1.5 block text-xs font-medium text-slate-600">Tiêu đề</label>
+                            <input type="text"
+                              [ngModel]="interaction.title"
+                              (ngModelChange)="svc.updateInteractiveVideoInteraction(interaction.id, { title: $event })"
+                              class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-[#0056D2]" />
+                          </div>
+                          <div class="flex flex-wrap items-end gap-4">
+                            <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                              <input type="checkbox"
+                                [ngModel]="interaction.pause !== false"
+                                (ngModelChange)="svc.updateInteractiveVideoInteraction(interaction.id, { pause: $event })"
+                                class="h-4 w-4 rounded text-[#0056D2] focus:ring-[#0056D2]" />
+                              Tạm dừng
+                            </label>
+                            <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                              <input type="checkbox"
+                                [ngModel]="interaction.required === true"
+                                (ngModelChange)="svc.updateInteractiveVideoInteraction(interaction.id, { required: $event })"
+                                class="h-4 w-4 rounded text-[#0056D2] focus:ring-[#0056D2]" />
+                              Bắt buộc
+                            </label>
+                          </div>
+                        </div>
+
+                        <div class="mt-3">
+                          <label class="mb-1.5 block text-xs font-medium text-slate-600">Nội dung</label>
+                          <textarea rows="2"
+                            [ngModel]="interaction.body"
+                            (ngModelChange)="svc.updateInteractiveVideoInteraction(interaction.id, { body: $event })"
+                            class="w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-[#0056D2]"></textarea>
+                        </div>
+
+                        @if (isChoiceInteraction(interaction)) {
+                          <div class="mt-3 rounded-lg border border-slate-200 bg-white">
+                            <div class="flex items-center justify-between gap-2 border-b border-slate-100 px-3 py-2">
+                              <span class="text-xs font-semibold uppercase text-slate-500">Lựa chọn</span>
+                              <button type="button"
+                                (click)="svc.addInteractiveVideoChoice(interaction.id)"
+                                class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-[#0056D2] hover:bg-[#0056D2]/5">
+                                <lucide-icon name="plus" [size]="12"></lucide-icon>
+                                Thêm
+                              </button>
+                            </div>
+                            <div class="divide-y divide-slate-100">
+                              @for (choice of interaction.choices || []; track choice.id; let choiceIdx = $index) {
+                                <div class="grid gap-2 px-3 py-2 sm:grid-cols-[minmax(0,1fr)_7rem_auto]">
+                                  <input type="text"
+                                    [ngModel]="choice.label"
+                                    (ngModelChange)="svc.updateInteractiveVideoChoice(interaction.id, choice.id, { label: $event })"
+                                    class="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-[#0056D2]"
+                                    [attr.aria-label]="'Lựa chọn ' + (choiceIdx + 1)" />
+                                  @if (interaction.type === 'branch') {
+                                    <input type="number" min="0" step="1"
+                                      [ngModel]="choice.targetTimeSeconds ?? interaction.atSeconds"
+                                      (ngModelChange)="onInteractiveChoiceTargetChange(interaction.id, choice.id, $event)"
+                                      class="rounded-lg border border-slate-200 px-3 py-2 text-sm tabular-nums focus:border-[#0056D2] focus:ring-[#0056D2]"
+                                      aria-label="Giây đích" />
+                                  } @else {
+                                    <label class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-2 text-xs font-medium text-slate-600">
+                                      <input type="checkbox"
+                                        [ngModel]="choice.isCorrect === true"
+                                        (ngModelChange)="svc.updateInteractiveVideoChoice(interaction.id, choice.id, { isCorrect: $event })"
+                                        class="h-3.5 w-3.5 rounded text-[#0056D2] focus:ring-[#0056D2]" />
+                                      Đúng
+                                    </label>
+                                  }
+                                  <button type="button"
+                                    (click)="svc.removeInteractiveVideoChoice(interaction.id, choice.id)"
+                                    class="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600"
+                                    aria-label="Xóa lựa chọn">
+                                    <lucide-icon name="x" [size]="14"></lucide-icon>
+                                  </button>
+                                </div>
+                              }
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+              }
+            </div>
 
           </div>
         }
@@ -1572,6 +1746,7 @@ export class SectionEditorComponent {
   readonly editorUploadFn = createTiptapUploadFn(this.http, environment.apiUrl, this.presignedUpload ?? undefined);
   readonly editorVideoUploadFn = this.presignedUpload ? createTiptapVideoUploadFn(this.presignedUpload) : null;
   readonly quizTypes: SectionQuizAssessmentType[] = ['PRACTICE', 'ASSESSMENT', 'EXAM'];
+  readonly interactiveVideoTypes: InteractiveVideoInteractionType[] = ['checkpoint', 'single_choice', 'branch'];
   readonly lessonTemplates = LESSON_TEMPLATES;
   readonly showTemplatePicker = signal(true);
   readonly isContentEmpty = computed(() => {
@@ -2133,6 +2308,47 @@ export class SectionEditorComponent {
     this.svc.sectionVideoUrl.set(url);
     this.svc.sectionVideoType.set('YOUTUBE');
     this.svc.markDirty();
+  }
+
+  onInteractiveTypeChange(
+    interactionId: string,
+    type: InteractiveVideoInteractionType,
+  ): void {
+    this.svc.updateInteractiveVideoInteractionType(interactionId, type);
+  }
+
+  onInteractiveTimeChange(interactionId: string, value: unknown): void {
+    this.svc.updateInteractiveVideoInteraction(interactionId, {
+      atSeconds: this.toNonNegativeInteger(value),
+    });
+  }
+
+  onInteractiveChoiceTargetChange(
+    interactionId: string,
+    choiceId: string,
+    value: unknown,
+  ): void {
+    this.svc.updateInteractiveVideoChoice(interactionId, choiceId, {
+      targetTimeSeconds: this.toNonNegativeInteger(value),
+    });
+  }
+
+  isChoiceInteraction(interaction: InteractiveVideoInteraction): boolean {
+    return interaction.type === 'single_choice' || interaction.type === 'branch';
+  }
+
+  getInteractiveTypeLabel(type: InteractiveVideoInteractionType): string {
+    switch (type) {
+      case 'single_choice': return 'Câu hỏi';
+      case 'branch': return 'Rẽ nhánh';
+      case 'hotspot': return 'Hotspot';
+      default: return 'Điểm dừng';
+    }
+  }
+
+  private toNonNegativeInteger(value: unknown): number {
+    const next = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(next) ? Math.max(0, Math.round(next)) : 0;
   }
 
   getYouTubeEmbedUrl(videoId: string): SafeResourceUrl {

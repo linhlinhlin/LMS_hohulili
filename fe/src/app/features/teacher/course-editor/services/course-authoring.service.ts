@@ -5,6 +5,7 @@ import { map, filter } from 'rxjs/operators';
 import { environment } from '../../../../../environments/environment';
 import { PresignedUploadService, UploadEvent } from '../../../../core/services/presigned-upload.service';
 import type { OfflineVideoProfileDescriptor, VideoSourceKind } from '../../../../core/models/video-quality';
+import type { InteractiveVideoSpec } from '../../../../api/types/interactive-video.types';
 
 export type UploadProgressEvent =
   | { type: 'progress'; progress: number }
@@ -23,6 +24,7 @@ export interface SectionDraftDTO { // Renamed from TopicDraftDTO
     videoUrl?: string;
     videoType?: 'YOUTUBE' | 'CLOUDFLARE';
     streamVideoUid?: string;
+    interactiveVideoSpec?: InteractiveVideoSpec | null;
     fileUrl?: string;
     previewPdfUrl?: string;
     previewStatus?: 'PROCESSING' | 'READY' | 'FAILED' | null;
@@ -220,6 +222,7 @@ interface ChapterResponse { // Was SectionWithLessons
             videoUrl?: string;
             videoType?: 'YOUTUBE' | 'CLOUDFLARE';
             streamVideoUid?: string;
+            interactiveVideoSpec?: InteractiveVideoSpec | null;
             fileUrl?: string; // [NEW] For FILE type sections - SOTA 2025
             duration?: number;
             orderIndex: number;
@@ -249,6 +252,7 @@ interface ChapterResponse { // Was SectionWithLessons
             videoUrl?: string;
             videoType?: 'YOUTUBE' | 'CLOUDFLARE';
             streamVideoUid?: string;
+            interactiveVideoSpec?: InteractiveVideoSpec | null;
             fileUrl?: string;
             duration?: number;
             orderIndex: number;
@@ -325,6 +329,7 @@ export class CourseAuthoringService {
                             videoUrl: t.videoUrl,
                             videoType: t.videoType,
                             streamVideoUid: t.streamVideoUid,
+                            interactiveVideoSpec: t.interactiveVideoSpec ?? null,
                             fileUrl: t.fileUrl,
                             previewPdfUrl: t.previewPdfUrl,
                             previewStatus: t.previewStatus,

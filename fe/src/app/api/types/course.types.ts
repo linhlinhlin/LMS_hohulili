@@ -1,5 +1,7 @@
 export type DeliveryMode = 'SELF_PACED' | 'INSTRUCTOR_LED';
 
+import type { InteractiveVideoSpec } from './interactive-video.types';
+
 // Course Category (2-level hierarchy)
 export interface CourseCategoryDTO {
   id: string;
@@ -144,7 +146,7 @@ export interface SectionSummary {
   duration?: number;
   orderIndex: number;
   isRequired?: boolean;
-  interactiveVideoSpec?: import('./interactive-video.types').InteractiveVideoSpec | null;
+  interactiveVideoSpec?: InteractiveVideoSpec | null;
   availableOfflineProfiles?: Array<{
     id: 'SAVER' | 'STANDARD' | 'HIGH' | 'ORIGINAL' | string;
     label: string;
@@ -266,6 +268,7 @@ export interface CreateSectionRequest {
   videoUrl?: string;
   videoType?: 'YOUTUBE' | 'CLOUDFLARE' | 'ADAPTIVE_R2' | string;
   streamVideoUid?: string;
+  interactiveVideoSpec?: InteractiveVideoSpec | null;
   duration?: number;
   orderIndex?: number;
   isRequired?: boolean;
@@ -279,6 +282,7 @@ export interface UpdateSectionRequest {
   videoUrl?: string;
   videoType?: 'YOUTUBE' | 'CLOUDFLARE' | 'ADAPTIVE_R2' | string;
   streamVideoUid?: string;
+  interactiveVideoSpec?: InteractiveVideoSpec | null;
   duration?: number;
   orderIndex?: number;
   isRequired?: boolean;
@@ -297,6 +301,7 @@ export interface SectionDetail { // New L3 Section
   videoType?: 'YOUTUBE' | 'CLOUDFLARE' | 'ADAPTIVE_R2' | string;
   streamVideoUid?: string;
   cfObjectKey?: string;
+  interactiveVideoSpec?: InteractiveVideoSpec | null;
   fileUrl: string;
   duration: number;
   orderIndex: number;

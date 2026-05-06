@@ -67,11 +67,12 @@ Supported initial interaction types:
 - Backend publication snapshots pass `interactiveVideoSpec` from section data to learner responses.
 - Frontend API, learning model, offline section model, and download mapping carry the spec.
 - Adaptive video player evaluates timeline interactions, pauses when needed, records events online, and queues them offline when browser storage is available.
+- Teacher authoring is available in Course Editor -> Curriculum -> VIDEO section -> "Video tương tác".
+- The authoring panel supports checkpoints, single-choice prompts, and time-based branch choices for Spec V1.
 - SSR route extraction is protected from partial `localStorage` shims.
 
 ## Non-Goals For This Slice
 
-- Full teacher authoring UI.
 - H5P import/export.
 - Quiz-grade integration.
 - Advanced visual novel state graphs.
@@ -79,4 +80,4 @@ Supported initial interaction types:
 
 ## Next Phase
 
-Build a teacher-facing authoring panel for `InteractiveVideoSpec v1`, with validation and preview against the real lesson video.
+Add teacher preview against the real lesson video, then import/export adapters for H5P/xAPI-compatible interchange.

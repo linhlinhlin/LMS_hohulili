@@ -17,7 +17,19 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import type { OfflineVideoProfileDescriptor } from '../../../../core/models/video-quality';
 import type { ApiResponse } from '../../../../api/types/common.types';
+import type {
+  InteractiveVideoChoice,
+  InteractiveVideoInteraction,
+  InteractiveVideoInteractionType,
+} from '../../../../api/types/interactive-video.types';
 import { stripCurriculumPrefix } from '../utils/curriculum-labels';
+import {
+  buildInteractiveVideoSpec,
+  choiceTypeNeedsChoices,
+  createInteractiveVideoChoice,
+  createInteractiveVideoInteraction,
+  normalizeInteractiveVideoSpec,
+} from '../utils/interactive-video-authoring';
 import {
   probeVideoFile,
   estimateProcessingSeconds,
@@ -93,6 +105,13 @@ export class CurriculumEditorService {
   readonly sectionVideoFileSize = signal<number>(0);
   readonly sectionVideoErrorDetail = signal<string | null>(null);
   readonly sectionVideoError = signal<UploadErrorInfo | null>(null);
+
+  // Interactive video authoring
+  readonly sectionInteractiveVideoEnabled = signal(false);
+  readonly sectionInteractiveVideoTimeline = signal<InteractiveVideoInteraction[]>([]);
+  readonly sectionInteractiveVideoInteractionCount = computed(
+    () => this.sectionInteractiveVideoTimeline().length,
+  );
 
   // Local probe metadata (client-side, before/during upload)
   readonly sectionVideoDurationSec = signal<number | null>(null);
@@ -174,6 +193,129 @@ export class CurriculumEditorService {
     this.store.markUnsaved();
   }
 
+  setInteractiveVideoEnabled(enabled: boolean): void {
+    this.sectionInteractiveVideoEnabled.set(enabled);
+    this.markDirty();
+  }
+
+  addInteractiveVideoInteraction(type: InteractiveVideoInteractionType): void {
+    const next = createInteractiveVideoInteraction(this.sectionInteractiveVideoTimeline(), type);
+    this.sectionInteractiveVideoTimeline.update(timeline => [...timeline, next]);
+    this.sectionInteractiveVideoEnabled.set(true);
+    this.markDirty();
+  }
+
+  updateInteractiveVideoInteraction(
+    interactionId: string,
+    patch: Partial<InteractiveVideoInteraction>,
+  ): void {
+    this.sectionInteractiveVideoTimeline.update(timeline => timeline.map(interaction => {
+      if (interaction.id !== interactionId) {
+        return interaction;
+      }
+      return {
+        ...interaction,
+        ...patch,
+        atSeconds: patch.atSeconds == null
+          ? interaction.atSeconds
+          : this.toNonNegativeInteger(patch.atSeconds),
+        endSeconds: patch.endSeconds === undefined
+          ? interaction.endSeconds
+          : patch.endSeconds === null
+            ? null
+            : this.toNonNegativeInteger(patch.endSeconds),
+      };
+    }));
+    this.markDirty();
+  }
+
+  updateInteractiveVideoInteractionType(
+    interactionId: string,
+    type: InteractiveVideoInteractionType,
+  ): void {
+    this.sectionInteractiveVideoTimeline.update(timeline => timeline.map(interaction => {
+      if (interaction.id !== interactionId) {
+        return interaction;
+      }
+      return {
+        ...interaction,
+        type,
+        choices: choiceTypeNeedsChoices(type)
+          ? (interaction.choices?.length ? interaction.choices : [
+              createInteractiveVideoChoice(0),
+              createInteractiveVideoChoice(1),
+            ])
+          : [],
+        hotspots: [],
+      };
+    }));
+    this.markDirty();
+  }
+
+  removeInteractiveVideoInteraction(interactionId: string): void {
+    this.sectionInteractiveVideoTimeline.update(
+      timeline => timeline.filter(interaction => interaction.id !== interactionId),
+    );
+    this.markDirty();
+  }
+
+  addInteractiveVideoChoice(interactionId: string): void {
+    this.sectionInteractiveVideoTimeline.update(timeline => timeline.map(interaction => {
+      if (interaction.id !== interactionId) {
+        return interaction;
+      }
+      const choices = interaction.choices ?? [];
+      return {
+        ...interaction,
+        choices: [...choices, createInteractiveVideoChoice(choices.length)],
+      };
+    }));
+    this.markDirty();
+  }
+
+  updateInteractiveVideoChoice(
+    interactionId: string,
+    choiceId: string,
+    patch: Partial<InteractiveVideoChoice>,
+  ): void {
+    this.sectionInteractiveVideoTimeline.update(timeline => timeline.map(interaction => {
+      if (interaction.id !== interactionId) {
+        return interaction;
+      }
+      const choices = (interaction.choices ?? []).map(choice => {
+        if (choice.id !== choiceId) {
+          return patch.isCorrect === true && interaction.type === 'single_choice'
+            ? { ...choice, isCorrect: false }
+            : choice;
+        }
+        return {
+          ...choice,
+          ...patch,
+          targetTimeSeconds: patch.targetTimeSeconds === undefined
+            ? choice.targetTimeSeconds
+            : patch.targetTimeSeconds === null
+              ? null
+              : this.toNonNegativeInteger(patch.targetTimeSeconds),
+        };
+      });
+      return { ...interaction, choices };
+    }));
+    this.markDirty();
+  }
+
+  removeInteractiveVideoChoice(interactionId: string, choiceId: string): void {
+    this.sectionInteractiveVideoTimeline.update(timeline => timeline.map(interaction => {
+      if (interaction.id !== interactionId) {
+        return interaction;
+      }
+      return {
+        ...interaction,
+        choices: (interaction.choices ?? []).filter(choice => choice.id !== choiceId),
+      };
+    }));
+    this.markDirty();
+  }
+
   // ── Section CRUD ─────────────────────────────────────────────────────
 
   async saveSection(lessonId: string, courseId: string): Promise<boolean> {
@@ -187,6 +329,10 @@ export class CurriculumEditorService {
 
     if (type === 'VIDEO' && !this.sectionVideoAssetId() && !this.sectionVideoUrl() && !this.selectedSectionVideoFile()) {
       this.toast.error('Mục video cần một video. Hãy tải lên hoặc nhập URL.');
+      return false;
+    }
+
+    if (type === 'VIDEO' && !this.validateInteractiveVideoAuthoring()) {
       return false;
     }
 
@@ -229,6 +375,7 @@ export class CurriculumEditorService {
             videoUrl: created.videoUrl || payload['videoUrl'],
             videoType: created.videoType || payload['videoType'],
             streamVideoUid: created.streamVideoUid || payload['streamVideoUid'],
+            interactiveVideoSpec: created.interactiveVideoSpec ?? payload['interactiveVideoSpec'],
             fileUrl: created.fileUrl,
             orderIndex: created.orderIndex ?? 0,
             isRequired: created.isRequired ?? payload['isRequired'] ?? false,
@@ -253,6 +400,7 @@ export class CurriculumEditorService {
           videoUrl: (beData['videoUrl'] as string) ?? payload['videoUrl'],
           videoType: (beData['videoType'] as string) ?? payload['videoType'],
           streamVideoUid: (beData['streamVideoUid'] as string) ?? payload['streamVideoUid'],
+          interactiveVideoSpec: beData['interactiveVideoSpec'] ?? payload['interactiveVideoSpec'],
           isRequired: (beData['isRequired'] as boolean) ?? payload['isRequired'] ?? false,
           completionThreshold: (beData['completionThreshold'] as number) ?? payload['completionThreshold'],
           quizData: beData['quizData'] ?? payload['quizData'],
@@ -570,6 +718,34 @@ export class CurriculumEditorService {
 
   // ── Internal ─────────────────────────────────────────────────────────
 
+  private validateInteractiveVideoAuthoring(): boolean {
+    if (!this.sectionInteractiveVideoEnabled()) {
+      return true;
+    }
+
+    const timeline = this.sectionInteractiveVideoTimeline();
+    if (timeline.length === 0) {
+      this.toast.error('Hãy thêm ít nhất một điểm tương tác hoặc tắt Video tương tác.');
+      return false;
+    }
+
+    const invalidChoiceInteraction = timeline.find(interaction =>
+      choiceTypeNeedsChoices(interaction.type)
+      && (interaction.choices?.filter(choice => choice.label.trim()).length ?? 0) < 2,
+    );
+    if (invalidChoiceInteraction) {
+      this.toast.error('Câu hỏi và rẽ nhánh cần ít nhất 2 lựa chọn có nội dung.');
+      return false;
+    }
+
+    return true;
+  }
+
+  private toNonNegativeInteger(value: unknown): number {
+    const next = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(next) ? Math.max(0, Math.round(next)) : 0;
+  }
+
   private buildSectionPayload(type: SectionEditorType): Record<string, any> {
     const payload: Record<string, any> = {
       title: stripCurriculumPrefix(this.sectionTitle().trim(), 'section'),
@@ -585,6 +761,10 @@ export class CurriculumEditorService {
       payload['videoType'] = this.sectionVideoType();
       payload['streamVideoUid'] = this.sectionStreamVideoUid();
       payload['completionThreshold'] = this.sectionCompletionThreshold();
+      payload['interactiveVideoSpec'] = buildInteractiveVideoSpec(
+        this.sectionInteractiveVideoEnabled(),
+        this.sectionInteractiveVideoTimeline(),
+      );
     } else if (type === 'QUIZ') {
       payload['quizData'] = {
         quizType: this.sectionQuizType(),
@@ -617,6 +797,11 @@ export class CurriculumEditorService {
     this.sectionVideoUrl.set(section.videoUrl || '');
     this.sectionVideoType.set(section.videoType ?? null);
     this.sectionStreamVideoUid.set(section.streamVideoUid ?? null);
+    const interactiveSpec = normalizeInteractiveVideoSpec(section.interactiveVideoSpec);
+    this.sectionInteractiveVideoEnabled.set(
+      interactiveSpec?.enabled === true || (interactiveSpec?.timeline.length ?? 0) > 0,
+    );
+    this.sectionInteractiveVideoTimeline.set(interactiveSpec?.timeline ?? []);
     this.selectedSectionVideoFile.set(null);
     // Reset local-only signals when hydrating from server data.
     this.sectionVideoLocalPoster.set(null);
@@ -723,6 +908,8 @@ export class CurriculumEditorService {
     this.sectionVideoUrl.set('');
     this.sectionVideoType.set(null);
     this.sectionStreamVideoUid.set(null);
+    this.sectionInteractiveVideoEnabled.set(false);
+    this.sectionInteractiveVideoTimeline.set([]);
     this.selectedSectionVideoFile.set(null);
     this.sectionVideoUploadProgress.set(0);
     this.sectionVideoIsUploading.set(false);
