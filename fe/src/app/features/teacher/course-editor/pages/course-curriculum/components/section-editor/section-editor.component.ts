@@ -560,7 +560,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
               <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
                 <div class="flex min-w-0 items-center gap-2.5">
                   <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0056D2]/10 text-[#0056D2]">
-                    <lucide-icon name="mouse-pointer-click" [size]="16"></lucide-icon>
+                    <lucide-icon name="mouse-pointer-2" [size]="16"></lucide-icon>
                   </div>
                   <div class="min-w-0">
                     <h4 class="text-sm font-semibold text-slate-900">Video tương tác</h4>
