@@ -580,56 +580,84 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
 
               @if (svc.sectionInteractiveVideoEnabled()) {
                 <div class="border-b border-slate-100 px-4 py-3">
-                  <div class="flex flex-wrap gap-2">
-                    <button type="button"
-                      (click)="svc.addInteractiveVideoInteraction('checkpoint')"
-                      class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
-                      <lucide-icon name="pause" [size]="13"></lucide-icon>
-                      Điểm dừng
-                    </button>
-                    <button type="button"
-                      (click)="svc.addInteractiveVideoInteraction('single_choice')"
-                      class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
-                      <lucide-icon name="help-circle" [size]="13"></lucide-icon>
-                      Câu hỏi
-                    </button>
-                    <button type="button"
-                      (click)="svc.addInteractiveVideoInteraction('branch')"
-                      class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
-                      <lucide-icon name="shuffle" [size]="13"></lucide-icon>
-                      Rẽ nhánh
-                    </button>
-                    <input #interactiveImportInput type="file"
-                      accept="application/json,.json,.h5p,application/h5p,application/zip"
-                      class="hidden"
-                      (change)="onInteractiveImportSelected($event)" />
-                    <button type="button"
-                      (click)="interactiveImportInput.click()"
-                      class="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
-                      <lucide-icon name="upload" [size]="13"></lucide-icon>
-                      Nhập JSON/H5P
-                    </button>
-                    <button type="button"
-                      (click)="exportInteractiveVideoJson()"
-                      [disabled]="!interactiveVideoPreviewSpec()"
-                      class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5 disabled:cursor-not-allowed disabled:opacity-50">
-                      <lucide-icon name="download" [size]="13"></lucide-icon>
-                      Xuất JSON
-                    </button>
-                    <button type="button"
-                      (click)="exportInteractiveVideoH5P()"
-                      [disabled]="!interactiveVideoPreviewSpec()"
-                      class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5 disabled:cursor-not-allowed disabled:opacity-50">
-                      <lucide-icon name="archive" [size]="13"></lucide-icon>
-                      Xuất H5P
-                    </button>
+                  <div class="flex flex-col gap-3">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="mr-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Tạo trực tiếp</span>
+                      <button type="button"
+                        (click)="svc.addInteractiveVideoInteraction('checkpoint')"
+                        class="inline-flex items-center gap-1.5 rounded-lg bg-[#0056D2] px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-[#004BB5]">
+                        <lucide-icon name="pause" [size]="13"></lucide-icon>
+                        Thêm điểm dừng
+                      </button>
+                      <button type="button"
+                        (click)="svc.addInteractiveVideoInteraction('single_choice')"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-[#0056D2]/30 bg-[#0056D2]/5 px-3 py-1.5 text-xs font-semibold text-[#0056D2] hover:bg-[#0056D2]/10">
+                        <lucide-icon name="help-circle" [size]="13"></lucide-icon>
+                        Thêm câu hỏi
+                      </button>
+                      <button type="button"
+                        (click)="svc.addInteractiveVideoInteraction('branch')"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-[#0056D2]/30 bg-[#0056D2]/5 px-3 py-1.5 text-xs font-semibold text-[#0056D2] hover:bg-[#0056D2]/10">
+                        <lucide-icon name="shuffle" [size]="13"></lucide-icon>
+                        Thêm rẽ nhánh
+                      </button>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+                      <span class="mr-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Tệp H5P/JSON</span>
+                      <input #interactiveImportInput type="file"
+                        accept="application/json,.json,.h5p,application/h5p,application/zip"
+                        class="hidden"
+                        (change)="onInteractiveImportSelected($event)" />
+                      <button type="button"
+                        (click)="interactiveImportInput.click()"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
+                        <lucide-icon name="upload" [size]="13"></lucide-icon>
+                        Nhập từ file
+                      </button>
+                      <button type="button"
+                        (click)="exportInteractiveVideoJson()"
+                        [disabled]="!interactiveVideoPreviewSpec()"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5 disabled:cursor-not-allowed disabled:opacity-50">
+                        <lucide-icon name="download" [size]="13"></lucide-icon>
+                        Xuất JSON
+                      </button>
+                      <button type="button"
+                        (click)="exportInteractiveVideoH5P()"
+                        [disabled]="!interactiveVideoPreviewSpec()"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5 disabled:cursor-not-allowed disabled:opacity-50">
+                        <lucide-icon name="archive" [size]="13"></lucide-icon>
+                        Xuất H5P
+                      </button>
+                    </div>
                   </div>
                 </div>
 
                 @if (svc.sectionInteractiveVideoTimeline().length === 0) {
-                  <div class="px-4 py-6 text-center">
-                    <lucide-icon name="plus-circle" [size]="30" class="mx-auto text-slate-300"></lucide-icon>
-                    <p class="mt-2 text-sm font-medium text-slate-500">Chưa có điểm tương tác</p>
+                  <div class="px-4 py-5">
+                    <div class="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-4 text-center">
+                      <lucide-icon name="plus-circle" [size]="30" class="mx-auto text-slate-300"></lucide-icon>
+                      <p class="mt-2 text-sm font-semibold text-slate-600">Chưa có điểm tương tác</p>
+                      <div class="mt-4 grid gap-2 sm:grid-cols-3">
+                        <button type="button"
+                          (click)="svc.addInteractiveVideoInteraction('checkpoint')"
+                          class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
+                          <lucide-icon name="pause" [size]="13"></lucide-icon>
+                          Điểm dừng
+                        </button>
+                        <button type="button"
+                          (click)="svc.addInteractiveVideoInteraction('single_choice')"
+                          class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
+                          <lucide-icon name="help-circle" [size]="13"></lucide-icon>
+                          Câu hỏi
+                        </button>
+                        <button type="button"
+                          (click)="svc.addInteractiveVideoInteraction('branch')"
+                          class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
+                          <lucide-icon name="shuffle" [size]="13"></lucide-icon>
+                          Rẽ nhánh
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 } @else {
                   <div class="space-y-3 p-4">
@@ -650,11 +678,12 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                             </select>
                           </div>
                           <div class="flex items-center gap-1.5">
-                            <label class="text-xs font-medium text-slate-500">Giây</label>
+                            <label class="text-xs font-medium text-slate-500">Thời điểm</label>
                             <input type="number" min="0" step="1"
                               [ngModel]="interaction.atSeconds"
                               (ngModelChange)="onInteractiveTimeChange(interaction.id, $event)"
                               class="w-24 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm tabular-nums focus:border-[#0056D2] focus:ring-[#0056D2]" />
+                            <span class="text-xs font-medium text-slate-400">giây</span>
                           </div>
                           <button type="button"
                             (click)="svc.removeInteractiveVideoInteraction(interaction.id)"
@@ -670,6 +699,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                             <input type="text"
                               [ngModel]="interaction.title"
                               (ngModelChange)="svc.updateInteractiveVideoInteraction(interaction.id, { title: $event })"
+                              placeholder="Tiêu đề hiển thị trên video"
                               class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-[#0056D2]" />
                           </div>
                           <div class="flex flex-wrap items-end gap-4">
@@ -678,14 +708,14 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                                 [ngModel]="interaction.pause !== false"
                                 (ngModelChange)="svc.updateInteractiveVideoInteraction(interaction.id, { pause: $event })"
                                 class="h-4 w-4 rounded text-[#0056D2] focus:ring-[#0056D2]" />
-                              Tạm dừng
+                              Tạm dừng video
                             </label>
                             <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-700">
                               <input type="checkbox"
                                 [ngModel]="interaction.required === true"
                                 (ngModelChange)="svc.updateInteractiveVideoInteraction(interaction.id, { required: $event })"
                                 class="h-4 w-4 rounded text-[#0056D2] focus:ring-[#0056D2]" />
-                              Bắt buộc
+                              Bắt buộc trả lời
                             </label>
                           </div>
                         </div>
@@ -695,6 +725,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                           <textarea rows="2"
                             [ngModel]="interaction.body"
                             (ngModelChange)="svc.updateInteractiveVideoInteraction(interaction.id, { body: $event })"
+                            placeholder="Nội dung hiển thị cho học viên"
                             class="w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-[#0056D2]"></textarea>
                         </div>
 
@@ -715,12 +746,14 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                                   <input type="text"
                                     [ngModel]="choice.label"
                                     (ngModelChange)="svc.updateInteractiveVideoChoice(interaction.id, choice.id, { label: $event })"
+                                    placeholder="Nội dung lựa chọn"
                                     class="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-[#0056D2]"
                                     [attr.aria-label]="'Lựa chọn ' + (choiceIdx + 1)" />
                                   @if (interaction.type === 'branch') {
                                     <input type="number" min="0" step="1"
                                       [ngModel]="choice.targetTimeSeconds ?? interaction.atSeconds"
                                       (ngModelChange)="onInteractiveChoiceTargetChange(interaction.id, choice.id, $event)"
+                                      placeholder="Giây đích"
                                       class="rounded-lg border border-slate-200 px-3 py-2 text-sm tabular-nums focus:border-[#0056D2] focus:ring-[#0056D2]"
                                       aria-label="Giây đích" />
                                     <select
@@ -739,7 +772,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                                         [ngModel]="choice.isCorrect === true"
                                         (ngModelChange)="svc.updateInteractiveVideoChoice(interaction.id, choice.id, { isCorrect: $event })"
                                         class="h-3.5 w-3.5 rounded text-[#0056D2] focus:ring-[#0056D2]" />
-                                      Đúng
+                                      Đáp án đúng
                                     </label>
                                   }
                                   <button type="button"
