@@ -9,6 +9,7 @@ import {
   input,
   output,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
@@ -207,14 +208,12 @@ export class AdaptiveVideoPlayerComponent {
         return;
       }
 
-      this.sourceLoadToken.update((value) => value + 1);
-      void this.loadVideoSource(this.sourceLoadToken());
+      void this.loadVideoSource(this.nextSourceLoadToken());
     });
   }
 
   async retry(): Promise<void> {
-    this.sourceLoadToken.update((value) => value + 1);
-    await this.loadVideoSource(this.sourceLoadToken());
+    await this.loadVideoSource(this.nextSourceLoadToken());
   }
 
   async ngOnDestroy(): Promise<void> {
@@ -323,6 +322,14 @@ export class AdaptiveVideoPlayerComponent {
       this.error.set(error instanceof Error ? error.message : 'Không thể chuẩn bị video.');
       this.isLoading.set(false);
     }
+  }
+
+  private nextSourceLoadToken(): number {
+    return untracked(() => {
+      const nextToken = this.sourceLoadToken() + 1;
+      this.sourceLoadToken.set(nextToken);
+      return nextToken;
+    });
   }
 
   private async resolveVideoSource(): Promise<ResolvedVideoSource | null> {
