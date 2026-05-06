@@ -732,8 +732,19 @@ export class CurriculumEditorService {
     }
 
     const durationSeconds = this.sectionVideoDurationSec();
-    if (durationSeconds && timeline.some(interaction => interaction.atSeconds > durationSeconds)) {
+    const maxInteractiveSeconds = durationSeconds
+      ? Math.max(0, Math.round(durationSeconds) - 1)
+      : null;
+    if (maxInteractiveSeconds != null && timeline.some(interaction => interaction.atSeconds > maxInteractiveSeconds)) {
       this.toast.error('Có điểm tương tác nằm sau thời lượng video. Hãy chỉnh lại thời điểm.');
+      return false;
+    }
+    if (maxInteractiveSeconds != null && timeline.some(interaction =>
+      (interaction.choices ?? []).some(choice =>
+        choice.targetTimeSeconds != null && choice.targetTimeSeconds > maxInteractiveSeconds,
+      ),
+    )) {
+      this.toast.error('Có nhánh rẽ tới thời điểm nằm sau thời lượng video. Hãy chỉnh lại điểm đích.');
       return false;
     }
 

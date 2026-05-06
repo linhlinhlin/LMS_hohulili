@@ -2,6 +2,7 @@ import {
   buildInteractiveVideoSpec,
   createInteractiveVideoInteraction,
   normalizeInteractiveVideoSpec,
+  suggestNextInteractiveVideoTimeSeconds,
 } from './interactive-video-authoring';
 import type { InteractiveVideoInteraction } from '../../../../api/types/interactive-video.types';
 
@@ -26,6 +27,26 @@ describe('interactive-video-authoring', () => {
     });
 
     expect(created.atSeconds).toBe(8);
+  });
+
+  it('places the first interaction after the intro for long videos', () => {
+    const created = createInteractiveVideoInteraction([], 'checkpoint', {
+      durationSeconds: 22 * 60,
+    });
+
+    expect(created.atSeconds).toBe(30);
+  });
+
+  it('spreads later generated interactions into the largest remaining gap', () => {
+    const existing: InteractiveVideoInteraction[] = [
+      { id: 'intro', type: 'checkpoint', atSeconds: 30, pause: true, required: false },
+    ];
+
+    const next = suggestNextInteractiveVideoTimeSeconds(existing, {
+      durationSeconds: 22 * 60,
+    });
+
+    expect(next).toBe(675);
   });
 
   it('keeps later generated interactions inside the known video duration', () => {

@@ -7,8 +7,11 @@ import type {
 
 const DEFAULT_OFFSET_SECONDS = 30;
 const MIN_DURATION_AWARE_OFFSET_SECONDS = 2;
+const SHORT_VIDEO_SECONDS = 30;
+const SHORT_LESSON_SECONDS = 90;
+const SHORT_LESSON_FIRST_INTERACTION_RATIO = 0.4;
 
-interface CreateInteractiveVideoInteractionOptions {
+export interface CreateInteractiveVideoInteractionOptions {
   durationSeconds?: number | null;
   preferredSeconds?: number | null;
 }
@@ -65,7 +68,7 @@ export function createInteractiveVideoInteraction(
   type: InteractiveVideoInteractionType = 'checkpoint',
   options: CreateInteractiveVideoInteractionOptions = {},
 ): InteractiveVideoInteraction {
-  const atSeconds = getNextInteractionTimeSeconds(timeline, options);
+  const atSeconds = suggestNextInteractiveVideoTimeSeconds(timeline, options);
 
   return {
     id: createAuthoringId('iv'),
@@ -100,6 +103,34 @@ export function sortInteractiveVideoTimeline(
 
 export function choiceTypeNeedsChoices(type: InteractiveVideoInteractionType): boolean {
   return type === 'single_choice' || type === 'branch';
+}
+
+export function suggestNextInteractiveVideoTimeSeconds(
+  timeline: InteractiveVideoInteraction[],
+  options: CreateInteractiveVideoInteractionOptions = {},
+): number {
+  const maxSeconds = normalizeDurationSeconds(options.durationSeconds);
+  if (options.preferredSeconds != null) {
+    return clampToVideoDuration(toNonNegativeNumber(options.preferredSeconds, 0), maxSeconds);
+  }
+
+  if (timeline.length === 0) {
+    if (maxSeconds != null) {
+      return getFirstInteractionTimeSeconds(maxSeconds);
+    }
+    return DEFAULT_OFFSET_SECONDS;
+  }
+
+  const latest = Math.max(...timeline.map(item => toNonNegativeNumber(item.atSeconds, 0)));
+  if (maxSeconds == null) {
+    return latest + DEFAULT_OFFSET_SECONDS;
+  }
+
+  const sortedTimes = timeline
+    .map(item => clampToVideoDuration(item.atSeconds, maxSeconds))
+    .sort((a, b) => a - b);
+  const candidate = findLargestTimelineGapMidpoint(sortedTimes, maxSeconds);
+  return clampToVideoDuration(candidate, maxSeconds);
 }
 
 function normalizeInteractiveVideoInteraction(value: unknown): InteractiveVideoInteraction | null {
@@ -189,43 +220,6 @@ function normalizeInteractiveVideoChoice(value: unknown): InteractiveVideoChoice
   };
 }
 
-function getNextInteractionTimeSeconds(
-  timeline: InteractiveVideoInteraction[],
-  options: CreateInteractiveVideoInteractionOptions,
-): number {
-  const maxSeconds = normalizeDurationSeconds(options.durationSeconds);
-  if (options.preferredSeconds != null) {
-    return clampToVideoDuration(toNonNegativeNumber(options.preferredSeconds, 0), maxSeconds);
-  }
-
-  if (timeline.length === 0) {
-    if (maxSeconds != null) {
-      return clampToVideoDuration(Math.round(maxSeconds * 0.5), maxSeconds);
-    }
-    return DEFAULT_OFFSET_SECONDS;
-  }
-
-  const latest = Math.max(...timeline.map(item => toNonNegativeNumber(item.atSeconds, 0)));
-  if (maxSeconds == null) {
-    return latest + DEFAULT_OFFSET_SECONDS;
-  }
-
-  const durationAwareOffset = Math.min(
-    DEFAULT_OFFSET_SECONDS,
-    Math.max(MIN_DURATION_AWARE_OFFSET_SECONDS, Math.round(maxSeconds * 0.2)),
-  );
-  const next = latest + durationAwareOffset;
-  if (next < maxSeconds) {
-    return next;
-  }
-
-  const sortedTimes = timeline
-    .map(item => clampToVideoDuration(item.atSeconds, maxSeconds))
-    .sort((a, b) => a - b);
-  const candidate = findLargestTimelineGapMidpoint(sortedTimes, maxSeconds);
-  return clampToVideoDuration(candidate, maxSeconds);
-}
-
 function normalizeInteractionType(value: unknown): InteractiveVideoInteractionType {
   return value === 'single_choice' || value === 'branch' || value === 'hotspot'
     ? value
@@ -277,6 +271,24 @@ function clampToVideoDuration(value: number, maxSeconds: number | null): number 
   return Math.min(upperBound, safe);
 }
 
+function getFirstInteractionTimeSeconds(maxSeconds: number): number {
+  if (maxSeconds <= SHORT_VIDEO_SECONDS) {
+    return clampToVideoDuration(Math.round(maxSeconds * 0.5), maxSeconds);
+  }
+
+  if (maxSeconds <= SHORT_LESSON_SECONDS) {
+    return clampToVideoDuration(
+      Math.min(
+        DEFAULT_OFFSET_SECONDS,
+        Math.round(maxSeconds * SHORT_LESSON_FIRST_INTERACTION_RATIO),
+      ),
+      maxSeconds,
+    );
+  }
+
+  return clampToVideoDuration(DEFAULT_OFFSET_SECONDS, maxSeconds);
+}
+
 function findLargestTimelineGapMidpoint(sortedTimes: number[], maxSeconds: number): number {
   let bestStart = 0;
   let bestEnd = maxSeconds;
@@ -295,7 +307,8 @@ function findLargestTimelineGapMidpoint(sortedTimes: number[], maxSeconds: numbe
   }
 
   if (bestGap <= 1) {
-    return maxSeconds;
+    const latest = Math.max(0, ...sortedTimes);
+    return latest + MIN_DURATION_AWARE_OFFSET_SECONDS;
   }
   return Math.round(bestStart + bestGap / 2);
 }

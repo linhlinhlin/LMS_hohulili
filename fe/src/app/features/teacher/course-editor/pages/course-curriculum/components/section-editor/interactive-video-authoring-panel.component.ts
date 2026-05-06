@@ -19,6 +19,7 @@ import type {
 import { CurriculumEditorService } from '../../../../services/curriculum-editor.service';
 import {
   buildInteractiveVideoSpec,
+  suggestNextInteractiveVideoTimeSeconds,
 } from '../../../../utils/interactive-video-authoring';
 import {
   exportInteractiveVideoBundle,
@@ -93,11 +94,42 @@ export class InteractiveVideoAuthoringPanelComponent {
       : 'inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200',
   );
   readonly durationHint = computed(() => {
-    const max = this.maxInteractiveTimeSeconds();
-    if (max == null) {
-      return 'Mốc mới sẽ được đặt theo nhịp timeline hiện có.';
+    const nextSeconds = suggestNextInteractiveVideoTimeSeconds(
+      this.svc.sectionInteractiveVideoTimeline(),
+      { durationSeconds: this.svc.sectionVideoDurationSec() },
+    );
+    const duration = this.svc.sectionVideoDurationSec();
+    const nextLabel = this.formatInteractiveFlowTime(nextSeconds);
+    if (!duration || !Number.isFinite(duration) || duration <= 0) {
+      return `Mốc kế tiếp: ${nextLabel}.`;
     }
-    return `Mốc mới nằm trong thời lượng video (${this.formatInteractiveFlowTime(max + 1)}).`;
+    return `Mốc kế tiếp: ${nextLabel} / ${this.formatInteractiveFlowTime(duration)}.`;
+  });
+  readonly quickNudgeSeconds = computed(() => {
+    const duration = this.svc.sectionVideoDurationSec();
+    if (!duration || !Number.isFinite(duration) || duration <= 0) {
+      return 5;
+    }
+    if (duration <= 30) {
+      return 1;
+    }
+    if (duration <= 120) {
+      return 5;
+    }
+    if (duration <= 600) {
+      return 10;
+    }
+    return 30;
+  });
+  readonly quickNudgeLabel = computed(() => `${this.quickNudgeSeconds()} giây`);
+  readonly quickNudgeEarlierLabel = computed(() => `Sớm hơn ${this.quickNudgeLabel()}`);
+  readonly quickNudgeLaterLabel = computed(() => `Muộn hơn ${this.quickNudgeLabel()}`);
+  readonly timelineScaleLabel = computed(() => {
+    const duration = this.svc.sectionVideoDurationSec();
+    if (!duration || !Number.isFinite(duration) || duration <= 0) {
+      return 'Timeline';
+    }
+    return `Timeline ${this.formatInteractiveFlowTime(duration)}`;
   });
   readonly interactiveVideoFlowNodes = computed<InteractiveVideoFlowNode[]>(() =>
     this.buildInteractiveVideoFlowNodes(this.svc.sectionInteractiveVideoTimeline()),
@@ -311,7 +343,7 @@ export class InteractiveVideoAuthoringPanelComponent {
       return;
     }
 
-    const smallStep = event.shiftKey ? 5 : 1;
+    const smallStep = event.shiftKey ? this.quickNudgeSeconds() : 1;
     switch (event.key) {
       case 'ArrowLeft':
         event.preventDefault();
