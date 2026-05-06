@@ -1,8 +1,7 @@
-import { inject } from '@angular/core';
+import { inject, Injector } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { CourseApi } from '../../api/client/course.api';
 import { firstValueFrom } from 'rxjs';
-import { CourseDownloadService } from '../services/course-download.service';
 
 /**
  * Enrollment Guard - Ensures student is enrolled in the course before accessing learning content.
@@ -13,7 +12,7 @@ import { CourseDownloadService } from '../services/course-download.service';
  */
 export const enrollmentGuard: CanActivateFn = async (route) => {
   const courseApi = inject(CourseApi);
-  const courseDownload = inject(CourseDownloadService);
+  const injector = inject(Injector);
   const router = inject(Router);
 
   const courseId = route.paramMap.get('courseId') || route.paramMap.get('id');
@@ -31,6 +30,8 @@ export const enrollmentGuard: CanActivateFn = async (route) => {
 
     return true;
   } catch {
+    const { CourseDownloadService } = await import('../services/course-download.service');
+    const courseDownload = injector.get(CourseDownloadService);
     if (await courseDownload.isDownloaded(courseId)) {
       // A downloaded course must remain accessible when the progress endpoint
       // is temporarily unavailable or the learner is offline.
