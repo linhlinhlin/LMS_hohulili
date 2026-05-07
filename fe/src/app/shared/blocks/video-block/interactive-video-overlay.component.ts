@@ -18,12 +18,12 @@ import type {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [],
   template: `
-    <div class="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 px-4">
+    <div [class]="overlayClass()">
       <section
         #panel
         role="dialog"
         tabindex="-1"
-        class="w-full max-w-xl rounded-lg border border-white/10 bg-white p-4 text-slate-900 shadow-2xl sm:p-5"
+        [class]="panelClass()"
         aria-live="polite"
         aria-modal="true"
         [attr.aria-labelledby]="interaction().title ? titleId() : null"
@@ -101,6 +101,7 @@ import type {
 export class InteractiveVideoOverlayComponent {
   readonly interaction = input.required<InteractiveVideoInteraction>();
   readonly selectedChoiceId = input<string | null>(null);
+  readonly density = input<'comfortable' | 'compact'>('comfortable');
   private readonly panel = viewChild<ElementRef<HTMLElement>>('panel');
 
   readonly choiceSelected = output<InteractiveVideoChoice>();
@@ -131,6 +132,22 @@ export class InteractiveVideoOverlayComponent {
     return interaction.required === true
       && (interaction.type === 'single_choice' || interaction.type === 'branch')
       && !this.selectedChoiceId();
+  });
+
+  readonly overlayClass = computed(() => {
+    const base = 'absolute inset-0 z-20 flex bg-slate-950/70';
+    if (this.density() === 'compact') {
+      return `${base} items-end justify-center overflow-y-auto p-2 sm:items-center sm:p-3`;
+    }
+    return `${base} items-center justify-center px-4`;
+  });
+
+  readonly panelClass = computed(() => {
+    const base = 'w-full rounded-lg border border-white/10 bg-white text-slate-900 shadow-2xl';
+    if (this.density() === 'compact') {
+      return `${base} max-h-full max-w-lg overflow-y-auto p-3 sm:p-4`;
+    }
+    return `${base} max-w-xl p-4 sm:p-5`;
   });
 
   readonly interactionLabel = computed(() => {

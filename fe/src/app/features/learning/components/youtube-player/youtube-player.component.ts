@@ -19,6 +19,7 @@ import { VideoProgressApi } from '../../../../api/client/video-progress.api';
 import { HeartbeatTracker } from '../../services/heartbeat-tracker.service';
 import { LearningActivityApi } from '../../../../api/client/learning-activity.api';
 import { InteractiveVideoOverlayComponent } from '../../../../shared/blocks/video-block/interactive-video-overlay.component';
+import { InteractiveVideoMarkersComponent } from '../../../../shared/blocks/video-block/interactive-video-markers.component';
 import { buildInteractiveVideoAnalyticsProjection } from '../../../../core/utils/interactive-video-analytics';
 import type {
   InteractiveVideoChoice,
@@ -72,16 +73,23 @@ function extractVideoId(url: string): string | null {
   selector: 'app-youtube-player',
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
-  imports: [InteractiveVideoOverlayComponent],
+  imports: [InteractiveVideoOverlayComponent, InteractiveVideoMarkersComponent],
   template: `
     <div class="youtube-player-wrapper">
       <div #playerShell class="youtube-iframe-host">
         <div [id]="playerId"></div>
       </div>
+      <app-interactive-video-markers
+        [timeline]="interactiveVideoSpec()?.enabled === false ? [] : (interactiveVideoSpec()?.timeline ?? [])"
+        [durationSeconds]="videoDurationSeconds()"
+        [currentTimeSeconds]="currentTimeSeconds()"
+        [activeInteractionId]="activeInteraction()?.id ?? null"
+        (markerSelected)="seekToInteractiveSecond($event)" />
       @if (activeInteraction(); as interaction) {
         <app-interactive-video-overlay
           [interaction]="interaction"
           [selectedChoiceId]="selectedChoiceId()"
+          [density]="overlayDensity()"
           (choiceSelected)="onInteractiveChoice($event)"
           (continueRequested)="onInteractiveContinue()" />
       }
@@ -120,6 +128,7 @@ export class YouTubePlayerComponent implements OnDestroy {
   completionThreshold = input<number | undefined>(undefined);
   trackingEnabled = input(true);
   interactiveVideoSpec = input<InteractiveVideoSpec | null>(null);
+  overlayDensity = input<'comfortable' | 'compact'>('comfortable');
   videoEnded = output<void>();
   durationLoaded = output<number>();
   interactiveEvent = output<InteractiveVideoRuntimeEvent>();
@@ -135,6 +144,8 @@ export class YouTubePlayerComponent implements OnDestroy {
   private playerLoadToken = 0;
   readonly activeInteraction = signal<InteractiveVideoInteraction | null>(null);
   readonly selectedChoiceId = signal<string | null>(null);
+  readonly videoDurationSeconds = signal<number | null>(null);
+  readonly currentTimeSeconds = signal(0);
   private readonly shownInteractionIds = new Set<string>();
   private readonly completedInteractionIds = new Set<string>();
 
@@ -187,6 +198,8 @@ export class YouTubePlayerComponent implements OnDestroy {
 
     const videoId = extractVideoId(videoUrl);
     this.destroyPlayer();
+    this.videoDurationSeconds.set(null);
+    this.currentTimeSeconds.set(0);
     if (!videoId) {
       return;
     }
@@ -242,7 +255,10 @@ export class YouTubePlayerComponent implements OnDestroy {
 
     const duration = event.target.getDuration?.() || 0;
     if (duration > 0) {
-      this.zone.run(() => this.durationLoaded.emit(duration));
+      this.zone.run(() => {
+        this.videoDurationSeconds.set(duration);
+        this.durationLoaded.emit(duration);
+      });
     }
     if (duration > 0) {
       if (this.trackingEnabled()) {
@@ -258,6 +274,7 @@ export class YouTubePlayerComponent implements OnDestroy {
       next: (res: any) => {
         if (res?.success && res.data?.position > 0 && this.player?.seekTo) {
           this.player.seekTo(res.data.position, true);
+          this.zone.run(() => this.currentTimeSeconds.set(res.data.position));
         }
       },
       error: () => {}
@@ -301,7 +318,14 @@ export class YouTubePlayerComponent implements OnDestroy {
         if (this.trackingEnabled()) {
           this.tracker.recordSecond(currentTime);
         }
-        this.zone.run(() => this.evaluateInteractiveTimeline(currentTime));
+        this.zone.run(() => {
+          this.currentTimeSeconds.set(currentTime);
+          const duration = this.player?.getDuration?.() || 0;
+          if (duration > 0 && this.videoDurationSeconds() == null) {
+            this.videoDurationSeconds.set(duration);
+          }
+          this.evaluateInteractiveTimeline(currentTime);
+        });
       }
     }, 1000);
   }
@@ -346,6 +370,18 @@ export class YouTubePlayerComponent implements OnDestroy {
     this.activeInteraction.set(null);
     this.selectedChoiceId.set(null);
     this.player?.playVideo?.();
+  }
+
+  seekToInteractiveSecond(seconds: number): void {
+    if (!this.player?.seekTo || !Number.isFinite(seconds)) {
+      return;
+    }
+
+    const duration = this.player?.getDuration?.() || seconds;
+    const target = Math.max(0, Math.min(seconds, Number.isFinite(duration) && duration > 0 ? duration : seconds));
+    this.player.seekTo(target, true);
+    this.currentTimeSeconds.set(target);
+    this.evaluateInteractiveTimeline(target);
   }
 
   private evaluateInteractiveTimeline(currentTime: number): void {
@@ -473,6 +509,8 @@ export class YouTubePlayerComponent implements OnDestroy {
     this.playerLoadToken++;
     this.stopPolling();
     this.resetInteractiveRuntime();
+    this.videoDurationSeconds.set(null);
+    this.currentTimeSeconds.set(0);
     if (this.trackingEnabled()) {
       this.tracker.stopTracking();
       this.heartbeat.stop();
