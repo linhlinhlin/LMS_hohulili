@@ -83,6 +83,8 @@ export class InteractiveVideoAuthoringPanelComponent {
   readonly draggingInteractionId = signal<string | null>(null);
   readonly dropTargetInteractionId = signal<string | null>(null);
   readonly timelineDraggingInteractionId = signal<string | null>(null);
+  readonly hoveredTimelineNodeId = signal<string | null>(null);
+  readonly showAllInteractiveVideoQualityIssues = signal(false);
   readonly timelineRail = viewChild<ElementRef<HTMLElement>>('timelineRail');
   private suppressNextTimelineClick = false;
 
@@ -149,6 +151,13 @@ export class InteractiveVideoAuthoringPanelComponent {
   readonly interactiveVideoFlowNodes = computed<InteractiveVideoFlowNode[]>(() =>
     this.buildInteractiveVideoFlowNodes(this.svc.sectionInteractiveVideoTimeline()),
   );
+  readonly activeTimelinePreviewNode = computed<InteractiveVideoFlowNode | null>(() => {
+    const activeId = this.timelineDraggingInteractionId() ?? this.hoveredTimelineNodeId();
+    if (!activeId) {
+      return null;
+    }
+    return this.interactiveVideoFlowNodes().find(node => node.id === activeId) ?? null;
+  });
   readonly interactiveVideoFlowStats = computed(() => {
     const nodes = this.interactiveVideoFlowNodes();
     return {
@@ -199,8 +208,12 @@ export class InteractiveVideoAuthoringPanelComponent {
       toneClass: `${baseClass} border-emerald-200 bg-emerald-50 text-emerald-800`,
     };
   });
-  readonly visibleInteractiveVideoQualityIssues = computed(() =>
-    this.interactiveVideoQualityIssues().slice(0, 5),
+  readonly visibleInteractiveVideoQualityIssues = computed(() => {
+    const issues = this.interactiveVideoQualityIssues();
+    return this.showAllInteractiveVideoQualityIssues() ? issues : issues.slice(0, 5);
+  });
+  readonly hiddenInteractiveVideoQualityIssueCount = computed(() =>
+    Math.max(0, this.interactiveVideoQualityIssues().length - this.visibleInteractiveVideoQualityIssues().length),
   );
 
   onInteractiveVideoEnabledChange(enabled: boolean): void {
@@ -213,6 +226,10 @@ export class InteractiveVideoAuthoringPanelComponent {
 
   addSuggestedInteractions(): void {
     this.svc.addSuggestedInteractiveVideoInteractions();
+  }
+
+  toggleInteractiveVideoQualityIssues(): void {
+    this.showAllInteractiveVideoQualityIssues.update(showAll => !showAll);
   }
 
   onInteractiveTypeChange(
@@ -378,6 +395,24 @@ export class InteractiveVideoAuthoringPanelComponent {
     return Math.min(100, Math.max(0, (seconds / max) * 100));
   }
 
+  getTimelinePreviewLeftPercent(node: InteractiveVideoFlowNode): number {
+    return Math.min(92, Math.max(8, this.getTimelinePercent(node.atSeconds)));
+  }
+
+  showTimelinePreview(nodeId: string): void {
+    this.hoveredTimelineNodeId.set(nodeId);
+  }
+
+  hideTimelinePreview(nodeId: string): void {
+    if (this.hoveredTimelineNodeId() === nodeId) {
+      this.hoveredTimelineNodeId.set(null);
+    }
+  }
+
+  isTimelinePreviewNode(nodeId: string): boolean {
+    return this.activeTimelinePreviewNode()?.id === nodeId;
+  }
+
   onTimelineDotClick(node: InteractiveVideoFlowNode): void {
     if (this.suppressNextTimelineClick) {
       this.suppressNextTimelineClick = false;
@@ -392,6 +427,7 @@ export class InteractiveVideoAuthoringPanelComponent {
     }
     event.preventDefault();
     this.timelineDraggingInteractionId.set(node.id);
+    this.hoveredTimelineNodeId.set(node.id);
     this.suppressNextTimelineClick = false;
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
   }

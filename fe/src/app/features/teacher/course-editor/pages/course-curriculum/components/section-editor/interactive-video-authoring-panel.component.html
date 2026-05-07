@@ -152,6 +152,17 @@
                   </div>
                 </div>
               }
+              @if (interactiveVideoQualityIssues().length > 5) {
+                <button type="button"
+                  (click)="toggleInteractiveVideoQualityIssues()"
+                  class="mt-1 inline-flex w-fit items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold text-[#0056D2] hover:bg-[#0056D2]/5">
+                  @if (showAllInteractiveVideoQualityIssues()) {
+                    Thu gọn
+                  } @else {
+                    Xem thêm {{ hiddenInteractiveVideoQualityIssueCount() }} điểm
+                  }
+                </button>
+              }
             </div>
           }
         </div>
@@ -177,12 +188,19 @@
         </div>
 
         <div class="mb-4 rounded-xl border border-slate-200 bg-white px-3 py-3">
-          <div #timelineRail class="relative h-10">
+          <div #timelineRail class="relative h-14">
             <div class="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-slate-100"></div>
+            @if (activeTimelinePreviewNode(); as previewNode) {
+              <div class="interactive-timeline-preview"
+                [style.left.%]="getTimelinePreviewLeftPercent(previewNode)">
+                <span class="text-[10px] font-bold tabular-nums text-[#0056D2]">{{ previewNode.timeLabel }}</span>
+                <span class="min-w-0 truncate text-xs font-semibold text-slate-800">{{ previewNode.title }}</span>
+              </div>
+            }
             @for (node of interactiveVideoFlowNodes(); track node.id) {
               <button type="button"
                 role="slider"
-                class="interactive-timeline-dot absolute top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 touch-none items-center justify-center rounded-full border border-white bg-[#0056D2] text-[10px] font-bold text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0056D2] focus-visible:ring-offset-2"
+                class="interactive-timeline-dot absolute top-1/2 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 touch-none items-center justify-center rounded-full border border-white bg-[#0056D2] text-[10px] font-bold text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0056D2] focus-visible:ring-offset-2"
                 [style.left.%]="getTimelinePercent(node.atSeconds)"
                 [attr.aria-current]="timelineDraggingInteractionId() === node.id ? 'true' : null"
                 [attr.aria-label]="'Chỉnh điểm ' + node.index + ' tại ' + node.timeLabel"
@@ -190,9 +208,12 @@
                 [attr.aria-valuemax]="timelineMaxSeconds()"
                 [attr.aria-valuenow]="node.atSeconds"
                 [attr.aria-valuetext]="node.timeLabel"
-                [attr.title]="'Kéo để đổi thời điểm · ' + node.timeLabel"
                 (click)="onTimelineDotClick(node)"
                 (keydown)="onFlowNodeKeydown($event, node)"
+                (mouseenter)="showTimelinePreview(node.id)"
+                (mouseleave)="hideTimelinePreview(node.id)"
+                (focus)="showTimelinePreview(node.id)"
+                (blur)="hideTimelinePreview(node.id)"
                 (pointerdown)="onTimelineDotPointerDown($event, node)"
                 (pointermove)="onTimelineDotPointerMove($event)"
                 (pointerup)="onTimelineDotPointerUp($event)"
@@ -209,6 +230,7 @@
               <div class="flex items-stretch gap-3" role="listitem">
                 <article
                   [class]="node.nodeClass"
+                  [class.interactive-flow-node--previewed]="isTimelinePreviewNode(node.id)"
                   tabindex="0"
                   draggable="true"
                   [attr.aria-label]="'Điểm ' + node.index + ': ' + node.typeLabel + ' tại ' + node.timeLabel"
@@ -397,6 +419,7 @@
               <label class="mb-1.5 block text-xs font-medium text-slate-600">Nội dung</label>
               <app-enriched-input
                 [initialValue]="interaction.body || ''"
+                [mediaPreviewLimit]="4"
                 [placeholder]="'Nội dung hiển thị cho học viên'"
                 (valueChange)="svc.updateInteractiveVideoInteraction(interaction.id, { body: $event })">
               </app-enriched-input>
@@ -419,12 +442,14 @@
                       <div class="space-y-2">
                         <app-enriched-input
                           [initialValue]="choice.label"
+                          [mediaPreviewLimit]="4"
                           [placeholder]="'Nội dung lựa chọn'"
                           (valueChange)="svc.updateInteractiveVideoChoice(interaction.id, choice.id, { label: $event })">
                         </app-enriched-input>
                         @if (interaction.type === 'single_choice') {
                           <app-enriched-input
                             [initialValue]="choice.feedback || ''"
+                            [mediaPreviewLimit]="4"
                             [placeholder]="'Phản hồi sau khi chọn (không bắt buộc)'"
                             (valueChange)="svc.updateInteractiveVideoChoice(interaction.id, choice.id, { feedback: $event })">
                           </app-enriched-input>

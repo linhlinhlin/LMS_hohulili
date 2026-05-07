@@ -57,12 +57,14 @@ import katex from 'katex';
 
           <!-- Image Thumbnails (SOTA: 128px container, hover overlay — Google Forms/FlexiQuiz pattern) -->
           @if (imageChips().length > 0) {
-            <div class="flex flex-wrap gap-2 p-2 border-b border-gray-100">
-              @for (img of imageChips(); track img.uuid; let i = $index) {
-                <div class="relative group/img rounded-lg overflow-hidden border border-gray-200 bg-gray-50 cursor-pointer"
-                     style="max-width: 160px;">
+            <div class="flex items-center gap-2 overflow-x-auto border-b border-gray-100 p-2">
+              <span class="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600">
+                {{ imageChips().length }} ảnh
+              </span>
+              @for (img of visibleImageChips(); track img.uuid; let i = $index) {
+                <div class="relative group/img h-14 w-14 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
                   <img [src]="img.url"
-                       class="block w-full h-auto max-h-[128px] object-contain p-1"
+                       class="block h-full w-full object-cover"
                        [alt]="'Ảnh ' + (i + 1)"
                        (error)="onImageError($event)"
                        (click)="expandImage(img)">
@@ -87,6 +89,19 @@ import katex from 'katex';
                   </div>
                 </div>
               }
+              @if (hiddenImageCount() > 0) {
+                <button type="button"
+                        (click)="openImageGallery(); $event.stopPropagation()"
+                        class="h-14 w-16 shrink-0 rounded-lg border border-dashed border-slate-300 bg-slate-50 text-xs font-semibold text-slate-600 transition-colors hover:border-[#0056D2] hover:bg-[#0056D2]/5 hover:text-[#0056D2]"
+                        [attr.aria-label]="'Xem tất cả ' + imageChips().length + ' ảnh'">
+                  +{{ hiddenImageCount() }}
+                </button>
+              }
+              <button type="button"
+                      (click)="openImageGallery(); $event.stopPropagation()"
+                      class="ml-auto shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-[#0056D2] hover:bg-[#0056D2]/5">
+                Quản lý
+              </button>
             </div>
           }
 
@@ -145,7 +160,7 @@ import katex from 'katex';
       }
 
       <!-- Hidden File Input -->
-      <input #fileInput type="file" class="hidden" accept="image/*" (change)="onFileSelected($event)">
+      <input #fileInput type="file" class="hidden" accept="image/*" multiple (change)="onFileSelected($event)">
 
       <!-- Processing Overlay -->
       @if (isProcessing()) {
@@ -178,6 +193,62 @@ import katex from 'katex';
           </div>
         </div>
       }
+
+      @if (imageGalleryOpen()) {
+        <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/60 p-6"
+             role="dialog"
+             aria-modal="true"
+             aria-label="Quản lý ảnh"
+             (click)="closeImageGallery()">
+          <div class="w-full max-w-4xl overflow-hidden rounded-xl bg-white shadow-2xl"
+               (click)="$event.stopPropagation()">
+            <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+              <div>
+                <p class="text-sm font-semibold text-slate-900">Quản lý ảnh</p>
+                <p class="text-xs text-slate-500">{{ imageChips().length }} ảnh trong nội dung này</p>
+              </div>
+              <button type="button"
+                      (click)="closeImageGallery()"
+                      class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                      aria-label="Đóng">
+                <lucide-icon name="x" [size]="16"></lucide-icon>
+              </button>
+            </div>
+            <div class="grid max-h-[70vh] grid-cols-2 gap-3 overflow-y-auto bg-slate-50 p-4 sm:grid-cols-3 lg:grid-cols-4">
+              @for (img of imageChips(); track img.uuid; let i = $index) {
+                <figure class="group/img overflow-hidden rounded-lg border border-slate-200 bg-white">
+                  <button type="button"
+                          class="block w-full bg-slate-50"
+                          (click)="expandImage(img)"
+                          [attr.aria-label]="'Xem ảnh ' + (i + 1)">
+                    <img [src]="img.url"
+                         class="h-36 w-full object-contain p-2"
+                         [alt]="'Ảnh ' + (i + 1)"
+                         (error)="onImageError($event)">
+                  </button>
+                  <figcaption class="flex items-center justify-between gap-2 border-t border-slate-100 px-2 py-2">
+                    <span class="text-xs font-semibold text-slate-500">Ảnh {{ i + 1 }}</span>
+                    <div class="flex items-center gap-1">
+                      <button type="button"
+                              (click)="replaceImage(img.uuid)"
+                              class="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-[#0056D2]/5 hover:text-[#0056D2]"
+                              aria-label="Thay ảnh">
+                        <lucide-icon name="refresh-cw" [size]="13"></lucide-icon>
+                      </button>
+                      <button type="button"
+                              (click)="removeImage(img.uuid)"
+                              class="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-rose-50 hover:text-rose-600"
+                              aria-label="Xóa ảnh">
+                        <lucide-icon name="trash-2" [size]="13"></lucide-icon>
+                      </button>
+                    </div>
+                  </figcaption>
+                </figure>
+              }
+            </div>
+          </div>
+        </div>
+      }
     </div>
   `,
     styles: [`
@@ -186,10 +257,10 @@ import katex from 'katex';
     @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
     /* Display mode: larger images (80px) for rendered preview */
     .enriched-display { word-break: break-word; }
-    .enriched-display img { display: inline-block; max-height: 5rem; width: auto; border-radius: 0.375rem; vertical-align: middle; margin: 0.25rem 0.125rem; border: 1px solid #e5e7eb; object-fit: contain; background: #f9fafb; padding: 2px; }
+    .enriched-display img { display: inline-block; max-height: 3.5rem; width: auto; border-radius: 0.375rem; vertical-align: middle; margin: 0.25rem 0.125rem; border: 1px solid #e5e7eb; object-fit: contain; background: #f9fafb; padding: 2px; }
     .enriched-display .katex { font-size: 0.9em; }
     /* Live preview strip: small inline images */
-    .enriched-preview { word-break: break-word; }
+    .enriched-preview { word-break: break-word; max-height: 3.25rem; overflow: hidden; }
     .enriched-preview img { display: inline-block; height: 1.5rem; width: auto; border-radius: 0.25rem; vertical-align: middle; margin: 0 0.125rem; border: 1px solid #e5e7eb; object-fit: contain; }
     .enriched-preview .katex { font-size: 0.9em; }
   `]
@@ -203,6 +274,8 @@ export class EnrichedInputFieldComponent {
     placeholder = input<string>('');
     initialValue = input<string>('');
     isInvalid = input<boolean>(false);
+    mediaPreviewMode = input<'compact' | 'expanded'>('compact');
+    mediaPreviewLimit = input<number>(4);
 
     // Signal outputs
     valueChange = output<string>();
@@ -215,7 +288,9 @@ export class EnrichedInputFieldComponent {
     isFocused = signal(false);
     showMathPopover = signal(false);
     expandedImageUrl = signal<string | null>(null);
+    imageGalleryOpen = signal(false);
     replacingUuid = signal<string | null>(null);
+    private pendingUploads = 0;
 
     // Track whether initialValue has been applied (prevents re-application)
     private initialValueApplied = false;
@@ -233,6 +308,14 @@ export class EnrichedInputFieldComponent {
         }
         return images;
     });
+    visibleImageChips = computed(() => {
+        const chips = this.imageChips();
+        if (this.mediaPreviewMode() === 'expanded') {
+            return chips;
+        }
+        return chips.slice(0, this.normalizedMediaPreviewLimit());
+    });
+    hiddenImageCount = computed(() => Math.max(0, this.imageChips().length - this.visibleImageChips().length));
 
     hasRichContent = computed(() => {
         const val = this.rawValue();
@@ -380,8 +463,13 @@ export class EnrichedInputFieldComponent {
 
     onFileSelected(event: Event) {
         const input = event.target as HTMLInputElement;
-        if (input.files && input.files[0]) {
-            this.uploadAndInsert(input.files[0]);
+        const files = Array.from(input.files ?? []);
+        if (files.length > 0) {
+            if (this.replacingUuid()) {
+                this.uploadAndInsert(files[0]);
+            } else {
+                files.forEach(file => this.uploadAndInsert(file));
+            }
         }
         input.value = '';
     }
@@ -406,11 +494,20 @@ export class EnrichedInputFieldComponent {
     }
 
     expandImage(img: { uuid: string; url: string }) {
+        this.imageGalleryOpen.set(false);
         this.expandedImageUrl.set(img.url);
     }
 
     closeExpandedImage() {
         this.expandedImageUrl.set(null);
+    }
+
+    openImageGallery() {
+        this.imageGalleryOpen.set(true);
+    }
+
+    closeImageGallery() {
+        this.imageGalleryOpen.set(false);
     }
 
     onImageError(event: Event) {
@@ -421,9 +518,21 @@ export class EnrichedInputFieldComponent {
 
     previewHtml(): SafeHtml {
         let text = this.rawValue();
+        let renderedImages = 0;
+        const maxInlineImages = this.mediaPreviewMode() === 'compact'
+            ? Math.min(2, this.normalizedMediaPreviewLimit())
+            : Number.POSITIVE_INFINITY;
 
         // Images → inline thumbnail
         text = text.replace(/\[IMG:([^\]]+)\]/g, (_match, idOrUrl) => {
+            renderedImages += 1;
+            if (renderedImages > maxInlineImages) {
+                if (renderedImages === maxInlineImages + 1) {
+                    const hidden = Math.max(1, this.imageChips().length - maxInlineImages);
+                    return `<span class="inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 align-middle">+${hidden} ảnh</span>`;
+                }
+                return '';
+            }
             const url = this.identityService.resolveUrl(idOrUrl);
             return `<img src="${url}" />`;
         });
@@ -449,6 +558,14 @@ export class EnrichedInputFieldComponent {
     }
 
     // --- Internal ---
+
+    private normalizedMediaPreviewLimit(): number {
+        const limit = Number(this.mediaPreviewLimit());
+        if (!Number.isFinite(limit)) {
+            return 4;
+        }
+        return Math.max(1, Math.round(limit));
+    }
 
     private adjustHeight() {
         const el = this.inputRef()?.nativeElement;
@@ -532,7 +649,7 @@ export class EnrichedInputFieldComponent {
     private uploadAndInsert(file: File) {
         const replacing = this.replacingUuid();
         this.replacingUuid.set(null);
-        this.isProcessing.set(true);
+        this.beginUpload();
         this.imageService.uploadTemp(file).subscribe({
             next: (result) => {
                 if (replacing) {
@@ -544,14 +661,24 @@ export class EnrichedInputFieldComponent {
                     const tag = `[IMG:${result.uuid}]`;
                     this.rawValue.set(this.rawValue() + ' ' + tag + ' ');
                 }
-                this.isProcessing.set(false);
+                this.finishUpload();
                 this.emitChanges();
             },
             error: () => {
                 this.replacingUuid.set(null);
-                this.isProcessing.set(false);
+                this.finishUpload();
             }
         });
+    }
+
+    private beginUpload(): void {
+        this.pendingUploads += 1;
+        this.isProcessing.set(true);
+    }
+
+    private finishUpload(): void {
+        this.pendingUploads = Math.max(0, this.pendingUploads - 1);
+        this.isProcessing.set(this.pendingUploads > 0);
     }
 
     private emitChanges() {
