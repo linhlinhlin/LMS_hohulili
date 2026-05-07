@@ -4,14 +4,18 @@ import {
   computed,
   effect,
   ElementRef,
+  inject,
   input,
   output,
   viewChild,
 } from '@angular/core';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import type {
   InteractiveVideoChoice,
   InteractiveVideoInteraction,
 } from '../../../api/types/interactive-video.types';
+import { ContentIdentityService } from '../../../core/services/content-identity.service';
+import katex from 'katex';
 
 @Component({
   selector: 'app-interactive-video-overlay',
@@ -47,36 +51,39 @@ import type {
         }
 
         @if (interaction().body) {
-          <p [id]="bodyId()" class="mt-2 text-sm leading-relaxed text-slate-600">
-            {{ interaction().body }}
-          </p>
+          <div
+            [id]="bodyId()"
+            [innerHTML]="renderedBody()"
+            class="mt-2 text-sm leading-relaxed text-slate-600">
+          </div>
         }
 
         @if (hasChoices()) {
           <div class="mt-4 grid gap-2">
-            @for (choice of interaction().choices || []; track choice.id) {
+            @for (item of renderedChoices(); track item.choice.id) {
               <button
                 type="button"
                 class="w-full rounded-lg border px-3 py-2.5 text-left text-sm font-semibold transition-colors"
-                [class.border-[#0056D2]]="selectedChoiceId() === choice.id"
-                [class.bg-[#0056D2]/5]="selectedChoiceId() === choice.id"
-                [class.text-[#0056D2]]="selectedChoiceId() === choice.id"
-                [class.border-slate-200]="selectedChoiceId() !== choice.id"
-                [class.text-slate-700]="selectedChoiceId() !== choice.id"
-                [class.hover:border-[#0056D2]]="selectedChoiceId() !== choice.id"
-                [class.hover:bg-slate-50]="selectedChoiceId() !== choice.id"
-                [attr.aria-pressed]="selectedChoiceId() === choice.id"
-                (click)="choiceSelected.emit(choice)">
-                {{ choice.label }}
+                [class.border-[#0056D2]]="selectedChoiceId() === item.choice.id"
+                [class.bg-[#0056D2]/5]="selectedChoiceId() === item.choice.id"
+                [class.text-[#0056D2]]="selectedChoiceId() === item.choice.id"
+                [class.border-slate-200]="selectedChoiceId() !== item.choice.id"
+                [class.text-slate-700]="selectedChoiceId() !== item.choice.id"
+                [class.hover:border-[#0056D2]]="selectedChoiceId() !== item.choice.id"
+                [class.hover:bg-slate-50]="selectedChoiceId() !== item.choice.id"
+                [attr.aria-pressed]="selectedChoiceId() === item.choice.id"
+                (click)="choiceSelected.emit(item.choice)">
+                <span [innerHTML]="item.html"></span>
               </button>
             }
           </div>
         }
 
-        @if (feedback(); as feedbackText) {
-          <p class="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-            {{ feedbackText }}
-          </p>
+        @if (renderedFeedback(); as feedbackHtml) {
+          <div
+            [innerHTML]="feedbackHtml"
+            class="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+          </div>
         }
 
         <div class="mt-4 flex items-center justify-between gap-3">
@@ -99,6 +106,9 @@ import type {
   `,
 })
 export class InteractiveVideoOverlayComponent {
+  private readonly sanitizer = inject(DomSanitizer);
+  private readonly identityService = inject(ContentIdentityService);
+
   readonly interaction = input.required<InteractiveVideoInteraction>();
   readonly selectedChoiceId = input<string | null>(null);
   readonly density = input<'comfortable' | 'compact'>('comfortable');
@@ -111,6 +121,13 @@ export class InteractiveVideoOverlayComponent {
   readonly titleId = computed(() => `interactive-video-title-${this.interaction().id}`);
   readonly bodyId = computed(() => `interactive-video-body-${this.interaction().id}`);
   readonly choiceRequirementHintId = computed(() => `interactive-video-choice-hint-${this.interaction().id}`);
+  readonly renderedBody = computed(() => this.renderRichContent(this.interaction().body, 'block'));
+  readonly renderedChoices = computed(() =>
+    (this.interaction().choices ?? []).map(choice => ({
+      choice,
+      html: this.renderRichContent(choice.label, 'inline'),
+    })),
+  );
 
   constructor() {
     effect(() => {
@@ -125,6 +142,10 @@ export class InteractiveVideoOverlayComponent {
       return null;
     }
     return this.interaction().choices?.find(choice => choice.id === selectedId)?.feedback ?? null;
+  });
+  readonly renderedFeedback = computed(() => {
+    const text = this.feedback();
+    return text ? this.renderRichContent(text, 'block') : null;
   });
 
   readonly requiresChoiceBeforeContinue = computed(() => {
@@ -167,5 +188,122 @@ export class InteractiveVideoOverlayComponent {
     if (!this.requiresChoiceBeforeContinue()) {
       this.continueRequested.emit();
     }
+  }
+
+  private renderRichContent(
+    text: string | null | undefined,
+    mode: 'block' | 'inline',
+  ): SafeHtml {
+    let html = this.escapeHtml(text ?? '');
+
+    html = html.replace(/\[IMG:([^\]]+)\]/g, (_match, idOrUrl: string) => {
+      const src = this.toSafeMediaUrl(idOrUrl);
+      if (!src) {
+        return '';
+      }
+      const imgClass = mode === 'inline'
+        ? 'inline-block max-h-12 w-auto rounded border border-slate-200 bg-white align-middle'
+        : 'my-2 block max-h-56 max-w-full rounded-lg border border-slate-200 bg-white object-contain';
+      return `<img src="${this.escapeAttribute(src)}" class="${imgClass}" alt="Minh họa" loading="lazy">`;
+    });
+
+    html = html.replace(/\[YTVID:([^\]]+)\]/g, (_match, urlOrId: string) => {
+      const videoId = this.extractYouTubeId(urlOrId);
+      if (!videoId) {
+        return '';
+      }
+      if (mode === 'inline') {
+        return '<span class="inline-flex items-center rounded bg-sky-50 px-1.5 py-0.5 text-[11px] font-semibold text-sky-700 ring-1 ring-sky-200">YouTube</span>';
+      }
+      return `<iframe src="https://www.youtube.com/embed/${this.escapeAttribute(videoId)}" class="my-2 aspect-video w-full rounded-lg border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
+    });
+
+    html = html.replace(/\[VID:([^\]]+)\]/g, (_match, idOrUrl: string) => {
+      const src = this.toSafeMediaUrl(idOrUrl);
+      if (!src) {
+        return '';
+      }
+      if (mode === 'inline') {
+        return '<span class="inline-flex items-center rounded bg-blue-50 px-1.5 py-0.5 text-[11px] font-semibold text-blue-700 ring-1 ring-blue-200">Video</span>';
+      }
+      return `<video src="${this.escapeAttribute(src)}" controls preload="metadata" class="my-2 max-h-64 w-full rounded-lg bg-black"></video>`;
+    });
+
+    try {
+      html = html.replace(/(\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g, (match) => {
+        const isDisplay = match.startsWith('$$');
+        const cleanTex = isDisplay ? match.slice(2, -2) : match.slice(1, -1);
+        return katex.renderToString(cleanTex, {
+          throwOnError: false,
+          displayMode: isDisplay,
+        });
+      });
+    } catch {
+      // Keep original escaped text if KaTeX cannot render a teacher-entered formula.
+    }
+
+    html = html.replace(/\n/g, '<br>');
+    return this.sanitizer.bypassSecurityTrustHtml(html);
+  }
+
+  private toSafeMediaUrl(value: string): string {
+    const decoded = this.decodeMarkerValue(value).trim();
+    if (!decoded) {
+      return '';
+    }
+
+    if (/^https?:\/\//i.test(decoded) || decoded.startsWith('assets/')) {
+      return decoded;
+    }
+
+    return this.identityService.resolveUrl(decoded);
+  }
+
+  private extractYouTubeId(value: string): string | null {
+    const decoded = this.decodeMarkerValue(value).trim();
+    if (/^[a-zA-Z0-9_-]{11}$/.test(decoded)) {
+      return decoded;
+    }
+
+    try {
+      const url = new URL(decoded);
+      if (url.hostname.includes('youtu.be')) {
+        return url.pathname.replace('/', '').slice(0, 11) || null;
+      }
+      if (url.hostname.includes('youtube.com')) {
+        const watchId = url.searchParams.get('v');
+        if (watchId) {
+          return watchId.slice(0, 11);
+        }
+        const embedMatch = url.pathname.match(/\/embed\/([a-zA-Z0-9_-]{11})/);
+        return embedMatch?.[1] ?? null;
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
+  }
+
+  private decodeMarkerValue(value: string): string {
+    return value
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>');
+  }
+
+  private escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  private escapeAttribute(value: string): string {
+    return this.escapeHtml(value);
   }
 }

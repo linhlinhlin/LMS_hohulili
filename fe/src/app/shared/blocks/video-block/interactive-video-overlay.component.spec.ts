@@ -50,4 +50,29 @@ describe('InteractiveVideoOverlayComponent', () => {
     expect(continueButton.hasAttribute('aria-describedby')).toBeFalse();
     expect(element.querySelector('#interactive-video-choice-hint-q1')).toBeNull();
   });
+
+  it('renders rich body and choice content without treating raw html as markup', () => {
+    fixture.componentRef.setInput('interaction', {
+      id: 'rich1',
+      type: 'single_choice',
+      atSeconds: 20,
+      title: 'Rich check',
+      body: 'Inspect [IMG:https://example.com/ship.png] $x^2$ <script>alert(1)</script>',
+      choices: [
+        { id: 'a', label: 'Chart [IMG:https://example.com/chart.png]', feedback: 'Good $a+b$' },
+      ],
+    });
+    fixture.componentRef.setInput('selectedChoiceId', 'a');
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const images = element.querySelectorAll('img');
+
+    expect(images.length).toBe(2);
+    expect(images[0].getAttribute('src')).toBe('https://example.com/ship.png');
+    expect(images[1].getAttribute('src')).toBe('https://example.com/chart.png');
+    expect(element.querySelector('script')).toBeNull();
+    expect(element.innerHTML).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+    expect(element.querySelector('.katex')).not.toBeNull();
+  });
 });
