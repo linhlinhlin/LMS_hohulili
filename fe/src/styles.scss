@@ -10,7 +10,7 @@ html {
   @include mat.theme((color: (primary: mat.$azure-palette,
         tertiary: mat.$blue-palette,
       ),
-      typography: Montserrat,
+      typography: Roboto,
       density: 0,
     ));
 }
@@ -37,8 +37,6 @@ body {
 
 /* ===== DESIGN TOKENS ===== */
 :root {
-  --font-sans: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Arial', sans-serif;
-
   /* Color Palette - Light Mode */
   --c-bg: #F8FAFC;
   --c-surface: #FFFFFF;
@@ -103,7 +101,7 @@ body {
 
 /* ===== BASE STYLES ===== */
 html {
-  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
