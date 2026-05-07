@@ -166,7 +166,7 @@ export default {
         '4xl': ['36px', '40px'],
       },
       fontFamily: {
-        'sans': ['Inter', 'system-ui', 'sans-serif'],
+        'sans': ['Montserrat', 'system-ui', 'Segoe UI', 'Arial', 'sans-serif'],
       },
       animation: {
         'fade-in': 'fadeIn 0.2s ease-out',
