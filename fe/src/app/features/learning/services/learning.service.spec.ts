@@ -338,7 +338,7 @@ describe('LearningService — videoOfflineUri preservation', () => {
         },
       }) as SectionContent;
 
-      expect(section.interactiveVideoSpec?.version).toBe(1);
+      expect(section.interactiveVideoSpec?.version).toBe(2);
       expect(section.interactiveVideoSpec?.enabled).toBeTrue();
       expect(section.interactiveVideoSpec?.timeline.map(item => item.id))
         .toEqual(['check-earlier', 'branch-later']);

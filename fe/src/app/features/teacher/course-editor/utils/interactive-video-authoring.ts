@@ -4,6 +4,10 @@ import type {
   InteractiveVideoInteractionType,
   InteractiveVideoSpec,
 } from '../../../../api/types/interactive-video.types';
+import {
+  normalizeInteractiveVideoInteractionV2,
+  normalizeInteractiveVideoSpecV2,
+} from '../../../../core/utils/interactive-video-normalizer';
 
 const DEFAULT_OFFSET_SECONDS = 30;
 const MIN_DURATION_AWARE_OFFSET_SECONDS = 2;
@@ -43,43 +47,15 @@ export function buildInteractiveVideoSpec(
     return null;
   }
 
-  return {
-    version: 1,
+  return normalizeInteractiveVideoSpecV2({
+    version: 2,
     enabled: true,
     timeline: sortInteractiveVideoTimeline(timeline).map(normalizeInteractionForSave),
-  };
+  });
 }
 
 export function normalizeInteractiveVideoSpec(value: unknown): InteractiveVideoSpec | null {
-  if (!value || typeof value !== 'object') {
-    return null;
-  }
-
-  const source = value as {
-    enabled?: unknown;
-    timeline?: unknown;
-    interactions?: unknown;
-  };
-  const rawTimeline = Array.isArray(source.timeline)
-    ? source.timeline
-    : Array.isArray(source.interactions)
-      ? source.interactions
-      : [];
-
-  const timeline = sortInteractiveVideoTimeline(
-    rawTimeline.map(normalizeInteractiveVideoInteraction).filter(isInteraction),
-  );
-  const enabled = source.enabled == null ? timeline.length > 0 : source.enabled !== false;
-
-  if (!enabled && timeline.length === 0) {
-    return null;
-  }
-
-  return {
-    version: 1,
-    enabled,
-    timeline,
-  };
+  return normalizeInteractiveVideoSpecV2(value);
 }
 
 export function createInteractiveVideoInteraction(
@@ -388,40 +364,6 @@ export function suggestNextInteractiveVideoTimeSeconds(
   return clampToVideoDuration(candidate, maxSeconds);
 }
 
-function normalizeInteractiveVideoInteraction(value: unknown): InteractiveVideoInteraction | null {
-  if (!value || typeof value !== 'object') {
-    return null;
-  }
-
-  const source = value as Record<string, unknown>;
-  const type = normalizeInteractionType(source['type']);
-  const atSeconds = toNonNegativeNumber(
-    source['atSeconds'] ?? source['timeSeconds'] ?? source['time'] ?? source['timestampSeconds'],
-    0,
-  );
-  const rawChoices = Array.isArray(source['choices']) ? source['choices'] : [];
-  const choices = rawChoices.map(normalizeInteractiveVideoChoice).filter(isChoice);
-
-  return {
-    id: typeof source['id'] === 'string' && source['id'].trim()
-      ? source['id'].trim()
-      : createAuthoringId('iv'),
-    type,
-    atSeconds,
-    endSeconds: source['endSeconds'] == null
-      ? null
-      : toNonNegativeNumber(source['endSeconds'], atSeconds),
-    title: toNullableText(source['title']),
-    body: toNullableText(source['body'] ?? source['prompt'] ?? source['description']),
-    pause: source['pause'] !== false,
-    required: source['required'] === true,
-    choices: choiceTypeNeedsChoices(type)
-      ? (choices.length > 0 ? choices : [createInteractiveVideoChoice(0), createInteractiveVideoChoice(1)])
-      : [],
-    hotspots: [],
-  };
-}
-
 function normalizeInteractionForSave(
   interaction: InteractiveVideoInteraction,
 ): InteractiveVideoInteraction {
@@ -439,40 +381,13 @@ function normalizeInteractionForSave(
       }))
     : [];
 
-  return {
+  return normalizeInteractiveVideoInteractionV2({
+    ...interaction,
     id: interaction.id || createAuthoringId('iv'),
     type,
-    atSeconds: toNonNegativeNumber(interaction.atSeconds, 0),
-    endSeconds: interaction.endSeconds == null
-      ? null
-      : toNonNegativeNumber(interaction.endSeconds, interaction.atSeconds),
-    title: toNullableText(interaction.title),
-    body: toNullableText(interaction.body),
-    pause: interaction.pause !== false,
-    required: interaction.required === true,
     choices,
-    hotspots: [],
-  };
-}
-
-function normalizeInteractiveVideoChoice(value: unknown): InteractiveVideoChoice | null {
-  if (!value || typeof value !== 'object') {
-    return null;
-  }
-
-  const source = value as Record<string, unknown>;
-  return {
-    id: typeof source['id'] === 'string' && source['id'].trim()
-      ? source['id'].trim()
-      : createAuthoringId('choice'),
-    label: toNullableText(source['label'] ?? source['text']) ?? '',
-    feedback: toNullableText(source['feedback']),
-    isCorrect: source['isCorrect'] === true,
-    targetTimeSeconds: source['targetTimeSeconds'] == null
-      ? null
-      : toNonNegativeNumber(source['targetTimeSeconds'], 0),
-    targetInteractionId: toNullableText(source['targetInteractionId']),
-  };
+    hotspots: interaction.hotspots ?? [],
+  }) as InteractiveVideoInteraction;
 }
 
 function normalizeInteractionType(value: unknown): InteractiveVideoInteractionType {
@@ -681,12 +596,4 @@ function formatAuthoringTime(seconds: number): string {
   const minutes = Math.floor(safeSeconds / 60);
   const rest = safeSeconds % 60;
   return `${minutes}:${rest.toString().padStart(2, '0')}`;
-}
-
-function isInteraction(value: InteractiveVideoInteraction | null): value is InteractiveVideoInteraction {
-  return value != null;
-}
-
-function isChoice(value: InteractiveVideoChoice | null): value is InteractiveVideoChoice {
-  return value != null;
 }

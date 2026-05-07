@@ -108,7 +108,7 @@ describe('interactive-video-authoring', () => {
 
     const spec = buildInteractiveVideoSpec(true, timeline);
 
-    expect(spec?.version).toBe(1);
+    expect(spec?.version).toBe(2);
     expect(spec?.enabled).toBeTrue();
     expect(spec?.timeline.map(item => item.id)).toEqual(['earlier', 'later']);
   });
@@ -131,6 +131,7 @@ describe('interactive-video-authoring', () => {
     });
 
     expect(spec?.timeline[0].atSeconds).toBe(12);
+    expect(spec?.timeline[0].displayType).toBe('button');
     expect(spec?.timeline[0].body).toBe('What is next?');
     expect(spec?.timeline[0].choices?.map(choice => choice.label)).toEqual(['Correct', 'Wrong']);
   });

@@ -4,6 +4,55 @@ export type InteractiveVideoInteractionType =
   | 'branch'
   | 'hotspot';
 
+export type InteractiveVideoDisplayType = 'button' | 'poster';
+
+export type InteractiveVideoPreventSkippingMode = 'none' | 'forward' | 'both';
+
+export type InteractiveVideoActionType = 'continue' | 'seek' | 'interaction';
+
+export interface InteractiveVideoBehavior {
+  preventSkippingMode?: InteractiveVideoPreventSkippingMode;
+  showBookmarksOnLoad?: boolean;
+  showRewind10?: boolean;
+  pauseOnInteraction?: boolean;
+}
+
+export interface InteractiveVideoBookmark {
+  id: string;
+  timeSeconds: number;
+  label: string;
+}
+
+export interface InteractiveVideoEndScreen {
+  enabled: boolean;
+  atSeconds?: number | null;
+  requireAnswerBeforeSubmit?: boolean;
+  showScore?: boolean;
+  title?: string | null;
+  body?: string | null;
+}
+
+export interface InteractiveVideoPosition {
+  xPercent: number;
+  yPercent: number;
+  widthPercent?: number | null;
+  heightPercent?: number | null;
+}
+
+export interface InteractiveVideoAction {
+  type: InteractiveVideoActionType;
+  targetTimeSeconds?: number | null;
+  targetInteractionId?: string | null;
+  message?: string | null;
+}
+
+export interface InteractiveVideoAdaptivity {
+  requireCorrectBeforeContinue?: boolean;
+  onCorrect?: InteractiveVideoAction | null;
+  onWrong?: InteractiveVideoAction | null;
+  allowOptOut?: boolean;
+}
+
 export interface InteractiveVideoChoice {
   id: string;
   label: string;
@@ -31,13 +80,19 @@ export interface InteractiveVideoInteraction {
   body?: string | null;
   pause?: boolean;
   required?: boolean;
+  displayType?: InteractiveVideoDisplayType;
+  position?: InteractiveVideoPosition | null;
   choices?: InteractiveVideoChoice[];
   hotspots?: InteractiveVideoHotspot[];
+  adaptivity?: InteractiveVideoAdaptivity | null;
 }
 
 export interface InteractiveVideoSpec {
-  version: 1;
+  version: 1 | 2;
   enabled?: boolean;
+  behavior?: InteractiveVideoBehavior;
+  bookmarks?: InteractiveVideoBookmark[];
+  endScreen?: InteractiveVideoEndScreen | null;
   timeline: InteractiveVideoInteraction[];
 }
 
