@@ -395,11 +395,11 @@
 
             <div class="mt-3">
               <label class="mb-1.5 block text-xs font-medium text-slate-600">Nội dung</label>
-              <textarea rows="2"
-                [ngModel]="interaction.body"
-                (ngModelChange)="svc.updateInteractiveVideoInteraction(interaction.id, { body: $event })"
-                placeholder="Nội dung hiển thị cho học viên"
-                class="w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-[#0056D2]"></textarea>
+              <app-enriched-input
+                [initialValue]="interaction.body || ''"
+                [placeholder]="'Nội dung hiển thị cho học viên'"
+                (valueChange)="svc.updateInteractiveVideoInteraction(interaction.id, { body: $event })">
+              </app-enriched-input>
             </div>
 
             @if (isChoiceInteraction(interaction)) {
@@ -417,19 +417,17 @@
                   @for (choice of interaction.choices || []; track choice.id; let choiceIdx = $index) {
                     <div [class]="getInteractiveChoiceRowClass(interaction.type)">
                       <div class="space-y-2">
-                        <input type="text"
-                          [ngModel]="choice.label"
-                          (ngModelChange)="svc.updateInteractiveVideoChoice(interaction.id, choice.id, { label: $event })"
-                          placeholder="Nội dung lựa chọn"
-                          class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-[#0056D2]"
-                          [attr.aria-label]="'Lựa chọn ' + (choiceIdx + 1)" />
+                        <app-enriched-input
+                          [initialValue]="choice.label"
+                          [placeholder]="'Nội dung lựa chọn'"
+                          (valueChange)="svc.updateInteractiveVideoChoice(interaction.id, choice.id, { label: $event })">
+                        </app-enriched-input>
                         @if (interaction.type === 'single_choice') {
-                          <input type="text"
-                            [ngModel]="choice.feedback || ''"
-                            (ngModelChange)="svc.updateInteractiveVideoChoice(interaction.id, choice.id, { feedback: $event })"
-                            placeholder="Phản hồi sau khi chọn (không bắt buộc)"
-                            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:border-[#0056D2] focus:ring-[#0056D2]"
-                            [attr.aria-label]="'Phản hồi cho lựa chọn ' + (choiceIdx + 1)" />
+                          <app-enriched-input
+                            [initialValue]="choice.feedback || ''"
+                            [placeholder]="'Phản hồi sau khi chọn (không bắt buộc)'"
+                            (valueChange)="svc.updateInteractiveVideoChoice(interaction.id, choice.id, { feedback: $event })">
+                          </app-enriched-input>
                         }
                       </div>
                       @if (interaction.type === 'branch') {

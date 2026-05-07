@@ -12,6 +12,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { ToastService } from '../../../../../../../core/services/toast.service';
+import { EnrichedInputFieldComponent } from '../../../../../../../shared/components/enriched-input/enriched-input.component';
 import type {
   InteractiveVideoChoice,
   InteractiveVideoInteraction,
@@ -67,7 +68,7 @@ interface InteractiveVideoQualitySummary {
 @Component({
   selector: 'app-interactive-video-authoring-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, LucideAngularModule],
+  imports: [FormsModule, LucideAngularModule, EnrichedInputFieldComponent],
   templateUrl: './interactive-video-authoring-panel.component.html',
   styleUrl: './interactive-video-authoring-panel.component.scss',
 })
