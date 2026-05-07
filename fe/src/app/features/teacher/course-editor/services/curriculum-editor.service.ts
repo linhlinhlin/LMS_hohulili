@@ -28,7 +28,9 @@ import {
   choiceTypeNeedsChoices,
   createInteractiveVideoChoice,
   createInteractiveVideoInteraction,
+  getInteractiveVideoAuthoringIssues,
   normalizeInteractiveVideoSpec,
+  removeInteractiveVideoInteractionAndRetargetBranches,
 } from '../utils/interactive-video-authoring';
 import {
   probeVideoFile,
@@ -256,7 +258,7 @@ export class CurriculumEditorService {
 
   removeInteractiveVideoInteraction(interactionId: string): void {
     this.sectionInteractiveVideoTimeline.update(
-      timeline => timeline.filter(interaction => interaction.id !== interactionId),
+      timeline => removeInteractiveVideoInteractionAndRetargetBranches(timeline, interactionId),
     );
     this.markDirty();
   }
@@ -721,60 +723,14 @@ export class CurriculumEditorService {
   // ── Internal ─────────────────────────────────────────────────────────
 
   private validateInteractiveVideoAuthoring(): boolean {
-    if (!this.sectionInteractiveVideoEnabled()) {
-      return true;
-    }
+    const blockingIssue = getInteractiveVideoAuthoringIssues(
+      this.sectionInteractiveVideoEnabled(),
+      this.sectionInteractiveVideoTimeline(),
+      { durationSeconds: this.sectionVideoDurationSec() },
+    ).find(issue => issue.severity === 'error');
 
-    const timeline = this.sectionInteractiveVideoTimeline();
-    if (timeline.length === 0) {
-      this.toast.error('Hãy thêm ít nhất một điểm tương tác hoặc tắt Video tương tác.');
-      return false;
-    }
-
-    const durationSeconds = this.sectionVideoDurationSec();
-    const maxInteractiveSeconds = durationSeconds
-      ? Math.max(0, Math.round(durationSeconds) - 1)
-      : null;
-    if (maxInteractiveSeconds != null && timeline.some(interaction => interaction.atSeconds > maxInteractiveSeconds)) {
-      this.toast.error('Có điểm tương tác nằm sau thời lượng video. Hãy chỉnh lại thời điểm.');
-      return false;
-    }
-    if (maxInteractiveSeconds != null && timeline.some(interaction =>
-      (interaction.choices ?? []).some(choice =>
-        choice.targetTimeSeconds != null && choice.targetTimeSeconds > maxInteractiveSeconds,
-      ),
-    )) {
-      this.toast.error('Có nhánh rẽ tới thời điểm nằm sau thời lượng video. Hãy chỉnh lại điểm đích.');
-      return false;
-    }
-
-    const invalidChoiceInteraction = timeline.find(interaction =>
-      choiceTypeNeedsChoices(interaction.type)
-      && (interaction.choices?.filter(choice => choice.label.trim()).length ?? 0) < 2,
-    );
-    if (invalidChoiceInteraction) {
-      this.toast.error('Câu hỏi và rẽ nhánh cần ít nhất 2 lựa chọn có nội dung.');
-      return false;
-    }
-
-    const questionWithoutCorrectAnswer = timeline.find(interaction =>
-      interaction.type === 'single_choice'
-      && !(interaction.choices ?? []).some(choice => choice.isCorrect === true),
-    );
-    if (questionWithoutCorrectAnswer) {
-      this.toast.error('Mỗi câu hỏi cần một đáp án đúng.');
-      return false;
-    }
-
-    const interactionIds = new Set(timeline.map(interaction => interaction.id));
-    const branchWithMissingTarget = timeline.find(interaction =>
-      interaction.type === 'branch'
-      && (interaction.choices ?? []).some(choice =>
-        Boolean(choice.targetInteractionId) && !interactionIds.has(choice.targetInteractionId!),
-      ),
-    );
-    if (branchWithMissingTarget) {
-      this.toast.error('Có nhánh đang trỏ tới điểm tương tác không còn tồn tại.');
+    if (blockingIssue) {
+      this.toast.error(blockingIssue.message);
       return false;
     }
 
