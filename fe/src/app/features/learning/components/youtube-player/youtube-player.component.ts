@@ -1,14 +1,17 @@
 import {
   Component,
+  computed,
+  effect,
+  ElementRef,
   input,
   output,
   inject,
   signal,
-  OnInit,
   OnDestroy,
   ChangeDetectionStrategy,
   ViewEncapsulation,
-  NgZone
+  NgZone,
+  viewChild
 } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { WatchedSegmentsTracker } from '../../services/watched-segments-tracker.service';
@@ -72,7 +75,9 @@ function extractVideoId(url: string): string | null {
   imports: [InteractiveVideoOverlayComponent],
   template: `
     <div class="youtube-player-wrapper">
-      <div [id]="playerId"></div>
+      <div #playerShell class="youtube-iframe-host">
+        <div [id]="playerId"></div>
+      </div>
       @if (activeInteraction(); as interaction) {
         <app-interactive-video-overlay
           [interaction]="interaction"
@@ -102,9 +107,13 @@ function extractVideoId(url: string): string | null {
       width: 100% !important;
       height: 100% !important;
     }
+    app-youtube-player .youtube-iframe-host {
+      position: absolute;
+      inset: 0;
+    }
   `]
 })
-export class YouTubePlayerComponent implements OnInit, OnDestroy {
+export class YouTubePlayerComponent implements OnDestroy {
   videoUrl = input.required<string>();
   lessonId = input.required<string>();
   sectionId = input.required<string>();
@@ -120,38 +129,105 @@ export class YouTubePlayerComponent implements OnInit, OnDestroy {
   private heartbeat = inject(HeartbeatTracker);
   private learningActivityApi = inject(LearningActivityApi);
   private zone = inject(NgZone);
+  private readonly playerShell = viewChild<ElementRef<HTMLElement>>('playerShell');
   private player: any = null;
   private pollInterval: ReturnType<typeof setInterval> | null = null;
+  private playerLoadToken = 0;
   readonly activeInteraction = signal<InteractiveVideoInteraction | null>(null);
   readonly selectedChoiceId = signal<string | null>(null);
   private readonly shownInteractionIds = new Set<string>();
   private readonly completedInteractionIds = new Set<string>();
 
   readonly playerId = 'yt-player-' + Math.random().toString(36).substring(2, 9);
+  private readonly playerSourceKey = computed(() => {
+    const spec = this.interactiveVideoSpec();
+    const timelineKey = (spec?.timeline ?? [])
+      .map(interaction => [
+        interaction.id,
+        interaction.type,
+        interaction.atSeconds,
+        interaction.endSeconds ?? '',
+        interaction.required === true ? 'required' : 'optional',
+        interaction.pause === false ? 'no-pause' : 'pause',
+        (interaction.choices ?? [])
+          .map(choice => `${choice.id}:${choice.targetTimeSeconds ?? ''}:${choice.targetInteractionId ?? ''}`)
+          .join('/'),
+      ].join(':'))
+      .join(',');
+    return [
+      this.videoUrl(),
+      this.lessonId(),
+      this.sectionId(),
+      this.completionThreshold() ?? '',
+      this.trackingEnabled(),
+      spec?.enabled === false ? 'off' : 'on',
+      timelineKey,
+    ].join('|');
+  });
 
-  ngOnInit(): void {
-    const videoId = extractVideoId(this.videoUrl());
-    if (!videoId) return;
+  constructor() {
+    effect(() => {
+      const shell = this.playerShell();
+      const videoUrl = this.videoUrl();
+      const sourceKey = this.playerSourceKey();
+      if (!shell || !sourceKey) {
+        return;
+      }
 
-    loadYouTubeApi().then(() => {
-      this.zone.runOutsideAngular(() => {
-        this.player = new window.YT.Player(this.playerId, {
-          videoId,
-          playerVars: {
-            rel: 0,
-            modestbranding: 1,
-            playsinline: 1
-          },
-          events: {
-            onReady: (event: any) => this.onPlayerReady(event),
-            onStateChange: (event: any) => this.onStateChange(event)
-          }
-        });
+      const token = ++this.playerLoadToken;
+      this.resetInteractiveRuntime();
+      void this.loadYouTubePlayer(videoUrl, token);
+    });
+  }
+
+  private async loadYouTubePlayer(videoUrl: string, token: number): Promise<void> {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return;
+    }
+
+    const videoId = extractVideoId(videoUrl);
+    this.destroyPlayer();
+    if (!videoId) {
+      return;
+    }
+
+    await loadYouTubeApi();
+    if (token !== this.playerLoadToken) {
+      return;
+    }
+
+    const shell = this.playerShell()?.nativeElement;
+    if (!shell) {
+      return;
+    }
+
+    shell.replaceChildren();
+    const mount = document.createElement('div');
+    mount.id = this.playerId;
+    shell.appendChild(mount);
+
+    this.zone.runOutsideAngular(() => {
+      this.player = new window.YT.Player(mount, {
+        videoId,
+        playerVars: {
+          rel: 0,
+          modestbranding: 1,
+          playsinline: 1,
+          origin: window.location.origin,
+        },
+        events: {
+          onReady: (event: any) => this.onPlayerReady(event),
+          onStateChange: (event: any) => this.onStateChange(event)
+        }
       });
     });
   }
 
   private onPlayerReady(event: any): void {
+    if (event.target !== this.player) {
+      return;
+    }
+
     // Force iframe to fill wrapper (YouTube sets width="640" height="360" by default)
     const iframe = event.target?.getIframe?.();
     if (iframe) {
@@ -189,6 +265,10 @@ export class YouTubePlayerComponent implements OnInit, OnDestroy {
   }
 
   private onStateChange(event: any): void {
+    if (event.target !== this.player) {
+      return;
+    }
+
     const YT = window.YT;
     if (!YT) return;
 
@@ -331,6 +411,13 @@ export class YouTubePlayerComponent implements OnInit, OnDestroy {
       ?.atSeconds ?? null;
   }
 
+  private resetInteractiveRuntime(): void {
+    this.activeInteraction.set(null);
+    this.selectedChoiceId.set(null);
+    this.shownInteractionIds.clear();
+    this.completedInteractionIds.clear();
+  }
+
   private async recordInteractiveEvent(
     interaction: InteractiveVideoInteraction,
     action: InteractiveVideoRuntimeEvent['action'],
@@ -383,16 +470,25 @@ export class YouTubePlayerComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.playerLoadToken++;
     this.stopPolling();
-    this.activeInteraction.set(null);
-    this.selectedChoiceId.set(null);
+    this.resetInteractiveRuntime();
     if (this.trackingEnabled()) {
       this.tracker.stopTracking();
       this.heartbeat.stop();
     }
+    this.destroyPlayer();
+  }
+
+  private destroyPlayer(): void {
+    this.stopPolling();
     if (this.player?.destroy) {
-      this.player.destroy();
-      this.player = null;
+      try {
+        this.player.destroy();
+      } catch {
+        // Ignore teardown failures from stale YouTube iframes.
+      }
     }
+    this.player = null;
   }
 }
