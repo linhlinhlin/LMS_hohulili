@@ -36,6 +36,9 @@ describe('InteractiveVideoOverlayComponent', () => {
     expect(dialog.getAttribute('aria-labelledby')).toBe('interactive-video-title-q1');
     expect(dialog.getAttribute('aria-describedby')).toBe('interactive-video-body-q1');
     expect(continueButton.disabled).toBeTrue();
+    expect(continueButton.getAttribute('aria-describedby')).toBe('interactive-video-choice-hint-q1');
+    expect(element.querySelector('#interactive-video-choice-hint-q1')?.textContent?.trim())
+      .toBe('Chọn một phương án để tiếp tục.');
 
     fixture.componentRef.setInput('selectedChoiceId', 'a');
     fixture.detectChanges();
@@ -44,5 +47,7 @@ describe('InteractiveVideoOverlayComponent', () => {
       .find(button => button.textContent?.includes('Check the chart')) as HTMLButtonElement;
     expect(selectedChoice.getAttribute('aria-pressed')).toBe('true');
     expect(continueButton.disabled).toBeFalse();
+    expect(continueButton.hasAttribute('aria-describedby')).toBeFalse();
+    expect(element.querySelector('#interactive-video-choice-hint-q1')).toBeNull();
   });
 });

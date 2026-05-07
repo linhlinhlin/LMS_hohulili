@@ -79,11 +79,17 @@ import type {
           </p>
         }
 
-        <div class="mt-4 flex justify-end">
+        <div class="mt-4 flex items-center justify-between gap-3">
+          @if (requiresChoiceBeforeContinue()) {
+            <p [id]="choiceRequirementHintId()" class="min-w-0 text-xs font-medium text-slate-500">
+              Chọn một phương án để tiếp tục.
+            </p>
+          }
           <button
             type="button"
-            class="rounded-lg bg-[#0056D2] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#004BB5] disabled:cursor-not-allowed disabled:opacity-50"
+            class="ml-auto shrink-0 rounded-lg bg-[#0056D2] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#004BB5] disabled:cursor-not-allowed disabled:opacity-50"
             [disabled]="requiresChoiceBeforeContinue()"
+            [attr.aria-describedby]="requiresChoiceBeforeContinue() ? choiceRequirementHintId() : null"
             (click)="continueRequested.emit()">
             Tiếp tục
           </button>
@@ -103,6 +109,7 @@ export class InteractiveVideoOverlayComponent {
   readonly hasChoices = computed(() => (this.interaction().choices?.length ?? 0) > 0);
   readonly titleId = computed(() => `interactive-video-title-${this.interaction().id}`);
   readonly bodyId = computed(() => `interactive-video-body-${this.interaction().id}`);
+  readonly choiceRequirementHintId = computed(() => `interactive-video-choice-hint-${this.interaction().id}`);
 
   constructor() {
     effect(() => {

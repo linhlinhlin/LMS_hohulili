@@ -9,7 +9,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "test:coverage": "ng test --code-coverage",
-    "test:ci": "ng test --watch=false --browsers=ChromeHeadlessCI",
+    "test:ci": "ng test --watch=false --browsers=ChromeHeadlessNoSandbox",
     "test:e2e": "playwright test",
     "test:e2e:smoke": "npm run build && playwright test --config=playwright.smoke.config.ts --grep @smoke",
     "test:e2e:release": "npm run build && playwright test --config=playwright.smoke.config.ts --grep \"@smoke|@release\"",

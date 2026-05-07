@@ -23,6 +23,8 @@ export interface InteractiveVideoEventRequest {
   action: string;
   videoTimeSeconds: number;
   data?: Record<string, unknown>;
+  occurredAt?: string;
+  entityId?: string;
 }
 
 export interface ContinueWhereLeftOffResponse {

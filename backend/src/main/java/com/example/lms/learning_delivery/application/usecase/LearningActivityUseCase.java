@@ -85,11 +85,26 @@ public class LearningActivityUseCase {
     public void recordInteractiveVideoEvent(UUID studentId, UUID lessonId, String sectionId,
                                             String interactionId, String action,
                                             double videoTimeSeconds, Map<String, Object> data) {
+        recordInteractiveVideoEvent(studentId, lessonId, sectionId, interactionId, action,
+                videoTimeSeconds, data, null, null);
+    }
+
+    @Transactional
+    public void recordInteractiveVideoEvent(UUID studentId, UUID lessonId, String sectionId,
+                                            String interactionId, String action,
+                                            double videoTimeSeconds, Map<String, Object> data,
+                                            Instant occurredAt, String entityId) {
         Map<String, Object> eventData = new java.util.LinkedHashMap<>();
         eventData.put("interactionId", interactionId);
         eventData.put("action", action);
         eventData.put("videoTimeSeconds", videoTimeSeconds);
         eventData.put("data", data != null ? data : Map.of());
+        if (occurredAt != null) {
+            eventData.put("occurredAt", occurredAt.toString());
+        }
+        if (entityId != null && !entityId.isBlank()) {
+            eventData.put("entityId", entityId);
+        }
 
         learningEventRepository.save(LearningEvent.create(
                 studentId,
@@ -188,7 +203,9 @@ public class LearningActivityUseCase {
             String interactionId,
             String action,
             double videoTimeSeconds,
-            Map<String, Object> data
+            Map<String, Object> data,
+            Instant occurredAt,
+            String entityId
     ) {}
 
     public record ContinueWhereLeftOffDTO(

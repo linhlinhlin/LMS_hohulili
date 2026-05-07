@@ -86,7 +86,9 @@ public class LearningActivityControllerV3 {
                 request.interactionId(),
                 request.action(),
                 request.videoTimeSeconds(),
-                request.data()
+                request.data(),
+                request.occurredAt(),
+                request.entityId()
         );
         return ResponseEntity.ok(ApiResponse.success(null, "Đã ghi nhận tương tác video"));
     }
