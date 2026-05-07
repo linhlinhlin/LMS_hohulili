@@ -15,7 +15,8 @@ import { environment } from '../../../../environments/environment';
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-slate-50 px-4 sm:px-6 py-6 max-w-[1400px] mx-auto">
+    <div class="min-h-screen bg-slate-50">
+      <div class="mx-auto w-full max-w-[1400px] px-5 py-6 sm:px-8 lg:px-10 xl:px-12">
       <!-- Header -->
       <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-900">Khám phá khóa học</h1>
@@ -338,6 +339,7 @@ import { environment } from '../../../../environments/environment';
           }
         }
       }
+      </div>
     </div>
   `
 })
