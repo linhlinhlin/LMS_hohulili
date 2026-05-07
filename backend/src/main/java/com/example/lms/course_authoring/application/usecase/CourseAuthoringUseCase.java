@@ -2,6 +2,7 @@ package com.example.lms.course_authoring.application.usecase;
 
 import com.example.lms.course_authoring.application.dto.AuthoringDTOs;
 import com.example.lms.course_authoring.application.dto.CourseDTOs;
+import com.example.lms.course_authoring.application.service.CourseDeletionCleanupService;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.model.CourseCategory;
 import com.example.lms.course_authoring.domain.repository.ChapterRepositoryPort;
@@ -31,6 +32,7 @@ public class CourseAuthoringUseCase {
     private final ChapterRepositoryPort chapterRepository;
     private final GetCourseDraftUseCase getCourseDraftUseCase;
     private final CourseReviewEventJpaRepository reviewEventRepository;
+    private final CourseDeletionCleanupService courseDeletionCleanupService;
 
     private static final int MAX_CODE_RETRY = 3;
 
@@ -175,6 +177,10 @@ public class CourseAuthoringUseCase {
 
     @Transactional
     public void deleteCourse(UUID courseId) {
+        if (!courseRepository.existsById(courseId)) {
+            throw new EntityNotFoundException("Khóa học", courseId);
+        }
+        courseDeletionCleanupService.cleanupBeforeDelete(courseId);
         courseRepository.deleteById(courseId);
     }
 
