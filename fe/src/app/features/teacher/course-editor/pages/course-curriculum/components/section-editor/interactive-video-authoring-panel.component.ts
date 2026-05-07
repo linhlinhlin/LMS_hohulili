@@ -21,7 +21,9 @@ import type {
 import { CurriculumEditorService } from '../../../../services/curriculum-editor.service';
 import {
   buildInteractiveVideoSpec,
+  getInteractiveVideoAuthoringIssues,
   suggestNextInteractiveVideoTimeSeconds,
+  type InteractiveVideoAuthoringIssue,
 } from '../../../../utils/interactive-video-authoring';
 import {
   exportInteractiveVideoBundle,
@@ -53,6 +55,13 @@ interface InteractiveVideoFlowNode {
   choices: InteractiveVideoFlowChoice[];
   required: boolean;
   pause: boolean;
+}
+
+interface InteractiveVideoQualitySummary {
+  iconName: string;
+  title: string;
+  body: string;
+  toneClass: string;
 }
 
 @Component({
@@ -148,6 +157,50 @@ export class InteractiveVideoAuthoringPanelComponent {
       required: nodes.filter(node => node.required).length,
     };
   });
+  readonly timelineMaxSeconds = computed(() => this.getTimelineScaleMaxSeconds());
+  readonly interactiveVideoQualityIssues = computed(() =>
+    getInteractiveVideoAuthoringIssues(
+      this.svc.sectionInteractiveVideoEnabled(),
+      this.svc.sectionInteractiveVideoTimeline(),
+      { durationSeconds: this.svc.sectionVideoDurationSec() },
+    ),
+  );
+  readonly interactiveVideoQualitySummary = computed<InteractiveVideoQualitySummary>(() => {
+    const issues = this.interactiveVideoQualityIssues();
+    const errorCount = issues.filter(issue => issue.severity === 'error').length;
+    const warningCount = issues.filter(issue => issue.severity === 'warning').length;
+    const baseClass = 'rounded-lg border px-3 py-2.5';
+
+    if (errorCount > 0) {
+      return {
+        iconName: 'alert-circle',
+        title: `${errorCount} việc cần sửa trước khi lưu`,
+        body: warningCount > 0
+          ? `Có thêm ${warningCount} điểm nên rà soát.`
+          : 'Các lỗi này có thể làm học viên bị kẹt hoặc dữ liệu ghi nhận sai.',
+        toneClass: `${baseClass} border-red-200 bg-red-50 text-red-800`,
+      };
+    }
+
+    if (warningCount > 0) {
+      return {
+        iconName: 'alert-triangle',
+        title: `${warningCount} điểm nên rà soát`,
+        body: 'Bài vẫn có thể lưu, nhưng các điểm này dễ làm học viên hiểu nhầm.',
+        toneClass: `${baseClass} border-amber-200 bg-amber-50 text-amber-800`,
+      };
+    }
+
+    return {
+      iconName: 'check-circle-2',
+      title: 'Luồng tương tác ổn',
+      body: 'Thời điểm, lựa chọn và nhánh đang hợp lệ để lưu.',
+      toneClass: `${baseClass} border-emerald-200 bg-emerald-50 text-emerald-800`,
+    };
+  });
+  readonly visibleInteractiveVideoQualityIssues = computed(() =>
+    this.interactiveVideoQualityIssues().slice(0, 5),
+  );
 
   onInteractiveVideoEnabledChange(enabled: boolean): void {
     this.svc.setInteractiveVideoEnabled(enabled);
@@ -332,6 +385,7 @@ export class InteractiveVideoAuthoringPanelComponent {
     if (event.button !== 0) {
       return;
     }
+    event.preventDefault();
     this.timelineDraggingInteractionId.set(node.id);
     this.suppressNextTimelineClick = false;
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
@@ -456,6 +510,22 @@ export class InteractiveVideoAuthoringPanelComponent {
   onFlowNodeDragEnd(): void {
     this.draggingInteractionId.set(null);
     this.dropTargetInteractionId.set(null);
+  }
+
+  getInteractiveQualityIssueClass(issue: InteractiveVideoAuthoringIssue): string {
+    return issue.severity === 'error'
+      ? 'rounded-lg border border-red-100 bg-white px-3 py-2 text-xs leading-relaxed text-red-700'
+      : 'rounded-lg border border-amber-100 bg-white px-3 py-2 text-xs leading-relaxed text-amber-700';
+  }
+
+  getInteractiveQualityIssueIconName(issue: InteractiveVideoAuthoringIssue): string {
+    return issue.severity === 'error' ? 'x-circle' : 'alert-triangle';
+  }
+
+  focusInteractiveQualityIssue(issue: InteractiveVideoAuthoringIssue): void {
+    if (issue.interactionId) {
+      this.scrollInteractiveNodeIntoView(issue.interactionId);
+    }
   }
 
   private moveInteractionBefore(sourceId: string, targetId: string): void {

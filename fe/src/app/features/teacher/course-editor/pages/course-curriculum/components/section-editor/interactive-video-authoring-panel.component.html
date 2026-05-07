@@ -101,6 +101,49 @@
       </div>
     </div>
 
+    @if (svc.sectionInteractiveVideoEnabled()) {
+      <div class="border-b border-slate-100 px-4 py-3">
+        <div
+          [class]="interactiveVideoQualitySummary().toneClass"
+          role="status"
+          aria-live="polite">
+          <div class="flex items-start gap-2.5">
+            <lucide-icon
+              [name]="interactiveVideoQualitySummary().iconName"
+              [size]="16"
+              class="mt-0.5 shrink-0"></lucide-icon>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-semibold">{{ interactiveVideoQualitySummary().title }}</p>
+              <p class="mt-0.5 text-xs leading-relaxed opacity-90">{{ interactiveVideoQualitySummary().body }}</p>
+            </div>
+          </div>
+
+          @if (visibleInteractiveVideoQualityIssues().length > 0) {
+            <div class="mt-2 grid gap-1.5">
+              @for (issue of visibleInteractiveVideoQualityIssues(); track issue.code + '-' + (issue.interactionId || '') + '-' + (issue.choiceId || '')) {
+                <div [class]="getInteractiveQualityIssueClass(issue)">
+                  <div class="flex items-start gap-2">
+                    <lucide-icon
+                      [name]="getInteractiveQualityIssueIconName(issue)"
+                      [size]="13"
+                      class="mt-0.5 shrink-0"></lucide-icon>
+                    <span class="min-w-0 flex-1">{{ issue.message }}</span>
+                    @if (issue.interactionId) {
+                      <button type="button"
+                        (click)="focusInteractiveQualityIssue(issue)"
+                        class="shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold text-[#0056D2] hover:bg-[#0056D2]/5">
+                        Sửa
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+
     @if (interactiveVideoFlowNodes().length > 0) {
       <section class="border-b border-slate-100 bg-slate-50/50 p-4" aria-label="Sơ đồ luồng video tương tác">
         <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -124,10 +167,15 @@
             <div class="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-slate-100"></div>
             @for (node of interactiveVideoFlowNodes(); track node.id) {
               <button type="button"
+                role="slider"
                 class="interactive-timeline-dot absolute top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 touch-none items-center justify-center rounded-full border border-white bg-[#0056D2] text-[10px] font-bold text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0056D2] focus-visible:ring-offset-2"
                 [style.left.%]="getTimelinePercent(node.atSeconds)"
                 [attr.aria-current]="timelineDraggingInteractionId() === node.id ? 'true' : null"
                 [attr.aria-label]="'Chỉnh điểm ' + node.index + ' tại ' + node.timeLabel"
+                [attr.aria-valuemin]="0"
+                [attr.aria-valuemax]="timelineMaxSeconds()"
+                [attr.aria-valuenow]="node.atSeconds"
+                [attr.aria-valuetext]="node.timeLabel"
                 [attr.title]="'Kéo để đổi thời điểm · ' + node.timeLabel"
                 (click)="onTimelineDotClick(node)"
                 (keydown)="onFlowNodeKeydown($event, node)"
