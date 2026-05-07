@@ -189,7 +189,7 @@ public class TeacherCoursesControllerV3 {
     public ResponseEntity<ApiResponse<Object>> deleteCourse(
             @PathVariable UUID courseId,
             @AuthenticationPrincipal UserJpaEntity user) {
-        verifyCourseOwnership(courseId, user);
+        verifyCourseOwner(courseId, user);
         courseAuthoringUseCase.deleteCourse(courseId);
         return ResponseEntity.ok(ApiResponse.success("Xóa thành công"));
     }
@@ -307,6 +307,16 @@ public class TeacherCoursesControllerV3 {
         if (!course.getTeacherId().equals(user.getId())
                 && !classTeacherJpaRepository.existsByTeacherIdAndCourseId(user.getId(), courseId)) {
             throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền truy cập khóa học này");
+        }
+    }
+
+    private void verifyCourseOwner(UUID courseId, UserJpaEntity user) {
+        if (isAdminRole(user)) return;
+        var course = jpaCourseRepository.findById(courseId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Course", courseId));
+        if (!course.getTeacherId().equals(user.getId())) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Chỉ chủ sở hữu khóa học mới có quyền xóa khóa học này");
         }
     }
 

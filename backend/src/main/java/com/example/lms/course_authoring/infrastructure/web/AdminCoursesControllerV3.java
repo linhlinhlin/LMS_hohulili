@@ -3,6 +3,7 @@ package com.example.lms.course_authoring.infrastructure.web;
 import com.example.lms.course_authoring.admin.application.dto.WindowedAnalyticsResponse;
 import com.example.lms.course_authoring.admin.application.usecase.GetWindowedAnalyticsUseCase;
 import com.example.lms.course_authoring.application.usecase.ApproveCourseUseCase;
+import com.example.lms.course_authoring.application.usecase.CourseAuthoringUseCase;
 import com.example.lms.course_authoring.application.usecase.RejectCourseUseCase;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
@@ -55,6 +56,7 @@ public class AdminCoursesControllerV3 {
     private final CourseCategoryJpaRepository categoryRepository;
     private final JpaEnrollmentRepository enrollmentRepository;
     private final PaymentTransactionJpaRepository paymentTransactionRepository;
+    private final CourseAuthoringUseCase courseAuthoringUseCase;
     private final ApproveCourseUseCase approveCourseUseCase;
     private final RejectCourseUseCase rejectCourseUseCase;
     private final CourseReviewEventJpaRepository reviewEventRepository;
@@ -449,7 +451,7 @@ public class AdminCoursesControllerV3 {
         if (!courseRepository.existsById(courseId)) {
             throw new EntityNotFoundException("Khóa học", courseId);
         }
-        courseRepository.deleteById(courseId);
+        courseAuthoringUseCase.deleteCourse(courseId);
         return ResponseEntity.ok(ApiResponse.success("Đã xóa", "Khóa học đã được xóa thành công"));
     }
 

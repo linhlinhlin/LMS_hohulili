@@ -44,6 +44,7 @@ class AdminCoursesControllerV3Test {
     @Mock private CourseCategoryJpaRepository categoryRepository;
     @Mock private JpaEnrollmentRepository enrollmentRepository;
     @Mock private PaymentTransactionJpaRepository paymentTransactionRepository;
+    @Mock private com.example.lms.course_authoring.application.usecase.CourseAuthoringUseCase courseAuthoringUseCase;
     @Mock private com.example.lms.course_authoring.application.usecase.ApproveCourseUseCase approveCourseUseCase;
     @Mock private com.example.lms.course_authoring.application.usecase.RejectCourseUseCase rejectCourseUseCase;
     @Mock private CourseReviewEventJpaRepository reviewEventRepository;
@@ -317,7 +318,7 @@ class AdminCoursesControllerV3Test {
 
             // Then
             assertThat(response.getStatusCode().value()).isEqualTo(200);
-            verify(courseRepository).deleteById(courseId);
+            verify(courseAuthoringUseCase).deleteCourse(courseId);
         }
 
         @Test
@@ -330,7 +331,7 @@ class AdminCoursesControllerV3Test {
             // When/Then
             assertThatThrownBy(() -> controller.deleteCourse(courseId))
                     .isInstanceOf(com.example.lms.shared.exception.EntityNotFoundException.class);
-            verify(courseRepository, never()).deleteById(any());
+            verify(courseAuthoringUseCase, never()).deleteCourse(any());
         }
     }
 }
