@@ -11,6 +11,7 @@ import {
 import { VideoAssetApi } from '../../../api/client/video-asset.api';
 import { firstValueFrom } from 'rxjs';
 import { InteractiveVideoOverlayComponent } from './interactive-video-overlay.component';
+import { InteractiveVideoMarkersComponent } from './interactive-video-markers.component';
 import type {
   InteractiveVideoChoice,
   InteractiveVideoInteraction,
@@ -31,9 +32,9 @@ type ResolvedSource =
 @Component({
   selector: 'app-quiz-video-player',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [InteractiveVideoOverlayComponent],
+  imports: [InteractiveVideoOverlayComponent, InteractiveVideoMarkersComponent],
   template: `
-    <div class="relative w-full bg-black rounded-lg overflow-hidden"
+    <div class="relative aspect-video w-full overflow-hidden rounded-lg bg-black"
          (click)="showQualityMenu() && showQualityMenu.set(false)">
       <video
         #videoElement
@@ -42,9 +43,10 @@ type ResolvedSource =
         playsinline
         preload="metadata"
         crossorigin="anonymous"
-        class="w-full"
-        style="max-height: 400px;"
+        class="h-full w-full object-contain"
         [class.opacity-0]="isLoading() && !error() && !isProcessing()"
+        (loadedmetadata)="onLoadedMetadata()"
+        (durationchange)="onLoadedMetadata()"
         (timeupdate)="onTimeUpdate()"
         (error)="onVideoError()">
         Trình duyệt không hỗ trợ phát video.
@@ -114,10 +116,18 @@ type ResolvedSource =
         }
       </div>
 
+      <app-interactive-video-markers
+        [timeline]="interactiveVideoSpec()?.enabled === false ? [] : (interactiveVideoSpec()?.timeline ?? [])"
+        [durationSeconds]="videoDurationSeconds()"
+        [currentTimeSeconds]="currentTimeSeconds()"
+        [activeInteractionId]="activeInteraction()?.id ?? null"
+        (markerSelected)="seekToInteractiveSecond($event)" />
+
       @if (activeInteraction(); as interaction) {
         <app-interactive-video-overlay
           [interaction]="interaction"
           [selectedChoiceId]="selectedChoiceId()"
+          [density]="overlayDensity()"
           (choiceSelected)="onInteractiveChoice($event)"
           (continueRequested)="onInteractiveContinue()" />
       }
@@ -130,6 +140,7 @@ export class QuizVideoPlayerComponent {
   readonly videoAssetId = input<string | null>(null);
   readonly rawVideoUrl = input<string | null>(null);
   readonly interactiveVideoSpec = input<InteractiveVideoSpec | null>(null);
+  readonly overlayDensity = input<'comfortable' | 'compact'>('comfortable');
 
   private readonly videoElement = viewChild<ElementRef<HTMLVideoElement>>('videoElement');
 
@@ -142,6 +153,8 @@ export class QuizVideoPlayerComponent {
   readonly availableQualities = signal<Array<{ height: number; bandwidth: number }>>([]);
   readonly activeInteraction = signal<InteractiveVideoInteraction | null>(null);
   readonly selectedChoiceId = signal<string | null>(null);
+  readonly videoDurationSeconds = signal<number | null>(null);
+  readonly currentTimeSeconds = signal(0);
 
   private shakaPlayer: any = null;
   private loadToken = 0;
@@ -180,11 +193,43 @@ export class QuizVideoPlayerComponent {
     }
   }
 
+  onLoadedMetadata(): void {
+    const video = this.videoElement()?.nativeElement;
+    if (!video) {
+      return;
+    }
+
+    this.videoDurationSeconds.set(Number.isFinite(video.duration) && video.duration > 0 ? video.duration : null);
+    this.currentTimeSeconds.set(Number.isFinite(video.currentTime) ? video.currentTime : 0);
+  }
+
   onTimeUpdate(): void {
     const video = this.videoElement()?.nativeElement;
     if (!video) {
       return;
     }
+    this.currentTimeSeconds.set(video.currentTime);
+    this.evaluateInteractiveTimeline(video);
+  }
+
+  seekToInteractiveSecond(seconds: number): void {
+    const video = this.videoElement()?.nativeElement;
+    if (!video || !Number.isFinite(seconds)) {
+      return;
+    }
+
+    const targetInteraction = this.interactiveVideoSpec()?.timeline
+      ?.find(interaction => Math.abs(interaction.atSeconds - seconds) <= 1);
+    if (targetInteraction) {
+      this.completedInteractionIds.delete(targetInteraction.id);
+      this.shownInteractionIds.delete(targetInteraction.id);
+      this.activeInteraction.set(null);
+      this.selectedChoiceId.set(null);
+    }
+
+    const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : seconds;
+    video.currentTime = Math.max(0, Math.min(seconds, duration));
+    this.currentTimeSeconds.set(video.currentTime);
     this.evaluateInteractiveTimeline(video);
   }
 
@@ -227,6 +272,8 @@ export class QuizVideoPlayerComponent {
     this.isProcessing.set(false);
     this.isLoading.set(true);
     this.qualityLabel.set(null);
+    this.videoDurationSeconds.set(null);
+    this.currentTimeSeconds.set(0);
 
     try {
       const source = await this.resolveSource(assetId, rawUrl);

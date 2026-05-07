@@ -52,6 +52,12 @@
         <div class="flex flex-wrap items-center gap-2">
           <span class="mr-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Tạo trực tiếp</span>
           <button type="button"
+            (click)="addSuggestedInteractions()"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">
+            <lucide-icon name="wand-sparkles" [size]="13"></lucide-icon>
+            Tạo nhanh theo độ dài
+          </button>
+          <button type="button"
             (click)="addInteraction('checkpoint')"
             class="inline-flex items-center gap-1.5 rounded-lg bg-[#0056D2] px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-[#004BB5]">
             <lucide-icon name="pause" [size]="13"></lucide-icon>
@@ -293,7 +299,13 @@
         <div class="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-4 text-center">
           <lucide-icon name="plus-circle" [size]="30" class="mx-auto text-slate-300"></lucide-icon>
           <p class="mt-2 text-sm font-semibold text-slate-600">Chưa có điểm tương tác</p>
-          <div class="mt-4 grid gap-2 sm:grid-cols-3">
+          <div class="mt-4 grid gap-2 sm:grid-cols-4">
+            <button type="button"
+              (click)="addSuggestedInteractions()"
+              class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">
+              <lucide-icon name="wand-sparkles" [size]="13"></lucide-icon>
+              Tạo nhanh
+            </button>
             <button type="button"
               (click)="addInteraction('checkpoint')"
               class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">

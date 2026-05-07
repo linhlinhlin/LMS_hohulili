@@ -1,6 +1,7 @@
 import {
   buildInteractiveVideoSpec,
   createInteractiveVideoInteraction,
+  createSuggestedInteractiveVideoInteractions,
   getInteractiveVideoAuthoringIssues,
   normalizeInteractiveVideoSpec,
   removeInteractiveVideoInteractionAndRetargetBranches,
@@ -37,6 +38,38 @@ describe('interactive-video-authoring', () => {
     });
 
     expect(created.atSeconds).toBe(30);
+  });
+
+  it('creates one duration-aware quick scaffold for very short videos', () => {
+    const suggestions = createSuggestedInteractiveVideoInteractions([], {
+      durationSeconds: 15,
+    });
+
+    expect(suggestions.length).toBe(1);
+    expect(suggestions[0].atSeconds).toBe(8);
+    expect(suggestions[0].type).toBe('checkpoint');
+  });
+
+  it('creates spaced quick scaffolds for a 22 minute lecture', () => {
+    const suggestions = createSuggestedInteractiveVideoInteractions([], {
+      durationSeconds: 22 * 60,
+    });
+
+    expect(suggestions.map(item => item.atSeconds)).toEqual([106, 370, 686, 1003, 1214]);
+    expect(suggestions.some(item => item.type === 'single_choice')).toBeTrue();
+  });
+
+  it('skips quick scaffold points that are already covered nearby', () => {
+    const existing: InteractiveVideoInteraction[] = [
+      { id: 'near-intro', type: 'checkpoint', atSeconds: 100, pause: true, required: false },
+    ];
+
+    const suggestions = createSuggestedInteractiveVideoInteractions(existing, {
+      durationSeconds: 22 * 60,
+    });
+
+    expect(suggestions.map(item => item.atSeconds)).not.toContain(106);
+    expect(suggestions.length).toBe(4);
   });
 
   it('spreads later generated interactions into the largest remaining gap', () => {

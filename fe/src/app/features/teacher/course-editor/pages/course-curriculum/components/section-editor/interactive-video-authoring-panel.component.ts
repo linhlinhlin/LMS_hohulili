@@ -210,6 +210,10 @@ export class InteractiveVideoAuthoringPanelComponent {
     this.svc.addInteractiveVideoInteraction(type);
   }
 
+  addSuggestedInteractions(): void {
+    this.svc.addSuggestedInteractiveVideoInteractions();
+  }
+
   onInteractiveTypeChange(
     interactionId: string,
     type: InteractiveVideoInteractionType,

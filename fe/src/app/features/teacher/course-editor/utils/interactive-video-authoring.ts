@@ -18,6 +18,11 @@ export interface CreateInteractiveVideoInteractionOptions {
   preferredSeconds?: number | null;
 }
 
+export interface CreateSuggestedInteractiveVideoInteractionsOptions {
+  durationSeconds?: number | null;
+  maxSuggestions?: number;
+}
+
 export interface InteractiveVideoAuthoringIssue {
   code: string;
   severity: InteractiveVideoAuthoringIssueSeverity;
@@ -107,6 +112,37 @@ export function createInteractiveVideoChoice(index: number): InteractiveVideoCho
     targetTimeSeconds: null,
     targetInteractionId: null,
   };
+}
+
+export function createSuggestedInteractiveVideoInteractions(
+  timeline: InteractiveVideoInteraction[],
+  options: CreateSuggestedInteractiveVideoInteractionsOptions = {},
+): InteractiveVideoInteraction[] {
+  const durationSeconds = normalizeDurationSeconds(options.durationSeconds)
+    ?? inferDurationFromTimeline(timeline)
+    ?? 180;
+  const maxSuggestions = Math.max(1, Math.min(8, Math.round(options.maxSuggestions ?? 8)));
+  const minGapSeconds = getSuggestedMilestoneMinGapSeconds(durationSeconds);
+  const suggestions: InteractiveVideoInteraction[] = [];
+
+  for (const preferredSeconds of suggestInteractiveVideoMilestoneSeconds(durationSeconds)) {
+    if (suggestions.length >= maxSuggestions) {
+      break;
+    }
+
+    if (hasNearbyInteraction([...timeline, ...suggestions], preferredSeconds, minGapSeconds)) {
+      continue;
+    }
+
+    const type = getSuggestedInteractionType(suggestions.length);
+    const interaction = createInteractiveVideoInteraction([...timeline, ...suggestions], type, {
+      durationSeconds,
+      preferredSeconds,
+    });
+    suggestions.push(applySuggestedInteractionCopy(interaction, suggestions.length));
+  }
+
+  return suggestions;
 }
 
 export function sortInteractiveVideoTimeline(
@@ -535,6 +571,101 @@ function findLargestTimelineGapMidpoint(sortedTimes: number[], maxSeconds: numbe
     return latest + MIN_DURATION_AWARE_OFFSET_SECONDS;
   }
   return Math.round(bestStart + bestGap / 2);
+}
+
+function inferDurationFromTimeline(timeline: InteractiveVideoInteraction[]): number | null {
+  const latest = Math.max(0, ...timeline.map(interaction => toNonNegativeNumber(interaction.atSeconds, 0)));
+  return latest > 0 ? latest + DEFAULT_OFFSET_SECONDS : null;
+}
+
+function suggestInteractiveVideoMilestoneSeconds(durationSeconds: number): number[] {
+  const ratios = getSuggestedMilestoneRatios(durationSeconds);
+  return ratios
+    .map(ratio => clampToVideoDuration(Math.round(durationSeconds * ratio), durationSeconds))
+    .filter((seconds, index, all) => all.indexOf(seconds) === index);
+}
+
+function getSuggestedMilestoneRatios(durationSeconds: number): number[] {
+  if (durationSeconds <= 30) {
+    return [0.5];
+  }
+  if (durationSeconds <= 120) {
+    return [0.4, 0.75];
+  }
+  if (durationSeconds <= 600) {
+    return [0.15, 0.45, 0.75];
+  }
+  if (durationSeconds <= 1800) {
+    return [0.08, 0.28, 0.52, 0.76, 0.92];
+  }
+  return [0.05, 0.18, 0.32, 0.48, 0.64, 0.8, 0.93];
+}
+
+function getSuggestedMilestoneMinGapSeconds(durationSeconds: number): number {
+  if (durationSeconds <= 120) {
+    return 5;
+  }
+  if (durationSeconds <= 600) {
+    return 12;
+  }
+  if (durationSeconds <= 1800) {
+    return 30;
+  }
+  return 60;
+}
+
+function hasNearbyInteraction(
+  timeline: InteractiveVideoInteraction[],
+  preferredSeconds: number,
+  minGapSeconds: number,
+): boolean {
+  return timeline.some(interaction =>
+    Math.abs(toNonNegativeNumber(interaction.atSeconds, 0) - preferredSeconds) < minGapSeconds,
+  );
+}
+
+function getSuggestedInteractionType(index: number): InteractiveVideoInteractionType {
+  return index % 2 === 1 ? 'single_choice' : 'checkpoint';
+}
+
+function applySuggestedInteractionCopy(
+  interaction: InteractiveVideoInteraction,
+  index: number,
+): InteractiveVideoInteraction {
+  const ordinal = index + 1;
+  if (interaction.type === 'single_choice') {
+    return {
+      ...interaction,
+      title: `Kiểm tra nhanh ${ordinal}`,
+      body: 'Học viên đã nắm được ý chính của đoạn vừa xem chưa?',
+      required: false,
+      choices: [
+        {
+          id: createAuthoringId('choice'),
+          label: 'Đã hiểu ý chính',
+          feedback: 'Tốt. Tiếp tục sang đoạn kế tiếp.',
+          isCorrect: true,
+          targetTimeSeconds: null,
+          targetInteractionId: null,
+        },
+        {
+          id: createAuthoringId('choice'),
+          label: 'Cần xem lại đoạn này',
+          feedback: 'Hãy tua lại một chút để xem lại phần vừa học.',
+          isCorrect: false,
+          targetTimeSeconds: null,
+          targetInteractionId: null,
+        },
+      ],
+    };
+  }
+
+  return {
+    ...interaction,
+    title: `Điểm dừng ${ordinal}`,
+    body: 'Dừng lại một nhịp để học viên ghi nhớ ý quan trọng trước khi tiếp tục.',
+    required: false,
+  };
 }
 
 function createAuthoringId(prefix: string): string {

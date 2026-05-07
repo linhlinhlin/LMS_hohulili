@@ -459,20 +459,26 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
               <!-- DONE: video attached with preview + actions -->
               @if (cfUploadStatus() === 'done') {
                 <div class="space-y-3">
-                  <!-- Video preview (compact, max 280px height for editor) -->
+                  <!-- Video preview -->
                   @if (svc.sectionVideoAssetId()) {
-                    <div class="overflow-hidden rounded-xl border border-slate-200 bg-black" style="max-height: 280px; aspect-ratio: 16/9;">
+                    <div
+                      [class]="videoPreviewFrameClass()"
+                      style="aspect-ratio: 16/9;">
                       <app-quiz-video-player
                         [videoAssetId]="svc.sectionVideoAssetId()"
                         [rawVideoUrl]="svc.sectionVideoUrl()"
-                        [interactiveVideoSpec]="interactiveVideoPreviewSpec()">
+                        [interactiveVideoSpec]="interactiveVideoPreviewSpec()"
+                        [overlayDensity]="'compact'">
                       </app-quiz-video-player>
                     </div>
                   } @else if (svc.sectionVideoUrl()) {
-                    <div class="overflow-hidden rounded-xl border border-slate-200 bg-black" style="max-height: 280px; aspect-ratio: 16/9;">
+                    <div
+                      [class]="videoPreviewFrameClass()"
+                      style="aspect-ratio: 16/9;">
                       <app-quiz-video-player
                         [rawVideoUrl]="svc.sectionVideoUrl()"
-                        [interactiveVideoSpec]="interactiveVideoPreviewSpec()">
+                        [interactiveVideoSpec]="interactiveVideoPreviewSpec()"
+                        [overlayDensity]="'compact'">
                       </app-quiz-video-player>
                     </div>
                   }
@@ -544,6 +550,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                       [sectionId]="svc.editingSectionId() || 'preview'"
                       [trackingEnabled]="false"
                       [interactiveVideoSpec]="interactiveVideoPreviewSpec()"
+                      [overlayDensity]="'compact'"
                       (durationLoaded)="onYouTubeDurationLoaded($event)" />
                   </div>
                 }
@@ -1603,6 +1610,15 @@ export class SectionEditorComponent {
     this.svc.sectionInteractiveVideoEnabled(),
     this.svc.sectionInteractiveVideoTimeline(),
   ));
+  readonly hasInteractiveVideoPreview = computed(() =>
+    this.svc.sectionInteractiveVideoEnabled() && this.svc.sectionInteractiveVideoTimeline().length > 0,
+  );
+  readonly videoPreviewFrameClass = computed(() => {
+    const base = 'overflow-hidden rounded-xl border border-slate-200 bg-black';
+    return this.hasInteractiveVideoPreview()
+      ? `${base} mx-auto w-full max-w-4xl`
+      : `${base} mx-auto w-full max-w-3xl`;
+  });
   readonly isContentEmpty = computed(() => {
     const content = this.svc.sectionContent();
     if (!content) return true;

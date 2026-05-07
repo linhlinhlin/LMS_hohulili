@@ -24,6 +24,7 @@ import { OfflineSyncService } from '../../../../core/services/offline-sync.servi
 import { HeartbeatTracker } from '../../services/heartbeat-tracker.service';
 import { WatchedSegmentsTracker } from '../../services/watched-segments-tracker.service';
 import { InteractiveVideoOverlayComponent } from '../../../../shared/blocks/video-block/interactive-video-overlay.component';
+import { InteractiveVideoMarkersComponent } from '../../../../shared/blocks/video-block/interactive-video-markers.component';
 import { buildInteractiveVideoAnalyticsProjection } from '../../../../core/utils/interactive-video-analytics';
 import type {
   InteractiveVideoChoice,
@@ -39,7 +40,7 @@ type ResolvedVideoSource =
 @Component({
   selector: 'app-adaptive-video-player',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [InteractiveVideoOverlayComponent],
+  imports: [InteractiveVideoOverlayComponent, InteractiveVideoMarkersComponent],
   template: `
     <div class="relative h-full w-full bg-black" data-testid="adaptive-video-player"
          (click)="showQualityMenu() && showQualityMenu.set(false)">
@@ -121,6 +122,13 @@ type ResolvedVideoSource =
         }
       </div>
 
+      <app-interactive-video-markers
+        [timeline]="interactiveVideoSpec()?.enabled === false ? [] : (interactiveVideoSpec()?.timeline ?? [])"
+        [durationSeconds]="videoDurationSeconds()"
+        [currentTimeSeconds]="currentTimeSeconds()"
+        [activeInteractionId]="activeInteraction()?.id ?? null"
+        (markerSelected)="seekToInteractiveSecond($event)" />
+
       @if (showNetworkHint()) {
         <div class="absolute bottom-3 left-3 rounded-full bg-amber-500/90 px-3 py-1 text-[11px] font-semibold text-slate-950">
           Mạng yếu, hệ thống đang ưu tiên phát ổn định
@@ -171,6 +179,8 @@ export class AdaptiveVideoPlayerComponent {
   readonly availableQualities = signal<Array<{ height: number; bandwidth: number }>>([]);
   readonly activeInteraction = signal<InteractiveVideoInteraction | null>(null);
   readonly selectedChoiceId = signal<string | null>(null);
+  readonly videoDurationSeconds = signal<number | null>(null);
+  readonly currentTimeSeconds = signal(0);
   readonly showNetworkHint = computed(() => {
     const metrics = this.qoe.metrics();
     const rebufferCount = metrics?.rebufferCount ?? 0;
@@ -224,6 +234,11 @@ export class AdaptiveVideoPlayerComponent {
 
   onLoadedMetadata(event: Event): void {
     const video = event.target as HTMLVideoElement | null;
+    if (video) {
+      this.videoDurationSeconds.set(Number.isFinite(video.duration) && video.duration > 0 ? video.duration : null);
+      this.currentTimeSeconds.set(Number.isFinite(video.currentTime) ? video.currentTime : 0);
+    }
+
     const sectionId = this.getTrackingSectionId();
     if (!video || !sectionId) {
       return;
@@ -238,7 +253,20 @@ export class AdaptiveVideoPlayerComponent {
     if (!video) {
       return;
     }
+    this.currentTimeSeconds.set(video.currentTime);
     this.tracker.recordSecond(video.currentTime);
+    this.evaluateInteractiveTimeline(video);
+  }
+
+  seekToInteractiveSecond(seconds: number): void {
+    const video = this.videoElement()?.nativeElement;
+    if (!video || !Number.isFinite(seconds)) {
+      return;
+    }
+
+    const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : seconds;
+    video.currentTime = Math.max(0, Math.min(seconds, duration));
+    this.currentTimeSeconds.set(video.currentTime);
     this.evaluateInteractiveTimeline(video);
   }
 
@@ -294,6 +322,8 @@ export class AdaptiveVideoPlayerComponent {
     this.qualityLabel.set(null);
     this.startupRecorded = false;
     this.attemptedOfflineBlobFallback = false;
+    this.videoDurationSeconds.set(null);
+    this.currentTimeSeconds.set(0);
     this.resetInteractiveRuntime();
     this.revokeOfflineBlobUrl();
     this.qoe.startSession(this.lessonId());

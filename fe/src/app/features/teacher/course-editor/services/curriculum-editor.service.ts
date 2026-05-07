@@ -28,9 +28,11 @@ import {
   choiceTypeNeedsChoices,
   createInteractiveVideoChoice,
   createInteractiveVideoInteraction,
+  createSuggestedInteractiveVideoInteractions,
   getInteractiveVideoAuthoringIssues,
   normalizeInteractiveVideoSpec,
   removeInteractiveVideoInteractionAndRetargetBranches,
+  sortInteractiveVideoTimeline,
 } from '../utils/interactive-video-authoring';
 import {
   probeVideoFile,
@@ -207,6 +209,26 @@ export class CurriculumEditorService {
     this.sectionInteractiveVideoTimeline.update(timeline => [...timeline, next]);
     this.sectionInteractiveVideoEnabled.set(true);
     this.markDirty();
+  }
+
+  addSuggestedInteractiveVideoInteractions(): number {
+    const suggestions = createSuggestedInteractiveVideoInteractions(
+      this.sectionInteractiveVideoTimeline(),
+      { durationSeconds: this.sectionVideoDurationSec() },
+    );
+
+    if (suggestions.length === 0) {
+      this.toast.info('Các mốc gợi ý đã có đủ gần trên timeline.');
+      return 0;
+    }
+
+    this.sectionInteractiveVideoTimeline.update(timeline =>
+      sortInteractiveVideoTimeline([...timeline, ...suggestions]),
+    );
+    this.sectionInteractiveVideoEnabled.set(true);
+    this.markDirty();
+    this.toast.success(`Đã tạo ${suggestions.length} mốc gợi ý theo độ dài video.`);
+    return suggestions.length;
   }
 
   updateInteractiveVideoInteraction(
