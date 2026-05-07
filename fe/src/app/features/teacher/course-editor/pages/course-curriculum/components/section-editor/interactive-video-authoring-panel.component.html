@@ -71,33 +71,41 @@
           </button>
           <span class="text-xs text-slate-500">{{ durationHint() }}</span>
         </div>
-        <div class="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
-          <span class="mr-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Tệp H5P/JSON</span>
-          <input #interactiveImportInput type="file"
-            accept="application/json,.json,.h5p,application/h5p,application/zip"
-            class="hidden"
-            (change)="onInteractiveImportSelected($event)" />
-          <button type="button"
-            (click)="interactiveImportInput.click()"
-            class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
-            <lucide-icon name="upload" [size]="13"></lucide-icon>
-            Nhập từ file
-          </button>
-          <button type="button"
-            (click)="exportInteractiveVideoJson()"
-            [disabled]="!previewSpec()"
-            class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5 disabled:cursor-not-allowed disabled:opacity-50">
-            <lucide-icon name="download" [size]="13"></lucide-icon>
-            Xuất JSON
-          </button>
-          <button type="button"
-            (click)="exportInteractiveVideoH5P()"
-            [disabled]="!previewSpec()"
-            class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5 disabled:cursor-not-allowed disabled:opacity-50">
-            <lucide-icon name="archive" [size]="13"></lucide-icon>
-            Xuất H5P
-          </button>
-        </div>
+        <details class="group border-t border-slate-100 pt-3">
+          <summary class="inline-flex cursor-pointer select-none items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-700">
+            <lucide-icon name="chevron-right" [size]="13" class="transition-transform group-open:rotate-90"></lucide-icon>
+            Nâng cao: nhập/xuất gói tương tác
+          </summary>
+          <div class="mt-2 flex flex-wrap items-center gap-2">
+            <input #interactiveImportInput type="file"
+              accept="application/json,.json,.h5p,application/h5p,application/zip"
+              class="hidden"
+              (change)="onInteractiveImportSelected($event)" />
+            <button type="button"
+              (click)="interactiveImportInput.click()"
+              class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
+              <lucide-icon name="upload" [size]="13"></lucide-icon>
+              Nhập từ file
+            </button>
+            <button type="button"
+              (click)="exportInteractiveVideoJson()"
+              [disabled]="!previewSpec()"
+              class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5 disabled:cursor-not-allowed disabled:opacity-50">
+              <lucide-icon name="download" [size]="13"></lucide-icon>
+              Xuất JSON
+            </button>
+            <button type="button"
+              (click)="exportInteractiveVideoH5P()"
+              [disabled]="!previewSpec()"
+              class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5 disabled:cursor-not-allowed disabled:opacity-50">
+              <lucide-icon name="archive" [size]="13"></lucide-icon>
+              Xuất H5P
+            </button>
+            <span class="text-xs leading-relaxed text-slate-500">
+              Dành cho chuyển bài từ hệ thống khác; khi soạn mới chỉ cần dùng các nút tạo trực tiếp ở trên.
+            </span>
+          </div>
+        </details>
       </div>
     </div>
 
