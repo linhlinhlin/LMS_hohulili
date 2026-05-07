@@ -26,6 +26,11 @@ import { NetworkStatusService } from '../../../core/services/network-status.serv
 import { OfflineSyncService } from '../../../core/services/offline-sync.service';
 import { getOfflineCourseStaleCopy } from '../../../core/utils/offline-course-staleness';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import {
+  hasPlayableVideoContent,
+  isPlayableVideoSection,
+  resolveProgressTrackingVideoSectionId,
+} from '../utils/video-section-gating';
 
 /**
  * Course Learning Component
@@ -620,7 +625,7 @@ export class CourseLearningComponent implements OnInit {
         const currentSection = currentLesson.sections[this.currentSectionIndex()];
 
         // 🔒 VIDEO: always check server-side threshold
-        if (currentSection.type === 'VIDEO' && (currentSection.videoUrl || currentSection.streamVideoUid)) {
+        if (isPlayableVideoSection(currentSection)) {
           const canProceed = await this.ensureVideoProgressThreshold(currentSection.id, 'next-section');
           if (!canProceed) return;
         }
@@ -714,7 +719,7 @@ export class CourseLearningComponent implements OnInit {
     }
 
     // 🔒 VIDEO: always check server-side threshold
-    if (currentSection.type === 'VIDEO' && (currentSection.videoUrl || currentSection.streamVideoUid)) {
+    if (isPlayableVideoSection(currentSection)) {
       const canProceed = await this.ensureVideoProgressThreshold(currentSection.id, 'complete-section');
       if (!canProceed) {
         return false;
@@ -774,14 +779,14 @@ export class CourseLearningComponent implements OnInit {
       // Ignore best-effort completion lookup and continue with backend sync.
     }
 
-    if (this.hasVideoContent(lesson)) {
-      const videoSection = this.getFirstVideoSection(lesson);
-      if (!videoSection) {
+    if (hasPlayableVideoContent(lesson)) {
+      const videoSectionId = resolveProgressTrackingVideoSectionId(lesson);
+      if (!videoSectionId) {
         this.toast.error('Không tìm thấy video trong bài học này.');
         return false;
       }
 
-      const canProceed = await this.ensureVideoProgressThreshold(videoSection.id, 'complete-lesson');
+      const canProceed = await this.ensureVideoProgressThreshold(videoSectionId, 'complete-lesson');
       if (!canProceed) {
         return false;
       }
@@ -803,27 +808,6 @@ export class CourseLearningComponent implements OnInit {
       this.toast.error('Không thể cập nhật trạng thái hoàn thành. Vui lòng thử lại.');
       return false;
     }
-  }
-
-  // Helper: Check if lesson has video content
-  private hasVideoContent(lesson: any): boolean {
-    // Check if lesson has videoUrl (fallback)
-    if (lesson.videoUrl || lesson.streamVideoUid) {
-      return true;
-    }
-    // Check if lesson has sections with VIDEO type
-    if (lesson.sections && lesson.sections.length > 0) {
-      return lesson.sections.some((s: any) => s.type === 'VIDEO' && (s.videoUrl || s.streamVideoUid));
-    }
-    return false;
-  }
-
-  // Helper: Get first video section from lesson
-  private getFirstVideoSection(lesson: any): any {
-    if (lesson.sections && lesson.sections.length > 0) {
-      return lesson.sections.find((s: any) => s.type === 'VIDEO' && (s.videoUrl || s.streamVideoUid));
-    }
-    return null;
   }
 
   // Section completion helpers

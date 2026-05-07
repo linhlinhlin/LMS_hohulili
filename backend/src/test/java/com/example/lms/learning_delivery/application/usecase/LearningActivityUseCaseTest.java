@@ -91,6 +91,7 @@ class LearningActivityUseCaseTest {
     @DisplayName("recordInteractiveVideoEvent saves interaction metadata")
     void recordInteractiveVideoEventSavesEvent() {
         when(learningEventRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        Instant occurredAt = Instant.parse("2026-05-06T10:15:30Z");
 
         useCase.recordInteractiveVideoEvent(
                 studentId,
@@ -99,7 +100,9 @@ class LearningActivityUseCaseTest {
                 "iv-1",
                 "answered",
                 42.5,
-                Map.of("choiceId", "choice-a", "isCorrect", true)
+                Map.of("choiceId", "choice-a", "isCorrect", true),
+                occurredAt,
+                "iv-1"
         );
 
         ArgumentCaptor<LearningEvent> captor = ArgumentCaptor.forClass(LearningEvent.class);
@@ -113,7 +116,9 @@ class LearningActivityUseCaseTest {
         assertThat(saved.getEventData())
                 .containsEntry("interactionId", "iv-1")
                 .containsEntry("action", "answered")
-                .containsEntry("videoTimeSeconds", 42.5);
+                .containsEntry("videoTimeSeconds", 42.5)
+                .containsEntry("occurredAt", occurredAt.toString())
+                .containsEntry("entityId", "iv-1");
         assertThat(saved.getEventData().get("data"))
                 .isEqualTo(Map.of("choiceId", "choice-a", "isCorrect", true));
     }
