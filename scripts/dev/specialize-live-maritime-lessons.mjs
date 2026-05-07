@@ -43,10 +43,20 @@ const courses = [
       "Khóa học chuyên sâu về ISM/SMS, kiểm soát rủi ro, PCCC, cứu sinh, MARPOL, điều tra near-miss và CAPA. Nội dung được viết theo từng nghiệp vụ riêng, không tự bịa dữ liệu hoặc dùng ví dụ không có nguồn.",
     videos: [
       ["kMqaQ26zG0g", "International Safety Management Code"],
-      ["g55WkNZFWZc", "International Safety Management Requirements"],
-      ["p1QvrA_lL50", "International Safety Management Code overview"],
-      ["-6qKSMueYl0", "International Safety Management practice"],
-      ["4_Iet1UiOYs", "Living the International Safety Management Code"],
+      ["5lzecgrflGk", "Risk Assessment and Management"],
+      ["JnOibCb1Vz4", "ISM plans, procedures and work permits"],
+      ["ZCKuKQQydZ0", "Ship fire safety and SOLAS fire divisions"],
+      ["zY_Mf4U5P6I", "Emergency procedures on board"],
+      ["eJTuwUO2RgU", "Survival craft and rescue boat training"],
+      ["UCqfQPf9-XA", "MARPOL electronic record books"],
+      ["vzFjKo1F5nY", "Shipboard Oil Pollution Emergency Plan"],
+      ["j768_qlKN1M", "Port State Control inspections"],
+      ["v7e8XJPZPGw", "Near-miss reporting"],
+      ["wSdeH2JhAZM", "Incident investigations and root causes"],
+      ["1CO66gGD1E4", "Major non-conformity and observation"],
+      ["zTbsqQIl0p0", "Ship fire drill and SOLAS drill report"],
+      ["6vS1ZFAvFbs", "Ship safety training"],
+      ["pBz1CHX3YdY", "STCW convention overview"],
     ],
     lessons: [
       p("Tư duy hệ thống trong ISM Code", "ISM/SMS: chính sách, trách nhiệm, quy trình, nguồn lực, kiểm tra và cải tiến", ["mục tiêu an toàn của SMS", "vai trò Designated Person Ashore", "quyền hạn của thuyền trưởng", "đánh giá hiệu lực quy trình"], ["sổ tay SMS", "master review", "internal audit", "non-conformity record"], "sms", ["ism", "stcw"], "Bản đồ trách nhiệm SMS"),
@@ -73,11 +83,21 @@ const courses = [
     description:
       "Khóa học chuyên sâu về trực ca buồng lái, COLREG, ECDIS/ENC, Radar/ARPA/AIS, IALA, VHF/SMCP, VTS và bàn giao ca. Nội dung từng bài bám đúng nghiệp vụ cầu lái, không tự bịa dữ liệu hoặc dùng ví dụ không có nguồn.",
     videos: [
-      ["D6j_a8cSUAI", "Navigational equipment on the ship bridge"],
-      ["-e6kjVbW7q4", "Bridge watchkeeping"],
       ["QSCxgFsYABs", "Duties of the Officer of the Watch"],
+      ["rY0GUwvakEs", "COLREG Rule 5 lookout"],
+      ["TXLhKhFIECo", "Handing over the watch"],
+      ["4z6C6GvNvBE", "Electronic Navigational Charts"],
+      ["s5ebZQru7mg", "Route planning with ECDIS"],
       ["PlTDR9UvoQI", "ECDIS safety depth practice"],
+      ["RVbuQqYYjRs", "Radar sea clutter and rain clutter"],
+      ["NJse0-UG9oo", "ARPA trial maneuver"],
+      ["Fm6EDcmew2o", "AIS and radar cross-check"],
       ["fsWoDtcphS0", "IALA buoyage overview"],
+      ["JfiMgghaqFs", "VHF communication with SMCP message markers"],
+      ["AbFF7mSqZFs", "Bridge team duty during pilotage"],
+      ["u4f9TlPXLYo", "Bridge procedures checklist and pilot card"],
+      ["6sKJb1-ceIg", "STCW watchkeeping standards"],
+      ["d3ANEOGvc94", "Bridge Resource Management"],
     ],
     lessons: [
       p("Vai trò của sĩ quan trực ca", "OOW: trách nhiệm ca trực, standing orders, master call criteria và bridge resource management", ["continuous watch", "master standing orders", "situational awareness", "decision escalation"], ["night order book", "bell book/log", "standing order", "watch handover"], "oow", ["stcw", "colreg"], "Trách nhiệm OOW"),
@@ -104,11 +124,21 @@ const courses = [
     description:
       "Khóa học chuyên sâu về chuỗi vận tải biển, chứng từ, Incoterms, container/CSC, VGM, IMDG, FAL, khai thác cảng và quản trị ngoại lệ. Nội dung từng bài bám quy trình và chuẩn quốc tế, không tự bịa dữ liệu hoặc dùng ví dụ không có nguồn.",
     videos: [
+      ["PK7c9aOb8NQ", "Sea shipment cargo and document flow"],
+      ["5pq8QAmz0q0", "MLO, NVOCC and freight forwarder roles"],
+      ["w4CL6oDk8wI", "Container cut-off and SOLAS VGM risk"],
+      ["R43v66aMLGY", "Shipping instruction data entry"],
+      ["reAjDV9j09g", "Bill of lading types and samples"],
+      ["tSQIlKI6OKc", "ICC Incoterms 2020 components"],
+      ["tI98bDpy0Gc", "Seal and container door inspection"],
       ["2Hu446v6HV4", "Verified Gross Mass for export containers"],
-      ["Fto3XiqNrMs", "SOLAS VGM implementation"],
-      ["-rzBFmaRuAY", "SOLAS VGM standard form"],
-      ["GszA_hr2kwE", "Submitting VGM"],
-      ["aBKLQRKMG3E", "Determining VGM method"],
+      ["yngNeFfq5us", "IMDG Code fire and spillage schedules"],
+      ["gix16RaUhxo", "Berthing in port operations"],
+      ["KgE_iK_NGmE", "Container ship stowage organization"],
+      ["0-QBp2ddZnQ", "Container terminal IoT operation"],
+      ["6TzC9sXmL1Y", "Demurrage, detention and port storage"],
+      ["fjAq8ySNaYc", "Container shipping exception and seasonality risk"],
+      ["q-6cGTQPTM4", "e-FAL and port community system"],
     ],
     lessons: [
       p("Dòng hàng, dòng chứng từ và dòng tiền", "Ba dòng logistics biển và điểm kiểm soát giữa hàng hóa, chứng từ, chi phí", ["cargo flow", "document flow", "payment/cost flow", "exception ownership"], ["booking", "B/L draft", "invoice/debit note", "event timestamp"], "threeflows", ["fal"], "Ba dòng logistics biển"),
@@ -347,7 +377,32 @@ function videoPayload(course, profile, sequence, existing = {}) {
 }
 
 function courseVideo(course, sequence) {
-  return course.lessons[sequence]?.video || course.videos?.[sequence % course.videos.length] || ["kMqaQ26zG0g", "Maritime reference video"];
+  const video = course.lessons[sequence]?.video || course.videos?.[sequence];
+  if (!video) throw new Error(`${course.code} lesson ${sequence + 1} is missing a unique video`);
+  return video;
+}
+
+function assertUniqueVideoPlan(courseList) {
+  const globalIds = new Map();
+  for (const course of courseList) {
+    const planned = course.lessons.map((_, index) => courseVideo(course, index));
+    if (planned.length !== course.lessons.length) {
+      throw new Error(`${course.code} video plan must cover every lesson`);
+    }
+    const localIds = new Map();
+    for (let index = 0; index < planned.length; index += 1) {
+      const [id, title] = planned[index] || [];
+      if (!id || !title) throw new Error(`${course.code} lesson ${index + 1} is missing a planned video id/title`);
+      if (localIds.has(id)) {
+        throw new Error(`${course.code} duplicates YouTube video ${id} in lessons ${localIds.get(id) + 1} and ${index + 1}`);
+      }
+      if (globalIds.has(id)) {
+        throw new Error(`${course.code} reuses YouTube video ${id}; already used by ${globalIds.get(id)}`);
+      }
+      localIds.set(id, index);
+      globalIds.set(id, `${course.code} lesson ${index + 1}`);
+    }
+  }
 }
 
 async function api(method, path, token, body) {
@@ -401,12 +456,16 @@ function count(chapters) {
   const lessons = chapters.flatMap((chapter) => chapter.lessons || []);
   const sections = lessons.flatMap((lesson) => lesson.sections || []);
   const text = sections.filter((section) => section.type === "TEXT");
+  const videos = sections.filter((section) => section.type === "VIDEO");
+  const videoUrls = videos.map((section) => section.videoUrl).filter(Boolean);
+  const duplicateVideoUrls = videoUrls.length - new Set(videoUrls).size;
   return {
     chapters: chapters.length,
     lessons: lessons.length,
     sections: sections.length,
     text: text.length,
-    video: sections.filter((section) => section.type === "VIDEO").length,
+    video: videos.length,
+    duplicateVideoUrls,
     file: sections.filter((section) => section.type === "FILE").length,
     maxSectionsPerLesson: Math.max(...lessons.map((lesson) => (lesson.sections || []).length)),
     avgTextLength: text.length ? Math.round(text.reduce((sum, section) => sum + (section.content || "").length, 0) / text.length) : 0,
@@ -417,6 +476,7 @@ function count(chapters) {
 }
 
 console.log(`Logging in to ${baseUrl}...`);
+assertUniqueVideoPlan(courses);
 const teacherToken = await login(args.get("--teacher-email"), args.get("--teacher-password"));
 const adminToken = await login(args.get("--admin-email"), args.get("--admin-password"));
 const studentToken = args.get("--student-email") && args.get("--student-password")
