@@ -1,5 +1,5 @@
 import type { OfflineCourse } from '../../core/db/lms-offline.db';
-import { buildOfflineCoursesListingResponse } from './offline.interceptor';
+import { buildOfflineCoursesListingResponse, shouldBypassOfflineInterception } from './offline.interceptor';
 
 describe('buildOfflineCoursesListingResponse', () => {
   const cachedCourses: OfflineCourse[] = [
@@ -71,5 +71,17 @@ describe('buildOfflineCoursesListingResponse', () => {
     expect(response.data.totalElements).toBe(0);
     expect(response.data.empty).toBeTrue();
     expect(response.pagination.totalItems).toBe(0);
+  });
+});
+
+describe('shouldBypassOfflineInterception', () => {
+  it('bypasses auth, sync, and health endpoints before changing offline state', () => {
+    expect(shouldBypassOfflineInterception('/api/v3/auth/login')).toBeTrue();
+    expect(shouldBypassOfflineInterception('/api/v3/sync/pending')).toBeTrue();
+    expect(shouldBypassOfflineInterception('/actuator/health')).toBeTrue();
+  });
+
+  it('keeps course requests eligible for offline fallback', () => {
+    expect(shouldBypassOfflineInterception('/api/v3/courses/11111111-1111-1111-1111-111111111111')).toBeFalse();
   });
 });

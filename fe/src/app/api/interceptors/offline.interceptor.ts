@@ -1,6 +1,6 @@
 import { HttpRequest, HttpHandlerFn, HttpEvent, HttpResponse, HttpErrorResponse } from '@angular/common/http';
 import { Observable, from, of, throwError } from 'rxjs';
-import { catchError, switchMap } from 'rxjs/operators';
+import { catchError, switchMap, tap } from 'rxjs/operators';
 import { inject } from '@angular/core';
 import { ensureOfflineDbReady, offlineDb, getCurrentUserId, type OfflineCourse } from '../../core/db/lms-offline.db';
 import { OfflineSyncService } from '../../core/services/offline-sync.service';
@@ -28,6 +28,11 @@ export const offlineInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): 
 
   // If online, proceed normally but catch network failures
   return next(req).pipe(
+    tap((event) => {
+      if (event instanceof HttpResponse) {
+        networkStatus.markOnlineFromHttpSuccess();
+      }
+    }),
     catchError((error: HttpErrorResponse) => {
       const path = extractApiPath(req.url) || req.url;
       const isOfflineError = isOfflineCompatibleHttpError(error, req.url, {
@@ -39,12 +44,12 @@ export const offlineInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): 
         return throwError(() => error);
       }
 
-      networkStatus.markOfflineFromTransportFailure();
-
       // Never intercept auth or health-check endpoints
-      if (NEVER_INTERCEPT_PREFIXES.some(prefix => path.startsWith(prefix))) {
+      if (shouldBypassOfflineInterception(path)) {
         return throwError(() => error);
       }
+
+      networkStatus.markOfflineFromTransportFailure();
 
       // For GET requests → try offline fallback
       if (req.method === 'GET') {
@@ -89,6 +94,10 @@ export const offlineInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): 
     }),
   );
 };
+
+export function shouldBypassOfflineInterception(path: string): boolean {
+  return NEVER_INTERCEPT_PREFIXES.some(prefix => path.startsWith(prefix));
+}
 
 // ─── Offline Fallback Logic ──────────────────────────────────────────
 
