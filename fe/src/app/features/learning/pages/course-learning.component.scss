@@ -35,21 +35,18 @@
   z-index: 35;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
   box-sizing: border-box;
-  width: 2rem;
-  height: 2rem;
+  width: 2.125rem;
+  height: 2.125rem;
   padding: 0;
   overflow: hidden;
   color: #64748b;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 0.75rem;
+  border-radius: 0.625rem;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   transition:
     left 180ms ease,
-    width 180ms ease,
-    padding 180ms ease,
     color 160ms ease,
     background-color 160ms ease,
     border-color 160ms ease,
@@ -73,24 +70,42 @@
   }
 }
 
-.learning-sidebar-toggle__label {
-  display: none;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  line-height: 1;
-  white-space: nowrap;
-}
-
 .learning-sidebar-toggle--collapsed {
   left: 1rem;
-  width: 5.75rem;
-  padding: 0 0.75rem 0 0.625rem;
+  width: 2.125rem;
+  padding: 0;
   color: #0056d2;
-  border-radius: 999px;
+  border-radius: 0.625rem;
   box-shadow: 0 8px 22px rgba(15, 23, 42, 0.1);
+}
 
-  .learning-sidebar-toggle__label {
-    display: inline;
+.learning-mobile-sidebar-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.125rem;
+  height: 2.125rem;
+  color: #64748b;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.625rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+
+  &:hover {
+    color: #0056d2;
+    background-color: #f8fbff;
+    border-color: #bfdbfe;
+    box-shadow: 0 6px 16px rgba(0, 86, 210, 0.1);
+  }
+
+  &:focus-visible {
+    outline: 3px solid rgba(0, 86, 210, 0.22);
+    outline-offset: 2px;
   }
 }
 
@@ -137,7 +152,7 @@
 }
 
 .learning-main--sidebar-collapsed .learning-topbar {
-  padding-inline-start: 7.5rem;
+  padding-inline-start: 4rem;
 }
 
 .learning-scroll {
@@ -166,7 +181,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .learning-sidebar,
-  .learning-sidebar-toggle {
+  .learning-sidebar-toggle,
+  .learning-mobile-sidebar-close {
     transition: none;
   }
 }

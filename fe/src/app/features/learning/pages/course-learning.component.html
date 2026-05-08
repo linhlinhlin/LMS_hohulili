@@ -49,10 +49,20 @@
 
     <!-- Sidebar Header -->
     <div class="px-4 py-4 border-b border-gray-200">
-      <div class="flex items-center text-xs font-medium text-slate-500 mb-3 cursor-pointer hover:text-[#0056D2] transition-colors"
-        (click)="goBack()">
-        <app-icon name="arrow-left" size="sm" class="mr-1"></app-icon>
-        Chi tiết khóa học
+      <div class="mb-3 flex items-center justify-between gap-3">
+        <div class="flex items-center text-xs font-medium text-slate-500 cursor-pointer hover:text-[#0056D2] transition-colors"
+          (click)="goBack()">
+          <app-icon name="arrow-left" size="sm" class="mr-1"></app-icon>
+          Chi tiết khóa học
+        </div>
+
+        <button type="button"
+          class="learning-mobile-sidebar-close md:hidden"
+          aria-label="Đóng mục lục khóa học"
+          title="Đóng mục lục"
+          (click)="closeMobileSidebar()">
+          <app-icon name="x" size="sm"></app-icon>
+        </button>
       </div>
       <h2 class="font-bold text-[#0056D2] text-base leading-tight mb-3">{{ course()?.title || 'Đang tải...' }}</h2>
       <div class="flex items-center gap-2">
@@ -252,7 +262,6 @@
     [attr.title]="desktopSidebarCollapsed() ? 'Mở mục lục' : 'Thu gọn mục lục'"
     (click)="toggleDesktopSidebar()">
     <app-icon [name]="desktopSidebarCollapsed() ? 'chevron-right' : 'chevron-left'" size="sm"></app-icon>
-    <span class="learning-sidebar-toggle__label">Mục lục</span>
   </button>
 
   <!-- Main Content Area -->
