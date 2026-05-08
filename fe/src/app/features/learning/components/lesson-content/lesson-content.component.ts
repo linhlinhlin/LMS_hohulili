@@ -195,9 +195,9 @@ export class LessonContentComponent implements AfterViewInit {
   // Two-way binding with model (Angular v20+)
   readonly sectionIndex = model(0);
 
-  /** Numbered section label that matches the sidebar section numbering, e.g. "BÃ i 1.5". */
+  /** Numbered section label that matches the sidebar section numbering, e.g. "Bài 1.5". */
   readonly currentSectionNumber = computed(() =>
-    `BÃ i ${this.lessonIndex() + 1}.${this.sectionIndex() + 1}`
+    `Bài ${this.lessonIndex() + 1}.${this.sectionIndex() + 1}`
   );
 
   // Output functions (Angular v20+)
