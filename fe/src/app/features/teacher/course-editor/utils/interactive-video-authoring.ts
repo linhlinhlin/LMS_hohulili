@@ -73,6 +73,21 @@ export function createInteractiveVideoInteraction(
     body: '',
     pause: true,
     required: false,
+    adaptivity: type === 'branch'
+      ? {
+          requireCorrectBeforeContinue: true,
+          onWrong: {
+            type: 'seek',
+            targetTimeSeconds: 0,
+            targetInteractionId: null,
+            message: 'Hãy xem lại đoạn video trước khi thử trả lời lại.',
+          },
+          onCorrect: {
+            type: 'continue',
+            message: 'Đúng rồi, tiếp tục bài học.',
+          },
+        }
+      : null,
     choices: choiceTypeNeedsChoices(type)
       ? [createInteractiveVideoChoice(0), createInteractiveVideoChoice(1)]
       : [],
@@ -227,6 +242,15 @@ export function getInteractiveVideoAuthoringIssues(
     }
 
     if (interaction.type === 'branch') {
+      const isReviewBranch = isReviewBranchInteraction(interaction);
+      if (isReviewBranch && choices.every(choice => choice.isCorrect !== true)) {
+        issues.push({
+          code: 'missing_branch_correct_answer',
+          severity: 'error',
+          message: `Rẽ nhánh tại ${formatAuthoringTime(atSeconds)} cần một đáp án đúng để học viên tiếp tục.`,
+          interactionId: interaction.id,
+        });
+      }
       for (const choice of choices) {
         const targetTime = choice.targetTimeSeconds;
         if (maxInteractiveSeconds != null && targetTime != null && targetTime > maxInteractiveSeconds) {
@@ -265,10 +289,32 @@ export function getInteractiveVideoAuthoringIssues(
         }
 
         const resolvedTargetSeconds = target?.atSeconds ?? targetTime ?? null;
+        if (isReviewBranch) {
+          if (choice.isCorrect === false && resolvedTargetSeconds == null) {
+            issues.push({
+              code: 'missing_review_target',
+              severity: 'warning',
+              message: `Lựa chọn sai tại ${formatAuthoringTime(atSeconds)} nên có mốc xem lại video.`,
+              interactionId: interaction.id,
+              choiceId: choice.id,
+            });
+          }
+          if (resolvedTargetSeconds != null && resolvedTargetSeconds >= atSeconds) {
+            issues.push({
+              code: 'review_target_after_question',
+              severity: 'error',
+              message: `Mốc xem lại tại ${formatAuthoringTime(resolvedTargetSeconds)} phải nằm trước câu hỏi ${formatAuthoringTime(atSeconds)}.`,
+              interactionId: interaction.id,
+              choiceId: choice.id,
+            });
+          }
+          continue;
+        }
+
         if (resolvedTargetSeconds != null && resolvedTargetSeconds <= atSeconds) {
           issues.push({
             code: 'branch_rewinds',
-            severity: 'warning',
+            severity: 'error',
             message: `Một nhánh tại ${formatAuthoringTime(atSeconds)} quay về ${formatAuthoringTime(resolvedTargetSeconds)}.`,
             interactionId: interaction.id,
             choiceId: choice.id,
@@ -394,6 +440,14 @@ function normalizeInteractionType(value: unknown): InteractiveVideoInteractionTy
   return value === 'single_choice' || value === 'branch' || value === 'hotspot'
     ? value
     : 'checkpoint';
+}
+
+function isReviewBranchInteraction(interaction: InteractiveVideoInteraction): boolean {
+  return interaction.type === 'branch'
+    && (
+      interaction.adaptivity?.requireCorrectBeforeContinue === true
+      || (interaction.choices ?? []).some(choice => typeof choice.isCorrect === 'boolean')
+    );
 }
 
 function defaultInteractionTitle(type: InteractiveVideoInteractionType): string {

@@ -28,6 +28,7 @@ import {
   choiceTypeNeedsChoices,
   createInteractiveVideoChoice,
   createInteractiveVideoInteraction,
+  type CreateInteractiveVideoInteractionOptions,
   createSuggestedInteractiveVideoInteractions,
   getInteractiveVideoAuthoringIssues,
   normalizeInteractiveVideoSpec,
@@ -202,13 +203,18 @@ export class CurriculumEditorService {
     this.markDirty();
   }
 
-  addInteractiveVideoInteraction(type: InteractiveVideoInteractionType): void {
+  addInteractiveVideoInteraction(
+    type: InteractiveVideoInteractionType,
+    options: CreateInteractiveVideoInteractionOptions = {},
+  ): InteractiveVideoInteraction {
     const next = createInteractiveVideoInteraction(this.sectionInteractiveVideoTimeline(), type, {
+      ...options,
       durationSeconds: this.sectionVideoDurationSec(),
     });
     this.sectionInteractiveVideoTimeline.update(timeline => [...timeline, next]);
     this.sectionInteractiveVideoEnabled.set(true);
     this.markDirty();
+    return next;
   }
 
   addSuggestedInteractiveVideoInteractions(): number {
@@ -310,7 +316,7 @@ export class CurriculumEditorService {
       }
       const choices = (interaction.choices ?? []).map(choice => {
         if (choice.id !== choiceId) {
-          return patch.isCorrect === true && interaction.type === 'single_choice'
+          return patch.isCorrect === true && (interaction.type === 'single_choice' || interaction.type === 'branch')
             ? { ...choice, isCorrect: false }
             : choice;
         }
@@ -693,10 +699,69 @@ export class CurriculumEditorService {
           return;
         }
         this.scheduleSectionVideoPoll(assetId);
-      } catch {
+      } catch (err: any) {
+        if (this.handleMissingVideoAssetPollError(err)) {
+          return;
+        }
         this.scheduleSectionVideoPoll(assetId);
       }
     }, computedDelay);
+  }
+
+  async retrySectionVideoProcessing(): Promise<void> {
+    const assetId = this.sectionVideoAssetId();
+    if (!assetId) return;
+
+    this.clearSectionVideoPoll();
+    this.videoPollAttempt = 0;
+    this.sectionVideoError.set(null);
+    this.sectionVideoErrorDetail.set(null);
+    this.sectionVideoProcessingStatus.set('PROCESSING');
+    this.sectionVideoProcessingStartedAt.set(Date.now());
+    this.sectionVideoProcessingEtaSec.set(
+      estimateProcessingSeconds(this.sectionVideoDurationSec()),
+    );
+
+    try {
+      const res: ApiResponse<VideoAssetResponse> = await firstValueFrom(this.videoAssetApi.retry(assetId));
+      this.sectionVideoProcessingStatus.set(res.data?.status ?? 'PENDING');
+      this.scheduleSectionVideoPoll(assetId, 1000);
+    } catch (err: any) {
+      const info = classifyUploadError(err);
+      this.sectionVideoProcessingStatus.set('FAILED');
+      this.sectionVideoError.set(info);
+      this.sectionVideoErrorDetail.set(info.hint);
+      this.toast.error(info.title);
+    }
+  }
+
+  private handleMissingVideoAssetPollError(err: any): boolean {
+    const status: number | undefined = err?.status ?? err?.error?.status;
+    const message = (err?.error?.message ?? err?.message ?? '').toString().toLowerCase();
+    const assetWasDeleted = status === 404 || ((status === 400 || status === 410) && message.includes('video asset'));
+
+    if (!assetWasDeleted) {
+      return false;
+    }
+
+    const info: UploadErrorInfo = {
+      category: 'server',
+      title: 'Phiên xử lý video đã bị mất',
+      hint: 'Video này không còn trong hàng đợi xử lý, thường do dữ liệu local vừa được reset hoặc tab cũ vẫn đang upload. Hãy chọn lại video và tải lên một lần nữa.',
+      canRetry: false,
+    };
+
+    this.videoPollAttempt = 0;
+    this.sectionVideoAssetId.set(null);
+    this.sectionVideoProcessingStatus.set('FAILED');
+    this.sectionVideoProcessingEtaSec.set(null);
+    this.sectionVideoProcessingStartedAt.set(null);
+    this.sectionVideoUrl.set('');
+    this.sectionVideoAvailableOfflineProfiles.set([]);
+    this.sectionVideoError.set(info);
+    this.sectionVideoErrorDetail.set(info.hint);
+    this.toast.error(info.title);
+    return true;
   }
 
   private notifyVideoCompletion(previousStatus: string | null, nextStatus: 'READY' | 'FAILED'): void {

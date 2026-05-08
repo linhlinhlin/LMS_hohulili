@@ -6,6 +6,7 @@ import {
   ElementRef,
   inject,
   input,
+  OnDestroy,
   output,
   viewChild,
 } from '@angular/core';
@@ -16,6 +17,8 @@ import type {
 } from '../../../api/types/interactive-video.types';
 import { ContentIdentityService } from '../../../core/services/content-identity.service';
 import katex from 'katex';
+
+type ChoiceAnswerState = 'idle' | 'selected' | 'selected-correct' | 'selected-wrong' | 'correct-answer';
 
 @Component({
   selector: 'app-interactive-video-overlay',
@@ -32,6 +35,7 @@ import katex from 'katex';
         aria-modal="true"
         [attr.aria-labelledby]="interaction().title ? titleId() : null"
         [attr.aria-describedby]="interaction().body ? bodyId() : null"
+        (keydown.tab)="trapFocus($event)"
         (keydown.escape)="onEscape()">
         <div class="mb-3 flex items-center justify-between gap-3">
           <span class="rounded-full bg-[#0056D2]/10 px-2.5 py-1 text-[11px] font-semibold text-[#0056D2]">
@@ -63,23 +67,32 @@ import katex from 'katex';
             @for (item of renderedChoices(); track item.choice.id) {
               <button
                 type="button"
-                class="w-full rounded-lg border px-3 py-2.5 text-left text-sm font-semibold transition-colors"
-                [class.border-[#0056D2]]="selectedChoiceId() === item.choice.id"
-                [class.bg-[#0056D2]/5]="selectedChoiceId() === item.choice.id"
-                [class.text-[#0056D2]]="selectedChoiceId() === item.choice.id"
-                [class.border-slate-200]="selectedChoiceId() !== item.choice.id"
-                [class.text-slate-700]="selectedChoiceId() !== item.choice.id"
-                [class.hover:border-[#0056D2]]="selectedChoiceId() !== item.choice.id"
-                [class.hover:bg-slate-50]="selectedChoiceId() !== item.choice.id"
+                [class]="choiceButtonClass(item.choice)"
+                [disabled]="areChoicesLocked()"
                 [attr.aria-pressed]="selectedChoiceId() === item.choice.id"
+                [attr.data-answer-state]="choiceAnswerState(item.choice)"
                 (click)="choiceSelected.emit(item.choice)">
-                <span [innerHTML]="item.html"></span>
+                <span class="flex items-center gap-2">
+                  @if (choiceStateIcon(item.choice); as stateIcon) {
+                    <span [class]="choiceStateIconClass(item.choice)" aria-hidden="true">
+                      {{ stateIcon }}
+                    </span>
+                  }
+                  <span class="min-w-0" [innerHTML]="item.html"></span>
+                </span>
               </button>
             }
           </div>
         }
 
-        @if (renderedFeedback(); as feedbackHtml) {
+        @if (feedbackStatusTitle(); as statusTitle) {
+          <div [class]="feedbackPanelClass()" data-testid="interactive-video-feedback" role="status">
+            <p class="text-sm font-extrabold">{{ statusTitle }}</p>
+            @if (renderedFeedback(); as feedbackHtml) {
+              <div [innerHTML]="feedbackHtml" class="mt-1 text-sm leading-relaxed"></div>
+            }
+          </div>
+        } @else if (renderedFeedback(); as feedbackHtml) {
           <div
             [innerHTML]="feedbackHtml"
             class="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
@@ -87,27 +100,48 @@ import katex from 'katex';
         }
 
         <div class="mt-4 flex items-center justify-between gap-3">
-          @if (requiresChoiceBeforeContinue()) {
+          @if (isContinueBlocked()) {
             <p [id]="choiceRequirementHintId()" class="min-w-0 text-xs font-medium text-slate-500">
-              Chọn một phương án để tiếp tục.
+              {{ continueRequirementHint() }}
             </p>
           }
-          <button
-            type="button"
-            class="ml-auto shrink-0 rounded-lg bg-[#0056D2] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#004BB5] disabled:cursor-not-allowed disabled:opacity-50"
-            [disabled]="requiresChoiceBeforeContinue()"
-            [attr.aria-describedby]="requiresChoiceBeforeContinue() ? choiceRequirementHintId() : null"
-            (click)="continueRequested.emit()">
-            Tiếp tục
-          </button>
+          @if (shouldOfferReview()) {
+            <button
+              type="button"
+              class="ml-auto inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#0056D2] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#004BB5] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0056D2]/40"
+              data-testid="interactive-video-review-button"
+              (click)="reviewRequested.emit()">
+              <span aria-hidden="true">↺</span>
+              Xem lại video
+            </button>
+          } @else {
+            <button
+              type="button"
+              class="ml-auto shrink-0 rounded-lg bg-[#0056D2] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#004BB5] disabled:cursor-not-allowed disabled:opacity-50"
+              [disabled]="isContinueBlocked()"
+              [attr.aria-describedby]="isContinueBlocked() ? choiceRequirementHintId() : null"
+              (click)="continueRequested.emit()">
+              Tiếp tục
+            </button>
+          }
         </div>
       </section>
     </div>
   `,
 })
-export class InteractiveVideoOverlayComponent {
+export class InteractiveVideoOverlayComponent implements OnDestroy {
+  private static readonly FOCUSABLE_SELECTOR = [
+    'a[href]',
+    'button:not([disabled])',
+    'textarea:not([disabled])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])',
+  ].join(',');
+
   private readonly sanitizer = inject(DomSanitizer);
   private readonly identityService = inject(ContentIdentityService);
+  private previouslyFocusedElement: HTMLElement | null = null;
 
   readonly interaction = input.required<InteractiveVideoInteraction>();
   readonly selectedChoiceId = input<string | null>(null);
@@ -116,6 +150,7 @@ export class InteractiveVideoOverlayComponent {
 
   readonly choiceSelected = output<InteractiveVideoChoice>();
   readonly continueRequested = output<void>();
+  readonly reviewRequested = output<void>();
 
   readonly hasChoices = computed(() => (this.interaction().choices?.length ?? 0) > 0);
   readonly titleId = computed(() => `interactive-video-title-${this.interaction().id}`);
@@ -132,27 +167,102 @@ export class InteractiveVideoOverlayComponent {
   constructor() {
     effect(() => {
       this.interaction().id;
-      queueMicrotask(() => this.panel()?.nativeElement.focus());
+      queueMicrotask(() => {
+        const panel = this.panel()?.nativeElement;
+        if (!panel) {
+          return;
+        }
+        const activeElement = document.activeElement;
+        if (
+          !this.previouslyFocusedElement
+          && activeElement instanceof HTMLElement
+          && !panel.contains(activeElement)
+        ) {
+          this.previouslyFocusedElement = activeElement;
+        }
+        panel.focus();
+      });
     });
   }
 
-  readonly feedback = computed(() => {
+  ngOnDestroy(): void {
+    this.previouslyFocusedElement?.focus();
+  }
+
+  readonly selectedChoice = computed(() => {
     const selectedId = this.selectedChoiceId();
     if (!selectedId) {
       return null;
     }
-    return this.interaction().choices?.find(choice => choice.id === selectedId)?.feedback ?? null;
+    return this.interaction().choices?.find(choice => choice.id === selectedId) ?? null;
+  });
+
+  readonly feedback = computed(() => {
+    const selected = this.selectedChoice();
+    if (!selected) {
+      return null;
+    }
+
+    const adaptivityMessage = (
+      selected.isCorrect
+        ? this.interaction().adaptivity?.onCorrect?.message
+        : this.interaction().adaptivity?.onWrong?.message
+    )?.trim();
+    const messages = [selected.feedback?.trim(), adaptivityMessage].filter(Boolean);
+
+    return messages.length > 0 ? messages.join('\n') : null;
   });
   readonly renderedFeedback = computed(() => {
     const text = this.feedback();
     return text ? this.renderRichContent(text, 'block') : null;
   });
-
-  readonly requiresChoiceBeforeContinue = computed(() => {
+  readonly feedbackStatusTitle = computed(() => {
+    const selected = this.selectedChoice();
+    if (selected?.isCorrect === true) {
+      return 'Đúng!';
+    }
+    if (selected?.isCorrect === false) {
+      return 'Chưa đúng';
+    }
+    return null;
+  });
+  readonly feedbackPanelClass = computed(() => {
+    const base = 'mt-3 rounded-lg border px-3 py-2';
+    if (this.selectedChoice()?.isCorrect === true) {
+      return `${base} border-emerald-200 bg-emerald-50 text-emerald-800`;
+    }
+    return `${base} border-red-200 bg-red-50 text-red-800`;
+  });
+  readonly requiresCorrectAnswer = computed(() => {
     const interaction = this.interaction();
-    return interaction.required === true
-      && (interaction.type === 'single_choice' || interaction.type === 'branch')
-      && !this.selectedChoiceId();
+    return interaction.adaptivity?.requireCorrectBeforeContinue === true
+      || interaction.type === 'branch';
+  });
+
+  readonly isContinueBlocked = computed(() => {
+    const interaction = this.interaction();
+    if (
+      interaction.required !== true
+      && !this.requiresCorrectAnswer()
+      || (interaction.type !== 'single_choice' && interaction.type !== 'branch')
+    ) {
+      return false;
+    }
+
+    const selected = this.selectedChoice();
+    if (!selected) {
+      return true;
+    }
+
+    return this.requiresCorrectAnswer()
+      && selected.isCorrect !== true;
+  });
+
+  readonly continueRequirementHint = computed(() => {
+    if (this.requiresCorrectAnswer()) {
+      return 'Chọn đáp án đúng để tiếp tục.';
+    }
+    return 'Chọn một phương án để tiếp tục.';
   });
 
   readonly overlayClass = computed(() => {
@@ -184,9 +294,112 @@ export class InteractiveVideoOverlayComponent {
     }
   });
 
+  choiceAnswerState(choice: InteractiveVideoChoice): ChoiceAnswerState {
+    const selected = this.selectedChoice();
+    if (!selected) {
+      return 'idle';
+    }
+
+    const isSelected = selected.id === choice.id;
+    if (isSelected && choice.isCorrect === true) {
+      return 'selected-correct';
+    }
+    if (isSelected && choice.isCorrect === false) {
+      return 'selected-wrong';
+    }
+    if (selected.isCorrect === false && choice.isCorrect === true) {
+      if (this.shouldOfferReview()) {
+        return 'idle';
+      }
+      return 'correct-answer';
+    }
+    return isSelected ? 'selected' : 'idle';
+  }
+
+  choiceButtonClass(choice: InteractiveVideoChoice): string {
+    const base = 'w-full rounded-lg border px-3 py-2.5 text-left text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-70';
+    switch (this.choiceAnswerState(choice)) {
+      case 'selected-correct':
+        return `${base} border-emerald-300 bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200`;
+      case 'selected-wrong':
+        return `${base} border-red-300 bg-red-50 text-red-800 ring-1 ring-red-200`;
+      case 'correct-answer':
+        return `${base} border-emerald-300 bg-emerald-50 text-emerald-800`;
+      case 'selected':
+        return `${base} border-[#0056D2] bg-[#0056D2]/5 text-[#0056D2]`;
+      default:
+        return `${base} border-slate-200 text-slate-700 hover:border-[#0056D2] hover:bg-slate-50`;
+    }
+  }
+
+  choiceStateIcon(choice: InteractiveVideoChoice): string | null {
+    switch (this.choiceAnswerState(choice)) {
+      case 'selected-correct':
+      case 'correct-answer':
+        return '✓';
+      case 'selected-wrong':
+        return '×';
+      default:
+        return null;
+    }
+  }
+
+  choiceStateIconClass(choice: InteractiveVideoChoice): string {
+    const base = 'flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-black';
+    return this.choiceAnswerState(choice) === 'selected-wrong'
+      ? `${base} bg-red-100 text-red-700`
+      : `${base} bg-emerald-100 text-emerald-700`;
+  }
+
+  readonly shouldOfferReview = computed(() => {
+    const interaction = this.interaction();
+    const selected = this.selectedChoice();
+    const hasReviewTarget = interaction.type === 'branch'
+      || interaction.adaptivity?.onWrong?.type === 'seek'
+      || selected?.targetTimeSeconds != null
+      || !!selected?.targetInteractionId;
+    return this.requiresCorrectAnswer()
+      && selected?.isCorrect === false
+      && hasReviewTarget;
+  });
+
+  readonly areChoicesLocked = computed(() => this.shouldOfferReview());
+
   onEscape(): void {
-    if (!this.requiresChoiceBeforeContinue()) {
+    if (!this.isContinueBlocked()) {
       this.continueRequested.emit();
+    }
+  }
+
+  trapFocus(event: Event): void {
+    const keyboardEvent = event as KeyboardEvent;
+    const panel = this.panel()?.nativeElement;
+    if (!panel) {
+      return;
+    }
+
+    const focusable = Array.from(
+      panel.querySelectorAll<HTMLElement>(InteractiveVideoOverlayComponent.FOCUSABLE_SELECTOR),
+    ).filter(element => this.isFocusable(element));
+    if (focusable.length === 0) {
+      event.preventDefault();
+      panel.focus();
+      return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = document.activeElement;
+
+    if (keyboardEvent.shiftKey && (active === first || !panel.contains(active))) {
+      event.preventDefault();
+      last.focus();
+      return;
+    }
+
+    if (!keyboardEvent.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
     }
   }
 
@@ -305,5 +518,11 @@ export class InteractiveVideoOverlayComponent {
 
   private escapeAttribute(value: string): string {
     return this.escapeHtml(value);
+  }
+
+  private isFocusable(element: HTMLElement): boolean {
+    return element.tabIndex !== -1
+      && !element.hasAttribute('disabled')
+      && element.offsetParent !== null;
   }
 }

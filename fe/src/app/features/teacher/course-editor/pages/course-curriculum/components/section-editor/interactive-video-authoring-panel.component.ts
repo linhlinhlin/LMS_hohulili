@@ -32,15 +32,14 @@ import {
   importInteractiveVideoBundle,
   importInteractiveVideoH5PPackage,
 } from '../../../../utils/interactive-video-interoperability';
+import {
+  InteractiveVideoAuthoringCanvasComponent,
+  type InteractiveVideoCanvasMove,
+  type InteractiveVideoCanvasPlacement,
+} from './interactive-video-authoring-canvas.component';
+import { InteractiveVideoAuthoringPropertiesComponent } from './interactive-video-authoring-properties.component';
 
 type InteractiveVideoSourceKind = 'upload' | 'youtube';
-
-interface InteractiveVideoFlowChoice {
-  id: string;
-  label: string;
-  metaLabel: string;
-  toneClass: string;
-}
 
 interface InteractiveVideoFlowNode {
   id: string;
@@ -50,10 +49,6 @@ interface InteractiveVideoFlowNode {
   title: string;
   atSeconds: number;
   timeLabel: string;
-  iconName: string;
-  nodeClass: string;
-  badgeClass: string;
-  choices: InteractiveVideoFlowChoice[];
   required: boolean;
   pause: boolean;
 }
@@ -68,7 +63,13 @@ interface InteractiveVideoQualitySummary {
 @Component({
   selector: 'app-interactive-video-authoring-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, LucideAngularModule, EnrichedInputFieldComponent],
+  imports: [
+    FormsModule,
+    LucideAngularModule,
+    EnrichedInputFieldComponent,
+    InteractiveVideoAuthoringCanvasComponent,
+    InteractiveVideoAuthoringPropertiesComponent,
+  ],
   templateUrl: './interactive-video-authoring-panel.component.html',
   styleUrl: './interactive-video-authoring-panel.component.scss',
 })
@@ -80,11 +81,10 @@ export class InteractiveVideoAuthoringPanelComponent {
   readonly switchToUpload = output<void>();
 
   readonly interactiveVideoTypes: InteractiveVideoInteractionType[] = ['checkpoint', 'single_choice', 'branch'];
-  readonly draggingInteractionId = signal<string | null>(null);
-  readonly dropTargetInteractionId = signal<string | null>(null);
   readonly timelineDraggingInteractionId = signal<string | null>(null);
   readonly hoveredTimelineNodeId = signal<string | null>(null);
   readonly showAllInteractiveVideoQualityIssues = signal(false);
+  readonly selectedCanvasInteractionId = signal<string | null>(null);
   readonly timelineRail = viewChild<ElementRef<HTMLElement>>('timelineRail');
   private suppressNextTimelineClick = false;
 
@@ -111,16 +111,30 @@ export class InteractiveVideoAuthoringPanelComponent {
       : 'inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200',
   );
   readonly durationHint = computed(() => {
-    const nextSeconds = suggestNextInteractiveVideoTimeSeconds(
-      this.svc.sectionInteractiveVideoTimeline(),
-      { durationSeconds: this.svc.sectionVideoDurationSec() },
-    );
+    const nextSeconds = this.canvasSuggestedTimeSeconds();
     const duration = this.svc.sectionVideoDurationSec();
     const nextLabel = this.formatInteractiveFlowTime(nextSeconds);
     if (!duration || !Number.isFinite(duration) || duration <= 0) {
       return `Mốc kế tiếp: ${nextLabel}.`;
     }
     return `Mốc kế tiếp: ${nextLabel} / ${this.formatInteractiveFlowTime(duration)}.`;
+  });
+  readonly canvasSuggestedTimeSeconds = computed(() =>
+    suggestNextInteractiveVideoTimeSeconds(
+      this.svc.sectionInteractiveVideoTimeline(),
+      { durationSeconds: this.svc.sectionVideoDurationSec() },
+    ),
+  );
+  readonly canvasVideoUrl = computed(() =>
+    this.isYoutubeSource() ? null : (this.svc.sectionVideoUrl() || null),
+  );
+  readonly selectedCanvasInteraction = computed<InteractiveVideoInteraction | null>(() => {
+    const selectedId = this.selectedCanvasInteractionId();
+    if (!selectedId) {
+      return null;
+    }
+    return this.svc.sectionInteractiveVideoTimeline()
+      .find(interaction => interaction.id === selectedId) ?? null;
   });
   readonly quickNudgeSeconds = computed(() => {
     const duration = this.svc.sectionVideoDurationSec();
@@ -138,9 +152,6 @@ export class InteractiveVideoAuthoringPanelComponent {
     }
     return 30;
   });
-  readonly quickNudgeLabel = computed(() => `${this.quickNudgeSeconds()} giây`);
-  readonly quickNudgeEarlierLabel = computed(() => `Sớm hơn ${this.quickNudgeLabel()}`);
-  readonly quickNudgeLaterLabel = computed(() => `Muộn hơn ${this.quickNudgeLabel()}`);
   readonly timelineScaleLabel = computed(() => {
     const duration = this.svc.sectionVideoDurationSec();
     if (!duration || !Number.isFinite(duration) || duration <= 0) {
@@ -150,6 +161,9 @@ export class InteractiveVideoAuthoringPanelComponent {
   });
   readonly interactiveVideoFlowNodes = computed<InteractiveVideoFlowNode[]>(() =>
     this.buildInteractiveVideoFlowNodes(this.svc.sectionInteractiveVideoTimeline()),
+  );
+  readonly interactiveVideoDetailInteractions = computed(() =>
+    this.sortInteractiveTimeline(this.svc.sectionInteractiveVideoTimeline()),
   );
   readonly activeTimelinePreviewNode = computed<InteractiveVideoFlowNode | null>(() => {
     const activeId = this.timelineDraggingInteractionId() ?? this.hoveredTimelineNodeId();
@@ -202,7 +216,7 @@ export class InteractiveVideoAuthoringPanelComponent {
     }
 
     return {
-      iconName: 'check-circle-2',
+      iconName: 'check-circle',
       title: 'Luồng tương tác ổn',
       body: 'Thời điểm, lựa chọn và nhánh đang hợp lệ để lưu.',
       toneClass: `${baseClass} border-emerald-200 bg-emerald-50 text-emerald-800`,
@@ -221,7 +235,8 @@ export class InteractiveVideoAuthoringPanelComponent {
   }
 
   addInteraction(type: InteractiveVideoInteractionType): void {
-    this.svc.addInteractiveVideoInteraction(type);
+    const created = this.svc.addInteractiveVideoInteraction(type);
+    this.selectedCanvasInteractionId.set(created.id);
   }
 
   addSuggestedInteractions(): void {
@@ -251,7 +266,7 @@ export class InteractiveVideoAuthoringPanelComponent {
     value: unknown,
   ): void {
     this.svc.updateInteractiveVideoChoice(interactionId, choiceId, {
-      targetTimeSeconds: this.clampInteractiveTime(value),
+      targetTimeSeconds: this.normalizeOptionalInteractiveTime(value),
       targetInteractionId: null,
     });
   }
@@ -331,9 +346,8 @@ export class InteractiveVideoAuthoringPanelComponent {
   }
 
   getInteractiveBranchTargets(sourceInteractionId: string): InteractiveVideoInteraction[] {
-    return this.svc.sectionInteractiveVideoTimeline()
-      .filter(interaction => interaction.id !== sourceInteractionId)
-      .sort((a, b) => a.atSeconds - b.atSeconds);
+    return this.sortInteractiveTimeline(this.svc.sectionInteractiveVideoTimeline())
+      .filter(interaction => interaction.id !== sourceInteractionId);
   }
 
   getInteractiveTypeLabel(type: InteractiveVideoInteractionType): string {
@@ -363,12 +377,47 @@ export class InteractiveVideoAuthoringPanelComponent {
   }
 
   scrollInteractiveNodeIntoView(interactionId: string): void {
+    this.selectedCanvasInteractionId.set(interactionId);
     if (typeof document === 'undefined') {
       return;
     }
 
-    document.getElementById(this.getInteractiveNodeDomId(interactionId))
-      ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    requestAnimationFrame(() => {
+      document.getElementById(this.getInteractiveNodeDomId(interactionId))
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }
+
+  onCanvasInteractionPlaced(event: InteractiveVideoCanvasPlacement): void {
+    const created = this.svc.addInteractiveVideoInteraction(event.type, {
+      preferredSeconds: event.atSeconds,
+    });
+    this.svc.updateInteractiveVideoInteraction(created.id, {
+      atSeconds: event.atSeconds,
+      displayType: event.type === 'checkpoint' ? 'button' : 'poster',
+      position: event.position,
+    });
+    this.selectedCanvasInteractionId.set(created.id);
+  }
+
+  onCanvasInteractionMoved(event: InteractiveVideoCanvasMove): void {
+    this.svc.updateInteractiveVideoInteraction(event.interactionId, {
+      atSeconds: event.atSeconds,
+      position: event.position,
+    });
+    this.selectedCanvasInteractionId.set(event.interactionId);
+  }
+
+  onCanvasInteractionSelected(interactionId: string): void {
+    this.selectedCanvasInteractionId.set(interactionId);
+  }
+
+  onCanvasPropertyPatch(patch: Partial<InteractiveVideoInteraction>): void {
+    const interactionId = this.selectedCanvasInteraction()?.id;
+    if (!interactionId) {
+      return;
+    }
+    this.svc.updateInteractiveVideoInteraction(interactionId, patch);
   }
 
   formatInteractiveTimeLabel(seconds: number | null | undefined): string {
@@ -383,8 +432,15 @@ export class InteractiveVideoAuthoringPanelComponent {
   getInteractiveChoiceRowClass(type: InteractiveVideoInteractionType): string {
     const base = 'grid gap-2 px-3 py-2';
     return type === 'branch'
-      ? `${base} sm:grid-cols-[minmax(0,1fr)_7rem_minmax(8rem,10rem)_auto]`
+      ? `${base} sm:grid-cols-[minmax(0,1fr)_7rem_7rem_minmax(8rem,10rem)_auto]`
       : `${base} sm:grid-cols-[minmax(0,1fr)_8rem_auto]`;
+  }
+
+  getInteractiveDetailCardClass(interactionId: string): string {
+    const base = 'interactive-detail-card rounded-lg border bg-slate-50/60 p-3';
+    return this.selectedCanvasInteractionId() === interactionId
+      ? `${base} interactive-detail-card--selected border-[#0056D2]/60`
+      : `${base} border-slate-200`;
   }
 
   getTimelinePercent(seconds: number): number {
@@ -407,10 +463,6 @@ export class InteractiveVideoAuthoringPanelComponent {
     if (this.hoveredTimelineNodeId() === nodeId) {
       this.hoveredTimelineNodeId.set(null);
     }
-  }
-
-  isTimelinePreviewNode(nodeId: string): boolean {
-    return this.activeTimelinePreviewNode()?.id === nodeId;
   }
 
   onTimelineDotClick(node: InteractiveVideoFlowNode): void {
@@ -517,42 +569,6 @@ export class InteractiveVideoAuthoringPanelComponent {
     }
   }
 
-  onFlowNodeDragStart(event: DragEvent, node: InteractiveVideoFlowNode): void {
-    this.draggingInteractionId.set(node.id);
-    event.dataTransfer?.setData('text/plain', node.id);
-    if (event.dataTransfer) {
-      event.dataTransfer.effectAllowed = 'move';
-    }
-  }
-
-  onFlowNodeDragOver(event: DragEvent, node: InteractiveVideoFlowNode): void {
-    const sourceId = this.draggingInteractionId();
-    if (!sourceId || sourceId === node.id) {
-      return;
-    }
-    event.preventDefault();
-    this.dropTargetInteractionId.set(node.id);
-    if (event.dataTransfer) {
-      event.dataTransfer.dropEffect = 'move';
-    }
-  }
-
-  onFlowNodeDrop(event: DragEvent, node: InteractiveVideoFlowNode): void {
-    event.preventDefault();
-    const sourceId = event.dataTransfer?.getData('text/plain') || this.draggingInteractionId();
-    this.draggingInteractionId.set(null);
-    this.dropTargetInteractionId.set(null);
-    if (!sourceId || sourceId === node.id) {
-      return;
-    }
-    this.moveInteractionBefore(sourceId, node.id);
-  }
-
-  onFlowNodeDragEnd(): void {
-    this.draggingInteractionId.set(null);
-    this.dropTargetInteractionId.set(null);
-  }
-
   getInteractiveQualityIssueClass(issue: InteractiveVideoAuthoringIssue): string {
     return issue.severity === 'error'
       ? 'rounded-lg border border-red-100 bg-white px-3 py-2 text-xs leading-relaxed text-red-700'
@@ -560,7 +576,7 @@ export class InteractiveVideoAuthoringPanelComponent {
   }
 
   getInteractiveQualityIssueIconName(issue: InteractiveVideoAuthoringIssue): string {
-    return issue.severity === 'error' ? 'x-circle' : 'alert-triangle';
+    return issue.severity === 'error' ? 'circle-x' : 'alert-triangle';
   }
 
   focusInteractiveQualityIssue(issue: InteractiveVideoAuthoringIssue): void {
@@ -569,49 +585,10 @@ export class InteractiveVideoAuthoringPanelComponent {
     }
   }
 
-  private moveInteractionBefore(sourceId: string, targetId: string): void {
-    const timeline = [...this.svc.sectionInteractiveVideoTimeline()]
-      .sort((a, b) => a.atSeconds - b.atSeconds);
-    const source = timeline.find(item => item.id === sourceId);
-    if (!source) {
-      return;
-    }
-
-    const withoutSource = timeline.filter(item => item.id !== sourceId);
-    const targetIndex = withoutSource.findIndex(item => item.id === targetId);
-    if (targetIndex < 0) {
-      return;
-    }
-
-    const previous = withoutSource[targetIndex - 1] ?? null;
-    const target = withoutSource[targetIndex];
-    const nextTime = this.chooseTimeBetween(previous?.atSeconds ?? null, target.atSeconds);
-    this.svc.updateInteractiveVideoInteraction(sourceId, { atSeconds: nextTime });
-  }
-
-  private chooseTimeBetween(previousTime: number | null, nextTime: number | null): number {
-    if (previousTime == null && nextTime == null) {
-      return 0;
-    }
-    if (previousTime == null) {
-      return this.clampInteractiveTime(Math.max(0, (nextTime ?? 0) - 1));
-    }
-    if (nextTime == null) {
-      return this.clampInteractiveTime(previousTime + 5);
-    }
-    if (nextTime - previousTime > 1) {
-      return this.clampInteractiveTime(Math.round(previousTime + ((nextTime - previousTime) / 2)));
-    }
-    return this.clampInteractiveTime(nextTime);
-  }
-
   private buildInteractiveVideoFlowNodes(
     timeline: InteractiveVideoInteraction[],
   ): InteractiveVideoFlowNode[] {
-    const sorted = [...timeline].sort((a, b) => a.atSeconds - b.atSeconds);
-    const byId = new Map(sorted.map(interaction => [interaction.id, interaction]));
-
-    return sorted.map((interaction, index) => ({
+    return this.sortInteractiveTimeline(timeline).map((interaction, index) => ({
       id: interaction.id,
       index: index + 1,
       type: interaction.type,
@@ -619,91 +596,9 @@ export class InteractiveVideoAuthoringPanelComponent {
       title: interaction.title?.trim() || this.getInteractiveTypeLabel(interaction.type),
       atSeconds: interaction.atSeconds,
       timeLabel: this.formatInteractiveFlowTime(interaction.atSeconds),
-      iconName: this.getInteractiveFlowIconName(interaction.type),
-      nodeClass: this.getInteractiveFlowNodeClass(interaction.type),
-      badgeClass: this.getInteractiveFlowBadgeClass(interaction.type),
-      choices: this.buildInteractiveFlowChoices(interaction, byId),
       required: interaction.required === true,
       pause: interaction.pause !== false,
     }));
-  }
-
-  private buildInteractiveFlowChoices(
-    interaction: InteractiveVideoInteraction,
-    byId: Map<string, InteractiveVideoInteraction>,
-  ): InteractiveVideoFlowChoice[] {
-    if (!this.isChoiceInteraction(interaction)) {
-      return [];
-    }
-
-    return (interaction.choices ?? []).map((choice, index) => {
-      const label = choice.label?.trim() || `Lựa chọn ${index + 1}`;
-
-      if (interaction.type === 'branch') {
-        const target = choice.targetInteractionId ? byId.get(choice.targetInteractionId) : null;
-        const missingTarget = Boolean(choice.targetInteractionId && !target);
-        return {
-          id: choice.id,
-          label,
-          metaLabel: missingTarget
-            ? 'Mất đích'
-            : target
-              ? `${this.formatInteractiveFlowTime(target.atSeconds)} · ${target.title?.trim() || this.getInteractiveTypeLabel(target.type)}`
-              : choice.targetTimeSeconds == null
-                ? 'Theo timeline'
-                : this.formatInteractiveFlowTime(choice.targetTimeSeconds),
-          toneClass: missingTarget
-            ? 'flex items-center gap-2 rounded-md bg-red-50 px-2 py-1 text-xs text-red-700 ring-1 ring-red-100'
-            : 'flex items-center gap-2 rounded-md bg-white px-2 py-1 text-xs text-slate-600 ring-1 ring-slate-200',
-        };
-      }
-
-      return {
-        id: choice.id,
-        label,
-        metaLabel: choice.isCorrect ? 'Đúng' : 'Chưa đúng',
-        toneClass: choice.isCorrect
-          ? 'flex items-center gap-2 rounded-md bg-emerald-50 px-2 py-1 text-xs text-emerald-700 ring-1 ring-emerald-100'
-          : 'flex items-center gap-2 rounded-md bg-white px-2 py-1 text-xs text-slate-600 ring-1 ring-slate-200',
-      };
-    });
-  }
-
-  private getInteractiveFlowIconName(type: InteractiveVideoInteractionType): string {
-    switch (type) {
-      case 'single_choice': return 'help-circle';
-      case 'branch': return 'shuffle';
-      case 'hotspot': return 'mouse-pointer-2';
-      default: return 'pause';
-    }
-  }
-
-  private getInteractiveFlowNodeClass(type: InteractiveVideoInteractionType): string {
-    const base = 'interactive-flow-node w-64 rounded-xl border bg-white p-3 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0056D2] focus-visible:ring-offset-2';
-    switch (type) {
-      case 'single_choice':
-        return `${base} border-sky-200`;
-      case 'branch':
-        return `${base} border-amber-200`;
-      case 'hotspot':
-        return `${base} border-teal-200`;
-      default:
-        return `${base} border-slate-200`;
-    }
-  }
-
-  private getInteractiveFlowBadgeClass(type: InteractiveVideoInteractionType): string {
-    const base = 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold';
-    switch (type) {
-      case 'single_choice':
-        return `${base} bg-sky-50 text-sky-700`;
-      case 'branch':
-        return `${base} bg-amber-50 text-amber-700`;
-      case 'hotspot':
-        return `${base} bg-teal-50 text-teal-700`;
-      default:
-        return `${base} bg-slate-100 text-slate-600`;
-    }
   }
 
   private formatInteractiveFlowTime(seconds: number | null | undefined): string {
@@ -717,6 +612,13 @@ export class InteractiveVideoAuthoringPanelComponent {
     const next = this.toNonNegativeInteger(value);
     const max = this.maxInteractiveTimeSeconds();
     return max == null ? next : Math.min(max, next);
+  }
+
+  private normalizeOptionalInteractiveTime(value: unknown): number | null {
+    if (value == null || value === '') {
+      return null;
+    }
+    return this.clampInteractiveTime(value);
   }
 
   private getTimelineSecondsFromPointer(event: PointerEvent): number {
@@ -739,6 +641,13 @@ export class InteractiveVideoAuthoringPanelComponent {
   private getLastTimelineSecond(): number {
     const timeline = this.svc.sectionInteractiveVideoTimeline();
     return Math.max(0, ...timeline.map(item => this.toNonNegativeInteger(item.atSeconds)));
+  }
+
+  private sortInteractiveTimeline(timeline: InteractiveVideoInteraction[]): InteractiveVideoInteraction[] {
+    return timeline
+      .map((interaction, sourceIndex) => ({ interaction, sourceIndex }))
+      .sort((a, b) => (a.interaction.atSeconds - b.interaction.atSeconds) || (a.sourceIndex - b.sourceIndex))
+      .map(item => item.interaction);
   }
 
   private toNonNegativeInteger(value: unknown): number {

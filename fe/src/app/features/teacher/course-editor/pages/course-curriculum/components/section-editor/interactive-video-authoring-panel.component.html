@@ -169,6 +169,23 @@
       </div>
     }
 
+    <div class="grid gap-4 border-b border-slate-100 bg-slate-50/40 p-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+      <app-interactive-video-authoring-canvas
+        [timeline]="svc.sectionInteractiveVideoTimeline()"
+        [durationSeconds]="svc.sectionVideoDurationSec()"
+        [videoUrl]="canvasVideoUrl()"
+        [posterUrl]="svc.sectionVideoLocalPoster()"
+        [selectedInteractionId]="selectedCanvasInteractionId()"
+        [defaultTimeSeconds]="canvasSuggestedTimeSeconds()"
+        (interactionPlaced)="onCanvasInteractionPlaced($event)"
+        (interactionMoved)="onCanvasInteractionMoved($event)"
+        (interactionSelected)="onCanvasInteractionSelected($event)" />
+      <app-interactive-video-authoring-properties
+        [interaction]="selectedCanvasInteraction()"
+        [durationSeconds]="svc.sectionVideoDurationSec()"
+        (interactionPatch)="onCanvasPropertyPatch($event)" />
+    </div>
+
     @if (interactiveVideoFlowNodes().length > 0) {
       <section class="border-b border-slate-100 bg-slate-50/50 p-4" aria-label="Sơ đồ luồng video tương tác">
         <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -201,8 +218,10 @@
               <button type="button"
                 role="slider"
                 class="interactive-timeline-dot absolute top-1/2 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 touch-none items-center justify-center rounded-full border border-white bg-[#0056D2] text-[10px] font-bold text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0056D2] focus-visible:ring-offset-2"
+                [class.interactive-timeline-dot--selected]="selectedCanvasInteractionId() === node.id"
+                [class.interactive-timeline-dot--dragging]="timelineDraggingInteractionId() === node.id"
                 [style.left.%]="getTimelinePercent(node.atSeconds)"
-                [attr.aria-current]="timelineDraggingInteractionId() === node.id ? 'true' : null"
+                [attr.aria-current]="selectedCanvasInteractionId() === node.id ? 'true' : null"
                 [attr.aria-label]="'Chỉnh điểm ' + node.index + ' tại ' + node.timeLabel"
                 [attr.aria-valuemin]="0"
                 [attr.aria-valuemax]="timelineMaxSeconds()"
@@ -224,94 +243,8 @@
           </div>
         </div>
 
-        <div class="overflow-x-auto pb-1">
-          <div class="flex min-w-max items-stretch gap-3" role="list">
-            @for (node of interactiveVideoFlowNodes(); track node.id; let isLast = $last) {
-              <div class="flex items-stretch gap-3" role="listitem">
-                <article
-                  [class]="node.nodeClass"
-                  [class.interactive-flow-node--previewed]="isTimelinePreviewNode(node.id)"
-                  tabindex="0"
-                  draggable="true"
-                  [attr.aria-label]="'Điểm ' + node.index + ': ' + node.typeLabel + ' tại ' + node.timeLabel"
-                  [attr.aria-current]="dropTargetInteractionId() === node.id ? 'true' : null"
-                  (keydown)="onFlowNodeKeydown($event, node)"
-                  (dragstart)="onFlowNodeDragStart($event, node)"
-                  (dragover)="onFlowNodeDragOver($event, node)"
-                  (drop)="onFlowNodeDrop($event, node)"
-                  (dragend)="onFlowNodeDragEnd()">
-                  <div class="flex items-start justify-between gap-2">
-                    <div class="min-w-0">
-                      <div class="flex items-center gap-1.5">
-                        <span [class]="node.badgeClass">
-                          <lucide-icon [name]="node.iconName" [size]="12"></lucide-icon>
-                          {{ node.typeLabel }}
-                        </span>
-                        <span class="text-[11px] font-bold tabular-nums text-slate-400">#{{ node.index }}</span>
-                      </div>
-                      <p class="mt-2 line-clamp-2 text-sm font-semibold text-slate-900">{{ node.title }}</p>
-                    </div>
-                    <button type="button"
-                      (click)="scrollInteractiveNodeIntoView(node.id)"
-                      class="shrink-0 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-500 hover:border-[#0056D2]/40 hover:text-[#0056D2]">
-                      Chỉnh
-                    </button>
-                  </div>
-
-                  <div class="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] font-medium text-slate-500">
-                    <span class="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 ring-1 ring-slate-200">
-                      <lucide-icon name="clock" [size]="11"></lucide-icon>
-                      {{ node.timeLabel }}
-                    </span>
-                    @if (node.pause) {
-                      <span class="rounded-full bg-white px-2 py-0.5 ring-1 ring-slate-200">Tạm dừng</span>
-                    }
-                    @if (node.required) {
-                      <span class="rounded-full bg-amber-50 px-2 py-0.5 text-amber-700 ring-1 ring-amber-200">Bắt buộc</span>
-                    }
-                  </div>
-
-                  <div class="mt-2 flex gap-1.5">
-                    <button type="button"
-                      (click)="nudgeInteractiveTime(node.id, -quickNudgeSeconds())"
-                      class="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 hover:border-[#0056D2]/40 hover:text-[#0056D2]"
-                      [attr.title]="quickNudgeEarlierLabel()"
-                      [attr.aria-label]="'Đưa điểm ' + node.index + ' ' + quickNudgeEarlierLabel().toLowerCase()">
-                      <lucide-icon name="arrow-left" [size]="13"></lucide-icon>
-                    </button>
-                    <button type="button"
-                      (click)="nudgeInteractiveTime(node.id, quickNudgeSeconds())"
-                      class="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 hover:border-[#0056D2]/40 hover:text-[#0056D2]"
-                      [attr.title]="quickNudgeLaterLabel()"
-                      [attr.aria-label]="'Đưa điểm ' + node.index + ' ' + quickNudgeLaterLabel().toLowerCase()">
-                      <lucide-icon name="arrow-right" [size]="13"></lucide-icon>
-                    </button>
-                  </div>
-
-                  @if (node.choices.length > 0) {
-                    <div class="mt-3 max-h-32 space-y-1 overflow-y-auto">
-                      @for (choice of node.choices; track choice.id) {
-                        <div [class]="choice.toneClass">
-                          <span class="min-w-0 flex-1 truncate">{{ choice.label }}</span>
-                          <span class="shrink-0 text-[10px] font-semibold">{{ choice.metaLabel }}</span>
-                        </div>
-                      }
-                    </div>
-                  } @else {
-                    <div class="mt-3 rounded-lg bg-white px-2.5 py-2 text-xs font-medium text-slate-500 ring-1 ring-slate-200">
-                      Tiếp tục theo timeline
-                    </div>
-                  }
-                </article>
-
-                @if (!isLast) {
-                  <div class="flex w-8 items-center justify-center text-slate-300">
-                    <lucide-icon name="arrow-right" [size]="18"></lucide-icon>
-                  </div>
-                }
-              </div>
-            }
-          </div>
+        <div class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs leading-relaxed text-slate-600">
+          Bấm chấm để mở đúng phần chỉnh sửa bên dưới; kéo chấm trên thanh để đổi thời điểm. Số thứ tự luôn tự sắp theo thời gian video.
         </div>
       </section>
     }
@@ -351,8 +284,8 @@
       </div>
     } @else {
       <div class="space-y-3 p-4">
-        @for (interaction of svc.sectionInteractiveVideoTimeline(); track interaction.id; let idx = $index) {
-          <div [attr.id]="getInteractiveNodeDomId(interaction.id)" class="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+        @for (interaction of interactiveVideoDetailInteractions(); track interaction.id; let idx = $index) {
+          <div [attr.id]="getInteractiveNodeDomId(interaction.id)" [class]="getInteractiveDetailCardClass(interaction.id)">
             <div class="flex flex-wrap items-center gap-2">
               <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#0056D2]/10 text-xs font-bold text-[#0056D2] tabular-nums">
                 {{ idx + 1 }}
@@ -454,20 +387,27 @@
                             (valueChange)="svc.updateInteractiveVideoChoice(interaction.id, choice.id, { feedback: $event })">
                           </app-enriched-input>
                         }
-                      </div>
+                        </div>
                       @if (interaction.type === 'branch') {
+                        <label class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-2 text-xs font-medium text-slate-600">
+                          <input type="checkbox"
+                            [ngModel]="choice.isCorrect === true"
+                            (ngModelChange)="svc.updateInteractiveVideoChoice(interaction.id, choice.id, { isCorrect: $event })"
+                            class="h-3.5 w-3.5 rounded text-[#0056D2] focus:ring-[#0056D2]" />
+                          Đáp án đúng
+                        </label>
                         <input type="number" min="0" step="1"
                           [attr.max]="maxInteractiveTimeSeconds() ?? null"
-                          [ngModel]="choice.targetTimeSeconds ?? interaction.atSeconds"
+                          [ngModel]="choice.targetTimeSeconds"
                           (ngModelChange)="onInteractiveChoiceTargetChange(interaction.id, choice.id, $event)"
-                          placeholder="Nhảy tới giây"
+                          placeholder="Xem lại từ giây"
                           class="rounded-lg border border-slate-200 px-3 py-2 text-sm tabular-nums focus:border-[#0056D2] focus:ring-[#0056D2]"
-                          aria-label="Giây đích" />
+                          aria-label="Mốc xem lại khi trả lời sai" />
                         <select
                           [ngModel]="choice.targetInteractionId ?? ''"
                           (ngModelChange)="onInteractiveChoiceTargetInteractionChange(interaction.id, choice.id, $event)"
                           class="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm text-slate-700 focus:border-[#0056D2] focus:ring-[#0056D2]"
-                          aria-label="Điểm đích">
+                          aria-label="Điểm xem lại">
                           <option [ngValue]="''">Theo giây</option>
                           @for (target of getInteractiveBranchTargets(interaction.id); track target.id) {
                             <option [ngValue]="target.id">{{ formatInteractiveBranchTargetLabel(target) }}</option>

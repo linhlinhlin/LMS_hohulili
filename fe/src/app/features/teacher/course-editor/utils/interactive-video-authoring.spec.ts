@@ -196,6 +196,51 @@ describe('interactive-video-authoring', () => {
     expect(issues.some(issue => issue.code === 'duplicate_timestamp')).toBeTrue();
   });
 
+  it('allows review branches to send wrong answers back to earlier video', () => {
+    const timeline: InteractiveVideoInteraction[] = [
+      {
+        id: 'branch',
+        type: 'branch',
+        atSeconds: 47,
+        title: 'Branch',
+        pause: true,
+        adaptivity: { requireCorrectBeforeContinue: true },
+        choices: [
+          { id: 'a', label: 'Wrong', isCorrect: false, targetTimeSeconds: 5 },
+          { id: 'b', label: 'Correct', isCorrect: true, targetTimeSeconds: null },
+        ],
+      },
+    ];
+
+    const issues = getInteractiveVideoAuthoringIssues(true, timeline, { durationSeconds: 120 });
+
+    expect(issues.some(issue => issue.code === 'branch_rewinds')).toBeFalse();
+    expect(issues.some(issue => issue.code === 'review_target_after_question')).toBeFalse();
+  });
+
+  it('blocks review targets that start after the question moment', () => {
+    const timeline: InteractiveVideoInteraction[] = [
+      {
+        id: 'branch',
+        type: 'branch',
+        atSeconds: 47,
+        title: 'Branch',
+        pause: true,
+        adaptivity: { requireCorrectBeforeContinue: true },
+        choices: [
+          { id: 'a', label: 'Wrong', isCorrect: false, targetTimeSeconds: 60 },
+          { id: 'b', label: 'Correct', isCorrect: true },
+        ],
+      },
+    ];
+
+    const issues = getInteractiveVideoAuthoringIssues(true, timeline, { durationSeconds: 120 });
+    const reviewIssue = issues.find(issue => issue.code === 'review_target_after_question');
+
+    expect(reviewIssue?.severity).toBe('error');
+    expect(reviewIssue?.choiceId).toBe('a');
+  });
+
   it('retargets branches to the removed timestamp when deleting an interaction', () => {
     const timeline: InteractiveVideoInteraction[] = [
       { id: 'branch', type: 'branch', atSeconds: 10, pause: true, choices: [

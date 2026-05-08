@@ -115,4 +115,33 @@ describe('YouTubePlayerComponent', () => {
     expect(fixture.componentInstance.activeInteraction()).toBeNull();
     expect(fixture.componentInstance.selectedChoiceId()).toBeNull();
   });
+
+  it('blocks marker seeks beyond watched time when forward skip prevention is enabled', async () => {
+    fixture.componentRef.setInput('interactiveVideoSpec', {
+      version: 2,
+      enabled: true,
+      behavior: { preventSkippingMode: 'forward' },
+      timeline: [
+        {
+          id: 'required-1',
+          type: 'single_choice',
+          atSeconds: 30,
+          title: 'Required check',
+          required: true,
+          choices: [{ id: 'a', label: 'Answer' }],
+        },
+      ],
+    });
+    fixture.detectChanges();
+    (window as any).onYouTubeIframeAPIReady?.();
+    await fixture.whenStable();
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    const player = players[0].player;
+
+    fixture.componentInstance.seekToInteractiveSecond(90);
+
+    expect(player.seekTo).toHaveBeenCalledWith(0, true);
+    expect(fixture.componentInstance.currentTimeSeconds()).toBe(0);
+  });
 });
