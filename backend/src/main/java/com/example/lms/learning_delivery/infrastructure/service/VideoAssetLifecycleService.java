@@ -5,6 +5,7 @@ import com.example.lms.learning_delivery.infrastructure.persistence.entity.Video
 import com.example.lms.learning_delivery.infrastructure.persistence.entity.VideoIngestJobJpaEntity;
 import com.example.lms.learning_delivery.infrastructure.persistence.repository.VideoAssetJpaRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.repository.VideoIngestJobJpaRepository;
+import com.example.lms.shared.exception.EntityNotFoundException;
 import com.example.lms.shared.infrastructure.persistence.entity.FileAttachmentJpaEntity;
 import com.example.lms.shared.infrastructure.persistence.repository.FileAttachmentJpaRepository;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +44,7 @@ public class VideoAssetLifecycleService {
     @Transactional(readOnly = true)
     public VideoAssetJpaEntity requireAccessibleAsset(UUID assetId, UserJpaEntity user) {
         VideoAssetJpaEntity asset = videoAssetRepository.findById(assetId)
-                .orElseThrow(() -> new IllegalArgumentException("Video asset không tồn tại"));
+                .orElseThrow(() -> new EntityNotFoundException("video asset", assetId));
 
         if (!isAdmin(user) && !asset.getOwnerId().equals(user.getId())) {
             throw new AccessDeniedException("Bạn không có quyền truy cập video này");
@@ -122,7 +123,7 @@ public class VideoAssetLifecycleService {
     @Transactional(readOnly = true)
     public Map<String, Object> getAssetProcessingStatus(UUID assetId, UserJpaEntity user) {
         VideoAssetJpaEntity asset = videoAssetRepository.findById(assetId)
-                .orElseThrow(() -> new IllegalArgumentException("Video asset không tồn tại"));
+                .orElseThrow(() -> new EntityNotFoundException("video asset", assetId));
 
         if (!isAdmin(user) && !asset.getOwnerId().equals(user.getId())) {
             throw new org.springframework.security.access.AccessDeniedException("Không có quyền");

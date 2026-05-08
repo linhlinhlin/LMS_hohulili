@@ -24,6 +24,34 @@ describe('interactive-video-authoring', () => {
     expect(created.pause).toBeTrue();
   });
 
+  it('creates a default fill-blank interaction with editable blanks', () => {
+    const created = createInteractiveVideoInteraction([], 'fill_blank', {
+      durationSeconds: 90,
+    });
+
+    expect(created.type).toBe('fill_blank');
+    expect(created.choices).toEqual([]);
+    expect(created.fillBlank?.template).toContain('{{1}}');
+    expect(created.fillBlank?.blanks[0].acceptedAnswers[0]).toBe('đáp án 1');
+  });
+
+  it('creates a default drag-drop interaction with zones and draggable items', () => {
+    const created = createInteractiveVideoInteraction([], 'drag_drop', {
+      durationSeconds: 90,
+    });
+
+    expect(created.type).toBe('drag_drop');
+    expect(created.choices).toEqual([]);
+    expect(created.dragDrop?.dropZones.length).toBe(1);
+    expect(created.dragDrop?.draggables.length).toBe(2);
+    expect(created.dragDrop?.dropZones[0].widthPercent).toBeGreaterThan(60);
+    expect(created.dragDrop?.dropZones[0].correctDraggableIds)
+      .toEqual([created.dragDrop?.draggables[0].id as string]);
+    expect(created.dragDrop?.draggables[0].acceptedDropZoneIds)
+      .toEqual([created.dragDrop?.dropZones[0].id as string]);
+    expect(created.dragDrop?.draggables[1].acceptedDropZoneIds).toEqual([]);
+  });
+
   it('places the first interaction inside short videos instead of hard-coding 30s', () => {
     const created = createInteractiveVideoInteraction([], 'checkpoint', {
       durationSeconds: 15,
@@ -108,7 +136,7 @@ describe('interactive-video-authoring', () => {
 
     const spec = buildInteractiveVideoSpec(true, timeline);
 
-    expect(spec?.version).toBe(1);
+    expect(spec?.version).toBe(2);
     expect(spec?.enabled).toBeTrue();
     expect(spec?.timeline.map(item => item.id)).toEqual(['earlier', 'later']);
   });
@@ -131,6 +159,7 @@ describe('interactive-video-authoring', () => {
     });
 
     expect(spec?.timeline[0].atSeconds).toBe(12);
+    expect(spec?.timeline[0].displayType).toBe('button');
     expect(spec?.timeline[0].body).toBe('What is next?');
     expect(spec?.timeline[0].choices?.map(choice => choice.label)).toEqual(['Correct', 'Wrong']);
   });
@@ -170,6 +199,64 @@ describe('interactive-video-authoring', () => {
     expect(issues.some(issue => issue.code === 'missing_branch_target')).toBeTrue();
   });
 
+  it('reports fill-blank authoring errors for missing answers', () => {
+    const timeline: InteractiveVideoInteraction[] = [
+      {
+        id: 'blank',
+        type: 'fill_blank',
+        atSeconds: 12,
+        title: 'Fill blank',
+        pause: true,
+        fillBlank: {
+          template: 'A {{1}} enters {{2}}.',
+          blanks: [
+            { id: '1', acceptedAnswers: ['ship'] },
+            { id: '2', acceptedAnswers: [] },
+          ],
+        },
+      },
+    ];
+
+    const issues = getInteractiveVideoAuthoringIssues(true, timeline, { durationSeconds: 90 });
+
+    expect(issues.some(issue => issue.code === 'fill_blank_missing_answer')).toBeTrue();
+  });
+
+  it('reports drag-drop authoring errors for missing background and correct answers', () => {
+    const timeline: InteractiveVideoInteraction[] = [
+      {
+        id: 'drag',
+        type: 'drag_drop',
+        atSeconds: 32,
+        title: 'Drag drop',
+        pause: true,
+        dragDrop: {
+          instruction: 'Place safety gear.',
+          backgroundImage: null,
+          dropZones: [
+            {
+              id: 'deck',
+              label: 'Deck',
+              xPercent: 20,
+              yPercent: 30,
+              widthPercent: 20,
+              heightPercent: 20,
+              correctDraggableIds: [],
+            },
+          ],
+          draggables: [
+            { id: 'vest', label: 'Life vest', image: null, acceptedDropZoneIds: [] },
+          ],
+        },
+      },
+    ];
+
+    const issues = getInteractiveVideoAuthoringIssues(true, timeline, { durationSeconds: 90 });
+
+    expect(issues.some(issue => issue.code === 'drag_drop_missing_background')).toBeTrue();
+    expect(issues.some(issue => issue.code === 'drag_drop_missing_correct_answer')).toBeTrue();
+  });
+
   it('surfaces teacher-friendly warnings without blocking a valid flow', () => {
     const timeline: InteractiveVideoInteraction[] = [
       {
@@ -193,6 +280,51 @@ describe('interactive-video-authoring', () => {
     expect(issues.some(issue => issue.code === 'empty_student_copy')).toBeTrue();
     expect(issues.some(issue => issue.code === 'placeholder_choice_label')).toBeTrue();
     expect(issues.some(issue => issue.code === 'duplicate_timestamp')).toBeTrue();
+  });
+
+  it('allows review branches to send wrong answers back to earlier video', () => {
+    const timeline: InteractiveVideoInteraction[] = [
+      {
+        id: 'branch',
+        type: 'branch',
+        atSeconds: 47,
+        title: 'Branch',
+        pause: true,
+        adaptivity: { requireCorrectBeforeContinue: true },
+        choices: [
+          { id: 'a', label: 'Wrong', isCorrect: false, targetTimeSeconds: 5 },
+          { id: 'b', label: 'Correct', isCorrect: true, targetTimeSeconds: null },
+        ],
+      },
+    ];
+
+    const issues = getInteractiveVideoAuthoringIssues(true, timeline, { durationSeconds: 120 });
+
+    expect(issues.some(issue => issue.code === 'branch_rewinds')).toBeFalse();
+    expect(issues.some(issue => issue.code === 'review_target_after_question')).toBeFalse();
+  });
+
+  it('blocks review targets that start after the question moment', () => {
+    const timeline: InteractiveVideoInteraction[] = [
+      {
+        id: 'branch',
+        type: 'branch',
+        atSeconds: 47,
+        title: 'Branch',
+        pause: true,
+        adaptivity: { requireCorrectBeforeContinue: true },
+        choices: [
+          { id: 'a', label: 'Wrong', isCorrect: false, targetTimeSeconds: 60 },
+          { id: 'b', label: 'Correct', isCorrect: true },
+        ],
+      },
+    ];
+
+    const issues = getInteractiveVideoAuthoringIssues(true, timeline, { durationSeconds: 120 });
+    const reviewIssue = issues.find(issue => issue.code === 'review_target_after_question');
+
+    expect(reviewIssue?.severity).toBe('error');
+    expect(reviewIssue?.choiceId).toBe('a');
   });
 
   it('retargets branches to the removed timestamp when deleting an interaction', () => {

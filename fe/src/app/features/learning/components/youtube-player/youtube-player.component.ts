@@ -18,9 +18,17 @@ import { WatchedSegmentsTracker } from '../../services/watched-segments-tracker.
 import { VideoProgressApi } from '../../../../api/client/video-progress.api';
 import { HeartbeatTracker } from '../../services/heartbeat-tracker.service';
 import { LearningActivityApi } from '../../../../api/client/learning-activity.api';
+import { InteractiveVideoLayerComponent } from '../../../../shared/blocks/video-block/interactive-video-layer.component';
 import { InteractiveVideoOverlayComponent } from '../../../../shared/blocks/video-block/interactive-video-overlay.component';
 import { InteractiveVideoMarkersComponent } from '../../../../shared/blocks/video-block/interactive-video-markers.component';
 import { buildInteractiveVideoAnalyticsProjection } from '../../../../core/utils/interactive-video-analytics';
+import {
+  getDueInteractiveVideoInteraction,
+  isInteractiveVideoReviewInteraction,
+  resolveInteractiveVideoChoiceTarget,
+  resolveInteractiveVideoReviewTarget,
+  shouldBlockInteractiveVideoSeek,
+} from '../../../../core/utils/interactive-video-runtime';
 import type {
   InteractiveVideoChoice,
   InteractiveVideoInteraction,
@@ -73,12 +81,19 @@ function extractVideoId(url: string): string | null {
   selector: 'app-youtube-player',
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
-  imports: [InteractiveVideoOverlayComponent, InteractiveVideoMarkersComponent],
+  imports: [InteractiveVideoLayerComponent, InteractiveVideoOverlayComponent, InteractiveVideoMarkersComponent],
   template: `
     <div class="youtube-player-wrapper">
       <div #playerShell class="youtube-iframe-host">
         <div [id]="playerId"></div>
       </div>
+      <app-interactive-video-layer
+        [timeline]="interactiveVideoSpec()?.enabled === false ? [] : (interactiveVideoSpec()?.timeline ?? [])"
+        [currentTimeSeconds]="currentTimeSeconds()"
+        [durationSeconds]="videoDurationSeconds()"
+        [completedInteractionIds]="completedInteractionIdsSnapshot()"
+        [activeInteractionId]="activeInteraction()?.id ?? null"
+        (interactionSelected)="openInteractiveInteraction($event)" />
       <app-interactive-video-markers
         [timeline]="interactiveVideoSpec()?.enabled === false ? [] : (interactiveVideoSpec()?.timeline ?? [])"
         [durationSeconds]="videoDurationSeconds()"
@@ -91,6 +106,7 @@ function extractVideoId(url: string): string | null {
           [selectedChoiceId]="selectedChoiceId()"
           [density]="overlayDensity()"
           (choiceSelected)="onInteractiveChoice($event)"
+          (reviewRequested)="onInteractiveReviewRequested()"
           (continueRequested)="onInteractiveContinue()" />
       }
     </div>
@@ -146,8 +162,10 @@ export class YouTubePlayerComponent implements OnDestroy {
   readonly selectedChoiceId = signal<string | null>(null);
   readonly videoDurationSeconds = signal<number | null>(null);
   readonly currentTimeSeconds = signal(0);
+  readonly completedInteractionIdsSnapshot = signal<ReadonlySet<string>>(new Set<string>());
   private readonly shownInteractionIds = new Set<string>();
   private readonly completedInteractionIds = new Set<string>();
+  private furthestWatchedSeconds = 0;
 
   readonly playerId = 'yt-player-' + Math.random().toString(36).substring(2, 9);
   private readonly playerSourceKey = computed(() => {
@@ -274,7 +292,10 @@ export class YouTubePlayerComponent implements OnDestroy {
       next: (res: any) => {
         if (res?.success && res.data?.position > 0 && this.player?.seekTo) {
           this.player.seekTo(res.data.position, true);
-          this.zone.run(() => this.currentTimeSeconds.set(res.data.position));
+          this.zone.run(() => {
+            this.currentTimeSeconds.set(res.data.position);
+            this.markInteractiveVideoWatched(res.data.position);
+          });
         }
       },
       error: () => {}
@@ -314,12 +335,18 @@ export class YouTubePlayerComponent implements OnDestroy {
     this.stopPolling();
     this.pollInterval = setInterval(() => {
       if (this.player?.getCurrentTime) {
-        const currentTime = this.player.getCurrentTime();
-        if (this.trackingEnabled()) {
-          this.tracker.recordSecond(currentTime);
-        }
+        let currentTime = this.player.getCurrentTime();
         this.zone.run(() => {
+          const allowedTime = this.resolveAllowedInteractiveSeekTarget(currentTime);
+          if (allowedTime !== currentTime) {
+            this.player?.seekTo?.(allowedTime, true);
+            currentTime = allowedTime;
+          }
+          if (this.trackingEnabled()) {
+            this.tracker.recordSecond(currentTime);
+          }
           this.currentTimeSeconds.set(currentTime);
+          this.markInteractiveVideoWatched(currentTime);
           const duration = this.player?.getDuration?.() || 0;
           if (duration > 0 && this.videoDurationSeconds() == null) {
             this.videoDurationSeconds.set(duration);
@@ -352,9 +379,29 @@ export class YouTubePlayerComponent implements OnDestroy {
       targetInteractionId: choice.targetInteractionId ?? null,
     });
 
-    if (interaction.type === 'branch') {
+    if (interaction.type === 'branch' && !isInteractiveVideoReviewInteraction(interaction)) {
       this.jumpToInteractiveChoiceTarget(choice);
     }
+  }
+
+  onInteractiveReviewRequested(): void {
+    const interaction = this.activeInteraction();
+    const choice = interaction?.choices?.find(item => item.id === this.selectedChoiceId()) ?? null;
+    if (!interaction || !choice) {
+      return;
+    }
+
+    const target = resolveInteractiveVideoReviewTarget(
+      interaction,
+      choice,
+      this.interactiveVideoSpec()?.timeline ?? [],
+    );
+    this.activeInteraction.set(null);
+    this.selectedChoiceId.set(null);
+    this.player?.seekTo?.(target, true);
+    this.currentTimeSeconds.set(target);
+    this.markInteractiveVideoWatched(target);
+    this.player?.playVideo?.();
   }
 
   onInteractiveContinue(): void {
@@ -363,7 +410,7 @@ export class YouTubePlayerComponent implements OnDestroy {
       return;
     }
 
-    this.completedInteractionIds.add(interaction.id);
+    this.markInteractiveInteractionCompleted(interaction.id);
     void this.recordInteractiveEvent(interaction, 'continued', {
       choiceId: this.selectedChoiceId(),
     });
@@ -372,15 +419,25 @@ export class YouTubePlayerComponent implements OnDestroy {
     this.player?.playVideo?.();
   }
 
+  openInteractiveInteraction(interaction: InteractiveVideoInteraction): void {
+    if (this.completedInteractionIds.has(interaction.id)) {
+      return;
+    }
+    this.activateInteractiveInteraction(interaction);
+  }
+
   seekToInteractiveSecond(seconds: number): void {
     if (!this.player?.seekTo || !Number.isFinite(seconds)) {
       return;
     }
 
     const duration = this.player?.getDuration?.() || seconds;
-    const target = Math.max(0, Math.min(seconds, Number.isFinite(duration) && duration > 0 ? duration : seconds));
+    const target = this.resolveAllowedInteractiveSeekTarget(
+      Math.max(0, Math.min(seconds, Number.isFinite(duration) && duration > 0 ? duration : seconds)),
+    );
     this.player.seekTo(target, true);
     this.currentTimeSeconds.set(target);
+    this.markInteractiveVideoWatched(target);
     this.evaluateInteractiveTimeline(target);
   }
 
@@ -394,57 +451,52 @@ export class YouTubePlayerComponent implements OnDestroy {
       return;
     }
 
-    const dueInteraction = spec.timeline.find(interaction => {
-      if (this.completedInteractionIds.has(interaction.id)) {
-        return false;
-      }
-      if (currentTime < interaction.atSeconds) {
-        return false;
-      }
-
-      const endSeconds = interaction.endSeconds ?? interaction.atSeconds + 5;
-      return interaction.required === true || currentTime <= endSeconds;
+    const dueInteraction = getDueInteractiveVideoInteraction({
+      timeline: spec.timeline,
+      currentTimeSeconds: currentTime,
+      completedInteractionIds: this.completedInteractionIds,
     });
 
     if (!dueInteraction) {
       return;
     }
 
-    this.activeInteraction.set(dueInteraction);
+    this.activateInteractiveInteraction(dueInteraction);
+  }
+
+  private activateInteractiveInteraction(interaction: InteractiveVideoInteraction): void {
+    this.activeInteraction.set(interaction);
     this.selectedChoiceId.set(null);
-    if (dueInteraction.pause !== false) {
+    if (interaction.pause !== false) {
       this.player?.pauseVideo?.();
     }
 
-    if (!this.shownInteractionIds.has(dueInteraction.id)) {
-      this.shownInteractionIds.add(dueInteraction.id);
-      void this.recordInteractiveEvent(dueInteraction, 'shown');
+    if (!this.shownInteractionIds.has(interaction.id)) {
+      this.shownInteractionIds.add(interaction.id);
+      void this.recordInteractiveEvent(interaction, 'shown');
     }
   }
 
   private jumpToInteractiveChoiceTarget(choice: InteractiveVideoChoice): void {
     const active = this.activeInteraction();
     if (active) {
-      this.completedInteractionIds.add(active.id);
+      this.markInteractiveInteractionCompleted(active.id);
     }
     this.activeInteraction.set(null);
     this.selectedChoiceId.set(null);
 
-    const targetTime = choice.targetTimeSeconds ?? this.resolveTargetInteractionTime(choice.targetInteractionId);
+    const targetTime = resolveInteractiveVideoChoiceTarget(
+      choice,
+      this.interactiveVideoSpec()?.timeline ?? [],
+      { sourceTimeSeconds: active?.type === 'branch' ? active.atSeconds : null },
+    );
     if (typeof targetTime === 'number' && Number.isFinite(targetTime)) {
-      this.player?.seekTo?.(Math.max(0, targetTime), true);
+      const target = Math.max(0, targetTime);
+      this.player?.seekTo?.(target, true);
+      this.currentTimeSeconds.set(target);
+      this.markInteractiveVideoWatched(target);
     }
     this.player?.playVideo?.();
-  }
-
-  private resolveTargetInteractionTime(targetInteractionId: string | null | undefined): number | null {
-    if (!targetInteractionId) {
-      return null;
-    }
-
-    return this.interactiveVideoSpec()?.timeline
-      ?.find(interaction => interaction.id === targetInteractionId)
-      ?.atSeconds ?? null;
   }
 
   private resetInteractiveRuntime(): void {
@@ -452,6 +504,41 @@ export class YouTubePlayerComponent implements OnDestroy {
     this.selectedChoiceId.set(null);
     this.shownInteractionIds.clear();
     this.completedInteractionIds.clear();
+    this.completedInteractionIdsSnapshot.set(new Set<string>());
+    this.furthestWatchedSeconds = 0;
+  }
+
+  private markInteractiveInteractionCompleted(interactionId: string): void {
+    this.completedInteractionIds.add(interactionId);
+    this.completedInteractionIdsSnapshot.set(new Set(this.completedInteractionIds));
+  }
+
+  private resolveAllowedInteractiveSeekTarget(targetTimeSeconds: number): number {
+    return shouldBlockInteractiveVideoSeek({
+      spec: this.interactiveVideoSpec(),
+      targetTimeSeconds,
+      furthestWatchedSeconds: this.furthestWatchedSeconds,
+      hasIncompleteRequiredInteractions: this.hasIncompleteRequiredInteractions(),
+    })
+      ? this.furthestWatchedSeconds
+      : targetTimeSeconds;
+  }
+
+  private hasIncompleteRequiredInteractions(): boolean {
+    const spec = this.interactiveVideoSpec();
+    if (!spec || spec.enabled === false) {
+      return false;
+    }
+
+    return spec.timeline.some(interaction =>
+      interaction.required === true && !this.completedInteractionIds.has(interaction.id),
+    );
+  }
+
+  private markInteractiveVideoWatched(seconds: number): void {
+    if (Number.isFinite(seconds)) {
+      this.furthestWatchedSeconds = Math.max(this.furthestWatchedSeconds, Math.max(0, seconds));
+    }
   }
 
   private async recordInteractiveEvent(

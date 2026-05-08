@@ -70,10 +70,8 @@ public class VideoAssetIngestService {
 
         VideoAssetJpaEntity asset = videoAssetRepository.findById(job.getVideoAssetId()).orElse(null);
         if (asset == null) {
-            job.setStatus("FAILED");
-            job.setLastError("Video asset no longer exists");
-            job.setFinishedAt(Instant.now());
-            videoIngestJobRepository.save(job);
+            log.warn("[VideoAsset] Skipping ingest job {} because asset {} no longer exists",
+                    job.getId(), job.getVideoAssetId());
             return;
         }
 
@@ -121,12 +119,18 @@ public class VideoAssetIngestService {
                     "probe-source",
                     () -> ffmpegVideoProcessingService.probe(materializedSource)
             );
+            if (abortIfAssetDeleted(asset.getId(), "probe-source")) {
+                return;
+            }
 
             asset.setWidth(probe.width());
             asset.setHeight(probe.height());
             asset.setDurationSeconds(probe.durationSeconds());
 
             renditionReset(asset.getId());
+            if (abortIfAssetDeleted(asset.getId(), "reset-renditions")) {
+                return;
+            }
             createOriginalRendition(asset, sourceAttachment, probe);
 
             List<RenditionSpec> renditionSpecs = buildRenditionSpecs(sourceAttachment, probe);
@@ -150,6 +154,9 @@ public class VideoAssetIngestService {
             generatedFiles.addAll(transcodedRenditions.values().stream()
                     .map(FfmpegVideoProcessingService.TranscodedRendition::outputPath)
                     .toList());
+            if (abortIfAssetDeleted(asset.getId(), "transcode-adaptive-renditions")) {
+                return;
+            }
 
             List<ShakaPackagerService.PackagerInput> adaptiveInputs = new ArrayList<>();
             for (RenditionSpec spec : renditionSpecs) {
@@ -177,6 +184,9 @@ public class VideoAssetIngestService {
                     fileUrl = stored.fileUrl();
                 }
 
+                if (abortIfAssetDeleted(asset.getId(), "save-rendition-" + spec.profile().toLowerCase())) {
+                    return;
+                }
                 videoRenditionRepository.save(VideoRenditionJpaEntity.builder()
                         .videoAssetId(asset.getId())
                         .playbackKind("FILE_MP4")
@@ -199,6 +209,9 @@ public class VideoAssetIngestService {
 
             AdaptivePackageMetadata packageMetadata = packageAdaptive(asset.getId(), adaptiveInputs, stopWatch);
             packageOutputDir = packageMetadata.localOutputDir();
+            if (abortIfAssetDeleted(asset.getId(), "package-adaptive")) {
+                return;
+            }
 
             asset.setHlsManifestStorageKey(packageMetadata.hlsManifestStorageKey());
             asset.setDashManifestStorageKey(packageMetadata.dashManifestStorageKey());
@@ -229,12 +242,24 @@ public class VideoAssetIngestService {
                         stopWatch.getTotalTimeMillis(),
                         summarizeStopWatch(stopWatch));
             }
+            if (!videoAssetRepository.existsById(asset.getId())) {
+                log.warn("[VideoAsset] Asset {} disappeared before failure state could be saved", asset.getId());
+                return;
+            }
             markJobFailed(job, asset, ex.getMessage(), shouldRetry(job, ex));
         } finally {
             deleteQuietly(sourceTemp);
             generatedFiles.forEach(this::deleteQuietly);
             deleteDirectoryQuietly(packageOutputDir);
         }
+    }
+
+    private boolean abortIfAssetDeleted(UUID assetId, String stage) {
+        if (videoAssetRepository.existsById(assetId)) {
+            return false;
+        }
+        log.warn("[VideoAsset] Aborting ingest at stage {} because asset {} no longer exists", stage, assetId);
+        return true;
     }
 
     private AdaptivePackageMetadata packageAdaptive(
