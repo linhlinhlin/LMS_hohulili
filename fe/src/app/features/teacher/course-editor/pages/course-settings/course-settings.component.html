@@ -49,7 +49,11 @@
       </div>
       <div class="editor-card__body">
         <p class="settings-danger-card__warning">Toàn bộ nội dung, bài học, và dữ liệu học viên sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.</p>
-        <button type="button" (click)="deleteCourse()" class="settings-danger-card__button">
+        <button type="button"
+          (click)="deleteCourse()"
+          [disabled]="isLoading()"
+          [attr.aria-busy]="isLoading()"
+          class="settings-danger-card__button">
           Xóa vĩnh viễn
         </button>
       </div>

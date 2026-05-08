@@ -33,7 +33,35 @@ import { SeoService } from '../../core/services/seo.service';
         <div class="flex flex-col gap-8 lg:flex-row">
           <!-- Filters Sidebar -->
           <div class="lg:w-1/4" role="region" aria-label="Bộ lọc khóa học">
-            <div class="sticky top-24 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <button
+              type="button"
+              (click)="toggleMobileFilters()"
+              class="mb-3 flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 text-left shadow-sm lg:hidden"
+              aria-controls="courses-filter-panel"
+              [attr.aria-expanded]="showMobileFilters()">
+              <span>
+                <span class="block text-sm font-semibold text-gray-900">Lọc và sắp xếp</span>
+                <span class="block text-xs text-gray-500">
+                  {{ paginationInfo().totalItems }} khóa học
+                  @if (activeFilterCount() > 0) {
+                    · {{ activeFilterCount() }} bộ lọc đang dùng
+                  }
+                </span>
+              </span>
+              <svg
+                class="h-5 w-5 text-gray-400 transition-transform"
+                [class.rotate-180]="showMobileFilters()"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+
+            <div
+              id="courses-filter-panel"
+              class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm lg:sticky lg:top-24 lg:block"
+              [class.hidden]="!showMobileFilters()">
               <h3 class="mb-5 text-sm font-bold uppercase tracking-wide text-gray-900">Bộ lọc</h3>
 
               <!-- Search -->
@@ -133,6 +161,13 @@ import { SeoService } from '../../core/services/seo.service';
                       class="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700">
                 Xóa bộ lọc
               </button>
+
+              <button
+                type="button"
+                (click)="showMobileFilters.set(false)"
+                class="mt-3 w-full rounded-lg bg-[#0056D2] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#004BB5] lg:hidden">
+                Xem {{ paginationInfo().totalItems }} khóa học
+              </button>
             </div>
           </div>
 
@@ -205,6 +240,7 @@ export class CoursesComponent implements OnInit {
 
   courses = signal<ExtendedCourse[]>([]);
   isLoading = signal<boolean>(false);
+  showMobileFilters = signal(false);
   paginationInfo = signal<PaginationInfo>({
     currentPage: 1,
     totalPages: 1,
@@ -419,6 +455,21 @@ export class CoursesComponent implements OnInit {
       },
       queryParamsHandling: 'merge'
     });
+    this.showMobileFilters.set(false);
+  }
+
+  activeFilterCount(): number {
+    let count = 0;
+    if (this.filters.search?.trim()) count++;
+    if (this.filters.category) count++;
+    if (this.filters.level) count++;
+    if (this.filters.priceRange) count++;
+    if (this.filters.rating) count++;
+    return count;
+  }
+
+  toggleMobileFilters(): void {
+    this.showMobileFilters.update(open => !open);
   }
 
   onSearchChange(value: string): void {

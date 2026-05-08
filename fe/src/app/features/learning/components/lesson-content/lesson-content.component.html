@@ -1,23 +1,31 @@
-<div class="flex flex-col min-h-full">
+<div class="lesson-learning-shell">
 
 
   <!-- Reading Area -->
-  <div class="max-w-[1150px] mx-auto w-full pt-3 px-4 md:px-0">
+  <div class="lesson-reading-area" role="region" aria-labelledby="lesson-heading">
 
     <!-- Lesson Title (Always at top) -->
     @if (hasSections() && currentSection(); as section) {
-    <h1 class="text-xl md:text-2xl font-semibold text-gray-900 mb-2 leading-tight">
-      {{ lessonNumber() }}: {{ lesson().title }}
-    </h1>
+    <header class="lesson-header">
+      <p class="lesson-kicker">Chương {{ chapterIndex() + 1 }} / {{ currentSectionNumber() }}</p>
+      <h1 id="lesson-heading" class="lesson-title">
+        {{ lesson().title }}
+      </h1>
+      <app-competency-badge [lessonId]="lesson().id" [courseId]="lesson().courseId" />
     @if (section.title) {
-    <h3 class="text-xl md:text-xl font-semibold text-gray-700 mb-2 leading-tight">
+      <h2 class="lesson-section-title">
       {{ section.title }}
-    </h3>
+      </h2>
     }
+    </header>
     } @else {
-    <h1 class="text-xl md:text-2xl font-semibold text-gray-900 mb-2 leading-tight">
-      {{ lesson().title }}
-    </h1>
+    <header class="lesson-header">
+      <p class="lesson-kicker">{{ lessonNumber() }}</p>
+      <h1 id="lesson-heading" class="lesson-title">
+        {{ lesson().title }}
+      </h1>
+      <app-competency-badge [lessonId]="lesson().id" [courseId]="lesson().courseId" />
+    </header>
     }
 
     <!-- Single-column layout (Coursera/edX/Khan Academy hybrid) — no tab nav.
@@ -25,12 +33,12 @@
          by the floating button at bottom-right. The lesson-attachments tab
          was removed because section.type === 'FILE' already surfaces every
          attachment via the unified file card below. -->
-    <div class="pt-6">
+    <div class="lesson-content-body">
       @if (currentSection(); as section) {
-      <div class="space-y-5 text-slate-800 text-[15px] leading-relaxed max-w-none pb-6">
+      <div class="lesson-content-flow text-slate-800 pb-6">
         @if (section.type === 'TEXT') {
           @if (section.content) {
-          <div class="prose prose-slate max-w-none" #textContent [innerHTML]="getSanitizedHtml(section.content)"></div>
+          <div class="lesson-prose prose prose-slate max-w-none" #textContent [innerHTML]="getSanitizedHtml(section.content)"></div>
           @if (readingProgress() > 0 && readingProgress() < 100) {
           <div class="flex items-center gap-2 text-xs text-slate-400 mt-4">
             <div class="flex-1 h-1 bg-slate-100 rounded-full">
@@ -95,13 +103,13 @@
           <app-icon name="edit" size="md" class="text-[#0056D2]"></app-icon>
           <h3 class="text-base font-bold text-slate-800">Bài tập{{ section.title ? ': ' + section.title : '' }}</h3>
         </div>
-        <div class="prose prose-slate max-w-none text-sm" [innerHTML]="getSanitizedHtml(section.content)"></div>
+        <div class="lesson-prose prose prose-slate max-w-none text-sm" [innerHTML]="getSanitizedHtml(section.content)"></div>
       </div>
       }
     </div>
     } @else {
     @if (lesson().content) {
-    <div class="prose prose-slate max-w-none text-[15px] leading-relaxed pb-6" [innerHTML]="getSafeHtmlContent()"></div>
+    <div class="lesson-prose prose prose-slate max-w-none pb-6" [innerHTML]="getSafeHtmlContent()"></div>
     }
     }
 
@@ -140,11 +148,11 @@
     }
 
     <!-- Media area: video / file unified card. Always visible — no tab gate. -->
-    <div class="mb-4 max-w-[920px] mx-auto w-full">
+    <div class="lesson-media-area mb-4 w-full">
       @if (currentSection(); as section) {
       <!-- VIDEO SECTION -->
       @if (section.type === 'VIDEO') {
-      <div class="relative aspect-video w-full rounded-lg overflow-hidden shadow-sm bg-black border border-gray-100 mb-6">
+      <div class="lesson-video-frame relative aspect-video w-full rounded-lg overflow-hidden shadow-sm bg-black border border-gray-100 mb-6">
         @if (!section.streamVideoUid && isYouTubeUrl(section.videoUrl || lesson().videoUrl)) {
         <app-youtube-player [videoUrl]="(section.videoUrl || lesson().videoUrl)!" [lessonId]="lesson().id" [sectionId]="section.id"
           [completionThreshold]="section.completionThreshold"
@@ -270,7 +278,7 @@
 
       <!-- Lesson-level video (legacy lessons may have text/file sections plus a single lesson video) -->
       @if (shouldShowLessonLevelVideo()) {
-      <div class="relative aspect-video w-full rounded-lg overflow-hidden shadow-sm bg-black border border-gray-100">
+      <div class="lesson-video-frame relative aspect-video w-full rounded-lg overflow-hidden shadow-sm bg-black border border-gray-100">
         @if (!lesson().streamVideoUid && isYouTubeUrl(lesson().videoUrl)) {
         <app-youtube-player [videoUrl]="lesson().videoUrl!" [lessonId]="lesson().id"
           [sectionId]="'lesson-' + lesson().id" (videoEnded)="onVideoEnd()" />
@@ -295,7 +303,6 @@
     </div>
 
   </div> <!-- end content container -->
-</div> <!-- end Reading Area -->
 
 <!-- Floating notes button (Coursera-style affordance) — anchored bottom-right.
      Sits ABOVE the page's bottom navigation bar (which uses bottom-0 + z-30):

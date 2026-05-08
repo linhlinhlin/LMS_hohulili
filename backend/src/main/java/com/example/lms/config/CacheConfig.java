@@ -66,6 +66,12 @@ public class CacheConfig {
                 .maximumSize(10000)
                 .recordStats()
                 .build());
+        cacheManager.registerCustomCache("competency-map",
+            Caffeine.newBuilder()
+                .expireAfterWrite(60, TimeUnit.SECONDS)
+                .maximumSize(500)
+                .recordStats()
+                .build());
 
         return cacheManager;
     }

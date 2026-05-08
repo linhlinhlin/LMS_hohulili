@@ -12,7 +12,7 @@
   </div>
 }
 
-<div class="flex flex-col md:flex-row overflow-hidden bg-white" [class.h-screen]="!isPreview()" [style.height]="isPreview() ? 'calc(100vh - 40px)' : ''">
+<div class="course-learning-layout flex flex-col md:flex-row overflow-hidden bg-white" [class.h-screen]="!isPreview()" [style.height]="isPreview() ? 'calc(100vh - 40px)' : ''">
 
   <!-- Mobile Header (md:hidden) -->
   <header class="md:hidden flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white z-20 shrink-0">
@@ -31,24 +31,38 @@
   }
 
   <!-- Sidebar -->
-  <aside class="w-[300px] flex-col border-r border-gray-200 bg-white h-full z-10 shrink-0"
+  <aside id="course-learning-sidebar"
+    class="learning-sidebar flex-col border-r border-gray-200 bg-white h-full z-10 shrink-0"
     [class.hidden]="isMobileView() && !showMobileSidebar()"
     [class.!flex]="showMobileSidebar() || !isMobileView()"
+    [class.learning-sidebar--collapsed]="!isMobileView() && desktopSidebarCollapsed()"
     [class.fixed]="isMobileView()"
     [class.left-0]="isMobileView()"
     [class.top-0]="isMobileView()"
     [class.bottom-0]="isMobileView()"
     [class.w-[85vw]]="isMobileView()"
-    [class.max-w-[320px]]="isMobileView()"
+    [class.max-w-[340px]]="isMobileView()"
     [class.z-50]="isMobileView()"
-    [class.shadow-lg]="isMobileView()">
+    [class.shadow-lg]="isMobileView()"
+    [attr.aria-hidden]="!isMobileView() && desktopSidebarCollapsed() ? 'true' : null"
+    [attr.inert]="!isMobileView() && desktopSidebarCollapsed() ? '' : null">
 
     <!-- Sidebar Header -->
     <div class="px-4 py-4 border-b border-gray-200">
-      <div class="flex items-center text-xs font-medium text-slate-500 mb-3 cursor-pointer hover:text-[#0056D2] transition-colors"
-        (click)="goBack()">
-        <app-icon name="arrow-left" size="sm" class="mr-1"></app-icon>
-        Chi tiết khóa học
+      <div class="mb-3 flex items-center justify-between gap-3">
+        <div class="flex items-center text-xs font-medium text-slate-500 cursor-pointer hover:text-[#0056D2] transition-colors"
+          (click)="goBack()">
+          <app-icon name="arrow-left" size="sm" class="mr-1"></app-icon>
+          Chi tiết khóa học
+        </div>
+
+        <button type="button"
+          class="learning-mobile-sidebar-close md:hidden"
+          aria-label="Đóng mục lục khóa học"
+          title="Đóng mục lục"
+          (click)="closeMobileSidebar()">
+          <app-icon name="x" size="sm"></app-icon>
+        </button>
       </div>
       <h2 class="font-bold text-[#0056D2] text-base leading-tight mb-3">{{ course()?.title || 'Đang tải...' }}</h2>
       <div class="flex items-center gap-2">
@@ -114,13 +128,13 @@
       @for (section of filteredSections(); track section.id) {
       <div>
         <!-- Level 1: Chapter Header -->
-        <button class="flex items-center justify-between w-full px-4 py-3 border-b border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors text-left"
+        <button class="learning-chapter-toggle flex items-center justify-between w-full px-4 py-3 border-b border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors text-left"
           [class.bg-slate-100]="isSectionExpanded(section.id)"
           [class.bg-gray-50]="!isSectionExpanded(section.id)"
           (click)="toggleSection(section.id)"
           [attr.aria-expanded]="isSectionExpanded(section.id)">
           <div class="flex-1 min-w-0">
-            <h3 class="text-sm font-bold"
+            <h3 class="learning-chapter-title text-sm font-bold"
               [class.text-[#0056D2]]="isSectionExpanded(section.id)"
               [class.text-slate-800]="!isSectionExpanded(section.id)">
               <span class="text-[#0056D2] font-extrabold">Chương {{ $index + 1 }}:</span> {{ getChapterDisplayTitle(section.title, $index) }}
@@ -145,7 +159,7 @@
         <div>
           @for (lesson of section.lessons; track lesson.id; let lessonIdx = $index) {
           <!-- Level 2: Lesson Item -->
-          <button class="flex items-start gap-3 w-full px-4 py-2.5 cursor-pointer hover:bg-slate-50 transition-colors border-l-4 text-left"
+          <button class="learning-lesson-toggle flex items-start gap-3 w-full px-4 py-2.5 cursor-pointer hover:bg-slate-50 transition-colors border-l-4 text-left"
             [class.bg-[#E6F0FA]]="currentLesson()?.id === lesson.id"
             [class.border-[#0056D2]]="currentLesson()?.id === lesson.id && !learningService.isLessonCompleted(lesson.id)()"
             [class.border-green-500]="learningService.isLessonCompleted(lesson.id)()"
@@ -166,7 +180,7 @@
 
             <!-- Lesson Info -->
             <div class="flex-1 min-w-0">
-              <div class="text-sm font-medium truncate"
+              <div class="learning-lesson-title text-sm font-medium"
                 [class.font-bold]="currentLesson()?.id === lesson.id"
                 [class.text-[#0056D2]]="currentLesson()?.id === lesson.id"
                 [class.text-slate-700]="currentLesson()?.id !== lesson.id">
@@ -190,7 +204,7 @@
           <!-- Level 3: Sub-sections -->
           @if (lesson.sections && lesson.sections.length > 0 && isLessonExpanded(lesson.id)) {
           @for (sectionItem of lesson.sections; track sectionItem.id; let sectionIndex = $index) {
-          <button class="flex items-center gap-2 w-full pl-12 pr-4 py-1.5 text-xs cursor-pointer transition-colors text-left"
+          <button class="learning-section-toggle flex items-center gap-2 w-full pl-12 pr-4 py-1.5 text-xs cursor-pointer transition-colors text-left"
             [class.text-green-600]="isSectionCompleted(sectionItem.id)"
             [class.font-semibold]="currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex"
             [class.text-[#0056D2]]="currentLesson()?.id === lesson.id && currentSectionIndex() === sectionIndex && !isSectionLockedByPrereqs(lesson, sectionIndex)"
@@ -214,7 +228,7 @@
               } @else {
               <app-icon name="paperclip" size="xs"></app-icon>
               }
-              <span class="truncate flex-1">{{ sectionItem.title }}</span>
+              <span class="learning-section-title flex-1">{{ sectionItem.title }}</span>
               @if (sectionItem.isRequired && !isSectionCompleted(sectionItem.id)) {
               <span class="text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1 py-0.5 rounded shrink-0">Bắt buộc</span>
               }
@@ -239,16 +253,28 @@
     </div>
   </aside>
 
+  <button type="button"
+    class="learning-sidebar-toggle hidden md:inline-flex"
+    [class.learning-sidebar-toggle--collapsed]="desktopSidebarCollapsed()"
+    [attr.aria-expanded]="!desktopSidebarCollapsed()"
+    aria-controls="course-learning-sidebar"
+    [attr.aria-label]="desktopSidebarCollapsed() ? 'Mở mục lục khóa học' : 'Thu gọn mục lục khóa học'"
+    [attr.title]="desktopSidebarCollapsed() ? 'Mở mục lục' : 'Thu gọn mục lục'"
+    (click)="toggleDesktopSidebar()">
+    <app-icon [name]="desktopSidebarCollapsed() ? 'chevron-right' : 'chevron-left'" size="sm"></app-icon>
+  </button>
+
   <!-- Main Content Area -->
-  <main class="flex-1 flex flex-col h-full relative bg-white overflow-hidden">
+  <main class="learning-main flex-1 flex flex-col h-full relative bg-white overflow-hidden"
+    [class.learning-main--sidebar-collapsed]="!isMobileView() && desktopSidebarCollapsed()">
 
     <!-- Top Bar (desktop only) — minimal breadcrumb -->
-    <div class="hidden md:flex h-[44px] items-center px-6 border-b border-gray-100 bg-white shrink-0">
+    <div class="learning-topbar hidden md:flex h-[52px] items-center px-6 border-b border-gray-100 bg-white shrink-0">
       <span class="text-xs text-slate-400 truncate">{{ course()?.title }}</span>
     </div>
 
     <!-- Scrollable Content -->
-    <div class="flex-1 overflow-y-auto scroll-smooth pb-20">
+    <div class="learning-scroll flex-1 overflow-y-auto scroll-smooth pb-20">
       @if (error()) {
       <div class="mx-4 mt-4 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex justify-between items-center">
         <span>{{ error() }}</span>
@@ -319,8 +345,8 @@
 
     <!-- Bottom Navigation Bar -->
     @if (currentLesson()) {
-    <div class="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
-      <div class="max-w-5xl mx-auto flex items-center justify-between">
+    <div class="learning-bottom-nav absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
+      <div class="max-w-[920px] mx-auto flex items-center justify-between">
         <button class="flex items-center gap-1 px-3 py-2 rounded text-slate-500 hover:text-[#0056D2] hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:pointer-events-none"
           [disabled]="!canGoPrevious() && currentSectionIndex() === 0"
           (click)="previousLesson()">

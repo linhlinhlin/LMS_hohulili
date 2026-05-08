@@ -3,7 +3,7 @@
             [class.shadow-lg]="isScrolled()">
       
       <!-- Top Header - Dark Maritime Theme - Shrinks on scroll -->
-      <div class="maritime-top-header text-white transition-all duration-300 overflow-hidden"
+      <div class="maritime-top-header hidden lg:block text-white transition-all duration-300 overflow-hidden"
            [class.max-h-0]="isScrolled()"
            [class.opacity-0]="isScrolled()"
            [class.py-3]="!isScrolled()"
@@ -54,10 +54,10 @@
       </div>
 
       <!-- Bottom Header - Main Maritime Deck - Full-width in both modes for consistency -->
-      <div class="bg-white transition-all duration-300 w-full"
+      <div class="public-main-header bg-white transition-all duration-300 w-full"
            [class.-mt-8]="isScrolled()"
            [class.shadow-lg]="isScrolled()">
-        <div class="px-8 max-w-7xl mx-auto">
+        <div class="px-4 lg:px-8 max-w-7xl mx-auto">
           <!-- Desktop Layout - All items in one row -->
           <div class="hidden lg:flex items-center justify-between transition-all duration-300"
                [class.h-20]="!isScrolled()"
@@ -100,14 +100,18 @@
                 <input
                   type="text"
                   placeholder="Bạn muốn học gì hôm nay?"
+                  aria-label="Tìm kiếm khóa học"
+                  autocomplete="off"
+                  enterkeyhint="search"
                   [ngModel]="searchQuery()"
                   (ngModelChange)="onSearchInput($event)"
                   (focus)="onSearchFocus()"
                   (blur)="onSearchBlur()"
                   (keydown)="onSearchKeydown($event)"
-                  class="w-full h-12 pl-5 pr-12 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 transition-all duration-200">
+                  class="w-full h-12 pl-5 pr-14 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 transition-all duration-200">
                 <button (click)="onSearchSubmit()"
-                        class="absolute right-1.5 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#0056D2]/5 hover:text-[#0056D2]">
+                        aria-label="Tìm kiếm khóa học"
+                        class="absolute right-1 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#0056D2]/5 hover:text-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
                   <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                   </svg>
@@ -230,39 +234,66 @@
 
           <!-- Mobile Layout -->
           <div class="lg:hidden">
-            <div class="flex justify-between items-center h-16">
+            <div class="flex items-center justify-between gap-3 h-16">
               <!-- Mobile Logo -->
-              <div class="flex-shrink-0">
-                <a routerLink="/" class="flex items-center">
-                  <img src="/icons/logo-master.png" alt="LMS Maritime" class="w-8 h-8 rounded-lg mr-2">
-                  <span class="text-lg font-bold text-gray-900">LMS Maritime</span>
+              <div class="min-w-0 flex-shrink">
+                <a routerLink="/" class="flex min-h-11 min-w-0 items-center">
+                  <img src="/icons/logo-master.png" alt="LMS Maritime" class="w-8 h-8 rounded-lg mr-2 flex-shrink-0">
+                  <span class="truncate text-base font-bold text-gray-900">LMS Maritime</span>
                 </a>
               </div>
 
-              <!-- Mobile menu button -->
-              <button 
-                type="button" 
-                (click)="toggleMobileMenu()"
-                class="text-gray-700 hover:text-[#0056D2] focus:outline-none focus:text-[#0056D2] p-2 rounded-md transition-colors duration-200">
-                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  @if (isMobileMenuOpen()) {
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                  } @else {
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                  }
-                </svg>
-              </button>
+              <div class="flex flex-shrink-0 items-center gap-2">
+                @if (isLoggedIn()) {
+                  <a [routerLink]="getDashboardRoute()"
+                     aria-label="Mở bảng điều khiển"
+                     class="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[#0056D2] text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-[#004BB5] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/30">
+                    @if (userAvatar()) {
+                      <img [src]="userAvatar()" [alt]="userName()" class="h-full w-full object-cover">
+                    } @else {
+                      {{ getUserInitials() }}
+                    }
+                  </a>
+                } @else {
+                  <a routerLink="/auth/login"
+                     class="inline-flex h-10 min-w-[82px] items-center justify-center rounded-lg border border-[#0056D2]/20 bg-[#0056D2]/5 px-3 text-sm font-semibold text-[#0056D2] transition-colors duration-200 hover:border-[#0056D2]/30 hover:bg-[#0056D2]/10 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
+                    Đăng nhập
+                  </a>
+                }
+
+                <!-- Mobile menu button -->
+                <button
+                  type="button"
+                  (click)="toggleMobileMenu()"
+                  [attr.aria-label]="isMobileMenuOpen() ? 'Đóng menu' : 'Mở menu'"
+                  [attr.aria-expanded]="isMobileMenuOpen()"
+                  aria-controls="mobile-navigation-panel"
+                  class="inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 transition-colors duration-200 hover:bg-gray-100 hover:text-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
+                  <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    @if (isMobileMenuOpen()) {
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    } @else {
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                    }
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <!-- Mobile Search Bar -->
             <div class="pb-3">
               <div class="relative">
                 <input type="text" placeholder="Tìm kiếm khóa học..."
+                       aria-label="Tìm kiếm khóa học"
+                       autocomplete="off"
+                       enterkeyhint="search"
                        [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)"
                        (keydown)="onSearchKeydown($event)"
-                       class="w-full h-10 pl-4 pr-10 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 transition-all">
-                <button (click)="onSearchSubmit()" class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400">
-                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                       class="w-full h-11 pl-4 pr-14 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 transition-all">
+                <button (click)="onSearchSubmit()"
+                        aria-label="Tìm kiếm khóa học"
+                        class="absolute right-0.5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#0056D2]/5 hover:text-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 </button>
               </div>
             </div>
@@ -278,14 +309,16 @@
                (click)="closeMobileMenu()"></div>
           
           <!-- Menu Panel -->
-          <div class="fixed inset-y-0 right-0 w-full max-w-sm bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out">
+          <div id="mobile-navigation-panel"
+               class="fixed inset-y-0 right-0 w-full max-w-sm bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out">
             <div class="flex flex-col h-full">
               <!-- Menu Header -->
               <div class="flex items-center justify-between p-4 border-b border-gray-200">
                 <h2 class="text-lg font-semibold text-gray-900">Menu</h2>
                 <button 
                   (click)="closeMobileMenu()"
-                  class="text-gray-400 hover:text-gray-600 p-2 rounded-md transition-colors duration-200">
+                  aria-label="Đóng menu"
+                  class="inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
                   <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                   </svg>

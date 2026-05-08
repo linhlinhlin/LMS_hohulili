@@ -24,6 +24,7 @@ export class CourseSettingsComponent {
   readonly isLoading = signal(false);
   readonly allowOfflineDownload = signal(true);
   private readonly initialAllowOfflineDownload = signal(true);
+  private readonly courseDeleted = signal(false);
   private hydratedKey: string | null = null;
 
   readonly hasPersistableChanges = computed(() =>
@@ -60,6 +61,7 @@ export class CourseSettingsComponent {
   }
 
   async canDeactivate(): Promise<boolean> {
+    if (this.courseDeleted()) return true;
     if (!this.hasPersistableChanges() && !this.isLoading()) return true;
 
     const shouldLeave = await this.confirmDialog.confirm({
@@ -112,8 +114,12 @@ export class CourseSettingsComponent {
     this.isLoading.set(true);
     this.courseApi.deleteCourse(courseId).subscribe({
       next: () => {
+        this.courseDeleted.set(true);
+        this.initialAllowOfflineDownload.set(this.allowOfflineDownload());
+        this.store.markSaved();
+        this.isLoading.set(false);
         this.toast.success('Đã xóa khóa học');
-        this.router.navigate(['/teacher/courses']);
+        this.router.navigate(['/teacher/courses'], { replaceUrl: true });
       },
       error: (err: any) => {
         this.toast.error(`Xóa thất bại: ${err?.error?.message || 'Lỗi không xác định'}`);

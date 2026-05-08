@@ -2,13 +2,16 @@ package com.example.lms.course_authoring.application.usecase;
 
 import com.example.lms.course_authoring.application.dto.AuthoringDTOs;
 import com.example.lms.course_authoring.application.dto.CourseDTOs;
+import com.example.lms.course_authoring.application.service.CourseDeletionCleanupService;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.model.CourseCategory;
 import com.example.lms.course_authoring.domain.repository.ChapterRepositoryPort;
 import com.example.lms.course_authoring.domain.repository.CourseCategoryRepository;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
+import com.example.lms.course_authoring.infrastructure.persistence.repository.CourseReviewEventJpaRepository;
 import com.example.lms.shared.domain.valueobject.CourseCode;
 import com.example.lms.shared.exception.BusinessRuleException;
+import com.example.lms.shared.exception.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,6 +29,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -44,6 +49,12 @@ class CourseAuthoringUseCaseTest {
 
     @Mock
     private GetCourseDraftUseCase getCourseDraftUseCase;
+
+    @Mock
+    private CourseReviewEventJpaRepository reviewEventRepository;
+
+    @Mock
+    private CourseDeletionCleanupService courseDeletionCleanupService;
 
     @InjectMocks
     private CourseAuthoringUseCase useCase;
@@ -129,5 +140,31 @@ class CourseAuthoringUseCaseTest {
         assertThatThrownBy(() -> useCase.createCourse(request, teacherId))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("0");
+    }
+
+    @Test
+    @DisplayName("Should cleanup course dependents before deleting course")
+    void shouldCleanupDependentsBeforeDeletingCourse() {
+        UUID courseId = UUID.randomUUID();
+        when(courseRepository.existsById(courseId)).thenReturn(true);
+
+        useCase.deleteCourse(courseId);
+
+        var ordered = inOrder(courseDeletionCleanupService, courseRepository);
+        ordered.verify(courseDeletionCleanupService).cleanupBeforeDelete(courseId);
+        ordered.verify(courseRepository).deleteById(courseId);
+    }
+
+    @Test
+    @DisplayName("Should fail fast when deleting missing course")
+    void shouldFailFastWhenDeletingMissingCourse() {
+        UUID courseId = UUID.randomUUID();
+        when(courseRepository.existsById(courseId)).thenReturn(false);
+
+        assertThatThrownBy(() -> useCase.deleteCourse(courseId))
+                .isInstanceOf(EntityNotFoundException.class);
+
+        verify(courseDeletionCleanupService, never()).cleanupBeforeDelete(any());
+        verify(courseRepository, never()).deleteById(any());
     }
 }

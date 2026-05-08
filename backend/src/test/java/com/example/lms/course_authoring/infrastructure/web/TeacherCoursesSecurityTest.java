@@ -40,6 +40,7 @@ import static org.mockito.Mockito.when;
 class TeacherCoursesSecurityTest {
 
     private static final String COURSE_ACCESS_DENIED_MESSAGE = "quyền truy cập khóa học";
+    private static final String COURSE_DELETE_DENIED_MESSAGE = "chủ sở hữu khóa học";
 
     @Mock private CourseAuthoringUseCase courseAuthoringUseCase;
     @Mock private GetCourseDraftUseCase getCourseDraftUseCase;
@@ -99,7 +100,27 @@ class TeacherCoursesSecurityTest {
 
         assertThatThrownBy(() -> controller.deleteCourse(courseId, otherTeacher))
                 .isInstanceOf(AccessDeniedException.class)
-                .hasMessageContaining(COURSE_ACCESS_DENIED_MESSAGE);
+                .hasMessageContaining(COURSE_DELETE_DENIED_MESSAGE);
+    }
+
+    @Test
+    @DisplayName("deleteCourse: rejects co-teacher")
+    void deleteCourse_rejectsCoTeacher() {
+        UUID coTeacherId = UUID.randomUUID();
+        otherTeacher = mock(UserJpaEntity.class);
+        when(otherTeacher.getId()).thenReturn(coTeacherId);
+        when(otherTeacher.getRole()).thenReturn(UserJpaEntity.UserRole.TEACHER);
+
+        course = mock(CourseJpaEntity.class);
+        when(course.getTeacherId()).thenReturn(teacherId);
+        when(jpaCourseRepository.findById(courseId)).thenReturn(Optional.of(course));
+        org.mockito.Mockito.lenient()
+                .when(classTeacherJpaRepository.existsByTeacherIdAndCourseId(coTeacherId, courseId))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> controller.deleteCourse(courseId, otherTeacher))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining(COURSE_DELETE_DENIED_MESSAGE);
     }
 
     @Test
