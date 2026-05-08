@@ -3,6 +3,8 @@ import type {
   InteractiveVideoSpec,
 } from '../../api/types/interactive-video.types';
 import {
+  evaluateInteractiveVideoDragDrop,
+  evaluateInteractiveVideoFillBlank,
   getDueInteractiveVideoInteraction,
   getVisibleInteractiveVideoInteractions,
   isInteractiveVideoReviewInteraction,
@@ -154,5 +156,134 @@ describe('interactive-video-runtime', () => {
       furthestWatchedSeconds: 45,
       hasIncompleteRequiredInteractions: true,
     })).toBeFalse();
+  });
+
+  it('evaluates fill-blank answers with alternatives and case-insensitive matching by default', () => {
+    const interaction: InteractiveVideoInteraction = {
+      id: 'fill-blank',
+      type: 'fill_blank',
+      atSeconds: 12,
+      fillBlank: {
+        template: 'A {{1}} arrives at {{2}}.',
+        blanks: [
+          { id: '1', acceptedAnswers: ['Ship', 'Vessel'] },
+          { id: '2', acceptedAnswers: ['harbor'] },
+        ],
+      },
+    };
+
+    const result = evaluateInteractiveVideoFillBlank(interaction, {
+      '1': ' vessel ',
+      '2': 'Harbor',
+    });
+
+    expect(result.correctCount).toBe(2);
+    expect(result.totalCount).toBe(2);
+    expect(result.allCorrect).toBeTrue();
+  });
+
+  it('respects case-sensitive fill-blank answers', () => {
+    const interaction: InteractiveVideoInteraction = {
+      id: 'fill-blank-case',
+      type: 'fill_blank',
+      atSeconds: 12,
+      fillBlank: {
+        template: '{{1}}',
+        blanks: [{ id: '1', acceptedAnswers: ['VMU'] }],
+        caseSensitive: true,
+      },
+    };
+
+    const result = evaluateInteractiveVideoFillBlank(interaction, { '1': 'vmu' });
+
+    expect(result.correctCount).toBe(0);
+    expect(result.allCorrect).toBeFalse();
+  });
+
+  it('evaluates drag-drop placements against accepted drop zones', () => {
+    const interaction: InteractiveVideoInteraction = {
+      id: 'drag-drop',
+      type: 'drag_drop',
+      atSeconds: 32,
+      dragDrop: {
+        instruction: 'Place safety gear.',
+        backgroundImage: { idOrUrl: 'ship.png' },
+        dropZones: [
+          {
+            id: 'deck',
+            label: 'Deck',
+            xPercent: 10,
+            yPercent: 20,
+            widthPercent: 30,
+            heightPercent: 20,
+            correctDraggableIds: ['vest'],
+          },
+          {
+            id: 'bridge',
+            label: 'Bridge',
+            xPercent: 60,
+            yPercent: 20,
+            widthPercent: 25,
+            heightPercent: 20,
+            correctDraggableIds: ['radio'],
+          },
+        ],
+        draggables: [
+          { id: 'vest', label: 'Life vest', acceptedDropZoneIds: ['deck'] },
+          { id: 'radio', label: 'Radio', acceptedDropZoneIds: ['bridge'] },
+        ],
+      },
+    };
+
+    const result = evaluateInteractiveVideoDragDrop(interaction, {
+      vest: 'deck',
+      radio: 'deck',
+    });
+
+    expect(result.correctCount).toBe(1);
+    expect(result.totalCount).toBe(2);
+    expect(result.allCorrect).toBeFalse();
+    expect(result.states.find(state => state.draggableId === 'radio')?.isCorrect).toBeFalse();
+  });
+
+  it('treats unplaced drag-drop distractors as correct in a single answer zone', () => {
+    const interaction: InteractiveVideoInteraction = {
+      id: 'drag-drop-selection',
+      type: 'drag_drop',
+      atSeconds: 32,
+      dragDrop: {
+        instruction: 'Select the correct gear.',
+        backgroundImage: { idOrUrl: 'ship.png' },
+        dropZones: [
+          {
+            id: 'answer-zone',
+            label: 'Correct answers',
+            xPercent: 50,
+            yPercent: 50,
+            widthPercent: 80,
+            heightPercent: 72,
+            correctDraggableIds: ['vest'],
+          },
+        ],
+        draggables: [
+          { id: 'vest', label: 'Life vest', acceptedDropZoneIds: ['answer-zone'] },
+          { id: 'anchor', label: 'Anchor', acceptedDropZoneIds: [] },
+        ],
+      },
+    };
+
+    const selectedCorrectOnly = evaluateInteractiveVideoDragDrop(interaction, {
+      vest: 'answer-zone',
+      anchor: null,
+    });
+    expect(selectedCorrectOnly.correctCount).toBe(2);
+    expect(selectedCorrectOnly.allCorrect).toBeTrue();
+
+    const selectedDistractor = evaluateInteractiveVideoDragDrop(interaction, {
+      vest: 'answer-zone',
+      anchor: 'answer-zone',
+    });
+    expect(selectedDistractor.correctCount).toBe(1);
+    expect(selectedDistractor.states.find(state => state.draggableId === 'anchor')?.isCorrect).toBeFalse();
   });
 });

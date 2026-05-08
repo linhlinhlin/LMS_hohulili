@@ -26,6 +26,8 @@ import { stripCurriculumPrefix } from '../utils/curriculum-labels';
 import {
   buildInteractiveVideoSpec,
   choiceTypeNeedsChoices,
+  createInteractiveVideoDragDrop,
+  createInteractiveVideoFillBlank,
   createInteractiveVideoChoice,
   createInteractiveVideoInteraction,
   type CreateInteractiveVideoInteractionOptions,
@@ -278,6 +280,12 @@ export class CurriculumEditorService {
               createInteractiveVideoChoice(1),
             ])
           : [],
+        fillBlank: type === 'fill_blank'
+          ? (interaction.fillBlank ?? createInteractiveVideoFillBlank())
+          : null,
+        dragDrop: type === 'drag_drop'
+          ? (interaction.dragDrop ?? createInteractiveVideoDragDrop())
+          : null,
         hotspots: [],
       };
     }));

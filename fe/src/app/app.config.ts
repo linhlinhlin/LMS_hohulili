@@ -124,7 +124,8 @@ import {
   FileWarning,
   ServerCrash,
   Check,
-  Sparkles
+  Sparkles,
+  Move
 } from 'lucide-angular';
 
 function isLocalBrowserRuntime(): boolean {
@@ -311,7 +312,8 @@ export const appConfig: ApplicationConfig = {
       FileWarning,
       ServerCrash,
       Check,
-      Sparkles
+      Sparkles,
+      Move
     }))
   ]
 };

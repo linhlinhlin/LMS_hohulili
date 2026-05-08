@@ -104,4 +104,59 @@ describe('interactive-video-normalizer', () => {
       targetInteractionId: 'checkpoint-1',
     }));
   });
+
+  it('normalizes fill-blank interactions and syncs template placeholders', () => {
+    const spec = normalizeInteractiveVideoSpecV2({
+      enabled: true,
+      interactions: [
+        {
+          id: 'blank-1',
+          type: 'fill_blank',
+          time: 15,
+          fillBlank: {
+            template: 'Strawberries and {{fruit}} with {{milk}}.',
+            blanks: [
+              { id: 'fruit', acceptedAnswers: 'blueberries | berries' },
+            ],
+          },
+        },
+      ],
+    });
+
+    expect(spec?.timeline[0].type).toBe('fill_blank');
+    expect(spec?.timeline[0].fillBlank?.blanks).toEqual([
+      { id: 'fruit', acceptedAnswers: ['blueberries', 'berries'] },
+      { id: 'milk', acceptedAnswers: [] },
+    ]);
+  });
+
+  it('normalizes drag-drop interactions and syncs zone answers', () => {
+    const spec = normalizeInteractiveVideoSpecV2({
+      enabled: true,
+      interactions: [
+        {
+          id: 'drag-1',
+          type: 'drag_drop',
+          time: 32,
+          dragDrop: {
+            instruction: 'Place the safety gear.',
+            backgroundImage: 'ship-plan.png',
+            zones: [
+              { id: 'deck', label: 'Deck', x: 20, y: 30, correctItems: ['vest'] },
+            ],
+            items: [
+              { id: 'vest', label: 'Life vest' },
+            ],
+          },
+        },
+      ],
+    });
+
+    const dragDrop = spec?.timeline[0].dragDrop;
+
+    expect(spec?.timeline[0].type).toBe('drag_drop');
+    expect(dragDrop?.backgroundImage?.idOrUrl).toBe('ship-plan.png');
+    expect(dragDrop?.draggables[0].acceptedDropZoneIds).toEqual(['deck']);
+    expect(dragDrop?.dropZones[0].correctDraggableIds).toEqual(['vest']);
+  });
 });

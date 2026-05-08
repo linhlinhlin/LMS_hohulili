@@ -77,3 +77,22 @@
     inset 4px 0 0 #0056d2,
     0 14px 32px rgba(15, 23, 42, 0.08);
 }
+
+.interactive-drag-drop-zone {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.interactive-drag-drop-zone:active {
+  cursor: grabbing;
+}
+
+.interactive-drag-drop-resize-handle {
+  cursor: nwse-resize;
+  touch-action: none;
+}

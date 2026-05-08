@@ -1,5 +1,8 @@
 import type {
   InteractiveVideoChoice,
+  InteractiveVideoDragDropDraggable,
+  InteractiveVideoDragDropZone,
+  InteractiveVideoFillBlankBlank,
   InteractiveVideoInteraction,
   InteractiveVideoSpec,
 } from '../../api/types/interactive-video.types';
@@ -25,6 +28,36 @@ export interface InteractiveVideoSeekPolicyInput {
 export interface InteractiveVideoChoiceTargetOptions {
   sourceTimeSeconds?: number | null;
   allowBackwardSeek?: boolean;
+}
+
+export interface InteractiveVideoFillBlankAnswerState {
+  blankId: string;
+  value: string;
+  isCorrect: boolean;
+  correctAnswer: string | null;
+}
+
+export interface InteractiveVideoFillBlankEvaluation {
+  states: InteractiveVideoFillBlankAnswerState[];
+  correctCount: number;
+  totalCount: number;
+  allCorrect: boolean;
+}
+
+export interface InteractiveVideoDragDropAnswerState {
+  draggableId: string;
+  label: string;
+  dropZoneId: string | null;
+  correctDropZoneIds: string[];
+  isPlaced: boolean;
+  isCorrect: boolean;
+}
+
+export interface InteractiveVideoDragDropEvaluation {
+  states: InteractiveVideoDragDropAnswerState[];
+  correctCount: number;
+  totalCount: number;
+  allCorrect: boolean;
 }
 
 export function getVisibleInteractiveVideoInteractions(
@@ -89,6 +122,45 @@ export function resolveInteractiveVideoChoiceTarget(
   return target;
 }
 
+export function evaluateInteractiveVideoFillBlank(
+  interaction: InteractiveVideoInteraction,
+  answers: Readonly<Record<string, string>>,
+): InteractiveVideoFillBlankEvaluation {
+  const fillBlank = interaction.fillBlank;
+  const caseSensitive = fillBlank?.caseSensitive === true;
+  const blanks = fillBlank?.blanks ?? [];
+  const states = blanks.map(blank => evaluateFillBlankAnswer(blank, answers[blank.id] ?? '', caseSensitive));
+  const correctCount = states.filter(state => state.isCorrect).length;
+  const totalCount = states.length;
+
+  return {
+    states,
+    correctCount,
+    totalCount,
+    allCorrect: totalCount > 0 && correctCount === totalCount,
+  };
+}
+
+export function evaluateInteractiveVideoDragDrop(
+  interaction: InteractiveVideoInteraction,
+  placements: Readonly<Record<string, string | null | undefined>>,
+): InteractiveVideoDragDropEvaluation {
+  const dragDrop = interaction.dragDrop;
+  const zones = dragDrop?.dropZones ?? [];
+  const states = (dragDrop?.draggables ?? []).map(draggable =>
+    evaluateDragDropAnswer(draggable, zones, placements[draggable.id] ?? null),
+  );
+  const correctCount = states.filter(state => state.isCorrect).length;
+  const totalCount = states.length;
+
+  return {
+    states,
+    correctCount,
+    totalCount,
+    allCorrect: totalCount > 0 && correctCount === totalCount,
+  };
+}
+
 export function isInteractiveVideoReviewInteraction(
   interaction: InteractiveVideoInteraction,
 ): boolean {
@@ -148,6 +220,70 @@ function isBackwardTarget(targetTimeSeconds: number, sourceTimeSeconds: number |
   return typeof sourceTimeSeconds === 'number'
     && Number.isFinite(sourceTimeSeconds)
     && targetTimeSeconds <= Math.max(0, sourceTimeSeconds);
+}
+
+function evaluateFillBlankAnswer(
+  blank: InteractiveVideoFillBlankBlank,
+  rawValue: string,
+  caseSensitive: boolean,
+): InteractiveVideoFillBlankAnswerState {
+  const value = rawValue.trim();
+  const normalizedValue = normalizeFillBlankAnswer(value, caseSensitive);
+  const correctAnswer = blank.acceptedAnswers.find(answer => answer.trim()) ?? null;
+  const isCorrect = normalizedValue.length > 0
+    && blank.acceptedAnswers.some(answer =>
+      normalizeFillBlankAnswer(answer, caseSensitive) === normalizedValue,
+    );
+
+  return {
+    blankId: blank.id,
+    value,
+    isCorrect,
+    correctAnswer,
+  };
+}
+
+function normalizeFillBlankAnswer(value: string, caseSensitive: boolean): string {
+  const normalized = value.trim().replace(/\s+/g, ' ');
+  return caseSensitive ? normalized : normalized.toLocaleLowerCase();
+}
+
+function evaluateDragDropAnswer(
+  draggable: InteractiveVideoDragDropDraggable,
+  zones: InteractiveVideoDragDropZone[],
+  rawDropZoneId: string | null,
+): InteractiveVideoDragDropAnswerState {
+  const dropZoneId = typeof rawDropZoneId === 'string' && rawDropZoneId.trim()
+    ? rawDropZoneId.trim()
+    : null;
+  const correctDropZoneIds = getCorrectDropZoneIds(draggable, zones);
+  const isPlaced = dropZoneId != null;
+  const shouldBePlaced = correctDropZoneIds.length > 0;
+
+  return {
+    draggableId: draggable.id,
+    label: draggable.label,
+    dropZoneId,
+    correctDropZoneIds,
+    isPlaced,
+    isCorrect: shouldBePlaced
+      ? isPlaced && correctDropZoneIds.includes(dropZoneId)
+      : !isPlaced,
+  };
+}
+
+function getCorrectDropZoneIds(
+  draggable: InteractiveVideoDragDropDraggable,
+  zones: InteractiveVideoDragDropZone[],
+): string[] {
+  const explicit = draggable.acceptedDropZoneIds.filter(Boolean);
+  if (explicit.length > 0) {
+    return explicit;
+  }
+
+  return zones
+    .filter(zone => zone.correctDraggableIds.includes(draggable.id))
+    .map(zone => zone.id);
 }
 
 export function shouldBlockInteractiveVideoSeek(input: InteractiveVideoSeekPolicyInput): boolean {

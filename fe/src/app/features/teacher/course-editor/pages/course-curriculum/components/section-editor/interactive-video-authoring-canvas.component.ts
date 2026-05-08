@@ -187,7 +187,13 @@ export class InteractiveVideoAuthoringCanvasComponent {
   readonly dragPreview = signal<CanvasTimePreview | null>(null);
   private readonly draggingInteractionId = signal<string | null>(null);
 
-  readonly interactionTypes: InteractiveVideoInteractionType[] = ['checkpoint', 'single_choice', 'branch'];
+  readonly interactionTypes: InteractiveVideoInteractionType[] = [
+    'checkpoint',
+    'single_choice',
+    'branch',
+    'fill_blank',
+    'drag_drop',
+  ];
   readonly sortedTimeline = computed(() =>
     [...this.timeline()].sort((a, b) => a.atSeconds - b.atSeconds),
   );
@@ -308,6 +314,10 @@ export class InteractiveVideoAuthoringCanvasComponent {
         return 'Rẽ nhánh';
       case 'hotspot':
         return 'Hotspot';
+      case 'fill_blank':
+        return 'Điền từ';
+      case 'drag_drop':
+        return 'Kéo thả';
       default:
         return 'Điểm dừng';
     }
@@ -321,6 +331,10 @@ export class InteractiveVideoAuthoringCanvasComponent {
         return 'B';
       case 'hotspot':
         return 'H';
+      case 'fill_blank':
+        return 'F';
+      case 'drag_drop':
+        return 'D';
       default:
         return 'P';
     }

@@ -2,7 +2,9 @@ export type InteractiveVideoInteractionType =
   | 'checkpoint'
   | 'single_choice'
   | 'branch'
-  | 'hotspot';
+  | 'hotspot'
+  | 'fill_blank'
+  | 'drag_drop';
 
 export type InteractiveVideoDisplayType = 'button' | 'poster';
 
@@ -71,6 +73,52 @@ export interface InteractiveVideoHotspot {
   targetTimeSeconds?: number | null;
 }
 
+export interface InteractiveVideoFillBlankBlank {
+  id: string;
+  acceptedAnswers: string[];
+}
+
+export interface InteractiveVideoFillBlank {
+  template: string;
+  blanks: InteractiveVideoFillBlankBlank[];
+  caseSensitive?: boolean;
+  enableRetry?: boolean;
+  enableShowSolution?: boolean;
+  requireAllCorrectBeforeContinue?: boolean;
+}
+
+export interface InteractiveVideoDragDropMedia {
+  idOrUrl: string;
+  alt?: string | null;
+}
+
+export interface InteractiveVideoDragDropZone {
+  id: string;
+  label: string;
+  xPercent: number;
+  yPercent: number;
+  widthPercent: number;
+  heightPercent: number;
+  correctDraggableIds: string[];
+}
+
+export interface InteractiveVideoDragDropDraggable {
+  id: string;
+  label: string;
+  image?: InteractiveVideoDragDropMedia | null;
+  acceptedDropZoneIds: string[];
+}
+
+export interface InteractiveVideoDragDrop {
+  instruction: string;
+  backgroundImage: InteractiveVideoDragDropMedia | null;
+  dropZones: InteractiveVideoDragDropZone[];
+  draggables: InteractiveVideoDragDropDraggable[];
+  enableRetry?: boolean;
+  enableShowSolution?: boolean;
+  requireAllCorrectBeforeContinue?: boolean;
+}
+
 export interface InteractiveVideoInteraction {
   id: string;
   type: InteractiveVideoInteractionType;
@@ -84,6 +132,8 @@ export interface InteractiveVideoInteraction {
   position?: InteractiveVideoPosition | null;
   choices?: InteractiveVideoChoice[];
   hotspots?: InteractiveVideoHotspot[];
+  fillBlank?: InteractiveVideoFillBlank | null;
+  dragDrop?: InteractiveVideoDragDrop | null;
   adaptivity?: InteractiveVideoAdaptivity | null;
 }
 

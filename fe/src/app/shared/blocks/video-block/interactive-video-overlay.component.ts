@@ -17,13 +17,15 @@ import type {
 } from '../../../api/types/interactive-video.types';
 import { ContentIdentityService } from '../../../core/services/content-identity.service';
 import katex from 'katex';
+import { InteractiveVideoDragDropComponent } from './interactive-video-drag-drop.component';
+import { InteractiveVideoFillBlankComponent } from './interactive-video-fill-blank.component';
 
 type ChoiceAnswerState = 'idle' | 'selected' | 'selected-correct' | 'selected-wrong' | 'correct-answer';
 
 @Component({
   selector: 'app-interactive-video-overlay',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [],
+  imports: [InteractiveVideoDragDropComponent, InteractiveVideoFillBlankComponent],
   template: `
     <div [class]="overlayClass()">
       <section
@@ -62,6 +64,15 @@ type ChoiceAnswerState = 'idle' | 'selected' | 'selected-correct' | 'selected-wr
           </div>
         }
 
+        @if (isDragDropInteraction()) {
+          <app-interactive-video-drag-drop
+            [interaction]="interaction()"
+            (continueRequested)="continueRequested.emit()" />
+        } @else if (isFillBlankInteraction()) {
+          <app-interactive-video-fill-blank
+            [interaction]="interaction()"
+            (continueRequested)="continueRequested.emit()" />
+        } @else {
         @if (hasChoices()) {
           <div class="mt-4 grid gap-2">
             @for (item of renderedChoices(); track item.choice.id) {
@@ -125,6 +136,7 @@ type ChoiceAnswerState = 'idle' | 'selected' | 'selected-correct' | 'selected-wr
             </button>
           }
         </div>
+        }
       </section>
     </div>
   `,
@@ -153,6 +165,8 @@ export class InteractiveVideoOverlayComponent implements OnDestroy {
   readonly reviewRequested = output<void>();
 
   readonly hasChoices = computed(() => (this.interaction().choices?.length ?? 0) > 0);
+  readonly isDragDropInteraction = computed(() => this.interaction().type === 'drag_drop');
+  readonly isFillBlankInteraction = computed(() => this.interaction().type === 'fill_blank');
   readonly titleId = computed(() => `interactive-video-title-${this.interaction().id}`);
   readonly bodyId = computed(() => `interactive-video-body-${this.interaction().id}`);
   readonly choiceRequirementHintId = computed(() => `interactive-video-choice-hint-${this.interaction().id}`);
@@ -276,9 +290,17 @@ export class InteractiveVideoOverlayComponent implements OnDestroy {
   readonly panelClass = computed(() => {
     const base = 'w-full rounded-lg border border-white/10 bg-white text-slate-900 shadow-2xl';
     if (this.density() === 'compact') {
-      return `${base} max-h-full max-w-lg overflow-y-auto p-3 sm:p-4`;
+      return this.isDragDropInteraction()
+        ? `${base} max-h-full max-w-3xl overflow-y-auto p-3 sm:p-4`
+        : this.isFillBlankInteraction()
+        ? `${base} max-h-full max-w-xl overflow-y-auto p-3 sm:p-4`
+        : `${base} max-h-full max-w-lg overflow-y-auto p-3 sm:p-4`;
     }
-    return `${base} max-w-xl p-4 sm:p-5`;
+    return this.isDragDropInteraction()
+      ? `${base} max-w-5xl p-4 sm:p-5`
+      : this.isFillBlankInteraction()
+      ? `${base} max-w-2xl p-4 sm:p-5`
+      : `${base} max-w-xl p-4 sm:p-5`;
   });
 
   readonly interactionLabel = computed(() => {
@@ -289,6 +311,10 @@ export class InteractiveVideoOverlayComponent implements OnDestroy {
         return 'Lựa chọn nhanh';
       case 'hotspot':
         return 'Điểm tương tác';
+      case 'fill_blank':
+        return 'Điền từ';
+      case 'drag_drop':
+        return 'Kéo thả';
       default:
         return 'Điểm dừng';
     }
@@ -366,6 +392,9 @@ export class InteractiveVideoOverlayComponent implements OnDestroy {
   readonly areChoicesLocked = computed(() => this.shouldOfferReview());
 
   onEscape(): void {
+    if (this.isFillBlankInteraction() || this.isDragDropInteraction()) {
+      return;
+    }
     if (!this.isContinueBlocked()) {
       this.continueRequested.emit();
     }

@@ -75,6 +75,18 @@
             <lucide-icon name="shuffle" [size]="13"></lucide-icon>
             Thêm rẽ nhánh
           </button>
+          <button type="button"
+            (click)="addInteraction('fill_blank')"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-[#0056D2]/30 bg-[#0056D2]/5 px-3 py-1.5 text-xs font-semibold text-[#0056D2] hover:bg-[#0056D2]/10">
+            <lucide-icon name="help-circle" [size]="13"></lucide-icon>
+            Thêm điền từ
+          </button>
+          <button type="button"
+            (click)="addInteraction('drag_drop')"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-[#0056D2]/30 bg-[#0056D2]/5 px-3 py-1.5 text-xs font-semibold text-[#0056D2] hover:bg-[#0056D2]/10">
+            <lucide-icon name="move" [size]="13"></lucide-icon>
+            Thêm kéo thả
+          </button>
           <span class="text-xs text-slate-500">{{ durationHint() }}</span>
         </div>
         <details class="group border-t border-slate-100 pt-3">
@@ -195,6 +207,8 @@
               <span class="rounded-full bg-white px-2 py-0.5 ring-1 ring-slate-200">{{ interactiveVideoFlowStats().total }} điểm</span>
               <span class="rounded-full bg-white px-2 py-0.5 ring-1 ring-slate-200">{{ interactiveVideoFlowStats().questions }} câu hỏi</span>
               <span class="rounded-full bg-white px-2 py-0.5 ring-1 ring-slate-200">{{ interactiveVideoFlowStats().branches }} rẽ nhánh</span>
+              <span class="rounded-full bg-white px-2 py-0.5 ring-1 ring-slate-200">{{ interactiveVideoFlowStats().fillBlanks }} điền từ</span>
+              <span class="rounded-full bg-white px-2 py-0.5 ring-1 ring-slate-200">{{ interactiveVideoFlowStats().dragDrops }} kéo thả</span>
               <span class="rounded-full bg-white px-2 py-0.5 ring-1 ring-slate-200">{{ interactiveVideoFlowStats().required }} bắt buộc</span>
             </div>
           </div>
@@ -254,7 +268,7 @@
         <div class="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-4 text-center">
           <lucide-icon name="plus-circle" [size]="30" class="mx-auto text-slate-300"></lucide-icon>
           <p class="mt-2 text-sm font-semibold text-slate-600">Chưa có điểm tương tác</p>
-          <div class="mt-4 grid gap-2 sm:grid-cols-4">
+          <div class="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
             <button type="button"
               (click)="addSuggestedInteractions()"
               class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">
@@ -278,6 +292,18 @@
               class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
               <lucide-icon name="shuffle" [size]="13"></lucide-icon>
               Rẽ nhánh
+            </button>
+            <button type="button"
+              (click)="addInteraction('fill_blank')"
+              class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
+              <lucide-icon name="help-circle" [size]="13"></lucide-icon>
+              Điền từ
+            </button>
+            <button type="button"
+              (click)="addInteraction('drag_drop')"
+              class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
+              <lucide-icon name="move" [size]="13"></lucide-icon>
+              Kéo thả
             </button>
           </div>
         </div>
@@ -357,6 +383,424 @@
                 (valueChange)="svc.updateInteractiveVideoInteraction(interaction.id, { body: $event })">
               </app-enriched-input>
             </div>
+
+            @if (isFillBlankInteraction(interaction)) {
+              <div class="mt-3 rounded-lg border border-sky-100 bg-white">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-sky-50 px-3 py-2">
+                  <div>
+                    <span class="text-xs font-semibold uppercase text-sky-700">Điền từ vào chỗ trống</span>
+                    <p class="mt-0.5 text-[11px] text-slate-500">
+                      Viết câu với ô trống dạng {{ '{' }}{{ '{' }}1{{ '}' }}{{ '}' }}, rồi khai báo đáp án đúng cho từng ô.
+                    </p>
+                  </div>
+                  <button type="button"
+                    (click)="addFillBlankBlank(interaction)"
+                    class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-[#0056D2] hover:bg-[#0056D2]/5">
+                    <lucide-icon name="plus" [size]="12"></lucide-icon>
+                    Thêm ô
+                  </button>
+                </div>
+
+                <div class="grid gap-3 p-3">
+                  <label class="grid gap-1.5">
+                    <span class="text-xs font-medium text-slate-600">Câu hiển thị</span>
+                    <textarea
+                      rows="3"
+                      [ngModel]="getFillBlank(interaction).template"
+                      (ngModelChange)="onFillBlankTemplateChange(interaction, $event)"
+                      [placeholder]="'Ví dụ: Tàu đi qua {{1}} trước khi cập cảng {{2}}.'"
+                      class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm leading-relaxed focus:border-[#0056D2] focus:ring-[#0056D2]"></textarea>
+                  </label>
+
+                  <div class="grid gap-2 sm:grid-cols-2">
+                    <label class="inline-flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700">
+                      <input type="checkbox"
+                        [ngModel]="getFillBlank(interaction).enableRetry !== false"
+                        (ngModelChange)="onFillBlankBooleanChange(interaction, 'enableRetry', $event)"
+                        class="h-3.5 w-3.5 rounded text-[#0056D2] focus:ring-[#0056D2]" />
+                      Cho làm lại
+                    </label>
+                    <label class="inline-flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700">
+                      <input type="checkbox"
+                        [ngModel]="getFillBlank(interaction).enableShowSolution !== false"
+                        (ngModelChange)="onFillBlankBooleanChange(interaction, 'enableShowSolution', $event)"
+                        class="h-3.5 w-3.5 rounded text-[#0056D2] focus:ring-[#0056D2]" />
+                      Cho xem đáp án
+                    </label>
+                    <label class="inline-flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700">
+                      <input type="checkbox"
+                        [ngModel]="getFillBlank(interaction).caseSensitive === true"
+                        (ngModelChange)="onFillBlankBooleanChange(interaction, 'caseSensitive', $event)"
+                        class="h-3.5 w-3.5 rounded text-[#0056D2] focus:ring-[#0056D2]" />
+                      Phân biệt hoa thường
+                    </label>
+                    <label class="inline-flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700">
+                      <input type="checkbox"
+                        [ngModel]="getFillBlank(interaction).requireAllCorrectBeforeContinue === true"
+                        (ngModelChange)="onFillBlankBooleanChange(interaction, 'requireAllCorrectBeforeContinue', $event)"
+                        class="h-3.5 w-3.5 rounded text-[#0056D2] focus:ring-[#0056D2]" />
+                      Cần đúng hết mới tiếp tục
+                    </label>
+                  </div>
+
+                  <div class="rounded-lg border border-slate-100">
+                    <div class="grid grid-cols-[4.5rem_minmax(0,1fr)_auto] gap-2 border-b border-slate-100 px-3 py-2 text-[11px] font-semibold uppercase text-slate-500">
+                      <span>Ô trống</span>
+                      <span>Đáp án đúng</span>
+                      <span></span>
+                    </div>
+                    <div class="divide-y divide-slate-100">
+                      @for (blank of getFillBlank(interaction).blanks; track blank.id) {
+                        <div class="grid grid-cols-[4.5rem_minmax(0,1fr)_auto] gap-2 px-3 py-2">
+                          <span class="inline-flex h-9 items-center justify-center rounded-lg bg-sky-50 text-xs font-bold text-sky-700 ring-1 ring-sky-100">
+                            {{ '{' }}{{ '{' }}{{ blank.id }}{{ '}' }}{{ '}' }}
+                          </span>
+                          <input type="text"
+                            [ngModel]="getFillBlankAnswerText(blank)"
+                            (ngModelChange)="onFillBlankAnswersChange(interaction, blank.id, $event)"
+                            placeholder="Nhiều đáp án cách nhau bằng dấu |"
+                            class="min-w-0 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-[#0056D2]" />
+                          <button type="button"
+                            (click)="removeFillBlankBlank(interaction, blank.id)"
+                            class="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600"
+                            aria-label="Xóa ô trống">
+                            <lucide-icon name="x" [size]="14"></lucide-icon>
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
+            }
+
+            @if (isDragDropInteraction(interaction)) {
+              <div class="mt-3 rounded-lg border border-cyan-100 bg-white">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-cyan-50 px-3 py-2">
+                  <div>
+                    <span class="text-xs font-semibold uppercase text-cyan-700">Kéo thả hình ảnh</span>
+                    <p class="mt-0.5 text-[11px] text-slate-500">
+                      Dùng 1 vùng lớn làm nơi nhận đáp án đúng; vật dụng sai để nguyên bên ngoài.
+                    </p>
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    <button type="button"
+                      (click)="addDragDropDraggable(interaction)"
+                      class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-[#0056D2] hover:bg-[#0056D2]/5">
+                      <lucide-icon name="plus" [size]="12"></lucide-icon>
+                      Thêm vật dụng
+                    </button>
+                  </div>
+                </div>
+
+                <div class="grid gap-3 p-3">
+                  <label class="grid gap-1.5">
+                    <span class="text-xs font-medium text-slate-600">Hướng dẫn hiển thị cho học viên</span>
+                    <textarea
+                      rows="2"
+                      [ngModel]="getDragDrop(interaction).instruction"
+                      (ngModelChange)="onDragDropInstructionChange(interaction, $event)"
+                      placeholder="Ví dụ: Kéo các thiết bị an toàn vào đúng vị trí trên tàu."
+                      class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm leading-relaxed focus:border-[#0056D2] focus:ring-[#0056D2]"></textarea>
+                  </label>
+
+                  <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+                    <div class="flex flex-wrap items-end gap-2">
+                      <label class="min-w-[14rem] flex-1">
+                        <span class="mb-1.5 block text-xs font-medium text-slate-600">Ảnh nền chính</span>
+                        <input type="text"
+                          [ngModel]="getDragDropBackgroundValue(interaction)"
+                          (ngModelChange)="onDragDropBackgroundChange(interaction, $event)"
+                          placeholder="URL ảnh hoặc mã ảnh đã tải…"
+                          class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-[#0056D2]" />
+                      </label>
+                      <input #dragDropBackgroundFile type="file"
+                        accept="image/*"
+                        class="hidden"
+                        (change)="onDragDropBackgroundFileSelected(interaction, $event)" />
+                      <button type="button"
+                        (click)="dragDropBackgroundFile.click()"
+                        class="inline-flex h-10 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
+                        <lucide-icon name="upload" [size]="13" aria-hidden="true"></lucide-icon>
+                        Tải ảnh
+                      </button>
+                    </div>
+                    <p class="mt-2 text-[11px] leading-relaxed text-slate-500">
+                      Dùng ảnh sơ đồ tàu, thiết bị buồng máy, hoặc tình huống thực tế. Sau đó đặt vùng thả trực tiếp trên ảnh bên dưới.
+                    </p>
+                  </div>
+
+                  <div class="grid gap-4 2xl:grid-cols-[minmax(0,1.1fr)_minmax(20rem,0.9fr)]">
+                    <section class="rounded-2xl border border-slate-200 bg-white p-3">
+                      <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <h6 class="text-sm font-bold text-slate-900">1. Vùng nhận đáp án đúng</h6>
+                          <p class="mt-0.5 text-xs leading-relaxed text-slate-500">
+                            Mặc định dùng một vùng lớn: học viên kéo đáp án đúng vào đây, đáp án sai để ngoài.
+                          </p>
+                        </div>
+                        @if (getDragDrop(interaction).dropZones.length === 0) {
+                          <button type="button"
+                            (click)="addDragDropZone(interaction)"
+                            class="inline-flex items-center gap-1.5 rounded-lg bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-700 ring-1 ring-cyan-100 hover:bg-cyan-100">
+                            <lucide-icon name="plus" [size]="13" aria-hidden="true"></lucide-icon>
+                            Tạo vùng nhận đáp án
+                          </button>
+                        } @else {
+                          <span class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100">
+                            {{ getDragDrop(interaction).dropZones.length }} vùng nhận
+                          </span>
+                        }
+                      </div>
+
+                      <div
+                        data-drag-drop-authoring-stage
+                        class="relative aspect-video overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 shadow-inner"
+                        (pointermove)="onDragDropAuthoringPointerMove($event, interaction)"
+                        (pointerup)="onDragDropAuthoringPointerUp($event)"
+                        (pointercancel)="onDragDropAuthoringPointerCancel($event)">
+                        @if (getDragDropMediaPreviewUrl(getDragDrop(interaction).backgroundImage); as previewUrl) {
+                          <img [src]="previewUrl"
+                            width="1280"
+                            height="720"
+                            alt="Xem trước ảnh nền kéo thả"
+                            class="h-full w-full object-cover" />
+                        } @else {
+                          <div class="flex h-full items-center justify-center rounded-lg border border-dashed border-slate-700 bg-slate-900 px-4 text-center text-xs font-medium text-slate-400">
+                            Tải ảnh nền trước để đặt vùng thả trực quan.
+                          </div>
+                        }
+
+                        <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/20 via-transparent to-transparent"></div>
+
+                        @for (zone of getDragDrop(interaction).dropZones; track zone.id; let zoneIndex = $index) {
+                          <button type="button"
+                            [class]="getDragDropZoneAuthoringClass(interaction, zone)"
+                            [style.left.%]="zone.xPercent"
+                            [style.top.%]="zone.yPercent"
+                            [style.width.%]="zone.widthPercent"
+                            [style.height.%]="zone.heightPercent"
+                            [attr.aria-label]="'Vùng thả ' + (zoneIndex + 1) + ': ' + zone.label"
+                            (click)="selectDragDropZone(zone.id)"
+                            (keydown)="onDragDropZoneKeydown($event, interaction, zone)"
+                            (pointerdown)="onDragDropZonePointerDown($event, interaction, zone, 'move')">
+                            <span class="absolute left-2 top-2 rounded-full bg-slate-950/80 px-2 py-0.5 text-[10px] font-extrabold text-white shadow-sm">
+                              {{ zoneIndex + 1 }} · {{ zone.label || 'Vùng thả' }}
+                            </span>
+                            <span class="mt-4 flex max-h-full max-w-full flex-wrap items-center justify-center gap-1.5 overflow-hidden">
+                              @for (assigned of getDragDropZoneAssignedDraggables(getDragDrop(interaction), zone); track assigned.id) {
+                                <span class="flex items-center gap-1 rounded-lg bg-white/95 px-1.5 py-1 text-[11px] font-bold text-slate-800 shadow-sm">
+                                  <span class="flex h-9 w-10 items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-white">
+                                    @if (getDragDropMediaPreviewUrl(assigned.image); as assignedUrl) {
+                                      <img [src]="assignedUrl"
+                                        width="56"
+                                        height="42"
+                                        [alt]="assigned.label || 'Vật dụng kéo thả'"
+                                        class="max-h-8 max-w-full object-contain" />
+                                    } @else {
+                                      <span class="text-[9px] uppercase text-slate-400">Ảnh</span>
+                                    }
+                                  </span>
+                                  <span class="max-w-[6rem] truncate">{{ assigned.label }}</span>
+                                </span>
+                              }
+                            </span>
+                            <span
+                              class="interactive-drag-drop-resize-handle absolute bottom-1 right-1 h-4 w-4 rounded bg-white/90 shadow ring-1 ring-slate-300"
+                              aria-hidden="true"
+                              (pointerdown)="onDragDropZonePointerDown($event, interaction, zone, 'resize')">
+                            </span>
+                          </button>
+                        }
+                      </div>
+
+                      <p class="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-600">
+                        Mẹo: Với đa số bài, hãy để một vùng lớn phủ ảnh đề bài. Bấm vùng để chọn; dùng phím mũi tên để di chuyển, giữ Shift + mũi tên để đổi kích thước.
+                      </p>
+                    </section>
+
+                    <section class="rounded-2xl border border-slate-200 bg-white p-3">
+                      <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <h6 class="text-sm font-bold text-slate-900">2. Vật dụng để kéo</h6>
+                          <p class="mt-0.5 text-xs leading-relaxed text-slate-500">
+                            Chọn vật dụng nào là đáp án đúng; vật dụng sai sẽ được tính đúng khi học viên để ngoài ảnh.
+                          </p>
+                        </div>
+                        <button type="button"
+                          (click)="addDragDropDraggable(interaction)"
+                          class="inline-flex items-center gap-1.5 rounded-lg bg-[#0056D2] px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#004BB5]">
+                          <lucide-icon name="plus" [size]="13" aria-hidden="true"></lucide-icon>
+                          Thêm vật dụng
+                        </button>
+                      </div>
+
+                      <div class="grid gap-2">
+                        @for (draggable of getDragDrop(interaction).draggables; track draggable.id; let dragIndex = $index) {
+                          <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-2">
+                            <div class="grid gap-2 sm:grid-cols-[4.5rem_minmax(0,1fr)]">
+                              <div class="flex h-16 items-center justify-center rounded-xl border border-slate-200 bg-white">
+                                @if (getDragDropMediaPreviewUrl(draggable.image); as itemUrl) {
+                                  <img [src]="itemUrl"
+                                    width="72"
+                                    height="56"
+                                    [alt]="draggable.label || 'Vật dụng kéo thả'"
+                                    class="max-h-14 max-w-full object-contain" />
+                                } @else {
+                                  <span class="text-[10px] font-semibold text-slate-400">Ảnh</span>
+                                }
+                              </div>
+                              <div class="grid gap-2">
+                                <div class="flex items-start gap-2">
+                                  <label class="min-w-0 flex-1">
+                                    <span class="mb-1 block text-[10px] font-semibold uppercase text-slate-400">Tên vật dụng</span>
+                                    <input type="text"
+                                      [ngModel]="draggable.label"
+                                      (ngModelChange)="updateDragDropDraggable(interaction, draggable.id, { label: $event })"
+                                      placeholder="Phao cứu sinh…"
+                                      class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-[#0056D2]" />
+                                  </label>
+                                  <button type="button"
+                                    (click)="removeDragDropDraggable(interaction, draggable.id)"
+                                    class="mt-5 flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600"
+                                    aria-label="Xóa vật dụng">
+                                    <lucide-icon name="x" [size]="14" aria-hidden="true"></lucide-icon>
+                                  </button>
+                                </div>
+                                <label>
+                                  <span class="mb-1 block text-[10px] font-semibold uppercase text-slate-400">Vai trò đáp án</span>
+                                  <select
+                                    [ngModel]="draggable.acceptedDropZoneIds[0] || ''"
+                                    (ngModelChange)="onDragDropDraggableZoneChange(interaction, draggable.id, $event)"
+                                    class="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm text-slate-700 focus:border-[#0056D2] focus:ring-[#0056D2]">
+                                    <option [ngValue]="''">Sai / để ngoài ảnh</option>
+                                    @for (zone of getDragDrop(interaction).dropZones; track zone.id) {
+                                      <option [ngValue]="zone.id">Đúng - kéo vào {{ zone.label }}</option>
+                                    }
+                                  </select>
+                                </label>
+                                <span [class]="getDragDropAnswerRoleClass(draggable)">
+                                  {{ getDragDropAnswerRoleLabel(draggable) }}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div class="mt-2 flex flex-wrap items-center gap-2">
+                              <input #dragDropItemFile type="file"
+                                accept="image/*"
+                                class="hidden"
+                                (change)="onDragDropDraggableFileSelected(interaction, draggable.id, $event)" />
+                              <button type="button"
+                                (click)="dragDropItemFile.click()"
+                                class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:border-[#0056D2]/40 hover:bg-[#0056D2]/5">
+                                <lucide-icon name="upload" [size]="13" aria-hidden="true"></lucide-icon>
+                                Tải ảnh vật dụng
+                              </button>
+                              <input type="text"
+                                [ngModel]="draggable.image?.idOrUrl ?? ''"
+                                (ngModelChange)="onDragDropDraggableImageChange(interaction, draggable.id, $event)"
+                                placeholder="Hoặc nhập URL/mã ảnh…"
+                                class="min-w-[14rem] flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-[#0056D2]" />
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </section>
+                  </div>
+
+                  <div class="grid gap-2 sm:grid-cols-3">
+                    <label class="inline-flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700">
+                      <input type="checkbox"
+                        [ngModel]="getDragDrop(interaction).enableRetry !== false"
+                        (ngModelChange)="onDragDropBooleanChange(interaction, 'enableRetry', $event)"
+                        class="h-3.5 w-3.5 rounded text-[#0056D2] focus:ring-[#0056D2]" />
+                      Cho làm lại
+                    </label>
+                    <label class="inline-flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700">
+                      <input type="checkbox"
+                        [ngModel]="getDragDrop(interaction).enableShowSolution !== false"
+                        (ngModelChange)="onDragDropBooleanChange(interaction, 'enableShowSolution', $event)"
+                        class="h-3.5 w-3.5 rounded text-[#0056D2] focus:ring-[#0056D2]" />
+                      Cho xem đáp án
+                    </label>
+                    <label class="inline-flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700">
+                      <input type="checkbox"
+                        [ngModel]="getDragDrop(interaction).requireAllCorrectBeforeContinue === true"
+                        (ngModelChange)="onDragDropBooleanChange(interaction, 'requireAllCorrectBeforeContinue', $event)"
+                        class="h-3.5 w-3.5 rounded text-[#0056D2] focus:ring-[#0056D2]" />
+                      Cần đúng hết mới tiếp tục
+                    </label>
+                  </div>
+
+                  <details class="rounded-2xl border border-slate-200 bg-white">
+                    <summary class="cursor-pointer select-none px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                      Nâng cao: tinh chỉnh vùng / thêm nhiều vùng
+                    </summary>
+                    <div class="grid gap-2 border-t border-slate-100 p-3">
+                      <div class="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-cyan-50/70 px-3 py-2 text-xs text-cyan-800 ring-1 ring-cyan-100">
+                        <span>Chỉ dùng khi bài cần nhiều vùng đúng khác nhau trên cùng ảnh.</span>
+                        <button type="button"
+                          (click)="addDragDropZone(interaction)"
+                          class="inline-flex items-center gap-1 rounded-lg bg-white px-2.5 py-1.5 font-semibold text-cyan-700 shadow-sm ring-1 ring-cyan-100 hover:bg-cyan-50">
+                          <lucide-icon name="plus" [size]="12" aria-hidden="true"></lucide-icon>
+                          Thêm vùng nâng cao
+                        </button>
+                      </div>
+                      @for (zone of getDragDrop(interaction).dropZones; track zone.id; let zoneIndex = $index) {
+                        <div class="rounded-xl border border-slate-100 bg-slate-50/70 p-2">
+                          <div class="flex items-center gap-2">
+                            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-cyan-50 text-xs font-bold text-cyan-700 ring-1 ring-cyan-100">
+                              {{ zoneIndex + 1 }}
+                            </span>
+                            <input type="text"
+                              [ngModel]="zone.label"
+                              (ngModelChange)="updateDragDropZone(interaction, zone.id, { label: $event })"
+                              placeholder="Tên vùng thả…"
+                              class="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-[#0056D2] focus:ring-[#0056D2]" />
+                            <button type="button"
+                              (click)="removeDragDropZone(interaction, zone.id)"
+                              class="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600"
+                              aria-label="Xóa vùng thả">
+                              <lucide-icon name="x" [size]="14" aria-hidden="true"></lucide-icon>
+                            </button>
+                          </div>
+                          <div class="mt-2 grid grid-cols-4 gap-2">
+                            <label class="grid gap-1">
+                              <span class="text-[10px] font-semibold text-slate-400">X%</span>
+                              <input type="number" min="0" max="100" step="1"
+                                [ngModel]="zone.xPercent"
+                                (ngModelChange)="updateDragDropZone(interaction, zone.id, { xPercent: $event })"
+                                class="rounded-lg border border-slate-200 px-2 py-1.5 text-xs tabular-nums focus:border-[#0056D2] focus:ring-[#0056D2]" />
+                            </label>
+                            <label class="grid gap-1">
+                              <span class="text-[10px] font-semibold text-slate-400">Y%</span>
+                              <input type="number" min="0" max="100" step="1"
+                                [ngModel]="zone.yPercent"
+                                (ngModelChange)="updateDragDropZone(interaction, zone.id, { yPercent: $event })"
+                                class="rounded-lg border border-slate-200 px-2 py-1.5 text-xs tabular-nums focus:border-[#0056D2] focus:ring-[#0056D2]" />
+                            </label>
+                            <label class="grid gap-1">
+                              <span class="text-[10px] font-semibold text-slate-400">Rộng%</span>
+                              <input type="number" min="6" max="100" step="1"
+                                [ngModel]="zone.widthPercent"
+                                (ngModelChange)="updateDragDropZone(interaction, zone.id, { widthPercent: $event })"
+                                class="rounded-lg border border-slate-200 px-2 py-1.5 text-xs tabular-nums focus:border-[#0056D2] focus:ring-[#0056D2]" />
+                            </label>
+                            <label class="grid gap-1">
+                              <span class="text-[10px] font-semibold text-slate-400">Cao%</span>
+                              <input type="number" min="6" max="100" step="1"
+                                [ngModel]="zone.heightPercent"
+                                (ngModelChange)="updateDragDropZone(interaction, zone.id, { heightPercent: $event })"
+                                class="rounded-lg border border-slate-200 px-2 py-1.5 text-xs tabular-nums focus:border-[#0056D2] focus:ring-[#0056D2]" />
+                            </label>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </details>
+                </div>
+              </div>
+            }
 
             @if (isChoiceInteraction(interaction)) {
               <div class="mt-3 rounded-lg border border-slate-200 bg-white">

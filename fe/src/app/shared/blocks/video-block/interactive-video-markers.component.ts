@@ -97,6 +97,10 @@ export class InteractiveVideoMarkersComponent {
         return 'Rẽ nhánh';
       case 'hotspot':
         return 'Hotspot';
+      case 'fill_blank':
+        return 'Điền từ';
+      case 'drag_drop':
+        return 'Kéo thả';
       default:
         return 'Điểm dừng';
     }
