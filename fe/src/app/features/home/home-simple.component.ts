@@ -53,22 +53,22 @@ interface FeaturedCourse {
         </svg>
       </div>
 
-      <div class="relative z-20 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-32 pt-20 md:pt-28 lg:pt-32">
+      <div class="relative z-20 mx-auto max-w-7xl px-4 pb-24 pt-14 sm:px-6 sm:pb-28 sm:pt-20 md:pt-28 lg:px-8 lg:pb-32 lg:pt-32">
         <div class="max-w-3xl">
           <p class="hero-enter hero-enter-1 mb-5 text-sm font-medium uppercase tracking-[0.2em] text-blue-300/70">
             Nền tảng đào tạo hàng hải Việt Nam
           </p>
-          <h1 class="hero-enter hero-enter-2 text-4xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-6xl">
+          <h1 class="hero-enter hero-enter-2 text-3xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-6xl">
             Học Hàng hải mọi lúc
             <span class="mt-1 block bg-gradient-to-r from-blue-300 to-blue-300 bg-clip-text text-transparent">
               kể cả trên biển.
             </span>
           </h1>
-          <p class="hero-enter hero-enter-3 mt-6 max-w-xl text-lg leading-relaxed text-blue-100/70 sm:text-xl">
+          <p class="hero-enter hero-enter-3 mt-5 max-w-xl text-base leading-relaxed text-blue-100/70 sm:mt-6 sm:text-xl">
             Nền tảng đầu tiên tại Việt Nam tích hợp trí tuệ nhân tạo và
             hoạt động ngoại tuyến — được thiết kế cho người đi biển.
           </p>
-          <div class="hero-enter hero-enter-4 mt-10 flex flex-col gap-4 sm:flex-row">
+          <div class="hero-enter hero-enter-4 mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:gap-4">
             <a routerLink="/courses"
                class="inline-flex items-center justify-center rounded-lg bg-white px-7 py-3.5 text-[15px] font-semibold text-[#0a1628] shadow-lg shadow-white/10 transition-all hover:bg-blue-50 hover:shadow-xl">
               Khám phá khóa học
@@ -370,7 +370,11 @@ interface FeaturedCourse {
 
   `,
   styles: [`
-    .hero-section { min-height: 85vh; }
+    .hero-section { min-height: 72vh; }
+
+    @media (min-width: 768px) {
+      .hero-section { min-height: 85vh; }
+    }
 
     /* ── Hero entrance (CSS-only, no GSAP needed) ── */
     .hero-enter {
