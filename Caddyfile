@@ -11,6 +11,8 @@
         >X-Frame-Options "SAMEORIGIN"
         >X-Content-Type-Options "nosniff"
         >Cross-Origin-Opener-Policy "same-origin-allow-popups"
+        >Cross-Origin-Resource-Policy "same-site"
+        >X-Permitted-Cross-Domain-Policies "none"
         >Strict-Transport-Security "max-age=31536000; includeSubDomains"
         >Referrer-Policy "strict-origin-when-cross-origin"
         >Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
@@ -19,6 +21,13 @@
 
 holilihu.online {
     @adaptivePlayback path /api/v3/video-assets/*/adaptive/*
+
+    # Defense-in-depth: never let hidden or repo metadata paths fall through to SSR.
+    @hiddenFiles path /.env /.env.* /.git/* /.svn/* /.hg/* /.DS_Store /Thumbs.db
+    handle @hiddenFiles {
+        import edge_response_headers
+        respond 404
+    }
 
     handle @adaptivePlayback {
         import edge_response_headers
@@ -37,6 +46,11 @@ holilihu.online {
     }
 
     # Backend API
+    handle /api/v3/api-docs* {
+        import edge_response_headers
+        respond 404
+    }
+
     handle /api/* {
         import edge_response_headers
         reverse_proxy backend:8080
@@ -46,6 +60,10 @@ holilihu.online {
     handle /actuator/health {
         import edge_response_headers
         reverse_proxy backend:8080
+    }
+    handle /actuator* {
+        import edge_response_headers
+        respond 404
     }
 
     # File uploads (LocalStorageService)
