@@ -30,32 +30,48 @@
 
 .learning-sidebar-toggle {
   position: absolute;
-  top: 4.35rem;
-  left: var(--learning-sidebar-width);
+  top: 4.5rem;
+  left: calc(var(--learning-sidebar-width) - 1px);
   z-index: 35;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  color: #475569;
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid #dbe5f2;
-  border-radius: 999px;
-  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.12);
-  transform: translateX(-50%);
+  width: 1.75rem;
+  height: 3.5rem;
+  color: #64748b;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  border: 1px solid #d8e2f0;
+  border-left-color: rgba(216, 226, 240, 0.55);
+  border-radius: 0 999px 999px 0;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
   transition:
     left 180ms ease,
     color 160ms ease,
-    background-color 160ms ease,
+    background 160ms ease,
     border-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 180ms ease;
+    box-shadow 160ms ease;
+
+  &::before {
+    position: absolute;
+    top: 0.625rem;
+    bottom: 0.625rem;
+    left: 0;
+    width: 1px;
+    content: '';
+    background: #e2e8f0;
+  }
+
+  app-icon {
+    position: relative;
+    z-index: 1;
+  }
 
   &:hover {
     color: #0056d2;
-    background: #ffffff;
-    border-color: rgba(0, 86, 210, 0.28);
-    box-shadow: 0 10px 26px rgba(0, 86, 210, 0.16);
+    background:
+      linear-gradient(180deg, #ffffff 0%, #f5f9ff 100%);
+    border-color: rgba(0, 86, 210, 0.26);
+    box-shadow: 0 8px 20px rgba(0, 86, 210, 0.12);
   }
 
   &:focus-visible {
@@ -65,8 +81,13 @@
 }
 
 .learning-sidebar-toggle--collapsed {
-  left: 1rem;
-  transform: none;
+  left: 0;
+  border-left-color: #d8e2f0;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
+
+  &::before {
+    background: rgba(0, 86, 210, 0.24);
+  }
 }
 
 .learning-chapter-toggle {
@@ -136,5 +157,12 @@
 
   .learning-bottom-nav {
     padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .learning-sidebar,
+  .learning-sidebar-toggle {
+    transition: none;
   }
 }
