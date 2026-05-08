@@ -1,45 +1,34 @@
-<div style="min-height:100vh;background:rgb(248 250 252);padding:1.5rem">
-
-  <!-- Header / Breadcrumb -->
-  <div style="max-width:100%;margin-bottom:1.25rem">
-    <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.8125rem;color:rgb(100 116 139);margin-bottom:0.5rem">
-      <button type="button" (click)="goToEditor()"
-        style="background:none;border:none;cursor:pointer;color:rgb(100 116 139);font-size:0.8125rem;display:flex;align-items:center;gap:0.25rem;padding:0"
-        aria-label="Quay lại chỉnh sửa khóa học">
-        <svg style="width:0.875rem;height:0.875rem" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+<div style="padding:1.25rem 1.5rem">
+  <!-- Page header -->
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.25rem">
+    <div>
+      <h2 style="font-size:1.125rem;font-weight:700;color:rgb(15 23 42);margin:0">Bản đồ tiêu chuẩn</h2>
+      <p style="font-size:0.8125rem;color:rgb(100 116 139);margin:0.25rem 0 0">
+        Ánh xạ bài học với tiêu chuẩn quốc tế hàng hải
+      </p>
+    </div>
+    <button
+      type="button"
+      (click)="exportCsv()"
+      [disabled]="isExporting() || !data()"
+      style="display:flex;align-items:center;gap:0.375rem;padding:0.4375rem 0.875rem;background:rgb(15 23 42);color:white;border:none;border-radius:0.5rem;font-size:0.8125rem;font-weight:500;cursor:pointer;transition:opacity 150ms;flex-shrink:0"
+      [style.opacity]="isExporting() || !data() ? '0.5' : '1'"
+      aria-label="Xuất bản đồ năng lực dạng CSV"
+    >
+      @if (isExporting()) {
+        <svg style="width:0.875rem;height:0.875rem;animation:spin 1s linear infinite" fill="none" viewBox="0 0 24 24">
+          <circle style="opacity:0.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path style="opacity:0.75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
         </svg>
-        Chỉnh sửa khóa học
-      </button>
-      <span>›</span>
-      <span style="color:rgb(30 41 59);font-weight:500">Bản đồ tiêu chuẩn</span>
-    </div>
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem">
-      <div>
-        <h1 style="font-size:1.375rem;font-weight:700;color:rgb(15 23 42);margin:0">Bản đồ tiêu chuẩn hàng hải</h1>
-        <p style="font-size:0.875rem;color:rgb(100 116 139);margin:0.25rem 0 0">
-          Ánh xạ bài học với tiêu chuẩn quốc tế hàng hải (STCW / SOLAS / MARPOL)
-        </p>
-      </div>
-      <button type="button" (click)="exportCsv()" [disabled]="isExporting() || !data()"
-        style="display:flex;align-items:center;gap:0.375rem;padding:0.4375rem 0.875rem;background:rgb(15 23 42);color:white;border:none;border-radius:0.5rem;font-size:0.8125rem;font-weight:500;cursor:pointer;transition:opacity 150ms;flex-shrink:0"
-        [style.opacity]="isExporting() || !data() ? '0.5' : '1'"
-        aria-label="Xuất CSV">
-        @if (isExporting()) {
-          <svg style="width:0.875rem;height:0.875rem;animation:spin 1s linear infinite" fill="none" viewBox="0 0 24 24">
-            <circle style="opacity:0.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-            <path style="opacity:0.75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-          </svg>
-          Đang xuất...
-        } @else {
-          <svg style="width:0.875rem;height:0.875rem" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-          Xuất CSV
-        }
-      </button>
-    </div>
+        Đang xuất...
+      } @else {
+        <svg style="width:0.875rem;height:0.875rem" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+        Xuất CSV
+      }
+    </button>
   </div>
 
   <!-- Loading skeleton -->
@@ -76,14 +65,14 @@
     <!-- Warnings -->
     @if (mapData.warnings && mapData.warnings.length > 0) {
       <div style="margin-top:1rem;padding:0.75rem 1rem;background:rgb(255 251 235);border:1px solid rgb(253 230 138);border-radius:0.75rem">
-        <p style="font-size:0.8125rem;font-weight:600;color:rgb(146 64 14);margin:0 0 0.375rem">Cảnh báo</p>
+        <p style="font-size:0.8125rem;font-weight:600;color:rgb(146 64 14);margin:0 0 0.375rem">Cảnh báo ánh xạ</p>
         @for (w of mapData.warnings; track $index) {
           <p style="font-size:0.8125rem;color:rgb(146 64 14);margin:0.125rem 0">• {{ w }}</p>
         }
       </div>
     }
 
-    <!-- Accordion Matrix Table -->
+    <!-- Accordion Matrix Table (toolbar + column picker built-in) -->
     <div style="margin-top:1.25rem">
       <app-competency-table
         [courseId]="courseId()"
@@ -97,5 +86,4 @@
       />
     </div>
   }
-
 </div>

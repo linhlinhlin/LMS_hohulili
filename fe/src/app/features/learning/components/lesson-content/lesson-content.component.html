@@ -11,6 +11,7 @@
       <h1 id="lesson-heading" class="lesson-title">
         {{ lesson().title }}
       </h1>
+      <app-competency-badge [lessonId]="lesson().id" [courseId]="lesson().courseId" />
     @if (section.title) {
       <h2 class="lesson-section-title">
       {{ section.title }}
@@ -23,6 +24,7 @@
       <h1 id="lesson-heading" class="lesson-title">
         {{ lesson().title }}
       </h1>
+      <app-competency-badge [lessonId]="lesson().id" [courseId]="lesson().courseId" />
     </header>
     }
 

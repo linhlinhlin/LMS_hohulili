@@ -9,6 +9,7 @@ public interface StandardCompetencyRepository {
     List<StandardCompetency> findByStandardId(UUID standardId);
     List<StandardCompetency> findByStandardIdAndCategory(UUID standardId, String category);
     List<StandardCompetency> findByIds(List<UUID> ids);
+    List<StandardCompetency> findAllActive();
     int countActiveByStandardId(UUID standardId);
     StandardCompetency findById(UUID id);
 }

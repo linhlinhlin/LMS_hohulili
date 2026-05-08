@@ -49,24 +49,21 @@ public class GetCourseCompetencyMapUseCase {
                         Collectors.mapping(LessonCompetencyMapping::getCompetencyId, Collectors.toList())
                 ));
 
-        // Collect all competency IDs used in this course
-        Set<UUID> usedCompetencyIds = allMappings.stream()
+        // Currently mapped competency IDs (for stats)
+        Set<UUID> mappedCompetencyIds = allMappings.stream()
                 .map(LessonCompetencyMapping::getCompetencyId)
                 .collect(Collectors.toSet());
 
-        // Load competency details
-        List<StandardCompetency> competencies = usedCompetencyIds.isEmpty()
-                ? List.of()
-                : competencyRepository.findByIds(new ArrayList<>(usedCompetencyIds));
+        // Always load ALL active standards and competencies so the matrix is always visible
+        var standards = standardRepository.findAllActive();
+        List<StandardCompetency> competencies = competencyRepository.findAllActive();
 
-        // Load standards used in this course
-        Set<UUID> usedStandardIds = competencies.stream()
-                .map(StandardCompetency::getStandardId)
-                .collect(Collectors.toSet());
-
-        var standards = standardRepository.findAll().stream()
-                .filter(s -> usedStandardIds.contains(s.getId()))
-                .toList();
+        // Index standards by ID for fast lookup
+        Map<UUID, com.example.lms.competency_mapping.domain.model.MaritimeStandard> standardById =
+                standards.stream().collect(Collectors.toMap(
+                        com.example.lms.competency_mapping.domain.model.MaritimeStandard::getId,
+                        s -> s
+                ));
 
         // Build lesson responses
         var courseWarnings = new ArrayList<String>();
@@ -84,20 +81,24 @@ public class GetCourseCompetencyMapUseCase {
                             lesson.id(),
                             lesson.title(),
                             lesson.chapterTitle(),
+                            lesson.chapterId(),
                             new ArrayList<>(mappedIds),
                             lessonWarning
                     );
                 })
                 .toList();
 
-        // Build stats
+        // Build stats (coverage = mapped / total available)
         int totalMappings = allMappings.size();
         long lessonsWithMapping = mappingsByLesson.size();
-        int competenciesCovered = usedCompetencyIds.size();
+        int competenciesCovered = mappedCompetencyIds.size();
         int totalCompetencies = competencies.size();
         int coveragePercent = totalCompetencies > 0
                 ? (int) Math.round(100.0 * competenciesCovered / totalCompetencies)
                 : 0;
+
+        int unmappedLessonsCount = lessons.size() - (int) lessonsWithMapping;
+        int uncoveredCompetenciesCount = totalCompetencies - competenciesCovered;
 
         var stats = new CompetencyMapStats(
                 totalMappings,
@@ -105,10 +106,12 @@ public class GetCourseCompetencyMapUseCase {
                 (int) lessonsWithMapping,
                 lessons.size(),
                 competenciesCovered,
-                totalCompetencies
+                totalCompetencies,
+                unmappedLessonsCount,
+                uncoveredCompetenciesCount
         );
 
-        // Build standard responses with competency count
+        // Build standard responses
         var standardResponses = standards.stream()
                 .map(s -> new StandardResponse(
                         s.getId(),
@@ -122,10 +125,8 @@ public class GetCourseCompetencyMapUseCase {
         var competencyResponses = competencies.stream()
                 .sorted(Comparator.comparingInt(StandardCompetency::getDisplayOrder))
                 .map(c -> {
-                    String standardCode = standards.stream()
-                            .filter(s -> s.getId().equals(c.getStandardId()))
-                            .map(com.example.lms.competency_mapping.domain.model.MaritimeStandard::getCode)
-                            .findFirst().orElse("");
+                    var std = standardById.get(c.getStandardId());
+                    String standardCode = std != null ? std.getCode() : "";
                     return new CompetencyResponse(
                             c.getId(), c.getStandardId(), standardCode,
                             c.getCode(), c.getTitle(), c.getDescription(),

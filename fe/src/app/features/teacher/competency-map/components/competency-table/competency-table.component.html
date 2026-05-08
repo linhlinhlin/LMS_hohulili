@@ -1,64 +1,258 @@
-<div style="overflow-x:auto;border:1px solid rgb(226 232 240);border-radius:0.75rem;background:white">
+<div>
+
+  <!-- ── Toolbar ─────────────────────────────────────────────── -->
+  <div style="display:flex;align-items:center;flex-wrap:wrap;gap:0.75rem;margin-bottom:0.75rem">
+
+    <div class="mode-toggle" role="group" aria-label="Chế độ gán chuẩn">
+      <button class="mode-btn" [class.active]="assignmentMode() === 'lesson'" (click)="setMode('lesson')" title="Gán chi tiết từng bài học">
+        📋 Chi tiết theo Bài
+      </button>
+      <button class="mode-btn" [class.active]="assignmentMode() === 'chapter'" (click)="setMode('chapter')" title="Gán nhanh cho toàn chương">
+        ⚡ Nhanh theo Chương
+      </button>
+    </div>
+
+    @if (assignmentMode() === 'lesson') {
+      <div style="display:flex;gap:0.375rem">
+        <button type="button" (click)="expandAll()"
+          style="padding:0.3125rem 0.625rem;border:1px solid rgb(203 213 225);background:white;border-radius:0.375rem;font-size:0.75rem;color:rgb(71 85 105);cursor:pointer">
+          Mở tất cả ▼
+        </button>
+        <button type="button" (click)="collapseAll()"
+          style="padding:0.3125rem 0.625rem;border:1px solid rgb(203 213 225);background:white;border-radius:0.375rem;font-size:0.75rem;color:rgb(71 85 105);cursor:pointer">
+          Thu lại ▲
+        </button>
+      </div>
+    }
+
+    <div style="flex:1"></div>
+
+    <span style="font-size:0.75rem;color:rgb(148 163 184)">{{ visibleCompetencies().length }} cột</span>
+
+    <!-- Smart Suggest toggle -->
+    <button type="button" class="suggest-btn" [class.active]="showSuggestPanel()" (click)="toggleSuggestPanel()"
+      [attr.aria-expanded]="showSuggestPanel()" aria-label="Gợi ý thông minh theo từ khóa">
+      <svg style="width:0.875rem;height:0.875rem" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+      </svg>
+      Gợi ý thông minh
+      @if (strongSuggestCount() > 0) {
+        <span style="padding:0.0625rem 0.375rem;border-radius:9999px;font-size:0.625rem;font-weight:700;min-width:1.125rem;text-align:center"
+          [style.background]="showSuggestPanel() ? 'rgba(255,255,255,0.25)' : 'rgb(109 40 217)'"
+          [style.color]="showSuggestPanel() ? 'white' : 'white'">
+          {{ strongSuggestCount() }}
+        </span>
+      }
+    </button>
+
+    <button type="button" class="add-col-btn" (click)="openColumnModal()" aria-label="Thêm cột tiêu chuẩn">
+      <svg style="width:0.875rem;height:0.875rem" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+      </svg>
+      Thêm cột
+    </button>
+
+  </div>
+
+  <!-- Smart Suggest: no panel — stars appear directly on cells in the matrix below -->
+
+  <!-- ── Empty states ────────────────────────────────────────── -->
   @if (lessons().length === 0) {
-    <div style="padding:3rem;text-align:center;color:rgb(148 163 184)">
+    <div style="padding:3rem;text-align:center;background:white;border:1px solid rgb(226 232 240);border-radius:0.75rem;color:rgb(148 163 184)">
       <svg style="width:2.5rem;height:2.5rem;margin:0 auto 0.75rem;opacity:0.4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
           d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
       </svg>
       <p style="font-size:0.9375rem;font-weight:500">Chưa có bài học nào</p>
-      <p style="font-size:0.8125rem;margin-top:0.25rem">Hãy tạo bài học để bắt đầu ánh xạ tiêu chuẩn</p>
     </div>
+
+  } @else if (visibleCompetencies().length === 0) {
+    <div style="padding:3rem;text-align:center;background:white;border:1px solid rgb(226 232 240);border-radius:0.75rem;color:rgb(100 116 139)">
+      <svg style="width:2.25rem;height:2.25rem;margin:0 auto 0.625rem;opacity:0.4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
+      </svg>
+      <p style="font-size:0.9375rem;font-weight:500;color:rgb(30 41 59);margin:0">Chưa có cột tiêu chuẩn nào được chọn</p>
+      <p style="font-size:0.8125rem;color:rgb(100 116 139);margin:0.25rem 0 0">Nhấn "+ Thêm cột" để bắt đầu ánh xạ năng lực</p>
+      <button type="button" (click)="openColumnModal()"
+        style="margin-top:1rem;padding:0.5rem 1.25rem;background:rgb(0 86 210);color:white;border:none;border-radius:0.5rem;cursor:pointer;font-size:0.875rem;font-weight:500">
+        + Thêm cột
+      </button>
+    </div>
+
   } @else {
-    <table role="grid" aria-label="Bảng ánh xạ năng lực" style="width:100%;border-collapse:collapse;min-width:40rem">
-      <thead>
-        <tr style="background:rgb(248 250 252);border-bottom:2px solid rgb(226 232 240)">
-          <th scope="col"
-            style="position:sticky;left:0;z-index:2;background:rgb(248 250 252);padding:0.625rem 1rem;text-align:left;font-size:0.8125rem;font-weight:600;color:rgb(71 85 105);white-space:nowrap;border-right:1px solid rgb(226 232 240);min-width:14rem">
-            Bài học
-          </th>
-          @for (comp of competencies(); track comp.id) {
-            <th scope="col"
-              style="padding:0.5rem 0.375rem;text-align:center;font-size:0.75rem;font-weight:600;white-space:nowrap;min-width:3.5rem;max-width:4rem;cursor:default"
-              [style.color]="isCoveredCompetency(comp.id) ? 'rgb(0 86 210)' : 'rgb(239 68 68)'"
-              [title]="comp.code + ': ' + comp.title">
-              {{ comp.code }}
+    <!-- ── Accordion Matrix Table ─────────────────────────────── -->
+    <div class="table-scroll" role="region" aria-label="Bảng ánh xạ năng lực">
+      <table role="grid">
+        <thead>
+
+          <!-- Row 1: standard/category group headers -->
+          <tr>
+            <th scope="col" class="first-col-header sticky-left th-row1" rowspan="2"
+              [style.width.px]="col1Width()" [style.min-width.px]="col1Width()">
+              Bài học / Chương
+              <div class="resize-handle" (mousedown)="onResizeStart($event)" title="Kéo để thay đổi độ rộng cột"></div>
             </th>
-          }
-        </tr>
-      </thead>
-      <tbody>
-        @for (lesson of lessons(); track lesson.id) {
-          <tr
-            style="border-bottom:1px solid rgb(241 245 249);transition:background 100ms"
-            [style.background]="lesson.mappedCompetencyIds.length === 0 ? 'rgb(254 252 232)' : 'transparent'"
-          >
-            <td
-              style="position:sticky;left:0;z-index:1;background:inherit;padding:0.625rem 1rem;border-right:1px solid rgb(226 232 240)"
-            >
-              <div style="font-size:0.8125rem;font-weight:500;color:rgb(30 41 59);line-height:1.3">{{ lesson.title }}</div>
-              <div style="font-size:0.75rem;color:rgb(148 163 184);margin-top:0.125rem">{{ lesson.chapterTitle }}</div>
-              @if (lesson.mappedCompetencyIds.length > 0) {
-                <span style="display:inline-block;margin-top:0.25rem;padding:0.0625rem 0.375rem;border-radius:9999px;background:rgb(219 234 254);color:rgb(29 78 216);font-size:0.6875rem;font-weight:600">
-                  {{ lesson.mappedCompetencyIds.length }} chuẩn
-                </span>
-              }
-            </td>
-            @for (comp of competencies(); track comp.id) {
-              <td style="padding:0.375rem;text-align:center">
-                <input
-                  type="checkbox"
-                  [checked]="isMapped(lesson, comp.id)"
-                  [disabled]="isPending(lesson.id, comp.id)"
-                  (change)="onToggle(lesson.id, comp.id)"
-                  [attr.aria-label]="'Ánh xạ ' + lesson.title + ' với ' + comp.code"
-                  style="width:1rem;height:1rem;accent-color:rgb(0 86 210);cursor:pointer"
-                  [style.opacity]="isPending(lesson.id, comp.id) ? '0.5' : '1'"
-                />
-              </td>
+            @for (group of columnGroups(); track group.key) {
+              <th scope="colgroup"
+                [colSpan]="group.competencies.length"
+                class="group-header th-row1"
+                [style.border-left-color]="group.category === 'Deck' ? 'rgb(59 130 246)' : group.category === 'Engine' ? 'rgb(234 88 12)' : 'rgb(22 163 74)'">
+                <div style="font-size:0.75rem;font-weight:700;color:rgb(30 41 59)">{{ group.standardCode }}</div>
+                <div style="font-size:0.625rem;font-weight:400;color:rgb(100 116 139)">{{ group.viLabel }}</div>
+              </th>
             }
           </tr>
-        }
-      </tbody>
-    </table>
+
+          <!-- Row 2: competency code columns — vertical text to save horizontal space -->
+          <tr>
+            @for (group of columnGroups(); track group.key) {
+              @for (comp of group.competencies; track comp.id) {
+                <th scope="col" class="comp-header th-row2"
+                  [class.pulse-empty]="isPulsingEmpty() && emptyVisibleCompIds().has(comp.id)"
+                  [title]="comp.code + (getViTitle(comp.code) ? ': ' + getViTitle(comp.code) : '') + '\n' + comp.title">
+                  <span class="comp-header-text"
+                    [style.color]="isCoveredCompetency(comp.id) ? 'rgb(0 86 210)' : 'rgb(239 68 68)'">
+                    {{ comp.code }}
+                  </span>
+                </th>
+              }
+            }
+          </tr>
+
+        </thead>
+        <tbody>
+
+          @for (chapter of visibleChapterGroups(); track chapter.id) {
+
+            <!-- ── Chapter row ──────────────────────────────── -->
+            <tr class="chapter-row">
+              <td class="chapter-cell sticky-left"
+                [style.width.px]="col1Width()" [style.min-width.px]="col1Width()" [style.max-width.px]="col1Width()">
+                <div style="display:flex;align-items:center;gap:0.5rem">
+                  @if (assignmentMode() === 'lesson') {
+                    <button class="expand-btn" type="button"
+                      (click)="toggleChapter(chapter.id)"
+                      [attr.aria-label]="(isExpanded(chapter.id) ? 'Thu lại' : 'Mở rộng') + ' ' + chapter.title">
+                      @if (isExpanded(chapter.id)) {
+                        <svg style="width:0.625rem;height:0.625rem" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/>
+                        </svg>
+                      } @else {
+                        <svg style="width:0.625rem;height:0.625rem" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/>
+                        </svg>
+                      }
+                    </button>
+                  } @else {
+                    <span style="width:1.25rem;display:inline-block;flex-shrink:0"></span>
+                  }
+                  <span style="font-size:0.8125rem;font-weight:600;color:rgb(30 41 59);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" [title]="chapter.title">{{ chapter.title }}</span>
+                  <span style="padding:0.0625rem 0.4375rem;background:rgb(226 232 240);color:rgb(71 85 105);border-radius:9999px;font-size:0.6875rem;font-weight:500;white-space:nowrap;flex-shrink:0">
+                    {{ chapter.lessons.length }} bài
+                  </span>
+                </div>
+              </td>
+              @for (comp of visibleCompetencies(); track comp.id) {
+                <td class="check-cell">
+                  <button type="button" class="chapter-check"
+                    [class.full]="chapterState(chapter, comp.id) === 'full'"
+                    [class.partial]="chapterState(chapter, comp.id) === 'partial'"
+                    (click)="onChapterClick(chapter, comp.id)"
+                    [attr.aria-label]="'Gán ' + comp.code + ' cho toàn chương ' + chapter.title"
+                    [attr.aria-pressed]="chapterState(chapter, comp.id) === 'full' ? 'true' : chapterState(chapter, comp.id) === 'partial' ? 'mixed' : 'false'">
+                    @switch (chapterState(chapter, comp.id)) {
+                      @case ('full') {
+                        <svg style="width:0.625rem;height:0.625rem" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                        </svg>
+                      }
+                      @case ('partial') {
+                        <svg style="width:0.625rem;height:0.625rem" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 12h14"/>
+                        </svg>
+                      }
+                    }
+                  </button>
+                </td>
+              }
+            </tr>
+
+            <!-- ── Lesson rows ────────────────────────────────── -->
+            @if (assignmentMode() === 'lesson' && isExpanded(chapter.id)) {
+              @for (lesson of chapter.lessons; track lesson.id) {
+                <tr class="lesson-row" [class.unmapped]="lesson.mappedCompetencyIds.length === 0">
+                  <td class="lesson-cell sticky-left"
+                    [style.width.px]="col1Width()" [style.min-width.px]="col1Width()" [style.max-width.px]="col1Width()">
+                    <div style="display:flex;align-items:center;gap:0.375rem">
+                      <span class="lesson-indent"></span>
+                      <span style="font-size:0.8125rem;color:rgb(30 41 59);line-height:1.35;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" [title]="lesson.title">{{ lesson.title }}</span>
+                      <!-- Sparkle suggestion icon — uses native title to avoid overflow clipping -->
+                      @let lessonSugs = suggestionsByLesson().get(lesson.id) ?? [];
+                      @if (lessonSugs.length > 0 && !showSuggestPanel()) {
+                        <span style="display:inline-flex;align-items:center;flex-shrink:0;cursor:help"
+                          [title]="getSuggestionTooltip(lesson)"
+                          [attr.aria-label]="getSuggestionTooltip(lesson)"
+                          role="note">
+                          <svg style="width:0.875rem;height:0.875rem;color:rgb(109 40 217)" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                          </svg>
+                        </span>
+                      }
+                      @if (lesson.mappedCompetencyIds.length > 0) {
+                        <span style="flex-shrink:0;padding:0.0625rem 0.375rem;background:rgb(219 234 254);color:rgb(29 78 216);border-radius:9999px;font-size:0.625rem;font-weight:600">
+                          {{ lesson.mappedCompetencyIds.length }}
+                        </span>
+                      }
+                    </div>
+                  </td>
+                  @for (comp of visibleCompetencies(); track comp.id) {
+                    @let sugConf = showSuggestPanel() && !isMapped(lesson, comp.id) ? isSuggestedCell(lesson.id, comp.id) : null;
+                    <td class="check-cell"
+                      [class.cell-suggest-strong]="sugConf === 'strong'"
+                      [class.cell-suggest-possible]="sugConf === 'possible'">
+                      <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+                        @if (sugConf) {
+                          <span style="font-size:0.4375rem;line-height:1;font-weight:900;user-select:none;pointer-events:none;letter-spacing:-1px"
+                            [style.color]="sugConf === 'strong' ? 'rgb(109,40,217)' : 'rgb(167,139,250)'"
+                            [title]="(sugConf === 'strong' ? '★★★ Gợi ý mạnh' : '★★ Có thể phù hợp') + ': ' + comp.code">
+                            {{ sugConf === 'strong' ? '★★★' : '★★' }}
+                          </span>
+                        }
+                        <input type="checkbox"
+                          [checked]="isMapped(lesson, comp.id)"
+                          [disabled]="isPending(lesson.id, comp.id)"
+                          (change)="onToggle(lesson.id, comp.id)"
+                          [attr.aria-label]="'Ánh xạ ' + lesson.title + ' với ' + comp.code"
+                          [title]="sugConf ? (sugConf === 'strong' ? '★★★ Gợi ý mạnh: ' : '★★ Có thể phù hợp: ') + comp.code : ''"
+                          style="width:0.9375rem;height:0.9375rem;accent-color:rgb(0 86 210);cursor:pointer"
+                          [style.opacity]="isPending(lesson.id, comp.id) ? '0.45' : '1'" />
+                      </div>
+                    </td>
+                  }
+                </tr>
+              }
+            }
+
+          }
+
+        </tbody>
+      </table>
+    </div>
+
+    @if (lessons().length > 0 && visibleChapterGroups().length === 0) {
+      <p style="text-align:center;padding:2rem;color:rgb(148 163 184);font-size:0.875rem">
+        Không tìm thấy bài học phù hợp
+      </p>
+    }
   }
+
+  <!-- ── Column Picker Modal ────────────────────────────────── -->
+  <app-column-picker-modal
+    [isOpen]="showColumnModal()"
+    [competencies]="competencies()"
+    [standards]="standards()"
+    [coveredCompetencyIds]="coveredCompetencyIds()"
+    [(selectedCompIds)]="selectedCompIds"
+    (closed)="showColumnModal.set(false)" />
+
 </div>

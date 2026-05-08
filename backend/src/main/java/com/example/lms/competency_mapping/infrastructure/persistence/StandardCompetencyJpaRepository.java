@@ -20,6 +20,8 @@ public interface StandardCompetencyJpaRepository extends JpaRepository<StandardC
     @Query("SELECT c FROM StandardCompetencyJpaEntity c WHERE c.id IN :ids AND c.active = true")
     List<StandardCompetencyJpaEntity> findActiveByIds(@Param("ids") List<UUID> ids);
 
+    List<StandardCompetencyJpaEntity> findByActiveTrueOrderByDisplayOrderAsc();
+
     @Query("SELECT COUNT(c) FROM StandardCompetencyJpaEntity c WHERE c.standardId = :standardId AND c.active = true")
     int countActiveByStandardId(@Param("standardId") UUID standardId);
 }

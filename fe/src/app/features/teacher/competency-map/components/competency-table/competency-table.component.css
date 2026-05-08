@@ -1,0 +1,48 @@
+.table-scroll { overflow: auto; max-height: calc(100vh - 18rem); border: 1px solid rgb(226 232 240); border-radius: 0.75rem; background: white; }
+table { width: 100%; border-collapse: collapse; }
+.sticky-left { position: sticky; left: 0; z-index: 1; background: inherit; }
+thead th { position: sticky; z-index: 3; background: rgb(248 250 252); }
+thead th.sticky-left { z-index: 4; }
+.th-row1 { top: 0; }
+.th-row2 { top: 2rem; }
+.group-header { padding: 0.3125rem 0.5rem; text-align: center; font-size: 0.75rem; font-weight: 700; color: rgb(30 41 59); border-bottom: 1px solid rgb(226 232 240); border-left: 2px solid rgb(203 213 225); white-space: nowrap; }
+.comp-header { padding: 0.25rem 0.125rem; min-width: 3.25rem; width: 3.25rem; text-align: center; vertical-align: middle; cursor: default; border-bottom: 2px solid rgb(226 232 240); border-left: 1px solid rgb(241 245 249); }
+.comp-header-text { font-size: 0.6875rem; font-weight: 700; display: block; text-align: center; white-space: nowrap; padding: 0.25rem 0.0625rem; }
+.first-col-header { padding: 0.5rem 0.875rem; text-align: left; font-size: 0.8125rem; font-weight: 600; color: rgb(71 85 105); white-space: nowrap; position: relative; overflow: hidden; border-right: 2px solid rgb(203 213 225); border-bottom: 2px solid rgb(226 232 240); }
+.resize-handle { position: absolute; top: 0; right: 0; width: 5px; height: 100%; cursor: col-resize; z-index: 5; transition: background 100ms; }
+.resize-handle:hover, .resize-handle:active { background: rgba(0,86,210,0.2); }
+.chapter-row { background: rgb(248 250 252); border-bottom: 1px solid rgb(226 232 240); }
+.lesson-row { border-bottom: 1px solid rgb(241 245 249); transition: background 100ms; }
+.lesson-row:hover { background: rgb(248 250 252); }
+.lesson-row.unmapped { background: rgb(255 253 235); }
+.chapter-cell { padding: 0.5rem 0.75rem; border-right: 2px solid rgb(203 213 225); overflow: hidden; }
+.lesson-cell { padding: 0.375rem 0.75rem; border-right: 2px solid rgb(203 213 225); overflow: hidden; }
+.check-cell { padding: 0.25rem 0.125rem; text-align: center; border-left: 1px solid rgb(241 245 249); vertical-align: middle; width: 2.25rem; }
+.chapter-check { width: 1.25rem; height: 1.25rem; border: 2px solid rgb(203 213 225); border-radius: 0.25rem; background: white; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 0.6875rem; font-weight: 700; color: white; transition: all 120ms; }
+.chapter-check.full { background: rgb(0 86 210); border-color: rgb(0 86 210); }
+.chapter-check.partial { background: rgb(147 197 253); border-color: rgb(59 130 246); color: rgb(30 64 175); }
+.chapter-check:hover:not(:disabled) { border-color: rgb(0 86 210); }
+.chapter-check:disabled { opacity: 0.45; cursor: not-allowed; }
+.expand-btn { width: 1.25rem; height: 1.25rem; border: none; background: none; cursor: pointer; color: rgb(100 116 139); font-size: 0.625rem; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 0.25rem; transition: background 100ms; }
+.expand-btn:hover { background: rgb(226 232 240); }
+.lesson-indent { display: inline-block; width: 1.75rem; flex-shrink: 0; }
+.mode-toggle { display: inline-flex; background: rgb(241 245 249); border-radius: 0.5rem; padding: 0.1875rem; }
+.mode-btn { padding: 0.3125rem 0.75rem; border: none; border-radius: 0.375rem; font-size: 0.8125rem; font-weight: 500; cursor: pointer; background: transparent; color: rgb(100 116 139); transition: all 150ms; white-space: nowrap; }
+.mode-btn.active { background: white; color: rgb(30 41 59); box-shadow: 0 1px 3px rgb(0 0 0/0.1); }
+.add-col-btn { display: flex; align-items: center; gap: 0.375rem; padding: 0.4375rem 0.875rem; background: white; color: rgb(0 86 210); border: 1.5px solid rgb(0 86 210); border-radius: 0.5rem; font-size: 0.8125rem; font-weight: 600; cursor: pointer; transition: background 150ms; }
+.add-col-btn:hover { background: rgb(239 246 255); }
+.suggest-btn { display: flex; align-items: center; gap: 0.375rem; padding: 0.4375rem 0.875rem; background: white; color: rgb(109 40 217); border: 1.5px solid rgb(196 181 253); border-radius: 0.5rem; font-size: 0.8125rem; font-weight: 600; cursor: pointer; transition: all 150ms; }
+.suggest-btn:hover { background: rgb(245 243 255); }
+.suggest-btn.active { background: rgb(109 40 217); color: white; border-color: rgb(109 40 217); }
+.cell-suggest-strong { background: rgba(109,40,217,0.1) !important; box-shadow: inset 0 0 0 1.5px rgba(109,40,217,0.45); cursor: pointer; }
+.cell-suggest-possible { background: rgba(109,40,217,0.04) !important; box-shadow: inset 0 0 0 1px rgba(109,40,217,0.2); }
+.cell-suggest-strong:hover { background: rgba(109,40,217,0.16) !important; }
+.pulse-empty {
+  animation: pulse-empty-attention 0.5s ease-in-out 3;
+  background: rgb(254 226 226) !important;
+  box-shadow: inset 0 0 0 2px rgb(239 68 68);
+}
+@keyframes pulse-empty-attention {
+  0%, 100% { background: rgb(254 226 226); transform: scale(1); }
+  50%       { background: rgb(252 165 165); transform: scale(1.04); }
+}

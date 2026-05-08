@@ -6,5 +6,7 @@ public record CompetencyMapStats(
         int lessonsWithMapping,
         int totalLessons,
         int competenciesCovered,
-        int totalCompetencies
+        int totalCompetencies,
+        int unmappedLessonsCount,
+        int uncoveredCompetenciesCount
 ) {}

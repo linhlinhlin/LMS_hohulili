@@ -22,6 +22,7 @@ import { NetworkStatusService } from '../../../../core/services/network-status.s
 import { PdfViewerService } from '../../../../shared/services/pdf-viewer.service';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { SideDrawerComponent } from '../../../../shared/components/side-drawer/side-drawer.component';
+import { CompetencyBadgeComponent } from '../competency-badge/competency-badge.component';
 
 /**
  * Lesson Content Component
@@ -36,7 +37,7 @@ import { SideDrawerComponent } from '../../../../shared/components/side-drawer/s
  */
 @Component({
   selector: 'app-lesson-content',
-  imports: [AdaptiveVideoPlayerComponent, YouTubePlayerComponent, CommonModule, FormsModule, IconComponent, SideDrawerComponent],
+  imports: [AdaptiveVideoPlayerComponent, YouTubePlayerComponent, CommonModule, FormsModule, IconComponent, SideDrawerComponent, CompetencyBadgeComponent],
   templateUrl: './lesson-content.component.html',
   styleUrls: ['./lesson-content.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush

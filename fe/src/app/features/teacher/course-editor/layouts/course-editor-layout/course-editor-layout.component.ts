@@ -63,6 +63,13 @@ import { distinctUntilChanged, filter, take, map } from 'rxjs/operators';
               Lớp học
            </a>
          }
+         <a routerLink="competency"
+            role="tab"
+            [attr.aria-selected]="activeTab() === 'competency'"
+            routerLinkActive="editor-tab--active"
+            class="editor-tab">
+            Tiêu chuẩn
+         </a>
          <a routerLink="settings"
             role="tab"
             [attr.aria-selected]="activeTab() === 'settings'"
@@ -264,8 +271,7 @@ export class CourseEditorLayoutComponent implements OnInit {
   private updateSidebarForRoute(url: string) {
     const lastSegment = this.getRouteTailSegment(url);
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-    // Collapse on info/settings, expand on curriculum/classes (desktop only)
-    if (lastSegment === 'info' || lastSegment === 'settings') {
+    if (lastSegment === 'info' || lastSegment === 'settings' || lastSegment === 'competency') {
       this.sidebarCollapsed.set(true);
     } else if (lastSegment === 'curriculum' || lastSegment === 'classes') {
       this.sidebarCollapsed.set(isMobile); // collapsed on mobile, expanded on desktop
@@ -274,7 +280,7 @@ export class CourseEditorLayoutComponent implements OnInit {
 
   private updateActiveTab(url: string) {
     const lastSegment = this.getRouteTailSegment(url);
-    if (['info', 'curriculum', 'settings', 'classes'].includes(lastSegment)) {
+    if (['info', 'curriculum', 'settings', 'classes', 'competency'].includes(lastSegment)) {
       this.activeTab.set(lastSegment);
     }
   }

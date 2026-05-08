@@ -17,7 +17,7 @@ public class LessonQueryAdapter implements LessonQueryPort {
     @Override
     public LessonInfo findById(UUID lessonId) {
         var results = em.createNativeQuery("""
-                SELECT l.id, l.title, ch.title AS chapter_title, ch.course_id
+                SELECT l.id, l.title, ch.title AS chapter_title, ch.id AS chapter_id, ch.course_id
                 FROM lessons l
                 JOIN chapters ch ON l.chapter_id = ch.id
                 WHERE l.id = :lessonId
@@ -31,14 +31,15 @@ public class LessonQueryAdapter implements LessonQueryPort {
                 toUUID(row[0]),
                 (String) row[1],
                 (String) row[2],
-                toUUID(row[3])
+                toUUID(row[3]),
+                toUUID(row[4])
         );
     }
 
     @Override
     public List<LessonInfo> findAllByCourseId(UUID courseId) {
         var results = em.createNativeQuery("""
-                SELECT l.id, l.title, ch.title AS chapter_title, ch.course_id
+                SELECT l.id, l.title, ch.title AS chapter_title, ch.id AS chapter_id, ch.course_id
                 FROM lessons l
                 JOIN chapters ch ON l.chapter_id = ch.id
                 WHERE ch.course_id = :courseId
@@ -54,7 +55,8 @@ public class LessonQueryAdapter implements LessonQueryPort {
                             toUUID(row[0]),
                             (String) row[1],
                             (String) row[2],
-                            toUUID(row[3])
+                            toUUID(row[3]),
+                            toUUID(row[4])
                     );
                 })
                 .toList();

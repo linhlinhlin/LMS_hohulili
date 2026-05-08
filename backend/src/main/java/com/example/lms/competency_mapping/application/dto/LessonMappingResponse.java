@@ -7,6 +7,7 @@ public record LessonMappingResponse(
         UUID id,
         String title,
         String chapterTitle,
+        UUID chapterId,
         List<UUID> mappedCompetencyIds,
         String warning
 ) {}

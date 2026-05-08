@@ -21,6 +21,7 @@ export interface LessonMappingInfo {
   id: string;
   title: string;
   chapterTitle: string;
+  chapterId: string;
   mappedCompetencyIds: string[];
   warning: string | null;
 }
@@ -32,6 +33,8 @@ export interface CompetencyMapStats {
   totalLessons: number;
   competenciesCovered: number;
   totalCompetencies: number;
+  unmappedLessonsCount: number;
+  uncoveredCompetenciesCount: number;
 }
 
 export interface CompetencyMapResponse {

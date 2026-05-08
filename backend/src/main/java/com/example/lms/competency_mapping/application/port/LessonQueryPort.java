@@ -5,7 +5,7 @@ import java.util.UUID;
 
 public interface LessonQueryPort {
 
-    record LessonInfo(UUID id, String title, String chapterTitle, UUID courseId) {}
+    record LessonInfo(UUID id, String title, String chapterTitle, UUID chapterId, UUID courseId) {}
 
     LessonInfo findById(UUID lessonId);
     List<LessonInfo> findAllByCourseId(UUID courseId);

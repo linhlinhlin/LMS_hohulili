@@ -41,6 +41,12 @@ public class StandardCompetencyRepositoryAdapter implements StandardCompetencyRe
     }
 
     @Override
+    public List<StandardCompetency> findAllActive() {
+        return jpaRepo.findByActiveTrueOrderByDisplayOrderAsc()
+                .stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
     public int countActiveByStandardId(UUID standardId) {
         return jpaRepo.countActiveByStandardId(standardId);
     }

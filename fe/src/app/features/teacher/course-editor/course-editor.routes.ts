@@ -64,6 +64,12 @@ export const courseEditorRoutes: Routes = [
                 title: 'Sửa chương trình học'
             },
             {
+                path: 'competency',
+                loadComponent: () => import('./pages/course-competency/course-competency.component')
+                    .then(m => m.CourseCompetencyComponent),
+                title: 'Bản đồ tiêu chuẩn'
+            },
+            {
                 path: 'settings',
                 loadComponent: () => import('./pages/course-settings/course-settings.component')
                     .then(m => m.CourseSettingsComponent),

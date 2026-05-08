@@ -4,36 +4,38 @@ import {
   signal,
   computed,
   inject,
-  OnInit,
   OnDestroy,
+  effect,
+  untracked,
   viewChild,
 } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { CompetencyMappingApi } from '../../../api/competency/competency-mapping.api';
-import { ToastService } from '../../../core/services/toast.service';
-import { CompetencyMapResponse, CompetencyMapStats } from '../../../api/competency/competency-mapping.types';
-import { CompetencyStatsCardsComponent } from './components/competency-stats-cards/competency-stats-cards.component';
-import { CompetencyTableComponent } from './components/competency-table/competency-table.component';
+import { CompetencyMappingApi } from '../../../../../api/competency/competency-mapping.api';
+import { ToastService } from '../../../../../core/services/toast.service';
+import { CourseEditorStore } from '../../store/course-editor.store';
+import { CompetencyMapResponse, CompetencyMapStats } from '../../../../../api/competency/competency-mapping.types';
+import { CompetencyStatsCardsComponent } from '../../../competency-map/components/competency-stats-cards/competency-stats-cards.component';
+import { CompetencyTableComponent } from '../../../competency-map/components/competency-table/competency-table.component';
 
 @Component({
-  selector: 'app-competency-map',
+  selector: 'app-course-competency',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, CompetencyStatsCardsComponent, CompetencyTableComponent],
-  templateUrl: './competency-map.component.html',
+  imports: [CompetencyStatsCardsComponent, CompetencyTableComponent],
+  templateUrl: './course-competency.component.html',
 })
-export class CompetencyMapComponent implements OnInit, OnDestroy {
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
+export class CourseCompetencyComponent implements OnDestroy {
   private api = inject(CompetencyMappingApi);
   private toast = inject(ToastService);
+  private store = inject(CourseEditorStore);
 
-  readonly courseId = signal<string>('');
   readonly data = signal<CompetencyMapResponse | null>(null);
   readonly isLoading = signal(true);
   readonly isExporting = signal(false);
   readonly errorState = signal(false);
   readonly pendingCells = signal<Set<string>>(new Set());
+
+  readonly courseId = computed(() => this.store.courseTree()?.id ?? '');
+  readonly courseName = computed(() => this.store.courseTree()?.title ?? '');
 
   private tableRef = viewChild(CompetencyTableComponent);
 
@@ -82,10 +84,14 @@ export class CompetencyMapComponent implements OnInit, OnDestroy {
 
   private sub = new Subscription();
 
-  ngOnInit(): void {
-    const id = this.route.snapshot.paramMap.get('courseId') ?? '';
-    this.courseId.set(id);
-    this.loadMap();
+  constructor() {
+    // Reactive load: course-tree may finish loading after this component mounts
+    // (deep-link / F5 path). Watch courseId and (re)load whenever it becomes set.
+    effect(() => {
+      const id = this.courseId();
+      if (!id) return;
+      untracked(() => this.loadMap());
+    });
   }
 
   ngOnDestroy(): void {
@@ -93,10 +99,12 @@ export class CompetencyMapComponent implements OnInit, OnDestroy {
   }
 
   loadMap(): void {
+    const id = this.courseId();
+    if (!id) return;
     this.isLoading.set(true);
     this.errorState.set(false);
     this.sub.add(
-      this.api.getCourseCompetencyMap(this.courseId()).subscribe({
+      this.api.getCourseCompetencyMap(id).subscribe({
         next: (data) => {
           this.data.set(data);
           this.isLoading.set(false);
@@ -172,8 +180,10 @@ export class CompetencyMapComponent implements OnInit, OnDestroy {
     const currentData = this.data();
     if (!currentData) return;
 
+    // Snapshot lessons for potential rollback
     const snapshot = currentData.lessons.filter((l) => chapterLessonIds.includes(l.id));
 
+    // Optimistic update all chapter lessons at once
     this.data.update((d) => {
       if (!d) return d;
       return {
@@ -226,17 +236,17 @@ export class CompetencyMapComponent implements OnInit, OnDestroy {
   }
 
   exportCsv(): void {
-    const courseName =
-      this.route.snapshot.queryParamMap.get('courseName') ?? this.courseId();
+    const id = this.courseId();
+    if (!id) return;
     this.isExporting.set(true);
     this.sub.add(
-      this.api.exportCsv(this.courseId()).subscribe({
+      this.api.exportCsv(id).subscribe({
         next: (blob) => {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
           const date = new Date().toISOString().split('T')[0];
-          a.download = `${courseName}-competency-map-${date}.csv`;
+          a.download = `${this.courseName() || id}-competency-map-${date}.csv`;
           a.click();
           URL.revokeObjectURL(url);
           this.isExporting.set(false);
@@ -247,9 +257,5 @@ export class CompetencyMapComponent implements OnInit, OnDestroy {
         },
       })
     );
-  }
-
-  goToEditor(): void {
-    this.router.navigate(['/teacher/courses', this.courseId(), 'editor']);
   }
 }
