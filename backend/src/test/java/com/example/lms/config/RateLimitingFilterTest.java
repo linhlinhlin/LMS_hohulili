@@ -40,6 +40,21 @@ class RateLimitingFilterTest {
     }
 
     @Test
+    void shouldRateLimitCspReportBursts() throws Exception {
+        RateLimitingFilter filter = new RateLimitingFilter();
+
+        for (int i = 0; i < 120; i++) {
+            MockHttpServletResponse response = invoke(filter, "/api/v3/security/csp-report", "POST", null);
+            assertEquals(200, response.getStatus());
+            assertEquals("120", response.getHeader("X-RateLimit-Limit"));
+        }
+
+        MockHttpServletResponse blocked = invoke(filter, "/api/v3/security/csp-report", "POST", null);
+        assertEquals(429, blocked.getStatus());
+        assertTrue(blocked.getContentAsString().contains("RATE_LIMITED"));
+    }
+
+    @Test
     void shouldNotTreatNestedAuthoringEndpointsAsPublic() throws Exception {
         RateLimitingFilter filter = new RateLimitingFilter();
 

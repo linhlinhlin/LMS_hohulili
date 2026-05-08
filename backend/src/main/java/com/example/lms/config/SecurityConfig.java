@@ -54,7 +54,7 @@ public class SecurityConfig {
                                 .maxAgeInSeconds(31536000)
                         )
                         .contentSecurityPolicy(csp -> csp
-                                .policyDirectives("default-src 'none'; frame-ancestors 'self' https://holilihu.online; frame-src https://wiii.holilihu.online https://www.youtube.com")
+                                .policyDirectives("default-src 'none'; frame-ancestors 'self' https://holilihu.online; frame-src https://wiii.holilihu.online https://accounts.google.com https://www.youtube.com https://www.youtube-nocookie.com")
                         )
                 )
                 .authorizeHttpRequests(auth -> auth

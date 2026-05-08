@@ -50,6 +50,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     private static final int LIMIT_AI = 30;               // Moderate: AI cost control
     private static final int LIMIT_PAYMENTS = 30;         // Moderate: payment flow has multiple calls
     private static final int LIMIT_INVITE_VALIDATE = 20;   // Invite validate: brute-force prevention
+    private static final int LIMIT_CSP_REPORT = 120;       // Browser security reports can arrive in short bursts
     private static final int LIMIT_PUBLIC = 120;           // Public endpoints: generous but bounded
     private static final int LIMIT_PUBLIC_AUTHENTICATED = 600; // Authenticated reads share public routes in authoring/learning flows
 
@@ -69,9 +70,10 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         String method = request.getMethod();
 
-        // Rate limit auth, AI, payment, invite, user search, and public endpoints
+        // Rate limit auth, AI, payment, invite, user search, browser reports, and public endpoints
         if (!path.startsWith("/api/v3/auth") && !path.startsWith("/api/v3/ai")
                 && !path.startsWith("/api/v3/payments") && !path.startsWith("/api/v3/invites")
+                && !path.startsWith("/api/v3/security/csp-report")
                 && !path.startsWith("/api/v3/users/search") && !path.startsWith("/api/v3/users/instructors")
                 && !isPublicEndpoint(path, method)) {
             filterChain.doFilter(request, response);
@@ -154,6 +156,9 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         }
         if (path.startsWith("/api/v3/payments")) {
             return new EndpointTier("payments", LIMIT_PAYMENTS);
+        }
+        if (path.startsWith("/api/v3/security/csp-report")) {
+            return new EndpointTier("security:csp-report", LIMIT_CSP_REPORT);
         }
         if (isPublicEndpoint(path, method)) {
             return hasBearerToken(request)
