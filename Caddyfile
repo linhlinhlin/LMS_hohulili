@@ -4,6 +4,8 @@
 # =============================================================================
 
 (edge_response_headers) {
+    header -Server
+    header -X-Powered-By
     header -X-XSS-Protection
 
     header {
