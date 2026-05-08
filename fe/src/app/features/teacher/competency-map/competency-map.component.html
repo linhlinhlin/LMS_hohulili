@@ -1,0 +1,101 @@
+<div style="min-height:100vh;background:rgb(248 250 252);padding:1.5rem">
+
+  <!-- Header / Breadcrumb -->
+  <div style="max-width:100%;margin-bottom:1.25rem">
+    <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.8125rem;color:rgb(100 116 139);margin-bottom:0.5rem">
+      <button type="button" (click)="goToEditor()"
+        style="background:none;border:none;cursor:pointer;color:rgb(100 116 139);font-size:0.8125rem;display:flex;align-items:center;gap:0.25rem;padding:0"
+        aria-label="Quay lại chỉnh sửa khóa học">
+        <svg style="width:0.875rem;height:0.875rem" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+        Chỉnh sửa khóa học
+      </button>
+      <span>›</span>
+      <span style="color:rgb(30 41 59);font-weight:500">Bản đồ tiêu chuẩn</span>
+    </div>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+      <div>
+        <h1 style="font-size:1.375rem;font-weight:700;color:rgb(15 23 42);margin:0">Bản đồ tiêu chuẩn hàng hải</h1>
+        <p style="font-size:0.875rem;color:rgb(100 116 139);margin:0.25rem 0 0">
+          Ánh xạ bài học với tiêu chuẩn quốc tế hàng hải (STCW / SOLAS / MARPOL)
+        </p>
+      </div>
+      <button type="button" (click)="exportCsv()" [disabled]="isExporting() || !data()"
+        style="display:flex;align-items:center;gap:0.375rem;padding:0.4375rem 0.875rem;background:rgb(15 23 42);color:white;border:none;border-radius:0.5rem;font-size:0.8125rem;font-weight:500;cursor:pointer;transition:opacity 150ms;flex-shrink:0"
+        [style.opacity]="isExporting() || !data() ? '0.5' : '1'"
+        aria-label="Xuất CSV">
+        @if (isExporting()) {
+          <svg style="width:0.875rem;height:0.875rem;animation:spin 1s linear infinite" fill="none" viewBox="0 0 24 24">
+            <circle style="opacity:0.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path style="opacity:0.75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+          </svg>
+          Đang xuất...
+        } @else {
+          <svg style="width:0.875rem;height:0.875rem" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          Xuất CSV
+        }
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading skeleton -->
+  @if (isLoading()) {
+    <div style="display:flex;flex-direction:column;gap:1rem">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:1rem">
+        @for (i of [1,2,3,4]; track i) {
+          <div style="height:6rem;border-radius:0.75rem;background:white;border:1px solid rgb(226 232 240);animation:pulse 1.5s ease-in-out infinite"></div>
+        }
+      </div>
+      <div style="height:24rem;border-radius:0.75rem;background:white;border:1px solid rgb(226 232 240);animation:pulse 1.5s ease-in-out infinite"></div>
+    </div>
+  }
+
+  <!-- Error state -->
+  @else if (errorState()) {
+    <div style="text-align:center;padding:4rem 2rem;background:white;border-radius:0.75rem;border:1px solid rgb(226 232 240)">
+      <svg style="width:2.5rem;height:2.5rem;color:rgb(239 68 68);margin:0 auto 0.75rem" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+      <p style="font-size:1rem;font-weight:600;color:rgb(30 41 59)">Không thể tải dữ liệu</p>
+      <button type="button" (click)="loadMap()"
+        style="margin-top:0.75rem;padding:0.5rem 1.25rem;background:rgb(0 86 210);color:white;border:none;border-radius:0.5rem;cursor:pointer;font-size:0.875rem">
+        Thử lại
+      </button>
+    </div>
+  }
+
+  @else if (data(); as mapData) {
+    <!-- Gap Analysis Stats — scoped to visible columns; gap card click pulses empty column headers -->
+    <app-competency-stats-cards [stats]="computedStats()!" (gapCardClick)="onGapCardClick()" />
+
+    <!-- Warnings -->
+    @if (mapData.warnings && mapData.warnings.length > 0) {
+      <div style="margin-top:1rem;padding:0.75rem 1rem;background:rgb(255 251 235);border:1px solid rgb(253 230 138);border-radius:0.75rem">
+        <p style="font-size:0.8125rem;font-weight:600;color:rgb(146 64 14);margin:0 0 0.375rem">Cảnh báo</p>
+        @for (w of mapData.warnings; track $index) {
+          <p style="font-size:0.8125rem;color:rgb(146 64 14);margin:0.125rem 0">• {{ w }}</p>
+        }
+      </div>
+    }
+
+    <!-- Accordion Matrix Table -->
+    <div style="margin-top:1.25rem">
+      <app-competency-table
+        [courseId]="courseId()"
+        [lessons]="mapData.lessons"
+        [competencies]="mapData.competencies"
+        [standards]="mapData.standards"
+        [pendingCells]="pendingCells()"
+        [pulseEmptyTrigger]="pulseEmptyTrigger()"
+        (toggleMapping)="onToggleMapping($event)"
+        (bulkToggle)="onBulkToggle($event)"
+      />
+    </div>
+  }
+
+</div>

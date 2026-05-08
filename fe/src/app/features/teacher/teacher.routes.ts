@@ -37,6 +37,14 @@ export const teacherRoutes: Routes = [
     title: 'Chỉnh sửa khóa học'
   },
 
+  // Competency Map — Standalone (full-screen matrix, no sidebar)
+  {
+    path: 'courses/:courseId/competency-map',
+    loadChildren: () =>
+      import('./competency-map/competency-map.routes').then((m) => m.competencyMapRoutes),
+    title: 'Bản đồ năng lực',
+  },
+
   // Section Editor - Standalone (quản lý bài học trong chương)
   {
     path: 'courses/:courseId/sections/:sectionId',

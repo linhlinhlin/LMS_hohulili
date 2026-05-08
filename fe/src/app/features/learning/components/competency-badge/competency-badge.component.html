@@ -1,0 +1,244 @@
+@if (!isLoadingComps() && primaryComp()) {
+
+  <!-- Badge pill -->
+  <button
+    type="button"
+    (click)="openDrawer()"
+    title="Xem tiến độ thành thạo tiêu chuẩn"
+    class="group relative inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold
+           border border-[#1e293b]/20 bg-[#1e293b]/5 text-[#1e293b] hover:bg-[#1e293b]/10
+           transition-all cursor-pointer select-none">
+
+    <!-- Pulse ring (always animating when badge is visible) -->
+    <span class="absolute -inset-0.5 rounded-full border border-[#1e293b]/20 animate-ping opacity-40 pointer-events-none"></span>
+
+    <!-- Shield SVG icon -->
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1e293b" stroke-width="2.5"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="shrink-0">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>
+
+    <span>{{ primaryComp()!.code }}</span>
+
+    @if (lessonComps().length > 1) {
+      <span class="ml-0.5 px-1 py-0.5 text-[9px] font-bold bg-[#1e293b]/10 rounded-full tabular-nums">
+        +{{ lessonComps().length - 1 }}
+      </span>
+    }
+  </button>
+
+  <!-- Side Drawer -->
+  <app-side-drawer
+    [isOpen]="drawerOpen()"
+    title="Tiêu chuẩn năng lực"
+    subtitle="STCW / SOLAS / MARPOL"
+    width="400px"
+    (onClose)="closeDrawer()">
+
+    <!-- Competency tabs (if multiple) -->
+    @if (lessonComps().length > 1) {
+      <div class="flex flex-wrap gap-1.5 mb-5">
+        @for (comp of lessonComps(); track comp.id; let i = $index) {
+          <button type="button"
+            (click)="setActiveComp(i)"
+            class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all"
+            [class.bg-[#1e293b]]="activeCompIdx() === i"
+            [class.text-white]="activeCompIdx() === i"
+            [class.border-[#1e293b]]="activeCompIdx() === i"
+            [class.bg-white]="activeCompIdx() !== i"
+            [class.text-slate-600]="activeCompIdx() !== i"
+            [class.border-slate-200]="activeCompIdx() !== i"
+            [class.hover:border-slate-300]="activeCompIdx() !== i">
+            {{ comp.code }}
+          </button>
+        }
+      </div>
+    }
+
+    @if (activeComp(); as comp) {
+
+      <!-- Competency header card -->
+      <div class="rounded-xl border border-slate-200 bg-white p-4 mb-5">
+        <div class="flex items-start gap-3">
+          <div class="w-10 h-10 rounded-lg bg-[#1e293b] flex items-center justify-center shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <div class="min-w-0">
+            <div class="text-[11px] font-bold text-[#0056D2] uppercase tracking-widest mb-0.5">{{ comp.standardCode }}</div>
+            <h3 class="text-sm font-bold text-slate-800 leading-snug">{{ comp.code }} — {{ comp.title }}</h3>
+            @if (comp.category) {
+              <span class="mt-1.5 inline-block px-2 py-0.5 text-[10px] font-semibold rounded-full bg-slate-100 text-slate-500 uppercase tracking-wide">
+                {{ comp.category }}
+              </span>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Mastery progress -->
+      <section class="mb-5">
+        <h4 class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3">Tiến độ thành thạo</h4>
+
+        @if (isLoadingMap()) {
+          <div class="flex items-center gap-2 text-sm text-slate-400">
+            <div class="w-4 h-4 border-2 border-slate-200 border-t-[#0056D2] rounded-full animate-spin shrink-0"></div>
+            Đang tính toán...
+          </div>
+        } @else if (masteryPct() !== null) {
+          <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-semibold text-slate-700">{{ masteryLabel() }}</span>
+              <span class="text-lg font-black tabular-nums" [style.color]="masteryColor(masteryPct())">
+                {{ masteryPct() }}%
+              </span>
+            </div>
+            <div class="h-2.5 bg-slate-200 rounded-full overflow-hidden">
+              <div class="h-full rounded-full transition-all duration-700"
+                   [style.width.%]="masteryPct()"
+                   [style.background-color]="masteryColor(masteryPct())">
+              </div>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-2">
+              Dựa trên các bài học liên quan đến tiêu chuẩn này trong khóa học
+            </p>
+          </div>
+        } @else {
+          <div class="text-sm text-slate-400 bg-slate-50 rounded-xl p-4 border border-slate-100">
+            Chưa có dữ liệu tiến độ cho tiêu chuẩn này
+          </div>
+        }
+      </section>
+
+      <!-- KUP Checklist -->
+      @if (kupItems().length > 0) {
+        <section class="mb-5">
+          <h4 class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3">Yêu cầu năng lực (KUP)</h4>
+          <div class="space-y-2.5">
+
+            @if (kupByType().K.length > 0) {
+              <div class="rounded-xl border border-slate-100 overflow-hidden">
+                <div class="px-3 py-1.5 bg-[#1e293b]/5 border-b border-slate-100">
+                  <span class="text-[10px] font-bold text-[#1e293b] uppercase tracking-widest">Kiến thức (K)</span>
+                </div>
+                <ul class="divide-y divide-slate-50">
+                  @for (item of kupByType().K; track item.id) {
+                    <li class="flex items-start gap-2.5 px-3 py-2.5">
+                      @if (item.earnedHere) {
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="#10b981" stroke="#10b981" stroke-width="0"
+                             class="shrink-0 mt-0.5" aria-hidden="true">
+                          <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                      } @else {
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round"
+                             class="shrink-0 mt-0.5" aria-hidden="true">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                      }
+                      <span class="text-[12px] leading-relaxed" [class.text-slate-700]="item.earnedHere" [class.text-slate-400]="!item.earnedHere">
+                        {{ item.text }}
+                      </span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (kupByType().U.length > 0) {
+              <div class="rounded-xl border border-slate-100 overflow-hidden">
+                <div class="px-3 py-1.5 bg-[#0056D2]/5 border-b border-slate-100">
+                  <span class="text-[10px] font-bold text-[#0056D2] uppercase tracking-widest">Hiểu biết (U)</span>
+                </div>
+                <ul class="divide-y divide-slate-50">
+                  @for (item of kupByType().U; track item.id) {
+                    <li class="flex items-start gap-2.5 px-3 py-2.5">
+                      @if (item.earnedHere) {
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="#10b981" stroke="#10b981" stroke-width="0"
+                             class="shrink-0 mt-0.5" aria-hidden="true">
+                          <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                      } @else {
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round"
+                             class="shrink-0 mt-0.5" aria-hidden="true">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                      }
+                      <span class="text-[12px] leading-relaxed" [class.text-slate-700]="item.earnedHere" [class.text-slate-400]="!item.earnedHere">
+                        {{ item.text }}
+                      </span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (kupByType().P.length > 0) {
+              <div class="rounded-xl border border-slate-100 overflow-hidden">
+                <div class="px-3 py-1.5 bg-[#f59e0b]/10 border-b border-slate-100">
+                  <span class="text-[10px] font-bold text-[#b45309] uppercase tracking-widest">Thực hành (P)</span>
+                </div>
+                <ul class="divide-y divide-slate-50">
+                  @for (item of kupByType().P; track item.id) {
+                    <li class="flex items-start gap-2.5 px-3 py-2.5">
+                      @if (item.earnedHere) {
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="#10b981" stroke="#10b981" stroke-width="0"
+                             class="shrink-0 mt-0.5" aria-hidden="true">
+                          <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                      } @else {
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round"
+                             class="shrink-0 mt-0.5" aria-hidden="true">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                      }
+                      <span class="text-[12px] leading-relaxed" [class.text-slate-700]="item.earnedHere" [class.text-slate-400]="!item.earnedHere">
+                        {{ item.text }}
+                      </span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
+          </div>
+        </section>
+      }
+
+      <!-- Career path card -->
+      @if (careerInfo(); as career) {
+        <section>
+          <h4 class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3">Lộ trình chứng chỉ</h4>
+          <div class="rounded-xl border border-[#f59e0b]/40 bg-[#f59e0b]/5 p-4">
+            <div class="flex items-start gap-3">
+              <div class="w-9 h-9 rounded-lg bg-[#f59e0b] flex items-center justify-center shrink-0">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="8" r="6"></circle>
+                  <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"></path>
+                </svg>
+              </div>
+              <div class="min-w-0">
+                <div class="text-[10px] font-bold text-[#b45309] uppercase tracking-widest mb-0.5">{{ career.certificateName }}</div>
+                <div class="text-sm font-bold text-slate-800 leading-snug">{{ career.viCertName }}</div>
+                <p class="text-[11px] text-slate-500 mt-1.5 leading-relaxed">{{ career.description }}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      }
+    }
+
+    <!-- Empty footer slot (required by side-drawer) -->
+    <div footer></div>
+
+  </app-side-drawer>
+
+}

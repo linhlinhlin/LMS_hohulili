@@ -18,6 +18,7 @@ import { CurriculumQuizManagerComponent } from '../curriculum-quiz-manager/curri
 import { SectionEditorComponent } from '../section-editor/section-editor.component';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { stripCurriculumPrefix } from '../../../../utils/curriculum-labels';
+import { CompetencyPanelComponent } from '../competency-panel/competency-panel.component';
 
 /**
  * Lesson Editor - focused component for editing a single lesson.
@@ -41,6 +42,7 @@ import { stripCurriculumPrefix } from '../../../../utils/curriculum-labels';
     CurriculumAssignmentDetailsComponent,
     CurriculumQuizManagerComponent,
     SectionEditorComponent,
+    CompetencyPanelComponent,
   ],
   styles: [`
     @import '../../../course-info/editor-shared';
@@ -236,6 +238,8 @@ import { stripCurriculumPrefix } from '../../../../utils/curriculum-labels';
         >
         </app-curriculum-assignment-details>
       }
+
+      <app-competency-panel [lessonId]="lesson().id" />
 
       <div class="lesson-footer">
         @if (saveStatusHint(); as hint) {
