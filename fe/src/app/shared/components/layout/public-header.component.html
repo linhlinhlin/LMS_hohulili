@@ -100,14 +100,18 @@
                 <input
                   type="text"
                   placeholder="Bạn muốn học gì hôm nay?"
+                  aria-label="Tìm kiếm khóa học"
+                  autocomplete="off"
+                  enterkeyhint="search"
                   [ngModel]="searchQuery()"
                   (ngModelChange)="onSearchInput($event)"
                   (focus)="onSearchFocus()"
                   (blur)="onSearchBlur()"
                   (keydown)="onSearchKeydown($event)"
-                  class="w-full h-12 pl-5 pr-12 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 transition-all duration-200">
+                  class="w-full h-12 pl-5 pr-14 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 transition-all duration-200">
                 <button (click)="onSearchSubmit()"
-                        class="absolute right-1.5 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#0056D2]/5 hover:text-[#0056D2]">
+                        aria-label="Tìm kiếm khóa học"
+                        class="absolute right-1 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#0056D2]/5 hover:text-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
                   <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                   </svg>
@@ -233,7 +237,7 @@
             <div class="flex items-center justify-between gap-3 h-16">
               <!-- Mobile Logo -->
               <div class="min-w-0 flex-shrink">
-                <a routerLink="/" class="flex min-w-0 items-center">
+                <a routerLink="/" class="flex min-h-11 min-w-0 items-center">
                   <img src="/icons/logo-master.png" alt="LMS Maritime" class="w-8 h-8 rounded-lg mr-2 flex-shrink-0">
                   <span class="truncate text-base font-bold text-gray-900">LMS Maritime</span>
                 </a>
@@ -280,13 +284,16 @@
             <div class="pb-3">
               <div class="relative">
                 <input type="text" placeholder="Tìm kiếm khóa học..."
+                       aria-label="Tìm kiếm khóa học"
+                       autocomplete="off"
+                       enterkeyhint="search"
                        [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)"
                        (keydown)="onSearchKeydown($event)"
-                       class="w-full h-10 pl-4 pr-12 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 transition-all">
+                       class="w-full h-11 pl-4 pr-14 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 transition-all">
                 <button (click)="onSearchSubmit()"
                         aria-label="Tìm kiếm khóa học"
-                        class="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#0056D2]/5 hover:text-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
-                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        class="absolute right-0.5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#0056D2]/5 hover:text-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 </button>
               </div>
             </div>
