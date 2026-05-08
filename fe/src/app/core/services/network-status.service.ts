@@ -7,6 +7,7 @@ const OFFLINE_GRACE_MS = 1_500;
 const RECENT_OFFLINE_WINDOW_MS = 5_000;
 const PROBE_INTERVAL_MS = 120_000;
 const PROBE_TIMEOUT_MS = 4_000;
+const TRANSPORT_FAILURE_PROBE_DELAY_MS = 250;
 
 @Injectable({ providedIn: 'root' })
 export class NetworkStatusService implements OnDestroy {
@@ -47,6 +48,7 @@ export class NetworkStatusService implements OnDestroy {
   );
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private offlineGraceTimer: ReturnType<typeof setTimeout> | null = null;
+  private transportFailureProbeTimer: ReturnType<typeof setTimeout> | null = null;
   private probeInterval: ReturnType<typeof setInterval> | null = null;
 
   private readonly onlineHandler = () => {
@@ -116,6 +118,9 @@ export class NetworkStatusService implements OnDestroy {
     if (this.offlineGraceTimer) {
       clearTimeout(this.offlineGraceTimer);
     }
+    if (this.transportFailureProbeTimer) {
+      clearTimeout(this.transportFailureProbeTimer);
+    }
   }
 
   hasRecentOfflineSignal(windowMs = RECENT_OFFLINE_WINDOW_MS): boolean {
@@ -123,19 +128,50 @@ export class NetworkStatusService implements OnDestroy {
     return lastOfflineSignalAt != null && Date.now() - lastOfflineSignalAt <= windowMs;
   }
 
-  isEffectivelyOffline(windowMs = RECENT_OFFLINE_WINDOW_MS): boolean {
+  isEffectivelyOffline(): boolean {
     return !this.getBrowserOnlineHint()
-      || !this.online()
-      || this.hasRecentOfflineSignal(windowMs);
+      || !this.online();
   }
 
   markOfflineFromTransportFailure(): void {
-    this.markOfflineState();
+    if (!this.getBrowserOnlineHint()) {
+      this.markOfflineState();
+      return;
+    }
+
+    this.recentOfflineSignalAt.set(Date.now());
+    this.scheduleTransportFailureProbe();
+  }
+
+  markOnlineFromHttpSuccess(): void {
+    if (!this.getBrowserOnlineHint()) {
+      return;
+    }
+
+    if (this.transportFailureProbeTimer) {
+      clearTimeout(this.transportFailureProbeTimer);
+      this.transportFailureProbeTimer = null;
+    }
+
+    this.online.set(true);
+    this.recentOfflineSignalAt.set(null);
+    if (this.effectiveBandwidthMbps() <= 0) {
+      this.effectiveBandwidthMbps.set(2);
+    }
   }
 
   private debouncedUpdate(): void {
     if (this.debounceTimer) clearTimeout(this.debounceTimer);
     this.debounceTimer = setTimeout(() => this.updateStatus(), 150);
+  }
+
+  private scheduleTransportFailureProbe(): void {
+    if (this.transportFailureProbeTimer) return;
+
+    this.transportFailureProbeTimer = setTimeout(() => {
+      this.transportFailureProbeTimer = null;
+      this.probeLatency();
+    }, TRANSPORT_FAILURE_PROBE_DELAY_MS);
   }
 
   private updateStatus(): void {

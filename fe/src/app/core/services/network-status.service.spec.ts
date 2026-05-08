@@ -1,3 +1,4 @@
+import { fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
 import { NetworkStatusService } from './network-status.service';
 
 describe('NetworkStatusService', () => {
@@ -109,14 +110,49 @@ describe('NetworkStatusService', () => {
   });
 
   describe('offline signal tracking', () => {
-    it('should mark the app as effectively offline after a transport failure', () => {
+    it('should wait for a probe before showing offline after a transport failure', fakeAsync(() => {
       service.online.set(true);
+      fetchSpy.calls.reset();
 
       service.markOfflineFromTransportFailure();
+
+      expect(service.online()).toBeTrue();
+      expect(service.hasRecentOfflineSignal()).toBeTrue();
+      expect(service.isEffectivelyOffline()).toBeFalse();
+
+      tick(250);
+      flushMicrotasks();
+
+      expect(fetchSpy).toHaveBeenCalled();
+      expect(service.online()).toBeTrue();
+      expect(service.hasRecentOfflineSignal()).toBeFalse();
+    }));
+
+    it('should confirm offline when the follow-up probe fails', fakeAsync(() => {
+      service.online.set(true);
+      fetchSpy.and.callFake(async () => new Response('', { status: 503 }));
+
+      service.markOfflineFromTransportFailure();
+      tick(250);
+      flushMicrotasks();
 
       expect(service.online()).toBeFalse();
       expect(service.hasRecentOfflineSignal()).toBeTrue();
       expect(service.isEffectivelyOffline()).toBeTrue();
-    });
+    }));
+
+    it('should clear a suspected offline signal after a successful HTTP response', fakeAsync(() => {
+      service.online.set(true);
+      fetchSpy.calls.reset();
+      service.markOfflineFromTransportFailure();
+
+      service.markOnlineFromHttpSuccess();
+      tick(250);
+
+      expect(service.online()).toBeTrue();
+      expect(service.hasRecentOfflineSignal()).toBeFalse();
+      expect(service.isEffectivelyOffline()).toBeFalse();
+      expect(fetchSpy).not.toHaveBeenCalled();
+    }));
   });
 });
