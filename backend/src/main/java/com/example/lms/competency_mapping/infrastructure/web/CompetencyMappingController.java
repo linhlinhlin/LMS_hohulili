@@ -1,6 +1,7 @@
 package com.example.lms.competency_mapping.infrastructure.web;
 
 import com.example.lms.competency_mapping.application.dto.UpdateLessonCompetenciesCommand;
+import com.example.lms.competency_mapping.application.port.LessonQueryPort;
 import com.example.lms.competency_mapping.application.usecase.*;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
@@ -10,6 +11,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -29,19 +31,22 @@ public class CompetencyMappingController {
     private final UpdateLessonCompetenciesUseCase updateLessonCompetencies;
     private final GetLessonCompetenciesUseCase getLessonCompetencies;
     private final ExportCompetencyMapUseCase exportMap;
+    private final LessonQueryPort lessonQueryPort;
 
     public CompetencyMappingController(GetStandardsUseCase getStandards,
                                         GetCompetenciesUseCase getCompetencies,
                                         GetCourseCompetencyMapUseCase getCourseMap,
                                         UpdateLessonCompetenciesUseCase updateLessonCompetencies,
                                         GetLessonCompetenciesUseCase getLessonCompetencies,
-                                        ExportCompetencyMapUseCase exportMap) {
+                                        ExportCompetencyMapUseCase exportMap,
+                                        LessonQueryPort lessonQueryPort) {
         this.getStandards = getStandards;
         this.getCompetencies = getCompetencies;
         this.getCourseMap = getCourseMap;
         this.updateLessonCompetencies = updateLessonCompetencies;
         this.getLessonCompetencies = getLessonCompetencies;
         this.exportMap = exportMap;
+        this.lessonQueryPort = lessonQueryPort;
     }
 
     @GetMapping("/standards")
@@ -62,9 +67,12 @@ public class CompetencyMappingController {
     }
 
     @GetMapping("/courses/{courseId}/competency-map")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Get full competency matrix for a course (cached 60s)")
-    public ResponseEntity<?> getCourseCompetencyMap(@PathVariable UUID courseId) {
+    public ResponseEntity<?> getCourseCompetencyMap(
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        verifyCourseReadAccess(courseId, currentUser);
         return ResponseEntity.ok(ApiResponse.success(getCourseMap.execute(courseId)));
     }
 
@@ -92,21 +100,83 @@ public class CompetencyMappingController {
     }
 
     @GetMapping("/lessons/{lessonId}/competencies")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Get current competency mappings for a lesson")
-    public ResponseEntity<?> getLessonCompetencies(@PathVariable UUID lessonId) {
+    public ResponseEntity<?> getLessonCompetencies(
+            @PathVariable UUID lessonId,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        verifyLessonReadAccess(lessonId, currentUser);
         return ResponseEntity.ok(ApiResponse.success(getLessonCompetencies.execute(lessonId)));
     }
 
     @GetMapping("/courses/{courseId}/competency-map/export")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
     @Operation(summary = "Export competency map as CSV file")
-    public ResponseEntity<byte[]> exportCsv(@PathVariable UUID courseId) {
+    public ResponseEntity<byte[]> exportCsv(
+            @PathVariable UUID courseId,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        verifyCourseAuthoringAccess(courseId, currentUser);
         var csv = exportMap.execute(courseId);
         var filename = "competency-map-" + courseId + "-" + LocalDate.now() + ".csv";
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
                 .body(csv);
+    }
+
+    private void verifyCourseReadAccess(UUID courseId, UserJpaEntity currentUser) {
+        if (isAdminRole(currentUser)) return;
+        if (currentUser == null || currentUser.getId() == null || currentUser.getRole() == null) {
+            throwDenied();
+        }
+
+        if (currentUser.getRole() == UserJpaEntity.UserRole.TEACHER
+                && lessonQueryPort.canTeachCourse(courseId, currentUser.getId())) {
+            return;
+        }
+        if (currentUser.getRole() == UserJpaEntity.UserRole.STUDENT
+                && lessonQueryPort.isStudentEnrolledInCourse(courseId, currentUser.getId())) {
+            return;
+        }
+
+        throwDenied();
+    }
+
+    private void verifyCourseAuthoringAccess(UUID courseId, UserJpaEntity currentUser) {
+        if (isAdminRole(currentUser)) return;
+        if (currentUser == null
+                || currentUser.getRole() != UserJpaEntity.UserRole.TEACHER
+                || currentUser.getId() == null
+                || !lessonQueryPort.canTeachCourse(courseId, currentUser.getId())) {
+            throwDenied();
+        }
+    }
+
+    private void verifyLessonReadAccess(UUID lessonId, UserJpaEntity currentUser) {
+        if (isAdminRole(currentUser)) return;
+        if (currentUser == null || currentUser.getId() == null || currentUser.getRole() == null) {
+            throwDenied();
+        }
+
+        if (currentUser.getRole() == UserJpaEntity.UserRole.TEACHER
+                && lessonQueryPort.canTeachLesson(lessonId, currentUser.getId())) {
+            return;
+        }
+        if (currentUser.getRole() == UserJpaEntity.UserRole.STUDENT
+                && lessonQueryPort.isStudentEnrolledInLesson(lessonId, currentUser.getId())) {
+            return;
+        }
+
+        throwDenied();
+    }
+
+    private boolean isAdminRole(UserJpaEntity currentUser) {
+        return currentUser != null
+                && (currentUser.getRole() == UserJpaEntity.UserRole.ADMIN
+                || currentUser.getRole() == UserJpaEntity.UserRole.ORG_ADMIN);
+    }
+
+    private void throwDenied() {
+        throw new AccessDeniedException("Bạn không có quyền truy cập bản đồ năng lực này");
     }
 }

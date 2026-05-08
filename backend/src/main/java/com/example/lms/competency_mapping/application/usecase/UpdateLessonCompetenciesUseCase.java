@@ -40,7 +40,7 @@ public class UpdateLessonCompetenciesUseCase {
             throw new EntityNotFoundException("Lesson", lessonId);
         }
 
-        if (!isAdmin && !lessonQueryPort.isLessonOwnedBy(lessonId, currentUserId)) {
+        if (!isAdmin && !lessonQueryPort.canTeachLesson(lessonId, currentUserId)) {
             throw new AccessDeniedException("You don't own this course");
         }
 
