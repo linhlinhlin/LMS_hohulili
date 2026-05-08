@@ -7,7 +7,7 @@
     <!-- Lesson Title (Always at top) -->
     @if (hasSections() && currentSection(); as section) {
     <header class="lesson-header">
-      <p class="lesson-kicker">Chương {{ chapterIndex() + 1 }} / {{ lessonNumber() }}</p>
+      <p class="lesson-kicker">Chương {{ chapterIndex() + 1 }} / {{ currentSectionNumber() }}</p>
       <h1 id="lesson-heading" class="lesson-title">
         {{ lesson().title }}
       </h1>
