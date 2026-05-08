@@ -163,11 +163,15 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1023px) {
   .maritime-top-header {
     .user-type-selector {
       display: none;
     }
+  }
+
+  .public-main-header {
+    margin-top: 0 !important;
   }
   
   .search-centerpiece {
