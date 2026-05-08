@@ -1,14 +1,72 @@
 :host {
+  --learning-sidebar-width: 20rem;
+
   display: block;
   height: 100vh;
 }
 
 .course-learning-layout {
+  position: relative;
   color: #0f172a;
 }
 
 .learning-sidebar {
+  width: var(--learning-sidebar-width);
+  overflow: hidden;
   scrollbar-gutter: stable;
+  transition:
+    width 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.learning-sidebar--collapsed {
+  width: 0;
+  min-width: 0;
+  border-right-color: transparent;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.learning-sidebar-toggle {
+  position: absolute;
+  top: 4.35rem;
+  left: var(--learning-sidebar-width);
+  z-index: 35;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  color: #475569;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #dbe5f2;
+  border-radius: 999px;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.12);
+  transform: translateX(-50%);
+  transition:
+    left 180ms ease,
+    color 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 180ms ease;
+
+  &:hover {
+    color: #0056d2;
+    background: #ffffff;
+    border-color: rgba(0, 86, 210, 0.28);
+    box-shadow: 0 10px 26px rgba(0, 86, 210, 0.16);
+  }
+
+  &:focus-visible {
+    outline: 3px solid rgba(0, 86, 210, 0.22);
+    outline-offset: 2px;
+  }
+}
+
+.learning-sidebar-toggle--collapsed {
+  left: 1rem;
+  transform: none;
 }
 
 .learning-chapter-toggle {
@@ -49,6 +107,10 @@
     linear-gradient(180deg, #ffffff 0%, #fbfdff 48%, #ffffff 100%);
 }
 
+.learning-main--sidebar-collapsed .learning-topbar {
+  padding-left: 4rem;
+}
+
 .learning-topbar {
   padding-inline: clamp(1.5rem, 4vw, 4rem);
 }
@@ -65,6 +127,11 @@
 @media (max-width: 767px) {
   .learning-sidebar {
     width: 88vw;
+  }
+
+  .learning-sidebar--collapsed {
+    width: 88vw;
+    pointer-events: auto;
   }
 
   .learning-bottom-nav {
