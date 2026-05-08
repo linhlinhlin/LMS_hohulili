@@ -31,9 +31,11 @@
   }
 
   <!-- Sidebar -->
-  <aside class="learning-sidebar w-[320px] flex-col border-r border-gray-200 bg-white h-full z-10 shrink-0"
+  <aside id="course-learning-sidebar"
+    class="learning-sidebar flex-col border-r border-gray-200 bg-white h-full z-10 shrink-0"
     [class.hidden]="isMobileView() && !showMobileSidebar()"
     [class.!flex]="showMobileSidebar() || !isMobileView()"
+    [class.learning-sidebar--collapsed]="!isMobileView() && desktopSidebarCollapsed()"
     [class.fixed]="isMobileView()"
     [class.left-0]="isMobileView()"
     [class.top-0]="isMobileView()"
@@ -41,7 +43,9 @@
     [class.w-[85vw]]="isMobileView()"
     [class.max-w-[340px]]="isMobileView()"
     [class.z-50]="isMobileView()"
-    [class.shadow-lg]="isMobileView()">
+    [class.shadow-lg]="isMobileView()"
+    [attr.aria-hidden]="!isMobileView() && desktopSidebarCollapsed() ? 'true' : null"
+    [attr.inert]="!isMobileView() && desktopSidebarCollapsed() ? '' : null">
 
     <!-- Sidebar Header -->
     <div class="px-4 py-4 border-b border-gray-200">
@@ -239,8 +243,20 @@
     </div>
   </aside>
 
+  <button type="button"
+    class="learning-sidebar-toggle hidden md:inline-flex"
+    [class.learning-sidebar-toggle--collapsed]="desktopSidebarCollapsed()"
+    [attr.aria-expanded]="!desktopSidebarCollapsed()"
+    aria-controls="course-learning-sidebar"
+    [attr.aria-label]="desktopSidebarCollapsed() ? 'Mở mục lục khóa học' : 'Thu gọn mục lục khóa học'"
+    [attr.title]="desktopSidebarCollapsed() ? 'Mở mục lục' : 'Thu gọn mục lục'"
+    (click)="toggleDesktopSidebar()">
+    <app-icon [name]="desktopSidebarCollapsed() ? 'chevron-right' : 'chevron-left'" size="sm"></app-icon>
+  </button>
+
   <!-- Main Content Area -->
-  <main class="learning-main flex-1 flex flex-col h-full relative bg-white overflow-hidden">
+  <main class="learning-main flex-1 flex flex-col h-full relative bg-white overflow-hidden"
+    [class.learning-main--sidebar-collapsed]="!isMobileView() && desktopSidebarCollapsed()">
 
     <!-- Top Bar (desktop only) — minimal breadcrumb -->
     <div class="learning-topbar hidden md:flex h-[52px] items-center px-6 border-b border-gray-100 bg-white shrink-0">

@@ -76,6 +76,7 @@ export class CourseLearningComponent implements OnInit {
   // Local UI state
   isMobileView = signal(false);
   showMobileSidebar = signal(false);
+  desktopSidebarCollapsed = signal(false);
   error = signal<string | null>(null);
 
   // (Removed `activeTab` — content is single-column inline now, notes drawer
@@ -532,6 +533,15 @@ export class CourseLearningComponent implements OnInit {
   // Sidebar actions
   toggleSidebar(): void {
     this.showMobileSidebar.update(show => !show);
+  }
+
+  toggleDesktopSidebar(): void {
+    if (this.isMobileView()) {
+      this.toggleSidebar();
+      return;
+    }
+
+    this.desktopSidebarCollapsed.update(collapsed => !collapsed);
   }
 
   closeMobileSidebar(): void {
