@@ -2,3 +2,72 @@
   display: block;
   height: 100vh;
 }
+
+.course-learning-layout {
+  color: #0f172a;
+}
+
+.learning-sidebar {
+  scrollbar-gutter: stable;
+}
+
+.learning-chapter-toggle {
+  min-height: 4.5rem;
+}
+
+.learning-chapter-title {
+  line-height: 1.45;
+}
+
+.learning-lesson-toggle {
+  min-height: 3.25rem;
+}
+
+.learning-lesson-title,
+.learning-section-title {
+  display: -webkit-box;
+  overflow: hidden;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+}
+
+.learning-lesson-title {
+  -webkit-line-clamp: 2;
+}
+
+.learning-section-title {
+  -webkit-line-clamp: 2;
+}
+
+.learning-section-toggle {
+  align-items: flex-start;
+}
+
+.learning-main {
+  background:
+    linear-gradient(180deg, #ffffff 0%, #fbfdff 48%, #ffffff 100%);
+}
+
+.learning-topbar {
+  padding-inline: clamp(1.5rem, 4vw, 4rem);
+}
+
+.learning-scroll {
+  scrollbar-gutter: stable;
+}
+
+.learning-bottom-nav {
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+@media (max-width: 767px) {
+  .learning-sidebar {
+    width: 88vw;
+  }
+
+  .learning-bottom-nav {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+}
