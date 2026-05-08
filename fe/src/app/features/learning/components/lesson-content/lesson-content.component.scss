@@ -4,8 +4,195 @@
   min-height: 100%;
 }
 
+.lesson-learning-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding: 0 2rem 7rem;
+}
+
+.lesson-reading-area {
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 2rem 0 3rem;
+}
+
+.lesson-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.lesson-kicker {
+  margin: 0 0 0.65rem;
+  color: #64748b;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.lesson-title {
+  margin: 0;
+  color: #0f172a;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.lesson-section-title {
+  margin: 0.85rem 0 0;
+  color: #334155;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.lesson-content-body {
+  padding-top: 0.25rem;
+}
+
+.lesson-content-flow {
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+.lesson-media-area {
+  max-width: 920px;
+  margin-inline: auto;
+}
+
+.lesson-video-frame {
+  border-radius: 0.75rem;
+}
+
 // ::ng-deep required because .prose content is injected via [innerHTML]
 // which doesn't get Angular's _ngcontent-xxx attribute scoping
 :host ::ng-deep .prose {
   @import '../../../../shared/components/tiptap-editor/prose-content';
+}
+
+:host ::ng-deep .lesson-prose {
+  color: #334155;
+  font-size: 1rem;
+  line-height: 1.85;
+
+  > *:first-child {
+    margin-top: 0;
+  }
+
+  p {
+    max-width: 75ch;
+    margin: 0 0 1rem;
+    color: #334155;
+    line-height: 1.85;
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+
+  p + p {
+    text-indent: 1.5rem;
+  }
+
+  li p,
+  blockquote p,
+  .callout p,
+  table p {
+    text-indent: 0;
+  }
+
+  h2 {
+    margin-top: 2.25rem;
+    margin-bottom: 0.85rem;
+    padding-bottom: 0.5rem;
+    color: #0f172a;
+    font-size: 1.35rem;
+    line-height: 1.35;
+    border-bottom: 1px solid #dbe5f2;
+  }
+
+  h3 {
+    margin-top: 1.75rem;
+    margin-bottom: 0.75rem;
+    color: #172033;
+    font-size: 1.12rem;
+    line-height: 1.4;
+  }
+
+  h4,
+  h5,
+  h6 {
+    margin-top: 1.4rem;
+    margin-bottom: 0.55rem;
+    color: #1e293b;
+    line-height: 1.45;
+  }
+
+  ul,
+  ol {
+    max-width: 75ch;
+    margin: 1rem 0 1.25rem;
+    padding-left: 1.75rem;
+  }
+
+  li {
+    margin: 0.45rem 0;
+    padding-left: 0.2rem;
+    line-height: 1.75;
+  }
+
+  li > ul,
+  li > ol {
+    margin: 0.45rem 0 0.65rem;
+    padding-left: 1.25rem;
+  }
+
+  blockquote,
+  .callout {
+    max-width: 78ch;
+  }
+
+  table {
+    line-height: 1.55;
+  }
+}
+
+@media (max-width: 767px) {
+  .lesson-learning-shell {
+    padding: 0 1rem 7.5rem;
+  }
+
+  .lesson-reading-area {
+    padding: 1.25rem 0 2.25rem;
+  }
+
+  .lesson-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .lesson-title {
+    font-size: 1.5rem;
+  }
+
+  .lesson-section-title {
+    font-size: 1.1rem;
+  }
+
+  :host ::ng-deep .lesson-prose {
+    font-size: 0.96875rem;
+    line-height: 1.8;
+
+    p {
+      line-height: 1.8;
+    }
+
+    p + p {
+      text-indent: 0;
+    }
+
+    ul,
+    ol {
+      padding-left: 1.35rem;
+    }
+  }
 }
