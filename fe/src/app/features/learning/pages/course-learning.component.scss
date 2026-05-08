@@ -30,36 +30,30 @@
 
 .learning-sidebar-toggle {
   position: absolute;
-  top: 4.5rem;
-  left: calc(var(--learning-sidebar-width) - 1px);
+  top: 0.75rem;
+  left: calc(var(--learning-sidebar-width) - 2.75rem);
   z-index: 35;
   align-items: center;
   justify-content: center;
-  width: 1.75rem;
-  height: 3.5rem;
+  gap: 0.4rem;
+  box-sizing: border-box;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  overflow: hidden;
   color: #64748b;
-  background:
-    linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-  border: 1px solid #d8e2f0;
-  border-left-color: rgba(216, 226, 240, 0.55);
-  border-radius: 0 999px 999px 0;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   transition:
     left 180ms ease,
+    width 180ms ease,
+    padding 180ms ease,
     color 160ms ease,
-    background 160ms ease,
+    background-color 160ms ease,
     border-color 160ms ease,
     box-shadow 160ms ease;
-
-  &::before {
-    position: absolute;
-    top: 0.625rem;
-    bottom: 0.625rem;
-    left: 0;
-    width: 1px;
-    content: '';
-    background: #e2e8f0;
-  }
 
   app-icon {
     position: relative;
@@ -68,10 +62,9 @@
 
   &:hover {
     color: #0056d2;
-    background:
-      linear-gradient(180deg, #ffffff 0%, #f5f9ff 100%);
-    border-color: rgba(0, 86, 210, 0.26);
-    box-shadow: 0 8px 20px rgba(0, 86, 210, 0.12);
+    background-color: #f8fbff;
+    border-color: #bfdbfe;
+    box-shadow: 0 6px 16px rgba(0, 86, 210, 0.1);
   }
 
   &:focus-visible {
@@ -80,13 +73,24 @@
   }
 }
 
-.learning-sidebar-toggle--collapsed {
-  left: 0;
-  border-left-color: #d8e2f0;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
+.learning-sidebar-toggle__label {
+  display: none;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
 
-  &::before {
-    background: rgba(0, 86, 210, 0.24);
+.learning-sidebar-toggle--collapsed {
+  left: 1rem;
+  width: 5.75rem;
+  padding: 0 0.75rem 0 0.625rem;
+  color: #0056d2;
+  border-radius: 999px;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.1);
+
+  .learning-sidebar-toggle__label {
+    display: inline;
   }
 }
 
@@ -128,12 +132,12 @@
     linear-gradient(180deg, #ffffff 0%, #fbfdff 48%, #ffffff 100%);
 }
 
-.learning-main--sidebar-collapsed .learning-topbar {
-  padding-left: 4rem;
-}
-
 .learning-topbar {
   padding-inline: clamp(1.5rem, 4vw, 4rem);
+}
+
+.learning-main--sidebar-collapsed .learning-topbar {
+  padding-inline-start: 7.5rem;
 }
 
 .learning-scroll {
