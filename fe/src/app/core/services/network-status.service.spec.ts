@@ -155,4 +155,35 @@ describe('NetworkStatusService', () => {
       expect(fetchSpy).not.toHaveBeenCalled();
     }));
   });
+
+  describe('non-critical sync deferral', () => {
+    it('should defer background sync while effectively offline', () => {
+      service.online.set(false);
+
+      expect(service.shouldDeferNonCriticalSync()).toBeTrue();
+    });
+
+    it('should defer background sync on slow connections', () => {
+      service.online.set(true);
+      service.effectiveBandwidthMbps.set(0.5);
+
+      expect(service.shouldDeferNonCriticalSync()).toBeTrue();
+    });
+
+    it('should defer background sync when Save-Data is enabled', () => {
+      service.online.set(true);
+      service.effectiveBandwidthMbps.set(10);
+      service.saveDataEnabled.set(true);
+
+      expect(service.shouldDeferNonCriticalSync()).toBeTrue();
+    });
+
+    it('should allow background sync on a stable fast connection', () => {
+      service.online.set(true);
+      service.effectiveBandwidthMbps.set(10);
+      service.saveDataEnabled.set(false);
+
+      expect(service.shouldDeferNonCriticalSync()).toBeFalse();
+    });
+  });
 });
