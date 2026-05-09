@@ -59,17 +59,17 @@ interface DragDropResultState {
   `],
   template: `
     <div class="mt-3 grid gap-3" data-testid="interactive-video-drag-drop">
-      <section class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-        @if (dragDrop()?.instruction) {
+      <section class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+        @if (visibleInstruction(); as instruction) {
           <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-700">
-            {{ dragDrop()?.instruction }}
+            {{ instruction }}
           </p>
         }
 
-        <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <div [class]="layoutClass()">
           <div class="min-w-0">
             <div
-              class="drag-drop-stage relative aspect-video overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 shadow-inner"
+              [class]="stageClass()"
               data-testid="interactive-video-drag-drop-canvas"
               (dragover)="onStageDragOver($event)">
               @if (backgroundUrl(); as bgUrl) {
@@ -151,7 +151,7 @@ interface DragDropResultState {
 
             <div class="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
               <span>
-                Kéo đáp án đúng vào vùng ảnh; giữ đáp án sai ở ngoài.
+                Bấm hoặc kéo vật dụng bạn chọn vào vùng trên hình.
               </span>
               <span class="font-semibold tabular-nums text-slate-700">
                 {{ placedCount() }}/{{ draggables().length }} đã chọn
@@ -159,7 +159,7 @@ interface DragDropResultState {
             </div>
           </div>
 
-          <aside class="flex max-h-[min(31rem,calc(100vh-12rem))] min-h-0 flex-col rounded-2xl border border-slate-200 bg-slate-50/90 p-3">
+          <aside class="min-w-0 rounded-2xl border border-slate-200 bg-slate-50/90 p-3">
             <div class="flex items-start justify-between gap-2">
               <div>
                 <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Vật dụng</p>
@@ -174,7 +174,7 @@ interface DragDropResultState {
               }
             </div>
 
-            <div class="mt-3 grid min-h-0 flex-1 gap-2 overflow-y-auto pr-1">
+            <div [class]="draggableGridClass()">
               @for (draggable of draggables(); track draggable.id) {
                 <button
                   type="button"
@@ -187,32 +187,19 @@ interface DragDropResultState {
                   (click)="selectDraggable(draggable.id)"
                   (dragstart)="onDragStart($event, draggable.id)"
                   (dragend)="onDragEnd()">
-                  <span class="flex h-16 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                  <span [class]="draggableMediaClass()">
                     @if (mediaUrl(draggable.image); as imageUrl) {
                       <img [src]="imageUrl"
-                        width="96"
+                        width="72"
                         height="72"
                         [alt]="draggable.image?.alt || draggable.label"
-                        class="max-h-14 max-w-full object-contain" />
+                        [class]="draggableImageClass()" />
                     } @else {
                       <span class="px-1 text-[10px] font-bold uppercase text-slate-400">Text</span>
                     }
                   </span>
                   <span class="min-w-0 flex-1 text-left">
-                    <span class="block truncate text-sm font-extrabold">{{ draggable.label }}</span>
-                    @if (placementLabel(draggable); as zoneLabel) {
-                      <span class="mt-0.5 block truncate text-[11px] font-semibold opacity-75">
-                        Đã chọn: {{ zoneLabel }}
-                      </span>
-                    } @else if (shouldStayOutside(draggable)) {
-                      <span class="mt-0.5 block text-[11px] font-semibold opacity-70">
-                        Để ngoài nếu là đáp án sai
-                      </span>
-                    } @else {
-                      <span class="mt-0.5 block text-[11px] font-semibold opacity-70">
-                        Kéo vào vùng đúng
-                      </span>
-                    }
+                    <span class="block text-sm font-extrabold leading-snug text-slate-800">{{ draggable.label }}</span>
                   </span>
                   @if (isChecked()) {
                     <span [class]="draggableStatusClass(draggable)" aria-hidden="true">
@@ -283,6 +270,7 @@ export class InteractiveVideoDragDropComponent {
   private readonly contentIdentity = inject(ContentIdentityService);
 
   readonly interaction = input.required<InteractiveVideoInteraction>();
+  readonly density = input<'comfortable' | 'compact'>('comfortable');
   readonly continueRequested = output<void>();
 
   private readonly answerState = signal<DragDropAnswerState>({ interactionId: '', placements: {} });
@@ -297,6 +285,16 @@ export class InteractiveVideoDragDropComponent {
   readonly dragDrop = computed(() => this.interaction().dragDrop ?? null);
   readonly dropZones = computed(() => this.dragDrop()?.dropZones ?? []);
   readonly draggables = computed(() => this.dragDrop()?.draggables ?? []);
+  readonly visibleInstruction = computed(() => {
+    const instruction = this.dragDrop()?.instruction?.trim() ?? '';
+    if (!instruction) {
+      return '';
+    }
+
+    return this.isAnswerRoleLeakingInstruction(instruction)
+      ? 'Chọn các vật dụng phù hợp rồi kéo vào vùng trên hình.'
+      : instruction;
+  });
   readonly placements = computed(() => {
     const state = this.answerState();
     return state.interactionId === this.interaction().id ? state.placements : {};
@@ -457,13 +455,21 @@ export class InteractiveVideoDragDropComponent {
     return this.contentIdentity.resolveUrl(idOrUrl);
   }
 
-  placedDraggablesForZone(zoneId: string): InteractiveVideoDragDropDraggable[] {
-    return this.draggables().filter(draggable => this.placements()[draggable.id] === zoneId);
+  private isAnswerRoleLeakingInstruction(instruction: string): boolean {
+    const normalized = instruction
+      .toLocaleLowerCase('vi-VN')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd');
+
+    return normalized.includes('dap an dung')
+      || normalized.includes('dap an sai')
+      || normalized.includes('vung dung')
+      || normalized.includes('vung dap an dung');
   }
 
-  placementLabel(draggable: InteractiveVideoDragDropDraggable): string | null {
-    const zoneId = this.placements()[draggable.id];
-    return zoneId ? this.dropZones().find(zone => zone.id === zoneId)?.label ?? null : null;
+  placedDraggablesForZone(zoneId: string): InteractiveVideoDragDropDraggable[] {
+    return this.draggables().filter(draggable => this.placements()[draggable.id] === zoneId);
   }
 
   solutionLabelsForZone(zoneId: string): string {
@@ -472,10 +478,6 @@ export class InteractiveVideoDragDropComponent {
       .map(draggable => draggable.label)
       .filter(Boolean);
     return labels.join(', ');
-  }
-
-  shouldStayOutside(draggable: InteractiveVideoDragDropDraggable): boolean {
-    return this.getCorrectZoneIds(draggable).length === 0;
   }
 
   draggableState(draggable: InteractiveVideoDragDropDraggable): 'idle' | 'placed' | 'selected' | 'correct' | 'wrong' {
@@ -533,8 +535,41 @@ export class InteractiveVideoDragDropComponent {
       : `${base} bg-slate-950/75 text-white`;
   }
 
+  layoutClass(): string {
+    return this.density() === 'compact'
+      ? 'grid gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(22rem,0.95fr)] lg:items-center'
+      : 'grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.72fr)] xl:items-start';
+  }
+
+  stageClass(): string {
+    const base = 'drag-drop-stage relative mx-auto aspect-video w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 shadow-inner';
+    return this.density() === 'compact'
+      ? `${base} max-w-[36rem]`
+      : `${base} max-w-[46rem]`;
+  }
+
+  draggableGridClass(): string {
+    return this.density() === 'compact'
+      ? 'mt-3 grid gap-2 grid-cols-[repeat(auto-fit,minmax(13.5rem,1fr))]'
+      : 'mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2';
+  }
+
+  draggableMediaClass(): string {
+    return this.density() === 'compact'
+      ? 'flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm'
+      : 'flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm';
+  }
+
+  draggableImageClass(): string {
+    return this.density() === 'compact'
+      ? 'max-h-[5.25rem] max-w-full object-contain'
+      : 'max-h-12 max-w-full object-contain';
+  }
+
   draggableCardClass(draggable: InteractiveVideoDragDropDraggable): string {
-    const base = 'drag-drop-item flex w-full cursor-grab items-center gap-3 rounded-2xl border px-3 py-2.5 text-left disabled:cursor-not-allowed';
+    const base = this.density() === 'compact'
+      ? 'drag-drop-item flex min-h-[6.5rem] w-full min-w-0 cursor-grab items-center gap-3 rounded-2xl border px-3 py-2.5 text-left disabled:cursor-not-allowed'
+      : 'drag-drop-item flex w-full min-w-0 cursor-grab items-center gap-2 rounded-xl border px-2.5 py-2 text-left disabled:cursor-not-allowed';
     switch (this.draggableState(draggable)) {
       case 'selected':
         return `${base} border-[#0056D2] bg-white text-[#0056D2] shadow-sm ring-2 ring-[#0056D2]/15`;

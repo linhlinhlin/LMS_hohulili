@@ -137,7 +137,7 @@ export function createInteractiveVideoDragDrop(): InteractiveVideoDragDrop {
   const distractorDraggable = createInteractiveVideoDragDropDraggable(1);
 
   return {
-    instruction: 'Kéo những đáp án đúng vào vùng ảnh. Để nguyên đáp án sai ở ngoài.',
+    instruction: 'Chọn các vật dụng phù hợp rồi kéo vào vùng trên hình.',
     backgroundImage: null,
     dropZones: [
       { ...answerZone, correctDraggableIds: [correctDraggable.id] },
