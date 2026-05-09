@@ -22,8 +22,8 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
       <app-skip-link/>
       <!-- Desktop Sidebar - Full Height (collapsible, matching student pattern) -->
       @if (!shouldHideSidebar()) {
-        <div [class]="'hidden md:flex md:flex-col md:fixed md:inset-y-0 md:z-40 transition-all duration-300 '
-          + (sidebarState.collapsed() ? 'md:w-16' : 'md:w-72')">
+        <div [class]="'hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-40 transition-all duration-300 '
+          + (sidebarState.collapsed() ? 'lg:w-16' : 'lg:w-72')">
           <app-sidebar [config]="teacherSidebarConfig()"
             [collapsed]="sidebarState.collapsed()"
             (toggleCollapse)="sidebarState.toggleCollapsed()"></app-sidebar>
@@ -32,7 +32,8 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
 
       <!-- Mobile sidebar overlay — CSS animation (matching student layout) -->
       @if (!shouldHideSidebar()) {
-        <div class="mobile-sidebar-overlay md:hidden"
+        <div id="mobile-sidebar-drawer"
+             class="mobile-sidebar-overlay lg:hidden"
              [class.open]="isMobileSidebarOpen()"
              [attr.aria-hidden]="!isMobileSidebarOpen()"
              [attr.aria-modal]="isMobileSidebarOpen() ? 'true' : null"
@@ -51,12 +52,12 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
       <div [class]="shouldHideSidebar()
         ? 'flex flex-1 min-h-0'
         : 'flex flex-1 min-h-0 transition-all duration-300 '
-          + (sidebarState.collapsed() ? 'md:pl-16' : 'md:pl-72')">
+          + (sidebarState.collapsed() ? 'lg:pl-16' : 'lg:pl-72')">
 
         <!-- Main content column -->
         <div class="flex flex-col flex-1 min-w-0">
           <!-- Mobile top bar — minimal: [☰] [Logo] [Avatar] (matching student layout) -->
-          <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 md:hidden shadow-sm overflow-hidden transition-[max-height,opacity] duration-300 ease-out"
+          <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 lg:hidden shadow-sm overflow-hidden transition-[max-height,opacity] duration-300 ease-out"
                   [class.max-h-14]="!shouldHideMobileChrome()"
                   [class.max-h-0]="shouldHideMobileChrome()"
                   [class.opacity-0]="shouldHideMobileChrome()"
@@ -66,6 +67,8 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
                 <div class="flex items-center space-x-3">
                   <button (click)="toggleMobileSidebar()"
                     aria-label="Mở menu điều hướng"
+                    [attr.aria-expanded]="isMobileSidebarOpen()"
+                    aria-controls="mobile-sidebar-drawer"
                     class="inline-flex h-11 w-11 items-center justify-center rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 transition-all duration-200">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
@@ -91,7 +94,7 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
           </main>
 
           <!-- Mobile Bottom Navigation — 4 nav + 1 center AI (matching student + UX Guidelines) -->
-            <nav class="mobile-bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-lg transition-[transform,opacity] duration-300 ease-out"
+            <nav class="mobile-bottom-nav lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-lg transition-[transform,opacity] duration-300 ease-out"
                  [class.translate-y-full]="shouldHideMobileChrome()"
                  [class.opacity-0]="shouldHideMobileChrome()"
                  [class.pointer-events-none]="shouldHideMobileChrome()">
@@ -149,7 +152,7 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
             </nav>
 
           <!-- Bottom padding — collapses when nav hidden -->
-            <div class="md:hidden transition-[height] duration-300 ease-out"
+            <div class="lg:hidden transition-[height] duration-300 ease-out"
                  [class.h-16]="!shouldHideMobileChrome()"
                  [class.h-0]="shouldHideMobileChrome()"></div>
         </div>

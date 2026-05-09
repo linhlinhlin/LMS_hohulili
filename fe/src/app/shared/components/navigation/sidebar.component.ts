@@ -6,6 +6,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { OrganizationContextService } from '../../../core/services/organization-context.service';
 import { Organization, OrganizationType, UserRole } from '../../../shared/types/user.types';
 import { IconComponent, IconName } from '../icon/icon.component';
+import { SidebarTooltipDirective } from '../../directives/sidebar-tooltip.directive';
 import { getPortalLandingRoute } from '../../../core/utils/portal-route.util';
 import { initialsAvatar } from '../../utils/avatar.util';
 
@@ -33,7 +34,7 @@ export interface SidebarConfig {
 
 @Component({
   selector: 'app-sidebar',
-  imports: [RouterModule, RouterLinkActive, IconComponent],
+  imports: [RouterModule, RouterLinkActive, IconComponent, SidebarTooltipDirective],
   encapsulation: ViewEncapsulation.None,
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.css',
