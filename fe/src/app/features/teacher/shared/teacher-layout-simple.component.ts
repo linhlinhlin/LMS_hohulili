@@ -5,6 +5,7 @@ import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarStateService } from '../../../shared/services/sidebar-state.service';
 import { SidebarComponent, SidebarConfig } from '../../../shared/components/navigation/sidebar.component';
+import { SkipLinkComponent } from '../../../shared/components/skip-link/skip-link.component';
 import { teacherSidebarConfig as baseTeacherSidebarConfig } from '../../../shared/components/navigation/sidebar.config';
 import { NotificationService } from '../../../core/services/notification.service';
 import { MessagingService } from '../../../core/services/messaging.service';
@@ -13,10 +14,12 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
 
 @Component({
   selector: 'app-teacher-layout-simple',
-  imports: [RouterModule, RouterOutlet, SidebarComponent, ChatPanelComponent],
+  imports: [RouterModule, RouterOutlet, SidebarComponent, ChatPanelComponent, SkipLinkComponent],
   template: `
     <!-- Modern gradient background for teacher portal -->
     <div class="min-h-screen flex flex-col">
+      <!-- WCAG 2.4.1 Bypass Blocks — first focusable element jumps to <main>. -->
+      <app-skip-link/>
       <!-- Desktop Sidebar - Full Height (collapsible, matching student pattern) -->
       @if (!shouldHideSidebar()) {
         <div [class]="'hidden md:flex md:flex-col md:fixed md:inset-y-0 md:z-40 transition-all duration-300 '
@@ -83,7 +86,7 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
           </header>
 
           <!-- Page content -->
-          <main class="flex-1 overflow-auto bg-transparent">
+          <main id="main-content" tabindex="-1" class="flex-1 overflow-auto bg-transparent">
             <router-outlet></router-outlet>
           </main>
 
@@ -286,6 +289,10 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
 
     .tab-item.tab-active {
       color: #0056D2;
+    }
+    /* Match sidebar active-item font weight (font-semibold = 600) per spec FR-037. */
+    .tab-item.tab-active .tab-label {
+      font-weight: 600;
     }
 
     .tab-label {

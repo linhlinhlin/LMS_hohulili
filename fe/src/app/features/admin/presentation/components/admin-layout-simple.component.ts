@@ -5,6 +5,7 @@ import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../../../core/services/auth.service';
 import { SidebarStateService } from '../../../../shared/services/sidebar-state.service';
 import { SidebarComponent } from '../../../../shared/components/navigation/sidebar.component';
+import { SkipLinkComponent } from '../../../../shared/components/skip-link/skip-link.component';
 import { getSidebarConfig } from '../../../../shared/components/navigation/sidebar.config';
 import { ChatPanelComponent } from '../../../ai-chat/presentation/components/chat-panel/chat-panel.component';
 import { FloatingChatBubbleComponent } from '../../../ai-chat/presentation/components/floating-chat-bubble/floating-chat-bubble.component';
@@ -12,10 +13,12 @@ import { AiAvailabilityService } from '../../../ai-chat/application/services/ai-
 
 @Component({
   selector: 'app-admin-layout-simple',
-  imports: [RouterModule, RouterOutlet, SidebarComponent, ChatPanelComponent, FloatingChatBubbleComponent],
+  imports: [RouterModule, RouterOutlet, SidebarComponent, ChatPanelComponent, FloatingChatBubbleComponent, SkipLinkComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="min-h-screen flex">
+      <!-- WCAG 2.4.1 Bypass Blocks — first focusable element jumps to <main>. -->
+      <app-skip-link/>
       <!-- Desktop Sidebar -->
       @if (!shouldHideSidebar()) {
         <div class="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-50"
@@ -89,7 +92,7 @@ import { AiAvailabilityService } from '../../../ai-chat/application/services/ai-
           }
 
           <!-- Page content -->
-          <main class="flex-1">
+          <main id="main-content" tabindex="-1" class="flex-1">
             <router-outlet></router-outlet>
           </main>
         </div>

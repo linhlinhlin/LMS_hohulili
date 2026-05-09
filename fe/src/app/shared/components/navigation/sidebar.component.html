@@ -69,6 +69,7 @@
                 <div class="nav-item-container">
                     <a [routerLink]="item.route" [queryParams]="item.queryParams"
                        [class.active]="isOrgItemActive(item)"
+                       [attr.aria-current]="isOrgItemActive(item) ? 'page' : null"
                        (click)="itemClick.emit(item)"
                        class="nav-item">
                         <div class="nav-icon" [class]="getIconClasses(item)">
@@ -82,15 +83,18 @@
         </nav>
     } @else {
     <!-- Navigation Menu (system mode) -->
-    <nav class="sidebar-nav">
+    <nav class="sidebar-nav" role="navigation" aria-label="Điều hướng chính">
         @for (item of config().menuItems; track item.route; let i = $index) {
         @if (shouldShowGroupTitle(i)) {
             <div class="nav-group-title">{{ item.group }}</div>
         }
         <div class="nav-item-container">
-            <a [routerLink]="item.route" routerLinkActive="active"
+            <a [routerLink]="item.route" routerLinkActive="active" #rla="routerLinkActive"
                 [routerLinkActiveOptions]="{exact: item.exact ?? false}"
                 [class.force-active]="isItemActive(item)"
+                [attr.aria-current]="rla.isActive || isItemActive(item) ? 'page' : null"
+                [attr.aria-expanded]="item.children?.length ? isSubMenuOpen(item) : null"
+                [attr.aria-controls]="item.children?.length ? itemDomId(item) + '-submenu' : null"
                 (click)="onLeafClick(item)"
                 class="nav-item"
                 [class.has-children]="!!item.children?.length">
@@ -106,11 +110,14 @@
 
             <!-- Sub-menu items -->
             @if (item.children && isSubMenuOpen(item)) {
-            <div class="sub-menu">
+            <div class="sub-menu" [id]="itemDomId(item) + '-submenu'">
                 @for (child of item.children; track child.route) {
                 <div class="sub-menu-block">
-                    <a [routerLink]="child.route" routerLinkActive="active"
+                    <a [routerLink]="child.route" routerLinkActive="active" #childRla="routerLinkActive"
                         [routerLinkActiveOptions]="{exact: child.exact ?? false}"
+                        [attr.aria-current]="childRla.isActive ? 'page' : null"
+                        [attr.aria-expanded]="child.children?.length ? isSubMenuOpen(child) : null"
+                        [attr.aria-controls]="child.children?.length ? itemDomId(child) + '-submenu' : null"
                         (click)="onLeafClick(child)"
                         class="sub-menu-item"
                         [class.has-children]="!!child.children?.length">
@@ -121,10 +128,11 @@
                     </a>
 
                     @if (child.children && isSubMenuOpen(child)) {
-                    <div class="sub-menu sub-menu--nested">
+                    <div class="sub-menu sub-menu--nested" [id]="itemDomId(child) + '-submenu'">
                         @for (grandChild of child.children; track grandChild.route) {
-                        <a [routerLink]="grandChild.route" routerLinkActive="active"
+                        <a [routerLink]="grandChild.route" routerLinkActive="active" #gcRla="routerLinkActive"
                             [routerLinkActiveOptions]="{exact: grandChild.exact ?? false}"
+                            [attr.aria-current]="gcRla.isActive ? 'page' : null"
                             (click)="itemClick.emit(grandChild)"
                             class="sub-menu-item sub-menu-item--nested">
                             <div class="sub-icon" [class]="getIconClasses(grandChild)">
