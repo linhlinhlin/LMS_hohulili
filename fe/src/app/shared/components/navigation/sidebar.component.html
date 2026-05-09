@@ -70,6 +70,7 @@
                     <a [routerLink]="item.route" [queryParams]="item.queryParams"
                        [class.active]="isOrgItemActive(item)"
                        [attr.aria-current]="isOrgItemActive(item) ? 'page' : null"
+                       [attr.aria-label]="item.label"
                        [appSidebarTooltip]="item.label"
                        [tooltipEnabled]="collapsed()"
                        (click)="itemClick.emit(item)"
@@ -96,6 +97,7 @@
                 [attr.aria-current]="rla.isActive || isItemActive(item) ? 'page' : null"
                 [attr.aria-expanded]="item.children?.length ? isSubMenuOpen(item) : null"
                 [attr.aria-controls]="item.children?.length ? itemDomId(item) + '-submenu' : null"
+                [attr.aria-label]="item.label"
                 [appSidebarTooltip]="item.label"
                 [tooltipEnabled]="collapsed()"
                 (click)="onLeafClick(item)"
@@ -120,6 +122,7 @@
                         [attr.aria-current]="childRla.isActive ? 'page' : null"
                         [attr.aria-expanded]="child.children?.length ? isSubMenuOpen(child) : null"
                         [attr.aria-controls]="child.children?.length ? itemDomId(child) + '-submenu' : null"
+                        [attr.aria-label]="child.label"
                         (click)="onLeafClick(child)"
                         class="sub-menu-item"
                         [class.has-children]="!!child.children?.length">
@@ -135,6 +138,7 @@
                         <a [routerLink]="grandChild.route" routerLinkActive="active" #gcRla="routerLinkActive"
                             [routerLinkActiveOptions]="{exact: grandChild.exact ?? false}"
                             [attr.aria-current]="gcRla.isActive ? 'page' : null"
+                            [attr.aria-label]="grandChild.label"
                             (click)="itemClick.emit(grandChild)"
                             class="sub-menu-item sub-menu-item--nested">
                             <div class="sub-icon" [class]="getIconClasses(grandChild)">
