@@ -810,8 +810,21 @@
   .sidebar-container,
   .sidebar-toggle,
   .sidebar-org-context,
-  .sidebar-org-default-star {
+  .sidebar-org-default-star,
+  .nav-item,
+  .sub-menu-item {
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* ===== Focus visible (WCAG 2.4.7) — every interactive sidebar element. ===== */
+.nav-item:focus-visible,
+.sub-menu-item:focus-visible,
+.sidebar-org-back:focus-visible,
+.user-menu-trigger:focus-visible,
+.user-menu-item:focus-visible {
+  outline: 2px solid #0056D2;
+  outline-offset: 2px;
+  border-radius: 0.5rem;
 }
