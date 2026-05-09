@@ -162,6 +162,7 @@ export class SubmissionsStore {
                 maxScore: s.maxScore || 100,
                 percentage: (update.score / (s.maxScore || 100)) * 100,
                 feedback: update.feedback,
+                rubricGrades: (response.data as any)?.rubricGrades ?? update.rubricGrades,
                 gradedAt: new Date().toISOString(),
                 gradedBy: ''
               } as SubmissionGrade
