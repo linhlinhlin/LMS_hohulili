@@ -165,6 +165,20 @@
 }
 
 @media (max-width: 767px) {
+  /* Mobile fix: Tailwind `h-screen` resolves to `100vh` which on mobile
+     INCLUDES the browser URL-bar height. The learning-bottom-nav is
+     absolutely positioned at `bottom: 0` of <main>, so when the URL bar
+     is visible (initial page load, scroll-up) the layout was taller than
+     the visible viewport and the bottom nav got pushed below the fold —
+     reappearing only when the URL bar auto-hid during scroll-down.
+     Switching to `100dvh` (dynamic viewport height) keeps the layout
+     bounded to the actual visible viewport in real time. iOS 15.4+ /
+     Chrome 108+ / Firefox 105+ — covered by the project's browser
+     baseline (CLAUDE.md: latest two stable + iOS 15+). */
+  .course-learning-layout.h-screen {
+    height: 100dvh;
+  }
+
   .learning-sidebar {
     width: 88vw;
   }
