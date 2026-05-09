@@ -1,6 +1,6 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { Observable, of, tap, catchError, finalize, map } from 'rxjs';
-import { AssignmentApi, SubmissionSummary, SubmissionDetail, GradeSubmissionRequest, SubmissionGrade } from '../../../../api/client/assignment.api';
+import { AssignmentApi, SubmissionSummary, SubmissionDetail, GradeSubmissionRequest, SubmissionGrade, RubricGradeItem } from '../../../../api/client/assignment.api';
 
 /**
  * Submissions Store
@@ -17,6 +17,7 @@ export interface InlineGradeUpdate {
   submissionId: string;
   score: number;
   feedback?: string;
+  rubricGrades?: RubricGradeItem[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -143,7 +144,8 @@ export class SubmissionsStore {
 
     const request: GradeSubmissionRequest = {
       score: update.score,
-      feedback: update.feedback
+      feedback: update.feedback,
+      rubricGrades: update.rubricGrades
     };
 
     return this.assignmentApi.gradeSubmission(update.submissionId, request).pipe(

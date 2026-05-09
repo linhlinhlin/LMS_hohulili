@@ -1,365 +1,344 @@
 import { Component, ChangeDetectionStrategy, signal, computed, inject, OnInit } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators, FormArray, FormGroup } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import {
   RubricCriterion,
   validateRubricWeightSum,
-  createDefaultCriterion,
   generateRubricId
 } from './utils/rubric-calculator';
 import { RubricApi } from '../../../api/endpoints/rubric.api';
 
-/**
- * Rubric Creator Component
- * 
- * Creates new rubrics with dynamic criteria builder.
- * Features: add/remove criteria, point configuration, preview mode.
- */
 @Component({
   selector: 'app-rubric-creator',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, LucideAngularModule],
+  imports: [CommonModule, RouterLink, ReactiveFormsModule, LucideAngularModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-slate-50/50">
-      <!-- Sticky Slender Header -->
-      <div class="sticky top-0 z-[60] bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
-        <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 py-5 font-sans">
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div class="flex items-center gap-4">
-              <a routerLink="/teacher/assessments/shared/rubrics" class="p-2 bg-slate-50 border border-slate-100 text-slate-400 hover:text-[#0056D2] hover:bg-white hover:border-[#0056D2]/20 hover:shadow-sm rounded-xl transition-all">
-                <lucide-icon name="arrow-left" [size]="18"></lucide-icon>
-              </a>
-              <div>
-                <h1 class="text-2xl font-black text-slate-900 tracking-tight">Tạo Rubric mới</h1>
-              </div>
-            </div>
-            
-            <div class="flex items-center gap-3">
-              <button type="button" (click)="togglePreview()" 
-                      class="h-10 px-4 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2 font-bold text-xs shadow-sm">
-                <lucide-icon [name]="showPreview() ? 'eye-off' : 'eye'" [size]="16"></lucide-icon>
-                {{ showPreview() ? 'Ẩn xem trước' : 'Xem trước' }}
-              </button>
-              <button type="submit" form="rubricForm" [disabled]="!rubricForm.valid || !isWeightValid() || saving()"
-                      class="h-10 px-6 bg-[#0056D2] text-white rounded-xl font-bold text-sm hover:bg-[#004BB5] transition-all flex items-center gap-2 shadow-md shadow-blue-100 disabled:opacity-50 active:scale-95">
-                <lucide-icon name="save" [size]="18"></lucide-icon>
+    <div class="min-h-screen bg-slate-50">
+
+      <!-- Page Header -->
+      <div class="bg-white border-b border-slate-200">
+        <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <a routerLink="/teacher/assessments/shared/rubrics"
+               class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+              <lucide-icon name="arrow-left" [size]="18"></lucide-icon>
+            </a>
+            <h1 class="text-xl font-bold text-slate-900">Tạo Rubric mới</h1>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" (click)="togglePreview()"
+                    class="h-9 px-4 border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors flex items-center gap-2">
+              <lucide-icon [name]="showPreview() ? 'eye-off' : 'eye'" [size]="15"></lucide-icon>
+              {{ showPreview() ? 'Ẩn xem trước' : 'Xem trước' }}
+            </button>
+            <button type="submit" form="rubricForm"
+                    [disabled]="!rubricForm.valid || !isWeightValid() || saving()"
+                    class="h-9 px-4 bg-[#0056D2] text-white rounded-lg text-sm font-medium hover:bg-[#004BB5] transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+              @if (saving()) {
+                <lucide-icon name="loader-2" [size]="15" class="animate-spin"></lucide-icon>
+                Đang lưu...
+              } @else {
+                <lucide-icon name="save" [size]="15"></lucide-icon>
                 Lưu Rubric
-              </button>
-            </div>
+              }
+            </button>
           </div>
         </div>
       </div>
 
-      <div class="max-w-screen-2xl mx-auto p-4 sm:p-6">
-        <form id="rubricForm" [formGroup]="rubricForm" (ngSubmit)="saveRubric()" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <!-- Main Form Column -->
-        <div class="lg:col-span-8 space-y-8">
-          <!-- Basic Info Card -->
-          <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm overflow-hidden relative group">
-            <h2 class="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
-              <span class="w-2 h-2 rounded-full bg-[#0056D2]"></span>
-              Thông tin định danh
-            </h2>
-            
-            <div class="space-y-3 relative z-10">
-              <div class="grid grid-cols-1 gap-3">
-                <div class="space-y-2">
-                  <label class="text-[11px] font-black uppercase tracking-widest ml-1">Tên Rubric Đại diện</label>
-                  <input type="text" formControlName="name" 
-                         class="w-full h-11 px-4 bg-slate-50 border border-slate-100 rounded-xl text-md text-slate-500 placeholder:text-slate-300 focus:bg-white focus:border-[#0056D2] focus:ring-4 focus:ring-blue-50/50 transition-all outline-none"
+      <!-- Body -->
+      <div class="max-w-5xl mx-auto px-6 py-6">
+        <form id="rubricForm" [formGroup]="rubricForm" (ngSubmit)="saveRubric()"
+              class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          <!-- Main column -->
+          <div class="lg:col-span-2 space-y-5">
+
+            <!-- Basic Info Card -->
+            <div class="bg-white border border-slate-200 rounded-xl p-6">
+              <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#0056D2]"></span>
+                Thông tin định danh
+              </h2>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                    Tên Rubric <span class="text-rose-500">*</span>
+                  </label>
+                  <input type="text" formControlName="name"
+                         class="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10 outline-none transition-colors"
                          placeholder="VD: Rubric Đánh giá Kỹ năng Thực hành"/>
+                  @if (rubricForm.get('name')?.invalid && rubricForm.get('name')?.touched) {
+                    <p class="mt-1 text-xs text-rose-500">Tên rubric cần ít nhất 3 ký tự.</p>
+                  }
                 </div>
-                
-                <div class="space-y-2">
-                  <label class="text-[11px] font-black uppercase tracking-widest ml-1">Mô tả mục tiêu</label>
-                  <textarea formControlName="description" rows="2"
-                            class="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl text-md text-slate-500 placeholder:text-slate-300 focus:bg-white focus:border-[#0056D2] focus:ring-4 focus:ring-blue-50/50 transition-all outline-none resize-none"
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1.5">Mô tả</label>
+                  <textarea formControlName="description" rows="3"
+                            class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10 outline-none transition-colors resize-none"
                             placeholder="Mô tả phạm vi áp dụng..."></textarea>
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- Criteria Builder Card -->
-          <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm overflow-hidden min-h-[400px]">
-            <div class="flex items-center justify-between mb-8 border-b border-slate-50 pb-5">
-              <div>
-                <h2 class="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em] mb-1 flex items-center gap-3">
-                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                  Cấu trúc Tiêu chí
-                </h2>
-                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-5">Xây dựng các cột mốc đánh giá</p>
-              </div>
-              
-              <button type="button" (click)='addCriterion()' 
-                      class="h-9 px-4 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-500 hover:text-white transition-all flex items-center gap-2 font-black text-[10px] uppercase tracking-widest border border-emerald-100 shadow-sm active:scale-95">
-                <lucide-icon name="plus" [size]="14"></lucide-icon>
-                Thêm tiêu chí
-              </button>
-            </div>
-            
-            @if (criteriaArray.length === 0) {
-              <div class="py-20 text-center bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-200">
-                <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-slate-200 mx-auto mb-4 border border-slate-100 shadow-sm">
-                  <lucide-icon name="plus" [size]="32" strokeWidth="1"></lucide-icon>
+            <!-- Criteria Builder Card -->
+            <div class="bg-white border border-slate-200 rounded-xl p-6">
+              <div class="flex items-center justify-between mb-5">
+                <div>
+                  <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    Cấu trúc tiêu chí
+                  </h2>
+                  <p class="text-xs text-slate-400 mt-0.5">Xây dựng các cột mốc đánh giá</p>
                 </div>
-                <p class="text-slate-400 font-black uppercase tracking-widest text-[10px]">Danh sách tiêu chí đang trống</p>
-                <button type="button" (click)="addCriterion()" class="mt-4 text-[10px] font-black text-[#0056D2] uppercase tracking-[0.2em] hover:underline">Bắt đầu thêm ngay</button>
+                <button type="button" (click)="addCriterion()"
+                        class="h-8 px-3 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-medium hover:bg-emerald-100 transition-colors flex items-center gap-1.5">
+                  <lucide-icon name="plus" [size]="13"></lucide-icon>
+                  Thêm tiêu chí
+                </button>
               </div>
-            } @else {
-              <div class="space-y-6" formArrayName="criteria">
-                @for (criterion of criteriaArray.controls; track $index; let i = $index) {
-                  <div class="group/card relative bg-white rounded-2xl border border-slate-200 hover:border-[#0056D2]/30 hover:shadow-xl hover:shadow-blue-50/50 transition-all duration-300" [formGroupName]="i">
-                    <!-- Compact Toolbar -->
-                    <div class="absolute -top-3 right-4 flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-all duration-300 z-20">
-                      <button type="button" (click)="duplicateCriterion(i)" 
-                              class="w-8 h-8 bg-white border border-slate-200 text-slate-400 hover:text-emerald-500 hover:border-emerald-100 hover:shadow-sm rounded-lg flex items-center justify-center transition-all bg-white" title="Nhân bản">
-                        <lucide-icon name="plus" [size]="14"></lucide-icon>
-                      </button>
-                      <button type="button" (click)="removeCriterion(i)" 
-                              class="w-8 h-8 bg-white border border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-100 hover:shadow-sm rounded-lg flex items-center justify-center transition-all bg-white" title="Xóa">
-                        <lucide-icon name="trash-2" [size]="14"></lucide-icon>
-                      </button>
-                    </div>
 
-                    <div class="p-5">
-                      <!-- Flat Criterion Header -->
-                      <div class="grid grid-cols-1 md:grid-cols-12 gap-5 items-start mb-6">
-                        <div class="md:col-span-1">
-                          <div class="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center text-[10px] font-black shadow-md shadow-slate-900/10">0{{ i + 1 }}</div>
+              @if (criteriaArray.length === 0) {
+                <div class="py-10 text-center border-2 border-dashed border-slate-200 rounded-lg">
+                  <lucide-icon name="layers" [size]="28" class="mx-auto mb-2 text-slate-300"></lucide-icon>
+                  <p class="text-sm text-slate-400 mb-3">Chưa có tiêu chí nào</p>
+                  <button type="button" (click)="addCriterion()"
+                          class="text-sm font-medium text-[#0056D2] hover:underline">
+                    Bắt đầu thêm tiêu chí
+                  </button>
+                </div>
+              } @else {
+                <div class="space-y-4" formArrayName="criteria">
+                  @for (criterion of criteriaArray.controls; track $index; let i = $index) {
+                    <div class="border border-slate-200 rounded-xl p-5 group hover:border-slate-300 transition-colors"
+                         [formGroupName]="i">
+
+                      <!-- Criterion Header Row -->
+                      <div class="flex items-start gap-3 mb-4">
+                        <span class="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                          {{ i + 1 }}
+                        </span>
+                        <div class="flex-1 min-w-0">
+                          <input type="text" formControlName="name"
+                                 class="w-full border-0 border-b border-slate-200 pb-1 text-sm font-semibold text-slate-900 placeholder:text-slate-300 focus:border-[#0056D2] focus:ring-0 bg-transparent outline-none transition-colors"
+                                 placeholder="Tên tiêu chí *"/>
+                          <input type="text" formControlName="description"
+                                 class="w-full mt-2 text-xs text-slate-500 placeholder:text-slate-300 border-none bg-transparent focus:ring-0 outline-none p-0"
+                                 placeholder="Mô tả hướng dẫn (tuỳ chọn)..."/>
                         </div>
-                        <div class="md:col-span-8">
-                          <input type="text" formControlName="name" 
-                                 class="w-full bg-transparent border-none p-0 text-lg font-black text-slate-900 placeholder:text-slate-200 focus:ring-0 mb-1"
-                                 placeholder="Tên tiêu chí..."/>
-                          <input type="text" formControlName="description" 
-                                 class="w-full bg-slate-50 border-none rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-500 placeholder:text-slate-300 focus:bg-white focus:ring-1 focus:ring-[#0056D2]/20 transition-all outline-none"
-                                  placeholder="Mô tả hướng dẫn cho tiêu chí này..."/>
-                        </div>
-                        <div class="md:col-span-3">
-                          <div class="bg-slate-50 rounded-xl px-4 py-2 border border-slate-100 flex flex-col items-center justify-center group/weight hover:bg-white hover:border-[#0056D2]/20 transition-all">
-                            <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Trọng số</label>
+                        <div class="flex items-start gap-3 shrink-0">
+                          <div class="flex flex-col items-center">
+                            <label class="text-[10px] text-slate-400 uppercase tracking-wide mb-1">Trọng số</label>
                             <div class="flex items-center gap-1">
-                              <input type="number" formControlName="weight" 
-                                     class="w-12 text-xl font-black text-slate-900 bg-transparent border-none p-0 text-center focus:ring-0 cursor-pointer"/>
-                              <span class="text-[10px] font-black text-slate-300">%</span>
+                              <input type="number" formControlName="weight" min="0" max="100"
+                                     class="w-14 h-8 text-center text-sm font-bold text-slate-900 border border-slate-200 rounded-lg focus:border-[#0056D2] focus:ring-1 focus:ring-[#0056D2]/20 outline-none transition-colors"/>
+                              <span class="text-xs text-slate-400">%</span>
                             </div>
+                          </div>
+                          <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity pt-5">
+                            <button type="button" (click)="duplicateCriterion(i)" title="Nhân bản"
+                                    class="w-7 h-7 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg flex items-center justify-center transition-colors">
+                              <lucide-icon name="copy" [size]="13"></lucide-icon>
+                            </button>
+                            <button type="button" (click)="removeCriterion(i)" title="Xóa"
+                                    class="w-7 h-7 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg flex items-center justify-center transition-colors">
+                              <lucide-icon name="trash-2" [size]="13"></lucide-icon>
+                            </button>
                           </div>
                         </div>
                       </div>
 
-                      <!-- Horizontal Levels Grid -->
-                      <div class="bg-slate-50/50 rounded-xl p-4 border border-slate-100 border-dashed">
-                        <div class="flex items-center justify-between mb-4">
-                          <h4 class="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                            <lucide-icon name="layout" [size]="12"></lucide-icon>
-                            Thang điểm chi tiết
-                          </h4>
-                          <div class="flex items-center gap-2">
-                             <button type="button" (click)="autoPopulateScores(i)" 
-                                    class="text-[9px] font-black text-slate-400 hover:text-emerald-600 uppercase tracking-widest flex items-center gap-1 transition-colors px-2">
-                              <lucide-icon name="target" [size]="12"></lucide-icon>
+                      <!-- Levels Grid -->
+                      <div class="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                        <div class="flex items-center justify-between mb-2.5">
+                          <span class="text-xs font-medium text-slate-500 flex items-center gap-1.5">
+                            <lucide-icon name="bar-chart-2" [size]="11"></lucide-icon>
+                            Thang điểm
+                          </span>
+                          <div class="flex items-center gap-3">
+                            <button type="button" (click)="autoPopulateScores(i)"
+                                    class="text-xs text-slate-400 hover:text-emerald-600 flex items-center gap-1 transition-colors">
+                              <lucide-icon name="target" [size]="11"></lucide-icon>
                               Tự động tính
                             </button>
-                            <button type="button" (click)="addLevel(i)" 
-                                    class="text-[9px] font-black text-[#0056D2] hover:text-[#004BB5] uppercase tracking-widest flex items-center gap-1 transition-colors bg-white border border-slate-200 px-3 py-1 rounded-lg hover:shadow-sm">
-                              <lucide-icon name="plus" [size]="12"></lucide-icon>
+                            <button type="button" (click)="addLevel(i)"
+                                    class="text-xs text-[#0056D2] hover:text-[#004BB5] flex items-center gap-1 transition-colors font-medium">
+                              <lucide-icon name="plus" [size]="11"></lucide-icon>
                               Thêm mức
                             </button>
                           </div>
                         </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3" formArrayName="levels">
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2" formArrayName="levels">
                           @for (level of getLevelsArray(i).controls; track $index; let j = $index) {
-                            <div class="relative bg-white border border-slate-200 rounded-xl p-3 shadow-sm hover:border-[#0056D2]/30 transition-all group/level" [formGroupName]="j">
-                              <!-- Inline Points & Name -->
-                              <div class="flex flex-col gap-2">
-                                <div class="flex items-center justify-between gap-2">
-                                  <input type="number" formControlName="points" 
-                                         class="w-12 h-8 bg-slate-50 border border-slate-100 rounded-lg text-center text-xs font-black text-[#0056D2] focus:bg-white focus:border-[#0056D2]/40 outline-none transition-all"/>
-                                  <span class="text-[9px] font-black text-slate-300 uppercase shrink-0">Điểm</span>
-                                  <button type="button" (click)="removeLevel(i, j)" 
-                                          class="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all opacity-0 group-level/hover:opacity-100 ml-auto">
-                                    <lucide-icon name="x" [size]="12"></lucide-icon>
-                                  </button>
-                                </div>
-                                <input type="text" formControlName="name" 
-                                       class="w-full bg-transparent border-none p-0 text-[11px] font-black text-slate-900 placeholder:text-slate-300 focus:ring-0"
-                                       placeholder="Mức độ..."/>
+                            <div class="relative bg-white border border-slate-200 rounded-lg p-2.5 group/level hover:border-[#0056D2]/30 transition-colors"
+                                 [formGroupName]="j">
+                              <button type="button" (click)="removeLevel(i, j)"
+                                      class="absolute top-1 right-1 w-5 h-5 text-slate-300 hover:text-rose-500 rounded flex items-center justify-center transition-colors opacity-0 group-hover/level:opacity-100">
+                                <lucide-icon name="x" [size]="10"></lucide-icon>
+                              </button>
+                              <div class="flex items-center gap-1.5 mb-1.5">
+                                <input type="number" formControlName="points" min="0"
+                                       class="w-11 h-7 text-center text-xs font-bold text-[#0056D2] border border-slate-200 rounded focus:border-[#0056D2] focus:ring-1 focus:ring-[#0056D2]/10 outline-none transition-colors"/>
+                                <span class="text-[10px] text-slate-400">đ</span>
                               </div>
+                              <input type="text" formControlName="name"
+                                     class="w-full text-xs font-medium text-slate-700 placeholder:text-slate-300 border-none bg-transparent focus:ring-0 outline-none p-0"
+                                     placeholder="Tên mức *"/>
                             </div>
                           }
                         </div>
                       </div>
                     </div>
-                  </div>
-                }
-              </div>
-            }
-          </div>
-        </div>
-
-        <!-- Sidebar / Statistics Column -->
-        <div class="lg:col-span-4 space-y-6">
-          <!-- Weight Verification Card -->
-          <div class="sticky top-6 space-y-6">
-            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm relative group">
-              <h3 class="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
-                <span class="w-2 h-2 rounded-full" [class]="isWeightValid() ? 'bg-emerald-500' : 'bg-amber-500'"></span>
-                Trạng thái Trọng số
-              </h3>
-              
-              <div class="mb-8">
-                <div class="flex items-end justify-between mb-4">
-                  <div>
-                    <span class="text-5xl font-black tracking-tighter text-slate-900">{{ totalWeight() }}</span>
-                    <span class="text-xl font-black text-slate-300 ml-1">%</span>
-                  </div>
-                  <div class="text-right">
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mục tiêu</p>
-                    <p class="text-md font-black text-slate-900">100/100</p>
-                  </div>
+                  }
                 </div>
-                
-                <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-100 p-0.5">
-                  <div class="h-full rounded-full transition-all duration-700 ease-out shadow-sm"
+              }
+            </div>
+          </div>
+
+          <!-- Sidebar -->
+          <div>
+            <div class="sticky top-6 space-y-4">
+
+              <!-- Weight Status Card -->
+              <div class="bg-white border border-slate-200 rounded-xl p-5">
+                <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <span class="w-1.5 h-1.5 rounded-full"
+                        [class]="isWeightValid() ? 'bg-emerald-500' : 'bg-amber-400'"></span>
+                  Trạng thái trọng số
+                </h3>
+
+                <div class="flex items-end justify-between mb-2">
+                  <span class="text-3xl font-bold text-slate-900">
+                    {{ totalWeight() }}<span class="text-base font-medium text-slate-400">%</span>
+                  </span>
+                  <span class="text-xs text-slate-400">/ 100%</span>
+                </div>
+                <div class="h-2 bg-slate-100 rounded-full overflow-hidden mb-3">
+                  <div class="h-full rounded-full transition-all duration-500"
                        [class.bg-emerald-500]="isWeightValid()"
                        [class.bg-[#0056D2]]="!isWeightValid() && totalWeight() < 100"
                        [class.bg-rose-500]="totalWeight() > 100"
                        [style.width.%]="Math.min(totalWeight(), 100)"></div>
                 </div>
-              </div>
-              
-              <div class="space-y-3">
+
                 @if (isWeightValid()) {
-                  <div class="p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
-                      <lucide-icon name="check-check" [size]="16"></lucide-icon>
-                    </div>
-                    <p class="text-[10px] font-black uppercase tracking-widest text-emerald-600">Cấu hình hoàn tất</p>
+                  <div class="flex items-center gap-2 text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
+                    <lucide-icon name="check-circle" [size]="14"></lucide-icon>
+                    <span class="text-xs font-medium">Cấu hình hợp lệ</span>
                   </div>
                 } @else if (totalWeight() < 100) {
-                  <div class="p-4 bg-amber-50 border border-amber-100 rounded-xl flex items-center gap-3 animate-pulse">
-                    <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center text-white">
-                      <lucide-icon name="alert-circle" [size]="16"></lucide-icon>
-                    </div>
-                    <div>
-                      <p class="text-[10px] font-black uppercase tracking-widest text-amber-600 leading-tight">
-                        CÒN THIẾU {{ 100 - totalWeight() }}%
-                      </p>
-                      <p class="text-[9px] font-bold text-amber-500/60 uppercase tracking-tight">Vui lòng điều chỉnh</p>
-                    </div>
+                  <div class="flex items-center gap-2 text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                    <lucide-icon name="alert-circle" [size]="14"></lucide-icon>
+                    <span class="text-xs font-medium">Còn thiếu {{ 100 - totalWeight() }}%</span>
                   </div>
                 } @else {
-                  <div class="p-4 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-lg bg-rose-500 flex items-center justify-center text-white">
-                      <lucide-icon name="alert-triangle" [size]="16"></lucide-icon>
-                    </div>
-                    <div>
-                      <p class="text-[10px] font-black uppercase tracking-widest text-rose-600">VƯỢT QUÁ {{ totalWeight() - 100 }}%</p>
-                    </div>
+                  <div class="flex items-center gap-2 text-rose-700 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">
+                    <lucide-icon name="alert-triangle" [size]="14"></lucide-icon>
+                    <span class="text-xs font-medium">Vượt quá {{ totalWeight() - 100 }}%</span>
                   </div>
                 }
-              </div>
 
-              <!-- Contextual Help -->
-              <div class="mt-8 pt-6 border-t border-slate-100">
-                <h4 class="text-[10px] font-black uppercase tracking-widest mb-4 flex items-center gap-2 text-slate-400">
-                  <lucide-icon name="help-circle" [size]="12"></lucide-icon>
-                  Gợi ý thiết lập
-                </h4>
-                <div class="space-y-3">
-                  <div class="flex items-start gap-3">
-                    <div class="w-1.5 h-1.5 rounded-full bg-slate-200 mt-1"></div>
-                    <p class="text-[10px] font-bold text-slate-400 leading-relaxed uppercase tracking-widest">Tổng trọng số phải chuẩn 100% để lưu.</p>
-                  </div>
-                  <div class="flex items-start gap-3">
-                    <div class="w-1.5 h-1.5 rounded-full bg-slate-200 mt-1"></div>
-                    <p class="text-[10px] font-bold text-slate-400 leading-relaxed uppercase tracking-widest">Mỗi tiêu chí nên có ít nhất 3 mức độ.</p>
-                  </div>
+                <div class="mt-4 pt-4 border-t border-slate-100 space-y-2">
+                  <p class="text-xs text-slate-400 flex items-start gap-2">
+                    <span class="w-1 h-1 rounded-full bg-slate-300 mt-1.5 shrink-0"></span>
+                    Tổng trọng số phải đúng 100% để lưu.
+                  </p>
+                  <p class="text-xs text-slate-400 flex items-start gap-2">
+                    <span class="w-1 h-1 rounded-full bg-slate-300 mt-1.5 shrink-0"></span>
+                    Tên tiêu chí và tên mức độ là bắt buộc.
+                  </p>
                 </div>
               </div>
+
+              <!-- Cancel -->
+              <a routerLink="/teacher/assessments/shared/rubrics"
+                 class="block w-full py-2.5 text-center text-sm text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors font-medium">
+                Hủy bỏ & Quay lại
+              </a>
             </div>
-            
-            <!-- Contextual Actions -->
-            <button type="button" routerLink="/teacher/assessments/shared/rubrics" 
-                    class="h-12 w-full rounded-2xl bg-white border border-slate-200 text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center">
-              Hủy bỏ & Quay lại
-            </button>
           </div>
-        </div>
-      </form>
+        </form>
       </div>
 
-      <!-- Slender Preview Overlay -->
+      <!-- Preview Modal -->
       @if (showPreview()) {
-        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] p-6 lg:p-20">
-          <div class="bg-white rounded-[3rem] shadow-2xl border border-slate-100 w-full max-w-6xl max-h-full flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300">
-            <!-- Preview Header -->
-            <div class="p-10 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6"
+             (click)="togglePreview()">
+          <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[80vh] flex flex-col overflow-hidden"
+               (click)="$event.stopPropagation()">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <div>
-                <span class="text-[9px] font-black text-[#0056D2] uppercase tracking-[0.4em] mb-2 block">X-RAY VIEW</span>
-                <h3 class="text-3xl font-black text-slate-900 tracking-tight">{{ rubricForm.get('name')?.value || 'Rubric chưa đặt tên' }}</h3>
+                <p class="text-xs font-medium text-[#0056D2] uppercase tracking-wider mb-0.5">Xem trước Rubric</p>
+                <h3 class="text-lg font-bold text-slate-900">{{ rubricForm.get('name')?.value || 'Rubric chưa đặt tên' }}</h3>
               </div>
-              <button (click)="togglePreview()" class="w-14 h-14 rounded-[1.5rem] bg-white border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all flex items-center justify-center shadow-sm">
-                <lucide-icon name="x" [size]="24"></lucide-icon>
+              <button (click)="togglePreview()"
+                      class="w-9 h-9 border border-slate-200 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 flex items-center justify-center transition-colors">
+                <lucide-icon name="x" [size]="16"></lucide-icon>
               </button>
             </div>
-            
-            <!-- Preview Content -->
-            <div class="flex-1 overflow-y-auto p-12 scrollbar-thin scrollbar-thumb-slate-200">
-              <div class="rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-xl shadow-slate-200/20">
-                <table class="w-full text-left border-collapse">
-                  <thead>
-                    <tr class="bg-slate-900 text-white">
-                      <th class="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] border-r border-white/5">Tiêu chí đánh giá</th>
-                      @for (level of previewLevelHeaders(); track $index) {
-                        <th class="px-8 py-6 text-[10px] text-center font-black uppercase tracking-[0.2em] border-r border-white/5">{{ level }}</th>
-                      }
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-slate-100">
-                    @for (criterion of previewCriteria(); track $index) {
-                      <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="px-8 py-8 border-r border-slate-100 bg-slate-50/30">
-                          <div class="font-black text-slate-900 tracking-tight mb-1">{{ criterion.name || 'Tiêu chí #' + ($index + 1) }}</div>
-                          <div class="text-[10px] font-bold text-[#0056D2] uppercase tracking-widest">{{ criterion.weight }}% Trọng số</div>
-                        </td>
-                        @for (level of criterion.levels; track $index) {
-                          <td class="px-8 py-8 text-center border-r border-slate-100">
-                            <div class="font-black text-slate-900 tracking-tight mb-1">{{ level.name || 'Mức độ' }}</div>
-                            <div class="inline-flex h-7 px-3 bg-emerald-50 text-emerald-600 rounded-full items-center text-[10px] font-black uppercase tracking-tight border border-emerald-100">
-                              {{ level.points }} Điểm
-                            </div>
-                          </td>
+            <div class="flex-1 overflow-y-auto p-6">
+              @if (previewCriteria().length === 0) {
+                <p class="text-sm text-slate-400 text-center py-8">Chưa có tiêu chí để hiển thị.</p>
+              } @else {
+                <div class="border border-slate-200 rounded-xl overflow-hidden">
+                  <table class="w-full text-left border-collapse">
+                    <thead>
+                      <tr class="bg-slate-900 text-white">
+                        <th class="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider">Tiêu chí</th>
+                        @for (level of previewLevelHeaders(); track $index) {
+                          <th class="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-center border-l border-white/10">
+                            {{ level }}
+                          </th>
                         }
                       </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            
-            <!-- Preview Footer -->
-            <div class="p-8 border-t border-slate-100 text-center bg-slate-50/30">
-              <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Đây là giao diện học viên sẽ nhìn thấy khi nộp bài</p>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                      @for (criterion of previewCriteria(); track $index) {
+                        <tr class="hover:bg-slate-50 transition-colors">
+                          <td class="px-5 py-4 border-r border-slate-100">
+                            <div class="font-semibold text-slate-900 text-sm mb-0.5">
+                              {{ criterion.name || 'Tiêu chí ' + ($index + 1) }}
+                            </div>
+                            <div class="text-xs text-[#0056D2] font-medium">{{ criterion.weight }}% trọng số</div>
+                          </td>
+                          @for (level of criterion.levels; track $index) {
+                            <td class="px-5 py-4 text-center border-l border-slate-100">
+                              <div class="font-semibold text-slate-900 text-sm mb-1">{{ level.name || '-' }}</div>
+                              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                {{ level.points }} điểm
+                              </span>
+                            </td>
+                          }
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
             </div>
           </div>
         </div>
       }
 
-      <!-- Global Error Message -->
+      <!-- Error Toast -->
       @if (error()) {
-        <div class="fixed bottom-10 left-1/2 -translate-x-1/2 p-5 bg-rose-600 text-white border border-rose-500 rounded-2xl shadow-2xl flex items-center gap-4 z-[200] animate-in slide-in-from-bottom duration-500">
-          <lucide-icon name="alert-circle" [size]="20"></lucide-icon>
-          <span class="text-xs font-black uppercase tracking-widest">{{ error() }}</span>
-          <button (click)="error.set(null)" class="text-white/60 hover:text-white transition-colors">
-            <lucide-icon name="x" [size]="16"></lucide-icon>
+        <div class="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-3 bg-slate-900 text-white rounded-xl shadow-lg flex items-center gap-3 z-[200] text-sm">
+          <lucide-icon name="alert-circle" [size]="15"></lucide-icon>
+          {{ error() }}
+          <button (click)="error.set(null)" class="text-slate-400 hover:text-white ml-1">
+            <lucide-icon name="x" [size]="14"></lucide-icon>
           </button>
+        </div>
+      }
+
+      <!-- Success Toast -->
+      @if (success()) {
+        <div class="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-3 bg-emerald-600 text-white rounded-xl shadow-lg flex items-center gap-3 z-[200] text-sm font-medium">
+          <lucide-icon name="check-circle" [size]="15"></lucide-icon>
+          Rubric đã được tạo thành công!
         </div>
       }
     </div>
@@ -371,12 +350,11 @@ export class RubricCreatorComponent implements OnInit {
   private router = inject(Router);
   private rubricApi = inject(RubricApi);
 
-  // State
   saving = signal(false);
   error = signal<string | null>(null);
   showPreview = signal(false);
+  success = signal(false);
 
-  // Form
   rubricForm = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(3)]],
     description: [''],
@@ -387,10 +365,8 @@ export class RubricCreatorComponent implements OnInit {
     return this.rubricForm.get('criteria') as FormArray;
   }
 
-  // Form Signals for Reactivity
   private criteriaValue = toSignal(this.criteriaArray.valueChanges, { initialValue: this.criteriaArray.value });
 
-  // Computed
   totalWeight = computed(() => {
     const criteria = this.criteriaValue() as { weight: number | null }[];
     return (criteria || []).reduce((sum, c) => sum + (Number(c.weight) || 0), 0);
@@ -406,8 +382,10 @@ export class RubricCreatorComponent implements OnInit {
   previewLevelHeaders = computed(() => {
     const criteria = this.previewCriteria();
     if (criteria.length === 0) return [];
-    const maxLevels = Math.max(...criteria.map(c => (c.levels?.length || 0)));
-    return Array.from({ length: maxLevels }, (_, i) => `Cấp độ ${i + 1}`);
+    const richest = criteria.reduce((a, b) =>
+      (a.levels?.length || 0) >= (b.levels?.length || 0) ? a : b
+    );
+    return (richest.levels || []).map((l: any) => l.name || 'Mức độ');
   });
 
   ngOnInit(): void {
@@ -422,7 +400,7 @@ export class RubricCreatorComponent implements OnInit {
 
   addCriterion(): void {
     const id = generateRubricId('criterion');
-    const weightSuggestion = this.remainingWeight() > 0 ? Math.min(this.remainingWeight(), 25) : 0;
+    const weightSuggestion = Math.max(0, this.remainingWeight());
 
     const criterionGroup = this.fb.group({
       id: [id],
@@ -472,7 +450,7 @@ export class RubricCreatorComponent implements OnInit {
       id: [id],
       name: [`${source.name} (Bản sao)`, Validators.required],
       description: [source.description],
-      weight: [0, [Validators.required, Validators.min(0), Validators.max(100)]], // Reset weight for safety
+      weight: [0, [Validators.required, Validators.min(0), Validators.max(100)]],
       levels: this.fb.array(
         (source.levels || []).map((l: any) => this.createLevelFormGroup(l.name, l.points))
       )
@@ -483,20 +461,13 @@ export class RubricCreatorComponent implements OnInit {
 
   autoPopulateScores(criterionIndex: number): void {
     const levelsArray = this.getLevelsArray(criterionIndex);
-    if (levelsArray.length < 2) return;
+    const count = levelsArray.length;
+    if (count < 2) return;
 
-    const firstPoints = levelsArray.at(0).get('points')?.value || 0;
-    if (firstPoints === 0) return;
-
-    // Logic: Decrement points logically (e.g., 100%, 70%, 40%, 10% or similar)
-    // For simplicity, let's do a linear decrease if they are empty or 0
-    const step = Math.floor(firstPoints / levelsArray.length);
-
-    for (let i = 1; i < levelsArray.length; i++) {
-      const target = levelsArray.at(i).get('points');
-      if (!target?.value || target.value === 0) {
-        target?.setValue(Math.max(0, firstPoints - (step * i)));
-      }
+    const maxPts = levelsArray.at(0).get('points')?.value || 100;
+    const step = Math.round(maxPts / (count - 1));
+    for (let i = 0; i < count; i++) {
+      levelsArray.at(i).get('points')?.setValue(Math.max(0, maxPts - step * i));
     }
   }
 
@@ -540,7 +511,8 @@ export class RubricCreatorComponent implements OnInit {
     this.rubricApi.create(request).subscribe({
       next: () => {
         this.saving.set(false);
-        this.router.navigate(['/teacher/assessments/shared/rubrics']);
+        this.success.set(true);
+        setTimeout(() => this.router.navigate(['/teacher/assessments/shared/rubrics']), 1500);
       },
       error: (err: any) => {
         this.saving.set(false);

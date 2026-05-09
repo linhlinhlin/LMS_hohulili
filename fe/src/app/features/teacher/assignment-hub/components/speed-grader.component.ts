@@ -1,28 +1,49 @@
 import { Component, inject, OnInit, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { FilePreviewComponent } from '../../../../shared/components/file-preview/file-preview.component';
 import { AssignmentDetailStore } from '../stores/assignment-detail.store';
 import { SubmissionsStore } from '../stores/submissions.store';
-import { SubmissionDetail, SubmissionGrade } from '../../../../api/client/assignment.api';
+import { SubmissionDetail, SubmissionGrade, RubricGradeItem } from '../../../../api/client/assignment.api';
 import { ToastService } from '../../../../core/services/toast.service';
+import { RubricApi } from '../../../../api/endpoints/rubric.api';
+
+interface RubricLevel {
+  id: string;
+  label: string;
+  points: number;
+}
+
+interface RubricCriterion {
+  id: string;
+  name: string;
+  maxPoints: number;
+  levels: RubricLevel[];
+}
+
+interface SpeedGraderRubric {
+  id: string;
+  title: string;
+  criteria: RubricCriterion[];
+  totalMaxPoints: number;
+}
 
 /**
  * SpeedGrader Component
- * 
- * Full-screen grading interface with file preview and rubric support.
- * 
- * @requirements Expert feedback - SpeedGrader in assignment context
+ *
+ * Full-screen grading interface with file preview and optional rubric grading.
+ * When an assignment has an assigned rubric, shows interactive rubric panel
+ * and auto-calculates score from level selections.
  */
 @Component({
   selector: 'app-speed-grader',
-  imports: [CommonModule, ReactiveFormsModule, LucideAngularModule, FilePreviewComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, LucideAngularModule, FilePreviewComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="h-screen flex flex-col bg-slate-50 overflow-hidden">
-      <!-- Header — đồng bộ design tokens -->
+      <!-- Header -->
       <header class="h-14 bg-white border-b border-gray-200 px-5 flex items-center justify-between flex-shrink-0 z-30">
         <div class="flex items-center gap-4">
           <button (click)="goBack()" type="button" aria-label="Quay lại"
@@ -113,10 +134,10 @@ import { ToastService } from '../../../../core/services/toast.service';
             </div>
           </div>
 
-          <!-- Right: Grading Panel — compact, feedback visible -->
-          <div class="w-full md:w-[380px] xl:w-[420px] bg-white flex flex-col border-l border-gray-200 z-20">
-            <!-- Student info (compact) -->
-            <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+          <!-- Right: Grading Panel -->
+          <div class="w-full md:w-[400px] xl:w-[440px] bg-white flex flex-col border-l border-gray-200 z-20">
+            <!-- Student info -->
+            <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0056D2] to-[#004BB5] flex items-center justify-center text-white text-sm font-semibold">
                   {{ getInitials(sub.studentName || '') }}
@@ -133,7 +154,7 @@ import { ToastService } from '../../../../core/services/toast.service';
               }
             </div>
 
-            <!-- Grade Form (compact — feedback on fold) -->
+            <!-- Scrollable form area -->
             <div class="flex-1 overflow-y-auto px-5 py-4">
               <form [formGroup]="gradingForm" class="space-y-4" (keydown.enter)="onEnterKey($event)">
                 <!-- Score -->
@@ -162,9 +183,70 @@ import { ToastService } from '../../../../core/services/toast.service';
                   </div>
                 </div>
 
+                <!-- Rubric Panel (shown when rubric is assigned) -->
+                @if (rubric()) {
+                  <div class="rounded-xl border border-gray-200 overflow-hidden">
+                    <!-- Rubric header / toggle -->
+                    <button type="button" (click)="toggleRubricPanel()"
+                            class="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left">
+                      <div class="flex items-center gap-2">
+                        <lucide-icon name="layout-list" [size]="14" class="text-[#0056D2]"></lucide-icon>
+                        <span class="text-xs font-semibold text-gray-700">Rubric: {{ rubric()!.title }}</span>
+                        @if (rubricComplete()) {
+                          <span class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded">Đầy đủ</span>
+                        } @else {
+                          <span class="px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-semibold rounded">{{ rubricSelectedCount() }}/{{ rubric()!.criteria.length }}</span>
+                        }
+                      </div>
+                      <div class="flex items-center gap-2">
+                        @if (rubricScore() !== null) {
+                          <span class="text-xs font-semibold text-[#0056D2]">{{ rubricScore() }}/{{ rubric()!.totalMaxPoints }} điểm</span>
+                        }
+                        <lucide-icon [name]="showRubricPanel() ? 'chevron-up' : 'chevron-down'" [size]="14" class="text-gray-400"></lucide-icon>
+                      </div>
+                    </button>
+
+                    @if (showRubricPanel()) {
+                      <div class="divide-y divide-gray-100">
+                        @for (criterion of rubric()!.criteria; track criterion.id) {
+                          <div class="px-4 py-3">
+                            <div class="flex items-center justify-between mb-2">
+                              <p class="text-xs font-semibold text-gray-700">{{ criterion.name }}</p>
+                              <span class="text-[10px] text-gray-400">tối đa {{ criterion.maxPoints }} điểm</span>
+                            </div>
+                            <div class="flex flex-col gap-1.5">
+                              @for (level of criterion.levels; track level.id) {
+                                <button type="button"
+                                        (click)="selectRubricLevel(criterion.id, level.id)"
+                                        [class]="rubricSelections()[criterion.id] === level.id
+                                          ? 'border-[#0056D2] bg-[#0056D2]/5 text-[#0056D2]'
+                                          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'"
+                                        class="w-full flex items-center justify-between px-3 py-2 rounded-lg border text-left transition-colors">
+                                  <span class="text-xs font-medium truncate mr-2">{{ level.label }}</span>
+                                  <span class="text-xs font-semibold flex-shrink-0"
+                                        [class]="rubricSelections()[criterion.id] === level.id ? 'text-[#0056D2]' : 'text-gray-400'">
+                                    {{ level.points }}
+                                  </span>
+                                </button>
+                              }
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <!-- No rubric assigned nudge -->
+                  <a [routerLink]="['/teacher/assessments/classes/assignments', assignmentStore.assignmentId(), 'details']"
+                     class="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-gray-200 text-xs text-gray-400 hover:border-[#0056D2] hover:text-[#0056D2] transition-colors">
+                    <lucide-icon name="layout-list" [size]="13"></lucide-icon>
+                    Chưa có rubric — Gán rubric trong cài đặt bài tập
+                  </a>
+                }
+
                 <div class="h-px bg-gray-100"></div>
 
-                <!-- Feedback (VISIBLE — not below fold) -->
+                <!-- Feedback -->
                 <div>
                   <label class="text-xs font-semibold text-gray-700 flex items-center gap-1.5 mb-2">
                     <lucide-icon name="message-square" [size]="12" class="text-[#0056D2]"></lucide-icon>
@@ -186,7 +268,7 @@ import { ToastService } from '../../../../core/services/toast.service';
             </div>
 
             <!-- Sticky Actions -->
-            <div class="px-5 py-3 bg-gray-50 border-t border-gray-200 flex gap-3">
+            <div class="px-5 py-3 bg-gray-50 border-t border-gray-200 flex gap-3 flex-shrink-0">
               <button (click)="saveDraft()" [disabled]="saving()"
                       class="flex-1 h-10 flex items-center justify-center rounded-xl bg-white border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors">
                 <lucide-icon name="save" [size]="14" class="mr-1.5"></lucide-icon>
@@ -231,6 +313,7 @@ export class SpeedGraderComponent implements OnInit {
   private router = inject(Router);
   private fb = inject(FormBuilder);
   private toast = inject(ToastService);
+  private rubricApi = inject(RubricApi);
 
   assignmentStore = inject(AssignmentDetailStore);
   submissionsStore = inject(SubmissionsStore);
@@ -239,6 +322,11 @@ export class SpeedGraderComponent implements OnInit {
   currentIndex = signal(0);
   noSubmissionAvailable = signal(false);
   draftSavedAt = signal<string | null>(null);
+
+  // Rubric state
+  rubric = signal<SpeedGraderRubric | null>(null);
+  rubricSelections = signal<Record<string, string>>({});
+  showRubricPanel = signal(true);
 
   gradingForm = this.fb.group({
     score: [0, [Validators.required, Validators.min(0)]],
@@ -261,6 +349,33 @@ export class SpeedGraderComponent implements OnInit {
     return [max, Math.round(max * 0.9), Math.round(max * 0.8), Math.round(max * 0.7), Math.round(max * 0.5)];
   });
 
+  rubricScore = computed(() => {
+    const r = this.rubric();
+    const sel = this.rubricSelections();
+    if (!r) return null;
+    let total = 0;
+    for (const c of r.criteria) {
+      const levelId = sel[c.id];
+      const level = c.levels.find(l => l.id === levelId);
+      if (level) total += level.points;
+    }
+    return Math.round(total);
+  });
+
+  rubricComplete = computed(() => {
+    const r = this.rubric();
+    const sel = this.rubricSelections();
+    if (!r) return true;
+    return r.criteria.every(c => !!sel[c.id]);
+  });
+
+  rubricSelectedCount = computed(() => {
+    const r = this.rubric();
+    const sel = this.rubricSelections();
+    if (!r) return 0;
+    return r.criteria.filter(c => !!sel[c.id]).length;
+  });
+
   ngOnInit(): void {
     const assignmentId = this.route.snapshot.paramMap.get('id');
     const submissionId = this.route.snapshot.paramMap.get('submissionId');
@@ -277,12 +392,19 @@ export class SpeedGraderComponent implements OnInit {
         if (submissionId) {
           const idx = this.submissionsStore.submissions().findIndex(s => s.id === submissionId);
           if (idx >= 0) this.currentIndex.set(idx);
-          // Load full detail for current submission
           this.loadCurrentSubmissionDetail();
         }
         this.noSubmissionAvailable.set(false);
         this.loadCurrentGrade();
       }, error: () => this.toast.error('Không thể tải danh sách bài nộp') });
+
+      // Load rubric for this assignment (may 404 if none assigned — that's fine)
+      this.rubricApi.getByAssignment(assignmentId).subscribe({
+        next: (res: any) => {
+          const dto = res?.data;
+          if (dto) this.rubric.set(this.mapRubricDto(dto));
+        }
+      });
     }
   }
 
@@ -290,7 +412,7 @@ export class SpeedGraderComponent implements OnInit {
     const sub = this.currentSubmission();
     if (sub && !sub.content) {
       this.submissionsStore.loadSubmissionDetail(sub.id).subscribe({
-        next: () => this.loadCurrentGrade(), // Re-populate grade after detail (feedback) loads
+        next: () => this.loadCurrentGrade(),
         error: () => this.toast.error('Không thể tải chi tiết bài nộp')
       });
     }
@@ -300,21 +422,24 @@ export class SpeedGraderComponent implements OnInit {
     const sub = this.currentSubmission();
     if (!sub) {
       this.gradingForm.reset({ score: 0, feedback: '' });
+      this.rubricSelections.set({});
       return;
     }
 
-    // Restore draft from localStorage if available (FE-H7 fix)
+    // Restore draft from localStorage if available
     const draftKey = `grade_draft_${sub.id}`;
     const draft = localStorage.getItem(draftKey);
     if (draft) {
       try {
         const parsed = JSON.parse(draft);
-        this.gradingForm.patchValue(parsed);
+        this.gradingForm.patchValue({ score: parsed.score, feedback: parsed.feedback });
+        if (parsed.rubricSelections) this.rubricSelections.set(parsed.rubricSelections);
         return;
       } catch { /* ignore invalid draft */ }
     }
 
     // Fall back to existing grade from API
+    this.rubricSelections.set({});
     if (sub.grade) {
       const score = typeof sub.grade === 'number' ? sub.grade : (sub.grade as SubmissionGrade).score;
       const feedback = typeof sub.grade === 'object' ? (sub.grade as SubmissionGrade).feedback : '';
@@ -327,6 +452,7 @@ export class SpeedGraderComponent implements OnInit {
   previousSubmission(): void {
     if (this.hasPrevious()) {
       this.currentIndex.update(i => i - 1);
+      this.rubricSelections.set({});
       this.loadCurrentGrade();
       this.loadCurrentSubmissionDetail();
     }
@@ -335,8 +461,26 @@ export class SpeedGraderComponent implements OnInit {
   nextSubmission(): void {
     if (this.hasNext()) {
       this.currentIndex.update(i => i + 1);
+      this.rubricSelections.set({});
       this.loadCurrentGrade();
       this.loadCurrentSubmissionDetail();
+    }
+  }
+
+  toggleRubricPanel(): void {
+    this.showRubricPanel.update(v => !v);
+  }
+
+  selectRubricLevel(criterionId: string, levelId: string): void {
+    this.rubricSelections.update(sel => ({ ...sel, [criterionId]: levelId }));
+    const rubricRaw = this.rubricScore();
+    if (rubricRaw !== null) {
+      const rubricMax = this.rubric()!.totalMaxPoints;
+      const assignMax = this.maxScore();
+      const scaled = rubricMax === assignMax
+        ? rubricRaw
+        : Math.round((rubricRaw / rubricMax) * assignMax * 100) / 100;
+      this.gradingForm.patchValue({ score: scaled });
     }
   }
 
@@ -375,13 +519,16 @@ export class SpeedGraderComponent implements OnInit {
   saveDraft(): void {
     const sub = this.currentSubmission();
     if (sub) {
-      localStorage.setItem(`grade_draft_${sub.id}`, JSON.stringify(this.gradingForm.value));
+      const draftValue = {
+        ...this.gradingForm.value,
+        rubricSelections: this.rubricSelections()
+      };
+      localStorage.setItem(`grade_draft_${sub.id}`, JSON.stringify(draftValue));
       this.draftSavedAt.set(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
     }
   }
 
   onEnterKey(event: Event): void {
-    // Don't submit if focus is in textarea (allow newlines)
     const target = event.target as HTMLElement;
     if (target.tagName === 'TEXTAREA') return;
     event.preventDefault();
@@ -395,14 +542,16 @@ export class SpeedGraderComponent implements OnInit {
     this.saving.set(true);
     const { score, feedback } = this.gradingForm.value;
 
+    const rubricGrades = this.buildRubricGrades();
+
     this.submissionsStore.updateInlineGrade({
       submissionId: sub.id,
       score: score || 0,
-      feedback: feedback || undefined
+      feedback: feedback || undefined,
+      rubricGrades: rubricGrades.length > 0 ? rubricGrades : undefined
     }).subscribe({
       next: () => {
         this.saving.set(false);
-        // Check if there was an error in the store
         const error = this.submissionsStore.error();
         if (error) {
           this.toast.error('Lỗi: ' + error);
@@ -424,5 +573,32 @@ export class SpeedGraderComponent implements OnInit {
   goBack(): void {
     const assignmentId = this.assignmentStore.assignmentId();
     this.router.navigate(['/teacher/assessments/classes/assignments', assignmentId, 'submissions']);
+  }
+
+  private buildRubricGrades(): RubricGradeItem[] {
+    const r = this.rubric();
+    const sel = this.rubricSelections();
+    if (!r) return [];
+    return r.criteria
+      .filter(c => !!sel[c.id])
+      .map(c => {
+        const level = c.levels.find(l => l.id === sel[c.id])!;
+        return { criterionId: c.id, levelId: sel[c.id], score: level.points };
+      });
+  }
+
+  private mapRubricDto(dto: any): SpeedGraderRubric {
+    const criteria: RubricCriterion[] = (dto.criteria || []).map((c: any, ci: number) => ({
+      id: `c${ci}`,
+      name: c.name || '',
+      maxPoints: c.maxPoints || 0,
+      levels: (c.levels || []).map((l: any, li: number) => ({
+        id: `c${ci}-l${li}`,
+        label: l.label || l.name || '',
+        points: l.points ?? 0
+      })).sort((a: RubricLevel, b: RubricLevel) => b.points - a.points)
+    }));
+    const totalMaxPoints = criteria.reduce((sum, c) => sum + c.maxPoints, 0) || dto.maxPoints || 100;
+    return { id: dto.id, title: dto.title, criteria, totalMaxPoints };
   }
 }

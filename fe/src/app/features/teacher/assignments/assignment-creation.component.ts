@@ -10,6 +10,7 @@ import { UploadedFile } from '../../../shared/models/uploaded-file.model';
 import { AssignmentStateService } from './services/assignment-state.service';
 import { validateAssignmentCreation, validateMaxScore } from './utils/assignment-validators';
 import { DistributionSelectorComponent, DistributionSettings } from '../assignment-hub/components/distribution-selector.component';
+import { RubricApi, RubricDTO } from '../../../api/endpoints/rubric.api';
 
 // Interface for enrolled student (matches EnrolledStudent from allocation-utils)
 interface EnrolledStudentData {
@@ -238,6 +239,30 @@ interface EnrolledStudentData {
               </div>
             </div>
 
+            <!-- Rubric Selection -->
+            <div class="space-y-3">
+              <h2 class="text-sm font-bold text-gray-900 uppercase tracking-tight">Tiêu chí đánh giá</h2>
+              @if (loadingRubrics()) {
+                <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-center gap-2">
+                  <div class="w-4 h-4 border-2 border-[#0056D2] border-t-transparent rounded-full animate-spin"></div>
+                  <span class="text-xs text-gray-500">Đang tải...</span>
+                </div>
+              } @else {
+                <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-2">
+                  <select [value]="selectedRubricId()" (change)="selectedRubricId.set($any($event.target).value)"
+                          class="w-full h-10 px-3 rounded-lg border border-gray-300 bg-white text-sm focus:ring-2 focus:ring-[#0056D2] focus:border-[#0056D2] outline-none transition-all">
+                    <option value="">-- Không dùng tiêu chí --</option>
+                    @for (r of availableRubrics(); track r.id) {
+                      <option [value]="r.id">{{ r.title }} ({{ r.maxPoints }}đ)</option>
+                    }
+                  </select>
+                  @if (availableRubrics().length === 0) {
+                    <p class="text-xs text-gray-400">Chưa có tiêu chí nào. <a routerLink="/teacher/assessments/shared/rubrics" class="text-[#0056D2] hover:underline">Tạo tiêu chí</a></p>
+                  }
+                </div>
+              }
+            </div>
+
             <!-- Feedback Messages -->
             @if (error()) {
               <div class="p-4 bg-red-50 border border-red-100 rounded-lg text-red-700 text-xs font-semibold flex items-start gap-3">
@@ -283,6 +308,7 @@ interface EnrolledStudentData {
 export class AssignmentCreationComponent implements OnInit {
   private assignmentState = inject(AssignmentStateService);
   private courseApi = inject(CourseApi);
+  private rubricApi = inject(RubricApi);
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -315,6 +341,11 @@ export class AssignmentCreationComponent implements OnInit {
 
     return 'Bài tập này sẽ áp dụng cho toàn bộ học viên đã ghi danh trong khóa học, không chia theo lớp.';
   });
+
+  // Rubric state
+  availableRubrics = signal<RubricDTO[]>([]);
+  selectedRubricId = signal('');
+  loadingRubrics = signal(false);
 
   // Distribution state
   enrolledStudents = signal<EnrolledStudentData[]>([]);
@@ -375,6 +406,16 @@ export class AssignmentCreationComponent implements OnInit {
     const preselectedCourseId = this.route.snapshot.queryParamMap.get('courseId');
     this.loadCourses(preselectedCourseId);
     this.selectedCourseId.set(this.form.controls.courseId.value ?? preselectedCourseId ?? '');
+    this.loadRubrics();
+  }
+
+  private loadRubrics(): void {
+    this.loadingRubrics.set(true);
+    this.rubricApi.list().subscribe({
+      next: (res: any) => this.availableRubrics.set(res?.data ?? res ?? []),
+      error: () => {},
+      complete: () => this.loadingRubrics.set(false)
+    });
   }
 
   /**
@@ -521,11 +562,18 @@ export class AssignmentCreationComponent implements OnInit {
     this.assignmentState.createAssignment(formValue.courseId!, request).subscribe({
       next: (result: any) => {
         if (result) {
-          this.success.set('Tạo bài tập thành công!');
-          // Navigate after short delay to show success message
-          setTimeout(() => {
-            this.router.navigate(['/teacher/assessments/classes/assignments']);
-          }, 1000);
+          const newId = result?.data?.id;
+          const rubricId = this.selectedRubricId();
+          const navigate = () => setTimeout(() => this.router.navigate(['/teacher/assessments/classes/assignments']), 1000);
+          if (newId && rubricId) {
+            this.rubricApi.assignToAssignment(rubricId, newId).subscribe({
+              next: () => { this.success.set('Tạo bài tập thành công!'); navigate(); },
+              error: () => { this.success.set('Bài tập đã tạo nhưng không thể gán tiêu chí'); navigate(); }
+            });
+          } else {
+            this.success.set('Tạo bài tập thành công!');
+            navigate();
+          }
         } else {
           this.error.set(this.assignmentState.error() || 'Tạo bài tập thất bại');
         }

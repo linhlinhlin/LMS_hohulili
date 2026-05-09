@@ -124,7 +124,7 @@ class AssignmentSecurityTest {
             when(courseJpaRepository.findById(courseId)).thenReturn(Optional.of(course));
 
             var otherTeacher = mockUser(otherTeacherId, UserJpaEntity.UserRole.TEACHER);
-            var request = new AssignmentSubmissionControllerV3.GradeRequest(85.0, null, "Tot");
+            var request = new AssignmentSubmissionControllerV3.GradeRequest(85.0, null, "Tot", null);
 
             assertThatThrownBy(() -> controller.gradeSubmission(submissionId, request, otherTeacher))
                     .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
@@ -140,11 +140,11 @@ class AssignmentSecurityTest {
             when(submission.getStudentId()).thenReturn(studentAId);
             when(submission.getStatus()).thenReturn(AssignmentSubmissionJpaEntity.SubmissionStatus.GRADED);
             when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
-            when(gradeSubmissionUseCase.gradeSubmission(submissionId, 90.0, "Xuat sac", adminId))
+            when(gradeSubmissionUseCase.gradeSubmission(submissionId, 90.0, "Xuat sac", null, adminId))
                     .thenReturn(submission);
 
             var admin = mockUser(adminId, UserJpaEntity.UserRole.ADMIN);
-            var request = new AssignmentSubmissionControllerV3.GradeRequest(90.0, null, "Xuat sac");
+            var request = new AssignmentSubmissionControllerV3.GradeRequest(90.0, null, "Xuat sac", null);
 
             var response = controller.gradeSubmission(submissionId, request, admin);
             assertThat(response.getStatusCode().value()).isEqualTo(200);
