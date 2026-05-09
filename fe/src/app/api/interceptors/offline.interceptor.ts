@@ -1,5 +1,5 @@
 import { HttpRequest, HttpHandlerFn, HttpEvent, HttpResponse, HttpErrorResponse } from '@angular/common/http';
-import { Observable, from, of, throwError } from 'rxjs';
+import { Observable, from, of, throwError, timeout } from 'rxjs';
 import { catchError, switchMap, tap } from 'rxjs/operators';
 import { inject } from '@angular/core';
 import { ensureOfflineDbReady, offlineDb, getCurrentUserId, type OfflineCourse } from '../../core/db/lms-offline.db';
@@ -10,6 +10,7 @@ import { isOfflineCompatibleHttpError } from '../../core/utils/offline-http-erro
 /** Paths that must never be intercepted offline (auth, health checks) */
 const NEVER_INTERCEPT_PREFIXES = ['/api/v3/auth/', '/api/v3/sync/', '/actuator/'];
 const DEFAULT_OFFLINE_COURSES_PAGE_SIZE = 12;
+const BACKGROUND_MUTATION_NETWORK_TIMEOUT_MS = 2_000;
 
 /**
  * Offline interceptor — catches network errors and falls back to IndexedDB.
@@ -25,21 +26,28 @@ const DEFAULT_OFFLINE_COURSES_PAGE_SIZE = 12;
 export const offlineInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): Observable<HttpEvent<any>> => {
   const syncService = inject(OfflineSyncService);
   const networkStatus = inject(NetworkStatusService);
+  const path = extractApiPath(req.url) || req.url;
 
-  // If online, proceed normally but catch network failures
-  return next(req).pipe(
-    tap((event) => {
-      if (event instanceof HttpResponse) {
-        networkStatus.markOnlineFromHttpSuccess();
-      }
-    }),
-    catchError((error: HttpErrorResponse) => {
-      const path = extractApiPath(req.url) || req.url;
-      const isOfflineError = isOfflineCompatibleHttpError(error, req.url, {
-        navigatorOnline: typeof navigator === 'undefined' ? true : navigator.onLine,
-        appOnline: networkStatus.online(),
-        hasRecentOfflineSignal: networkStatus.hasRecentOfflineSignal(),
-      });
+  const forwardToNetwork = () => withBackgroundMutationTimeout(
+    next(req).pipe(
+      tap((event) => {
+        if (event instanceof HttpResponse) {
+          networkStatus.markOnlineFromHttpSuccess();
+        }
+      }),
+    ),
+    path,
+    req.method,
+  ).pipe(
+    catchError((error: unknown) => {
+      const isBackgroundTimeout = isNetworkTimeoutError(error)
+        && isBackgroundLearningMutation(path, req.method);
+      const isOfflineError = isBackgroundTimeout
+        || isOfflineCompatibleHttpError(error as HttpErrorResponse, req.url, {
+          navigatorOnline: typeof navigator === 'undefined' ? true : navigator.onLine,
+          appOnline: networkStatus.online(),
+          hasRecentOfflineSignal: networkStatus.hasRecentOfflineSignal(),
+        });
       if (!isOfflineError) {
         return throwError(() => error);
       }
@@ -76,27 +84,85 @@ export const offlineInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): 
 
       // For mutation requests → queue for later sync
       if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-        return from(queueMutation(syncService, req)).pipe(
-          switchMap(async (queuedPayload) => {
-            const body = await buildOfflineMutationResponse(path, queuedPayload);
-            // Return a fake success response so the UI doesn't break
-            return new HttpResponse({
-              status: 202,
-              body,
-              url: req.url,
-            });
-          }),
-          catchError(() => throwError(() => error)),
-        );
+        return buildQueuedMutationResponse(syncService, req, path)
+          .pipe(catchError(() => throwError(() => error)));
       }
 
       return throwError(() => error);
     }),
   );
+
+  if (shouldQueueBeforeNetwork(path, req.method, networkStatus.shouldDeferNonCriticalSync())) {
+    return buildQueuedMutationResponse(syncService, req, path)
+      .pipe(catchError(() => forwardToNetwork()));
+  }
+
+  // If online, proceed normally but catch network failures
+  return forwardToNetwork();
 };
 
 export function shouldBypassOfflineInterception(path: string): boolean {
   return NEVER_INTERCEPT_PREFIXES.some(prefix => path.startsWith(prefix));
+}
+
+export function isBackgroundLearningMutation(path: string, method: string): boolean {
+  const normalizedMethod = method.toUpperCase();
+  if (!['POST', 'PUT', 'PATCH'].includes(normalizedMethod)) {
+    return false;
+  }
+
+  if (path === '/api/v3/video-progress/track') {
+    return normalizedMethod === 'POST';
+  }
+
+  if (path.startsWith('/api/v3/learning-activity/')) {
+    return normalizedMethod === 'POST';
+  }
+
+  return /^\/api\/v3\/student\/progress\/lessons\/[a-f0-9-]+\/sections\/[^/]+\/complete$/i.test(path)
+    || /^\/api\/v3\/student\/progress\/lessons\/[a-f0-9-]+\/complete$/i.test(path);
+}
+
+export function shouldQueueBeforeNetwork(path: string, method: string, shouldDeferSync: boolean): boolean {
+  return shouldDeferSync
+    && !shouldBypassOfflineInterception(path)
+    && isBackgroundLearningMutation(path, method);
+}
+
+function withBackgroundMutationTimeout(
+  source: Observable<HttpEvent<any>>,
+  path: string,
+  method: string,
+): Observable<HttpEvent<any>> {
+  if (!isBackgroundLearningMutation(path, method)) {
+    return source;
+  }
+
+  return source.pipe(timeout({ each: BACKGROUND_MUTATION_NETWORK_TIMEOUT_MS }));
+}
+
+function isNetworkTimeoutError(error: unknown): boolean {
+  return !!error
+    && typeof error === 'object'
+    && (error as { name?: string }).name === 'TimeoutError';
+}
+
+function buildQueuedMutationResponse(
+  syncService: OfflineSyncService,
+  req: HttpRequest<any>,
+  path: string,
+): Observable<HttpEvent<any>> {
+  return from(queueMutation(syncService, req)).pipe(
+    switchMap(async (queuedPayload) => {
+      const body = await buildOfflineMutationResponse(path, queuedPayload);
+      // Return a fake success response so the UI doesn't break
+      return new HttpResponse({
+        status: 202,
+        body,
+        url: req.url,
+      });
+    }),
+  );
 }
 
 // ─── Offline Fallback Logic ──────────────────────────────────────────
@@ -653,7 +719,7 @@ function toTimestampValue(value: Date | string | undefined): number {
 }
 
 type SyncDescriptor = {
-  entityType: 'progress' | 'submission' | 'quizAttempt' | 'videoProgress';
+  entityType: 'progress' | 'submission' | 'quizAttempt' | 'videoProgress' | 'learningEvent';
   metadata: {
     courseId?: string;
     publicationId?: string | null;
@@ -719,7 +785,7 @@ async function resolveSyncDescriptor(path: string, payload: unknown): Promise<Sy
       ? payloadRecord['sectionId']
       : (typeof payloadRecord['lessonId'] === 'string' ? payloadRecord['lessonId'] : undefined);
     return {
-      entityType: 'submission',
+      entityType: 'learningEvent',
       metadata: {
         courseId: courseId ?? undefined,
         publicationId,

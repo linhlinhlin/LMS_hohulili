@@ -5,6 +5,7 @@ export type ConnectionTransport = 'wifi' | 'ethernet' | 'cellular' | 'unknown';
 
 const OFFLINE_GRACE_MS = 1_500;
 const RECENT_OFFLINE_WINDOW_MS = 5_000;
+const NON_CRITICAL_SYNC_DEFER_WINDOW_MS = 15_000;
 const PROBE_INTERVAL_MS = 120_000;
 const PROBE_TIMEOUT_MS = 4_000;
 const TRANSPORT_FAILURE_PROBE_DELAY_MS = 250;
@@ -133,6 +134,13 @@ export class NetworkStatusService implements OnDestroy {
       || !this.online();
   }
 
+  shouldDeferNonCriticalSync(windowMs = NON_CRITICAL_SYNC_DEFER_WINDOW_MS): boolean {
+    return this.isEffectivelyOffline()
+      || this.connectionTier() === 'slow'
+      || this.saveDataEnabled()
+      || this.hasRecentOfflineSignal(windowMs);
+  }
+
   markOfflineFromTransportFailure(): void {
     if (!this.getBrowserOnlineHint()) {
       this.markOfflineState();
@@ -188,11 +196,7 @@ export class NetworkStatusService implements OnDestroy {
     }
 
     this.online.set(true);
-    if (conn?.downlink != null) {
-      this.effectiveBandwidthMbps.set(Math.max(conn.downlink, 1.5));
-    } else {
-      this.effectiveBandwidthMbps.set(2);
-    }
+    this.effectiveBandwidthMbps.set(this.estimateBandwidthMbps(conn));
   }
 
   // Single-probe health check against /actuator/health. Previously used a
@@ -233,6 +237,23 @@ export class NetworkStatusService implements OnDestroy {
     }
 
     return 'unknown';
+  }
+
+  private estimateBandwidthMbps(conn: any): number {
+    if (typeof conn?.downlink === 'number' && Number.isFinite(conn.downlink) && conn.downlink > 0) {
+      return Math.max(conn.downlink, 0.05);
+    }
+
+    switch (conn?.effectiveType) {
+      case 'slow-2g':
+        return 0.1;
+      case '2g':
+        return 0.25;
+      case '3g':
+        return 0.75;
+      default:
+        return 2;
+    }
   }
 
   private getBrowserOnlineHint(): boolean {
