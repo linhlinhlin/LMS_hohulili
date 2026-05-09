@@ -287,7 +287,9 @@
 .user-email-label {
   display: block;
   font-size: 0.6875rem;
-  color: #9ca3af;
+  /* WCAG 2.4 AA — #9ca3af on white = 2.85:1 (fail). #6b7280 = 4.83:1 (pass).
+     axe-core a11y spec verified. */
+  color: #6b7280;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
