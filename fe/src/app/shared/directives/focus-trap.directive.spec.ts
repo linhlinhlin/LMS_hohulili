@@ -107,4 +107,18 @@ describe('FocusTrapDirective', () => {
     expect(comp.escapeCount).toBe(0);
     expect(document.activeElement).toBe(outsideBefore);
   });
+
+  it('restores focus on destroy when the host is unmounted while active (admin @if pattern)', () => {
+    outsideBefore.focus();
+    comp.active.set(true);
+    fixture.detectChanges();
+    expect(document.activeElement).toBe(first);
+
+    // Simulate parent removing the host element via `@if`. ngOnDestroy must
+    // run focus restore explicitly because the active-effect deactivation
+    // branch may not flush before the instance is torn down.
+    fixture.destroy();
+
+    expect(document.activeElement).toBe(outsideBefore);
+  });
 });

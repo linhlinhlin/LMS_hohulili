@@ -2,6 +2,7 @@ import {
   Directive,
   ElementRef,
   HostListener,
+  OnDestroy,
   PLATFORM_ID,
   effect,
   inject,
@@ -38,7 +39,7 @@ const FOCUSABLE_SELECTOR = [
 @Directive({
   selector: '[appFocusTrap]',
 })
-export class FocusTrapDirective {
+export class FocusTrapDirective implements OnDestroy {
   /** When true, the trap is active. */
   readonly active = input(false, { alias: 'appFocusTrap' });
 
@@ -60,6 +61,19 @@ export class FocusTrapDirective {
         this.deactivate();
       }
     });
+  }
+
+  /** When the host element is removed from the DOM (e.g. an `@if` block
+   *  unmounts the drawer), the effect's deactivation branch may not run
+   *  before the directive instance is torn down — leaving focus stranded
+   *  on a node that's about to be removed. Run the focus-restore explicitly
+   *  here so admin's drawer (which uses `@if (isMobileSidebarOpen)`) still
+   *  restores focus to the hamburger button.
+   *  Per PR #381 review feedback. */
+  ngOnDestroy(): void {
+    if (this.returnFocusEl) {
+      this.deactivate();
+    }
   }
 
   // Angular's $event for HostListener types as Event; we only need
