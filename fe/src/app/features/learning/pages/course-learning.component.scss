@@ -179,6 +179,12 @@
   }
 }
 
+@media (min-width: 768px) {
+  .learning-mobile-sidebar-close {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .learning-sidebar,
   .learning-sidebar-toggle,
