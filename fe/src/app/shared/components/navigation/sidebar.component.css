@@ -1,13 +1,37 @@
 /* Component-specific styles - avoiding Tailwind @apply conflicts */
+
+/* Host element MUST be a flex column with explicit height so the inner
+   nav-scroll + sticky footer layout works inside both the desktop wrapper
+   (lg:fixed lg:inset-y-0) and the mobile drawer panel (top:0; bottom:0).
+   `flex: 1; min-height: 0` covers flex-column parents (desktop wrapper);
+   `height: 100%` covers fixed-positioned parents (mobile drawer panel).
+   Both safely coexist — flex:1 is ignored if parent isn't flex. */
+app-sidebar {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+}
+
 .sidebar-container {
   background: white;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  height: 100vh;
+  /* Was `height: 100vh` — but on mobile 100vh INCLUDES the URL bar height,
+     so the footer (user account card) was pushed below the visible drawer.
+     Using 100% defers sizing to the parent which already constrains height. */
+  height: 100%;
   display: flex;
   flex-direction: column;
   border-right: 1px solid rgba(229, 231, 235, 0.5);
   transition: width 0.3s ease;
   overflow: hidden;
+}
+
+/* Sidebar footer must never be squeezed out of the flex column when the
+   nav has many items — `flex-shrink: 0` reserves its intrinsic height. */
+.sidebar-footer {
+  flex-shrink: 0;
 }
 
 .sidebar-header {

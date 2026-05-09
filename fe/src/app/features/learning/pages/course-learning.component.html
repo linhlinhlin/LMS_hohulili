@@ -378,12 +378,18 @@
           <span>{{ completeButtonLabel() }}</span>
         </button>
 
-        <button class="flex items-center gap-1 px-3 py-2 rounded text-slate-500 hover:text-[#0056D2] hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:pointer-events-none"
-          [disabled]="isLearningItemTransitioning() || (!canGoNext() && (!currentLesson()?.sections || currentSectionIndex() >= (currentLesson()?.sections?.length || 0) - 1))"
-          (click)="nextLesson()">
-          <span class="hidden sm:inline text-sm font-medium">Bài tiếp theo</span>
-          <app-icon name="arrow-right" size="md"></app-icon>
-        </button>
+        @if (showSkipToNextLessonButton()) {
+          <button class="flex items-center gap-1 px-3 py-2 rounded text-slate-500 hover:text-[#0056D2] hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:pointer-events-none"
+            [disabled]="isLearningItemTransitioning()"
+            (click)="nextLesson()"
+            aria-label="Bỏ qua bài hiện tại, đi tới bài tiếp theo">
+            <span class="hidden sm:inline text-sm font-medium">Bài tiếp theo</span>
+            <app-icon name="arrow-right" size="md"></app-icon>
+          </button>
+        } @else {
+          <!-- Spacer keeps the centre CTA visually centred when right link hides. -->
+          <span class="px-3 py-2" aria-hidden="true"></span>
+        }
       </div>
     </div>
     }
