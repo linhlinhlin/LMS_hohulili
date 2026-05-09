@@ -19,7 +19,11 @@ import {
 } from '../db/lms-offline.db';
 import { StorageManagerService } from './storage-manager.service';
 import { ToastService } from './toast.service';
-import { OfflineVideoService } from './offline-video.service';
+import {
+  OFFLINE_VIDEO_MAX_CACHE_BYTES,
+  OfflineVideoService,
+  isOfflineVideoTooLargeError,
+} from './offline-video.service';
 import { OfflineFileService } from './offline-file.service';
 import { OfflineSyncService } from './offline-sync.service';
 import { NetworkStatusService } from './network-status.service';
@@ -91,6 +95,15 @@ interface OfflineCourseSnapshot {
   lessons: OfflineLesson[];
   quizData: OfflineQuizData[];
 }
+
+interface OfflineVideoSkipSummary {
+  unsupported: number;
+  placeholder: number;
+  tooLarge: number;
+  failed: number;
+}
+
+type OfflineVideoSkipReason = keyof OfflineVideoSkipSummary;
 
 @Injectable({ providedIn: 'root' })
 export class CourseDownloadService {
@@ -174,6 +187,12 @@ export class CourseDownloadService {
     this.downloadCancelled = false;
     const userId = getCurrentUserId();
     const effectiveOptions = this.resolveEffectiveDownloadOptions(options);
+    const videoSkipSummary: OfflineVideoSkipSummary = {
+      unsupported: 0,
+      placeholder: 0,
+      tooLarge: 0,
+      failed: 0,
+    };
 
     try {
       await this.ensureOfflineReady();
@@ -324,6 +343,7 @@ export class CourseDownloadService {
             let downloadedVideoProfileId: OfflineVideoProfileId | null = null;
             let downloadedVideoProfileLabel: string | null = null;
             let downloadedVideoResolution: string | null = null;
+            let downloadedVideoFileSizeBytes: number | null = null;
             let videoSourceKind = vl.videoSourceKind ?? this.resolveVideoSourceKind(
               null,
               vl.videoManifestUrl,
@@ -343,6 +363,7 @@ export class CourseDownloadService {
                   descriptor.actualResolution,
                 );
                 downloadedVideoResolution = descriptor.actualResolution ?? null;
+                downloadedVideoFileSizeBytes = descriptor.fileSizeBytes ?? null;
                 videoSourceKind = 'STREAM';
               } catch {
                 // CF URL fetch failed — fall through to raw videoManifestUrl
@@ -351,6 +372,14 @@ export class CourseDownloadService {
               downloadedVideoProfileId = 'ORIGINAL';
               downloadedVideoProfileLabel = getOfflineVideoProfileLabel('ORIGINAL');
             }
+            const skipReason = this.getOfflineVideoSkipReason({
+              downloadUrl,
+              fileSizeBytes: downloadedVideoFileSizeBytes,
+            });
+            if (skipReason) {
+              this.recordVideoSkip(videoSkipSummary, skipReason);
+              continue;
+            }
             await this.videoService.downloadVideo(downloadUrl, vl.id);
             await offlineDb.lessons.update([userId, vl.id], {
               downloadedVideoProfileId,
@@ -358,8 +387,9 @@ export class CourseDownloadService {
               downloadedVideoResolution,
               videoSourceKind,
             });
-          } catch {
-            // Video download failure is non-fatal — skip and continue
+          } catch (videoErr) {
+            this.recordVideoDownloadError(videoSkipSummary, videoErr);
+            // Non-fatal: text, quiz, and progress data remain available offline.
           }
 
           this.downloadProgress.set(80 + Math.round(((vi + 1) / videoLessons.length) * 15));
@@ -387,6 +417,12 @@ export class CourseDownloadService {
               try {
                 const descriptor = await this.resolveSectionVideoDownloadDescriptor(section, videoPreference);
                 if (descriptor.downloadUrl) {
+                  const skipReason = this.getOfflineVideoSkipReason(descriptor);
+                  if (skipReason) {
+                    this.recordVideoSkip(videoSkipSummary, skipReason);
+                    continue;
+                  }
+
                   section.videoOfflineUri = await this.videoService.downloadSectionVideo(descriptor.downloadUrl, lesson.id, section.id);
                   section.downloadedVideoProfileId = this.normalizeDownloadedProfileId(descriptor.profile)
                     ?? (section.streamVideoUid ? null : 'ORIGINAL');
@@ -404,9 +440,9 @@ export class CourseDownloadService {
                   );
                   sectionsChanged = true;
                 } else {
-                  // descriptor.downloadUrl null → adaptive HLS hoặc no MP4 rendition
-                  // Log để user biết video này không support offline
-                  console.warn('[CourseDownload] Section video không có downloadUrl (likely adaptive HLS, no MP4 rendition):', {
+                  // Descriptor has no offline MP4 rendition; keep this as debug-only telemetry.
+                  this.recordVideoSkip(videoSkipSummary, 'unsupported');
+                  console.debug('[CourseDownload] Section video không có downloadUrl (likely adaptive HLS, no MP4 rendition):', {
                     sectionId: section.id,
                     sectionTitle: section.title,
                     videoSourceKind: section.videoSourceKind,
@@ -414,15 +450,7 @@ export class CourseDownloadService {
                   });
                 }
               } catch (videoErr) {
-                // Surface error để debug — silent swallow trước đây ẩn root cause
-                // (mobile vs PC behavior diff). User sẽ biết video nào fail + lý do.
-                console.error('[CourseDownload] Section video download FAILED:', {
-                  sectionId: section.id,
-                  sectionTitle: section.title,
-                  lessonId: lesson.id,
-                  error: videoErr instanceof Error ? videoErr.message : String(videoErr),
-                  stack: videoErr instanceof Error ? videoErr.stack : undefined,
-                });
+                this.recordVideoDownloadError(videoSkipSummary, videoErr);
               }
             }
 
@@ -603,6 +631,7 @@ export class CourseDownloadService {
       this.downloadProgress.set(100);
       if (!behavior.silentSuccessToast) {
         this.toast.success(`Đã tải khóa học "${courseData.title || courseData.name}" cho ngoại tuyến`);
+        this.showVideoSkipSummary(videoSkipSummary);
       }
 
       await this.refreshDownloadedCourses();
@@ -1216,6 +1245,76 @@ export class CourseDownloadService {
 
   private canDownloadQuizOffline(quizType: unknown): boolean {
     return this.normalizeQuizAssessmentType(quizType) === 'PRACTICE';
+  }
+
+  private getOfflineVideoSkipReason(
+    descriptor: Pick<OfflineVideoDownloadDescriptor, 'downloadUrl' | 'fileSizeBytes'>,
+  ): OfflineVideoSkipReason | null {
+    if ((descriptor.fileSizeBytes ?? 0) > OFFLINE_VIDEO_MAX_CACHE_BYTES) {
+      return 'tooLarge';
+    }
+
+    const downloadUrl = descriptor.downloadUrl?.trim();
+    if (!downloadUrl) {
+      return 'unsupported';
+    }
+
+    let parsedUrl: URL;
+    try {
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://holilihu.online';
+      parsedUrl = new URL(downloadUrl, baseUrl);
+    } catch {
+      return 'unsupported';
+    }
+
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      return 'unsupported';
+    }
+
+    const host = parsedUrl.hostname.toLowerCase();
+    if (
+      host === 'example.com'
+      || host === 'example.org'
+      || host === 'example.net'
+      || host.endsWith('.example.com')
+      || host.endsWith('.example.org')
+      || host.endsWith('.example.net')
+    ) {
+      return 'placeholder';
+    }
+
+    return null;
+  }
+
+  private recordVideoSkip(summary: OfflineVideoSkipSummary, reason: OfflineVideoSkipReason): void {
+    summary[reason] += 1;
+  }
+
+  private recordVideoDownloadError(summary: OfflineVideoSkipSummary, error: unknown): void {
+    if (isOfflineVideoTooLargeError(error)) {
+      this.recordVideoSkip(summary, 'tooLarge');
+      return;
+    }
+
+    this.recordVideoSkip(summary, 'failed');
+  }
+
+  private showVideoSkipSummary(summary: OfflineVideoSkipSummary): void {
+    const total = summary.unsupported + summary.placeholder + summary.tooLarge + summary.failed;
+    if (total === 0) {
+      return;
+    }
+
+    const details: string[] = [];
+    if (summary.tooLarge > 0) details.push(`${summary.tooLarge} video quá lớn`);
+    if (summary.unsupported > 0) details.push(`${summary.unsupported} video chỉ phát trực tuyến`);
+    if (summary.placeholder > 0) details.push(`${summary.placeholder} video chưa có nguồn thật`);
+    if (summary.failed > 0) details.push(`${summary.failed} video chưa tải được`);
+
+    this.toast.warning(
+      `Đã bỏ qua ${total} video khi tạo gói offline (${details.join(', ')}). Các nội dung này vẫn phát khi có mạng ổn định.`,
+      { duration: 6500 },
+    );
   }
 
   private async resolveSectionVideoDownloadDescriptor(

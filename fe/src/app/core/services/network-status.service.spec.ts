@@ -132,7 +132,7 @@ describe('NetworkStatusService', () => {
       expect(service.hasRecentOfflineSignal()).toBeFalse();
     }));
 
-    it('should confirm offline when the follow-up probe fails', fakeAsync(() => {
+    it('should treat one failed probe as degraded instead of immediately offline', fakeAsync(() => {
       service.online.set(true);
       fetchSpy.and.callFake(async () => new Response('', { status: 503 }));
 
@@ -140,10 +140,36 @@ describe('NetworkStatusService', () => {
       tick(250);
       flushMicrotasks();
 
+      expect(service.online()).toBeTrue();
+      expect(service.connectionTier()).toBe('slow');
+      expect(service.hasRecentOfflineSignal()).toBeTrue();
+      expect(service.isEffectivelyOffline()).toBeFalse();
+    }));
+
+    it('should confirm offline after repeated failed probes', async () => {
+      service.online.set(true);
+      fetchSpy.and.callFake(async () => new Response('', { status: 503 }));
+
+      await service.probeNow();
+      await service.probeNow();
+
       expect(service.online()).toBeFalse();
       expect(service.hasRecentOfflineSignal()).toBeTrue();
       expect(service.isEffectivelyOffline()).toBeTrue();
-    }));
+    });
+
+    it('should let manual retry recover on a successful health probe', async () => {
+      service.online.set(true);
+      fetchSpy.calls.reset();
+      fetchSpy.and.callFake(async () => new Response('', { status: 200 }));
+
+      const recovered = await service.probeNow();
+
+      expect(recovered).toBeTrue();
+      expect(service.online()).toBeTrue();
+      expect(service.hasRecentOfflineSignal()).toBeFalse();
+      expect(fetchSpy.calls.count()).toBe(1);
+    });
 
     it('should clear a suspected offline signal after a successful HTTP response', fakeAsync(() => {
       service.online.set(true);

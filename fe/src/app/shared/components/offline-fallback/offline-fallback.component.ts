@@ -1,9 +1,10 @@
-import { Component, ChangeDetectionStrategy, inject, computed } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, ChangeDetectionStrategy, inject, computed, signal } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { CourseDownloadService } from '../../../core/services/course-download.service';
 import { StorageManagerService } from '../../../core/services/storage-manager.service';
 import { OfflineSyncService } from '../../../core/services/offline-sync.service';
+import { NetworkStatusService } from '../../../core/services/network-status.service';
 
 export const OFFLINE_FALLBACK_COURSE_ROUTE_PREFIX = '/student/learn/course';
 
@@ -33,10 +34,13 @@ export const OFFLINE_FALLBACK_COURSE_ROUTE_PREFIX = '/student/learn/course';
                     <button
                       type="button"
                       (click)="retry()"
+                      [disabled]="isRetrying()"
                       class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#0056D2] px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#004BB5] focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:ring-offset-2"
+                      [class.cursor-wait]="isRetrying()"
+                      [class.opacity-75]="isRetrying()"
                     >
-                      <lucide-icon name="refresh-cw" [size]="16" aria-hidden="true"></lucide-icon>
-                      Thử kết nối lại
+                      <lucide-icon name="refresh-cw" [size]="16" [class.animate-spin]="isRetrying()" aria-hidden="true"></lucide-icon>
+                      {{ isRetrying() ? 'Đang kiểm tra...' : 'Thử kết nối lại' }}
                     </button>
 
                     @if (downloadCount() > 0) {
@@ -49,6 +53,16 @@ export const OFFLINE_FALLBACK_COURSE_ROUTE_PREFIX = '/student/learn/course';
                       </a>
                     }
                   </div>
+
+                  @if (retryMessage()) {
+                    <p
+                      class="mt-3 max-w-xl rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      {{ retryMessage() }}
+                    </p>
+                  }
                 </div>
               </div>
             </div>
@@ -197,8 +211,12 @@ export class OfflineFallbackComponent {
   private readonly courseDownload = inject(CourseDownloadService);
   private readonly storageManager = inject(StorageManagerService);
   private readonly syncService = inject(OfflineSyncService);
+  private readonly networkStatus = inject(NetworkStatusService);
+  private readonly router = inject(Router);
 
   protected readonly courseRoutePrefix = OFFLINE_FALLBACK_COURSE_ROUTE_PREFIX;
+  protected readonly isRetrying = signal(false);
+  protected readonly retryMessage = signal<string | null>(null);
   protected readonly downloadedCourses = computed(() => this.courseDownload.downloadedCourses());
   protected readonly downloadCount = computed(() => this.downloadedCourses().length);
   protected readonly pendingSync = computed(() => this.syncService.pendingCount());
@@ -216,8 +234,25 @@ export class OfflineFallbackComponent {
     return this.storageManager.formatBytes(bytes);
   }
 
-  protected retry(): void {
-    window.location.reload();
+  protected async retry(): Promise<void> {
+    if (this.isRetrying()) {
+      return;
+    }
+
+    this.isRetrying.set(true);
+    this.retryMessage.set(null);
+
+    try {
+      const hasConnection = await this.networkStatus.probeNow();
+      if (hasConnection) {
+        await this.router.navigateByUrl('/student/courses');
+        return;
+      }
+
+      this.retryMessage.set('Chưa kết nối được. Nếu bạn vừa bật mạng, hãy đợi vài giây rồi thử lại.');
+    } finally {
+      this.isRetrying.set(false);
+    }
   }
 
   protected retryFailed(): void {
