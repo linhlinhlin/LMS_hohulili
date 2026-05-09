@@ -107,5 +107,19 @@ import { RouterModule } from '@angular/router';
       </div>
     </footer>
   `,
+  styles: [`
+    :host footer a {
+      align-items: center;
+      display: inline-flex;
+      min-height: 44px;
+    }
+
+    :host footer a[aria-label] {
+      border-radius: 9999px;
+      height: 44px;
+      justify-content: center;
+      width: 44px;
+    }
+  `],
 })
 export class FooterComponent {}

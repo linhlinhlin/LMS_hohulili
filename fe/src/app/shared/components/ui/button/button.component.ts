@@ -113,6 +113,14 @@ type ButtonSize = 'sm' | 'md' | 'lg';
     .btn-full {
       width: 100%;
     }
+
+    @media (max-width: 640px) {
+      .btn-sm,
+      .btn-md {
+        min-height: 44px;
+        height: auto;
+      }
+    }
   `]
 })
 export class ButtonComponent {

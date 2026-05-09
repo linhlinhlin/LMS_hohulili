@@ -29,7 +29,11 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
       <!-- Mobile sidebar overlay — CSS animation (matching student layout) -->
       @if (!shouldHideSidebar()) {
         <div class="mobile-sidebar-overlay md:hidden"
-             [class.open]="isMobileSidebarOpen()">
+             [class.open]="isMobileSidebarOpen()"
+             [attr.aria-hidden]="!isMobileSidebarOpen()"
+             [attr.aria-modal]="isMobileSidebarOpen() ? 'true' : null"
+             [attr.inert]="isMobileSidebarOpen() ? null : ''"
+             role="dialog">
           <div class="mobile-sidebar-backdrop" (click)="toggleMobileSidebar()"></div>
           <div class="mobile-sidebar-panel">
             <app-sidebar [config]="teacherSidebarConfig()"
@@ -56,7 +60,8 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
               <div class="flex justify-between items-center h-14">
                 <div class="flex items-center space-x-3">
                   <button (click)="toggleMobileSidebar()"
-                    class="p-2 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 focus:outline-none transition-all duration-200">
+                    aria-label="Mở menu điều hướng"
+                    class="inline-flex h-11 w-11 items-center justify-center rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 transition-all duration-200">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
@@ -66,8 +71,8 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
                     <span class="text-base font-bold text-gray-900">Cổng Giảng viên</span>
                   </div>
                 </div>
-                <button (click)="toggleMobileSidebar()" class="p-1 rounded-full hover:bg-gray-100 transition-colors">
-                  <div class="w-8 h-8 bg-[#0056D2] rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                <button (click)="toggleMobileSidebar()" aria-label="Mở hồ sơ và menu" class="inline-flex h-11 w-11 items-center justify-center rounded-full hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
+                  <div class="w-9 h-9 bg-[#0056D2] rounded-full flex items-center justify-center text-white text-xs font-semibold">
                     {{ getUserInitials() }}
                   </div>
                 </button>
@@ -85,7 +90,7 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
                  [class.translate-y-full]="shouldHideMobileChrome()"
                  [class.opacity-0]="shouldHideMobileChrome()"
                  [class.pointer-events-none]="shouldHideMobileChrome()">
-              <div class="flex items-center justify-around px-1 py-1.5">
+              <div class="flex items-center justify-around px-1 py-1">
                 <a routerLink="/teacher/courses"
                   aria-label="Khóa học của tôi"
                   routerLinkActive="tab-active"
@@ -247,6 +252,12 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       z-index: 51;
     }
+    .mobile-sidebar-panel .nav-item,
+    .mobile-sidebar-panel .sub-menu-item,
+    .mobile-sidebar-panel .user-menu-trigger,
+    .mobile-sidebar-panel .user-menu-item {
+      min-height: 44px;
+    }
     .mobile-sidebar-overlay.open .mobile-sidebar-panel {
       transform: translateX(0);
     }
@@ -259,7 +270,8 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 4px 0;
+      min-height: 48px;
+      padding: 6px 0;
       min-width: 0;
       flex: 1;
       color: #9ca3af;

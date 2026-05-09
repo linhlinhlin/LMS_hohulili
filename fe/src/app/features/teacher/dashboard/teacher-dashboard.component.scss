@@ -52,6 +52,7 @@
   display: inline-flex;
   align-items: center;
   gap: $spacing-2;
+  min-height: 44px;
   padding: 10px 20px;
   background: $blue-primary;
   color: white;
@@ -91,10 +92,14 @@
 }
 
 /* Tabs: inline Tailwind (see template) — no SCSS needed */
+.section-header button[role='tab'] {
+  min-height: 44px;
+}
 
 .view-all-link {
   display: flex;
   align-items: center;
+  min-height: 44px;
   gap: 4px;
   font-size: $text-xs;
   color: $blue-primary;
@@ -293,6 +298,7 @@
 
 .edit-button {
   padding: 4px 12px;
+  min-height: 44px;
   border: 1px solid $blue-primary;
   border-radius: $radius-sm;
   background: white;
