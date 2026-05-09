@@ -427,6 +427,20 @@ export class CourseLearningComponent implements OnInit {
     return this.canGoNext() ? 'Bài tiếp theo' : 'Đã hoàn thành';
   });
 
+  /** Hide the right "Bài tiếp theo →" link when the centre CTA already
+   *  points to the same action (label === 'Bài tiếp theo' or final state
+   *  'Đã hoàn thành'). Avoids two next-related buttons confusing the user.
+   *  When centre is 'Phần tiếp theo' / 'Hoàn thành phần này' / 'Hoàn thành
+   *  bài' the right link still surfaces a distinct skip-to-next-lesson
+   *  action so we keep it visible.
+   *  Pattern aligns with Coursera / edX single-primary-CTA but preserves
+   *  the existing skip-lesson escape hatch when it's actually distinct. */
+  readonly showSkipToNextLessonButton = computed(() => {
+    const label = this.completeButtonLabel();
+    if (label === 'Bài tiếp theo' || label === 'Đã hoàn thành') return false;
+    return this.canGoNext();
+  });
+
   readonly completeButtonDisabled = computed(() => {
     if (this.isCompletingCurrentItem() || this.isLearningItemTransitioning()) {
       return true;
