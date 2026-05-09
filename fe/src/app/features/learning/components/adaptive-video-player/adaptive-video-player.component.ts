@@ -34,6 +34,10 @@ import {
   resolveInteractiveVideoReviewTarget,
   shouldBlockInteractiveVideoSeek,
 } from '../../../../core/utils/interactive-video-runtime';
+import {
+  canUseNativeHlsForManifest,
+  shouldPreferNativeHlsForManifest,
+} from '../../../../core/utils/video-playback-platform';
 import type {
   InteractiveVideoChoice,
   InteractiveVideoInteraction,
@@ -272,9 +276,6 @@ export class AdaptiveVideoPlayerComponent {
   onTimeUpdate(event: Event): void {
     const video = event.target as HTMLVideoElement | null;
     if (!video) {
-      return;
-    }
-    if (this.snapBlockedInteractiveSeek(video)) {
       return;
     }
     this.currentTimeSeconds.set(video.currentTime);
@@ -582,6 +583,11 @@ export class AdaptiveVideoPlayerComponent {
   }
 
   private async initializeShaka(videoElement: HTMLVideoElement, manifestUrl: string): Promise<void> {
+    if (canUseNativeHlsForManifest(manifestUrl, videoElement)) {
+      this.loadNativeHls(videoElement, manifestUrl);
+      return;
+    }
+
     const shakaNamespace = await import('shaka-player/dist/shaka-player.compiled');
     const shaka = (shakaNamespace as any).default ?? shakaNamespace;
     shaka.polyfill.installAll();
@@ -593,6 +599,7 @@ export class AdaptiveVideoPlayerComponent {
       return;
     }
 
+    const preferNativeHls = shouldPreferNativeHlsForManifest(manifestUrl);
     const player = new shaka.Player();
     await player.attach(videoElement);
     player.configure({
@@ -607,7 +614,9 @@ export class AdaptiveVideoPlayerComponent {
         bufferingGoal: 30,
         rebufferingGoal: 8,
         bufferBehind: 30,
-        segmentPrefetchLimit: 2,
+        lowLatencyMode: false,
+        preferNativeHls,
+        segmentPrefetchLimit: preferNativeHls ? 1 : 2,
         retryParameters: {
           baseDelay: 1_000,
           backoffFactor: 2,
@@ -655,6 +664,16 @@ export class AdaptiveVideoPlayerComponent {
     }
     this.shakaPlayer = player;
     this.syncActiveVariant(player);
+    this.isLoading.set(false);
+  }
+
+  private loadNativeHls(videoElement: HTMLVideoElement, manifestUrl: string): void {
+    this.shakaPlayer = null;
+    this.availableQualities.set([]);
+    this.isAutoQuality.set(true);
+    this.qualityLabel.set(null);
+    videoElement.src = manifestUrl;
+    videoElement.load();
     this.isLoading.set(false);
   }
 
