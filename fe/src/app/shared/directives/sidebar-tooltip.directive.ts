@@ -1,13 +1,11 @@
 import {
-  ChangeDetectorRef,
   Directive,
   ElementRef,
   HostListener,
-  Inject,
-  Input,
   OnDestroy,
   PLATFORM_ID,
   inject,
+  input,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { SIDEBAR_TOOLTIP_DELAY_MS } from '../components/navigation/sidebar.tokens';
@@ -32,11 +30,11 @@ import { SIDEBAR_TOOLTIP_DELAY_MS } from '../components/navigation/sidebar.token
   selector: '[appSidebarTooltip]',
 })
 export class SidebarTooltipDirective implements OnDestroy {
-  /** Label text. Empty/null → no tooltip rendered. */
-  @Input('appSidebarTooltip') label: string | null = '';
+  /** Label text. Empty/null → no tooltip rendered. Bound as `[appSidebarTooltip]`. */
+  readonly label = input<string | null>('', { alias: 'appSidebarTooltip' });
 
   /** Enable flag — when false the directive is inert (no listeners fire). */
-  @Input() tooltipEnabled = true;
+  readonly tooltipEnabled = input(true);
 
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly platformId = inject(PLATFORM_ID);
@@ -73,10 +71,11 @@ export class SidebarTooltipDirective implements OnDestroy {
   }
 
   private shouldShow(): boolean {
+    const lbl = this.label();
     return (
-      this.tooltipEnabled &&
-      !!this.label &&
-      this.label.trim().length > 0 &&
+      this.tooltipEnabled() &&
+      !!lbl &&
+      lbl.trim().length > 0 &&
       isPlatformBrowser(this.platformId)
     );
   }
@@ -96,7 +95,7 @@ export class SidebarTooltipDirective implements OnDestroy {
     this.describedById = `sidebar-tooltip-${SidebarTooltipDirective.idCounter}`;
     popover.id = this.describedById;
     popover.setAttribute('role', 'tooltip');
-    popover.textContent = this.label!;
+    popover.textContent = this.label()!;
     Object.assign(popover.style, {
       position: 'fixed',
       zIndex: '60',
