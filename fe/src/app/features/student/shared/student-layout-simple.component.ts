@@ -40,7 +40,8 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
           <div class="mobile-sidebar-backdrop" (click)="toggleMobileSidebar()"></div>
           <div class="mobile-sidebar-panel">
             <app-sidebar [config]="studentSidebarConfig()"
-              [collapsed]="false"></app-sidebar>
+              [collapsed]="false"
+              (itemClick)="closeMobileSidebar()"></app-sidebar>
           </div>
         </div>
       }
@@ -609,6 +610,13 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
 
   toggleMobileSidebar(): void {
     this.isMobileSidebarOpen.update(open => !open);
+  }
+
+  /** Auto-close drawer after a leaf nav item is tapped (mobile UX standard).
+   *  Called from <app-sidebar (itemClick)> binding; idempotent on desktop
+   *  where mobileOpen is already false. Per spec FR-012. */
+  closeMobileSidebar(): void {
+    this.isMobileSidebarOpen.set(false);
   }
 
   // --- AI Sidebar (Desktop) ---

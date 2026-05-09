@@ -69,6 +69,7 @@
                 <div class="nav-item-container">
                     <a [routerLink]="item.route" [queryParams]="item.queryParams"
                        [class.active]="isOrgItemActive(item)"
+                       (click)="itemClick.emit(item)"
                        class="nav-item">
                         <div class="nav-icon" [class]="getIconClasses(item)">
                             <app-icon [name]="item.icon" size="sm"/>
@@ -90,6 +91,7 @@
             <a [routerLink]="item.route" routerLinkActive="active"
                 [routerLinkActiveOptions]="{exact: item.exact ?? false}"
                 [class.force-active]="isItemActive(item)"
+                (click)="onLeafClick(item)"
                 class="nav-item"
                 [class.has-children]="!!item.children?.length">
                 <div class="nav-icon" [class]="getIconClasses(item)">
@@ -108,7 +110,9 @@
                 @for (child of item.children; track child.route) {
                 <div class="sub-menu-block">
                     <a [routerLink]="child.route" routerLinkActive="active"
-                        [routerLinkActiveOptions]="{exact: child.exact ?? false}" class="sub-menu-item"
+                        [routerLinkActiveOptions]="{exact: child.exact ?? false}"
+                        (click)="onLeafClick(child)"
+                        class="sub-menu-item"
                         [class.has-children]="!!child.children?.length">
                         <div class="sub-icon" [class]="getIconClasses(child)">
                             <app-icon [name]="child.icon" size="xs"/>
@@ -120,7 +124,9 @@
                     <div class="sub-menu sub-menu--nested">
                         @for (grandChild of child.children; track grandChild.route) {
                         <a [routerLink]="grandChild.route" routerLinkActive="active"
-                            [routerLinkActiveOptions]="{exact: grandChild.exact ?? false}" class="sub-menu-item sub-menu-item--nested">
+                            [routerLinkActiveOptions]="{exact: grandChild.exact ?? false}"
+                            (click)="itemClick.emit(grandChild)"
+                            class="sub-menu-item sub-menu-item--nested">
                             <div class="sub-icon" [class]="getIconClasses(grandChild)">
                                 <app-icon [name]="grandChild.icon" size="xs"/>
                             </div>
