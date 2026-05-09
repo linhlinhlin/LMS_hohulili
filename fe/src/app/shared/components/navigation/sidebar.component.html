@@ -70,13 +70,14 @@
                     <a [routerLink]="item.route" [queryParams]="item.queryParams"
                        [class.active]="isOrgItemActive(item)"
                        [attr.aria-current]="isOrgItemActive(item) ? 'page' : null"
+                       [appSidebarTooltip]="item.label"
+                       [tooltipEnabled]="collapsed()"
                        (click)="itemClick.emit(item)"
                        class="nav-item">
                         <div class="nav-icon" [class]="getIconClasses(item)">
                             <app-icon [name]="item.icon" size="sm"/>
                         </div>
                         <span class="nav-label">{{ item.label }}</span>
-                        <span class="nav-tooltip" aria-hidden="true">{{ item.label }}</span>
                     </a>
                 </div>
             }
@@ -95,6 +96,8 @@
                 [attr.aria-current]="rla.isActive || isItemActive(item) ? 'page' : null"
                 [attr.aria-expanded]="item.children?.length ? isSubMenuOpen(item) : null"
                 [attr.aria-controls]="item.children?.length ? itemDomId(item) + '-submenu' : null"
+                [appSidebarTooltip]="item.label"
+                [tooltipEnabled]="collapsed()"
                 (click)="onLeafClick(item)"
                 class="nav-item"
                 [class.has-children]="!!item.children?.length">
@@ -105,7 +108,6 @@
                 @if (item.badge) {
                 <span class="nav-badge">{{ item.badge }}</span>
                 }
-                <span class="nav-tooltip" aria-hidden="true">{{ item.label }}</span>
             </a>
 
             <!-- Sub-menu items -->

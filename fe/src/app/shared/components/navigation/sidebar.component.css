@@ -163,25 +163,8 @@
   color: #dc2626;
 }
 
-/* Tooltip - hidden by default */
-.nav-tooltip {
-  display: none;
-  position: absolute;
-  left: calc(100% + 8px);
-  top: 50%;
-  transform: translateY(-50%);
-  opacity: 0;
-  pointer-events: none;
-  z-index: 100;
-  background: #1f2937;
-  color: white;
-  font-size: 12px;
-  font-weight: 500;
-  padding: 6px 10px;
-  border-radius: 6px;
-  white-space: nowrap;
-  transition: opacity 0.15s ease;
-}
+/* Legacy .nav-tooltip removed — now handled by SidebarTooltipDirective
+   (custom popover with aria-describedby, 500 ms delay, reduced-motion aware). */
 
 .sub-menu {
   margin-left: 1rem;
@@ -531,12 +514,6 @@
   }
 }
 
-/* Show tooltip on hover in collapsed state */
-.sidebar-collapsed .nav-item:hover .nav-tooltip {
-  display: block;
-  opacity: 1;
-}
-
 /* Active state in collapsed mode */
 .sidebar-collapsed .nav-item.active {
   background-color: #EFF6FF;
@@ -827,4 +804,14 @@
   outline: 2px solid #0056D2;
   outline-offset: 2px;
   border-radius: 0.5rem;
+}
+
+/* ===== Touch target size (WCAG 2.5.8 + Material 48 dp) on mobile. ===== */
+@media (max-width: 1023px) {
+  .nav-item,
+  .sub-menu-item {
+    min-height: 48px;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
 }
