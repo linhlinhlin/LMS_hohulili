@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { ApiClient } from './api-client';
 import { COURSE_ENDPOINTS } from '../endpoints/course.endpoints';
 import { ApiResponse } from '../types/common.types';
-import { CreateCourseRequest, CourseDetail, CourseSummary, CourseContentChapter } from '../types/course.types';
+import { CreateCourseRequest, CourseDetail, CourseSummary, CourseContentChapter, DeliveryMode } from '../types/course.types';
 import { EnrollStudentRequest } from '../types/enrollment.types';
 import { map, tap } from 'rxjs/operators';
 import { Observable } from 'rxjs';
@@ -55,7 +55,7 @@ export class CourseApi {
     );
   }
 
-  publicCourses(params?: { page?: number; size?: number; search?: string; teacher?: string; category?: string; sort?: string; order?: string }): Observable<ApiResponse<CourseSummary[]>> {
+  publicCourses(params?: { page?: number; size?: number; search?: string; teacher?: string; category?: string; sort?: string; order?: string; deliveryMode?: DeliveryMode }): Observable<ApiResponse<CourseSummary[]>> {
     return this.api.getWithResponse<any>(COURSE_ENDPOINTS.BASE, { params }).pipe(
       map((res: ApiResponse<any>) => {
         const content: CourseSummary[] = res?.data?.content ?? [];
@@ -68,7 +68,7 @@ export class CourseApi {
     );
   }
 
-  enrolledCourses(params?: { page?: number; size?: number }): Observable<ApiResponse<CourseSummary[]>> {
+  enrolledCourses(params?: { page?: number; size?: number; search?: string; category?: string; sort?: string; order?: string; deliveryMode?: DeliveryMode }): Observable<ApiResponse<CourseSummary[]>> {
     return this.api.getWithResponse<any>(COURSE_ENDPOINTS.STUDENT.ENROLLED, { params }).pipe(
       map((res: ApiResponse<any>) => {
         const content: CourseSummary[] = res?.data?.content ?? [];

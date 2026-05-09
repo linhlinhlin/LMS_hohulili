@@ -112,6 +112,21 @@ public interface JpaCourseRepository extends JpaRepository<CourseJpaEntity, UUID
 
     Page<CourseJpaEntity> findByStatus(CourseJpaEntity.CourseStatus status, Pageable pageable);
 
+    @Query("""
+        SELECT c FROM CourseJpaEntity c
+        WHERE c.status = :status
+          AND (:categoryFilter = false OR c.categoryId IN :categoryIds)
+          AND (:deliveryMode IS NULL OR c.deliveryMode = :deliveryMode)
+          AND (:search IS NULL OR LOWER(c.title) LIKE LOWER(CONCAT('%', :search, '%')))
+    """)
+    Page<CourseJpaEntity> findByStatusAndFilters(
+            @Param("status") CourseJpaEntity.CourseStatus status,
+            @Param("categoryIds") Collection<UUID> categoryIds,
+            @Param("categoryFilter") boolean categoryFilter,
+            @Param("deliveryMode") CourseJpaEntity.DeliveryMode deliveryMode,
+            @Param("search") String search,
+            Pageable pageable);
+
     Page<CourseJpaEntity> findByStatusAndCategoryId(CourseJpaEntity.CourseStatus status, UUID categoryId, Pageable pageable);
 
     @Query(value = "SELECT * FROM courses c WHERE c.status = :status AND c.category_id = :categoryId AND unaccent(LOWER(c.title)) LIKE unaccent(LOWER(CONCAT('%', :search, '%')))", nativeQuery = true)

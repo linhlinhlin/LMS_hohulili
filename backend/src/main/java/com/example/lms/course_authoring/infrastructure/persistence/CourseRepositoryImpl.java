@@ -181,6 +181,31 @@ public class CourseRepositoryImpl implements CourseRepository {
     }
 
     @Override
+    public Page<Course> findByStatusAndFilters(
+            Course.CourseStatus status,
+            Set<UUID> categoryIds,
+            Course.DeliveryMode deliveryMode,
+            String search,
+            Pageable pageable
+    ) {
+        CourseJpaEntity.CourseStatus entityStatus = mapStatusToEntity(status);
+        CourseJpaEntity.DeliveryMode entityDeliveryMode = deliveryMode != null
+                ? CourseJpaEntity.DeliveryMode.valueOf(deliveryMode.name())
+                : null;
+        boolean categoryFilter = categoryIds != null && !categoryIds.isEmpty();
+        List<UUID> effectiveCategoryIds = categoryFilter ? List.copyOf(categoryIds) : List.of(new UUID(0L, 0L));
+        String normalizedSearch = search != null && !search.isBlank() ? search.trim() : null;
+        return jpaRepository.findByStatusAndFilters(
+                        entityStatus,
+                        effectiveCategoryIds,
+                        categoryFilter,
+                        entityDeliveryMode,
+                        normalizedSearch,
+                        pageable)
+                .map(mapper::toDomain);
+    }
+
+    @Override
     public long count() {
         return jpaRepository.count();
     }

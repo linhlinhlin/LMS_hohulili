@@ -5,11 +5,21 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router, ActivatedRoute } from '@angular/router';
 import { CourseApi } from '../../../api/client/course.api';
-import { CourseSummary, CourseCategoryDTO } from '../../../api/types/course.types';
+import { CourseSummary, CourseCategoryDTO, DeliveryMode } from '../../../api/types/course.types';
 import { StudentEnrollmentService } from '../services/enrollment.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { environment } from '../../../../environments/environment';
 import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
+
+type CourseBrowserQueryParams = {
+  page: number;
+  size: number;
+  search?: string;
+  category?: string;
+  sort?: string;
+  order?: string;
+  deliveryMode?: DeliveryMode;
+};
 
 @Component({
   selector: 'app-student-course-browser',
@@ -190,7 +200,7 @@ import { PaginationComponent } from '../../../shared/components/pagination/pagin
             </svg>
             <h3 class="text-lg font-medium text-gray-700 mb-1">Không tìm thấy khóa học</h3>
             <p class="text-sm text-gray-500 mb-4">Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc</p>
-            @if (searchQuery() || selectedRootCategory() || modeFilter()) {
+            @if (searchQuery() || selectedRootCategory() || modeFilter() || showEnrolledOnly()) {
               <button (click)="clearAllFilters()" class="px-4 py-2 text-sm font-medium text-[#0056D2] border border-[#0056D2] rounded-lg hover:bg-[#0056D2]/5 transition-colors">
                 Xóa bộ lọc
               </button>
@@ -359,54 +369,18 @@ export class StudentCourseBrowserComponent implements OnInit {
 
   private enrolledIds = computed(() => this.enrollmentService.enrolledCourseIds());
 
-  // Client-side filtered + sorted courses
+  // API-filtered courses for the current page.
   filteredCourses = computed(() => {
     let result = this.rawCourses();
 
-    // Category filter — match by categoryName (root or sub)
-    const root = this.selectedRootCategory();
-    if (root) {
-      const subId = this.selectedSubId();
-      if (subId) {
-        const sub = root.children?.find(c => c.id === subId);
-        if (sub) result = result.filter(c => c.categoryName === sub.name);
-      } else {
-        const names = new Set([root.name, ...(root.children?.map(c => c.name) || [])]);
-        result = result.filter(c => c.categoryName && names.has(c.categoryName));
-      }
-    }
-
-    // Mode filter
-    const mode = this.modeFilter();
-    if (mode) {
-      result = result.filter(c => c.deliveryMode === mode);
-    }
-
-    // Enrolled-only filter
-    if (this.showEnrolledOnly()) {
-      const ids = this.enrolledIds();
-      result = result.filter(c => ids.has(c.id));
-    }
-
-    // Sort
-    const sort = this.sortMode();
-    if (sort === 'az') {
-      result = [...result].sort((a, b) => a.title.localeCompare(b.title, 'vi'));
-    } else if (sort === 'popular') {
+    if (this.sortMode() === 'popular') {
       result = [...result].sort((a, b) => (b.enrolledCount || 0) - (a.enrolledCount || 0));
     }
-    // 'newest' = API default order
 
     return result;
   });
 
-  private hasLocalCourseFilter = computed(() =>
-    !!this.selectedRootCategory() || !!this.selectedSubId() || !!this.modeFilter() || this.showEnrolledOnly()
-  );
-
-  resultCount = computed(() =>
-    this.hasLocalCourseFilter() ? this.filteredCourses().length : this.totalItems()
-  );
+  resultCount = computed(() => this.totalItems());
 
   private readonly GRADIENTS = [
     'linear-gradient(135deg, #0056D2 0%, #4A90D9 100%)',
@@ -441,19 +415,51 @@ export class StudentCourseBrowserComponent implements OnInit {
     }, 300);
   }
 
+  private buildCourseQueryParams(): CourseBrowserQueryParams {
+    const params: CourseBrowserQueryParams = { page: this.currentPage(), size: this.PAGE_SIZE };
+    const q = this.searchQuery().trim();
+    if (q) params.search = q;
+
+    const category = this.selectedCategoryParam();
+    if (category) params.category = category;
+
+    const mode = this.modeFilter();
+    if (mode) params.deliveryMode = mode;
+
+    if (this.sortMode() === 'az') {
+      params.sort = 'title';
+      params.order = 'asc';
+    } else {
+      params.sort = this.showEnrolledOnly() ? 'recent' : 'createdAt';
+      params.order = 'desc';
+    }
+
+    return params;
+  }
+
+  private selectedCategoryParam(): string | undefined {
+    const root = this.selectedRootCategory();
+    if (!root) return undefined;
+    const subId = this.selectedSubId();
+    if (!subId) return root.slug || root.code;
+    const sub = root.children?.find(child => child.id === subId);
+    return sub ? sub.slug || sub.code : root.slug || root.code;
+  }
+
   loadCourses(): void {
     this.isLoading.set(true);
     this.errorMsg.set(null);
 
-    const params: any = { page: this.currentPage(), size: this.PAGE_SIZE };
-    const q = this.searchQuery().trim();
-    if (q) params.search = q;
+    const params = this.buildCourseQueryParams();
+    const request = this.showEnrolledOnly()
+      ? this.courseApi.enrolledCourses(params)
+      : this.courseApi.publicCourses(params);
 
-    this.courseApi.publicCourses(params).subscribe({
+    request.subscribe({
       next: (res) => {
         this.rawCourses.set(res.data ?? []);
         const pagination = res.pagination as any;
-        if (pagination?.totalPages) {
+        if (typeof pagination?.totalPages === 'number') {
           this.totalPages.set(pagination.totalPages);
           this.totalItems.set(pagination.totalItems ?? pagination.totalElements ?? this.rawCourses().length);
         } else {
@@ -514,7 +520,7 @@ export class StudentCourseBrowserComponent implements OnInit {
   }
 
   isEnrolled(courseId: string): boolean {
-    return this.enrolledIds().has(courseId);
+    return this.showEnrolledOnly() || this.enrolledIds().has(courseId);
   }
 
   isClassFull(course: CourseSummary): boolean {
