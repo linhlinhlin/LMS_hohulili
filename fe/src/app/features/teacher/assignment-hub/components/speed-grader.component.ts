@@ -403,7 +403,8 @@ export class SpeedGraderComponent implements OnInit {
         next: (res: any) => {
           const dto = res?.data;
           if (dto) this.rubric.set(this.mapRubricDto(dto));
-        }
+        },
+        error: () => { /* no rubric assigned — leave rubric() as null */ }
       });
     }
   }

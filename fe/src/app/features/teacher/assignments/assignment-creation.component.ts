@@ -413,7 +413,7 @@ export class AssignmentCreationComponent implements OnInit {
     this.loadingRubrics.set(true);
     this.rubricApi.list().subscribe({
       next: (res: any) => this.availableRubrics.set(res?.data ?? res ?? []),
-      error: () => {},
+      error: () => this.loadingRubrics.set(false),
       complete: () => this.loadingRubrics.set(false)
     });
   }
