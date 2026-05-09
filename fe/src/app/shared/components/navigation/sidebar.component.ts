@@ -47,6 +47,19 @@ export class SidebarComponent implements OnInit, OnDestroy {
   config = input.required<SidebarConfig>();
   collapsed = input(false);
   toggleCollapse = output<void>();
+  /** Emitted only when a leaf item is clicked (no sub-menu). Wrapper layouts
+   *  listen on the mobile-drawer instance to auto-close the drawer on
+   *  navigation. Parent items with children DO NOT emit — they expand the
+   *  sub-menu in place; drawer stays open. Per spec FR-012 / FR-013. */
+  itemClick = output<SidebarMenuItem>();
+
+  /** Template helper — emit itemClick only if the item is a leaf. Centralises
+   *  the leaf detection so template stays clean. */
+  protected onLeafClick(item: SidebarMenuItem): void {
+    if (!item.children?.length) {
+      this.itemClick.emit(item);
+    }
+  }
 
   // Reactive URL tracking — for alsoActiveFor matching (OnPush safe)
   private currentUrl = signal(this.router.url.split('?')[0]);

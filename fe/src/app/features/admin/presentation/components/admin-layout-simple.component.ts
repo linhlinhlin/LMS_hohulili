@@ -26,13 +26,28 @@ import { AiAvailabilityService } from '../../../ai-chat/application/services/ai-
         </div>
       }
 
-      <!-- Mobile sidebar overlay -->
+      <!-- Mobile sidebar overlay — dialog semantics + auto-close on leaf nav -->
       @if (isMobileSidebarOpen() && !shouldHideSidebar()) {
         <div class="fixed inset-0 z-50 lg:hidden"
-          (click)="toggleMobileSidebar()">
-          <div class="fixed inset-0 bg-black bg-opacity-50"></div>
-          <div class="fixed inset-y-0 left-0 w-72 bg-white shadow-lg">
-            <app-sidebar [config]="adminSidebarConfig" [collapsed]="false"></app-sidebar>
+             role="dialog"
+             aria-modal="true"
+             aria-label="Menu điều hướng"
+             (keydown.escape)="closeMobileSidebar()">
+          <div class="fixed inset-0 bg-black bg-opacity-50" (click)="closeMobileSidebar()"></div>
+          <div class="fixed inset-y-0 left-0 w-72 bg-white shadow-lg flex flex-col"
+               (click)="$event.stopPropagation()">
+            <button type="button"
+                    (click)="closeMobileSidebar()"
+                    aria-label="Đóng menu điều hướng"
+                    class="self-end m-3 inline-flex h-9 w-9 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+            <app-sidebar [config]="adminSidebarConfig"
+                         [collapsed]="false"
+                         (itemClick)="closeMobileSidebar()"></app-sidebar>
           </div>
         </div>
       }
@@ -353,6 +368,13 @@ export class AdminLayoutSimpleComponent implements OnInit, OnDestroy {
 
   toggleMobileSidebar(): void {
     this.isMobileSidebarOpen.update(open => !open);
+  }
+
+  /** Auto-close drawer after a leaf nav item is tapped (mobile UX standard).
+   *  Called from <app-sidebar (itemClick)> binding and from the explicit ×
+   *  close button + Escape handler in the drawer template. Per spec FR-012. */
+  closeMobileSidebar(): void {
+    this.isMobileSidebarOpen.set(false);
   }
 
   toggleSidebarCollapse(): void {
