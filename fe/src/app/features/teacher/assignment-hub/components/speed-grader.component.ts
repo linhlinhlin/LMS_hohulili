@@ -327,6 +327,8 @@ export class SpeedGraderComponent implements OnInit {
   rubric = signal<SpeedGraderRubric | null>(null);
   rubricSelections = signal<Record<string, string>>({});
   showRubricPanel = signal(true);
+  // Holds rubricGrades from a saved submission that arrived before the rubric was loaded
+  private pendingRubricGrades = signal<RubricGradeItem[] | null>(null);
 
   gradingForm = this.fb.group({
     score: [0, [Validators.required, Validators.min(0)]],
@@ -402,7 +404,15 @@ export class SpeedGraderComponent implements OnInit {
       this.rubricApi.getByAssignment(assignmentId).subscribe({
         next: (res: any) => {
           const dto = res?.data;
-          if (dto) this.rubric.set(this.mapRubricDto(dto));
+          if (dto) {
+            this.rubric.set(this.mapRubricDto(dto));
+            // If grades arrived before rubric was ready, restore them now
+            const pending = this.pendingRubricGrades();
+            if (pending?.length) {
+              this.restoreRubricSelectionsFromGrades(pending);
+              this.pendingRubricGrades.set(null);
+            }
+          }
         },
         error: () => { /* no rubric assigned — leave rubric() as null */ }
       });
@@ -440,14 +450,25 @@ export class SpeedGraderComponent implements OnInit {
     }
 
     // Fall back to existing grade from API
-    this.rubricSelections.set({});
-    if (sub.grade) {
-      const score = typeof sub.grade === 'number' ? sub.grade : (sub.grade as SubmissionGrade).score;
-      const feedback = typeof sub.grade === 'object' ? (sub.grade as SubmissionGrade).feedback : '';
-      this.gradingForm.patchValue({ score, feedback: feedback || '' });
+    if (sub.grade && typeof sub.grade === 'object') {
+      const g = sub.grade as SubmissionGrade;
+      this.gradingForm.patchValue({ score: g.score, feedback: g.feedback || '' });
+      if (g.rubricGrades?.length) {
+        if (this.rubric()) {
+          this.restoreRubricSelectionsFromGrades(g.rubricGrades);
+        } else {
+          // Rubric not yet loaded — restore once it arrives
+          this.pendingRubricGrades.set(g.rubricGrades);
+          this.rubricSelections.set({});
+        }
+        return;
+      }
+    } else if (typeof sub.grade === 'number') {
+      this.gradingForm.patchValue({ score: sub.grade, feedback: '' });
     } else {
       this.gradingForm.reset({ score: 0, feedback: '' });
     }
+    this.rubricSelections.set({});
   }
 
   previousSubmission(): void {
@@ -584,22 +605,53 @@ export class SpeedGraderComponent implements OnInit {
       .filter(c => !!sel[c.id])
       .map(c => {
         const level = c.levels.find(l => l.id === sel[c.id])!;
-        return { criterionId: c.id, levelId: sel[c.id], score: level.points };
+        return {
+          criterionId: c.id,
+          criterionName: c.name,
+          criterionMaxPoints: c.maxPoints,
+          levelId: sel[c.id],
+          levelLabel: level.label,
+          levelPoints: level.points,
+          score: level.points,
+          rubricId: r.id
+        };
       });
   }
 
+  // Use name-based stable IDs so grades survive rubric reorder/minor edits
   private mapRubricDto(dto: any): SpeedGraderRubric {
-    const criteria: RubricCriterion[] = (dto.criteria || []).map((c: any, ci: number) => ({
-      id: `c${ci}`,
-      name: c.name || '',
-      maxPoints: c.maxPoints || 0,
-      levels: (c.levels || []).map((l: any, li: number) => ({
-        id: `c${ci}-l${li}`,
-        label: l.label || l.name || '',
-        points: l.points ?? 0
-      })).sort((a: RubricLevel, b: RubricLevel) => b.points - a.points)
-    }));
+    const criteria: RubricCriterion[] = (dto.criteria || []).map((c: any) => {
+      const cId = c.name || '';
+      return {
+        id: cId,
+        name: c.name || '',
+        maxPoints: c.maxPoints || 0,
+        levels: (c.levels || []).map((l: any) => ({
+          id: `${cId}::${l.label || l.name || ''}`,
+          label: l.label || l.name || '',
+          points: l.points ?? 0
+        })).sort((a: RubricLevel, b: RubricLevel) => b.points - a.points)
+      };
+    });
     const totalMaxPoints = criteria.reduce((sum, c) => sum + c.maxPoints, 0) || dto.maxPoints || 100;
     return { id: dto.id, title: dto.title, criteria, totalMaxPoints };
+  }
+
+  private restoreRubricSelectionsFromGrades(grades: RubricGradeItem[]): void {
+    const r = this.rubric();
+    if (!r) return;
+    const restored: Record<string, string> = {};
+    for (const item of grades) {
+      // Match criterion: first by ID (name), then by snapshot criterionName
+      const criterion = r.criteria.find(c => c.id === item.criterionId)
+        ?? (item.criterionName ? r.criteria.find(c => c.name === item.criterionName) : undefined);
+      if (!criterion) continue;
+      // Match level: by ID, then by label snapshot, then by score as last resort
+      const level = criterion.levels.find(l => l.id === item.levelId)
+        ?? (item.levelLabel ? criterion.levels.find(l => l.label === item.levelLabel) : undefined)
+        ?? criterion.levels.find(l => l.points === item.score);
+      if (level) restored[criterion.id] = level.id;
+    }
+    this.rubricSelections.set(restored);
   }
 }

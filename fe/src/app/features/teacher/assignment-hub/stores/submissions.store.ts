@@ -252,9 +252,13 @@ export class SubmissionsStore {
               if (!attachments?.length && raw.fileUrl) {
                 attachments = [{ id: raw.fileUrl, fileName: raw.fileName || 'Tệp đính kèm', fileUrl: raw.fileUrl }];
               }
-              // Merge feedback into existing grade object
+              // Merge feedback + rubricGrades into existing grade object
               const grade = s.grade && typeof s.grade === 'object'
-                ? { ...s.grade, feedback: raw.feedback || s.grade.feedback }
+                ? {
+                    ...s.grade,
+                    feedback: raw.feedback || s.grade.feedback,
+                    rubricGrades: raw.rubricGrades || s.grade.rubricGrades
+                  }
                 : s.grade;
               return { ...s, content: raw.content, attachments, feedback: raw.feedback, grade };
             })

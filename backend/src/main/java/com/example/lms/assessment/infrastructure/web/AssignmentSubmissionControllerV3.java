@@ -440,7 +440,13 @@ public class AssignmentSubmissionControllerV3 {
         }
         map.put("createdAt", submission.getCreatedAt() != null ? submission.getCreatedAt().toString() : null);
         map.put("updatedAt", submission.getUpdatedAt() != null ? submission.getUpdatedAt().toString() : null);
-        map.put("rubricData", submission.getRubricData());
+        if (submission.getRubricData() != null && !submission.getRubricData().isBlank()) {
+            try {
+                map.put("rubricGrades", objectMapper.readValue(submission.getRubricData(), List.class));
+            } catch (Exception ignored) {
+                // corrupt rubric_data — omit rather than expose raw string
+            }
+        }
         return map;
     }
 
@@ -448,7 +454,17 @@ public class AssignmentSubmissionControllerV3 {
     // DTOs
     // =============================================
 
-    public record RubricGradeItemDto(String criterionId, String levelId, Double score, String comment) {}
+    public record RubricGradeItemDto(
+            String criterionId,
+            String criterionName,
+            Double criterionMaxPoints,
+            String levelId,
+            String levelLabel,
+            Double levelPoints,
+            Double score,
+            String comment,
+            String rubricId
+    ) {}
 
     public record GradeRequest(
             @jakarta.validation.constraints.DecimalMin(value = "0", message = "Diem phai >= 0")
