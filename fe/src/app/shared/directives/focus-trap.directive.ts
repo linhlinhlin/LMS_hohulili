@@ -62,14 +62,18 @@ export class FocusTrapDirective {
     });
   }
 
+  // Angular's $event for HostListener types as Event; we only need
+  // preventDefault() which is on the base type. No KeyboardEvent-specific
+  // access needed (the keydown.tab/keydown.shift.tab pseudo-event already
+  // narrows the binding semantically).
   @HostListener('keydown.tab', ['$event'])
-  onTab(event: KeyboardEvent): void {
+  onTab(event: Event): void {
     if (!this.active()) return;
     this.cycleFocus(event, /* reverse */ false);
   }
 
   @HostListener('keydown.shift.tab', ['$event'])
-  onShiftTab(event: KeyboardEvent): void {
+  onShiftTab(event: Event): void {
     if (!this.active()) return;
     this.cycleFocus(event, /* reverse */ true);
   }
@@ -93,7 +97,7 @@ export class FocusTrapDirective {
     this.returnFocusEl = null;
   }
 
-  private cycleFocus(event: KeyboardEvent, reverse: boolean): void {
+  private cycleFocus(event: Event, reverse: boolean): void {
     const focusables = this.allFocusable();
     if (focusables.length === 0) return;
     const first = focusables[0];
