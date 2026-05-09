@@ -153,8 +153,8 @@ type AssignmentStatus = 'pending' | 'published' | 'closed';
                 </div>
                 <div class="flex items-center gap-2">
                   @if (!rubric() && !loadingRubric()) {
-                    <a routerLink="/teacher/assessments/shared/rubrics"
-                       class="text-sm font-medium text-[#0056D2] hover:text-[#004BB5] transition-colors">Chọn từ thư viện</a>
+                    <button (click)="openRubricPicker()" type="button"
+                            class="text-sm font-medium text-[#0056D2] hover:text-[#004BB5] transition-colors">Chọn từ thư viện</button>
                   }
                   @if (rubric()) {
                     <button (click)="removeRubric()" class="text-sm font-medium text-red-600 hover:text-red-700 transition-colors">Gỡ</button>
@@ -169,9 +169,38 @@ type AssignmentStatus = 'pending' | 'published' | 'closed';
               @if (loadingRubric()) {
                 <div class="p-8 text-center"><div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-[#0056D2] border-t-transparent"></div></div>
               } @else if (!rubric()) {
-                <div class="px-5 py-8 text-center">
-                  <p class="text-sm text-gray-600">Chưa gắn tiêu chí đánh giá</p>
-                </div>
+                @if (pickerLoading()) {
+                  <div class="p-8 text-center"><div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-[#0056D2] border-t-transparent"></div></div>
+                } @else if (pickerOpen()) {
+                  <div class="p-4">
+                    <div class="flex items-center justify-between mb-3">
+                      <p class="text-sm font-semibold text-gray-900">Chọn từ thư viện</p>
+                      <button (click)="pickerOpen.set(false)" type="button" class="text-xs text-gray-400 hover:text-gray-600 transition-colors">Đóng</button>
+                    </div>
+                    @if (pickerRubrics().length === 0) {
+                      <p class="py-6 text-center text-sm text-gray-500">Chưa có tiêu chí nào. <a routerLink="/teacher/assessments/shared/rubrics" class="text-[#0056D2] hover:underline">Tạo tiêu chí mới</a></p>
+                    } @else {
+                      <div class="space-y-2">
+                        @for (r of pickerRubrics(); track r.id) {
+                          <div class="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-[#0056D2]/50 hover:bg-[#0056D2]/5 transition-all">
+                            <div class="min-w-0 flex-1">
+                              <p class="text-sm font-medium text-gray-900">{{ r.title }}</p>
+                              <p class="text-xs text-gray-500">{{ r.criteria.length }} tiêu chí · {{ r.maxPoints }} điểm tối đa</p>
+                            </div>
+                            <button (click)="assignRubric(r.id)" type="button" [disabled]="assigningRubric()"
+                                    class="ml-3 px-3 py-1.5 rounded-md bg-[#0056D2] text-white text-xs font-medium hover:bg-[#004BB5] disabled:opacity-50 transition-colors flex-shrink-0">
+                              @if (assigningRubric()) { Đang gán... } @else { Gán }
+                            </button>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <div class="px-5 py-8 text-center">
+                    <p class="text-sm text-gray-600">Chưa gắn tiêu chí đánh giá</p>
+                  </div>
+                }
               } @else if (rubricExpanded()) {
                 <div class="overflow-x-auto">
                   <table class="w-full text-left">
@@ -393,6 +422,10 @@ export class AssignmentDetailsTabComponent implements OnInit {
   // Rubric state
   rubric = signal<RubricDTO | null>(null);
   loadingRubric = signal(false);
+  pickerOpen = signal(false);
+  pickerRubrics = signal<RubricDTO[]>([]);
+  pickerLoading = signal(false);
+  assigningRubric = signal(false);
 
   // Distribution state
   enrolledStudents = signal<EnrolledStudent[]>([]);
@@ -680,6 +713,37 @@ export class AssignmentDetailsTabComponent implements OnInit {
     this.rubricApi.unassignFromAssignment(assignmentId).subscribe({
       next: () => { this.rubric.set(null); this.rubricExpanded.set(false); },
       error: () => this.toast.error('Không thể gỡ rubric')
+    });
+  }
+
+  openRubricPicker(): void {
+    if (this.pickerRubrics().length === 0) {
+      this.pickerLoading.set(true);
+      this.rubricApi.list().subscribe({
+        next: (res: any) => {
+          this.pickerRubrics.set(res?.data ?? res ?? []);
+          this.pickerLoading.set(false);
+        },
+        error: () => this.pickerLoading.set(false)
+      });
+    }
+    this.pickerOpen.set(true);
+  }
+
+  assignRubric(rubricId: string): void {
+    const assignmentId = this.route.parent?.snapshot.paramMap.get('id') || '';
+    if (!assignmentId) return;
+    this.assigningRubric.set(true);
+    this.rubricApi.assignToAssignment(rubricId, assignmentId).subscribe({
+      next: () => {
+        this.pickerOpen.set(false);
+        this.assigningRubric.set(false);
+        this.loadRubric();
+      },
+      error: () => {
+        this.toast.error('Không thể gán tiêu chí');
+        this.assigningRubric.set(false);
+      }
     });
   }
 

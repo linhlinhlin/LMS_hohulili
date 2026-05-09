@@ -167,9 +167,14 @@ export interface CreateSubmissionRequest {
 
 export interface RubricGradeItem {
   criterionId: string;
+  criterionName?: string;
+  criterionMaxPoints?: number;
   levelId: string;
+  levelLabel?: string;
+  levelPoints?: number;
   score: number;
   comment?: string;
+  rubricId?: string;
 }
 
 export interface GradeSubmissionRequest {

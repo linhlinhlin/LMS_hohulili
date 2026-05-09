@@ -10,6 +10,8 @@ import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepo
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -51,6 +53,7 @@ public class AssignmentSubmissionControllerV3 {
     private final GradeSubmissionUseCase gradeSubmissionUseCase;
     private final UserJpaRepository userJpaRepository;
     private final com.example.lms.assessment.infrastructure.persistence.repository.GradingAuditLogJpaRepository gradingAuditLogRepository;
+    private final ObjectMapper objectMapper;
 
     // =============================================
     // Teacher endpoints
@@ -139,7 +142,15 @@ public class AssignmentSubmissionControllerV3 {
         verifyAssignmentOwnership(submission.getAssignmentId(), user);
 
         Double gradeValue = request.score() != null ? request.score() : request.grade();
-        var graded = gradeSubmissionUseCase.gradeSubmission(submissionId, gradeValue, request.feedback(), user.getId());
+        String rubricDataJson = null;
+        if (request.rubricGrades() != null && !request.rubricGrades().isEmpty()) {
+            try {
+                rubricDataJson = objectMapper.writeValueAsString(request.rubricGrades());
+            } catch (JsonProcessingException e) {
+                // proceed without rubric data if serialization fails
+            }
+        }
+        var graded = gradeSubmissionUseCase.gradeSubmission(submissionId, gradeValue, request.feedback(), rubricDataJson, user.getId());
         return ResponseEntity.ok(ApiResponse.success(
                 toSubmissionDetailMapWithStudent(graded), "Da cham diem bai nop"));
     }
@@ -402,6 +413,7 @@ public class AssignmentSubmissionControllerV3 {
         map.put("studentEmail", student != null ? student.getEmail() : null);
         map.put("status", submission.getStatus().name());
         map.put("grade", submission.getGrade());
+        map.put("maxGrade", submission.getMaxGrade());
         map.put("submittedAt", submission.getSubmittedAt() != null ? submission.getSubmittedAt().toString() : null);
         map.put("gradedAt", submission.getGradedAt() != null ? submission.getGradedAt().toString() : null);
         return map;
@@ -428,6 +440,13 @@ public class AssignmentSubmissionControllerV3 {
         }
         map.put("createdAt", submission.getCreatedAt() != null ? submission.getCreatedAt().toString() : null);
         map.put("updatedAt", submission.getUpdatedAt() != null ? submission.getUpdatedAt().toString() : null);
+        if (submission.getRubricData() != null && !submission.getRubricData().isBlank()) {
+            try {
+                map.put("rubricGrades", objectMapper.readValue(submission.getRubricData(), List.class));
+            } catch (Exception ignored) {
+                // corrupt rubric_data — omit rather than expose raw string
+            }
+        }
         return map;
     }
 
@@ -435,12 +454,25 @@ public class AssignmentSubmissionControllerV3 {
     // DTOs
     // =============================================
 
+    public record RubricGradeItemDto(
+            String criterionId,
+            String criterionName,
+            Double criterionMaxPoints,
+            String levelId,
+            String levelLabel,
+            Double levelPoints,
+            Double score,
+            String comment,
+            String rubricId
+    ) {}
+
     public record GradeRequest(
             @jakarta.validation.constraints.DecimalMin(value = "0", message = "Diem phai >= 0")
             Double grade,
             @jakarta.validation.constraints.DecimalMin(value = "0", message = "Diem phai >= 0")
             Double score,
-            String feedback
+            String feedback,
+            List<RubricGradeItemDto> rubricGrades
     ) {}
 
     public record BatchGradeItem(
