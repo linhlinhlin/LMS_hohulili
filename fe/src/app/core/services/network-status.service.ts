@@ -14,6 +14,7 @@ const TRANSPORT_FAILURE_PROBE_DELAY_MS = 250;
 export class NetworkStatusService implements OnDestroy {
   readonly online = signal(this.getBrowserOnlineHint());
   readonly effectiveBandwidthMbps = signal(2);
+  readonly reportedDownlinkMbps = signal<number | null>(null);
   readonly connectionTransport = signal<ConnectionTransport>('unknown');
   readonly saveDataEnabled = signal(false);
   readonly effectiveNetworkType = signal<string | null>(null);
@@ -189,6 +190,7 @@ export class NetworkStatusService implements OnDestroy {
     this.connectionTransport.set(this.normalizeConnectionTransport(conn?.type));
     this.saveDataEnabled.set(conn?.saveData === true);
     this.effectiveNetworkType.set(typeof conn?.effectiveType === 'string' ? conn.effectiveType : null);
+    this.reportedDownlinkMbps.set(this.readReportedDownlinkMbps(conn));
 
     if (!browserOnline) {
       this.markOfflineState();
@@ -240,8 +242,9 @@ export class NetworkStatusService implements OnDestroy {
   }
 
   private estimateBandwidthMbps(conn: any): number {
-    if (typeof conn?.downlink === 'number' && Number.isFinite(conn.downlink) && conn.downlink > 0) {
-      return Math.max(conn.downlink, 0.05);
+    const reportedDownlinkMbps = this.readReportedDownlinkMbps(conn);
+    if (reportedDownlinkMbps != null) {
+      return reportedDownlinkMbps;
     }
 
     switch (conn?.effectiveType) {
@@ -258,6 +261,14 @@ export class NetworkStatusService implements OnDestroy {
 
   private getBrowserOnlineHint(): boolean {
     return typeof navigator !== 'undefined' ? navigator.onLine : true;
+  }
+
+  private readReportedDownlinkMbps(conn: any): number | null {
+    if (typeof conn?.downlink === 'number' && Number.isFinite(conn.downlink) && conn.downlink > 0) {
+      return Math.max(conn.downlink, 0.05);
+    }
+
+    return null;
   }
 
   private ensureSuccessfulProbeResponse(response: Response): void {
@@ -282,6 +293,7 @@ export class NetworkStatusService implements OnDestroy {
   private markOfflineState(): void {
     this.online.set(false);
     this.effectiveBandwidthMbps.set(0);
+    this.reportedDownlinkMbps.set(null);
     this.recentOfflineSignalAt.set(Date.now());
   }
 }

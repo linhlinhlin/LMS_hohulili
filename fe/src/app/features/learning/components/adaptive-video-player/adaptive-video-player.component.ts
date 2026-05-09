@@ -21,6 +21,7 @@ import { SectionApi } from '../../../../api/client/section.api';
 import { LearningActivityApi } from '../../../../api/client/learning-activity.api';
 import { QoETrackerService } from '../../../../core/services/qoe-tracker.service';
 import { OfflineSyncService } from '../../../../core/services/offline-sync.service';
+import { NetworkStatusService } from '../../../../core/services/network-status.service';
 import { HeartbeatTracker } from '../../services/heartbeat-tracker.service';
 import { WatchedSegmentsTracker } from '../../services/watched-segments-tracker.service';
 import { InteractiveVideoLayerComponent } from '../../../../shared/blocks/video-block/interactive-video-layer.component';
@@ -48,6 +49,47 @@ import type {
 type ResolvedVideoSource =
   | { kind: 'native'; url: string }
   | { kind: 'adaptive'; url: string };
+
+export interface MediaNetworkHintState {
+  online: boolean;
+  saveDataEnabled: boolean;
+  effectiveNetworkType: string | null;
+  reportedDownlinkMbps: number | null;
+  appBandwidthMbps: number;
+  rebufferCount: number;
+  totalBufferTimeMs: number;
+}
+
+const NOTICEABLE_REBUFFER_COUNT = 2;
+const NOTICEABLE_BUFFER_MS = 1_500;
+const LOW_REPORTED_DOWNLINK_MBPS = 1.2;
+const LOW_APP_BANDWIDTH_MBPS = 1.5;
+
+export function shouldShowMediaNetworkHint(state: MediaNetworkHintState): boolean {
+  if (!state.online) {
+    return false;
+  }
+
+  if (state.saveDataEnabled) {
+    return true;
+  }
+
+  const effectiveType = state.effectiveNetworkType?.toLowerCase();
+  if (effectiveType === 'slow-2g' || effectiveType === '2g') {
+    return true;
+  }
+
+  const hasPlaybackPain =
+    state.rebufferCount >= NOTICEABLE_REBUFFER_COUNT
+    && state.totalBufferTimeMs >= NOTICEABLE_BUFFER_MS;
+
+  if (effectiveType === '3g') {
+    return hasPlaybackPain
+      || (state.reportedDownlinkMbps != null && state.reportedDownlinkMbps < LOW_REPORTED_DOWNLINK_MBPS);
+  }
+
+  return hasPlaybackPain && state.appBandwidthMbps < LOW_APP_BANDWIDTH_MBPS;
+}
 
 @Component({
   selector: 'app-adaptive-video-player',
@@ -151,8 +193,14 @@ type ResolvedVideoSource =
         (markerSelected)="seekToInteractiveSecond($event)" />
 
       @if (showNetworkHint()) {
-        <div class="absolute bottom-3 left-3 rounded-full bg-amber-500/90 px-3 py-1 text-[11px] font-semibold text-slate-950">
-          Mạng yếu, hệ thống đang ưu tiên phát ổn định
+        <div
+          class="pointer-events-none absolute left-3 z-10 rounded-full bg-amber-400/95 px-3 py-1 text-[11px] font-semibold text-slate-950 shadow-lg shadow-black/20"
+          [class.top-14]="qualityLabel()"
+          [class.top-3]="!qualityLabel()"
+          role="status"
+          aria-live="polite"
+          data-testid="adaptive-video-network-hint">
+          Đang ưu tiên phát ổn định
         </div>
       }
       @if (activeInteraction(); as interaction) {
@@ -175,6 +223,7 @@ export class AdaptiveVideoPlayerComponent {
   private readonly videoProgressApi = inject(VideoProgressApi);
   private readonly learningActivityApi = inject(LearningActivityApi);
   private readonly injector = inject(Injector);
+  private readonly network = inject(NetworkStatusService);
 
   readonly lessonId = input.required<string>();
   readonly sectionId = input<string | null>(null);
@@ -206,11 +255,15 @@ export class AdaptiveVideoPlayerComponent {
   readonly currentTimeSeconds = signal(0);
   readonly showNetworkHint = computed(() => {
     const metrics = this.qoe.metrics();
-    const rebufferCount = metrics?.rebufferCount ?? 0;
-    const effectiveType = typeof navigator !== 'undefined'
-      ? ((navigator as any)?.connection?.effectiveType as string | undefined)
-      : undefined;
-    return rebufferCount > 1 || effectiveType === 'slow-2g' || effectiveType === '2g' || effectiveType === '3g';
+    return shouldShowMediaNetworkHint({
+      online: this.network.online(),
+      saveDataEnabled: this.network.saveDataEnabled(),
+      effectiveNetworkType: this.network.effectiveNetworkType(),
+      reportedDownlinkMbps: this.network.reportedDownlinkMbps(),
+      appBandwidthMbps: this.network.effectiveBandwidthMbps(),
+      rebufferCount: metrics?.rebufferCount ?? 0,
+      totalBufferTimeMs: metrics?.totalBufferTimeMs ?? 0,
+    });
   });
 
   private shakaPlayer: any = null;
