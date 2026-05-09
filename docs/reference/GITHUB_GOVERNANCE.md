@@ -28,11 +28,15 @@ Rules:
 
 | Role | Responsibility |
 |---|---|
+| Project owner | `@meiiie` is the primary project owner for this repository and can make final product, architecture, merge, and governance decisions. |
+| Repository owner/admin | GitHub repository owners and admins have full administrative authority over settings, rulesets, permissions, emergency merges, and rollback decisions. |
 | Author | Defines scope, keeps diff focused, writes tests/docs, responds to review. |
 | Reviewer | Looks for bugs, regressions, security risk, missing tests, and unclear rollback. |
 | Code owner | Owns final review quality for critical paths listed in `.github/CODEOWNERS`. |
 | Maintainer | Applies labels, resolves merge readiness, performs squash merge. |
 | Agent | Can implement, audit, and propose comments, but cannot replace human ownership for risky decisions. |
+
+Authority rule: if a policy conflict appears, `@meiiie` and repository owner/admins can make the final call. The decision should still leave an audit trail in the PR, issue, or runbook.
 
 ## 3. Issue lifecycle
 

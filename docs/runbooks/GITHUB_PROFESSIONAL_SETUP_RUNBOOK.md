@@ -2,6 +2,8 @@
 
 Runbook này dùng để đưa repo `linhlinhlin/LMS_hohulili` về trạng thái vận hành chuyên nghiệp. Một số bước cần quyền admin của repository owner.
 
+Authority: `@meiiie` là project owner/primary maintainer. Repository owner/admins có toàn quyền quản trị GitHub settings, rulesets, permissions, emergency merge, và rollback khi cần.
+
 ## 1. Audit hiện trạng
 
 ```powershell

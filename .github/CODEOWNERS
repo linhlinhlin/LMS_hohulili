@@ -2,6 +2,7 @@
 #
 # Principle:
 # - Every critical surface has at least one accountable reviewer.
+# - @meiiie is the primary project owner; repository owners/admins retain full GitHub administrative authority.
 # - The last matching rule wins, so specific paths appear after broad paths.
 # - When the team grows, replace individual owners with GitHub teams.
 #
