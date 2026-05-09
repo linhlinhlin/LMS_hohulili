@@ -6,6 +6,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { SidebarStateService } from '../../../../shared/services/sidebar-state.service';
 import { SidebarComponent } from '../../../../shared/components/navigation/sidebar.component';
 import { SkipLinkComponent } from '../../../../shared/components/skip-link/skip-link.component';
+import { FocusTrapDirective } from '../../../../shared/directives/focus-trap.directive';
 import { getSidebarConfig } from '../../../../shared/components/navigation/sidebar.config';
 import { ChatPanelComponent } from '../../../ai-chat/presentation/components/chat-panel/chat-panel.component';
 import { FloatingChatBubbleComponent } from '../../../ai-chat/presentation/components/floating-chat-bubble/floating-chat-bubble.component';
@@ -13,7 +14,7 @@ import { AiAvailabilityService } from '../../../ai-chat/application/services/ai-
 
 @Component({
   selector: 'app-admin-layout-simple',
-  imports: [RouterModule, RouterOutlet, SidebarComponent, ChatPanelComponent, FloatingChatBubbleComponent, SkipLinkComponent],
+  imports: [RouterModule, RouterOutlet, SidebarComponent, ChatPanelComponent, FloatingChatBubbleComponent, SkipLinkComponent, FocusTrapDirective],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="min-h-screen flex">
@@ -37,7 +38,8 @@ import { AiAvailabilityService } from '../../../ai-chat/application/services/ai-
              role="dialog"
              aria-modal="true"
              aria-label="Menu điều hướng"
-             (keydown.escape)="closeMobileSidebar()">
+             [appFocusTrap]="isMobileSidebarOpen()"
+             (escape)="closeMobileSidebar()">
           <div class="fixed inset-0 bg-black bg-opacity-50" (click)="closeMobileSidebar()"></div>
           <div class="fixed inset-y-0 left-0 w-72 bg-white shadow-lg flex flex-col"
                (click)="$event.stopPropagation()">
