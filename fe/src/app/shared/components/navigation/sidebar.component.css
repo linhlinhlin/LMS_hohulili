@@ -14,7 +14,18 @@
   padding: 1.5rem;
   background: white;
   border-bottom: 1px solid rgba(229, 231, 235, 0.5);
-  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.sidebar-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .sidebar-logo {
@@ -397,36 +408,41 @@
   background-color: #fef2f2;
 }
 
-/* ===== Collapse toggle button (desktop only — no collapse in mobile overlay) ===== */
-.collapse-toggle {
-  position: absolute;
-  right: -12px;
-  top: 24px;
-  width: 24px;
-  height: 24px;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 9999px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+/* ===== Collapse toggle (desktop only) — Stripe/Carbon in-header pattern.
+   Lives inside the sidebar header flex row, never floating outside the edge.
+   Hidden on mobile because the drawer has its own close affordance. ===== */
+.sidebar-toggle {
   display: none;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  z-index: 50;
+  width: 32px;
+  height: 32px;
+  border-radius: 0.5rem;
+  background: transparent;
+  border: 1px solid transparent;
   color: #6b7280;
-  transition: all 0.2s;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
-@media (min-width: 768px) {
-  .collapse-toggle {
-    display: flex;
+@media (min-width: 1024px) {
+  .sidebar-toggle {
+    display: inline-flex;
   }
 }
 
-.collapse-toggle:hover {
+.sidebar-toggle:hover {
   background: #f3f4f6;
   color: #111827;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  border-color: #e5e7eb;
+}
+
+.sidebar-toggle:focus-visible {
+  outline: 2px solid #0056D2;
+  outline-offset: 2px;
+  background: #f3f4f6;
+  color: #111827;
 }
 
 /* ===== Collapsed state overrides ===== */
@@ -437,16 +453,12 @@
   align-items: center;
 }
 
-.sidebar-collapsed .sidebar-header > div {
+.sidebar-collapsed .sidebar-header-brand {
   justify-content: center;
 }
 
 .sidebar-collapsed .sidebar-header-text {
   display: none;
-}
-
-.sidebar-collapsed .sidebar-header .space-x-3 > :not(:first-child) {
-  margin-left: 0;
 }
 
 .sidebar-collapsed .nav-group-title {
@@ -791,4 +803,15 @@
 @keyframes default-star-pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.12); }
+}
+
+/* ===== Reduced motion (WCAG 2.3.3) ===== */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-container,
+  .sidebar-toggle,
+  .sidebar-org-context,
+  .sidebar-org-default-star {
+    transition: none !important;
+    animation: none !important;
+  }
 }
