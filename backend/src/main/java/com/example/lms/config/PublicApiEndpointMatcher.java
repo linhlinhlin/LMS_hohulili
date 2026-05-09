@@ -45,6 +45,7 @@ public class PublicApiEndpointMatcher {
             "/api/v3/payments/vnpay-ipn",
             "/api/v3/payments/vnpay-return",
             "/api/v3/payments/sepay/webhook",
+            "/api/v3/security/csp-report",
             "/api/v3/invites/validate",
             "/api/v3/invites/validate-token",
             "/api/v3/video-assets/*/adaptive/**",

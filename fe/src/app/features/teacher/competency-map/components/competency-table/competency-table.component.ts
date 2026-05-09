@@ -1,4 +1,7 @@
 import {
+  isPlatformBrowser,
+} from '@angular/common';
+import {
   Component,
   ChangeDetectionStrategy,
   input,
@@ -9,6 +12,7 @@ import {
   untracked,
   inject,
   NgZone,
+  PLATFORM_ID,
 } from '@angular/core';
 import {
   LessonMappingInfo,
@@ -63,6 +67,7 @@ interface LessonSmartRow {
 })
 export class CompetencyTableComponent {
   private zone = inject(NgZone);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   readonly courseId = input.required<string>();
   readonly lessons = input.required<LessonMappingInfo[]>();
@@ -237,6 +242,7 @@ export class CompetencyTableComponent {
   }
 
   private loadFromStorage(courseId: string): string[] | null {
+    if (!this.isBrowser || typeof localStorage === 'undefined') return null;
     try {
       const raw = localStorage.getItem(this.LS_PREFIX + courseId);
       if (!raw) return null;
@@ -248,6 +254,7 @@ export class CompetencyTableComponent {
   }
 
   private saveToStorage(courseId: string, ids: Set<string>): void {
+    if (!this.isBrowser || typeof localStorage === 'undefined') return;
     try {
       localStorage.setItem(this.LS_PREFIX + courseId, JSON.stringify(Array.from(ids)));
     } catch {

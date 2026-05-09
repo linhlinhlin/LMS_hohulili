@@ -9,5 +9,8 @@ public interface LessonQueryPort {
 
     LessonInfo findById(UUID lessonId);
     List<LessonInfo> findAllByCourseId(UUID courseId);
-    boolean isLessonOwnedBy(UUID lessonId, UUID userId);
+    boolean canTeachCourse(UUID courseId, UUID teacherId);
+    boolean canTeachLesson(UUID lessonId, UUID teacherId);
+    boolean isStudentEnrolledInCourse(UUID courseId, UUID studentId);
+    boolean isStudentEnrolledInLesson(UUID lessonId, UUID studentId);
 }

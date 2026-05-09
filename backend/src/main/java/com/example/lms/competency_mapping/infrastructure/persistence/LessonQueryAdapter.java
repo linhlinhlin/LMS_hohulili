@@ -63,15 +63,83 @@ public class LessonQueryAdapter implements LessonQueryPort {
     }
 
     @Override
-    public boolean isLessonOwnedBy(UUID lessonId, UUID userId) {
+    public boolean canTeachCourse(UUID courseId, UUID teacherId) {
         var count = ((Number) em.createNativeQuery("""
-                SELECT COUNT(*) FROM lessons l
+                SELECT COUNT(*)
+                FROM courses c
+                WHERE c.id = :courseId
+                  AND (
+                    c.teacher_id = :teacherId
+                    OR EXISTS (
+                      SELECT 1
+                      FROM class_teachers ct
+                      JOIN learning_classes lc ON lc.id = ct.class_id
+                      WHERE ct.teacher_id = :teacherId
+                        AND lc.course_id = :courseId
+                    )
+                  )
+                """)
+                .setParameter("courseId", courseId)
+                .setParameter("teacherId", teacherId)
+                .getSingleResult()).longValue();
+        return count > 0;
+    }
+
+    @Override
+    public boolean canTeachLesson(UUID lessonId, UUID teacherId) {
+        var count = ((Number) em.createNativeQuery("""
+                SELECT COUNT(*)
+                FROM lessons l
                 JOIN chapters ch ON l.chapter_id = ch.id
                 JOIN courses c ON ch.course_id = c.id
-                WHERE l.id = :lessonId AND c.teacher_id = :userId
+                WHERE l.id = :lessonId
+                  AND (
+                    c.teacher_id = :teacherId
+                    OR EXISTS (
+                      SELECT 1
+                      FROM class_teachers ct
+                      JOIN learning_classes lc ON lc.id = ct.class_id
+                      WHERE ct.teacher_id = :teacherId
+                        AND lc.course_id = c.id
+                    )
+                  )
                 """)
                 .setParameter("lessonId", lessonId)
-                .setParameter("userId", userId)
+                .setParameter("teacherId", teacherId)
+                .getSingleResult()).longValue();
+        return count > 0;
+    }
+
+    @Override
+    public boolean isStudentEnrolledInCourse(UUID courseId, UUID studentId) {
+        var count = ((Number) em.createNativeQuery("""
+                SELECT COUNT(*)
+                FROM enrollments e
+                JOIN learning_classes lc ON e.class_id = lc.id
+                WHERE e.student_id = :studentId
+                  AND lc.course_id = :courseId
+                  AND e.status IN ('ACTIVE', 'COMPLETED')
+                """)
+                .setParameter("courseId", courseId)
+                .setParameter("studentId", studentId)
+                .getSingleResult()).longValue();
+        return count > 0;
+    }
+
+    @Override
+    public boolean isStudentEnrolledInLesson(UUID lessonId, UUID studentId) {
+        var count = ((Number) em.createNativeQuery("""
+                SELECT COUNT(*)
+                FROM lessons l
+                JOIN chapters ch ON l.chapter_id = ch.id
+                JOIN learning_classes lc ON lc.course_id = ch.course_id
+                JOIN enrollments e ON e.class_id = lc.id
+                WHERE l.id = :lessonId
+                  AND e.student_id = :studentId
+                  AND e.status IN ('ACTIVE', 'COMPLETED')
+                """)
+                .setParameter("lessonId", lessonId)
+                .setParameter("studentId", studentId)
                 .getSingleResult()).longValue();
         return count > 0;
     }

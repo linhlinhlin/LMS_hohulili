@@ -53,22 +53,22 @@ interface FeaturedCourse {
         </svg>
       </div>
 
-      <div class="relative z-20 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-32 pt-20 md:pt-28 lg:pt-32">
+      <div class="relative z-20 mx-auto max-w-7xl px-4 pb-24 pt-14 sm:px-6 sm:pb-28 sm:pt-20 md:pt-28 lg:px-8 lg:pb-32 lg:pt-32">
         <div class="max-w-3xl">
           <p class="hero-enter hero-enter-1 mb-5 text-sm font-medium uppercase tracking-[0.2em] text-blue-300/70">
             Nền tảng đào tạo hàng hải Việt Nam
           </p>
-          <h1 class="hero-enter hero-enter-2 text-4xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-6xl">
+          <h1 class="hero-enter hero-enter-2 text-3xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-6xl">
             Học Hàng hải mọi lúc
             <span class="mt-1 block bg-gradient-to-r from-blue-300 to-blue-300 bg-clip-text text-transparent">
               kể cả trên biển.
             </span>
           </h1>
-          <p class="hero-enter hero-enter-3 mt-6 max-w-xl text-lg leading-relaxed text-blue-100/70 sm:text-xl">
+          <p class="hero-enter hero-enter-3 mt-5 max-w-xl text-base leading-relaxed text-blue-100/70 sm:mt-6 sm:text-xl">
             Nền tảng đầu tiên tại Việt Nam tích hợp trí tuệ nhân tạo và
             hoạt động ngoại tuyến — được thiết kế cho người đi biển.
           </p>
-          <div class="hero-enter hero-enter-4 mt-10 flex flex-col gap-4 sm:flex-row">
+          <div class="hero-enter hero-enter-4 mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:gap-4">
             <a routerLink="/courses"
                class="inline-flex items-center justify-center rounded-lg bg-white px-7 py-3.5 text-[15px] font-semibold text-[#0a1628] shadow-lg shadow-white/10 transition-all hover:bg-blue-50 hover:shadow-xl">
               Khám phá khóa học
@@ -94,7 +94,7 @@ interface FeaturedCourse {
             <h2 class="text-3xl font-bold tracking-tight text-gray-900 lg:text-4xl">Khóa học nổi bật</h2>
             <p class="mt-3 text-lg text-gray-500">Được thiết kế bởi chuyên gia hàng hải hàng đầu</p>
           </div>
-          <a routerLink="/courses" class="hidden items-center text-[15px] font-medium text-[#0056D2] hover:text-[#004BB5] sm:flex">
+          <a routerLink="/courses" class="hidden min-h-11 items-center text-[15px] font-medium text-[#0056D2] hover:text-[#004BB5] sm:flex">
             Xem tất cả <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
           </a>
         </div>
@@ -151,7 +151,7 @@ interface FeaturedCourse {
           </div>
         }
         <div class="mt-8 text-center sm:hidden">
-          <a routerLink="/courses" class="text-[15px] font-medium text-[#0056D2]">Xem tất cả khóa học &rarr;</a>
+          <a routerLink="/courses" class="inline-flex min-h-11 items-center justify-center text-[15px] font-medium text-[#0056D2]">Xem tất cả khóa học &rarr;</a>
         </div>
       </div>
     </section>
@@ -188,7 +188,7 @@ interface FeaturedCourse {
               <p class="mt-3 leading-relaxed text-gray-600">{{ diff.desc }}</p>
               @if (diff.link) {
                 <a [href]="diff.link" target="_blank" rel="noopener noreferrer"
-                   class="mt-4 inline-flex items-center text-sm font-medium" [class]="diff.linkColor">
+                   class="mt-4 inline-flex min-h-11 items-center text-sm font-medium" [class]="diff.linkColor">
                   {{ diff.linkText }}
                   <svg class="ml-1 h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                 </a>
@@ -370,7 +370,11 @@ interface FeaturedCourse {
 
   `,
   styles: [`
-    .hero-section { min-height: 85vh; }
+    .hero-section { min-height: 72vh; }
+
+    @media (min-width: 768px) {
+      .hero-section { min-height: 85vh; }
+    }
 
     /* ── Hero entrance (CSS-only, no GSAP needed) ── */
     .hero-enter {

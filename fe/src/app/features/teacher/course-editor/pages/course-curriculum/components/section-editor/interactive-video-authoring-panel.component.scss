@@ -3,28 +3,6 @@
   opacity: 1;
 }
 
-.interactive-flow-node {
-  transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease;
-}
-
-.interactive-flow-node:hover,
-.interactive-flow-node--previewed {
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
-  transform: translateY(-1px);
-}
-
-.interactive-flow-node--previewed {
-  border-color: rgba(0, 86, 210, 0.45);
-}
-
-.interactive-flow-node[aria-current='true'] {
-  border-color: #0056d2;
-  box-shadow: 0 0 0 3px rgba(0, 86, 210, 0.14);
-}
-
 .interactive-timeline-dot {
   cursor: grab;
   z-index: 2;
@@ -35,9 +13,19 @@
 }
 
 .interactive-timeline-dot[aria-current='true'] {
-  cursor: grabbing;
   transform: translate(-50%, -50%) scale(1.08);
   box-shadow: 0 8px 18px rgba(0, 86, 210, 0.22);
+}
+
+.interactive-timeline-dot--selected {
+  transform: translate(-50%, -50%) scale(1.1);
+  box-shadow:
+    0 0 0 4px rgba(0, 86, 210, 0.14),
+    0 10px 22px rgba(0, 86, 210, 0.24);
+}
+
+.interactive-timeline-dot--dragging {
+  cursor: grabbing;
 }
 
 .interactive-timeline-dot:hover,
@@ -74,4 +62,37 @@
     opacity: 1;
     transform: translate(-50%, -100%);
   }
+}
+
+.interactive-detail-card {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.interactive-detail-card--selected {
+  background: linear-gradient(180deg, rgba(0, 86, 210, 0.055), rgba(248, 250, 252, 0.92));
+  box-shadow:
+    inset 4px 0 0 #0056d2,
+    0 14px 32px rgba(15, 23, 42, 0.08);
+}
+
+.interactive-drag-drop-zone {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.interactive-drag-drop-zone:active {
+  cursor: grabbing;
+}
+
+.interactive-drag-drop-resize-handle {
+  cursor: nwse-resize;
+  touch-action: none;
 }

@@ -1,9 +1,19 @@
 import type {
   InteractiveVideoChoice,
+  InteractiveVideoDragDrop,
+  InteractiveVideoDragDropDraggable,
+  InteractiveVideoDragDropMedia,
+  InteractiveVideoDragDropZone,
+  InteractiveVideoFillBlank,
+  InteractiveVideoFillBlankBlank,
   InteractiveVideoInteraction,
   InteractiveVideoInteractionType,
   InteractiveVideoSpec,
 } from '../../../../api/types/interactive-video.types';
+import {
+  normalizeInteractiveVideoInteractionV2,
+  normalizeInteractiveVideoSpecV2,
+} from '../../../../core/utils/interactive-video-normalizer';
 
 const DEFAULT_OFFSET_SECONDS = 30;
 const MIN_DURATION_AWARE_OFFSET_SECONDS = 2;
@@ -43,43 +53,15 @@ export function buildInteractiveVideoSpec(
     return null;
   }
 
-  return {
-    version: 1,
+  return normalizeInteractiveVideoSpecV2({
+    version: 2,
     enabled: true,
     timeline: sortInteractiveVideoTimeline(timeline).map(normalizeInteractionForSave),
-  };
+  });
 }
 
 export function normalizeInteractiveVideoSpec(value: unknown): InteractiveVideoSpec | null {
-  if (!value || typeof value !== 'object') {
-    return null;
-  }
-
-  const source = value as {
-    enabled?: unknown;
-    timeline?: unknown;
-    interactions?: unknown;
-  };
-  const rawTimeline = Array.isArray(source.timeline)
-    ? source.timeline
-    : Array.isArray(source.interactions)
-      ? source.interactions
-      : [];
-
-  const timeline = sortInteractiveVideoTimeline(
-    rawTimeline.map(normalizeInteractiveVideoInteraction).filter(isInteraction),
-  );
-  const enabled = source.enabled == null ? timeline.length > 0 : source.enabled !== false;
-
-  if (!enabled && timeline.length === 0) {
-    return null;
-  }
-
-  return {
-    version: 1,
-    enabled,
-    timeline,
-  };
+  return normalizeInteractiveVideoSpecV2(value);
 }
 
 export function createInteractiveVideoInteraction(
@@ -97,9 +79,26 @@ export function createInteractiveVideoInteraction(
     body: '',
     pause: true,
     required: false,
+    adaptivity: type === 'branch'
+      ? {
+          requireCorrectBeforeContinue: true,
+          onWrong: {
+            type: 'seek',
+            targetTimeSeconds: 0,
+            targetInteractionId: null,
+            message: 'Hãy xem lại đoạn video trước khi thử trả lời lại.',
+          },
+          onCorrect: {
+            type: 'continue',
+            message: 'Đúng rồi, tiếp tục bài học.',
+          },
+        }
+      : null,
     choices: choiceTypeNeedsChoices(type)
       ? [createInteractiveVideoChoice(0), createInteractiveVideoChoice(1)]
       : [],
+    fillBlank: type === 'fill_blank' ? createInteractiveVideoFillBlank() : null,
+    dragDrop: type === 'drag_drop' ? createInteractiveVideoDragDrop() : null,
   };
 }
 
@@ -111,6 +110,68 @@ export function createInteractiveVideoChoice(index: number): InteractiveVideoCho
     isCorrect: index === 0,
     targetTimeSeconds: null,
     targetInteractionId: null,
+  };
+}
+
+export function createInteractiveVideoFillBlank(): InteractiveVideoFillBlank {
+  return {
+    template: 'Điền {{1}} vào chỗ trống.',
+    blanks: [createInteractiveVideoFillBlankBlank(0)],
+    caseSensitive: false,
+    enableRetry: true,
+    enableShowSolution: true,
+    requireAllCorrectBeforeContinue: false,
+  };
+}
+
+export function createInteractiveVideoFillBlankBlank(index: number): InteractiveVideoFillBlankBlank {
+  return {
+    id: `${index + 1}`,
+    acceptedAnswers: [`đáp án ${index + 1}`],
+  };
+}
+
+export function createInteractiveVideoDragDrop(): InteractiveVideoDragDrop {
+  const answerZone = createInteractiveVideoDragDropZone(0);
+  const correctDraggable = createInteractiveVideoDragDropDraggable(0, answerZone.id);
+  const distractorDraggable = createInteractiveVideoDragDropDraggable(1);
+
+  return {
+    instruction: 'Kéo những đáp án đúng vào vùng ảnh. Để nguyên đáp án sai ở ngoài.',
+    backgroundImage: null,
+    dropZones: [
+      { ...answerZone, correctDraggableIds: [correctDraggable.id] },
+    ],
+    draggables: [correctDraggable, distractorDraggable],
+    enableRetry: true,
+    enableShowSolution: true,
+    requireAllCorrectBeforeContinue: false,
+  };
+}
+
+export function createInteractiveVideoDragDropZone(index: number): InteractiveVideoDragDropZone {
+  const isPrimaryAnswerZone = index === 0;
+
+  return {
+    id: createAuthoringId('zone'),
+    label: isPrimaryAnswerZone ? 'Vùng đáp án đúng' : `Vùng thả ${index + 1}`,
+    xPercent: isPrimaryAnswerZone ? 50 : (index % 2 === 0 ? 30 : 70),
+    yPercent: isPrimaryAnswerZone ? 50 : (index % 2 === 0 ? 34 : 62),
+    widthPercent: isPrimaryAnswerZone ? 80 : 30,
+    heightPercent: isPrimaryAnswerZone ? 72 : 24,
+    correctDraggableIds: [],
+  };
+}
+
+export function createInteractiveVideoDragDropDraggable(
+  index: number,
+  acceptedDropZoneId: string | null = null,
+): InteractiveVideoDragDropDraggable {
+  return {
+    id: createAuthoringId('drag'),
+    label: `Vật dụng ${index + 1}`,
+    image: null,
+    acceptedDropZoneIds: acceptedDropZoneId ? [acceptedDropZoneId] : [],
   };
 }
 
@@ -187,13 +248,23 @@ export function getInteractiveVideoAuthoringIssues(
       });
     }
 
-    if (!interaction.title?.trim() && !interaction.body?.trim()) {
+    if (!hasVisibleStudentCopy(interaction)) {
       issues.push({
         code: 'empty_student_copy',
         severity: 'warning',
         message: `Điểm tại ${formatAuthoringTime(atSeconds)} chưa có nội dung học viên nhìn thấy.`,
         interactionId: interaction.id,
       });
+    }
+
+    if (interaction.type === 'fill_blank') {
+      issues.push(...getFillBlankAuthoringIssues(interaction, atSeconds));
+      continue;
+    }
+
+    if (interaction.type === 'drag_drop') {
+      issues.push(...getDragDropAuthoringIssues(interaction, atSeconds));
+      continue;
     }
 
     if (!choiceTypeNeedsChoices(interaction.type)) {
@@ -251,6 +322,15 @@ export function getInteractiveVideoAuthoringIssues(
     }
 
     if (interaction.type === 'branch') {
+      const isReviewBranch = isReviewBranchInteraction(interaction);
+      if (isReviewBranch && choices.every(choice => choice.isCorrect !== true)) {
+        issues.push({
+          code: 'missing_branch_correct_answer',
+          severity: 'error',
+          message: `Rẽ nhánh tại ${formatAuthoringTime(atSeconds)} cần một đáp án đúng để học viên tiếp tục.`,
+          interactionId: interaction.id,
+        });
+      }
       for (const choice of choices) {
         const targetTime = choice.targetTimeSeconds;
         if (maxInteractiveSeconds != null && targetTime != null && targetTime > maxInteractiveSeconds) {
@@ -289,10 +369,32 @@ export function getInteractiveVideoAuthoringIssues(
         }
 
         const resolvedTargetSeconds = target?.atSeconds ?? targetTime ?? null;
+        if (isReviewBranch) {
+          if (choice.isCorrect === false && resolvedTargetSeconds == null) {
+            issues.push({
+              code: 'missing_review_target',
+              severity: 'warning',
+              message: `Lựa chọn sai tại ${formatAuthoringTime(atSeconds)} nên có mốc xem lại video.`,
+              interactionId: interaction.id,
+              choiceId: choice.id,
+            });
+          }
+          if (resolvedTargetSeconds != null && resolvedTargetSeconds >= atSeconds) {
+            issues.push({
+              code: 'review_target_after_question',
+              severity: 'error',
+              message: `Mốc xem lại tại ${formatAuthoringTime(resolvedTargetSeconds)} phải nằm trước câu hỏi ${formatAuthoringTime(atSeconds)}.`,
+              interactionId: interaction.id,
+              choiceId: choice.id,
+            });
+          }
+          continue;
+        }
+
         if (resolvedTargetSeconds != null && resolvedTargetSeconds <= atSeconds) {
           issues.push({
             code: 'branch_rewinds',
-            severity: 'warning',
+            severity: 'error',
             message: `Một nhánh tại ${formatAuthoringTime(atSeconds)} quay về ${formatAuthoringTime(resolvedTargetSeconds)}.`,
             interactionId: interaction.id,
             choiceId: choice.id,
@@ -388,38 +490,183 @@ export function suggestNextInteractiveVideoTimeSeconds(
   return clampToVideoDuration(candidate, maxSeconds);
 }
 
-function normalizeInteractiveVideoInteraction(value: unknown): InteractiveVideoInteraction | null {
-  if (!value || typeof value !== 'object') {
-    return null;
+function hasVisibleStudentCopy(interaction: InteractiveVideoInteraction): boolean {
+  return !!interaction.title?.trim()
+    || !!interaction.body?.trim()
+    || (
+      interaction.type === 'fill_blank'
+      && !!interaction.fillBlank?.template.trim()
+    )
+    || (
+      interaction.type === 'drag_drop'
+      && !!interaction.dragDrop?.instruction.trim()
+    );
+}
+
+function getFillBlankAuthoringIssues(
+  interaction: InteractiveVideoInteraction,
+  atSeconds: number,
+): InteractiveVideoAuthoringIssue[] {
+  const issues: InteractiveVideoAuthoringIssue[] = [];
+  const fillBlank = interaction.fillBlank;
+  const template = fillBlank?.template.trim() ?? '';
+  const placeholderIds = extractFillBlankPlaceholderIds(template);
+  const blanksById = new Map((fillBlank?.blanks ?? []).map(blank => [blank.id, blank]));
+
+  if (!template) {
+    issues.push({
+      code: 'fill_blank_missing_template',
+      severity: 'error',
+      message: `Điền từ tại ${formatAuthoringTime(atSeconds)} cần câu có chỗ trống.`,
+      interactionId: interaction.id,
+    });
   }
 
-  const source = value as Record<string, unknown>;
-  const type = normalizeInteractionType(source['type']);
-  const atSeconds = toNonNegativeNumber(
-    source['atSeconds'] ?? source['timeSeconds'] ?? source['time'] ?? source['timestampSeconds'],
-    0,
-  );
-  const rawChoices = Array.isArray(source['choices']) ? source['choices'] : [];
-  const choices = rawChoices.map(normalizeInteractiveVideoChoice).filter(isChoice);
+  if (placeholderIds.length === 0) {
+    issues.push({
+      code: 'fill_blank_missing_placeholder',
+      severity: 'error',
+      message: `Điền từ tại ${formatAuthoringTime(atSeconds)} cần ít nhất một ô dạng {{1}} trong câu.`,
+      interactionId: interaction.id,
+    });
+  }
 
-  return {
-    id: typeof source['id'] === 'string' && source['id'].trim()
-      ? source['id'].trim()
-      : createAuthoringId('iv'),
-    type,
-    atSeconds,
-    endSeconds: source['endSeconds'] == null
-      ? null
-      : toNonNegativeNumber(source['endSeconds'], atSeconds),
-    title: toNullableText(source['title']),
-    body: toNullableText(source['body'] ?? source['prompt'] ?? source['description']),
-    pause: source['pause'] !== false,
-    required: source['required'] === true,
-    choices: choiceTypeNeedsChoices(type)
-      ? (choices.length > 0 ? choices : [createInteractiveVideoChoice(0), createInteractiveVideoChoice(1)])
-      : [],
-    hotspots: [],
-  };
+  for (const placeholderId of placeholderIds) {
+    const blank = blanksById.get(placeholderId);
+    const answers = (blank?.acceptedAnswers ?? []).map(answer => answer.trim()).filter(Boolean);
+    if (answers.length === 0) {
+      issues.push({
+        code: 'fill_blank_missing_answer',
+        severity: 'error',
+        message: `Ô trống {{${placeholderId}}} tại ${formatAuthoringTime(atSeconds)} chưa có đáp án đúng.`,
+        interactionId: interaction.id,
+      });
+      continue;
+    }
+
+    const normalizedAnswers = answers.map(answer => answer.toLocaleLowerCase());
+    if (new Set(normalizedAnswers).size < normalizedAnswers.length) {
+      issues.push({
+        code: 'fill_blank_duplicate_answer',
+        severity: 'warning',
+        message: `Ô trống {{${placeholderId}}} tại ${formatAuthoringTime(atSeconds)} có đáp án trùng nhau.`,
+        interactionId: interaction.id,
+      });
+    }
+
+    if (answers.some((answer, index) => isDefaultFillBlankAnswer(answer, index))) {
+      issues.push({
+        code: 'placeholder_fill_blank_answer',
+        severity: 'warning',
+        message: `Điền từ tại ${formatAuthoringTime(atSeconds)} còn đáp án mẫu.`,
+        interactionId: interaction.id,
+      });
+    }
+  }
+
+  for (const blank of fillBlank?.blanks ?? []) {
+    if (!placeholderIds.includes(blank.id)) {
+      issues.push({
+        code: 'unused_fill_blank_answer',
+        severity: 'warning',
+        message: `Đáp án cho ô {{${blank.id}}} chưa xuất hiện trong câu điền từ.`,
+        interactionId: interaction.id,
+      });
+    }
+  }
+
+  return issues;
+}
+
+function getDragDropAuthoringIssues(
+  interaction: InteractiveVideoInteraction,
+  atSeconds: number,
+): InteractiveVideoAuthoringIssue[] {
+  const issues: InteractiveVideoAuthoringIssue[] = [];
+  const dragDrop = interaction.dragDrop;
+  const dropZones = dragDrop?.dropZones ?? [];
+  const draggables = dragDrop?.draggables ?? [];
+  const zoneIds = new Set(dropZones.map(zone => zone.id));
+
+  if (!dragDrop?.backgroundImage?.idOrUrl.trim()) {
+    issues.push({
+      code: 'drag_drop_missing_background',
+      severity: 'error',
+      message: `Kéo thả tại ${formatAuthoringTime(atSeconds)} cần ảnh nền để học viên đặt vật dụng.`,
+      interactionId: interaction.id,
+    });
+  }
+
+  if (dropZones.length === 0) {
+    issues.push({
+      code: 'drag_drop_missing_zone',
+      severity: 'error',
+      message: `Kéo thả tại ${formatAuthoringTime(atSeconds)} cần ít nhất một vùng thả.`,
+      interactionId: interaction.id,
+    });
+  }
+
+  if (draggables.length === 0) {
+    issues.push({
+      code: 'drag_drop_missing_draggable',
+      severity: 'error',
+      message: `Kéo thả tại ${formatAuthoringTime(atSeconds)} cần ít nhất một vật dụng để kéo.`,
+      interactionId: interaction.id,
+    });
+  }
+
+  const hasCorrectDraggable = draggables
+    .some(draggable => draggable.acceptedDropZoneIds.some(zoneId => zoneIds.has(zoneId)));
+  if (dropZones.length > 0 && draggables.length > 0 && !hasCorrectDraggable) {
+    issues.push({
+      code: 'drag_drop_missing_correct_answer',
+      severity: 'error',
+      message: `Kéo thả tại ${formatAuthoringTime(atSeconds)} cần ít nhất một đáp án đúng để kéo vào vùng thả.`,
+      interactionId: interaction.id,
+    });
+  }
+
+  for (const zone of dropZones) {
+    if (!zone.label.trim()) {
+      issues.push({
+        code: 'drag_drop_blank_zone_label',
+        severity: 'warning',
+        message: `Một vùng thả tại ${formatAuthoringTime(atSeconds)} chưa có tên dễ hiểu.`,
+        interactionId: interaction.id,
+      });
+    }
+  }
+
+  for (const draggable of draggables) {
+    if (!draggable.label.trim()) {
+      issues.push({
+        code: 'drag_drop_blank_draggable_label',
+        severity: 'error',
+        message: `Một vật dụng kéo tại ${formatAuthoringTime(atSeconds)} chưa có tên.`,
+        interactionId: interaction.id,
+      });
+    }
+
+    if (isDefaultDragDropDraggableLabel(draggable.label)) {
+      issues.push({
+        code: 'placeholder_drag_drop_draggable',
+        severity: 'warning',
+        message: `Kéo thả tại ${formatAuthoringTime(atSeconds)} còn vật dụng dùng tên mẫu.`,
+        interactionId: interaction.id,
+      });
+    }
+
+    if (!draggable.image?.idOrUrl.trim()) {
+      issues.push({
+        code: 'drag_drop_missing_draggable_image',
+        severity: 'warning',
+        message: `Vật dụng "${draggable.label || 'chưa đặt tên'}" chưa có ảnh minh họa; hệ thống sẽ hiển thị dạng thẻ chữ.`,
+        interactionId: interaction.id,
+      });
+    }
+  }
+
+  return issues;
 }
 
 function normalizeInteractionForSave(
@@ -438,47 +685,176 @@ function normalizeInteractionForSave(
         targetInteractionId: toNullableText(choice.targetInteractionId),
       }))
     : [];
+  const fillBlank = type === 'fill_blank'
+    ? normalizeFillBlankForSave(interaction.fillBlank)
+    : null;
+  const dragDrop = type === 'drag_drop'
+    ? normalizeDragDropForSave(interaction.dragDrop)
+    : null;
 
-  return {
+  return normalizeInteractiveVideoInteractionV2({
+    ...interaction,
     id: interaction.id || createAuthoringId('iv'),
     type,
-    atSeconds: toNonNegativeNumber(interaction.atSeconds, 0),
-    endSeconds: interaction.endSeconds == null
-      ? null
-      : toNonNegativeNumber(interaction.endSeconds, interaction.atSeconds),
-    title: toNullableText(interaction.title),
-    body: toNullableText(interaction.body),
-    pause: interaction.pause !== false,
-    required: interaction.required === true,
     choices,
-    hotspots: [],
+    fillBlank,
+    dragDrop,
+    hotspots: interaction.hotspots ?? [],
+  }) as InteractiveVideoInteraction;
+}
+
+function normalizeFillBlankForSave(value: InteractiveVideoFillBlank | null | undefined): InteractiveVideoFillBlank {
+  const fallback = createInteractiveVideoFillBlank();
+  const template = (value?.template ?? fallback.template).trim();
+  const placeholders = extractFillBlankPlaceholderIds(template);
+  const blanks = mergeTemplatePlaceholders(
+    (value?.blanks ?? fallback.blanks).map((blank, index) => ({
+      id: (blank.id || `${index + 1}`).trim(),
+      acceptedAnswers: blank.acceptedAnswers
+        .map(answer => answer.trim())
+        .filter(Boolean),
+    })),
+    placeholders,
+  );
+
+  return {
+    template,
+    blanks,
+    caseSensitive: value?.caseSensitive === true,
+    enableRetry: value?.enableRetry !== false,
+    enableShowSolution: value?.enableShowSolution !== false,
+    requireAllCorrectBeforeContinue: value?.requireAllCorrectBeforeContinue === true,
   };
 }
 
-function normalizeInteractiveVideoChoice(value: unknown): InteractiveVideoChoice | null {
-  if (!value || typeof value !== 'object') {
+function normalizeDragDropForSave(
+  value: InteractiveVideoDragDrop | null | undefined,
+): InteractiveVideoDragDrop {
+  const fallback = createInteractiveVideoDragDrop();
+  const sourceDropZones = value?.dropZones?.length ? value.dropZones : fallback.dropZones;
+  const sourceDraggables = value?.draggables?.length ? value.draggables : fallback.draggables;
+  const dropZones = sourceDropZones.map((zone, index) => ({
+    id: zone.id || createAuthoringId('zone'),
+    label: (zone.label || `Vùng thả ${index + 1}`).trim(),
+    xPercent: clampPercent(zone.xPercent, 10),
+    yPercent: clampPercent(zone.yPercent, 10),
+    widthPercent: clampPercent(zone.widthPercent, 28),
+    heightPercent: clampPercent(zone.heightPercent, 22),
+    correctDraggableIds: dedupeStrings(zone.correctDraggableIds),
+  }));
+  const zoneIds = new Set(dropZones.map(zone => zone.id));
+  const draggables = sourceDraggables.map((draggable, index) => ({
+    id: draggable.id || createAuthoringId('drag'),
+    label: (draggable.label || `Vật dụng ${index + 1}`).trim(),
+    image: normalizeDragDropMediaForSave(draggable.image),
+    acceptedDropZoneIds: dedupeStrings(draggable.acceptedDropZoneIds)
+      .filter(zoneId => zoneIds.has(zoneId)),
+  }));
+  const synced = syncDragDropAnswerMaps(dropZones, draggables);
+
+  return {
+    instruction: (value?.instruction || fallback.instruction).trim(),
+    backgroundImage: normalizeDragDropMediaForSave(value?.backgroundImage),
+    dropZones: synced.dropZones,
+    draggables: synced.draggables,
+    enableRetry: value?.enableRetry !== false,
+    enableShowSolution: value?.enableShowSolution !== false,
+    requireAllCorrectBeforeContinue: value?.requireAllCorrectBeforeContinue === true,
+  };
+}
+
+function normalizeDragDropMediaForSave(
+  value: InteractiveVideoDragDropMedia | null | undefined,
+): InteractiveVideoDragDropMedia | null {
+  const idOrUrl = value?.idOrUrl.trim();
+  if (!idOrUrl) {
     return null;
   }
-
-  const source = value as Record<string, unknown>;
   return {
-    id: typeof source['id'] === 'string' && source['id'].trim()
-      ? source['id'].trim()
-      : createAuthoringId('choice'),
-    label: toNullableText(source['label'] ?? source['text']) ?? '',
-    feedback: toNullableText(source['feedback']),
-    isCorrect: source['isCorrect'] === true,
-    targetTimeSeconds: source['targetTimeSeconds'] == null
-      ? null
-      : toNonNegativeNumber(source['targetTimeSeconds'], 0),
-    targetInteractionId: toNullableText(source['targetInteractionId']),
+    idOrUrl,
+    alt: toNullableText(value?.alt),
   };
+}
+
+function syncDragDropAnswerMaps(
+  dropZones: InteractiveVideoDragDropZone[],
+  draggables: InteractiveVideoDragDropDraggable[],
+): { dropZones: InteractiveVideoDragDropZone[]; draggables: InteractiveVideoDragDropDraggable[] } {
+  const draggableIds = new Set(draggables.map(draggable => draggable.id));
+  const acceptedByDraggable = new Map<string, Set<string>>();
+
+  for (const draggable of draggables) {
+    acceptedByDraggable.set(draggable.id, new Set(draggable.acceptedDropZoneIds));
+  }
+
+  for (const zone of dropZones) {
+    for (const draggableId of zone.correctDraggableIds) {
+      if (!draggableIds.has(draggableId)) {
+        continue;
+      }
+      const accepted = acceptedByDraggable.get(draggableId) ?? new Set<string>();
+      accepted.add(zone.id);
+      acceptedByDraggable.set(draggableId, accepted);
+    }
+  }
+
+  const nextDraggables = draggables.map(draggable => ({
+    ...draggable,
+    acceptedDropZoneIds: [...(acceptedByDraggable.get(draggable.id) ?? new Set<string>())],
+  }));
+  const nextDropZones = dropZones.map(zone => ({
+    ...zone,
+    correctDraggableIds: nextDraggables
+      .filter(draggable => draggable.acceptedDropZoneIds.includes(zone.id))
+      .map(draggable => draggable.id),
+  }));
+
+  return { dropZones: nextDropZones, draggables: nextDraggables };
+}
+
+function mergeTemplatePlaceholders(
+  blanks: InteractiveVideoFillBlankBlank[],
+  placeholderIds: string[],
+): InteractiveVideoFillBlankBlank[] {
+  const byId = new Map(blanks.map(blank => [blank.id, blank]));
+  const ordered: InteractiveVideoFillBlankBlank[] = [];
+
+  for (const id of placeholderIds) {
+    ordered.push(byId.get(id) ?? { id, acceptedAnswers: [] });
+    byId.delete(id);
+  }
+
+  return [...ordered, ...byId.values()];
+}
+
+function extractFillBlankPlaceholderIds(template: string): string[] {
+  const ids: string[] = [];
+  const pattern = /\{\{\s*([a-zA-Z0-9_-]+)\s*\}\}/g;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(template)) != null) {
+    if (!ids.includes(match[1])) {
+      ids.push(match[1]);
+    }
+  }
+  return ids;
 }
 
 function normalizeInteractionType(value: unknown): InteractiveVideoInteractionType {
-  return value === 'single_choice' || value === 'branch' || value === 'hotspot'
+  return value === 'single_choice'
+    || value === 'branch'
+    || value === 'hotspot'
+    || value === 'fill_blank'
+    || value === 'drag_drop'
     ? value
     : 'checkpoint';
+}
+
+function isReviewBranchInteraction(interaction: InteractiveVideoInteraction): boolean {
+  return interaction.type === 'branch'
+    && (
+      interaction.adaptivity?.requireCorrectBeforeContinue === true
+      || (interaction.choices ?? []).some(choice => typeof choice.isCorrect === 'boolean')
+    );
 }
 
 function defaultInteractionTitle(type: InteractiveVideoInteractionType): string {
@@ -489,6 +865,10 @@ function defaultInteractionTitle(type: InteractiveVideoInteractionType): string 
       return 'Rẽ nhánh';
     case 'hotspot':
       return 'Hotspot';
+    case 'fill_blank':
+      return 'Điền từ';
+    case 'drag_drop':
+      return 'Kéo thả';
     default:
       return 'Điểm dừng';
   }
@@ -508,6 +888,12 @@ function toNonNegativeNumber(value: unknown, fallback: number): number {
     return Math.max(0, fallback);
   }
   return Math.max(0, Math.round(next));
+}
+
+function clampPercent(value: unknown, fallback: number): number {
+  const next = typeof value === 'number' ? value : Number(value);
+  const safe = Number.isFinite(next) ? next : fallback;
+  return Math.min(100, Math.max(0, Math.round(safe)));
 }
 
 function normalizeDurationSeconds(value: number | null | undefined): number | null {
@@ -676,17 +1062,21 @@ function isDefaultChoiceLabel(label: string, index: number): boolean {
   return label.trim().toLowerCase() === `lựa chọn ${index + 1}`;
 }
 
+function isDefaultFillBlankAnswer(answer: string, index: number): boolean {
+  return answer.trim().toLocaleLowerCase() === `đáp án ${index + 1}`;
+}
+
+function isDefaultDragDropDraggableLabel(label: string): boolean {
+  return /^vật dụng \d+$/i.test(label.trim());
+}
+
+function dedupeStrings(values: string[] | null | undefined): string[] {
+  return [...new Set((values ?? []).map(value => value.trim()).filter(Boolean))];
+}
+
 function formatAuthoringTime(seconds: number): string {
   const safeSeconds = toNonNegativeNumber(seconds, 0);
   const minutes = Math.floor(safeSeconds / 60);
   const rest = safeSeconds % 60;
   return `${minutes}:${rest.toString().padStart(2, '0')}`;
-}
-
-function isInteraction(value: InteractiveVideoInteraction | null): value is InteractiveVideoInteraction {
-  return value != null;
-}
-
-function isChoice(value: InteractiveVideoChoice | null): value is InteractiveVideoChoice {
-  return value != null;
 }

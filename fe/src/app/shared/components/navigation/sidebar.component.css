@@ -92,6 +92,7 @@
 .nav-item {
   display: flex;
   align-items: center;
+  min-height: 44px;
   padding: 0.625rem 0.75rem;
   color: #374151;
   border-radius: 0.5rem;
@@ -185,6 +186,7 @@
 .sub-menu-item {
   display: flex;
   align-items: center;
+  min-height: 44px;
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
   color: #6b7280;

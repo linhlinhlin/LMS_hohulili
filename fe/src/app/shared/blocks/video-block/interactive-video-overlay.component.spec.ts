@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, fakeAsync, flushMicrotasks, TestBed } from '@angular/core/testing';
 import { InteractiveVideoOverlayComponent } from './interactive-video-overlay.component';
 
 describe('InteractiveVideoOverlayComponent', () => {
@@ -50,6 +50,145 @@ describe('InteractiveVideoOverlayComponent', () => {
     expect(continueButton.hasAttribute('aria-describedby')).toBeFalse();
     expect(element.querySelector('#interactive-video-choice-hint-q1')).toBeNull();
   });
+
+  it('keeps continue disabled until the selected choice is correct when required by adaptivity', () => {
+    fixture.componentRef.setInput('interaction', {
+      id: 'q-correct',
+      type: 'single_choice',
+      atSeconds: 18,
+      title: 'Check understanding',
+      required: true,
+      adaptivity: {
+        requireCorrectBeforeContinue: true,
+        onWrong: { type: 'continue', message: 'Review the example before moving on.' },
+        onCorrect: { type: 'continue', message: 'Nice, continue to the next part.' },
+      },
+      choices: [
+        { id: 'wrong', label: 'Skip the example', feedback: 'Not quite.', isCorrect: false },
+        { id: 'right', label: 'Review the example', feedback: 'Correct.', isCorrect: true },
+      ],
+    });
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const continueButton = Array.from(element.querySelectorAll('button'))
+      .find(button => button.textContent?.includes('Tiếp tục')) as HTMLButtonElement;
+
+    expect(continueButton.disabled).toBeTrue();
+    expect(element.querySelector('#interactive-video-choice-hint-q-correct')?.textContent?.trim())
+      .toBe('Chọn đáp án đúng để tiếp tục.');
+
+    fixture.componentRef.setInput('selectedChoiceId', 'wrong');
+    fixture.detectChanges();
+
+    const wrongChoice = Array.from(element.querySelectorAll('button'))
+      .find(button => button.textContent?.includes('Skip the example')) as HTMLButtonElement;
+    const rightChoice = Array.from(element.querySelectorAll('button'))
+      .find(button => button.textContent?.includes('Review the example')) as HTMLButtonElement;
+
+    expect(continueButton.disabled).toBeTrue();
+    expect(wrongChoice.getAttribute('data-answer-state')).toBe('selected-wrong');
+    expect(rightChoice.getAttribute('data-answer-state')).toBe('correct-answer');
+    expect(element.querySelector('[data-testid="interactive-video-feedback"]')).not.toBeNull();
+    expect(element.textContent).toContain('Not quite.');
+    expect(element.textContent).toContain('Review the example before moving on.');
+
+    fixture.componentRef.setInput('selectedChoiceId', 'right');
+    fixture.detectChanges();
+
+    expect(continueButton.disabled).toBeFalse();
+    expect(rightChoice.getAttribute('data-answer-state')).toBe('selected-correct');
+    expect(element.textContent).toContain('Correct.');
+    expect(element.textContent).toContain('Nice, continue to the next part.');
+  });
+
+  it('locks wrong review answers and offers a video review action', () => {
+    fixture.componentRef.setInput('interaction', {
+      id: 'branch-review',
+      type: 'branch',
+      atSeconds: 47,
+      title: 'How many fruits appeared?',
+      required: false,
+      choices: [
+        { id: 'wrong', label: 'One fruit', isCorrect: false, targetTimeSeconds: 5 },
+        { id: 'right', label: 'Two fruits', isCorrect: true },
+      ],
+    });
+    fixture.componentRef.setInput('selectedChoiceId', 'wrong');
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const wrongChoice = Array.from(element.querySelectorAll('button'))
+      .find(button => button.textContent?.includes('One fruit')) as HTMLButtonElement;
+    const rightChoice = Array.from(element.querySelectorAll('button'))
+      .find(button => button.textContent?.includes('Two fruits')) as HTMLButtonElement;
+    const reviewButton = element.querySelector('[data-testid="interactive-video-review-button"]') as HTMLButtonElement;
+
+    expect(wrongChoice.disabled).toBeTrue();
+    expect(rightChoice.disabled).toBeTrue();
+    expect(wrongChoice.getAttribute('data-answer-state')).toBe('selected-wrong');
+    expect(rightChoice.getAttribute('data-answer-state')).toBe('idle');
+    expect(reviewButton.textContent).toContain('Xem lại video');
+  });
+
+  it('keeps tab focus inside the dialog', fakeAsync(() => {
+    fixture.componentRef.setInput('interaction', {
+      id: 'focus1',
+      type: 'single_choice',
+      atSeconds: 21,
+      title: 'Focus check',
+      choices: [
+        { id: 'a', label: 'First choice' },
+        { id: 'b', label: 'Second choice' },
+      ],
+    });
+    fixture.detectChanges();
+    flushMicrotasks();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const firstChoice = Array.from(element.querySelectorAll('button'))
+      .find(button => button.textContent?.includes('First choice')) as HTMLButtonElement;
+    const continueButton = Array.from(element.querySelectorAll('button'))
+      .find(button => button.textContent?.includes('Tiếp tục')) as HTMLButtonElement;
+
+    continueButton.focus();
+    const forward = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true });
+    const preventForward = spyOn(forward, 'preventDefault').and.callThrough();
+    fixture.componentInstance.trapFocus(forward);
+
+    expect(preventForward).toHaveBeenCalled();
+    expect(document.activeElement).toBe(firstChoice);
+
+    firstChoice.focus();
+    const backward = new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true });
+    const preventBackward = spyOn(backward, 'preventDefault').and.callThrough();
+    fixture.componentInstance.trapFocus(backward);
+
+    expect(preventBackward).toHaveBeenCalled();
+    expect(document.activeElement).toBe(continueButton);
+  }));
+
+  it('restores focus to the previously active element when destroyed', fakeAsync(() => {
+    const trigger = document.createElement('button');
+    document.body.appendChild(trigger);
+    trigger.focus();
+
+    fixture.componentRef.setInput('interaction', {
+      id: 'restore1',
+      type: 'checkpoint',
+      atSeconds: 22,
+      title: 'Restore focus',
+    });
+    fixture.detectChanges();
+    flushMicrotasks();
+
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('[role="dialog"]'));
+
+    fixture.destroy();
+
+    expect(document.activeElement).toBe(trigger);
+    trigger.remove();
+  }));
 
   it('renders rich body and choice content without treating raw html as markup', () => {
     fixture.componentRef.setInput('interaction', {

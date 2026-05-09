@@ -2,7 +2,8 @@ import type {
   InteractiveVideoInteraction,
   InteractiveVideoSpec,
 } from '../../../../api/types/interactive-video.types';
-import { normalizeInteractiveVideoSpec, sortInteractiveVideoTimeline } from './interactive-video-authoring';
+import { normalizeInteractiveVideoSpecV2 } from '../../../../core/utils/interactive-video-normalizer';
+import { sortInteractiveVideoTimeline } from './interactive-video-authoring';
 
 type H5PZipInput = Blob | ArrayBuffer | Uint8Array;
 
@@ -110,7 +111,7 @@ export function exportInteractiveVideoBundle(
   spec: InteractiveVideoSpec,
   videoUrl: string | null,
 ): InteractiveVideoInterchangeBundle {
-  const normalized = normalizeInteractiveVideoSpec(spec);
+  const normalized = normalizeInteractiveVideoSpecV2(spec);
   if (!normalized) {
     throw new Error('Interactive video spec is empty.');
   }
@@ -124,7 +125,7 @@ export function exportInteractiveVideoBundle(
 }
 
 export function importInteractiveVideoBundle(value: unknown): InteractiveVideoSpec | null {
-  const nativeSpec = normalizeInteractiveVideoSpec((value as { spec?: unknown } | null)?.spec ?? value);
+  const nativeSpec = normalizeInteractiveVideoSpecV2((value as { spec?: unknown } | null)?.spec ?? value);
   if (nativeSpec) {
     return nativeSpec;
   }
@@ -134,13 +135,13 @@ export function importInteractiveVideoBundle(value: unknown): InteractiveVideoSp
     return null;
   }
 
-  return {
-    version: 1,
+  return normalizeInteractiveVideoSpecV2({
+    version: 2,
     enabled: true,
     timeline: sortInteractiveVideoTimeline(
       h5pInteractions.map((interaction, index) => fromH5PInteraction(interaction, index)),
     ),
-  };
+  });
 }
 
 export async function exportInteractiveVideoH5PPackage(

@@ -11,10 +11,19 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
+import { firstValueFrom } from 'rxjs';
+import { ContentIdentityService } from '../../../../../../../core/services/content-identity.service';
+import { ImageLifecycleService } from '../../../../../../../core/services/image-lifecycle.service';
 import { ToastService } from '../../../../../../../core/services/toast.service';
 import { EnrichedInputFieldComponent } from '../../../../../../../shared/components/enriched-input/enriched-input.component';
 import type {
   InteractiveVideoChoice,
+  InteractiveVideoDragDrop,
+  InteractiveVideoDragDropDraggable,
+  InteractiveVideoDragDropMedia,
+  InteractiveVideoDragDropZone,
+  InteractiveVideoFillBlank,
+  InteractiveVideoFillBlankBlank,
   InteractiveVideoInteraction,
   InteractiveVideoInteractionType,
   InteractiveVideoSpec,
@@ -22,6 +31,11 @@ import type {
 import { CurriculumEditorService } from '../../../../services/curriculum-editor.service';
 import {
   buildInteractiveVideoSpec,
+  createInteractiveVideoDragDrop,
+  createInteractiveVideoDragDropDraggable,
+  createInteractiveVideoDragDropZone,
+  createInteractiveVideoFillBlank,
+  createInteractiveVideoFillBlankBlank,
   getInteractiveVideoAuthoringIssues,
   suggestNextInteractiveVideoTimeSeconds,
   type InteractiveVideoAuthoringIssue,
@@ -32,15 +46,14 @@ import {
   importInteractiveVideoBundle,
   importInteractiveVideoH5PPackage,
 } from '../../../../utils/interactive-video-interoperability';
+import {
+  InteractiveVideoAuthoringCanvasComponent,
+  type InteractiveVideoCanvasMove,
+  type InteractiveVideoCanvasPlacement,
+} from './interactive-video-authoring-canvas.component';
+import { InteractiveVideoAuthoringPropertiesComponent } from './interactive-video-authoring-properties.component';
 
 type InteractiveVideoSourceKind = 'upload' | 'youtube';
-
-interface InteractiveVideoFlowChoice {
-  id: string;
-  label: string;
-  metaLabel: string;
-  toneClass: string;
-}
 
 interface InteractiveVideoFlowNode {
   id: string;
@@ -50,10 +63,6 @@ interface InteractiveVideoFlowNode {
   title: string;
   atSeconds: number;
   timeLabel: string;
-  iconName: string;
-  nodeClass: string;
-  badgeClass: string;
-  choices: InteractiveVideoFlowChoice[];
   required: boolean;
   pause: boolean;
 }
@@ -65,28 +74,56 @@ interface InteractiveVideoQualitySummary {
   toneClass: string;
 }
 
+interface DragDropZonePointerState {
+  pointerId: number;
+  interactionId: string;
+  zoneId: string;
+  mode: 'move' | 'resize';
+  startPointerXPercent: number;
+  startPointerYPercent: number;
+  startXPercent: number;
+  startYPercent: number;
+  startWidthPercent: number;
+  startHeightPercent: number;
+}
+
 @Component({
   selector: 'app-interactive-video-authoring-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, LucideAngularModule, EnrichedInputFieldComponent],
+  imports: [
+    FormsModule,
+    LucideAngularModule,
+    EnrichedInputFieldComponent,
+    InteractiveVideoAuthoringCanvasComponent,
+    InteractiveVideoAuthoringPropertiesComponent,
+  ],
   templateUrl: './interactive-video-authoring-panel.component.html',
   styleUrl: './interactive-video-authoring-panel.component.scss',
 })
 export class InteractiveVideoAuthoringPanelComponent {
   readonly svc = inject(CurriculumEditorService);
+  private readonly imageLifecycle = inject(ImageLifecycleService);
+  private readonly contentIdentity = inject(ContentIdentityService);
   private readonly toast = inject(ToastService);
 
   readonly sourceKind = input<InteractiveVideoSourceKind>('upload');
   readonly switchToUpload = output<void>();
 
-  readonly interactiveVideoTypes: InteractiveVideoInteractionType[] = ['checkpoint', 'single_choice', 'branch'];
-  readonly draggingInteractionId = signal<string | null>(null);
-  readonly dropTargetInteractionId = signal<string | null>(null);
+  readonly interactiveVideoTypes: InteractiveVideoInteractionType[] = [
+    'checkpoint',
+    'single_choice',
+    'branch',
+    'fill_blank',
+    'drag_drop',
+  ];
   readonly timelineDraggingInteractionId = signal<string | null>(null);
   readonly hoveredTimelineNodeId = signal<string | null>(null);
   readonly showAllInteractiveVideoQualityIssues = signal(false);
+  readonly selectedCanvasInteractionId = signal<string | null>(null);
+  readonly selectedDragDropZoneId = signal<string | null>(null);
   readonly timelineRail = viewChild<ElementRef<HTMLElement>>('timelineRail');
   private suppressNextTimelineClick = false;
+  private dragDropZonePointerState: DragDropZonePointerState | null = null;
 
   readonly isYoutubeSource = computed(() => this.sourceKind() === 'youtube');
   readonly previewSpec = computed<InteractiveVideoSpec | null>(() =>
@@ -111,16 +148,30 @@ export class InteractiveVideoAuthoringPanelComponent {
       : 'inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200',
   );
   readonly durationHint = computed(() => {
-    const nextSeconds = suggestNextInteractiveVideoTimeSeconds(
-      this.svc.sectionInteractiveVideoTimeline(),
-      { durationSeconds: this.svc.sectionVideoDurationSec() },
-    );
+    const nextSeconds = this.canvasSuggestedTimeSeconds();
     const duration = this.svc.sectionVideoDurationSec();
     const nextLabel = this.formatInteractiveFlowTime(nextSeconds);
     if (!duration || !Number.isFinite(duration) || duration <= 0) {
       return `Mốc kế tiếp: ${nextLabel}.`;
     }
     return `Mốc kế tiếp: ${nextLabel} / ${this.formatInteractiveFlowTime(duration)}.`;
+  });
+  readonly canvasSuggestedTimeSeconds = computed(() =>
+    suggestNextInteractiveVideoTimeSeconds(
+      this.svc.sectionInteractiveVideoTimeline(),
+      { durationSeconds: this.svc.sectionVideoDurationSec() },
+    ),
+  );
+  readonly canvasVideoUrl = computed(() =>
+    this.isYoutubeSource() ? null : (this.svc.sectionVideoUrl() || null),
+  );
+  readonly selectedCanvasInteraction = computed<InteractiveVideoInteraction | null>(() => {
+    const selectedId = this.selectedCanvasInteractionId();
+    if (!selectedId) {
+      return null;
+    }
+    return this.svc.sectionInteractiveVideoTimeline()
+      .find(interaction => interaction.id === selectedId) ?? null;
   });
   readonly quickNudgeSeconds = computed(() => {
     const duration = this.svc.sectionVideoDurationSec();
@@ -138,9 +189,6 @@ export class InteractiveVideoAuthoringPanelComponent {
     }
     return 30;
   });
-  readonly quickNudgeLabel = computed(() => `${this.quickNudgeSeconds()} giây`);
-  readonly quickNudgeEarlierLabel = computed(() => `Sớm hơn ${this.quickNudgeLabel()}`);
-  readonly quickNudgeLaterLabel = computed(() => `Muộn hơn ${this.quickNudgeLabel()}`);
   readonly timelineScaleLabel = computed(() => {
     const duration = this.svc.sectionVideoDurationSec();
     if (!duration || !Number.isFinite(duration) || duration <= 0) {
@@ -150,6 +198,9 @@ export class InteractiveVideoAuthoringPanelComponent {
   });
   readonly interactiveVideoFlowNodes = computed<InteractiveVideoFlowNode[]>(() =>
     this.buildInteractiveVideoFlowNodes(this.svc.sectionInteractiveVideoTimeline()),
+  );
+  readonly interactiveVideoDetailInteractions = computed(() =>
+    this.sortInteractiveTimeline(this.svc.sectionInteractiveVideoTimeline()),
   );
   readonly activeTimelinePreviewNode = computed<InteractiveVideoFlowNode | null>(() => {
     const activeId = this.timelineDraggingInteractionId() ?? this.hoveredTimelineNodeId();
@@ -164,6 +215,8 @@ export class InteractiveVideoAuthoringPanelComponent {
       total: nodes.length,
       branches: nodes.filter(node => node.type === 'branch').length,
       questions: nodes.filter(node => node.type === 'single_choice').length,
+      fillBlanks: nodes.filter(node => node.type === 'fill_blank').length,
+      dragDrops: nodes.filter(node => node.type === 'drag_drop').length,
       required: nodes.filter(node => node.required).length,
     };
   });
@@ -202,7 +255,7 @@ export class InteractiveVideoAuthoringPanelComponent {
     }
 
     return {
-      iconName: 'check-circle-2',
+      iconName: 'check-circle',
       title: 'Luồng tương tác ổn',
       body: 'Thời điểm, lựa chọn và nhánh đang hợp lệ để lưu.',
       toneClass: `${baseClass} border-emerald-200 bg-emerald-50 text-emerald-800`,
@@ -221,7 +274,8 @@ export class InteractiveVideoAuthoringPanelComponent {
   }
 
   addInteraction(type: InteractiveVideoInteractionType): void {
-    this.svc.addInteractiveVideoInteraction(type);
+    const created = this.svc.addInteractiveVideoInteraction(type);
+    this.selectedCanvasInteractionId.set(created.id);
   }
 
   addSuggestedInteractions(): void {
@@ -251,7 +305,7 @@ export class InteractiveVideoAuthoringPanelComponent {
     value: unknown,
   ): void {
     this.svc.updateInteractiveVideoChoice(interactionId, choiceId, {
-      targetTimeSeconds: this.clampInteractiveTime(value),
+      targetTimeSeconds: this.normalizeOptionalInteractiveTime(value),
       targetInteractionId: null,
     });
   }
@@ -330,10 +384,409 @@ export class InteractiveVideoAuthoringPanelComponent {
     return interaction.type === 'single_choice' || interaction.type === 'branch';
   }
 
+  isFillBlankInteraction(interaction: InteractiveVideoInteraction): boolean {
+    return interaction.type === 'fill_blank';
+  }
+
+  getFillBlank(interaction: InteractiveVideoInteraction): InteractiveVideoFillBlank {
+    return interaction.fillBlank ?? createInteractiveVideoFillBlank();
+  }
+
+  getFillBlankAnswerText(blank: InteractiveVideoFillBlankBlank): string {
+    return blank.acceptedAnswers.join(' | ');
+  }
+
+  onFillBlankTemplateChange(interaction: InteractiveVideoInteraction, template: string): void {
+    this.updateFillBlank(interaction.id, this.syncFillBlankPlaceholders({
+      ...this.getFillBlank(interaction),
+      template,
+    }));
+  }
+
+  onFillBlankAnswersChange(
+    interaction: InteractiveVideoInteraction,
+    blankId: string,
+    value: string,
+  ): void {
+    const fillBlank = this.getFillBlank(interaction);
+    this.updateFillBlank(interaction.id, {
+      ...fillBlank,
+      blanks: fillBlank.blanks.map(blank => blank.id === blankId
+        ? { ...blank, acceptedAnswers: this.parseAcceptedAnswers(value) }
+        : blank),
+    });
+  }
+
+  onFillBlankBooleanChange(
+    interaction: InteractiveVideoInteraction,
+    key: 'caseSensitive' | 'enableRetry' | 'enableShowSolution' | 'requireAllCorrectBeforeContinue',
+    value: boolean,
+  ): void {
+    this.updateFillBlank(interaction.id, {
+      ...this.getFillBlank(interaction),
+      [key]: value,
+    });
+  }
+
+  addFillBlankBlank(interaction: InteractiveVideoInteraction): void {
+    const fillBlank = this.getFillBlank(interaction);
+    this.updateFillBlank(interaction.id, {
+      ...fillBlank,
+      blanks: [...fillBlank.blanks, createInteractiveVideoFillBlankBlank(fillBlank.blanks.length)],
+    });
+  }
+
+  removeFillBlankBlank(interaction: InteractiveVideoInteraction, blankId: string): void {
+    const fillBlank = this.getFillBlank(interaction);
+    const placeholderIds = this.extractFillBlankPlaceholderIds(fillBlank.template);
+    this.updateFillBlank(interaction.id, {
+      ...fillBlank,
+      blanks: placeholderIds.includes(blankId)
+        ? fillBlank.blanks.map(blank => blank.id === blankId
+            ? { ...blank, acceptedAnswers: [] }
+            : blank)
+        : fillBlank.blanks.filter(blank => blank.id !== blankId),
+    });
+  }
+
+  isDragDropInteraction(interaction: InteractiveVideoInteraction): boolean {
+    return interaction.type === 'drag_drop';
+  }
+
+  getDragDrop(interaction: InteractiveVideoInteraction): InteractiveVideoDragDrop {
+    return interaction.dragDrop ?? createInteractiveVideoDragDrop();
+  }
+
+  getDragDropBackgroundValue(interaction: InteractiveVideoInteraction): string {
+    return this.getDragDrop(interaction).backgroundImage?.idOrUrl ?? '';
+  }
+
+  getDragDropMediaPreviewUrl(media: InteractiveVideoDragDropMedia | null | undefined): string | null {
+    const idOrUrl = media?.idOrUrl.trim();
+    if (!idOrUrl) {
+      return null;
+    }
+    return this.resolveMediaUrl(idOrUrl);
+  }
+
+  onDragDropInstructionChange(interaction: InteractiveVideoInteraction, instruction: string): void {
+    this.updateDragDrop(interaction.id, {
+      ...this.getDragDrop(interaction),
+      instruction,
+    });
+  }
+
+  onDragDropBackgroundChange(interaction: InteractiveVideoInteraction, idOrUrl: string): void {
+    this.updateDragDrop(interaction.id, {
+      ...this.getDragDrop(interaction),
+      backgroundImage: this.toDragDropMedia(idOrUrl, 'Ảnh nền bài kéo thả'),
+    });
+  }
+
+  onDragDropBooleanChange(
+    interaction: InteractiveVideoInteraction,
+    key: 'enableRetry' | 'enableShowSolution' | 'requireAllCorrectBeforeContinue',
+    value: boolean,
+  ): void {
+    this.updateDragDrop(interaction.id, {
+      ...this.getDragDrop(interaction),
+      [key]: value,
+    });
+  }
+
+  addDragDropZone(interaction: InteractiveVideoInteraction): void {
+    const dragDrop = this.getDragDrop(interaction);
+    const zone = createInteractiveVideoDragDropZone(dragDrop.dropZones.length);
+    this.updateDragDrop(interaction.id, {
+      ...dragDrop,
+      dropZones: [...dragDrop.dropZones, zone],
+    });
+    this.selectedDragDropZoneId.set(zone.id);
+  }
+
+  updateDragDropZone(
+    interaction: InteractiveVideoInteraction,
+    zoneId: string,
+    patch: Partial<InteractiveVideoDragDropZone>,
+  ): void {
+    const dragDrop = this.getDragDrop(interaction);
+    this.updateDragDrop(interaction.id, this.syncDragDropAnswers({
+      ...dragDrop,
+      dropZones: dragDrop.dropZones.map(zone => zone.id === zoneId
+        ? {
+            ...zone,
+            ...patch,
+            xPercent: this.toPercent(patch.xPercent ?? zone.xPercent, zone.xPercent),
+            yPercent: this.toPercent(patch.yPercent ?? zone.yPercent, zone.yPercent),
+            widthPercent: this.toPercent(patch.widthPercent ?? zone.widthPercent, zone.widthPercent, 6),
+            heightPercent: this.toPercent(patch.heightPercent ?? zone.heightPercent, zone.heightPercent, 6),
+          }
+        : zone),
+    }));
+  }
+
+  removeDragDropZone(interaction: InteractiveVideoInteraction, zoneId: string): void {
+    const dragDrop = this.getDragDrop(interaction);
+    this.updateDragDrop(interaction.id, this.syncDragDropAnswers({
+      ...dragDrop,
+      dropZones: dragDrop.dropZones.filter(zone => zone.id !== zoneId),
+      draggables: dragDrop.draggables.map(draggable => ({
+        ...draggable,
+        acceptedDropZoneIds: draggable.acceptedDropZoneIds.filter(id => id !== zoneId),
+      })),
+    }));
+    if (this.selectedDragDropZoneId() === zoneId) {
+      this.selectedDragDropZoneId.set(null);
+    }
+  }
+
+  addDragDropDraggable(interaction: InteractiveVideoInteraction): void {
+    const dragDrop = this.getDragDrop(interaction);
+    this.updateDragDrop(interaction.id, this.syncDragDropAnswers({
+      ...dragDrop,
+      draggables: [
+        ...dragDrop.draggables,
+        createInteractiveVideoDragDropDraggable(dragDrop.draggables.length),
+      ],
+    }));
+  }
+
+  selectDragDropZone(zoneId: string): void {
+    this.selectedDragDropZoneId.set(zoneId);
+  }
+
+  getSelectedDragDropZoneId(interaction: InteractiveVideoInteraction): string | null {
+    const selectedId = this.selectedDragDropZoneId();
+    if (!selectedId) {
+      return this.getDragDrop(interaction).dropZones[0]?.id ?? null;
+    }
+    return this.getDragDrop(interaction).dropZones.some(zone => zone.id === selectedId)
+      ? selectedId
+      : this.getDragDrop(interaction).dropZones[0]?.id ?? null;
+  }
+
+  getDragDropZoneAssignedDraggables(
+    dragDrop: InteractiveVideoDragDrop,
+    zone: InteractiveVideoDragDropZone,
+  ): InteractiveVideoDragDropDraggable[] {
+    return dragDrop.draggables
+      .filter(draggable => draggable.acceptedDropZoneIds.includes(zone.id));
+  }
+
+  getDragDropAnswerRoleLabel(draggable: InteractiveVideoDragDropDraggable): string {
+    return draggable.acceptedDropZoneIds.length > 0
+      ? 'Đúng - kéo vào vùng ảnh'
+      : 'Sai - để ngoài ảnh';
+  }
+
+  getDragDropAnswerRoleClass(draggable: InteractiveVideoDragDropDraggable): string {
+    const base = 'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold';
+    return draggable.acceptedDropZoneIds.length > 0
+      ? `${base} bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100`
+      : `${base} bg-slate-100 text-slate-600 ring-1 ring-slate-200`;
+  }
+
+  getDragDropZoneAuthoringClass(
+    interaction: InteractiveVideoInteraction,
+    zone: InteractiveVideoDragDropZone,
+  ): string {
+    const selected = this.getSelectedDragDropZoneId(interaction) === zone.id;
+    const base = [
+      'interactive-drag-drop-zone absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-2xl border-2 border-dashed px-2 py-1 text-center',
+      'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0056D2]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950',
+    ].join(' ');
+    return selected
+      ? `${base} border-cyan-300 bg-cyan-100/70 text-cyan-950 shadow-[0_0_0_5px_rgba(34,211,238,0.22)]`
+      : `${base} border-white/55 bg-white/18 text-white hover:border-cyan-200 hover:bg-cyan-100/35`;
+  }
+
+  onDragDropZonePointerDown(
+    event: PointerEvent,
+    interaction: InteractiveVideoInteraction,
+    zone: InteractiveVideoDragDropZone,
+    mode: 'move' | 'resize',
+  ): void {
+    if (event.button !== 0) {
+      return;
+    }
+    const stage = this.getDragDropAuthoringStage(event);
+    if (!stage) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    this.selectedDragDropZoneId.set(zone.id);
+    const pointer = this.getPointerPercent(event, stage);
+    this.dragDropZonePointerState = {
+      pointerId: event.pointerId,
+      interactionId: interaction.id,
+      zoneId: zone.id,
+      mode,
+      startPointerXPercent: pointer.xPercent,
+      startPointerYPercent: pointer.yPercent,
+      startXPercent: zone.xPercent,
+      startYPercent: zone.yPercent,
+      startWidthPercent: zone.widthPercent,
+      startHeightPercent: zone.heightPercent,
+    };
+    stage.setPointerCapture(event.pointerId);
+  }
+
+  onDragDropAuthoringPointerMove(event: PointerEvent, interaction: InteractiveVideoInteraction): void {
+    const state = this.dragDropZonePointerState;
+    if (!state || state.interactionId !== interaction.id) {
+      return;
+    }
+    const stage = event.currentTarget as HTMLElement;
+    const pointer = this.getPointerPercent(event, stage);
+    const patch = state.mode === 'resize'
+      ? this.getDragDropResizePatch(state, pointer.xPercent, pointer.yPercent)
+      : this.getDragDropMovePatch(state, pointer.xPercent, pointer.yPercent);
+    this.updateDragDropZone(interaction, state.zoneId, patch);
+  }
+
+  onDragDropAuthoringPointerUp(event: PointerEvent): void {
+    const state = this.dragDropZonePointerState;
+    if (!state || state.pointerId !== event.pointerId) {
+      return;
+    }
+    const stage = event.currentTarget as HTMLElement;
+    if (stage.hasPointerCapture(event.pointerId)) {
+      stage.releasePointerCapture(event.pointerId);
+    }
+    this.dragDropZonePointerState = null;
+  }
+
+  onDragDropAuthoringPointerCancel(event: PointerEvent): void {
+    this.onDragDropAuthoringPointerUp(event);
+  }
+
+  onDragDropZoneKeydown(
+    event: KeyboardEvent,
+    interaction: InteractiveVideoInteraction,
+    zone: InteractiveVideoDragDropZone,
+  ): void {
+    const step = event.altKey ? 5 : 1;
+    const patch: Partial<InteractiveVideoDragDropZone> = {};
+    switch (event.key) {
+      case 'ArrowLeft':
+        event.preventDefault();
+        if (event.shiftKey) {
+          patch.widthPercent = this.clampPercent(zone.widthPercent - step, 6, 100);
+        } else {
+          patch.xPercent = this.clampZoneCenter(zone.xPercent - step, zone.widthPercent);
+        }
+        break;
+      case 'ArrowRight':
+        event.preventDefault();
+        if (event.shiftKey) {
+          patch.widthPercent = this.clampPercent(zone.widthPercent + step, 6, 100);
+        } else {
+          patch.xPercent = this.clampZoneCenter(zone.xPercent + step, zone.widthPercent);
+        }
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        if (event.shiftKey) {
+          patch.heightPercent = this.clampPercent(zone.heightPercent - step, 6, 100);
+        } else {
+          patch.yPercent = this.clampZoneCenter(zone.yPercent - step, zone.heightPercent);
+        }
+        break;
+      case 'ArrowDown':
+        event.preventDefault();
+        if (event.shiftKey) {
+          patch.heightPercent = this.clampPercent(zone.heightPercent + step, 6, 100);
+        } else {
+          patch.yPercent = this.clampZoneCenter(zone.yPercent + step, zone.heightPercent);
+        }
+        break;
+      default:
+        return;
+    }
+    this.selectedDragDropZoneId.set(zone.id);
+    this.updateDragDropZone(interaction, zone.id, patch);
+  }
+
+  updateDragDropDraggable(
+    interaction: InteractiveVideoInteraction,
+    draggableId: string,
+    patch: Partial<InteractiveVideoDragDropDraggable>,
+  ): void {
+    const dragDrop = this.getDragDrop(interaction);
+    this.updateDragDrop(interaction.id, this.syncDragDropAnswers({
+      ...dragDrop,
+      draggables: dragDrop.draggables.map(draggable => draggable.id === draggableId
+        ? { ...draggable, ...patch }
+        : draggable),
+    }));
+  }
+
+  removeDragDropDraggable(interaction: InteractiveVideoInteraction, draggableId: string): void {
+    const dragDrop = this.getDragDrop(interaction);
+    this.updateDragDrop(interaction.id, this.syncDragDropAnswers({
+      ...dragDrop,
+      draggables: dragDrop.draggables.filter(draggable => draggable.id !== draggableId),
+      dropZones: dragDrop.dropZones.map(zone => ({
+        ...zone,
+        correctDraggableIds: zone.correctDraggableIds.filter(id => id !== draggableId),
+      })),
+    }));
+  }
+
+  onDragDropDraggableZoneChange(
+    interaction: InteractiveVideoInteraction,
+    draggableId: string,
+    zoneId: string,
+  ): void {
+    this.updateDragDropDraggable(interaction, draggableId, {
+      acceptedDropZoneIds: zoneId ? [zoneId] : [],
+    });
+  }
+
+  onDragDropDraggableImageChange(
+    interaction: InteractiveVideoInteraction,
+    draggableId: string,
+    idOrUrl: string,
+  ): void {
+    const draggable = this.getDragDrop(interaction).draggables.find(item => item.id === draggableId);
+    this.updateDragDropDraggable(interaction, draggableId, {
+      image: this.toDragDropMedia(idOrUrl, draggable?.label || 'Vật dụng kéo thả'),
+    });
+  }
+
+  async onDragDropBackgroundFileSelected(
+    interaction: InteractiveVideoInteraction,
+    event: Event,
+  ): Promise<void> {
+    const upload = await this.uploadDragDropImage(event);
+    if (!upload) {
+      return;
+    }
+    this.updateDragDrop(interaction.id, {
+      ...this.getDragDrop(interaction),
+      backgroundImage: { idOrUrl: upload.url, alt: 'Ảnh nền bài kéo thả' },
+    });
+  }
+
+  async onDragDropDraggableFileSelected(
+    interaction: InteractiveVideoInteraction,
+    draggableId: string,
+    event: Event,
+  ): Promise<void> {
+    const upload = await this.uploadDragDropImage(event);
+    if (!upload) {
+      return;
+    }
+    const draggable = this.getDragDrop(interaction).draggables.find(item => item.id === draggableId);
+    this.updateDragDropDraggable(interaction, draggableId, {
+      image: { idOrUrl: upload.url, alt: draggable?.label ?? 'Vật dụng kéo thả' },
+    });
+  }
+
   getInteractiveBranchTargets(sourceInteractionId: string): InteractiveVideoInteraction[] {
-    return this.svc.sectionInteractiveVideoTimeline()
-      .filter(interaction => interaction.id !== sourceInteractionId)
-      .sort((a, b) => a.atSeconds - b.atSeconds);
+    return this.sortInteractiveTimeline(this.svc.sectionInteractiveVideoTimeline())
+      .filter(interaction => interaction.id !== sourceInteractionId);
   }
 
   getInteractiveTypeLabel(type: InteractiveVideoInteractionType): string {
@@ -341,6 +794,8 @@ export class InteractiveVideoAuthoringPanelComponent {
       case 'single_choice': return 'Câu hỏi';
       case 'branch': return 'Rẽ nhánh';
       case 'hotspot': return 'Hotspot';
+      case 'fill_blank': return 'Điền từ';
+      case 'drag_drop': return 'Kéo thả';
       default: return 'Điểm dừng';
     }
   }
@@ -353,6 +808,10 @@ export class InteractiveVideoAuthoringPanelComponent {
         return 'Cho học viên chọn đường đi tiếp theo trong video.';
       case 'hotspot':
         return 'Dành cho vùng bấm trên video khi nhập từ gói tương tác.';
+      case 'fill_blank':
+        return 'Cho học viên điền đáp án vào các ô trống trong câu.';
+      case 'drag_drop':
+        return 'Cho học viên kéo hình ảnh/vật dụng vào đúng vùng trên ảnh nền.';
       default:
         return 'Tạm dừng video tại mốc này để nhấn mạnh nội dung.';
     }
@@ -363,12 +822,47 @@ export class InteractiveVideoAuthoringPanelComponent {
   }
 
   scrollInteractiveNodeIntoView(interactionId: string): void {
+    this.selectedCanvasInteractionId.set(interactionId);
     if (typeof document === 'undefined') {
       return;
     }
 
-    document.getElementById(this.getInteractiveNodeDomId(interactionId))
-      ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    requestAnimationFrame(() => {
+      document.getElementById(this.getInteractiveNodeDomId(interactionId))
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }
+
+  onCanvasInteractionPlaced(event: InteractiveVideoCanvasPlacement): void {
+    const created = this.svc.addInteractiveVideoInteraction(event.type, {
+      preferredSeconds: event.atSeconds,
+    });
+    this.svc.updateInteractiveVideoInteraction(created.id, {
+      atSeconds: event.atSeconds,
+      displayType: event.type === 'checkpoint' ? 'button' : 'poster',
+      position: event.position,
+    });
+    this.selectedCanvasInteractionId.set(created.id);
+  }
+
+  onCanvasInteractionMoved(event: InteractiveVideoCanvasMove): void {
+    this.svc.updateInteractiveVideoInteraction(event.interactionId, {
+      atSeconds: event.atSeconds,
+      position: event.position,
+    });
+    this.selectedCanvasInteractionId.set(event.interactionId);
+  }
+
+  onCanvasInteractionSelected(interactionId: string): void {
+    this.selectedCanvasInteractionId.set(interactionId);
+  }
+
+  onCanvasPropertyPatch(patch: Partial<InteractiveVideoInteraction>): void {
+    const interactionId = this.selectedCanvasInteraction()?.id;
+    if (!interactionId) {
+      return;
+    }
+    this.svc.updateInteractiveVideoInteraction(interactionId, patch);
   }
 
   formatInteractiveTimeLabel(seconds: number | null | undefined): string {
@@ -383,8 +877,15 @@ export class InteractiveVideoAuthoringPanelComponent {
   getInteractiveChoiceRowClass(type: InteractiveVideoInteractionType): string {
     const base = 'grid gap-2 px-3 py-2';
     return type === 'branch'
-      ? `${base} sm:grid-cols-[minmax(0,1fr)_7rem_minmax(8rem,10rem)_auto]`
+      ? `${base} sm:grid-cols-[minmax(0,1fr)_7rem_7rem_minmax(8rem,10rem)_auto]`
       : `${base} sm:grid-cols-[minmax(0,1fr)_8rem_auto]`;
+  }
+
+  getInteractiveDetailCardClass(interactionId: string): string {
+    const base = 'interactive-detail-card rounded-lg border bg-slate-50/60 p-3';
+    return this.selectedCanvasInteractionId() === interactionId
+      ? `${base} interactive-detail-card--selected border-[#0056D2]/60`
+      : `${base} border-slate-200`;
   }
 
   getTimelinePercent(seconds: number): number {
@@ -407,10 +908,6 @@ export class InteractiveVideoAuthoringPanelComponent {
     if (this.hoveredTimelineNodeId() === nodeId) {
       this.hoveredTimelineNodeId.set(null);
     }
-  }
-
-  isTimelinePreviewNode(nodeId: string): boolean {
-    return this.activeTimelinePreviewNode()?.id === nodeId;
   }
 
   onTimelineDotClick(node: InteractiveVideoFlowNode): void {
@@ -517,42 +1014,6 @@ export class InteractiveVideoAuthoringPanelComponent {
     }
   }
 
-  onFlowNodeDragStart(event: DragEvent, node: InteractiveVideoFlowNode): void {
-    this.draggingInteractionId.set(node.id);
-    event.dataTransfer?.setData('text/plain', node.id);
-    if (event.dataTransfer) {
-      event.dataTransfer.effectAllowed = 'move';
-    }
-  }
-
-  onFlowNodeDragOver(event: DragEvent, node: InteractiveVideoFlowNode): void {
-    const sourceId = this.draggingInteractionId();
-    if (!sourceId || sourceId === node.id) {
-      return;
-    }
-    event.preventDefault();
-    this.dropTargetInteractionId.set(node.id);
-    if (event.dataTransfer) {
-      event.dataTransfer.dropEffect = 'move';
-    }
-  }
-
-  onFlowNodeDrop(event: DragEvent, node: InteractiveVideoFlowNode): void {
-    event.preventDefault();
-    const sourceId = event.dataTransfer?.getData('text/plain') || this.draggingInteractionId();
-    this.draggingInteractionId.set(null);
-    this.dropTargetInteractionId.set(null);
-    if (!sourceId || sourceId === node.id) {
-      return;
-    }
-    this.moveInteractionBefore(sourceId, node.id);
-  }
-
-  onFlowNodeDragEnd(): void {
-    this.draggingInteractionId.set(null);
-    this.dropTargetInteractionId.set(null);
-  }
-
   getInteractiveQualityIssueClass(issue: InteractiveVideoAuthoringIssue): string {
     return issue.severity === 'error'
       ? 'rounded-lg border border-red-100 bg-white px-3 py-2 text-xs leading-relaxed text-red-700'
@@ -560,7 +1021,7 @@ export class InteractiveVideoAuthoringPanelComponent {
   }
 
   getInteractiveQualityIssueIconName(issue: InteractiveVideoAuthoringIssue): string {
-    return issue.severity === 'error' ? 'x-circle' : 'alert-triangle';
+    return issue.severity === 'error' ? 'circle-x' : 'alert-triangle';
   }
 
   focusInteractiveQualityIssue(issue: InteractiveVideoAuthoringIssue): void {
@@ -569,49 +1030,10 @@ export class InteractiveVideoAuthoringPanelComponent {
     }
   }
 
-  private moveInteractionBefore(sourceId: string, targetId: string): void {
-    const timeline = [...this.svc.sectionInteractiveVideoTimeline()]
-      .sort((a, b) => a.atSeconds - b.atSeconds);
-    const source = timeline.find(item => item.id === sourceId);
-    if (!source) {
-      return;
-    }
-
-    const withoutSource = timeline.filter(item => item.id !== sourceId);
-    const targetIndex = withoutSource.findIndex(item => item.id === targetId);
-    if (targetIndex < 0) {
-      return;
-    }
-
-    const previous = withoutSource[targetIndex - 1] ?? null;
-    const target = withoutSource[targetIndex];
-    const nextTime = this.chooseTimeBetween(previous?.atSeconds ?? null, target.atSeconds);
-    this.svc.updateInteractiveVideoInteraction(sourceId, { atSeconds: nextTime });
-  }
-
-  private chooseTimeBetween(previousTime: number | null, nextTime: number | null): number {
-    if (previousTime == null && nextTime == null) {
-      return 0;
-    }
-    if (previousTime == null) {
-      return this.clampInteractiveTime(Math.max(0, (nextTime ?? 0) - 1));
-    }
-    if (nextTime == null) {
-      return this.clampInteractiveTime(previousTime + 5);
-    }
-    if (nextTime - previousTime > 1) {
-      return this.clampInteractiveTime(Math.round(previousTime + ((nextTime - previousTime) / 2)));
-    }
-    return this.clampInteractiveTime(nextTime);
-  }
-
   private buildInteractiveVideoFlowNodes(
     timeline: InteractiveVideoInteraction[],
   ): InteractiveVideoFlowNode[] {
-    const sorted = [...timeline].sort((a, b) => a.atSeconds - b.atSeconds);
-    const byId = new Map(sorted.map(interaction => [interaction.id, interaction]));
-
-    return sorted.map((interaction, index) => ({
+    return this.sortInteractiveTimeline(timeline).map((interaction, index) => ({
       id: interaction.id,
       index: index + 1,
       type: interaction.type,
@@ -619,91 +1041,9 @@ export class InteractiveVideoAuthoringPanelComponent {
       title: interaction.title?.trim() || this.getInteractiveTypeLabel(interaction.type),
       atSeconds: interaction.atSeconds,
       timeLabel: this.formatInteractiveFlowTime(interaction.atSeconds),
-      iconName: this.getInteractiveFlowIconName(interaction.type),
-      nodeClass: this.getInteractiveFlowNodeClass(interaction.type),
-      badgeClass: this.getInteractiveFlowBadgeClass(interaction.type),
-      choices: this.buildInteractiveFlowChoices(interaction, byId),
       required: interaction.required === true,
       pause: interaction.pause !== false,
     }));
-  }
-
-  private buildInteractiveFlowChoices(
-    interaction: InteractiveVideoInteraction,
-    byId: Map<string, InteractiveVideoInteraction>,
-  ): InteractiveVideoFlowChoice[] {
-    if (!this.isChoiceInteraction(interaction)) {
-      return [];
-    }
-
-    return (interaction.choices ?? []).map((choice, index) => {
-      const label = choice.label?.trim() || `Lựa chọn ${index + 1}`;
-
-      if (interaction.type === 'branch') {
-        const target = choice.targetInteractionId ? byId.get(choice.targetInteractionId) : null;
-        const missingTarget = Boolean(choice.targetInteractionId && !target);
-        return {
-          id: choice.id,
-          label,
-          metaLabel: missingTarget
-            ? 'Mất đích'
-            : target
-              ? `${this.formatInteractiveFlowTime(target.atSeconds)} · ${target.title?.trim() || this.getInteractiveTypeLabel(target.type)}`
-              : choice.targetTimeSeconds == null
-                ? 'Theo timeline'
-                : this.formatInteractiveFlowTime(choice.targetTimeSeconds),
-          toneClass: missingTarget
-            ? 'flex items-center gap-2 rounded-md bg-red-50 px-2 py-1 text-xs text-red-700 ring-1 ring-red-100'
-            : 'flex items-center gap-2 rounded-md bg-white px-2 py-1 text-xs text-slate-600 ring-1 ring-slate-200',
-        };
-      }
-
-      return {
-        id: choice.id,
-        label,
-        metaLabel: choice.isCorrect ? 'Đúng' : 'Chưa đúng',
-        toneClass: choice.isCorrect
-          ? 'flex items-center gap-2 rounded-md bg-emerald-50 px-2 py-1 text-xs text-emerald-700 ring-1 ring-emerald-100'
-          : 'flex items-center gap-2 rounded-md bg-white px-2 py-1 text-xs text-slate-600 ring-1 ring-slate-200',
-      };
-    });
-  }
-
-  private getInteractiveFlowIconName(type: InteractiveVideoInteractionType): string {
-    switch (type) {
-      case 'single_choice': return 'help-circle';
-      case 'branch': return 'shuffle';
-      case 'hotspot': return 'mouse-pointer-2';
-      default: return 'pause';
-    }
-  }
-
-  private getInteractiveFlowNodeClass(type: InteractiveVideoInteractionType): string {
-    const base = 'interactive-flow-node w-64 rounded-xl border bg-white p-3 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0056D2] focus-visible:ring-offset-2';
-    switch (type) {
-      case 'single_choice':
-        return `${base} border-sky-200`;
-      case 'branch':
-        return `${base} border-amber-200`;
-      case 'hotspot':
-        return `${base} border-teal-200`;
-      default:
-        return `${base} border-slate-200`;
-    }
-  }
-
-  private getInteractiveFlowBadgeClass(type: InteractiveVideoInteractionType): string {
-    const base = 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold';
-    switch (type) {
-      case 'single_choice':
-        return `${base} bg-sky-50 text-sky-700`;
-      case 'branch':
-        return `${base} bg-amber-50 text-amber-700`;
-      case 'hotspot':
-        return `${base} bg-teal-50 text-teal-700`;
-      default:
-        return `${base} bg-slate-100 text-slate-600`;
-    }
   }
 
   private formatInteractiveFlowTime(seconds: number | null | undefined): string {
@@ -717,6 +1057,13 @@ export class InteractiveVideoAuthoringPanelComponent {
     const next = this.toNonNegativeInteger(value);
     const max = this.maxInteractiveTimeSeconds();
     return max == null ? next : Math.min(max, next);
+  }
+
+  private normalizeOptionalInteractiveTime(value: unknown): number | null {
+    if (value == null || value === '') {
+      return null;
+    }
+    return this.clampInteractiveTime(value);
   }
 
   private getTimelineSecondsFromPointer(event: PointerEvent): number {
@@ -739,6 +1086,187 @@ export class InteractiveVideoAuthoringPanelComponent {
   private getLastTimelineSecond(): number {
     const timeline = this.svc.sectionInteractiveVideoTimeline();
     return Math.max(0, ...timeline.map(item => this.toNonNegativeInteger(item.atSeconds)));
+  }
+
+  private sortInteractiveTimeline(timeline: InteractiveVideoInteraction[]): InteractiveVideoInteraction[] {
+    return timeline
+      .map((interaction, sourceIndex) => ({ interaction, sourceIndex }))
+      .sort((a, b) => (a.interaction.atSeconds - b.interaction.atSeconds) || (a.sourceIndex - b.sourceIndex))
+      .map(item => item.interaction);
+  }
+
+  private updateFillBlank(interactionId: string, fillBlank: InteractiveVideoFillBlank): void {
+    this.svc.updateInteractiveVideoInteraction(interactionId, {
+      fillBlank,
+      choices: [],
+      dragDrop: null,
+    });
+  }
+
+  private updateDragDrop(interactionId: string, dragDrop: InteractiveVideoDragDrop): void {
+    this.svc.updateInteractiveVideoInteraction(interactionId, {
+      dragDrop: this.syncDragDropAnswers(dragDrop),
+      choices: [],
+      fillBlank: null,
+    });
+  }
+
+  private getDragDropAuthoringStage(event: Event): HTMLElement | null {
+    const target = event.currentTarget as HTMLElement | null;
+    return target?.closest('[data-drag-drop-authoring-stage]') as HTMLElement | null;
+  }
+
+  private getPointerPercent(event: PointerEvent, stage: HTMLElement): { xPercent: number; yPercent: number } {
+    const rect = stage.getBoundingClientRect();
+    const xPercent = rect.width <= 0
+      ? 0
+      : ((event.clientX - rect.left) / rect.width) * 100;
+    const yPercent = rect.height <= 0
+      ? 0
+      : ((event.clientY - rect.top) / rect.height) * 100;
+    return {
+      xPercent: this.clampPercent(xPercent, 0, 100),
+      yPercent: this.clampPercent(yPercent, 0, 100),
+    };
+  }
+
+  private getDragDropMovePatch(
+    state: DragDropZonePointerState,
+    pointerXPercent: number,
+    pointerYPercent: number,
+  ): Partial<InteractiveVideoDragDropZone> {
+    const deltaX = pointerXPercent - state.startPointerXPercent;
+    const deltaY = pointerYPercent - state.startPointerYPercent;
+    return {
+      xPercent: this.clampZoneCenter(state.startXPercent + deltaX, state.startWidthPercent),
+      yPercent: this.clampZoneCenter(state.startYPercent + deltaY, state.startHeightPercent),
+    };
+  }
+
+  private getDragDropResizePatch(
+    state: DragDropZonePointerState,
+    pointerXPercent: number,
+    pointerYPercent: number,
+  ): Partial<InteractiveVideoDragDropZone> {
+    const leftPercent = state.startXPercent - (state.startWidthPercent / 2);
+    const topPercent = state.startYPercent - (state.startHeightPercent / 2);
+    const widthPercent = this.clampPercent(pointerXPercent - leftPercent, 6, 100 - leftPercent);
+    const heightPercent = this.clampPercent(pointerYPercent - topPercent, 6, 100 - topPercent);
+    return {
+      xPercent: leftPercent + (widthPercent / 2),
+      yPercent: topPercent + (heightPercent / 2),
+      widthPercent,
+      heightPercent,
+    };
+  }
+
+  private syncDragDropAnswers(dragDrop: InteractiveVideoDragDrop): InteractiveVideoDragDrop {
+    const zoneIds = new Set(dragDrop.dropZones.map(zone => zone.id));
+    const draggables = dragDrop.draggables.map(draggable => ({
+      ...draggable,
+      acceptedDropZoneIds: this.dedupeStrings(draggable.acceptedDropZoneIds)
+        .filter(zoneId => zoneIds.has(zoneId)),
+    }));
+    const dropZones = dragDrop.dropZones.map(zone => ({
+      ...zone,
+      correctDraggableIds: draggables
+        .filter(draggable => draggable.acceptedDropZoneIds.includes(zone.id))
+        .map(draggable => draggable.id),
+    }));
+    return { ...dragDrop, dropZones, draggables };
+  }
+
+  private async uploadDragDropImage(event: Event): Promise<{ uuid: string; url: string } | null> {
+    const inputElement = event.target as HTMLInputElement;
+    const file = inputElement.files?.[0] ?? null;
+    inputElement.value = '';
+    if (!file) {
+      return null;
+    }
+
+    try {
+      const upload = await firstValueFrom(this.imageLifecycle.uploadTemp(file));
+      this.toast.success('Đã tải ảnh kéo thả.');
+      return upload;
+    } catch {
+      this.toast.error('Không thể tải ảnh kéo thả.');
+      return null;
+    }
+  }
+
+  private toDragDropMedia(
+    idOrUrl: string | null | undefined,
+    alt: string,
+  ): InteractiveVideoDragDropMedia | null {
+    const value = idOrUrl?.trim();
+    return value ? { idOrUrl: value, alt } : null;
+  }
+
+  private resolveMediaUrl(idOrUrl: string): string {
+    if (
+      /^https?:\/\//i.test(idOrUrl)
+      || idOrUrl.startsWith('assets/')
+      || idOrUrl.startsWith('data:')
+      || idOrUrl.startsWith('blob:')
+    ) {
+      return idOrUrl;
+    }
+    return this.contentIdentity.resolveUrl(idOrUrl);
+  }
+
+  private toPercent(value: unknown, fallback: number, min = 0, max = 100): number {
+    const next = typeof value === 'number' ? value : Number(value);
+    const safe = Number.isFinite(next) ? next : fallback;
+    return Math.min(max, Math.max(min, Math.round(safe)));
+  }
+
+  private clampPercent(value: number, min: number, max: number): number {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  private clampZoneCenter(value: number, sizePercent: number): number {
+    const radius = Math.min(50, Math.max(0, sizePercent / 2));
+    return this.clampPercent(value, radius, 100 - radius);
+  }
+
+  private dedupeStrings(values: string[] | null | undefined): string[] {
+    return [...new Set((values ?? []).map(value => value.trim()).filter(Boolean))];
+  }
+
+  private syncFillBlankPlaceholders(fillBlank: InteractiveVideoFillBlank): InteractiveVideoFillBlank {
+    const placeholderIds = this.extractFillBlankPlaceholderIds(fillBlank.template);
+    if (placeholderIds.length === 0) {
+      return fillBlank;
+    }
+
+    const byId = new Map(fillBlank.blanks.map(blank => [blank.id, blank]));
+    const ordered = placeholderIds.map((id, index) =>
+      byId.get(id) ?? { id, acceptedAnswers: [`đáp án ${index + 1}`] },
+    );
+    const extra = fillBlank.blanks.filter(blank => !placeholderIds.includes(blank.id));
+    return {
+      ...fillBlank,
+      blanks: [...ordered, ...extra],
+    };
+  }
+
+  private extractFillBlankPlaceholderIds(template: string): string[] {
+    const ids: string[] = [];
+    const pattern = /\{\{\s*([a-zA-Z0-9_-]+)\s*\}\}/g;
+    let match: RegExpExecArray | null;
+    while ((match = pattern.exec(template)) != null) {
+      if (!ids.includes(match[1])) {
+        ids.push(match[1]);
+      }
+    }
+    return ids;
+  }
+
+  private parseAcceptedAnswers(value: string): string[] {
+    return value
+      .split('|')
+      .map(answer => answer.trim())
+      .filter(Boolean);
   }
 
   private toNonNegativeInteger(value: unknown): number {

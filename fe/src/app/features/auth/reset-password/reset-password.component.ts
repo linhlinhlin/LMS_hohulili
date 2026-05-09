@@ -324,8 +324,8 @@ type ResetPasswordForm = {
           <a routerLink="/" class="auth-brand">
             <img src="/icons/logo-master.png" alt="LMS Maritime" class="h-11 w-11 rounded-2xl shadow-sm">
             <div>
-              <p class="auth-brand-kicker">LMS Maritime</p>
-              <p class="auth-brand-title">HoHoLiHu</p>
+              <p class="auth-brand-kicker">HoLiLiHu Online</p>
+              <p class="auth-brand-title">LMS Maritime</p>
             </div>
           </a>
 

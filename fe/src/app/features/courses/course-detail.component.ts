@@ -80,6 +80,18 @@ export class CourseDetailComponent implements OnInit {
   async continueLearning(): Promise<void> {
     const courseId = this.course()?.id;
     if (courseId) {
+      if (!this.authService.isAuthenticated()) {
+        this.router.navigate(['/auth/login'], {
+          queryParams: { returnUrl: `/student/learn/course/${courseId}` }
+        });
+        return;
+      }
+
+      if (this.authService.userRole() !== 'student') {
+        this.toast.warning('Chỉ tài khoản học viên mới có thể vào khu vực học.');
+        return;
+      }
+
       if (this.courseDownload.isDownloadedSync(courseId)) {
         const offlineLessonId = await this.courseDownload.getOfflineResumeLessonId(courseId);
         if (offlineLessonId) {
@@ -246,10 +258,9 @@ export class CourseDetailComponent implements OnInit {
       this.course.set(course);
       if (course) {
         this.updateSeo(course);
-        if (course.benefits) {
-          const lines = course.benefits.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
-          this.parsedBenefits.set(lines);
-        }
+        this.parsedBenefits.set(this.parseBenefits(course.benefits));
+      } else {
+        this.parsedBenefits.set([]);
       }
 
       this.loadCurriculum(id);
@@ -315,6 +326,22 @@ export class CourseDetailComponent implements OnInit {
     return this.isEnrolled() || this.hasReadyPaidAccess() || !this.isCoursePaid();
   }
 
+  getLearningCtaLabel(): string {
+    if (!this.authService.isAuthenticated()) {
+      return this.isCoursePaid() ? 'Đăng nhập để tiếp tục' : 'Đăng nhập để học miễn phí';
+    }
+
+    return this.isCoursePaid() ? 'Tiếp tục học' : 'Bắt đầu học';
+  }
+
+  getEnrollmentCtaLabel(): string {
+    if (this.isCoursePaid()) {
+      return this.authService.isAuthenticated() ? 'Đăng ký và thanh toán' : 'Đăng nhập để đăng ký';
+    }
+
+    return this.authService.isAuthenticated() ? 'Đăng ký miễn phí' : 'Đăng nhập để học miễn phí';
+  }
+
   toggleChapter(chapterId: string): void {
     this.expandedChapters.update(set => {
       const newSet = new Set(set);
@@ -364,6 +391,35 @@ export class CourseDetailComponent implements OnInit {
     return this.getEffectivePrice() > 0;
   }
 
+  private parseBenefits(raw?: string | null): string[] {
+    const source = raw?.trim();
+    if (!source) {
+      return [];
+    }
+
+    const withLineBreaks = source
+      .replace(/<\s*br\s*\/?\s*>/gi, '\n')
+      .replace(/<\s*\/(p|div|li)\s*>/gi, '\n')
+      .replace(/<\s*li[^>]*>/gi, '\n');
+
+    const decoded = this.decodeBasicHtmlEntities(withLineBreaks.replace(/<[^>]*>/g, ' '));
+    return decoded
+      .split('\n')
+      .map(item => item.replace(/\s+/g, ' ').replace(/^[•*·-]\s*/, '').trim())
+      .filter((item, index, all) => item.length > 0 && all.indexOf(item) === index)
+      .slice(0, 8);
+  }
+
+  private decodeBasicHtmlEntities(value: string): string {
+    return value
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/gi, "'");
+  }
+
   private scrollToCurriculumPreview(): void {
     if (typeof window === 'undefined') {
       return;
@@ -373,7 +429,7 @@ export class CourseDetailComponent implements OnInit {
     curriculum?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  private getEffectivePrice(course: ExtendedCourse | null = this.course()): number {
+  getEffectivePrice(course: ExtendedCourse | null = this.course()): number {
     if (!course) {
       return 0;
     }

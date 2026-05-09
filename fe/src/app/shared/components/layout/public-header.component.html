@@ -6,12 +6,12 @@
       <div class="maritime-top-header hidden lg:block text-white transition-all duration-300 overflow-hidden"
            [class.max-h-0]="isScrolled()"
            [class.opacity-0]="isScrolled()"
-           [class.py-3]="!isScrolled()"
+           [class.py-1]="!isScrolled()"
            [class.transform]="isScrolled()"
            [class.-translate-y-full]="isScrolled()"
-           style="max-height: 50px;">
+           style="max-height: 56px;">
         <div class="max-w-7xl mx-auto px-8">
-          <div class="flex items-center justify-between h-9">
+          <div class="flex min-h-11 items-center justify-between">
             <!-- User Type Selector -->
             <div class="flex items-center space-x-6">
               <span class="text-xs font-medium text-slate-300">Đối tượng sử dụng:</span>
@@ -19,25 +19,25 @@
                 <button 
                   (click)="setUserType('personal')"
                   [class]="getUserTypeClass('personal')"
-                  class="text-xs font-medium px-3 py-1 rounded-full transition-all duration-200 hover:bg-white/10">
+                  class="min-h-11 rounded-full px-3 text-xs font-medium transition-all duration-200 hover:bg-white/10">
                   Cá nhân
                 </button>
                 <button 
                   (click)="setUserType('business')"
                   [class]="getUserTypeClass('business')"
-                  class="text-xs font-medium px-3 py-1 rounded-full transition-all duration-200 hover:bg-white/10">
+                  class="min-h-11 rounded-full px-3 text-xs font-medium transition-all duration-200 hover:bg-white/10">
                   Doanh nghiệp
                 </button>
                 <button 
                   (click)="setUserType('school')"
                   [class]="getUserTypeClass('school')"
-                  class="text-xs font-medium px-3 py-1 rounded-full transition-all duration-200 hover:bg-white/10">
+                  class="min-h-11 rounded-full px-3 text-xs font-medium transition-all duration-200 hover:bg-white/10">
                   Trường học
                 </button>
                 <button 
                   (click)="setUserType('government')"
                   [class]="getUserTypeClass('government')"
-                  class="text-xs font-medium px-3 py-1 rounded-full transition-all duration-200 hover:bg-white/10">
+                  class="min-h-11 rounded-full px-3 text-xs font-medium transition-all duration-200 hover:bg-white/10">
                   Chính phủ
                 </button>
               </div>
@@ -45,7 +45,7 @@
 
             <!-- Top Actions -->
             <div class="flex items-center space-x-4">
-              <a href="/contact" class="text-xs text-slate-300 hover:text-white transition-colors duration-200">
+              <a href="/contact" class="inline-flex min-h-11 min-w-11 items-center justify-center text-xs text-slate-300 transition-colors duration-200 hover:text-white">
                 Hỗ trợ
               </a>
             </div>
@@ -100,14 +100,18 @@
                 <input
                   type="text"
                   placeholder="Bạn muốn học gì hôm nay?"
+                  aria-label="Tìm kiếm khóa học"
+                  autocomplete="off"
+                  enterkeyhint="search"
                   [ngModel]="searchQuery()"
                   (ngModelChange)="onSearchInput($event)"
                   (focus)="onSearchFocus()"
                   (blur)="onSearchBlur()"
                   (keydown)="onSearchKeydown($event)"
-                  class="w-full h-12 pl-5 pr-12 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 transition-all duration-200">
+                  class="w-full h-12 pl-5 pr-14 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 transition-all duration-200">
                 <button (click)="onSearchSubmit()"
-                        class="absolute right-1.5 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#0056D2]/5 hover:text-[#0056D2]">
+                        aria-label="Tìm kiếm khóa học"
+                        class="absolute right-0.5 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#0056D2]/5 hover:text-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
                   <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                   </svg>
@@ -217,11 +221,11 @@
               } @else {
                 <!-- Guest: Login/Register Buttons -->
                 <a routerLink="/auth/login"
-                   class="text-gray-700 hover:text-[#0056D2] px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200">
+                   class="inline-flex min-h-11 items-center justify-center rounded-md px-4 text-sm font-medium text-gray-700 transition-colors duration-200 hover:text-[#0056D2]">
                   Đăng nhập
                 </a>
                 <a routerLink="/auth/login"
-                   class="bg-[#0056D2] hover:bg-[#004BB5] text-white px-6 py-2 rounded-md text-sm font-semibold transition-all duration-200 hover:shadow-md">
+                   class="inline-flex min-h-11 items-center justify-center rounded-md bg-[#0056D2] px-6 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#004BB5] hover:shadow-md">
                   Tham gia miễn phí
                 </a>
               }
@@ -233,7 +237,7 @@
             <div class="flex items-center justify-between gap-3 h-16">
               <!-- Mobile Logo -->
               <div class="min-w-0 flex-shrink">
-                <a routerLink="/" class="flex min-w-0 items-center">
+                <a routerLink="/" class="flex min-h-11 min-w-0 items-center">
                   <img src="/icons/logo-master.png" alt="LMS Maritime" class="w-8 h-8 rounded-lg mr-2 flex-shrink-0">
                   <span class="truncate text-base font-bold text-gray-900">LMS Maritime</span>
                 </a>
@@ -243,7 +247,7 @@
                 @if (isLoggedIn()) {
                   <a [routerLink]="getDashboardRoute()"
                      aria-label="Mở bảng điều khiển"
-                     class="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[#0056D2] text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-[#004BB5] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/30">
+                     class="inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-[#0056D2] text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-[#004BB5] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/30">
                     @if (userAvatar()) {
                       <img [src]="userAvatar()" [alt]="userName()" class="h-full w-full object-cover">
                     } @else {
@@ -252,7 +256,7 @@
                   </a>
                 } @else {
                   <a routerLink="/auth/login"
-                     class="inline-flex h-10 min-w-[82px] items-center justify-center rounded-lg border border-[#0056D2]/20 bg-[#0056D2]/5 px-3 text-sm font-semibold text-[#0056D2] transition-colors duration-200 hover:border-[#0056D2]/30 hover:bg-[#0056D2]/10 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
+                     class="inline-flex h-11 min-w-[92px] items-center justify-center rounded-lg border border-[#0056D2]/20 bg-[#0056D2]/5 px-3 text-sm font-semibold text-[#0056D2] transition-colors duration-200 hover:border-[#0056D2]/30 hover:bg-[#0056D2]/10 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
                     Đăng nhập
                   </a>
                 }
@@ -264,7 +268,7 @@
                   [attr.aria-label]="isMobileMenuOpen() ? 'Đóng menu' : 'Mở menu'"
                   [attr.aria-expanded]="isMobileMenuOpen()"
                   aria-controls="mobile-navigation-panel"
-                  class="inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 transition-colors duration-200 hover:bg-gray-100 hover:text-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
+                  class="inline-flex h-11 w-11 items-center justify-center rounded-lg text-gray-700 transition-colors duration-200 hover:bg-gray-100 hover:text-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
                   <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     @if (isMobileMenuOpen()) {
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -280,13 +284,16 @@
             <div class="pb-3">
               <div class="relative">
                 <input type="text" placeholder="Tìm kiếm khóa học..."
+                       aria-label="Tìm kiếm khóa học"
+                       autocomplete="off"
+                       enterkeyhint="search"
                        [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)"
                        (keydown)="onSearchKeydown($event)"
-                       class="w-full h-10 pl-4 pr-12 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 transition-all">
+                       class="w-full h-12 pl-4 pr-14 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/20 transition-all">
                 <button (click)="onSearchSubmit()"
                         aria-label="Tìm kiếm khóa học"
-                        class="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#0056D2]/5 hover:text-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
-                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        class="absolute right-0.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-[#0056D2]/5 hover:text-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 </button>
               </div>
             </div>
@@ -311,7 +318,7 @@
                 <button 
                   (click)="closeMobileMenu()"
                   aria-label="Đóng menu"
-                  class="inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
+                  class="inline-flex h-11 w-11 items-center justify-center rounded-lg text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20">
                   <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                   </svg>

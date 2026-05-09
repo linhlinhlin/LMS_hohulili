@@ -2154,10 +2154,7 @@ export class SectionEditorComponent {
   // ── Video: retry processing ──────────────────────────────────────────
 
   retryVideoProcessing(): void {
-    const assetId = this.svc.sectionVideoAssetId();
-    if (!assetId) return;
-    this.svc.sectionVideoProcessingStatus.set('PROCESSING');
-    this.svc.scheduleSectionVideoPoll(assetId);
+    void this.svc.retrySectionVideoProcessing();
   }
 
   // ── Video: file size formatting ──────────────────────────────────────
