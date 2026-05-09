@@ -9,6 +9,27 @@ import {
 } from '../db/lms-offline.db';
 import type { OfflineVideoProfileId, VideoSourceKind } from '../models/video-quality';
 
+export const OFFLINE_VIDEO_MAX_CACHE_BYTES = 500 * 1024 * 1024;
+
+export class OfflineVideoTooLargeError extends Error {
+  override readonly name = 'OfflineVideoTooLargeError';
+
+  constructor(
+    readonly sizeBytes: number,
+    readonly maxBytes = OFFLINE_VIDEO_MAX_CACHE_BYTES,
+  ) {
+    super(
+      `Video too large to cache (${Math.round(sizeBytes / 1024 / 1024)}MB > ${Math.round(maxBytes / 1024 / 1024)}MB). ` +
+      'Reduce quality or skip download.',
+    );
+  }
+}
+
+export function isOfflineVideoTooLargeError(error: unknown): error is OfflineVideoTooLargeError {
+  return error instanceof OfflineVideoTooLargeError
+    || (error instanceof Error && /Video too large to cache/i.test(error.message));
+}
+
 export interface OfflineVideoEntry {
   cacheKey: string;
   lessonId: string;
@@ -50,8 +71,9 @@ export class OfflineVideoService {
 
     try {
       await this.ensureOfflineReady();
-      const response = await fetch(videoUrl);
+      const response = await fetch(videoUrl, { cache: 'no-store' });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      this.assertResponseWithinOfflineLimit(response);
 
       await this.cacheVideoResponse(`/offline-video/${lessonId}`, response, lessonId);
 
@@ -86,8 +108,9 @@ export class OfflineVideoService {
     this.isDownloading.set(true);
     try {
       await this.ensureOfflineReady();
-      const response = await fetch(videoUrl);
+      const response = await fetch(videoUrl, { cache: 'no-store' });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      this.assertResponseWithinOfflineLimit(response);
 
       await this.cacheVideoResponse(`/offline-video/${sectionId}`, response, sectionId);
       this.clearDownloadProgress(sectionId);
@@ -374,12 +397,8 @@ export class OfflineVideoService {
     // Buffer path: read chunks once with progress tracking, then cache.put as blob.
     // 1x network fetch, RAM peak ~ video size briefly. Used on Chromium desktop
     // where cache.put(ReadableStream) is unreliable.
-    const SAFE_BUFFER_LIMIT = 500 * 1024 * 1024;
-    if (contentLength > 0 && contentLength > SAFE_BUFFER_LIMIT) {
-      throw new Error(
-        `Video too large to cache (${Math.round(contentLength / 1024 / 1024)}MB > 500MB). ` +
-        `Reduce quality or skip download.`,
-      );
+    if (contentLength > 0 && contentLength > OFFLINE_VIDEO_MAX_CACHE_BYTES) {
+      throw new OfflineVideoTooLargeError(contentLength);
     }
 
     const reader = response.body!.getReader();
@@ -391,6 +410,10 @@ export class OfflineVideoService {
       if (done) break;
       chunks.push(value);
       received += value.length;
+      if (received > OFFLINE_VIDEO_MAX_CACHE_BYTES) {
+        await reader.cancel();
+        throw new OfflineVideoTooLargeError(received);
+      }
       if (contentLength > 0) {
         this.downloadProgress.update(map => {
           const next = new Map(map);
@@ -432,6 +455,11 @@ export class OfflineVideoService {
           return;
         }
         received += value.length;
+        if (received > OFFLINE_VIDEO_MAX_CACHE_BYTES) {
+          controller.error(new OfflineVideoTooLargeError(received));
+          await reader.cancel();
+          return;
+        }
         controller.enqueue(value);
         if (contentLength > 0) {
           this.downloadProgress.update(map => {
@@ -483,5 +511,15 @@ export class OfflineVideoService {
 
       return false;
     }
+  }
+
+  private assertResponseWithinOfflineLimit(response: Response): void {
+    const contentLength = Number(response.headers.get('content-length')) || 0;
+    if (contentLength <= OFFLINE_VIDEO_MAX_CACHE_BYTES) {
+      return;
+    }
+
+    void response.body?.cancel().catch(() => undefined);
+    throw new OfflineVideoTooLargeError(contentLength);
   }
 }

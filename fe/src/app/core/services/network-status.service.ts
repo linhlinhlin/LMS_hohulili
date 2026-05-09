@@ -9,6 +9,8 @@ const NON_CRITICAL_SYNC_DEFER_WINDOW_MS = 15_000;
 const PROBE_INTERVAL_MS = 120_000;
 const PROBE_TIMEOUT_MS = 4_000;
 const TRANSPORT_FAILURE_PROBE_DELAY_MS = 250;
+const OFFLINE_PROBE_FAILURE_THRESHOLD = 2;
+const DEGRADED_PROBE_BANDWIDTH_MBPS = 0.5;
 
 @Injectable({ providedIn: 'root' })
 export class NetworkStatusService implements OnDestroy {
@@ -52,6 +54,7 @@ export class NetworkStatusService implements OnDestroy {
   private offlineGraceTimer: ReturnType<typeof setTimeout> | null = null;
   private transportFailureProbeTimer: ReturnType<typeof setTimeout> | null = null;
   private probeInterval: ReturnType<typeof setInterval> | null = null;
+  private consecutiveProbeFailures = 0;
 
   private readonly onlineHandler = () => {
     if (this.offlineGraceTimer) {
@@ -163,10 +166,15 @@ export class NetworkStatusService implements OnDestroy {
     }
 
     this.online.set(true);
+    this.consecutiveProbeFailures = 0;
     this.recentOfflineSignalAt.set(null);
     if (this.effectiveBandwidthMbps() <= 0) {
       this.effectiveBandwidthMbps.set(2);
     }
+  }
+
+  async probeNow(): Promise<boolean> {
+    return this.runProbe();
   }
 
   private debouncedUpdate(): void {
@@ -201,36 +209,39 @@ export class NetworkStatusService implements OnDestroy {
     this.effectiveBandwidthMbps.set(this.estimateBandwidthMbps(conn));
   }
 
-  // Single-probe health check against /actuator/health. Previously used a
-  // two-step icon-HEAD + actuator-GET sequence which had a race condition where
-  // the icon succeeded but actuator timed out, showing false-offline state.
-  // In dev, /actuator is proxied to the Spring Boot backend at :8088.
   private probeLatency(): void {
+    void this.runProbe();
+  }
+
+  // Single-probe health check against /actuator/health. A single 504/timeout
+  // means "degraded" first, not "offline"; mobile networks and sleeping VMs can
+  // spike briefly while the browser still has usable connectivity.
+  private async runProbe(): Promise<boolean> {
     if (!this.getBrowserOnlineHint()) {
       this.markOfflineState();
-      return;
+      return false;
     }
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
     const start = performance.now();
 
-    fetch('/actuator/health', {
-      method: 'GET',
-      signal: controller.signal,
-      cache: 'no-store',
-      redirect: 'error',
-    })
-      .then((response) => {
-        clearTimeout(timeoutId);
-        this.ensureSuccessfulProbeResponse(response);
-        const rtt = performance.now() - start;
-        this.markMeasuredOnlineState(rtt);
-      })
-      .catch(() => {
-        clearTimeout(timeoutId);
-        this.markOfflineState();
+    try {
+      const response = await fetch(this.buildProbeUrl('/actuator/health'), {
+        method: 'GET',
+        signal: controller.signal,
+        cache: 'no-store',
+        redirect: 'error',
       });
+      this.ensureSuccessfulProbeResponse(response);
+      this.markMeasuredOnlineState(performance.now() - start);
+      return true;
+    } catch {
+      this.markProbeFailureState();
+      return false;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   private normalizeConnectionTransport(value: unknown): ConnectionTransport {
@@ -277,17 +288,42 @@ export class NetworkStatusService implements OnDestroy {
     }
   }
 
+  private buildProbeUrl(path: string): string {
+    const separator = path.includes('?') ? '&' : '?';
+    return `${path}${separator}offlineProbe=${Date.now()}`;
+  }
+
   private markMeasuredOnlineState(rtt: number): void {
     this.online.set(true);
+    this.consecutiveProbeFailures = 0;
     this.recentOfflineSignalAt.set(null);
 
-    if (rtt > 500) {
+    const reportedDownlink = this.reportedDownlinkMbps();
+    if (reportedDownlink != null) {
+      this.effectiveBandwidthMbps.set(reportedDownlink);
+      return;
+    }
+
+    if (rtt > 1200) {
       this.effectiveBandwidthMbps.set(0.5);
-    } else if (rtt > 200) {
+    } else if (rtt > 700) {
       this.effectiveBandwidthMbps.set(1.5);
     } else {
       this.effectiveBandwidthMbps.set(10);
     }
+  }
+
+  private markProbeFailureState(): void {
+    this.consecutiveProbeFailures += 1;
+    this.recentOfflineSignalAt.set(Date.now());
+
+    if (!this.getBrowserOnlineHint() || this.consecutiveProbeFailures >= OFFLINE_PROBE_FAILURE_THRESHOLD) {
+      this.markOfflineState();
+      return;
+    }
+
+    this.online.set(true);
+    this.effectiveBandwidthMbps.set(DEGRADED_PROBE_BANDWIDTH_MBPS);
   }
 
   private markOfflineState(): void {
