@@ -8,7 +8,7 @@
     @if (hasSections() && currentSection(); as section) {
     <header class="lesson-header">
       <p class="lesson-kicker">Chương {{ chapterIndex() + 1 }} / {{ currentSectionNumber() }}</p>
-      <h1 id="lesson-heading" class="lesson-title">
+      <h1 id="lesson-heading" class="lesson-title" tabindex="-1">
         {{ lesson().title }}
       </h1>
       <app-competency-badge [lessonId]="lesson().id" [courseId]="lesson().courseId" />
@@ -21,7 +21,7 @@
     } @else {
     <header class="lesson-header">
       <p class="lesson-kicker">{{ lessonNumber() }}</p>
-      <h1 id="lesson-heading" class="lesson-title">
+      <h1 id="lesson-heading" class="lesson-title" tabindex="-1">
         {{ lesson().title }}
       </h1>
       <app-competency-badge [lessonId]="lesson().id" [courseId]="lesson().courseId" />

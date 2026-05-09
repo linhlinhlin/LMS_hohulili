@@ -284,7 +284,7 @@
     </div>
 
     <!-- Scrollable Content -->
-    <div class="learning-scroll flex-1 overflow-y-auto scroll-smooth pb-20">
+    <div #learningScroll class="learning-scroll flex-1 overflow-y-auto scroll-smooth pb-20">
       @if (error()) {
       <div class="mx-4 mt-4 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex justify-between items-center">
         <span>{{ error() }}</span>
@@ -340,7 +340,7 @@
         [isOfflinePackageStale]="course()?.isOfflinePackage === true && course()?.isStale === true"
         [staleReason]="course()?.staleReason ?? null"
         (sectionIndexChange)="onSectionIndexChange($event)"
-        (markComplete)="onMarkComplete()"
+        (markComplete)="onCompleteButtonClick()"
         (videoEnded)="onVideoEnded()"
         (sectionReadComplete)="onSectionReadComplete($event)">
       </app-lesson-content>
@@ -358,27 +358,28 @@
     <div class="learning-bottom-nav absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
       <div class="max-w-[920px] mx-auto flex items-center justify-between">
         <button class="flex items-center gap-1 px-3 py-2 rounded text-slate-500 hover:text-[#0056D2] hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:pointer-events-none"
-          [disabled]="!canGoPrevious() && currentSectionIndex() === 0"
+          [disabled]="isLearningItemTransitioning() || (!canGoPrevious() && currentSectionIndex() === 0)"
           (click)="previousLesson()">
           <app-icon name="arrow-left" size="md"></app-icon>
           <span class="hidden sm:inline text-sm font-medium">Bài trước</span>
         </button>
 
-        <button class="px-6 py-2.5 rounded-lg shadow-sm hover:shadow transition-all flex items-center gap-2 text-sm font-bold tracking-wide text-white hover:brightness-110"
+        <button class="px-6 py-2.5 rounded-lg shadow-sm hover:shadow transition-all flex items-center gap-2 text-sm font-bold tracking-wide text-white hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:brightness-100"
           [class.bg-green-600]="learningService.isLessonCompleted(currentLesson()!.id)()"
           [class.bg-[#0056D2]]="!learningService.isLessonCompleted(currentLesson()!.id)()"
-          (click)="onMarkComplete()">
-          @if (learningService.isLessonCompleted(currentLesson()!.id)()) {
-          <app-icon name="check" size="sm"></app-icon>
-          <span>Đã hoàn thành</span>
+          [disabled]="completeButtonDisabled()"
+          [attr.aria-busy]="(isCompletingCurrentItem() || isLearningItemTransitioning()) ? 'true' : null"
+          (click)="onCompleteButtonClick()">
+          @if (isCompletingCurrentItem() || isLearningItemTransitioning()) {
+          <app-icon name="refresh" size="sm" class="animate-spin"></app-icon>
           } @else {
-          <span>Đánh dấu hoàn thành</span>
           <app-icon name="check" size="sm"></app-icon>
           }
+          <span>{{ completeButtonLabel() }}</span>
         </button>
 
         <button class="flex items-center gap-1 px-3 py-2 rounded text-slate-500 hover:text-[#0056D2] hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:pointer-events-none"
-          [disabled]="!canGoNext() && (!currentLesson()?.sections || currentSectionIndex() >= (currentLesson()?.sections?.length || 0) - 1)"
+          [disabled]="isLearningItemTransitioning() || (!canGoNext() && (!currentLesson()?.sections || currentSectionIndex() >= (currentLesson()?.sections?.length || 0) - 1))"
           (click)="nextLesson()">
           <span class="hidden sm:inline text-sm font-medium">Bài tiếp theo</span>
           <app-icon name="arrow-right" size="md"></app-icon>

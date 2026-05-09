@@ -1,4 +1,17 @@
-import { Component, signal, computed, inject, OnInit, DestroyRef, ChangeDetectionStrategy, HostListener, effect, untracked } from '@angular/core';
+import {
+  Component,
+  signal,
+  computed,
+  inject,
+  OnInit,
+  DestroyRef,
+  ChangeDetectionStrategy,
+  HostListener,
+  effect,
+  untracked,
+  ElementRef,
+  viewChild,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
@@ -78,9 +91,15 @@ export class CourseLearningComponent implements OnInit {
   showMobileSidebar = signal(false);
   desktopSidebarCollapsed = signal(false);
   error = signal<string | null>(null);
+  isCompletingCurrentItem = signal(false);
 
   // (Removed `activeTab` — content is single-column inline now, notes drawer
   // toggles inside `app-lesson-content`. No parent state to lift.)
+
+  private readonly hostElement: ElementRef<HTMLElement> = inject(ElementRef);
+  private readonly learningScrollRef = viewChild<ElementRef<HTMLElement>>('learningScroll');
+  private pendingLearningContentFocus = signal(false);
+  private pendingNavigationLessonId = signal<string | null>(null);
 
   // Video progress tracking for 75% rule
   canCompleteCurrentLesson = signal<boolean>(true); // Default true for non-video lessons
@@ -356,6 +375,85 @@ export class CourseLearningComponent implements OnInit {
     };
   });
 
+  readonly isLearningItemTransitioning = computed(() => {
+    const pendingLessonId = this.pendingNavigationLessonId();
+    return !!pendingLessonId
+      && (this.currentLesson()?.id !== pendingLessonId || this.isLoadingLesson());
+  });
+
+  readonly completeButtonLabel = computed(() => {
+    if (this.isCompletingCurrentItem()) {
+      return 'Đang lưu...';
+    }
+
+    if (this.isLearningItemTransitioning()) {
+      return 'Đang tải bài...';
+    }
+
+    const lesson = this.currentLesson();
+    if (!lesson) {
+      return 'Đánh dấu hoàn thành';
+    }
+
+    const lessonCompleted = this.learningService.isLessonCompleted(lesson.id)();
+    if (lesson.sections?.length) {
+      const sectionIndex = this.currentSectionIndex();
+      const currentSection = lesson.sections[sectionIndex];
+      const isLastSection = sectionIndex >= lesson.sections.length - 1;
+
+      if (!currentSection) {
+        return 'Đánh dấu hoàn thành';
+      }
+
+      if (!this.isSectionCompleted(currentSection.id)) {
+        return isLastSection ? 'Hoàn thành bài' : 'Hoàn thành phần này';
+      }
+
+      if (!isLastSection) {
+        return 'Phần tiếp theo';
+      }
+
+      if (!lessonCompleted) {
+        return 'Hoàn thành bài';
+      }
+
+      return this.canGoNext() ? 'Bài tiếp theo' : 'Đã hoàn thành';
+    }
+
+    if (!lessonCompleted) {
+      return 'Đánh dấu hoàn thành';
+    }
+
+    return this.canGoNext() ? 'Bài tiếp theo' : 'Đã hoàn thành';
+  });
+
+  readonly completeButtonDisabled = computed(() => {
+    if (this.isCompletingCurrentItem() || this.isLearningItemTransitioning()) {
+      return true;
+    }
+
+    const lesson = this.currentLesson();
+    if (!lesson) {
+      return true;
+    }
+
+    if (lesson.sections?.length) {
+      const sectionIndex = this.currentSectionIndex();
+      const currentSection = lesson.sections[sectionIndex];
+      const isLastSection = sectionIndex >= lesson.sections.length - 1;
+      if (!currentSection) {
+        return true;
+      }
+
+      return isLastSection
+        && this.isSectionCompleted(currentSection.id)
+        && this.learningService.isLessonCompleted(lesson.id)()
+        && !this.canGoNext();
+    }
+
+    return this.learningService.isLessonCompleted(lesson.id)() && !this.canGoNext();
+  });
+
   /** Index of the chapter (section) containing the current lesson */
   currentChapterIndex = computed(() => {
     const lesson = this.currentLesson();
@@ -382,6 +480,38 @@ export class CourseLearningComponent implements OnInit {
 
   // Filtered sections based on search
   filteredSections = computed(() => this.sections());
+
+  private clearPendingNavigationEffect = effect(() => {
+    const pendingLessonId = this.pendingNavigationLessonId();
+    if (!pendingLessonId || this.isLoadingLesson()) {
+      return;
+    }
+
+    if (this.lessonError()) {
+      untracked(() => this.pendingNavigationLessonId.set(null));
+      return;
+    }
+
+    if (this.currentLesson()?.id === pendingLessonId) {
+      untracked(() => this.pendingNavigationLessonId.set(null));
+    }
+  });
+
+  private focusPendingLearningContentEffect = effect(() => {
+    if (!this.pendingLearningContentFocus() || this.isLoadingLesson()) {
+      return;
+    }
+
+    if (this.lessonError()) {
+      untracked(() => this.pendingLearningContentFocus.set(false));
+      return;
+    }
+
+    void this.currentLesson()?.id;
+    void this.currentSectionIndex();
+
+    untracked(() => this.scheduleLearningContentFocus());
+  });
 
   ngOnInit(): void {
     this.isPreview.set(!!this.route.snapshot.data['preview']);
@@ -584,12 +714,11 @@ export class CourseLearningComponent implements OnInit {
       if (!this.isPreview()) {
         const courseId = this.course()?.id;
         if (courseId) {
-          this.router.navigate(
-            ['/student/learn/course', courseId, 'lesson', lessonId],
-            { replaceUrl: true }
-          );
+          this.updateUrlForLessonId(lessonId);
         }
       }
+
+      this.requestLearningContentFocus();
     }
   }
 
@@ -616,14 +745,15 @@ export class CourseLearningComponent implements OnInit {
     const currentLesson = this.currentLesson();
     if (currentLesson?.sections && currentLesson.sections.length > 0) {
       if (this.currentSectionIndex() > 0) {
-        this.currentSectionIndex.update(v => v - 1);
+        this.setCurrentSectionIndex(this.currentSectionIndex() - 1, { focus: true });
         return;
       }
     }
-    this.learningService.goToPreviousLesson();
-    // Reset section index for new lesson (handled in onLessonSelect/loadLesson but good to be explicit if needed)
-    this.currentSectionIndex.set(0);
-    this.updateUrlForCurrentLesson();
+
+    const previous = this.learningService.previousLesson();
+    if (previous) {
+      this.navigateToLessonId(previous.id, { focus: true });
+    }
   }
 
   async nextLesson(): Promise<void> {
@@ -633,14 +763,15 @@ export class CourseLearningComponent implements OnInit {
     if (currentLesson?.sections && currentLesson.sections.length > 0) {
       if (this.currentSectionIndex() < currentLesson.sections.length - 1) {
         const currentSection = currentLesson.sections[this.currentSectionIndex()];
+        const currentSectionCompleted = this.completedSections().has(currentSection.id);
 
         // 🔒 VIDEO: always check server-side threshold
-        if (isPlayableVideoSection(currentSection)) {
+        if (!currentSectionCompleted && isPlayableVideoSection(currentSection)) {
           const canProceed = await this.ensureVideoProgressThreshold(currentSection.id, 'next-section');
           if (!canProceed) return;
         }
         // 🔒 Required non-VIDEO sections: must be completed before proceeding
-        else if (currentSection.isRequired && !this.completedSections().has(currentSection.id)) {
+        else if (currentSection.isRequired && !currentSectionCompleted) {
           const messages: Record<string, string> = {
             'TEXT': 'Bạn cần đọc hết nội dung phần này trước khi chuyển tiếp.',
             'QUIZ': 'Bạn cần hoàn thành bài kiểm tra trước khi chuyển tiếp.',
@@ -651,27 +782,93 @@ export class CourseLearningComponent implements OnInit {
         }
 
         // All checks passed, proceed to next section
-        this.currentSectionIndex.update(v => v + 1);
+        this.setCurrentSectionIndex(this.currentSectionIndex() + 1, { focus: true });
         return;
       }
     }
 
     // No more sections, go to next lesson
-    this.learningService.goToNextLesson();
-    this.currentSectionIndex.set(0);
-    this.updateUrlForCurrentLesson();
+    const next = this.learningService.nextLesson();
+    if (next) {
+      if (this.isLessonLocked(next)) {
+        this.toast.warning('Cần thanh toán để xem bài này');
+        this.showPaymentModal.set(true);
+        return;
+      }
+
+      this.navigateToLessonId(next.id, { focus: true });
+    }
   }
 
-  private updateUrlForCurrentLesson(): void {
+  private setCurrentSectionIndex(index: number, options: { focus?: boolean } = {}): void {
+    this.currentSectionIndex.set(index);
+    if (options.focus) {
+      this.requestLearningContentFocus();
+    }
+  }
+
+  private navigateToLessonId(lessonId: string, options: { focus?: boolean } = {}): void {
+    this.pendingNavigationLessonId.set(lessonId);
+    this.learningService.loadLesson(lessonId);
+    this.pendingExpandLessonId.set(lessonId);
+    this.autoExpandChapterForLesson(lessonId);
+    this.currentSectionIndex.set(0);
+    this.closeMobileSidebar();
+    this.updateUrlForLessonId(lessonId);
+
+    if (options.focus) {
+      this.requestLearningContentFocus();
+    }
+  }
+
+  private updateUrlForLessonId(lessonId: string): void {
     if (this.isPreview()) return;
     const courseId = this.course()?.id;
-    const lessonId = this.currentLesson()?.id;
     if (courseId && lessonId) {
-      this.router.navigate(
+      void this.router.navigate(
         ['/student/learn/course', courseId, 'lesson', lessonId],
         { replaceUrl: true }
       );
     }
+  }
+
+  private requestLearningContentFocus(): void {
+    this.pendingLearningContentFocus.set(true);
+    this.scheduleLearningContentFocus();
+  }
+
+  private scheduleLearningContentFocus(): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        if (this.focusLearningContentStart()) {
+          this.pendingLearningContentFocus.set(false);
+        }
+      });
+    });
+  }
+
+  private focusLearningContentStart(): boolean {
+    const scrollContainer = this.learningScrollRef()?.nativeElement;
+    const heading = this.hostElement.nativeElement.querySelector<HTMLElement>('#lesson-heading');
+
+    if (!scrollContainer || !heading) {
+      return false;
+    }
+
+    const behavior: ScrollBehavior = this.prefersReducedMotion() ? 'auto' : 'smooth';
+    scrollContainer.scrollTo({ top: 0, behavior });
+    heading.focus({ preventScroll: true });
+    return true;
+  }
+
+  private prefersReducedMotion(): boolean {
+    return typeof window !== 'undefined'
+      && typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
 
   private async ensureVideoProgressThreshold(
@@ -705,6 +902,67 @@ export class CourseLearningComponent implements OnInit {
   }
 
   // Progress
+  async onCompleteButtonClick(): Promise<void> {
+    if (this.isCompletingCurrentItem() || this.isLearningItemTransitioning()) {
+      return;
+    }
+
+    const lessonBeforeCompletion = this.currentLesson();
+    const sectionIndexBeforeCompletion = this.currentSectionIndex();
+
+    this.isCompletingCurrentItem.set(true);
+    try {
+      const completed = await this.onMarkComplete();
+      if (completed) {
+        this.continueAfterCompletion(lessonBeforeCompletion, sectionIndexBeforeCompletion);
+      }
+    } finally {
+      this.isCompletingCurrentItem.set(false);
+    }
+  }
+
+  private continueAfterCompletion(lesson: any, sectionIndexBeforeCompletion: number): void {
+    if (!lesson) {
+      this.requestLearningContentFocus();
+      return;
+    }
+
+    if (lesson.sections?.length) {
+      const completedLastSection = sectionIndexBeforeCompletion >= lesson.sections.length - 1;
+      if (completedLastSection && this.canGoNext()) {
+        this.navigateToNextLessonFromCompletion();
+        return;
+      }
+
+      this.requestLearningContentFocus();
+      return;
+    }
+
+    if (this.canGoNext()) {
+      this.navigateToNextLessonFromCompletion();
+      return;
+    }
+
+    this.requestLearningContentFocus();
+  }
+
+  private navigateToNextLessonFromCompletion(): void {
+    const next = this.learningService.nextLesson();
+    if (!next) {
+      this.requestLearningContentFocus();
+      return;
+    }
+
+    if (this.isLessonLocked(next)) {
+      this.toast.warning('Cần thanh toán để xem bài này');
+      this.showPaymentModal.set(true);
+      this.requestLearningContentFocus();
+      return;
+    }
+
+    this.navigateToLessonId(next.id, { focus: true });
+  }
+
   async onMarkComplete(): Promise<boolean> {
     if (this.isPreview()) {
       this.toast.info('Chế độ xem trước — không ghi nhận tiến độ.');
@@ -728,8 +986,10 @@ export class CourseLearningComponent implements OnInit {
       return false;
     }
 
+    const alreadyCompleted = this.completedSections().has(currentSection.id);
+
     // 🔒 VIDEO: always check server-side threshold
-    if (isPlayableVideoSection(currentSection)) {
+    if (!alreadyCompleted && isPlayableVideoSection(currentSection)) {
       const canProceed = await this.ensureVideoProgressThreshold(currentSection.id, 'complete-section');
       if (!canProceed) {
         return false;
@@ -737,7 +997,7 @@ export class CourseLearningComponent implements OnInit {
     }
 
     // 🔒 QUIZ: cannot be manually completed — must pass the quiz
-    if (currentSection.type === 'QUIZ' && currentSection.isRequired && !this.completedSections().has(currentSection.id)) {
+    if (!alreadyCompleted && currentSection.type === 'QUIZ' && currentSection.isRequired) {
       this.toast.warning('Bạn cần hoàn thành bài kiểm tra để đánh dấu phần này là hoàn thành.');
       return false;
     }
@@ -745,35 +1005,42 @@ export class CourseLearningComponent implements OnInit {
     const nextCompletedSections = new Set(this.completedSections());
     nextCompletedSections.add(currentSection.id);
     const allSectionsCompleted = lesson.sections.every((section: any) => nextCompletedSections.has(section.id));
-    await this.markSectionAsCompleted(currentSection.id, { persistBackend: true });
+    if (!alreadyCompleted) {
+      await this.markSectionAsCompleted(currentSection.id, { persistBackend: true });
+    }
 
     if (allSectionsCompleted) {
-      try {
-        await this.waitForSectionCompletionSync(lesson.id, currentSection.id);
-        await firstValueFrom(this.lessonApi.markLessonComplete(lesson.id, this.buildLessonCompletionPayload(lesson)));
-        await this.enrollmentService.refreshCourseProgress(lesson.courseId);
-        this.learningService.markCurrentLessonComplete();
-        this.toast.success(`Đã hoàn thành bài: ${lesson.title}`);
-      } catch {
-        if (!this.network.online()) {
+      const lessonAlreadyCompleted = this.learningService.isLessonCompleted(lesson.id)();
+      if (!lessonAlreadyCompleted) {
+        try {
+          await this.waitForSectionCompletionSync(lesson.id, currentSection.id);
+          await firstValueFrom(this.lessonApi.markLessonComplete(lesson.id, this.buildLessonCompletionPayload(lesson)));
+          await this.enrollmentService.refreshCourseProgress(lesson.courseId);
           this.learningService.markCurrentLessonComplete();
-          const courseId = lesson?.courseId ?? this.course()?.id;
-          if (courseId) {
-            const allSectionIds = lesson.sections.map((s: any) => s.id).filter(Boolean);
-            await this.courseDownload.mergeCompletedSectionsOffline(courseId, lesson.id, allSectionIds).catch(() => undefined);
+          this.toast.success(`Đã hoàn thành bài: ${lesson.title}`);
+        } catch {
+          if (!this.network.online()) {
+            this.learningService.markCurrentLessonComplete();
+            const courseId = lesson?.courseId ?? this.course()?.id;
+            if (courseId) {
+              const allSectionIds = lesson.sections.map((s: any) => s.id).filter(Boolean);
+              await this.courseDownload.mergeCompletedSectionsOffline(courseId, lesson.id, allSectionIds).catch(() => undefined);
+            }
+            this.toast.success(`Hoàn thành bài: ${lesson.title} (sẽ đồng bộ khi có mạng)`);
+          } else {
+            this.toast.error('Đã hoàn thành phần cuối nhưng chưa thể cập nhật tiến độ bài học. Vui lòng thử lại.');
+            return false;
           }
-          this.toast.success(`Hoàn thành bài: ${lesson.title} (sẽ đồng bộ khi có mạng)`);
-        } else {
-          this.toast.error('Đã hoàn thành phần cuối nhưng chưa thể cập nhật tiến độ bài học. Vui lòng thử lại.');
-          return false;
         }
+      } else if (!alreadyCompleted) {
+        this.toast.success(`Đã hoàn thành phần: ${currentSection.title}`);
       }
-    } else {
+    } else if (!alreadyCompleted) {
       this.toast.success(`Đã hoàn thành phần: ${currentSection.title}`);
     }
 
     if (this.currentSectionIndex() < lesson.sections.length - 1) {
-      this.currentSectionIndex.update((value) => value + 1);
+      this.setCurrentSectionIndex(this.currentSectionIndex() + 1, { focus: true });
     }
 
     return true;
@@ -807,6 +1074,7 @@ export class CourseLearningComponent implements OnInit {
       await this.enrollmentService.refreshCourseProgress(lesson.courseId);
       this.learningService.markCurrentLessonComplete();
       this.expandCurrentLessonSection();
+      this.toast.success(`Đã hoàn thành bài: ${lesson.title}`);
       return true;
     } catch {
       if (!this.network.online()) {
@@ -1067,12 +1335,13 @@ export class CourseLearningComponent implements OnInit {
       return;
     }
 
-    this.currentSectionIndex.set(sectionIndex);
+    this.setCurrentSectionIndex(sectionIndex, { focus: true });
+    this.closeMobileSidebar();
   }
 
   // Handle section index change from lesson-content component
   onSectionIndexChange(index: number): void {
-    this.currentSectionIndex.set(index);
+    this.setCurrentSectionIndex(index, { focus: true });
   }
 
   // === Payment / Paywall ===
