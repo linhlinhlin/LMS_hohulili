@@ -462,8 +462,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                   <!-- Video preview -->
                   @if (svc.sectionVideoAssetId()) {
                     <div
-                      [class]="videoPreviewFrameClass()"
-                      style="aspect-ratio: 16/9;">
+                      [class]="videoPreviewFrameClass()">
                       <app-quiz-video-player
                         [videoAssetId]="svc.sectionVideoAssetId()"
                         [rawVideoUrl]="svc.sectionVideoUrl()"
@@ -473,8 +472,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                     </div>
                   } @else if (svc.sectionVideoUrl()) {
                     <div
-                      [class]="videoPreviewFrameClass()"
-                      style="aspect-ratio: 16/9;">
+                      [class]="videoPreviewFrameClass()">
                       <app-quiz-video-player
                         [rawVideoUrl]="svc.sectionVideoUrl()"
                         [interactiveVideoSpec]="interactiveVideoPreviewSpec()"
