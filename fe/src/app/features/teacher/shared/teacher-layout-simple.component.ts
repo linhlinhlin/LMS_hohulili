@@ -6,6 +6,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { SidebarStateService } from '../../../shared/services/sidebar-state.service';
 import { SidebarComponent, SidebarConfig } from '../../../shared/components/navigation/sidebar.component';
 import { SkipLinkComponent } from '../../../shared/components/skip-link/skip-link.component';
+import { FocusTrapDirective } from '../../../shared/directives/focus-trap.directive';
 import { teacherSidebarConfig as baseTeacherSidebarConfig } from '../../../shared/components/navigation/sidebar.config';
 import { NotificationService } from '../../../core/services/notification.service';
 import { MessagingService } from '../../../core/services/messaging.service';
@@ -14,7 +15,7 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
 
 @Component({
   selector: 'app-teacher-layout-simple',
-  imports: [RouterModule, RouterOutlet, SidebarComponent, ChatPanelComponent, SkipLinkComponent],
+  imports: [RouterModule, RouterOutlet, SidebarComponent, ChatPanelComponent, SkipLinkComponent, FocusTrapDirective],
   template: `
     <!-- Modern gradient background for teacher portal -->
     <div class="min-h-screen flex flex-col">
@@ -38,7 +39,9 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
              [attr.aria-hidden]="!isMobileSidebarOpen()"
              [attr.aria-modal]="isMobileSidebarOpen() ? 'true' : null"
              [attr.inert]="isMobileSidebarOpen() ? null : ''"
-             role="dialog">
+             role="dialog"
+             [appFocusTrap]="isMobileSidebarOpen()"
+             (escape)="closeMobileSidebar()">
           <div class="mobile-sidebar-backdrop" (click)="toggleMobileSidebar()"></div>
           <div class="mobile-sidebar-panel">
             <app-sidebar [config]="teacherSidebarConfig()"

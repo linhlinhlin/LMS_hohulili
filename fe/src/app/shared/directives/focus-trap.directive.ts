@@ -1,0 +1,139 @@
+import {
+  Directive,
+  ElementRef,
+  HostListener,
+  OnDestroy,
+  PLATFORM_ID,
+  effect,
+  inject,
+  input,
+  output,
+} from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+  '[contenteditable="true"]',
+].join(',');
+
+/**
+ * Focus trap for modal mobile drawers (and any other modal surface).
+ *
+ * When the input signal `appFocusTrap` flips to true, the directive:
+ *   - Records the currently-focused element as the "return" target.
+ *   - Moves focus to the first focusable descendant of the host.
+ *   - Intercepts Tab / Shift+Tab to cycle focus only within the host.
+ *   - Emits `(escape)` when the user presses Escape, leaving close-on-Esc
+ *     to the parent (so it can also handle backdrop / button close).
+ *
+ * When the input flips back to false (drawer closes), focus returns to
+ * the recorded element so keyboard users land where they started.
+ *
+ * Per spec FR-016 (focus trap mobile drawer) + FR-014 (Escape closes).
+ */
+@Directive({
+  selector: '[appFocusTrap]',
+})
+export class FocusTrapDirective implements OnDestroy {
+  /** When true, the trap is active. */
+  readonly active = input(false, { alias: 'appFocusTrap' });
+
+  /** Emits when the user presses Escape inside the trap. */
+  readonly escape = output<void>();
+
+  private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly platformId = inject(PLATFORM_ID);
+
+  private returnFocusEl: HTMLElement | null = null;
+
+  constructor() {
+    effect(() => {
+      const isActive = this.active();
+      if (!isPlatformBrowser(this.platformId)) return;
+      if (isActive) {
+        this.activate();
+      } else {
+        this.deactivate();
+      }
+    });
+  }
+
+  /** When the host element is removed from the DOM (e.g. an `@if` block
+   *  unmounts the drawer), the effect's deactivation branch may not run
+   *  before the directive instance is torn down — leaving focus stranded
+   *  on a node that's about to be removed. Run the focus-restore explicitly
+   *  here so admin's drawer (which uses `@if (isMobileSidebarOpen)`) still
+   *  restores focus to the hamburger button.
+   *  Per PR #381 review feedback. */
+  ngOnDestroy(): void {
+    if (this.returnFocusEl) {
+      this.deactivate();
+    }
+  }
+
+  // Angular's $event for HostListener types as Event; we only need
+  // preventDefault() which is on the base type. No KeyboardEvent-specific
+  // access needed (the keydown.tab/keydown.shift.tab pseudo-event already
+  // narrows the binding semantically).
+  @HostListener('keydown.tab', ['$event'])
+  onTab(event: Event): void {
+    if (!this.active()) return;
+    this.cycleFocus(event, /* reverse */ false);
+  }
+
+  @HostListener('keydown.shift.tab', ['$event'])
+  onShiftTab(event: Event): void {
+    if (!this.active()) return;
+    this.cycleFocus(event, /* reverse */ true);
+  }
+
+  @HostListener('keydown.escape')
+  onEscape(): void {
+    if (!this.active()) return;
+    this.escape.emit();
+  }
+
+  private activate(): void {
+    this.returnFocusEl = (document.activeElement as HTMLElement | null) ?? null;
+    const first = this.firstFocusable();
+    if (first) first.focus();
+  }
+
+  private deactivate(): void {
+    if (this.returnFocusEl && document.contains(this.returnFocusEl)) {
+      this.returnFocusEl.focus();
+    }
+    this.returnFocusEl = null;
+  }
+
+  private cycleFocus(event: Event, reverse: boolean): void {
+    const focusables = this.allFocusable();
+    if (focusables.length === 0) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    const active = document.activeElement as HTMLElement | null;
+    if (reverse && active === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!reverse && active === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  private firstFocusable(): HTMLElement | null {
+    return this.allFocusable()[0] ?? null;
+  }
+
+  private allFocusable(): HTMLElement[] {
+    const root = this.host.nativeElement as HTMLElement;
+    return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+      (el) => !el.hasAttribute('disabled') && el.tabIndex !== -1 && el.offsetParent !== null,
+    );
+  }
+}
