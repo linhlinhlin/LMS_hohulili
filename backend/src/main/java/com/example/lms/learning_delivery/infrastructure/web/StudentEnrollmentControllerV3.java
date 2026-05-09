@@ -39,6 +39,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.text.Normalizer;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -1095,7 +1096,16 @@ private Map<String, Object> buildSectionCompletionResponse(
     }
 
     private String normalizeSearch(String search) {
-        return hasText(search) ? search.trim().toLowerCase(Locale.ROOT) : null;
+        return hasText(search) ? normalizeForSearch(search) : null;
+    }
+
+    private String normalizeForSearch(String value) {
+        if (value == null) return "";
+        String normalized = Normalizer.normalize(value.trim(), Normalizer.Form.NFD)
+                .replace('đ', 'd')
+                .replace('Đ', 'D')
+                .replaceAll("\\p{M}+", "");
+        return normalized.toLowerCase(Locale.ROOT);
     }
 
     private CourseJpaEntity.DeliveryMode parseDeliveryMode(String value) {
@@ -1139,7 +1149,7 @@ private Map<String, Object> buildSectionCompletionResponse(
             return false;
         }
         return normalizedSearch == null
-                || (course.getTitle() != null && course.getTitle().toLowerCase(Locale.ROOT).contains(normalizedSearch));
+                || normalizeForSearch(course.getTitle()).contains(normalizedSearch);
     }
 
     private void sortEnrolledCourseResponses(List<EnrolledCourseResponse> courseResponses, String sort, String order) {
