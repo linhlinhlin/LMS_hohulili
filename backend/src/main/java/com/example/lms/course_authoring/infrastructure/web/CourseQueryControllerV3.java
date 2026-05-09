@@ -768,7 +768,7 @@ public class CourseQueryControllerV3 {
     }
 
     private Sort resolveCourseSort(String sort, String order) {
-        String sortField = "title".equals(sort) ? "title" : "createdAt";
+        String sortField = "title".equals(sort) ? "title" : "created_at";
         return "asc".equalsIgnoreCase(order) ? Sort.by(sortField).ascending() : Sort.by(sortField).descending();
     }
 

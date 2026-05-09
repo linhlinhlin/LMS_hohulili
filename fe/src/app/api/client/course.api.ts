@@ -1,12 +1,27 @@
 import { Injectable, inject } from '@angular/core';
 import { ApiClient } from './api-client';
 import { COURSE_ENDPOINTS } from '../endpoints/course.endpoints';
-import { ApiResponse } from '../types/common.types';
+import { ApiResponse, PaginationInfo } from '../types/common.types';
 import { CreateCourseRequest, CourseDetail, CourseSummary, CourseContentChapter, DeliveryMode } from '../types/course.types';
 import { EnrollStudentRequest } from '../types/enrollment.types';
 import { map, tap } from 'rxjs/operators';
 import { Observable } from 'rxjs';
 import { ApiCacheService } from '../../core/services/api-cache.service';
+
+function mapSpringPagePagination(page: any): PaginationInfo | undefined {
+  if (!page || typeof page !== 'object' || !Array.isArray(page.content)) {
+    return undefined;
+  }
+
+  return {
+    totalItems: page.totalElements ?? page.content.length ?? 0,
+    totalPages: page.totalPages ?? 0,
+    page: (page.number ?? 0) + 1,
+    limit: page.size ?? page.content.length ?? 0,
+    first: !!page.first,
+    last: !!page.last
+  };
+}
 
 @Injectable({ providedIn: 'root' })
 export class CourseApi {
@@ -58,10 +73,11 @@ export class CourseApi {
   publicCourses(params?: { page?: number; size?: number; search?: string; teacher?: string; category?: string; sort?: string; order?: string; deliveryMode?: DeliveryMode }): Observable<ApiResponse<CourseSummary[]>> {
     return this.api.getWithResponse<any>(COURSE_ENDPOINTS.BASE, { params }).pipe(
       map((res: ApiResponse<any>) => {
-        const content: CourseSummary[] = res?.data?.content ?? [];
+        const page = res?.data;
+        const content: CourseSummary[] = page?.content ?? [];
         return {
           data: content,
-          pagination: res?.pagination,
+          pagination: mapSpringPagePagination(page) ?? res?.pagination,
           message: res?.message
         } as ApiResponse<CourseSummary[]>;
       })
@@ -71,10 +87,11 @@ export class CourseApi {
   enrolledCourses(params?: { page?: number; size?: number; search?: string; category?: string; sort?: string; order?: string; deliveryMode?: DeliveryMode }): Observable<ApiResponse<CourseSummary[]>> {
     return this.api.getWithResponse<any>(COURSE_ENDPOINTS.STUDENT.ENROLLED, { params }).pipe(
       map((res: ApiResponse<any>) => {
-        const content: CourseSummary[] = res?.data?.content ?? [];
+        const page = res?.data;
+        const content: CourseSummary[] = page?.content ?? [];
         return {
           data: content,
-          pagination: res?.pagination,
+          pagination: mapSpringPagePagination(page) ?? res?.pagination,
           message: res?.message
         } as ApiResponse<CourseSummary[]>;
       })

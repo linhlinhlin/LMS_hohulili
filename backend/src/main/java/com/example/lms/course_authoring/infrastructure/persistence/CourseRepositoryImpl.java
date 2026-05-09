@@ -187,11 +187,9 @@ public class CourseRepositoryImpl implements CourseRepository {
             Course.DeliveryMode deliveryMode,
             String search,
             Pageable pageable
-    ) {
-        CourseJpaEntity.CourseStatus entityStatus = mapStatusToEntity(status);
-        CourseJpaEntity.DeliveryMode entityDeliveryMode = deliveryMode != null
-                ? CourseJpaEntity.DeliveryMode.valueOf(deliveryMode.name())
-                : null;
+) {
+        String entityStatus = mapStatusToEntity(status).name();
+        String entityDeliveryMode = deliveryMode != null ? deliveryMode.name() : null;
         boolean categoryFilter = categoryIds != null && !categoryIds.isEmpty();
         List<UUID> effectiveCategoryIds = categoryFilter ? List.copyOf(categoryIds) : List.of(new UUID(0L, 0L));
         String normalizedSearch = search != null && !search.isBlank() ? search.trim() : null;
