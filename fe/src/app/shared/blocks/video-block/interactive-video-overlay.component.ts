@@ -67,6 +67,7 @@ type ChoiceAnswerState = 'idle' | 'selected' | 'selected-correct' | 'selected-wr
         @if (isDragDropInteraction()) {
           <app-interactive-video-drag-drop
             [interaction]="interaction()"
+            [density]="density()"
             (continueRequested)="continueRequested.emit()" />
         } @else if (isFillBlankInteraction()) {
           <app-interactive-video-fill-blank
@@ -291,7 +292,7 @@ export class InteractiveVideoOverlayComponent implements OnDestroy {
     const base = 'w-full rounded-lg border border-white/10 bg-white text-slate-900 shadow-2xl';
     if (this.density() === 'compact') {
       return this.isDragDropInteraction()
-        ? `${base} max-h-full max-w-3xl overflow-y-auto p-3 sm:p-4`
+        ? `${base} max-h-full max-w-[72rem] overflow-y-auto p-3 sm:p-4`
         : this.isFillBlankInteraction()
         ? `${base} max-h-full max-w-xl overflow-y-auto p-3 sm:p-4`
         : `${base} max-h-full max-w-lg overflow-y-auto p-3 sm:p-4`;

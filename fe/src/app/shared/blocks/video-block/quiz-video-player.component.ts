@@ -44,10 +44,12 @@ type ResolvedSource =
 @Component({
   selector: 'app-quiz-video-player',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block w-full' },
   imports: [InteractiveVideoLayerComponent, InteractiveVideoOverlayComponent, InteractiveVideoMarkersComponent],
   template: `
-    <div class="relative aspect-video w-full overflow-hidden rounded-lg bg-black"
-         (click)="showQualityMenu() && showQualityMenu.set(false)">
+    <div class="overflow-hidden rounded-lg bg-black">
+      <div class="relative aspect-video w-full bg-black"
+           (click)="showQualityMenu() && showQualityMenu.set(false)">
       <video
         #videoElement
         controls
@@ -63,36 +65,9 @@ type ResolvedSource =
         (timeupdate)="onTimeUpdate()"
         (seeking)="onSeeking()"
         (seeked)="onSeeked()"
-        (play)="isPlaybackPaused.set(false)"
-        (pause)="isPlaybackPaused.set(true)"
-        (ended)="isPlaybackPaused.set(true)"
         (error)="onVideoError()">
         Trình duyệt không hỗ trợ phát video.
       </video>
-
-      @if (canShowPlaybackToggle()) {
-        <div class="pointer-events-none absolute bottom-14 left-4 z-20 flex items-center gap-2 rounded-full bg-slate-950/70 px-2 py-1 text-white shadow-lg ring-1 ring-white/10 backdrop-blur-sm">
-          <button
-            type="button"
-            class="pointer-events-auto flex h-6 w-6 items-center justify-center rounded-full bg-white/12 text-white transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
-            data-testid="quiz-video-playback-toggle"
-            [attr.aria-label]="isPlaybackPaused() ? 'Phát video' : 'Tạm dừng video'"
-            (click)="togglePlayback($event)">
-            @if (isPlaybackPaused()) {
-              <svg class="ml-0.5 h-3 w-3" viewBox="0 0 12 12" aria-hidden="true">
-                <path d="M3 2.2v7.6L9 6 3 2.2Z" fill="currentColor" />
-              </svg>
-            } @else {
-              <svg class="h-3 w-3" viewBox="0 0 12 12" aria-hidden="true">
-                <path d="M3 2h2v8H3V2Zm4 0h2v8H7V2Z" fill="currentColor" />
-              </svg>
-            }
-          </button>
-          <span class="font-mono text-xs font-semibold tabular-nums text-white/95">
-            {{ formatPlaybackTime(currentTimeSeconds()) }} / {{ formatPlaybackTime(videoDurationSeconds()) }}
-          </span>
-        </div>
-      }
 
       @if (isLoading()) {
         <div class="absolute inset-0 flex items-center justify-center bg-slate-950/70 text-white">
@@ -166,13 +141,6 @@ type ResolvedSource =
         [activeInteractionId]="activeInteraction()?.id ?? null"
         (interactionSelected)="openInteractiveInteraction($event)" />
 
-      <app-interactive-video-markers
-        [timeline]="interactiveVideoSpec()?.enabled === false ? [] : (interactiveVideoSpec()?.timeline ?? [])"
-        [durationSeconds]="videoDurationSeconds()"
-        [currentTimeSeconds]="currentTimeSeconds()"
-        [activeInteractionId]="activeInteraction()?.id ?? null"
-        (markerSelected)="seekToInteractiveSecond($event)" />
-
       @if (activeInteraction(); as interaction) {
         <app-interactive-video-overlay
           [interaction]="interaction"
@@ -182,6 +150,14 @@ type ResolvedSource =
           (reviewRequested)="onInteractiveReviewRequested()"
           (continueRequested)="onInteractiveContinue()" />
       }
+      </div>
+
+      <app-interactive-video-markers
+        [timeline]="interactiveVideoSpec()?.enabled === false ? [] : (interactiveVideoSpec()?.timeline ?? [])"
+        [durationSeconds]="videoDurationSeconds()"
+        [currentTimeSeconds]="currentTimeSeconds()"
+        [activeInteractionId]="activeInteraction()?.id ?? null"
+        (markerSelected)="seekToInteractiveSecond($event)" />
     </div>
   `
 })
@@ -207,7 +183,6 @@ export class QuizVideoPlayerComponent {
   readonly videoDurationSeconds = signal<number | null>(null);
   readonly currentTimeSeconds = signal(0);
   readonly completedInteractionIdsSnapshot = signal<ReadonlySet<string>>(new Set<string>());
-  readonly isPlaybackPaused = signal(true);
 
   private shakaPlayer: any = null;
   private loadToken = 0;
@@ -256,7 +231,6 @@ export class QuizVideoPlayerComponent {
 
     this.videoDurationSeconds.set(Number.isFinite(video.duration) && video.duration > 0 ? video.duration : null);
     this.currentTimeSeconds.set(Number.isFinite(video.currentTime) ? video.currentTime : 0);
-    this.isPlaybackPaused.set(video.paused);
     this.markInteractiveVideoWatched(video.currentTime);
   }
 
@@ -387,7 +361,6 @@ export class QuizVideoPlayerComponent {
     this.error.set(null);
     this.isProcessing.set(false);
     this.isLoading.set(true);
-    this.isPlaybackPaused.set(true);
     this.qualityLabel.set(null);
     this.videoDurationSeconds.set(null);
     this.currentTimeSeconds.set(0);
@@ -581,47 +554,6 @@ export class QuizVideoPlayerComponent {
       this.shakaPlayer?.configure?.('abr.enabled', true);
       this.isAutoQuality.set(true);
     }
-  }
-
-  canShowPlaybackToggle(): boolean {
-    return !this.isLoading()
-      && !this.isProcessing()
-      && !this.error()
-      && !this.activeInteraction();
-  }
-
-  togglePlayback(event: Event): void {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const video = this.videoElement()?.nativeElement;
-    if (!video) {
-      return;
-    }
-
-    if (video.paused) {
-      void video.play().catch(() => {
-        this.isPlaybackPaused.set(true);
-      });
-      return;
-    }
-
-    video.pause();
-  }
-
-  formatPlaybackTime(seconds: number | null | undefined): string {
-    const safeSeconds = Number.isFinite(seconds ?? Number.NaN)
-      ? Math.max(0, Math.floor(seconds as number))
-      : 0;
-    const hours = Math.floor(safeSeconds / 3600);
-    const minutes = Math.floor((safeSeconds % 3600) / 60);
-    const rest = safeSeconds % 60;
-
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${rest.toString().padStart(2, '0')}`;
-    }
-
-    return `${minutes}:${rest.toString().padStart(2, '0')}`;
   }
 
   private evaluateInteractiveTimeline(
