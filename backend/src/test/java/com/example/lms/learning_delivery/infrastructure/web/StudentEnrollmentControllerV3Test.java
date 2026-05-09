@@ -36,6 +36,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -107,6 +109,54 @@ class StudentEnrollmentControllerV3Test {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().isSuccess()).isTrue();
         assertThat(response.getBody().getData()).isEqualTo(List.of());
+    }
+
+    @Test
+    @DisplayName("enrolled course search should match Vietnamese titles without diacritics")
+    void getEnrolledCoursesSearchMatchesVietnameseTitleWithoutDiacritics() {
+        UUID studentId = UUID.randomUUID();
+        UUID maritimeCourseId = UUID.randomUUID();
+        UUID logisticsCourseId = UUID.randomUUID();
+        UserJpaEntity student = student(studentId);
+
+        Enrollment maritimeEnrollment = enrollmentForCourse(studentId, maritimeCourseId);
+        Enrollment logisticsEnrollment = enrollmentForCourse(studentId, logisticsCourseId);
+        CourseJpaEntity maritimeCourse = CourseJpaEntity.builder()
+                .id(maritimeCourseId)
+                .title("Hàng hải căn bản")
+                .build();
+        CourseJpaEntity logisticsCourse = CourseJpaEntity.builder()
+                .id(logisticsCourseId)
+                .title("Port logistics")
+                .build();
+
+        when(enrollmentRepository.findActiveAndCompletedWithClass(studentId))
+                .thenReturn(List.of(maritimeEnrollment, logisticsEnrollment));
+        when(courseJpaRepository.findAllById(any()))
+                .thenReturn(List.of(maritimeCourse, logisticsCourse));
+        when(userJpaRepository.findAllById(any())).thenReturn(List.of());
+        when(chapterJpaRepository.findByCourseIdInOrderByOrderIndex(any())).thenReturn(List.of());
+        when(paymentTransactionJpaRepository.findPaidCourseIds(eq(studentId), any(), any()))
+                .thenReturn(List.of());
+
+        var response = controller.getEnrolledCourses(
+                student,
+                0,
+                20,
+                "hang hai",
+                null,
+                null,
+                "recent",
+                "desc"
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().isSuccess()).isTrue();
+        assertThat(response.getBody().getData().getTotalElements()).isEqualTo(1);
+        assertThat(response.getBody().getData().getContent())
+                .extracting(StudentEnrollmentControllerV3.EnrolledCourseResponse::getTitle)
+                .containsExactly("Hàng hải căn bản");
     }
 
     @Test
@@ -369,5 +419,20 @@ class StudentEnrollmentControllerV3Test {
         user.setEmail("student@maritime.edu");
         user.setFullName("Student");
         return user;
+    }
+
+    private Enrollment enrollmentForCourse(UUID studentId, UUID courseId) {
+        return Enrollment.builder()
+                .id(UUID.randomUUID())
+                .studentId(studentId)
+                .status(Enrollment.EnrollmentStatus.ACTIVE)
+                .completionPercent(0)
+                .learningClass(LearningClass.builder()
+                        .id(UUID.randomUUID())
+                        .courseId(courseId)
+                        .name("Class")
+                        .build())
+                .enrolledAt(Instant.now())
+                .build();
     }
 }

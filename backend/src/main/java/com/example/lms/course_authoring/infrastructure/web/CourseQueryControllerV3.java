@@ -24,6 +24,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
@@ -74,38 +75,27 @@ public class CourseQueryControllerV3 {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String category,
+            @RequestParam(required = false) String deliveryMode,
             @RequestParam(required = false, defaultValue = "createdAt") String sort,
             @RequestParam(required = false, defaultValue = "desc") String order
     ) {
-        UUID categoryId = null;
-        if (category != null && !category.isBlank()) {
-            categoryId = courseCategoryJpaRepository.findByCode(category.toUpperCase(Locale.ROOT))
-                    .or(() -> courseCategoryJpaRepository.findBySlug(category.toLowerCase(Locale.ROOT)))
-                    .map(c -> c.getId())
-                    .orElse(null);
+        Set<UUID> categoryFilterIds = resolveCategoryFilterIds(category);
+        if (hasText(category) && categoryFilterIds.isEmpty()) {
+            return emptyPublicCoursePage(page, size);
         }
 
-        String sortField = sort != null && Set.of("createdAt", "title").contains(sort) ? sort : "createdAt";
-        Sort sortOrder = "asc".equalsIgnoreCase(order) ? Sort.by(sortField).ascending() : Sort.by(sortField).descending();
-        String nativeSortField = "title".equals(sortField) ? "title" : "created_at";
-        Sort nativeSortOrder = "asc".equalsIgnoreCase(order) ? Sort.by(nativeSortField).ascending() : Sort.by(nativeSortField).descending();
-
-        Page<Course> courses;
-        boolean hasSearch = search != null && !search.isBlank();
-
-        if (hasSearch && categoryId != null) {
-            PageRequest nativePageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100), nativeSortOrder);
-            courses = courseRepository.findByStatusAndCategoryIdAndTitleContaining(Course.CourseStatus.APPROVED, categoryId, search, nativePageable);
-        } else if (hasSearch) {
-            PageRequest nativePageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100), nativeSortOrder);
-            courses = courseRepository.findByStatusAndTitleContaining(Course.CourseStatus.APPROVED, search, nativePageable);
-        } else if (categoryId != null) {
-            PageRequest pageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100), sortOrder);
-            courses = courseRepository.findByStatusAndCategoryId(Course.CourseStatus.APPROVED, categoryId, pageable);
-        } else {
-            PageRequest pageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100), sortOrder);
-            courses = courseRepository.findByStatus(Course.CourseStatus.APPROVED, pageable);
-        }
+        PageRequest pageable = PageRequest.of(
+                Math.max(0, page),
+                Math.min(Math.max(1, size), 100),
+                resolveCourseSort(sort, order)
+        );
+        Page<Course> courses = courseRepository.findByStatusAndFilters(
+                Course.CourseStatus.APPROVED,
+                categoryFilterIds,
+                parseDeliveryMode(deliveryMode),
+                normalizeSearch(search),
+                pageable
+        );
         
         // Batch-fetch teacher names and category names to prevent N+1
         Set<UUID> teacherIds = courses.getContent().stream()
@@ -767,6 +757,52 @@ public class CourseQueryControllerV3 {
             }
         }
         return chapters;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private String normalizeSearch(String search) {
+        return hasText(search) ? search.trim() : null;
+    }
+
+    private Sort resolveCourseSort(String sort, String order) {
+        String sortField = "title".equals(sort) ? "title" : "created_at";
+        return "asc".equalsIgnoreCase(order) ? Sort.by(sortField).ascending() : Sort.by(sortField).descending();
+    }
+
+    private Course.DeliveryMode parseDeliveryMode(String value) {
+        if (!hasText(value)) return null;
+        try {
+            return Course.DeliveryMode.valueOf(value.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+    }
+
+    private Set<UUID> resolveCategoryFilterIds(String category) {
+        if (!hasText(category)) return Set.of();
+        Optional<CourseCategoryJpaEntity> matchedCategory = courseCategoryJpaRepository
+                .findByCode(category.trim().toUpperCase(Locale.ROOT))
+                .or(() -> courseCategoryJpaRepository.findBySlug(category.trim().toLowerCase(Locale.ROOT)));
+        if (matchedCategory.isEmpty()) return Set.of();
+
+        CourseCategoryJpaEntity rootOrLeaf = matchedCategory.get();
+        Set<UUID> categoryIds = new LinkedHashSet<>();
+        categoryIds.add(rootOrLeaf.getId());
+        courseCategoryJpaRepository.findByParentIdOrderBySortOrder(rootOrLeaf.getId()).stream()
+                .map(CourseCategoryJpaEntity::getId)
+                .forEach(categoryIds::add);
+        return categoryIds;
+    }
+
+    private ResponseEntity<ApiResponse<Page<CourseSummaryResponse>>> emptyPublicCoursePage(int page, int size) {
+        PageRequest pageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100));
+        return ResponseEntity.ok(ApiResponse.success(
+                new PageImpl<>(Collections.emptyList(), pageable, 0),
+                "Danh sách khóa học"
+        ));
     }
 
     private CourseSummaryResponse toSummary(Course course) {
