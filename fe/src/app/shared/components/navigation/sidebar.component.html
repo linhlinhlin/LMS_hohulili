@@ -1,7 +1,8 @@
 <div class="sidebar-container" [class]="getSidebarClasses()" [class.sidebar-collapsed]="collapsed()">
-    <!-- Header -->
+    <!-- Header — brand row + integrated collapse toggle (Stripe/Carbon pattern).
+         Toggle lives inside the header flex row, never floating outside the edge. -->
     <div class="sidebar-header">
-        <div class="flex items-center space-x-3">
+        <div class="sidebar-header-brand">
             <!-- Brand Logo -->
             <img src="/icons/logo-master.png" alt="LMS Maritime" class="sidebar-brand-logo">
 
@@ -13,9 +14,13 @@
             </div>
         </div>
 
-        <!-- Collapse toggle button -->
-        <button class="collapse-toggle" (click)="toggleCollapse.emit()" aria-label="Thu gọn sidebar">
-            <app-icon [name]="collapsed() ? 'chevron-right' : 'chevron-left'" size="xs"/>
+        <!-- Collapse toggle — desktop only; aligned vertically inside header row -->
+        <button type="button"
+                class="sidebar-toggle"
+                (click)="toggleCollapse.emit()"
+                [attr.aria-expanded]="!collapsed()"
+                [attr.aria-label]="collapsed() ? 'Mở rộng menu điều hướng' : 'Thu gọn menu điều hướng'">
+            <app-icon [name]="collapsed() ? 'chevron-right' : 'chevron-left'" size="sm"/>
         </button>
     </div>
 
