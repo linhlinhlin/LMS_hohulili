@@ -3,6 +3,7 @@ import { Component, ChangeDetectionStrategy, inject, signal, computed, OnInit, O
 import { RouterModule, RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
+import { SidebarStateService } from '../../../shared/services/sidebar-state.service';
 import { SidebarComponent, SidebarConfig } from '../../../shared/components/navigation/sidebar.component';
 import { studentSidebarConfig as baseStudentSidebarConfig } from '../../../shared/components/navigation/sidebar.config';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -22,10 +23,10 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
       <!-- Desktop Sidebar - Full Height -->
       @if (!shouldHideSidebar()) {
         <div [class]="'hidden md:flex md:flex-col md:fixed md:inset-y-0 md:z-40 transition-all duration-300 '
-          + (sidebarCollapsed() ? 'md:w-16' : 'md:w-72')">
+          + (sidebarState.collapsed() ? 'md:w-16' : 'md:w-72')">
           <app-sidebar [config]="studentSidebarConfig()"
-            [collapsed]="sidebarCollapsed()"
-            (toggleCollapse)="toggleSidebarCollapse()"></app-sidebar>
+            [collapsed]="sidebarState.collapsed()"
+            (toggleCollapse)="sidebarState.toggleCollapsed()"></app-sidebar>
         </div>
       }
 
@@ -50,7 +51,7 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
       <div [class]="shouldHideSidebar()
         ? 'flex flex-1 min-h-0'
         : 'flex flex-1 min-h-0 transition-all duration-300 '
-          + (sidebarCollapsed() ? 'md:pl-16' : 'md:pl-72')">
+          + (sidebarState.collapsed() ? 'md:pl-16' : 'md:pl-72')">
 
         <!-- Main content column -->
         <div class="flex flex-col flex-1 min-w-0">
@@ -468,7 +469,11 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
     const url = this.currentUrl();
     return url.startsWith('/student/tasks') || url.startsWith('/student/quiz');
   });
-  protected sidebarCollapsed = signal(false);
+  /** Sidebar collapsed/mobileOpen/hidden state — single source of truth shared
+   *  with teacher + admin portals via SidebarStateService (signals + localStorage
+   *  + cross-tab sync). Replaces the old per-portal `student_sidebar_collapsed`
+   *  localStorage key + duplicated signal/load/toggle methods. */
+  protected sidebarState = inject(SidebarStateService);
 
   // User avatar — show real avatar if exists, fallback to initials circle
   protected userAvatarUrl = computed(() => {
@@ -533,8 +538,8 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
     });
 
     // Load sidebar state from localStorage on initialization
+    // (sidebar collapsed state now hydrated by SidebarStateService)
     this.loadSidebarState();
-    this.loadCollapsedState();
     this.loadAiSidebarState();
     this.loadAiSidebarWidth();
 
@@ -592,19 +597,6 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
       if (saved !== null) {
         this.sidebarHidden.set(saved === 'true');
       }
-    }
-  }
-
-  toggleSidebarCollapse(): void {
-    this.sidebarCollapsed.update(v => !v);
-    if (typeof window !== 'undefined' && window.localStorage) {
-      localStorage.setItem('student_sidebar_collapsed', this.sidebarCollapsed().toString());
-    }
-  }
-
-  private loadCollapsedState(): void {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      this.sidebarCollapsed.set(localStorage.getItem('student_sidebar_collapsed') === 'true');
     }
   }
 
