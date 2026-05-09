@@ -25,6 +25,10 @@ describe('NetworkStatusService', () => {
     it('should have effectiveBandwidthMbps as a number', () => {
       expect(typeof service.effectiveBandwidthMbps()).toBe('number');
     });
+
+    it('should expose reportedDownlinkMbps as nullable browser telemetry', () => {
+      expect(service.reportedDownlinkMbps() === null || typeof service.reportedDownlinkMbps() === 'number').toBeTrue();
+    });
   });
 
   describe('connectionTier computed', () => {
