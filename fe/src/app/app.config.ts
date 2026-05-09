@@ -127,7 +127,8 @@ import {
   Sparkles,
   Star,
   LayoutList,
-  Move
+  Move,
+  Copy
 } from 'lucide-angular';
 
 function isLocalBrowserRuntime(): boolean {
@@ -317,7 +318,8 @@ export const appConfig: ApplicationConfig = {
       Sparkles,
       Star,
       LayoutList,
-      Move
+      Move,
+      Copy
     }))
   ]
 };

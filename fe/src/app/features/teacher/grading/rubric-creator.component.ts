@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, signal, computed, inject, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, computed, inject, viewChild, ElementRef } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
@@ -10,6 +10,47 @@ import {
   generateRubricId
 } from './utils/rubric-calculator';
 import { RubricApi } from '../../../api/endpoints/rubric.api';
+
+// ─── Module-level constants ────────────────────────────────────────────────
+const SEGMENT_COLORS = ['#0056D2', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#14b8a6', '#f97316'];
+
+const RUBRIC_TEMPLATES = [
+  {
+    id: 'practical', name: 'Kỹ năng thực hành', icon: '🔧',
+    criteria: [
+      { name: 'Kỹ thuật thực hiện', weight: 40 },
+      { name: 'Độ chính xác', weight: 30 },
+      { name: 'An toàn lao động', weight: 20 },
+      { name: 'Hoàn thành đúng hạn', weight: 10 },
+    ]
+  },
+  {
+    id: 'report', name: 'Báo cáo bài viết', icon: '📝',
+    criteria: [
+      { name: 'Nội dung chuyên môn', weight: 50 },
+      { name: 'Cấu trúc & Trình bày', weight: 30 },
+      { name: 'Tài liệu tham khảo', weight: 20 },
+    ]
+  },
+  {
+    id: 'presentation', name: 'Thuyết trình', icon: '🎤',
+    criteria: [
+      { name: 'Nội dung', weight: 40 },
+      { name: 'Kỹ năng trình bày', weight: 30 },
+      { name: 'Trả lời câu hỏi', weight: 20 },
+      { name: 'Thời gian', weight: 10 },
+    ]
+  },
+  {
+    id: 'simulation', name: 'Mô phỏng', icon: '🥽',
+    criteria: [
+      { name: 'Thực hiện quy trình', weight: 40 },
+      { name: 'Xử lý tình huống', weight: 30 },
+      { name: 'Phối hợp nhóm', weight: 20 },
+      { name: 'Tuân thủ an toàn', weight: 10 },
+    ]
+  }
+];
 
 @Component({
   selector: 'app-rubric-creator',
@@ -84,117 +125,207 @@ import { RubricApi } from '../../../api/endpoints/rubric.api';
               </div>
             </div>
 
+            <!-- Weight Distribution Bar (only when >= 2 criteria) -->
+            @if (criteriaArray.length >= 2) {
+              <div class="bg-white border border-slate-200 rounded-xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                  <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 rounded-full bg-violet-500"></span>
+                    Phân bổ trọng số
+                  </h2>
+                  <button type="button" (click)="redistributeWeightsEvenly()"
+                          class="text-xs text-slate-400 hover:text-[#0056D2] flex items-center gap-1 transition-colors">
+                    <lucide-icon name="rotate-ccw" [size]="11"></lucide-icon>
+                    Chia đều
+                  </button>
+                </div>
+
+                <!-- Drag bar -->
+                <div #weightBar
+                     class="relative h-12 rounded-lg overflow-hidden flex cursor-default select-none"
+                     [class.cursor-ew-resize]="draggingIndex() !== null">
+
+                  @for (seg of weightSegments(); track $index; let i = $index) {
+                    <div class="relative flex items-center justify-center overflow-hidden transition-all duration-100 cursor-pointer"
+                         [style.width.%]="totalWeight() > 0 ? (seg.weight / totalWeight() * 100) : (100 / weightSegments().length)"
+                         [style.background-color]="seg.color"
+                         (click)="expandedIndex.set(i)">
+                      @if (seg.weight >= 12) {
+                        <div class="flex flex-col items-center leading-none px-1 text-white">
+                          <span class="text-[10px] font-semibold truncate max-w-[90%]">{{ seg.name | slice:0:10 }}{{ seg.name.length > 10 ? '…' : '' }}</span>
+                          <span class="text-xs font-bold">{{ seg.weight }}%</span>
+                        </div>
+                      } @else {
+                        <span class="text-[10px] font-bold text-white">{{ seg.weight }}%</span>
+                      }
+                    </div>
+                  }
+
+                  <!-- Drag handles (N-1 handles for N segments) -->
+                  @for (pos of handlePositions(); track $index; let i = $index) {
+                    <div class="absolute top-0 bottom-0 w-3 -translate-x-1/2 flex items-center justify-center cursor-ew-resize z-10 group"
+                         [style.left.%]="totalWeight() > 0 ? (pos / totalWeight() * 100) : pos"
+                         (pointerdown)="startDrag($event, i)"
+                         (pointermove)="onDrag($event)"
+                         (pointerup)="endDrag($event)"
+                         (pointercancel)="endDrag($event)">
+                      <div class="w-1 h-8 bg-white/80 rounded-full shadow-lg group-hover:bg-white transition-colors"></div>
+                    </div>
+                  }
+                </div>
+
+                <div class="mt-2 flex items-center justify-between">
+                  <p class="text-xs text-slate-400">Kéo các mốc trắng để điều chỉnh · Giữ Shift để bước 1%</p>
+                  <span class="text-xs font-semibold" [class]="isWeightValid() ? 'text-emerald-600' : 'text-amber-600'">
+                    Tổng: {{ totalWeight() }}%
+                  </span>
+                </div>
+              </div>
+            }
+
             <!-- Criteria Builder Card -->
             <div class="bg-white border border-slate-200 rounded-xl p-6">
-              <div class="flex items-center justify-between mb-5">
+              <div class="flex items-center justify-between mb-4">
                 <div>
                   <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                     Cấu trúc tiêu chí
                   </h2>
-                  <p class="text-xs text-slate-400 mt-0.5">Xây dựng các cột mốc đánh giá</p>
                 </div>
-                <button type="button" (click)="addCriterion()"
-                        class="h-8 px-3 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-medium hover:bg-emerald-100 transition-colors flex items-center gap-1.5">
-                  <lucide-icon name="plus" [size]="13"></lucide-icon>
-                  Thêm tiêu chí
-                </button>
               </div>
 
               @if (criteriaArray.length === 0) {
                 <div class="py-10 text-center border-2 border-dashed border-slate-200 rounded-lg">
                   <lucide-icon name="layers" [size]="28" class="mx-auto mb-2 text-slate-300"></lucide-icon>
                   <p class="text-sm text-slate-400 mb-3">Chưa có tiêu chí nào</p>
-                  <button type="button" (click)="addCriterion()"
-                          class="text-sm font-medium text-[#0056D2] hover:underline">
-                    Bắt đầu thêm tiêu chí
-                  </button>
                 </div>
               } @else {
-                <div class="space-y-4" formArrayName="criteria">
+                <div class="space-y-2" formArrayName="criteria">
                   @for (criterion of criteriaArray.controls; track $index; let i = $index) {
-                    <div class="border border-slate-200 rounded-xl p-5 group hover:border-slate-300 transition-colors"
+                    <div class="border rounded-xl transition-colors"
+                         [class]="expandedIndex() === i ? 'border-[#0056D2]/40 bg-blue-50/30' : 'border-slate-200 hover:border-slate-300'"
                          [formGroupName]="i">
 
-                      <!-- Criterion Header Row -->
-                      <div class="flex items-start gap-3 mb-4">
-                        <span class="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                      <!-- Summary row (always visible) -->
+                      <div class="flex items-center gap-3 px-4 py-3 cursor-pointer" (click)="toggleExpand(i)">
+                        <!-- Drag grip -->
+                        <span class="text-slate-300 cursor-grab active:cursor-grabbing flex-shrink-0">
+                          <lucide-icon name="grip-vertical" [size]="14"></lucide-icon>
+                        </span>
+                        <!-- Index badge -->
+                        <span class="w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold flex-shrink-0"
+                              [style.background-color]="segmentColors[i % segmentColors.length] + '20'"
+                              [style.color]="segmentColors[i % segmentColors.length]">
                           {{ i + 1 }}
                         </span>
-                        <div class="flex-1 min-w-0">
-                          <input type="text" formControlName="name"
-                                 class="w-full border-0 border-b border-slate-200 pb-1 text-sm font-semibold text-slate-900 placeholder:text-slate-300 focus:border-[#0056D2] focus:ring-0 bg-transparent outline-none transition-colors"
-                                 placeholder="Tên tiêu chí *"/>
-                          <input type="text" formControlName="description"
-                                 class="w-full mt-2 text-xs text-slate-500 placeholder:text-slate-300 border-none bg-transparent focus:ring-0 outline-none p-0"
-                                 placeholder="Mô tả hướng dẫn (tuỳ chọn)..."/>
+                        <!-- Name display -->
+                        <span class="flex-1 text-sm font-medium text-slate-700 truncate">
+                          {{ criterion.get('name')?.value || 'Tiêu chí ' + (i + 1) }}
+                        </span>
+                        <!-- Weight badge -->
+                        <span class="px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0"
+                              [style.background-color]="segmentColors[i % segmentColors.length] + '20'"
+                              [style.color]="segmentColors[i % segmentColors.length]">
+                          {{ criterion.get('weight')?.value || 0 }}%
+                        </span>
+                        <!-- Actions -->
+                        <div class="flex items-center gap-0.5 flex-shrink-0">
+                          <button type="button" (click)="duplicateCriterion(i); $event.stopPropagation()" title="Nhân bản"
+                                  class="w-7 h-7 text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded-lg flex items-center justify-center transition-colors">
+                            <lucide-icon name="copy" [size]="13"></lucide-icon>
+                          </button>
+                          <button type="button" (click)="removeCriterion(i); $event.stopPropagation()" title="Xóa"
+                                  class="w-7 h-7 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg flex items-center justify-center transition-colors">
+                            <lucide-icon name="trash-2" [size]="13"></lucide-icon>
+                          </button>
+                          <lucide-icon [name]="expandedIndex() === i ? 'chevron-up' : 'chevron-down'" [size]="14" class="text-slate-300 ml-1"></lucide-icon>
                         </div>
-                        <div class="flex items-start gap-3 shrink-0">
-                          <div class="flex flex-col items-center">
-                            <label class="text-[10px] text-slate-400 uppercase tracking-wide mb-1">Trọng số</label>
+                      </div>
+
+                      <!-- Expanded detail -->
+                      @if (expandedIndex() === i) {
+                        <div class="border-t border-slate-100 px-4 pb-4 pt-3 space-y-4">
+                          <!-- Name input -->
+                          <div>
+                            <label class="block text-xs font-medium text-slate-500 mb-1">Tên tiêu chí <span class="text-rose-400">*</span></label>
+                            <input type="text" formControlName="name"
+                                   class="w-full h-9 px-3 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-300 focus:border-[#0056D2] focus:ring-1 focus:ring-[#0056D2]/20 outline-none transition-colors"
+                                   placeholder="Tên tiêu chí *"/>
+                          </div>
+                          <!-- Description -->
+                          <div>
+                            <label class="block text-xs font-medium text-slate-500 mb-1">Mô tả hướng dẫn</label>
+                            <input type="text" formControlName="description"
+                                   class="w-full h-9 px-3 border border-slate-200 rounded-lg text-sm text-slate-500 placeholder:text-slate-300 focus:border-[#0056D2] focus:ring-1 focus:ring-[#0056D2]/20 outline-none transition-colors"
+                                   placeholder="Mô tả hướng dẫn (tuỳ chọn)..."/>
+                          </div>
+                          <!-- Weight input -->
+                          <div class="flex items-center gap-3">
+                            <label class="text-xs font-medium text-slate-500">Trọng số</label>
                             <div class="flex items-center gap-1">
                               <input type="number" formControlName="weight" min="0" max="100"
-                                     class="w-14 h-8 text-center text-sm font-bold text-slate-900 border border-slate-200 rounded-lg focus:border-[#0056D2] focus:ring-1 focus:ring-[#0056D2]/20 outline-none transition-colors"/>
+                                     class="w-16 h-8 text-center text-sm font-bold text-slate-900 border border-slate-200 rounded-lg focus:border-[#0056D2] focus:ring-1 focus:ring-[#0056D2]/20 outline-none transition-colors"/>
                               <span class="text-xs text-slate-400">%</span>
                             </div>
                           </div>
-                          <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity pt-5">
-                            <button type="button" (click)="duplicateCriterion(i)" title="Nhân bản"
-                                    class="w-7 h-7 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg flex items-center justify-center transition-colors">
-                              <lucide-icon name="copy" [size]="13"></lucide-icon>
-                            </button>
-                            <button type="button" (click)="removeCriterion(i)" title="Xóa"
-                                    class="w-7 h-7 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg flex items-center justify-center transition-colors">
-                              <lucide-icon name="trash-2" [size]="13"></lucide-icon>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      <!-- Levels Grid -->
-                      <div class="bg-slate-50 rounded-lg p-3 border border-slate-100">
-                        <div class="flex items-center justify-between mb-2.5">
-                          <span class="text-xs font-medium text-slate-500 flex items-center gap-1.5">
-                            <lucide-icon name="bar-chart-2" [size]="11"></lucide-icon>
-                            Thang điểm
-                          </span>
-                          <div class="flex items-center gap-3">
-                            <button type="button" (click)="autoPopulateScores(i)"
-                                    class="text-xs text-slate-400 hover:text-emerald-600 flex items-center gap-1 transition-colors">
-                              <lucide-icon name="target" [size]="11"></lucide-icon>
-                              Tự động tính
-                            </button>
-                            <button type="button" (click)="addLevel(i)"
-                                    class="text-xs text-[#0056D2] hover:text-[#004BB5] flex items-center gap-1 transition-colors font-medium">
-                              <lucide-icon name="plus" [size]="11"></lucide-icon>
-                              Thêm mức
-                            </button>
-                          </div>
-                        </div>
-                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2" formArrayName="levels">
-                          @for (level of getLevelsArray(i).controls; track $index; let j = $index) {
-                            <div class="relative bg-white border border-slate-200 rounded-lg p-2.5 group/level hover:border-[#0056D2]/30 transition-colors"
-                                 [formGroupName]="j">
-                              <button type="button" (click)="removeLevel(i, j)"
-                                      class="absolute top-1 right-1 w-5 h-5 text-slate-300 hover:text-rose-500 rounded flex items-center justify-center transition-colors opacity-0 group-hover/level:opacity-100">
-                                <lucide-icon name="x" [size]="10"></lucide-icon>
-                              </button>
-                              <div class="flex items-center gap-1.5 mb-1.5">
-                                <input type="number" formControlName="points" min="0"
-                                       class="w-11 h-7 text-center text-xs font-bold text-[#0056D2] border border-slate-200 rounded focus:border-[#0056D2] focus:ring-1 focus:ring-[#0056D2]/10 outline-none transition-colors"/>
-                                <span class="text-[10px] text-slate-400">đ</span>
+                          <!-- Levels Grid -->
+                          <div class="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                            <div class="flex items-center justify-between mb-2.5">
+                              <span class="text-xs font-medium text-slate-500 flex items-center gap-1.5">
+                                <lucide-icon name="bar-chart" [size]="11"></lucide-icon>
+                                Thang điểm
+                              </span>
+                              <div class="flex items-center gap-3">
+                                <button type="button" (click)="autoPopulateScores(i)"
+                                        class="text-xs text-slate-400 hover:text-emerald-600 flex items-center gap-1 transition-colors">
+                                  <lucide-icon name="target" [size]="11"></lucide-icon>
+                                  Tự động
+                                </button>
+                                <button type="button" (click)="addLevel(i)"
+                                        class="text-xs text-[#0056D2] hover:text-[#004BB5] flex items-center gap-1 transition-colors font-medium">
+                                  <lucide-icon name="plus" [size]="11"></lucide-icon>
+                                  Thêm mức
+                                </button>
                               </div>
-                              <input type="text" formControlName="name"
-                                     class="w-full text-xs font-medium text-slate-700 placeholder:text-slate-300 border-none bg-transparent focus:ring-0 outline-none p-0"
-                                     placeholder="Tên mức *"/>
                             </div>
-                          }
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" formArrayName="levels">
+                              @for (level of getLevelsArray(i).controls; track $index; let j = $index) {
+                                <div class="relative bg-white border border-slate-200 rounded-lg p-2.5 group/level hover:border-[#0056D2]/30 transition-colors"
+                                     [formGroupName]="j">
+                                  <button type="button" (click)="removeLevel(i, j)"
+                                          class="absolute top-1 right-1 w-5 h-5 text-slate-300 hover:text-rose-500 rounded flex items-center justify-center transition-colors opacity-0 group-hover/level:opacity-100">
+                                    <lucide-icon name="x" [size]="10"></lucide-icon>
+                                  </button>
+                                  <div class="flex items-center gap-1.5 mb-1.5">
+                                    <input type="number" formControlName="points" min="0"
+                                           class="w-11 h-7 text-center text-xs font-bold text-[#0056D2] border border-slate-200 rounded focus:border-[#0056D2] focus:ring-1 focus:ring-[#0056D2]/10 outline-none transition-colors"/>
+                                    <span class="text-[10px] text-slate-400">đ</span>
+                                  </div>
+                                  <input type="text" formControlName="name"
+                                         class="w-full text-xs font-medium text-slate-700 placeholder:text-slate-300 border-none bg-transparent focus:ring-0 outline-none p-0"
+                                         placeholder="Tên mức *"/>
+                                </div>
+                              }
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      }
                     </div>
                   }
                 </div>
               }
+
+              <!-- Quick Add input -->
+              <div class="mt-3 flex items-center gap-2">
+                <div class="flex-1 relative">
+                  <input #quickAddInput
+                         type="text"
+                         placeholder="Nhập tên tiêu chí mới rồi nhấn Enter..."
+                         (keydown.enter)="addByName(quickAddInput); $event.preventDefault()"
+                         class="w-full h-10 pl-4 pr-10 border border-dashed border-slate-300 rounded-lg text-sm text-slate-700 placeholder:text-slate-400 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10 outline-none transition-all bg-slate-50 hover:bg-white focus:bg-white"/>
+                  <lucide-icon name="plus" [size]="14" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></lucide-icon>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -341,20 +472,62 @@ import { RubricApi } from '../../../api/endpoints/rubric.api';
           Rubric đã được tạo thành công!
         </div>
       }
+
+      <!-- Template Dialog -->
+      @if (showTemplateDialog()) {
+        <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
+          <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-100">
+              <h2 class="text-lg font-bold text-slate-900">Bắt đầu với</h2>
+              <p class="text-sm text-slate-500 mt-1">Chọn mẫu có sẵn hoặc tạo từ đầu</p>
+            </div>
+            <div class="p-6">
+              <div class="grid grid-cols-2 gap-3 mb-4">
+                @for (t of templates; track t.id) {
+                  <button type="button" (click)="loadTemplate(t)"
+                          class="flex items-start gap-3 p-4 rounded-xl border-2 border-slate-200 hover:border-[#0056D2] hover:bg-[#0056D2]/5 transition-all text-left group">
+                    <span class="text-2xl">{{ t.icon }}</span>
+                    <div>
+                      <p class="text-sm font-semibold text-slate-800 group-hover:text-[#0056D2]">{{ t.name }}</p>
+                      <p class="text-xs text-slate-400 mt-0.5">{{ t.criteria.length }} tiêu chí</p>
+                    </div>
+                  </button>
+                }
+              </div>
+              <button type="button" (click)="startFromScratch()"
+                      class="w-full py-2.5 text-sm text-slate-500 border border-dashed border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium">
+                Tạo từ đầu (trống)
+              </button>
+            </div>
+          </div>
+        </div>
+      }
     </div>
   `
 })
-export class RubricCreatorComponent implements OnInit {
+export class RubricCreatorComponent {
   protected Math = Math;
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private rubricApi = inject(RubricApi);
 
+  // ─── State signals ─────────────────────────────────────────────────────────
   saving = signal(false);
   error = signal<string | null>(null);
   showPreview = signal(false);
   success = signal(false);
+  showTemplateDialog = signal(true);
+  expandedIndex = signal<number | null>(null);
+  draggingIndex = signal<number | null>(null);
 
+  // ─── Constants exposed to template ─────────────────────────────────────────
+  segmentColors = SEGMENT_COLORS;
+  templates = RUBRIC_TEMPLATES;
+
+  // ─── ViewChild ─────────────────────────────────────────────────────────────
+  weightBar = viewChild<ElementRef>('weightBar');
+
+  // ─── Form ───────────────────────────────────────────────────────────────────
   rubricForm = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(3)]],
     description: [''],
@@ -367,6 +540,7 @@ export class RubricCreatorComponent implements OnInit {
 
   private criteriaValue = toSignal(this.criteriaArray.valueChanges, { initialValue: this.criteriaArray.value });
 
+  // ─── Computed ───────────────────────────────────────────────────────────────
   totalWeight = computed(() => {
     const criteria = this.criteriaValue() as { weight: number | null }[];
     return (criteria || []).reduce((sum, c) => sum + (Number(c.weight) || 0), 0);
@@ -388,12 +562,140 @@ export class RubricCreatorComponent implements OnInit {
     return (richest.levels || []).map((l: any) => l.name || 'Mức độ');
   });
 
-  ngOnInit(): void {
-    if (this.criteriaArray.length === 0) {
-      this.addCriterion();
+  weightSegments = computed(() => {
+    const criteria = this.criteriaValue() as { name: string; weight: number }[];
+    return (criteria || []).map((c, i) => ({
+      name: c.name || `Tiêu chí ${i + 1}`,
+      weight: Math.max(0, Number(c.weight) || 0),
+      color: SEGMENT_COLORS[i % SEGMENT_COLORS.length]
+    }));
+  });
+
+  // Cumulative positions for handles (N-1 handles for N segments)
+  handlePositions = computed(() => {
+    const segs = this.weightSegments();
+    const positions: number[] = [];
+    let cum = 0;
+    for (let i = 0; i < segs.length - 1; i++) {
+      cum += segs[i].weight;
+      positions.push(Math.min(cum, 100));
     }
+    return positions;
+  });
+
+
+  // ─── Template selection ─────────────────────────────────────────────────────
+  loadTemplate(template: typeof RUBRIC_TEMPLATES[0]): void {
+    while (this.criteriaArray.length) this.criteriaArray.removeAt(0);
+    template.criteria.forEach(c => {
+      const group = this.fb.group({
+        id: [generateRubricId('criterion')],
+        name: [c.name, Validators.required],
+        description: [''],
+        weight: [c.weight, [Validators.required, Validators.min(0), Validators.max(100)]],
+        levels: this.fb.array([
+          this.createLevelFormGroup('Xuất sắc', 10),
+          this.createLevelFormGroup('Đạt yêu cầu', 7),
+          this.createLevelFormGroup('Cần cải thiện', 4)
+        ])
+      });
+      this.criteriaArray.push(group);
+    });
+    this.showTemplateDialog.set(false);
   }
 
+  startFromScratch(): void {
+    this.showTemplateDialog.set(false);
+    if (this.criteriaArray.length === 0) this.addCriterion();
+  }
+
+  // ─── Quick Add ──────────────────────────────────────────────────────────────
+  addByName(input: HTMLInputElement): void {
+    const name = input.value.trim();
+    if (!name) return;
+    const criterionGroup = this.fb.group({
+      id: [generateRubricId('criterion')],
+      name: [name, Validators.required],
+      description: [''],
+      weight: [0, [Validators.required, Validators.min(0), Validators.max(100)]],
+      levels: this.fb.array([
+        this.createLevelFormGroup('Xuất sắc', 10),
+        this.createLevelFormGroup('Đạt yêu cầu', 7),
+        this.createLevelFormGroup('Cần cải thiện', 4)
+      ])
+    });
+    this.criteriaArray.push(criterionGroup);
+    this.redistributeWeightsEvenly();
+    this.expandedIndex.set(this.criteriaArray.length - 1);
+    input.value = '';
+    input.focus();
+  }
+
+  redistributeWeightsEvenly(): void {
+    const n = this.criteriaArray.length;
+    if (n === 0) return;
+    const base = Math.floor(100 / n);
+    const rem = 100 - base * n;
+    for (let i = 0; i < n; i++) {
+      this.criteriaArray.at(i).get('weight')?.setValue(i === 0 ? base + rem : base, { emitEvent: false });
+    }
+    this.criteriaArray.updateValueAndValidity();
+  }
+
+  // ─── Collapse/Expand ────────────────────────────────────────────────────────
+  toggleExpand(index: number): void {
+    this.expandedIndex.update(v => v === index ? null : index);
+  }
+
+  // ─── Drag & Drop weight bar ─────────────────────────────────────────────────
+  startDrag(event: PointerEvent, handleIndex: number): void {
+    event.preventDefault();
+    this.draggingIndex.set(handleIndex);
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+  }
+
+  onDrag(event: PointerEvent): void {
+    const idx = this.draggingIndex();
+    if (idx === null) return;
+    const bar = this.weightBar()?.nativeElement as HTMLElement;
+    if (!bar) return;
+
+    const rect = bar.getBoundingClientRect();
+    const raw = ((event.clientX - rect.left) / rect.width) * 100;
+    // Snap to 5% by default; hold Shift for 1% precision
+    let pct = event.shiftKey ? Math.round(raw) : Math.round(raw / 5) * 5;
+
+    // Clamp: keep MIN_WEIGHT (5%) for each segment
+    const MIN = 5;
+    const positions = this.handlePositions();
+    const left = idx > 0 ? positions[idx - 1] + MIN : MIN;
+    const right = idx < positions.length - 1 ? positions[idx + 1] - MIN : 100 - MIN;
+    pct = Math.max(left, Math.min(right, pct));
+
+    const newPositions = [...positions];
+    newPositions[idx] = pct;
+    this.applyHandlePositions(newPositions);
+  }
+
+  endDrag(event: PointerEvent): void {
+    this.draggingIndex.set(null);
+    (event.currentTarget as HTMLElement).releasePointerCapture(event.pointerId);
+  }
+
+  private applyHandlePositions(positions: number[]): void {
+    const n = this.criteriaArray.length;
+    for (let i = 0; i < n; i++) {
+      let w: number;
+      if (n === 1) w = 100;
+      else if (i === 0) w = positions[0];
+      else if (i === n - 1) w = 100 - positions[n - 2];
+      else w = positions[i] - positions[i - 1];
+      this.criteriaArray.at(i).get('weight')?.setValue(Math.round(w), { emitEvent: false });
+    }
+    this.criteriaArray.updateValueAndValidity();
+  }
+
+  // ─── Existing methods (preserved) ───────────────────────────────────────────
   getLevelsArray(criterionIndex: number): FormArray {
     return this.criteriaArray.at(criterionIndex).get('levels') as FormArray;
   }
@@ -428,6 +730,12 @@ export class RubricCreatorComponent implements OnInit {
 
   removeCriterion(index: number): void {
     this.criteriaArray.removeAt(index);
+    if (this.expandedIndex() === index) {
+      this.expandedIndex.set(null);
+    } else if ((this.expandedIndex() ?? 0) > index) {
+      this.expandedIndex.update(v => (v ?? 0) - 1);
+    }
+    this.redistributeWeightsEvenly();
   }
 
   addLevel(criterionIndex: number): void {
