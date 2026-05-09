@@ -37,9 +37,11 @@ export class SidebarStateService {
 ### Initialisation
 
 1. On construction, signals start with defaults: `collapsed=false`, `mobileOpen=false`, `hidden=false`.
-2. The service uses `afterNextRender` (Angular 20 SSR-safe) to:
-   - Read `localStorage['sidebar:collapsed']` if present and parse to boolean.
-   - Update the `collapsed` signal to the parsed value.
+2. The service uses `isPlatformBrowser(inject(PLATFORM_ID))` to gate browser-only initialisation in the constructor. When in the browser, it synchronously:
+   - Reads `localStorage['sidebar:collapsed']` if present and parses to boolean.
+   - Updates the `collapsed` signal to the parsed value.
+   - Registers the storage-event listener on `window`.
+   localStorage is DOM-independent, so deferring to a render hook is unnecessary.
 3. If `localStorage` is unavailable or the key is absent / invalid, the signal stays at the default `false`.
 
 ### `toggleCollapsed()`
@@ -92,7 +94,7 @@ Behaviour:
 This service is provided at the root and may be instantiated during server render. Constraints:
 
 - Constructor MUST NOT touch `window` or `localStorage` directly.
-- All browser-only logic (localStorage read, storage listener registration) MUST be guarded behind `afterNextRender` or `isPlatformBrowser(inject(PLATFORM_ID))`.
+- All browser-only logic (localStorage read, storage listener registration) MUST be guarded behind `isPlatformBrowser(inject(PLATFORM_ID))`.
 - Tests MUST exercise both branches (browser path and SSR path).
 
 ---

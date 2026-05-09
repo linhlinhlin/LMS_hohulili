@@ -18,7 +18,9 @@ import { SIDEBAR_STORAGE_KEY } from '../components/navigation/sidebar.tokens';
  * - `mobileOpen` — mobile drawer visible; ephemeral per tab.
  * - `hidden` — sidebar fully suppressed (full-bleed routes); ephemeral.
  *
- * SSR-safe: localStorage + storage listener registration deferred to afterNextRender.
+ * SSR-safe: isPlatformBrowser gate in the constructor skips localStorage hydration
+ * and the storage-event listener on the server. localStorage is DOM-independent,
+ * so synchronous registration in the browser is sufficient.
  * Cross-tab sync: window.storage event keeps every tab in sync without reload.
  *
  * Contract: see specs/001-sidebar-redesign/contracts/sidebar-state-service.md
