@@ -3,7 +3,9 @@ import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, 
 import { RouterModule, RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../../../core/services/auth.service';
+import { SidebarStateService } from '../../../../shared/services/sidebar-state.service';
 import { SidebarComponent } from '../../../../shared/components/navigation/sidebar.component';
+import { SkipLinkComponent } from '../../../../shared/components/skip-link/skip-link.component';
 import { getSidebarConfig } from '../../../../shared/components/navigation/sidebar.config';
 import { ChatPanelComponent } from '../../../ai-chat/presentation/components/chat-panel/chat-panel.component';
 import { FloatingChatBubbleComponent } from '../../../ai-chat/presentation/components/floating-chat-bubble/floating-chat-bubble.component';
@@ -11,18 +13,20 @@ import { AiAvailabilityService } from '../../../ai-chat/application/services/ai-
 
 @Component({
   selector: 'app-admin-layout-simple',
-  imports: [RouterModule, RouterOutlet, SidebarComponent, ChatPanelComponent, FloatingChatBubbleComponent],
+  imports: [RouterModule, RouterOutlet, SidebarComponent, ChatPanelComponent, FloatingChatBubbleComponent, SkipLinkComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="min-h-screen flex">
+      <!-- WCAG 2.4.1 Bypass Blocks — first focusable element jumps to <main>. -->
+      <app-skip-link/>
       <!-- Desktop Sidebar -->
       @if (!shouldHideSidebar()) {
         <div class="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-50"
-             [class.lg:w-16]="isSidebarCollapsed()"
-             [class.lg:w-72]="!isSidebarCollapsed()">
+             [class.lg:w-16]="sidebarState.collapsed()"
+             [class.lg:w-72]="!sidebarState.collapsed()">
           <app-sidebar [config]="adminSidebarConfig"
-                       [collapsed]="isSidebarCollapsed()"
-                       (toggleCollapse)="toggleSidebarCollapse()"></app-sidebar>
+                       [collapsed]="sidebarState.collapsed()"
+                       (toggleCollapse)="sidebarState.toggleCollapsed()"></app-sidebar>
         </div>
       }
 
@@ -54,8 +58,8 @@ import { AiAvailabilityService } from '../../../ai-chat/application/services/ai-
 
       <!-- Main content + AI Sidebar wrapper -->
       <div class="flex flex-1 min-w-0 min-h-screen"
-           [class.lg:pl-16]="!shouldHideSidebar() && isSidebarCollapsed()"
-           [class.lg:pl-72]="!shouldHideSidebar() && !isSidebarCollapsed()">
+           [class.lg:pl-16]="!shouldHideSidebar() && sidebarState.collapsed()"
+           [class.lg:pl-72]="!shouldHideSidebar() && !sidebarState.collapsed()">
 
         <!-- Main content column -->
         <div class="flex flex-col flex-1 min-w-0">
@@ -88,7 +92,7 @@ import { AiAvailabilityService } from '../../../ai-chat/application/services/ai-
           }
 
           <!-- Page content -->
-          <main class="flex-1">
+          <main id="main-content" tabindex="-1" class="flex-1">
             <router-outlet></router-outlet>
           </main>
         </div>
@@ -298,11 +302,11 @@ export class AdminLayoutSimpleComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   protected isMobileSidebarOpen = signal(false);
 
-  // CC-04 — sidebar collapse parity với teacher / student. Persisted in
-  // localStorage under `admin_sidebar_collapsed` (separate key per portal
-  // so an admin's preference doesn't leak into other portals nếu cùng
-  // user role-switch).
-  protected isSidebarCollapsed = signal(false);
+  /** Sidebar collapsed/mobileOpen/hidden state — single source of truth shared
+   *  across all 4 portals via SidebarStateService (signals + localStorage +
+   *  cross-tab sync). Replaces the old per-portal `admin_sidebar_collapsed`
+   *  localStorage key. Per spec FR-005 — one storage entry across roles. */
+  protected sidebarState = inject(SidebarStateService);
 
   // Sidebar config — use shared config based on user role
   protected get adminSidebarConfig() {
@@ -341,7 +345,6 @@ export class AdminLayoutSimpleComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
-    this.loadSidebarCollapsed();
     this.loadAiSidebarState();
     this.loadAiSidebarWidth();
 
@@ -375,26 +378,6 @@ export class AdminLayoutSimpleComponent implements OnInit, OnDestroy {
    *  close button + Escape handler in the drawer template. Per spec FR-012. */
   closeMobileSidebar(): void {
     this.isMobileSidebarOpen.set(false);
-  }
-
-  toggleSidebarCollapse(): void {
-    this.isSidebarCollapsed.update(v => !v);
-    try {
-      localStorage?.setItem('admin_sidebar_collapsed', this.isSidebarCollapsed().toString());
-    } catch {
-      // Storage may be disabled in private mode — silently ignore.
-    }
-  }
-
-  private loadSidebarCollapsed(): void {
-    try {
-      const saved = localStorage?.getItem('admin_sidebar_collapsed');
-      if (saved !== null && saved !== undefined) {
-        this.isSidebarCollapsed.set(saved === 'true');
-      }
-    } catch {
-      // ignore
-    }
   }
 
   // --- AI Sidebar ---

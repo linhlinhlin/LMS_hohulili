@@ -302,4 +302,10 @@ export class SidebarComponent implements OnInit, OnDestroy {
     if (item.alsoActiveFor?.some(prefix => url.startsWith(prefix))) return true;
     return false;
   }
+
+  /** Stable, unique-per-item DOM id for aria-controls / id linkage. Routes
+   *  contain slashes which are not valid in HTML ids; this slugifies them. */
+  protected itemDomId(item: SidebarMenuItem): string {
+    return 'nav-' + (item.route || item.label).replace(/[^a-z0-9]/gi, '-').toLowerCase();
+  }
 }
