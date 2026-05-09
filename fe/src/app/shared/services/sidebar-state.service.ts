@@ -6,11 +6,9 @@ import {
   computed,
   inject,
   signal,
-  afterNextRender,
   DestroyRef,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SIDEBAR_STORAGE_KEY } from '../components/navigation/sidebar.tokens';
 
 /**
@@ -42,12 +40,13 @@ export class SidebarStateService {
   private storageListener: ((e: StorageEvent) => void) | null = null;
 
   constructor() {
-    // SSR: defer browser-only logic until after first render to avoid touching
-    // window/localStorage during server render. afterNextRender is no-op on server.
-    afterNextRender(() => {
+    // SSR-safe: isPlatformBrowser gate skips both branches on server. localStorage
+    // does not depend on DOM, so we can hydrate + register listener synchronously
+    // in the browser without waiting for first render.
+    if (isPlatformBrowser(this.platformId)) {
       this.hydrateFromStorage();
       this.registerStorageListener();
-    });
+    }
 
     this.destroyRef.onDestroy(() => this.unregisterStorageListener());
   }

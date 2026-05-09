@@ -69,19 +69,19 @@ describe('SidebarStateService', () => {
 
   it('ignores storage events whose newValue matches current state (no feedback loop)', () => {
     const svc = createService();
-    // Already false; dispatching false-matching event should be a no-op
-    let emissionCount = 0;
-    const sub = (TestBed.runInInjectionContext(() => svc.collapsed) as any);
-    // Use effect-like watch indirectly — track via getter spy
-    const getter = spyOnProperty(svc, 'collapsed', 'get').and.callThrough();
+    // svc.collapsed() is a readonly signal, not a property getter — assert
+    // no-op by side effect: state stays the same and no localStorage write
+    // would result from this branch (no internal re-set).
+    expect(svc.collapsed()).toBe(false);
+    const writeSpy = spyOn(localStorage, 'setItem').and.callThrough();
     window.dispatchEvent(
       new StorageEvent('storage', {
         key: SIDEBAR_STORAGE_KEY,
-        newValue: 'false',
+        newValue: 'false', // matches current
       }),
     );
     expect(svc.collapsed()).toBe(false);
-    // No change → ok
+    expect(writeSpy).not.toHaveBeenCalled();
   });
 
   it('ignores storage events with newValue=null (key deleted)', () => {
