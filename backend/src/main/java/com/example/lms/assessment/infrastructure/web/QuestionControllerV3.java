@@ -52,7 +52,8 @@ public class QuestionControllerV3 {
             String tags,
             String correctOption,
             String createdAt,
-            String status
+            String status,
+            Integer imoCourseId
     ) {}
 
     public record QuestionDetailResponse(
@@ -67,7 +68,8 @@ public class QuestionControllerV3 {
             String createdAt,
             String updatedAt,
             String status,
-            List<QuestionOptionResponse> options
+            List<QuestionOptionResponse> options,
+            Integer imoCourseId
     ) {}
 
     public record QuestionOptionResponse(
@@ -135,7 +137,8 @@ public class QuestionControllerV3 {
             List<List<ContentBlock>> optionBlocks,
             Question.Difficulty difficulty,
             String tags,
-            Question.Status status
+            Question.Status status,
+            Integer imoCourseId
     ) {}
 
     @DeleteMapping("/{id}")
@@ -260,6 +263,7 @@ public class QuestionControllerV3 {
                 .answerKey(answerKey)
                 .createdBy(userId)
                 .packageId(request.packageId())
+                .imoCourseId(request.imoCourseId())
                 .options(optionCommands)
                 .build();
     }
@@ -307,7 +311,8 @@ public class QuestionControllerV3 {
                 optionCommands,
                 request.difficulty(),
                 request.tags(),
-                request.status()
+                request.status(),
+                request.imoCourseId()
         );
     }
 
@@ -322,7 +327,8 @@ public class QuestionControllerV3 {
             QuestionJpaEntity.Difficulty difficulty,
             String tags,
             @NotNull(message = "Mã gói câu hỏi không được để trống")
-            UUID packageId
+            UUID packageId,
+            Integer imoCourseId
     ) {}
 
     // ===================== EXCEL IMPORT =====================
@@ -769,7 +775,8 @@ public class QuestionControllerV3 {
                 q.getTags(),
                 q.getCorrectOption(),
                 q.getCreatedAt() != null ? q.getCreatedAt().toString() : null,
-                q.getStatus() != null ? q.getStatus().name() : "ACTIVE"
+                q.getStatus() != null ? q.getStatus().name() : "ACTIVE",
+                q.getImoCourseId()
         );
     }
 
@@ -800,7 +807,8 @@ public class QuestionControllerV3 {
                 q.getCreatedAt() != null ? q.getCreatedAt().toString() : null,
                 q.getUpdatedAt() != null ? q.getUpdatedAt().toString() : null,
                 q.getStatus() != null ? q.getStatus().name() : "ACTIVE",
-                optionResponses
+                optionResponses,
+                q.getImoCourseId()
         );
     }
 
@@ -909,6 +917,43 @@ public class QuestionControllerV3 {
     }
 
     // ============== Ownership Helpers ==============
+
+    // ============== Bulk assign IMO ==============
+
+    @PutMapping("/bulk-assign-imo")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @Transactional
+    @Operation(summary = "Bulk assign IMO Model Course to questions")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> bulkAssignImo(
+            @RequestBody BulkAssignImoRequest request,
+            @AuthenticationPrincipal UserJpaEntity user) {
+
+        if (request.questionIds() == null || request.questionIds().isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.success(Map.of("updated", 0, "message", "Không có câu hỏi nào")));
+        }
+
+        List<com.example.lms.assessment.infrastructure.persistence.entity.QuestionJpaEntity> entities =
+                questionJpaRepository.findAllById(request.questionIds());
+
+        // Ownership check: non-admins can only modify their own questions
+        if (!isAdminRole(user)) {
+            boolean ownsAll = entities.stream().allMatch(q ->
+                    q.getCreatedBy() != null && q.getCreatedBy().equals(user.getId()));
+            if (!ownsAll) {
+                throw new AccessDeniedException("Bạn chỉ có thể chỉnh sửa câu hỏi của mình");
+            }
+        }
+
+        entities.forEach(q -> q.setImoCourseId(request.imoCourseId()));
+        questionJpaRepository.saveAll(entities);
+
+        String msg = request.imoCourseId() != null
+                ? "Đã gán IMO course cho " + entities.size() + " câu hỏi"
+                : "Đã bỏ gán IMO course cho " + entities.size() + " câu hỏi";
+        return ResponseEntity.ok(ApiResponse.success(Map.of("updated", entities.size(), "message", msg)));
+    }
+
+    public record BulkAssignImoRequest(List<UUID> questionIds, Integer imoCourseId) {}
 
     private boolean isAdminRole(UserJpaEntity user) {
         return user.getRole() == UserJpaEntity.UserRole.ADMIN;

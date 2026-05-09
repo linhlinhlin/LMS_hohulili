@@ -531,11 +531,47 @@
               </div>
             </div>
 
+            <!-- IMO Model Course filter -->
+            @if (imoGroupedEntries().length > 0) {
+              <div class="relative">
+                <select [(ngModel)]="filters.imoFilter" (ngModelChange)="filterQuestions()"
+                  [ngClass]="filters.imoFilter ? 'border-[#0056D2] text-[#0056D2] bg-[#0056D2]/5' : 'border-gray-200 text-gray-700 bg-white hover:border-gray-300'"
+                  class="appearance-none rounded-lg border py-2 pl-3.5 pr-8 text-sm font-medium outline-none transition-colors focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 whitespace-nowrap">
+                  <option value="">IMO Course</option>
+                  <option value="none">— Chưa phân loại</option>
+                  @for (entry of imoGroupedEntries(); track entry[0]) {
+                    <optgroup [label]="entry[0]">
+                      @for (course of entry[1]; track course.id) {
+                        <option [value]="course.id">{{ course.code }}</option>
+                      }
+                    </optgroup>
+                  }
+                </select>
+                <div class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2">
+                  <lucide-icon name="chevron-down" [size]="12" class="text-gray-400"></lucide-icon>
+                </div>
+              </div>
+            }
+
             @if (getActiveQuestionFilterCount() > 0) {
               <button type="button" (click)="clearQuestionFilters(); filterQuestions()"
                 class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-gray-300">
                 <lucide-icon name="rotate-ccw" [size]="14"></lucide-icon>
                 Xóa lọc
+              </button>
+            }
+
+            <!-- IMO stats toggle -->
+            @if (selectedBank()) {
+              <button type="button" (click)="toggleImoStats()"
+                class="flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors"
+                [class.border-[#1a2f5e]]="showImoStats()"
+                [class.bg-[#1a2f5e]]="showImoStats()"
+                [class.text-white]="showImoStats()"
+                [class.border-gray-200]="!showImoStats()"
+                [class.text-gray-600]="!showImoStats()">
+                <lucide-icon name="bar-chart-2" [size]="13"></lucide-icon>
+                Thống kê IMO
               </button>
             }
 
@@ -585,7 +621,53 @@
                 </button>
               </span>
             }
+            @if (filters.imoFilter) {
+              <span class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium text-white" style="background-color:#1a2f5e; border-color:#1a2f5e">
+                IMO: {{ filters.imoFilter === 'none' ? 'Chưa phân loại' : getImoCourseCode(+filters.imoFilter) }}
+                <button (click)="filters.imoFilter = ''; filterQuestions()" class="hover:opacity-70 transition-opacity">
+                  <lucide-icon name="x" [size]="12"></lucide-icon>
+                </button>
+              </span>
+            }
             <button (click)="clearQuestionFilters(); filterQuestions()" class="text-xs text-gray-500 hover:text-red-500 transition-colors">Xóa tất cả</button>
+          </div>
+        }
+
+        <!-- IMO Stats Panel -->
+        @if (showImoStats()) {
+          <div class="border-b border-gray-100 bg-slate-50 px-4 py-3">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold text-gray-700">Thống kê IMO Model Course</span>
+              @if (imoStatsTotal() > 0) {
+                <span class="text-[11px] text-gray-400">Tổng {{ imoStatsTotal() }} câu · {{ imoStatsCoursesWithQuestions() }}/15 courses có câu hỏi</span>
+              }
+            </div>
+            @if (loadingImoStats()) {
+              <div class="flex items-center gap-2 text-xs text-gray-400 py-2">
+                <lucide-icon name="loader" [size]="14" class="animate-spin"></lucide-icon>
+                Đang tải thống kê...
+              </div>
+            } @else if (!imoStats().length) {
+              <p class="text-xs text-gray-400 py-1">Không có dữ liệu thống kê.</p>
+            } @else {
+              <div class="space-y-1.5">
+                @for (stat of imoStats(); track stat.imoCourseId) {
+                  <button type="button" (click)="filterByImoFromStats(stat.imoCourseId)"
+                    class="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs hover:bg-white transition-colors group">
+                    <span class="w-28 shrink-0 truncate font-medium text-gray-700 group-hover:text-[#0056D2]">
+                      @if (stat.code) { {{ stat.code }} } @else { Chưa phân loại }
+                    </span>
+                    <div class="relative flex-1 h-2 rounded-full bg-gray-200 overflow-hidden">
+                      <div class="absolute inset-y-0 left-0 rounded-full transition-all"
+                           [style.width.%]="imoStatsTotal() > 0 ? (stat.count / imoStatsTotal() * 100) : 0"
+                           [style.background-color]="stat.code ? '#1a2f5e' : '#6b7280'">
+                      </div>
+                    </div>
+                    <span class="w-12 shrink-0 text-right text-gray-500">{{ stat.count }} câu</span>
+                  </button>
+                }
+              </div>
+            }
           </div>
         }
 
@@ -662,8 +744,17 @@
                        [class.text-gray-800]="!!$any(question).content">
                     {{ $any(question).content | stripHtml:100 }}
                   </span>
-                  @if (rawTags.trim()) {
+                  @let imoCode = getImoCourseCode($any(question).imoCourseId);
+                  @let imoTitle = getImoCourseTitle($any(question).imoCourseId);
+                  @if (rawTags.trim() || imoCode) {
                     <div class="mt-1 flex flex-wrap gap-1">
+                      @if (imoCode) {
+                        <span class="inline-flex items-center gap-0.5 whitespace-nowrap rounded px-1.5 py-0.5 text-[9px] font-semibold text-white cursor-default"
+                              style="background-color:#1a2f5e"
+                              [title]="imoTitle ?? ''">
+                          IMO {{ imoCode }}
+                        </span>
+                      }
                       @for (tag of rawTags.split(','); track tag) {
                         @if (tag.trim()) {
                           <span class="whitespace-nowrap rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-medium text-gray-500">{{ tag.trim() }}</span>
@@ -804,6 +895,13 @@
               </div>
             }
           </div>
+        }
+        @if (isOwner() && imoGroupedEntries().length > 0) {
+          <button type="button" (click)="showBulkImoModal.set(true)"
+            class="flex h-7 items-center gap-1.5 rounded-md bg-white/10 px-3 text-xs font-medium text-white transition-colors hover:bg-white/20">
+            <lucide-icon name="ship" [size]="13"></lucide-icon>
+            Gán IMO Course
+          </button>
         }
         @if (isOwner()) {
           <button type="button" (click)="openMoveModal()"
@@ -1079,6 +1177,44 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+}
+
+<!-- Bulk assign IMO modal -->
+@if (showBulkImoModal()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+    (click)="showBulkImoModal.set(false)">
+    <div class="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl" (click)="$event.stopPropagation()">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-base font-semibold text-gray-900">Gán IMO Model Course</h3>
+        <button type="button" (click)="showBulkImoModal.set(false)" class="rounded-lg p-1 text-gray-400 hover:bg-gray-100">
+          <lucide-icon name="x" [size]="16"></lucide-icon>
+        </button>
+      </div>
+      <p class="text-sm text-gray-500 mb-4">Áp dụng cho <span class="font-semibold text-gray-800">{{ selectedQuestions().length }}</span> câu hỏi đã chọn.</p>
+      <div class="mb-5">
+        <label class="block text-xs font-medium text-gray-500 mb-1">IMO Model Course</label>
+        <select [(ngModel)]="bulkImoId" class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10 outline-none">
+          <option value="">— Bỏ gán (xóa IMO) —</option>
+          @for (entry of imoGroupedEntries(); track entry[0]) {
+            <optgroup [label]="entry[0]">
+              @for (course of entry[1]; track course.id) {
+                <option [value]="course.id">{{ course.code }} — {{ course.title }}</option>
+              }
+            </optgroup>
+          }
+        </select>
+      </div>
+      <div class="flex gap-3">
+        <button type="button" (click)="showBulkImoModal.set(false)"
+          class="h-9 flex-1 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">Hủy</button>
+        <button type="button" (click)="bulkAssignImo()" [disabled]="bulkAssigning()"
+          class="h-9 flex-1 rounded-lg text-sm font-semibold text-white transition-colors disabled:opacity-50"
+          style="background-color:#1a2f5e">
+          {{ bulkAssigning() ? 'Đang gán...' : 'Xác nhận' }}
+        </button>
+      </div>
     </div>
   </div>
 }

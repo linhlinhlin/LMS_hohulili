@@ -1,9 +1,11 @@
 
 import { Component, OnInit, signal, input, output, inject, viewChild, viewChildren, ChangeDetectionStrategy } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, FormArray, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { QuestionApi } from '../../../api/endpoints/question.api';
 import { QuestionBankApi } from '../../../api/endpoints/question-bank.api';
+import { ImoModelCourseApi, ImoModelCourse } from '../../../api/endpoints/imo-model-course.api';
 import { BlockEditorComponent } from '../../../shared/components/block-editor/block-editor.component';
 import { EnrichedInputFieldComponent } from '../../../shared/components/enriched-input/enriched-input.component';
 import { QuestionPreviewComponent } from '../../../shared/components/question-preview/question-preview.component';
@@ -15,10 +17,36 @@ import { ToastService } from '../../../core/services/toast.service';
 import { LucideAngularModule } from 'lucide-angular';
 import { firstValueFrom } from 'rxjs';
 
+const IMO_CATEGORY_VI: Record<string, string> = {
+  'Navigation':  'Hàng hải',
+  'Engineering': 'Kỹ thuật máy tàu',
+  'Safety':      'An toàn hàng hải',
+  'Cargo':       'Vận hành hàng hóa',
+  'GMDSS':       'GMDSS',
+};
+
+const IMO_TITLE_VI: Record<string, string> = {
+  '1.01': 'Mô phỏng Xử lý Hàng hóa và Dằn tàu — Tàu chở Dầu',
+  '1.02': 'Mô phỏng Xử lý Hàng hóa và Dằn tàu — Tàu chở Hóa chất',
+  '1.04': 'Mô phỏng Xử lý Hàng hóa và Dằn tàu — Tàu chở Khí hóa lỏng',
+  '1.07': 'Hàng hải bằng Radar, Vẽ đồ Radar và Sử dụng ARPA',
+  '1.08': 'Mô phỏng Radar',
+  '1.22': 'Mô phỏng tàu và Phối hợp nhóm trên Buồng lái',
+  '1.25': 'Chứng chỉ Khai thác viên Tổng quát GMDSS',
+  '1.27': 'Sử dụng Hệ thống Hiển thị Hải đồ Điện tử và Thông tin (ECDIS)',
+  '1.34': 'Sơ cứu Y tế',
+  '3.04': 'Sử dụng Mô phỏng Buồng máy',
+  '3.11': 'Kỹ thuật Điện, Điện tử và Điều khiển tàu biển',
+  '3.12': 'Công nghệ Điện hàng hải',
+  '6.09': 'Huấn luyện Cơ bản vận hành Hàng hóa Tàu Dầu và Tàu Hóa chất',
+  '6.10': 'Huấn luyện Nâng cao vận hành Hàng hóa Tàu Dầu',
+  '6.19': 'Huấn luyện Nhận thức An ninh Hàng hải và Thuyền viên Trực tiếp thực thi An ninh',
+};
+
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-question-create',
-  imports: [ReactiveFormsModule, LucideAngularModule, BlockEditorComponent, EnrichedInputFieldComponent, AuthImagePipe, QuestionPreviewComponent, DialogComponent],
+  imports: [ReactiveFormsModule, LucideAngularModule, BlockEditorComponent, EnrichedInputFieldComponent, AuthImagePipe, QuestionPreviewComponent, DialogComponent, CommonModule],
   templateUrl: './question-create.component.html',
   styles: [`@keyframes slideIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }`]
 })
@@ -66,6 +94,9 @@ export class QuestionCreateComponent implements OnInit {
   private readonly questionApi = inject(QuestionApi);
   private readonly toast = inject(ToastService);
   private readonly questionBankApi = inject(QuestionBankApi);
+  private readonly imoModelCourseApi = inject(ImoModelCourseApi);
+
+  imoCoursesGrouped = signal<Record<string, ImoModelCourse[]>>({});
 
   // Question type state
   selectedType = signal<'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'TRUE_FALSE'>('SINGLE_CHOICE');
@@ -76,6 +107,7 @@ export class QuestionCreateComponent implements OnInit {
       questionType: ['SINGLE_CHOICE', Validators.required],
       difficulty: ['MEDIUM', Validators.required],
       tags: [''],
+      imoCourseId: [null],
       options: this.fb.array([
         this.createOptionGroup('A'),
         this.createOptionGroup('B'),
@@ -99,6 +131,11 @@ export class QuestionCreateComponent implements OnInit {
         error: () => {}
       });
     }
+
+    this.imoModelCourseApi.getImoModelCourses().subscribe({
+      next: (res) => this.imoCoursesGrouped.set(res.grouped ?? {}),
+      error: () => {}
+    });
   }
 
   // --- Block Handlers ---
@@ -394,7 +431,8 @@ export class QuestionCreateComponent implements OnInit {
       tags: formValue.tags,
       courseId: this.courseId || undefined,
       packageId: this.packageId || undefined,
-      categoryId: this.categoryId || undefined
+      categoryId: this.categoryId || undefined,
+      imoCourseId: formValue.imoCourseId ? Number(formValue.imoCourseId) : null
     };
 
     this.questionApi.createQuestion(request).subscribe({
@@ -566,6 +604,18 @@ export class QuestionCreateComponent implements OnInit {
         queryParams: this.packageId ? { packageId: this.packageId } : {}
       });
     }
+  }
+
+  imoGroupedEntries(): [string, ImoModelCourse[]][] {
+    return Object.entries(this.imoCoursesGrouped());
+  }
+
+  imoCategoryLabel(cat: string): string {
+    return IMO_CATEGORY_VI[cat] ?? cat;
+  }
+
+  imoCourseLabel(course: ImoModelCourse): string {
+    return IMO_TITLE_VI[course.code] ?? course.title;
   }
 
   private normalizeInternalReturnUrl(returnUrl: string | null): string | null {

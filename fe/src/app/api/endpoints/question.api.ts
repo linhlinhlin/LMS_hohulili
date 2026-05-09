@@ -37,6 +37,7 @@ export interface Question {
   createdBy: UserSummary;
   createdAt: string;
   updatedAt: string;
+  imoCourseId?: number | null;
 }
 
 export interface GetQuestionsByIdsRequest {
@@ -56,6 +57,7 @@ export interface CreateQuestionRequest {
   categoryId?: string;
   blocks?: any[];
   optionBlocks?: any[][];
+  imoCourseId?: number | null;
 }
 
 export interface CreateQuestionResponse {
@@ -73,6 +75,7 @@ export interface UpdateQuestionRequest {
   tags: string;
   status: 'DRAFT' | 'ACTIVE' | 'INACTIVE';
   blocks?: any[];
+  imoCourseId?: number | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -189,6 +192,10 @@ export class QuestionApi {
     formData.append('difficulty', difficulty);
     return this.apiClient.post<QuestionImportResult>('/api/v3/questions/import/docx/confirm', formData)
       .pipe(map((r: any) => ({ ...(r?.data || r), errors: (r?.data || r)?.errors || [] } as QuestionImportResult)));
+  }
+
+  bulkAssignImo(questionIds: string[], imoCourseId: number | null) {
+    return this.apiClient.put<{ updated: number; message: string }>('/api/v3/questions/bulk-assign-imo', { questionIds, imoCourseId });
   }
 }
 

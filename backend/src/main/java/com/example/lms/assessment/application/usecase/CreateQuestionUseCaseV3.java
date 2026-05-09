@@ -57,6 +57,7 @@ public class CreateQuestionUseCaseV3 {
                 .createdBy(command.createdBy())
                 .packageId(command.packageId())
                 .categoryId(command.categoryId())
+                .imoCourseId(command.imoCourseId())
                 .options(domainOptions)
                 .build();
 
@@ -95,6 +96,7 @@ public class CreateQuestionUseCaseV3 {
         UUID createdBy,
         UUID packageId,
         UUID categoryId,
+        Integer imoCourseId,
         List<OptionCommand> options
     ) {}
 

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { QuestionApi, Question, QuestionImportResult } from '../../../api/endpoints/question.api';
+import { ImoModelCourseApi, ImoModelCourse } from '../../../api/endpoints/imo-model-course.api';
 import { QuestionBankApi } from '../../../api/endpoints/question-bank.api';
 import {
   QuestionBankDTO,
@@ -46,6 +47,18 @@ export class QuizBankComponent implements OnInit {
   private toast = inject(ToastService);
   private confirmDialog = inject(ConfirmDialogService);
   private authService = inject(AuthService);
+  private imoModelCourseApi = inject(ImoModelCourseApi);
+
+  imoCoursesAll = signal<ImoModelCourse[]>([]);
+  imoCoursesMap = signal<Map<number, { code: string; title: string }>>(new Map());
+  imoCoursesGrouped = computed<Record<string, ImoModelCourse[]>>(() => {
+    const grouped: Record<string, ImoModelCourse[]> = {};
+    for (const c of this.imoCoursesAll()) {
+      (grouped[c.category] ??= []).push(c);
+    }
+    return grouped;
+  });
+  imoGroupedEntries = computed<[string, ImoModelCourse[]][]>(() => Object.entries(this.imoCoursesGrouped()));
 
   // Ownership: true when the selected bank belongs to the current user (or no bank selected yet)
   isOwner = computed(() => {
@@ -113,7 +126,8 @@ export class QuizBankComponent implements OnInit {
     search: '',
     difficulty: '',
     categoryId: '',
-    tag: ''
+    tag: '',
+    imoFilter: ''   // '' = all, 'none' = unclassified, '3' = specific id
   };
 
   sortColumn = signal<string>('');
@@ -153,6 +167,18 @@ export class QuizBankComponent implements OnInit {
   // Bank list filters
   bankTypeFilter = signal<string>('');
   visibilityFilter = signal<string>('');
+
+  // Bulk assign IMO
+  showBulkImoModal = signal(false);
+  bulkImoId = '';
+  bulkAssigning = signal(false);
+
+  // IMO stats panel
+  showImoStats = signal(false);
+  imoStats = signal<{ imoCourseId: number | null; code: string | null; title: string; count: number }[]>([]);
+  imoStatsTotal = signal(0);
+  imoStatsCoursesWithQuestions = signal(0);
+  loadingImoStats = signal(false);
 
   // Public banks (Browse Community tab)
   bankTab = signal<'my' | 'public'>('my');
@@ -233,6 +259,28 @@ export class QuizBankComponent implements OnInit {
     });
 
     await this.loadBanks();
+
+    this.imoModelCourseApi.getImoModelCourses().subscribe({
+      next: (res) => {
+        const list = res.data ?? [];
+        this.imoCoursesAll.set(list);
+        const map = new Map<number, { code: string; title: string }>();
+        list.forEach(c => map.set(c.id, { code: c.code, title: c.title }));
+        this.imoCoursesMap.set(map);
+      },
+      error: () => {}
+    });
+  }
+
+  getImoCourseCode(imoCourseId: number | null | undefined): string | null {
+    if (!imoCourseId) return null;
+    return this.imoCoursesMap().get(imoCourseId)?.code ?? null;
+  }
+
+  getImoCourseTitle(imoCourseId: number | null | undefined): string | null {
+    if (!imoCourseId) return null;
+    const entry = this.imoCoursesMap().get(imoCourseId);
+    return entry ? `${entry.code} — ${entry.title}` : null;
   }
 
   async loadBanks() {
@@ -326,6 +374,8 @@ export class QuizBankComponent implements OnInit {
   async onBankChange() {
     this.showManageBankMenu.set(false);
     this.clearQuestionFilters();
+    this.showImoStats.set(false);
+    this.imoStats.set([]);
 
     if (this.selectedBankId() === 'ALL') {
       this.selectedBank.set(null);
@@ -428,6 +478,15 @@ export class QuizBankComponent implements OnInit {
       });
     }
 
+    if (this.filters.imoFilter) {
+      if (this.filters.imoFilter === 'none') {
+        filtered = filtered.filter(q => !(q as any).imoCourseId);
+      } else {
+        const id = Number(this.filters.imoFilter);
+        filtered = filtered.filter(q => (q as any).imoCourseId === id);
+      }
+    }
+
     // Apply column sort
     const col = this.sortColumn();
     const dir = this.sortDir();
@@ -459,6 +518,7 @@ export class QuizBankComponent implements OnInit {
     this.filters.difficulty = '';
     this.filters.categoryId = '';
     this.filters.tag = '';
+    this.filters.imoFilter = '';
   }
 
   getActiveQuestionFilterCount(): number {
@@ -467,6 +527,7 @@ export class QuizBankComponent implements OnInit {
     if (this.filters.difficulty) count++;
     if (this.filters.categoryId) count++;
     if (this.filters.tag) count++;
+    if (this.filters.imoFilter) count++;
     return count;
   }
 
@@ -724,6 +785,72 @@ export class QuizBankComponent implements OnInit {
     } catch (error: any) {
       this.toast.error('Lỗi khi gán danh mục: ' + (error?.message || 'Lỗi không xác định'));
     }
+  }
+
+  // ==================== Bulk assign IMO ====================
+
+  async bulkAssignImo() {
+    const selectedIds = this.selectedQuestions();
+    if (!selectedIds.length) return;
+
+    this.bulkAssigning.set(true);
+    const imoCourseId = this.bulkImoId ? Number(this.bulkImoId) : null;
+    try {
+      await firstValueFrom(
+        this.questionApi.bulkAssignImo(selectedIds, imoCourseId || null)
+      );
+      const label = imoCourseId
+        ? `IMO ${this.getImoCourseCode(imoCourseId)}`
+        : 'bỏ gán IMO';
+      this.toast.success(`Đã ${label} cho ${selectedIds.length} câu hỏi`);
+      this.showBulkImoModal.set(false);
+      this.bulkImoId = '';
+      this.clearSelection();
+      const bank = this.selectedBank();
+      if (bank) {
+        await this.loadBankQuestions(bank.id, this.selectedCategoryId() || undefined);
+      } else {
+        await this.onBankChange();
+      }
+    } catch (error: any) {
+      this.toast.error('Lỗi khi gán IMO: ' + (error?.error?.message || error?.message));
+    } finally {
+      this.bulkAssigning.set(false);
+    }
+  }
+
+  // ==================== IMO Stats ====================
+
+  async toggleImoStats() {
+    const showing = !this.showImoStats();
+    this.showImoStats.set(showing);
+    if (showing && this.selectedBank()) {
+      await this.loadImoStats();
+    }
+  }
+
+  async loadImoStats() {
+    const bank = this.selectedBank();
+    if (!bank) return;
+    this.loadingImoStats.set(true);
+    try {
+      const result = await firstValueFrom(
+        this.questionBankApi.getImoStats(bank.id)
+      );
+      this.imoStats.set(result.stats ?? []);
+      this.imoStatsTotal.set(result.totalQuestions ?? 0);
+      this.imoStatsCoursesWithQuestions.set(result.coursesWithQuestions ?? 0);
+    } catch {
+      this.imoStats.set([]);
+    } finally {
+      this.loadingImoStats.set(false);
+    }
+  }
+
+  filterByImoFromStats(imoCourseId: number | null) {
+    this.filters.imoFilter = imoCourseId === null ? 'none' : String(imoCourseId);
+    this.filterQuestions();
+    this.showImoStats.set(false);
   }
 
   // ==================== Helpers ====================

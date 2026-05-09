@@ -105,6 +105,7 @@ public class QuestionRepositoryAdapter implements QuestionRepository {
                 .courseId(domain.getCourseId())
                 .packageId(domain.getPackageId())
                 .categoryId(domain.getCategoryId())
+                .imoCourseId(domain.getImoCourseId())
                 .usageCount(domain.getUsageCount())
                 .correctRate(domain.getCorrectRate())
                 .build();
@@ -158,6 +159,7 @@ public class QuestionRepositoryAdapter implements QuestionRepository {
                 .courseId(entity.getCourseId())
                 .packageId(entity.getPackageId())
                 .categoryId(entity.getCategoryId())
+                .imoCourseId(entity.getImoCourseId())
                 .usageCount(entity.getUsageCount())
                 .correctRate(entity.getCorrectRate())
                 .options(options)

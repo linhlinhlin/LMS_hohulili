@@ -239,12 +239,29 @@
                   </select>
                 </div>
                 <div>
-                  <label for="tags" class="block text-xs font-medium text-gray-500 mb-1">Thẻ phân loại</label>
+                  <label for="tags" class="block text-xs font-medium text-gray-500 mb-1">Nhãn cá nhân</label>
                   <input id="tags" type="text" formControlName="tags"
                          class="w-full h-8 px-2.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10 outline-none transition-colors"
-                         placeholder="toán học, đại số...">
-                  <p class="text-[11px] text-gray-400 mt-0.5">Phân cách bằng dấu phẩy</p>
+                         placeholder="ôn thi, quan trọng, dễ nhầm...">
+                  <p class="text-[11px] text-gray-400 mt-0.5">Nhãn riêng của bạn, phân cách bằng dấu phẩy</p>
                 </div>
+                @if (imoGroupedEntries().length > 0) {
+                <div>
+                  <label for="imoCourseId" class="block text-xs font-medium text-gray-500 mb-1">Giáo trình Mẫu IMO</label>
+                  <select id="imoCourseId" formControlName="imoCourseId"
+                          class="w-full h-8 px-2.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 focus:border-[#0056D2] focus:ring-2 focus:ring-[#0056D2]/10 outline-none transition-colors">
+                    <option [value]="null">— Không chọn —</option>
+                    @for (entry of imoGroupedEntries(); track entry[0]) {
+                      <optgroup [label]="imoCategoryLabel(entry[0])">
+                        @for (course of entry[1]; track course.id) {
+                          <option [value]="course.id">{{ course.code }} — {{ imoCourseLabel(course) }}</option>
+                        }
+                      </optgroup>
+                    }
+                  </select>
+                  <p class="text-[11px] text-gray-400 mt-0.5">Phân loại theo chuẩn Giáo trình Mẫu IMO</p>
+                </div>
+                }
                 <div>
                   <label for="status" class="block text-xs font-medium text-gray-500 mb-1">Trạng thái</label>
                   <select id="status" formControlName="status"

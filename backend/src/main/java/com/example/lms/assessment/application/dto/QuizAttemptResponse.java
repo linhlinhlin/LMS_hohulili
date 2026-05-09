@@ -7,7 +7,8 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * DTO for quiz attempt responses — prevents leaking domain internals to API consumers.
+ * DTO for quiz attempt responses — prevents leaking domain internals to API
+ * consumers.
  */
 public record QuizAttemptResponse(
         UUID id,
@@ -18,8 +19,7 @@ public record QuizAttemptResponse(
         Double score,
         Double maxScore,
         Boolean isPassed,
-        List<AttemptItemResponse> items
-) {
+        List<AttemptItemResponse> items) {
     public record AttemptItemResponse(
             UUID questionId,
             String selectedOption,
@@ -37,8 +37,7 @@ public record QuizAttemptResponse(
                     item.getPointsEarned(),
                     item.getFeedback(),
                     item.getCorrectOption(),
-                    item.getCorrectOptions()
-            );
+                    item.getCorrectOptions());
         }
     }
 
@@ -54,7 +53,6 @@ public record QuizAttemptResponse(
                 attempt.getIsPassed(),
                 attempt.getItems() != null
                         ? attempt.getItems().stream().map(AttemptItemResponse::from).toList()
-                        : List.of()
-        );
+                        : List.of());
     }
 }

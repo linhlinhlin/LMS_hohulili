@@ -23,12 +23,12 @@ import java.util.UUID;
 public class QuestionJpaEntity {
     // Manual boilerplate
     public QuestionJpaEntity() {}
-    public QuestionJpaEntity(UUID id, List<ContentBlock> contentBlocks, Difficulty difficulty, String tags, Status status, QuestionType questionType, String correctOption, Map<String, Object> answerKey, UUID createdBy, UUID courseId, UUID packageId, UUID categoryId, Integer usageCount, BigDecimal correctRate, List<QuestionOptionJpaEntity> options, Instant createdAt, Instant updatedAt) {
-        this.id = id; this.contentBlocks = contentBlocks; this.difficulty = difficulty; this.tags = tags; this.status = status; this.questionType = questionType != null ? questionType : QuestionType.SINGLE_CHOICE; this.correctOption = correctOption; this.answerKey = answerKey; this.createdBy = createdBy; this.courseId = courseId; this.packageId = packageId; this.categoryId = categoryId; this.usageCount = usageCount; this.correctRate = correctRate; this.options = options; this.createdAt = createdAt; this.updatedAt = updatedAt;
+    public QuestionJpaEntity(UUID id, List<ContentBlock> contentBlocks, Difficulty difficulty, String tags, Status status, QuestionType questionType, String correctOption, Map<String, Object> answerKey, UUID createdBy, UUID courseId, UUID packageId, UUID categoryId, Integer imoCourseId, Integer usageCount, BigDecimal correctRate, List<QuestionOptionJpaEntity> options, Instant createdAt, Instant updatedAt) {
+        this.id = id; this.contentBlocks = contentBlocks; this.difficulty = difficulty; this.tags = tags; this.status = status; this.questionType = questionType != null ? questionType : QuestionType.SINGLE_CHOICE; this.correctOption = correctOption; this.answerKey = answerKey; this.createdBy = createdBy; this.courseId = courseId; this.packageId = packageId; this.categoryId = categoryId; this.imoCourseId = imoCourseId; this.usageCount = usageCount; this.correctRate = correctRate; this.options = options; this.createdAt = createdAt; this.updatedAt = updatedAt;
     }
     public static Builder builder() { return new Builder(); }
     public static class Builder {
-        private UUID id; private List<ContentBlock> contentBlocks; private Difficulty difficulty = Difficulty.MEDIUM; private String tags; private Status status = Status.DRAFT; private QuestionType questionType = QuestionType.SINGLE_CHOICE; private String correctOption; private Map<String, Object> answerKey; private UUID createdBy; private UUID courseId; private UUID packageId; private UUID categoryId; private Integer usageCount = 0; private BigDecimal correctRate = BigDecimal.ZERO; private List<QuestionOptionJpaEntity> options; private Instant createdAt; private Instant updatedAt;
+        private UUID id; private List<ContentBlock> contentBlocks; private Difficulty difficulty = Difficulty.MEDIUM; private String tags; private Status status = Status.DRAFT; private QuestionType questionType = QuestionType.SINGLE_CHOICE; private String correctOption; private Map<String, Object> answerKey; private UUID createdBy; private UUID courseId; private UUID packageId; private UUID categoryId; private Integer imoCourseId; private Integer usageCount = 0; private BigDecimal correctRate = BigDecimal.ZERO; private List<QuestionOptionJpaEntity> options; private Instant createdAt; private Instant updatedAt;
         public Builder id(UUID id) { this.id = id; return this; }
         public Builder contentBlocks(List<ContentBlock> contentBlocks) { this.contentBlocks = contentBlocks; return this; }
         public Builder difficulty(Difficulty difficulty) { this.difficulty = difficulty; return this; }
@@ -41,12 +41,13 @@ public class QuestionJpaEntity {
         public Builder courseId(UUID courseId) { this.courseId = courseId; return this; }
         public Builder packageId(UUID packageId) { this.packageId = packageId; return this; }
         public Builder categoryId(UUID categoryId) { this.categoryId = categoryId; return this; }
+        public Builder imoCourseId(Integer imoCourseId) { this.imoCourseId = imoCourseId; return this; }
         public Builder usageCount(Integer usageCount) { this.usageCount = usageCount; return this; }
         public Builder correctRate(BigDecimal correctRate) { this.correctRate = correctRate; return this; }
         public Builder options(List<QuestionOptionJpaEntity> options) { this.options = options; return this; }
         public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
         public Builder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
-        public QuestionJpaEntity build() { return new QuestionJpaEntity(id, contentBlocks, difficulty, tags, status, questionType, correctOption, answerKey, createdBy, courseId, packageId, categoryId, usageCount, correctRate, options, createdAt, updatedAt); }
+        public QuestionJpaEntity build() { return new QuestionJpaEntity(id, contentBlocks, difficulty, tags, status, questionType, correctOption, answerKey, createdBy, courseId, packageId, categoryId, imoCourseId, usageCount, correctRate, options, createdAt, updatedAt); }
     }
 
     @Id
@@ -90,6 +91,9 @@ public class QuestionJpaEntity {
 
     @Column(name = "category_id")
     private UUID categoryId;
+
+    @Column(name = "imo_course_id")
+    private Integer imoCourseId;
 
     @Column(name = "usage_count", nullable = false)
     private Integer usageCount = 0;
@@ -135,6 +139,8 @@ public class QuestionJpaEntity {
     public void setPackageId(UUID packageId) { this.packageId = packageId; }
     public UUID getCategoryId() { return categoryId; }
     public void setCategoryId(UUID categoryId) { this.categoryId = categoryId; }
+    public Integer getImoCourseId() { return imoCourseId; }
+    public void setImoCourseId(Integer imoCourseId) { this.imoCourseId = imoCourseId; }
     public Integer getUsageCount() { return usageCount; }
     public void setUsageCount(Integer usageCount) { this.usageCount = usageCount; }
     public BigDecimal getCorrectRate() { return correctRate; }

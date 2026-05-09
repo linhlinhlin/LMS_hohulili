@@ -370,6 +370,46 @@ public class QuestionBankControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(result, "Lấy ngẫu nhiên " + random.size() + " câu hỏi"));
     }
 
+    // ============ IMO Stats ============
+
+    @GetMapping("/{bankId}/imo-stats")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN', 'ORG_ADMIN')")
+    @Operation(summary = "Get IMO Model Course stats for a question bank")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getImoStats(
+            @PathVariable UUID bankId,
+            @AuthenticationPrincipal UserJpaEntity user) {
+        verifyBankAccess(bankId, user);
+
+        List<Object[]> rows = questionJpaRepository.countByImoCourseForBank(bankId);
+        List<Map<String, Object>> stats = new ArrayList<>();
+        long total = 0;
+        int coursesWithQuestions = 0;
+
+        for (Object[] row : rows) {
+            Integer imoCourseId = row[0] != null ? ((Number) row[0]).intValue() : null;
+            String code = (String) row[1];
+            String title = row[2] != null ? (String) row[2] : "Chưa phân loại";
+            long count = ((Number) row[3]).longValue();
+
+            Map<String, Object> stat = new LinkedHashMap<>();
+            stat.put("imoCourseId", imoCourseId);
+            stat.put("code", code);
+            stat.put("title", title);
+            stat.put("count", count);
+            stats.add(stat);
+            total += count;
+            if (imoCourseId != null) coursesWithQuestions++;
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("stats", stats);
+        result.put("totalQuestions", total);
+        result.put("coursesWithQuestions", coursesWithQuestions);
+        result.put("totalCourses", 15);
+
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
     // ============ Response Mappers ============
 
     private Map<String, Object> toBankMap(QuestionBank bank) {
@@ -418,6 +458,7 @@ public class QuestionBankControllerV3 {
         map.put("tags", q.getTags());
         map.put("status", q.getStatus() != null ? q.getStatus().name() : "ACTIVE");
         map.put("categoryId", q.getCategoryId() != null ? q.getCategoryId().toString() : null);
+        map.put("imoCourseId", q.getImoCourseId());
         map.put("createdAt", q.getCreatedAt() != null ? q.getCreatedAt().toString() : null);
         // Extract text from content blocks
         if (q.getContentBlocks() != null && !q.getContentBlocks().isEmpty()) {

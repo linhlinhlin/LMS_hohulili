@@ -129,4 +129,14 @@ export class QuestionBankApi {
       targetCategoryId: categoryId || undefined
     }).pipe(map(() => void 0));
   }
+
+  getImoStats(bankId: string): Observable<{
+    stats: { imoCourseId: number | null; code: string | null; title: string; count: number }[];
+    totalQuestions: number;
+    coursesWithQuestions: number;
+    totalCourses: number;
+  }> {
+    return this.apiClient.get<any>(`/api/v3/question-banks/${bankId}/imo-stats`)
+      .pipe(map((r: any) => r?.data ?? r));
+  }
 }

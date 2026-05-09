@@ -11,12 +11,12 @@ import lombok.Getter;
 
 public class Question {
     // Manual boilerplate
-    public Question(UUID id, List<ContentBlock> contentBlocks, Difficulty difficulty, String tags, Status status, QuestionType questionType, String correctOption, Map<String, Object> answerKey, UUID createdBy, UUID courseId, UUID packageId, UUID categoryId, Integer usageCount, BigDecimal correctRate, List<QuestionOption> options, Instant createdAt, Instant updatedAt) {
-        this.id = id; this.contentBlocks = contentBlocks; this.difficulty = difficulty; this.tags = tags; this.status = status; this.questionType = questionType != null ? questionType : QuestionType.SINGLE_CHOICE; this.correctOption = correctOption; this.answerKey = answerKey; this.createdBy = createdBy; this.courseId = courseId; this.packageId = packageId; this.categoryId = categoryId; this.usageCount = usageCount; this.correctRate = correctRate; this.options = options; this.createdAt = createdAt; this.updatedAt = updatedAt;
+    public Question(UUID id, List<ContentBlock> contentBlocks, Difficulty difficulty, String tags, Status status, QuestionType questionType, String correctOption, Map<String, Object> answerKey, UUID createdBy, UUID courseId, UUID packageId, UUID categoryId, Integer imoCourseId, Integer usageCount, BigDecimal correctRate, List<QuestionOption> options, Instant createdAt, Instant updatedAt) {
+        this.id = id; this.contentBlocks = contentBlocks; this.difficulty = difficulty; this.tags = tags; this.status = status; this.questionType = questionType != null ? questionType : QuestionType.SINGLE_CHOICE; this.correctOption = correctOption; this.answerKey = answerKey; this.createdBy = createdBy; this.courseId = courseId; this.packageId = packageId; this.categoryId = categoryId; this.imoCourseId = imoCourseId; this.usageCount = usageCount; this.correctRate = correctRate; this.options = options; this.createdAt = createdAt; this.updatedAt = updatedAt;
     }
     public static Builder builder() { return new Builder(); }
     public static class Builder {
-        private UUID id; private List<ContentBlock> contentBlocks; private Difficulty difficulty; private String tags; private Status status; private QuestionType questionType = QuestionType.SINGLE_CHOICE; private String correctOption; private Map<String, Object> answerKey; private UUID createdBy; private UUID courseId; private UUID packageId; private UUID categoryId; private Integer usageCount = 0; private BigDecimal correctRate = BigDecimal.ZERO; private List<QuestionOption> options; private Instant createdAt; private Instant updatedAt;
+        private UUID id; private List<ContentBlock> contentBlocks; private Difficulty difficulty; private String tags; private Status status; private QuestionType questionType = QuestionType.SINGLE_CHOICE; private String correctOption; private Map<String, Object> answerKey; private UUID createdBy; private UUID courseId; private UUID packageId; private UUID categoryId; private Integer imoCourseId; private Integer usageCount = 0; private BigDecimal correctRate = BigDecimal.ZERO; private List<QuestionOption> options; private Instant createdAt; private Instant updatedAt;
         public Builder id(UUID id) { this.id = id; return this; }
         public Builder contentBlocks(List<ContentBlock> contentBlocks) { this.contentBlocks = contentBlocks; return this; }
         public Builder difficulty(Difficulty difficulty) { this.difficulty = difficulty; return this; }
@@ -29,12 +29,13 @@ public class Question {
         public Builder courseId(UUID courseId) { this.courseId = courseId; return this; }
         public Builder packageId(UUID packageId) { this.packageId = packageId; return this; }
         public Builder categoryId(UUID categoryId) { this.categoryId = categoryId; return this; }
+        public Builder imoCourseId(Integer imoCourseId) { this.imoCourseId = imoCourseId; return this; }
         public Builder usageCount(Integer usageCount) { this.usageCount = usageCount; return this; }
         public Builder correctRate(BigDecimal correctRate) { this.correctRate = correctRate; return this; }
         public Builder options(List<QuestionOption> options) { this.options = options; return this; }
         public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
         public Builder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
-        public Question build() { return new Question(id, contentBlocks, difficulty, tags, status, questionType, correctOption, answerKey, createdBy, courseId, packageId, categoryId, usageCount, correctRate, options, createdAt, updatedAt); }
+        public Question build() { return new Question(id, contentBlocks, difficulty, tags, status, questionType, correctOption, answerKey, createdBy, courseId, packageId, categoryId, imoCourseId, usageCount, correctRate, options, createdAt, updatedAt); }
     }
 
     private UUID id;
@@ -49,6 +50,7 @@ public class Question {
     private UUID courseId; // Reference by ID
     private UUID packageId; // Reference by ID
     private UUID categoryId; // QuestionBankCategory reference (nullable)
+    private Integer imoCourseId; // IMO Model Course reference (nullable)
     private Integer usageCount;
     private BigDecimal correctRate;
     private List<QuestionOption> options;
@@ -122,6 +124,11 @@ public class Question {
         this.updatedAt = Instant.now();
     }
 
+    public void updateImoCourseId(Integer imoCourseId) {
+        this.imoCourseId = imoCourseId;
+        this.updatedAt = Instant.now();
+    }
+
     // Getters
     public UUID getId() { return id; }
     public List<ContentBlock> getContentBlocks() { return contentBlocks; }
@@ -135,6 +142,7 @@ public class Question {
     public UUID getCourseId() { return courseId; }
     public UUID getPackageId() { return packageId; }
     public UUID getCategoryId() { return categoryId; }
+    public Integer getImoCourseId() { return imoCourseId; }
     public Integer getUsageCount() { return usageCount; }
     public BigDecimal getCorrectRate() { return correctRate; }
     public List<QuestionOption> getOptions() { return options; }

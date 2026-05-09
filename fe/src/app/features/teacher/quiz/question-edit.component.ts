@@ -7,6 +7,7 @@ import { firstValueFrom } from 'rxjs';
 
 import { QuestionApi, Question } from '../../../api/endpoints/question.api';
 import { QuestionBankApi } from '../../../api/endpoints/question-bank.api';
+import { ImoModelCourseApi, ImoModelCourse } from '../../../api/endpoints/imo-model-course.api';
 import { BlockEditorComponent } from '../../../shared/components/block-editor/block-editor.component';
 import { EnrichedInputFieldComponent } from '../../../shared/components/enriched-input/enriched-input.component';
 import { QuestionPreviewComponent } from '../../../shared/components/question-preview/question-preview.component';
@@ -14,6 +15,32 @@ import { ContentBlock } from '../../../api/types/content-block.types';
 import { AuthImagePipe } from '../../../shared/pipes/auth-image.pipe';
 import { ToastService } from '../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
+
+const IMO_CATEGORY_VI: Record<string, string> = {
+  'Navigation':  'Hàng hải',
+  'Engineering': 'Kỹ thuật máy tàu',
+  'Safety':      'An toàn hàng hải',
+  'Cargo':       'Vận hành hàng hóa',
+  'GMDSS':       'GMDSS',
+};
+
+const IMO_TITLE_VI: Record<string, string> = {
+  '1.01': 'Mô phỏng Xử lý Hàng hóa và Dằn tàu — Tàu chở Dầu',
+  '1.02': 'Mô phỏng Xử lý Hàng hóa và Dằn tàu — Tàu chở Hóa chất',
+  '1.04': 'Mô phỏng Xử lý Hàng hóa và Dằn tàu — Tàu chở Khí hóa lỏng',
+  '1.07': 'Hàng hải bằng Radar, Vẽ đồ Radar và Sử dụng ARPA',
+  '1.08': 'Mô phỏng Radar',
+  '1.22': 'Mô phỏng tàu và Phối hợp nhóm trên Buồng lái',
+  '1.25': 'Chứng chỉ Khai thác viên Tổng quát GMDSS',
+  '1.27': 'Sử dụng Hệ thống Hiển thị Hải đồ Điện tử và Thông tin (ECDIS)',
+  '1.34': 'Sơ cứu Y tế',
+  '3.04': 'Sử dụng Mô phỏng Buồng máy',
+  '3.11': 'Kỹ thuật Điện, Điện tử và Điều khiển tàu biển',
+  '3.12': 'Công nghệ Điện hàng hải',
+  '6.09': 'Huấn luyện Cơ bản vận hành Hàng hóa Tàu Dầu và Tàu Hóa chất',
+  '6.10': 'Huấn luyện Nâng cao vận hành Hàng hóa Tàu Dầu',
+  '6.19': 'Huấn luyện Nhận thức An ninh Hàng hải và Thuyền viên Trực tiếp thực thi An ninh',
+};
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -38,6 +65,9 @@ export class QuestionEditComponent implements OnInit {
   private toast = inject(ToastService);
   private questionBankApi = inject(QuestionBankApi);
   private confirmDialog = inject(ConfirmDialogService);
+  private imoModelCourseApi = inject(ImoModelCourseApi);
+
+  imoCoursesGrouped = signal<Record<string, ImoModelCourse[]>>({});
 
   questionForm: FormGroup;
   isLoading = signal(false);
@@ -72,6 +102,7 @@ export class QuestionEditComponent implements OnInit {
     this.questionForm = this.fb.group({
       difficulty: ['MEDIUM', Validators.required],
       tags: [''],
+      imoCourseId: [null],
       status: ['ACTIVE', Validators.required],
       options: this.fb.array([]),
       correctOption: ['', Validators.required]
@@ -88,6 +119,22 @@ export class QuestionEditComponent implements OnInit {
     if (this.questionId) {
       this.loadQuestion();
     }
+    this.imoModelCourseApi.getImoModelCourses().subscribe({
+      next: (res) => this.imoCoursesGrouped.set(res.grouped ?? {}),
+      error: () => {}
+    });
+  }
+
+  imoGroupedEntries(): [string, ImoModelCourse[]][] {
+    return Object.entries(this.imoCoursesGrouped());
+  }
+
+  imoCategoryLabel(cat: string): string {
+    return IMO_CATEGORY_VI[cat] ?? cat;
+  }
+
+  imoCourseLabel(course: ImoModelCourse): string {
+    return IMO_TITLE_VI[course.code] ?? course.title;
   }
 
   async loadQuestion() {
@@ -132,6 +179,7 @@ export class QuestionEditComponent implements OnInit {
     this.questionForm.patchValue({
       difficulty: question.difficulty,
       tags: question.tags,
+      imoCourseId: (question as any).imoCourseId ?? null,
       status: question.status,
       correctOption: question.correctOption
     });
@@ -433,7 +481,8 @@ export class QuestionEditComponent implements OnInit {
       optionBlocks: optionBlocksList,
       difficulty: formValue.difficulty,
       tags: formValue.tags,
-      status: formValue.status
+      status: formValue.status,
+      imoCourseId: formValue.imoCourseId ? Number(formValue.imoCourseId) : null
     };
 
     this.questionApi.updateQuestion(this.questionId!, request).subscribe({

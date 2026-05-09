@@ -31,4 +31,15 @@ public interface QuestionJpaRepository extends JpaRepository<QuestionJpaEntity, 
            "WHERE qq.quiz_id IN :quizIds " +
            "GROUP BY qq.quiz_id", nativeQuery = true)
     java.util.List<Object[]> batchEssayQuestionCount(@Param("quizIds") java.util.List<UUID> quizIds);
+
+    // IMO stats per bank: rows = (imo_course_id nullable, code nullable, title, count)
+    @Query(value = """
+           SELECT q.imo_course_id, i.code, i.title, COUNT(q.id) as cnt
+           FROM questions q
+           LEFT JOIN imo_model_courses i ON i.id = q.imo_course_id
+           WHERE q.package_id = :bankId
+           GROUP BY q.imo_course_id, i.code, i.title
+           ORDER BY cnt DESC
+           """, nativeQuery = true)
+    java.util.List<Object[]> countByImoCourseForBank(@Param("bankId") UUID bankId);
 }

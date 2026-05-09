@@ -43,6 +43,9 @@ public class UpdateQuestionUseCaseV3 {
         question.updateCorrectOption(command.correctOption());
         question.updateAnswerKey(command.answerKey());
         question.updateStatus(command.status());
+        if (command.imoCourseId() != null) {
+            question.updateImoCourseId(command.imoCourseId());
+        }
 
         // Update options if provided
         if (command.optionCommands() != null && !command.optionCommands().isEmpty()) {
@@ -103,7 +106,8 @@ public class UpdateQuestionUseCaseV3 {
             List<OptionCommand> optionCommands,
             Question.Difficulty difficulty,
             String tags,
-            Question.Status status
+            Question.Status status,
+            Integer imoCourseId
     ) {}
 
     public record OptionCommand(
