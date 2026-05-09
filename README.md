@@ -4,9 +4,17 @@
 
 Production-first LMS for maritime training, with adaptive video, offline-first learning, payment, and role-based operations.
 
-[Quick Start](#quick-start) | [Runtime Truth](#runtime-truth) | [Local Validation](#local-validation) | [Documentation Map](#documentation-map)
+[![CI](https://github.com/linhlinhlin/LMS_hohulili/actions/workflows/ci.yml/badge.svg)](https://github.com/linhlinhlin/LMS_hohulili/actions/workflows/ci.yml)
+![Java 21](https://img.shields.io/badge/Java-21-0056D2)
+![Angular 20](https://img.shields.io/badge/Angular-20-0F172A)
+![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-006B75)
+![PWA Ready](https://img.shields.io/badge/PWA-offline--first-0E8A16)
+
+[Quick Start](#quick-start) | [Runtime Truth](#runtime-truth) | [Local Validation](#local-validation) | [Documentation Map](#documentation-map) | [GitHub Governance](docs/reference/GITHUB_GOVERNANCE.md)
 
 </div>
+
+![Maritime LMS repository card](docs/assets/github/repository-card.svg)
 
 ---
 
@@ -94,7 +102,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build --w
 | TEACHER | `teacher@maritime.edu` | `teacher123` |
 | STUDENT | `student@maritime.edu` | `student123` |
 
-Extended seeded accounts are documented in [docs/testing/TEST_CHECKLIST.md](E:/Sach/Sua/LMS_hohulili/docs/testing/TEST_CHECKLIST.md).
+Extended seeded accounts are documented in [docs/testing/TEST_CHECKLIST.md](docs/testing/TEST_CHECKLIST.md).
 
 ## Local Validation
 
@@ -121,16 +129,26 @@ Start with these files:
 
 | File | Purpose |
 |---|---|
-| [AGENTS.md](E:/Sach/Sua/LMS_hohulili/AGENTS.md) | Codex working rules and current repo truth snapshot |
-| [CHANGELOG.md](E:/Sach/Sua/LMS_hohulili/CHANGELOG.md) | Notable shipped changes |
-| [backend/README.md](E:/Sach/Sua/LMS_hohulili/backend/README.md) | Backend architecture, runtime, and testing |
-| [fe/FRONTEND_ARCHITECTURE.md](E:/Sach/Sua/LMS_hohulili/fe/FRONTEND_ARCHITECTURE.md) | Frontend architecture and conventions |
-| [docs/README.md](E:/Sach/Sua/LMS_hohulili/docs/README.md) | Documentation index |
-| [docs/reference/PRODUCTION_SURFACES.md](E:/Sach/Sua/LMS_hohulili/docs/reference/PRODUCTION_SURFACES.md) | Current production topology and public surfaces |
-| [docs/runbooks/DEDICATED_VIDEO_WORKER_RUNBOOK.md](E:/Sach/Sua/LMS_hohulili/docs/runbooks/DEDICATED_VIDEO_WORKER_RUNBOOK.md) | Dedicated video-worker operations |
-| [docs/runbooks/CLOUDFLARE_MEDIA_DOMAIN_EDGE_AUTH_RUNBOOK.md](E:/Sach/Sua/LMS_hohulili/docs/runbooks/CLOUDFLARE_MEDIA_DOMAIN_EDGE_AUTH_RUNBOOK.md) | Media-domain edge-auth operations |
-| [docs/testing/TEST_CHECKLIST.md](E:/Sach/Sua/LMS_hohulili/docs/testing/TEST_CHECKLIST.md) | Local validation and release checklist |
-| [docs/testing/E2E_MATRIX.md](E:/Sach/Sua/LMS_hohulili/docs/testing/E2E_MATRIX.md) | Smoke-vs-release browser test matrix |
+| [AGENTS.md](AGENTS.md) | Codex working rules and current repo truth snapshot |
+| [CHANGELOG.md](CHANGELOG.md) | Notable shipped changes |
+| [backend/README.md](backend/README.md) | Backend architecture, runtime, and testing |
+| [fe/FRONTEND_ARCHITECTURE.md](fe/FRONTEND_ARCHITECTURE.md) | Frontend architecture and conventions |
+| [docs/README.md](docs/README.md) | Documentation index |
+| [docs/reference/GITHUB_GOVERNANCE.md](docs/reference/GITHUB_GOVERNANCE.md) | GitHub operating model, labels, PR quality bar, branch rules, and contributor flow |
+| [docs/reference/PRODUCTION_SURFACES.md](docs/reference/PRODUCTION_SURFACES.md) | Current production topology and public surfaces |
+| [docs/runbooks/GITHUB_PROFESSIONAL_SETUP_RUNBOOK.md](docs/runbooks/GITHUB_PROFESSIONAL_SETUP_RUNBOOK.md) | Repository settings, label sync, ruleset, and social preview setup |
+| [docs/runbooks/DEDICATED_VIDEO_WORKER_RUNBOOK.md](docs/runbooks/DEDICATED_VIDEO_WORKER_RUNBOOK.md) | Dedicated video-worker operations |
+| [docs/runbooks/CLOUDFLARE_MEDIA_DOMAIN_EDGE_AUTH_RUNBOOK.md](docs/runbooks/CLOUDFLARE_MEDIA_DOMAIN_EDGE_AUTH_RUNBOOK.md) | Media-domain edge-auth operations |
+| [docs/testing/TEST_CHECKLIST.md](docs/testing/TEST_CHECKLIST.md) | Local validation and release checklist |
+| [docs/testing/E2E_MATRIX.md](docs/testing/E2E_MATRIX.md) | Smoke-vs-release browser test matrix |
+
+## Contributor Workflow
+
+- Start with [CONTRIBUTING.md](CONTRIBUTING.md) for branch, commit, review, and verification rules.
+- Use [docs/reference/GITHUB_GOVERNANCE.md](docs/reference/GITHUB_GOVERNANCE.md) as the source of truth for labels, PR quality bar, CODEOWNERS, and main-branch protection.
+- Use [SUPPORT.md](SUPPORT.md) for support paths and [SECURITY.md](SECURITY.md) for private vulnerability reporting.
+- Repository labels are versioned in [.github/labels.json](.github/labels.json) and synced with [scripts/github/sync-labels.ps1](scripts/github/sync-labels.ps1).
+- Community expectations are documented in [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ## Production Notes
 
@@ -138,7 +156,7 @@ Start with these files:
 - App VM currently runs `backend + frontend + caddy + postgres`
 - Dedicated ingest runs on a separate `video-worker` VM
 - Media edge auth is live on Cloudflare Free through a Worker custom domain
-- The canonical production surface map is in [docs/reference/PRODUCTION_SURFACES.md](E:/Sach/Sua/LMS_hohulili/docs/reference/PRODUCTION_SURFACES.md)
+- The canonical production surface map is in [docs/reference/PRODUCTION_SURFACES.md](docs/reference/PRODUCTION_SURFACES.md)
 
 ## Contribution Rule of Thumb
 
@@ -146,4 +164,4 @@ If you change runtime behavior, update:
 
 1. code
 2. the relevant runbook/reference doc
-3. [CHANGELOG.md](E:/Sach/Sua/LMS_hohulili/CHANGELOG.md)
+3. [CHANGELOG.md](CHANGELOG.md)
