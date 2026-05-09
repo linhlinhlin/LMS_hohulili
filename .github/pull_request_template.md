@@ -1,14 +1,18 @@
 <!--
-Tiêu đề PR: dùng conventional commit prefix
-  feat | fix | docs | chore | refactor | perf | test | ci | build
-Ví dụ: "feat(curriculum): add chapter reorder via drag-drop"
+Title format: conventional commit style.
+Examples:
+  feat(student): add offline package refresh prompt
+  fix(auth): preserve Google login redirect state
+  chore(ci): tighten GitHub label taxonomy
 -->
 
 ## Summary
 
-<!-- 1-2 câu mô tả thay đổi này làm gì và vì sao. -->
+<!-- 1-3 sentences: what changed, why now, and who is affected. -->
 
-## Linked issues
+## Linked work
+
+<!-- Use Closes #123 when this PR resolves an issue. -->
 
 Closes #
 
@@ -19,43 +23,55 @@ Closes #
 - [ ] Refactor / cleanup
 - [ ] Documentation
 - [ ] Infra / CI
+- [ ] Security / privacy
 - [ ] Breaking change
+
+## Scope
+
+- [ ] Frontend
+- [ ] Backend
+- [ ] Database / migration
+- [ ] PWA / offline
+- [ ] Video / media
+- [ ] Auth / RBAC
+- [ ] Payment
+- [ ] GitHub / DevOps
+- [ ] Documentation only
 
 ## What changed
 
-<!-- Bullet list các thay đổi kỹ thuật chính. Liên kết file:line nếu giúp review. -->
+<!-- Bullet the meaningful behavior or architecture changes, not every edited file. -->
 
 -
 
-## Why
+## Risk and rollback
 
-<!-- Motivation ngắn gọn: user problem, constraint, quyết định kỹ thuật. -->
+| Item | Notes |
+|---|---|
+| User-visible risk | |
+| Data/security risk | |
+| Deployment risk | |
+| Rollback plan | Revert this PR, or describe the feature flag/config toggle. |
 
-## Testing
+## Verification
 
-<!-- Liệt kê cách đã verify. Không viết "tested manually" chung chung. -->
+<!-- Be concrete. Prefer command output summaries, routes checked, accounts used, and screenshots for UI work. -->
 
-- [ ] Unit / integration tests
-- [ ] Manual smoke test: ...
-- [ ] Browser check (nếu FE): ...
-- [ ] Production-like env (docker-compose.prod.yml): ...
-
-## Risk & rollback
-
-<!-- Rủi ro chính + cách rollback (git revert SHA hoặc feature flag). -->
-
-- **Risk**:
-- **Rollback**:
+- [ ] Backend: `cd backend && mvn test -B`
+- [ ] Frontend: `cd fe && npm run build`
+- [ ] Compose: `docker compose --env-file .env.dev.example -f docker-compose.yml -f docker-compose.dev.yml config -q`
+- [ ] Browser/manual smoke:
+- [ ] Not applicable, docs/config-only change
 
 ## Screenshots / artifacts
 
-<!-- FE: before/after screenshot. BE: curl response. -->
+<!-- Required for UI changes. For API changes, include sample curl/response. -->
 
-## Checklist
+## Reviewer checklist
 
-- [ ] Tuân thủ conventional commits
-- [ ] Không commit secret (`.env*`, key, token)
-- [ ] Cập nhật docs nếu thay đổi public API hoặc deploy flow
-- [ ] Không để dead code / TODO không có issue
-- [ ] CI pass (backend tests, frontend build, compose validate, smoke)
-- [ ] Self-reviewed diff
+- [ ] Smallest reasonable diff for the goal
+- [ ] No secrets, credentials, or generated junk committed
+- [ ] Clean Architecture / Angular 20 conventions preserved
+- [ ] Vietnamese text is meaningful and renders with correct accents
+- [ ] Public API, migration, deploy, or runtime behavior has matching docs
+- [ ] CI is green and conversations are resolved before merge
