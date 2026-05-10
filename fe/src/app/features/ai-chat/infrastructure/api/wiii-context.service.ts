@@ -528,7 +528,7 @@ export class WiiiContextService implements OnDestroy {
   private buildCapabilities(ctx: WiiiPageContext): WiiiHostCapabilities {
     const role = this.resolveCurrentUserRole();
     const courseId = String(ctx.course_id || '');
-    const selectedLessonId = String(this.selectionService.selectedLessonId() || ctx.lesson_id || '');
+    const selectedLessonId = this.resolveCurrentLessonId({ lesson_id: ctx.lesson_id });
     const hostIdentity = this.buildHostIdentityOverlay();
     const tools: WiiiHostCapabilityTool[] = [
       {
@@ -1055,9 +1055,33 @@ export class WiiiContextService implements OnDestroy {
       params['lesson_id']
       || params['lessonId']
       || this.selectionService.selectedLessonId()
+      || this.selectionService.selectedLesson()?.id
       || this.lastContext?.lesson_id
+      || this.extractLessonIdFromCurrentUrl()
       || '',
     ).trim();
+  }
+
+  private extractLessonIdFromCurrentUrl(): string {
+    if (!this.isBrowser) {
+      return '';
+    }
+    const url = String(this.router.url || '');
+    if (!url) {
+      return '';
+    }
+
+    const queryText = url.includes('?') ? url.split('?')[1].split('#')[0] : '';
+    if (queryText) {
+      const query = new URLSearchParams(queryText);
+      const fromQuery = query.get('lessonId') || query.get('lesson_id');
+      if (fromQuery) {
+        return fromQuery.trim();
+      }
+    }
+
+    const pathMatch = url.match(/\/lesson\/([^/?#]+)/i);
+    return pathMatch?.[1] ? decodeURIComponent(pathMatch[1]).trim() : '';
   }
 
   private normalizeString(value: unknown): string | undefined {
