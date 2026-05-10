@@ -331,6 +331,9 @@ export class AdaptiveVideoPlayerComponent {
     if (!video) {
       return;
     }
+    if (this.snapBlockedInteractiveSeek(video)) {
+      return;
+    }
     this.currentTimeSeconds.set(video.currentTime);
     this.markInteractiveVideoWatched(video.currentTime);
     this.tracker.recordSecond(video.currentTime);
