@@ -7,12 +7,14 @@ import { WiiiContextService } from './wiii-context.service';
 import { PageDataExtractorService } from './page-data-extractor.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { LessonApi } from '../../../../api/client/lesson.api';
+import { SectionApi } from '../../../../api/client/section.api';
 import { QuizApi } from '../../../../api/endpoints/quiz.api';
 import { CurriculumSelectionService } from '../../../teacher/course-editor/services/curriculum-selection.service';
 
 describe('WiiiContextService - operator preview/apply flows', () => {
   let service: WiiiContextService;
   let lessonApi: jasmine.SpyObj<LessonApi>;
+  let sectionApi: jasmine.SpyObj<SectionApi>;
   let quizApi: jasmine.SpyObj<QuizApi>;
   let pageDataExtractor: jasmine.SpyObj<PageDataExtractorService>;
   let router: { url: string; events: Subject<unknown>; navigate: jasmine.Spy; navigateByUrl: jasmine.Spy };
@@ -58,6 +60,10 @@ describe('WiiiContextService - operator preview/apply flows', () => {
           useValue: jasmine.createSpyObj<LessonApi>('LessonApi', ['getLessonById', 'updateLesson']),
         },
         {
+          provide: SectionApi,
+          useValue: jasmine.createSpyObj<SectionApi>('SectionApi', ['updateSection']),
+        },
+        {
           provide: QuizApi,
           useValue: jasmine.createSpyObj<QuizApi>('QuizApi', [
             'resolveQuizIdByLessonId',
@@ -77,6 +83,7 @@ describe('WiiiContextService - operator preview/apply flows', () => {
 
     service = TestBed.inject(WiiiContextService);
     lessonApi = TestBed.inject(LessonApi) as jasmine.SpyObj<LessonApi>;
+    sectionApi = TestBed.inject(SectionApi) as jasmine.SpyObj<SectionApi>;
     quizApi = TestBed.inject(QuizApi) as jasmine.SpyObj<QuizApi>;
 
     routerEvents$.next(new NavigationEnd(1, '/teacher/courses/course-1/editor/curriculum', '/teacher/courses/course-1/editor/curriculum'));
@@ -158,6 +165,55 @@ describe('WiiiContextService - operator preview/apply flows', () => {
       title: 'Bai hoc moi',
       content: 'Noi dung da chinh sua',
     }));
+  });
+
+  it('applies content patches to the selected lesson text section for modern lessons', async () => {
+    lessonApi.getLessonById.and.returnValue(of({
+      data: {
+        id: 'lesson-1',
+        title: 'Bai hoc co section',
+        description: 'Mo ta cu',
+        content: 'Noi dung cu',
+        courseId: 'course-1',
+        sectionId: 'chapter-1',
+        lessonType: 'LECTURE',
+        durationMinutes: 15,
+        orderIndex: 2,
+        isRequired: true,
+        sections: [
+          {
+            id: 'section-1',
+            type: 'TEXT',
+            title: 'Noi dung chinh',
+            content: 'Noi dung cu',
+            isRequired: true,
+          },
+        ],
+      },
+    } as any));
+    sectionApi.updateSection.and.returnValue(of({ success: true, data: { id: 'section-1' } } as any));
+    lessonApi.updateLesson.and.returnValue(of({ success: true } as any));
+
+    const preview = await (service as any).handleActionRequest('authoring.preview_lesson_patch', {
+      lesson_id: 'lesson-1',
+      content: 'Noi dung moi tu tai lieu Wiii',
+    });
+
+    expect(preview.success).toBeTrue();
+    expect(preview.data?.content_target).toEqual(jasmine.objectContaining({
+      section_id: 'section-1',
+      type: 'TEXT',
+    }));
+    expect(preview.data?.block_diff).toEqual(jasmine.objectContaining({
+      changed: 1,
+      unchanged: 0,
+    }));
+
+    const applied = await service.approveOperatorPreview(String(preview.data?.preview_token));
+
+    expect(applied.success).toBeTrue();
+    expect(sectionApi.updateSection).toHaveBeenCalledWith('lesson-1', 'section-1', jasmine.any(FormData));
+    expect(lessonApi.updateLesson).not.toHaveBeenCalled();
   });
 
   it('previews and commits a new quiz through the host action flow', async () => {
