@@ -12,6 +12,7 @@ import { ButtonComponent } from '../../shared/components/ui/button/button.compon
 import { ToastService } from '../../core/services/toast.service';
 import { CourseDownloadButtonComponent } from '../../shared/components/course-download-button/course-download-button.component';
 import { CourseDownloadService } from '../../core/services/course-download.service';
+import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 
 // Enhanced course with modules
 interface LessonSection {
@@ -58,6 +59,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
     IconComponent,
     ButtonComponent,
     CourseDownloadButtonComponent,
+    PaginationComponent,
   ],
   template: `
     <div class="my-courses-container">
@@ -82,12 +84,15 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
               <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
               <input
                 type="text"
-                placeholder="Tìm kiếm khóa học, giảng viên..."
+                name="student-course-search"
+                placeholder="Tìm kiếm khóa học, giảng viên…"
                 [ngModel]="searchQuery()"
                 (ngModelChange)="onSearchChange($event)"
+                autocomplete="off"
+                aria-label="Tìm kiếm khóa học"
                 class="search-input">
               @if (searchQuery()) {
-                <button class="search-clear" (click)="onSearchChange('')">
+                <button class="search-clear" type="button" aria-label="Xóa tìm kiếm" (click)="onSearchChange('')">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
               }
@@ -122,7 +127,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
         <!-- Mobile sort + count (sidebar hidden on mobile) -->
         <div class="mobile-toolbar">
           <span class="mobile-count">{{ filteredCourses().length }} khóa học</span>
-          <select class="mobile-sort" [value]="sortBy()" (change)="onSortChange($event)">
+          <select class="mobile-sort" name="student-course-sort-mobile" aria-label="Sắp xếp khóa học" [value]="sortBy()" (change)="onSortChange($event)">
             <option value="recent">Gần đây nhất</option>
             <option value="name">Tên A-Z</option>
             <option value="progress">Tiến độ</option>
@@ -277,24 +282,6 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
             }
           </div>
 
-          <!-- Load More button (GitHub pattern — simple, no auto-scroll) -->
-          @if (hasMoreToShow()) {
-            <div class="load-more-section">
-              <button class="load-more-btn" (click)="loadMore()">
-                Xem thêm {{ remainingCount() }} khóa học
-              </button>
-              <p class="showing-count">Đang hiện {{ visibleCourses().length }} / {{ serverTotalCount() || filteredCourses().length }}</p>
-            </div>
-          } @else if (hasMoreServerPages) {
-            <div class="load-more-section">
-              <button class="load-more-btn" (click)="loadMoreFromServer()">
-                Tải thêm khóa học từ máy chủ
-              </button>
-              <p class="showing-count">Đang hiện {{ filteredCourses().length }} / {{ serverTotalCount() }}</p>
-            </div>
-          } @else if (filteredCourses().length > 0) {
-            <p class="showing-count">Đã hiện tất cả {{ filteredCourses().length }} khóa học</p>
-          }
         }
       </div>
 
@@ -305,8 +292,8 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
           
           <!-- Sort By -->
           <div class="filter-group">
-            <label class="filter-label">Sắp xếp theo</label>
-            <select class="filter-select" [value]="sortBy()" (change)="onSortChange($event)">
+            <label class="filter-label" for="student-course-sort">Sắp xếp theo</label>
+            <select class="filter-select" id="student-course-sort" name="student-course-sort" [value]="sortBy()" (change)="onSortChange($event)">
               <option value="recent">Gần đây nhất</option>
               <option value="name">Tên khóa học</option>
               <option value="progress">Tiến độ</option>
@@ -334,6 +321,17 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
 
         </div>
       </aside>
+
+      <!-- Pagination — spans the full library grid to match the shared wide pattern -->
+      @if (!isLoading() && filteredCourses().length > PAGE_SIZE) {
+        <app-pagination
+          class="library-pagination"
+          [currentPage]="safeCurrentPage()"
+          [totalPages]="totalPages()"
+          [totalItems]="filteredCourses().length"
+          [itemsPerPage]="PAGE_SIZE"
+          (pageChange)="goToPage($event)" />
+      }
     </div>
   `,
   styles: [`
@@ -512,10 +510,18 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       cursor: pointer;
       border-radius: 6px;
       display: flex;
+      transition:
+        background-color 0.15s ease,
+        color 0.15s ease;
 
       &:hover {
         color: #374151;
         background: #F3F4F6;
+      }
+
+      &:focus-visible {
+        outline: 2px solid #0056D2;
+        outline-offset: 2px;
       }
     }
 
@@ -547,12 +553,19 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.2s ease;
-      outline: none;
+      transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease;
 
       &:hover {
         background: #F9FAFB;
         border-color: #9CA3AF;
+      }
+
+      &:focus-visible {
+        outline: 2px solid #0056D2;
+        outline-offset: 2px;
       }
 
       &.active {
@@ -606,7 +619,7 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       border: 1px solid #E5E7EB;
       border-radius: 8px;
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-      transition: all 0.2s ease;
+      transition: box-shadow 0.2s ease;
       overflow: hidden;
 
       &:hover {
@@ -768,7 +781,10 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
       border-radius: 4px;
       cursor: pointer;
       color: #6B7280;
-      transition: all 0.2s ease;
+      transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -779,6 +795,11 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
         background: #F9FAFB;
         border-color: #D1D5DB;
         color: #374151;
+      }
+
+      &:focus-visible {
+        outline: 2px solid #0056D2;
+        outline-offset: 2px;
       }
 
       app-icon {
@@ -1034,43 +1055,16 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
     }
 
 
-    /* ===== LOAD MORE — clean button (GitHub pattern) ===== */
-    .load-more-section {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      padding: 24px 0 8px;
-    }
-
-    .load-more-btn {
-      padding: 10px 28px;
-      border: 1.5px solid #D1D5DB;
-      border-radius: 8px;
+    /* ===== PAGINATION — shared <app-pagination>, synced with browse page ===== */
+    .library-pagination {
+      display: block;
+      grid-column: 1 / -1;
+      margin-top: 24px;
       background: white;
-      color: #374151;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.15s ease;
-
-      &:hover {
-        border-color: #0056D2;
-        color: #0056D2;
-        background: #F0F7FF;
-      }
-
-      &:active {
-        background: #DBEAFE;
-        transform: scale(0.98);
-      }
-    }
-
-    .showing-count {
-      text-align: center;
-      font-size: 12px;
-      color: #9CA3AF;
-      margin: 8px 0 0;
+      border: 1px solid #E5E7EB;
+      border-radius: 12px;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+      overflow: hidden;
     }
 
     /* Fade-in for newly loaded courses */
@@ -1097,12 +1091,8 @@ export class StudentMyCoursesComponent implements OnInit {
   enrolledCourses = signal<EnhancedEnrolledCourse[]>([]);
   activeTab = signal<string>('in-progress');
   isLoading = this.enrollmentService.isLoading;
-  serverTotalCount = this.enrollmentService.totalCount;
-
-  // Load More state — initial 5 (fast first paint), then +10 each scroll
-  private readonly INITIAL_COUNT = 5;
-  private readonly LOAD_MORE_COUNT = 10;
-  visibleCount = signal(5);
+  readonly PAGE_SIZE = 12;
+  currentPage = signal(1);
 
   // Search + Filter state
   searchQuery = signal('');
@@ -1163,10 +1153,16 @@ export class StudentMyCoursesComponent implements OnInit {
     return result;
   });
 
-  // Load More computed — MUST be after filteredCourses
-  readonly visibleCourses = computed(() => this.filteredCourses().slice(0, this.visibleCount()));
-  readonly hasMoreToShow = computed(() => this.visibleCount() < this.filteredCourses().length);
-  readonly remainingCount = computed(() => Math.max(0, this.filteredCourses().length - this.visibleCount()));
+  readonly totalPages = computed(() =>
+    Math.max(1, Math.ceil(this.filteredCourses().length / this.PAGE_SIZE))
+  );
+  readonly safeCurrentPage = computed(() =>
+    Math.min(Math.max(1, this.currentPage()), this.totalPages())
+  );
+  readonly visibleCourses = computed(() => {
+    const start = (this.safeCurrentPage() - 1) * this.PAGE_SIZE;
+    return this.filteredCourses().slice(start, start + this.PAGE_SIZE);
+  });
 
   readonly inProgressCount = computed(() =>
     this.enrolledCourses().filter(c => c['status'] === 'in-progress' || c['status'] === 'enrolled').length
@@ -1182,47 +1178,49 @@ export class StudentMyCoursesComponent implements OnInit {
   }
 
 
-  protected serverPage = 0;
-  private readonly SERVER_PAGE_SIZE = 50;
-  protected hasMoreServerPages = true;
+  private readonly SERVER_PAGE_SIZE = 100;
 
   private async loadCourses(): Promise<void> {
     try {
-      this.serverPage = 0;
-      this.hasMoreServerPages = true;
+      this.currentPage.set(1);
       await this.enrollmentService.loadEnrolledCourses(0, this.SERVER_PAGE_SIZE);
-      const courses = this.enrollmentService.enrolledCourses();
+      let enhancedCourses = this.toEnhancedCourses(this.enrollmentService.enrolledCourses());
 
-      const enhancedCourses: EnhancedEnrolledCourse[] = courses.map((course: any) => ({
-        ...course,
-        showModules: false,
-        modules: [],
-      }));
-
+      const serverTotalPages = Math.max(1, this.enrollmentService.totalPages());
+      for (let page = 1; page < serverTotalPages; page++) {
+        await this.enrollmentService.loadEnrolledCourses(page, this.SERVER_PAGE_SIZE);
+        enhancedCourses = this.mergeCoursePages(
+          enhancedCourses,
+          this.toEnhancedCourses(this.enrollmentService.enrolledCourses())
+        );
+      }
       this.enrolledCourses.set(enhancedCourses);
-      this.hasMoreServerPages = this.enrollmentService.hasNextPage();
     } catch (err: any) {
       this.error.set(err?.message || 'Không thể tải danh sách khóa học. Vui lòng thử lại.');
     }
   }
 
-  async loadMoreFromServer(): Promise<void> {
-    if (!this.hasMoreServerPages) return;
-    try {
-      this.serverPage++;
-      await this.enrollmentService.loadEnrolledCourses(this.serverPage, this.SERVER_PAGE_SIZE);
-      const courses = this.enrollmentService.enrolledCourses();
-      const enhancedCourses: EnhancedEnrolledCourse[] = courses.map((course: any) => ({
-        ...course,
-        showModules: false,
-        modules: [],
-      }));
-      this.enrolledCourses.update(prev => [...prev, ...enhancedCourses]);
-      this.hasMoreServerPages = this.enrollmentService.hasNextPage();
-      this.visibleCount.set(this.enrolledCourses().length);
-    } catch {
-      this.hasMoreServerPages = false;
+  private toEnhancedCourses(courses: EnrolledCourse[]): EnhancedEnrolledCourse[] {
+    return courses.map(course => ({
+      ...course,
+      showModules: false,
+      modules: [],
+    }));
+  }
+
+  private mergeCoursePages(
+    existing: EnhancedEnrolledCourse[],
+    incoming: EnhancedEnrolledCourse[]
+  ): EnhancedEnrolledCourse[] {
+    const seen = new Set(existing.map(course => course.id));
+    const next = [...existing];
+    for (const course of incoming) {
+      if (!seen.has(course.id)) {
+        seen.add(course.id);
+        next.push(course);
+      }
     }
+    return next;
   }
 
   // Load course content (modules/lessons) from API
@@ -1330,16 +1328,20 @@ export class StudentMyCoursesComponent implements OnInit {
 
   onSearchChange(query: string): void {
     this.searchQuery.set(query);
-    this.visibleCount.set(this.INITIAL_COUNT);
+    this.resetPagination();
   }
 
   onTabChange(tabId: string): void {
     this.activeTab.set(tabId);
-    this.visibleCount.set(this.INITIAL_COUNT);
+    this.resetPagination();
   }
 
-  loadMore(): void {
-    this.visibleCount.update(c => c + this.LOAD_MORE_COUNT);
+  goToPage(page: number): void {
+    const nextPage = Math.min(Math.max(1, page), this.totalPages());
+    this.currentPage.set(nextPage);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
 
   toggleModules(courseId: string): void {
@@ -1391,22 +1393,30 @@ export class StudentMyCoursesComponent implements OnInit {
   onSortChange(event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
     this.sortBy.set(value);
+    this.resetPagination();
   }
 
   toggleFilterNotStarted(): void {
     this.filterNotStarted.update(v => !v);
+    this.resetPagination();
   }
 
   toggleFilterInProgress(): void {
     this.filterInProgress.update(v => !v);
+    this.resetPagination();
   }
 
   toggleFilterCompleted(): void {
     this.filterCompleted.update(v => !v);
+    this.resetPagination();
   }
 
   canDownload(course: EnhancedEnrolledCourse): boolean {
     const allowDownload = (course as any).allowOfflineDownload !== false;
     return allowDownload;
+  }
+
+  private resetPagination(): void {
+    this.currentPage.set(1);
   }
 }
