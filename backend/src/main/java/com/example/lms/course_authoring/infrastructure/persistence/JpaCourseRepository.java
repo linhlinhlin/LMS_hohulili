@@ -135,6 +135,44 @@ public interface JpaCourseRepository extends JpaRepository<CourseJpaEntity, UUID
             @Param("search") String search,
             Pageable pageable);
 
+    /**
+     * Same filter set as {@link #findByStatusAndFilters} but ordered by enrollment
+     * count desc (most popular first). Tie-breaks by created_at desc so newer
+     * courses surface above older ones at the same popularity level.
+     *
+     * <p>Pageable's Sort is intentionally ignored (use {@code PageRequest.of(page, size)}
+     * without a Sort) — ordering is fixed in the query.
+     */
+    @Query(value = """
+        SELECT c.* FROM courses c
+        LEFT JOIN (
+            SELECT lc.course_id AS course_id, COUNT(e.id) AS cnt
+            FROM enrollments e
+            JOIN learning_classes lc ON e.class_id = lc.id
+            GROUP BY lc.course_id
+        ) ec ON ec.course_id = c.id
+        WHERE c.status = :status
+          AND (:categoryFilter = false OR c.category_id IN (:categoryIds))
+          AND (:deliveryMode IS NULL OR c.delivery_mode = :deliveryMode)
+          AND (:search IS NULL OR unaccent(LOWER(c.title)) LIKE unaccent(LOWER(CONCAT('%', :search, '%'))))
+        ORDER BY COALESCE(ec.cnt, 0) DESC, c.created_at DESC
+    """,
+    countQuery = """
+        SELECT COUNT(*) FROM courses c
+        WHERE c.status = :status
+          AND (:categoryFilter = false OR c.category_id IN (:categoryIds))
+          AND (:deliveryMode IS NULL OR c.delivery_mode = :deliveryMode)
+          AND (:search IS NULL OR unaccent(LOWER(c.title)) LIKE unaccent(LOWER(CONCAT('%', :search, '%'))))
+    """,
+    nativeQuery = true)
+    Page<CourseJpaEntity> findByStatusAndFiltersOrderByPopularity(
+            @Param("status") String status,
+            @Param("categoryIds") Collection<UUID> categoryIds,
+            @Param("categoryFilter") boolean categoryFilter,
+            @Param("deliveryMode") String deliveryMode,
+            @Param("search") String search,
+            Pageable pageable);
+
     Page<CourseJpaEntity> findByStatusAndCategoryId(CourseJpaEntity.CourseStatus status, UUID categoryId, Pageable pageable);
 
     @Query(value = "SELECT * FROM courses c WHERE c.status = :status AND c.category_id = :categoryId AND unaccent(LOWER(c.title)) LIKE unaccent(LOWER(CONCAT('%', :search, '%')))", nativeQuery = true)

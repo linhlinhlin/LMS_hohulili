@@ -42,6 +42,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -111,6 +113,38 @@ class CourseQueryControllerV3ContractTest {
         assertThat(item.getPrice()).isEqualByComparingTo(BigDecimal.valueOf(1_500_000));
         assertThat(item.getSalePrice()).isEqualByComparingTo(BigDecimal.valueOf(1_200_000));
         assertThat(item.getEnrolledCount()).isEqualTo(7);
+    }
+
+    @Test
+    @DisplayName("public course list with sort=popular routes to popularity-ordered repository method")
+    void getPublicCoursesPopularSortRoutesToPopularityRepositoryMethod() {
+        UserJpaEntity teacher = mock(UserJpaEntity.class);
+        when(teacher.getId()).thenReturn(teacherId);
+        when(teacher.getFullName()).thenReturn("Teacher Name");
+
+        when(courseRepository.findByStatusAndFiltersOrderByPopularity(
+                eq(Course.CourseStatus.APPROVED), any(), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of(approvedPaidCourse)));
+        when(userJpaRepository.findAllById(any())).thenReturn(List.of(teacher));
+        when(enrollmentJpaRepository.countEnrollmentsByCourseIds(any())).thenReturn(
+                java.util.Collections.singletonList(new Object[] {approvedPaidCourse.getId(), 42L})
+        );
+        when(chapterRepository.countByCourseIds(any())).thenReturn(
+                java.util.Collections.singletonList(new Object[] {approvedPaidCourse.getId(), 3L})
+        );
+
+        var response = controller.getPublicCourses(0, 20, null, null, null, "popular", "desc");
+
+        assertThat(response.getBody()).isNotNull();
+        @SuppressWarnings("unchecked")
+        var page = (org.springframework.data.domain.Page<CourseQueryControllerV3.CourseSummaryResponse>) response.getBody().getData();
+        assertThat(page.getContent()).hasSize(1);
+        assertThat(page.getContent().getFirst().getEnrolledCount()).isEqualTo(42);
+
+        // Popular path must NOT fall back to the createdAt/title query.
+        verify(courseRepository, never()).findByStatusAndFilters(any(), any(), any(), any(), any());
+        verify(courseRepository).findByStatusAndFiltersOrderByPopularity(
+                eq(Course.CourseStatus.APPROVED), any(), any(), any(), any());
     }
 
     @Test

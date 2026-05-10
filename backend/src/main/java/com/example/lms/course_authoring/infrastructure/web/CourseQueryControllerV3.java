@@ -84,18 +84,33 @@ public class CourseQueryControllerV3 {
             return emptyPublicCoursePage(page, size);
         }
 
-        PageRequest pageable = PageRequest.of(
-                Math.max(0, page),
-                Math.min(Math.max(1, size), 100),
-                resolveCourseSort(sort, order)
-        );
-        Page<Course> courses = courseRepository.findByStatusAndFilters(
-                Course.CourseStatus.APPROVED,
-                categoryFilterIds,
-                parseDeliveryMode(deliveryMode),
-                normalizeSearch(search),
-                pageable
-        );
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), 100);
+        Course.DeliveryMode parsedDeliveryMode = parseDeliveryMode(deliveryMode);
+        String normalizedSearch = normalizeSearch(search);
+
+        Page<Course> courses;
+        if (isPopularSort(sort)) {
+            // Popular sort: ordering is fixed inside the native query (enrollment count
+            // desc, then created_at desc), so don't pass a Sort here.
+            PageRequest pageable = PageRequest.of(safePage, safeSize);
+            courses = courseRepository.findByStatusAndFiltersOrderByPopularity(
+                    Course.CourseStatus.APPROVED,
+                    categoryFilterIds,
+                    parsedDeliveryMode,
+                    normalizedSearch,
+                    pageable
+            );
+        } else {
+            PageRequest pageable = PageRequest.of(safePage, safeSize, resolveCourseSort(sort, order));
+            courses = courseRepository.findByStatusAndFilters(
+                    Course.CourseStatus.APPROVED,
+                    categoryFilterIds,
+                    parsedDeliveryMode,
+                    normalizedSearch,
+                    pageable
+            );
+        }
         
         // Batch-fetch teacher names and category names to prevent N+1
         Set<UUID> teacherIds = courses.getContent().stream()
@@ -770,6 +785,10 @@ public class CourseQueryControllerV3 {
     private Sort resolveCourseSort(String sort, String order) {
         String sortField = "title".equals(sort) ? "title" : "created_at";
         return "asc".equalsIgnoreCase(order) ? Sort.by(sortField).ascending() : Sort.by(sortField).descending();
+    }
+
+    private boolean isPopularSort(String sort) {
+        return sort != null && "popular".equalsIgnoreCase(sort.trim());
     }
 
     private Course.DeliveryMode parseDeliveryMode(String value) {

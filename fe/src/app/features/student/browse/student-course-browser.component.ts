@@ -369,16 +369,10 @@ export class StudentCourseBrowserComponent implements OnInit {
 
   private enrolledIds = computed(() => this.enrollmentService.enrolledCourseIds());
 
-  // API-filtered courses for the current page.
-  filteredCourses = computed(() => {
-    let result = this.rawCourses();
-
-    if (this.sortMode() === 'popular') {
-      result = [...result].sort((a, b) => (b.enrolledCount || 0) - (a.enrolledCount || 0));
-    }
-
-    return result;
-  });
+  // API-filtered, server-sorted courses for the current page.
+  // Sort (newest / popular / az) is applied server-side via buildCourseQueryParams,
+  // so we just surface the raw page here.
+  filteredCourses = computed(() => this.rawCourses());
 
   resultCount = computed(() => this.totalItems());
 
@@ -429,6 +423,11 @@ export class StudentCourseBrowserComponent implements OnInit {
     if (this.sortMode() === 'az') {
       params.sort = 'title';
       params.order = 'asc';
+    } else if (this.sortMode() === 'popular' && !this.showEnrolledOnly()) {
+      // Public catalog supports server-side popular sort (by enrollment count).
+      // Enrolled-only endpoint doesn't, so fall through to the recent-default below.
+      params.sort = 'popular';
+      params.order = 'desc';
     } else {
       params.sort = this.showEnrolledOnly() ? 'recent' : 'createdAt';
       params.order = 'desc';

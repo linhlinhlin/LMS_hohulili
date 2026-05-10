@@ -171,6 +171,17 @@ public interface CourseRepository {
             String search,
             Pageable pageable);
 
+    /**
+     * Variant of {@link #findByStatusAndFilters} ordered by enrollment count desc
+     * (popular sort). Pass an unsorted {@link Pageable}; ordering is fixed in the query.
+     */
+    Page<Course> findByStatusAndFiltersOrderByPopularity(
+            Course.CourseStatus status,
+            Set<UUID> categoryIds,
+            Course.DeliveryMode deliveryMode,
+            String search,
+            Pageable pageable);
+
     Page<Course> findByStatusAndCategoryId(Course.CourseStatus status, UUID categoryId, Pageable pageable);
 
     Page<Course> findByStatusAndCategoryIdAndTitleContaining(Course.CourseStatus status, UUID categoryId, String search, Pageable pageable);
