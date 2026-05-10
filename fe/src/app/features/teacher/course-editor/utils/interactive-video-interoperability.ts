@@ -83,6 +83,33 @@ export interface H5PInteractiveVideoParameters {
     assets: {
       interactions: H5PInteractiveVideoInteraction[];
       bookmarks: Array<{ time: number; label: string }>;
+      endscreens?: Array<{ time: number; label?: string }>;
+    };
+    /**
+     * H5P-standard behaviour block (note British spelling). Mirrors HoliLihu's
+     * `spec.behavior` so global playback rules survive a round-trip.
+     */
+    behaviour?: {
+      preventSkipping?: boolean;
+      preventSkippingMode?: 'none' | 'forward' | 'both';
+      showBookmarksMenuOnLoad?: boolean;
+      showRewind10?: boolean;
+      pauseOnInteractions?: boolean;
+    };
+    /**
+     * H5P-standard summary task. HoliLihu's `spec.endScreen` maps onto this so
+     * teacher-authored end-of-video review surfaces survive a round-trip.
+     */
+    summary?: {
+      task?: {
+        params?: {
+          intro?: string;
+          summary?: string;
+          requireAnswerBeforeSubmit?: boolean;
+          showScore?: boolean;
+          atSeconds?: number | null;
+        };
+      };
     };
   };
 }
@@ -137,13 +164,82 @@ export function importInteractiveVideoBundle(value: unknown): InteractiveVideoSp
     return null;
   }
 
+  const root = getH5PInteractiveVideoRoot(value);
   return normalizeInteractiveVideoSpecV2({
     version: 2,
     enabled: true,
+    behavior: fromH5PBehaviour(root?.behaviour),
+    bookmarks: fromH5PBookmarks(root?.assets?.bookmarks),
+    endScreen: fromH5PSummary(root?.summary),
     timeline: sortInteractiveVideoTimeline(
       h5pInteractions.map((interaction, index) => fromH5PInteraction(interaction, index)),
     ),
   });
+}
+
+function getH5PInteractiveVideoRoot(
+  value: unknown,
+): H5PInteractiveVideoParameters['interactiveVideo'] | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+  const source = value as {
+    h5pParameters?: H5PInteractiveVideoParameters;
+    interactiveVideo?: H5PInteractiveVideoParameters['interactiveVideo'];
+  };
+  return source.h5pParameters?.interactiveVideo ?? source.interactiveVideo ?? null;
+}
+
+function fromH5PBookmarks(
+  bookmarks: H5PInteractiveVideoParameters['interactiveVideo']['assets']['bookmarks'] | undefined,
+): InteractiveVideoSpec['bookmarks'] {
+  if (!Array.isArray(bookmarks)) {
+    return undefined;
+  }
+  return bookmarks
+    .filter((entry): entry is { time: number; label: string } =>
+      !!entry && typeof entry.time === 'number' && typeof entry.label === 'string',
+    )
+    .map((entry, index) => ({
+      id: `h5p-bookmark-${index + 1}`,
+      timeSeconds: Math.max(0, Math.round(entry.time)),
+      label: entry.label,
+    }));
+}
+
+function fromH5PBehaviour(
+  behaviour: H5PInteractiveVideoParameters['interactiveVideo']['behaviour'],
+): InteractiveVideoSpec['behavior'] {
+  if (!behaviour) {
+    return undefined;
+  }
+  const explicitMode = behaviour.preventSkippingMode;
+  const inferredMode = behaviour.preventSkipping ? 'forward' : 'none';
+  return {
+    preventSkippingMode: explicitMode === 'none' || explicitMode === 'forward' || explicitMode === 'both'
+      ? explicitMode
+      : inferredMode,
+    showBookmarksOnLoad: behaviour.showBookmarksMenuOnLoad === true,
+    showRewind10: behaviour.showRewind10 === true,
+    pauseOnInteraction: behaviour.pauseOnInteractions !== false,
+  };
+}
+
+function fromH5PSummary(
+  summary: H5PInteractiveVideoParameters['interactiveVideo']['summary'],
+): InteractiveVideoSpec['endScreen'] {
+  const params = summary?.task?.params;
+  if (!params) {
+    return undefined;
+  }
+  return {
+    enabled: true,
+    atSeconds: typeof params.atSeconds === 'number' ? params.atSeconds : null,
+    requireAnswerBeforeSubmit: params.requireAnswerBeforeSubmit === true,
+    showScore: params.showScore === true,
+    title: params.intro ?? null,
+    body: params.summary ?? null,
+  };
 }
 
 export async function exportInteractiveVideoH5PPackage(
@@ -216,17 +312,58 @@ function exportToH5PParameters(
   spec: InteractiveVideoSpec,
   videoUrl: string | null,
 ): H5PInteractiveVideoParameters {
+  const bookmarks = (spec.bookmarks ?? []).map(bookmark => ({
+    time: bookmark.timeSeconds,
+    label: bookmark.label,
+  }));
+
   return {
     interactiveVideo: {
       video: videoUrl ? { files: [{ path: videoUrl, mime: inferMimeType(videoUrl) }] } : undefined,
       assets: {
         interactions: spec.timeline.map(toH5PInteraction),
-        bookmarks: spec.timeline
-          .filter(interaction => interaction.title)
-          .map(interaction => ({
-            time: interaction.atSeconds,
-            label: interaction.title ?? interaction.id,
-          })),
+        // Bookmarks are first-class in V2; previously these were synthesised
+        // from interaction titles, which conflated the two and dropped any
+        // standalone bookmarks teachers added.
+        bookmarks,
+      },
+      behaviour: toH5PBehaviour(spec.behavior),
+      summary: toH5PSummary(spec.endScreen ?? null),
+    },
+  };
+}
+
+function toH5PBehaviour(
+  behavior: InteractiveVideoSpec['behavior'],
+): H5PInteractiveVideoParameters['interactiveVideo']['behaviour'] {
+  if (!behavior) {
+    return undefined;
+  }
+  const mode = behavior.preventSkippingMode ?? 'none';
+  return {
+    preventSkipping: mode !== 'none',
+    preventSkippingMode: mode,
+    showBookmarksMenuOnLoad: behavior.showBookmarksOnLoad === true,
+    showRewind10: behavior.showRewind10 === true,
+    // Default true mirrors normalizer (`!== false`); only emit explicit false.
+    pauseOnInteractions: behavior.pauseOnInteraction !== false,
+  };
+}
+
+function toH5PSummary(
+  endScreen: InteractiveVideoSpec['endScreen'],
+): H5PInteractiveVideoParameters['interactiveVideo']['summary'] {
+  if (!endScreen) {
+    return undefined;
+  }
+  return {
+    task: {
+      params: {
+        intro: endScreen.title ?? undefined,
+        summary: endScreen.body ?? undefined,
+        requireAnswerBeforeSubmit: endScreen.requireAnswerBeforeSubmit === true,
+        showScore: endScreen.showScore === true,
+        atSeconds: endScreen.atSeconds ?? null,
       },
     },
   };

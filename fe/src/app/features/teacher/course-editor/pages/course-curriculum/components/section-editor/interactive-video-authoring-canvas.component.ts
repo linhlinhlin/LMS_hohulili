@@ -186,6 +186,12 @@ export class InteractiveVideoAuthoringCanvasComponent {
   readonly placementPreview = signal<CanvasTimePreview | null>(null);
   readonly dragPreview = signal<CanvasTimePreview | null>(null);
   private readonly draggingInteractionId = signal<string | null>(null);
+  /**
+   * Last pointer-derived position while a drag is in progress. Captured on
+   * every pointermove and committed once on pointerup so the move emits as a
+   * single state change instead of one per pointer step.
+   */
+  private pendingMove: { atSeconds: number; position: InteractiveVideoPosition } | null = null;
 
   readonly interactionTypes: InteractiveVideoInteractionType[] = [
     'checkpoint',
@@ -248,6 +254,11 @@ export class InteractiveVideoAuthoringCanvasComponent {
     if (event.button !== 0) {
       return;
     }
+    if (this.draggingInteractionId()) {
+      // Refuse a second pointerdown mid-drag so a stray touch can't hijack the
+      // drag state for a different interaction.
+      return;
+    }
     event.preventDefault();
     event.stopPropagation();
     this.draggingInteractionId.set(interaction.id);
@@ -266,27 +277,39 @@ export class InteractiveVideoAuthoringCanvasComponent {
       return;
     }
     event.preventDefault();
-    const preview = this.buildPreviewFromPointer(event);
-    this.dragPreview.set(preview);
-    this.interactionMoved.emit({
-      interactionId,
-      atSeconds: preview.atSeconds,
+    // Only update the local preview during drag — emitting interactionMoved on
+    // every pointer step caused hundreds of state writes per drag, which raced
+    // with the debounced autosave and broke per-change undo. Final position is
+    // committed once on pointerup using the last seen pointer position.
+    this.dragPreview.set(this.buildPreviewFromPointer(event));
+    this.pendingMove = {
+      atSeconds: this.getTimeSecondsFromPointer(event),
       position: this.getPositionFromPointer(event),
-    });
+    };
   }
 
   onHandlePointerUp(event: PointerEvent): void {
+    const interactionId = this.draggingInteractionId();
+    const pendingMove = this.pendingMove;
     const target = event.currentTarget as HTMLElement;
     if (target.hasPointerCapture(event.pointerId)) {
       target.releasePointerCapture(event.pointerId);
     }
+    if (interactionId && pendingMove) {
+      // Emit the final position once, so the move is a single undoable change.
+      this.interactionMoved.emit({ interactionId, ...pendingMove });
+    }
     this.draggingInteractionId.set(null);
     this.dragPreview.set(null);
+    this.pendingMove = null;
   }
 
   onHandlePointerCancel(): void {
+    // Cancel: discard the in-progress drag without emitting; original position
+    // is preserved because we never wrote intermediate state to the service.
     this.draggingInteractionId.set(null);
     this.dragPreview.set(null);
+    this.pendingMove = null;
   }
 
   positionX(interaction: InteractiveVideoInteraction): number {
@@ -357,12 +380,12 @@ export class InteractiveVideoAuthoringCanvasComponent {
   }
 
   private getTimeSecondsFromPointer(event: Pick<MouseEvent, 'clientX'>): number {
-    const rect = this.canvas()?.nativeElement.getBoundingClientRect();
-    if (!rect || rect.width <= 0) {
+    const content = this.getVideoContentRect();
+    if (!content || content.width <= 0) {
       return this.getVideoCurrentTime();
     }
 
-    const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+    const ratio = Math.min(1, Math.max(0, (event.clientX - content.left) / content.width));
     return this.clampTime(Math.round(ratio * this.timelineMaxSeconds()));
   }
 
@@ -372,14 +395,61 @@ export class InteractiveVideoAuthoringCanvasComponent {
   }
 
   private getPositionFromPointer(event: Pick<MouseEvent, 'clientX' | 'clientY'>): InteractiveVideoPosition {
-    const rect = this.canvas()?.nativeElement.getBoundingClientRect();
-    if (!rect || rect.width <= 0 || rect.height <= 0) {
+    const content = this.getVideoContentRect();
+    if (!content || content.width <= 0 || content.height <= 0) {
       return { xPercent: 50, yPercent: 88 };
     }
 
     return {
-      xPercent: this.clampPercent(((event.clientX - rect.left) / rect.width) * 100),
-      yPercent: this.clampPercent(((event.clientY - rect.top) / rect.height) * 100),
+      xPercent: this.clampPercent(((event.clientX - content.left) / content.width) * 100),
+      yPercent: this.clampPercent(((event.clientY - content.top) / content.height) * 100),
+    };
+  }
+
+  /**
+   * Compute the rect of the actual rendered video frame inside the canvas.
+   *
+   * The `<video>` element is `object-contain`, so when the video and canvas
+   * aspect ratios differ, the video is centred with letterbox or pillarbox
+   * bands. Mapping pointer coordinates against the raw canvas rect would
+   * place interactions on those bands, off the actual frame. This helper
+   * returns the inner content rect; pointer coordinates outside it are
+   * clamped to its edges by the consumer.
+   *
+   * Falls back to the canvas rect when video metadata is not yet loaded.
+   */
+  private getVideoContentRect():
+    | { left: number; top: number; width: number; height: number }
+    | null {
+    const canvas = this.canvas()?.nativeElement.getBoundingClientRect();
+    if (!canvas || canvas.width <= 0 || canvas.height <= 0) {
+      return null;
+    }
+    const video = this.videoElement()?.nativeElement;
+    const naturalWidth = video?.videoWidth ?? 0;
+    const naturalHeight = video?.videoHeight ?? 0;
+    if (!naturalWidth || !naturalHeight) {
+      return { left: canvas.left, top: canvas.top, width: canvas.width, height: canvas.height };
+    }
+    const videoAspect = naturalWidth / naturalHeight;
+    const canvasAspect = canvas.width / canvas.height;
+    if (videoAspect > canvasAspect) {
+      // Letterbox: bars top/bottom, content fills full width.
+      const height = canvas.width / videoAspect;
+      return {
+        left: canvas.left,
+        top: canvas.top + (canvas.height - height) / 2,
+        width: canvas.width,
+        height,
+      };
+    }
+    // Pillarbox (or exact fit): bars left/right, content fills full height.
+    const width = canvas.height * videoAspect;
+    return {
+      left: canvas.left + (canvas.width - width) / 2,
+      top: canvas.top,
+      width,
+      height: canvas.height,
     };
   }
 
