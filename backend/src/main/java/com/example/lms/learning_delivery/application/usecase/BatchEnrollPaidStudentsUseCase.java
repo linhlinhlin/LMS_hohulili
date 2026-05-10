@@ -1,11 +1,12 @@
 package com.example.lms.learning_delivery.application.usecase;
 
 import com.example.lms.learning_delivery.application.dto.BatchEnrollPaidResult;
+import com.example.lms.learning_delivery.domain.event.CourseEnrolledEvent;
 import com.example.lms.learning_delivery.domain.model.Enrollment;
 import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.repository.EnrollmentRepository;
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepository;
-import com.example.lms.shared.integration.WiiiLmsEventPublisher;
+import com.example.lms.shared.domain.event.DomainEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -31,7 +32,7 @@ public class BatchEnrollPaidStudentsUseCase {
 
     private final EnrollmentRepository enrollmentRepository;
     private final LearningClassRepository classRepository;
-    private final WiiiLmsEventPublisher wiiiLmsEventPublisher;
+    private final DomainEventPublisher eventPublisher;
 
     /**
      * Batch enroll paid students into a class.
@@ -76,8 +77,15 @@ public class BatchEnrollPaidStudentsUseCase {
                         .lastAccessedAt(java.time.Instant.now())
                         .status(Enrollment.EnrollmentStatus.ACTIVE)
                         .build();
-                enrollmentRepository.save(enrollment);
-                wiiiLmsEventPublisher.sendCourseEnrolled(studentId, learningClass, null);
+                Enrollment saved = enrollmentRepository.save(enrollment);
+                eventPublisher.publish(new CourseEnrolledEvent(
+                        saved.getId(),
+                        studentId,
+                        learningClass.getId(),
+                        learningClass.getCourseId(),
+                        null,
+                        learningClass.getSemester()
+                ));
                 enrolledCount++;
                 log.debug("Enrolled student {} into class {}", studentId, classId);
             } catch (Exception e) {

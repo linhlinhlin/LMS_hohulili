@@ -4,13 +4,14 @@ import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
 import com.example.lms.identity.domain.model.User;
 import com.example.lms.identity.domain.repository.UserRepository;
+import com.example.lms.learning_delivery.domain.event.CourseEnrolledEvent;
 import com.example.lms.learning_delivery.domain.model.Enrollment;
 import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.repository.EnrollmentRepositoryPort;
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepositoryPort;
+import com.example.lms.shared.domain.event.DomainEventPublisher;
 import com.example.lms.shared.domain.valueobject.UserId;
 import com.example.lms.shared.exception.BusinessRuleException;
-import com.example.lms.shared.integration.WiiiLmsEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -33,7 +34,7 @@ public class EnrollStudentUseCaseV3 {
     private final EnrollmentRepositoryPort enrollmentRepository;
     private final LearningClassRepositoryPort learningClassRepository;
     private final CourseRepository courseRepository;
-    private final WiiiLmsEventPublisher wiiiLmsEventPublisher;
+    private final DomainEventPublisher eventPublisher;
 
     @Transactional
     public UUID enroll(UUID studentId, UUID classId) {
@@ -72,7 +73,14 @@ public class EnrollStudentUseCaseV3 {
                 .build();
 
         Enrollment saved = enrollmentRepository.save(enrollment);
-        wiiiLmsEventPublisher.sendCourseEnrolled(studentId, learningClass, course.getTitle());
+        eventPublisher.publish(new CourseEnrolledEvent(
+                saved.getId(),
+                studentId,
+                learningClass.getId(),
+                learningClass.getCourseId(),
+                course.getTitle(),
+                learningClass.getSemester()
+        ));
 
         log.info("Student {} enrolled successfully in class {} with enrollment ID {}",
                 studentId, classId, saved.getId());

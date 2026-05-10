@@ -1,7 +1,9 @@
 package com.example.lms.shared.integration;
 
+import com.example.lms.assessment.domain.event.AssignmentSubmittedEvent;
 import com.example.lms.assessment.domain.event.QuizSubmittedEvent;
 import com.example.lms.assessment.domain.event.SubmissionGradedEvent;
+import com.example.lms.learning_delivery.domain.event.CourseEnrolledEvent;
 import com.example.lms.shared.domain.valueobject.StudentId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +37,28 @@ class WiiiLmsEventPublisherTest {
         WiiiIntegrationConfig config = new WiiiIntegrationConfig();
         config.getWebhook().setEnabled(true);
         publisher = new WiiiLmsEventPublisher(webhookEmitter, config, jdbc);
+    }
+
+    @Test
+    void sendCourseEnrolledMapsNeutralDomainEventToWebhookContract() {
+        UUID enrollmentId = UUID.randomUUID();
+        UUID studentId = UUID.randomUUID();
+        UUID classId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
+
+        publisher.sendCourseEnrolled(new CourseEnrolledEvent(
+                enrollmentId, studentId, classId, courseId, "Maritime Safety", "2026A"));
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Object>> payload =
+                ArgumentCaptor.forClass((Class) Map.class);
+        verify(webhookEmitter).sendEvent(eq("course_enrolled"), payload.capture());
+
+        assertThat(payload.getValue())
+                .containsEntry("student_id", studentId.toString())
+                .containsEntry("course_id", courseId.toString())
+                .containsEntry("course_name", "Maritime Safety")
+                .containsEntry("semester", "2026A");
     }
 
     @Test
@@ -93,7 +117,8 @@ class WiiiLmsEventPublisherTest {
                 "max_grade", 100.0
         ));
 
-        publisher.sendAssignmentSubmitted(studentId, assignmentId, Instant.parse("2026-05-10T10:15:30Z"));
+        publisher.sendAssignmentSubmitted(new AssignmentSubmittedEvent(
+                UUID.randomUUID(), assignmentId, studentId, Instant.parse("2026-05-10T10:15:30Z")));
 
         verify(webhookEmitter, never()).sendEvent(eq("assignment_submitted"), org.mockito.ArgumentMatchers.anyMap());
     }

@@ -2,6 +2,7 @@ package com.example.lms.assessment.infrastructure.web;
 
 import com.example.lms.assessment.application.port.StudentAssessmentAccessPort;
 import com.example.lms.assessment.application.usecase.GradeSubmissionUseCase;
+import com.example.lms.assessment.domain.event.AssignmentSubmittedEvent;
 import com.example.lms.assessment.infrastructure.persistence.entity.AssignmentJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.entity.AssignmentSubmissionJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentJpaRepository;
@@ -9,7 +10,7 @@ import com.example.lms.assessment.infrastructure.persistence.repository.Assignme
 import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
-import com.example.lms.shared.integration.WiiiLmsEventPublisher;
+import com.example.lms.shared.domain.event.DomainEventPublisher;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -55,7 +56,7 @@ public class AssignmentSubmissionControllerV3 {
     private final UserJpaRepository userJpaRepository;
     private final com.example.lms.assessment.infrastructure.persistence.repository.GradingAuditLogJpaRepository gradingAuditLogRepository;
     private final ObjectMapper objectMapper;
-    private final WiiiLmsEventPublisher wiiiLmsEventPublisher;
+    private final DomainEventPublisher eventPublisher;
 
     // =============================================
     // Teacher endpoints
@@ -272,12 +273,8 @@ public class AssignmentSubmissionControllerV3 {
                     ? AssignmentSubmissionJpaEntity.SubmissionStatus.LATE
                     : AssignmentSubmissionJpaEntity.SubmissionStatus.RESUBMITTED);
             submission.setSubmittedAt(Instant.now());
-            submissionRepository.save(submission);
-            wiiiLmsEventPublisher.sendAssignmentSubmitted(
-                    submission.getStudentId(),
-                    submission.getAssignmentId(),
-                    submission.getSubmittedAt()
-            );
+            submission = submissionRepository.save(submission);
+            publishAssignmentSubmitted(submission);
             return ResponseEntity.ok(ApiResponse.success(
                     toSubmissionDetailMapWithStudent(submission), "Da nop lai bai tap"));
         }
@@ -297,13 +294,18 @@ public class AssignmentSubmissionControllerV3 {
                 .build();
 
         submission = submissionRepository.save(submission);
-        wiiiLmsEventPublisher.sendAssignmentSubmitted(
-                submission.getStudentId(),
-                submission.getAssignmentId(),
-                submission.getSubmittedAt()
-        );
+        publishAssignmentSubmitted(submission);
         return ResponseEntity.ok(ApiResponse.success(
                 toSubmissionDetailMapWithStudent(submission), "Da nop bai tap"));
+    }
+
+    private void publishAssignmentSubmitted(AssignmentSubmissionJpaEntity submission) {
+        eventPublisher.publish(new AssignmentSubmittedEvent(
+                submission.getId(),
+                submission.getAssignmentId(),
+                submission.getStudentId(),
+                submission.getSubmittedAt()
+        ));
     }
 
     @Operation(summary = "Get my submission for an assignment (Student compatibility route)")

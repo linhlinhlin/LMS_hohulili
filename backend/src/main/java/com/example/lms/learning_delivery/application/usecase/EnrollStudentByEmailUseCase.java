@@ -4,13 +4,14 @@ import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
 import com.example.lms.identity.domain.model.User;
 import com.example.lms.identity.domain.repository.UserRepository;
+import com.example.lms.learning_delivery.domain.event.CourseEnrolledEvent;
 import com.example.lms.learning_delivery.domain.model.Enrollment;
 import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.repository.EnrollmentRepository;
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepository;
+import com.example.lms.shared.domain.event.DomainEventPublisher;
 import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.exception.EntityNotFoundException;
-import com.example.lms.shared.integration.WiiiLmsEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -32,7 +33,7 @@ public class EnrollStudentByEmailUseCase {
     private final EnrollmentRepository enrollmentRepository;
     private final LearningClassRepository learningClassRepository;
     private final CourseRepository courseRepository;
-    private final WiiiLmsEventPublisher wiiiLmsEventPublisher;
+    private final DomainEventPublisher eventPublisher;
 
     @Transactional
     public UUID enroll(String email, UUID classId) {
@@ -72,7 +73,14 @@ public class EnrollStudentByEmailUseCase {
                 .build();
 
         Enrollment saved = enrollmentRepository.save(enrollment);
-        wiiiLmsEventPublisher.sendCourseEnrolled(student.getId().value(), learningClass, course.getTitle());
+        eventPublisher.publish(new CourseEnrolledEvent(
+                saved.getId(),
+                student.getId().value(),
+                learningClass.getId(),
+                learningClass.getCourseId(),
+                course.getTitle(),
+                learningClass.getSemester()
+        ));
 
         log.info("Student {} enrolled successfully in class {} with enrollment ID {}",
                 email, classId, saved.getId());

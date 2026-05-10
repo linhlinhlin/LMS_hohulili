@@ -3,6 +3,7 @@ package com.example.lms.assessment.infrastructure.web;
 import com.example.lms.assessment.application.dto.StudentAssignmentResponse;
 import com.example.lms.assessment.application.port.StudentAssessmentAccessPort;
 import com.example.lms.assessment.application.usecase.GetStudentAssignmentsUseCase;
+import com.example.lms.assessment.domain.event.AssignmentSubmittedEvent;
 import com.example.lms.assessment.infrastructure.persistence.entity.AssignmentAttachmentJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.entity.AssignmentJpaEntity;
 import com.example.lms.assessment.infrastructure.persistence.entity.AssignmentSubmissionJpaEntity;
@@ -11,7 +12,7 @@ import com.example.lms.assessment.infrastructure.persistence.repository.Assignme
 import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentSubmissionJpaRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.shared.application.port.FileManagementPort;
-import com.example.lms.shared.integration.WiiiLmsEventPublisher;
+import com.example.lms.shared.domain.event.DomainEventPublisher;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -44,7 +45,7 @@ public class StudentAssignmentControllerV3 {
     private final AssignmentJpaRepository assignmentRepository;
     private final AssignmentAttachmentJpaRepository attachmentRepository;
     private final FileManagementPort fileManagementPort;
-    private final WiiiLmsEventPublisher wiiiLmsEventPublisher;
+    private final DomainEventPublisher eventPublisher;
 
     @Operation(summary = "Danh sach bai tap cua hoc vien")
     @GetMapping
@@ -171,11 +172,12 @@ public class StudentAssignmentControllerV3 {
             }
         }
 
-        wiiiLmsEventPublisher.sendAssignmentSubmitted(
-                submission.getStudentId(),
+        eventPublisher.publish(new AssignmentSubmittedEvent(
+                submission.getId(),
                 submission.getAssignmentId(),
+                submission.getStudentId(),
                 submission.getSubmittedAt()
-        );
+        ));
 
         return ResponseEntity.ok(ApiResponse.success(
                 Map.of("submissionId", submission.getId().toString(), "status", submission.getStatus().name()),

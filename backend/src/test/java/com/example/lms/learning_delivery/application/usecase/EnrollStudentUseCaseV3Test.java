@@ -8,9 +8,9 @@ import com.example.lms.identity.domain.repository.UserRepository;
 import com.example.lms.learning_delivery.domain.repository.EnrollmentRepositoryPort;
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepositoryPort;
 import com.example.lms.shared.domain.valueobject.Email;
+import com.example.lms.shared.domain.event.DomainEventPublisher;
 import com.example.lms.shared.domain.valueobject.UserId;
 import com.example.lms.shared.exception.BusinessRuleException;
-import com.example.lms.shared.integration.WiiiLmsEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -47,7 +47,7 @@ class EnrollStudentUseCaseV3Test {
     private CourseRepository courseRepository;
 
     @Mock
-    private WiiiLmsEventPublisher wiiiLmsEventPublisher;
+    private DomainEventPublisher eventPublisher;
 
     @InjectMocks
     private EnrollStudentUseCaseV3 useCase;

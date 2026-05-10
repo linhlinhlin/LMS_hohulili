@@ -1,8 +1,9 @@
 package com.example.lms.shared.integration;
 
+import com.example.lms.assessment.domain.event.AssignmentSubmittedEvent;
 import com.example.lms.assessment.domain.event.QuizSubmittedEvent;
 import com.example.lms.assessment.domain.event.SubmissionGradedEvent;
-import com.example.lms.learning_delivery.domain.model.LearningClass;
+import com.example.lms.learning_delivery.domain.event.CourseEnrolledEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -34,61 +35,52 @@ public class WiiiLmsEventPublisher {
         this.jdbc = jdbc;
     }
 
-    public void sendCourseEnrolled(UUID studentId, LearningClass learningClass, String courseName) {
+    public void sendCourseEnrolled(CourseEnrolledEvent event) {
         if (!isWebhookEnabled()) {
             return;
         }
-        if (studentId == null || learningClass == null || learningClass.getCourseId() == null) {
-            log.debug("Skipping Wiii course_enrolled webhook because enrollment context is incomplete");
-            return;
-        }
-        sendCourseEnrolled(studentId, learningClass.getCourseId(), courseName, learningClass.getSemester());
-    }
-
-    public void sendCourseEnrolled(UUID studentId, UUID courseId, String courseName, String semester) {
-        if (!isWebhookEnabled()) {
-            return;
-        }
-        if (studentId == null || courseId == null) {
+        if (event == null || event.getStudentId() == null || event.getCourseId() == null) {
             log.debug("Skipping Wiii course_enrolled webhook because student_id or course_id is missing");
             return;
         }
-
-        String resolvedCourseName = firstNonBlank(courseName, resolveCourseName(courseId).orElse(""));
+        String resolvedCourseName = firstNonBlank(
+                event.getCourseName(),
+                resolveCourseName(event.getCourseId()).orElse(""));
 
         Map<String, Object> payload = new HashMap<>();
-        payload.put("student_id", studentId.toString());
-        payload.put("course_id", courseId.toString());
+        payload.put("student_id", event.getStudentId().toString());
+        payload.put("course_id", event.getCourseId().toString());
         payload.put("course_name", resolvedCourseName);
-        if (semester != null && !semester.isBlank()) {
-            payload.put("semester", semester);
+        if (event.getSemester() != null && !event.getSemester().isBlank()) {
+            payload.put("semester", event.getSemester());
         }
 
         webhookEmitter.sendEvent("course_enrolled", payload);
     }
 
-    public void sendAssignmentSubmitted(UUID studentId, UUID assignmentId, Instant submittedAt) {
+    public void sendAssignmentSubmitted(AssignmentSubmittedEvent event) {
         if (!isWebhookEnabled()) {
             return;
         }
-        if (studentId == null || assignmentId == null) {
+        if (event == null || event.getStudentId() == null || event.getAssignmentId() == null) {
             log.debug("Skipping Wiii assignment_submitted webhook because student_id or assignment_id is missing");
             return;
         }
 
-        AssignmentContext context = resolveAssignmentContext(assignmentId).orElse(null);
+        AssignmentContext context = resolveAssignmentContext(event.getAssignmentId()).orElse(null);
         if (context == null || context.courseId() == null) {
-            log.warn("Skipping Wiii assignment_submitted webhook because assignment {} has no course context", assignmentId);
+            log.warn("Skipping Wiii assignment_submitted webhook because assignment {} has no course context",
+                    event.getAssignmentId());
             return;
         }
 
         Map<String, Object> payload = new HashMap<>();
-        payload.put("student_id", studentId.toString());
-        payload.put("assignment_id", assignmentId.toString());
+        payload.put("student_id", event.getStudentId().toString());
+        payload.put("assignment_id", event.getAssignmentId().toString());
         payload.put("assignment_name", context.assignmentName());
         payload.put("course_id", context.courseId().toString());
         payload.put("course_name", context.courseName());
-        payload.put("submitted_at", (submittedAt != null ? submittedAt : Instant.now()).toString());
+        payload.put("submitted_at", (event.getSubmittedAt() != null ? event.getSubmittedAt() : Instant.now()).toString());
 
         webhookEmitter.sendEvent("assignment_submitted", payload);
     }

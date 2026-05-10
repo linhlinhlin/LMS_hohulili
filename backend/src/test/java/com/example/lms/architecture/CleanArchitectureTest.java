@@ -130,6 +130,17 @@ class CleanArchitectureTest {
         }
 
         @Test
+        @DisplayName("Use cases should not depend on integration adapters")
+        void useCasesShouldNotDependOnIntegrationAdapters() {
+            noClasses()
+                    .that(COMMAND_USE_CASES_OUTSIDE_APPROVED_LEGACY_DEBT)
+                    .should().dependOnClassesThat()
+                    .resideInAPackage("..integration..")
+                    .because("Command use cases must publish domain events or depend on ports, not concrete integration adapters")
+                    .check(importedClasses);
+        }
+
+        @Test
         @DisplayName("Application DTOs should not depend on infrastructure")
         void dtosShouldNotDependOnInfrastructure() {
             noClasses()
