@@ -11,6 +11,7 @@ import { WebMcpService } from './core/services/webmcp.service';
 import { OfflineStorageTelemetryIngestService } from './core/services/offline-storage-telemetry-ingest.service';
 import { AuthService } from './core/services/auth.service';
 import { MessagingService } from './core/services/messaging.service';
+import { WiiiOperatorPreviewDialogComponent } from './features/ai-chat/presentation/components';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -22,12 +23,14 @@ import { MessagingService } from './core/services/messaging.service';
     OfflineIndicatorComponent,
     SessionExpiredBannerComponent,
     AppUpdateBannerComponent,
+    WiiiOperatorPreviewDialogComponent,
   ],
   template: `
     <app-session-expired-banner />
     <app-offline-indicator />
     <app-update-banner />
     <router-outlet></router-outlet>
+    <app-wiii-operator-preview-dialog />
     <app-toast-container />
     <app-confirm-dialog />
   `,

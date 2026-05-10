@@ -99,11 +99,17 @@ describe('WiiiContextService - operator preview/apply flows', () => {
     } as any));
     lessonApi.updateLesson.and.returnValue(of({ success: true } as any));
 
+    let panelPreview: any;
+    const previewSub = service.operatorPreview$.subscribe((previewPanel) => {
+      panelPreview = previewPanel;
+    });
     const preview = await (service as any).handleActionRequest('authoring.preview_lesson_patch', {
       lesson_id: 'lesson-1',
       title: 'Bai hoc moi',
       content: 'Noi dung da chinh sua',
+      source_references: [{ kind: 'chapter', page_start: 2, page_end: 3, excerpt: 'Nguon tai lieu' }],
     });
+    previewSub.unsubscribe();
 
     expect(preview.success).toBeTrue();
     expect(preview.data?.preview_kind).toBe('lesson_patch');
@@ -129,10 +135,21 @@ describe('WiiiContextService - operator preview/apply flows', () => {
       unchanged: 0,
       items: jasmine.any(Array),
     }));
+    expect(preview.data?.source_references).toEqual([
+      jasmine.objectContaining({ kind: 'chapter', page_start: 2, page_end: 3, excerpt: 'Nguon tai lieu' }),
+    ]);
+    expect(panelPreview).toEqual(jasmine.objectContaining({
+      token: preview.data?.preview_token,
+      kind: 'lesson_patch',
+      sourceReferences: [jasmine.objectContaining({ page_start: 2 })],
+    }));
 
-    const applied = await (service as any).handleActionRequest('authoring.apply_lesson_patch', {
+    await expectAsync((service as any).handleActionRequest('authoring.apply_lesson_patch', {
       preview_token: preview.data?.preview_token,
-    });
+    })).toBeRejectedWithError(/host_preview_approval_required/);
+    expect(lessonApi.updateLesson).not.toHaveBeenCalled();
+
+    const applied = await service.approveOperatorPreview(String(preview.data?.preview_token));
 
     expect(applied.success).toBeTrue();
     expect(lessonApi.updateLesson).toHaveBeenCalledWith('lesson-1', jasmine.objectContaining({
@@ -171,9 +188,7 @@ describe('WiiiContextService - operator preview/apply flows', () => {
       max_attempts: 2,
     }));
 
-    const applied = await (service as any).handleActionRequest('assessment.apply_quiz_commit', {
-      preview_token: preview.data?.preview_token,
-    });
+    const applied = await service.approveOperatorPreview(String(preview.data?.preview_token));
 
     expect(applied.success).toBeTrue();
     expect(quizApi.createLessonQuizV3).toHaveBeenCalledWith('lesson-1', jasmine.objectContaining({
@@ -182,7 +197,7 @@ describe('WiiiContextService - operator preview/apply flows', () => {
       questionIds: ['q1', 'q2', 'q3'],
       publishImmediately: false,
     }));
-    expect(applied.data?.quiz_id).toBe('quiz-1');
+    expect(applied.data?.['quiz_id']).toBe('quiz-1');
   });
 
   it('previews and publishes an existing quiz through the host action flow', async () => {
@@ -208,13 +223,11 @@ describe('WiiiContextService - operator preview/apply flows', () => {
       title: 'Quiz cuoi chuong',
     }));
 
-    const published = await (service as any).handleActionRequest('publish.apply_quiz', {
-      preview_token: preview.data?.preview_token,
-    });
+    const published = await service.approveOperatorPreview(String(preview.data?.preview_token));
 
     expect(published.success).toBeTrue();
     expect(quizApi.publishQuiz).toHaveBeenCalledWith('quiz-9');
-    expect(published.data?.published).toBeTrue();
+    expect(published.data?.['published']).toBeTrue();
   });
 
   it('adds connector and workspace overlays to host context contracts', () => {
