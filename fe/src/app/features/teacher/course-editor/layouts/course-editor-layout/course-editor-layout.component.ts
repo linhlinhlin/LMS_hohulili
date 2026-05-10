@@ -8,13 +8,14 @@ import { CourseRejectionBannerComponent } from '../../components/rejection-banne
 import { CourseEditorStore } from '../../store/course-editor.store';
 import { CurriculumSelectionService } from '../../services/curriculum-selection.service';
 import { AuthService } from '../../../../../core/services/auth.service';
+import { ChatWidgetComponent } from '../../../../ai-chat/presentation/components/chat-widget/chat-widget.component';
 import { distinctUntilChanged, filter, take, map } from 'rxjs/operators';
 
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-course-editor-layout',
-  imports: [RouterOutlet, RouterModule, CourseEditorSidebarComponent, CourseEditorHeaderComponent, CourseRejectionBannerComponent],
+  imports: [RouterOutlet, RouterModule, CourseEditorSidebarComponent, CourseEditorHeaderComponent, CourseRejectionBannerComponent, ChatWidgetComponent],
   styleUrl: './course-editor-layout.component.scss',
   template: `
     <div class="relative flex h-screen w-full flex-col overflow-hidden font-sans bg-white text-slate-900"
@@ -168,6 +169,8 @@ import { distinctUntilChanged, filter, take, map } from 'rxjs/operators';
             </div>
         </div>
       </main>
+
+      <app-chat-widget />
     </div>
   `
 })

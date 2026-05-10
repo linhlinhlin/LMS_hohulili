@@ -1719,7 +1719,7 @@ export class CourseCurriculumComponent implements OnDestroy {
       if (courseId) {
         this.store.loadCourse(courseId, true);
       }
-      this.toast.success('Da ap dung noi dung Wiii sau khi duyet preview.');
+      this.toast.success('Đã áp dụng nội dung Wiii sau khi duyệt bản xem trước.');
     });
 
   /** Open Wiii AI sidebar for course generation from document */

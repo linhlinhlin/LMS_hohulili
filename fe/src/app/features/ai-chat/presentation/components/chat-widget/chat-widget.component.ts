@@ -27,6 +27,7 @@ import { WiiiContextService, type WiiiSidebarOpenDetail } from '../../../infrast
       <!-- Chat Panel (iframe embed) -->
       @if (isPanelOpen()) {
         <app-chat-panel
+          mode="widget"
           (closePanel)="closePanel()"
         />
       }
