@@ -324,7 +324,7 @@ type CourseBrowserQueryParams = {
           <!-- Pagination -->
           @if (totalPages() > 1) {
             <app-pagination
-              class="mt-8 block overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
+              class="mx-auto mt-8 mb-8 block w-full max-w-5xl overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
               [currentPage]="currentPage() + 1"
               [totalPages]="totalPages()"
               [totalItems]="totalItems()"
