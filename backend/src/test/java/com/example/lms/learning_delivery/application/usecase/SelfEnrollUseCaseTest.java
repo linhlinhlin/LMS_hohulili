@@ -11,6 +11,7 @@ import com.example.lms.learning_delivery.domain.repository.EnrollmentRepositoryP
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepositoryPort;
 import com.example.lms.shared.domain.valueobject.CourseCode;
 import com.example.lms.shared.exception.BusinessRuleException;
+import com.example.lms.shared.integration.WiiiLmsEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,9 @@ class SelfEnrollUseCaseTest {
 
     @Mock
     private CoursePublicationPort coursePublicationPort;
+
+    @Mock
+    private WiiiLmsEventPublisher wiiiLmsEventPublisher;
 
     @InjectMocks
     private SelfEnrollUseCase useCase;

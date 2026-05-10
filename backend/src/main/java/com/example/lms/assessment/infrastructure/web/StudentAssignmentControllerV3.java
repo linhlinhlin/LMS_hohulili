@@ -11,6 +11,7 @@ import com.example.lms.assessment.infrastructure.persistence.repository.Assignme
 import com.example.lms.assessment.infrastructure.persistence.repository.AssignmentSubmissionJpaRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.shared.application.port.FileManagementPort;
+import com.example.lms.shared.integration.WiiiLmsEventPublisher;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -43,6 +44,7 @@ public class StudentAssignmentControllerV3 {
     private final AssignmentJpaRepository assignmentRepository;
     private final AssignmentAttachmentJpaRepository attachmentRepository;
     private final FileManagementPort fileManagementPort;
+    private final WiiiLmsEventPublisher wiiiLmsEventPublisher;
 
     @Operation(summary = "Danh sach bai tap cua hoc vien")
     @GetMapping
@@ -168,6 +170,12 @@ public class StudentAssignmentControllerV3 {
                 submissionRepository.save(submission);
             }
         }
+
+        wiiiLmsEventPublisher.sendAssignmentSubmitted(
+                submission.getStudentId(),
+                submission.getAssignmentId(),
+                submission.getSubmittedAt()
+        );
 
         return ResponseEntity.ok(ApiResponse.success(
                 Map.of("submissionId", submission.getId().toString(), "status", submission.getStatus().name()),

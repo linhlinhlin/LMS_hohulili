@@ -10,6 +10,7 @@ import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.repository.EnrollmentRepositoryPort;
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepositoryPort;
 import com.example.lms.shared.exception.BusinessRuleException;
+import com.example.lms.shared.integration.WiiiLmsEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -40,6 +41,7 @@ public class SelfEnrollUseCase {
     private final EnrollmentRepositoryPort enrollmentRepository;
     private final PaymentVerificationPort paymentVerification;
     private final CoursePublicationPort coursePublicationPort;
+    private final WiiiLmsEventPublisher wiiiLmsEventPublisher;
 
     @Transactional
     public UUID execute(SelfEnrollCommand command) {
@@ -84,6 +86,7 @@ public class SelfEnrollUseCase {
                     || enrollment.getStatus() == Enrollment.EnrollmentStatus.SUSPENDED) {
                 enrollment.reactivate();
                 Enrollment reactivated = enrollmentRepository.save(enrollment);
+                wiiiLmsEventPublisher.sendCourseEnrolled(studentId, enrollment.getLearningClass(), course.getTitle());
                 log.info("Reactivated enrollment {} for student {} course {}",
                         reactivated.getId(), studentId, courseId);
                 return reactivated.getId();
@@ -101,6 +104,7 @@ public class SelfEnrollUseCase {
                 .build();
 
         Enrollment saved = enrollmentRepository.save(enrollment);
+        wiiiLmsEventPublisher.sendCourseEnrolled(studentId, defaultClass, course.getTitle());
         log.info("Self-enrollment successful: student {} → course {} (enrollment {})",
                 studentId, courseId, saved.getId());
 

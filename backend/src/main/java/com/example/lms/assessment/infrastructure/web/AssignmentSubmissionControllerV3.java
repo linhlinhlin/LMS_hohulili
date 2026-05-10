@@ -9,6 +9,7 @@ import com.example.lms.assessment.infrastructure.persistence.repository.Assignme
 import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
+import com.example.lms.shared.integration.WiiiLmsEventPublisher;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -54,6 +55,7 @@ public class AssignmentSubmissionControllerV3 {
     private final UserJpaRepository userJpaRepository;
     private final com.example.lms.assessment.infrastructure.persistence.repository.GradingAuditLogJpaRepository gradingAuditLogRepository;
     private final ObjectMapper objectMapper;
+    private final WiiiLmsEventPublisher wiiiLmsEventPublisher;
 
     // =============================================
     // Teacher endpoints
@@ -271,6 +273,11 @@ public class AssignmentSubmissionControllerV3 {
                     : AssignmentSubmissionJpaEntity.SubmissionStatus.RESUBMITTED);
             submission.setSubmittedAt(Instant.now());
             submissionRepository.save(submission);
+            wiiiLmsEventPublisher.sendAssignmentSubmitted(
+                    submission.getStudentId(),
+                    submission.getAssignmentId(),
+                    submission.getSubmittedAt()
+            );
             return ResponseEntity.ok(ApiResponse.success(
                     toSubmissionDetailMapWithStudent(submission), "Da nop lai bai tap"));
         }
@@ -290,6 +297,11 @@ public class AssignmentSubmissionControllerV3 {
                 .build();
 
         submission = submissionRepository.save(submission);
+        wiiiLmsEventPublisher.sendAssignmentSubmitted(
+                submission.getStudentId(),
+                submission.getAssignmentId(),
+                submission.getSubmittedAt()
+        );
         return ResponseEntity.ok(ApiResponse.success(
                 toSubmissionDetailMapWithStudent(submission), "Da nop bai tap"));
     }

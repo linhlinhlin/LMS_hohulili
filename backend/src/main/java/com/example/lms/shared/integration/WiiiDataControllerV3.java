@@ -264,7 +264,9 @@ public class WiiiDataControllerV3 {
         Double avgGrade = jdbc.queryForObject(
                 "SELECT COALESCE(AVG(qa.score), 0) FROM quiz_attempts qa " +
                 "JOIN quizzes q ON qa.quiz_id = q.id " +
-                "WHERE q.course_id = ? AND qa.status IN ('SUBMITTED', 'GRADED')",
+                "JOIN lessons l ON q.lesson_id = l.id " +
+                "JOIN chapters ch ON l.chapter_id = ch.id " +
+                "WHERE ch.course_id = ? AND qa.status IN ('SUBMITTED', 'GRADED')",
                 Double.class, courseId
         );
 

@@ -11,6 +11,7 @@ import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepo
 import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
+import com.example.lms.shared.integration.WiiiLmsEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -44,6 +45,7 @@ class AssignmentSecurityTest {
     @Mock private GradeSubmissionUseCase gradeSubmissionUseCase;
     @Mock private UserJpaRepository userJpaRepository;
     @Mock private GradingAuditLogJpaRepository gradingAuditLogRepository;
+    @Mock private WiiiLmsEventPublisher wiiiLmsEventPublisher;
 
     @InjectMocks
     private AssignmentSubmissionControllerV3 controller;

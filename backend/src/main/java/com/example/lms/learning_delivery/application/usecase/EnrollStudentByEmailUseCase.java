@@ -10,6 +10,7 @@ import com.example.lms.learning_delivery.domain.repository.EnrollmentRepository;
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepository;
 import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.exception.EntityNotFoundException;
+import com.example.lms.shared.integration.WiiiLmsEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -31,6 +32,7 @@ public class EnrollStudentByEmailUseCase {
     private final EnrollmentRepository enrollmentRepository;
     private final LearningClassRepository learningClassRepository;
     private final CourseRepository courseRepository;
+    private final WiiiLmsEventPublisher wiiiLmsEventPublisher;
 
     @Transactional
     public UUID enroll(String email, UUID classId) {
@@ -70,6 +72,7 @@ public class EnrollStudentByEmailUseCase {
                 .build();
 
         Enrollment saved = enrollmentRepository.save(enrollment);
+        wiiiLmsEventPublisher.sendCourseEnrolled(student.getId().value(), learningClass, course.getTitle());
 
         log.info("Student {} enrolled successfully in class {} with enrollment ID {}",
                 email, classId, saved.getId());
