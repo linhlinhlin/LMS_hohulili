@@ -109,14 +109,49 @@ interface WiiiHostCapabilities {
 
 const LMS_CONNECTOR_ID = 'maritime-lms';
 
-type OperatorPreviewKind = 'lesson_patch' | 'quiz_commit' | 'quiz_publish';
+export type OperatorPreviewKind = 'lesson_patch' | 'quiz_commit' | 'quiz_publish';
 
 interface PendingOperatorPreview {
   kind: OperatorPreviewKind;
   token: string;
   createdAt: number;
+  approvedAt?: number;
+  approvalToken?: string;
   summary: string;
   payload: Record<string, unknown>;
+}
+
+export interface WiiiSourceReference {
+  kind?: string;
+  title?: string;
+  label?: string;
+  excerpt?: string;
+  page?: number;
+  page_start?: number;
+  page_end?: number;
+  chapter_index?: number;
+  lesson_index?: number;
+  block_id?: string;
+}
+
+export interface WiiiOperatorPreviewPanel {
+  token: string;
+  kind: OperatorPreviewKind;
+  createdAt: number;
+  summary: string;
+  applyAction: string;
+  targetLabel: string;
+  changedFields: string[];
+  sourceReferences: WiiiSourceReference[];
+  data: Record<string, unknown>;
+}
+
+export interface WiiiOperatorApplyResult {
+  token: string;
+  kind: OperatorPreviewKind;
+  success: boolean;
+  data?: Record<string, unknown>;
+  error?: string;
 }
 
 interface LessonPreviewBlock {
@@ -153,6 +188,8 @@ export class WiiiContextService implements OnDestroy {
 
   /** Observable for AI course generation progress events */
   readonly courseProgress$ = new Subject<CourseProgressEvent>();
+  readonly operatorPreview$ = new Subject<WiiiOperatorPreviewPanel>();
+  readonly operatorApplyResult$ = new Subject<WiiiOperatorApplyResult>();
 
   // Stored listener references for cleanup (Expert Fix 10)
   private screenshotListener: ((event: MessageEvent) => void) | null = null;
@@ -718,6 +755,7 @@ export class WiiiContextService implements OnDestroy {
                 title: { type: 'string' },
                 description: { type: 'string' },
                 content: { type: 'string' },
+                source_references: { type: 'array', items: { type: 'object' } },
               },
             },
             requires_confirmation: false,
@@ -734,7 +772,9 @@ export class WiiiContextService implements OnDestroy {
               type: 'object',
               properties: {
                 preview_token: { type: 'string' },
+                approval_token: { type: 'string' },
               },
+              required: ['preview_token', 'approval_token'],
             },
             requires_confirmation: true,
             mutates_state: true,
@@ -772,7 +812,9 @@ export class WiiiContextService implements OnDestroy {
               type: 'object',
               properties: {
                 preview_token: { type: 'string' },
+                approval_token: { type: 'string' },
               },
+              required: ['preview_token', 'approval_token'],
             },
             requires_confirmation: true,
             mutates_state: true,
@@ -805,7 +847,9 @@ export class WiiiContextService implements OnDestroy {
               type: 'object',
               properties: {
                 preview_token: { type: 'string' },
+                approval_token: { type: 'string' },
               },
+              required: ['preview_token', 'approval_token'],
             },
             requires_confirmation: true,
             mutates_state: true,
@@ -879,6 +923,10 @@ export class WiiiContextService implements OnDestroy {
     return `${kind}-${Math.random().toString(36).slice(2, 10)}`;
   }
 
+  private createApprovalToken(kind: OperatorPreviewKind): string {
+    return `approved-${kind}-${Math.random().toString(36).slice(2, 10)}`;
+  }
+
   private prunePendingPreviews(): void {
     const now = Date.now();
     for (const [token, preview] of this.pendingOperatorPreviews.entries()) {
@@ -914,6 +962,83 @@ export class WiiiContextService implements OnDestroy {
     return preview;
   }
 
+  private requireAnyPreview(token: string): PendingOperatorPreview {
+    this.prunePendingPreviews();
+    const preview = this.pendingOperatorPreviews.get(token);
+    if (!preview) {
+      throw new Error('Missing operator preview');
+    }
+    return preview;
+  }
+
+  private requireHostApproval(
+    preview: PendingOperatorPreview,
+    approvalToken: string | undefined,
+  ): void {
+    if (!approvalToken || preview.approvalToken !== approvalToken) {
+      throw new Error('host_preview_approval_required');
+    }
+  }
+
+  async approveOperatorPreview(previewToken: string): Promise<WiiiOperatorApplyResult> {
+    const preview = this.requireAnyPreview(String(previewToken || '').trim());
+    preview.approvalToken = this.createApprovalToken(preview.kind);
+    preview.approvedAt = Date.now();
+
+    try {
+      const result = await this.handleActionRequest(this.applyActionForPreviewKind(preview.kind), {
+        preview_token: preview.token,
+        approval_token: preview.approvalToken,
+      });
+      const event: WiiiOperatorApplyResult = {
+        token: preview.token,
+        kind: preview.kind,
+        success: result.success,
+        data: result.data,
+        error: result.error,
+      };
+      this.operatorApplyResult$.next(event);
+      return event;
+    } catch (error) {
+      const event: WiiiOperatorApplyResult = {
+        token: preview.token,
+        kind: preview.kind,
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+      this.operatorApplyResult$.next(event);
+      return event;
+    }
+  }
+
+  private applyActionForPreviewKind(kind: OperatorPreviewKind): string {
+    switch (kind) {
+      case 'lesson_patch':
+        return 'authoring.apply_lesson_patch';
+      case 'quiz_commit':
+        return 'assessment.apply_quiz_commit';
+      case 'quiz_publish':
+        return 'publish.apply_quiz';
+    }
+  }
+
+  private announceOperatorPreview(
+    preview: PendingOperatorPreview,
+    data: Record<string, unknown>,
+  ): void {
+    this.operatorPreview$.next({
+      token: preview.token,
+      kind: preview.kind,
+      createdAt: preview.createdAt,
+      summary: String(data['summary'] || preview.summary || '').trim(),
+      applyAction: String(data['apply_action'] || this.applyActionForPreviewKind(preview.kind)).trim(),
+      targetLabel: String(data['target_label'] || data['lesson_title'] || data['quiz_title'] || preview.kind).trim(),
+      changedFields: this.normalizeStringArray(data['changed_fields']),
+      sourceReferences: this.normalizeSourceReferences(data['source_references']),
+      data,
+    });
+  }
+
   private resolveCurrentCourseId(params: Record<string, unknown>): string {
     return String(
       params['course_id']
@@ -945,6 +1070,35 @@ export class WiiiContextService implements OnDestroy {
     return value
       .map((item) => String(item || '').trim())
       .filter((item) => item.length > 0);
+  }
+
+  private normalizeSourceReferences(value: unknown): WiiiSourceReference[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+    return value
+      .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object' && !Array.isArray(item))
+      .slice(0, 12)
+      .map((item) => ({
+        kind: this.normalizeString(item['kind']),
+        title: this.normalizeString(item['title']),
+        label: this.normalizeString(item['label']),
+        excerpt: this.normalizeString(item['excerpt'] ?? item['text'] ?? item['snippet']),
+        page: this.normalizeOptionalNumber(item['page'] ?? item['page_number']),
+        page_start: this.normalizeOptionalNumber(item['page_start'] ?? item['pageStart'] ?? item['source_page_start']),
+        page_end: this.normalizeOptionalNumber(item['page_end'] ?? item['pageEnd'] ?? item['source_page_end']),
+        chapter_index: this.normalizeOptionalNumber(item['chapter_index'] ?? item['chapterIndex']),
+        lesson_index: this.normalizeOptionalNumber(item['lesson_index'] ?? item['lessonIndex']),
+        block_id: this.normalizeString(item['block_id'] ?? item['blockId']),
+      }));
+  }
+
+  private normalizeOptionalNumber(value: unknown): number | undefined {
+    if (value === null || value === undefined || value === '') {
+      return undefined;
+    }
+    const number = Number(value);
+    return Number.isFinite(number) ? number : undefined;
   }
 
   private buildPreviewExcerpt(value: unknown, maxLength = 240): string {
@@ -1160,6 +1314,9 @@ export class WiiiContextService implements OnDestroy {
     const title = this.normalizeString(params['title']);
     const description = this.normalizeString(params['description']);
     const content = this.normalizeString(params['content']);
+    const sourceReferences = this.normalizeSourceReferences(
+      params['source_references'] || params['sourceReferences'],
+    );
     const changedFields = [
       ...(title ? ['title'] : []),
       ...(description ? ['description'] : []),
@@ -1189,34 +1346,39 @@ export class WiiiContextService implements OnDestroy {
       duration_minutes: Number(lesson?.durationMinutes || 0),
       order_index: Number(lesson?.orderIndex || 0),
       is_required: Boolean((lesson as any)?.isRequired ?? false),
+      source_references: sourceReferences,
     });
+
+    const data = {
+      preview_token: preview.token,
+      preview_kind: preview.kind,
+      lesson_id: lessonId,
+      lesson_title: String(lesson?.title || lessonId).trim(),
+      course_id: String(lesson?.courseId || this.resolveCurrentCourseId(params) || '').trim() || undefined,
+      apply_action: 'authoring.apply_lesson_patch',
+      summary: `${summary} Review the LMS preview panel before applying it.`,
+      changed_fields: changedFields,
+      target_label: String(lesson?.title || lessonId).trim(),
+      source_references: sourceReferences,
+      lesson_before: {
+        title: String(lesson?.title || '').trim(),
+        description: String(lesson?.description || '').trim(),
+        content_excerpt: this.buildPreviewExcerpt(lesson?.content),
+        blocks: beforeBlocks,
+      },
+      lesson_after: {
+        title: title ?? String(lesson?.title || '').trim(),
+        description: description ?? String(lesson?.description || '').trim(),
+        content_excerpt: this.buildPreviewExcerpt(content ?? lesson?.content),
+        blocks: afterBlocks,
+      },
+      block_diff: blockDiff,
+    };
+    this.announceOperatorPreview(preview, data);
 
     return {
       success: true,
-      data: {
-        preview_token: preview.token,
-        preview_kind: preview.kind,
-        lesson_id: lessonId,
-        lesson_title: String(lesson?.title || lessonId).trim(),
-        course_id: String(lesson?.courseId || this.resolveCurrentCourseId(params) || '').trim() || undefined,
-        apply_action: 'authoring.apply_lesson_patch',
-        summary: `${summary} Confirm explicitly when you want me to apply it.`,
-        changed_fields: changedFields,
-        target_label: String(lesson?.title || lessonId).trim(),
-        lesson_before: {
-          title: String(lesson?.title || '').trim(),
-          description: String(lesson?.description || '').trim(),
-          content_excerpt: this.buildPreviewExcerpt(lesson?.content),
-          blocks: beforeBlocks,
-        },
-        lesson_after: {
-          title: title ?? String(lesson?.title || '').trim(),
-          description: description ?? String(lesson?.description || '').trim(),
-          content_excerpt: this.buildPreviewExcerpt(content ?? lesson?.content),
-          blocks: afterBlocks,
-        },
-        block_diff: blockDiff,
-      },
+      data,
     };
   }
 
@@ -1229,6 +1391,7 @@ export class WiiiContextService implements OnDestroy {
     }
 
     const preview = this.requirePreview(previewToken, 'lesson_patch');
+    this.requireHostApproval(preview, this.normalizeString(params['approval_token'] || params['approvalToken']));
     const payload = preview.payload;
     const lessonId = String(payload['lesson_id'] || '').trim();
     const courseId = String(payload['course_id'] || '').trim();
@@ -1302,28 +1465,31 @@ export class WiiiContextService implements OnDestroy {
       show_correct_answers: params['show_correct_answers'] ?? params['showCorrectAnswers'] ?? true,
     });
 
+    const data = {
+      preview_token: preview.token,
+      preview_kind: preview.kind,
+      quiz_id: existingQuizId || undefined,
+      lesson_id: lessonId,
+      quiz_title: title,
+      apply_action: 'assessment.apply_quiz_commit',
+      question_count: questionIds.length,
+      summary: `${summary} Review the LMS preview panel before committing it.`,
+      target_label: title,
+      quiz_plan: {
+        mode: existingQuizId ? 'update' : 'create',
+        title,
+        description: this.normalizeString(params['description']) || '',
+        question_count: questionIds.length,
+        time_limit_minutes: Number(params['time_limit_minutes'] || params['timeLimitMinutes'] || 30),
+        max_attempts: Number(params['max_attempts'] || params['maxAttempts'] || 1),
+        passing_score: Number(params['passing_score'] || params['passingScore'] || 60),
+      },
+    };
+    this.announceOperatorPreview(preview, data);
+
     return {
       success: true,
-      data: {
-        preview_token: preview.token,
-        preview_kind: preview.kind,
-        quiz_id: existingQuizId || undefined,
-        lesson_id: lessonId,
-        quiz_title: title,
-        apply_action: 'assessment.apply_quiz_commit',
-        question_count: questionIds.length,
-        summary: `${summary} Confirm explicitly when you want me to commit it.`,
-        target_label: title,
-        quiz_plan: {
-          mode: existingQuizId ? 'update' : 'create',
-          title,
-          description: this.normalizeString(params['description']) || '',
-          question_count: questionIds.length,
-          time_limit_minutes: Number(params['time_limit_minutes'] || params['timeLimitMinutes'] || 30),
-          max_attempts: Number(params['max_attempts'] || params['maxAttempts'] || 1),
-          passing_score: Number(params['passing_score'] || params['passingScore'] || 60),
-        },
-      },
+      data,
     };
   }
 
@@ -1336,6 +1502,7 @@ export class WiiiContextService implements OnDestroy {
     }
 
     const preview = this.requirePreview(previewToken, 'quiz_commit');
+    this.requireHostApproval(preview, this.normalizeString(params['approval_token'] || params['approvalToken']));
     const payload = preview.payload;
     const lessonId = String(payload['lesson_id'] || '').trim();
     if (!lessonId) {
@@ -1409,24 +1576,27 @@ export class WiiiContextService implements OnDestroy {
       title,
     });
 
-    return {
-      success: true,
-      data: {
-        preview_token: preview.token,
-        preview_kind: preview.kind,
+    const data = {
+      preview_token: preview.token,
+      preview_kind: preview.kind,
+      quiz_id: quizId,
+      lesson_id: lessonId,
+      quiz_title: title,
+      apply_action: 'publish.apply_quiz',
+      summary,
+      target_label: title,
+      publish_plan: {
         quiz_id: quizId,
         lesson_id: lessonId,
-        quiz_title: title,
-        apply_action: 'publish.apply_quiz',
-        summary,
-        target_label: title,
-        publish_plan: {
-          quiz_id: quizId,
-          lesson_id: lessonId,
-          title,
-          status: String((quiz as any)?.status || '').trim() || undefined,
-        },
+        title,
+        status: String((quiz as any)?.status || '').trim() || undefined,
       },
+    };
+    this.announceOperatorPreview(preview, data);
+
+    return {
+      success: true,
+      data,
     };
   }
 
@@ -1439,6 +1609,7 @@ export class WiiiContextService implements OnDestroy {
     }
 
     const preview = this.requirePreview(previewToken, 'quiz_publish');
+    this.requireHostApproval(preview, this.normalizeString(params['approval_token'] || params['approvalToken']));
     const quizId = String(preview.payload['quiz_id'] || '').trim();
     if (!quizId) {
       throw new Error('Quiz publish preview is missing quiz_id');
