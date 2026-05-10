@@ -66,7 +66,10 @@ public class WiiiTokenExchangeAdapter {
     public Optional<TokenPair> exchangeToken(String lmsUserId, String email,
                                               String fullName, String role) {
         String url = config.getTokenExchange().getUrl();
-        String secret = config.getWebhook().getSecret();
+        String secret = resolveSigningSecret(
+                config.getWebhook().getSecret(),
+                System.getenv("WIII_WEBHOOK_SECRET")
+        );
 
         if (secret == null || secret.isBlank()) {
             log.error("Wiii webhook secret not configured — cannot sign token exchange");
@@ -144,6 +147,16 @@ public class WiiiTokenExchangeAdapter {
             case "teacher", "admin", "org_admin" -> "teacher";
             default -> "student";
         };
+    }
+
+    static String resolveSigningSecret(String configuredSecret, String envSecret) {
+        if (configuredSecret != null && !configuredSecret.isBlank()) {
+            return configuredSecret;
+        }
+        if (envSecret != null && !envSecret.isBlank()) {
+            return envSecret;
+        }
+        return "";
     }
 
     private String computeHmac(byte[] payload, String secret) {
