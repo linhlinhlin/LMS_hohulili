@@ -17,7 +17,8 @@ import { distinctUntilChanged, filter, take, map } from 'rxjs/operators';
   imports: [RouterOutlet, RouterModule, CourseEditorSidebarComponent, CourseEditorHeaderComponent, CourseRejectionBannerComponent],
   styleUrl: './course-editor-layout.component.scss',
   template: `
-    <div class="relative flex h-screen w-full flex-col overflow-hidden font-sans bg-white text-slate-900">
+    <div class="relative flex h-screen w-full flex-col overflow-hidden font-sans bg-white text-slate-900"
+         data-wiii-id="course-editor-shell">
       <!-- Admin View-Only Mode Banner -->
       @if (isAdminViewMode()) {
         <div class="flex-shrink-0 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2 flex items-center justify-center gap-3 text-sm font-medium shadow-md z-30">
@@ -41,6 +42,9 @@ import { distinctUntilChanged, filter, take, map } from 'rxjs/operators';
       <nav aria-label="Editor tabs" role="tablist"
            class="flex items-center gap-1 border-b border-gray-200 flex-shrink-0 bg-white relative z-10 px-4 overflow-x-auto scrollbar-hide">
          <a routerLink="info"
+            data-wiii-id="course-editor-tab-info"
+            data-wiii-click-safe="true"
+            data-wiii-click-kind="navigation"
             role="tab"
             [attr.aria-selected]="activeTab() === 'info'"
             routerLinkActive="editor-tab--active"
@@ -48,6 +52,9 @@ import { distinctUntilChanged, filter, take, map } from 'rxjs/operators';
             Thông tin
          </a>
          <a routerLink="curriculum"
+            data-wiii-id="course-editor-tab-curriculum"
+            data-wiii-click-safe="true"
+            data-wiii-click-kind="navigation"
             role="tab"
             [attr.aria-selected]="activeTab() === 'curriculum'"
             routerLinkActive="editor-tab--active"
@@ -56,6 +63,9 @@ import { distinctUntilChanged, filter, take, map } from 'rxjs/operators';
          </a>
          @if (isInstructorLed()) {
            <a routerLink="classes"
+              data-wiii-id="course-editor-tab-classes"
+              data-wiii-click-safe="true"
+              data-wiii-click-kind="navigation"
               role="tab"
               [attr.aria-selected]="activeTab() === 'classes'"
               routerLinkActive="editor-tab--active"
@@ -64,6 +74,9 @@ import { distinctUntilChanged, filter, take, map } from 'rxjs/operators';
            </a>
          }
          <a routerLink="competency"
+            data-wiii-id="course-editor-tab-competency"
+            data-wiii-click-safe="true"
+            data-wiii-click-kind="navigation"
             role="tab"
             [attr.aria-selected]="activeTab() === 'competency'"
             routerLinkActive="editor-tab--active"
@@ -71,6 +84,9 @@ import { distinctUntilChanged, filter, take, map } from 'rxjs/operators';
             Tiêu chuẩn
          </a>
          <a routerLink="settings"
+            data-wiii-id="course-editor-tab-settings"
+            data-wiii-click-safe="true"
+            data-wiii-click-kind="navigation"
             role="tab"
             [attr.aria-selected]="activeTab() === 'settings'"
             routerLinkActive="editor-tab--active"

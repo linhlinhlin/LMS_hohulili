@@ -335,6 +335,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
   `],
   template: `
     <aside class="flex flex-col bg-white border-r border-slate-200 h-full overflow-hidden select-none"
+           data-wiii-id="course-editor-sidebar"
            role="tree"
            aria-label="Cấu trúc khóa học">
 
@@ -362,6 +363,9 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                 </button>
               }
               <button (click)="showAddChapterModal()"
+                      data-wiii-id="open-add-chapter-dialog"
+                      data-wiii-click-safe="true"
+                      data-wiii-click-kind="open_panel"
                       class="p-1.5 rounded-md hover:bg-[#E8F0FE] text-slate-400 hover:text-[#0056D2] transition-colors"
                       matTooltip="Thêm chương">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -402,6 +406,9 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                 <p class="text-sm font-semibold text-slate-700 mb-1">Chưa có chương nào</p>
                 <p class="text-xs text-slate-500 mb-4">Thêm chương đầu tiên để bắt đầu</p>
                 <button (click)="showAddChapterModal()"
+                        data-wiii-id="open-empty-add-chapter-dialog"
+                        data-wiii-click-safe="true"
+                        data-wiii-click-kind="open_panel"
                         class="px-4 py-2 bg-[#0056D2] text-white text-xs font-medium rounded-lg hover:bg-[#004BB5] transition-colors inline-flex items-center gap-1.5">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -423,6 +430,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
               @if (chapterMatchesSearch(chapter)) {
                   <div class="border-b border-slate-100 last:border-0"
                        role="treeitem"
+                       [attr.data-wiii-id]="'course-sidebar-chapter-' + chapter.id"
                        [attr.aria-expanded]="isChapterExpanded(chapter.id)"
                        cdkDrag [cdkDragData]="chapter"
                        [cdkDragStartDelay]="isTouchDevice ? 150 : 0"
@@ -450,6 +458,9 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
 
                           <!-- Expand Arrow -->
                           <button (click)="toggleChapter(chapter.id); $event.stopPropagation()"
+                                  [attr.data-wiii-id]="'toggle-chapter-' + chapter.id"
+                                  data-wiii-click-safe="true"
+                                  data-wiii-click-kind="open_panel"
                                   class="sidebar-expand" [class.rotate-90]="isChapterExpanded(chapter.id)">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path>
@@ -458,6 +469,9 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
 
                           <!-- Title -->
                           <div class="flex-grow min-w-0 py-1.5 cursor-pointer"
+                               [attr.data-wiii-id]="'select-chapter-' + chapter.id"
+                               data-wiii-click-safe="true"
+                               data-wiii-click-kind="navigation"
                                (click)="toggleChapterSelection(chapter)">
                               @if (editingChapterId() === chapter.id) {
                                   <input [value]="editingValue"
@@ -476,6 +490,9 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                           <div class="flex items-center flex-shrink-0" (click)="$event.stopPropagation()">
                             <div class="relative">
                               <button (click)="toggleMenu('chapter', chapter.id)"
+                                      [attr.data-wiii-id]="'open-chapter-menu-' + chapter.id"
+                                      data-wiii-click-safe="true"
+                                      data-wiii-click-kind="open_panel"
                                       class="sidebar-kebab">
                                 <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 16 16">
                                   <circle cx="8" cy="3" r="1.5"/>
@@ -488,11 +505,15 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                                 <div class="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1.5 z-50"
                                      (click)="$event.stopPropagation()">
                                   <button (click)="startEditChapter(chapter, $event); closeMenu()"
+                                          [attr.data-wiii-id]="'edit-chapter-title-' + chapter.id"
                                           class="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 text-[13px] text-slate-700 font-medium flex items-center gap-2.5">
                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                     Đổi tên
                                   </button>
                                   <button (click)="requestAddLessonFromSidebar(chapter); closeMenu()"
+                                          [attr.data-wiii-id]="'open-lesson-composer-from-chapter-' + chapter.id"
+                                          data-wiii-click-safe="true"
+                                          data-wiii-click-kind="open_panel"
                                           class="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 text-[13px] text-slate-700 font-medium flex items-center gap-2.5">
                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                                     Thêm bài học
@@ -515,6 +536,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                                   }
                                   <div class="border-t border-slate-100 my-1"></div>
                                   <button (click)="deleteChapter(chapter.id); closeMenu()"
+                                          [attr.data-wiii-id]="'delete-chapter-' + chapter.id"
                                           class="w-full text-left px-3.5 py-2.5 hover:bg-red-50 text-[13px] text-red-600 font-medium flex items-center gap-2.5">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                     Xóa chương
@@ -539,6 +561,9 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                               <!-- Empty: no lessons in chapter -->
                               @if (chapter.lessons.length === 0) {
                                 <button (click)="requestAddLessonFromSidebar(chapter)"
+                                        [attr.data-wiii-id]="'open-empty-lesson-composer-' + chapter.id"
+                                        data-wiii-click-safe="true"
+                                        data-wiii-click-kind="open_panel"
                                         class="flex items-center gap-2 w-full pl-8 pr-4 py-2.5 text-[12px] text-slate-400 hover:text-[#0056D2] hover:bg-slate-50 transition-colors text-left">
                                   <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -550,6 +575,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                               @for (lesson of chapter.lessons; track lesson.id; let lessonIdx = $index) {
                                   <div class="relative group/ls"
                                        role="treeitem"
+                                       [attr.data-wiii-id]="'course-sidebar-lesson-' + lesson.id"
                                        cdkDrag [cdkDragData]="lesson"
                                        [cdkDragStartDelay]="isTouchDevice ? 150 : 0"
                                        (cdkDragStarted)="onLessonDragStart(lesson.id)">
@@ -576,6 +602,9 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
 
                                           <!-- Expand Arrow -->
                                           <button (click)="toggleLesson(lesson.id); $event.stopPropagation()"
+                                                  [attr.data-wiii-id]="'toggle-lesson-' + lesson.id"
+                                                  data-wiii-click-safe="true"
+                                                  data-wiii-click-kind="open_panel"
                                                   class="sidebar-expand sidebar-expand--sm" [class.rotate-90]="isLessonExpanded(lesson.id)">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path>
@@ -584,6 +613,9 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
 
                                           <!-- Title -->
                                           <div class="flex-grow min-w-0 py-1.5 cursor-pointer"
+                                               [attr.data-wiii-id]="'select-lesson-' + lesson.id"
+                                               data-wiii-click-safe="true"
+                                               data-wiii-click-kind="navigation"
                                                (click)="toggleLessonSelection(chapter, lesson)">
                                             @if (editingLessonId() === lesson.id) {
                                                 <input [value]="editingValue"
@@ -602,6 +634,9 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                                           <div class="flex items-center flex-shrink-0" (click)="$event.stopPropagation()">
                                             <div class="relative">
                                               <button (click)="toggleMenu('lesson', lesson.id)"
+                                                      [attr.data-wiii-id]="'open-lesson-menu-' + lesson.id"
+                                                      data-wiii-click-safe="true"
+                                                      data-wiii-click-kind="open_panel"
                                                       class="sidebar-kebab">
                                                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 16 16">
                                                   <circle cx="8" cy="3" r="1.5"/>
@@ -613,11 +648,15 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                                                 <div class="absolute right-0 top-full mt-1 w-44 bg-white rounded-lg shadow-lg border border-slate-200 py-1.5 z-50"
                                                      (click)="$event.stopPropagation()">
                                                   <button (click)="startEditLesson(lesson, $event); closeMenu()"
+                                                          [attr.data-wiii-id]="'edit-lesson-title-' + lesson.id"
                                                           class="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 text-[13px] text-slate-700 font-medium flex items-center gap-2.5">
                                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                                     Đổi tên
                                                   </button>
                                                   <button (click)="selectLesson(chapter, lesson); closeMenu()"
+                                                          [attr.data-wiii-id]="'open-lesson-main-editor-' + lesson.id"
+                                                          data-wiii-click-safe="true"
+                                                          data-wiii-click-kind="navigation"
                                                           class="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 text-[13px] text-slate-700 font-medium flex items-center gap-2.5">
                                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                                                     Mở vùng soạn chính
@@ -640,6 +679,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                                                   }
                                                   @if (store.chapters().length > 1) {
                                                     <button (click)="showMoveToChapterModal(chapter.id, lesson); closeMenu()"
+                                                            [attr.data-wiii-id]="'open-move-lesson-dialog-' + lesson.id"
                                                             class="w-full text-left px-3.5 py-2 hover:bg-slate-50 text-[13px] text-slate-700 font-medium flex items-center gap-2.5">
                                                       <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
                                                       Chuyển sang chương...
@@ -647,6 +687,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                                                   }
                                                   <div class="border-t border-slate-100 my-1"></div>
                                                   <button (click)="deleteLesson(lesson.id); closeMenu()"
+                                                          [attr.data-wiii-id]="'delete-lesson-' + lesson.id"
                                                           class="w-full text-left px-3.5 py-2.5 hover:bg-red-50 text-[13px] text-red-600 font-medium flex items-center gap-2.5">
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                                     Xóa bài học
@@ -674,6 +715,9 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
                                           @for (section of lesson.sections; track section.id; let secIdx = $index) {
                                             <div class="sidebar-section-row"
                                                  [class.sidebar-section-row--selected]="selectedSectionId() === section.id"
+                                                 [attr.data-wiii-id]="'select-sidebar-section-' + section.id"
+                                                 data-wiii-click-safe="true"
+                                                 data-wiii-click-kind="navigation"
                                                  cdkDrag [cdkDragData]="section"
                                                  [cdkDragStartDelay]="isTouchDevice ? 150 : 0"
                                                  (click)="selectSection(chapter, lesson, section); $event.stopPropagation()"
@@ -722,12 +766,14 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
       (close)="closeModals()">
       <label class="sidebar-field-label">Tên chương</label>
       <input type="text" [(ngModel)]="newChapterTitle"
+             data-wiii-id="new-chapter-title-input"
              (keydown.enter)="createChapter()"
              class="sidebar-field-input"
              placeholder="Nhập tên chương...">
       <div dialogFooter>
         <button type="button" (click)="closeModals()" class="sidebar-btn sidebar-btn--ghost">Hủy</button>
         <button type="button" (click)="createChapter()"
+                data-wiii-id="create-chapter"
                 [disabled]="isCreating()"
                 class="sidebar-btn sidebar-btn--primary">
           @if (isCreating()) {
@@ -750,6 +796,7 @@ import { getLessonReadinessState, lessonHasCanonicalContent } from '../../utils/
         @for (ch of store.chapters(); track ch.id) {
           @if (ch.id !== moveToFromChapterId()) {
             <button type="button" (click)="executeMoveToChapter(ch.id)"
+                    [attr.data-wiii-id]="'move-lesson-to-chapter-' + ch.id"
                     class="w-full text-left px-3.5 py-2.5 rounded-lg border border-slate-200 hover:border-[#0056D2] hover:bg-[#E8F0FE]/30 text-[13px] text-slate-700 font-medium transition-all flex items-center gap-2">
               <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
               <span class="line-clamp-2 break-words">{{ ch.title }}</span>

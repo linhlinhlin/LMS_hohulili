@@ -18,6 +18,9 @@ import { getAdminPortalBase } from '../../../../../core/utils/portal-route.util'
         <!-- Left: Back + Title -->
         <div class="flex items-center gap-1 min-w-0">
             <button (click)="goBack()"
+                    data-wiii-id="back-to-courses"
+                    data-wiii-click-safe="true"
+                    data-wiii-click-kind="navigation"
                     class="flex items-center justify-center w-8 h-8 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors flex-shrink-0"
                     title="Quay lại danh sách khóa học">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -63,6 +66,9 @@ import { getAdminPortalBase } from '../../../../../core/utils/portal-route.util'
 
                  <!-- Preview as Student -->
                  <a [href]="'/teacher/courses/' + courseId() + '/preview'" target="_blank"
+                    data-wiii-id="preview-course"
+                    data-wiii-click-safe="true"
+                    data-wiii-click-kind="preview"
                     class="h-8 px-3 rounded-lg border border-gray-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-1.5">
                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -75,6 +81,7 @@ import { getAdminPortalBase } from '../../../../../core/utils/portal-route.util'
                  <div class="relative">
                      <button type="button"
                              id="editor-publish-trigger"
+                             data-wiii-id="open-publish-menu"
                              (click)="publishMenuOpen.set(!publishMenuOpen())"
                              [attr.aria-expanded]="publishMenuOpen()"
                              aria-haspopup="menu"
@@ -130,6 +137,9 @@ import { getAdminPortalBase } from '../../../../../core/utils/portal-route.util'
                              <div class="py-1">
                                  <button type="button"
                                          role="menuitem"
+                                         data-wiii-id="preview-course-from-publish-menu"
+                                         data-wiii-click-safe="true"
+                                         data-wiii-click-kind="preview"
                                          (click)="preview(); publishMenuOpen.set(false)"
                                          class="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors">
                                      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
@@ -141,6 +151,7 @@ import { getAdminPortalBase } from '../../../../../core/utils/portal-route.util'
                                  <div class="mx-3 border-t border-slate-100" role="separator" aria-hidden="true"></div>
                                  <button type="button"
                                          role="menuitem"
+                                         data-wiii-id="submit-course-for-approval"
                                          (click)="publish(); publishMenuOpen.set(false)"
                                          class="w-full text-left px-4 py-2.5 text-sm font-medium flex items-center gap-2.5 transition-colors"
                                          [class]="readinessChecklist().canPublish ? 'text-[#0056D2] hover:bg-[#0056D2]/5' : 'text-slate-300 cursor-not-allowed'"

@@ -24,6 +24,7 @@ import { LessonApi } from '../../../../api/client/lesson.api';
 import { QuizApi } from '../../../../api/endpoints/quiz.api';
 import { CurriculumSelectionService } from '../../../teacher/course-editor/services/curriculum-selection.service';
 import {
+  POINTY_ACTION_CLICK,
   POINTY_ACTION_HIGHLIGHT,
   POINTY_ACTION_SCROLL_TO,
   POINTY_ACTION_SHOW_TOUR,
@@ -34,6 +35,7 @@ import {
   resolvePointySelector,
   runTour,
   showSpotlight,
+  type ClickParams,
   type HighlightParams,
   type ScrollToParams,
   type ShowTourParams,
@@ -524,7 +526,8 @@ export class WiiiContextService implements OnDestroy {
         surface: 'host_page',
         result_schema: { type: 'object', properties: { image: { type: 'string' } } },
       },
-      // Wiii Pointy V1 — read-only tutor primitives. No auto-click, no auto-fill.
+      // Wiii Pointy V1.1 — tutor-safe primitives. Safe-click only works on
+      // host-marked navigation-like targets and remains fail-closed.
       // Vendored handlers in `../pointy/`. Quiz answer options must NOT be highlighted
       // (pedagogical guardrail enforced server-side via `lms-pointy-tutor` skill).
       {
@@ -586,6 +589,31 @@ export class WiiiContextService implements OnDestroy {
           properties: {
             completed_steps: { type: 'number' },
             total_steps: { type: 'number' },
+          },
+        },
+      },
+      {
+        name: POINTY_ACTION_CLICK,
+        input_schema: {
+          type: 'object',
+          properties: {
+            selector: { type: 'string' },
+            message: { type: 'string' },
+          },
+          required: ['selector'],
+        },
+        requires_confirmation: false,
+        mutates_state: false,
+        permission: 'use:tools',
+        description:
+          'Bấm một mục điều hướng an toàn đã được LMS đánh dấu data-wiii-click-safe="true". Từ chối mặc định với submit, delete, publish, enroll, grade, payment.',
+        roles: ['student', 'teacher', 'admin'],
+        surface: 'host_page',
+        result_schema: {
+          type: 'object',
+          properties: {
+            clicked: { type: 'boolean' },
+            click_kind: { type: 'string' },
           },
         },
       },
@@ -1501,7 +1529,10 @@ export class WiiiContextService implements OnDestroy {
     if (steps.length === 0) {
       return { success: false, error: 'invalid_tour_steps' };
     }
-    const result = await runTour(steps, { startAt: params.start_at });
+    const result = await runTour(steps, {
+      startAt: params.start_at,
+      resolveSelector: (selector) => resolvePointySelector(selector),
+    });
     // Defensive cleanup if the tour completed without a follow-up call.
     if (result.completed_steps === result.total_steps && !result.cancelled) {
       hideSpotlight();
@@ -1519,6 +1550,59 @@ export class WiiiContextService implements OnDestroy {
     };
   }
 
+  private handlePointyClick(
+    params: ClickParams,
+  ): { success: boolean; data?: Record<string, unknown>; error?: string } {
+    const selector = String(params?.selector || '').trim();
+    if (!selector) {
+      return { success: false, error: 'missing_selector' };
+    }
+    const target = resolvePointySelector(selector);
+    if (!target) {
+      return { success: false, error: `selector_not_found:${selector}` };
+    }
+    if (!(target instanceof HTMLElement) || target.getAttribute('data-wiii-click-safe') !== 'true') {
+      return { success: false, error: `unsafe_click_target:${selector}` };
+    }
+    if (
+      target.hasAttribute('disabled')
+      || target.getAttribute('aria-disabled') === 'true'
+      || (target instanceof HTMLButtonElement && target.disabled)
+    ) {
+      return { success: false, error: `disabled_click_target:${selector}` };
+    }
+    if (!target.isConnected || !this.isVisiblePointyTarget(target)) {
+      return { success: false, error: `target_not_visible:${selector}` };
+    }
+    if (typeof target.scrollIntoView === 'function') {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    moveCursorToRect(target.getBoundingClientRect(), { duration_ms: 260 });
+    showSpotlight(target, {
+      message: params.message || 'Wiii đang mở mục này cho bạn.',
+      duration_ms: 900,
+    });
+    target.click();
+    return {
+      success: true,
+      data: {
+        summary: `Đã bấm ${describeTarget(target)}`,
+        clicked: true,
+        click_kind: target.getAttribute('data-wiii-click-kind') || 'safe',
+      },
+    };
+  }
+
+  private isVisiblePointyTarget(target: HTMLElement): boolean {
+    if (typeof window === 'undefined') {
+      return true;
+    }
+    const style = window.getComputedStyle(target);
+    return style.display !== 'none'
+      && style.visibility !== 'hidden'
+      && style.opacity !== '0';
+  }
+
   private async handleActionRequest(
     action: string,
     params: Record<string, unknown>,
@@ -1532,6 +1616,8 @@ export class WiiiContextService implements OnDestroy {
         return this.handlePointyScrollTo(params as unknown as ScrollToParams);
       case POINTY_ACTION_SHOW_TOUR:
         return this.handlePointyShowTour(params as unknown as ShowTourParams);
+      case POINTY_ACTION_CLICK:
+        return this.handlePointyClick(params as unknown as ClickParams);
       case 'navigation.go_to': {
         const target = String(params['target'] || '').trim();
         const route = String(params['route'] || '').trim();
@@ -1779,7 +1865,10 @@ export class WiiiContextService implements OnDestroy {
   }
 
   private clickButtonByText(candidates: string[]): boolean {
-    const button = Array.from(document.querySelectorAll('button')).find((node) => {
+    const button = Array.from(document.querySelectorAll('button[data-wiii-click-safe="true"]')).find((node) => {
+      if (node.getAttribute('data-wiii-click-kind') !== 'navigation') {
+        return false;
+      }
       const text = this.normalizeNavigationTarget(node.textContent || '');
       return candidates.some((candidate) => text.includes(this.normalizeNavigationTarget(candidate)));
     });

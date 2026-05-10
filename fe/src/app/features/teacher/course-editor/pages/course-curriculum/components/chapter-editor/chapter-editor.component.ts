@@ -70,13 +70,20 @@ type LessonComposerType = 'LECTURE' | 'QUIZ' | 'ASSIGNMENT';
           <label class="editor-label">Bài học ({{ lessons().length }})</label>
           @if (lessons().length > 0 && !showLessonComposer()) {
             <div style="display: flex; gap: 0.5rem; align-items: center">
-              <button type="button" (click)="batchVideoUpload.emit()" class="add-lesson-header-btn add-lesson-header-btn--secondary" title="Tải lên nhiều video, tự động chia vào các bài">
+              <button type="button" (click)="batchVideoUpload.emit()" class="add-lesson-header-btn add-lesson-header-btn--secondary"
+                      data-wiii-id="upload-video-materials"
+                      data-wiii-click-safe="true"
+                      data-wiii-click-kind="open_panel"
+                      title="Tải lên nhiều video, tự động chia vào các bài">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                 </svg>
                 Tải lên nhiều video
               </button>
-              <button type="button" (click)="addLesson.emit()" class="add-lesson-header-btn">
+              <button type="button" (click)="addLesson.emit()" class="add-lesson-header-btn"
+                      data-wiii-id="open-lesson-composer"
+                      data-wiii-click-safe="true"
+                      data-wiii-click-kind="open_panel">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>
@@ -102,6 +109,7 @@ type LessonComposerType = 'LECTURE' | 'QUIZ' | 'ASSIGNMENT';
                 <button
                   type="button"
                   class="lesson-type-btn"
+                  [attr.data-wiii-id]="'select-lesson-type-' + type"
                   [class.lesson-type-btn--active]="lessonDraftType() === type"
                   (click)="selectLessonDraftType($any(type))"
                 >
@@ -117,6 +125,7 @@ type LessonComposerType = 'LECTURE' | 'QUIZ' | 'ASSIGNMENT';
               </label>
               <input
                 id="lesson-draft-title"
+                data-wiii-id="lesson-draft-title-input"
                 type="text"
                 [ngModel]="lessonDraftTitle()"
                 (ngModelChange)="onLessonDraftTitleChange($event)"
@@ -133,6 +142,7 @@ type LessonComposerType = 'LECTURE' | 'QUIZ' | 'ASSIGNMENT';
               <button
                 type="button"
                 (click)="createLesson.emit()"
+                data-wiii-id="create-lesson-draft"
                 [disabled]="isCreatingLesson() || !lessonDraftTitle().trim()"
                 class="editor-primary-button"
               >
@@ -155,7 +165,10 @@ type LessonComposerType = 'LECTURE' | 'QUIZ' | 'ASSIGNMENT';
         @if (lessons().length > 0) {
           <div class="editor-stack" style="gap: 0.375rem">
             @for (lesson of lessons(); track lesson.id; let i = $index) {
-              <button type="button" (click)="lessonClicked.emit(lesson)" class="chapter-lesson-row">
+              <button type="button" (click)="lessonClicked.emit(lesson)" class="chapter-lesson-row"
+                      [attr.data-wiii-id]="'open-lesson-editor-' + lesson.id"
+                      data-wiii-click-safe="true"
+                      data-wiii-click-kind="navigation">
                 <span
                   class="chapter-lesson-row__dot"
                   [class.chapter-lesson-row__dot--ready]="lesson.sections.length > 0"
@@ -178,7 +191,10 @@ type LessonComposerType = 'LECTURE' | 'QUIZ' | 'ASSIGNMENT';
             <p style="font-size: 0.8125rem; color: rgb(100 116 139); margin-bottom: 0.75rem">
               Chưa có bài học trong chương này
             </p>
-            <button type="button" (click)="addLesson.emit()" class="editor-primary-button" style="font-size: 0.8125rem">
+            <button type="button" (click)="addLesson.emit()" class="editor-primary-button" style="font-size: 0.8125rem"
+                    data-wiii-id="open-first-lesson-composer"
+                    data-wiii-click-safe="true"
+                    data-wiii-click-kind="open_panel">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
               </svg>
@@ -198,6 +214,7 @@ type LessonComposerType = 'LECTURE' | 'QUIZ' | 'ASSIGNMENT';
         <button
           type="button"
           (click)="saveClicked.emit()"
+          data-wiii-id="save-chapter"
           [disabled]="isSaving() || !title().trim()"
           class="editor-primary-button"
         >
