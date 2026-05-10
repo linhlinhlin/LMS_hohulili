@@ -55,7 +55,7 @@ import type {
               <span class="text-xs font-semibold text-slate-600">Hiển thị</span>
               <select
                 class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-[#0056D2] focus:ring-[#0056D2]"
-                [ngModel]="item.displayType || 'button'"
+                [ngModel]="effectiveDisplayType(item)"
                 data-testid="interactive-video-properties-display"
                 (ngModelChange)="updateDisplayType($event)">
                 <option [ngValue]="'button'">Button</option>
@@ -114,19 +114,33 @@ import type {
               </label>
             </div>
 
-            @if ((item.displayType || 'button') === 'poster') {
-              <label class="mt-2 grid gap-1">
-                <span class="text-[11px] font-medium text-slate-500">Rộng poster (%)</span>
-                <input
-                  type="number"
-                  min="10"
-                  max="100"
-                  step="1"
-                  class="rounded-lg border border-slate-200 px-2 py-1.5 text-sm text-slate-800 focus:border-[#0056D2] focus:ring-[#0056D2]"
-                  [ngModel]="item.position?.widthPercent ?? 30"
-                  data-testid="interactive-video-properties-width"
-                  (ngModelChange)="updatePosition('widthPercent', $event)" />
-              </label>
+            @if (effectiveDisplayType(item) === 'poster') {
+              <div class="mt-2 grid grid-cols-2 gap-2">
+                <label class="grid gap-1">
+                  <span class="text-[11px] font-medium text-slate-500">Rộng poster (%)</span>
+                  <input
+                    type="number"
+                    min="10"
+                    max="100"
+                    step="1"
+                    class="rounded-lg border border-slate-200 px-2 py-1.5 text-sm text-slate-800 focus:border-[#0056D2] focus:ring-[#0056D2]"
+                    [ngModel]="item.position?.widthPercent ?? 30"
+                    data-testid="interactive-video-properties-width"
+                    (ngModelChange)="updatePosition('widthPercent', $event)" />
+                </label>
+                <label class="grid gap-1">
+                  <span class="text-[11px] font-medium text-slate-500">Cao poster (%)</span>
+                  <input
+                    type="number"
+                    min="10"
+                    max="100"
+                    step="1"
+                    class="rounded-lg border border-slate-200 px-2 py-1.5 text-sm text-slate-800 focus:border-[#0056D2] focus:ring-[#0056D2]"
+                    [ngModel]="item.position?.heightPercent ?? 30"
+                    data-testid="interactive-video-properties-height"
+                    (ngModelChange)="updatePosition('heightPercent', $event)" />
+                </label>
+              </div>
             }
           </div>
         </div>
@@ -156,6 +170,19 @@ export class InteractiveVideoAuthoringPropertiesComponent {
 
   updateDisplayType(value: InteractiveVideoDisplayType): void {
     this.interactionPatch.emit({ displayType: value });
+  }
+
+  /**
+   * Mirror the normalizer's display-type fallback so the properties form shows
+   * the same value the canvas/runtime will use. Without this, required
+   * interactions whose displayType wasn't explicitly set rendered as posters
+   * on the canvas but read as "button" in this form.
+   */
+  effectiveDisplayType(item: InteractiveVideoInteraction): InteractiveVideoDisplayType {
+    if (item.displayType === 'button' || item.displayType === 'poster') {
+      return item.displayType;
+    }
+    return item.required === true ? 'poster' : 'button';
   }
 
   updateBoolean(key: 'pause' | 'required', value: boolean): void {
