@@ -81,6 +81,7 @@ import { environment } from '../../../../../../environments/environment';
           #wiiiIframe
           [src]="embedUrl()"
           class="wiii-embed-frame"
+          data-wiii-id="wiii-iframe"
           allow="clipboard-write"
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
           title="Wiii AI Chat"

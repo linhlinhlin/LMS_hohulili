@@ -109,10 +109,13 @@ import { CompetencyPanelComponent } from '../competency-panel/competency-panel.c
     }
   `],
   template: `
-    <div class="lesson-workspace">
+    <div class="lesson-workspace" data-wiii-id="lesson-editor">
       <div class="lesson-breadcrumb">
         @if (chapterTitle() || chapterLabel()) {
-          <button type="button" class="lesson-breadcrumb__back" (click)="backClicked.emit()">
+          <button type="button" class="lesson-breadcrumb__back" (click)="backClicked.emit()"
+                  data-wiii-id="back-to-chapter"
+                  data-wiii-click-safe="true"
+                  data-wiii-click-kind="navigation">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
             </svg>
@@ -131,6 +134,7 @@ import { CompetencyPanelComponent } from '../competency-panel/competency-panel.c
         </label>
         <input
           id="lesson-title"
+          data-wiii-id="lesson-title-input"
           type="text"
           [value]="title()"
           (input)="onTitleChange($any($event.target).value)"
@@ -153,6 +157,7 @@ import { CompetencyPanelComponent } from '../competency-panel/competency-panel.c
               <button
                 type="button"
                 (click)="createSection.emit('VIDEO')"
+                data-wiii-id="add-video-section-from-legacy"
                 class="editor-secondary-button"
                 style="font-size: 0.75rem; min-height: 2rem; padding: 0.25rem 0.75rem"
               >
@@ -257,6 +262,7 @@ import { CompetencyPanelComponent } from '../competency-panel/competency-panel.c
         <button
           type="button"
           (click)="saveClicked.emit()"
+          data-wiii-id="save-lesson"
           [disabled]="isSaving() || !title().trim()"
           [title]="saveButtonTooltip()"
           class="editor-primary-button"

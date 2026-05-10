@@ -1,11 +1,12 @@
 /**
  * Wiii Pointy — type contracts for the LMS host integration.
  *
- * Vendored from `meiiie/wiii` PR #188 (Wiii Pointy V1, 2026-04-29).
+ * Vendored from `meiiie/wiii` PR #188 and updated to match PR #282 V1.1 safe-click.
  * Re-sync this folder when the upstream Pointy package bumps its version.
  *
- * V1 is read-only: highlight, scroll_to, show_tour. No auto-click, no
- * auto-fill. All actions are `mutates_state: false, requires_confirmation: false`.
+ * V1.1 is tutor-safe: highlight, scroll_to, show_tour, and safe-click. No
+ * auto-fill. Safe-click is fail-closed and only works on host-marked
+ * `data-wiii-click-safe="true"` navigation-like targets.
  *
  * Note: `ui.navigate` is intentionally NOT shipped here — LMS already
  * exposes `navigation.go_to` (with semantic targets + clickButtonByText)
@@ -15,11 +16,13 @@
 export const POINTY_ACTION_HIGHLIGHT = 'ui.highlight';
 export const POINTY_ACTION_SCROLL_TO = 'ui.scroll_to';
 export const POINTY_ACTION_SHOW_TOUR = 'ui.show_tour';
+export const POINTY_ACTION_CLICK = 'ui.click';
 
 export const POINTY_ACTIONS = [
   POINTY_ACTION_HIGHLIGHT,
   POINTY_ACTION_SCROLL_TO,
   POINTY_ACTION_SHOW_TOUR,
+  POINTY_ACTION_CLICK,
 ] as const;
 
 export type PointyAction = (typeof POINTY_ACTIONS)[number];
@@ -44,4 +47,9 @@ export interface TourStep {
 export interface ShowTourParams {
   steps: TourStep[];
   start_at?: number;
+}
+
+export interface ClickParams {
+  selector: string;
+  message?: string;
 }

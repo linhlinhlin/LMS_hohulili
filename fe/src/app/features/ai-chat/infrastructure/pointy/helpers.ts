@@ -1,7 +1,7 @@
 /**
  * Wiii Pointy — small helpers shared between handler call sites.
  *
- * Vendored from `meiiie/wiii` PR #188.
+ * Vendored from `meiiie/wiii` PR #188 and updated to match PR #282 V1.1 ID resolution.
  */
 
 export function describeTarget(el: Element): string {
@@ -23,9 +23,21 @@ export function resolvePointySelector(selector: unknown): Element | null {
   const trimmed = selector.trim();
   if (!trimmed) return null;
   if (typeof document === 'undefined') return null;
+  if (/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
+    try {
+      const semantic = document.querySelector(`[data-wiii-id="${escapeDataWiiiId(trimmed)}"]`);
+      if (semantic) return semantic;
+    } catch {
+      return null;
+    }
+  }
   try {
     return document.querySelector(trimmed);
   } catch {
     return null;
   }
+}
+
+function escapeDataWiiiId(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }

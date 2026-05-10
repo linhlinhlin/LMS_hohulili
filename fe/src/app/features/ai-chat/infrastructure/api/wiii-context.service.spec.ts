@@ -353,6 +353,8 @@ describe('WiiiContextService - operator preview/apply flows', () => {
     const button = document.createElement('button');
     button.textContent = 'Bài tiếp theo';
     button.textContent = 'Bai tiep theo';
+    button.setAttribute('data-wiii-click-safe', 'true');
+    button.setAttribute('data-wiii-click-kind', 'navigation');
     const clickSpy = spyOn(button, 'click');
     document.body.appendChild(button);
 
@@ -372,6 +374,8 @@ describe('WiiiContextService - operator preview/apply flows', () => {
     const button = document.createElement('button');
     button.textContent = 'BÃ i tiáº¿p theo';
     button.textContent = 'Bai tiep theo';
+    button.setAttribute('data-wiii-click-safe', 'true');
+    button.setAttribute('data-wiii-click-kind', 'navigation');
     const clickSpy = spyOn(button, 'click');
     document.body.appendChild(button);
 
@@ -389,6 +393,23 @@ describe('WiiiContextService - operator preview/apply flows', () => {
   });
 
   // ── Wiii Pointy V1 — read-only tutor primitives ──
+
+  it('refuses semantic navigation clicks when the host target is not marked safe', async () => {
+    const button = document.createElement('button');
+    button.textContent = 'Bai tiep theo';
+    const clickSpy = spyOn(button, 'click');
+    document.body.appendChild(button);
+
+    try {
+      await expectAsync((service as any).handleActionRequest('navigation.go_to', {
+        target: 'next_lesson',
+      })).toBeRejectedWithError(/Unsupported navigation target/);
+
+      expect(clickSpy).not.toHaveBeenCalled();
+    } finally {
+      button.remove();
+    }
+  });
 
   describe('Wiii Pointy actions', () => {
     afterEach(() => {
@@ -412,7 +433,7 @@ describe('WiiiContextService - operator preview/apply flows', () => {
       document.body.appendChild(target);
 
       const result = await (service as any).handleActionRequest('ui.highlight', {
-        selector: '[data-wiii-id="continue-lesson"]',
+        selector: 'continue-lesson',
         message: 'Đây là nút tiếp tục.',
         duration_ms: 1500,
       });
@@ -422,6 +443,43 @@ describe('WiiiContextService - operator preview/apply flows', () => {
       // The cursor SVG must have been mounted by the handler.
       expect(document.getElementById('wiii-pointy-cursor')).not.toBeNull();
       expect(document.getElementById('wiii-pointy-overlay')).not.toBeNull();
+    });
+
+    it('ui.click only clicks targets explicitly marked safe', async () => {
+      const target = document.createElement('button');
+      target.setAttribute('data-wiii-id', 'browse-courses');
+      target.setAttribute('data-wiii-click-safe', 'true');
+      target.setAttribute('data-wiii-click-kind', 'navigation');
+      target.setAttribute('data-wiii-test', 'pointy');
+      target.textContent = 'Browse';
+      const clickSpy = spyOn(target, 'click');
+      document.body.appendChild(target);
+
+      const result = await (service as any).handleActionRequest('ui.click', {
+        selector: 'browse-courses',
+      });
+
+      expect(result.success).toBeTrue();
+      expect(result.data?.clicked).toBeTrue();
+      expect(result.data?.click_kind).toBe('navigation');
+      expect(clickSpy).toHaveBeenCalled();
+    });
+
+    it('ui.click fails closed for unsafe targets', async () => {
+      const target = document.createElement('button');
+      target.setAttribute('data-wiii-id', 'submit-quiz');
+      target.setAttribute('data-wiii-test', 'pointy');
+      target.textContent = 'Submit';
+      const clickSpy = spyOn(target, 'click');
+      document.body.appendChild(target);
+
+      const result = await (service as any).handleActionRequest('ui.click', {
+        selector: 'submit-quiz',
+      });
+
+      expect(result.success).toBeFalse();
+      expect(result.error).toContain('unsafe_click_target');
+      expect(clickSpy).not.toHaveBeenCalled();
     });
 
     it('ui.highlight fails closed when the selector is missing', async () => {
@@ -462,8 +520,8 @@ describe('WiiiContextService - operator preview/apply flows', () => {
 
       const result = await (service as any).handleActionRequest('ui.show_tour', {
         steps: [
-          { selector: '[data-wiii-id="tour-a"]', message: 'A', duration_ms: 5 },
-          { selector: '[data-wiii-id="tour-b"]', message: 'B', duration_ms: 5 },
+          { selector: 'tour-a', message: 'A', duration_ms: 5 },
+          { selector: 'tour-b', message: 'B', duration_ms: 5 },
         ],
       });
 
