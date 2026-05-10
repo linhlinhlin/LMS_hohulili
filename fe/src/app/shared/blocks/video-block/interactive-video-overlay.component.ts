@@ -8,8 +8,10 @@ import {
   input,
   OnDestroy,
   output,
+  PLATFORM_ID,
   viewChild,
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import type {
   InteractiveVideoChoice,
@@ -154,6 +156,7 @@ export class InteractiveVideoOverlayComponent implements OnDestroy {
 
   private readonly sanitizer = inject(DomSanitizer);
   private readonly identityService = inject(ContentIdentityService);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   private previouslyFocusedElement: HTMLElement | null = null;
 
   readonly interaction = input.required<InteractiveVideoInteraction>();
@@ -182,6 +185,9 @@ export class InteractiveVideoOverlayComponent implements OnDestroy {
   constructor() {
     effect(() => {
       this.interaction().id;
+      if (!this.isBrowser) {
+        return;
+      }
       queueMicrotask(() => {
         const panel = this.panel()?.nativeElement;
         if (!panel) {
@@ -201,7 +207,13 @@ export class InteractiveVideoOverlayComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.previouslyFocusedElement?.focus();
+    if (!this.isBrowser) {
+      return;
+    }
+    const previous = this.previouslyFocusedElement;
+    if (previous && document.contains(previous)) {
+      previous.focus();
+    }
   }
 
   readonly selectedChoice = computed(() => {
@@ -250,8 +262,16 @@ export class InteractiveVideoOverlayComponent implements OnDestroy {
   });
   readonly requiresCorrectAnswer = computed(() => {
     const interaction = this.interaction();
-    return interaction.adaptivity?.requireCorrectBeforeContinue === true
-      || interaction.type === 'branch';
+    if (interaction.adaptivity?.requireCorrectBeforeContinue === true) {
+      return true;
+    }
+    if (interaction.type === 'branch') {
+      // Only enforce correctness on graded branches that explicitly mark at least
+      // one choice as correct. Pure navigation branches (no isCorrect flags) must
+      // let learners pick any path and continue, otherwise Continue is unreachable.
+      return interaction.choices?.some(choice => choice.isCorrect === true) === true;
+    }
+    return false;
   });
 
   readonly isContinueBlocked = computed(() => {
@@ -398,7 +418,21 @@ export class InteractiveVideoOverlayComponent implements OnDestroy {
     }
     if (!this.isContinueBlocked()) {
       this.continueRequested.emit();
+      return;
     }
+    // Blocked: redirect focus into the choice list so the keyboard user sees
+    // where action is required instead of silently swallowing the keystroke.
+    if (!this.isBrowser) {
+      return;
+    }
+    const panel = this.panel()?.nativeElement;
+    if (!panel) {
+      return;
+    }
+    const firstChoice = panel.querySelector<HTMLButtonElement>(
+      'button[data-answer-state]:not([disabled])',
+    );
+    firstChoice?.focus();
   }
 
   trapFocus(event: Event): void {

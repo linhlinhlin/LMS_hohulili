@@ -90,6 +90,8 @@ export interface H5PInteractiveVideoParameters {
 export interface H5PInteractiveVideoInteraction {
   x: number;
   y: number;
+  width?: number;
+  height?: number;
   duration: { from: number; to: number };
   pause: boolean;
   displayType: 'poster' | 'button';
@@ -234,16 +236,23 @@ function toH5PInteraction(interaction: InteractiveVideoInteraction): H5PInteract
   const choices = interaction.choices ?? [];
   const firstCorrect = choices.find(choice => choice.isCorrect === true);
   const firstWrong = choices.find(choice => choice.isCorrect !== true);
+  const position = interaction.position ?? null;
+  const displayType = interaction.displayType === 'button' ? 'button' : 'poster';
 
   return {
-    x: 10,
-    y: 10,
+    // Map HoliLihu's percent-based InteractiveVideoPosition into H5P's spatial
+    // fields. Falling back to centre (50, 50) keeps imports without explicit
+    // position visible rather than collapsed onto the top-left corner.
+    x: clampH5PPercent(position?.xPercent, 50),
+    y: clampH5PPercent(position?.yPercent, 50),
+    width: position?.widthPercent == null ? undefined : clampH5PPercent(position.widthPercent, 0),
+    height: position?.heightPercent == null ? undefined : clampH5PPercent(position.heightPercent, 0),
     duration: {
       from: interaction.atSeconds,
       to: interaction.endSeconds ?? interaction.atSeconds,
     },
     pause: interaction.pause !== false,
-    displayType: 'poster',
+    displayType,
     action: {
       library: interaction.type === 'single_choice' || interaction.type === 'branch'
         ? 'H5P.MultiChoice 1.16'
@@ -306,6 +315,11 @@ function fromH5PInteraction(
     body: toText(params['text']) ?? toText(params['question']) ?? null,
     pause: interaction.pause !== false,
     required: false,
+    displayType: interaction.displayType === 'button' ? 'button' : 'poster',
+    // Restore spatial placement; H5P encodes percent values directly on the
+    // interaction record. Without this, every imported interaction collapses
+    // onto the same centre point in HoliLihu's canvas.
+    position: readH5PPosition(interaction),
     choices: hasChoices
       ? answers.map((answer, answerIndex) => ({
           id: `h5p-${index + 1}-choice-${answerIndex + 1}`,
@@ -318,6 +332,28 @@ function fromH5PInteraction(
       : [],
     hotspots: [],
   };
+}
+
+function readH5PPosition(interaction: H5PInteractiveVideoInteraction): InteractiveVideoInteraction['position'] {
+  const xPercent = clampH5PPercent(interaction.x, NaN);
+  const yPercent = clampH5PPercent(interaction.y, NaN);
+  if (!Number.isFinite(xPercent) || !Number.isFinite(yPercent)) {
+    return null;
+  }
+  return {
+    xPercent,
+    yPercent,
+    widthPercent: interaction.width == null ? null : clampH5PPercent(interaction.width, 0),
+    heightPercent: interaction.height == null ? null : clampH5PPercent(interaction.height, 0),
+  };
+}
+
+function clampH5PPercent(value: unknown, fallback: number): number {
+  const next = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(next)) {
+    return fallback;
+  }
+  return Math.min(100, Math.max(0, Math.round(next)));
 }
 
 function getH5PInteractions(value: unknown): H5PInteractiveVideoInteraction[] {

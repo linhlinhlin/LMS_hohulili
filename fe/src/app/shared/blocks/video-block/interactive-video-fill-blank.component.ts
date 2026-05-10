@@ -157,9 +157,11 @@ export class InteractiveVideoFillBlankComponent {
     if (!this.isChecked()) {
       return this.interaction().required === true || fillBlank?.requireAllCorrectBeforeContinue === true;
     }
+    // requireAllCorrectBeforeContinue must remain a hard gate: viewing the
+    // solution should not be a backdoor to bypass the requirement. Learners
+    // must retry until all-correct (the retry button is shown when allowed).
     return fillBlank?.requireAllCorrectBeforeContinue === true
-      && !this.evaluation().allCorrect
-      && !this.isSolutionVisible();
+      && !this.evaluation().allCorrect;
   });
   readonly feedbackTitle = computed(() =>
     this.evaluation().allCorrect ? 'Đúng!' : 'Chưa đúng',

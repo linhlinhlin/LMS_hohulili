@@ -334,9 +334,11 @@ export class InteractiveVideoDragDropComponent {
     if (!this.isChecked()) {
       return this.interaction().required === true || dragDrop?.requireAllCorrectBeforeContinue === true;
     }
+    // requireAllCorrectBeforeContinue must remain a hard gate: viewing the
+    // solution should not be a backdoor to bypass the requirement. Learners
+    // must retry until all-correct (the retry button is shown when allowed).
     return dragDrop?.requireAllCorrectBeforeContinue === true
-      && !this.evaluation().allCorrect
-      && !this.isSolutionVisible();
+      && !this.evaluation().allCorrect;
   });
 
   selectDraggable(draggableId: string): void {

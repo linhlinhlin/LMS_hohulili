@@ -589,11 +589,24 @@ export class QuizVideoPlayerComponent {
   ): void {
     this.activeInteraction.set(interaction);
     this.selectedChoiceId.set(null);
-    if (interaction.pause !== false) {
+    if (this.shouldPauseForInteraction(interaction)) {
       video.pause();
     }
 
     this.shownInteractionIds.add(interaction.id);
+  }
+
+  /**
+   * Resolve auto-pause from per-interaction `pause` first, then fall back to
+   * the spec-level `behavior.pauseOnInteraction` switch. The previous logic
+   * inspected only the per-interaction flag so `behavior.pauseOnInteraction =
+   * false` was silently ignored.
+   */
+  private shouldPauseForInteraction(interaction: InteractiveVideoInteraction): boolean {
+    if (interaction.pause === false) {
+      return false;
+    }
+    return this.interactiveVideoSpec()?.behavior?.pauseOnInteraction !== false;
   }
 
   private jumpToInteractiveChoiceTarget(choice: InteractiveVideoChoice): void {
@@ -609,10 +622,17 @@ export class QuizVideoPlayerComponent {
     this.activeInteraction.set(null);
     this.selectedChoiceId.set(null);
 
+    // Branch choices commonly point backwards (e.g. "review the explanation").
+    // Allow backward seeks for branch jumps; non-branch choices keep the
+    // forward-only default to avoid accidental rewinds.
+    const isBranch = active?.type === 'branch';
     const targetTime = resolveInteractiveVideoChoiceTarget(
       choice,
       this.interactiveVideoSpec()?.timeline ?? [],
-      { sourceTimeSeconds: active?.type === 'branch' ? active.atSeconds : null },
+      {
+        sourceTimeSeconds: isBranch ? active.atSeconds : null,
+        allowBackwardSeek: isBranch,
+      },
     );
     if (typeof targetTime === 'number' && Number.isFinite(targetTime)) {
       const target = Math.max(0, targetTime);

@@ -286,7 +286,11 @@ export class CurriculumEditorService {
         dragDrop: type === 'drag_drop'
           ? (interaction.dragDrop ?? createInteractiveVideoDragDrop())
           : null,
-        hotspots: [],
+        // Preserve hotspots across type toggles so an accidental swap
+        // (e.g. hotspot → checkpoint → hotspot) doesn't silently destroy them.
+        // Only the hotspot type renders them at runtime; storing them on other
+        // types is harmless because authoring UI ignores the field.
+        hotspots: interaction.hotspots ?? [],
       };
     }));
     this.markDirty();
