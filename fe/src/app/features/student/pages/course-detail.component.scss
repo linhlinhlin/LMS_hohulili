@@ -298,13 +298,13 @@ $gray-900: #111827;
 // Main Content
 // ============================================
 .main-content {
-  max-width: 1360px;
+  max-width: 1420px;
   margin: 0 auto;
   padding: 30px 32px 36px;
   display: grid;
-  grid-template-columns: minmax(280px, 0.78fr) minmax(0, 1.22fr);
+  grid-template-columns: minmax(260px, 0.68fr) minmax(0, 1.32fr);
   align-items: start;
-  gap: 30px;
+  gap: 28px;
 }
 
 .col-left,
