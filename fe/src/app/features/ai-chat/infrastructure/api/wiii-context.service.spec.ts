@@ -302,6 +302,52 @@ describe('WiiiContextService - operator preview/apply flows', () => {
     expect(capabilities.host_organization_id).toBe('org-1');
   });
 
+  it('exposes lesson preview tools from the editor URL when selection state has not hydrated', () => {
+    (TestBed.inject(Router) as any).url =
+      '/teacher/courses/course-1/editor/curriculum?chapterId=chapter-1&lessonId=lesson-from-url';
+
+    const capabilities = (service as any).buildCapabilities({
+      page_type: 'course_editor',
+      course_id: 'course-1',
+    });
+    const toolNames = capabilities.tools.map((tool: any) => tool.name);
+
+    expect(toolNames).toContain('authoring.preview_lesson_patch');
+    expect(toolNames).toContain('authoring.apply_lesson_patch');
+    expect(toolNames).toContain('assessment.preview_quiz_commit');
+  });
+
+  it('previews a lesson patch using the lessonId from the current editor URL', async () => {
+    (TestBed.inject(Router) as any).url =
+      '/teacher/courses/course-1/editor/curriculum?chapterId=chapter-1&lessonId=lesson-from-url';
+    lessonApi.getLessonById.and.returnValue(of({
+      data: {
+        id: 'lesson-from-url',
+        title: 'Lesson from URL',
+        description: 'Existing description',
+        content: 'Existing content',
+        courseId: 'course-1',
+        sectionId: 'chapter-1',
+        lessonType: 'LECTURE',
+        durationMinutes: 15,
+        orderIndex: 2,
+        isRequired: true,
+      },
+    } as any));
+
+    const preview = await (service as any).handleActionRequest('authoring.preview_lesson_patch', {
+      content: 'Generated content from uploaded source',
+      source_references: [{ kind: 'page', page_start: 1, excerpt: 'Uploaded source excerpt' }],
+    });
+
+    expect(preview.success).toBeTrue();
+    expect(lessonApi.getLessonById).toHaveBeenCalledWith('lesson-from-url');
+    expect(preview.data?.lesson_id).toBe('lesson-from-url');
+    expect(preview.data?.source_references).toEqual([
+      jasmine.objectContaining({ page_start: 1, excerpt: 'Uploaded source excerpt' }),
+    ]);
+  });
+
   it('recognizes student task work routes as assignment pages', () => {
     const context = (service as any).extractPageContext('/student/tasks/assignment-1/work');
 
