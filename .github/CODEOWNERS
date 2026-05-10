@@ -1,51 +1,81 @@
-# CODEOWNERS for LMS Maritime
+# CODEOWNERS for HoHoLiHu Maritime LMS
 #
-# Quy tắc: mỗi file/surface phải có ít nhất 1 owner chịu trách nhiệm review + approve.
-# Hiện tại project đang solo-maintained. Khi có contributor mới, thêm họ vào đây.
+# Principle:
+# - Every critical surface has at least one accountable reviewer.
+# - @meiiie is the primary project owner; repository owners/admins retain full GitHub administrative authority.
+# - The last matching rule wins, so specific paths appear after broad paths.
+# - When the team grows, replace individual owners with GitHub teams.
 #
-# Cú pháp: <pattern> <owner1> [owner2 ...]
-# Owner gần cuối (last match) thắng — để các rule cụ thể ở sau.
-#
-# Reference: https://docs.github.com/en/repositories/managing-your-repositories-settings-and-features/customizing-your-repository/about-code-owners
+# GitHub reference:
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
-# Default — mọi thứ chưa match ở dưới
-* @meiiie
+# Default ownership
+* @meiiie @linhlinhlin
 
-# ─── Critical infra (require thorough review) ──────────────────────────
-/.github/                       @meiiie
-/deploy.sh                      @meiiie
-/Caddyfile                      @meiiie
-/docker-compose*.yml            @meiiie
-/.env*.example                  @meiiie
+# Repository governance and automation
+/.github/                       @meiiie @linhlinhlin
+/.coderabbit.yaml               @meiiie @linhlinhlin
+/scripts/github/                @meiiie @linhlinhlin
+/CONTRIBUTING.md                @meiiie @linhlinhlin
+/SECURITY.md                    @meiiie @linhlinhlin
+/CODE_OF_CONDUCT.md             @meiiie @linhlinhlin
+/SUPPORT.md                     @meiiie @linhlinhlin
 
-# ─── Backend domain boundaries ─────────────────────────────────────────
-/backend/src/main/java/com/example/lms/identity/            @meiiie
-/backend/src/main/java/com/example/lms/course_authoring/    @meiiie
-/backend/src/main/java/com/example/lms/learning_delivery/   @meiiie
-/backend/src/main/java/com/example/lms/assessment/          @meiiie
-/backend/src/main/java/com/example/lms/ai_assistant/        @meiiie
-/backend/src/main/java/com/example/lms/communication/       @meiiie
-/backend/src/main/java/com/example/lms/shared/              @meiiie
-/backend/src/main/resources/db/migration/                   @meiiie
-/backend/src/main/resources/application*.yml                @meiiie
+# Deploy, Docker, and production edge
+/deploy.sh                      @meiiie @linhlinhlin
+/deploy-video-worker.sh         @meiiie @linhlinhlin
+/Caddyfile                      @meiiie @linhlinhlin
+/docker-compose*.yml            @meiiie @linhlinhlin
+/.env*.example                  @meiiie @linhlinhlin
+/cloudflare/                    @meiiie @linhlinhlin
 
-# ─── Frontend critical surfaces ────────────────────────────────────────
-/fe/src/app/core/                   @meiiie
-/fe/src/app/api/                    @meiiie
-/fe/src/app/app.routes.ts           @meiiie
-/fe/src/app/app.routes.server.ts    @meiiie
-/fe/ngsw-config.json                @meiiie
-/fe/angular.json                    @meiiie
-/fe/package.json                    @meiiie
+# Backend domain boundaries
+/backend/pom.xml                                                @meiiie @linhlinhlin
+/backend/src/main/resources/application*.yml                    @meiiie @linhlinhlin
+/backend/src/main/resources/db/migration/                       @meiiie @linhlinhlin
+/backend/src/main/java/com/example/lms/identity/                @meiiie @linhlinhlin
+/backend/src/main/java/com/example/lms/course_authoring/        @meiiie @linhlinhlin
+/backend/src/main/java/com/example/lms/learning_delivery/       @meiiie @linhlinhlin
+/backend/src/main/java/com/example/lms/assessment/              @meiiie @linhlinhlin
+/backend/src/main/java/com/example/lms/ai_assistant/            @meiiie @linhlinhlin
+/backend/src/main/java/com/example/lms/communication/           @meiiie @linhlinhlin
+/backend/src/main/java/com/example/lms/shared/                  @meiiie @linhlinhlin
+/backend/src/main/java/com/example/lms/config/                  @meiiie @linhlinhlin
 
-# ─── Documentation ─────────────────────────────────────────────────────
-/docs/reference/                @meiiie
-/docs/runbooks/                 @meiiie
-/docs/architecture/             @meiiie
-/CLAUDE.md                      @meiiie
-/AGENTS.md                      @meiiie
-/CHANGELOG.md                   @meiiie
-/SECURITY.md                    @meiiie
+# Frontend critical surfaces
+/fe/package.json                    @meiiie @linhlinhlin
+/fe/package-lock.json               @meiiie @linhlinhlin
+/fe/angular.json                    @meiiie @linhlinhlin
+/fe/ngsw-config.json                @meiiie @linhlinhlin
+/fe/scripts/                        @meiiie @linhlinhlin
+/fe/src/app/api/                    @meiiie @linhlinhlin
+/fe/src/app/core/                   @meiiie @linhlinhlin
+/fe/src/app/state/                  @meiiie @linhlinhlin
+/fe/src/app/app.config.ts           @meiiie @linhlinhlin
+/fe/src/app/app.routes.ts           @meiiie @linhlinhlin
+/fe/src/app/app.routes.server.ts    @meiiie @linhlinhlin
 
-# ─── Skills (AI tooling) ───────────────────────────────────────────────
-/.claude/skills/                @meiiie
+# Product role surfaces
+/fe/src/app/features/auth/          @meiiie @linhlinhlin
+/fe/src/app/features/student/       @meiiie @linhlinhlin
+/fe/src/app/features/teacher/       @meiiie @linhlinhlin
+/fe/src/app/features/admin/         @meiiie @linhlinhlin
+/fe/src/app/features/learning/      @meiiie @linhlinhlin
+/fe/src/app/features/payment/       @meiiie @linhlinhlin
+/fe/src/app/shared/blocks/video-block/ @meiiie @linhlinhlin
+
+# Canonical docs and agent instructions
+/AGENTS.md                         @meiiie @linhlinhlin
+/CLAUDE.md                         @meiiie @linhlinhlin
+/CHANGELOG.md                      @meiiie @linhlinhlin
+/README.md                         @meiiie @linhlinhlin
+/docs/reference/                   @meiiie @linhlinhlin
+/docs/runbooks/                    @meiiie @linhlinhlin
+/docs/architecture/                @meiiie @linhlinhlin
+/docs/testing/                     @meiiie @linhlinhlin
+
+# AI tooling and specs
+/.agents/                          @meiiie @linhlinhlin
+/.claude/                          @meiiie @linhlinhlin
+/.specify/                         @meiiie @linhlinhlin
+/specs/                            @meiiie @linhlinhlin

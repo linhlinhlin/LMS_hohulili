@@ -125,7 +125,10 @@ import {
   ServerCrash,
   Check,
   Sparkles,
-  Move
+  Star,
+  LayoutList,
+  Move,
+  Copy
 } from 'lucide-angular';
 
 function isLocalBrowserRuntime(): boolean {
@@ -313,7 +316,10 @@ export const appConfig: ApplicationConfig = {
       ServerCrash,
       Check,
       Sparkles,
-      Move
+      Star,
+      LayoutList,
+      Move,
+      Copy
     }))
   ]
 };

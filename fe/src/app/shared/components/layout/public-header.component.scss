@@ -177,6 +177,13 @@
   .search-centerpiece {
     margin: 0 0.5rem;
   }
+
+  #mobile-navigation-panel {
+    a,
+    button {
+      min-height: 44px;
+    }
+  }
 }
 
 // Dark mode support

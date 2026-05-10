@@ -1,0 +1,91 @@
+name: Bug report
+description: Báo lỗi có thể tái hiện trong production, staging, hoặc local dev.
+title: "fix: "
+labels:
+  - type/bug
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Cảm ơn bạn đã báo lỗi. Hãy mô tả đủ để reviewer có thể tái hiện mà không phải đoán.
+  - type: input
+    id: summary
+    attributes:
+      label: Tóm tắt
+      description: Một câu mô tả hành vi lỗi.
+      placeholder: "Ví dụ: Học viên không thấy video offline sau khi tải khóa học."
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      options:
+        - Frontend
+        - Backend
+        - PWA / offline
+        - Video / media
+        - Payment
+        - Auth / RBAC
+        - DevOps / CI
+        - Documentation
+    validations:
+      required: true
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Mức ảnh hưởng
+      options:
+        - P0 - Chặn production hoặc mất dữ liệu
+        - P1 - Gãy user flow chính
+        - P2 - Có workaround
+        - P3 - Edge case hoặc cosmetic
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Môi trường
+      description: URL, branch, commit SHA, browser, OS, tài khoản test nếu liên quan.
+      value: |
+        - URL:
+        - Branch / SHA:
+        - Browser / OS:
+        - Test account:
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Kết quả hiện tại
+      description: Log, screenshot, HTTP status, stack trace, console error.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Kết quả mong muốn
+    validations:
+      required: true
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist trước khi gửi
+      options:
+        - label: Tôi đã search issue/PR trùng.
+          required: true
+        - label: Tôi đã thử tái hiện ít nhất 2 lần hoặc mô tả rõ vì sao không thể.
+          required: true
+        - label: Tôi đã đính kèm log/screenshot nếu lỗi liên quan UI hoặc runtime.
+          required: false

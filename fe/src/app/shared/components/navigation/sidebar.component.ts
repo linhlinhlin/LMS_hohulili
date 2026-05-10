@@ -6,6 +6,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { OrganizationContextService } from '../../../core/services/organization-context.service';
 import { Organization, OrganizationType, UserRole } from '../../../shared/types/user.types';
 import { IconComponent, IconName } from '../icon/icon.component';
+import { SidebarTooltipDirective } from '../../directives/sidebar-tooltip.directive';
 import { getPortalLandingRoute } from '../../../core/utils/portal-route.util';
 import { initialsAvatar } from '../../utils/avatar.util';
 
@@ -33,7 +34,7 @@ export interface SidebarConfig {
 
 @Component({
   selector: 'app-sidebar',
-  imports: [RouterModule, RouterLinkActive, IconComponent],
+  imports: [RouterModule, RouterLinkActive, IconComponent, SidebarTooltipDirective],
   encapsulation: ViewEncapsulation.None,
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.css',
@@ -47,6 +48,19 @@ export class SidebarComponent implements OnInit, OnDestroy {
   config = input.required<SidebarConfig>();
   collapsed = input(false);
   toggleCollapse = output<void>();
+  /** Emitted only when a leaf item is clicked (no sub-menu). Wrapper layouts
+   *  listen on the mobile-drawer instance to auto-close the drawer on
+   *  navigation. Parent items with children DO NOT emit — they expand the
+   *  sub-menu in place; drawer stays open. Per spec FR-012 / FR-013. */
+  itemClick = output<SidebarMenuItem>();
+
+  /** Template helper — emit itemClick only if the item is a leaf. Centralises
+   *  the leaf detection so template stays clean. */
+  protected onLeafClick(item: SidebarMenuItem): void {
+    if (!item.children?.length) {
+      this.itemClick.emit(item);
+    }
+  }
 
   // Reactive URL tracking — for alsoActiveFor matching (OnPush safe)
   private currentUrl = signal(this.router.url.split('?')[0]);
@@ -288,5 +302,11 @@ export class SidebarComponent implements OnInit, OnDestroy {
     if (item.children?.some(child => url.startsWith(child.route))) return true;
     if (item.alsoActiveFor?.some(prefix => url.startsWith(prefix))) return true;
     return false;
+  }
+
+  /** Stable, unique-per-item DOM id for aria-controls / id linkage. Routes
+   *  contain slashes which are not valid in HTML ids; this slugifies them. */
+  protected itemDomId(item: SidebarMenuItem): string {
+    return 'nav-' + (item.route || item.label).replace(/[^a-z0-9]/gi, '-').toLowerCase();
   }
 }

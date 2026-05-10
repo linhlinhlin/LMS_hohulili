@@ -94,7 +94,7 @@ interface FeaturedCourse {
             <h2 class="text-3xl font-bold tracking-tight text-gray-900 lg:text-4xl">Khóa học nổi bật</h2>
             <p class="mt-3 text-lg text-gray-500">Được thiết kế bởi chuyên gia hàng hải hàng đầu</p>
           </div>
-          <a routerLink="/courses" class="hidden items-center text-[15px] font-medium text-[#0056D2] hover:text-[#004BB5] sm:flex">
+          <a routerLink="/courses" class="hidden min-h-11 items-center text-[15px] font-medium text-[#0056D2] hover:text-[#004BB5] sm:flex">
             Xem tất cả <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
           </a>
         </div>
@@ -151,7 +151,7 @@ interface FeaturedCourse {
           </div>
         }
         <div class="mt-8 text-center sm:hidden">
-          <a routerLink="/courses" class="text-[15px] font-medium text-[#0056D2]">Xem tất cả khóa học &rarr;</a>
+          <a routerLink="/courses" class="inline-flex min-h-11 items-center justify-center text-[15px] font-medium text-[#0056D2]">Xem tất cả khóa học &rarr;</a>
         </div>
       </div>
     </section>
@@ -188,7 +188,7 @@ interface FeaturedCourse {
               <p class="mt-3 leading-relaxed text-gray-600">{{ diff.desc }}</p>
               @if (diff.link) {
                 <a [href]="diff.link" target="_blank" rel="noopener noreferrer"
-                   class="mt-4 inline-flex items-center text-sm font-medium" [class]="diff.linkColor">
+                   class="mt-4 inline-flex min-h-11 items-center text-sm font-medium" [class]="diff.linkColor">
                   {{ diff.linkText }}
                   <svg class="ml-1 h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                 </a>

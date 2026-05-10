@@ -72,8 +72,9 @@ public class AdaptiveVideoPlaybackController {
         if (object.contentRange() != null && !object.contentRange().isBlank()) {
             builder.header(HttpHeaders.CONTENT_RANGE, object.contentRange());
         }
-        if (object.contentType() != null && !object.contentType().isBlank()) {
-            builder.contentType(MediaType.parseMediaType(object.contentType()));
+        MediaType contentType = normalizePlaybackContentType(object.contentType());
+        if (contentType != null) {
+            builder.contentType(contentType);
         }
 
         return builder.body(object.bytes());
@@ -100,9 +101,23 @@ public class AdaptiveVideoPlaybackController {
                 .contentLength(meta.size())
                 .header(HttpHeaders.ACCEPT_RANGES, "bytes")
                 .header(HttpHeaders.CACHE_CONTROL, "private, max-age=30");
-        if (meta.contentType() != null && !meta.contentType().isBlank()) {
-            builder.contentType(MediaType.parseMediaType(meta.contentType()));
+        MediaType contentType = normalizePlaybackContentType(meta.contentType());
+        if (contentType != null) {
+            builder.contentType(contentType);
         }
         return builder.build();
+    }
+
+    private MediaType normalizePlaybackContentType(String rawContentType) {
+        if (rawContentType == null || rawContentType.isBlank()) {
+            return null;
+        }
+
+        MediaType mediaType = MediaType.parseMediaType(rawContentType);
+        String type = mediaType.getType() + "/" + mediaType.getSubtype();
+        if ("video/iso.segment".equalsIgnoreCase(type) || "video/mp4".equalsIgnoreCase(type)) {
+            return MediaType.parseMediaType(type);
+        }
+        return mediaType;
     }
 }

@@ -63,7 +63,7 @@ import { DownloadDialogComponent, DownloadOptions } from '../download-dialog/dow
         <button
           (click)="openDialog()"
           [disabled]="!isOnline()"
-          class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs transition-colors"
+          class="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 py-2 text-xs transition-colors"
           [class]="isOnline()
             ? 'bg-[#0056D2]/10 text-[#0056D2] hover:bg-[#0056D2]/20'
             : 'cursor-not-allowed bg-gray-100 text-gray-400'"

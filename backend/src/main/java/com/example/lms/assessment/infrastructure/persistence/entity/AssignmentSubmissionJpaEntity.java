@@ -66,6 +66,10 @@ public class AssignmentSubmissionJpaEntity {
     @Column(name = "graded_at")
     private Instant gradedAt;
 
+    @Type(JsonType.class)
+    @Column(name = "rubric_data", columnDefinition = "jsonb")
+    private String rubricData;
+
     @Column(name = "submitted_at")
     private Instant submittedAt;
 

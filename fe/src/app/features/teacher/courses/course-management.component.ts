@@ -447,6 +447,7 @@ interface ReviewFeedback {
       display: inline-flex;
       align-items: center;
       gap: 8px;
+      min-height: 44px;
       padding: 10px 20px;
       background: #0056D2;
       color: white;
@@ -485,12 +486,20 @@ interface ReviewFeedback {
       margin-bottom: 24px;
     }
 
+    .desktop-tabs button[role='tab'] {
+      min-height: 44px;
+    }
+
     .mobile-toolbar {
       display: none;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
       margin-bottom: 12px;
+    }
+
+    .mobile-toolbar select {
+      min-height: 44px;
     }
 
     /* ===== SIDEBAR FILTER (matching student) ===== */
@@ -740,6 +749,7 @@ interface ReviewFeedback {
 
     .submit-button {
       padding: 6px 14px;
+      min-height: 44px;
       border: 1px solid #059669;
       border-radius: 6px;
       background: white;
@@ -756,6 +766,7 @@ interface ReviewFeedback {
 
     .cancel-button {
       padding: 6px 14px;
+      min-height: 44px;
       border: 1px solid #D97706;
       border-radius: 6px;
       background: white;
@@ -772,6 +783,7 @@ interface ReviewFeedback {
 
     .edit-button {
       padding: 6px 16px;
+      min-height: 44px;
       border: 1px solid #0056D2;
       border-radius: 6px;
       background: white;

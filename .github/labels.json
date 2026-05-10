@@ -1,0 +1,242 @@
+[
+  {
+    "name": "needs-triage",
+    "color": "EDEDED",
+    "description": "New issue or PR that still needs scope, priority, or owner."
+  },
+  {
+    "name": "blocked",
+    "color": "D93F0B",
+    "description": "Blocked by another PR, external dependency, missing decision, or failing prerequisite."
+  },
+  {
+    "name": "ready-to-merge",
+    "color": "0E8A16",
+    "description": "CI green, reviewed, and safe to merge."
+  },
+  {
+    "name": "status/in-progress",
+    "color": "1D76DB",
+    "description": "Actively being implemented."
+  },
+  {
+    "name": "status/ready-for-review",
+    "color": "0E8A16",
+    "description": "Author says the PR is ready for human review."
+  },
+  {
+    "name": "status/changes-requested",
+    "color": "D93F0B",
+    "description": "Reviewer requested changes that must be addressed before merge."
+  },
+  {
+    "name": "status/needs-rebase",
+    "color": "FBCA04",
+    "description": "Branch is stale, dirty, or needs conflict resolution against main."
+  },
+  {
+    "name": "status/ci-failing",
+    "color": "B60205",
+    "description": "One or more required checks are failing."
+  },
+  {
+    "name": "status/draft",
+    "color": "C5DEF5",
+    "description": "Draft work. Do not merge until marked ready."
+  },
+  {
+    "name": "status/research",
+    "color": "5319E7",
+    "description": "Research, design, ADR, or architecture decision before implementation."
+  },
+  {
+    "name": "P0",
+    "color": "B60205",
+    "description": "Critical: production outage, data loss, security incident, or blocked release."
+  },
+  {
+    "name": "P1",
+    "color": "D93F0B",
+    "description": "High priority: core user flow or current milestone."
+  },
+  {
+    "name": "P2",
+    "color": "FBCA04",
+    "description": "Medium priority: important but has workaround or can be scheduled."
+  },
+  {
+    "name": "P3",
+    "color": "C2E0C6",
+    "description": "Low priority: polish, edge case, or backlog."
+  },
+  {
+    "name": "type/bug",
+    "color": "D73A4A",
+    "description": "Fixes incorrect behavior."
+  },
+  {
+    "name": "type/feature",
+    "color": "A2EEEF",
+    "description": "Adds user-visible capability."
+  },
+  {
+    "name": "type/docs",
+    "color": "0075CA",
+    "description": "Documentation-only or documentation-first change."
+  },
+  {
+    "name": "type/refactor",
+    "color": "C5DEF5",
+    "description": "Improves structure without intended behavior change."
+  },
+  {
+    "name": "type/test",
+    "color": "BFD4F2",
+    "description": "Adds or updates tests."
+  },
+  {
+    "name": "type/security",
+    "color": "B60205",
+    "description": "Security hardening, vulnerability fix, or private security follow-up."
+  },
+  {
+    "name": "type/dependencies",
+    "color": "0366D6",
+    "description": "Dependency update from Dependabot or manual dependency maintenance."
+  },
+  {
+    "name": "area/frontend",
+    "color": "1D76DB",
+    "description": "Angular frontend, UI state, routing, or client API."
+  },
+  {
+    "name": "area/backend",
+    "color": "0E8A16",
+    "description": "Spring Boot backend, domain logic, API, or persistence."
+  },
+  {
+    "name": "area/database",
+    "color": "006B75",
+    "description": "PostgreSQL schema, Flyway migration, indexes, or query behavior."
+  },
+  {
+    "name": "area/infra",
+    "color": "5319E7",
+    "description": "Docker, Caddy, GitHub Actions, deploy, cloud, or repository operations."
+  },
+  {
+    "name": "area/auth",
+    "color": "0052CC",
+    "description": "Authentication, Google login, JWT, session, or role guard."
+  },
+  {
+    "name": "area/video",
+    "color": "6F42C1",
+    "description": "Video ingest, adaptive playback, R2, Shaka, offline video, or media edge."
+  },
+  {
+    "name": "area/pwa",
+    "color": "0056D2",
+    "description": "PWA, service worker, IndexedDB, offline download, or sync."
+  },
+  {
+    "name": "area/payment",
+    "color": "0E8A16",
+    "description": "VNPay, SePay, course access activation, or payment settings."
+  },
+  {
+    "name": "area/admin",
+    "color": "5319E7",
+    "description": "System admin workflows, settings, logs, and platform operations."
+  },
+  {
+    "name": "area/org-admin",
+    "color": "7057FF",
+    "description": "Organization admin workflows and restricted operational admin behavior."
+  },
+  {
+    "name": "area/teacher",
+    "color": "FBCA04",
+    "description": "Teacher portal, authoring, grading, classes, or course management."
+  },
+  {
+    "name": "area/student",
+    "color": "C2E0C6",
+    "description": "Learner portal, browse, learning, progress, assignments, or certificates."
+  },
+  {
+    "name": "area/docs",
+    "color": "0075CA",
+    "description": "Documentation structure, runbooks, references, or diagrams."
+  },
+  {
+    "name": "risk/security",
+    "color": "B60205",
+    "description": "Needs security-focused review before merge."
+  },
+  {
+    "name": "risk/migration",
+    "color": "D93F0B",
+    "description": "Touches migration, data shape, or rollback-sensitive schema behavior."
+  },
+  {
+    "name": "risk/public-api",
+    "color": "FBCA04",
+    "description": "Changes API contract used by FE, mobile/PWA, or external integrations."
+  },
+  {
+    "name": "risk/production",
+    "color": "D93F0B",
+    "description": "Can affect deploy, uptime, media delivery, or live user access."
+  },
+  {
+    "name": "size/XS",
+    "color": "C2E0C6",
+    "description": "Tiny change, typically under 50 lines."
+  },
+  {
+    "name": "size/S",
+    "color": "BFD4F2",
+    "description": "Small change, usually easy to review in one pass."
+  },
+  {
+    "name": "size/M",
+    "color": "FBCA04",
+    "description": "Medium change requiring focused review."
+  },
+  {
+    "name": "size/L",
+    "color": "D93F0B",
+    "description": "Large change. Consider splitting if review quality drops."
+  },
+  {
+    "name": "size/XL",
+    "color": "B60205",
+    "description": "Very large change. Should normally be split before merge."
+  },
+  {
+    "name": "agent/codex",
+    "color": "0056D2",
+    "description": "Implemented or reviewed with Codex assistance."
+  },
+  {
+    "name": "agent/claude",
+    "color": "5319E7",
+    "description": "Implemented or reviewed with Claude assistance."
+  },
+  {
+    "name": "breaking-change",
+    "color": "B60205",
+    "description": "Breaking API, schema, runtime, or workflow change."
+  },
+  {
+    "name": "dependencies",
+    "color": "0366D6",
+    "description": "Dependency updates and dependency maintenance."
+  },
+  {
+    "name": "security",
+    "color": "B60205",
+    "description": "Security-related issue, PR, or private disclosure follow-up."
+  }
+]

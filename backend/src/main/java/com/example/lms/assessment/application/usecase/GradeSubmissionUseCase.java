@@ -28,7 +28,7 @@ public class GradeSubmissionUseCase {
     private final UserJpaRepository userJpaRepository;
 
     @Transactional
-    public AssignmentSubmissionJpaEntity gradeSubmission(UUID submissionId, Double score, String feedback, UUID graderId) {
+    public AssignmentSubmissionJpaEntity gradeSubmission(UUID submissionId, Double score, String feedback, String rubricData, UUID graderId) {
         var submission = submissionRepository.findById(submissionId)
                 .orElseThrow(() -> new EntityNotFoundException("Bai nop", submissionId));
 
@@ -36,6 +36,9 @@ public class GradeSubmissionUseCase {
         String oldFeedback = submission.getFeedback();
 
         applyGrade(submission, score, feedback, graderId);
+        if (rubricData != null) {
+            submission.setRubricData(rubricData);
+        }
         var saved = submissionRepository.save(submission);
 
         publishGradingEvent(saved, graderId, oldGrade, oldFeedback, score, feedback);

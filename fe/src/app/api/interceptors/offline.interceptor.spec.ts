@@ -1,5 +1,10 @@
 import type { OfflineCourse } from '../../core/db/lms-offline.db';
-import { buildOfflineCoursesListingResponse, shouldBypassOfflineInterception } from './offline.interceptor';
+import {
+  buildOfflineCoursesListingResponse,
+  isBackgroundLearningMutation,
+  shouldBypassOfflineInterception,
+  shouldQueueBeforeNetwork,
+} from './offline.interceptor';
 
 describe('buildOfflineCoursesListingResponse', () => {
   const cachedCourses: OfflineCourse[] = [
@@ -83,5 +88,33 @@ describe('shouldBypassOfflineInterception', () => {
 
   it('keeps course requests eligible for offline fallback', () => {
     expect(shouldBypassOfflineInterception('/api/v3/courses/11111111-1111-1111-1111-111111111111')).toBeFalse();
+  });
+});
+
+describe('background learning mutation queue policy', () => {
+  it('identifies learner telemetry and progress mutations as queue-safe', () => {
+    expect(isBackgroundLearningMutation('/api/v3/video-progress/track', 'POST')).toBeTrue();
+    expect(isBackgroundLearningMutation('/api/v3/learning-activity/heartbeat', 'POST')).toBeTrue();
+    expect(isBackgroundLearningMutation(
+      '/api/v3/student/progress/lessons/11111111-1111-1111-1111-111111111111/sections/intro/complete',
+      'POST',
+    )).toBeTrue();
+    expect(isBackgroundLearningMutation(
+      '/api/v3/student/progress/lessons/11111111-1111-1111-1111-111111111111/complete',
+      'PATCH',
+    )).toBeTrue();
+  });
+
+  it('does not preemptively queue reads, auth, sync, or destructive mutations', () => {
+    expect(isBackgroundLearningMutation('/api/v3/video-progress/track', 'GET')).toBeFalse();
+    expect(isBackgroundLearningMutation('/api/v3/auth/login', 'POST')).toBeFalse();
+    expect(isBackgroundLearningMutation('/api/v3/sync/push', 'POST')).toBeFalse();
+    expect(isBackgroundLearningMutation('/api/v3/video-progress/track', 'DELETE')).toBeFalse();
+  });
+
+  it('queues before network only when the network is constrained', () => {
+    expect(shouldQueueBeforeNetwork('/api/v3/video-progress/track', 'POST', true)).toBeTrue();
+    expect(shouldQueueBeforeNetwork('/api/v3/video-progress/track', 'POST', false)).toBeFalse();
+    expect(shouldQueueBeforeNetwork('/api/v3/auth/login', 'POST', true)).toBeFalse();
   });
 });

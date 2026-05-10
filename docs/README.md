@@ -24,6 +24,7 @@ Quy tắc phân loại và archive đầy đủ: [`docs/reference/DOCUMENTATION_
 
 - [reference/README.md](reference/README.md)
 - [reference/DOCUMENTATION_POLICY.md](reference/DOCUMENTATION_POLICY.md)
+- [reference/GITHUB_GOVERNANCE.md](reference/GITHUB_GOVERNANCE.md)
 - [reference/BACKEND_OVERVIEW.md](reference/BACKEND_OVERVIEW.md)
 - [reference/FRONTEND_OVERVIEW.md](reference/FRONTEND_OVERVIEW.md)
 - [reference/RUNTIME_CONVENTIONS.md](reference/RUNTIME_CONVENTIONS.md)
@@ -35,6 +36,7 @@ Quy tắc phân loại và archive đầy đủ: [`docs/reference/DOCUMENTATION_
 ### Runbooks
 
 - [runbooks/README.md](runbooks/README.md)
+- [runbooks/GITHUB_PROFESSIONAL_SETUP_RUNBOOK.md](runbooks/GITHUB_PROFESSIONAL_SETUP_RUNBOOK.md)
 - [runbooks/PRODUCTION_PAUSE_RESUME_RUNBOOK.md](runbooks/PRODUCTION_PAUSE_RESUME_RUNBOOK.md)
 - [runbooks/PRODUCTION_SMOKE_TEST.md](runbooks/PRODUCTION_SMOKE_TEST.md)
 - [runbooks/GOOGLE_LOGIN_GIS_SETUP_RUNBOOK.md](runbooks/GOOGLE_LOGIN_GIS_SETUP_RUNBOOK.md)

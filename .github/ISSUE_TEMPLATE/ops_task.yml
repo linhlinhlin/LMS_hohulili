@@ -1,0 +1,55 @@
+name: Ops / DevOps task
+description: Việc vận hành, CI/CD, deploy, storage, DNS, media edge, hoặc GitHub setup.
+title: "chore(ops): "
+labels:
+  - area/infra
+  - needs-triage
+body:
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: Mục tiêu vận hành cần đạt.
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      multiple: true
+      options:
+        - Local Docker
+        - GitHub Actions
+        - Production app VM
+        - Dedicated video worker
+        - Cloudflare / R2 / media edge
+        - Google OAuth / external provider
+        - Documentation only
+    validations:
+      required: true
+  - type: textarea
+    id: current_state
+    attributes:
+      label: Current state
+      description: Lệnh đã chạy, log, trạng thái hiện tại.
+  - type: textarea
+    id: desired_state
+    attributes:
+      label: Desired state
+      description: Tiêu chí hoàn tất rõ ràng.
+    validations:
+      required: true
+  - type: textarea
+    id: rollback
+    attributes:
+      label: Rollback / safety plan
+      description: Việc này có thể rollback thế nào nếu lỗi.
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Safety checklist
+      options:
+        - label: Không yêu cầu commit secret hoặc credential vào repo.
+          required: true
+        - label: Nếu thay đổi production, đã có rollback plan.
+          required: false

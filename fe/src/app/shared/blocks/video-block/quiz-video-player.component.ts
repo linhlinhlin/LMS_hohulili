@@ -20,6 +20,10 @@ import {
   resolveInteractiveVideoReviewTarget,
   shouldBlockInteractiveVideoSeek,
 } from '../../../core/utils/interactive-video-runtime';
+import {
+  canUseNativeHlsForManifest,
+  shouldPreferNativeHlsForManifest,
+} from '../../../core/utils/video-playback-platform';
 import type {
   InteractiveVideoChoice,
   InteractiveVideoInteraction,
@@ -51,6 +55,7 @@ type ResolvedSource =
         controls
         controlsList="nodownload"
         playsinline
+        webkit-playsinline
         preload="metadata"
         crossorigin="anonymous"
         class="h-full w-full object-contain"
@@ -234,7 +239,7 @@ export class QuizVideoPlayerComponent {
     if (!video) {
       return;
     }
-    if (this.snapBlockedInteractiveSeek(video)) {
+    if (this.isSeeking && this.snapBlockedInteractiveSeek(video)) {
       return;
     }
     const previousTimeSeconds = this.isSeeking ? video.currentTime : this.currentTimeSeconds();
@@ -425,6 +430,11 @@ export class QuizVideoPlayerComponent {
   }
 
   private async initializeShaka(videoElement: HTMLVideoElement, manifestUrl: string): Promise<void> {
+    if (canUseNativeHlsForManifest(manifestUrl, videoElement)) {
+      this.loadNativeHls(videoElement, manifestUrl);
+      return;
+    }
+
     const shakaNamespace = await import('shaka-player/dist/shaka-player.compiled');
     const shaka = (shakaNamespace as any).default ?? shakaNamespace;
     shaka.polyfill.installAll();
@@ -437,6 +447,7 @@ export class QuizVideoPlayerComponent {
       return;
     }
 
+    const preferNativeHls = shouldPreferNativeHlsForManifest(manifestUrl);
     const player = new shaka.Player();
     await player.attach(videoElement);
     player.configure({
@@ -451,7 +462,9 @@ export class QuizVideoPlayerComponent {
         bufferingGoal: 30,
         rebufferingGoal: 8,
         bufferBehind: 30,
-        segmentPrefetchLimit: 2,
+        lowLatencyMode: false,
+        preferNativeHls,
+        segmentPrefetchLimit: preferNativeHls ? 1 : 2,
         // Conservative retry: dead/stale assets từng gây Chrome STATUS_BREAKPOINT
         // crash khi Shaka retry 4× × MediaSource reopen cycle. 2 attempts đủ cho
         // transient network errors, không hammer BE on permanent 4xx.
@@ -489,6 +502,16 @@ export class QuizVideoPlayerComponent {
     }
     this.shakaPlayer = player;
     this.syncQuality(player);
+    this.isLoading.set(false);
+  }
+
+  private loadNativeHls(videoElement: HTMLVideoElement, manifestUrl: string): void {
+    this.shakaPlayer = null;
+    this.availableQualities.set([]);
+    this.isAutoQuality.set(true);
+    this.qualityLabel.set(null);
+    videoElement.src = manifestUrl;
+    videoElement.load();
     this.isLoading.set(false);
   }
 

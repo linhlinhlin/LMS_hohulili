@@ -442,3 +442,8 @@ Page BG: bg-slate-50 | Red: ONLY for semantic (errors, destructive)
 
 *This document is the single source of truth for Claude Code. Update after significant changes.*
 *Backend details: [`backend/README.md`](backend/README.md) | FE details: [`fe/FRONTEND_ARCHITECTURE.md`](fe/FRONTEND_ARCHITECTURE.md) | Test guide: [`docs/testing/TEST_CHECKLIST.md`](docs/testing/TEST_CHECKLIST.md)*
+
+<!-- SPECKIT START -->
+Active spec-kit feature: **001-sidebar-redesign** — Multi-role sidebar redesign with SOTA collapse UX, mobile auto-close drawer, WCAG 2.2 AA accessibility, unified state service.
+For full technical context, file scope, constitution-check verdict, and verification steps, read [`specs/001-sidebar-redesign/plan.md`](specs/001-sidebar-redesign/plan.md).
+<!-- SPECKIT END -->

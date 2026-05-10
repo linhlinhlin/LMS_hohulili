@@ -87,13 +87,17 @@ class CourseQueryControllerV3ContractTest {
         when(teacher.getId()).thenReturn(teacherId);
         when(teacher.getFullName()).thenReturn("Teacher Name");
 
-        when(courseRepository.findByStatus(any(), any())).thenReturn(new PageImpl<>(List.of(approvedPaidCourse)));
+        when(courseRepository.findByStatusAndFilters(eq(Course.CourseStatus.APPROVED), any(), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of(approvedPaidCourse)));
         when(userJpaRepository.findAllById(any())).thenReturn(List.of(teacher));
         when(enrollmentJpaRepository.countEnrollmentsByCourseIds(any())).thenReturn(
                 java.util.Collections.singletonList(new Object[] {approvedPaidCourse.getId(), 7L})
         );
+        when(chapterRepository.countByCourseIds(any())).thenReturn(
+                java.util.Collections.singletonList(new Object[] {approvedPaidCourse.getId(), 3L})
+        );
 
-        var response = controller.getPublicCourses(0, 20, null, null, null, null);
+        var response = controller.getPublicCourses(0, 20, null, null, null, null, null);
 
         assertThat(response.getBody()).isNotNull();
         ApiResponse<?> body = response.getBody();

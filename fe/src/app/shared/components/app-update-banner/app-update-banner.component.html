@@ -1,0 +1,58 @@
+@if (shouldShow() && prompt(); as copy) {
+  <section
+    class="pointer-events-none fixed left-1/2 top-3 z-[1001] w-[calc(100vw-1rem)] max-w-2xl -translate-x-1/2 sm:w-[calc(100vw-2rem)]"
+    role="status"
+    [attr.aria-live]="ariaLive()"
+    data-testid="app-update-banner"
+  >
+    <div [class]="containerClass()">
+      <div class="flex min-w-0 items-start gap-3">
+        <span [class]="iconClass()">
+          <lucide-icon
+            [name]="iconName()"
+            [size]="16"
+            [class.animate-spin]="state().status === 'applying'"
+            aria-hidden="true"
+          ></lucide-icon>
+        </span>
+
+        <div class="min-w-0">
+          <div class="flex min-w-0 flex-wrap items-center gap-2">
+            <p class="text-sm font-semibold leading-5">{{ copy.title }}</p>
+            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+              {{ copy.compactLabel }}
+            </span>
+          </div>
+          <p class="mt-1 text-sm leading-5 text-slate-600">{{ copy.message }}</p>
+        </div>
+      </div>
+
+      <div class="flex shrink-0 items-center justify-end gap-2 sm:justify-start">
+        @if (copy.secondaryText && state().status !== 'applying') {
+          <button
+            type="button"
+            class="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#0056D2] focus:ring-offset-2"
+            (click)="remindLater()"
+          >
+            {{ copy.secondaryText }}
+          </button>
+        }
+
+        <button
+          type="button"
+          [class]="primaryButtonClass()"
+          [disabled]="state().status === 'applying'"
+          (click)="applyUpdate()"
+        >
+          <lucide-icon
+            [name]="state().status === 'applying' ? 'loader-2' : 'refresh-cw'"
+            [size]="14"
+            [class.animate-spin]="state().status === 'applying'"
+            aria-hidden="true"
+          ></lucide-icon>
+          <span>{{ copy.primaryText }}</span>
+        </button>
+      </div>
+    </div>
+  </section>
+}

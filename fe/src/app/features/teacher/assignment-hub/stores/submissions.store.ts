@@ -1,6 +1,6 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { Observable, of, tap, catchError, finalize, map } from 'rxjs';
-import { AssignmentApi, SubmissionSummary, SubmissionDetail, GradeSubmissionRequest, SubmissionGrade } from '../../../../api/client/assignment.api';
+import { AssignmentApi, SubmissionSummary, SubmissionDetail, GradeSubmissionRequest, SubmissionGrade, RubricGradeItem } from '../../../../api/client/assignment.api';
 
 /**
  * Submissions Store
@@ -17,6 +17,7 @@ export interface InlineGradeUpdate {
   submissionId: string;
   score: number;
   feedback?: string;
+  rubricGrades?: RubricGradeItem[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -143,7 +144,8 @@ export class SubmissionsStore {
 
     const request: GradeSubmissionRequest = {
       score: update.score,
-      feedback: update.feedback
+      feedback: update.feedback,
+      rubricGrades: update.rubricGrades
     };
 
     return this.assignmentApi.gradeSubmission(update.submissionId, request).pipe(
@@ -160,6 +162,7 @@ export class SubmissionsStore {
                 maxScore: s.maxScore || 100,
                 percentage: (update.score / (s.maxScore || 100)) * 100,
                 feedback: update.feedback,
+                rubricGrades: (response.data as any)?.rubricGrades ?? update.rubricGrades,
                 gradedAt: new Date().toISOString(),
                 gradedBy: ''
               } as SubmissionGrade
@@ -250,9 +253,13 @@ export class SubmissionsStore {
               if (!attachments?.length && raw.fileUrl) {
                 attachments = [{ id: raw.fileUrl, fileName: raw.fileName || 'Tệp đính kèm', fileUrl: raw.fileUrl }];
               }
-              // Merge feedback into existing grade object
+              // Merge feedback + rubricGrades into existing grade object
               const grade = s.grade && typeof s.grade === 'object'
-                ? { ...s.grade, feedback: raw.feedback || s.grade.feedback }
+                ? {
+                    ...s.grade,
+                    feedback: raw.feedback || s.grade.feedback,
+                    rubricGrades: raw.rubricGrades || s.grade.rubricGrades
+                  }
                 : s.grade;
               return { ...s, content: raw.content, attachments, feedback: raw.feedback, grade };
             })

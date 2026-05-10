@@ -11,7 +11,7 @@ import { RouterModule } from '@angular/router';
           (mouseleave)="hideMenuWithDelay()">
 
       <button
-        class="flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:text-[#0056D2]"
+        class="flex min-h-11 items-center gap-1 rounded-lg px-3 text-sm font-medium text-gray-700 transition-colors hover:text-[#0056D2]"
         (click)="toggleMenu()"
         [class.text-[#0056D2]]="isMenuVisible()">
         <span>Khám phá</span>
@@ -41,7 +41,7 @@ import { RouterModule } from '@angular/router';
                     <a [routerLink]="['/courses']"
                        [queryParams]="{category: cat.slug}"
                        (click)="hideMenu()"
-                       class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-gray-700 transition-colors hover:bg-[#0056D2]/5 hover:text-[#0056D2]">
+                       class="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-gray-700 transition-colors hover:bg-[#0056D2]/5 hover:text-[#0056D2]">
                       <svg class="h-4 w-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
                         @switch (cat.icon) {
                           @case ('shield') { <path stroke-linecap="round" stroke-linejoin="round" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/> }
@@ -68,7 +68,7 @@ import { RouterModule } from '@angular/router';
                     <a routerLink="/courses"
                        [queryParams]="{q: cert}"
                        (click)="hideMenu()"
-                       class="block rounded-lg px-3 py-2.5 text-sm text-gray-700 transition-colors hover:bg-[#0056D2]/5 hover:text-[#0056D2]">
+                       class="flex min-h-11 items-center rounded-lg px-3 py-2.5 text-sm text-gray-700 transition-colors hover:bg-[#0056D2]/5 hover:text-[#0056D2]">
                       {{ cert }}
                     </a>
                   </li>
@@ -90,7 +90,7 @@ import { RouterModule } from '@angular/router';
               </p>
               <a href="https://wiii.holilihu.online" target="_blank" rel="noopener noreferrer"
                  (click)="hideMenu()"
-                 class="inline-flex items-center rounded-lg bg-[#0056D2] px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-[#004BB5]">
+                  class="inline-flex min-h-11 items-center rounded-lg bg-[#0056D2] px-4 text-sm font-semibold text-white transition-all hover:bg-[#004BB5]">
                 Hỏi Wiii AI
                 <svg class="ml-1.5 h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
               </a>
