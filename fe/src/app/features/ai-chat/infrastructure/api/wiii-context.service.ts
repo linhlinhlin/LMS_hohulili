@@ -21,6 +21,7 @@ import { environment } from '../../../../../environments/environment';
 import { PageDataExtractorService, type PageStructuredData } from './page-data-extractor.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { LessonApi } from '../../../../api/client/lesson.api';
+import { SectionApi } from '../../../../api/client/section.api';
 import { QuizApi } from '../../../../api/endpoints/quiz.api';
 import { CurriculumSelectionService } from '../../../teacher/course-editor/services/curriculum-selection.service';
 import {
@@ -174,6 +175,7 @@ export class WiiiContextService implements OnDestroy {
   private readonly pageDataExtractor = inject(PageDataExtractorService);
   private readonly authService = inject(AuthService);
   private readonly lessonApi = inject(LessonApi);
+  private readonly sectionApi = inject(SectionApi);
   private readonly quizApi = inject(QuizApi);
   private readonly selectionService = inject(CurriculumSelectionService);
   private readonly platformId = inject(PLATFORM_ID);
@@ -1235,6 +1237,99 @@ export class WiiiContextService implements OnDestroy {
     return `${type} ${index + 1}`;
   }
 
+  private normalizeLessonSections(lesson: unknown): Array<Record<string, unknown>> {
+    if (!lesson || typeof lesson !== 'object' || Array.isArray(lesson)) {
+      return [];
+    }
+    const record = lesson as Record<string, unknown>;
+    const raw =
+      record['sections']
+      ?? record['contentBlocks']
+      ?? record['content_blocks']
+      ?? [];
+    if (!Array.isArray(raw)) {
+      return [];
+    }
+    return raw
+      .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object' && !Array.isArray(item))
+      .map((item, index) => {
+        const data = item['data'] && typeof item['data'] === 'object' && !Array.isArray(item['data'])
+          ? item['data'] as Record<string, unknown>
+          : {};
+        return {
+          id: this.normalizeString(item['id']) || `block-${index + 1}`,
+          type: this.normalizeString(item['type'] ?? data['type']) || 'TEXT',
+          title: this.normalizeString(item['title'] ?? data['title'] ?? item['label'] ?? data['label']) || `Phần ${index + 1}`,
+          content: this.normalizeString(item['content'] ?? data['content'] ?? item['text'] ?? data['text']) || '',
+          isRequired: item['isRequired'] ?? data['isRequired'] ?? false,
+        };
+      });
+  }
+
+  private resolveLessonContentSection(
+    lesson: unknown,
+    params: Record<string, unknown>,
+  ): Record<string, unknown> | null {
+    const explicitId =
+      this.normalizeString(params['section_id'])
+      || this.normalizeString(params['sectionId'])
+      || this.normalizeString(params['block_id'])
+      || this.normalizeString(params['blockId']);
+    const sections = this.normalizeLessonSections(lesson);
+    if (sections.length === 0) {
+      return null;
+    }
+    if (explicitId) {
+      const explicit = sections.find((section) => String(section['id'] || '') === explicitId);
+      if (explicit) {
+        return explicit;
+      }
+    }
+    return sections.find((section) => String(section['type'] || '').toUpperCase() === 'TEXT')
+      || sections.find((section) => String(section['content'] || '').trim().length > 0)
+      || sections[0]
+      || null;
+  }
+
+  private buildLessonBlocksAfterContentPatch(
+    beforeBlocks: LessonPreviewBlock[],
+    targetSectionId: string | undefined,
+    nextContent: string,
+  ): LessonPreviewBlock[] {
+    const nextExcerpt = this.buildPreviewExcerpt(nextContent, 160);
+    if (!targetSectionId || beforeBlocks.length === 0) {
+      return this.extractLessonPreviewBlocks(nextContent);
+    }
+    let replaced = false;
+    const patched = beforeBlocks.map((block) => {
+      if (block.id !== targetSectionId) {
+        return block;
+      }
+      replaced = true;
+      return {
+        ...block,
+        excerpt: nextExcerpt,
+      };
+    });
+    if (replaced) {
+      return patched;
+    }
+    return [{
+      id: targetSectionId,
+      type: 'TEXT',
+      label: 'Nội dung Wiii đề xuất',
+      excerpt: nextExcerpt,
+    }, ...beforeBlocks].slice(0, 8);
+  }
+
+  private buildSectionFormData(payload: Record<string, unknown>): FormData {
+    const formData = new FormData();
+    formData.append('data', new Blob([JSON.stringify(payload)], {
+      type: 'application/json; charset=utf-8',
+    }));
+    return formData;
+  }
+
   private buildLessonBlockDiff(
     beforeBlocks: LessonPreviewBlock[],
     afterBlocks: LessonPreviewBlock[],
@@ -1317,6 +1412,10 @@ export class WiiiContextService implements OnDestroy {
     const sourceReferences = this.normalizeSourceReferences(
       params['source_references'] || params['sourceReferences'],
     );
+    const targetContentSection = content
+      ? this.resolveLessonContentSection(lesson, params)
+      : null;
+    const targetContentSectionId = this.normalizeString(targetContentSection?.['id']);
     const changedFields = [
       ...(title ? ['title'] : []),
       ...(description ? ['description'] : []),
@@ -1331,9 +1430,13 @@ export class WiiiContextService implements OnDestroy {
       changedFields,
     );
     const beforeBlocks = this.extractLessonPreviewBlocks(
-      (lesson as Record<string, unknown> | undefined)?.['contentBlocks'] ?? lesson?.content,
+      (lesson as Record<string, unknown> | undefined)?.['sections']
+      ?? (lesson as Record<string, unknown> | undefined)?.['contentBlocks']
+      ?? lesson?.content,
     );
-    const afterBlocks = this.extractLessonPreviewBlocks(content ?? ((lesson as Record<string, unknown> | undefined)?.['contentBlocks'] ?? lesson?.content));
+    const afterBlocks = content
+      ? this.buildLessonBlocksAfterContentPatch(beforeBlocks, targetContentSectionId, content)
+      : beforeBlocks;
     const blockDiff = this.buildLessonBlockDiff(beforeBlocks, afterBlocks);
     const preview = this.rememberPreview('lesson_patch', summary, {
       lesson_id: lessonId,
@@ -1343,9 +1446,12 @@ export class WiiiContextService implements OnDestroy {
       title: title ?? lesson?.title ?? '',
       description: description ?? lesson?.description ?? '',
       content: content ?? lesson?.content ?? '',
+      content_section_id: targetContentSectionId || '',
+      content_section_title: this.normalizeString(targetContentSection?.['title']) || '',
       duration_minutes: Number(lesson?.durationMinutes || 0),
       order_index: Number(lesson?.orderIndex || 0),
       is_required: Boolean((lesson as any)?.isRequired ?? false),
+      changed_fields: changedFields,
       source_references: sourceReferences,
     });
 
@@ -1358,6 +1464,13 @@ export class WiiiContextService implements OnDestroy {
       apply_action: 'authoring.apply_lesson_patch',
       summary: `${summary} Review the LMS preview panel before applying it.`,
       changed_fields: changedFields,
+      content_target: targetContentSectionId
+        ? {
+          section_id: targetContentSectionId,
+          title: this.normalizeString(targetContentSection?.['title']) || targetContentSectionId,
+          type: this.normalizeString(targetContentSection?.['type']) || 'TEXT',
+        }
+        : undefined,
       target_label: String(lesson?.title || lessonId).trim(),
       source_references: sourceReferences,
       lesson_before: {
@@ -1399,19 +1512,36 @@ export class WiiiContextService implements OnDestroy {
     if (!lessonId || !courseId || !chapterId) {
       throw new Error('Lesson patch preview is missing lesson/course/chapter context');
     }
+    const changedFields = this.normalizeStringArray(payload['changed_fields']);
+    const content = String(payload['content'] || '').trim();
+    const contentSectionId = String(payload['content_section_id'] || '').trim();
+    const metadataChanged = changedFields.some((field) => field === 'title' || field === 'description');
+    const contentChanged = changedFields.includes('content');
 
-    await firstValueFrom(this.lessonApi.updateLesson(lessonId, {
-      courseId,
-      chapterId,
-      title: String(payload['title'] || '').trim() || undefined,
-      description: String(payload['description'] || '').trim() || undefined,
-      lessonType: String(payload['lesson_type'] || 'LECTURE'),
-      content: String(payload['content'] || '').trim() || undefined,
-      durationMinutes: Number(payload['duration_minutes'] || 0),
-      isRequired: Boolean(payload['is_required'] ?? false),
-      isPreview: false,
-      orderIndex: Number(payload['order_index'] || 0),
-    }));
+    if (contentChanged && contentSectionId) {
+      await firstValueFrom(this.sectionApi.updateSection(
+        lessonId,
+        contentSectionId,
+        this.buildSectionFormData({
+          content,
+        }),
+      ));
+    }
+
+    if (metadataChanged || (contentChanged && !contentSectionId)) {
+      await firstValueFrom(this.lessonApi.updateLesson(lessonId, {
+        courseId,
+        chapterId,
+        title: String(payload['title'] || '').trim() || undefined,
+        description: String(payload['description'] || '').trim() || undefined,
+        lessonType: String(payload['lesson_type'] || 'LECTURE'),
+        content: contentChanged && !contentSectionId ? content || undefined : undefined,
+        durationMinutes: Number(payload['duration_minutes'] || 0),
+        isRequired: Boolean(payload['is_required'] ?? false),
+        isPreview: false,
+        orderIndex: Number(payload['order_index'] || 0),
+      }));
+    }
     this.pendingOperatorPreviews.delete(previewToken);
 
     return {
@@ -1420,6 +1550,7 @@ export class WiiiContextService implements OnDestroy {
         applied: true,
         lesson_id: lessonId,
         course_id: courseId,
+        content_section_id: contentSectionId || undefined,
         lesson_title: String(payload['title'] || lessonId).trim() || lessonId,
         summary: `Applied lesson patch to lesson ${lessonId}.`,
       },
