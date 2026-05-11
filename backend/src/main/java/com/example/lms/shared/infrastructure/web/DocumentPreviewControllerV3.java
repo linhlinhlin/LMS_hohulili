@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
+import java.util.UUID;
 
 @Tag(name = "Document Previews V3", description = "On-demand PDF previews for Office documents")
 @RestController
@@ -32,15 +34,23 @@ public class DocumentPreviewControllerV3 {
             @AuthenticationPrincipal UserJpaEntity user
     ) {
         try {
-            var result = documentPreviewService.requestPreview(request.fileUrl(), user.getId());
-            return ResponseEntity.ok(ApiResponse.success(result.toMap(), "Document preview status"));
+            var result = documentPreviewService.requestPreview(request.lessonId(), request.sectionId(), user);
+            if (result.isRateLimited()) {
+                return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                        .header("Retry-After", "60")
+                        .body(ApiResponse.success(result.toMap(), "Document preview status"));
+            }
+            HttpStatus status = result.isProcessing() ? HttpStatus.ACCEPTED : HttpStatus.OK;
+            return ResponseEntity.status(status).body(ApiResponse.success(result.toMap(), "Document preview status"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(ApiResponse.error(ex.getMessage()));
+        } catch (AccessDeniedException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error(ex.getMessage()));
         } catch (IllegalStateException ex) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(ApiResponse.error(ex.getMessage()));
         }
     }
 
-    public record DocumentPreviewRequest(String fileUrl) {}
+    public record DocumentPreviewRequest(UUID lessonId, String sectionId) {}
 }

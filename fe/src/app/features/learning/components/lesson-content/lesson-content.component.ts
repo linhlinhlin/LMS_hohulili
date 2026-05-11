@@ -273,8 +273,8 @@ export class LessonContentComponent implements AfterViewInit {
     const urlToPreview = previewPdfUrl ?? (fileUrl && this.isPdfFileUrl(fileUrl) ? fileUrl : null);
 
     if (!urlToPreview) {
-      if (fileUrl && this.isConvertibleDocumentFile(this.fileExtension(fileUrl))) {
-        this.startOnDemandDocumentPreview(fileUrl, onCleanup);
+      if (fileUrl && section.id && this.isConvertibleDocumentFile(this.fileExtension(fileUrl))) {
+        this.startOnDemandDocumentPreview(section.id, onCleanup);
       }
       return;
     }
@@ -294,7 +294,7 @@ export class LessonContentComponent implements AfterViewInit {
   });
 
   private startOnDemandDocumentPreview(
-    fileUrl: string,
+    sectionId: string,
     onCleanup: (cleanupFn: () => void) => void
   ): void {
     let stopped = false;
@@ -319,7 +319,10 @@ export class LessonContentComponent implements AfterViewInit {
 
       requestSub?.unsubscribe();
       requestSub = this.apiClient
-        .postWithResponse<DocumentPreviewResponse>('/api/v3/document-previews', { fileUrl })
+        .postWithResponse<DocumentPreviewResponse>('/api/v3/document-previews', {
+          lessonId: this.lesson().id,
+          sectionId
+        })
         .subscribe({
           next: response => {
             if (stopped) return;
