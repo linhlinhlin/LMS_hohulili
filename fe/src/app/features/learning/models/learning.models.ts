@@ -77,6 +77,8 @@ export interface SectionContent {
   streamVideoUid?: string;
   videoOfflineUri?: string;
   fileUrl?: string;
+  previewPdfUrl?: string;
+  previewStatus?: 'PROCESSING' | 'READY' | 'FAILED' | string | null;
   duration?: number;
   orderIndex: number;
   isRequired: boolean;

@@ -240,6 +240,17 @@
                  class="max-w-full max-h-[520px] md:max-h-[680px] object-contain block"
                  loading="lazy" />
           </div>
+        } @else if (isConvertibleDocumentFile(ext) && section.previewStatus === 'PROCESSING') {
+          <!-- Office document is being converted to a normalized PDF preview. -->
+          <div class="px-4 py-5 text-center bg-slate-50/60 text-sm text-slate-600">
+            <app-icon name="info" size="sm" class="text-slate-400 align-middle mr-1"></app-icon>
+            Đang chuẩn bị bản xem trước. Bấm <strong>"Tải xuống"</strong> để xem ngay nếu cần.
+          </div>
+        } @else if (isConvertibleDocumentFile(ext) && section.previewStatus === 'FAILED') {
+          <div class="px-4 py-5 text-center bg-amber-50 text-sm text-amber-800">
+            <app-icon name="info" size="sm" class="text-amber-500 align-middle mr-1"></app-icon>
+            Không thể tạo bản xem trước cho tài liệu này. Bạn vẫn có thể tải xuống tệp gốc.
+          </div>
         } @else if (ext === 'pdf') {
           <!-- PDF requested but preview URL not ready (still converting / failed) -->
           <div class="px-4 py-5 text-center bg-slate-50/60 text-sm text-slate-600">

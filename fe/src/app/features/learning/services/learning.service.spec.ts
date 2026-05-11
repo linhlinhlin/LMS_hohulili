@@ -313,6 +313,53 @@ describe('LearningService — videoOfflineUri preservation', () => {
   });
 
   describe('Interactive video section mapping', () => {
+    it('keeps document preview metadata for converted PPTX sections', () => {
+      const section = (service as any).mapSectionContent({
+        id: 'pptx-section',
+        title: 'Bridge resource',
+        type: 'FILE',
+        fileUrl: '/uploads/sections/bridge.pptx',
+        previewPdfUrl: '/uploads/previews/bridge_preview.pdf',
+        previewStatus: 'READY',
+        orderIndex: 0,
+        isRequired: true,
+      }) as SectionContent;
+
+      expect(section.fileUrl).toBe('/uploads/sections/bridge.pptx');
+      expect(section.previewPdfUrl).toBe('/uploads/previews/bridge_preview.pdf');
+      expect(section.previewStatus).toBe('READY');
+    });
+
+    it('merges document preview metadata from course content cache into lesson details', () => {
+      (service as any).lessonSectionsCache.set('lesson-with-pptx', [
+        buildSection({
+          id: 'pptx-section',
+          type: 'FILE',
+          fileUrl: '/uploads/sections/bridge.pptx',
+          previewPdfUrl: '/uploads/previews/bridge_preview.pdf',
+          previewStatus: 'READY',
+        }),
+      ]);
+
+      const lesson = (service as any).mapLessonResponse({
+        id: 'lesson-with-pptx',
+        title: 'PPTX lesson',
+        sections: [
+          {
+            id: 'pptx-section',
+            title: 'Bridge resource',
+            type: 'FILE',
+            fileUrl: '/uploads/sections/bridge.pptx',
+            orderIndex: 0,
+            isRequired: true,
+          },
+        ],
+      }) as LessonDetail;
+
+      expect(lesson.sections?.[0].previewPdfUrl).toBe('/uploads/previews/bridge_preview.pdf');
+      expect(lesson.sections?.[0].previewStatus).toBe('READY');
+    });
+
     it('normalizes timeline aliases and keeps interactions sorted by time', () => {
       const section = (service as any).mapSectionContent({
         id: 'iv-section',
