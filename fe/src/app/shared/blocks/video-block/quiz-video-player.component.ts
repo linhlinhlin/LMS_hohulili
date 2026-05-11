@@ -14,12 +14,14 @@ import { InteractiveVideoLayerComponent } from './interactive-video-layer.compon
 import { InteractiveVideoOverlayComponent } from './interactive-video-overlay.component';
 import { InteractiveVideoMarkersComponent } from './interactive-video-markers.component';
 import {
+  addInteractiveVideoWatchedRange,
   getDueInteractiveVideoInteraction,
   isInteractiveVideoReviewInteraction,
   resolveInteractiveVideoChoiceTarget,
   resolveInteractiveVideoReviewTarget,
   shouldBlockInteractiveVideoSeek,
 } from '../../../core/utils/interactive-video-runtime';
+import type { InteractiveVideoWatchedRange } from '../../../core/utils/interactive-video-runtime';
 import {
   canUseNativeHlsForManifest,
   shouldPreferNativeHlsForManifest,
@@ -188,6 +190,7 @@ export class QuizVideoPlayerComponent {
   private loadToken = 0;
   private readonly shownInteractionIds = new Set<string>();
   private readonly completedInteractionIds = new Set<string>();
+  private watchedRanges: InteractiveVideoWatchedRange[] = [];
   private furthestWatchedSeconds = 0;
   private isSeeking = false;
   /**
@@ -256,7 +259,7 @@ export class QuizVideoPlayerComponent {
     // timeupdates would otherwise let a single forward jump bypass the
     // anti-skip gate. Backward playback is not possible without seeking.
     if (!this.isSeeking) {
-      this.markInteractiveVideoWatched(video.currentTime);
+      this.markInteractiveVideoWatched(video.currentTime, previousTimeSeconds);
     }
     this.evaluateInteractiveTimeline(video, previousTimeSeconds);
   }
@@ -672,6 +675,7 @@ export class QuizVideoPlayerComponent {
     this.shownInteractionIds.clear();
     this.completedInteractionIds.clear();
     this.completedInteractionIdsSnapshot.set(new Set<string>());
+    this.watchedRanges = [];
     this.furthestWatchedSeconds = 0;
   }
 
@@ -698,9 +702,19 @@ export class QuizVideoPlayerComponent {
       targetTimeSeconds,
       furthestWatchedSeconds: this.furthestWatchedSeconds,
       hasIncompleteRequiredInteractions: this.hasIncompleteRequiredInteractions(),
+      watchedRanges: this.watchedRanges,
     })
-      ? this.furthestWatchedSeconds
+      ? this.resolveBlockedInteractiveSeekTarget(targetTimeSeconds)
       : targetTimeSeconds;
+  }
+
+  private resolveBlockedInteractiveSeekTarget(targetTimeSeconds: number): number {
+    const mode = this.interactiveVideoSpec()?.behavior?.preventSkippingMode ?? 'none';
+    if (mode === 'both' && targetTimeSeconds <= this.furthestWatchedSeconds) {
+      return this.currentTimeSeconds();
+    }
+
+    return this.furthestWatchedSeconds;
   }
 
   private hasIncompleteRequiredInteractions(): boolean {
@@ -714,9 +728,12 @@ export class QuizVideoPlayerComponent {
     );
   }
 
-  private markInteractiveVideoWatched(seconds: number): void {
+  private markInteractiveVideoWatched(seconds: number, previousSeconds = seconds): void {
     if (Number.isFinite(seconds)) {
-      this.furthestWatchedSeconds = Math.max(this.furthestWatchedSeconds, Math.max(0, seconds));
+      const current = Math.max(0, seconds);
+      const previous = Number.isFinite(previousSeconds) ? Math.max(0, previousSeconds) : current;
+      this.furthestWatchedSeconds = Math.max(this.furthestWatchedSeconds, current);
+      this.watchedRanges = addInteractiveVideoWatchedRange(this.watchedRanges, previous, current);
     }
   }
 
