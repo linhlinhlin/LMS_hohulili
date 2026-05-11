@@ -315,32 +315,17 @@
   color: $gray-400;
 }
 
-/* ===== LOAD MORE ===== */
-.load-more-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: $spacing-2;
-  padding-top: $spacing-4;
-}
-
-.load-more-btn {
-  padding: 10px 24px;
+/* ===== PAGINATION ===== */
+.results-pagination {
+  display: block;
+  width: 100%;
+  max-width: 1024px;
+  margin: $spacing-8 auto $spacing-6;
+  background: white;
   border: 1px solid $gray-200;
   border-radius: $radius-md;
-  background: white;
-  font-size: $text-sm;
-  font-weight: $font-medium;
-  color: $gray-700;
-  cursor: pointer;
-  transition: all $transition-normal;
-
-  &:hover { border-color: $blue-primary; color: $blue-primary; background: rgba($blue-primary, 0.04); }
-}
-
-.load-more-count {
-  font-size: $text-xs;
-  color: $gray-400;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
 }
 
 /* ===== EMPTY STATE ===== */
@@ -421,7 +406,7 @@
   .grades-header { margin-bottom: 10px; }
   .grades-title { font-size: 18px; }
 
-  .main-tabs, .filter-bar, .load-more-section { display: none !important; }
+  .main-tabs, .filter-bar, .results-pagination { display: none !important; }
 
   .card, .grade-card, .empty-state, .cert-card {
     box-shadow: none !important;
