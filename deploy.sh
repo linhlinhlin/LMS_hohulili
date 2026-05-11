@@ -79,8 +79,8 @@ WIII_TOKEN_EXCHANGE_URL_VALUE="$(read_env_value WIII_TOKEN_EXCHANGE_URL)"
 ENABLE_LOCAL_VIDEO_WORKER_VALUE="$(env_or_default ENABLE_LOCAL_VIDEO_WORKER true)"
 
 COMPOSE_ARGS=(--env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml)
-IMAGE_SERVICES=(backend frontend)
-RUNTIME_SERVICES=(backend frontend caddy)
+IMAGE_SERVICES=(gotenberg backend frontend)
+RUNTIME_SERVICES=(gotenberg backend frontend caddy)
 if [ "$ENABLE_LOCAL_VIDEO_WORKER_VALUE" = "true" ]; then
   COMPOSE_ARGS+=(--profile video-worker)
   IMAGE_SERVICES+=(video-worker)
@@ -186,7 +186,7 @@ echo "[4/7] Pruning Docker cache to prevent OOM..."
 docker system prune -f --volumes 2>/dev/null || true
 
 if docker compose "${COMPOSE_ARGS[@]}" config --images 2>/dev/null | grep -q "ghcr.io"; then
-  echo "[5/7] Pulling pre-built images from GHCR..."
+  echo "[5/7] Pulling pre-built runtime images..."
   docker compose "${COMPOSE_ARGS[@]}" pull "${IMAGE_SERVICES[@]}"
   docker image prune -f 2>/dev/null || true
   # Recreate Caddy whenever host-mounted config such as Caddyfile changes.
@@ -205,6 +205,19 @@ docker compose "${COMPOSE_ARGS[@]}" ps
 echo ""
 
 echo "[7/7] Edge health check..."
+GOTENBERG_CONTAINER_ID="$(docker compose "${COMPOSE_ARGS[@]}" ps -q gotenberg 2>/dev/null || true)"
+GOTENBERG_HEALTH=""
+if [ -n "$GOTENBERG_CONTAINER_ID" ]; then
+  GOTENBERG_HEALTH="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$GOTENBERG_CONTAINER_ID" 2>/dev/null || true)"
+fi
+if [ "$GOTENBERG_HEALTH" = "healthy" ]; then
+  echo "Gotenberg: HEALTHY"
+else
+  echo "Gotenberg: Unhealthy (status=${GOTENBERG_HEALTH:-missing}; check logs: docker compose ${COMPOSE_ARGS[*]} logs gotenberg --tail=80)"
+  docker compose "${COMPOSE_ARGS[@]}" logs gotenberg --tail=80 || true
+  exit 1
+fi
+
 if curl -sf http://localhost/actuator/health > /dev/null 2>&1; then
   echo "Backend: HEALTHY"
 elif curl -sf http://localhost:80/actuator/health > /dev/null 2>&1; then
@@ -235,5 +248,6 @@ echo ""
 echo "Useful commands:"
 echo "  docker compose ${COMPOSE_ARGS[*]} logs -f           # Follow all logs"
 echo "  docker compose ${COMPOSE_ARGS[*]} logs backend -f   # Backend logs"
+echo "  docker compose ${COMPOSE_ARGS[*]} logs gotenberg -f # Document preview converter logs"
 echo "  docker compose ${COMPOSE_ARGS[*]} ps                # Container status"
 echo "  docker compose ${COMPOSE_ARGS[*]} down              # Stop all"

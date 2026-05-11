@@ -113,7 +113,7 @@ class CourseAuthoringControllerV3Test {
                 manageContentBlockUseCase,
                 updateCourseUseCase,
                 fileManagementService,
-                new com.example.lms.shared.infrastructure.service.DocumentConversionService(""),
+                new com.example.lms.shared.infrastructure.service.DocumentConversionService("", 64 * 1024 * 1024),
                 videoAssetLifecycleService,
                 chapterJpaRepository,
                 lessonJpaRepository,

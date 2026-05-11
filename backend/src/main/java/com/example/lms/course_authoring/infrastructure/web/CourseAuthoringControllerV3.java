@@ -45,6 +45,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CourseAuthoringControllerV3 {
 
+    private static final long MAX_INLINE_PREVIEW_CONVERSION_BYTES = 100L * 1024L * 1024L;
+
     private final CreateChapterUseCaseV3 createChapterUseCase;
     private final CreateLessonUseCaseV3 createLessonUseCase;
     private final UpdateChapterUseCase updateChapterUseCase;
@@ -326,12 +328,7 @@ public class CourseAuthoringControllerV3 {
                 var attachment = fileManagementService.uploadFile(file, "sections", user.getId());
                 payload.put("fileUrl", attachment.getFileUrl());
                 payload.put("fileName", file.getOriginalFilename());
-                // Mark for async conversion (copy bytes before multipart cleanup)
-                if (documentConversionService.canConvert(file.getOriginalFilename())) {
-                    payload.put("previewStatus", "PROCESSING");
-                    payload.put("_convBytes", file.getBytes());
-                    payload.put("_convName", file.getOriginalFilename());
-                }
+                preparePreviewConversionPayload(payload, file);
             } catch (java.io.IOException e) {
                 log.error("File upload failed for section", e);
                 return ResponseEntity.badRequest().body(ApiResponse.error("Tải file thất bại: " + e.getMessage()));
@@ -392,12 +389,7 @@ return ResponseEntity.ok(ApiResponse.success(block, "Tạo phần học thành c
                 var attachment = fileManagementService.uploadFile(file, "sections", user.getId());
                 payload.put("fileUrl", attachment.getFileUrl());
                 payload.put("fileName", file.getOriginalFilename());
-                // Mark for async conversion (copy bytes before multipart cleanup)
-                if (documentConversionService.canConvert(file.getOriginalFilename())) {
-                    payload.put("previewStatus", "PROCESSING");
-                    payload.put("_convBytes", file.getBytes());
-                    payload.put("_convName", file.getOriginalFilename());
-                }
+                preparePreviewConversionPayload(payload, file);
             } catch (java.io.IOException e) {
                 log.error("File upload failed for section update", e);
                 return ResponseEntity.badRequest().body(ApiResponse.error("Tải file thất bại: " + e.getMessage()));
@@ -612,6 +604,27 @@ return ResponseEntity.ok(ApiResponse.success(block, "Cập nhật phần học t
 
     private boolean isYouTubeUrl(String url) {
         return url != null && YOUTUBE_URL_PATTERN.matcher(url).find();
+    }
+
+    private void preparePreviewConversionPayload(
+            Map<String, Object> payload,
+            org.springframework.web.multipart.MultipartFile file
+    ) throws IOException {
+        if (!documentConversionService.canConvert(file.getOriginalFilename())) {
+            return;
+        }
+
+        payload.put("previewStatus", "PROCESSING");
+        if (file.getSize() > MAX_INLINE_PREVIEW_CONVERSION_BYTES) {
+            log.info("[DocConvert] Deferring large preview conversion to on-demand flow: {} ({}B)",
+                    file.getOriginalFilename(), file.getSize());
+            return;
+        }
+
+        // Multipart temp files are cleaned up after the request, so small files are copied
+        // for the existing async preview path. Large files are converted from storage on demand.
+        payload.put("_convBytes", file.getBytes());
+        payload.put("_convName", file.getOriginalFilename());
     }
 
     /**
