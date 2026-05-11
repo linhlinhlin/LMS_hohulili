@@ -1780,6 +1780,7 @@ export class WiiiContextService implements OnDestroy {
       `Bản xem trước bài học đã sẵn sàng cho "${proposedLessonTitle}"`,
       changedFields,
     );
+    const reviewSummary = `${summary.replace(/[.!?。]+$/u, '')}. Giáo viên cần xem diff/citation trong LMS trước khi áp dụng.`;
     const beforeBlocks = this.extractLessonPreviewBlocks(
       (lesson as Record<string, unknown> | undefined)?.['sections']
       ?? (lesson as Record<string, unknown> | undefined)?.['contentBlocks']
@@ -1814,7 +1815,7 @@ export class WiiiContextService implements OnDestroy {
       proposed_lesson_title: proposedLessonTitle,
       course_id: String(lesson?.courseId || this.resolveCurrentCourseId(params) || '').trim() || undefined,
       apply_action: 'authoring.apply_lesson_patch',
-      summary: `${summary}. Giáo viên cần xem diff/citation trong LMS trước khi áp dụng.`,
+      summary: reviewSummary,
       changed_fields: changedFields,
       content_target: targetContentSectionId
         ? {

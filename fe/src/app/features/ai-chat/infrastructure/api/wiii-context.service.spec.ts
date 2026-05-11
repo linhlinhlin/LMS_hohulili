@@ -147,6 +147,7 @@ describe('WiiiContextService - operator preview/apply flows', () => {
     expect(preview.data?.target_label).toBe('Bai hoc moi');
     expect(String(preview.data?.summary)).toContain('Bai hoc moi');
     expect(String(preview.data?.summary)).not.toContain('Bai hoc goc"');
+    expect(String(preview.data?.summary)).not.toContain('..');
     expect(preview.data?.changed_fields).toEqual(['title', 'content']);
     expect(preview.data?.lesson_before).toEqual(jasmine.objectContaining({
       title: 'Bai hoc goc',
