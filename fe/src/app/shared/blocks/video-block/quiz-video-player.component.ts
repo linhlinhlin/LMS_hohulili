@@ -16,6 +16,7 @@ import { InteractiveVideoMarkersComponent } from './interactive-video-markers.co
 import {
   addInteractiveVideoWatchedRange,
   getDueInteractiveVideoInteraction,
+  isInteractiveVideoProgressGateInteraction,
   isInteractiveVideoReviewInteraction,
   resolveInteractiveVideoChoiceTarget,
   resolveInteractiveVideoReviewTarget,
@@ -724,7 +725,8 @@ export class QuizVideoPlayerComponent {
     }
 
     return spec.timeline.some(interaction =>
-      interaction.required === true && !this.completedInteractionIds.has(interaction.id),
+      isInteractiveVideoProgressGateInteraction(interaction)
+        && !this.completedInteractionIds.has(interaction.id),
     );
   }
 
