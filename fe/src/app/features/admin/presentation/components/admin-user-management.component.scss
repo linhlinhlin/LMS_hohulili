@@ -407,6 +407,80 @@ $orange-700: #9A3412;
   gap: $spacing-1;
 }
 
+.pagination-bar {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-3;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-4 $spacing-6;
+  border-top: 1px solid $border-default;
+  background: $bg-surface;
+
+  @media (min-width: $breakpoint-sm) {
+    flex-direction: row;
+  }
+}
+
+.pagination-info {
+  font-size: $text-sm;
+  color: $text-secondary;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.pagination-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 $spacing-2;
+  border: 1px solid $border-default;
+  border-radius: $radius-sm;
+  background: $bg-surface;
+  color: $gray-700;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  cursor: pointer;
+  transition: background $transition-fast, border-color $transition-fast, color $transition-fast;
+
+  &:hover:not(:disabled):not(.active) {
+    background: $gray-50;
+    border-color: $gray-300;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  &.active {
+    background: $blue-primary;
+    border-color: $blue-primary;
+    color: $text-inverse;
+  }
+}
+
+.pagination-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.pagination-ellipsis {
+  padding: 0 $spacing-1;
+  color: $text-muted;
+  font-size: $text-sm;
+}
+
 .action-select {
   font-size: $text-xs;
   padding: $spacing-1 $spacing-2;

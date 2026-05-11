@@ -183,6 +183,36 @@
                 </tbody>
               </table>
             </div>
+            @if (totalPages() > 1) {
+              <div class="pagination-bar">
+                <div class="pagination-info">
+                  Hiển thị <strong>{{ pageStart() }}</strong> - <strong>{{ pageEnd() }}</strong>
+                  trong tổng số <strong>{{ totalItems() }}</strong> giảng viên
+                </div>
+                <div class="pagination-controls" aria-label="Phân trang giảng viên">
+                  <button (click)="goToPage(currentPage() - 1)" [disabled]="currentPage() === 1"
+                          class="pagination-btn pagination-arrow" aria-label="Trang trước">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                  </button>
+                  @for (page of paginationPages(); track $index) {
+                    @if (page === -1) {
+                      <span class="pagination-ellipsis">...</span>
+                    } @else {
+                      <button (click)="goToPage(page)"
+                              class="pagination-btn"
+                              [class.active]="currentPage() === page"
+                              [attr.aria-current]="currentPage() === page ? 'page' : null">
+                        {{ page }}
+                      </button>
+                    }
+                  }
+                  <button (click)="goToPage(currentPage() + 1)" [disabled]="currentPage() === totalPages()"
+                          class="pagination-btn pagination-arrow" aria-label="Trang tiếp theo">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                  </button>
+                </div>
+              </div>
+            }
           }
         </div>
       </div>

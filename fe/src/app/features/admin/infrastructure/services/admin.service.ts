@@ -119,7 +119,7 @@ export interface AdminUser {
   id: string;
   email: string;
   name: string;
-  role: string; // Backend returns 'TEACHER', 'STUDENT', 'ADMIN' (uppercase)
+  role: string;
   avatar?: string;
   department?: string;
   studentId?: string;
@@ -147,7 +147,7 @@ export interface BackendUser {
   username: string;
   email: string;
   fullName: string;
-  role: 'ADMIN' | 'ORG_ADMIN' | 'TEACHER' | 'STUDENT';
+  role: 'ADMIN' | 'ORG_ADMIN' | 'TEACHER' | 'STUDENT' | 'admin' | 'org_admin' | 'teacher' | 'student';
   enabled: boolean;
   accountStatus?: string;  // ACTIVE, BLOCKED, RESTRICTED
   statusReason?: string;
@@ -614,26 +614,56 @@ export class AdminService {
       finalize(() => this._isLoading.next(false)),
       map(response => {
 
-        // Extract the actual user array from content
         const responseData = response.data as any;
         const backendUsers: BackendUser[] = Array.isArray(response.data)
           ? response.data
           : (responseData?.content || responseData?.data || []);
 
-
-        // Convert BackendUser to AdminUser
         const users: AdminUser[] = backendUsers.map((u: BackendUser) => this.mapBackendUserToAdminUser(u));
         this._users.set(users);
 
+        const pageData = !Array.isArray(response.data) ? responseData : null;
+        const rawPagination = (response.pagination || {}) as any;
+        const page = rawPagination.page ?? pageData?.page ?? (pageData?.number != null ? pageData.number + 1 : (params.page ?? 1));
+        const limit = rawPagination.limit ?? pageData?.size ?? params.limit ?? backendUsers.length;
+        const totalItems = rawPagination.totalItems ?? pageData?.totalElements ?? backendUsers.length;
+        const totalPages = rawPagination.totalPages ?? pageData?.totalPages ?? 1;
+
         return {
           data: users,
-          pagination: response.pagination || {}
+          pagination: {
+            page,
+            limit,
+            totalItems,
+            totalPages: Math.max(1, totalPages),
+            first: rawPagination.first ?? pageData?.first ?? page <= 1,
+            last: rawPagination.last ?? pageData?.last ?? page >= Math.max(1, totalPages)
+          }
         };
       }),
       catchError(error => {
 
         return throwError(() => error);
       })
+    );
+  }
+
+  getUserCount(params: any = {}): Observable<number> {
+    const queryParams = { ...params, page: 1, limit: 1 };
+
+    return this.apiClient.getWithResponse<BackendUser[]>(ADMIN_ENDPOINTS.USERS, { params: queryParams }).pipe(
+      map(response => {
+        const responseData = response.data as any;
+        const rawPagination = (response.pagination || {}) as any;
+        const backendUsers: BackendUser[] = Array.isArray(response.data)
+          ? response.data
+          : (responseData?.content || responseData?.data || []);
+
+        return rawPagination.totalItems
+          ?? responseData?.totalElements
+          ?? backendUsers.length;
+      }),
+      catchError(error => throwError(() => error))
     );
   }
 
@@ -882,7 +912,7 @@ export class AdminService {
     return {
       id: backendUser.id,
       email: backendUser.email,
-      name: backendUser.fullName,
+      name: backendUser.fullName || (backendUser as any).name || backendUser.username,
       role: this.mapBackendRoleToUserRole(backendUser.role),
       createdAt: new Date(backendUser.createdAt),
       updatedAt: backendUser.updatedAt ? new Date(backendUser.updatedAt) : new Date(),

@@ -196,12 +196,9 @@ import { formatRelativeTimeVN } from '../../../../../../../shared/utils/relative
                           <span>{{ user.coursesEnrolled || 0 }} đã đăng ký</span>
                         </div>
                       }
-                      <div class="flex items-center">
-                        <svg class="w-3 h-3 mr-1.5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path>
-                        </svg>
-                        <span>{{ user.loginCount || 0 }} lần</span>
-                      </div>
+                      @if (user.role !== 'TEACHER' && user.role !== 'STUDENT') {
+                        <span class="text-gray-400">Không áp dụng</span>
+                      }
                     </div>
                   </td>
                 </tr>

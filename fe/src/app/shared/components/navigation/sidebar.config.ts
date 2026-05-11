@@ -242,12 +242,6 @@ const allAdminMenuItems: SidebarMenuItem[] = [
     group: 'Hệ thống'
   },
   {
-    label: 'Nhật ký kiểm toán',
-    route: '/admin/logs',
-    icon: 'file-text',
-    group: 'Hệ thống'
-  },
-  {
     label: 'Bộ nhớ ngoại tuyến',
     route: '/admin/offline-storage',
     icon: 'download',
