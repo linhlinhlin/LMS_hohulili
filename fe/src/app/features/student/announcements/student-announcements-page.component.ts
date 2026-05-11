@@ -9,13 +9,14 @@ import {
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { AnnouncementService, Announcement } from '../../../core/services/announcement.service';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 
 type AnnouncementWithRead = Announcement & { isRead?: boolean };
 type FilterTab = 'all' | 'unread' | 'important';
 
 @Component({
   selector: 'app-student-announcements-page',
-  imports: [CommonModule],
+  imports: [CommonModule, PaginationComponent],
   templateUrl: './student-announcements-page.component.html',
   styleUrl: './student-announcements-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -24,13 +25,12 @@ export class StudentAnnouncementsPageComponent implements OnInit {
   private readonly announcementService = inject(AnnouncementService);
   private readonly http = inject(HttpClient);
 
-  private readonly INITIAL_COUNT = 10;
-  private readonly LOAD_MORE_COUNT = 10;
+  readonly PAGE_SIZE = 12;
 
   readonly loading = this.announcementService.loading;
   readonly selected = signal<AnnouncementWithRead | null>(null);
   readonly activeFilter = signal<FilterTab>('all');
-  readonly visibleCount = signal(this.INITIAL_COUNT);
+  readonly currentPage = signal(0);
   readonly courseNameMap = signal<Map<string, string>>(new Map());
 
   readonly announcements = this.announcementService.announcementsWithReadStatus;
@@ -50,12 +50,16 @@ export class StudentAnnouncementsPageComponent implements OnInit {
     return all;
   });
 
-  readonly visibleAnnouncements = computed(() =>
-    this.filteredAnnouncements().slice(0, this.visibleCount()),
-  );
+  readonly totalItems = computed(() => this.filteredAnnouncements().length);
+  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.totalItems() / this.PAGE_SIZE)));
+  readonly effectiveCurrentPage = computed(() => Math.min(this.currentPage(), this.totalPages() - 1));
 
-  readonly hasMoreToShow = computed(() => this.visibleCount() < this.filteredAnnouncements().length);
-  readonly remainingCount = computed(() => Math.max(0, this.filteredAnnouncements().length - this.visibleCount()));
+  readonly visibleAnnouncements = computed(() =>
+    this.filteredAnnouncements().slice(
+      this.effectiveCurrentPage() * this.PAGE_SIZE,
+      (this.effectiveCurrentPage() + 1) * this.PAGE_SIZE,
+    ),
+  );
 
   ngOnInit(): void {
     this.http
@@ -78,11 +82,15 @@ export class StudentAnnouncementsPageComponent implements OnInit {
 
   setFilter(tab: FilterTab): void {
     this.activeFilter.set(tab);
-    this.visibleCount.set(this.INITIAL_COUNT);
+    this.currentPage.set(0);
   }
 
-  loadMore(): void {
-    this.visibleCount.update(c => c + this.LOAD_MORE_COUNT);
+  goToPage(page: number): void {
+    if (page < 0 || page >= this.totalPages()) return;
+    this.currentPage.set(page);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
 
   openDetail(a: AnnouncementWithRead): void {
