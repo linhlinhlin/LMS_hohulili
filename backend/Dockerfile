@@ -6,7 +6,7 @@
 # syntax=docker/dockerfile:1.4
 
 # ----- Stage 1: Build -----
-FROM maven:3.9.14-eclipse-temurin-21 AS build
+FROM maven:3.9.14-eclipse-temurin-25 AS build
 WORKDIR /app
 
 # Cache Maven dependencies (BuildKit cache mount)
