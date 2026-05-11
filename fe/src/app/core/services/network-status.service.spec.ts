@@ -6,9 +6,7 @@ describe('NetworkStatusService', () => {
   let fetchSpy: jasmine.Spy<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>;
 
   beforeEach(() => {
-    fetchSpy = spyOn(window, 'fetch').and.callFake(async () =>
-      new Response('', { status: 200 }),
-    );
+    fetchSpy = spyOn(window, 'fetch').and.callFake(async () => new Response('', { status: 200 }));
     service = new NetworkStatusService();
   });
 
@@ -16,6 +14,19 @@ describe('NetworkStatusService', () => {
     service.ngOnDestroy();
     fetchSpy.calls.reset();
   });
+
+  async function confirmSlowConnection(rttMs = 1600): Promise<void> {
+    let now = 0;
+    spyOn(performance, 'now').and.callFake(() => now);
+    fetchSpy.calls.reset();
+    fetchSpy.and.callFake(async () => {
+      now += rttMs;
+      return new Response('', { status: 200 });
+    });
+
+    await service.probeNow();
+    await service.probeNow();
+  }
 
   describe('Initial state', () => {
     it('should have online signal reflecting navigator.onLine', () => {
@@ -27,7 +38,10 @@ describe('NetworkStatusService', () => {
     });
 
     it('should expose reportedDownlinkMbps as nullable browser telemetry', () => {
-      expect(service.reportedDownlinkMbps() === null || typeof service.reportedDownlinkMbps() === 'number').toBeTrue();
+      expect(
+        service.reportedDownlinkMbps() === null ||
+          typeof service.reportedDownlinkMbps() === 'number',
+      ).toBeTrue();
     });
   });
 
@@ -37,22 +51,24 @@ describe('NetworkStatusService', () => {
       expect(service.connectionTier()).toBe('none');
     });
 
-    it('should return "slow" when bandwidth < 1 Mbps', () => {
+    it('should not show slow from raw bandwidth telemetry alone', () => {
       service.online.set(true);
       service.effectiveBandwidthMbps.set(0.5);
-      expect(service.connectionTier()).toBe('slow');
+      expect(service.connectionTier()).toBe('fast');
     });
 
-    it('should return "fast" when bandwidth >= 1 Mbps', () => {
+    it('should return "fast" while online before slow connectivity is confirmed', () => {
       service.online.set(true);
       service.effectiveBandwidthMbps.set(5);
       expect(service.connectionTier()).toBe('fast');
     });
 
-    it('should return "fast" when bandwidth is exactly 1 Mbps', () => {
+    it('should return "slow" after repeated slow connectivity probes', async () => {
       service.online.set(true);
-      service.effectiveBandwidthMbps.set(1);
-      expect(service.connectionTier()).toBe('fast');
+
+      await confirmSlowConnection();
+
+      expect(service.connectionTier()).toBe('slow');
     });
   });
 
@@ -62,9 +78,11 @@ describe('NetworkStatusService', () => {
       expect(service.connectionLabel()).toBe('Ngoại tuyến');
     });
 
-    it('should return "Kết nối chậm" when slow', () => {
+    it('should return "Kết nối chậm" when slow is confirmed', async () => {
       service.online.set(true);
-      service.effectiveBandwidthMbps.set(0.3);
+
+      await confirmSlowConnection();
+
       expect(service.connectionLabel()).toBe('Kết nối chậm');
     });
 
@@ -78,7 +96,6 @@ describe('NetworkStatusService', () => {
   describe('Signal reactivity', () => {
     it('should update connectionTier when online signal changes', () => {
       service.online.set(true);
-      service.effectiveBandwidthMbps.set(10);
       expect(service.connectionTier()).toBe('fast');
 
       service.online.set(false);
@@ -88,27 +105,52 @@ describe('NetworkStatusService', () => {
       expect(service.connectionTier()).toBe('fast');
     });
 
-    it('should update connectionTier when bandwidth changes', () => {
+    it('should keep connectionTier stable when bandwidth telemetry changes', () => {
       service.online.set(true);
 
       service.effectiveBandwidthMbps.set(10);
       expect(service.connectionTier()).toBe('fast');
 
       service.effectiveBandwidthMbps.set(0.2);
-      expect(service.connectionTier()).toBe('slow');
+      expect(service.connectionTier()).toBe('fast');
     });
   });
 
-  describe('Edge cases', () => {
-    it('should handle zero bandwidth as slow', () => {
-      service.online.set(true);
-      service.effectiveBandwidthMbps.set(0);
+  describe('probe behavior', () => {
+    it('should probe the frontend edge instead of backend actuator health', async () => {
+      fetchSpy.calls.reset();
+
+      await service.probeNow();
+
+      const probeUrl = String(fetchSpy.calls.mostRecent().args[0]);
+      expect(probeUrl).toContain('/health?offlineProbe=');
+    });
+
+    it('should require two slow probe samples before showing slow', async () => {
+      let now = 0;
+      spyOn(performance, 'now').and.callFake(() => now);
+      fetchSpy.calls.reset();
+      fetchSpy.and.callFake(async () => {
+        now += 1600;
+        return new Response('', { status: 200 });
+      });
+
+      await service.probeNow();
+      expect(service.connectionTier()).toBe('fast');
+
+      await service.probeNow();
       expect(service.connectionTier()).toBe('slow');
     });
 
-    it('should handle very high bandwidth as fast', () => {
-      service.online.set(true);
-      service.effectiveBandwidthMbps.set(1000);
+    it('should clear confirmed slow state after a fast probe', async () => {
+      await confirmSlowConnection();
+      expect(service.connectionTier()).toBe('slow');
+
+      (performance.now as jasmine.Spy).and.returnValues(0, 200);
+      fetchSpy.and.callFake(async () => new Response('', { status: 200 }));
+
+      await service.probeNow();
+
       expect(service.connectionTier()).toBe('fast');
     });
   });
@@ -132,7 +174,7 @@ describe('NetworkStatusService', () => {
       expect(service.hasRecentOfflineSignal()).toBeFalse();
     }));
 
-    it('should treat one failed probe as degraded instead of immediately offline', fakeAsync(() => {
+    it('should treat one failed probe as suspected, not visible slow', fakeAsync(() => {
       service.online.set(true);
       fetchSpy.and.callFake(async () => new Response('', { status: 503 }));
 
@@ -141,7 +183,8 @@ describe('NetworkStatusService', () => {
       flushMicrotasks();
 
       expect(service.online()).toBeTrue();
-      expect(service.connectionTier()).toBe('slow');
+      expect(service.connectionTier()).toBe('fast');
+      expect(service.effectiveBandwidthMbps()).toBe(0.5);
       expect(service.hasRecentOfflineSignal()).toBeTrue();
       expect(service.isEffectivelyOffline()).toBeFalse();
     }));
@@ -158,7 +201,7 @@ describe('NetworkStatusService', () => {
       expect(service.isEffectivelyOffline()).toBeTrue();
     });
 
-    it('should let manual retry recover on a successful health probe', async () => {
+    it('should let manual retry recover on a successful frontend probe', async () => {
       service.online.set(true);
       fetchSpy.calls.reset();
       fetchSpy.and.callFake(async () => new Response('', { status: 200 }));
@@ -176,7 +219,7 @@ describe('NetworkStatusService', () => {
       fetchSpy.calls.reset();
       service.markOfflineFromTransportFailure();
 
-      service.markOnlineFromHttpSuccess();
+      service.markOnlineFromHttpSuccess(250);
       tick(250);
 
       expect(service.online()).toBeTrue();
@@ -186,6 +229,42 @@ describe('NetworkStatusService', () => {
     }));
   });
 
+  describe('background mutation timeout tracking', () => {
+    it('should defer background sync without showing the slow badge', () => {
+      service.online.set(true);
+
+      service.markBackgroundMutationTimeout();
+
+      expect(service.hasRecentBackgroundTimeout()).toBeTrue();
+      expect(service.shouldDeferNonCriticalSync()).toBeTrue();
+      expect(service.connectionTier()).toBe('fast');
+    });
+
+    it('should keep background deferral after a successful frontend probe', fakeAsync(() => {
+      service.online.set(true);
+      fetchSpy.calls.reset();
+
+      service.markBackgroundMutationTimeout();
+      tick(250);
+      flushMicrotasks();
+
+      expect(fetchSpy).toHaveBeenCalled();
+      expect(service.hasRecentBackgroundTimeout()).toBeTrue();
+      expect(service.shouldDeferNonCriticalSync()).toBeTrue();
+      expect(service.connectionTier()).toBe('fast');
+    }));
+
+    it('should clear background timeout state after a successful HTTP response', () => {
+      service.online.set(true);
+      service.markBackgroundMutationTimeout();
+
+      service.markOnlineFromHttpSuccess(250);
+
+      expect(service.hasRecentBackgroundTimeout()).toBeFalse();
+      expect(service.shouldDeferNonCriticalSync()).toBeFalse();
+    });
+  });
+
   describe('non-critical sync deferral', () => {
     it('should defer background sync while effectively offline', () => {
       service.online.set(false);
@@ -193,9 +272,10 @@ describe('NetworkStatusService', () => {
       expect(service.shouldDeferNonCriticalSync()).toBeTrue();
     });
 
-    it('should defer background sync on slow connections', () => {
+    it('should defer background sync on confirmed slow connections', async () => {
       service.online.set(true);
-      service.effectiveBandwidthMbps.set(0.5);
+
+      await confirmSlowConnection();
 
       expect(service.shouldDeferNonCriticalSync()).toBeTrue();
     });

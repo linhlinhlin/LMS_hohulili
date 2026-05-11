@@ -28,69 +28,84 @@ export const offlineInterceptor = (req: HttpRequest<any>, next: HttpHandlerFn): 
   const networkStatus = inject(NetworkStatusService);
   const path = extractApiPath(req.url) || req.url;
 
-  const forwardToNetwork = () => withBackgroundMutationTimeout(
-    next(req).pipe(
-      tap((event) => {
-        if (event instanceof HttpResponse) {
-          networkStatus.markOnlineFromHttpSuccess();
+  const forwardToNetwork = () => {
+    const requestStartedAt = readNetworkClock();
+
+    return withBackgroundMutationTimeout(
+      next(req).pipe(
+        tap((event) => {
+          if (event instanceof HttpResponse) {
+            networkStatus.markOnlineFromHttpSuccess(readNetworkClock() - requestStartedAt);
+          }
+        }),
+      ),
+      path,
+      req.method,
+    ).pipe(
+      catchError((error: unknown) => {
+        const isBackgroundTimeout =
+          isNetworkTimeoutError(error) && isBackgroundLearningMutation(path, req.method);
+        const isOfflineError =
+          isBackgroundTimeout ||
+          isOfflineCompatibleHttpError(error as HttpErrorResponse, req.url, {
+            navigatorOnline: typeof navigator === 'undefined' ? true : navigator.onLine,
+            appOnline: networkStatus.online(),
+            hasRecentOfflineSignal: networkStatus.hasRecentOfflineSignal(),
+          });
+        if (!isOfflineError) {
+          return throwError(() => error);
         }
+
+        // Never intercept auth or health-check endpoints
+        if (shouldBypassOfflineInterception(path)) {
+          return throwError(() => error);
+        }
+
+        if (isBackgroundTimeout) {
+          networkStatus.markBackgroundMutationTimeout();
+        } else {
+          networkStatus.markOfflineFromTransportFailure();
+        }
+
+        // For GET requests → try offline fallback
+        if (req.method === 'GET') {
+          return from(getOfflineFallback(req.url)).pipe(
+            switchMap((cached) => {
+              if (cached !== null) {
+                return of(
+                  new HttpResponse({
+                    status: 200,
+                    body: cached,
+                    headers: req.headers,
+                    url: req.url,
+                  }),
+                );
+              }
+              // No cached data available
+              return throwError(
+                () =>
+                  new HttpErrorResponse({
+                    status: 0,
+                    statusText: 'Offline',
+                    url: req.url,
+                    error: { message: 'Không có kết nối mạng và dữ liệu chưa được tải xuống' },
+                  }),
+              );
+            }),
+          );
+        }
+
+        // For mutation requests → queue for later sync
+        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+          return buildQueuedMutationResponse(syncService, req, path).pipe(
+            catchError(() => throwError(() => error)),
+          );
+        }
+
+        return throwError(() => error);
       }),
-    ),
-    path,
-    req.method,
-  ).pipe(
-    catchError((error: unknown) => {
-      const isBackgroundTimeout = isNetworkTimeoutError(error)
-        && isBackgroundLearningMutation(path, req.method);
-      const isOfflineError = isBackgroundTimeout
-        || isOfflineCompatibleHttpError(error as HttpErrorResponse, req.url, {
-          navigatorOnline: typeof navigator === 'undefined' ? true : navigator.onLine,
-          appOnline: networkStatus.online(),
-          hasRecentOfflineSignal: networkStatus.hasRecentOfflineSignal(),
-        });
-      if (!isOfflineError) {
-        return throwError(() => error);
-      }
-
-      // Never intercept auth or health-check endpoints
-      if (shouldBypassOfflineInterception(path)) {
-        return throwError(() => error);
-      }
-
-      networkStatus.markOfflineFromTransportFailure();
-
-      // For GET requests → try offline fallback
-      if (req.method === 'GET') {
-        return from(getOfflineFallback(req.url)).pipe(
-          switchMap(cached => {
-            if (cached !== null) {
-              return of(new HttpResponse({
-                status: 200,
-                body: cached,
-                headers: req.headers,
-                url: req.url,
-              }));
-            }
-            // No cached data available
-            return throwError(() => new HttpErrorResponse({
-              status: 0,
-              statusText: 'Offline',
-              url: req.url,
-              error: { message: 'Không có kết nối mạng và dữ liệu chưa được tải xuống' },
-            }));
-          }),
-        );
-      }
-
-      // For mutation requests → queue for later sync
-      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-        return buildQueuedMutationResponse(syncService, req, path)
-          .pipe(catchError(() => throwError(() => error)));
-      }
-
-      return throwError(() => error);
-    }),
-  );
+    );
+  };
 
   if (shouldQueueBeforeNetwork(path, req.method, networkStatus.shouldDeferNonCriticalSync())) {
     return buildQueuedMutationResponse(syncService, req, path)
@@ -145,6 +160,10 @@ function isNetworkTimeoutError(error: unknown): boolean {
   return !!error
     && typeof error === 'object'
     && (error as { name?: string }).name === 'TimeoutError';
+}
+
+function readNetworkClock(): number {
+  return typeof performance !== 'undefined' ? performance.now() : Date.now();
 }
 
 function buildQueuedMutationResponse(

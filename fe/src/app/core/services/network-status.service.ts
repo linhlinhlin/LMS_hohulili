@@ -6,10 +6,16 @@ export type ConnectionTransport = 'wifi' | 'ethernet' | 'cellular' | 'unknown';
 const OFFLINE_GRACE_MS = 1_500;
 const RECENT_OFFLINE_WINDOW_MS = 5_000;
 const NON_CRITICAL_SYNC_DEFER_WINDOW_MS = 15_000;
+const BACKGROUND_TIMEOUT_DEFER_WINDOW_MS = 15_000;
 const PROBE_INTERVAL_MS = 120_000;
 const PROBE_TIMEOUT_MS = 4_000;
 const TRANSPORT_FAILURE_PROBE_DELAY_MS = 250;
 const OFFLINE_PROBE_FAILURE_THRESHOLD = 2;
+const FRONTEND_CONNECTIVITY_PROBE_PATH = '/health';
+const SLOW_PROBE_RTT_MS = 1_500;
+const MODERATE_PROBE_RTT_MS = 900;
+const HTTP_SUCCESS_RECOVERY_MS = 1_200;
+const SLOW_PROBE_CONFIRMATION_THRESHOLD = 2;
 const DEGRADED_PROBE_BANDWIDTH_MBPS = 0.5;
 
 @Injectable({ providedIn: 'root' })
@@ -23,7 +29,7 @@ export class NetworkStatusService implements OnDestroy {
 
   readonly connectionTier = computed<ConnectionTier>(() => {
     if (!this.online()) return 'none';
-    return this.effectiveBandwidthMbps() < 1 ? 'slow' : 'fast';
+    return this.confirmedSlowConnection() ? 'slow' : 'fast';
   });
 
   readonly isLikelyMetered = computed(() => {
@@ -32,8 +38,11 @@ export class NetworkStatusService implements OnDestroy {
     return this.connectionTransport() === 'cellular';
   });
 
-  readonly connectionDetailsAvailable = computed(() =>
-    this.connectionTransport() !== 'unknown' || this.effectiveNetworkType() != null || this.saveDataEnabled()
+  readonly connectionDetailsAvailable = computed(
+    () =>
+      this.connectionTransport() !== 'unknown' ||
+      this.effectiveNetworkType() != null ||
+      this.saveDataEnabled(),
   );
 
   readonly connectionLabel = computed(() => {
@@ -50,11 +59,14 @@ export class NetworkStatusService implements OnDestroy {
   private readonly recentOfflineSignalAt = signal<number | null>(
     this.getBrowserOnlineHint() ? null : Date.now(),
   );
+  private readonly recentBackgroundTimeoutAt = signal<number | null>(null);
+  private readonly confirmedSlowConnection = signal(false);
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private offlineGraceTimer: ReturnType<typeof setTimeout> | null = null;
   private transportFailureProbeTimer: ReturnType<typeof setTimeout> | null = null;
   private probeInterval: ReturnType<typeof setInterval> | null = null;
   private consecutiveProbeFailures = 0;
+  private consecutiveSlowProbeSamples = 0;
 
   private readonly onlineHandler = () => {
     if (this.offlineGraceTimer) {
@@ -80,7 +92,9 @@ export class NetworkStatusService implements OnDestroy {
   };
 
   private readonly connectionChangeHandler = () => this.debouncedUpdate();
-  private connectionRef: { removeEventListener?: (type: string, listener: EventListenerOrEventListenerObject) => void } | null = null;
+  private connectionRef: {
+    removeEventListener?: (type: string, listener: EventListenerOrEventListenerObject) => void;
+  } | null = null;
 
   constructor() {
     if (typeof window === 'undefined') return;
@@ -133,16 +147,23 @@ export class NetworkStatusService implements OnDestroy {
     return lastOfflineSignalAt != null && Date.now() - lastOfflineSignalAt <= windowMs;
   }
 
+  hasRecentBackgroundTimeout(windowMs = BACKGROUND_TIMEOUT_DEFER_WINDOW_MS): boolean {
+    const lastBackgroundTimeoutAt = this.recentBackgroundTimeoutAt();
+    return lastBackgroundTimeoutAt != null && Date.now() - lastBackgroundTimeoutAt <= windowMs;
+  }
+
   isEffectivelyOffline(): boolean {
-    return !this.getBrowserOnlineHint()
-      || !this.online();
+    return !this.getBrowserOnlineHint() || !this.online();
   }
 
   shouldDeferNonCriticalSync(windowMs = NON_CRITICAL_SYNC_DEFER_WINDOW_MS): boolean {
-    return this.isEffectivelyOffline()
-      || this.connectionTier() === 'slow'
-      || this.saveDataEnabled()
-      || this.hasRecentOfflineSignal(windowMs);
+    return (
+      this.isEffectivelyOffline() ||
+      this.saveDataEnabled() ||
+      this.confirmedSlowConnection() ||
+      this.hasRecentOfflineSignal(windowMs) ||
+      this.hasRecentBackgroundTimeout(windowMs)
+    );
   }
 
   markOfflineFromTransportFailure(): void {
@@ -155,7 +176,17 @@ export class NetworkStatusService implements OnDestroy {
     this.scheduleTransportFailureProbe();
   }
 
-  markOnlineFromHttpSuccess(): void {
+  markBackgroundMutationTimeout(): void {
+    if (!this.getBrowserOnlineHint()) {
+      this.markOfflineState();
+      return;
+    }
+
+    this.recentBackgroundTimeoutAt.set(Date.now());
+    this.scheduleTransportFailureProbe();
+  }
+
+  markOnlineFromHttpSuccess(responseTimeMs?: number): void {
     if (!this.getBrowserOnlineHint()) {
       return;
     }
@@ -168,7 +199,16 @@ export class NetworkStatusService implements OnDestroy {
     this.online.set(true);
     this.consecutiveProbeFailures = 0;
     this.recentOfflineSignalAt.set(null);
-    if (this.effectiveBandwidthMbps() <= 0) {
+    this.recentBackgroundTimeoutAt.set(null);
+
+    if (responseTimeMs == null || responseTimeMs <= HTTP_SUCCESS_RECOVERY_MS) {
+      this.clearSlowConnectionState();
+    }
+
+    if (
+      this.effectiveBandwidthMbps() <= 0 ||
+      (!this.confirmedSlowConnection() && this.effectiveBandwidthMbps() < 1)
+    ) {
       this.effectiveBandwidthMbps.set(2);
     }
   }
@@ -197,7 +237,9 @@ export class NetworkStatusService implements OnDestroy {
 
     this.connectionTransport.set(this.normalizeConnectionTransport(conn?.type));
     this.saveDataEnabled.set(conn?.saveData === true);
-    this.effectiveNetworkType.set(typeof conn?.effectiveType === 'string' ? conn.effectiveType : null);
+    this.effectiveNetworkType.set(
+      typeof conn?.effectiveType === 'string' ? conn.effectiveType : null,
+    );
     this.reportedDownlinkMbps.set(this.readReportedDownlinkMbps(conn));
 
     if (!browserOnline) {
@@ -213,9 +255,9 @@ export class NetworkStatusService implements OnDestroy {
     void this.runProbe();
   }
 
-  // Single-probe health check against /actuator/health. A single 504/timeout
-  // means "degraded" first, not "offline"; mobile networks and sleeping VMs can
-  // spike briefly while the browser still has usable connectivity.
+  // Keep the connectivity probe on the frontend edge. Backend health checks can
+  // include DB, storage, or video pipeline dependencies and would turn server
+  // slowness into a misleading user-network warning.
   private async runProbe(): Promise<boolean> {
     if (!this.getBrowserOnlineHint()) {
       this.markOfflineState();
@@ -227,7 +269,7 @@ export class NetworkStatusService implements OnDestroy {
     const start = performance.now();
 
     try {
-      const response = await fetch(this.buildProbeUrl('/actuator/health'), {
+      const response = await fetch(this.buildProbeUrl(FRONTEND_CONNECTIVITY_PROBE_PATH), {
         method: 'GET',
         signal: controller.signal,
         cache: 'no-store',
@@ -299,25 +341,50 @@ export class NetworkStatusService implements OnDestroy {
     this.recentOfflineSignalAt.set(null);
 
     const reportedDownlink = this.reportedDownlinkMbps();
+    const measuredBandwidth = this.estimateBandwidthFromRtt(rtt);
     if (reportedDownlink != null) {
-      this.effectiveBandwidthMbps.set(reportedDownlink);
-      return;
+      this.effectiveBandwidthMbps.set(Math.min(reportedDownlink, measuredBandwidth));
+    } else {
+      this.effectiveBandwidthMbps.set(measuredBandwidth);
     }
 
-    if (rtt > 1200) {
-      this.effectiveBandwidthMbps.set(0.5);
-    } else if (rtt > 700) {
-      this.effectiveBandwidthMbps.set(1.5);
-    } else {
-      this.effectiveBandwidthMbps.set(10);
+    if (rtt > SLOW_PROBE_RTT_MS) {
+      this.recordSlowProbeSample();
+    } else if (rtt <= MODERATE_PROBE_RTT_MS || this.confirmedSlowConnection()) {
+      this.clearSlowConnectionState();
     }
+  }
+
+  private estimateBandwidthFromRtt(rtt: number): number {
+    if (rtt > SLOW_PROBE_RTT_MS) {
+      return 0.5;
+    }
+    if (rtt > MODERATE_PROBE_RTT_MS) {
+      return 1.5;
+    }
+    return 10;
+  }
+
+  private recordSlowProbeSample(): void {
+    this.consecutiveSlowProbeSamples += 1;
+    if (this.consecutiveSlowProbeSamples >= SLOW_PROBE_CONFIRMATION_THRESHOLD) {
+      this.confirmedSlowConnection.set(true);
+    }
+  }
+
+  private clearSlowConnectionState(): void {
+    this.consecutiveSlowProbeSamples = 0;
+    this.confirmedSlowConnection.set(false);
   }
 
   private markProbeFailureState(): void {
     this.consecutiveProbeFailures += 1;
     this.recentOfflineSignalAt.set(Date.now());
 
-    if (!this.getBrowserOnlineHint() || this.consecutiveProbeFailures >= OFFLINE_PROBE_FAILURE_THRESHOLD) {
+    if (
+      !this.getBrowserOnlineHint() ||
+      this.consecutiveProbeFailures >= OFFLINE_PROBE_FAILURE_THRESHOLD
+    ) {
       this.markOfflineState();
       return;
     }
@@ -328,6 +395,7 @@ export class NetworkStatusService implements OnDestroy {
 
   private markOfflineState(): void {
     this.online.set(false);
+    this.clearSlowConnectionState();
     this.effectiveBandwidthMbps.set(0);
     this.reportedDownlinkMbps.set(null);
     this.recentOfflineSignalAt.set(Date.now());
