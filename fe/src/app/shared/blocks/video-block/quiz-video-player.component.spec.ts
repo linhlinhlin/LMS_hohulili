@@ -149,6 +149,66 @@ describe('QuizVideoPlayerComponent interactive video seek behavior', () => {
     expect(getPrivate<number>(fixture.componentInstance, 'furthestWatchedSeconds')).toBe(25);
   });
 
+  it('blocks strict both-mode seeks into unwatched gaps', () => {
+    const video = prepareVideoElement(90, 120);
+    const required: InteractiveVideoInteraction = {
+      id: 'required-quiz',
+      type: 'single_choice',
+      atSeconds: 100,
+      required: true,
+      choices: [{ id: 'ack', label: 'Acknowledge', isCorrect: true }],
+    };
+    fixture.componentRef.setInput('interactiveVideoSpec', {
+      version: 2,
+      enabled: true,
+      behavior: { preventSkippingMode: 'both' },
+      timeline: [required],
+    });
+    fixture.componentInstance.currentTimeSeconds.set(90);
+    fixture.detectChanges();
+    setPrivate(fixture.componentInstance, 'furthestWatchedSeconds', 90);
+    setPrivate(fixture.componentInstance, 'watchedRanges', [
+      { startSeconds: 0, endSeconds: 30 },
+      { startSeconds: 80, endSeconds: 90 },
+    ]);
+
+    video.currentTime = 60;
+    fixture.componentInstance.onSeeking();
+
+    expect(video.currentTime).toBe(90);
+    expect(fixture.componentInstance.currentTimeSeconds()).toBe(90);
+  });
+
+  it('allows strict both-mode seeks inside watched ranges', () => {
+    const video = prepareVideoElement(90, 120);
+    const required: InteractiveVideoInteraction = {
+      id: 'required-quiz',
+      type: 'single_choice',
+      atSeconds: 100,
+      required: true,
+      choices: [{ id: 'ack', label: 'Acknowledge', isCorrect: true }],
+    };
+    fixture.componentRef.setInput('interactiveVideoSpec', {
+      version: 2,
+      enabled: true,
+      behavior: { preventSkippingMode: 'both' },
+      timeline: [required],
+    });
+    fixture.componentInstance.currentTimeSeconds.set(90);
+    fixture.detectChanges();
+    setPrivate(fixture.componentInstance, 'furthestWatchedSeconds', 90);
+    setPrivate(fixture.componentInstance, 'watchedRanges', [
+      { startSeconds: 0, endSeconds: 30 },
+      { startSeconds: 80, endSeconds: 90 },
+    ]);
+
+    video.currentTime = 85;
+    fixture.componentInstance.onSeeking();
+
+    expect(video.currentTime).toBe(85);
+    expect(fixture.componentInstance.currentTimeSeconds()).toBe(90);
+  });
+
   function prepareVideoElement(currentTime: number, duration: number): HTMLVideoElement {
     const video = fixture.nativeElement.querySelector('video') as HTMLVideoElement;
     let time = currentTime;

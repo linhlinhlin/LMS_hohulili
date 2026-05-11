@@ -3,10 +3,12 @@ import type {
   InteractiveVideoSpec,
 } from '../../api/types/interactive-video.types';
 import {
+  addInteractiveVideoWatchedRange,
   evaluateInteractiveVideoDragDrop,
   evaluateInteractiveVideoFillBlank,
   getDueInteractiveVideoInteraction,
   getVisibleInteractiveVideoInteractions,
+  isInteractiveVideoTimeWithinWatchedRanges,
   isInteractiveVideoReviewInteraction,
   resolveInteractiveVideoChoiceTarget,
   resolveInteractiveVideoReviewTarget,
@@ -199,6 +201,47 @@ describe('interactive-video-runtime', () => {
       furthestWatchedSeconds: 45,
       hasIncompleteRequiredInteractions: true,
     })).toBeFalse();
+  });
+
+  it('requires both-mode seek targets to land inside watched ranges', () => {
+    const spec: InteractiveVideoSpec = {
+      version: 2,
+      enabled: true,
+      behavior: { preventSkippingMode: 'both' },
+      timeline,
+    };
+    const watchedRanges = [
+      { startSeconds: 0, endSeconds: 30 },
+      { startSeconds: 80, endSeconds: 90 },
+    ];
+
+    expect(shouldBlockInteractiveVideoSeek({
+      spec,
+      targetTimeSeconds: 60,
+      furthestWatchedSeconds: 90,
+      hasIncompleteRequiredInteractions: true,
+      watchedRanges,
+    })).toBeTrue();
+
+    expect(shouldBlockInteractiveVideoSeek({
+      spec,
+      targetTimeSeconds: 85,
+      furthestWatchedSeconds: 90,
+      hasIncompleteRequiredInteractions: true,
+      watchedRanges,
+    })).toBeFalse();
+  });
+
+  it('merges watched playback ranges and applies seek grace at range edges', () => {
+    const watchedRanges = addInteractiveVideoWatchedRange(
+      addInteractiveVideoWatchedRange([], 0, 12),
+      12.25,
+      24,
+    );
+
+    expect(watchedRanges).toEqual([{ startSeconds: 0, endSeconds: 24 }]);
+    expect(isInteractiveVideoTimeWithinWatchedRanges(25, watchedRanges, 1)).toBeTrue();
+    expect(isInteractiveVideoTimeWithinWatchedRanges(30, watchedRanges, 1)).toBeFalse();
   });
 
   it('evaluates fill-blank answers with alternatives and case-insensitive matching by default', () => {
