@@ -26,14 +26,17 @@ public class DocumentPreviewControllerV3 {
 
     private final DocumentPreviewService documentPreviewService;
 
-    @Operation(summary = "Create or fetch a cached PDF preview for a document URL")
+    @Operation(summary = "Create or fetch a cached PDF preview for a lesson document section")
     @PostMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Map<String, Object>>> requestPreview(
-            @RequestBody DocumentPreviewRequest request,
+            @RequestBody(required = false) DocumentPreviewRequest request,
             @AuthenticationPrincipal UserJpaEntity user
     ) {
         try {
+            if (request == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Request body is required"));
+            }
             var result = documentPreviewService.requestPreview(request.lessonId(), request.sectionId(), user);
             if (result.isRateLimited()) {
                 return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
