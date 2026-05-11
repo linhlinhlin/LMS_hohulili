@@ -378,6 +378,32 @@
   color: $text-secondary;
 }
 
+.last-login-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: $text-xs;
+  font-weight: $font-medium;
+  color: $text-secondary;
+  white-space: nowrap;
+
+  svg {
+    width: 14px;
+    height: 14px;
+    color: $gray-400;
+    flex-shrink: 0;
+  }
+
+  &--empty {
+    color: $text-muted;
+    font-weight: $font-normal;
+  }
+
+  &.cursor-help {
+    cursor: help;
+  }
+}
+
 /* Actions cell */
 .actions-cell {
   text-align: center;

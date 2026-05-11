@@ -13,6 +13,7 @@ import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/k
 import { BulkActionBarComponent, BulkAction } from '../../../../shared/components/admin/bulk-action-bar/bulk-action-bar.component';
 import { KebabMenuComponent, KebabAction } from '../../../../shared/components/admin/kebab-menu/kebab-menu.component';
 import { initialsAvatar } from '../../../../shared/utils/avatar.util';
+import { formatRelativeTimeVN } from '../../../../shared/utils/relative-time.util';
 
 /**
  * Student Management Component
@@ -519,10 +520,26 @@ export class StudentManagementComponent implements OnInit {
     }
   }
 
-  getActivityLabel(student: AdminUser): string {
-    if (student.accountStatus === 'ACTIVE' && student.isActive) {
-      return 'Hoạt động';
+  formatRelativeTime(input: Date | string | null | undefined): string {
+    return formatRelativeTimeVN(input);
+  }
+
+  formatExactDateTime(input: Date | string | null | undefined): string | null {
+    if (!input) {
+      return null;
     }
-    return this.getStatusLabel(student.accountStatus);
+
+    const date = typeof input === 'string' ? new Date(input) : input;
+    if (Number.isNaN(date.getTime())) {
+      return null;
+    }
+
+    return date.toLocaleString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   }
 }
