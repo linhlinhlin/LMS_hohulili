@@ -160,6 +160,48 @@ class StudentEnrollmentControllerV3Test {
     }
 
     @Test
+    @DisplayName("enrolled course thumbnail should match the course cover image")
+    void getEnrolledCoursesUsesCourseThumbnailOnly() {
+        UUID studentId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
+        UserJpaEntity student = student(studentId);
+        Enrollment enrollment = enrollmentForCourse(studentId, courseId);
+        CourseJpaEntity course = CourseJpaEntity.builder()
+                .id(courseId)
+                .title("Weather routing")
+                .description("Route monitoring course")
+                .introVideoUrl("https://youtube.com/watch?v=intro")
+                .build();
+        course.setThumbnailUrl(null);
+
+        when(enrollmentRepository.findActiveAndCompletedWithClass(studentId))
+                .thenReturn(List.of(enrollment));
+        when(courseJpaRepository.findAllById(any())).thenReturn(List.of(course));
+        when(userJpaRepository.findAllById(any())).thenReturn(List.of());
+        when(chapterJpaRepository.findByCourseIdInOrderByOrderIndex(any())).thenReturn(List.of());
+        when(paymentTransactionJpaRepository.findPaidCourseIds(eq(studentId), any(), any()))
+                .thenReturn(List.of());
+
+        var response = controller.getEnrolledCourses(
+                student,
+                0,
+                20,
+                null,
+                null,
+                null,
+                "recent",
+                "desc"
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().isSuccess()).isTrue();
+        assertThat(response.getBody().getData().getContent())
+                .extracting(StudentEnrollmentControllerV3.EnrolledCourseResponse::getThumbnailUrl)
+                .containsExactly((String) null);
+    }
+
+    @Test
     @DisplayName("issue certificate should return business error when required exam is not passed")
     void issueCertificateReturnsBusinessErrorWhenIneligible() {
         UUID studentId = UUID.randomUUID();

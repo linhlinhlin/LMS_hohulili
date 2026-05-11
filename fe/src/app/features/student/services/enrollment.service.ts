@@ -232,7 +232,7 @@ export class StudentEnrollmentService {
       duration: totalLessons > 0 ? `${Math.ceil(totalLessons * 0.5)} giờ` : '',
       deadline: undefined,
       status,
-      thumbnail: courseAny.thumbnailUrl || '',
+      thumbnail: courseAny.thumbnailUrl || courseAny.thumbnail || '',
       category: courseAny.categoryName || undefined,
       deliveryMode: course.deliveryMode || 'SELF_PACED',
       allowOfflineDownload: courseAny.allowOfflineDownload !== false,
