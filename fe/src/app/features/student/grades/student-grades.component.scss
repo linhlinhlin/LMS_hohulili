@@ -315,19 +315,6 @@
   color: $gray-400;
 }
 
-/* ===== PAGINATION ===== */
-.results-pagination {
-  display: block;
-  width: 100%;
-  max-width: 1024px;
-  margin: $spacing-8 auto $spacing-6;
-  background: white;
-  border: 1px solid $gray-200;
-  border-radius: $radius-md;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
-  overflow: hidden;
-}
-
 /* ===== EMPTY STATE ===== */
 .empty-state {
   @extend .card;

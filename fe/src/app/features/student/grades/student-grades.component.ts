@@ -123,15 +123,15 @@ export class StudentGradesComponent implements OnInit {
 
   // === Pagination ===
   readonly PAGE_SIZE = 12;
-  currentPage = signal(1);
+  currentPage = signal(0);
   totalPages = computed(() =>
     Math.max(1, Math.ceil(this.filteredGrades().length / this.PAGE_SIZE))
   );
   safeCurrentPage = computed(() =>
-    Math.min(Math.max(1, this.currentPage()), this.totalPages())
+    Math.min(Math.max(0, this.currentPage()), this.totalPages() - 1)
   );
   visibleGrades = computed(() => {
-    const start = (this.safeCurrentPage() - 1) * this.PAGE_SIZE;
+    const start = this.safeCurrentPage() * this.PAGE_SIZE;
     return this.filteredGrades().slice(start, start + this.PAGE_SIZE);
   });
 
@@ -186,8 +186,8 @@ export class StudentGradesComponent implements OnInit {
   }
 
   goToPage(page: number): void {
-    const nextPage = Math.min(Math.max(1, page), this.totalPages());
-    this.currentPage.set(nextPage);
+    if (page < 0 || page >= this.totalPages()) return;
+    this.currentPage.set(page);
     if (typeof window !== 'undefined') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -236,6 +236,6 @@ export class StudentGradesComponent implements OnInit {
   }
 
   private resetPagination(): void {
-    this.currentPage.set(1);
+    this.currentPage.set(0);
   }
 }

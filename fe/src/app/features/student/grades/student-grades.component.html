@@ -178,12 +178,12 @@
       <!-- Pagination -->
       @if (totalPages() > 1) {
         <app-pagination
-          class="results-pagination"
-          [currentPage]="safeCurrentPage()"
+          class="results-pagination mx-auto mt-8 mb-8 block w-full max-w-5xl overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
+          [currentPage]="safeCurrentPage() + 1"
           [totalPages]="totalPages()"
           [totalItems]="filteredGrades().length"
           [itemsPerPage]="PAGE_SIZE"
-          (pageChange)="goToPage($event)" />
+          (pageChange)="goToPage($event - 1)" />
       }
     }
   }
