@@ -148,6 +148,7 @@ type ResolvedSource =
         <app-interactive-video-overlay
           [interaction]="interaction"
           [selectedChoiceId]="selectedChoiceId()"
+          [timeline]="interactiveVideoSpec()?.enabled === false ? [] : (interactiveVideoSpec()?.timeline ?? [])"
           [density]="overlayDensity()"
           (choiceSelected)="onInteractiveChoice($event)"
           (reviewRequested)="onInteractiveReviewRequested()"
@@ -342,6 +343,10 @@ export class QuizVideoPlayerComponent {
       choice,
       this.interactiveVideoSpec()?.timeline ?? [],
     );
+    if (target == null) {
+      return;
+    }
+
     this.activeInteraction.set(null);
     this.selectedChoiceId.set(null);
     video.currentTime = target;

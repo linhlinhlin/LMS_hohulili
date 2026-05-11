@@ -104,6 +104,7 @@ function extractVideoId(url: string): string | null {
         <app-interactive-video-overlay
           [interaction]="interaction"
           [selectedChoiceId]="selectedChoiceId()"
+          [timeline]="interactiveVideoSpec()?.enabled === false ? [] : (interactiveVideoSpec()?.timeline ?? [])"
           [density]="overlayDensity()"
           (choiceSelected)="onInteractiveChoice($event)"
           (reviewRequested)="onInteractiveReviewRequested()"
@@ -396,6 +397,10 @@ export class YouTubePlayerComponent implements OnDestroy {
       choice,
       this.interactiveVideoSpec()?.timeline ?? [],
     );
+    if (target == null) {
+      return;
+    }
+
     this.activeInteraction.set(null);
     this.selectedChoiceId.set(null);
     this.player?.seekTo?.(target, true);

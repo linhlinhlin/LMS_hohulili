@@ -188,11 +188,19 @@ export function isInteractiveVideoProgressGateInteraction(
     || interaction.dragDrop?.requireAllCorrectBeforeContinue === true;
 }
 
+export function hasInteractiveVideoReviewTarget(
+  interaction: InteractiveVideoInteraction,
+  choice: InteractiveVideoChoice,
+  timeline: InteractiveVideoInteraction[],
+): boolean {
+  return resolveInteractiveVideoReviewTarget(interaction, choice, timeline) != null;
+}
+
 export function resolveInteractiveVideoReviewTarget(
   interaction: InteractiveVideoInteraction,
   choice: InteractiveVideoChoice,
   timeline: InteractiveVideoInteraction[],
-): number {
+): number | null {
   const adaptivityAction = choice.isCorrect === true
     ? interaction.adaptivity?.onCorrect
     : interaction.adaptivity?.onWrong;
@@ -213,8 +221,9 @@ export function resolveInteractiveVideoReviewTarget(
     timeline,
     { sourceTimeSeconds: interaction.atSeconds, allowBackwardSeek: true },
   );
+  const target = adaptivityTarget ?? choiceTarget;
 
-  return Math.max(0, adaptivityTarget ?? choiceTarget ?? 0);
+  return target == null ? null : Math.max(0, target);
 }
 
 function resolveRawInteractiveVideoChoiceTarget(

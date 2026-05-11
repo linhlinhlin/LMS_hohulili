@@ -17,6 +17,7 @@ import type {
   InteractiveVideoChoice,
   InteractiveVideoInteraction,
 } from '../../../api/types/interactive-video.types';
+import { hasInteractiveVideoReviewTarget } from '../../../core/utils/interactive-video-runtime';
 import { ContentIdentityService } from '../../../core/services/content-identity.service';
 import katex from 'katex';
 import { InteractiveVideoDragDropComponent } from './interactive-video-drag-drop.component';
@@ -161,6 +162,7 @@ export class InteractiveVideoOverlayComponent implements OnDestroy {
 
   readonly interaction = input.required<InteractiveVideoInteraction>();
   readonly selectedChoiceId = input<string | null>(null);
+  readonly timeline = input<InteractiveVideoInteraction[]>([]);
   readonly density = input<'comfortable' | 'compact'>('comfortable');
   private readonly panel = viewChild<ElementRef<HTMLElement>>('panel');
 
@@ -401,13 +403,9 @@ export class InteractiveVideoOverlayComponent implements OnDestroy {
   readonly shouldOfferReview = computed(() => {
     const interaction = this.interaction();
     const selected = this.selectedChoice();
-    const hasReviewTarget = interaction.type === 'branch'
-      || interaction.adaptivity?.onWrong?.type === 'seek'
-      || selected?.targetTimeSeconds != null
-      || !!selected?.targetInteractionId;
     return this.requiresCorrectAnswer()
       && selected?.isCorrect === false
-      && hasReviewTarget;
+      && hasInteractiveVideoReviewTarget(interaction, selected, this.timeline());
   });
 
   readonly areChoicesLocked = computed(() => this.shouldOfferReview());

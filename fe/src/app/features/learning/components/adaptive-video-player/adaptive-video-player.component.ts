@@ -207,6 +207,7 @@ export function shouldShowMediaNetworkHint(state: MediaNetworkHintState): boolea
         <app-interactive-video-overlay
           [interaction]="interaction"
           [selectedChoiceId]="selectedChoiceId()"
+          [timeline]="interactiveVideoSpec()?.enabled === false ? [] : (interactiveVideoSpec()?.timeline ?? [])"
           (choiceSelected)="onInteractiveChoice($event)"
           (reviewRequested)="onInteractiveReviewRequested()"
           (continueRequested)="onInteractiveContinue()" />
@@ -862,6 +863,10 @@ export class AdaptiveVideoPlayerComponent {
       choice,
       this.interactiveVideoSpec()?.timeline ?? [],
     );
+    if (target == null) {
+      return;
+    }
+
     this.activeInteraction.set(null);
     this.selectedChoiceId.set(null);
     video.currentTime = target;
