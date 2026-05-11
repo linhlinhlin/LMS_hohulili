@@ -244,7 +244,7 @@ export class FileUploadService {
     }
 
     // Check file type
-    if (options.allowedTypes && !options.allowedTypes.includes(file.type)) {
+    if (options.allowedTypes && !this.isAllowedFileType(file, options.allowedTypes)) {
       throw new Error(`File type ${file.type} is not allowed. Allowed types: ${options.allowedTypes.join(', ')}`);
     }
 
@@ -262,15 +262,25 @@ export class FileUploadService {
         break;
       case 'document':
         const documentTypes = [
+          '.pdf',
           'application/pdf',
+          '.doc',
           'application/msword',
+          '.docx',
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          '.xls',
           'application/vnd.ms-excel',
+          '.xlsx',
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          '.ppt',
+          'application/vnd.ms-powerpoint',
+          '.pptx',
+          'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          '.txt',
           'text/plain'
         ];
-        if (!documentTypes.includes(file.type)) {
-          throw new Error('File must be a document (PDF, Word, Excel, or text)');
+        if (!this.isAllowedFileType(file, documentTypes)) {
+          throw new Error('File must be a document (PDF, Word, Excel, PowerPoint, or text)');
         }
         break;
     }
@@ -297,6 +307,38 @@ export class FileUploadService {
     if (fileType.includes('powerpoint') || fileType.includes('presentation')) return 'presentation';
     if (fileType.includes('zip') || fileType.includes('rar')) return 'archive';
     return 'file-text';
+  }
+
+  private isAllowedFileType(file: File, allowedTypes: string[]): boolean {
+    const extension = this.getFileExtension(file.name);
+    const mimeType = file.type.toLowerCase();
+
+    return allowedTypes.some(type => {
+      const allowed = type.toLowerCase();
+      if (allowed.startsWith('.')) {
+        return allowed.substring(1) === extension;
+      }
+      return mimeType === allowed || mimeType.includes(allowed) || this.isCompatibleMimeType(mimeType, allowed, extension);
+    });
+  }
+
+  private isCompatibleMimeType(mimeType: string, allowedType: string, extension: string): boolean {
+    const mimeTypeMappings: Record<string, string[]> = {
+      doc: ['application/msword', 'application/doc', 'application/vnd.ms-word'],
+      docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+      xls: ['application/vnd.ms-excel'],
+      xlsx: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+      ppt: ['application/vnd.ms-powerpoint'],
+      pptx: ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
+      pdf: ['application/pdf'],
+      txt: ['text/plain'],
+    };
+
+    return !!extension && mimeTypeMappings[extension]?.includes(allowedType) && (!mimeType || mimeTypeMappings[extension].includes(mimeType));
+  }
+
+  private getFileExtension(fileName: string): string {
+    return fileName.split('.').pop()?.toLowerCase() || '';
   }
 
   getFileCategoryIcon(category: string): string {

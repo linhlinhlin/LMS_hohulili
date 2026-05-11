@@ -36,6 +36,12 @@ public class FileUploadControllerV3 {
         "application/vnd.openxmlformats-officedocument.presentationml.presentation"
     );
 
+    private static final Set<String> ALLOWED_FILE_EXTENSIONS = Set.of(
+        "jpg", "jpeg", "png", "gif", "webp", "svg",
+        "pdf", "mp4", "webm",
+        "doc", "docx", "xls", "xlsx", "ppt", "pptx"
+    );
+
     private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
     private static final long MAX_VIDEO_SIZE = 5L * 1024 * 1024 * 1024; // 5GB — matches presigned upload limit when R2 is disabled
 
@@ -143,7 +149,7 @@ public class FileUploadControllerV3 {
             if (user == null) {
                 return ResponseEntity.status(401).body(Map.of("success", false, "message", "Unauthorized"));
             }
-            String folder = "assignments".equals(category) ? "assignment-files"
+            String folder = ("assignment".equals(category) || "assignments".equals(category)) ? "assignment-files"
                     : "profile".equals(category) ? "profile-files"
                     : "general-uploads";
             var attachment = fileManagementService.uploadFile(file, folder, user.getId());
@@ -448,7 +454,9 @@ public class FileUploadControllerV3 {
             return "Tập tin vượt quá dung lượng tối đa 50MB";
         }
         String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_MIME_TYPES.contains(contentType.toLowerCase())) {
+        String normalizedContentType = contentType != null ? contentType.toLowerCase() : "";
+        String extension = extensionOf(file.getOriginalFilename());
+        if (!ALLOWED_MIME_TYPES.contains(normalizedContentType) && !ALLOWED_FILE_EXTENSIONS.contains(extension)) {
             return "Loại tập tin không được phép: " + contentType;
         }
         String originalName = file.getOriginalFilename();
@@ -456,6 +464,16 @@ public class FileUploadControllerV3 {
             return "Tên tập tin không hợp lệ";
         }
         return null;
+    }
+
+    private String extensionOf(String filename) {
+        if (filename == null || filename.isBlank()) {
+            return "";
+        }
+        int dot = filename.lastIndexOf('.');
+        return dot >= 0 && dot < filename.length() - 1
+                ? filename.substring(dot + 1).toLowerCase()
+                : "";
     }
 
     private String sanitizeFolderName(String input) {

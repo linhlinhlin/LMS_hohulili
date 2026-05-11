@@ -181,13 +181,20 @@ public class ManageContentBlockUseCaseV3 {
     public void patchBlockData(UUID lessonId, String blockId, Map<String, Object> patch) {
         List<ContentBlock> blocks = lessonRepository.getContentBlocks(lessonId)
                 .orElseThrow(() -> new EntityNotFoundException("Lesson", lessonId));
-        blocks.stream()
-                .filter(b -> b.getId().equals(blockId))
-                .findFirst()
-                .ifPresent(block -> {
-                    block.getData().putAll(patch);
-                    lessonRepository.saveContentBlocks(lessonId, blocks);
-                });
+        for (int i = 0; i < blocks.size(); i++) {
+            ContentBlock block = blocks.get(i);
+            if (block.getId().equals(blockId)) {
+                Map<String, Object> merged = new java.util.LinkedHashMap<>();
+                if (block.getData() != null) {
+                    merged.putAll(block.getData());
+                }
+                merged.putAll(patch);
+                List<ContentBlock> updated = new ArrayList<>(blocks);
+                updated.set(i, block.withData(merged));
+                lessonRepository.saveContentBlocks(lessonId, updated);
+                return;
+            }
+        }
     }
 
     @Transactional
