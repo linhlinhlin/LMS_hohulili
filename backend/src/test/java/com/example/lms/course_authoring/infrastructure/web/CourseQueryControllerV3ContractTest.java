@@ -114,6 +114,33 @@ class CourseQueryControllerV3ContractTest {
     }
 
     @Test
+    @DisplayName("public course list should use the published thumbnail snapshot")
+    void getPublicCoursesUsesPublishedThumbnailSnapshot() {
+        approvedPaidCourse.updateThumbnail("https://cdn.example.com/draft-cover.jpg");
+        Map<String, Object> publishedDetail = Map.of(
+                "thumbnailUrl", "https://cdn.example.com/published-cover.jpg"
+        );
+
+        when(courseRepository.findByStatusAndFilters(eq(Course.CourseStatus.APPROVED), any(), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of(approvedPaidCourse)));
+        when(userJpaRepository.findAllById(any())).thenReturn(List.of());
+        when(enrollmentJpaRepository.countEnrollmentsByCourseIds(any())).thenReturn(List.of());
+        when(chapterRepository.countByCourseIds(any())).thenReturn(List.of());
+        when(coursePublicationService.getPublishedDetails(any(), eq(null)))
+                .thenReturn(Map.of(approvedPaidCourse.getId(), publishedDetail));
+
+        var response = controller.getPublicCourses(0, 20, null, null, null, null, null);
+
+        assertThat(response.getBody()).isNotNull();
+        @SuppressWarnings("unchecked")
+        var page = (org.springframework.data.domain.Page<CourseQueryControllerV3.CourseSummaryResponse>)
+                response.getBody().getData();
+
+        assertThat(page.getContent().getFirst().getThumbnailUrl())
+                .isEqualTo("https://cdn.example.com/published-cover.jpg");
+    }
+
+    @Test
     @DisplayName("course detail includes enrolled count for course detail sidebar")
     void getCourseByIdIncludesEnrolledCount() {
         UserJpaEntity teacher = mock(UserJpaEntity.class);

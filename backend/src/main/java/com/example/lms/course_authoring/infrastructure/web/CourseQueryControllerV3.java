@@ -128,8 +128,13 @@ public class CourseQueryControllerV3 {
                                 row -> (Long) row[1]
                         ));
 
+        Map<UUID, Map<String, Object>> publishedDetails = Optional
+                .ofNullable(coursePublicationService.getPublishedDetails(courseIds, null))
+                .orElse(Map.of());
+
         Page<CourseSummaryResponse> response = courses.map(course ->
-                toSummaryBatch(course, teacherNameMap, categoryNameMap, enrollmentCountMap, chapterCountMap));
+                toSummaryBatch(course, teacherNameMap, categoryNameMap, enrollmentCountMap, chapterCountMap,
+                        publishedDetails.get(course.getId())));
         return ResponseEntity.ok(ApiResponse.success(response, "Danh sách khóa học"));
     }
 
@@ -825,7 +830,8 @@ public class CourseQueryControllerV3 {
             Map<UUID, String> teacherNameMap,
             Map<UUID, String> categoryNameMap,
             Map<UUID, Long> enrollmentCountMap,
-            Map<UUID, Long> chapterCountMap
+            Map<UUID, Long> chapterCountMap,
+            Map<String, Object> publishedDetail
     ) {
         String teacherName = course.getTeacherId() != null ? teacherNameMap.getOrDefault(course.getTeacherId(), "") : "";
         String categoryName = course.getCategoryId() != null ? categoryNameMap.get(course.getCategoryId()) : null;
@@ -834,7 +840,7 @@ public class CourseQueryControllerV3 {
                 .code(course.getCode() != null ? course.getCode().getValue() : null)
                 .title(course.getTitle())
                 .description(course.getDescription())
-                .thumbnailUrl(course.getThumbnailUrl())
+                .thumbnailUrl(resolvePublishedThumbnailUrl(course, publishedDetail))
                 .status(course.getStatus().name().toLowerCase())
                 .teacherName(teacherName)
                 .createdAt(course.getCreatedAt() != null ? course.getCreatedAt().toString() : null)
@@ -847,6 +853,14 @@ public class CourseQueryControllerV3 {
                 .enrolledCount(enrollmentCountMap.getOrDefault(course.getId(), 0L).intValue())
                 .chapterCount(chapterCountMap.getOrDefault(course.getId(), 0L).intValue())
                 .build();
+    }
+
+    private String resolvePublishedThumbnailUrl(Course course, Map<String, Object> publishedDetail) {
+        if (publishedDetail != null && publishedDetail.containsKey("thumbnailUrl")) {
+            Object thumbnailUrl = publishedDetail.get("thumbnailUrl");
+            return thumbnailUrl instanceof String value ? value : null;
+        }
+        return course.getThumbnailUrl();
     }
 
     private CourseDetailResponse toDetail(Course course) {
