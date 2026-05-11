@@ -23,12 +23,15 @@ import { InteractiveVideoOverlayComponent } from '../../../../shared/blocks/vide
 import { InteractiveVideoMarkersComponent } from '../../../../shared/blocks/video-block/interactive-video-markers.component';
 import { buildInteractiveVideoAnalyticsProjection } from '../../../../core/utils/interactive-video-analytics';
 import {
+  addInteractiveVideoWatchedRange,
   getDueInteractiveVideoInteraction,
+  isInteractiveVideoProgressGateInteraction,
   isInteractiveVideoReviewInteraction,
   resolveInteractiveVideoChoiceTarget,
   resolveInteractiveVideoReviewTarget,
   shouldBlockInteractiveVideoSeek,
 } from '../../../../core/utils/interactive-video-runtime';
+import type { InteractiveVideoWatchedRange } from '../../../../core/utils/interactive-video-runtime';
 import type {
   InteractiveVideoChoice,
   InteractiveVideoInteraction,
@@ -166,7 +169,9 @@ export class YouTubePlayerComponent implements OnDestroy {
   readonly completedInteractionIdsSnapshot = signal<ReadonlySet<string>>(new Set<string>());
   private readonly shownInteractionIds = new Set<string>();
   private readonly completedInteractionIds = new Set<string>();
+  private watchedRanges: InteractiveVideoWatchedRange[] = [];
   private furthestWatchedSeconds = 0;
+  private skipNextWatchedMark = false;
 
   readonly playerId = 'yt-player-' + Math.random().toString(36).substring(2, 9);
   private readonly playerSourceKey = computed(() => {
@@ -338,21 +343,26 @@ export class YouTubePlayerComponent implements OnDestroy {
       if (this.player?.getCurrentTime) {
         let currentTime = this.player.getCurrentTime();
         this.zone.run(() => {
+          const previousTimeSeconds = this.currentTimeSeconds();
           const allowedTime = this.resolveAllowedInteractiveSeekTarget(currentTime);
           if (allowedTime !== currentTime) {
-            this.player?.seekTo?.(allowedTime, true);
+            this.seekPlayerProgrammatically(allowedTime);
             currentTime = allowedTime;
           }
           if (this.trackingEnabled()) {
             this.tracker.recordSecond(currentTime);
           }
           this.currentTimeSeconds.set(currentTime);
-          this.markInteractiveVideoWatched(currentTime);
+          if (this.skipNextWatchedMark) {
+            this.skipNextWatchedMark = false;
+          } else {
+            this.markInteractiveVideoWatched(currentTime, previousTimeSeconds);
+          }
           const duration = this.player?.getDuration?.() || 0;
           if (duration > 0 && this.videoDurationSeconds() == null) {
             this.videoDurationSeconds.set(duration);
           }
-          this.evaluateInteractiveTimeline(currentTime);
+          this.evaluateInteractiveTimeline(currentTime, previousTimeSeconds);
         });
       }
     }, 1000);
@@ -403,9 +413,8 @@ export class YouTubePlayerComponent implements OnDestroy {
 
     this.activeInteraction.set(null);
     this.selectedChoiceId.set(null);
-    this.player?.seekTo?.(target, true);
+    this.seekPlayerProgrammatically(target);
     this.currentTimeSeconds.set(target);
-    this.markInteractiveVideoWatched(target);
     this.player?.playVideo?.();
   }
 
@@ -440,13 +449,15 @@ export class YouTubePlayerComponent implements OnDestroy {
     const target = this.resolveAllowedInteractiveSeekTarget(
       Math.max(0, Math.min(seconds, Number.isFinite(duration) && duration > 0 ? duration : seconds)),
     );
-    this.player.seekTo(target, true);
+    this.seekPlayerProgrammatically(target);
     this.currentTimeSeconds.set(target);
-    this.markInteractiveVideoWatched(target);
     this.evaluateInteractiveTimeline(target);
   }
 
-  private evaluateInteractiveTimeline(currentTime: number): void {
+  private evaluateInteractiveTimeline(
+    currentTime: number,
+    previousTimeSeconds = this.currentTimeSeconds(),
+  ): void {
     if (this.activeInteraction()) {
       return;
     }
@@ -459,6 +470,7 @@ export class YouTubePlayerComponent implements OnDestroy {
     const dueInteraction = getDueInteractiveVideoInteraction({
       timeline: spec.timeline,
       currentTimeSeconds: currentTime,
+      previousTimeSeconds,
       completedInteractionIds: this.completedInteractionIds,
     });
 
@@ -490,16 +502,19 @@ export class YouTubePlayerComponent implements OnDestroy {
     this.activeInteraction.set(null);
     this.selectedChoiceId.set(null);
 
+    const isBranch = active?.type === 'branch';
     const targetTime = resolveInteractiveVideoChoiceTarget(
       choice,
       this.interactiveVideoSpec()?.timeline ?? [],
-      { sourceTimeSeconds: active?.type === 'branch' ? active.atSeconds : null },
+      {
+        sourceTimeSeconds: isBranch ? active.atSeconds : null,
+        allowBackwardSeek: isBranch,
+      },
     );
     if (typeof targetTime === 'number' && Number.isFinite(targetTime)) {
       const target = Math.max(0, targetTime);
-      this.player?.seekTo?.(target, true);
+      this.seekPlayerProgrammatically(target);
       this.currentTimeSeconds.set(target);
-      this.markInteractiveVideoWatched(target);
     }
     this.player?.playVideo?.();
   }
@@ -510,7 +525,9 @@ export class YouTubePlayerComponent implements OnDestroy {
     this.shownInteractionIds.clear();
     this.completedInteractionIds.clear();
     this.completedInteractionIdsSnapshot.set(new Set<string>());
+    this.watchedRanges = [];
     this.furthestWatchedSeconds = 0;
+    this.skipNextWatchedMark = false;
   }
 
   private markInteractiveInteractionCompleted(interactionId: string): void {
@@ -524,9 +541,19 @@ export class YouTubePlayerComponent implements OnDestroy {
       targetTimeSeconds,
       furthestWatchedSeconds: this.furthestWatchedSeconds,
       hasIncompleteRequiredInteractions: this.hasIncompleteRequiredInteractions(),
+      watchedRanges: this.watchedRanges,
     })
-      ? this.furthestWatchedSeconds
+      ? this.resolveBlockedInteractiveSeekTarget(targetTimeSeconds)
       : targetTimeSeconds;
+  }
+
+  private resolveBlockedInteractiveSeekTarget(targetTimeSeconds: number): number {
+    const mode = this.interactiveVideoSpec()?.behavior?.preventSkippingMode ?? 'none';
+    if (mode === 'both' && targetTimeSeconds <= this.furthestWatchedSeconds) {
+      return this.currentTimeSeconds();
+    }
+
+    return this.furthestWatchedSeconds;
   }
 
   private hasIncompleteRequiredInteractions(): boolean {
@@ -536,14 +563,23 @@ export class YouTubePlayerComponent implements OnDestroy {
     }
 
     return spec.timeline.some(interaction =>
-      interaction.required === true && !this.completedInteractionIds.has(interaction.id),
+      isInteractiveVideoProgressGateInteraction(interaction)
+        && !this.completedInteractionIds.has(interaction.id),
     );
   }
 
-  private markInteractiveVideoWatched(seconds: number): void {
+  private markInteractiveVideoWatched(seconds: number, previousSeconds = seconds): void {
     if (Number.isFinite(seconds)) {
-      this.furthestWatchedSeconds = Math.max(this.furthestWatchedSeconds, Math.max(0, seconds));
+      const current = Math.max(0, seconds);
+      const previous = Number.isFinite(previousSeconds) ? Math.max(0, previousSeconds) : current;
+      this.furthestWatchedSeconds = Math.max(this.furthestWatchedSeconds, current);
+      this.watchedRanges = addInteractiveVideoWatchedRange(this.watchedRanges, previous, current);
     }
+  }
+
+  private seekPlayerProgrammatically(targetTimeSeconds: number): void {
+    this.player?.seekTo?.(targetTimeSeconds, true);
+    this.skipNextWatchedMark = true;
   }
 
   private async recordInteractiveEvent(

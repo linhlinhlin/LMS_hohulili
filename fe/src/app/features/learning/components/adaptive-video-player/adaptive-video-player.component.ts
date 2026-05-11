@@ -29,12 +29,15 @@ import { InteractiveVideoOverlayComponent } from '../../../../shared/blocks/vide
 import { InteractiveVideoMarkersComponent } from '../../../../shared/blocks/video-block/interactive-video-markers.component';
 import { buildInteractiveVideoAnalyticsProjection } from '../../../../core/utils/interactive-video-analytics';
 import {
+  addInteractiveVideoWatchedRange,
   getDueInteractiveVideoInteraction,
+  isInteractiveVideoProgressGateInteraction,
   isInteractiveVideoReviewInteraction,
   resolveInteractiveVideoChoiceTarget,
   resolveInteractiveVideoReviewTarget,
   shouldBlockInteractiveVideoSeek,
 } from '../../../../core/utils/interactive-video-runtime';
+import type { InteractiveVideoWatchedRange } from '../../../../core/utils/interactive-video-runtime';
 import {
   canUseNativeHlsForManifest,
   shouldPreferNativeHlsForManifest,
@@ -114,6 +117,7 @@ export function shouldShowMediaNetworkHint(state: MediaNetworkHintState): boolea
         (loadedmetadata)="onLoadedMetadata($event)"
         (timeupdate)="onTimeUpdate($event)"
         (seeking)="onSeeking($event)"
+        (seeked)="onSeeked($event)"
         (play)="onPlay()"
         (pause)="onPause()"
         (ended)="onEnded()"
@@ -276,7 +280,10 @@ export class AdaptiveVideoPlayerComponent {
   private readonly offlineBlobFallbackLimitBytes = 220 * 1024 * 1024;
   private readonly shownInteractionIds = new Set<string>();
   private readonly completedInteractionIds = new Set<string>();
+  private watchedRanges: InteractiveVideoWatchedRange[] = [];
   private furthestWatchedSeconds = 0;
+  private isSeeking = false;
+  private seekStartTimeSeconds = 0;
 
   constructor() {
     effect(() => {
@@ -332,13 +339,16 @@ export class AdaptiveVideoPlayerComponent {
     if (!video) {
       return;
     }
-    if (this.snapBlockedInteractiveSeek(video)) {
+    if (this.isSeeking && this.snapBlockedInteractiveSeek(video)) {
       return;
     }
+    const previousTimeSeconds = this.isSeeking ? video.currentTime : this.currentTimeSeconds();
     this.currentTimeSeconds.set(video.currentTime);
-    this.markInteractiveVideoWatched(video.currentTime);
+    if (!this.isSeeking) {
+      this.markInteractiveVideoWatched(video.currentTime, previousTimeSeconds);
+    }
     this.tracker.recordSecond(video.currentTime);
-    this.evaluateInteractiveTimeline(video);
+    this.evaluateInteractiveTimeline(video, previousTimeSeconds);
   }
 
   onSeeking(event: Event): void {
@@ -346,7 +356,22 @@ export class AdaptiveVideoPlayerComponent {
     if (!video) {
       return;
     }
+    if (!this.isSeeking) {
+      this.seekStartTimeSeconds = this.currentTimeSeconds();
+    }
+    this.isSeeking = true;
     this.snapBlockedInteractiveSeek(video);
+  }
+
+  onSeeked(event: Event): void {
+    const video = event.target as HTMLVideoElement | null;
+    this.isSeeking = false;
+    if (!video) {
+      return;
+    }
+    const previousTimeSeconds = this.seekStartTimeSeconds;
+    this.currentTimeSeconds.set(video.currentTime);
+    this.evaluateInteractiveTimeline(video, previousTimeSeconds);
   }
 
   seekToInteractiveSecond(seconds: number): void {
@@ -359,7 +384,6 @@ export class AdaptiveVideoPlayerComponent {
     const target = this.resolveAllowedInteractiveSeekTarget(Math.max(0, Math.min(seconds, duration)));
     video.currentTime = target;
     this.currentTimeSeconds.set(video.currentTime);
-    this.markInteractiveVideoWatched(video.currentTime);
     this.evaluateInteractiveTimeline(video);
   }
 
@@ -871,7 +895,6 @@ export class AdaptiveVideoPlayerComponent {
     this.selectedChoiceId.set(null);
     video.currentTime = target;
     this.currentTimeSeconds.set(target);
-    this.markInteractiveVideoWatched(target);
     void video.play().catch(() => {});
   }
 
@@ -905,7 +928,10 @@ export class AdaptiveVideoPlayerComponent {
     this.activateInteractiveInteraction(interaction, video);
   }
 
-  private evaluateInteractiveTimeline(video: HTMLVideoElement): void {
+  private evaluateInteractiveTimeline(
+    video: HTMLVideoElement,
+    previousTimeSeconds = this.currentTimeSeconds(),
+  ): void {
     if (this.activeInteraction()) {
       return;
     }
@@ -918,6 +944,7 @@ export class AdaptiveVideoPlayerComponent {
     const dueInteraction = getDueInteractiveVideoInteraction({
       timeline: spec.timeline,
       currentTimeSeconds: video.currentTime,
+      previousTimeSeconds,
       completedInteractionIds: this.completedInteractionIds,
     });
 
@@ -957,16 +984,19 @@ export class AdaptiveVideoPlayerComponent {
     this.activeInteraction.set(null);
     this.selectedChoiceId.set(null);
 
+    const isBranch = active?.type === 'branch';
     const targetTime = resolveInteractiveVideoChoiceTarget(
       choice,
       this.interactiveVideoSpec()?.timeline ?? [],
-      { sourceTimeSeconds: active?.type === 'branch' ? active.atSeconds : null },
+      {
+        sourceTimeSeconds: isBranch ? active.atSeconds : null,
+        allowBackwardSeek: isBranch,
+      },
     );
     if (typeof targetTime === 'number' && Number.isFinite(targetTime)) {
       const target = Math.max(0, targetTime);
       video.currentTime = target;
       this.currentTimeSeconds.set(target);
-      this.markInteractiveVideoWatched(target);
     }
     void video.play().catch(() => {});
   }
@@ -977,7 +1007,10 @@ export class AdaptiveVideoPlayerComponent {
     this.shownInteractionIds.clear();
     this.completedInteractionIds.clear();
     this.completedInteractionIdsSnapshot.set(new Set<string>());
+    this.watchedRanges = [];
     this.furthestWatchedSeconds = 0;
+    this.isSeeking = false;
+    this.seekStartTimeSeconds = 0;
   }
 
   private markInteractiveInteractionCompleted(interactionId: string): void {
@@ -1003,9 +1036,19 @@ export class AdaptiveVideoPlayerComponent {
       targetTimeSeconds,
       furthestWatchedSeconds: this.furthestWatchedSeconds,
       hasIncompleteRequiredInteractions: this.hasIncompleteRequiredInteractions(),
+      watchedRanges: this.watchedRanges,
     })
-      ? this.furthestWatchedSeconds
+      ? this.resolveBlockedInteractiveSeekTarget(targetTimeSeconds)
       : targetTimeSeconds;
+  }
+
+  private resolveBlockedInteractiveSeekTarget(targetTimeSeconds: number): number {
+    const mode = this.interactiveVideoSpec()?.behavior?.preventSkippingMode ?? 'none';
+    if (mode === 'both' && targetTimeSeconds <= this.furthestWatchedSeconds) {
+      return this.currentTimeSeconds();
+    }
+
+    return this.furthestWatchedSeconds;
   }
 
   private hasIncompleteRequiredInteractions(): boolean {
@@ -1015,13 +1058,17 @@ export class AdaptiveVideoPlayerComponent {
     }
 
     return spec.timeline.some(interaction =>
-      interaction.required === true && !this.completedInteractionIds.has(interaction.id),
+      isInteractiveVideoProgressGateInteraction(interaction)
+        && !this.completedInteractionIds.has(interaction.id),
     );
   }
 
-  private markInteractiveVideoWatched(seconds: number): void {
+  private markInteractiveVideoWatched(seconds: number, previousSeconds = seconds): void {
     if (Number.isFinite(seconds)) {
-      this.furthestWatchedSeconds = Math.max(this.furthestWatchedSeconds, Math.max(0, seconds));
+      const current = Math.max(0, seconds);
+      const previous = Number.isFinite(previousSeconds) ? Math.max(0, previousSeconds) : current;
+      this.furthestWatchedSeconds = Math.max(this.furthestWatchedSeconds, current);
+      this.watchedRanges = addInteractiveVideoWatchedRange(this.watchedRanges, previous, current);
     }
   }
 

@@ -144,4 +144,105 @@ describe('YouTubePlayerComponent', () => {
     expect(player.seekTo).toHaveBeenCalledWith(0, true);
     expect(fixture.componentInstance.currentTimeSeconds()).toBe(0);
   });
+
+  it('blocks marker seeks past non-required correctness-gated work', async () => {
+    fixture.componentRef.setInput('interactiveVideoSpec', {
+      version: 2,
+      enabled: true,
+      behavior: { preventSkippingMode: 'forward' },
+      timeline: [
+        {
+          id: 'branch-review',
+          type: 'branch',
+          atSeconds: 40,
+          required: false,
+          adaptivity: { requireCorrectBeforeContinue: true },
+          choices: [
+            { id: 'wrong', label: 'Wrong', isCorrect: false, targetTimeSeconds: 10 },
+            { id: 'right', label: 'Right', isCorrect: true },
+          ],
+        },
+      ],
+    });
+    fixture.detectChanges();
+    (window as any).onYouTubeIframeAPIReady?.();
+    await fixture.whenStable();
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    const player = players[0].player;
+    player.getDuration = () => 120;
+    setPrivate(fixture.componentInstance, 'furthestWatchedSeconds', 20);
+
+    fixture.componentInstance.seekToInteractiveSecond(90);
+
+    expect(player.seekTo).toHaveBeenCalledWith(20, true);
+    expect(fixture.componentInstance.currentTimeSeconds()).toBe(20);
+  });
+
+  it('does not treat marker jumps as watched playback progress', async () => {
+    fixture.componentRef.setInput('interactiveVideoSpec', {
+      version: 2,
+      enabled: true,
+      timeline: [
+        {
+          id: 'marker-75',
+          type: 'checkpoint',
+          atSeconds: 75,
+          displayType: 'button',
+          title: 'Review marker',
+        },
+      ],
+    });
+    fixture.detectChanges();
+    (window as any).onYouTubeIframeAPIReady?.();
+    await fixture.whenStable();
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    const player = players[0].player;
+    player.getDuration = () => 120;
+    setPrivate(fixture.componentInstance, 'furthestWatchedSeconds', 20);
+
+    fixture.componentInstance.seekToInteractiveSecond(75);
+
+    expect(player.seekTo).toHaveBeenCalledWith(75, true);
+    expect(fixture.componentInstance.currentTimeSeconds()).toBe(75);
+    expect(fixture.componentInstance.activeInteraction()?.id).toBe('marker-75');
+    expect(getPrivate<number>(fixture.componentInstance, 'furthestWatchedSeconds')).toBe(20);
+  });
+
+  it('allows branch choices to review earlier video without advancing watched progress', async () => {
+    fixture.componentRef.setInput('interactiveVideoSpec', {
+      version: 2,
+      enabled: true,
+      timeline: [],
+    });
+    fixture.detectChanges();
+    (window as any).onYouTubeIframeAPIReady?.();
+    await fixture.whenStable();
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    const player = players[0].player;
+    const branch = {
+      id: 'branch-navigation',
+      type: 'branch' as const,
+      atSeconds: 50,
+      choices: [{ id: 'review', label: 'Review', targetTimeSeconds: 10 }],
+    };
+    setPrivate(fixture.componentInstance, 'furthestWatchedSeconds', 50);
+    fixture.componentInstance.activeInteraction.set(branch);
+
+    fixture.componentInstance.onInteractiveChoice(branch.choices[0]);
+
+    expect(player.seekTo).toHaveBeenCalledWith(10, true);
+    expect(fixture.componentInstance.currentTimeSeconds()).toBe(10);
+    expect(getPrivate<number>(fixture.componentInstance, 'furthestWatchedSeconds')).toBe(50);
+  });
+
+  function getPrivate<T>(component: YouTubePlayerComponent, property: string): T {
+    return (component as unknown as Record<string, T>)[property];
+  }
+
+  function setPrivate<T>(component: YouTubePlayerComponent, property: string, value: T): void {
+    (component as unknown as Record<string, T>)[property] = value;
+  }
 });
