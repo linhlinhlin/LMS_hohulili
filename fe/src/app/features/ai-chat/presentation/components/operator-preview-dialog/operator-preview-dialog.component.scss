@@ -235,6 +235,88 @@ h3 {
   font-weight: 700;
 }
 
+.wiii-preview-kv--course {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.wiii-preview-course-description {
+  margin-top: 12px;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.wiii-preview-course-tree {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.wiii-preview-course-chapter {
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  padding: 14px;
+  background:
+    linear-gradient(180deg, rgba(239, 246, 255, 0.82), rgba(255, 255, 255, 0.96));
+}
+
+.wiii-preview-course-chapter__header span {
+  display: inline-flex;
+  margin-bottom: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.wiii-preview-course-chapter__header strong {
+  display: block;
+  color: #0f172a;
+  font-size: 15px;
+}
+
+.wiii-preview-course-chapter__header p,
+.wiii-preview-objectives,
+.wiii-preview-lesson-list p,
+.wiii-preview-lesson-list span {
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.wiii-preview-objectives,
+.wiii-preview-lesson-list {
+  margin: 10px 0 0;
+  padding-left: 20px;
+}
+
+.wiii-preview-objectives {
+  display: grid;
+  gap: 4px;
+}
+
+.wiii-preview-lesson-list {
+  display: grid;
+  gap: 8px;
+}
+
+.wiii-preview-lesson-list li {
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.wiii-preview-lesson-list strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #0f172a;
+  font-size: 13px;
+}
+
 .wiii-preview-icon-button,
 .wiii-preview-secondary,
 .wiii-preview-primary {

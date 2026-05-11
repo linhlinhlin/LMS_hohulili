@@ -6,16 +6,20 @@ import { of, Subject, throwError } from 'rxjs';
 import { WiiiContextService } from './wiii-context.service';
 import { PageDataExtractorService } from './page-data-extractor.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { ChapterApi } from '../../../../api/client/chapter.api';
 import { LessonApi } from '../../../../api/client/lesson.api';
 import { SectionApi } from '../../../../api/client/section.api';
 import { QuizApi } from '../../../../api/endpoints/quiz.api';
+import { CourseEditorStore } from '../../../teacher/course-editor/store/course-editor.store';
 import { CurriculumSelectionService } from '../../../teacher/course-editor/services/curriculum-selection.service';
 
 describe('WiiiContextService - operator preview/apply flows', () => {
   let service: WiiiContextService;
+  let chapterApi: jasmine.SpyObj<ChapterApi>;
   let lessonApi: jasmine.SpyObj<LessonApi>;
   let sectionApi: jasmine.SpyObj<SectionApi>;
   let quizApi: jasmine.SpyObj<QuizApi>;
+  let courseEditorStore: jasmine.SpyObj<CourseEditorStore>;
   let pageDataExtractor: jasmine.SpyObj<PageDataExtractorService>;
   let router: { url: string; events: Subject<unknown>; navigate: jasmine.Spy; navigateByUrl: jasmine.Spy };
   let routerEvents$: Subject<unknown>;
@@ -30,6 +34,14 @@ describe('WiiiContextService - operator preview/apply flows', () => {
     };
     pageDataExtractor = jasmine.createSpyObj<PageDataExtractorService>('PageDataExtractorService', ['extract']);
     pageDataExtractor.extract.and.returnValue(null);
+    courseEditorStore = jasmine.createSpyObj<CourseEditorStore>('CourseEditorStore', [
+      'courseTree',
+      'addChapterLocal',
+      'addLessonLocal',
+      'invalidateCache',
+      'loadCourse',
+    ]);
+    courseEditorStore.courseTree.and.returnValue({ id: 'course-1', chapters: [] } as any);
 
     TestBed.configureTestingModule({
       providers: [
@@ -56,8 +68,12 @@ describe('WiiiContextService - operator preview/apply flows', () => {
           },
         },
         {
+          provide: ChapterApi,
+          useValue: jasmine.createSpyObj<ChapterApi>('ChapterApi', ['createChapter']),
+        },
+        {
           provide: LessonApi,
-          useValue: jasmine.createSpyObj<LessonApi>('LessonApi', ['getLessonById', 'updateLesson']),
+          useValue: jasmine.createSpyObj<LessonApi>('LessonApi', ['getLessonById', 'updateLesson', 'createLesson']),
         },
         {
           provide: SectionApi,
@@ -78,10 +94,15 @@ describe('WiiiContextService - operator preview/apply flows', () => {
           provide: PLATFORM_ID,
           useValue: 'browser',
         },
+        {
+          provide: CourseEditorStore,
+          useValue: courseEditorStore,
+        },
       ],
     });
 
     service = TestBed.inject(WiiiContextService);
+    chapterApi = TestBed.inject(ChapterApi) as jasmine.SpyObj<ChapterApi>;
     lessonApi = TestBed.inject(LessonApi) as jasmine.SpyObj<LessonApi>;
     sectionApi = TestBed.inject(SectionApi) as jasmine.SpyObj<SectionApi>;
     quizApi = TestBed.inject(QuizApi) as jasmine.SpyObj<QuizApi>;
@@ -214,6 +235,98 @@ describe('WiiiContextService - operator preview/apply flows', () => {
     expect(applied.success).toBeTrue();
     expect(sectionApi.updateSection).toHaveBeenCalledWith('lesson-1', 'section-1', jasmine.any(FormData));
     expect(lessonApi.updateLesson).not.toHaveBeenCalled();
+  });
+
+  it('previews and applies a document course plan through teacher approval', async () => {
+    chapterApi.createChapter.and.returnValues(
+      of({ data: { id: 'chapter-1', title: 'Chương 1', orderIndex: 0 } } as any),
+      of({ data: { id: 'chapter-2', title: 'Chương 2', orderIndex: 1 } } as any),
+    );
+    lessonApi.createLesson.and.returnValues(
+      of({ data: { id: 'lesson-1', title: 'Bài 1', lessonType: 'LECTURE', orderIndex: 0 } } as any),
+      of({ data: { id: 'lesson-2', title: 'Bài 2', lessonType: 'LECTURE', orderIndex: 0 } } as any),
+    );
+
+    let panelPreview: any;
+    const previewSub = service.operatorPreview$.subscribe((previewPanel) => {
+      panelPreview = previewPanel;
+    });
+    const preview = await (service as any).handleActionRequest('authoring.generate_course_from_document', {
+      course_id: 'course-1',
+      course_plan: {
+        title: 'Khai thác HoLiLiHu LMS',
+        description: 'Khóa học từ tài liệu hướng dẫn',
+        chapters: [
+          {
+            title: 'Chương 1',
+            summary: 'Tổng quan',
+            learning_objectives: ['Hiểu vai trò'],
+            lessons: [
+              {
+                title: 'Bài 1',
+                summary: 'Bản đồ hệ thống',
+                activity: 'Đối chiếu vai trò',
+                quick_check: 'Vai trò nào được tạo khóa?',
+                source_references: [{ kind: 'document', title: 'Manual', page_start: 1 }],
+              },
+            ],
+            source_references: [{ kind: 'document', title: 'Manual', page_start: 1 }],
+          },
+          {
+            title: 'Chương 2',
+            summary: 'Giảng viên',
+            learning_objectives: ['Tạo khóa'],
+            lessons: [
+              {
+                title: 'Bài 2',
+                summary: 'Tạo khóa học mới',
+                source_references: [{ kind: 'document', title: 'Manual', page_start: 23 }],
+              },
+            ],
+          },
+        ],
+        implementation_checklist: ['Không publish tự động'],
+      },
+      source_references: [{ kind: 'document', title: 'Manual', page_start: 1 }],
+    });
+    previewSub.unsubscribe();
+
+    expect(preview.success).toBeTrue();
+    expect(preview.data?.preview_kind).toBe('course_plan');
+    expect(preview.data?.apply_action).toBe('authoring.apply_course_plan');
+    expect(preview.data?.course_plan).toEqual(jasmine.objectContaining({
+      title: 'Khai thác HoLiLiHu LMS',
+      chapters: jasmine.any(Array),
+    }));
+    expect(panelPreview).toEqual(jasmine.objectContaining({
+      token: preview.data?.preview_token,
+      kind: 'course_plan',
+      targetLabel: 'Khai thác HoLiLiHu LMS',
+      sourceReferences: jasmine.arrayContaining([
+        jasmine.objectContaining({ page_start: 1 }),
+        jasmine.objectContaining({ page_start: 23 }),
+      ]),
+    }));
+
+    await expectAsync((service as any).handleActionRequest('authoring.apply_course_plan', {
+      preview_token: preview.data?.preview_token,
+    })).toBeRejectedWithError(/host_preview_approval_required/);
+    expect(chapterApi.createChapter).not.toHaveBeenCalled();
+
+    const applied = await service.approveOperatorPreview(String(preview.data?.preview_token));
+
+    expect(applied.success).toBeTrue();
+    expect(chapterApi.createChapter).toHaveBeenCalledTimes(2);
+    expect(lessonApi.createLesson).toHaveBeenCalledTimes(2);
+    expect(lessonApi.createLesson).toHaveBeenCalledWith('chapter-1', jasmine.objectContaining({
+      title: 'Bài 1',
+      type: 'LECTURE',
+      content: jasmine.stringContaining('## Nguồn đối chiếu'),
+    }));
+    expect(courseEditorStore.invalidateCache).toHaveBeenCalledWith('course-1');
+    expect(courseEditorStore.loadCourse).toHaveBeenCalledWith('course-1', true);
+    expect(applied.data?.['chapters_created']).toBe(2);
+    expect(applied.data?.['lessons_created']).toBe(2);
   });
 
   it('previews and commits a new quiz through the host action flow', async () => {
