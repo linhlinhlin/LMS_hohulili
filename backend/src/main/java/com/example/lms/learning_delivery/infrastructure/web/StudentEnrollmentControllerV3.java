@@ -206,7 +206,7 @@ public class StudentEnrollmentControllerV3 {
                             .description(description)
                             .teacherName(teacherName)
                             .categoryName(categoryName)
-                            .thumbnailUrl(course != null ? (course.getThumbnailUrl() != null ? course.getThumbnailUrl() : course.getIntroVideoUrl()) : null)
+                            .thumbnailUrl(course != null ? course.getThumbnailUrl() : null)
                             .status(enrollment.getStatus().name().toLowerCase())
                             .progress(enrollment.getCompletionPercent() != null ? enrollment.getCompletionPercent() : 0)
                             .totalLessons(lessonCountMap.getOrDefault(courseId, 0L).intValue())
