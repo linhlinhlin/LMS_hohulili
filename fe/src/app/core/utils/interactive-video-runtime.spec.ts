@@ -8,6 +8,7 @@ import {
   evaluateInteractiveVideoFillBlank,
   getDueInteractiveVideoInteraction,
   getVisibleInteractiveVideoInteractions,
+  isInteractiveVideoProgressGateInteraction,
   isInteractiveVideoTimeWithinWatchedRanges,
   isInteractiveVideoReviewInteraction,
   resolveInteractiveVideoChoiceTarget,
@@ -135,6 +136,55 @@ describe('interactive-video-runtime', () => {
       interaction.choices![0],
       timeline,
     )).toBe(5);
+  });
+
+  it('identifies every interaction type that blocks learner progress', () => {
+    const gateInteractions: InteractiveVideoInteraction[] = [
+      {
+        id: 'required-checkpoint',
+        type: 'checkpoint',
+        atSeconds: 5,
+        required: true,
+      },
+      {
+        id: 'review-branch',
+        type: 'branch',
+        atSeconds: 10,
+        adaptivity: { requireCorrectBeforeContinue: true },
+        choices: [{ id: 'right', label: 'Right', isCorrect: true }],
+      },
+      {
+        id: 'fill-blank-gate',
+        type: 'fill_blank',
+        atSeconds: 15,
+        fillBlank: {
+          template: '{{1}}',
+          blanks: [{ id: '1', acceptedAnswers: ['correct'] }],
+          requireAllCorrectBeforeContinue: true,
+        },
+      },
+      {
+        id: 'drag-drop-gate',
+        type: 'drag_drop',
+        atSeconds: 20,
+        dragDrop: {
+          instruction: 'Place the item.',
+          backgroundImage: null,
+          dropZones: [],
+          draggables: [],
+          requireAllCorrectBeforeContinue: true,
+        },
+      },
+    ];
+
+    expect(gateInteractions.every(isInteractiveVideoProgressGateInteraction)).toBeTrue();
+    expect(isInteractiveVideoProgressGateInteraction(
+      {
+        id: 'optional-note',
+        type: 'checkpoint',
+        atSeconds: 25,
+      },
+    )).toBeFalse();
   });
 
   it('blocks forward seeks past watched time when required work remains', () => {

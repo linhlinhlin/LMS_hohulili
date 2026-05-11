@@ -57,6 +57,38 @@ describe('QuizVideoPlayerComponent interactive video seek behavior', () => {
     expect(getPrivate<number>(fixture.componentInstance, 'furthestWatchedSeconds')).toBe(20);
   });
 
+  it('snaps a forward seek past correctness-gated work even when it is not marked required', () => {
+    const video = prepareVideoElement(20, 120);
+    const spec: InteractiveVideoSpec = {
+      version: 2,
+      enabled: true,
+      behavior: { preventSkippingMode: 'forward' },
+      timeline: [
+        {
+          id: 'branch-review',
+          type: 'branch',
+          atSeconds: 40,
+          required: false,
+          adaptivity: { requireCorrectBeforeContinue: true },
+          choices: [
+            { id: 'wrong', label: 'Wrong', isCorrect: false, targetTimeSeconds: 15 },
+            { id: 'right', label: 'Right', isCorrect: true },
+          ],
+        },
+      ],
+    };
+    fixture.componentRef.setInput('interactiveVideoSpec', spec);
+    fixture.componentInstance.currentTimeSeconds.set(20);
+    fixture.detectChanges();
+    setPrivate(fixture.componentInstance, 'furthestWatchedSeconds', 20);
+
+    video.currentTime = 90;
+    fixture.componentInstance.onSeeking();
+
+    expect(video.currentTime).toBe(20);
+    expect(fixture.componentInstance.currentTimeSeconds()).toBe(20);
+  });
+
   it('opens an optional interaction crossed by a settled seek edge', () => {
     const video = prepareVideoElement(12, 120);
     const optional: InteractiveVideoInteraction = {

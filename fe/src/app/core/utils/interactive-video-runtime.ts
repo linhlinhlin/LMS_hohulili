@@ -179,6 +179,15 @@ export function isInteractiveVideoReviewInteraction(
     || (interaction.choices ?? []).some(choice => typeof choice.isCorrect === 'boolean');
 }
 
+export function isInteractiveVideoProgressGateInteraction(
+  interaction: InteractiveVideoInteraction,
+): boolean {
+  return interaction.required === true
+    || interaction.adaptivity?.requireCorrectBeforeContinue === true
+    || interaction.fillBlank?.requireAllCorrectBeforeContinue === true
+    || interaction.dragDrop?.requireAllCorrectBeforeContinue === true;
+}
+
 export function resolveInteractiveVideoReviewTarget(
   interaction: InteractiveVideoInteraction,
   choice: InteractiveVideoChoice,
