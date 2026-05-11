@@ -120,6 +120,11 @@ public class DocumentPreviewService {
             return new PreviewResult(STATUS_FAILED, null, recentFailure.message());
         }
 
+        if (!documentConversionService.isHealthy()) {
+            String message = "Document conversion service is unavailable";
+            return new PreviewResult(STATUS_FAILED, null, message);
+        }
+
         if (activeConversions.putIfAbsent(source.storageKey(), Boolean.TRUE) == null) {
             UUID userId = user != null ? user.getId() : null;
             if (!tryAcquireUserConversionSlot(userId)) {
@@ -151,14 +156,13 @@ public class DocumentPreviewService {
             pdfFile = Files.createTempFile("lms-doc-preview-output-", ".pdf");
 
             downloadToFile(source.storageKey(), sourceFile);
-            byte[] pdfBytes = documentConversionService.convertToPdf(sourceFile, source.originalName());
-            if (pdfBytes == null || pdfBytes.length == 0) {
+            boolean converted = documentConversionService.convertToPdfFile(sourceFile, source.originalName(), pdfFile);
+            if (!converted || Files.size(pdfFile) == 0) {
                 log.warn("[DocPreview] Conversion returned empty output for {}", source.storageKey());
                 recordFailure(source.storageKey(), "Could not create document preview");
                 return;
             }
 
-            Files.write(pdfFile, pdfBytes);
             R2StorageService.UploadResult stored = uploadGeneratedPreview(pdfFile, previewKey);
             ensureAttachmentRecord(stored, source, userId);
             failedConversions.remove(source.storageKey());

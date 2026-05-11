@@ -254,6 +254,7 @@ export class LessonContentComponent implements AfterViewInit {
   readonly safePdfUrl = signal<SafeResourceUrl | null>(null);
   private readonly currentPdfSourceUrl = signal<string | null>(null);
   readonly onDemandPreviewStatus = signal<'PROCESSING' | 'READY' | 'FAILED' | null>(null);
+  readonly onDemandPreviewMessage = signal<string | null>(null);
 
   private pdfPreviewEffect = effect((onCleanup) => {
     const section = this.currentSection();
@@ -261,6 +262,7 @@ export class LessonContentComponent implements AfterViewInit {
     this.safePdfUrl.set(null);
     this.currentPdfSourceUrl.set(null);
     this.onDemandPreviewStatus.set(null);
+    this.onDemandPreviewMessage.set(null);
     this.pdfViewer.cleanup();
 
     if (section?.type !== 'FILE') return;
@@ -316,6 +318,7 @@ export class LessonContentComponent implements AfterViewInit {
     const poll = () => {
       if (stopped) return;
       this.onDemandPreviewStatus.set('PROCESSING');
+      this.onDemandPreviewMessage.set(null);
 
       requestSub?.unsubscribe();
       requestSub = this.apiClient
@@ -330,6 +333,7 @@ export class LessonContentComponent implements AfterViewInit {
             const data = response.data;
             const status = this.normalizeDocumentPreviewStatus(data?.status);
             this.onDemandPreviewStatus.set(status);
+            this.onDemandPreviewMessage.set(data?.message || null);
 
             if (status === 'READY' && data?.previewPdfUrl) {
               pdfSub?.unsubscribe();
@@ -347,9 +351,12 @@ export class LessonContentComponent implements AfterViewInit {
               pollTimer = setTimeout(poll, 7000);
             }
           },
-          error: () => {
+          error: error => {
             if (!stopped) {
               this.onDemandPreviewStatus.set('FAILED');
+              this.onDemandPreviewMessage.set(error instanceof Error
+                ? error.message
+                : 'Không thể kết nối máy chủ tạo bản xem trước.');
             }
           }
         });
@@ -453,6 +460,20 @@ export class LessonContentComponent implements AfterViewInit {
   documentPreviewStatus(section: { previewStatus?: string | null }): string | null {
     const status = this.onDemandPreviewStatus() || section.previewStatus || null;
     return status ? status.toUpperCase() : null;
+  }
+
+  documentPreviewFailureMessage(): string {
+    const message = (this.onDemandPreviewMessage() || '').toLowerCase();
+    if (message.includes('unavailable') || message.includes('not configured')) {
+      return 'Máy chủ tạo bản xem trước PowerPoint hiện chưa sẵn sàng. Bạn vẫn có thể tải xuống tệp gốc.';
+    }
+    if (message.includes('too large')) {
+      return 'Tệp này quá lớn để tạo bản xem trước trên web. Bạn vẫn có thể tải xuống tệp gốc.';
+    }
+    if (message.includes('queue') || message.includes('too many')) {
+      return 'Máy chủ đang xử lý nhiều tài liệu. Vui lòng thử lại sau ít phút hoặc tải xuống tệp gốc.';
+    }
+    return 'Không thể tạo bản xem trước cho tài liệu này. Bạn vẫn có thể tải xuống tệp gốc.';
   }
 
   private normalizeDocumentPreviewStatus(status: string | undefined | null): 'PROCESSING' | 'READY' | 'FAILED' {
