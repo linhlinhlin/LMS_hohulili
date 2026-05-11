@@ -3,12 +3,14 @@ package com.example.lms.shared.infrastructure.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Set;
 
@@ -33,7 +35,7 @@ public class DocumentConversionService {
             "doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods", "odp", "rtf", "txt", "csv"
     );
 
-    private static final Duration CONVERSION_TIMEOUT = Duration.ofSeconds(120);
+    private static final Duration CONVERSION_TIMEOUT = Duration.ofMinutes(10);
 
     private final WebClient webClient;
     private final boolean enabled;
@@ -101,6 +103,43 @@ public class DocumentConversionService {
             if (pdfBytes != null && pdfBytes.length > 0) {
                 log.info("Converted {} ({} bytes) → PDF ({} bytes)",
                         fileName, fileBytes.length, pdfBytes.length);
+                return pdfBytes;
+            }
+
+            log.warn("Gotenberg returned empty response for {}", fileName);
+            return null;
+        } catch (Exception e) {
+            log.error("Document conversion failed for {}: {}", fileName, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Convert a document to PDF bytes without loading the source document into JVM heap.
+     * This path is used for legacy large PPTX files already stored in object storage.
+     */
+    public byte[] convertToPdf(Path filePath, String fileName) {
+        if (!canConvert(fileName)) {
+            return null;
+        }
+
+        try {
+            MultipartBodyBuilder builder = new MultipartBodyBuilder();
+            builder.part("files", new FileSystemResource(filePath))
+                    .filename(fileName)
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM);
+
+            byte[] pdfBytes = webClient.post()
+                    .uri("/forms/libreoffice/convert")
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(BodyInserters.fromMultipartData(builder.build()))
+                    .retrieve()
+                    .bodyToMono(byte[].class)
+                    .block(CONVERSION_TIMEOUT);
+
+            if (pdfBytes != null && pdfBytes.length > 0) {
+                log.info("Converted {} from temp file {} -> PDF ({} bytes)",
+                        fileName, filePath, pdfBytes.length);
                 return pdfBytes;
             }
 

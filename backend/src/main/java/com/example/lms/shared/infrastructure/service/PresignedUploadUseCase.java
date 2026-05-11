@@ -28,11 +28,26 @@ public class PresignedUploadUseCase {
     private static final long MAX_VIDEO_UPLOAD_BYTES = 5_000_000_000L; // 5 GB decimal, safe for single-object presigned PUT
     private static final long MULTIPART_VIDEO_THRESHOLD_BYTES = 100_000_000L; // Cloudflare recommends multipart for larger uploads
     private static final long MULTIPART_PART_SIZE_BYTES = 64L * 1024 * 1024L;
+    private static final long MAX_DOCUMENT_UPLOAD_BYTES = 100L * 1024 * 1024L;
+
+    private static final Set<String> DOCUMENT_UPLOAD_TYPES = Set.of(
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.ms-powerpoint",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    );
 
     private static final Map<String, Set<String>> ALLOWED_TYPES = Map.of(
             "course-thumbnails", Set.of("image/jpeg", "image/png", "image/webp"),
             "editor-images", Set.of("image/jpeg", "image/png", "image/gif", "image/webp"),
             "avatars", Set.of("image/jpeg", "image/png", "image/webp"),
+            "assignment-instructions", DOCUMENT_UPLOAD_TYPES,
             "videos", Set.of(
                     "video/mp4",
                     "video/webm",
@@ -47,6 +62,7 @@ public class PresignedUploadUseCase {
             "course-thumbnails", 5L * 1024 * 1024,
             "editor-images", 50L * 1024 * 1024,
             "avatars", 5L * 1024 * 1024,
+            "assignment-instructions", MAX_DOCUMENT_UPLOAD_BYTES,
             "videos", MAX_VIDEO_UPLOAD_BYTES
     );
 
@@ -264,7 +280,13 @@ public class PresignedUploadUseCase {
         if (folder == null || folder.isBlank()) {
             return "editor-images";
         }
-        return folder.replaceAll("[^a-zA-Z0-9_-]", "");
+        String sanitized = folder.trim()
+                .replaceAll("[/\\\\]+", "-")
+                .replaceAll("[^a-zA-Z0-9_-]", "");
+        if ("assignments-instructions".equals(sanitized)) {
+            return "assignment-instructions";
+        }
+        return sanitized;
     }
 
     private String mimeToExtension(String contentType) {
@@ -279,6 +301,12 @@ public class PresignedUploadUseCase {
             case "video/x-matroska" -> ".mkv";
             case "video/x-msvideo", "video/avi" -> ".avi";
             case "application/pdf" -> ".pdf";
+            case "application/msword" -> ".doc";
+            case "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> ".docx";
+            case "application/vnd.ms-excel" -> ".xls";
+            case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> ".xlsx";
+            case "application/vnd.ms-powerpoint" -> ".ppt";
+            case "application/vnd.openxmlformats-officedocument.presentationml.presentation" -> ".pptx";
             default -> "";
         };
     }
@@ -303,6 +331,7 @@ public class PresignedUploadUseCase {
         return switch (folder) {
             case "course", "course-thumbnails" -> "COURSE_THUMBNAIL";
             case "editor-images", "question-images" -> "EDITOR_IMAGE";
+            case "assignment-instructions" -> "ASSIGNMENT_INSTRUCTION";
             case "avatars" -> "AVATAR";
             case "videos" -> "VIDEO";
             default -> "GENERAL";

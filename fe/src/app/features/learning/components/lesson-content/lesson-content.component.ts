@@ -6,7 +6,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Router } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subscription } from 'rxjs';
 import { LessonDetail } from '../../models/learning.models';
 import { LessonType } from '../../models/lesson-types.enum';
 import { WatchedSegmentsTracker } from '../../services/watched-segments-tracker.service';
@@ -20,9 +20,16 @@ import { QuizApi } from '../../../../api/endpoints/quiz.api';
 import { ToastService } from '../../../../core/services/toast.service';
 import { NetworkStatusService } from '../../../../core/services/network-status.service';
 import { PdfViewerService } from '../../../../shared/services/pdf-viewer.service';
+import { ApiClient } from '../../../../api/client/api-client';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { SideDrawerComponent } from '../../../../shared/components/side-drawer/side-drawer.component';
 import { CompetencyBadgeComponent } from '../competency-badge/competency-badge.component';
+
+interface DocumentPreviewResponse {
+  status: 'PROCESSING' | 'READY' | 'FAILED' | string;
+  previewPdfUrl?: string;
+  message?: string;
+}
 
 /**
  * Lesson Content Component
@@ -54,6 +61,7 @@ export class LessonContentComponent implements AfterViewInit {
   private toast = inject(ToastService);
   private network = inject(NetworkStatusService);
   private pdfViewer = inject(PdfViewerService);
+  private apiClient = inject(ApiClient);
   private readingTrackerInitTimer: ReturnType<typeof setTimeout> | null = null;
   private emittedReadCompletionKeys = new Set<string>();
 
@@ -244,24 +252,38 @@ export class LessonContentComponent implements AfterViewInit {
 
   /** Safe PDF URL for iframe embedding */
   readonly safePdfUrl = signal<SafeResourceUrl | null>(null);
+  private readonly currentPdfSourceUrl = signal<string | null>(null);
+  readonly onDemandPreviewStatus = signal<'PROCESSING' | 'READY' | 'FAILED' | null>(null);
 
   private pdfPreviewEffect = effect((onCleanup) => {
     const section = this.currentSection();
 
     this.safePdfUrl.set(null);
+    this.currentPdfSourceUrl.set(null);
+    this.onDemandPreviewStatus.set(null);
     this.pdfViewer.cleanup();
 
     if (section?.type !== 'FILE') return;
 
     // Prefer previewPdfUrl (Gotenberg-converted) over original fileUrl
-    const previewPdfUrl = (section as any).previewPdfUrl || null;
+    const previewPdfUrl = (!section.previewStatus || section.previewStatus === 'READY')
+      ? section.previewPdfUrl || null
+      : null;
     const fileUrl = section.fileUrl || null;
     const urlToPreview = previewPdfUrl ?? (fileUrl && this.isPdfFileUrl(fileUrl) ? fileUrl : null);
 
-    if (!urlToPreview) return;
+    if (!urlToPreview) {
+      if (fileUrl && section.id && this.isConvertibleDocumentFile(this.fileExtension(fileUrl))) {
+        this.startOnDemandDocumentPreview(section.id, onCleanup);
+      }
+      return;
+    }
 
     const sub = this.pdfViewer.getSafePdfUrl(urlToPreview).subscribe({
-      next: url => this.safePdfUrl.set(url),
+      next: url => {
+        this.currentPdfSourceUrl.set(urlToPreview);
+        this.safePdfUrl.set(url);
+      },
       error: () => this.safePdfUrl.set(null)
     });
 
@@ -270,6 +292,71 @@ export class LessonContentComponent implements AfterViewInit {
       this.pdfViewer.cleanup();
     });
   });
+
+  private startOnDemandDocumentPreview(
+    sectionId: string,
+    onCleanup: (cleanupFn: () => void) => void
+  ): void {
+    let stopped = false;
+    let requestSub: Subscription | null = null;
+    let pdfSub: Subscription | null = null;
+    let pollTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const cleanup = () => {
+      stopped = true;
+      requestSub?.unsubscribe();
+      pdfSub?.unsubscribe();
+      if (pollTimer) {
+        clearTimeout(pollTimer);
+      }
+      this.pdfViewer.cleanup();
+    };
+    onCleanup(cleanup);
+
+    const poll = () => {
+      if (stopped) return;
+      this.onDemandPreviewStatus.set('PROCESSING');
+
+      requestSub?.unsubscribe();
+      requestSub = this.apiClient
+        .postWithResponse<DocumentPreviewResponse>('/api/v3/document-previews', {
+          lessonId: this.lesson().id,
+          sectionId
+        })
+        .subscribe({
+          next: response => {
+            if (stopped) return;
+
+            const data = response.data;
+            const status = this.normalizeDocumentPreviewStatus(data?.status);
+            this.onDemandPreviewStatus.set(status);
+
+            if (status === 'READY' && data?.previewPdfUrl) {
+              pdfSub?.unsubscribe();
+              pdfSub = this.pdfViewer.getSafePdfUrl(data.previewPdfUrl).subscribe({
+                next: url => {
+                  this.currentPdfSourceUrl.set(data.previewPdfUrl!);
+                  this.safePdfUrl.set(url);
+                },
+                error: () => this.onDemandPreviewStatus.set('FAILED')
+              });
+              return;
+            }
+
+            if (status === 'PROCESSING') {
+              pollTimer = setTimeout(poll, 7000);
+            }
+          },
+          error: () => {
+            if (!stopped) {
+              this.onDemandPreviewStatus.set('FAILED');
+            }
+          }
+        });
+    };
+
+    poll();
+  }
 
   private pdfContainer = viewChild<ElementRef>('pdfContainer');
 
@@ -284,6 +371,12 @@ export class LessonContentComponent implements AfterViewInit {
   }
 
   openPdfInNewTab(): void {
+    const previewUrl = this.currentPdfSourceUrl();
+    if (previewUrl) {
+      window.open(previewUrl, '_blank');
+      return;
+    }
+
     const section = this.currentSection();
     if (section?.fileUrl) {
       window.open(section.fileUrl, '_blank');
@@ -351,6 +444,21 @@ export class LessonContentComponent implements AfterViewInit {
     if (ext === 'pdf') return false;
     if (this.isImageFile(ext)) return false;
     return true;
+  }
+
+  isConvertibleDocumentFile(ext: string): boolean {
+    return ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'rtf', 'txt', 'csv'].includes(ext);
+  }
+
+  documentPreviewStatus(section: { previewStatus?: string | null }): string | null {
+    const status = this.onDemandPreviewStatus() || section.previewStatus || null;
+    return status ? status.toUpperCase() : null;
+  }
+
+  private normalizeDocumentPreviewStatus(status: string | undefined | null): 'PROCESSING' | 'READY' | 'FAILED' {
+    return status === 'PROCESSING' || status === 'READY' || status === 'FAILED'
+      ? status
+      : 'FAILED';
   }
 
   private extractFileNameFromUrl(url: string | null): string {

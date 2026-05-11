@@ -137,7 +137,7 @@ services:
     image: gotenberg/gotenberg:8
     command:
       - "gotenberg"
-      - "--api-timeout=120s"
+      - "--api-timeout=600s"
       - "--libreoffice-restart-after=50"
       - "--libreoffice-auto-start=true"
       - "--log-level=warn"
@@ -149,10 +149,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+    mem_limit: "${GOTENBERG_MEMORY_LIMIT:-2048M}"
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: "${GOTENBERG_MEMORY_LIMIT:-2048M}"
 
   # ===== Angular Frontend (nginx) =====
   frontend:

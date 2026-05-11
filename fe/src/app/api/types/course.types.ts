@@ -304,6 +304,8 @@ export interface SectionDetail { // New L3 Section
   cfObjectKey?: string;
   interactiveVideoSpec?: InteractiveVideoSpec | null;
   fileUrl: string;
+  previewPdfUrl?: string;
+  previewStatus?: 'PROCESSING' | 'READY' | 'FAILED' | string | null;
   duration: number;
   orderIndex: number;
   lessonId: string;

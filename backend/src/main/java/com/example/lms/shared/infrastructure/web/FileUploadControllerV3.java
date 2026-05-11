@@ -16,7 +16,11 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 @Slf4j
 @RestController
@@ -36,11 +40,26 @@ public class FileUploadControllerV3 {
         "application/vnd.openxmlformats-officedocument.presentationml.presentation"
     );
 
+    private static final Set<String> ALLOWED_FILE_EXTENSIONS = Set.of(
+        "jpg", "jpeg", "png", "gif", "webp", "svg",
+        "pdf", "mp4", "webm",
+        "doc", "docx", "xls", "xlsx", "ppt", "pptx"
+    );
+
+    private static final Set<String> IMAGE_FILE_EXTENSIONS = Set.of(
+        "jpg", "jpeg", "png", "gif", "webp", "svg"
+    );
+
+    private static final Set<String> DOCUMENT_FILE_EXTENSIONS = Set.of(
+        "jpg", "jpeg", "png", "gif", "webp", "svg",
+        "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx"
+    );
+
     private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
     private static final long MAX_VIDEO_SIZE = 5L * 1024 * 1024 * 1024; // 5GB — matches presigned upload limit when R2 is disabled
 
     private static final Set<String> AUTHORING_ONLY_FOLDERS = Set.of(
-        "videos", "course-thumbnails", "sections"
+        "videos", "course", "course-thumbnails", "sections", "assignment-instructions"
     );
 
     private static final Set<String> ALLOWED_VIDEO_TYPES = Set.of(
@@ -87,7 +106,8 @@ public class FileUploadControllerV3 {
             }
 
             // Validate file
-            String validationError = validateFile(file);
+            String sanitizedFolder = sanitizeFolderName(folder);
+            String validationError = validateFile(file, allowedExtensionsForFolder(sanitizedFolder));
             if (validationError != null) {
                 return ResponseEntity.badRequest().body(Map.of(
                     "success", 0,
@@ -95,11 +115,11 @@ public class FileUploadControllerV3 {
                 ));
             }
 
-            // Sanitize folder name
-            String sanitizedFolder = sanitizeFolderName(folder);
-
             if (user == null) {
                 return ResponseEntity.status(401).body(Map.of("success", 0, "message", "Không được phép truy cập"));
+            }
+            if (AUTHORING_ONLY_FOLDERS.contains(sanitizedFolder) && !isAuthoringRole(user)) {
+                return ResponseEntity.status(403).body(Map.of("success", 0, "message", "Khong co quyen tai file vao khu vuc nay"));
             }
             UUID uploadedBy = user.getId();
             var attachment = fileManagementService.uploadFile(file, sanitizedFolder, uploadedBy);
@@ -136,14 +156,14 @@ public class FileUploadControllerV3 {
             if (!isStorageAvailable()) {
                 return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Storage not configured"));
             }
-            String validationError = validateFile(file);
+            String validationError = validateFile(file, allowedExtensionsForCategory(category));
             if (validationError != null) {
                 return ResponseEntity.badRequest().body(Map.of("success", false, "message", validationError));
             }
             if (user == null) {
                 return ResponseEntity.status(401).body(Map.of("success", false, "message", "Unauthorized"));
             }
-            String folder = "assignments".equals(category) ? "assignment-files"
+            String folder = ("assignment".equals(category) || "assignments".equals(category)) ? "assignment-files"
                     : "profile".equals(category) ? "profile-files"
                     : "general-uploads";
             var attachment = fileManagementService.uploadFile(file, folder, user.getId());
@@ -440,7 +460,7 @@ public class FileUploadControllerV3 {
 
     // ============ Validation Helpers ============
 
-    private String validateFile(MultipartFile file) {
+    private String validateFile(MultipartFile file, Set<String> allowedExtensions) {
         if (file == null || file.isEmpty()) {
             return "Tập tin rỗng";
         }
@@ -448,14 +468,170 @@ public class FileUploadControllerV3 {
             return "Tập tin vượt quá dung lượng tối đa 50MB";
         }
         String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_MIME_TYPES.contains(contentType.toLowerCase())) {
+        String normalizedContentType = contentType != null ? contentType.toLowerCase() : "";
+        String extension = extensionOf(file.getOriginalFilename());
+        Set<String> contextExtensions = allowedExtensions != null ? allowedExtensions : ALLOWED_FILE_EXTENSIONS;
+        if (!contextExtensions.contains(extension)) {
+            return "Loai tap tin khong phu hop voi ngu canh tai len";
+        }
+        if (!ALLOWED_MIME_TYPES.contains(normalizedContentType) && !ALLOWED_FILE_EXTENSIONS.contains(extension)) {
             return "Loại tập tin không được phép: " + contentType;
+        }
+        String signatureError = validateFileSignature(file, extension, normalizedContentType);
+        if (signatureError != null) {
+            return signatureError;
         }
         String originalName = file.getOriginalFilename();
         if (originalName != null && originalName.contains("..")) {
             return "Tên tập tin không hợp lệ";
         }
         return null;
+    }
+
+    private Set<String> allowedExtensionsForFolder(String folder) {
+        return switch (folder) {
+            case "editor-images", "question-images", "course-thumbnails", "avatars" -> IMAGE_FILE_EXTENSIONS;
+            case "sections", "assignment-instructions", "course" -> DOCUMENT_FILE_EXTENSIONS;
+            default -> ALLOWED_FILE_EXTENSIONS;
+        };
+    }
+
+    private Set<String> allowedExtensionsForCategory(String category) {
+        if ("profile".equalsIgnoreCase(category)) {
+            return IMAGE_FILE_EXTENSIONS;
+        }
+        if ("assignment".equalsIgnoreCase(category) || "assignments".equalsIgnoreCase(category)
+                || "document".equalsIgnoreCase(category)) {
+            return DOCUMENT_FILE_EXTENSIONS;
+        }
+        return ALLOWED_FILE_EXTENSIONS;
+    }
+
+    private String validateFileSignature(MultipartFile file, String extension, String contentType) {
+        String expected = expectedFileKind(extension, contentType);
+        if (expected == null) {
+            return null;
+        }
+        try {
+            return switch (expected) {
+                case "jpg", "jpeg" -> startsWith(readHeader(file, 4), 0xFF, 0xD8, 0xFF)
+                        ? null : "Noi dung tap tin khong phai JPEG hop le";
+                case "png" -> startsWith(readHeader(file, 8), 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
+                        ? null : "Noi dung tap tin khong phai PNG hop le";
+                case "gif" -> isGif(readHeader(file, 6))
+                        ? null : "Noi dung tap tin khong phai GIF hop le";
+                case "webp" -> isWebp(readHeader(file, 12))
+                        ? null : "Noi dung tap tin khong phai WebP hop le";
+                case "svg" -> isSvg(readHeader(file, 512))
+                        ? null : "Noi dung tap tin khong phai SVG hop le";
+                case "pdf" -> startsWith(readHeader(file, 5), '%', 'P', 'D', 'F', '-')
+                        ? null : "Noi dung tap tin khong phai PDF hop le";
+                case "doc", "xls", "ppt" -> startsWith(readHeader(file, 8), 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1)
+                        ? null : "Noi dung tap tin Office khong hop le";
+                case "docx" -> zipContainsPrefix(file, "word/")
+                        ? null : "Noi dung tap tin DOCX khong hop le";
+                case "xlsx" -> zipContainsPrefix(file, "xl/")
+                        ? null : "Noi dung tap tin XLSX khong hop le";
+                case "pptx" -> zipContainsPrefix(file, "ppt/")
+                        ? null : "Noi dung tap tin PPTX khong hop le";
+                case "mp4" -> isMp4(readHeader(file, 12))
+                        ? null : "Noi dung tap tin khong phai MP4 hop le";
+                case "webm" -> startsWith(readHeader(file, 4), 0x1A, 0x45, 0xDF, 0xA3)
+                        ? null : "Noi dung tap tin khong phai WebM hop le";
+                default -> null;
+            };
+        } catch (IOException e) {
+            return "Khong the doc chu ky tap tin";
+        }
+    }
+
+    private String expectedFileKind(String extension, String contentType) {
+        if (extension != null && !extension.isBlank()) {
+            return extension;
+        }
+        return switch (contentType) {
+            case "image/jpeg" -> "jpg";
+            case "image/png" -> "png";
+            case "image/gif" -> "gif";
+            case "image/webp" -> "webp";
+            case "image/svg+xml" -> "svg";
+            case "application/pdf" -> "pdf";
+            case "video/mp4" -> "mp4";
+            case "video/webm" -> "webm";
+            case "application/msword" -> "doc";
+            case "application/vnd.ms-excel" -> "xls";
+            case "application/vnd.ms-powerpoint" -> "ppt";
+            case "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> "docx";
+            case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> "xlsx";
+            case "application/vnd.openxmlformats-officedocument.presentationml.presentation" -> "pptx";
+            default -> null;
+        };
+    }
+
+    private byte[] readHeader(MultipartFile file, int length) throws IOException {
+        try (InputStream input = file.getInputStream()) {
+            return input.readNBytes(length);
+        }
+    }
+
+    private boolean startsWith(byte[] bytes, int... expected) {
+        if (bytes == null || bytes.length < expected.length) {
+            return false;
+        }
+        for (int i = 0; i < expected.length; i++) {
+            if ((bytes[i] & 0xFF) != expected[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isGif(byte[] bytes) {
+        String value = new String(bytes, StandardCharsets.US_ASCII);
+        return value.equals("GIF87a") || value.equals("GIF89a");
+    }
+
+    private boolean isWebp(byte[] bytes) {
+        return bytes.length >= 12
+                && new String(bytes, 0, 4, StandardCharsets.US_ASCII).equals("RIFF")
+                && new String(bytes, 8, 4, StandardCharsets.US_ASCII).equals("WEBP");
+    }
+
+    private boolean isSvg(byte[] bytes) {
+        String value = new String(bytes, StandardCharsets.UTF_8)
+                .replace("\uFEFF", "")
+                .trim()
+                .toLowerCase(Locale.ROOT);
+        return value.startsWith("<svg") || (value.startsWith("<?xml") && value.contains("<svg"));
+    }
+
+    private boolean isMp4(byte[] bytes) {
+        return bytes.length >= 8 && new String(bytes, 4, 4, StandardCharsets.US_ASCII).equals("ftyp");
+    }
+
+    private boolean zipContainsPrefix(MultipartFile file, String requiredPrefix) throws IOException {
+        try (ZipInputStream zip = new ZipInputStream(file.getInputStream())) {
+            ZipEntry entry;
+            int inspected = 0;
+            while ((entry = zip.getNextEntry()) != null && inspected < 256) {
+                inspected++;
+                String name = entry.getName();
+                if (name != null && name.startsWith(requiredPrefix)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private String extensionOf(String filename) {
+        if (filename == null || filename.isBlank()) {
+            return "";
+        }
+        int dot = filename.lastIndexOf('.');
+        return dot >= 0 && dot < filename.length() - 1
+                ? filename.substring(dot + 1).toLowerCase()
+                : "";
     }
 
     private String sanitizeFolderName(String input) {
