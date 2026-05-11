@@ -83,6 +83,58 @@
           }
         }
 
+        @if (preview.kind === 'course_plan') {
+          <div class="wiii-preview-section">
+            <h3>Cấu trúc khóa học đề xuất</h3>
+            <dl class="wiii-preview-kv wiii-preview-kv--course">
+              <div><dt>Tên khóa</dt><dd>{{ coursePlanValue(preview, 'title') || preview.targetLabel }}</dd></div>
+              <div><dt>Đối tượng</dt><dd>{{ coursePlanValue(preview, 'audience') || 'Giáo viên xác nhận trong LMS' }}</dd></div>
+              <div><dt>Thời lượng</dt><dd>{{ coursePlanValue(preview, 'duration') || 'Theo tiến độ lớp học' }}</dd></div>
+              <div><dt>Số chương</dt><dd>{{ courseChapters(preview).length }}</dd></div>
+            </dl>
+
+            @if (coursePlanValue(preview, 'description')) {
+              <p class="wiii-preview-course-description">{{ coursePlanValue(preview, 'description') }}</p>
+            }
+
+            <div class="wiii-preview-course-tree">
+              @for (chapter of courseChapters(preview); track chapterTrack(chapter, $index)) {
+                <article class="wiii-preview-course-chapter">
+                  <div class="wiii-preview-course-chapter__header">
+                    <span>Chương {{ $index + 1 }}</span>
+                    <strong>{{ itemValue(chapter, 'title') || 'Chương chưa đặt tên' }}</strong>
+                    @if (itemValue(chapter, 'summary')) {
+                      <p>{{ itemValue(chapter, 'summary') }}</p>
+                    }
+                  </div>
+
+                  @if (chapterObjectives(chapter).length > 0) {
+                    <ul class="wiii-preview-objectives">
+                      @for (objective of chapterObjectives(chapter); track objective) {
+                        <li>{{ objective }}</li>
+                      }
+                    </ul>
+                  }
+
+                  <ol class="wiii-preview-lesson-list">
+                    @for (lesson of chapterLessons(chapter); track lessonTrack(lesson, $index)) {
+                      <li>
+                        <strong>{{ itemValue(lesson, 'title') || 'Bài học chưa đặt tên' }}</strong>
+                        @if (itemValue(lesson, 'summary')) {
+                          <p>{{ itemValue(lesson, 'summary') }}</p>
+                        }
+                        @if (itemValue(lesson, 'activity')) {
+                          <span>Hoạt động: {{ itemValue(lesson, 'activity') }}</span>
+                        }
+                      </li>
+                    }
+                  </ol>
+                </article>
+              }
+            </div>
+          </div>
+        }
+
         @if (preview.kind === 'quiz_commit') {
           <div class="wiii-preview-section">
             <h3>Kế hoạch bài kiểm tra</h3>

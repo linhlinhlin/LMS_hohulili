@@ -65,6 +65,8 @@ export class WiiiOperatorPreviewDialogComponent implements OnInit, OnDestroy {
     switch (kind) {
       case 'lesson_patch':
         return 'Wiii - xem trước bài học';
+      case 'course_plan':
+        return 'Wiii - xem trước cấu trúc khóa học';
       case 'quiz_commit':
         return 'Wiii - xem trước bài kiểm tra';
       case 'quiz_publish':
@@ -160,6 +162,50 @@ export class WiiiOperatorPreviewDialogComponent implements OnInit, OnDestroy {
     return this.objectValue(preview.data[planKey], field);
   }
 
+  protected coursePlan(preview: WiiiOperatorPreviewPanel): Record<string, unknown> {
+    const plan = preview.data['course_plan'];
+    return plan && typeof plan === 'object' && !Array.isArray(plan)
+      ? plan as Record<string, unknown>
+      : {};
+  }
+
+  protected coursePlanValue(preview: WiiiOperatorPreviewPanel, field: string): string {
+    return this.objectValue(preview.data['course_plan'], field);
+  }
+
+  protected courseChapters(preview: WiiiOperatorPreviewPanel): Array<Record<string, unknown>> {
+    const chapters = this.coursePlan(preview)['chapters'];
+    return Array.isArray(chapters)
+      ? chapters.filter((item): item is Record<string, unknown> => !!item && typeof item === 'object' && !Array.isArray(item))
+      : [];
+  }
+
+  protected chapterLessons(chapter: Record<string, unknown>): Array<Record<string, unknown>> {
+    const lessons = chapter['lessons'];
+    return Array.isArray(lessons)
+      ? lessons.filter((item): item is Record<string, unknown> => !!item && typeof item === 'object' && !Array.isArray(item))
+      : [];
+  }
+
+  protected chapterObjectives(chapter: Record<string, unknown>): string[] {
+    const objectives = chapter['learning_objectives'] || chapter['learningObjectives'];
+    return Array.isArray(objectives)
+      ? objectives.map((item) => String(item || '').trim()).filter(Boolean)
+      : [];
+  }
+
+  protected itemValue(item: Record<string, unknown>, field: string): string {
+    return String(item[field] || '').trim();
+  }
+
+  protected chapterTrack(chapter: Record<string, unknown>, index: number): string {
+    return `${index}-${chapter['title'] || 'chapter'}`;
+  }
+
+  protected lessonTrack(lesson: Record<string, unknown>, index: number): string {
+    return `${index}-${lesson['title'] || 'lesson'}`;
+  }
+
   protected sourceTrack(ref: WiiiSourceReference, index: number): string {
     return `${ref.kind || 'source'}-${ref.page || ref.page_start || index}`;
   }
@@ -183,6 +229,8 @@ export class WiiiOperatorPreviewDialogComponent implements OnInit, OnDestroy {
         return 'Mô tả';
       case 'content':
         return 'Nội dung';
+      case 'course_structure':
+        return 'Cấu trúc khóa học';
       default:
         return field;
     }
