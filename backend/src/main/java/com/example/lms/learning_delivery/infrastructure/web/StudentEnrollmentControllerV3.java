@@ -8,6 +8,7 @@ import com.example.lms.course_authoring.infrastructure.persistence.repository.Ch
 import com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.entity.ChapterJpaEntity;
 import com.example.lms.course_authoring.infrastructure.persistence.entity.LessonJpaEntity;
+import com.example.lms.course_authoring.infrastructure.service.CoursePublicationService;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.learning_delivery.domain.model.Enrollment;
@@ -69,6 +70,7 @@ public class StudentEnrollmentControllerV3 {
     private final QuizJpaRepositoryV3 quizJpaRepository;
     private final QuizAttemptJpaRepository quizAttemptJpaRepository;
     private final com.example.lms.shared.infrastructure.persistence.repository.PaymentTransactionJpaRepository paymentTransactionJpaRepository;
+    private final CoursePublicationService coursePublicationService;
 
     @Operation(summary = "Get student's enrolled courses")
     @GetMapping("/courses/enrolled")
@@ -174,6 +176,9 @@ public class StudentEnrollmentControllerV3 {
                         studentId, courseIds,
                         com.example.lms.shared.infrastructure.persistence.entity.PaymentTransactionJpaEntity.PaymentStatus.COMPLETED))
                 : Set.of();
+        Map<UUID, Map<String, Object>> publishedDetails = Optional
+                .ofNullable(coursePublicationService.getPublishedDetails(courseIds, studentId))
+                .orElse(Map.of());
 
         // Build response with real course data
         Map<UUID, CourseJpaEntity> finalCourseMap = courseMap;
@@ -206,7 +211,7 @@ public class StudentEnrollmentControllerV3 {
                             .description(description)
                             .teacherName(teacherName)
                             .categoryName(categoryName)
-                            .thumbnailUrl(course != null ? course.getThumbnailUrl() : null)
+                            .thumbnailUrl(resolvePublishedThumbnailUrl(course, publishedDetails.get(courseId)))
                             .status(enrollment.getStatus().name().toLowerCase())
                             .progress(enrollment.getCompletionPercent() != null ? enrollment.getCompletionPercent() : 0)
                             .totalLessons(lessonCountMap.getOrDefault(courseId, 0L).intValue())
@@ -1150,6 +1155,14 @@ private Map<String, Object> buildSectionCompletionResponse(
         }
         return normalizedSearch == null
                 || normalizeForSearch(course.getTitle()).contains(normalizedSearch);
+    }
+
+    private String resolvePublishedThumbnailUrl(CourseJpaEntity course, Map<String, Object> publishedDetail) {
+        if (publishedDetail != null && publishedDetail.containsKey("thumbnailUrl")) {
+            Object thumbnailUrl = publishedDetail.get("thumbnailUrl");
+            return thumbnailUrl instanceof String value ? value : null;
+        }
+        return course != null ? course.getThumbnailUrl() : null;
     }
 
     private void sortEnrolledCourseResponses(List<EnrolledCourseResponse> courseResponses, String sort, String order) {
