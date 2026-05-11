@@ -79,7 +79,7 @@
     "@tiptap/starter-kit": "^3.23.1",
     "@tiptap/suggestion": "^3.23.1",
     "@types/dompurify": "^3.2.0",
-    "@types/katex": "^0.16.7",
+    "@types/katex": "^0.16.8",
     "@types/video.js": "^7.3.58",
     "chart.js": "^4.5.1",
     "dexie": "^4.4.2",
@@ -113,7 +113,7 @@
     "@types/node": "^20.19.37",
     "autoprefixer": "^10.5.0",
     "axe-core": "^4.11.4",
-    "baseline-browser-mapping": "^2.10.0",
+    "baseline-browser-mapping": "^2.10.29",
     "fast-check": "^4.7.0",
     "jasmine-core": "~5.9.0",
     "karma": "~6.4.0",
@@ -126,7 +126,7 @@
     "tailwindcss": "^4.1.13",
     "typescript": "~5.9.3",
     "vite": "^7.3.1",
-    "zone.js": "^0.15.1"
+    "zone.js": "^0.16.2"
   },
   "msw": {
     "workerDirectory": [
