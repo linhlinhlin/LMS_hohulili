@@ -13,8 +13,15 @@ import { ConfirmStatusChangeService } from '../../services/confirm-status-change
 import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/kpi-card.component';
 import { BulkActionBarComponent, BulkAction } from '../../../../shared/components/admin/bulk-action-bar/bulk-action-bar.component';
 import { KebabMenuComponent, KebabAction } from '../../../../shared/components/admin/kebab-menu/kebab-menu.component';
-import { formatRelativeTimeVN } from '../../../../shared/utils/relative-time.util';
 import { initialsAvatar } from '../../../../shared/utils/avatar.util';
+
+interface AdminStats {
+  total: number;
+  active: number;
+  blocked: number;
+  restricted: number;
+  orgAdmins: number;
+}
 /**
  * Admin User Management Component
  * SOTA Design: Coursera-inspired with role change, status actions
@@ -33,6 +40,8 @@ export class AdminUserManagementComponent implements OnInit {
   private confirmDialog = inject(ConfirmDialogService);
   private authService = inject(AuthService);
   private confirmStatus = inject(ConfirmStatusChangeService);
+  private loadRequestId = 0;
+  private statsRequestId = 0;
 
   // State
   allUsers = signal<AdminUser[]>([]);
@@ -40,6 +49,17 @@ export class AdminUserManagementComponent implements OnInit {
   isLoading = signal(false);
   searchQuery = signal('');
   statusFilter = signal('');
+  currentPage = signal(1);
+  totalPages = signal(1);
+  totalItems = signal(0);
+  readonly pageSize = 12;
+  adminStats = signal<AdminStats>({
+    total: 0,
+    active: 0,
+    blocked: 0,
+    restricted: 0,
+    orgAdmins: 0
+  });
   // Issue #229: '' = tất cả, 'system' = ADMIN không thuộc org, UUID = org cụ thể
   orgFilter = signal('');
   showCreateModal = signal(false);
@@ -83,7 +103,7 @@ export class AdminUserManagementComponent implements OnInit {
 
   filteredAdmins = computed(() => {
     let admins = this.adminUsers();
-    const query = this.searchQuery().toLowerCase();
+    const query = this.searchQuery().trim().toLowerCase();
     const status = this.statusFilter();
     const org = this.orgFilter();
 
@@ -112,29 +132,79 @@ export class AdminUserManagementComponent implements OnInit {
   });
 
   // Stats
-  totalAdmins = computed(() => this.adminUsers().length);
-  activeAdmins = computed(() => this.adminUsers().filter(a => a.accountStatus === 'ACTIVE').length);
-  blockedAdmins = computed(() => this.adminUsers().filter(a => a.accountStatus === 'BLOCKED').length);
-  superAdmins = computed(() => 1); // Placeholder - needs backend support
-  recentlyActive = computed(() => {
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    return this.adminUsers().filter(a => a.lastLogin && new Date(a.lastLogin) > weekAgo).length;
-  });
+  totalAdmins = computed(() => this.adminStats().total);
+  activeAdmins = computed(() => this.adminStats().active);
+  blockedAdmins = computed(() => this.adminStats().blocked);
+  restrictedAdmins = computed(() => this.adminStats().restricted);
+  orgAdmins = computed(() => this.adminStats().orgAdmins);
 
   ngOnInit() {
-    this.loadUsers();
+    this.loadUsers(1);
     this.loadOrganizations();
   }
 
-  loadUsers() {
+  loadUsers(page = this.currentPage()) {
     this.isLoading.set(true);
-    this.adminService.getUsers({ page: 1, limit: 1000 }).subscribe({
+    const requestId = ++this.loadRequestId;
+    const params: any = { ...this.buildAdminFilterParams(), page, limit: this.pageSize, roles: 'ADMIN,ORG_ADMIN' };
+    if (this.statusFilter()) params.status = this.statusFilter();
+    this.loadStats();
+
+    this.adminService.getUsers(params).subscribe({
       next: (response) => {
+        if (requestId !== this.loadRequestId) return;
         this.allUsers.set(response.data || []);
+        this.currentPage.set(response.pagination?.page ?? page);
+        this.totalPages.set(Math.max(1, response.pagination?.totalPages ?? 1));
+        this.totalItems.set(response.pagination?.totalItems ?? response.data?.length ?? 0);
         this.clearSelection();
         this.isLoading.set(false);
       },
-      error: () => this.isLoading.set(false)
+      error: () => {
+        if (requestId !== this.loadRequestId) return;
+        this.isLoading.set(false);
+      }
+    });
+  }
+
+  private buildAdminFilterParams(): any {
+    const params: any = {};
+    const search = this.searchQuery().trim();
+    if (search) params.search = search;
+    if (this.orgFilter() === 'system') {
+      params.systemOnly = true;
+    } else if (this.orgFilter()) {
+      params.organizationId = this.orgFilter();
+    }
+    return params;
+  }
+
+  private loadStats(): void {
+    const requestId = ++this.statsRequestId;
+    const baseParams = this.buildAdminFilterParams();
+    const adminRoles = 'ADMIN,ORG_ADMIN';
+
+    forkJoin({
+      total: this.adminService.getUserCount({ ...baseParams, roles: adminRoles }),
+      active: this.adminService.getUserCount({ ...baseParams, roles: adminRoles, status: 'ACTIVE' }),
+      blocked: this.adminService.getUserCount({ ...baseParams, roles: adminRoles, status: 'BLOCKED' }),
+      restricted: this.adminService.getUserCount({ ...baseParams, roles: adminRoles, status: 'RESTRICTED' }),
+      orgAdmins: this.adminService.getUserCount({ ...baseParams, role: 'ORG_ADMIN' })
+    }).subscribe({
+      next: (stats) => {
+        if (requestId !== this.statsRequestId) return;
+        this.adminStats.set(stats);
+      },
+      error: () => {
+        if (requestId !== this.statsRequestId) return;
+        this.adminStats.set({
+          total: this.totalItems(),
+          active: 0,
+          blocked: 0,
+          restricted: 0,
+          orgAdmins: 0
+        });
+      }
     });
   }
 
@@ -188,6 +258,36 @@ export class AdminUserManagementComponent implements OnInit {
 
   clearSelection(): void {
     this.selectedUserIds.set(new Set());
+  }
+
+  paginationPages = computed(() => {
+    const total = this.totalPages();
+    const current = this.currentPage();
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+
+    const pages: number[] = [1];
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+    if (start > 2) pages.push(-1);
+    for (let page = start; page <= end; page++) pages.push(page);
+    if (end < total - 1) pages.push(-1);
+    pages.push(total);
+    return pages;
+  });
+
+  goToPage(page: number): void {
+    if (page < 1 || page > this.totalPages() || page === this.currentPage()) return;
+    this.loadUsers(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  pageStart(): number {
+    if (this.totalItems() === 0) return 0;
+    return (this.currentPage() - 1) * this.pageSize + 1;
+  }
+
+  pageEnd(): number {
+    return Math.min(this.currentPage() * this.pageSize, this.totalItems());
   }
 
   // --- Per-row kebab menu (CC-10) ---
@@ -317,16 +417,19 @@ export class AdminUserManagementComponent implements OnInit {
 
   onSearchInput(value: string) {
     this.searchQuery.set(value);
+    this.loadUsers(1);
   }
 
   onStatusFilterChange(value: string) {
     this.statusFilter.set(value);
+    this.loadUsers(1);
   }
 
   // Issue #229: org filter handler — '' = tất cả, 'system' = ADMIN không
   // thuộc org, UUID = scope tới org cụ thể.
   onOrgFilterChange(value: string) {
     this.orgFilter.set(value);
+    this.loadUsers(1);
   }
 
   openCreateModal() {
@@ -378,7 +481,7 @@ export class AdminUserManagementComponent implements OnInit {
       return;
     }
 
-    this.adminService.updateUser(userId, { role: newRole as 'ADMIN' | 'TEACHER' | 'STUDENT' }).subscribe({
+    this.adminService.updateUser(userId, { role: newRole as 'ADMIN' | 'ORG_ADMIN' | 'TEACHER' | 'STUDENT' }).subscribe({
       next: () => this.loadUsers(),
       error: (err) => this.toast.error('Không thể thay đổi vai trò: ' + (err.error?.message || 'Vui lòng thử lại'))
     });
@@ -441,6 +544,7 @@ export class AdminUserManagementComponent implements OnInit {
   getRoleLabel(role: string): string {
     switch (role.toUpperCase()) {
       case 'ADMIN': return 'Quản trị viên';
+      case 'ORG_ADMIN': return 'Chuyên viên quản lý';
       case 'TEACHER': return 'Giảng viên';
       case 'STUDENT': return 'Học viên';
       default: return role;
@@ -452,12 +556,6 @@ export class AdminUserManagementComponent implements OnInit {
     return d.toLocaleDateString('vi-VN', {
       day: '2-digit', month: '2-digit', year: 'numeric'
     });
-  }
-
-  // Cột "Hoạt động cuối" — relative time (Linear/GitHub/Stripe pattern,
-  // đồng bộ users/all PR #224). Tooltip [title] giữ ISO timestamp gốc.
-  formatRelativeTime(input: Date | string | null | undefined): string {
-    return formatRelativeTimeVN(input);
   }
 
   getDefaultAvatar(email: string): string {
@@ -491,4 +589,3 @@ export class AdminUserManagementComponent implements OnInit {
     }
   }
 }
-

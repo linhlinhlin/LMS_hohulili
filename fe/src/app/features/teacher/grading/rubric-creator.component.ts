@@ -16,7 +16,8 @@ const SEGMENT_COLORS = ['#0056D2', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '
 
 const RUBRIC_TEMPLATES = [
   {
-    id: 'practical', name: 'Kỹ năng thực hành', icon: '🔧',
+    id: 'practical', name: 'Kỹ năng thực hành', icon: 'settings',
+    description: 'Phù hợp cho bài thực hành, thao tác kỹ thuật, kiểm tra quy trình và tiêu chuẩn an toàn.',
     criteria: [
       { name: 'Kỹ thuật thực hiện', weight: 40 },
       { name: 'Độ chính xác', weight: 30 },
@@ -25,7 +26,8 @@ const RUBRIC_TEMPLATES = [
     ]
   },
   {
-    id: 'report', name: 'Báo cáo bài viết', icon: '📝',
+    id: 'report', name: 'Báo cáo bài viết', icon: 'file-text',
+    description: 'Dùng cho báo cáo, bài luận hoặc hồ sơ nộp bài cần đánh giá nội dung, cấu trúc và nguồn tham khảo.',
     criteria: [
       { name: 'Nội dung chuyên môn', weight: 50 },
       { name: 'Cấu trúc & Trình bày', weight: 30 },
@@ -33,7 +35,8 @@ const RUBRIC_TEMPLATES = [
     ]
   },
   {
-    id: 'presentation', name: 'Thuyết trình', icon: '🎤',
+    id: 'presentation', name: 'Thuyết trình', icon: 'presentation',
+    description: 'Dành cho phần trình bày trước lớp, bảo vệ dự án hoặc hoạt động cần đánh giá giao tiếp và phản hồi.',
     criteria: [
       { name: 'Nội dung', weight: 40 },
       { name: 'Kỹ năng trình bày', weight: 30 },
@@ -42,7 +45,8 @@ const RUBRIC_TEMPLATES = [
     ]
   },
   {
-    id: 'simulation', name: 'Mô phỏng', icon: '🥽',
+    id: 'simulation', name: 'Mô phỏng', icon: 'activity',
+    description: 'Phù hợp với tình huống mô phỏng, bài tập xử lý sự cố hoặc hoạt động phối hợp nhóm theo kịch bản.',
     criteria: [
       { name: 'Thực hiện quy trình', weight: 40 },
       { name: 'Xử lý tình huống', weight: 30 },
@@ -476,20 +480,23 @@ const RUBRIC_TEMPLATES = [
       <!-- Template Dialog -->
       @if (showTemplateDialog()) {
         <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
-          <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+          <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden">
             <div class="px-6 py-5 border-b border-slate-100">
               <h2 class="text-lg font-bold text-slate-900">Bắt đầu với</h2>
               <p class="text-sm text-slate-500 mt-1">Chọn mẫu có sẵn hoặc tạo từ đầu</p>
             </div>
             <div class="p-6">
-              <div class="grid grid-cols-2 gap-3 mb-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                 @for (t of templates; track t.id) {
                   <button type="button" (click)="loadTemplate(t)"
-                          class="flex items-start gap-3 p-4 rounded-xl border-2 border-slate-200 hover:border-[#0056D2] hover:bg-[#0056D2]/5 transition-all text-left group">
-                    <span class="text-2xl">{{ t.icon }}</span>
-                    <div>
+                          class="flex items-start gap-3 p-4 min-h-[132px] rounded-xl border-2 border-slate-200 hover:border-[#0056D2] hover:bg-[#0056D2]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0056D2]/30 transition-all text-left group">
+                    <span class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 group-hover:bg-[#0056D2] group-hover:text-white transition-colors">
+                      <lucide-icon [name]="t.icon" [size]="22"></lucide-icon>
+                    </span>
+                    <div class="min-w-0">
                       <p class="text-sm font-semibold text-slate-800 group-hover:text-[#0056D2]">{{ t.name }}</p>
-                      <p class="text-xs text-slate-400 mt-0.5">{{ t.criteria.length }} tiêu chí</p>
+                      <p class="text-xs text-slate-500 mt-1 leading-relaxed">{{ t.description }}</p>
+                      <p class="text-xs font-medium text-slate-400 mt-2">{{ t.criteria.length }} tiêu chí</p>
                     </div>
                   </button>
                 }
