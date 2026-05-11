@@ -143,6 +143,10 @@ describe('WiiiContextService - operator preview/apply flows', () => {
     expect(preview.data?.preview_kind).toBe('lesson_patch');
     expect(preview.data?.apply_action).toBe('authoring.apply_lesson_patch');
     expect(preview.data?.lesson_title).toBe('Bai hoc goc');
+    expect(preview.data?.proposed_lesson_title).toBe('Bai hoc moi');
+    expect(preview.data?.target_label).toBe('Bai hoc moi');
+    expect(String(preview.data?.summary)).toContain('Bai hoc moi');
+    expect(String(preview.data?.summary)).not.toContain('Bai hoc goc"');
     expect(preview.data?.changed_fields).toEqual(['title', 'content']);
     expect(preview.data?.lesson_before).toEqual(jasmine.objectContaining({
       title: 'Bai hoc goc',
@@ -169,6 +173,7 @@ describe('WiiiContextService - operator preview/apply flows', () => {
     expect(panelPreview).toEqual(jasmine.objectContaining({
       token: preview.data?.preview_token,
       kind: 'lesson_patch',
+      targetLabel: 'Bai hoc moi',
       sourceReferences: [jasmine.objectContaining({ page_start: 2 })],
     }));
 
