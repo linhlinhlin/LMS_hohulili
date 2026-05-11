@@ -128,7 +128,7 @@
               <!-- Thống kê -->
               <td class="no-wrap cell-muted">
                 <div class="stats-cell">
-                  @if (user.role === 'TEACHER') {
+                  @if (isTeacherRole(user.role)) {
                     <div class="stat-row">
                       <svg class="stat-icon" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
@@ -137,7 +137,7 @@
                       <span>{{ user.coursesCreated || 0 }} khóa học</span>
                     </div>
                   }
-                  @if (user.role === 'STUDENT') {
+                  @if (isStudentRole(user.role)) {
                     <div class="stat-row">
                       <svg class="stat-icon" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
@@ -146,7 +146,7 @@
                       <span>{{ user.coursesEnrolled || 0 }} đã đăng ký</span>
                     </div>
                   }
-                  @if (user.role !== 'TEACHER' && user.role !== 'STUDENT') {
+                  @if (!isTeacherRole(user.role) && !isStudentRole(user.role)) {
                     <span class="cell-muted">Không áp dụng</span>
                   }
                 </div>

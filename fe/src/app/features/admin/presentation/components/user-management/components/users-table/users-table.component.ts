@@ -178,7 +178,7 @@ import { formatRelativeTimeVN } from '../../../../../../../shared/utils/relative
                   <!-- Thống kê -->
                   <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-600">
                     <div class="space-y-1">
-                      @if (user.role === 'TEACHER') {
+                      @if (isTeacherRole(user.role)) {
                         <div class="flex items-center">
                           <svg class="w-3 h-3 mr-1.5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
@@ -187,7 +187,7 @@ import { formatRelativeTimeVN } from '../../../../../../../shared/utils/relative
                           <span>{{ user.coursesCreated || 0 }} khóa học</span>
                         </div>
                       }
-                      @if (user.role === 'STUDENT') {
+                      @if (isStudentRole(user.role)) {
                         <div class="flex items-center">
                           <svg class="w-3 h-3 mr-1.5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
@@ -196,7 +196,7 @@ import { formatRelativeTimeVN } from '../../../../../../../shared/utils/relative
                           <span>{{ user.coursesEnrolled || 0 }} đã đăng ký</span>
                         </div>
                       }
-                      @if (user.role !== 'TEACHER' && user.role !== 'STUDENT') {
+                      @if (!isTeacherRole(user.role) && !isStudentRole(user.role)) {
                         <span class="text-gray-400">Không áp dụng</span>
                       }
                     </div>
@@ -269,6 +269,14 @@ export class UsersTableComponent {
   // util accept union nên truyền thẳng Date.
   formatRelativeTime(input: Date | string | null | undefined): string {
     return formatRelativeTimeVN(input);
+  }
+
+  isTeacherRole(role: string | null | undefined): boolean {
+    return role?.toLowerCase() === 'teacher';
+  }
+
+  isStudentRole(role: string | null | undefined): boolean {
+    return role?.toLowerCase() === 'student';
   }
 
   onStatusAction(user: AdminUser, status: string): void {
