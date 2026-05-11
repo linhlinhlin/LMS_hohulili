@@ -1774,8 +1774,10 @@ export class WiiiContextService implements OnDestroy {
       throw new Error('Lesson patch preview needs at least one field to change');
     }
 
+    const currentLessonTitle = String(lesson?.title || lessonId).trim();
+    const proposedLessonTitle = title ?? currentLessonTitle;
     const summary = this.buildActionSummary(
-      `Lesson patch preview ready for "${lesson?.title || lessonId}"`,
+      `Bản xem trước bài học đã sẵn sàng cho "${proposedLessonTitle}"`,
       changedFields,
     );
     const beforeBlocks = this.extractLessonPreviewBlocks(
@@ -1808,10 +1810,11 @@ export class WiiiContextService implements OnDestroy {
       preview_token: preview.token,
       preview_kind: preview.kind,
       lesson_id: lessonId,
-      lesson_title: String(lesson?.title || lessonId).trim(),
+      lesson_title: currentLessonTitle,
+      proposed_lesson_title: proposedLessonTitle,
       course_id: String(lesson?.courseId || this.resolveCurrentCourseId(params) || '').trim() || undefined,
       apply_action: 'authoring.apply_lesson_patch',
-      summary: `${summary} Review the LMS preview panel before applying it.`,
+      summary: `${summary}. Giáo viên cần xem diff/citation trong LMS trước khi áp dụng.`,
       changed_fields: changedFields,
       content_target: targetContentSectionId
         ? {
@@ -1820,7 +1823,7 @@ export class WiiiContextService implements OnDestroy {
           type: this.normalizeString(targetContentSection?.['type']) || 'TEXT',
         }
         : undefined,
-      target_label: String(lesson?.title || lessonId).trim(),
+      target_label: proposedLessonTitle,
       source_references: sourceReferences,
       lesson_before: {
         title: String(lesson?.title || '').trim(),
