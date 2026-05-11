@@ -240,7 +240,7 @@
                  class="max-w-full max-h-[520px] md:max-h-[680px] object-contain block"
                  loading="lazy" />
           </div>
-        } @else if (isConvertibleDocumentFile(ext) && documentPreviewStatus(section) === 'PROCESSING') {
+        } @else if (isConvertibleDocumentFile(ext) && documentPreviewStatus(section) !== 'FAILED') {
           <!-- Office document is being converted to a normalized PDF preview. -->
           <div class="px-4 py-5 text-center bg-slate-50/60 text-sm text-slate-600">
             <app-icon name="info" size="sm" class="text-slate-400 align-middle mr-1"></app-icon>
@@ -258,7 +258,7 @@
             Đang chuẩn bị bản xem trước. Bấm <strong>"Tải xuống"</strong> để xem ngay nếu cần.
           </div>
         } @else {
-          <!-- Generic fallback: DOCX, XLSX, PPT, ZIP, unknown -->
+          <!-- Generic fallback: ZIP and other formats without an in-browser preview path. -->
           <div class="px-4 py-5 text-center bg-slate-50/60 text-sm text-slate-600">
             <app-icon name="info" size="sm" class="text-slate-400 align-middle mr-1"></app-icon>
             Trình duyệt không hỗ trợ xem trước định dạng này. Bấm <strong>"Tải xuống"</strong> để mở bằng ứng dụng phù hợp.

@@ -451,7 +451,8 @@ export class LessonContentComponent implements AfterViewInit {
   }
 
   documentPreviewStatus(section: { previewStatus?: string | null }): string | null {
-    return this.onDemandPreviewStatus() || section.previewStatus || null;
+    const status = this.onDemandPreviewStatus() || section.previewStatus || null;
+    return status ? status.toUpperCase() : null;
   }
 
   private normalizeDocumentPreviewStatus(status: string | undefined | null): 'PROCESSING' | 'READY' | 'FAILED' {
