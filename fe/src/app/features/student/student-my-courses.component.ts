@@ -1059,12 +1059,19 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
     .library-pagination {
       display: block;
       grid-column: 1 / -1;
-      margin-top: 24px;
+      justify-self: center;
+      width: 100%;
+      max-width: 1024px;
+      margin: 32px auto;
       background: white;
       border: 1px solid #E5E7EB;
-      border-radius: 12px;
-      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+      border-radius: 8px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
       overflow: hidden;
+
+      @include mobile {
+        margin: 24px auto 28px;
+      }
     }
 
     /* Fade-in for newly loaded courses */
