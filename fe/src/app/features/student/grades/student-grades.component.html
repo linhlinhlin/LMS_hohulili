@@ -175,18 +175,15 @@
         }
       </div>
 
-      <!-- Load More -->
-      @if (hasMoreGrades()) {
-        <div class="load-more-section">
-          <button type="button" class="load-more-btn" (click)="loadMoreGrades()">
-            Xem thêm {{ remainingGrades() }} kết quả
-          </button>
-          <p class="load-more-count">Đang hiện {{ visibleGrades().length }} / {{ filteredGrades().length }}</p>
-        </div>
-      } @else if (filteredGrades().length > 5) {
-        <p class="load-more-count" style="text-align:center;padding-top:16px">
-          Tất cả {{ filteredGrades().length }} kết quả
-        </p>
+      <!-- Pagination -->
+      @if (totalPages() > 1) {
+        <app-pagination
+          class="results-pagination mx-auto mt-8 mb-8 block w-full max-w-5xl overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
+          [currentPage]="safeCurrentPage() + 1"
+          [totalPages]="totalPages()"
+          [totalItems]="filteredGrades().length"
+          [itemsPerPage]="PAGE_SIZE"
+          (pageChange)="goToPage($event - 1)" />
       }
     }
   }
