@@ -151,6 +151,33 @@ public class CoursePublicationService {
                 .orElse(null);
     }
 
+    @Transactional(readOnly = true)
+    public Map<UUID, Map<String, Object>> getPublishedDetails(Collection<UUID> courseIds, UUID studentId) {
+        if (courseIds == null || courseIds.isEmpty()) {
+            return Map.of();
+        }
+
+        if (studentId != null) {
+            Map<UUID, Map<String, Object>> detailsByCourseId = new LinkedHashMap<>();
+            for (UUID courseId : courseIds) {
+                Map<String, Object> detail = getPublishedDetail(courseId, studentId);
+                if (detail != null) {
+                    detailsByCourseId.put(courseId, detail);
+                }
+            }
+            return detailsByCourseId;
+        }
+
+        Map<UUID, Map<String, Object>> detailsByCourseId = new LinkedHashMap<>();
+        for (CoursePublicationJpaEntity publication : publicationRepository.findLatestByCourseIdIn(courseIds)) {
+            Map<String, Object> detail = publishedDetailSnapshot(publication);
+            if (detail != null) {
+                detailsByCourseId.put(publication.getCourseId(), detail);
+            }
+        }
+        return detailsByCourseId;
+    }
+
     @SuppressWarnings("unchecked")
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getPublishedContent(UUID courseId, UUID studentId) {
@@ -203,6 +230,20 @@ public class CoursePublicationService {
         Map<String, Object> detail = new LinkedHashMap<>(detailSnapshot);
         applyIntroVideoAssetView(detail, parseVideoAssetId(detail.get("introVideoAssetId")));
         return detail;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> publishedDetailSnapshot(CoursePublicationJpaEntity publication) {
+        if (publication == null || publication.getSnapshot() == null) {
+            return null;
+        }
+
+        Object detail = publication.getSnapshot().get("detail");
+        if (!(detail instanceof Map<?, ?>)) {
+            return null;
+        }
+
+        return new LinkedHashMap<>((Map<String, Object>) detail);
     }
 
     private List<Map<String, Object>> buildCourseContent(UUID courseId) {
