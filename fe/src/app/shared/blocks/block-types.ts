@@ -1,3 +1,5 @@
+import type { InteractiveVideoSpec } from '../../api/types/interactive-video.types';
+
 export type BlockType = 'text' | 'paragraph' | 'image' | 'formula' | 'table' | 'video';
 
 export interface ContentBlock {
@@ -36,4 +38,5 @@ export interface VideoBlockData {
     mimeType?: string;       // e.g. 'video/mp4'
     status?: string;         // VideoAsset processing status: PENDING, PROCESSING, READY, FAILED
     isYouTube?: boolean;     // True if video is a YouTube URL embed
+    interactiveVideoSpec?: InteractiveVideoSpec | null;
 }

@@ -13,8 +13,9 @@ interface InteractiveVideoMarker {
   template: `
     @if (visibleMarkers().length > 0) {
       <div class="pointer-events-none border-t border-white/10 bg-slate-950/95 px-3 py-2 text-white">
-        @if (upcomingInteraction(); as next) {
-          <div class="mb-1.5 flex justify-end">
+        @if (showUpcomingHint()) {
+          @if (upcomingInteraction(); as next) {
+            <div class="mb-1.5 flex justify-end">
             <button
               type="button"
               class="pointer-events-auto inline-flex max-w-md items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-white shadow-sm transition-colors hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
@@ -25,7 +26,8 @@ interface InteractiveVideoMarker {
                 Sắp tới: {{ interactionLabel(next) }} tại {{ formatTime(next.atSeconds) }}
               </span>
             </button>
-          </div>
+            </div>
+          }
         }
 
         <div class="pointer-events-auto relative h-4 rounded-full bg-white/10 px-1 shadow-inner">
@@ -52,6 +54,7 @@ export class InteractiveVideoMarkersComponent {
   readonly durationSeconds = input<number | null>(null);
   readonly currentTimeSeconds = input(0);
   readonly activeInteractionId = input<string | null>(null);
+  readonly showUpcomingHint = input(true);
   readonly markerSelected = output<number>();
 
   readonly scaleSeconds = computed(() => {
