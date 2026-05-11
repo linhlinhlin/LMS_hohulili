@@ -296,6 +296,12 @@ export function shouldBlockInteractiveVideoSeek(input: InteractiveVideoSeekPolic
   const furthestWatched = toNonNegativeSeconds(input.furthestWatchedSeconds);
   const grace = Math.max(0, input.graceSeconds ?? SEEK_GRACE_SECONDS);
 
+  // 'forward' and 'both' currently share the same forward gate. The design
+  // doc reserves 'both' for "navigation constrained to visited/completed
+  // ranges" (strict review mode), which would also block backward jumps to
+  // unvisited regions. Implementing that requires tracking the set of
+  // visited stretches, not just the furthest mark, and is intentionally
+  // deferred until visited-range bookkeeping lands.
   return target > furthestWatched + grace;
 }
 

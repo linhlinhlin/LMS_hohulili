@@ -190,6 +190,14 @@ export class QuizVideoPlayerComponent {
   private readonly completedInteractionIds = new Set<string>();
   private furthestWatchedSeconds = 0;
   private isSeeking = false;
+  /**
+   * Time captured at the moment the user starts a seek (`seeking` event). Used
+   * as `previousTimeSeconds` once the seek settles (`seeked`) so the runtime
+   * can detect interactions the seek crossed (forward edge: prev < at <= cur).
+   * Without this we passed `current` as previous, which always made the
+   * forward-edge check false and let the user scrub past optional interactions.
+   */
+  private seekStartTimeSeconds = 0;
 
   constructor() {
     effect(() => {
@@ -244,7 +252,12 @@ export class QuizVideoPlayerComponent {
     }
     const previousTimeSeconds = this.isSeeking ? video.currentTime : this.currentTimeSeconds();
     this.currentTimeSeconds.set(video.currentTime);
-    this.markInteractiveVideoWatched(video.currentTime);
+    // Only natural forward playback advances the watched mark; seek-driven
+    // timeupdates would otherwise let a single forward jump bypass the
+    // anti-skip gate. Backward playback is not possible without seeking.
+    if (!this.isSeeking) {
+      this.markInteractiveVideoWatched(video.currentTime);
+    }
     this.evaluateInteractiveTimeline(video, previousTimeSeconds);
   }
 
@@ -252,6 +265,13 @@ export class QuizVideoPlayerComponent {
     const video = this.videoElement()?.nativeElement;
     if (!video) {
       return;
+    }
+    if (!this.isSeeking) {
+      // Capture the playback time before the seek starts so we can drive the
+      // forward-edge check against the actual user trajectory, not the post-seek
+      // position. Subsequent seeking events within the same drag preserve the
+      // original start anchor.
+      this.seekStartTimeSeconds = this.currentTimeSeconds();
     }
     this.isSeeking = true;
     this.snapBlockedInteractiveSeek(video);
@@ -263,8 +283,9 @@ export class QuizVideoPlayerComponent {
     if (!video) {
       return;
     }
+    const previousTimeSeconds = this.seekStartTimeSeconds;
     this.currentTimeSeconds.set(video.currentTime);
-    this.evaluateInteractiveTimeline(video, video.currentTime);
+    this.evaluateInteractiveTimeline(video, previousTimeSeconds);
   }
 
   seekToInteractiveSecond(seconds: number): void {
@@ -287,7 +308,8 @@ export class QuizVideoPlayerComponent {
 
     video.currentTime = target;
     this.currentTimeSeconds.set(video.currentTime);
-    this.markInteractiveVideoWatched(video.currentTime);
+    // Marker click is a seek, not playback. Skip markInteractiveVideoWatched
+    // so the anti-skip gate isn't bypassed by jumping forward via the rail.
     this.evaluateInteractiveTimeline(video);
   }
 
@@ -320,7 +342,7 @@ export class QuizVideoPlayerComponent {
     this.selectedChoiceId.set(null);
     video.currentTime = target;
     this.currentTimeSeconds.set(target);
-    this.markInteractiveVideoWatched(target);
+    // Review jump is a programmatic seek; don't advance the watched mark.
     void video.play().catch(() => {});
   }
 
@@ -638,7 +660,8 @@ export class QuizVideoPlayerComponent {
       const target = Math.max(0, targetTime);
       video.currentTime = target;
       this.currentTimeSeconds.set(target);
-      this.markInteractiveVideoWatched(target);
+      // Branch jump is a programmatic seek; let natural playback re-advance the
+      // watched mark instead of pre-marking the unwatched region as seen.
     }
     void video.play().catch(() => {});
   }

@@ -439,13 +439,19 @@ export class InteractiveVideoAuthoringPanelComponent {
   removeFillBlankBlank(interaction: InteractiveVideoInteraction, blankId: string): void {
     const fillBlank = this.getFillBlank(interaction);
     const placeholderIds = this.extractFillBlankPlaceholderIds(fillBlank.template);
+    if (placeholderIds.includes(blankId)) {
+      // The blank is still referenced from the template ({{N}}). Refuse with a
+      // toast so teachers don't get a silent "I deleted it but the row is still
+      // there" experience — the previous behaviour quietly cleared answers,
+      // leaving an orphan row that re-appeared on every render.
+      this.toast.warning(
+        `Hãy gỡ {{${blankId}}} khỏi câu trước rồi mới xoá ô trống.`,
+      );
+      return;
+    }
     this.updateFillBlank(interaction.id, {
       ...fillBlank,
-      blanks: placeholderIds.includes(blankId)
-        ? fillBlank.blanks.map(blank => blank.id === blankId
-            ? { ...blank, acceptedAnswers: [] }
-            : blank)
-        : fillBlank.blanks.filter(blank => blank.id !== blankId),
+      blanks: fillBlank.blanks.filter(blank => blank.id !== blankId),
     });
   }
 
