@@ -407,25 +407,29 @@ export class CurriculumEditorService {
       if (isNew) {
         const res: any = await firstValueFrom(this.sectionApi.createSection(lessonId, formData));
         const created = res.data || res;
-        this.editingSectionId.set(created?.id ?? null);
-        if (created?.id) {
+        const createdData = (created?.data && typeof created.data === 'object') ? created.data : (created || {});
+        const createdId = created?.id ?? createdData['id'];
+        this.editingSectionId.set(createdId ?? null);
+        if (createdId) {
           this.store.addSectionLocal(lessonId, {
-            id: created.id,
-            title: created.title || payload['title'] || '',
-            type: created.type || type,
-            content: created.content || payload['content'],
-            videoAssetId: created.videoAssetId || payload['videoAssetId'],
-            videoProcessingStatus: created.videoProcessingStatus,
-            videoUrl: created.videoUrl || payload['videoUrl'],
-            videoType: created.videoType || payload['videoType'],
-            streamVideoUid: created.streamVideoUid || payload['streamVideoUid'],
-            interactiveVideoSpec: created.interactiveVideoSpec ?? payload['interactiveVideoSpec'],
-            fileUrl: created.fileUrl,
-            orderIndex: created.orderIndex ?? 0,
-            isRequired: created.isRequired ?? payload['isRequired'] ?? false,
-            completionThreshold: created.completionThreshold ?? payload['completionThreshold'],
-            availableOfflineProfiles: created.availableOfflineProfiles ?? [],
-            quizData: created.quizData ?? payload['quizData'],
+            id: createdId,
+            title: createdData['title'] || payload['title'] || '',
+            type: created?.type ? String(created.type).toUpperCase() : type,
+            content: createdData['content'] || payload['content'],
+            videoAssetId: createdData['videoAssetId'] || payload['videoAssetId'],
+            videoProcessingStatus: createdData['videoProcessingStatus'],
+            videoUrl: createdData['videoUrl'] || payload['videoUrl'],
+            videoType: createdData['videoType'] || payload['videoType'],
+            streamVideoUid: createdData['streamVideoUid'] || payload['streamVideoUid'],
+            interactiveVideoSpec: createdData['interactiveVideoSpec'] ?? payload['interactiveVideoSpec'],
+            fileUrl: createdData['fileUrl'],
+            previewPdfUrl: createdData['previewPdfUrl'],
+            previewStatus: createdData['previewStatus'],
+            orderIndex: createdData['orderIndex'] ?? 0,
+            isRequired: createdData['isRequired'] ?? payload['isRequired'] ?? false,
+            completionThreshold: createdData['completionThreshold'] ?? payload['completionThreshold'],
+            availableOfflineProfiles: createdData['availableOfflineProfiles'] ?? [],
+            quizData: createdData['quizData'] ?? payload['quizData'],
           });
         }
       } else {
@@ -436,7 +440,7 @@ export class CurriculumEditorService {
         // BE response làm source of truth, fallback FE payload khi BE không trả field.
         const block = res?.data ?? res;
         const beData = (block?.data && typeof block.data === 'object') ? block.data : {};
-        this.store.updateSectionLocal(lessonId, this.editingSectionId()!, {
+        const updates: Partial<SectionDraftDTO> = {
           title: (beData['title'] as string) ?? payload['title'] ?? '',
           type: (block?.type ? String(block.type).toUpperCase() : type),
           content: (beData['content'] as string) ?? payload['content'],
@@ -448,7 +452,15 @@ export class CurriculumEditorService {
           isRequired: (beData['isRequired'] as boolean) ?? payload['isRequired'] ?? false,
           completionThreshold: (beData['completionThreshold'] as number) ?? payload['completionThreshold'],
           quizData: beData['quizData'] ?? payload['quizData'],
-        } as any);
+        } as any;
+        const fileUrl = (beData['fileUrl'] as string | undefined) ?? (payload['fileUrl'] as string | undefined);
+        const previewPdfUrl = (beData['previewPdfUrl'] as string | undefined) ?? (payload['previewPdfUrl'] as string | undefined);
+        const previewStatus = (beData['previewStatus'] as SectionDraftDTO['previewStatus'] | undefined)
+          ?? (payload['previewStatus'] as SectionDraftDTO['previewStatus'] | undefined);
+        if (fileUrl !== undefined) updates.fileUrl = fileUrl;
+        if (previewPdfUrl !== undefined) updates.previewPdfUrl = previewPdfUrl;
+        if (previewStatus !== undefined) updates.previewStatus = previewStatus;
+        this.store.updateSectionLocal(lessonId, this.editingSectionId()!, updates);
       }
 
       this.selectedSectionVideoFile.set(null);

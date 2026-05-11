@@ -751,6 +751,8 @@ public class CourseQueryControllerV3 {
                     section.setVideoType(null);
                     section.setStreamVideoUid(null);
                     section.setFileUrl(null);
+                    section.setPreviewPdfUrl(null);
+                    section.setPreviewStatus(null);
                     section.setQuizData(null);
                     section.setInteractiveVideoSpec(null);
                 }
@@ -1110,6 +1112,8 @@ public class CourseQueryControllerV3 {
                     .videoType(showContent ? videoType : null)
                     .streamVideoUid(showContent ? streamVideoUid : null)
                     .fileUrl(showContent ? (String) data.get("fileUrl") : null)
+                    .previewPdfUrl(showContent ? (String) data.get("previewPdfUrl") : null)
+                    .previewStatus(showContent ? (String) data.get("previewStatus") : null)
                     .duration(safeInt(data.get("duration"), 0))
                     .orderIndex(safeInt(data.get("orderIndex"), 0))
                     .isRequired(safeBool(data.get("isRequired"), false))
@@ -1637,6 +1641,8 @@ public class CourseQueryControllerV3 {
         private String videoType;
         private String streamVideoUid;
         private String fileUrl;
+        private String previewPdfUrl;
+        private String previewStatus;
         private Integer duration; // seconds
         private Integer orderIndex;
         private Boolean isRequired;

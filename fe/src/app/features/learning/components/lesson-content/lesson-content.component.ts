@@ -254,7 +254,9 @@ export class LessonContentComponent implements AfterViewInit {
     if (section?.type !== 'FILE') return;
 
     // Prefer previewPdfUrl (Gotenberg-converted) over original fileUrl
-    const previewPdfUrl = (section as any).previewPdfUrl || null;
+    const previewPdfUrl = (!section.previewStatus || section.previewStatus === 'READY')
+      ? section.previewPdfUrl || null
+      : null;
     const fileUrl = section.fileUrl || null;
     const urlToPreview = previewPdfUrl ?? (fileUrl && this.isPdfFileUrl(fileUrl) ? fileUrl : null);
 
@@ -351,6 +353,10 @@ export class LessonContentComponent implements AfterViewInit {
     if (ext === 'pdf') return false;
     if (this.isImageFile(ext)) return false;
     return true;
+  }
+
+  isConvertibleDocumentFile(ext: string): boolean {
+    return ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'rtf', 'txt', 'csv'].includes(ext);
   }
 
   private extractFileNameFromUrl(url: string | null): string {
