@@ -99,8 +99,9 @@ export function shouldShowMediaNetworkHint(state: MediaNetworkHintState): boolea
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [InteractiveVideoLayerComponent, InteractiveVideoOverlayComponent, InteractiveVideoMarkersComponent],
   template: `
-    <div class="relative h-full w-full bg-black" data-testid="adaptive-video-player"
+    <div class="flex h-full w-full flex-col bg-black" data-testid="adaptive-video-player"
          (click)="showQualityMenu() && showQualityMenu.set(false)">
+      <div class="relative min-h-0 flex-1 bg-black">
       <video
         #videoElement
         data-testid="adaptive-video-element"
@@ -189,13 +190,6 @@ export function shouldShowMediaNetworkHint(state: MediaNetworkHintState): boolea
         [activeInteractionId]="activeInteraction()?.id ?? null"
         (interactionSelected)="openInteractiveInteraction($event)" />
 
-      <app-interactive-video-markers
-        [timeline]="interactiveVideoSpec()?.enabled === false ? [] : (interactiveVideoSpec()?.timeline ?? [])"
-        [durationSeconds]="videoDurationSeconds()"
-        [currentTimeSeconds]="currentTimeSeconds()"
-        [activeInteractionId]="activeInteraction()?.id ?? null"
-        (markerSelected)="seekToInteractiveSecond($event)" />
-
       @if (showNetworkHint()) {
         <div
           class="pointer-events-none absolute left-3 z-10 rounded-full bg-amber-400/95 px-3 py-1 text-[11px] font-semibold text-slate-950 shadow-lg shadow-black/20"
@@ -216,6 +210,15 @@ export function shouldShowMediaNetworkHint(state: MediaNetworkHintState): boolea
           (reviewRequested)="onInteractiveReviewRequested()"
           (continueRequested)="onInteractiveContinue()" />
       }
+      </div>
+
+      <app-interactive-video-markers
+        [timeline]="interactiveVideoSpec()?.enabled === false ? [] : (interactiveVideoSpec()?.timeline ?? [])"
+        [durationSeconds]="videoDurationSeconds()"
+        [currentTimeSeconds]="currentTimeSeconds()"
+        [activeInteractionId]="activeInteraction()?.id ?? null"
+        [showUpcomingHint]="false"
+        (markerSelected)="seekToInteractiveSecond($event)" />
     </div>
   `,
 })
