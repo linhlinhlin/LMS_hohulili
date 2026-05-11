@@ -158,6 +158,49 @@ describe('interactive-video-runtime', () => {
     })).toBeFalse();
   });
 
+  it('keeps the seek gate open unless a forward skip exceeds watched progress with required work pending', () => {
+    const guardedSpec: InteractiveVideoSpec = {
+      version: 2,
+      enabled: true,
+      behavior: { preventSkippingMode: 'forward' },
+      timeline,
+    };
+    const disabledSpec: InteractiveVideoSpec = {
+      ...guardedSpec,
+      behavior: { preventSkippingMode: 'none' },
+    };
+
+    expect(shouldBlockInteractiveVideoSeek({
+      spec: guardedSpec,
+      targetTimeSeconds: 49,
+      furthestWatchedSeconds: 45,
+      hasIncompleteRequiredInteractions: true,
+      graceSeconds: 3,
+    })).toBeTrue();
+
+    expect(shouldBlockInteractiveVideoSeek({
+      spec: guardedSpec,
+      targetTimeSeconds: 48,
+      furthestWatchedSeconds: 45,
+      hasIncompleteRequiredInteractions: true,
+      graceSeconds: 3,
+    })).toBeFalse();
+
+    expect(shouldBlockInteractiveVideoSeek({
+      spec: guardedSpec,
+      targetTimeSeconds: 120,
+      furthestWatchedSeconds: 45,
+      hasIncompleteRequiredInteractions: false,
+    })).toBeFalse();
+
+    expect(shouldBlockInteractiveVideoSeek({
+      spec: disabledSpec,
+      targetTimeSeconds: 120,
+      furthestWatchedSeconds: 45,
+      hasIncompleteRequiredInteractions: true,
+    })).toBeFalse();
+  });
+
   it('evaluates fill-blank answers with alternatives and case-insensitive matching by default', () => {
     const interaction: InteractiveVideoInteraction = {
       id: 'fill-blank',
