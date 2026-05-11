@@ -8,6 +8,7 @@ import {
   evaluateInteractiveVideoFillBlank,
   getDueInteractiveVideoInteraction,
   getVisibleInteractiveVideoInteractions,
+  hasInteractiveVideoReviewTarget,
   isInteractiveVideoProgressGateInteraction,
   isInteractiveVideoTimeWithinWatchedRanges,
   isInteractiveVideoReviewInteraction,
@@ -136,6 +137,30 @@ describe('interactive-video-runtime', () => {
       interaction.choices![0],
       timeline,
     )).toBe(5);
+  });
+
+  it('does not invent a review target when no seek destination is configured', () => {
+    const interaction: InteractiveVideoInteraction = {
+      id: 'review-without-target',
+      type: 'branch',
+      atSeconds: 47,
+      adaptivity: {
+        requireCorrectBeforeContinue: true,
+        onWrong: { type: 'continue', message: 'Try again.' },
+      },
+      choices: [
+        { id: 'wrong', label: 'Wrong', isCorrect: false },
+        { id: 'right', label: 'Right', isCorrect: true },
+      ],
+    };
+    const wrongChoice = interaction.choices![0];
+
+    expect(resolveInteractiveVideoReviewTarget(
+      interaction,
+      wrongChoice,
+      timeline,
+    )).toBeNull();
+    expect(hasInteractiveVideoReviewTarget(interaction, wrongChoice, timeline)).toBeFalse();
   });
 
   it('identifies every interaction type that blocks learner progress', () => {

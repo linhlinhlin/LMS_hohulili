@@ -181,6 +181,37 @@ describe('QuizVideoPlayerComponent interactive video seek behavior', () => {
     expect(getPrivate<number>(fixture.componentInstance, 'furthestWatchedSeconds')).toBe(25);
   });
 
+  it('does not jump to the beginning when a review action has no seek target', () => {
+    const video = prepareVideoElement(42, 120);
+    const reviewWithoutTarget: InteractiveVideoInteraction = {
+      id: 'branch-review-without-target',
+      type: 'branch',
+      atSeconds: 42,
+      adaptivity: {
+        requireCorrectBeforeContinue: true,
+        onWrong: { type: 'continue', message: 'Try again.' },
+      },
+      choices: [
+        { id: 'wrong', label: 'Wrong', isCorrect: false },
+        { id: 'right', label: 'Right', isCorrect: true },
+      ],
+    };
+    fixture.componentRef.setInput('interactiveVideoSpec', {
+      version: 2,
+      enabled: true,
+      timeline: [reviewWithoutTarget],
+    });
+    fixture.detectChanges();
+
+    fixture.componentInstance.activeInteraction.set(reviewWithoutTarget);
+    fixture.componentInstance.selectedChoiceId.set('wrong');
+    fixture.componentInstance.onInteractiveReviewRequested();
+
+    expect(video.currentTime).toBe(42);
+    expect(fixture.componentInstance.activeInteraction()?.id).toBe('branch-review-without-target');
+    expect(fixture.componentInstance.selectedChoiceId()).toBe('wrong');
+  });
+
   it('blocks strict both-mode seeks into unwatched gaps', () => {
     const video = prepareVideoElement(90, 120);
     const required: InteractiveVideoInteraction = {
