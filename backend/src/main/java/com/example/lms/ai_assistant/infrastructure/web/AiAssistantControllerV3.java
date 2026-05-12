@@ -81,8 +81,11 @@ public class AiAssistantControllerV3 {
         health.put("webhookEnabled", webhookEnabled);
         health.put("version", "3.0");
 
-        String msg = "available".equals(aiStatus) ? "Dịch vụ AI đang hoạt động"
-                : "Dịch vụ AI chưa được cấu hình";
+        String msg = switch (aiStatus) {
+            case "available" -> "Dịch vụ AI đang hoạt động";
+            case "configured" -> "Dịch vụ AI đã được cấu hình";
+            default -> "Dịch vụ AI chưa được cấu hình";
+        };
         return ResponseEntity.ok(ApiResponse.success(health, msg));
     }
 
