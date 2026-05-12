@@ -13,7 +13,7 @@ import { ToastService } from '../../../core/services/toast.service';
   selector: 'app-course-creation',
   imports: [CommonModule, ReactiveFormsModule, RouterModule],
   template: `
-    <div class="h-screen flex flex-col bg-slate-50 overflow-hidden">
+    <div class="h-screen flex flex-col bg-slate-50 overflow-hidden" data-wiii-id="teacher-course-creation">
 
       <!-- Sticky top bar -->
       <div class="flex-shrink-0 bg-white border-b border-slate-200/80 z-10">
@@ -77,6 +77,9 @@ import { ToastService } from '../../../core/services/toast.service';
                       <label class="block text-sm font-medium text-slate-700 mb-2">Hình thức giảng dạy</label>
                       <div class="grid grid-cols-2 gap-3">
                         <button type="button" (click)="setDeliveryMode('SELF_PACED')"
+                                data-wiii-id="course-creation-mode-self-paced"
+                                data-wiii-click-safe="true"
+                                data-wiii-click-kind="form_option"
                                 class="group relative text-left px-4 py-3 rounded-lg border-2 transition-all"
                                 [class]="selectedMode() === 'SELF_PACED'
                                   ? 'border-[#0056D2] bg-[#0056D2]/[0.03]'
@@ -101,6 +104,9 @@ import { ToastService } from '../../../core/services/toast.service';
                         </button>
 
                         <button type="button" (click)="setDeliveryMode('INSTRUCTOR_LED')"
+                                data-wiii-id="course-creation-mode-instructor-led"
+                                data-wiii-click-safe="true"
+                                data-wiii-click-kind="form_option"
                                 class="group relative text-left px-4 py-3 rounded-lg border-2 transition-all"
                                 [class]="selectedMode() === 'INSTRUCTOR_LED'
                                   ? 'border-emerald-500 bg-emerald-50/50'
@@ -130,6 +136,7 @@ import { ToastService } from '../../../core/services/toast.service';
                     <div>
                       <label for="courseTitle" class="block text-sm font-medium text-slate-700 mb-1.5">Tên khóa học</label>
                       <input id="courseTitle" [formControl]="titleControl" type="text"
+                             data-wiii-id="course-creation-title-input"
                              class="w-full border border-slate-300 rounded-lg px-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/40 focus:border-[#0056D2] transition-all"
                              placeholder="VD: Điều khiển tàu biển nâng cao" />
                       @if (titleControl.invalid && titleControl.touched) {
@@ -147,6 +154,7 @@ import { ToastService } from '../../../core/services/toast.service';
                           <div>
                             <label class="block text-xs text-slate-500 mb-1">Lĩnh vực</label>
                             <select class="w-full border border-slate-300 rounded-lg px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/40 focus:border-[#0056D2] transition-all text-sm"
+                                    data-wiii-id="course-creation-root-category"
                                     (change)="onRootCategoryChange($any($event.target).value)">
                               <option value="" [selected]="!selectedRootId()">Chọn lĩnh vực</option>
                               @for (root of categoryTree(); track root.id) {
@@ -157,6 +165,7 @@ import { ToastService } from '../../../core/services/toast.service';
                           <div>
                             <label class="block text-xs text-slate-500 mb-1">Chuyên ngành</label>
                             <select [formControl]="categoryControl"
+                                    data-wiii-id="course-creation-subcategory"
                                     class="w-full border border-slate-300 rounded-lg px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/40 focus:border-[#0056D2] transition-all text-sm"
                                     [class.text-slate-400]="!subcategories().length"
                                     [class.opacity-60]="!subcategories().length">
@@ -184,6 +193,9 @@ import { ToastService } from '../../../core/services/toast.service';
                   <div class="flex items-center justify-between px-5 sm:px-6 py-3 border-t border-slate-100 bg-slate-50/60 rounded-b-xl">
                     <button type="button" (click)="onCancel()" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">Hủy</button>
                     <button type="button" (click)="nextStep()" [disabled]="!canProceed()"
+                            data-wiii-id="course-creation-next-step"
+                            data-wiii-click-safe="true"
+                            data-wiii-click-kind="form_step"
                             class="px-5 py-2 text-sm font-semibold text-white bg-[#0056D2] rounded-lg hover:bg-[#004BB5] disabled:opacity-40 disabled:cursor-not-allowed transition-all">
                       Tiếp theo
                     </button>
@@ -214,6 +226,7 @@ import { ToastService } from '../../../core/services/toast.service';
                         <span class="text-xs text-slate-400">Không bắt buộc</span>
                       </div>
                       <textarea id="courseDesc" [formControl]="descriptionControl" rows="3"
+                                data-wiii-id="course-creation-description"
                                 class="w-full border border-slate-300 rounded-lg px-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/40 focus:border-[#0056D2] transition-all resize-none"
                                 placeholder="Học viên sẽ học được gì từ khóa học này?"></textarea>
                     </div>
@@ -223,6 +236,9 @@ import { ToastService } from '../../../core/services/toast.service';
                       <label class="block text-sm font-medium text-slate-700 mb-2">Giá khóa học</label>
                       <div class="grid grid-cols-2 gap-3">
                         <button type="button" (click)="priceType.set('FREE')"
+                                data-wiii-id="course-creation-price-free"
+                                data-wiii-click-safe="true"
+                                data-wiii-click-kind="form_option"
                                 class="group flex items-center gap-2.5 px-4 py-3 rounded-lg border-2 transition-all text-left"
                                 [class]="priceType() === 'FREE' ? 'border-green-500 bg-green-50/50' : 'border-slate-200 hover:border-slate-300'">
                           <div class="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 transition-colors"
@@ -238,6 +254,9 @@ import { ToastService } from '../../../core/services/toast.service';
                         </button>
 
                         <button type="button" (click)="priceType.set('PAID')"
+                                data-wiii-id="course-creation-price-paid"
+                                data-wiii-click-safe="true"
+                                data-wiii-click-kind="form_option"
                                 class="group flex items-center gap-2.5 px-4 py-3 rounded-lg border-2 transition-all text-left"
                                 [class]="priceType() === 'PAID' ? 'border-amber-500 bg-amber-50/50' : 'border-slate-200 hover:border-slate-300'">
                           <div class="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 transition-colors"
@@ -260,6 +279,7 @@ import { ToastService } from '../../../core/services/toast.service';
                         <div>
                           <label class="block text-xs text-slate-600 mb-1">Giá gốc (VND)</label>
                           <input [formControl]="priceControl" type="number" min="0" step="10000"
+                                 data-wiii-id="course-creation-price-input"
                                  class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/40 focus:border-[#0056D2] text-sm bg-white placeholder:text-slate-400"
                                  placeholder="VD: 500000" />
                           @if (priceControl.touched && (!priceControl.value || priceControl.value <= 0)) {
@@ -269,6 +289,7 @@ import { ToastService } from '../../../core/services/toast.service';
                         <div>
                           <label class="block text-xs text-slate-600 mb-1">Giá khuyến mãi (VND)</label>
                           <input [formControl]="salePriceControl" type="number" min="0" step="10000"
+                                 data-wiii-id="course-creation-sale-price-input"
                                  class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/40 focus:border-[#0056D2] text-sm bg-white placeholder:text-slate-400"
                                  placeholder="VD: 400000" />
                           @if (salePriceControl.value && salePriceControl.value > 0 && priceControl.value && priceControl.value > 0 && salePriceControl.value >= priceControl.value) {
@@ -293,6 +314,7 @@ import { ToastService } from '../../../core/services/toast.service';
                   <div class="flex items-center justify-between px-5 sm:px-6 py-3 border-t border-slate-100 bg-slate-50/60 rounded-b-xl">
                     <button type="button" (click)="prevStep()" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">Quay lại</button>
                     <button type="button" (click)="onSubmit()" [disabled]="isSubmitting() || !canSubmit()"
+                            data-wiii-id="course-creation-submit"
                             class="px-5 py-2 text-sm font-semibold text-white bg-[#0056D2] rounded-lg hover:bg-[#004BB5] disabled:opacity-40 disabled:cursor-not-allowed transition-all inline-flex items-center gap-2">
                       @if (isSubmitting()) {
                         <svg class="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
@@ -409,6 +431,31 @@ import { ToastService } from '../../../core/services/toast.service';
                         Sửa thông tin
                       </button>
                     }
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 via-white to-sky-50 p-4 shadow-sm"
+                   data-wiii-id="course-creation-wiii-helper">
+                <div class="flex items-start gap-3">
+                  <div class="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#0056D2] text-white">
+                    <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M9 4.5a.75.75 0 01.721.544l.813 2.846a3.75 3.75 0 002.576 2.576l2.846.813a.75.75 0 010 1.442l-2.846.813a3.75 3.75 0 00-2.576 2.576l-.813 2.846a.75.75 0 01-1.442 0l-.813-2.846a3.75 3.75 0 00-2.576-2.576l-2.846-.813a.75.75 0 010-1.442l2.846-.813A3.75 3.75 0 007.466 7.89l.813-2.846A.75.75 0 019 4.5z" clip-rule="evenodd"/>
+                    </svg>
+                  </div>
+                  <div class="min-w-0">
+                    <h2 class="text-sm font-bold text-slate-900">Có tài liệu Word/PDF?</h2>
+                    <p class="mt-1 text-xs leading-5 text-slate-600">
+                      Tạo khung khóa học trước, rồi dùng Wiii trong tab Nội dung để tạo chương/bài từ tài liệu với bản xem trước và nguồn trích dẫn.
+                    </p>
+                    <button type="button"
+                            class="mt-3 inline-flex items-center rounded-lg bg-[#0056D2] px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#004BB5] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/30"
+                            data-wiii-id="course-creation-open-wiii-ai"
+                            data-wiii-click-safe="true"
+                            data-wiii-click-kind="open_panel"
+                            (click)="openWiiiAssistant()">
+                      Mở Wiii AI
+                    </button>
                   </div>
                 </div>
               </div>
@@ -564,6 +611,15 @@ export class CourseCreationComponent implements OnInit {
     this.router.navigate(['/teacher/courses/library']);
   }
 
+  openWiiiAssistant(): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.dispatchEvent(new CustomEvent('wiii:open-sidebar', {
+      detail: { action: 'course_creation_support' }
+    }));
+  }
+
   hasUnsavedData(): boolean {
     if (this.submitted()) return false;
     return !!(this.titleControl.value || this.categoryControl.value || this.descriptionControl.value ||
@@ -606,8 +662,8 @@ export class CourseCreationComponent implements OnInit {
       const res = await firstValueFrom(this.api.createCourse(payload));
       const course = res?.data;
       if (course?.id) {
-        this.toast.success('Tạo khóa học thành công! Đang chuyển đến trang chỉnh sửa...');
-        await this.router.navigate(['/teacher/courses', course.id, 'editor']);
+        this.toast.success('Đã tạo khóa học. Đang mở tab Nội dung để thêm chương/bài hoặc dùng Wiii từ tài liệu.');
+        await this.router.navigate(['/teacher/courses', course.id, 'editor', 'curriculum']);
       } else {
         this.toast.error('Phản hồi không hợp lệ từ máy chủ');
       }

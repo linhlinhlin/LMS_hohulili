@@ -12,6 +12,7 @@ import { NotificationService } from '../../../core/services/notification.service
 import { MessagingService } from '../../../core/services/messaging.service';
 import { ChatPanelComponent } from '../../ai-chat/presentation/components/chat-panel/chat-panel.component';
 import { AiAvailabilityService } from '../../ai-chat/application/services/ai-availability.service';
+import { WiiiContextService, type WiiiSidebarOpenDetail } from '../../ai-chat/infrastructure/api/wiii-context.service';
 
 @Component({
   selector: 'app-teacher-layout-simple',
@@ -162,7 +163,9 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
 
         <!-- AI Sidebar (Desktop) — always rendered, animated via CSS -->
         @if (enableAssistant()) {
-        <aside class="ai-sidebar hidden md:flex md:flex-col"
+        <aside id="teacher-ai-sidebar"
+               class="ai-sidebar hidden md:flex md:flex-col"
+               data-wiii-id="teacher-ai-sidebar"
                [class.ai-sidebar-open]="isAiSidebarOpen()"
                [class.ai-sidebar-resizing]="isResizing()"
                [style.width.px]="isAiSidebarOpen() ? aiSidebarWidth() : null"
@@ -196,14 +199,23 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
       <!-- Desktop: Toggle tab — always rendered, animated -->
       @if (enableAssistant()) {
       <button
-        class="ai-sidebar-toggle hidden md:flex"
-        [class.ai-toggle-hidden]="isAiSidebarOpen()"
-        (click)="toggleAiSidebar()"
-        title="Mở trợ lý AI"
-        aria-label="Mở trợ lý AI">
+        class="ai-sidebar-launcher hidden md:flex"
+        [class.ai-launcher-hidden]="isAiSidebarOpen()"
+        (click)="openAiSidebar()"
+        title="Mở trợ lý Wiii AI"
+        aria-label="Mở trợ lý Wiii AI"
+        aria-controls="teacher-ai-sidebar"
+        [attr.aria-expanded]="isAiSidebarOpen()"
+        data-wiii-id="open-wiii-ai"
+        data-wiii-click-safe="true"
+        data-wiii-click-kind="open_panel">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="toggle-icon">
           <path fill-rule="evenodd" d="M9 4.5a.75.75 0 01.721.544l.813 2.846a3.75 3.75 0 002.576 2.576l2.846.813a.75.75 0 010 1.442l-2.846.813a3.75 3.75 0 00-2.576 2.576l-.813 2.846a.75.75 0 01-1.442 0l-.813-2.846a3.75 3.75 0 00-2.576-2.576l-2.846-.813a.75.75 0 010-1.442l2.846-.813A3.75 3.75 0 007.466 7.89l.813-2.846A.75.75 0 019 4.5zM18 1.5a.75.75 0 01.728.568l.258 1.036c.236.94.97 1.674 1.91 1.91l1.036.258a.75.75 0 010 1.456l-1.036.258c-.94.236-1.674.97-1.91 1.91l-.258 1.036a.75.75 0 01-1.456 0l-.258-1.036a2.625 2.625 0 00-1.91-1.91l-1.036-.258a.75.75 0 010-1.456l1.036-.258a2.625 2.625 0 001.91-1.91l.258-1.036A.75.75 0 0118 1.5z" clip-rule="evenodd" />
         </svg>
+        <span class="launcher-copy">
+          <strong>Wiii AI</strong>
+          <small>Soạn bài từ tài liệu</small>
+        </span>
       </button>
       }
 
@@ -407,48 +419,73 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
       transition: none !important;
     }
 
-    /* ── Toggle tab — subtle, professional ── */
-    .ai-sidebar-toggle {
+    /* ── Desktop Wiii launcher — visible enough for real teacher workflows ── */
+    .ai-sidebar-launcher {
       position: fixed;
-      right: 0;
-      top: 50%;
-      transform: translateY(-50%);
+      right: 18px;
+      bottom: 22px;
+      transform: translateY(0);
       z-index: 50;
       align-items: center;
       justify-content: center;
-      width: 28px;
-      height: 72px;
-      background: white;
-      color: #9ca3af;
-      border: 1px solid #e5e7eb;
-      border-right: none;
-      border-radius: 8px 0 0 8px;
+      gap: 10px;
+      min-width: 172px;
+      min-height: 54px;
+      padding: 10px 14px 10px 12px;
+      background: #ffffff;
+      color: #0f172a;
+      border: 1px solid rgba(0, 86, 210, 0.22);
+      border-radius: 999px;
       cursor: pointer;
-      box-shadow: -2px 0 8px rgba(0, 0, 0, 0.04);
-      transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-                  opacity 0.25s ease,
-                  width 0.15s ease,
-                  color 0.15s ease,
-                  background 0.15s ease,
-                  box-shadow 0.15s ease;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14), 0 0 0 4px rgba(0, 86, 210, 0.05);
+      transition:
+        transform 0.22s ease,
+        opacity 0.18s ease,
+        border-color 0.16s ease,
+        box-shadow 0.16s ease;
     }
 
-    .ai-sidebar-toggle:hover {
-      width: 32px;
-      background: #f9fafb;
-      color: #0056D2;
-      box-shadow: -3px 0 12px rgba(0, 0, 0, 0.08);
+    .ai-sidebar-launcher:hover {
+      transform: translateY(-2px);
+      border-color: rgba(0, 86, 210, 0.42);
+      box-shadow: 0 20px 48px rgba(15, 23, 42, 0.18), 0 0 0 5px rgba(0, 86, 210, 0.08);
     }
 
-    .ai-sidebar-toggle.ai-toggle-hidden {
-      transform: translateY(-50%) translateX(100%);
+    .ai-sidebar-launcher:focus-visible {
+      outline: 3px solid rgba(0, 86, 210, 0.28);
+      outline-offset: 3px;
+    }
+
+    .ai-sidebar-launcher.ai-launcher-hidden {
+      transform: translateY(12px) scale(0.96);
       opacity: 0;
       pointer-events: none;
     }
 
-    .toggle-icon {
-      width: 18px;
-      height: 18px;
+    .ai-sidebar-launcher .toggle-icon {
+      width: 22px;
+      height: 22px;
+      color: #0056D2;
+      flex: 0 0 auto;
+    }
+
+    .launcher-copy {
+      display: grid;
+      gap: 1px;
+      text-align: left;
+      line-height: 1.1;
+    }
+
+    .launcher-copy strong {
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    .launcher-copy small {
+      color: #64748b;
+      font-size: 11px;
+      font-weight: 700;
     }
 
     /* Respect reduced motion preference */
@@ -466,6 +503,7 @@ export class TeacherLayoutSimpleComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private notificationService = inject(NotificationService);
   private messagingService = inject(MessagingService);
+  private wiiiContextService = inject(WiiiContextService);
   protected readonly enableAssistant = this.aiAvailability.isAvailable;
   protected isMobileSidebarOpen = signal(false);
   /** Sidebar collapsed/mobileOpen/hidden state — single source of truth shared
@@ -505,6 +543,7 @@ export class TeacherLayoutSimpleComponent implements OnInit, OnDestroy {
   private sidebarHidden = signal<boolean>(false);
   protected readonly hideMobileChrome = signal(false);
   private routerSubscription?: Subscription;
+  private sidebarOpenListener?: (event: Event) => void;
 
   protected shouldHideSidebar = computed(() => this.sidebarHidden());
   protected shouldHideMobileChrome = computed(() => this.sidebarHidden() || this.hideMobileChrome());
@@ -533,11 +572,24 @@ export class TeacherLayoutSimpleComponent implements OnInit, OnDestroy {
 
     // Handle initial route
     this.handleRouteChange(this.router.url);
+
+    if (typeof window !== 'undefined') {
+      this.sidebarOpenListener = (event: Event) => {
+        if (event instanceof CustomEvent) {
+          this.wiiiContextService.applySidebarIntent((event as CustomEvent<WiiiSidebarOpenDetail>).detail);
+        }
+        this.openAiSidebar();
+      };
+      window.addEventListener('wiii:open-sidebar', this.sidebarOpenListener);
+    }
   }
 
   ngOnDestroy() {
     if (this.routerSubscription) {
       this.routerSubscription.unsubscribe();
+    }
+    if (typeof window !== 'undefined' && this.sidebarOpenListener) {
+      window.removeEventListener('wiii:open-sidebar', this.sidebarOpenListener);
     }
   }
 
@@ -562,6 +614,11 @@ export class TeacherLayoutSimpleComponent implements OnInit, OnDestroy {
   }
 
   // --- AI Sidebar (Desktop) ---
+
+  openAiSidebar(): void {
+    this.isAiSidebarOpen.set(true);
+    this.saveAiSidebarState(true);
+  }
 
   toggleAiSidebar(): void {
     this.isAiSidebarOpen.update(v => !v);

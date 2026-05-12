@@ -465,6 +465,15 @@ export class WiiiContextService implements OnDestroy {
       };
     }
 
+    // ── Teacher course creation wizard: /teacher/course-creation ──
+    if (path.match(/\/teacher\/course-creation$/)) {
+      return {
+        page_type: 'teacher_course_creation',
+        page_title: 'Tạo khóa học mới',
+        workflow_stage: 'authoring',
+      };
+    }
+
     // ── Teacher / Admin catch-all ──
     if (path.includes('/teacher')) return { page_type: 'teacher_page', page_title: 'Cổng giảng viên' };
     if (path.includes('/admin')) return { page_type: 'admin_page', page_title: 'Quản trị' };
@@ -1536,6 +1545,11 @@ export class WiiiContextService implements OnDestroy {
       this.courseEditorStore.invalidateCache(courseId);
       this.courseEditorStore.loadCourse(courseId, true);
     }
+    const nextRoute = `/teacher/courses/${courseId}/editor/curriculum`;
+    const navigatedToCurriculum = await this.router.navigate(['/teacher/courses', courseId, 'editor', 'curriculum']);
+    const nextStep = navigatedToCurriculum
+      ? 'LMS đã mở tab Nội dung để rà soát chương/bài nháp, kiểm tra nguồn trích dẫn, rồi mới xuất bản.'
+      : 'Mở tab Nội dung để rà soát chương/bài nháp, kiểm tra nguồn trích dẫn, rồi mới xuất bản.';
 
     return {
       success: true,
@@ -1546,7 +1560,10 @@ export class WiiiContextService implements OnDestroy {
         chapters_created: chaptersCreated,
         lessons_created: lessonsCreated,
         chapters: createdChapters,
-        summary: `Đã tạo ${chaptersCreated} chương và ${lessonsCreated} bài học draft từ tài liệu.`,
+        next_route: nextRoute,
+        navigated_to_curriculum: navigatedToCurriculum,
+        next_step: nextStep,
+        summary: `Đã tạo ${chaptersCreated} chương và ${lessonsCreated} bài học nháp từ tài liệu. ${nextStep}`,
       },
     };
   }
@@ -2563,8 +2580,11 @@ export class WiiiContextService implements OnDestroy {
   private sendContext(ctx: WiiiPageContext): void {
     if (!this.iframeEl || !this.embedOrigin) return;
     try {
+      const shouldApplyTransientPatch =
+        !!this.transientContextPatch
+        && (ctx.page_type === 'course_editor' || ctx.page_type === 'teacher_course_creation');
       const payload = this.decorateContext(
-        this.transientContextPatch && ctx.page_type === 'course_editor'
+        shouldApplyTransientPatch
           ? { ...ctx, ...this.transientContextPatch }
           : ctx,
       );
