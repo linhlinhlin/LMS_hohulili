@@ -468,8 +468,11 @@ describe('WiiiContextService - operator preview/apply flows', () => {
     }));
     expect(courseEditorStore.invalidateCache).toHaveBeenCalledWith('course-1');
     expect(courseEditorStore.loadCourse).toHaveBeenCalledWith('course-1', true);
+    expect(router.navigate).toHaveBeenCalledWith(['/teacher/courses', 'course-1', 'editor', 'curriculum']);
     expect(applied.data?.['chapters_created']).toBe(2);
     expect(applied.data?.['lessons_created']).toBe(2);
+    expect(applied.data?.['next_route']).toBe('/teacher/courses/course-1/editor/curriculum');
+    expect(applied.data?.['navigated_to_curriculum']).toBeTrue();
   });
 
   it('previews and commits a new quiz through the host action flow', async () => {

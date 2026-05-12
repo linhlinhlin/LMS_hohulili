@@ -22,12 +22,14 @@ export class WiiiOperatorPreviewDialogComponent implements OnInit, OnDestroy {
   protected readonly activePreview = signal<WiiiOperatorPreviewPanel | null>(null);
   protected readonly status = signal<PreviewStatus>('idle');
   protected readonly message = signal('');
+  protected readonly appliedData = signal<Record<string, unknown> | null>(null);
 
   ngOnInit(): void {
     this.sub = this.contextService.operatorPreview$.subscribe((preview) => {
       this.activePreview.set(preview);
       this.status.set('idle');
       this.message.set('');
+      this.appliedData.set(null);
     });
   }
 
@@ -42,6 +44,7 @@ export class WiiiOperatorPreviewDialogComponent implements OnInit, OnDestroy {
     this.activePreview.set(null);
     this.status.set('idle');
     this.message.set('');
+    this.appliedData.set(null);
   }
 
   protected async approve(): Promise<void> {
@@ -51,12 +54,16 @@ export class WiiiOperatorPreviewDialogComponent implements OnInit, OnDestroy {
     }
     this.status.set('applying');
     this.message.set('');
+    this.appliedData.set(null);
+
     const result = await this.contextService.approveOperatorPreview(preview.token);
     if (result.success) {
       this.status.set('applied');
-      this.message.set('Đã áp dụng thành công. LMS đang tải lại nội dung liên quan.');
+      this.appliedData.set(result.data ?? null);
+      this.message.set(String(result.data?.['summary'] || 'Đã áp dụng thành công. LMS đang tải lại nội dung liên quan.'));
       return;
     }
+
     this.status.set('error');
     this.message.set(result.error || 'Không thể áp dụng bản xem trước này.');
   }
@@ -94,10 +101,45 @@ export class WiiiOperatorPreviewDialogComponent implements OnInit, OnDestroy {
       case 'applying':
         return 'Đang áp dụng...';
       case 'applied':
-        return 'Đã áp dụng';
+        return 'Xong, về LMS';
       default:
         return 'Áp dụng vào LMS';
     }
+  }
+
+  protected secondaryActionLabel(): string {
+    return this.status() === 'applied' ? 'Đóng' : 'Hủy';
+  }
+
+  protected nextStepItems(preview: WiiiOperatorPreviewPanel): string[] {
+    if (preview.kind === 'course_plan') {
+      const data = this.appliedData();
+      const chapterCount = Number(data?.['chapters_created'] || 0);
+      const lessonCount = Number(data?.['lessons_created'] || 0);
+      return [
+        chapterCount || lessonCount
+          ? `Wiii đã tạo ${chapterCount} chương và ${lessonCount} bài học ở trạng thái nháp.`
+          : 'Wiii đã áp dụng cây chương/bài vào khóa học.',
+        'LMS đã mở tab Nội dung để bạn rà soát từng bài, thêm học liệu/video/quiz nếu cần.',
+        'Chỉ xuất bản sau khi giáo viên kiểm tra xong nội dung và nguồn trích dẫn.',
+      ];
+    }
+    if (preview.kind === 'lesson_patch') {
+      return [
+        'Nội dung bài học đã được cập nhật sau khi bạn duyệt.',
+        'Hãy đọc lại bài trong trình soạn, kiểm tra nguồn trích dẫn rồi lưu/xuất bản khi sẵn sàng.',
+      ];
+    }
+    if (preview.kind === 'quiz_commit') {
+      return [
+        'Bài kiểm tra đã được tạo hoặc cập nhật ở trạng thái nháp.',
+        'Hãy mở phần quiz để kiểm tra câu hỏi, đáp án và điểm đạt trước khi phát hành.',
+      ];
+    }
+    return [
+      'Thay đổi đã được áp dụng trong LMS.',
+      'Hãy kiểm tra lại trạng thái hiển thị với học viên trước khi tiếp tục.',
+    ];
   }
 
   protected changedFields(preview: WiiiOperatorPreviewPanel): string[] {

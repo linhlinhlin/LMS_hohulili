@@ -235,6 +235,17 @@
         @if (message()) {
           <p class="wiii-preview-message">{{ message() }}</p>
         }
+
+        @if (status() === 'applied') {
+          <div class="wiii-preview-next-step" data-wiii-id="wiii-apply-next-step">
+            <h3>Tiếp theo</h3>
+            <ul>
+              @for (item of nextStepItems(preview); track item) {
+                <li>{{ item }}</li>
+              }
+            </ul>
+          </div>
+        }
       </div>
 
       <footer class="wiii-preview-footer">
@@ -245,14 +256,14 @@
           [disabled]="status() === 'applying'"
           (click)="close()"
         >
-          Hủy
+          {{ secondaryActionLabel() }}
         </button>
         <button
           type="button"
           class="wiii-preview-primary"
           data-wiii-id="apply-wiii-preview"
-          [disabled]="status() === 'applying' || status() === 'applied'"
-          (click)="approve()"
+          [disabled]="status() === 'applying'"
+          (click)="status() === 'applied' ? close() : approve()"
         >
           {{ primaryActionLabel() }}
         </button>
