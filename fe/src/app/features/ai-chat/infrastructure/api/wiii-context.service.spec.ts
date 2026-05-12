@@ -396,6 +396,7 @@ describe('WiiiContextService - operator preview/apply flows', () => {
     });
     const preview = await (service as any).handleActionRequest('authoring.generate_course_from_document', {
       course_id: 'course-1',
+      summary: 'Wiii đã dựng cây khóa học nháp. Giáo viên cần xem citation trước khi áp dụng vào LMS.',
       course_plan: {
         title: 'Khai thác HoLiLiHu LMS',
         description: 'Khóa học từ tài liệu hướng dẫn',
@@ -437,6 +438,7 @@ describe('WiiiContextService - operator preview/apply flows', () => {
     expect(preview.success).toBeTrue();
     expect(preview.data?.preview_kind).toBe('course_plan');
     expect(preview.data?.apply_action).toBe('authoring.apply_course_plan');
+    expect(String(preview.data?.summary).match(/Giáo viên cần xem/g)?.length).toBe(1);
     expect(preview.data?.course_plan).toEqual(jasmine.objectContaining({
       title: 'Khai thác HoLiLiHu LMS',
       chapters: jasmine.any(Array),

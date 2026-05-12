@@ -1432,6 +1432,21 @@ export class WiiiContextService implements OnDestroy {
     ].filter((part) => part.trim().length > 0).join('\n\n');
   }
 
+  private withCoursePlanReviewInstruction(summary: string): string {
+    const clean = summary.replace(/\s+/g, ' ').trim();
+    const lower = clean.toLocaleLowerCase('vi-VN');
+    const alreadyAsksForReview = (
+      lower.includes('giáo viên cần xem')
+      || (lower.includes('citation') && lower.includes('áp dụng'))
+      || (lower.includes('nguồn trích dẫn') && lower.includes('áp dụng'))
+      || (lower.includes('source') && lower.includes('apply'))
+    );
+    if (alreadyAsksForReview) {
+      return clean;
+    }
+    return `${clean.replace(/[.!?。]+$/u, '')}. Giáo viên cần xem cây chương/bài và nguồn trích dẫn trước khi áp dụng.`;
+  }
+
   private async previewCoursePlan(
     params: Record<string, unknown>,
   ): Promise<{ success: boolean; data: Record<string, unknown> }> {
@@ -1464,7 +1479,7 @@ export class WiiiContextService implements OnDestroy {
       course_title: plan.title,
       target_label: plan.title,
       apply_action: 'authoring.apply_course_plan',
-      summary: `${summary} Giáo viên cần xem cây chương/bài và nguồn trích dẫn trước khi áp dụng.`,
+      summary: this.withCoursePlanReviewInstruction(summary),
       changed_fields: ['course_structure'],
       source_references: sourceReferences,
       course_plan: plan,
