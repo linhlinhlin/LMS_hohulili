@@ -120,9 +120,19 @@
                 @for (item of blockDiffItems(preview); track blockTrack(item)) {
                   <article class="wiii-preview-block">
                     <span [class]="blockStatusClass(item['status'])">{{ blockStatusLabel(item['status']) }}</span>
-                    <div>
-                      <p>{{ blockText(item['before']) || 'Trống' }}</p>
-                      <p>{{ blockText(item['after']) || 'Trống' }}</p>
+                    <div class="wiii-preview-block__content">
+                      @if (blockText(item['before'])) {
+                        <details class="wiii-preview-block__before">
+                          <summary>Hiện tại</summary>
+                          <p>{{ compactText(blockText(item['before']), 280) }}</p>
+                        </details>
+                      }
+                      @if (blockText(item['after'])) {
+                        <div class="wiii-preview-block__after">
+                          <strong>Wiii đề xuất</strong>
+                          <p>{{ compactText(blockText(item['after']), 420) }}</p>
+                        </div>
+                      }
                     </div>
                   </article>
                 }

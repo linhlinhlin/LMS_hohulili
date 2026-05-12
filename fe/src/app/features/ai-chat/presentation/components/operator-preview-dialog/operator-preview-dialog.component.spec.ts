@@ -73,4 +73,53 @@ describe('WiiiOperatorPreviewDialogComponent', () => {
     expect(proposedDetails.open).toBeTrue();
     expect(proposedDetails.textContent).toContain('PROPOSED_FULL_DRAFT');
   });
+
+  it('shows only changed block diff items and keeps before text collapsed', () => {
+    const changedBefore = `BEFORE_START ${'old block text '.repeat(80)} BEFORE_SENTINEL_END`;
+    const preview: WiiiOperatorPreviewPanel = {
+      token: 'preview-token',
+      kind: 'lesson_patch',
+      createdAt: Date.now(),
+      summary: 'Giáo viên cần xem thay đổi khối nội dung.',
+      applyAction: 'authoring.apply_lesson_patch',
+      targetLabel: 'Bản nháp bài học',
+      changedFields: ['content'],
+      sourceReferences: [],
+      data: {
+        lesson_before: { title: 'Bài cũ' },
+        lesson_after: { title: 'Bài mới' },
+        block_diff: {
+          items: [
+            {
+              index: 0,
+              status: 'changed',
+              before: { label: 'Khối cũ', excerpt: changedBefore },
+              after: { label: 'Khối mới', excerpt: 'AFTER_VISIBLE_TEXT' },
+            },
+            {
+              index: 1,
+              status: 'unchanged',
+              before: { label: 'Giữ nguyên', excerpt: 'UNCHANGED_SENTINEL' },
+              after: { label: 'Giữ nguyên', excerpt: 'UNCHANGED_SENTINEL' },
+            },
+          ],
+        },
+      },
+    };
+
+    previewSubject.next(preview);
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const blocks = host.querySelectorAll('.wiii-preview-block');
+    const beforeDetails = host.querySelector('.wiii-preview-block__before') as HTMLDetailsElement;
+
+    expect(blocks.length).toBe(1);
+    expect(host.textContent).not.toContain('UNCHANGED_SENTINEL');
+    expect(beforeDetails).toBeTruthy();
+    expect(beforeDetails.open).toBeFalse();
+    expect(beforeDetails.textContent).toContain('BEFORE_START');
+    expect(beforeDetails.textContent).not.toContain('BEFORE_SENTINEL_END');
+    expect(host.textContent).toContain('AFTER_VISIBLE_TEXT');
+  });
 });
