@@ -33,6 +33,8 @@ import {
       <button
         class="floating-bubble"
         [class.mobile]="isMobile()"
+        [attr.data-wiii-id]="isPanelOpen() ? 'close-wiii-widget' : 'open-wiii-widget'"
+        data-wiii-click-safe="true"
         (click)="onBubbleClick()"
         (mouseenter)="showTooltip.set(true)"
         (mouseleave)="showTooltip.set(false)"
