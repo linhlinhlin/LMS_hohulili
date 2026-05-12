@@ -110,12 +110,12 @@ describe('Rubric Calculator - Property Tests', () => {
    * **Property 9: Rubric Score Calculation**
    * 
    * *For any* rubric with criteria and selected levels, the total score 
-   * SHALL equal the sum of points from all selected levels weighted by criteria.
+   * SHALL equal the selected level ratio multiplied by each criterion weight.
    * 
    * **Validates: Requirements 6.4**
    */
   describe('Property 9: Rubric Score Calculation', () => {
-    it('should calculate score as weighted sum of selected levels', () => {
+    it('should calculate score as weighted sum of criterion contributions', () => {
       for (let i = 0; i < ITERATIONS; i++) {
         const rubric = generateValidRubric();
         const selections = generateSelectionsForRubric(rubric);
@@ -129,13 +129,62 @@ describe('Rubric Calculator - Property Tests', () => {
           if (selection) {
             const level = criterion.levels.find(l => l.id === selection.levelId);
             if (level) {
-              expectedScore += (criterion.weight / 100) * level.points;
+              const maxLevelPoints = Math.max(...criterion.levels.map(l => l.points), 0);
+              expectedScore += maxLevelPoints > 0
+                ? (level.points / maxLevelPoints) * criterion.weight
+                : 0;
             }
           }
         }
         
         expect(Math.abs(result.totalScore - expectedScore)).toBeLessThan(0.01);
       }
+    });
+
+    it('should award full weighted points when all selected levels are maximum', () => {
+      const rubric: Rubric = {
+        id: 'rubric-report',
+        name: 'Report rubric',
+        criteria: [
+          {
+            id: 'content',
+            name: 'Content',
+            weight: 50,
+            levels: [
+              { id: 'content-excellent', name: 'Excellent', description: '', points: 10 },
+              { id: 'content-ok', name: 'Meets expectations', description: '', points: 7 }
+            ]
+          },
+          {
+            id: 'structure',
+            name: 'Structure',
+            weight: 30,
+            levels: [
+              { id: 'structure-excellent', name: 'Excellent', description: '', points: 10 },
+              { id: 'structure-ok', name: 'Meets expectations', description: '', points: 7 }
+            ]
+          },
+          {
+            id: 'references',
+            name: 'References',
+            weight: 20,
+            levels: [
+              { id: 'references-excellent', name: 'Excellent', description: '', points: 10 },
+              { id: 'references-ok', name: 'Meets expectations', description: '', points: 7 }
+            ]
+          }
+        ],
+        totalPoints: 100
+      };
+
+      const result = calculateRubricScore(rubric, [
+        { criterionId: 'content', levelId: 'content-excellent' },
+        { criterionId: 'structure', levelId: 'structure-excellent' },
+        { criterionId: 'references', levelId: 'references-excellent' }
+      ]);
+
+      expect(result.totalScore).toBe(100);
+      expect(result.percentage).toBe(100);
     });
 
     it('should return score between 0 and maxPossibleScore', () => {

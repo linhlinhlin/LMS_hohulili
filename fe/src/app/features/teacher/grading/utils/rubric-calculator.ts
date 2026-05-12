@@ -92,7 +92,11 @@ export const MAX_WEIGHT = 100;
  * inputs will always produce the same result.
  * 
  * The score is calculated as:
- * totalScore = Σ (criterion.weight / 100 * selectedLevel.points)
+ * totalScore = SUM((selectedLevel.points / maxLevel.points) * criterion.weight)
+ *
+ * `criterion.weight` is the criterion's contribution to the rubric total.
+ * A level score of 10/10 earns the full criterion contribution, e.g. 50
+ * points for a 50-point criterion.
  * 
  * @param rubric - The rubric definition with criteria and levels
  * @param selections - Array of criterion-level selections
@@ -124,13 +128,17 @@ export function calculateRubricScore(
       ? criterion.levels.find(l => l.id === selection.levelId)
       : null;
 
-    // Find max points for this criterion
-    const maxPoints = Math.max(...criterion.levels.map(l => l.points), 0);
+    // Levels may be authored as 10/7/4, 100/75/50, or directly on the
+    // criterion scale. Normalize the selected level to the criterion weight.
+    const maxLevelPoints = Math.max(...criterion.levels.map(l => l.points), 0);
+    const criterionMaxPoints = Math.max(0, criterion.weight || 0);
 
-    // Calculate weighted score
+    // Calculate criterion score on the criterion's own contribution scale.
     const points = selectedLevel?.points ?? 0;
-    const weightedScore = (criterion.weight / 100) * points;
-    const maxWeightedScore = (criterion.weight / 100) * maxPoints;
+    const weightedScore = maxLevelPoints > 0
+      ? (points / maxLevelPoints) * criterionMaxPoints
+      : 0;
+    const maxWeightedScore = criterionMaxPoints;
 
     totalScore += weightedScore;
     maxPossibleScore += maxWeightedScore;
@@ -142,7 +150,7 @@ export function calculateRubricScore(
       selectedLevelId: selectedLevel?.id ?? '',
       selectedLevelName: selectedLevel?.name ?? 'Chưa chọn',
       points,
-      maxPoints,
+      maxPoints: criterionMaxPoints,
       weightedScore
     });
   }
