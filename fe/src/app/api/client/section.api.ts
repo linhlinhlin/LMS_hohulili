@@ -12,8 +12,8 @@ export class SectionApi {
     return this.api.postWithResponse<SectionDetail>(SECTION_ENDPOINTS.CREATE(lessonId), payload);
   }
 
-  updateSection(lessonId: string, sectionId: string, payload: UpdateSectionRequest | FormData) {
-    return this.api.putWithResponse<SectionDetail>(SECTION_ENDPOINTS.UPDATE(lessonId, sectionId), payload);
+  updateSection(lessonId: string, sectionId: string, payload: UpdateSectionRequest | FormData, options?: any) {
+    return this.api.putWithResponse<SectionDetail>(SECTION_ENDPOINTS.UPDATE(lessonId, sectionId), payload, options);
   }
 
   deleteSection(lessonId: string, sectionId: string) {
