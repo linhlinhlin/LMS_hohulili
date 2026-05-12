@@ -10,8 +10,11 @@ import {
   generateRubricId
 } from './utils/rubric-calculator';
 import { RubricApi } from '../../../api/endpoints/rubric.api';
-
-const SEGMENT_COLORS = ['#0056D2', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#14b8a6', '#f97316'];
+import {
+  buildDefaultRubricLevels,
+  buildRubricLevelPoints,
+  RUBRIC_SEGMENT_COLORS
+} from './rubric-form.defaults';
 
 @Component({
   selector: 'app-rubric-editor',
@@ -95,59 +98,78 @@ const SEGMENT_COLORS = ['#0056D2', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '
 
               <!-- Weight Distribution Bar (only when >= 2 criteria) -->
               @if (criteriaArray.length >= 2) {
-                <div class="bg-white border border-slate-200 rounded-xl p-6">
-                  <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                      <span class="w-1.5 h-1.5 rounded-full bg-violet-500"></span>
-                      Phân bổ trọng số
-                    </h2>
-                    <button type="button" (click)="redistributeWeightsEvenly()"
-                            class="text-xs text-slate-400 hover:text-[#0056D2] flex items-center gap-1 transition-colors">
-                      <lucide-icon name="rotate-ccw" [size]="11"></lucide-icon>
-                      Chia đều
-                    </button>
+                <div class="bg-white border border-slate-200 rounded-xl p-5">
+                  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-4">
+                    <div>
+                      <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-violet-500"></span>
+                        Phân bổ trọng số
+                      </h2>
+                      <p class="mt-1 text-xs text-slate-500">Mỗi màu là một tiêu chí. Kéo mốc để đổi tỷ trọng hoặc mở tiêu chí để nhập số trực tiếp.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="inline-flex h-8 items-center rounded-lg border px-2.5 text-xs font-semibold"
+                            [class]="isWeightValid() ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-amber-100 bg-amber-50 text-amber-700'">
+                        Tổng {{ totalWeight() }}%
+                      </span>
+                      <button type="button" (click)="redistributeWeightsEvenly()"
+                              class="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-500 hover:border-[#0056D2]/30 hover:text-[#0056D2] flex items-center gap-1 transition-colors">
+                        <lucide-icon name="rotate-ccw" [size]="12"></lucide-icon>
+                        Chia đều
+                      </button>
+                    </div>
                   </div>
 
-                  <!-- Drag bar -->
                   <div #weightBar
-                       class="relative h-12 rounded-lg overflow-hidden flex select-none"
+                       class="relative h-5 rounded-full bg-slate-100 shadow-inner flex overflow-visible select-none"
                        [class.cursor-ew-resize]="draggingIndex() !== null"
                        [class.cursor-default]="draggingIndex() === null">
-
                     @for (seg of weightSegments(); track $index; let i = $index) {
-                      <div class="relative flex items-center justify-center overflow-hidden transition-all duration-100 cursor-pointer"
+                      <div class="relative h-full transition-all duration-100 cursor-pointer first:rounded-l-full last:rounded-r-full"
                            [style.width.%]="totalWeight() > 0 ? (seg.weight / totalWeight() * 100) : (100 / weightSegments().length)"
                            [style.background-color]="seg.color"
+                           [attr.title]="seg.name + ': ' + seg.weight + '%'"
                            (click)="expandedIndex.set(i)">
-                        @if (seg.weight >= 12) {
-                          <div class="flex flex-col items-center leading-none px-1 text-white">
-                            <span class="text-[10px] font-semibold truncate max-w-[90%]">{{ seg.name | slice:0:10 }}{{ seg.name.length > 10 ? '…' : '' }}</span>
-                            <span class="text-xs font-bold">{{ seg.weight }}%</span>
-                          </div>
-                        } @else {
-                          <span class="text-[10px] font-bold text-white">{{ seg.weight }}%</span>
-                        }
                       </div>
                     }
 
-                    <!-- Drag handles (N-1 handles for N segments) -->
                     @for (pos of handlePositions(); track $index; let i = $index) {
-                      <div class="absolute top-0 bottom-0 w-3 -translate-x-1/2 flex items-center justify-center cursor-ew-resize z-10 group"
+                      <div class="absolute -top-2 h-9 w-5 -translate-x-1/2 flex items-center justify-center cursor-ew-resize z-10 group"
                            [style.left.%]="totalWeight() > 0 ? (pos / totalWeight() * 100) : pos"
                            (pointerdown)="startDrag($event, i)"
                            (pointermove)="onDrag($event)"
                            (pointerup)="endDrag($event)"
                            (pointercancel)="endDrag($event)">
-                        <div class="w-1 h-8 bg-white/80 rounded-full shadow-lg group-hover:bg-white transition-colors"></div>
+                        <div class="h-8 w-1.5 rounded-full bg-white shadow-md ring-1 ring-slate-300 group-hover:ring-[#0056D2] transition-colors"></div>
                       </div>
                     }
                   </div>
 
-                  <div class="mt-2 flex items-center justify-between">
-                    <p class="text-xs text-slate-400">Kéo các mốc trắng để điều chỉnh · Giữ Shift để bước 1%</p>
-                    <span class="text-xs font-semibold" [class]="isWeightValid() ? 'text-emerald-600' : 'text-amber-600'">
-                      Tổng: {{ totalWeight() }}%
-                    </span>
+                  <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    @for (seg of weightSegments(); track $index; let i = $index) {
+                      <button type="button" (click)="expandedIndex.set(i)"
+                              class="flex items-center gap-2 rounded-lg border px-3 py-2 text-left transition-colors"
+                              [class.border-[#0056D2]/40]="expandedIndex() === i"
+                              [class.bg-blue-50]="expandedIndex() === i"
+                              [class.border-slate-200]="expandedIndex() !== i"
+                              [class.hover:border-slate-300]="expandedIndex() !== i">
+                        <span class="h-8 w-2.5 rounded-full shrink-0" [style.background-color]="seg.color"></span>
+                        <span class="min-w-0 flex-1">
+                          <span class="block truncate text-xs font-semibold text-slate-700">{{ seg.name }}</span>
+                          <span class="text-[11px] text-slate-400">Tiêu chí {{ i + 1 }}</span>
+                        </span>
+                        <span class="text-sm font-bold tabular-nums" [style.color]="seg.color">{{ seg.weight }}%</span>
+                      </button>
+                    }
+                  </div>
+
+                  <div class="mt-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <p class="text-xs text-slate-400">Giữ Shift khi kéo để chỉnh từng 1%.</p>
+                    @if (!isWeightValid()) {
+                      <span class="text-xs font-medium" [class]="totalWeight() > 100 ? 'text-rose-600' : 'text-amber-600'">
+                        {{ totalWeight() > 100 ? 'Vượt' : 'Còn thiếu' }} {{ Math.abs(100 - totalWeight()) }}%
+                      </span>
+                    }
                   </div>
                 </div>
               }
@@ -223,6 +245,7 @@ const SEGMENT_COLORS = ['#0056D2', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '
                               <label class="text-xs font-medium text-slate-500">Trọng số</label>
                               <div class="flex items-center gap-1">
                                 <input type="number" formControlName="weight" min="0" max="100"
+                                       (input)="onCriterionWeightInput(i, $event)"
                                        class="w-16 h-8 text-center text-sm font-bold text-slate-900 border border-slate-200 rounded-lg focus:border-[#0056D2] focus:ring-1 focus:ring-[#0056D2]/20 outline-none transition-colors"/>
                                 <span class="text-xs text-slate-400">%</span>
                               </div>
@@ -234,8 +257,9 @@ const SEGMENT_COLORS = ['#0056D2', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '
                                   <lucide-icon name="bar-chart" [size]="11"></lucide-icon>
                                   Thang điểm
                                 </span>
-                                <div class="flex items-center gap-3">
+                                <div class="flex flex-wrap justify-end items-center gap-2">
                                   <button type="button" (click)="autoPopulateScores(i)"
+                                          title="Chia đều điểm cho các mức hiện có"
                                           class="text-xs text-slate-400 hover:text-emerald-600 flex items-center gap-1 transition-colors">
                                     <lucide-icon name="target" [size]="11"></lucide-icon>
                                     Tự động
@@ -247,9 +271,12 @@ const SEGMENT_COLORS = ['#0056D2', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '
                                   </button>
                                 </div>
                               </div>
-                              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" formArrayName="levels">
+                              <p class="mb-2 text-[11px] leading-relaxed text-slate-500">
+                                Tự động chỉ chia đều điểm cho các mức hiện có. Khi thêm hoặc xóa mức, hệ thống cũng tự chia lại điểm và giữ tên/mô tả đã nhập.
+                              </p>
+                              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" formArrayName="levels">
                                 @for (level of getLevelsArray(i).controls; track $index; let j = $index) {
-                                  <div class="relative bg-white border border-slate-200 rounded-lg p-2.5 group/level hover:border-[#0056D2]/30 transition-colors"
+                                  <div class="relative bg-white border border-slate-200 rounded-lg p-3 group/level hover:border-[#0056D2]/30 transition-colors"
                                        [formGroupName]="j">
                                     <button type="button" (click)="removeLevel(i, j)"
                                             class="absolute top-1 right-1 w-5 h-5 text-slate-300 hover:text-rose-500 rounded flex items-center justify-center transition-colors opacity-0 group-hover/level:opacity-100">
@@ -260,11 +287,14 @@ const SEGMENT_COLORS = ['#0056D2', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '
                                              class="w-11 h-7 text-center text-xs font-bold text-[#0056D2] border border-slate-200 rounded focus:border-[#0056D2] focus:ring-1 focus:ring-[#0056D2]/10 outline-none transition-colors"/>
                                       <span class="text-[10px] text-slate-400">đ</span>
                                     </div>
-                                    <input type="text" formControlName="name"
-                                           class="w-full text-xs font-medium text-slate-700 placeholder:text-slate-300 border-none bg-transparent focus:ring-0 outline-none p-0"
-                                           placeholder="Tên mức *"/>
-                                  </div>
-                                }
+                                     <input type="text" formControlName="name"
+                                            class="w-full text-xs font-medium text-slate-700 placeholder:text-slate-300 border-none bg-transparent focus:ring-0 outline-none p-0"
+                                            placeholder="Tên mức *"/>
+                                     <input type="text" formControlName="description"
+                                            class="mt-2 w-full text-[11px] leading-snug text-slate-500 placeholder:text-slate-300 border-none bg-transparent focus:ring-0 outline-none p-0"
+                                            placeholder="Mô tả dấu hiệu đạt mức này..."/>
+                                   </div>
+                                 }
                               </div>
                             </div>
                           </div>
@@ -398,6 +428,9 @@ const SEGMENT_COLORS = ['#0056D2', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '
                           @for (level of criterion.levels; track $index) {
                             <td class="px-5 py-4 text-center border-l border-slate-100">
                               <div class="font-semibold text-slate-900 text-sm mb-1">{{ level.name || '-' }}</div>
+                              @if (level.description) {
+                                <p class="mb-2 text-xs leading-relaxed text-slate-500">{{ level.description }}</p>
+                              }
                               <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
                                 {{ level.points }} điểm
                               </span>
@@ -453,7 +486,7 @@ export class RubricEditorComponent implements OnInit {
   draggingIndex = signal<number | null>(null);
 
   // ─── Constants exposed to template ─────────────────────────────────────────
-  segmentColors = SEGMENT_COLORS;
+  segmentColors = RUBRIC_SEGMENT_COLORS;
 
   // ─── ViewChild ─────────────────────────────────────────────────────────────
   weightBar = viewChild<ElementRef>('weightBar');
@@ -497,7 +530,7 @@ export class RubricEditorComponent implements OnInit {
     return (criteria || []).map((c, i) => ({
       name: c.name || `Tiêu chí ${i + 1}`,
       weight: Math.max(0, Number(c.weight) || 0),
-      color: SEGMENT_COLORS[i % SEGMENT_COLORS.length]
+      color: RUBRIC_SEGMENT_COLORS[i % RUBRIC_SEGMENT_COLORS.length]
     }));
   });
 
@@ -635,7 +668,7 @@ export class RubricEditorComponent implements OnInit {
       else w = positions[i] - positions[i - 1];
       this.criteriaArray.at(i).get('weight')?.setValue(Math.round(w), { emitEvent: false });
     }
-    this.criteriaArray.updateValueAndValidity();
+    this.redistributeAllLevelPoints();
   }
 
   // ─── Criteria management ────────────────────────────────────────────────────
@@ -647,7 +680,7 @@ export class RubricEditorComponent implements OnInit {
     for (let i = 0; i < n; i++) {
       this.criteriaArray.at(i).get('weight')?.setValue(i === 0 ? base + rem : base, { emitEvent: false });
     }
-    this.criteriaArray.updateValueAndValidity();
+    this.redistributeAllLevelPoints();
   }
 
   toggleExpand(index: number): void {
@@ -657,16 +690,14 @@ export class RubricEditorComponent implements OnInit {
   addByName(input: HTMLInputElement): void {
     const name = input.value.trim();
     if (!name) return;
+    const nextCriterionCount = this.criteriaArray.length + 1;
+    const suggestedWeight = Math.floor(100 / nextCriterionCount);
     const criterionGroup = this.fb.group({
       id: [generateRubricId('criterion')],
       name: [name, Validators.required],
       description: [''],
       weight: [0, [Validators.required, Validators.min(0), Validators.max(100)]],
-      levels: this.fb.array([
-        this.createLevelFormGroup('Xuất sắc', 10),
-        this.createLevelFormGroup('Đạt yêu cầu', 7),
-        this.createLevelFormGroup('Cần cải thiện', 4)
-      ])
+      levels: this.createDefaultLevelsFormArray(suggestedWeight)
     });
     this.criteriaArray.push(criterionGroup);
     this.redistributeWeightsEvenly();
@@ -680,27 +711,31 @@ export class RubricEditorComponent implements OnInit {
   }
 
   addCriterion(): void {
+    const nextCriterionCount = this.criteriaArray.length + 1;
+    const suggestedWeight = Math.floor(100 / nextCriterionCount);
     const criterionGroup = this.fb.group({
       id: [generateRubricId('criterion')],
       name: ['', Validators.required],
       description: [''],
       weight: [0, [Validators.required, Validators.min(0), Validators.max(100)]],
-      levels: this.fb.array([
-        this.createLevelFormGroup('Xuất sắc', 10),
-        this.createLevelFormGroup('Đạt yêu cầu', 7),
-        this.createLevelFormGroup('Cần cải thiện', 4)
-      ])
+      levels: this.createDefaultLevelsFormArray(suggestedWeight)
     });
     this.criteriaArray.push(criterionGroup);
     this.redistributeWeightsEvenly();
     this.expandedIndex.set(this.criteriaArray.length - 1);
   }
 
-  private createLevelFormGroup(name: string = '', points: number = 0): FormGroup {
+  private createDefaultLevelsFormArray(maxPoints: number): FormArray {
+    return this.fb.array(buildDefaultRubricLevels(maxPoints).map(level =>
+      this.createLevelFormGroup(level.name, level.points, level.description)
+    ));
+  }
+
+  private createLevelFormGroup(name: string = '', points: number = 0, description: string = ''): FormGroup {
     return this.fb.group({
       id: [generateRubricId('level')],
       name: [name, Validators.required],
-      description: [''],
+      description: [description],
       points: [points, [Validators.required, Validators.min(0)]]
     });
   }
@@ -723,7 +758,7 @@ export class RubricEditorComponent implements OnInit {
       description: [source.description],
       weight: [0, [Validators.required, Validators.min(0), Validators.max(100)]],
       levels: this.fb.array(
-        (source.levels || []).map((l: any) => this.createLevelFormGroup(l.name, l.points))
+        (source.levels || []).map((l: any) => this.createLevelFormGroup(l.name, l.points, l.description || ''))
       )
     });
     this.criteriaArray.insert(index + 1, criterionGroup);
@@ -731,24 +766,52 @@ export class RubricEditorComponent implements OnInit {
 
   addLevel(criterionIndex: number): void {
     this.getLevelsArray(criterionIndex).push(this.createLevelFormGroup());
+    this.redistributeExistingLevelPoints(criterionIndex);
   }
 
   removeLevel(criterionIndex: number, levelIndex: number): void {
     const levelsArray = this.getLevelsArray(criterionIndex);
     if (levelsArray.length > 1) {
       levelsArray.removeAt(levelIndex);
+      this.redistributeExistingLevelPoints(criterionIndex);
     }
   }
 
   autoPopulateScores(criterionIndex: number): void {
-    const levelsArray = this.getLevelsArray(criterionIndex);
-    const count = levelsArray.length;
-    if (count < 2) return;
-    const maxPts = levelsArray.at(0).get('points')?.value || 100;
-    const step = Math.round(maxPts / (count - 1));
-    for (let i = 0; i < count; i++) {
-      levelsArray.at(i).get('points')?.setValue(Math.max(0, maxPts - step * i));
+    this.redistributeExistingLevelPoints(criterionIndex);
+  }
+
+  onCriterionWeightInput(criterionIndex: number, event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    const weight = input?.value === '' ? 0 : Number(input?.value);
+    if (input?.value !== '' && Number.isFinite(weight)) {
+      this.criteriaArray.at(criterionIndex).get('weight')?.setValue(weight, { emitEvent: false });
     }
+    this.redistributeExistingLevelPoints(criterionIndex, true, Number.isFinite(weight) ? weight : 0);
+  }
+
+  private getCriterionWeight(criterionIndex: number): number {
+    return Number(this.criteriaArray.at(criterionIndex).get('weight')?.value) || 0;
+  }
+
+  private redistributeAllLevelPoints(): void {
+    for (let i = 0; i < this.criteriaArray.length; i++) {
+      this.redistributeExistingLevelPoints(i, false);
+    }
+    this.criteriaArray.updateValueAndValidity();
+  }
+
+  private redistributeExistingLevelPoints(
+    criterionIndex: number,
+    emitEvent = true,
+    maxPoints = this.getCriterionWeight(criterionIndex)
+  ): void {
+    const levelsArray = this.getLevelsArray(criterionIndex);
+    const points = buildRubricLevelPoints(maxPoints, levelsArray.length);
+    points.forEach((point, index) => {
+      levelsArray.at(index).get('points')?.setValue(point, { emitEvent: false });
+    });
+    levelsArray.updateValueAndValidity({ emitEvent });
   }
 
   togglePreview(): void {

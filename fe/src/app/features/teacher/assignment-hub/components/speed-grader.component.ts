@@ -9,10 +9,17 @@ import { SubmissionsStore } from '../stores/submissions.store';
 import { SubmissionDetail, SubmissionGrade, RubricGradeItem } from '../../../../api/client/assignment.api';
 import { ToastService } from '../../../../core/services/toast.service';
 import { RubricApi } from '../../../../api/endpoints/rubric.api';
+import {
+  calculateRubricScore,
+  convertToAssignmentScore,
+  type Rubric as CalculatorRubric,
+  type RubricGradeSelection
+} from '../../grading/utils/rubric-calculator';
 
 interface RubricLevel {
   id: string;
   label: string;
+  description?: string;
   points: number;
 }
 
@@ -162,25 +169,50 @@ interface SpeedGraderRubric {
                   <div class="flex items-center justify-between mb-2">
                     <label class="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
                       <lucide-icon name="star" [size]="12" class="text-amber-400 fill-amber-400"></lucide-icon>
-                      Điểm số
+                      Điểm cuối
                     </label>
                     <span class="text-xs text-gray-400">/ {{ maxScore() }}</span>
                   </div>
-                  <div class="flex items-end gap-3 p-3 bg-white rounded-xl border-2 border-gray-200 transition-all focus-within:border-[#0056D2] focus-within:shadow-lg focus-within:shadow-blue-50/50">
-                    <input type="number" formControlName="score"
-                           class="w-full bg-transparent border-none p-0 text-3xl font-bold text-gray-900 focus:ring-0 placeholder:text-gray-300"
-                           [min]="0" [max]="maxScore()" placeholder="0"/>
-                    <span class="text-sm font-semibold text-gray-300 mb-1">/ {{ maxScore() }}</span>
-                  </div>
-                  <div class="mt-2 flex flex-wrap gap-1.5">
-                    @for (score of quickScores(); track score) {
-                      <button type="button" (click)="setScore(score)"
-                              [class]="gradingForm.get('score')?.value === score ? 'bg-[#0056D2] text-white border-[#0056D2]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#0056D2] hover:text-[#0056D2]'"
-                              class="px-3 py-1 text-xs font-medium border rounded-lg transition-colors">
-                        {{ score }}
-                      </button>
-                    }
-                  </div>
+                  @if (rubric()) {
+                    <div class="rounded-xl border-2 border-[#0056D2]/15 bg-[#0056D2]/5 p-3">
+                      <div class="flex items-end justify-between gap-3">
+                        <div>
+                          <div class="text-3xl font-bold tabular-nums text-gray-900">
+                            {{ formatScore(rubricScore()) }}
+                          </div>
+                          <p class="mt-1 text-xs text-gray-500">
+                            Tự động tính từ {{ rubricSelectedCount() }}/{{ rubric()!.criteria.length }} tiêu chí
+                          </p>
+                        </div>
+                        <span class="mb-1 text-sm font-semibold text-[#0056D2]">/ {{ maxScore() }}</span>
+                      </div>
+                      <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-white">
+                        <div class="h-full rounded-full bg-[#0056D2] transition-all"
+                             [style.width.%]="rubricPercentage()"></div>
+                      </div>
+                      @if (!rubricComplete()) {
+                        <p class="mt-2 text-xs font-medium text-amber-700">
+                          Chọn đủ mức cho từng tiêu chí trước khi hoàn thành chấm điểm.
+                        </p>
+                      }
+                    </div>
+                  } @else {
+                    <div class="flex items-end gap-3 p-3 bg-white rounded-xl border-2 border-gray-200 transition-all focus-within:border-[#0056D2] focus-within:shadow-lg focus-within:shadow-blue-50/50">
+                      <input type="number" formControlName="score"
+                             class="w-full bg-transparent border-none p-0 text-3xl font-bold text-gray-900 focus:ring-0 placeholder:text-gray-300"
+                             [min]="0" [max]="maxScore()" placeholder="0"/>
+                      <span class="text-sm font-semibold text-gray-300 mb-1">/ {{ maxScore() }}</span>
+                    </div>
+                    <div class="mt-2 flex flex-wrap gap-1.5">
+                      @for (score of quickScores(); track score) {
+                        <button type="button" (click)="setScore(score)"
+                                [class]="gradingForm.get('score')?.value === score ? 'bg-[#0056D2] text-white border-[#0056D2]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#0056D2] hover:text-[#0056D2]'"
+                                class="px-3 py-1 text-xs font-medium border rounded-lg transition-colors">
+                          {{ score }}
+                        </button>
+                      }
+                    </div>
+                  }
                 </div>
 
                 <!-- Rubric Panel (shown when rubric is assigned) -->
@@ -191,7 +223,7 @@ interface SpeedGraderRubric {
                             class="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left">
                       <div class="flex items-center gap-2">
                         <lucide-icon name="layout-list" [size]="14" class="text-[#0056D2]"></lucide-icon>
-                        <span class="text-xs font-semibold text-gray-700">Rubric: {{ rubric()!.title }}</span>
+                        <span class="text-xs font-semibold text-gray-700">Bảng tiêu chí: {{ rubric()!.title }}</span>
                         @if (rubricComplete()) {
                           <span class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded">Đầy đủ</span>
                         } @else {
@@ -200,7 +232,7 @@ interface SpeedGraderRubric {
                       </div>
                       <div class="flex items-center gap-2">
                         @if (rubricScore() !== null) {
-                          <span class="text-xs font-semibold text-[#0056D2]">{{ rubricScore() }}/{{ rubric()!.totalMaxPoints }} điểm</span>
+                          <span class="text-xs font-semibold text-[#0056D2]">{{ formatScore(rubricScore()) }}/{{ maxScore() }} điểm</span>
                         }
                         <lucide-icon [name]="showRubricPanel() ? 'chevron-up' : 'chevron-down'" [size]="14" class="text-gray-400"></lucide-icon>
                       </div>
@@ -221,11 +253,16 @@ interface SpeedGraderRubric {
                                         [class]="rubricSelections()[criterion.id] === level.id
                                           ? 'border-[#0056D2] bg-[#0056D2]/5 text-[#0056D2]'
                                           : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'"
-                                        class="w-full flex items-center justify-between px-3 py-2 rounded-lg border text-left transition-colors">
-                                  <span class="text-xs font-medium truncate mr-2">{{ level.label }}</span>
-                                  <span class="text-xs font-semibold flex-shrink-0"
+                                        class="w-full flex items-start justify-between gap-3 px-3 py-2.5 rounded-lg border text-left transition-colors">
+                                  <span class="min-w-0 flex-1">
+                                    <span class="block text-xs font-semibold truncate">{{ level.label }}</span>
+                                    @if (level.description) {
+                                      <span class="mt-0.5 block text-[11px] leading-snug text-gray-500">{{ level.description }}</span>
+                                    }
+                                  </span>
+                                  <span class="text-xs font-semibold flex-shrink-0 tabular-nums"
                                         [class]="rubricSelections()[criterion.id] === level.id ? 'text-[#0056D2]' : 'text-gray-400'">
-                                    {{ level.points }}
+                                    {{ formatScore(criterionLevelScore(criterion, level)) }}/{{ criterion.maxPoints }}
                                   </span>
                                 </button>
                               }
@@ -240,7 +277,7 @@ interface SpeedGraderRubric {
                   <a [routerLink]="['/teacher/assessments/classes/assignments', assignmentStore.assignmentId(), 'details']"
                      class="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-gray-200 text-xs text-gray-400 hover:border-[#0056D2] hover:text-[#0056D2] transition-colors">
                     <lucide-icon name="layout-list" [size]="13"></lucide-icon>
-                    Chưa có rubric — Gán rubric trong cài đặt bài tập
+                    Chưa có bảng tiêu chí — gán trong cài đặt bài tập
                   </a>
                 }
 
@@ -274,7 +311,7 @@ interface SpeedGraderRubric {
                 <lucide-icon name="save" [size]="14" class="mr-1.5"></lucide-icon>
                 Nháp
               </button>
-              <button (click)="submitGrade()" [disabled]="saving() || gradingForm.invalid"
+              <button (click)="submitGrade()" [disabled]="saving() || gradingForm.invalid || (rubric() !== null && !rubricComplete())"
                       class="flex-[2] h-10 flex items-center justify-center rounded-xl bg-[#0056D2] text-white text-sm font-medium hover:bg-[#004BB5] disabled:opacity-50 transition-colors shadow-sm">
                 @if (saving()) {
                   <lucide-icon name="loader-2" [size]="14" class="mr-1.5 animate-spin"></lucide-icon>
@@ -351,17 +388,20 @@ export class SpeedGraderComponent implements OnInit {
     return [max, Math.round(max * 0.9), Math.round(max * 0.8), Math.round(max * 0.7), Math.round(max * 0.5)];
   });
 
-  rubricScore = computed(() => {
+  rubricResult = computed(() => {
     const r = this.rubric();
-    const sel = this.rubricSelections();
     if (!r) return null;
-    let total = 0;
-    for (const c of r.criteria) {
-      const levelId = sel[c.id];
-      const level = c.levels.find(l => l.id === levelId);
-      if (level) total += level.points;
-    }
-    return Math.round(total);
+    return calculateRubricScore(this.toCalculatorRubric(r), this.toCalculatorSelections());
+  });
+
+  rubricScore = computed(() => {
+    const result = this.rubricResult();
+    if (!result) return null;
+    return convertToAssignmentScore(result, this.maxScore());
+  });
+
+  rubricPercentage = computed(() => {
+    return this.rubricResult()?.percentage ?? 0;
   });
 
   rubricComplete = computed(() => {
@@ -412,6 +452,7 @@ export class SpeedGraderComponent implements OnInit {
               this.restoreRubricSelectionsFromGrades(pending);
               this.pendingRubricGrades.set(null);
             }
+            this.syncScoreFromRubric();
           }
         },
         error: () => { /* no rubric assigned — leave rubric() as null */ }
@@ -444,7 +485,10 @@ export class SpeedGraderComponent implements OnInit {
       try {
         const parsed = JSON.parse(draft);
         this.gradingForm.patchValue({ score: parsed.score, feedback: parsed.feedback });
-        if (parsed.rubricSelections) this.rubricSelections.set(parsed.rubricSelections);
+        if (parsed.rubricSelections) {
+          this.rubricSelections.set(parsed.rubricSelections);
+          this.syncScoreFromRubric();
+        }
         return;
       } catch { /* ignore invalid draft */ }
     }
@@ -469,6 +513,7 @@ export class SpeedGraderComponent implements OnInit {
       this.gradingForm.reset({ score: 0, feedback: '' });
     }
     this.rubricSelections.set({});
+    this.syncScoreFromRubric();
   }
 
   previousSubmission(): void {
@@ -495,15 +540,7 @@ export class SpeedGraderComponent implements OnInit {
 
   selectRubricLevel(criterionId: string, levelId: string): void {
     this.rubricSelections.update(sel => ({ ...sel, [criterionId]: levelId }));
-    const rubricRaw = this.rubricScore();
-    if (rubricRaw !== null) {
-      const rubricMax = this.rubric()!.totalMaxPoints;
-      const assignMax = this.maxScore();
-      const scaled = rubricMax === assignMax
-        ? rubricRaw
-        : Math.round((rubricRaw / rubricMax) * assignMax * 100) / 100;
-      this.gradingForm.patchValue({ score: scaled });
-    }
+    this.syncScoreFromRubric();
   }
 
   getNoSubmissionMessage(): string {
@@ -560,15 +597,21 @@ export class SpeedGraderComponent implements OnInit {
   submitGrade(): void {
     const sub = this.currentSubmission();
     if (!sub || this.gradingForm.invalid) return;
+    if (this.rubric() && !this.rubricComplete()) {
+      this.toast.error('Vui lòng chọn đủ mức cho từng tiêu chí trước khi hoàn thành.');
+      return;
+    }
+    this.syncScoreFromRubric();
 
     this.saving.set(true);
     const { score, feedback } = this.gradingForm.value;
+    const finalScore = this.rubric() ? (this.rubricScore() ?? 0) : (score || 0);
 
     const rubricGrades = this.buildRubricGrades();
 
     this.submissionsStore.updateInlineGrade({
       submissionId: sub.id,
-      score: score || 0,
+      score: finalScore,
       feedback: feedback || undefined,
       rubricGrades: rubricGrades.length > 0 ? rubricGrades : undefined
     }).subscribe({
@@ -597,6 +640,55 @@ export class SpeedGraderComponent implements OnInit {
     this.router.navigate(['/teacher/assessments/classes/assignments', assignmentId, 'submissions']);
   }
 
+  criterionLevelScore(criterion: RubricCriterion, level: RubricLevel): number {
+    const maxLevelPoints = this.getCriterionMaxLevelPoints(criterion);
+    if (maxLevelPoints <= 0) return 0;
+    return this.roundScore((level.points / maxLevelPoints) * criterion.maxPoints);
+  }
+
+  formatScore(value: number | null | undefined): string {
+    if (value === null || value === undefined || Number.isNaN(value)) return '0';
+    return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.?0+$/, '');
+  }
+
+  private syncScoreFromRubric(): void {
+    const score = this.rubricScore();
+    if (score === null) return;
+    this.gradingForm.patchValue({ score }, { emitEvent: false });
+  }
+
+  private toCalculatorRubric(rubric: SpeedGraderRubric): CalculatorRubric {
+    return {
+      id: rubric.id,
+      name: rubric.title,
+      criteria: rubric.criteria.map((criterion) => ({
+        id: criterion.id,
+        name: criterion.name,
+        weight: criterion.maxPoints,
+        levels: criterion.levels.map((level) => ({
+          id: level.id,
+          name: level.label,
+          description: level.description || '',
+          points: level.points
+        }))
+      })),
+      totalPoints: rubric.totalMaxPoints
+    };
+  }
+
+  private toCalculatorSelections(): RubricGradeSelection[] {
+    const selected = this.rubricSelections();
+    return Object.entries(selected).map(([criterionId, levelId]) => ({ criterionId, levelId }));
+  }
+
+  private getCriterionMaxLevelPoints(criterion: RubricCriterion): number {
+    return Math.max(...criterion.levels.map((level) => level.points), 0);
+  }
+
+  private roundScore(value: number): number {
+    return Math.round(value * 100) / 100;
+  }
+
   private buildRubricGrades(): RubricGradeItem[] {
     const r = this.rubric();
     const sel = this.rubricSelections();
@@ -605,6 +697,7 @@ export class SpeedGraderComponent implements OnInit {
       .filter(c => !!sel[c.id])
       .map(c => {
         const level = c.levels.find(l => l.id === sel[c.id])!;
+        const criterionScore = this.criterionLevelScore(c, level);
         return {
           criterionId: c.id,
           criterionName: c.name,
@@ -612,7 +705,7 @@ export class SpeedGraderComponent implements OnInit {
           levelId: sel[c.id],
           levelLabel: level.label,
           levelPoints: level.points,
-          score: level.points,
+          score: criterionScore,
           rubricId: r.id
         };
       });
@@ -629,6 +722,7 @@ export class SpeedGraderComponent implements OnInit {
         levels: (c.levels || []).map((l: any) => ({
           id: `${cId}::${l.label || l.name || ''}`,
           label: l.label || l.name || '',
+          description: l.description || '',
           points: l.points ?? 0
         })).sort((a: RubricLevel, b: RubricLevel) => b.points - a.points)
       };
@@ -646,12 +740,14 @@ export class SpeedGraderComponent implements OnInit {
       const criterion = r.criteria.find(c => c.id === item.criterionId)
         ?? (item.criterionName ? r.criteria.find(c => c.name === item.criterionName) : undefined);
       if (!criterion) continue;
-      // Match level: by ID, then by label snapshot, then by score as last resort
+      // Match level: by ID, label snapshot, raw level points, then weighted score.
       const level = criterion.levels.find(l => l.id === item.levelId)
         ?? (item.levelLabel ? criterion.levels.find(l => l.label === item.levelLabel) : undefined)
-        ?? criterion.levels.find(l => l.points === item.score);
+        ?? (item.levelPoints !== undefined ? criterion.levels.find(l => l.points === item.levelPoints) : undefined)
+        ?? criterion.levels.find(l => this.criterionLevelScore(criterion, l) === item.score);
       if (level) restored[criterion.id] = level.id;
     }
     this.rubricSelections.set(restored);
+    this.syncScoreFromRubric();
   }
 }
