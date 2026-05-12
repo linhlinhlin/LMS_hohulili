@@ -179,12 +179,55 @@ h3 {
   text-transform: uppercase;
 }
 
-.wiii-preview-diff-grid strong,
 .wiii-preview-source-list strong {
   display: block;
   margin-bottom: 8px;
   color: #0f172a;
   font-size: 14px;
+}
+
+.wiii-preview-diff-fields {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.wiii-preview-diff-fields div {
+  display: grid;
+  gap: 4px;
+}
+
+.wiii-preview-diff-fields dt {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.wiii-preview-diff-fields dd {
+  margin: 0;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.wiii-preview-diff-details {
+  margin-top: 12px;
+  border-top: 1px dashed #cbd5e1;
+  padding-top: 10px;
+}
+
+.wiii-preview-diff-details summary {
+  cursor: pointer;
+  color: #17406f;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.wiii-preview-diff-details p {
+  margin-top: 8px;
 }
 
 .wiii-preview-diff-grid p,
