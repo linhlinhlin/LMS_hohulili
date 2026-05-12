@@ -44,16 +44,16 @@ export class LessonApi {
     return this.api.postWithResponse<LessonDetail>(LESSON_ENDPOINTS.CREATE(sectionId), requestPayload);
   }
 
-  updateLesson(lessonId: string, payload: UpdateLessonRequest) {
-    return this.api.put<ApiResponse<LessonDetail>>(LESSON_ENDPOINTS.UPDATE(lessonId), payload);
+  updateLesson(lessonId: string, payload: UpdateLessonRequest, options?: any) {
+    return this.api.put<ApiResponse<LessonDetail>>(LESSON_ENDPOINTS.UPDATE(lessonId), payload, options);
   }
 
   deleteLesson(lessonId: string, courseId: string) {
     return this.api.delete<ApiResponse<string>>(`${LESSON_ENDPOINTS.DELETE(lessonId)}?courseId=${courseId}`);
   }
 
-  getLessonById(lessonId: string) {
-    return this.api.getWithResponse<LessonDetail>(LESSON_ENDPOINTS.BY_ID(lessonId));
+  getLessonById(lessonId: string, options?: any) {
+    return this.api.getWithResponse<LessonDetail>(LESSON_ENDPOINTS.BY_ID(lessonId), options);
   }
 
   listBySection(sectionId: string) {

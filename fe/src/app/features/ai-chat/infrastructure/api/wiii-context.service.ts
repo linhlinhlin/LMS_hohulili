@@ -15,6 +15,7 @@
  */
 import { Injectable, OnDestroy, PLATFORM_ID, effect, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { HttpHeaders } from '@angular/common/http';
 import { Router, NavigationEnd } from '@angular/router';
 import { Subject, Subscription, filter, firstValueFrom } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
@@ -1804,9 +1805,120 @@ export class WiiiContextService implements OnDestroy {
     };
   }
 
-  private async getLessonDetail(lessonId: string): Promise<any> {
-    const response = await firstValueFrom(this.lessonApi.getLessonById(lessonId));
+  private buildWiiiAuthoringRequestOptions(): { headers: HttpHeaders } {
+    return {
+      headers: new HttpHeaders({
+        'ngsw-bypass': 'true',
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache',
+      }),
+    };
+  }
+
+  private async getLessonDetail(lessonId: string, options?: any): Promise<any> {
+    const request = options === undefined
+      ? this.lessonApi.getLessonById(lessonId)
+      : this.lessonApi.getLessonById(lessonId, options);
+    const response = await firstValueFrom(request);
     return (response as any)?.data || response;
+  }
+
+  private async verifyLessonPatchApplied(
+    lessonId: string,
+    payload: Record<string, unknown>,
+    changedFields: string[],
+    contentSectionId: string,
+    expectedContent: string,
+    options: any,
+  ): Promise<void> {
+    const lesson = await this.getLessonDetail(lessonId, options);
+
+    if (changedFields.includes('title')) {
+      const expectedTitle = String(payload['title'] || '').trim();
+      const actualTitle = String(lesson?.title || '').trim();
+      if (expectedTitle && actualTitle !== expectedTitle) {
+        throw new Error('host_preview_apply_verification_failed:title');
+      }
+    }
+
+    if (changedFields.includes('description')) {
+      const expectedDescription = String(payload['description'] || '').trim();
+      const actualDescription = String(lesson?.description || '').trim();
+      if (expectedDescription && actualDescription !== expectedDescription) {
+        throw new Error('host_preview_apply_verification_failed:description');
+      }
+    }
+
+    if (!changedFields.includes('content')) {
+      return;
+    }
+
+    const actualContent = contentSectionId
+      ? this.findLessonSectionContent(lesson, contentSectionId)
+      : String(lesson?.content || '');
+    if (contentSectionId && !actualContent) {
+      throw new Error('host_preview_apply_verification_failed:section_missing');
+    }
+    if (!this.lessonContentContainsExpected(actualContent, expectedContent)) {
+      throw new Error('host_preview_apply_verification_failed:content');
+    }
+  }
+
+  private findLessonSectionContent(lesson: unknown, sectionId: string): string {
+    const target = this.normalizeLessonSections(lesson)
+      .find((section) => String(section['id'] || '').trim() === sectionId);
+    return String(target?.['content'] || '').trim();
+  }
+
+  private lessonContentContainsExpected(actual: unknown, expected: unknown): boolean {
+    const actualText = this.normalizeVerificationText(actual);
+    const expectedText = this.normalizeVerificationText(expected);
+    if (!expectedText) {
+      return true;
+    }
+    if (actualText === expectedText || actualText.includes(expectedText)) {
+      return true;
+    }
+    return this.buildVerificationAnchors(expectedText)
+      .some((anchor) => actualText.includes(anchor));
+  }
+
+  private buildVerificationAnchors(expectedText: string): string[] {
+    const minAnchorLength = expectedText.length < 40 ? Math.max(4, expectedText.length) : 24;
+    const lineAnchors = expectedText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length >= minAnchorLength)
+      .slice(0, 4)
+      .map((line) => line.slice(0, 220).trim());
+    const windowAnchors = [
+      expectedText.slice(0, 800).trim(),
+      expectedText.slice(Math.max(0, expectedText.length - 800)).trim(),
+    ].filter((anchor) => anchor.length >= minAnchorLength);
+    return [...new Set([...lineAnchors, ...windowAnchors])];
+  }
+
+  private normalizeVerificationText(value: unknown): string {
+    return String(value ?? '')
+      .normalize('NFC')
+      .replace(/\r\n?/g, '\n')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .split('\n')
+      .map((line) => line
+        .replace(/^#{1,6}\s+/, '')
+        .replace(/^[-*\u2022]\s+/, '')
+        .replace(/[ \t]+/g, ' ')
+        .trim())
+      .filter((line) => line.length > 0)
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
   }
 
   private async resolveQuizIdForLesson(lessonId: string, explicitQuizId?: string): Promise<string> {
@@ -1944,6 +2056,7 @@ export class WiiiContextService implements OnDestroy {
     const contentSectionId = String(payload['content_section_id'] || '').trim();
     const metadataChanged = changedFields.some((field) => field === 'title' || field === 'description');
     const contentChanged = changedFields.includes('content');
+    const requestOptions = this.buildWiiiAuthoringRequestOptions();
 
     if (contentChanged && contentSectionId) {
       await firstValueFrom(this.sectionApi.updateSection(
@@ -1952,6 +2065,7 @@ export class WiiiContextService implements OnDestroy {
         this.buildSectionFormData({
           content,
         }),
+        requestOptions,
       ));
     }
 
@@ -1967,19 +2081,28 @@ export class WiiiContextService implements OnDestroy {
         isRequired: Boolean(payload['is_required'] ?? false),
         isPreview: false,
         orderIndex: Number(payload['order_index'] || 0),
-      }));
+      }, requestOptions));
     }
+    await this.verifyLessonPatchApplied(
+      lessonId,
+      payload,
+      changedFields,
+      contentSectionId,
+      content,
+      requestOptions,
+    );
     this.pendingOperatorPreviews.delete(previewToken);
 
     return {
       success: true,
       data: {
         applied: true,
+        verified: true,
         lesson_id: lessonId,
         course_id: courseId,
         content_section_id: contentSectionId || undefined,
         lesson_title: String(payload['title'] || lessonId).trim() || lessonId,
-        summary: `Applied lesson patch to lesson ${lessonId}.`,
+        summary: `Applied and verified lesson patch for lesson ${lessonId}.`,
       },
     };
   }
