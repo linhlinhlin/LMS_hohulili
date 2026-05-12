@@ -10,6 +10,7 @@ import { Injectable, signal, computed, inject, effect } from '@angular/core';
 import { ChatMessage, ChatData, SessionSummary, Source } from '../../domain/types';
 import { ChatApiClient, ClientApiError } from '../../infrastructure/api/chat-api.client';
 import { SessionManagementService } from './session-management.service';
+import { isAiHealthReady } from './ai-health.util';
 import {
   createUserMessage,
   createAiMessage,
@@ -1346,7 +1347,7 @@ export class ChatService {
       next: (health) => {
         this._serviceState.update((state) => ({
           ...state,
-          isHealthy: health.status === 'healthy' && health.aiServiceStatus === 'available',
+          isHealthy: isAiHealthReady(health),
         }));
       },
       error: () => {
