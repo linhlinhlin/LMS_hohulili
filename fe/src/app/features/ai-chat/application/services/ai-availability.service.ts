@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { ChatApiClient } from '../../infrastructure/api/chat-api.client';
+import { isAiHealthReady } from './ai-health.util';
 
 type AiAvailabilityStatus = 'checking' | 'available' | 'unavailable';
 
@@ -20,8 +21,7 @@ export class AiAvailabilityService {
   refresh(): void {
     this.apiClient.checkHealth().subscribe({
       next: (health) => {
-        const isAvailable = health.status === 'healthy'
-          && health.aiServiceStatus === 'available';
+        const isAvailable = isAiHealthReady(health);
         this._status.set(isAvailable ? 'available' : 'unavailable');
       },
       error: () => {
