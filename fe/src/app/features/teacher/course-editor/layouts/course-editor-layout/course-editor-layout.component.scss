@@ -5,6 +5,10 @@
   --editor-nav-padding: 1.5rem;
 }
 
+.editor-main {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 @media (min-width: 1280px) {
   :host {
     --editor-sidebar-width: clamp(13rem, 17vw, 15rem);
@@ -39,6 +43,10 @@
 
 // Desktop/Tablet (≥768px): static grid column, no animation
 @media (min-width: 768px) {
+  .editor-main {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+  }
+
   .sidebar-panel {
     position: static;
     width: auto;
@@ -54,7 +62,7 @@
   }
 
   main.sidebar-open {
-    grid-template-columns: var(--editor-sidebar-width) 1fr !important;
+    grid-template-columns: var(--editor-sidebar-width) minmax(0, 1fr) auto !important;
   }
 }
 

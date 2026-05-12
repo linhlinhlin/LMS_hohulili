@@ -96,7 +96,7 @@ import { distinctUntilChanged, filter, take, map } from 'rxjs/operators';
          </a>
       </nav>
 
-      <main class="flex-grow grid grid-cols-1 overflow-hidden relative"
+      <main class="editor-main flex-grow grid grid-cols-1 overflow-hidden relative"
             [class.sidebar-open]="!sidebarCollapsed()">
 
         <!-- Sidebar: always in DOM for signals/effects/modals -->
@@ -168,9 +168,8 @@ import { distinctUntilChanged, filter, take, map } from 'rxjs/operators';
                 }
             </div>
         </div>
+        <app-chat-widget variant="responsive-sidebar" />
       </main>
-
-      <app-chat-widget />
     </div>
   `
 })
