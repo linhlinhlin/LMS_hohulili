@@ -33,11 +33,9 @@ import { SessionManagementService } from '../../../application/services/session-
 import { WiiiContextService } from '../../../infrastructure/api/wiii-context.service';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { environment } from '../../../../../../environments/environment';
-import { WiiiOperatorPreviewDialogComponent } from '../operator-preview-dialog/operator-preview-dialog.component';
 
 @Component({
   selector: 'app-chat-panel',
-  imports: [WiiiOperatorPreviewDialogComponent],
   template: `
     <div
       class="chat-panel"
@@ -99,8 +97,6 @@ import { WiiiOperatorPreviewDialogComponent } from '../operator-preview-dialog/o
         </div>
       }
     </div>
-
-    <app-wiii-operator-preview-dialog />
   `,
   styles: [`
     /* Host element — must stretch inside flex-column parents (sidebar) */
