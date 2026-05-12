@@ -1225,6 +1225,76 @@ export class WiiiContextService implements OnDestroy {
     return `${normalized.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
   }
 
+  private buildPreviewText(value: unknown, maxLength = 1800): string {
+    const normalized = String(value ?? '')
+      .replace(/\r\n?/g, '\n')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n\n')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .split('\n')
+      .map((line) => line.replace(/[ \t]+/g, ' ').trim())
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+    if (!normalized) {
+      return '';
+    }
+    if (normalized.length <= maxLength) {
+      return normalized;
+    }
+    return `${normalized.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
+  }
+
+  private extractLearningObjectivesFromContent(value: unknown): string[] {
+    const text = this.buildPreviewText(value, 5000);
+    if (!text) {
+      return [];
+    }
+
+    const lines = text.split('\n');
+    const objectives: string[] = [];
+    let inObjectiveSection = false;
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        continue;
+      }
+      const normalizedHeading = trimmed
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '')
+        .toLowerCase();
+
+      if (/^#{1,3}\s*muc tieu hoc tap\b/.test(normalizedHeading)) {
+        inObjectiveSection = true;
+        continue;
+      }
+      if (inObjectiveSection && /^#{1,3}\s+/.test(trimmed)) {
+        break;
+      }
+      if (!inObjectiveSection) {
+        continue;
+      }
+
+      const objective = trimmed
+        .replace(/^[-*•]\s+/, '')
+        .replace(/^\d+[.)-]\s+/, '')
+        .trim();
+      if (objective.length > 0) {
+        objectives.push(objective);
+      }
+      if (objectives.length >= 6) {
+        break;
+      }
+    }
+
+    return objectives;
+  }
+
   private buildActionSummary(prefix: string, details: string[]): string {
     const cleanDetails = details.filter((detail) => detail.trim().length > 0);
     if (cleanDetails.length === 0) {
@@ -1830,12 +1900,16 @@ export class WiiiContextService implements OnDestroy {
         title: String(lesson?.title || '').trim(),
         description: String(lesson?.description || '').trim(),
         content_excerpt: this.buildPreviewExcerpt(lesson?.content),
+        content_preview: this.buildPreviewText(lesson?.content),
+        learning_objectives: this.extractLearningObjectivesFromContent(lesson?.content),
         blocks: beforeBlocks,
       },
       lesson_after: {
         title: title ?? String(lesson?.title || '').trim(),
         description: description ?? String(lesson?.description || '').trim(),
         content_excerpt: this.buildPreviewExcerpt(content ?? lesson?.content),
+        content_preview: this.buildPreviewText(content ?? lesson?.content),
+        learning_objectives: this.extractLearningObjectivesFromContent(content ?? lesson?.content),
         blocks: afterBlocks,
       },
       block_diff: blockDiff,

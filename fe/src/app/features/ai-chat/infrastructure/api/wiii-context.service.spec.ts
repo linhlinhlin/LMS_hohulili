@@ -131,10 +131,18 @@ describe('WiiiContextService - operator preview/apply flows', () => {
     const previewSub = service.operatorPreview$.subscribe((previewPanel) => {
       panelPreview = previewPanel;
     });
+    const proposedContent = [
+      '# Bài học mới',
+      '## Mục tiêu học tập',
+      '- Giáo viên kiểm tra diff trước khi áp dụng',
+      '- Giáo viên đối chiếu citation với tài liệu gốc',
+      '## Nội dung',
+      'Nội dung đã chỉnh sửa',
+    ].join('\n');
     const preview = await (service as any).handleActionRequest('authoring.preview_lesson_patch', {
       lesson_id: 'lesson-1',
       title: 'Bai hoc moi',
-      content: 'Noi dung da chinh sua',
+      content: proposedContent,
       source_references: [{ kind: 'chapter', page_start: 2, page_end: 3, excerpt: 'Nguon tai lieu' }],
     });
     previewSub.unsubscribe();
@@ -158,7 +166,12 @@ describe('WiiiContextService - operator preview/apply flows', () => {
     expect(preview.data?.lesson_after).toEqual(jasmine.objectContaining({
       title: 'Bai hoc moi',
       description: 'Mo ta cu',
-      content_excerpt: 'Noi dung da chinh sua',
+      content_excerpt: jasmine.stringContaining('Bài học mới'),
+      content_preview: jasmine.stringContaining('## Mục tiêu học tập'),
+      learning_objectives: [
+        'Giáo viên kiểm tra diff trước khi áp dụng',
+        'Giáo viên đối chiếu citation với tài liệu gốc',
+      ],
       blocks: jasmine.any(Array),
     }));
     expect(preview.data?.block_diff).toEqual(jasmine.objectContaining({
@@ -190,7 +203,7 @@ describe('WiiiContextService - operator preview/apply flows', () => {
       courseId: 'course-1',
       chapterId: 'chapter-1',
       title: 'Bai hoc moi',
-      content: 'Noi dung da chinh sua',
+      content: proposedContent,
     }));
   });
 
