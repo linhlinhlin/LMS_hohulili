@@ -1727,7 +1727,7 @@ export class CourseCurriculumComponent implements OnDestroy {
     // Dispatch custom event that the ChatWidgetComponent listens for
     // to open the Wiii sidebar with course generation context
     window.dispatchEvent(new CustomEvent('wiii:open-sidebar', {
-      detail: { action: 'generate_lesson', courseId: this.store.courseTree()?.id }
+      detail: { action: 'generate_course_from_document', courseId: this.store.courseTree()?.id }
     }));
   }
 
