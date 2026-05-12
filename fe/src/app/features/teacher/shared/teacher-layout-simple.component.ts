@@ -162,7 +162,7 @@ import { WiiiContextService, type WiiiSidebarOpenDetail } from '../../ai-chat/in
         </div>
 
         <!-- AI Sidebar (Desktop) — always rendered, animated via CSS -->
-        @if (enableAssistant()) {
+        @if (shouldRenderAssistant()) {
         <aside id="teacher-ai-sidebar"
                class="ai-sidebar hidden md:flex md:flex-col"
                data-wiii-id="teacher-ai-sidebar"
@@ -197,7 +197,7 @@ import { WiiiContextService, type WiiiSidebarOpenDetail } from '../../ai-chat/in
       </div>
 
       <!-- Desktop: Toggle tab — always rendered, animated -->
-      @if (enableAssistant()) {
+      @if (shouldRenderAssistant()) {
       <button
         class="ai-sidebar-launcher hidden md:flex"
         [class.ai-launcher-hidden]="isAiSidebarOpen()"
@@ -222,7 +222,7 @@ import { WiiiContextService, type WiiiSidebarOpenDetail } from '../../ai-chat/in
       <!-- ============================================================
            MOBILE: Slide-up AI panel (triggered from bottom nav tab)
            ============================================================ -->
-      @if (enableAssistant()) {
+      @if (shouldRenderAssistant()) {
       <div class="mobile-ai-overlay md:hidden"
            [class.open]="isMobilePanelOpen()">
         <div class="mobile-ai-backdrop" (click)="closeMobilePanel()"></div>
@@ -542,11 +542,15 @@ export class TeacherLayoutSimpleComponent implements OnInit, OnDestroy {
 
   private sidebarHidden = signal<boolean>(false);
   protected readonly hideMobileChrome = signal(false);
+  private readonly currentRouteUrl = signal(this.router.url);
   private routerSubscription?: Subscription;
   private sidebarOpenListener?: (event: Event) => void;
 
   protected shouldHideSidebar = computed(() => this.sidebarHidden());
   protected shouldHideMobileChrome = computed(() => this.sidebarHidden() || this.hideMobileChrome());
+  protected shouldRenderAssistant = computed(() =>
+    this.enableAssistant() && !this.isCourseEditorRoute(this.currentRouteUrl())
+  );
 
   ngOnInit(): void {
     // Initialize notification service with current user ID
@@ -575,6 +579,9 @@ export class TeacherLayoutSimpleComponent implements OnInit, OnDestroy {
 
     if (typeof window !== 'undefined') {
       this.sidebarOpenListener = (event: Event) => {
+        if (!this.shouldRenderAssistant()) {
+          return;
+        }
         if (event instanceof CustomEvent) {
           this.wiiiContextService.applySidebarIntent((event as CustomEvent<WiiiSidebarOpenDetail>).detail);
         }
@@ -594,12 +601,17 @@ export class TeacherLayoutSimpleComponent implements OnInit, OnDestroy {
   }
 
   private handleRouteChange(url: string) {
+    this.currentRouteUrl.set(url);
     const isInAiChat = url.includes('/ai-chat');
     this.sidebarHidden.set(isInAiChat);
 
     // Chat: only hide mobile chrome, NOT desktop sidebar
     const isInConversation = /\/teacher\/messages\/[0-9a-f-]{36}/i.test(url) || url.includes('/teacher/messages/new');
     this.hideMobileChrome.set(isInConversation);
+  }
+
+  private isCourseEditorRoute(url: string): boolean {
+    return /\/teacher\/courses\/[0-9a-f-]{36}\/editor\b/i.test(url);
   }
 
   toggleMobileSidebar(): void {
