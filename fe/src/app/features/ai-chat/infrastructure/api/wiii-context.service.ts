@@ -1862,11 +1862,24 @@ export class WiiiContextService implements OnDestroy {
     if (!this.lessonContentContainsExpected(actualContent, expectedContent)) {
       throw new Error('host_preview_apply_verification_failed:content');
     }
+
+    const expectedSectionTitle = String(payload['content_section_next_title'] || '').trim();
+    if (contentSectionId && expectedSectionTitle) {
+      const actualSectionTitle = String(this.findLessonSection(lesson, contentSectionId)?.['title'] || '').trim();
+      if (actualSectionTitle !== expectedSectionTitle) {
+        throw new Error('host_preview_apply_verification_failed:section_title');
+      }
+    }
+  }
+
+  private findLessonSection(lesson: unknown, sectionId: string): Record<string, unknown> | null {
+    return this.normalizeLessonSections(lesson)
+      .find((section) => String(section['id'] || '').trim() === sectionId)
+      || null;
   }
 
   private findLessonSectionContent(lesson: unknown, sectionId: string): string {
-    const target = this.normalizeLessonSections(lesson)
-      .find((section) => String(section['id'] || '').trim() === sectionId);
+    const target = this.findLessonSection(lesson, sectionId);
     return String(target?.['content'] || '').trim();
   }
 
@@ -1921,6 +1934,17 @@ export class WiiiContextService implements OnDestroy {
       .trim();
   }
 
+  private buildContentSectionTitle(lessonTitle: unknown): string {
+    const title = String(lessonTitle || '')
+      .replace(/^Bản nháp:\s*/i, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!title) {
+      return '';
+    }
+    return `Nội dung: ${title}`.slice(0, 120).trim();
+  }
+
   private async resolveQuizIdForLesson(lessonId: string, explicitQuizId?: string): Promise<string> {
     if (explicitQuizId && explicitQuizId.trim().length > 0) {
       return explicitQuizId.trim();
@@ -1947,6 +1971,9 @@ export class WiiiContextService implements OnDestroy {
       ? this.resolveLessonContentSection(lesson, params)
       : null;
     const targetContentSectionId = this.normalizeString(targetContentSection?.['id']);
+    const nextContentSectionTitle = targetContentSectionId && title
+      ? this.buildContentSectionTitle(title)
+      : '';
     const changedFields = [
       ...(title ? ['title'] : []),
       ...(description ? ['description'] : []),
@@ -1982,6 +2009,7 @@ export class WiiiContextService implements OnDestroy {
       content: content ?? lesson?.content ?? '',
       content_section_id: targetContentSectionId || '',
       content_section_title: this.normalizeString(targetContentSection?.['title']) || '',
+      content_section_next_title: nextContentSectionTitle,
       duration_minutes: Number(lesson?.durationMinutes || 0),
       order_index: Number(lesson?.orderIndex || 0),
       is_required: Boolean((lesson as any)?.isRequired ?? false),
@@ -2003,6 +2031,7 @@ export class WiiiContextService implements OnDestroy {
         ? {
           section_id: targetContentSectionId,
           title: this.normalizeString(targetContentSection?.['title']) || targetContentSectionId,
+          proposed_title: nextContentSectionTitle || undefined,
           type: this.normalizeString(targetContentSection?.['type']) || 'TEXT',
         }
         : undefined,
@@ -2054,6 +2083,7 @@ export class WiiiContextService implements OnDestroy {
     const changedFields = this.normalizeStringArray(payload['changed_fields']);
     const content = String(payload['content'] || '').trim();
     const contentSectionId = String(payload['content_section_id'] || '').trim();
+    const contentSectionTitle = String(payload['content_section_next_title'] || '').trim();
     const metadataChanged = changedFields.some((field) => field === 'title' || field === 'description');
     const contentChanged = changedFields.includes('content');
     const requestOptions = this.buildWiiiAuthoringRequestOptions();
@@ -2063,6 +2093,7 @@ export class WiiiContextService implements OnDestroy {
         lessonId,
         contentSectionId,
         this.buildSectionFormData({
+          ...(contentSectionTitle ? { title: contentSectionTitle } : {}),
           content,
         }),
         requestOptions,
