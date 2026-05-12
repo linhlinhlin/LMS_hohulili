@@ -1,8 +1,8 @@
-import { Component, input, output, model, signal, computed, ChangeDetectionStrategy, inject, effect, ElementRef, viewChild, AfterViewInit } from '@angular/core';
+import { Component, input, output, model, signal, computed, ChangeDetectionStrategy, inject, effect, ElementRef, viewChild, AfterViewInit, DestroyRef, PLATFORM_ID } from '@angular/core';
 import katex from 'katex';
 // KaTeX CSS loaded globally via angular.json styles[]; do NOT import here.
 
-import { CommonModule } from '@angular/common';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Router } from '@angular/router';
@@ -24,6 +24,7 @@ import { ApiClient } from '../../../../api/client/api-client';
 import { IconComponent } from '../../../../shared/components/icon/icon.component';
 import { SideDrawerComponent } from '../../../../shared/components/side-drawer/side-drawer.component';
 import { CompetencyBadgeComponent } from '../competency-badge/competency-badge.component';
+import { PdfSlideViewerComponent } from '../../../../shared/components/pdf-slide-viewer/pdf-slide-viewer.component';
 
 interface DocumentPreviewResponse {
   status: 'PROCESSING' | 'READY' | 'FAILED' | string;
@@ -44,7 +45,7 @@ interface DocumentPreviewResponse {
  */
 @Component({
   selector: 'app-lesson-content',
-  imports: [AdaptiveVideoPlayerComponent, YouTubePlayerComponent, CommonModule, FormsModule, IconComponent, SideDrawerComponent, CompetencyBadgeComponent],
+  imports: [AdaptiveVideoPlayerComponent, YouTubePlayerComponent, CommonModule, FormsModule, IconComponent, SideDrawerComponent, CompetencyBadgeComponent, PdfSlideViewerComponent],
   templateUrl: './lesson-content.component.html',
   styleUrls: ['./lesson-content.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -62,6 +63,8 @@ export class LessonContentComponent implements AfterViewInit {
   private network = inject(NetworkStatusService);
   private pdfViewer = inject(PdfViewerService);
   private apiClient = inject(ApiClient);
+  private destroyRef = inject(DestroyRef);
+  private platformId = inject(PLATFORM_ID);
   private readingTrackerInitTimer: ReturnType<typeof setTimeout> | null = null;
   private emittedReadCompletionKeys = new Set<string>();
 
@@ -252,7 +255,8 @@ export class LessonContentComponent implements AfterViewInit {
 
   /** Safe PDF URL for iframe embedding */
   readonly safePdfUrl = signal<SafeResourceUrl | null>(null);
-  private readonly currentPdfSourceUrl = signal<string | null>(null);
+  readonly currentPdfSourceUrl = signal<string | null>(null);
+  readonly useMobilePdfSlideViewer = signal(this.detectMobilePdfViewerMode());
   readonly onDemandPreviewStatus = signal<'PROCESSING' | 'READY' | 'FAILED' | null>(null);
   readonly onDemandPreviewMessage = signal<string | null>(null);
 
@@ -281,9 +285,13 @@ export class LessonContentComponent implements AfterViewInit {
       return;
     }
 
+    this.currentPdfSourceUrl.set(urlToPreview);
+    if (this.useMobilePdfSlideViewer()) {
+      return;
+    }
+
     const sub = this.pdfViewer.getSafePdfUrl(urlToPreview).subscribe({
       next: url => {
-        this.currentPdfSourceUrl.set(urlToPreview);
         this.safePdfUrl.set(url);
       },
       error: () => this.safePdfUrl.set(null)
@@ -336,10 +344,14 @@ export class LessonContentComponent implements AfterViewInit {
             this.onDemandPreviewMessage.set(data?.message || null);
 
             if (status === 'READY' && data?.previewPdfUrl) {
+              this.currentPdfSourceUrl.set(data.previewPdfUrl);
+              if (this.useMobilePdfSlideViewer()) {
+                return;
+              }
+
               pdfSub?.unsubscribe();
               pdfSub = this.pdfViewer.getSafePdfUrl(data.previewPdfUrl).subscribe({
                 next: url => {
-                  this.currentPdfSourceUrl.set(data.previewPdfUrl!);
                   this.safePdfUrl.set(url);
                 },
                 error: () => this.onDemandPreviewStatus.set('FAILED')
@@ -366,6 +378,14 @@ export class LessonContentComponent implements AfterViewInit {
   }
 
   private pdfContainer = viewChild<ElementRef>('pdfContainer');
+
+  private detectMobilePdfViewerMode(): boolean {
+    if (!isPlatformBrowser(this.platformId)) {
+      return false;
+    }
+
+    return window.matchMedia('(max-width: 767px), (pointer: coarse) and (max-width: 920px)').matches;
+  }
 
   togglePdfFullscreen(): void {
     const el = this.pdfContainer()?.nativeElement;
@@ -700,7 +720,15 @@ export class LessonContentComponent implements AfterViewInit {
   });
 
   ngAfterViewInit(): void {
-    // Reading tracker initializes via effect when section changes
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
+    const query = window.matchMedia('(max-width: 767px), (pointer: coarse) and (max-width: 920px)');
+    const updateMobilePdfMode = () => this.useMobilePdfSlideViewer.set(query.matches);
+    updateMobilePdfMode();
+    query.addEventListener('change', updateMobilePdfMode);
+    this.destroyRef.onDestroy(() => query.removeEventListener('change', updateMobilePdfMode));
   }
 
   private initReadingTracker(): void {

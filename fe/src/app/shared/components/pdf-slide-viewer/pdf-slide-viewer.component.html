@@ -1,0 +1,81 @@
+<section class="pdf-slide-viewer" [attr.aria-label]="'Xem slide ' + fileName()">
+  <header class="pdf-slide-viewer__toolbar">
+    <button
+      type="button"
+      class="pdf-slide-viewer__button"
+      (click)="previousPage()"
+      [disabled]="!canGoPrevious()"
+      aria-label="Trang trước">
+      <app-icon name="chevron-left" size="sm"></app-icon>
+    </button>
+
+    <div class="pdf-slide-viewer__status">
+      <span class="pdf-slide-viewer__label">Slide</span>
+      @if (totalPages()) {
+        <span class="pdf-slide-viewer__count">{{ pageNumber() }} / {{ totalPages() }}</span>
+      } @else {
+        <span class="pdf-slide-viewer__count">Đang tải</span>
+      }
+    </div>
+
+    <button
+      type="button"
+      class="pdf-slide-viewer__button"
+      (click)="nextPage()"
+      [disabled]="!canGoNext()"
+      aria-label="Trang sau">
+      <app-icon name="chevron-right" size="sm"></app-icon>
+    </button>
+  </header>
+
+  <div
+    class="pdf-slide-viewer__stage"
+    (touchstart)="onTouchStart($event)"
+    (touchend)="onTouchEnd($event)">
+    @if (isLoading()) {
+      <div class="pdf-slide-viewer__state" role="status">
+        <span class="pdf-slide-viewer__spinner" aria-hidden="true"></span>
+        <span>Đang mở slide...</span>
+      </div>
+    } @else if (error()) {
+      <div class="pdf-slide-viewer__state pdf-slide-viewer__state--error">
+        <app-icon name="warning" size="md"></app-icon>
+        <span>{{ error() }}</span>
+        <button type="button" class="pdf-slide-viewer__link" (click)="openInNewTab()">
+          Mở trong tab mới
+        </button>
+      </div>
+    }
+
+    <canvas
+      #canvas
+      class="pdf-slide-viewer__canvas"
+      [class.pdf-slide-viewer__canvas--hidden]="isLoading() || error()"
+      [attr.aria-label]="'Slide ' + pageNumber() + ' / ' + totalPages()"></canvas>
+
+    @if (isRendering() && !isLoading() && !error()) {
+      <div class="pdf-slide-viewer__rendering" role="status">
+        <span class="pdf-slide-viewer__spinner" aria-hidden="true"></span>
+      </div>
+    }
+  </div>
+
+  <footer class="pdf-slide-viewer__footer">
+    <button type="button" class="pdf-slide-viewer__text-button" (click)="openInNewTab()">
+      <app-icon name="external-link" size="sm"></app-icon>
+      <span>Tab mới</span>
+    </button>
+
+    @if (downloadUrl()) {
+      <a
+        class="pdf-slide-viewer__text-button"
+        [href]="downloadUrl()"
+        download
+        target="_blank"
+        rel="noopener noreferrer">
+        <app-icon name="download" size="sm"></app-icon>
+        <span>Tải xuống</span>
+      </a>
+    }
+  </footer>
+</section>

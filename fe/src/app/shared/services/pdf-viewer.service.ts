@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { Observable, map } from 'rxjs';
+import { Observable, map, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 /**
@@ -24,7 +24,7 @@ export class PdfViewerService {
      */
     getSafePdfUrl(fileUrl: string | null): Observable<SafeResourceUrl | null> {
         if (!fileUrl) {
-            return new Observable(observer => observer.next(null));
+            return of(null);
         }
 
         const fullUrl = this.resolveFileUrl(fileUrl);
@@ -38,6 +38,15 @@ export class PdfViewerService {
                 return this.sanitizer.bypassSecurityTrustResourceUrl(this.currentUrl);
             })
         );
+    }
+
+    getPdfArrayBuffer(fileUrl: string | null): Observable<ArrayBuffer | null> {
+        if (!fileUrl) {
+            return of(null);
+        }
+
+        const fullUrl = this.resolveFileUrl(fileUrl);
+        return this.http.get(fullUrl, { responseType: 'arraybuffer' });
     }
 
     private resolveFileUrl(fileUrl: string): string {
